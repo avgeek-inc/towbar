@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, type ReactNode, useContext } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useRef,
+} from "react";
+import { usePathname } from "next/navigation";
 import { cn } from "../lib/utils";
 
 const NavigationContext = createContext<((href: string) => void) | undefined>(
@@ -15,8 +22,10 @@ export function AppLayout({
   footer,
   navbar,
   navigate,
+  onSidebarOpenChange,
   sidebar,
   sidebarOpen = true,
+  toggleShortcut = false,
 }: {
   children: ReactNode;
   className?: string;
@@ -30,6 +39,41 @@ export function AppLayout({
   sidebarOpen?: boolean;
   toggleShortcut?: boolean;
 }) {
+  const pathname = usePathname();
+  const previousPathname = useRef(pathname);
+
+  useEffect(() => {
+    const routeChanged = previousPathname.current !== pathname;
+    previousPathname.current = pathname;
+    if (
+      routeChanged &&
+      onSidebarOpenChange &&
+      !window.matchMedia("(min-width: 64rem)").matches
+    ) {
+      onSidebarOpenChange(false);
+    }
+  }, [onSidebarOpenChange, pathname]);
+
+  useEffect(() => {
+    if (!sidebarOpen && !toggleShortcut) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && sidebarOpen) {
+        onSidebarOpenChange?.(false);
+        return;
+      }
+      if (
+        toggleShortcut &&
+        event.key.toLowerCase() === "b" &&
+        (event.metaKey || event.ctrlKey)
+      ) {
+        event.preventDefault();
+        onSidebarOpenChange?.(!sidebarOpen);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onSidebarOpenChange, sidebarOpen, toggleShortcut]);
+
   return (
     <NavigationContext.Provider value={navigate}>
       <div
@@ -42,9 +86,17 @@ export function AppLayout({
         )}
       >
         {sidebar && sidebarOpen ? (
-          <aside className="hidden min-h-dvh border-r border-separator bg-surface lg:block">
-            {sidebar}
-          </aside>
+          <>
+            <button
+              aria-label="Close navigation"
+              className="fixed inset-0 z-40 bg-black/30 lg:hidden"
+              onClick={() => onSidebarOpenChange?.(false)}
+              type="button"
+            />
+            <aside className="fixed inset-y-0 start-0 z-50 w-64 overflow-y-auto border-r border-separator bg-surface lg:sticky lg:top-0 lg:z-auto lg:h-dvh">
+              {sidebar}
+            </aside>
+          </>
         ) : null}
         <div className="grid min-h-dvh min-w-0 grid-rows-[auto_1fr_auto]">
           {navbar}

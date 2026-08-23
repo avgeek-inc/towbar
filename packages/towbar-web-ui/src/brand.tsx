@@ -1,6 +1,6 @@
 import type { ComponentPropsWithoutRef } from "react";
 
-import { TypographyText } from "@workspace/web-design-system/typography/typography";
+import { BrandLockup } from "@workspace/web-design-system/media/brand-lockup";
 
 export function TowbarMark({
   className = "size-8",
@@ -18,10 +18,5 @@ export function TowbarMark({
 }
 
 export function TowbarLockup() {
-  return (
-    <span className="inline-flex items-center gap-2.5">
-      <TowbarMark />
-      <TypographyText weight="semibold">Towbar</TypographyText>
-    </span>
-  );
+  return <BrandLockup logo={<TowbarMark />}>Towbar</BrandLockup>;
 }

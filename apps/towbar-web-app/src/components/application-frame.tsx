@@ -71,12 +71,16 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
           <ApplicationNavbar
             config={applicationHeader}
             hasSidebar
+            onSidebarToggle={() =>
+              sidebarState.onSidebarOpenChange(!sidebarState.sidebarOpen)
+            }
             showThemeSwitcher={applicationPolicy.themeControl === "header"}
           />
         }
         scrollMode="page"
         sidebar={<ApplicationSidebar config={sidebar} />}
         sidebarCollapsible="icon"
+        toggleShortcut
         {...sidebarState}
       >
         <AppShell.Content variant="broad">{children}</AppShell.Content>

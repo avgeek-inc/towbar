@@ -1,4 +1,6 @@
 import type { ComponentProps, ReactElement, ReactNode } from "react";
+import { AppShellBreadcrumb } from "@workspace/web-design-system/layouts/app-shell-breadcrumb";
+import type { AppShellBreadcrumbItems } from "@workspace/web-design-system/layouts/application-shell-types";
 import { Page, PageSection } from "@workspace/web-design-system/layouts/page";
 import {
   TypographyHeading,
@@ -58,7 +60,18 @@ function TitledPage({
   );
 }
 export function ApplicationPage(props: ApplicationPageProps) {
-  return <TitledPage {...props} />;
+  const { breadcrumbAncestors, breadcrumbLabel, title } = props;
+  const breadcrumbItems = [
+    ...breadcrumbAncestors,
+    { label: breadcrumbLabel ?? title },
+  ] as AppShellBreadcrumbItems;
+
+  return (
+    <>
+      <AppShellBreadcrumb items={breadcrumbItems} title={title} />
+      <TitledPage {...props} />
+    </>
+  );
 }
 export function ContentPage(props: ApplicationPageProps) {
   return <TitledPage {...props} />;

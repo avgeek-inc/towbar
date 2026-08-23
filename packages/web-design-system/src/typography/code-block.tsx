@@ -1,7 +1,16 @@
 "use client";
 
-import { forwardRef, type ComponentPropsWithRef, type ReactNode } from "react";
-import { Button } from "../buttons/button";
+import {
+  forwardRef,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentPropsWithRef,
+  type ReactNode,
+} from "react";
+import { Copy01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Button, type ButtonProps } from "../buttons/button";
 import { cn } from "../lib/utils";
 
 const Root = forwardRef<HTMLDivElement, ComponentPropsWithRef<"div">>(
@@ -12,61 +21,106 @@ const Root = forwardRef<HTMLDivElement, ComponentPropsWithRef<"div">>(
         "overflow-hidden rounded-3xl border border-separator bg-surface",
         className,
       )}
+      data-slot="code-block"
       {...props}
     />
   ),
 );
+
 const Header = forwardRef<HTMLDivElement, ComponentPropsWithRef<"div">>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
-        "flex items-center justify-between border-b border-separator px-4 py-3",
+        "flex min-h-12 items-center justify-between gap-3 border-b border-separator px-4 py-2",
         className,
       )}
+      data-slot="code-block-header"
       {...props}
     />
   ),
 );
-function Filename({ className, ...props }: ComponentPropsWithRef<"span">) {
-  return (
+
+const Filename = forwardRef<HTMLSpanElement, ComponentPropsWithRef<"span">>(
+  ({ className, ...props }, ref) => (
     <span
+      ref={ref}
       className={cn("truncate text-xs font-medium text-muted", className)}
+      data-slot="code-block-filename"
       {...props}
     />
-  );
-}
-function Code({
-  className,
-  code,
-  ...props
-}: Omit<ComponentPropsWithRef<"pre">, "children"> & {
+  ),
+);
+
+const Code = forwardRef<
+  HTMLPreElement,
+  Omit<ComponentPropsWithRef<"pre">, "children"> & {
+    code: string;
+    language?: string;
+  }
+>(({ className, code, language, ...props }, ref) => (
+  <pre
+    ref={ref}
+    className={cn("m-0 overflow-x-auto p-4 text-sm", className)}
+    data-language={language}
+    data-slot="code-block-code"
+    {...props}
+  >
+    <code>{code}</code>
+  </pre>
+));
+
+type CopyButtonProps = Omit<ButtonProps, "children" | "onPress"> & {
   code: string;
-  language?: string;
-}) {
-  return (
-    <pre
-      className={cn("m-0 overflow-x-auto p-4 text-sm", className)}
-      {...props}
-    >
-      <code>{code}</code>
-    </pre>
-  );
-}
-function CopyButton({ code }: { code: string }) {
-  return (
-    <Button
-      aria-label="Copy code"
-      size="sm"
-      variant="ghost"
-      onPress={() => navigator.clipboard.writeText(code)}
-    >
-      Copy
-    </Button>
-  );
-}
+};
+
+const CopyButton = forwardRef<HTMLButtonElement, CopyButtonProps>(
+  ({ code, ...props }, ref) => {
+    const [copied, setCopied] = useState(false);
+    const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(
+      () => () => {
+        if (resetTimer.current) clearTimeout(resetTimer.current);
+      },
+      [],
+    );
+
+    const copyCode = async () => {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      if (resetTimer.current) clearTimeout(resetTimer.current);
+      resetTimer.current = setTimeout(() => setCopied(false), 1800);
+    };
+
+    const label = copied ? "Code copied" : "Copy code";
+    return (
+      <Button
+        {...props}
+        ref={ref}
+        aria-label={props["aria-label"] ?? label}
+        data-slot="code-block-copy"
+        isIconOnly
+        onPress={copyCode}
+        size={props.size ?? "sm"}
+        variant={props.variant ?? "ghost"}
+      >
+        <HugeiconsIcon
+          aria-hidden="true"
+          icon={copied ? Tick02Icon : Copy01Icon}
+          size={16}
+        />
+      </Button>
+    );
+  },
+);
+
 Root.displayName = "CodeBlock.Root";
 Header.displayName = "CodeBlock.Header";
+Filename.displayName = "CodeBlock.Filename";
+Code.displayName = "CodeBlock.Code";
+CopyButton.displayName = "CodeBlock.CopyButton";
+
 export const CodeBlock = Object.assign(Root, {
   Code,
   CopyButton,
@@ -74,6 +128,7 @@ export const CodeBlock = Object.assign(Root, {
   Header,
   Root,
 });
+
 export type CodeBlockProps = ComponentPropsWithRef<typeof Root> & {
   children?: ReactNode;
 };

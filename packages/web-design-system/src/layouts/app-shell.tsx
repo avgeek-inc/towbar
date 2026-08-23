@@ -4,18 +4,23 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
+  useLayoutEffect,
   useState,
   type ComponentProps,
   type MouseEvent,
   type ReactNode,
 } from "react";
+import { Menu01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { usePathname } from "next/navigation";
+import { Button } from "../buttons/button";
 import { Toast } from "../overlays/toast";
 import { ThemeSwitcher } from "../controls/theme-switcher";
 import { cn } from "../lib/utils";
+import { BrandLockup } from "../media/brand-lockup";
 import { useAppNavigate } from "../navigation/app-layout";
+import { BreadcrumbTrail } from "../navigation/breadcrumbs";
+import { AppShellBoundary, useAppShellHeaderState } from "./app-shell-boundary";
 import type {
   ApplicationPolicy,
   ContentWidth,
@@ -45,10 +50,12 @@ function Root({
 }) {
   return (
     <ContentWidthContext.Provider value={contentWidth}>
-      <div className={cn("min-h-dvh", className)} {...props}>
-        {children}
-        {policy.toasts ? <Toast.Provider /> : null}
-      </div>
+      <AppShellBoundary>
+        <div className={cn("min-h-dvh", className)} {...props}>
+          {children}
+          {policy.toasts ? <Toast.Provider /> : null}
+        </div>
+      </AppShellBoundary>
     </ContentWidthContext.Provider>
   );
 }
@@ -102,26 +109,59 @@ function RoutedLink({
 }
 export function ApplicationNavbar({
   config,
+  hasSidebar = false,
+  onSidebarToggle,
   showThemeSwitcher = false,
 }: {
   config: HeaderConfig;
   hasSidebar?: boolean;
+  onSidebarToggle?: () => void;
   showThemeSwitcher?: boolean;
 }) {
+  const { breadcrumbItems } = useAppShellHeaderState();
+  const homeItem: ShellLinkConfig = {
+    id: "home",
+    kind: "link",
+    href: config.homeHref,
+    label: config.brand.title,
+  };
+
   return (
     <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-5 border-b border-separator bg-background/90 px-4 backdrop-blur sm:px-6">
-      <a
-        className="inline-flex items-center gap-3 font-medium"
-        href={config.homeHref}
-      >
-        {config.brand.logoSrc ? (
-          <img alt="" className="size-8" src={config.brand.logoSrc} />
+      <div className="flex min-w-0 items-center gap-2">
+        {hasSidebar ? (
+          <Button
+            aria-label="Toggle navigation"
+            className="size-10 min-h-10 min-w-10 shrink-0"
+            isIconOnly
+            onPress={onSidebarToggle}
+            variant="ghost"
+          >
+            <HugeiconsIcon aria-hidden="true" icon={Menu01Icon} size={20} />
+          </Button>
+        ) : (
+          <RoutedLink
+            className="inline-flex min-w-0 items-center"
+            item={homeItem}
+          >
+            <BrandLockup
+              logo={
+                config.brand.logoSrc ? (
+                  <img alt="" className="size-8" src={config.brand.logoSrc} />
+                ) : null
+              }
+            >
+              {config.brand.title}
+            </BrandLockup>
+          </RoutedLink>
+        )}
+        {hasSidebar && breadcrumbItems ? (
+          <BreadcrumbTrail items={breadcrumbItems} />
         ) : null}
-        <span>{config.brand.title}</span>
-      </a>
+      </div>
       <nav
         aria-label="Primary navigation"
-        className="flex items-center gap-5 text-sm"
+        className="flex shrink-0 items-center gap-5 text-sm"
       >
         {config.navigation?.map((item) => (
           <RoutedLink
@@ -155,13 +195,18 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
       className="flex min-h-dvh flex-col gap-8 p-4"
     >
       <RoutedLink
-        className="inline-flex items-center gap-3 px-2 py-1 font-medium"
+        className="inline-flex min-w-0 items-center px-2 py-1"
         item={homeItem}
       >
-        {config.brand.logoSrc ? (
-          <img alt="" className="size-8" src={config.brand.logoSrc} />
-        ) : null}
-        {config.brand.title}
+        <BrandLockup
+          logo={
+            config.brand.logoSrc ? (
+              <img alt="" className="size-8" src={config.brand.logoSrc} />
+            ) : null
+          }
+        >
+          {config.brand.title}
+        </BrandLockup>
       </RoutedLink>
       <div className="grid gap-6">
         {config.groups.map((group) => (
@@ -267,11 +312,12 @@ export function ApplicationFooter({
   );
 }
 export function usePersistentAppSidebar(storageKey = "towbar-sidebar") {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  useEffect(() => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  useLayoutEffect(() => {
     try {
-      const value = localStorage.getItem(storageKey);
-      if (value !== null) setSidebarOpen(value === "true");
+      const isDesktop = window.matchMedia("(min-width: 64rem)").matches;
+      const value = isDesktop ? localStorage.getItem(storageKey) : null;
+      setSidebarOpen(isDesktop && value !== "false");
     } catch {
       // Storage can be unavailable in private browsing or hardened browsers.
     }
@@ -280,7 +326,9 @@ export function usePersistentAppSidebar(storageKey = "towbar-sidebar") {
     (open: boolean) => {
       setSidebarOpen(open);
       try {
-        localStorage.setItem(storageKey, String(open));
+        if (window.matchMedia("(min-width: 64rem)").matches) {
+          localStorage.setItem(storageKey, String(open));
+        }
       } catch {
         // Sidebar state is a convenience; navigation still works without it.
       }
