@@ -28,6 +28,10 @@ const awsCredentialPayloadSchema = z
   })
   .strict();
 
+const storedAwsCredentialPayloadSchema = awsCredentialPayloadSchema
+  .extend({ $source: z.unknown().optional() })
+  .strict();
+
 export type AwsCredentialPayload = z.infer<typeof awsCredentialPayloadSchema>;
 
 export async function getAwsCredentialMetadata(input: {
@@ -119,7 +123,7 @@ async function validateAwsCredentials(input: {
   region: string;
 }) {
   const client = new STSClient({
-    credentials: input.payload,
+    credentials: createAwsSdkCredentials(input.payload),
     region: input.region,
   });
   try {
@@ -204,6 +208,7 @@ export async function getDecryptedAwsCredential(input: {
     credential.id,
   );
   let decrypted: unknown;
+  let usedLegacyAssociatedData = false;
   try {
     decrypted = decryptCredential({
       associatedData,
@@ -211,6 +216,7 @@ export async function getDecryptedAwsCredential(input: {
       masterKey,
     });
   } catch {
+    usedLegacyAssociatedData = true;
     decrypted = decryptCredential({
       associatedData: legacyAwsCredentialAssociatedData(
         input.workspaceId,
@@ -219,24 +225,45 @@ export async function getDecryptedAwsCredential(input: {
       envelope: credential.encryptedPayload,
       masterKey,
     });
+  }
+  const hasAwsSdkMetadata =
+    typeof decrypted === "object" &&
+    decrypted !== null &&
+    Object.hasOwn(decrypted, "$source");
+  const payload = parseStoredAwsCredentialPayload(decrypted);
+  if (usedLegacyAssociatedData || hasAwsSdkMetadata) {
     await getTowbarDatabase()
       .update(sourceAwsCredentials)
       .set({
         encryptedPayload: encryptCredential({
           associatedData,
           masterKey,
-          value: decrypted,
+          value: payload,
         }),
         updatedAt: new Date(),
       })
       .where(eq(sourceAwsCredentials.id, credential.id));
   }
-  const payload = awsCredentialPayloadSchema.parse(decrypted);
   return {
     id: credential.id,
     payload,
     region: credential.region,
   };
+}
+
+export function createAwsSdkCredentials(payload: AwsCredentialPayload) {
+  return {
+    accessKeyId: payload.accessKeyId,
+    secretAccessKey: payload.secretAccessKey,
+  };
+}
+
+export function parseStoredAwsCredentialPayload(value: unknown) {
+  const stored = storedAwsCredentialPayloadSchema.parse(value);
+  return awsCredentialPayloadSchema.parse({
+    accessKeyId: stored.accessKeyId,
+    secretAccessKey: stored.secretAccessKey,
+  });
 }
 
 function awsCredentialAssociatedData(
