@@ -33,16 +33,25 @@ export function TypographyHeading({
   const tag = elementType ?? (`h${level}` as const);
   const scale = {
     1: "text-4xl",
-    2: "text-3xl",
+    2: "text-2xl",
     3: "text-2xl",
     4: "text-xl",
     5: "text-lg",
     6: "text-base",
   } as const;
+  const weight = {
+    1: "font-semibold",
+    2: "font-medium",
+    3: "font-semibold",
+    4: "font-semibold",
+    5: "font-semibold",
+    6: "font-semibold",
+  } as const;
   return createElement(tag, {
     className: cn(
       scale[level],
-      "font-semibold tracking-tight",
+      weight[level],
+      "tracking-tight",
       align[textAlign],
       color[tone],
       className,
