@@ -345,9 +345,13 @@ export function SimpleForm({
     event.preventDefault();
     setBusy(true);
     setError(undefined);
+    const formData = new FormData(event.currentTarget);
     const values = Object.fromEntries(
-      new FormData(event.currentTarget).entries(),
-    ) as Record<string, string>;
+      fields.map(({ name }) => {
+        const value = formData.get(name);
+        return [name, typeof value === "string" ? value : ""];
+      }),
+    );
     try {
       await onSubmit(values);
       toast.success(successMessage);
