@@ -1,0 +1,40 @@
+{
+  "name": "@workspace/observability-node",
+  "description": "Provider-neutral observability adapters for Towbar Node runtimes.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./hono": {
+      "types": "./dist/hono.d.ts",
+      "import": "./dist/hono.js",
+      "default": "./dist/hono.js"
+    },
+    "./temporal": {
+      "types": "./dist/temporal.d.ts",
+      "import": "./dist/temporal.js",
+      "default": "./dist/temporal.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "hono": "^4.12.31"
+  },
+  "peerDependenciesMeta": {
+    "hono": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "eslint": "catalog:",
+    "hono": "^4.12.31",
+    "typescript": "catalog:"
+  }
+}

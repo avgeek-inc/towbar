@@ -1,0 +1,42 @@
+{
+  "name": "towbar-web-app",
+  "type": "module",
+  "private": true,
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "description": "Towbar private deployment dashboard.",
+  "homepage": "https://app.towbar.dev",
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0 --port 4021 --turbopack",
+    "dev:fixture-api": "node ./scripts/fixture-api.ts",
+    "start": "next start --port 4021",
+    "build": "pnpm next build",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint --fix . --max-warnings 0",
+    "test:fixture-api": "node --test ./scripts/fixture-api.test.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hugeicons/core-free-icons": "catalog:",
+    "@hugeicons/react": "catalog:",
+    "@workspace/towbar-web-client": "workspace:*",
+    "@workspace/towbar-web-ui": "workspace:*",
+    "@workspace/web-design-system": "workspace:*",
+    "@workspace/web-page-sections": "workspace:*",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@workspace/eslint-config": "workspace:^",
+    "@workspace/typescript-config": "workspace:*",
+    "eslint": "catalog:",
+    "typescript": "catalog:"
+  }
+}

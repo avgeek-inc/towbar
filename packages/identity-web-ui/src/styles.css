@@ -1,0 +1,61 @@
+[data-slot="identity-auth-shell"] {
+  display: flex;
+  width: 100%;
+  min-height: 100dvh;
+  align-items: stretch;
+}
+
+[data-slot="app-shell-center"]:has([data-slot="identity-auth-shell"])
+  [data-slot="app-shell-main"] {
+  display: flex;
+}
+
+[data-slot="app-shell-center"]:has([data-slot="identity-auth-shell"])
+  [data-slot="content-container"],
+[data-slot="app-shell-center"]:has([data-slot="identity-auth-shell"])
+  [data-slot="page"][data-archetype="auth"],
+[data-slot="app-shell-center"]:has([data-slot="identity-auth-shell"])
+  [data-slot="page-section"]:has([data-slot="identity-auth-shell"]) {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+[data-slot="app-shell-center"]:has([data-slot="identity-auth-shell"])
+  [data-slot="page-section"]:has([data-slot="identity-auth-shell"]) {
+  max-width: none;
+  padding-block: 0;
+  padding-inline: 0;
+}
+
+[data-slot="app-shell-center"]:has([data-slot="identity-auth-shell"])
+  [data-slot="identity-auth-shell"] {
+  flex: 1;
+  align-self: stretch;
+  min-height: calc(100dvh - var(--workspace-shell-header-height, 5rem));
+}
+
+[data-slot="identity-auth-form-panel"] {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: inherit;
+  align-items: flex-start;
+  justify-content: center;
+  padding-block: calc(var(--spacing) * 12);
+  padding-inline: calc(var(--spacing) * 5);
+}
+
+[data-slot="identity-auth-content"] {
+  display: grid;
+  width: 100%;
+  gap: calc(var(--spacing) * 8);
+}
+
+@media (min-width: 640px) {
+  [data-slot="identity-auth-form-panel"] {
+    align-items: center;
+    padding-inline: calc(var(--spacing) * 6);
+  }
+}

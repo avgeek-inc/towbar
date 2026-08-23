@@ -1,0 +1,50 @@
+{
+  "name": "towbar-api",
+  "type": "module",
+  "private": true,
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "description": "Towbar deployment control-plane API.",
+  "homepage": "https://api.towbar.dev",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "prebuild": "pnpm --filter @workspace/towbar-core build && pnpm --filter @workspace/towbar-database build && pnpm --filter @workspace/observability-node build",
+    "build": "tsc --project tsconfig.build.json",
+    "database:migrate:production": "node dist/cli/migrate.js",
+    "bootstrap:owner": "tsx src/cli/bootstrap-owner.ts",
+    "bootstrap:owner:production": "node dist/cli/bootstrap-owner.js",
+    "recovery:issue": "tsx src/cli/issue-recovery-token.ts",
+    "recovery:issue:production": "node dist/cli/issue-recovery-token.js",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix --max-warnings 0",
+    "test": "tsx --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"**/*.ts\""
+  },
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "catalog:",
+    "@aws-sdk/client-sts": "catalog:",
+    "@hono/node-server": "^2.0.11",
+    "@temporalio/client": "catalog:",
+    "@workspace/observability-node": "workspace:*",
+    "@workspace/towbar-core": "workspace:*",
+    "@workspace/towbar-database": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "hono": "^4.12.31",
+    "jose": "^4.15.9",
+    "postgres": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@workspace/eslint-config": "workspace:^",
+    "@workspace/typescript-config": "workspace:*",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "tsx": "^4.21.0",
+    "typescript": "catalog:"
+  }
+}

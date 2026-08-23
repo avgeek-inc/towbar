@@ -1,0 +1,187 @@
+name: towbar
+
+x-api-image: &api-image
+  image: towbar/api:${TOWBAR_IMAGE_TAG:-local}
+
+x-backend-environment: &backend-environment
+  NODE_ENV: production
+  SOURCE_COMMIT: ${SOURCE_COMMIT:-development}
+  TEMPORAL_ADDRESS: temporal:7233
+  TEMPORAL_NAMESPACE: default
+  TOWBAR_API_BASE_URL: ${TOWBAR_API_BASE_URL:-http://localhost:4020}
+  TOWBAR_APP_BASE_URL: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
+  TOWBAR_SSO_BASE_URL: ${TOWBAR_SSO_BASE_URL:-http://localhost:4022}
+  TOWBAR_WEBSITE_BASE_URL: ${TOWBAR_WEBSITE_BASE_URL:-https://towbar.dev}
+  TOWBAR_INTERNAL_HMAC_SECRET: ${TOWBAR_INTERNAL_HMAC_SECRET:?set TOWBAR_INTERNAL_HMAC_SECRET}
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: towbar
+      POSTGRES_USER: towbar
+      POSTGRES_PASSWORD: ${TOWBAR_POSTGRES_PASSWORD:?set TOWBAR_POSTGRES_PASSWORD}
+      TOWBAR_DATABASE_RUNTIME_PASSWORD: ${TOWBAR_DATABASE_RUNTIME_PASSWORD:?set TOWBAR_DATABASE_RUNTIME_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U towbar -d towbar"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks: [platform]
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/01-runtime-role.sh:/docker-entrypoint-initdb.d/01-runtime-role.sh:ro
+
+  temporal:
+    image: temporalio/auto-setup:1.29.1
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: towbar
+      POSTGRES_PWD: ${TOWBAR_POSTGRES_PASSWORD:?set TOWBAR_POSTGRES_PASSWORD}
+      POSTGRES_SEEDS: postgres
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "temporal",
+          "operator",
+          "cluster",
+          "health",
+          "--address",
+          "temporal:7233",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+    networks: [platform]
+
+  temporal-ui:
+    image: temporalio/ui:2.34.0
+    restart: unless-stopped
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
+    networks: [platform]
+    ports:
+      - "${TOWBAR_BIND_ADDRESS:-127.0.0.1}:${TOWBAR_TEMPORAL_UI_PORT:-8233}:8080"
+
+  migrate:
+    <<: *api-image
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["node", "dist/cli/migrate.js"]
+    environment:
+      DATABASE_TOWBAR_MIGRATOR_URL: postgres://towbar:${TOWBAR_POSTGRES_PASSWORD:?set TOWBAR_POSTGRES_PASSWORD}@postgres:5432/towbar
+      NODE_ENV: production
+    networks: [platform]
+    restart: "no"
+
+  api:
+    <<: *api-image
+    build:
+      context: .
+      dockerfile: apps/towbar-api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      temporal:
+        condition: service_healthy
+    environment:
+      <<: *backend-environment
+      DATABASE_TOWBAR_URL: postgres://towbar_app:${TOWBAR_DATABASE_RUNTIME_PASSWORD:?set TOWBAR_DATABASE_RUNTIME_PASSWORD}@postgres:5432/towbar
+      TOWBAR_CREDENTIALS_KEY: ${TOWBAR_CREDENTIALS_KEY:?set TOWBAR_CREDENTIALS_KEY}
+      GITHUB_APP_ID: ${GITHUB_APP_ID:-}
+      GITHUB_APP_SLUG: ${GITHUB_APP_SLUG:-}
+      GITHUB_APP_PRIVATE_KEY_BASE64: ${GITHUB_APP_PRIVATE_KEY_BASE64:-}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
+    networks: [platform]
+    ports:
+      - "${TOWBAR_BIND_ADDRESS:-127.0.0.1}:${TOWBAR_API_PORT:-4020}:4020"
+
+  worker:
+    image: towbar/worker:${TOWBAR_IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: apps/towbar-worker/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+    environment:
+      <<: *backend-environment
+      TOWBAR_API_BASE_URL: http://api:4020
+      WORKER_HEALTH_PORT: 4030
+    networks: [platform]
+
+  web-app:
+    image: towbar/web-app:${TOWBAR_IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: apps/towbar-web-app/Dockerfile
+      args:
+        NEXT_PUBLIC_TOWBAR_API_BASE_URL: ${TOWBAR_API_BASE_URL:-http://localhost:4020}
+        NEXT_PUBLIC_TOWBAR_APP_BASE_URL: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
+        NEXT_PUBLIC_TOWBAR_SSO_BASE_URL: ${TOWBAR_SSO_BASE_URL:-http://localhost:4022}
+        NEXT_PUBLIC_TOWBAR_WEBSITE_BASE_URL: ${TOWBAR_WEBSITE_BASE_URL:-https://towbar.dev}
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-development}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [platform]
+    ports:
+      - "${TOWBAR_BIND_ADDRESS:-127.0.0.1}:${TOWBAR_APP_PORT:-4021}:4021"
+
+  sso:
+    image: towbar/sso:${TOWBAR_IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: apps/towbar-sso/Dockerfile
+      args:
+        NEXT_PUBLIC_TOWBAR_API_BASE_URL: ${TOWBAR_API_BASE_URL:-http://localhost:4020}
+        NEXT_PUBLIC_TOWBAR_APP_BASE_URL: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-development}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [platform]
+    ports:
+      - "${TOWBAR_BIND_ADDRESS:-127.0.0.1}:${TOWBAR_SSO_PORT:-4022}:4022"
+
+  bootstrap:
+    <<: *api-image
+    profiles: [bootstrap]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    command: ["node", "dist/cli/bootstrap-owner.js"]
+    environment:
+      DATABASE_TOWBAR_MIGRATOR_URL: postgres://towbar:${TOWBAR_POSTGRES_PASSWORD:?set TOWBAR_POSTGRES_PASSWORD}@postgres:5432/towbar
+      TOWBAR_BOOTSTRAP_EMAIL: ${TOWBAR_BOOTSTRAP_EMAIL:?set TOWBAR_BOOTSTRAP_EMAIL}
+      TOWBAR_BOOTSTRAP_NAME: ${TOWBAR_BOOTSTRAP_NAME:-Towbar Owner}
+      TOWBAR_BOOTSTRAP_PASSWORD: ${TOWBAR_BOOTSTRAP_PASSWORD:?set TOWBAR_BOOTSTRAP_PASSWORD}
+      TOWBAR_BOOTSTRAP_WORKSPACE_NAME: ${TOWBAR_BOOTSTRAP_WORKSPACE_NAME:-Towbar}
+      TOWBAR_BOOTSTRAP_WORKSPACE_SLUG: ${TOWBAR_BOOTSTRAP_WORKSPACE_SLUG:-towbar}
+    networks: [platform]
+    restart: "no"
+
+networks:
+  platform:
+    name: ${TOWBAR_NETWORK_NAME:-towbar-platform}
+
+volumes:
+  postgres-data:

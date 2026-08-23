@@ -1,0 +1,42 @@
+{
+  "name": "@workspace/towbar-database",
+  "description": "PostgreSQL schema, migrations, and typed client for Towbar.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx migrate.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js",
+      "default": "./dist/client.js"
+    },
+    "./schema": {
+      "types": "./dist/schema/index.d.ts",
+      "import": "./dist/schema/index.js",
+      "default": "./dist/schema/index.js"
+    },
+    "./migrate": {
+      "types": "./dist/migrate.d.ts",
+      "import": "./dist/migrate.js",
+      "default": "./dist/migrate.js"
+    }
+  },
+  "dependencies": {
+    "@workspace/towbar-core": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "postgres": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@workspace/typescript-config": "workspace:*",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.21.0",
+    "typescript": "catalog:"
+  }
+}

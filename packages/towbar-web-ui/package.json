@@ -1,0 +1,29 @@
+{
+  "name": "@workspace/towbar-web-ui",
+  "description": "Towbar-specific React interface compositions.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@workspace/web-design-system": "workspace:*",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "eslint": "catalog:",
+    "typescript": "catalog:"
+  },
+  "exports": {
+    "./*": "./src/*.tsx"
+  }
+}

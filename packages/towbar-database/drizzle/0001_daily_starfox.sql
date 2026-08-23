@@ -1,0 +1,2 @@
+DROP INDEX "idx_towbar_github_installations_workspace";--> statement-breakpoint
+CREATE UNIQUE INDEX "uq_towbar_github_installations_workspace" ON "towbar_github_installations" USING btree ("workspace_id");

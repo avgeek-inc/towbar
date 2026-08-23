@@ -1,0 +1,32 @@
+name: Bug report
+description: Report reproducible incorrect behavior
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not report security vulnerabilities here. Follow SECURITY.md.
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Include expected behavior and sanitized logs.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Towbar version or commit
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Docker, browser, and relevant non-secret configuration.

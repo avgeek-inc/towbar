@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Backend",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "lib": ["es2022"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "sourceMap": true
+  }
+}

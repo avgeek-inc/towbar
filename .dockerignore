@@ -1,0 +1,13 @@
+.git
+.github
+.pnpm-store
+.pnpm-state
+.turbo
+**/.next
+**/coverage
+**/dist
+**/node_modules
+*.log
+.env
+.env.*
+!.env.example

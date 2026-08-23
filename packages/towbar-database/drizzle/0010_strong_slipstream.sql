@@ -1,0 +1,1 @@
+ALTER TABLE "towbar_deployments" ADD COLUMN "config_digest" varchar(64);

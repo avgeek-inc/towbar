@@ -1,0 +1,35 @@
+{
+  "name": "@workspace/towbar-deployer",
+  "description": "Isolated SSH, Docker, and Caddy deployment executor for Towbar.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix --max-warnings 0",
+    "test": "tsx --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@workspace/towbar-core": "workspace:*",
+    "ssh2": "^1.17.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/ssh2": "^1.15.5",
+    "@workspace/eslint-config": "workspace:^",
+    "@workspace/typescript-config": "workspace:*",
+    "eslint": "catalog:",
+    "tsx": "^4.21.0",
+    "typescript": "catalog:"
+  }
+}

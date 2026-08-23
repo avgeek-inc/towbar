@@ -1,0 +1,63 @@
+{
+  "name": "@workspace/web-design-system",
+  "description": "OSS-safe UI primitives used by Towbar.",
+  "type": "module",
+  "private": true,
+  "license": "Apache-2.0",
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "catalog:",
+    "@heroui/react": "catalog:",
+    "@heroui/styles": "catalog:",
+    "@hugeicons/core-free-icons": "catalog:",
+    "@hugeicons/react": "catalog:",
+    "@sentry/nextjs": "catalog:",
+    "@sentry/react": "catalog:",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-aria-components": "catalog:",
+    "react-dom": "catalog:",
+    "recharts": "catalog:",
+    "tailwind-merge": "catalog:"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "eslint": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:"
+  },
+  "exports": {
+    "./postcss.config": "./postcss.config.mjs",
+    "./styles/globals.css": "./src/styles/globals.css",
+    "./buttons/*": "./src/buttons/*.tsx",
+    "./charts/*": "./src/charts/*.tsx",
+    "./collections/*": "./src/collections/*.tsx",
+    "./data-display/*": "./src/data-display/*.tsx",
+    "./feedback/*": "./src/feedback/*.tsx",
+    "./forms/*": "./src/forms/*.tsx",
+    "./hooks/*": "./src/hooks/*.ts",
+    "./layout/*": "./src/layout/*.tsx",
+    "./layouts/app-shell": "./src/layouts/app-shell.tsx",
+    "./layouts/application-shell-types": "./src/layouts/application-shell-types.ts",
+    "./layouts/page": "./src/layouts/page.tsx",
+    "./layouts/sidebar-icons": "./src/layouts/sidebar-icons.ts",
+    "./layouts/workspace-document": "./src/layouts/workspace-document.tsx",
+    "./lib/observability-global-error": "./src/lib/observability-global-error.tsx",
+    "./lib/*": "./src/lib/*.ts",
+    "./navigation/*": "./src/navigation/*.tsx",
+    "./overlays/*": "./src/overlays/*.tsx",
+    "./pickers/*": "./src/pickers/*.tsx",
+    "./typography/*": "./src/typography/*.tsx",
+    "./utilities/*": "./src/utilities/*.tsx"
+  }
+}

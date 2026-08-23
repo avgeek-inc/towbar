@@ -1,0 +1,71 @@
+packages:
+  - apps/*
+  - packages/*
+
+overrides:
+  "@grpc/grpc-js@1.14.3": 1.14.4
+  "axios@1.15.2": 1.18.0
+  "brace-expansion@2.1.0": 2.1.2
+  "brace-expansion@5.0.5": 5.0.9
+  "fast-uri@3.1.0": 3.1.5
+  "fast-xml-builder@1.1.5": 1.1.7
+  "form-data@2.5.5": 2.5.6
+  "form-data@4.0.5": 4.0.6
+  "minimatch@9.0.9": 10.2.5
+  "nanoid@3.3.16": 3.3.18
+  "postcss@8.4.31": 8.5.18
+  "postcss@8.5.10": 8.5.18
+  "sharp@0.34.5": 0.35.0
+  "tar@7.5.13": 7.5.19
+  "undici@7.25.0": 7.29.0
+  "websocket-driver@0.7.4": 0.7.5
+  "ws@8.19.0": 8.21.0
+
+allowBuilds:
+  "@sentry/cli": true
+  "@swc/core": true
+  cpu-features: false
+  esbuild: true
+  protobufjs: true
+  sharp: true
+  ssh2: false
+
+catalog:
+  "@aws-sdk/client-s3": ^3.1093.0
+  "@aws-sdk/client-secrets-manager": ^3.1093.0
+  "@aws-sdk/client-sts": ^3.1093.0
+  "@eslint/js": ^9.39.4
+  "@fontsource-variable/inter": ^5.3.0
+  "@heroui/react": 3.2.4
+  "@heroui/styles": 3.2.4
+  "@hookform/resolvers": ^5.2.2
+  "@hugeicons/core-free-icons": ^4.3.0
+  "@hugeicons/react": ^1.1.10
+  "@sentry/nextjs": ^10.67.0
+  "@sentry/react": ^10.67.0
+  "@tailwindcss/postcss": ^4.2.4
+  "@temporalio/activity": ^1.16.1
+  "@temporalio/client": ^1.16.1
+  "@temporalio/worker": ^1.16.1
+  "@temporalio/workflow": ^1.16.1
+  "@types/node": ^24.12.2
+  "@types/react": ^19.2.14
+  "@types/react-dom": ^19.2.3
+  class-variance-authority: ^0.7.1
+  clsx: ^2.1.1
+  date-fns: ^4.1.0
+  drizzle-orm: ^0.45.2
+  eslint: ^9.39.4
+  next: ^16.2.11
+  postgres: ^3.4.9
+  prettier: ^3.8.3
+  react: ^19.2.5
+  react-aria-components: ^1.20.0
+  react-dom: ^19.2.5
+  react-hook-form: ^7.73.1
+  recharts: ^3.10.1
+  tailwind-merge: ^3.5.0
+  tailwindcss: ^4.2.4
+  typescript: ^5.9.3
+  yaml: ^2.8.3
+  zod: ^4.3.6

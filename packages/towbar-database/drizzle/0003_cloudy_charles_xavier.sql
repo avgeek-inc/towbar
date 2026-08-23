@@ -1,0 +1,1 @@
+ALTER TABLE "towbar_deployments" ADD CONSTRAINT "chk_towbar_deployments_rollback_snapshot" CHECK (("towbar_deployments"."kind" = 'deploy' AND "towbar_deployments"."rollback_release_snapshot" IS NULL) OR ("towbar_deployments"."kind" = 'rollback' AND "towbar_deployments"."rollback_release_snapshot" IS NOT NULL));

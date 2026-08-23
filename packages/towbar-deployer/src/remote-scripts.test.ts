@@ -1,0 +1,113 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import {
+  buildRemoteScript,
+  finalizeRemoteScript,
+  hookRemoteScript,
+  rollbackCandidateScript,
+  scheduleFinalizeRemoteScript,
+  startRemoteScript,
+  startResourceRemoteScript,
+} from "./remote-scripts.js";
+
+void describe("remote deployment scripts", () => {
+  void it("retains only the image tags supplied by the release ledger", () => {
+    assert.match(finalizeRemoteScript, /for retained_image in "\$@"/);
+    assert.match(
+      finalizeRemoteScript,
+      /if test "\$image" = "\$retained_image"/,
+    );
+    assert.doesNotMatch(finalizeRemoteScript, /CreatedAt/);
+  });
+
+  void it("restores both the Caddy route and Cloudflare environment", () => {
+    assert.match(rollbackCandidateScript, /caddy\.previous\.state/);
+    assert.match(rollbackCandidateScript, /cloudflare\.previous\.state/);
+    assert.match(rollbackCandidateScript, /systemctl daemon-reload/);
+    assert.match(
+      rollbackCandidateScript,
+      /docker start "\$previous_container"/,
+    );
+  });
+
+  void it("bounds remote archive expansion before extracting", () => {
+    assert.match(buildRemoteScript, /gzip -cd/);
+    assert.match(buildRemoteScript, /max_expanded_bytes/);
+    assert.match(buildRemoteScript, /max_archive_entries/);
+    assert.match(buildRemoteScript, /--no-same-owner --no-same-permissions/);
+  });
+
+  void it("injects runtime secrets by key without putting values in argv", () => {
+    assert.match(startRemoteScript, /secrets\/runtime/);
+    assert.match(startRemoteScript, /secret_path\.read_text/);
+    assert.match(startRemoteScript, /\("--env", secret_path\.name\)/);
+    assert.match(startRemoteScript, /os\.execve/);
+    assert.match(startRemoteScript, /\/usr\/bin\/docker run/);
+    assert.doesNotMatch(startRemoteScript, /--env-file/);
+  });
+
+  void it("publishes the selected source revision to application runtimes", () => {
+    assert.match(
+      startRemoteScript,
+      /--env "SOURCE_COMMIT=\$TOWBAR_COMMIT_SHA"/,
+    );
+  });
+
+  void it("starts resources with stable labeled volumes and stops only the previous release", () => {
+    assert.match(startResourceRemoteScript, /docker volume create/);
+    assert.match(
+      startResourceRemoteScript,
+      /towbar-\$deployable_id-\$logical_name/,
+    );
+    assert.match(
+      startResourceRemoteScript,
+      /docker stop --time 30 "\$previous_container"/,
+    );
+    assert.match(
+      startResourceRemoteScript,
+      /--label "towbar\.resource=\$deployable_id"/,
+    );
+    assert.match(
+      startResourceRemoteScript,
+      /--label "towbar\.deployable=\$TOWBAR_DEPLOYABLE_ID"/,
+    );
+    assert.match(
+      startResourceRemoteScript,
+      /--label "towbar\.source=\$TOWBAR_SOURCE_ID"/,
+    );
+    assert.match(startResourceRemoteScript, /secret_path\.read_text/);
+    assert.doesNotMatch(startResourceRemoteScript, /--env-file/);
+  });
+
+  void it("keeps Resource aliases stable and publishes fixed access only on loopback", () => {
+    assert.match(startResourceRemoteScript, /--network-alias/);
+    assert.match(
+      startResourceRemoteScript,
+      /127\.0\.0\.1:\$host_port:\$container_port/,
+    );
+    assert.match(startResourceRemoteScript, /Docker network alias/);
+    assert.match(startResourceRemoteScript, /Loopback host port/);
+    assert.match(startResourceRemoteScript, /Docker Engine 28 or newer/);
+    assert.match(startResourceRemoteScript, /probe\.bind\(\("127\.0\.0\.1"/);
+    assert.doesNotMatch(
+      startResourceRemoteScript,
+      /docker_command\+=\(-p "\$host_port:/,
+    );
+  });
+
+  void it("runs hooks in the built image with isolated secret injection and a timeout", () => {
+    assert.match(hookRemoteScript, /secrets\/hooks\/\$hook_name/);
+    assert.match(hookRemoteScript, /\/usr\/bin\/timeout/);
+    assert.match(hookRemoteScript, /\/usr\/bin\/docker run --rm/);
+    assert.match(hookRemoteScript, /secret_path\.read_text/);
+    assert.match(hookRemoteScript, /"\$image_tag" "\$@"/);
+  });
+
+  void it("can defer self-managed worker cleanup until its activity returns", () => {
+    assert.match(scheduleFinalizeRemoteScript, /sleep "\$delay_seconds"/);
+    assert.match(scheduleFinalizeRemoteScript, /nohup bash -c/);
+    assert.match(scheduleFinalizeRemoteScript, /label=towbar\.app=\$app_id/);
+    assert.match(scheduleFinalizeRemoteScript, /name" != "\$container_name/);
+  });
+});

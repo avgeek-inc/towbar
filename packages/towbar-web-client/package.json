@@ -1,0 +1,22 @@
+{
+  "name": "@workspace/towbar-web-client",
+  "description": "Typed browser API and authentication client for Towbar.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./types": "./src/types.ts"
+  },
+  "devDependencies": {
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "eslint": "catalog:",
+    "typescript": "catalog:"
+  }
+}

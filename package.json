@@ -1,0 +1,34 @@
+{
+  "name": "towbar",
+  "version": "0.1.0",
+  "description": "Opinionated, source-driven deployments to Ubuntu servers you own.",
+  "private": true,
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev dev:worker --concurrency 10",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "format": "prettier --write \"**/*.{css,json,md,mjs,ts,tsx,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{css,json,md,mjs,ts,tsx,yml,yaml}\"",
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "compose:config": "docker compose config --quiet",
+    "compose:build": "docker compose build",
+    "compose:up": "docker compose up --build --detach --wait",
+    "compose:down": "docker compose down",
+    "compose:logs": "docker compose logs --follow"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@workspace/typescript-config": "workspace:*",
+    "prettier": "catalog:",
+    "turbo": "^2.9.14",
+    "typescript": "catalog:",
+    "yaml": "catalog:"
+  },
+  "packageManager": "pnpm@11.5.3+sha512.7ac1c919341c213a34dc0d02afb7143c5c26ac26ee8c4782deea821b8ac64d2134a081fd8941dae6e29bbb48f58dfc2b7fbceeccc07cb2f09d219d342a4969ed",
+  "engines": {
+    "node": ">=24"
+  }
+}

@@ -1,0 +1,520 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://towbar.dev/schemas/deployment.v1.json",
+  "title": "Towbar deployment manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "servers"],
+  "anyOf": [
+    {
+      "required": ["apps"],
+      "properties": { "apps": { "minItems": 1 } }
+    },
+    {
+      "required": ["resources"],
+      "properties": { "resources": { "minItems": 1 } }
+    }
+  ],
+  "properties": {
+    "version": { "const": 1 },
+    "deploymentInputs": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+      },
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 200,
+        "uniqueItems": true,
+        "items": { "$ref": "#/$defs/deploymentInputGlob" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "branch": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "default": "main"
+        }
+      }
+    },
+    "secrets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "build": {
+          "type": "array",
+          "maxItems": 50,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/secretReference" }
+        },
+        "deployment": {
+          "type": "array",
+          "maxItems": 50,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/secretReference" }
+        }
+      }
+    },
+    "servers": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ip", "ssh", "secrets"],
+        "properties": {
+          "buildConcurrency": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16,
+            "default": 1
+          },
+          "ip": { "type": "string" },
+          "ssh": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["username"],
+            "properties": {
+              "host": { "type": "string" },
+              "username": { "type": "string" },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              }
+            }
+          },
+          "secrets": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["login"],
+            "properties": {
+              "login": { "$ref": "#/$defs/secretReference" }
+            }
+          },
+          "proxy": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "cloudflare": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["apiToken"],
+                "properties": {
+                  "apiToken": { "$ref": "#/$defs/secretReference" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "apps": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "server", "dockerfile", "container"],
+        "properties": {
+          "autoDeploy": {
+            "default": false,
+            "oneOf": [
+              { "type": "boolean" },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["inputs"],
+                "properties": {
+                  "inputs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "uniqueItems": true,
+                    "items": { "$ref": "#/$defs/deploymentInputPattern" }
+                  }
+                }
+              }
+            ]
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+          },
+          "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "description": { "type": "string", "maxLength": 500 },
+          "server": { "type": "string" },
+          "dockerfile": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "context": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "dependsOn": {
+            "type": "array",
+            "maxItems": 50,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+            }
+          },
+          "container": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["port"],
+            "properties": {
+              "network": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "resources": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["cpus", "memory"],
+                "properties": {
+                  "cpus": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 128
+                  },
+                  "memory": {
+                    "type": "string",
+                    "pattern": "^\\d+(?:\\.\\d+)?[bBkKmMgG]$"
+                  }
+                }
+              }
+            }
+          },
+          "health": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path"],
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^/",
+                "maxLength": 1024
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "minimum": 5,
+                "maximum": 600
+              }
+            }
+          },
+          "hooks": {
+            "type": "object",
+            "additionalProperties": false,
+            "minProperties": 1,
+            "properties": {
+              "preDeploy": { "$ref": "#/$defs/deploymentHook" },
+              "postDeploy": { "$ref": "#/$defs/deploymentHook" }
+            }
+          },
+          "secrets": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "build": { "$ref": "#/$defs/secretReference" },
+              "deployment": { "$ref": "#/$defs/secretReference" }
+            }
+          },
+          "domains": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["primary"],
+            "properties": {
+              "primary": { "type": "string" },
+              "redirects": {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["host"],
+                  "properties": {
+                    "host": { "type": "string" },
+                    "status": { "enum": [301, 302], "default": 301 }
+                  }
+                }
+              }
+            }
+          },
+          "tls": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["mode"],
+            "properties": {
+              "mode": { "enum": ["direct", "cloudflare-dns"] }
+            }
+          }
+        }
+      }
+    },
+    "resources": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "type", "server"],
+        "properties": {
+          "access": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["sshTunnel"],
+            "properties": {
+              "sshTunnel": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["hostPort"],
+                "properties": {
+                  "hostPort": {
+                    "type": "integer",
+                    "minimum": 1024,
+                    "maximum": 65535
+                  }
+                }
+              }
+            }
+          },
+          "autoDeploy": { "type": "boolean", "default": false },
+          "backup": { "$ref": "#/$defs/resourceBackup" },
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+          },
+          "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "description": { "type": "string", "maxLength": 500 },
+          "type": { "enum": ["image", "postgres", "redis"] },
+          "image": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._/:@-]{0,511}$"
+          },
+          "server": { "type": "string" },
+          "dependsOn": {
+            "type": "array",
+            "maxItems": 50,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+            }
+          },
+          "container": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "command": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 64,
+                "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
+              },
+              "network": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+              },
+              "networkAlias": {
+                "type": "string",
+                "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+              },
+              "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+              "resources": { "$ref": "#/$defs/containerResources" },
+              "volumes": {
+                "type": "array",
+                "maxItems": 20,
+                "items": { "$ref": "#/$defs/dockerVolume" }
+              }
+            }
+          },
+          "health": { "$ref": "#/$defs/resourceHealth" },
+          "secrets": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "deployment": { "$ref": "#/$defs/secretReference" }
+            }
+          },
+          "domains": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["primary"],
+            "properties": {
+              "primary": { "type": "string" },
+              "redirects": {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["host"],
+                  "properties": {
+                    "host": { "type": "string" },
+                    "status": { "enum": [301, 302], "default": 301 }
+                  }
+                }
+              }
+            }
+          },
+          "tls": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["mode"],
+            "properties": {
+              "mode": { "enum": ["direct", "cloudflare-dns"] }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "containerResources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cpus", "memory"],
+      "properties": {
+        "cpus": { "type": "number", "exclusiveMinimum": 0, "maximum": 128 },
+        "memory": {
+          "type": "string",
+          "pattern": "^\\d+(?:\\.\\d+)?[bBkKmMgG]$"
+        }
+      }
+    },
+    "dockerVolume": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "mountPath"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+        },
+        "mountPath": { "type": "string", "minLength": 1, "maxLength": 1024 }
+      }
+    },
+    "deploymentInputGlob": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?![!/$])(?!\\.\\.(?:/|$))(?!.*\\/\\.\\.(?:\\/|$))[^\\\\\\u0000]+$"
+    },
+    "deploymentInputPattern": {
+      "oneOf": [
+        { "$ref": "#/$defs/deploymentInputGlob" },
+        {
+          "type": "string",
+          "pattern": "^\\$[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+        }
+      ]
+    },
+    "deploymentHook": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command"],
+      "properties": {
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
+        },
+        "secrets": { "$ref": "#/$defs/secretReference" },
+        "timeoutSeconds": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 1800,
+          "default": 300
+        }
+      }
+    },
+    "secretReference": {
+      "type": "string",
+      "pattern": "^aws:.+$",
+      "maxLength": 1024
+    },
+    "resourceHealth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["command", "container", "http"] },
+        "path": { "type": "string", "pattern": "^/", "maxLength": 1024 },
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
+        },
+        "timeoutSeconds": { "type": "integer", "minimum": 5, "maximum": 600 }
+      }
+    },
+    "resourceBackup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["s3"],
+      "properties": {
+        "retention": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "keepLast": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 7
+            }
+          }
+        },
+        "s3": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["bucket"],
+          "properties": {
+            "bucket": {
+              "type": "string",
+              "pattern": "^(?!\\d+\\.\\d+\\.\\d+\\.\\d+$)[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+            },
+            "encryption": {
+              "enum": ["AES256", "aws:kms"],
+              "default": "AES256"
+            },
+            "kmsKeyId": { "type": "string", "minLength": 1, "maxLength": 2048 },
+            "prefix": {
+              "type": "string",
+              "maxLength": 512,
+              "default": "towbar"
+            },
+            "region": { "type": "string", "minLength": 1, "maxLength": 64 }
+          }
+        },
+        "schedule": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["cron"],
+          "properties": {
+            "cron": { "type": "string", "minLength": 1, "maxLength": 120 },
+            "timezone": { "const": "UTC", "default": "UTC" }
+          }
+        }
+      }
+    }
+  }
+}

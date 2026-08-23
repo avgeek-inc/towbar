@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+        env:
+          SENTRY_ALLOW_MISSING: "true"
+          NEXT_PUBLIC_TOWBAR_API_BASE_URL: http://localhost:4020
+          NEXT_PUBLIC_TOWBAR_APP_BASE_URL: http://localhost:4021
+          NEXT_PUBLIC_TOWBAR_SSO_BASE_URL: http://localhost:4022
+          NEXT_PUBLIC_TOWBAR_WEBSITE_BASE_URL: https://towbar.dev
+
+  compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure non-production Compose values
+        run: |
+          cp .env.example .env
+          sed -i 's/replace-with-64-random-hex-characters/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/' .env
+          sed -i 's/replace-with-different-64-random-hex-characters/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/' .env
+          sed -i 's/replace-with-at-least-40-random-characters/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc/' .env
+          sed -i 's/replace-with-at-least-32-random-characters/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/' .env
+          sed -i 's/replace-with-a-long-owner-password/not-used-by-compose-build/' .env
+      - run: docker compose config --quiet
+      - run: docker compose build

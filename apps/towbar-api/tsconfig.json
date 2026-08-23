@@ -1,0 +1,9 @@
+{
+  "extends": "@workspace/typescript-config/backend.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "."
+  },
+  "include": ["src/**/*.ts", "scripts/**/*.ts"],
+  "exclude": ["dist", "node_modules"]
+}

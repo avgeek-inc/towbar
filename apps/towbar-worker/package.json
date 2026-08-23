@@ -1,0 +1,39 @@
+{
+  "name": "towbar-worker",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "description": "Temporal worker and isolated executor for Towbar.",
+  "scripts": {
+    "dev": "tsx watch src/worker.ts",
+    "prebuild": "pnpm --filter @workspace/towbar-core build && pnpm --filter @workspace/towbar-deployer build && pnpm --filter @workspace/observability-node build",
+    "build": "tsc --project tsconfig.build.json && pnpm bundle:workflows",
+    "bundle:workflows": "node scripts/build-workflow-bundle.mjs",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix --max-warnings 0",
+    "start": "node dist/worker.js",
+    "test": "tsx --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1093.0",
+    "@temporalio/activity": "catalog:",
+    "@temporalio/worker": "catalog:",
+    "@temporalio/workflow": "catalog:",
+    "@workspace/observability-node": "workspace:*",
+    "@workspace/towbar-core": "workspace:*",
+    "@workspace/towbar-deployer": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "eslint": "catalog:",
+    "tsx": "^4.21.0",
+    "typescript": "catalog:"
+  }
+}

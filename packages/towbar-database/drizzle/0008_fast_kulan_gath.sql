@@ -1,0 +1,2 @@
+CREATE TYPE "public"."towbar_deployable_kind" AS ENUM('app', 'image', 'postgres', 'redis');--> statement-breakpoint
+ALTER TABLE "towbar_apps" ADD COLUMN "kind" "towbar_deployable_kind" DEFAULT 'app' NOT NULL;

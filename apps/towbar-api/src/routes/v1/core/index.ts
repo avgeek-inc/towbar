@@ -1,0 +1,31 @@
+import { Hono } from "hono";
+
+import {
+  requireAuthenticatedUser,
+  requireTrustedMutationOrigin,
+} from "../../../http/authentication.js";
+import { accountRoutes } from "./account.js";
+import { appRoutes } from "./apps.js";
+import { deploymentRoutes } from "./deployments.js";
+import { awsRoutes } from "./aws.js";
+import { githubRoutes } from "./github.js";
+import { sessionRoutes } from "./session.js";
+import { serverRoutes } from "./servers.js";
+import { resourceRoutes } from "./resources.js";
+import { sourceRoutes } from "./sources.js";
+
+import type { TowbarHonoEnvironment } from "../../../http/types.js";
+
+export const coreRoutes = new Hono<TowbarHonoEnvironment>();
+
+coreRoutes.use("*", requireTrustedMutationOrigin);
+coreRoutes.use("*", requireAuthenticatedUser);
+coreRoutes.route("/session", sessionRoutes);
+coreRoutes.route("/github", githubRoutes);
+coreRoutes.route("/sources/:sourceId/aws", awsRoutes);
+coreRoutes.route("/sources", sourceRoutes);
+coreRoutes.route("/apps", appRoutes);
+coreRoutes.route("/resources", resourceRoutes);
+coreRoutes.route("/servers", serverRoutes);
+coreRoutes.route("/deployments", deploymentRoutes);
+coreRoutes.route("/", accountRoutes);
