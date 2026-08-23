@@ -51,8 +51,11 @@ export async function getDeployableTarget(
       },
       id: apps.id,
       serverConfig: servers.config,
+      serverConfigDigest: servers.configDigest,
       serverId: servers.id,
       serverIp: servers.canonicalIp,
+      serverPreparedAt: servers.preparedAt,
+      serverPreparedConfigDigest: servers.preparedConfigDigest,
       sourceId: apps.sourceId,
     })
     .from(apps)

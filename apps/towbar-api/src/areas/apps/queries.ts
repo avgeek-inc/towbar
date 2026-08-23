@@ -43,6 +43,9 @@ async function listDeployables(
         observedState: deployableRuntimeStates.observedState,
       },
       serverIp: servers.canonicalIp,
+      serverPreparedAt: servers.preparedAt,
+      serverPreparedConfigDigest: servers.preparedConfigDigest,
+      serverConfigDigest: servers.configDigest,
       sourceId: apps.sourceId,
       sourceRevision: apps.sourceRevision,
       updatedAt: apps.updatedAt,
@@ -63,10 +66,21 @@ async function listDeployables(
     )
     .orderBy(desc(apps.updatedAt));
 
-  return appRows.map((app) => ({
-    ...app,
-    runtimeState: normalizeRuntimeState(app.runtimeState),
-  }));
+  return appRows.map((app) => {
+    const {
+      serverConfigDigest,
+      serverPreparedAt,
+      serverPreparedConfigDigest,
+      ...publicApp
+    } = app;
+    return {
+      ...publicApp,
+      runtimeState: normalizeRuntimeState(app.runtimeState),
+      serverReady:
+        Boolean(serverPreparedAt) &&
+        serverPreparedConfigDigest === serverConfigDigest,
+    };
+  });
 }
 
 export async function getApp(appId: string, workspaceId: string) {
@@ -105,6 +119,9 @@ async function getDeployable(
       serverId: apps.serverId,
       serverConfig: servers.config,
       serverIp: servers.canonicalIp,
+      serverPreparedAt: servers.preparedAt,
+      serverPreparedConfigDigest: servers.preparedConfigDigest,
+      serverConfigDigest: servers.configDigest,
       sourceId: apps.sourceId,
       sourceRevision: apps.sourceRevision,
       updatedAt: apps.updatedAt,
@@ -124,10 +141,19 @@ async function getDeployable(
     )
     .limit(1);
   if (!app) throw notFound(type === "app" ? "App" : "Resource");
-  const { serverConfig, ...publicApp } = app;
+  const {
+    serverConfig,
+    serverConfigDigest,
+    serverPreparedAt,
+    serverPreparedConfigDigest,
+    ...publicApp
+  } = app;
   return {
     ...publicApp,
     runtimeState: normalizeRuntimeState(app.runtimeState),
+    serverReady:
+      Boolean(serverPreparedAt) &&
+      serverPreparedConfigDigest === serverConfigDigest,
     ...(type === "resource"
       ? {
           serverSsh: {

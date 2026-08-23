@@ -18,6 +18,7 @@ import type {
   ResourceOperation,
   Server,
   ServerCheck,
+  ServerPreparation,
   Source,
   SourceBackup,
   SourceSync,
@@ -79,8 +80,8 @@ const source: Source = {
 };
 
 const servers: Server[] = [
-  createServerFixture(fixtureIds.server, "192.0.2.10", "ubuntu"),
-  createServerFixture(fixtureIds.secondaryServer, "192.0.2.11", "deploy"),
+  createServerFixture(fixtureIds.server, "192.0.2.10", "ubuntu", false),
+  createServerFixture(fixtureIds.secondaryServer, "192.0.2.11", "deploy", true),
 ];
 
 const apps: FixtureApp[] = [
@@ -318,6 +319,11 @@ const serverChecks: ServerCheck[] = [
   },
 ];
 
+const serverPreparationsByServer = new Map<string, ServerPreparation[]>([
+  [fixtureIds.server, []],
+  [fixtureIds.secondaryServer, [createPreparationFixture("succeeded")]],
+]);
+
 const runtimeOperations: ResourceOperation[] = [
   {
     createdAt: fixtureNow,
@@ -419,6 +425,28 @@ export function createFixtureApiServer() {
       );
       if (failedCheckIndex >= 0) serverChecks.splice(failedCheckIndex, 1);
       return writeJson(response, 201, { hostKey: hostKeys[0] });
+    }
+    const prepareServerMatch = path.match(
+      /^\/v1\/core\/servers\/([^/]+)\/actions\/prepare$/,
+    );
+    if (request.method === "POST" && prepareServerMatch) {
+      const server = servers.find((item) => item.id === prepareServerMatch[1]);
+      if (!server) return writeNotFound(response);
+      if (!(hostKeysByServer.get(server.id)?.length ?? 0)) {
+        return writeJson(response, 409, {
+          error: {
+            message: "Trust an SSH host key before preparing this server",
+          },
+        });
+      }
+      const preparation = createPreparationFixture("succeeded");
+      server.preparedAt = preparation.finishedAt;
+      server.setupStatus = "ready";
+      serverPreparationsByServer.set(server.id, [preparation]);
+      for (const deployable of [...apps, ...resources]) {
+        if (deployable.serverId === server.id) deployable.serverReady = true;
+      }
+      return writeJson(response, 202, { preparation });
     }
     const runtimeActionMatch = path.match(
       /^\/v1\/core\/(apps|resources)\/([^/]+)\/actions\/(backup|logs|restart|start|stop)$/,
@@ -583,7 +611,7 @@ function getFixturePayload(path: string): unknown {
   }
 
   const serverMatch = path.match(
-    /^\/v1\/core\/servers\/([^/]+)(?:\/(apps|resources|deployments|checks|host-keys|orphans))?$/,
+    /^\/v1\/core\/servers\/([^/]+)(?:\/(apps|resources|deployments|checks|host-keys|orphans|preparations))?$/,
   );
   if (serverMatch) {
     const server = servers.find((item) => item.id === serverMatch[1]);
@@ -607,6 +635,11 @@ function getFixturePayload(path: string): unknown {
       };
     }
     if (child === "checks") return { checks: serverChecks };
+    if (child === "preparations") {
+      return {
+        preparations: serverPreparationsByServer.get(server.id) ?? [],
+      };
+    }
     if (child === "host-keys") {
       return { hostKeys: hostKeysByServer.get(server.id) ?? [] };
     }
@@ -621,6 +654,7 @@ function createServerFixture(
   id: string,
   canonicalIp: string,
   username: string,
+  ready: boolean,
 ): Server {
   return {
     archivedAt: null,
@@ -632,6 +666,8 @@ function createServerFixture(
     },
     createdAt: fixtureNow,
     id,
+    preparedAt: ready ? fixtureNow : null,
+    setupStatus: ready ? "ready" : "pending",
     sourceId: source.id,
     sourceRevision: commitSha,
     updatedAt: fixtureNow,
@@ -683,6 +719,7 @@ function createAppFixture(
     manifestId,
     name,
     runtimeState: createRuntimeState(healthStatus),
+    serverReady: server.setupStatus === "ready",
     serverId: server.id,
     serverIp: server.canonicalIp,
     sourceId: source.id,
@@ -755,6 +792,7 @@ function createResourceFixture(
     manifestId,
     name,
     runtimeState: createRuntimeState("healthy"),
+    serverReady: server.setupStatus === "ready",
     serverId: server.id,
     serverIp: server.canonicalIp,
     serverSsh: {
@@ -764,6 +802,57 @@ function createResourceFixture(
     sourceId: source.id,
     sourceRevision: commitSha,
     updatedAt: fixtureNow,
+  };
+}
+
+function createPreparationFixture(
+  status: ServerPreparation["status"],
+): ServerPreparation {
+  const finished = status === "succeeded" || status === "failed";
+  const definitions: Array<
+    Pick<ServerPreparation["steps"][number], "id" | "title">
+  > = [
+    { id: "connecting", title: "Connect securely" },
+    { id: "inspecting", title: "Inspect server" },
+    { id: "installing_prerequisites", title: "Install prerequisites" },
+    { id: "installing_docker", title: "Install Docker Engine" },
+    { id: "installing_caddy", title: "Install Caddy" },
+    { id: "configuring_access", title: "Configure access" },
+    { id: "verifying", title: "Verify server" },
+  ];
+  return {
+    createdAt: fixtureNow,
+    errorCode:
+      status === "failed" ? "SERVER_PREPARATION_INSTALLING_DOCKER" : null,
+    errorMessage:
+      status === "failed"
+        ? "Conflicting container packages are installed. Use a fresh Ubuntu server, or clean up the conflicting installation before trying again."
+        : null,
+    finishedAt: finished ? fixtureNow : null,
+    id: randomUUID(),
+    result:
+      status === "succeeded"
+        ? {
+            caddyVersion: "v2.11.4",
+            dockerVersion: "28.3.3",
+            operatingSystem: "Ubuntu 24.04 LTS",
+            pythonVersion: "Python 3.12.3",
+          }
+        : null,
+    startedAt: status === "queued" ? null : fixtureNow,
+    status,
+    steps: definitions.map((step, index) => ({
+      ...step,
+      finishedAt: finished ? fixtureNow : null,
+      message:
+        status === "succeeded"
+          ? `${step.title} complete`
+          : index === 0
+            ? "Waiting for the server coordinator"
+            : null,
+      startedAt: status === "queued" ? null : fixtureNow,
+      status: status === "succeeded" ? "succeeded" : "waiting",
+    })),
   };
 }
 

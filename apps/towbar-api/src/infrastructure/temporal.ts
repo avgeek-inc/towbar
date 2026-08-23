@@ -96,6 +96,37 @@ export async function enqueueServerCheck(input: {
   return { workflowId };
 }
 
+export async function enqueueServerPreparation(input: {
+  buildConcurrency: number;
+  preparationId: string;
+  serverIp: string;
+}) {
+  const client = await getTemporalClient();
+  const serverHash = createHash("sha256")
+    .update(input.serverIp)
+    .digest("hex")
+    .slice(0, 32);
+  const workflowId = serverCoordinatorWorkflowId(serverHash);
+  await client.workflow.signalWithStart(
+    "runConcurrentServerCoordinatorWorkflow",
+    {
+      args: [],
+      signal: "enqueueServerWork",
+      signalArgs: [
+        {
+          buildConcurrency: input.buildConcurrency,
+          id: input.preparationId,
+          kind: "server-preparation",
+        },
+      ],
+      taskQueue: towbarTaskQueue,
+      workflowId,
+      workflowIdReusePolicy: "ALLOW_DUPLICATE",
+    },
+  );
+  return { workflowId };
+}
+
 export async function enqueueResourceOperation(input: {
   appId: string | null;
   buildConcurrency: number;

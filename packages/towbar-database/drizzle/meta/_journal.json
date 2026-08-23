@@ -127,6 +127,20 @@
       "when": 1787421129763,
       "tag": "0017_left_blackheart",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1787476249103,
+      "tag": "0018_thin_purifiers",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1787476275417,
+      "tag": "0019_lush_quasimodo",
+      "breakpoints": true
     }
   ]
 }

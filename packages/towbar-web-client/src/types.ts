@@ -60,6 +60,7 @@ export type App = {
   manifestId: string;
   name: string;
   runtimeState: RuntimeState;
+  serverReady: boolean;
   serverIp: string;
   sourceId: string;
   sourceRevision: string;
@@ -115,6 +116,7 @@ export type Resource = {
   manifestId: string;
   name: string;
   runtimeState: RuntimeState;
+  serverReady: boolean;
   serverIp: string;
   sourceId: string;
   sourceRevision: string;
@@ -131,6 +133,8 @@ export type Server = {
   };
   createdAt: string;
   id: string;
+  preparedAt: string | null;
+  setupStatus: "pending" | "preparing" | "ready" | "failed";
   sourceId: string;
   sourceRevision: string;
   updatedAt: string;
@@ -325,6 +329,34 @@ export type ServerCheck = {
   result: Record<string, unknown> | null;
   startedAt: string | null;
   status: "queued" | "running" | "succeeded" | "failed";
+};
+
+export type ServerPreparationStep = {
+  finishedAt: string | null;
+  id:
+    | "connecting"
+    | "inspecting"
+    | "installing_prerequisites"
+    | "installing_docker"
+    | "installing_caddy"
+    | "configuring_access"
+    | "verifying";
+  message: string | null;
+  startedAt: string | null;
+  status: "waiting" | "running" | "succeeded" | "failed";
+  title: string;
+};
+
+export type ServerPreparation = {
+  createdAt: string;
+  errorCode: string | null;
+  errorMessage: string | null;
+  finishedAt: string | null;
+  id: string;
+  result: Record<string, unknown> | null;
+  startedAt: string | null;
+  status: "queued" | "running" | "succeeded" | "failed";
+  steps: ServerPreparationStep[];
 };
 
 export type SourceServer = Server & {

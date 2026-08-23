@@ -40,6 +40,8 @@ const warning = new Set([
   "untrusted",
   "waiting",
   "waiting_for_server",
+  "server_setup_pending",
+  "pending",
 ]);
 const destructive = new Set([
   "decommissioned",

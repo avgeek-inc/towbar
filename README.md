@@ -12,8 +12,9 @@ flowchart LR
   install --> github[Connect a GitHub App]
   github --> source[Add a Source]
   source --> sync[Sync deployment.yml]
-  sync --> verify[Verify the server]
-  verify --> deploy[Deploy]
+  sync --> verify[Verify the SSH host key]
+  verify --> prepare[Prepare the server]
+  prepare --> deploy[Deploy]
 ```
 
 > [!IMPORTANT]

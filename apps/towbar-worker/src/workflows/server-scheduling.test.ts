@@ -57,6 +57,32 @@ void test("serializes the same app and treats checks as FIFO barriers", () => {
   );
 });
 
+void test("runs server preparation alone and preserves its queue position", () => {
+  const preparation: ServerWorkItem = {
+    buildConcurrency: 3,
+    id: "prepare",
+    kind: "server-preparation",
+  };
+  assert.equal(
+    nextServerWorkIndex({
+      activeAppIds: new Set(["api"]),
+      activeCount: 1,
+      buildConcurrency: 3,
+      queue: [preparation, deployment("worker", "worker")],
+    }),
+    -1,
+  );
+  assert.equal(
+    nextServerWorkIndex({
+      activeAppIds: new Set(),
+      activeCount: 0,
+      buildConcurrency: 3,
+      queue: [preparation, deployment("worker", "worker")],
+    }),
+    0,
+  );
+});
+
 void test("serializes resource operations with their deployable and cleanup with the server", () => {
   assert.equal(
     nextServerWorkIndex({

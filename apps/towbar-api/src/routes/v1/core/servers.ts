@@ -13,6 +13,10 @@ import {
   trustServerHostKey,
 } from "../../../areas/servers/service.js";
 import {
+  listServerPreparations,
+  requestServerPreparation,
+} from "../../../areas/servers/preparations.js";
+import {
   getServerOrphans,
   requestOrphanCleanup,
 } from "../../../areas/resource-operations/service.js";
@@ -89,6 +93,14 @@ serverRoutes.get("/:serverId/checks", async (context) =>
     ),
   }),
 );
+serverRoutes.get("/:serverId/preparations", async (context) =>
+  context.json({
+    preparations: await listServerPreparations(
+      context.req.param("serverId"),
+      context.get("user").workspaceId,
+    ),
+  }),
+);
 serverRoutes.get("/:serverId/orphans", async (context) =>
   context.json({
     orphans: await getServerOrphans(
@@ -114,6 +126,19 @@ serverRoutes.post("/:serverId/actions/check", async (context) => {
         requestedBy: user.id,
         serverId: context.req.param("serverId"),
         sourceId: body.sourceId,
+        workspaceId: user.workspaceId,
+      }),
+    },
+    202,
+  );
+});
+serverRoutes.post("/:serverId/actions/prepare", async (context) => {
+  const user = context.get("user");
+  return context.json(
+    {
+      preparation: await requestServerPreparation({
+        requestedBy: user.id,
+        serverId: context.req.param("serverId"),
         workspaceId: user.workspaceId,
       }),
     },

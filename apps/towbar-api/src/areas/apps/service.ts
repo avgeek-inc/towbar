@@ -104,6 +104,7 @@ export async function requestAppDeployment(input: {
   if (!target.commitSha || !target.deploymentDigest || !target.manifestDigest) {
     throw unprocessable("The Source must have a successful sync before deploy");
   }
+  requireServerReady(target);
   const commitSha = target.commitSha;
   const deploymentDigest = target.deploymentDigest;
   const manifestDigest = target.manifestDigest;
@@ -127,9 +128,13 @@ export async function requestAppDeployment(input: {
         .select({
           deploymentDigest: apps.deploymentDigest,
           id: apps.id,
+          serverConfigDigest: servers.configDigest,
+          serverPreparedAt: servers.preparedAt,
+          serverPreparedConfigDigest: servers.preparedConfigDigest,
           sourceRevision: apps.sourceRevision,
         })
         .from(apps)
+        .innerJoin(servers, eq(servers.id, apps.serverId))
         .where(
           and(
             eq(apps.id, target.id),
@@ -138,6 +143,7 @@ export async function requestAppDeployment(input: {
         )
         .for("update");
       if (!currentApp) throw notFound("App");
+      requireServerReady(currentApp);
       if (
         currentApp.sourceRevision !== commitSha ||
         currentApp.deploymentDigest !== deploymentDigest
@@ -278,6 +284,12 @@ export async function requestAppRollback(input: {
       : await getApp(request.appId, request.workspaceId);
   if (app.archivedAt) {
     throw conflict("Archived apps cannot be rolled back");
+  }
+  if (!app.serverReady) {
+    throw conflict(
+      "Prepare this server before deploying apps or resources",
+      "SERVER_SETUP_PENDING",
+    );
   }
   const conditions = [
     eq(releases.appId, app.id),
@@ -432,6 +444,9 @@ async function getAppForDeployment(appId: string, workspaceId: string) {
       serverConfig: servers.config,
       serverId: servers.id,
       serverIp: servers.canonicalIp,
+      serverPreparedAt: servers.preparedAt,
+      serverPreparedConfigDigest: servers.preparedConfigDigest,
+      serverConfigDigest: servers.configDigest,
       sourceId: sources.id,
       sourceInputDigest: apps.sourceInputDigest,
     })
@@ -442,6 +457,22 @@ async function getAppForDeployment(appId: string, workspaceId: string) {
     .limit(1);
   if (!app) throw notFound("App");
   return app;
+}
+
+function requireServerReady(target: {
+  serverConfigDigest: string;
+  serverPreparedAt: Date | null;
+  serverPreparedConfigDigest: string | null;
+}) {
+  if (
+    !target.serverPreparedAt ||
+    target.serverPreparedConfigDigest !== target.serverConfigDigest
+  ) {
+    throw conflict(
+      "Prepare this server before deploying apps or resources",
+      "SERVER_SETUP_PENDING",
+    );
+  }
 }
 
 function requireDeployableType(

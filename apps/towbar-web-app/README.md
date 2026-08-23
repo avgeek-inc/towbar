@@ -5,6 +5,10 @@ Sources, Apps, Resources, and Servers from the API and exposes only operational
 actions. Resources remain nested inside their owning Source alongside Apps,
 Servers, and deployment history.
 
+The Server Overview owns preparation: it recommends a fresh Ubuntu target,
+shows the durable setup steps, and keeps deployables visibly in `Server Setup
+Pending` until the Server is ready.
+
 App and Resource pages show observed health/drift and bounded runtime actions.
 Their configuration and lifecycle are read-only projections of the Source
 manifest; removal and restoration happen through Git and Source sync.

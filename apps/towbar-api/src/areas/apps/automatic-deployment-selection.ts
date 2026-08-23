@@ -11,6 +11,7 @@ type AutomaticDeploymentCandidate = {
   deploymentDigest: string | null;
   manifestId: string;
   kind: "app" | "image" | "postgres" | "redis";
+  serverReady: boolean;
   sourceRevision: string | null;
 };
 
@@ -28,6 +29,7 @@ export function selectAutomaticDeploymentCandidates<
     (candidate) =>
       Boolean(candidate.config.autoDeploy) &&
       Boolean(candidate.deploymentDigest) &&
+      candidate.serverReady &&
       !candidate.archivedAt &&
       candidate.sourceRevision === input.commitSha &&
       !isCandidateCurrent(

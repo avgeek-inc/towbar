@@ -5,6 +5,7 @@ import {
   apps,
   deployments,
   releases,
+  servers,
   sourceSyncs,
   sources,
 } from "@workspace/towbar-database/schema";
@@ -95,8 +96,12 @@ async function scheduleEligibleAutomaticDeployments(input: {
       manifestId: apps.manifestId,
       kind: apps.kind,
       sourceRevision: apps.sourceRevision,
+      serverConfigDigest: servers.configDigest,
+      serverPreparedAt: servers.preparedAt,
+      serverPreparedConfigDigest: servers.preparedConfigDigest,
     })
     .from(apps)
+    .innerJoin(servers, eq(servers.id, apps.serverId))
     .where(
       and(
         eq(apps.sourceId, input.sourceId),
@@ -122,7 +127,12 @@ async function scheduleEligibleAutomaticDeployments(input: {
       ),
     );
   const eligible = selectAutomaticDeploymentCandidates({
-    candidates,
+    candidates: candidates.map((candidate) => ({
+      ...candidate,
+      serverReady:
+        Boolean(candidate.serverPreparedAt) &&
+        candidate.serverPreparedConfigDigest === candidate.serverConfigDigest,
+    })),
     commitSha: input.commitSha,
     releases: releaseStates,
   });

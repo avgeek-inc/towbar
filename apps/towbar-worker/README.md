@@ -7,7 +7,9 @@ internal API inside activities.
 
 The server coordinator honors manifest `buildConcurrency`, runs independent app
 deployments in parallel up to that bound, serializes the same app, and keeps
-server checks exclusive. Self-deployment uses a delayed cleanup handoff after
+server checks and preparation exclusive. Preparation installs or validates the
+host runtime in activities, persists each step through signed API callbacks,
+and never puts SSH credentials into workflow history. Self-deployment uses a delayed cleanup handoff after
 the candidate worker is healthy and its release is durable.
 
 Push-triggered roots queue immediately after Source sync. A successful

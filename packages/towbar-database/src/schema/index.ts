@@ -25,6 +25,7 @@ import type {
   NormalizedDeployable,
   NormalizedDeploymentManifest,
   NormalizedServer,
+  ServerPreparationStep,
 } from "@workspace/towbar-core";
 
 export const workspaceRoleEnum = pgEnum("towbar_workspace_role", [
@@ -400,6 +401,8 @@ export const servers = pgTable(
     canonicalIp: varchar("canonical_ip", { length: 64 }).notNull(),
     config: jsonb("config").$type<NormalizedServer>().notNull(),
     configDigest: varchar("config_digest", { length: 64 }).notNull(),
+    preparedAt: timestamp("prepared_at", { withTimezone: true }),
+    preparedConfigDigest: varchar("prepared_config_digest", { length: 64 }),
     sourceRevision: varchar("source_revision", { length: 64 }).notNull(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -440,6 +443,39 @@ export const serverChecks = pgTable(
       .notNull(),
   },
   (table) => [index("idx_towbar_server_checks_server").on(table.serverId)],
+);
+
+export const serverPreparations = pgTable(
+  "towbar_server_preparations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    serverId: uuid("server_id")
+      .notNull()
+      .references(() => servers.id, { onDelete: "cascade" }),
+    configDigest: varchar("config_digest", { length: 64 }).notNull(),
+    status: checkStatusEnum("status").default("queued").notNull(),
+    steps: jsonb("steps").$type<ServerPreparationStep[]>().notNull(),
+    result: jsonb("result").$type<Record<string, unknown>>(),
+    errorCode: varchar("error_code", { length: 100 }),
+    errorMessage: varchar("error_message", { length: 1_000 }),
+    requestedBy: uuid("requested_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_towbar_server_preparations_server_created").on(
+      table.serverId,
+      table.createdAt,
+    ),
+    uniqueIndex("uq_towbar_server_preparations_active")
+      .on(table.serverId)
+      .where(sql`${table.status} in ('queued', 'running')`),
+  ],
 );
 
 export const sshHostKeys = pgTable(

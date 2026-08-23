@@ -7,11 +7,12 @@ first deployment.
 flowchart TD
   evaluate[Confirm Towbar fits the environment] --> control[Install the control plane]
   control --> github[Create and connect a GitHub App]
-  github --> target[Prepare an Ubuntu target server]
+  github --> target[Create a fresh Ubuntu target server]
   target --> manifest[Commit .towbar/deployment.yml]
   manifest --> source[Add and sync the Source]
   source --> trust[Verify the SSH host key]
-  trust --> release[Deploy the app]
+  trust --> prepare[Prepare the server]
+  prepare --> release[Deploy the app]
 ```
 
 ## 1. Confirm the fit
@@ -103,9 +104,14 @@ docker compose up --detach --force-recreate api
 In Towbar, open **Settings → GitHub**, install the App, and grant it access only
 to repositories Towbar should deploy.
 
-## 4. Prepare a target server
+## 4. Create a target server
 
-The target must be Ubuntu and have:
+Use a fresh, dedicated Ubuntu 22.04 or 24.04 LTS server when possible. Give the
+configured SSH user either root access or passwordless `sudo`; Towbar needs
+that access to install and manage the deployment runtime. Restrict SSH at the
+network layer and do not reuse this account for untrusted interactive users.
+
+The **Prepare Server** action installs or validates:
 
 - Docker Engine 28 or newer;
 - Caddy running as a systemd service;
@@ -114,15 +120,16 @@ The target must be Ubuntu and have:
 - an SSH user that can run Docker and the required Caddy operations with
   non-interactive `sudo`.
 
-Follow the upstream
+Towbar follows the upstream
 [Docker Engine](https://docs.docker.com/engine/install/ubuntu/) and
-[Caddy](https://caddyserver.com/docs/install) installation documentation rather
-than copying an unmaintained installation script. Caddy's standard package is
-enough for `tls.mode: direct`. `tls.mode: cloudflare-dns` requires a Caddy build
-containing the `dns.providers.cloudflare` module.
+[Caddy](https://caddyserver.com/docs/install) package repositories. Caddy's
+standard package is enough for `tls.mode: direct`; `tls.mode: cloudflare-dns`
+uses a pinned custom build containing the `dns.providers.cloudflare` module.
+Compatible installations are reused. Towbar does not remove conflicting
+packages or overwrite an unmanaged Caddy binary: it stops at the failing step,
+shows the reason, and asks the operator to clean the server before retrying.
 
-Treat Docker access as root-equivalent. Restrict SSH at the network layer and
-do not reuse this account for untrusted interactive users.
+Treat Docker access as root-equivalent.
 
 Store the SSH private key in AWS Secrets Manager as a JSON object:
 
@@ -151,7 +158,7 @@ port, and input globs. Commit the file to the branch declared in
 `source.branch`. The starter file is parsed by Towbar's test suite so it cannot
 silently drift away from the published schema.
 
-## 6. Add and verify the Source
+## 6. Add, verify, and prepare the Source
 
 In the dashboard:
 
@@ -163,7 +170,14 @@ In the dashboard:
    **Check server**.
 5. Compare the discovered SSH fingerprint with the server console or cloud
    provider through an independent channel. Trust it only after it matches.
-6. Run the server check again and resolve every failed prerequisite.
+6. Open the Server's **Overview** tab and choose **Prepare Server**.
+7. Follow the durable preparation steps until the Server is `Ready`. Apps and
+   Resources remain `Server Setup Pending` and cannot deploy before this point.
+
+If preparation stops on an existing server, use the reported step and command
+failure to remove only the conflicting installation, then retry. A fresh
+server is the recommended recovery when ownership of the existing services is
+unclear.
 
 ## 7. Make the first deployment
 
@@ -176,7 +190,7 @@ A working installation has all of the following:
 
 - `docker compose ps` reports the Towbar services healthy;
 - the Source's latest sync is `Succeeded`;
-- the target server check is healthy;
+- the target Server is `Ready`;
 - the deployment reaches `Succeeded`; and
 - the configured domain serves the expected commit over HTTPS.
 

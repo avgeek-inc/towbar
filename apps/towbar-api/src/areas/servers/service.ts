@@ -8,6 +8,7 @@ import {
   deployments,
   releases,
   serverChecks,
+  serverPreparations,
   servers,
   sshHostKeys,
 } from "@workspace/towbar-database/schema";
@@ -38,36 +39,40 @@ const publicServerCheckSelection = {
   status: serverChecks.status,
 } as const;
 
+const serverSelection = {
+  archivedAt: servers.archivedAt,
+  canonicalIp: servers.canonicalIp,
+  config: servers.config,
+  configDigest: servers.configDigest,
+  createdAt: servers.createdAt,
+  id: servers.id,
+  preparedAt: servers.preparedAt,
+  preparedConfigDigest: servers.preparedConfigDigest,
+  sourceId: servers.sourceId,
+  sourceRevision: servers.sourceRevision,
+  updatedAt: servers.updatedAt,
+  workspaceId: servers.workspaceId,
+} as const;
+
 export async function listServers(workspaceId: string) {
-  return await getTowbarDatabase()
-    .select({
-      archivedAt: servers.archivedAt,
-      canonicalIp: servers.canonicalIp,
-      config: servers.config,
-      createdAt: servers.createdAt,
-      id: servers.id,
-      sourceId: servers.sourceId,
-      sourceRevision: servers.sourceRevision,
-      updatedAt: servers.updatedAt,
-    })
+  const database = getTowbarDatabase();
+  const rows = await database
+    .select(serverSelection)
     .from(servers)
     .where(eq(servers.workspaceId, workspaceId))
     .orderBy(desc(servers.updatedAt));
+  const latestPreparations = await getLatestServerPreparations(
+    rows.map((server) => server.id),
+  );
+  return rows.map((server) =>
+    toPublicServer(server, latestPreparations.get(server.id)),
+  );
 }
 
 export async function listSourceServers(sourceId: string, workspaceId: string) {
   const database = getTowbarDatabase();
   const sourceServers = await database
-    .select({
-      archivedAt: servers.archivedAt,
-      canonicalIp: servers.canonicalIp,
-      config: servers.config,
-      createdAt: servers.createdAt,
-      id: servers.id,
-      sourceId: servers.sourceId,
-      sourceRevision: servers.sourceRevision,
-      updatedAt: servers.updatedAt,
-    })
+    .select(serverSelection)
     .from(servers)
     .where(
       and(eq(servers.sourceId, sourceId), eq(servers.workspaceId, workspaceId)),
@@ -77,7 +82,7 @@ export async function listSourceServers(sourceId: string, workspaceId: string) {
   if (sourceServers.length === 0) return [];
 
   const serverIds = sourceServers.map((server) => server.id);
-  const [checks, trustedKeys] = await Promise.all([
+  const [checks, trustedKeys, latestPreparations] = await Promise.all([
     database
       .selectDistinctOn([serverChecks.serverId], {
         errorCode: serverChecks.errorCode,
@@ -95,6 +100,7 @@ export async function listSourceServers(sourceId: string, workspaceId: string) {
           isNull(sshHostKeys.revokedAt),
         ),
       ),
+    getLatestServerPreparations(serverIds),
   ]);
   const latestErrorByServer = new Map(
     checks.map((check) => [check.serverId, check.errorCode] as const),
@@ -102,7 +108,7 @@ export async function listSourceServers(sourceId: string, workspaceId: string) {
   const trustedServerIds = new Set(trustedKeys.map((key) => key.serverId));
 
   return sourceServers.map((server) => ({
-    ...server,
+    ...toPublicServer(server, latestPreparations.get(server.id)),
     hostKeyStatus:
       trustedServerIds.has(server.id) &&
       latestErrorByServer.get(server.id) !== "HOST_KEY_NOT_TRUSTED"
@@ -112,22 +118,15 @@ export async function listSourceServers(sourceId: string, workspaceId: string) {
 }
 
 export async function getServer(serverId: string, workspaceId: string) {
-  const [server] = await getTowbarDatabase()
-    .select({
-      archivedAt: servers.archivedAt,
-      canonicalIp: servers.canonicalIp,
-      config: servers.config,
-      createdAt: servers.createdAt,
-      id: servers.id,
-      sourceId: servers.sourceId,
-      sourceRevision: servers.sourceRevision,
-      updatedAt: servers.updatedAt,
-    })
+  const database = getTowbarDatabase();
+  const [server] = await database
+    .select(serverSelection)
     .from(servers)
     .where(and(eq(servers.id, serverId), eq(servers.workspaceId, workspaceId)))
     .limit(1);
   if (!server) throw notFound("Server");
-  return server;
+  const latestPreparations = await getLatestServerPreparations([server.id]);
+  return toPublicServer(server, latestPreparations.get(server.id));
 }
 
 export async function listServerApps(serverId: string, workspaceId: string) {
@@ -168,6 +167,9 @@ async function listServerDeployables(
         observedState: deployableRuntimeStates.observedState,
       },
       serverIp: servers.canonicalIp,
+      serverPreparedAt: servers.preparedAt,
+      serverPreparedConfigDigest: servers.preparedConfigDigest,
+      serverConfigDigest: servers.configDigest,
       sourceId: apps.sourceId,
       sourceRevision: apps.sourceRevision,
       updatedAt: apps.updatedAt,
@@ -185,28 +187,39 @@ async function listServerDeployables(
       ),
     )
     .orderBy(desc(apps.updatedAt));
-  return rows.map((app) => ({
-    ...app,
-    runtimeState: app.runtimeState
-      ? {
-          ...app.runtimeState,
-          desiredState: app.runtimeState.desiredState ?? "running",
-          driftReasons: app.runtimeState.driftReasons ?? [],
-          driftStatus: app.runtimeState.driftStatus ?? "unknown",
-          healthStatus: app.runtimeState.healthStatus ?? "unknown",
-          observedState: app.runtimeState.observedState ?? "unknown",
-        }
-      : {
-          checkedAt: null,
-          desiredState: "running" as const,
-          driftReasons: [],
-          driftStatus: "unknown" as const,
-          healthStatus: "unknown" as const,
-          observedContainerName: null,
-          observedImage: null,
-          observedState: "unknown" as const,
-        },
-  }));
+  return rows.map((app) => {
+    const {
+      serverConfigDigest,
+      serverPreparedAt,
+      serverPreparedConfigDigest,
+      ...publicApp
+    } = app;
+    return {
+      ...publicApp,
+      serverReady:
+        Boolean(serverPreparedAt) &&
+        serverPreparedConfigDigest === serverConfigDigest,
+      runtimeState: app.runtimeState
+        ? {
+            ...app.runtimeState,
+            desiredState: app.runtimeState.desiredState ?? "running",
+            driftReasons: app.runtimeState.driftReasons ?? [],
+            driftStatus: app.runtimeState.driftStatus ?? "unknown",
+            healthStatus: app.runtimeState.healthStatus ?? "unknown",
+            observedState: app.runtimeState.observedState ?? "unknown",
+          }
+        : {
+            checkedAt: null,
+            desiredState: "running" as const,
+            driftReasons: [],
+            driftStatus: "unknown" as const,
+            healthStatus: "unknown" as const,
+            observedContainerName: null,
+            observedImage: null,
+            observedState: "unknown" as const,
+          },
+    };
+  });
 }
 
 export async function listServerDeployments(
@@ -524,4 +537,64 @@ function parseRuntimeInspections(value: unknown) {
         .strict(),
     )
     .parse(value);
+}
+
+async function getLatestServerPreparations(serverIds: string[]) {
+  if (serverIds.length === 0) {
+    return new Map<
+      string,
+      {
+        configDigest: string;
+        status: "queued" | "running" | "succeeded" | "failed";
+      }
+    >();
+  }
+  const preparations = await getTowbarDatabase()
+    .selectDistinctOn([serverPreparations.serverId], {
+      configDigest: serverPreparations.configDigest,
+      serverId: serverPreparations.serverId,
+      status: serverPreparations.status,
+    })
+    .from(serverPreparations)
+    .where(inArray(serverPreparations.serverId, serverIds))
+    .orderBy(serverPreparations.serverId, desc(serverPreparations.createdAt));
+  return new Map(
+    preparations.map((preparation) => [
+      preparation.serverId,
+      {
+        configDigest: preparation.configDigest,
+        status: preparation.status,
+      },
+    ]),
+  );
+}
+
+function toPublicServer(
+  server: typeof servers.$inferSelect,
+  latestPreparation?: {
+    configDigest: string;
+    status: "queued" | "running" | "succeeded" | "failed";
+  },
+) {
+  const {
+    configDigest,
+    preparedConfigDigest,
+    workspaceId: _workspaceId,
+    ...publicServer
+  } = server;
+  const ready =
+    Boolean(server.preparedAt) && preparedConfigDigest === configDigest;
+  const currentPreparation = latestPreparation?.configDigest === configDigest;
+  return {
+    ...publicServer,
+    setupStatus: ready
+      ? ("ready" as const)
+      : currentPreparation &&
+          (latestPreparation.status === "queued" ||
+            latestPreparation.status === "running")
+        ? ("preparing" as const)
+        : currentPreparation && latestPreparation.status === "failed"
+          ? ("failed" as const)
+          : ("pending" as const),
+  };
 }

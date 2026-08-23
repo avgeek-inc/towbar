@@ -118,10 +118,19 @@ export function ResourceDetail() {
               {formatResourceKind(item.kind)}
             </Attributes.Item>
             <Attributes.Item label="Health">
-              <StatusBadge status={item.runtimeState.healthStatus} />
+              <StatusBadge
+                status={
+                  item.serverReady
+                    ? item.runtimeState.healthStatus
+                    : "server_setup_pending"
+                }
+              />
             </Attributes.Item>
             <Attributes.Item label="Running state">
               <StatusBadge status={item.runtimeState.observedState} />
+            </Attributes.Item>
+            <Attributes.Item label="Server setup">
+              <StatusBadge status={item.serverReady ? "ready" : "pending"} />
             </Attributes.Item>
             <Attributes.Item
               icon={<HugeiconsIcon icon={ServerStack01Icon} />}
@@ -186,8 +195,9 @@ export function ResourceDetail() {
       value: "runtime",
       label: "Runtime",
       icon: <HugeiconsIcon icon={Activity01Icon} />,
-      indicator:
-        item.runtimeState.healthStatus === "unhealthy"
+      indicator: !item.serverReady
+        ? ({ label: "Setup pending", variant: "warning" } as const)
+        : item.runtimeState.healthStatus === "unhealthy"
           ? ({ label: "Unhealthy", variant: "destructive" } as const)
           : item.runtimeState.driftStatus === "drifted"
             ? ({ label: "Drifted", variant: "warning" } as const)
@@ -202,7 +212,7 @@ export function ResourceDetail() {
       icon: <HugeiconsIcon icon={FileViewIcon} />,
       content: (
         <RuntimeLogs
-          active={!item.archivedAt}
+          active={!item.archivedAt && item.serverReady}
           deployableId={resourceId}
           type="resource"
         />
@@ -216,7 +226,10 @@ export function ResourceDetail() {
             label: "Backups",
             icon: <HugeiconsIcon icon={DatabaseBackupIcon} />,
             content: (
-              <ResourceBackups active={!item.archivedAt} resource={item} />
+              <ResourceBackups
+                active={!item.archivedAt && item.serverReady}
+                resource={item}
+              />
             ),
           },
         ]),
@@ -266,7 +279,7 @@ export function ResourceDetail() {
         !item.archivedAt ? (
           <div className="flex flex-wrap justify-end gap-2">
             <RuntimeActionToolbar
-              active
+              active={item.serverReady}
               deployableId={resourceId}
               runtimeState={item.runtimeState}
               type="resource"
@@ -292,6 +305,7 @@ export function ResourceDetail() {
                   )
                 }
                 pendingLabel="Queueing…"
+                isDisabled={!item.serverReady}
                 success="Rollback queued"
               >
                 Rollback
@@ -311,6 +325,7 @@ export function ResourceDetail() {
                 )
               }
               pendingLabel="Queueing…"
+              isDisabled={!item.serverReady}
               success="Resource deployment queued"
               variant="primary"
             >
@@ -603,6 +618,7 @@ function formatResourceKind(kind: Resource["kind"]) {
 
 function getResourceLifecycleStatus(item: ResourceRecord) {
   if (item.archivedAt) return "archived";
+  if (!item.serverReady) return "server_setup_pending";
   return "active";
 }
 

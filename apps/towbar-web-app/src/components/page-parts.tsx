@@ -201,6 +201,7 @@ export function ActionButton<T>({
   children,
   confirm,
   isIconOnly = false,
+  isDisabled = false,
   onSuccess,
   pendingLabel = "Working…",
   success,
@@ -215,6 +216,7 @@ export function ActionButton<T>({
     title: ReactNode;
   };
   isIconOnly?: boolean;
+  isDisabled?: boolean;
   onSuccess?: (result: T) => void;
   pendingLabel?: string;
   success: string;
@@ -246,7 +248,7 @@ export function ActionButton<T>({
   const trigger = (
     <Button
       aria-label={ariaLabel}
-      isDisabled={busy}
+      isDisabled={busy || isDisabled}
       isIconOnly={isIconOnly}
       variant={variant}
       onPress={confirm ? undefined : runAction}
@@ -269,12 +271,16 @@ export function ActionButton<T>({
             </AlertDialog.Header>
             <AlertDialog.Body>{confirm.description}</AlertDialog.Body>
             <AlertDialog.Footer>
-              <Button slot="close" variant="secondary" isDisabled={busy}>
+              <Button
+                slot="close"
+                variant="secondary"
+                isDisabled={busy || isDisabled}
+              >
                 Cancel
               </Button>
               <Button
                 slot="close"
-                isDisabled={busy}
+                isDisabled={busy || isDisabled}
                 variant={variant === "danger" ? "danger" : "primary"}
                 onPress={runAction}
               >

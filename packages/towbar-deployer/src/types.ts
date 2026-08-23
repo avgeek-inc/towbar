@@ -7,6 +7,8 @@ import type {
   ResourceOperationResult,
   RuntimeDesiredState,
   RuntimeInspection,
+  ServerPreparationStepId,
+  ServerPreparationStepStatus,
 } from "@workspace/towbar-core";
 
 export type SshLoginSecret = {
@@ -73,6 +75,29 @@ export type ServerCheckContext = {
   login: SshLoginSecret;
   sourceId: string;
   trustedHostKeys: TrustedHostKey[];
+};
+
+export type ServerPreparationContext = {
+  config: NormalizedServer;
+  login: SshLoginSecret;
+  preparationId: string;
+  trustedHostKeys: TrustedHostKey[];
+};
+
+export type ServerPreparationHooks = {
+  step: (input: {
+    id: ServerPreparationStepId;
+    message: string;
+    status: Exclude<ServerPreparationStepStatus, "waiting">;
+  }) => Promise<void>;
+};
+
+export type ServerPreparationResult = {
+  caddyVersion: string;
+  diskAvailableKb: number;
+  dockerVersion: string;
+  operatingSystem: string;
+  pythonVersion: string;
 };
 
 export type ExecutorHooks = {

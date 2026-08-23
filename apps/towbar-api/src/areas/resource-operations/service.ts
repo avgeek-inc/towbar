@@ -89,6 +89,15 @@ export async function requestDeployableOperation(input: {
   if (target.archivedAt) {
     throw conflict("Archived deployables cannot be operated");
   }
+  if (
+    !target.serverPreparedAt ||
+    target.serverPreparedConfigDigest !== target.serverConfigDigest
+  ) {
+    throw conflict(
+      "Prepare this server before operating apps or resources",
+      "SERVER_SETUP_PENDING",
+    );
+  }
   if (!target.currentRelease) {
     throw unprocessable("Deploy this item before using runtime operations");
   }

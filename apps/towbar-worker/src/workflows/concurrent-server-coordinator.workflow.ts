@@ -23,6 +23,13 @@ const { executeServerCheckActivity } = proxyActivities<typeof activities>({
   retry: { maximumAttempts: 1 },
   startToCloseTimeout: "2 minutes",
 });
+const { executeServerPreparationActivity } = proxyActivities<typeof activities>(
+  {
+    heartbeatTimeout: "30 seconds",
+    retry: { maximumAttempts: 1 },
+    startToCloseTimeout: "30 minutes",
+  },
+);
 
 export async function runConcurrentServerCoordinatorWorkflow() {
   const queue: ServerWorkItem[] = [];
@@ -87,6 +94,9 @@ export async function runConcurrentServerCoordinatorWorkflow() {
 function executeServerWork(item: ServerWorkItem) {
   if (item.kind === "server-check") {
     return executeServerCheckActivity(item.id).then(() => undefined);
+  }
+  if (item.kind === "server-preparation") {
+    return executeServerPreparationActivity(item.id).then(() => undefined);
   }
   if (item.kind === "resource-operation") {
     return executeChild(runResourceOperationWorkflow, {

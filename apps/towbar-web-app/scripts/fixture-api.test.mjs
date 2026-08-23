@@ -38,6 +38,7 @@ const readRoutes = [
   `/v1/core/servers/${fixtureIds.server}/resources`,
   `/v1/core/servers/${fixtureIds.server}/deployments`,
   `/v1/core/servers/${fixtureIds.server}/checks`,
+  `/v1/core/servers/${fixtureIds.server}/preparations`,
   `/v1/core/servers/${fixtureIds.server}/host-keys`,
   `/v1/core/servers/${fixtureIds.server}/orphans`,
   `/v1/core/deployments/${fixtureIds.deployment}`,
@@ -284,6 +285,45 @@ test("the local fixture covers first-connection host-key trust", async () => {
       trustedSourceServersPayload.servers[0].hostKeyStatus,
       "trusted",
     );
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
+test("the local fixture covers server preparation and deployable readiness", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  try {
+    await fetch(
+      `${baseUrl}/v1/core/servers/${fixtureIds.server}/host-keys/actions/trust`,
+      { method: "POST" },
+    );
+    const response = await fetch(
+      `${baseUrl}/v1/core/servers/${fixtureIds.server}/actions/prepare`,
+      { method: "POST" },
+    );
+    assert.equal(response.status, 202);
+    const payload = await response.json();
+    assert.equal(payload.preparation.status, "succeeded");
+    assert.equal(payload.preparation.steps.length, 7);
+
+    const serverResponse = await fetch(
+      `${baseUrl}/v1/core/servers/${fixtureIds.server}`,
+    );
+    const serverPayload = await serverResponse.json();
+    assert.equal(serverPayload.server.setupStatus, "ready");
+
+    const resourceResponse = await fetch(
+      `${baseUrl}/v1/core/resources/${fixtureIds.resource}`,
+    );
+    const resourcePayload = await resourceResponse.json();
+    assert.equal(resourcePayload.resource.serverReady, true);
   } finally {
     server.close();
     await once(server, "close");

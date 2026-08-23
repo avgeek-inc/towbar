@@ -46,6 +46,11 @@ entities. Resources support versioned images plus PostgreSQL and Redis presets.
 Root shared build/deployment secret references are copied into immutable
 deployable snapshots and resolved only at execution time.
 
+Server preparation is a durable, Source-scoped operation. Readiness is bound
+to the exact normalized Server configuration digest; a manifest change makes
+the Server pending again. Deployment admission and automatic-deployment
+selection both require a current successful preparation.
+
 App and Resource lifecycle is manifest-owned. A deployable missing from the
 latest successful Source sync is archived; the same manifest ID reappearing
 restores it. Towbar has no independent decommission action or lifecycle flag.

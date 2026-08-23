@@ -51,7 +51,13 @@ const appColumns: ResourceTableColumn<App>[] = [
   {
     cell: (app) => (
       <StatusBadge
-        status={app.archivedAt ? "archived" : app.runtimeState.healthStatus}
+        status={
+          app.archivedAt
+            ? "archived"
+            : app.serverReady
+              ? app.runtimeState.healthStatus
+              : "server_setup_pending"
+        }
       />
     ),
     className: "w-32",
@@ -105,7 +111,11 @@ const resourceColumns: ResourceTableColumn<Resource>[] = [
     cell: (resource) => (
       <StatusBadge
         status={
-          resource.archivedAt ? "archived" : resource.runtimeState.healthStatus
+          resource.archivedAt
+            ? "archived"
+            : resource.serverReady
+              ? resource.runtimeState.healthStatus
+              : "server_setup_pending"
         }
       />
     ),
@@ -259,7 +269,9 @@ export function SourceServers({
     },
     {
       cell: (server) => (
-        <StatusBadge status={server.archivedAt ? "archived" : "active"} />
+        <StatusBadge
+          status={server.archivedAt ? "archived" : server.setupStatus}
+        />
       ),
       className: "w-32",
       header: "Status",

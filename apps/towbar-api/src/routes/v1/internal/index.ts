@@ -5,6 +5,7 @@ import { internalDeploymentRoutes } from "./deployments.js";
 import { internalMaintenanceRoutes } from "./maintenance.js";
 import { internalResourceOperationRoutes } from "./resource-operations.js";
 import { internalServerCheckRoutes } from "./server-checks.js";
+import { internalServerPreparationRoutes } from "./server-preparations.js";
 import { internalSourceSyncRoutes } from "./source-syncs.js";
 
 export const internalRoutes = new Hono();
@@ -14,5 +15,6 @@ internalRoutes.get("/health", (context) => context.json({ status: "ok" }));
 internalRoutes.route("/source-syncs", internalSourceSyncRoutes);
 internalRoutes.route("/deployments", internalDeploymentRoutes);
 internalRoutes.route("/server-checks", internalServerCheckRoutes);
+internalRoutes.route("/server-preparations", internalServerPreparationRoutes);
 internalRoutes.route("/resource-operations", internalResourceOperationRoutes);
 internalRoutes.route("/maintenance", internalMaintenanceRoutes);

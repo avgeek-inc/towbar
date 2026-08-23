@@ -7,6 +7,7 @@ const active = {
   archivedAt: null,
   deploymentDigest: "desired",
   kind: "app" as const,
+  serverReady: true,
   sourceRevision: "current",
 };
 
@@ -52,6 +53,24 @@ void test("selects changed roots and waits for dependencies by deployment digest
       ],
     }).map((candidate) => candidate.manifestId),
     ["web"],
+  );
+});
+
+void test("excludes apps whose server setup is pending", () => {
+  assert.deepEqual(
+    selectAutomaticDeploymentCandidates({
+      candidates: [
+        {
+          ...active,
+          config: { autoDeploy: true },
+          manifestId: "api",
+          serverReady: false,
+        },
+      ],
+      commitSha: "current",
+      releases: [],
+    }),
+    [],
   );
 });
 

@@ -10,6 +10,7 @@ export * from "./runtime-inspection.js";
 export * from "./routing.js";
 export * from "./secrets.js";
 export * from "./server-check.js";
+export * from "./server-preparation.js";
 export * from "./source-fetch.js";
 export * from "./ssh.js";
 export * from "./types.js";

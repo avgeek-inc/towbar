@@ -112,7 +112,7 @@ export function AppDetail() {
         !item.archivedAt ? (
           <div className="flex flex-wrap justify-end gap-2">
             <RuntimeActionToolbar
-              active
+              active={item.serverReady}
               deployableId={appId}
               runtimeState={item.runtimeState}
               type="app"
@@ -138,6 +138,7 @@ export function AppDetail() {
                   )
                 }
                 pendingLabel="Queueing…"
+                isDisabled={!item.serverReady}
                 success="Rollback queued"
               >
                 Rollback
@@ -157,6 +158,7 @@ export function AppDetail() {
                 )
               }
               pendingLabel="Queueing…"
+              isDisabled={!item.serverReady}
               success="Deployment queued"
               variant="primary"
             >
@@ -203,10 +205,21 @@ export function AppDetail() {
                     <StatusBadge status={lifecycleStatus} />
                   </Attributes.Item>
                   <Attributes.Item label="Health">
-                    <StatusBadge status={item.runtimeState.healthStatus} />
+                    <StatusBadge
+                      status={
+                        item.serverReady
+                          ? item.runtimeState.healthStatus
+                          : "server_setup_pending"
+                      }
+                    />
                   </Attributes.Item>
                   <Attributes.Item label="Running state">
                     <StatusBadge status={item.runtimeState.observedState} />
+                  </Attributes.Item>
+                  <Attributes.Item label="Server setup">
+                    <StatusBadge
+                      status={item.serverReady ? "ready" : "pending"}
+                    />
                   </Attributes.Item>
                   <Attributes.Item
                     icon={<HugeiconsIcon icon={ServerStack01Icon} />}
@@ -276,8 +289,9 @@ export function AppDetail() {
             value: "runtime",
             label: "Runtime",
             icon: <HugeiconsIcon icon={Activity01Icon} />,
-            indicator:
-              item.runtimeState.healthStatus === "unhealthy"
+            indicator: !item.serverReady
+              ? { label: "Setup pending", variant: "warning" }
+              : item.runtimeState.healthStatus === "unhealthy"
                 ? { label: "Unhealthy", variant: "destructive" }
                 : item.runtimeState.driftStatus === "drifted"
                   ? { label: "Drifted", variant: "warning" }
@@ -292,7 +306,7 @@ export function AppDetail() {
             icon: <HugeiconsIcon icon={FileViewIcon} />,
             content: (
               <RuntimeLogs
-                active={!item.archivedAt}
+                active={!item.archivedAt && item.serverReady}
                 deployableId={appId}
                 type="app"
               />
@@ -515,6 +529,7 @@ function renderHook(
 
 function getAppLifecycleStatus(item: AppRecord) {
   if (item.archivedAt) return "archived";
+  if (!item.serverReady) return "server_setup_pending";
   return "active";
 }
 

@@ -11,6 +11,11 @@ export type ServerWorkItem =
       kind: "server-check";
     }
   | {
+      buildConcurrency: number;
+      id: string;
+      kind: "server-preparation";
+    }
+  | {
       appId: string | null;
       buildConcurrency: number;
       exclusive: boolean;
@@ -30,9 +35,11 @@ export function nextServerWorkIndex(input: {
     if (!item) continue;
     if (
       item.kind === "server-check" ||
+      item.kind === "server-preparation" ||
       (item.kind === "resource-operation" && item.exclusive)
     ) {
-      // Checks are exclusive and retain their FIFO position as a barrier.
+      // Checks, preparation, and exclusive operations retain FIFO position as
+      // barriers so they cannot race a deployment on the same server.
       return input.activeCount === 0 && index === 0 ? index : -1;
     }
     if (!item.appId || !input.activeAppIds.has(item.appId)) return index;

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "uq_towbar_server_preparations_active" ON "towbar_server_preparations" USING btree ("server_id") WHERE "towbar_server_preparations"."status" in ('queued', 'running');

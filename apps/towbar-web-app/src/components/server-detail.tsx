@@ -14,10 +14,13 @@ import type {
   ResourceOperation,
   Server,
   ServerCheck,
+  ServerPreparation,
   TrustedHostKey,
 } from "@workspace/towbar-web-client";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
+import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
+import { Stepper } from "@workspace/web-design-system/navigation/stepper";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
@@ -73,6 +76,10 @@ export function ServerDetail() {
   const keys = useApiQuery<{ hostKeys: TrustedHostKey[] }>(
     `/v1/core/servers/${serverId}/host-keys`,
   );
+  const preparations = useApiQuery<{ preparations: ServerPreparation[] }>(
+    `/v1/core/servers/${serverId}/preparations`,
+    3_000,
+  );
   const orphans = useApiQuery<{ orphans: OrphanItem[] }>(
     `/v1/core/servers/${serverId}/orphans`,
     5_000,
@@ -84,14 +91,25 @@ export function ServerDetail() {
       );
     }
   }, [router, server.data, serverId, sourceId]);
-  const error = server.error ?? checks.error ?? keys.error ?? orphans.error;
+  const error =
+    server.error ??
+    checks.error ??
+    keys.error ??
+    preparations.error ??
+    orphans.error;
   if (error)
     return (
       <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="Server">
         <QueryError message={error} />
       </DashboardPage>
     );
-  if (!server.data || !checks.data || !keys.data || !orphans.data)
+  if (
+    !server.data ||
+    !checks.data ||
+    !keys.data ||
+    !preparations.data ||
+    !orphans.data
+  )
     return (
       <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="Server">
         <QueryLoading />
@@ -135,6 +153,7 @@ export function ServerDetail() {
       .map((key) => ({ ...key, status: "untrusted" as const })),
   ];
   const latestCheck = checks.data.checks[0];
+  const latestPreparation = preparations.data.preparations[0];
   const operatingSystem = readCheckResult(latestCheck, "operatingSystem");
   const dockerVersion = readCheckResult(latestCheck, "dockerVersion");
   const checkColumns: ResourceTableColumn<ServerCheck>[] = [
@@ -258,7 +277,9 @@ export function ServerDetail() {
           Check server
         </ActionButton>
       }
-      badge={<StatusBadge status={item.archivedAt ? "archived" : "active"} />}
+      badge={
+        <StatusBadge status={item.archivedAt ? "archived" : item.setupStatus} />
+      }
       breadcrumbAncestors={breadcrumbAncestors}
       title={item.canonicalIp}
       titleContent={
@@ -296,55 +317,71 @@ export function ServerDetail() {
               label: "Overview",
               icon: <HugeiconsIcon icon={ServerStack01Icon} />,
               content: (
-                <div className="grid gap-8 lg:grid-cols-2">
-                  <Attributes columns={2} title="Connection" variant="card">
-                    <Attributes.Item label="IP address">
-                      {item.canonicalIp}
-                    </Attributes.Item>
-                    <Attributes.Item label="SSH host">
-                      {item.config.ssh.host ?? item.canonicalIp}
-                    </Attributes.Item>
-                    <Attributes.Item label="SSH user">
-                      {item.config.ssh.username}
-                    </Attributes.Item>
-                    <Attributes.Item label="SSH port">
-                      {item.config.ssh.port}
-                    </Attributes.Item>
-                    <Attributes.Item label="Source revision">
-                      <TypographyCode title={item.sourceRevision}>
-                        {item.sourceRevision.slice(0, 12)}
-                      </TypographyCode>
-                    </Attributes.Item>
-                    <Attributes.Item label="Last synced">
-                      {formatDate(item.updatedAt)}
-                    </Attributes.Item>
-                  </Attributes>
-                  <Attributes columns={2} title="Operations" variant="card">
-                    <Attributes.Item label="Latest check">
-                      {latestCheck ? (
-                        <StatusBadge status={latestCheck.status} />
-                      ) : (
-                        "Not checked"
-                      )}
-                    </Attributes.Item>
-                    <Attributes.Item label="Last checked">
-                      {latestCheck?.finishedAt
-                        ? formatDate(latestCheck.finishedAt)
-                        : "Not checked"}
-                    </Attributes.Item>
-                    <Attributes.Item label="Operating system">
-                      {operatingSystem ?? "Unknown"}
-                    </Attributes.Item>
-                    <Attributes.Item label="Docker">
-                      {dockerVersion ?? "Unknown"}
-                    </Attributes.Item>
-                    <Attributes.Item label="Concurrent builds">
-                      {item.config.buildConcurrency ?? 1}
-                    </Attributes.Item>
-                    <Attributes.Item label="Trusted host keys">
-                      {keys.data.hostKeys.length}
-                    </Attributes.Item>
-                  </Attributes>
+                <div className="grid gap-8">
+                  <ServerPreparationPanel
+                    hasTrustedHostKey={keys.data.hostKeys.length > 0}
+                    item={item}
+                    latestPreparation={latestPreparation}
+                    serverId={serverId}
+                  />
+                  <div className="grid gap-8 lg:grid-cols-2">
+                    <Attributes columns={2} title="Connection" variant="card">
+                      <Attributes.Item label="IP address">
+                        {item.canonicalIp}
+                      </Attributes.Item>
+                      <Attributes.Item label="SSH host">
+                        {item.config.ssh.host ?? item.canonicalIp}
+                      </Attributes.Item>
+                      <Attributes.Item label="SSH user">
+                        {item.config.ssh.username}
+                      </Attributes.Item>
+                      <Attributes.Item label="SSH port">
+                        {item.config.ssh.port}
+                      </Attributes.Item>
+                      <Attributes.Item label="Source revision">
+                        <TypographyCode title={item.sourceRevision}>
+                          {item.sourceRevision.slice(0, 12)}
+                        </TypographyCode>
+                      </Attributes.Item>
+                      <Attributes.Item label="Last synced">
+                        {formatDate(item.updatedAt)}
+                      </Attributes.Item>
+                    </Attributes>
+                    <Attributes columns={2} title="Operations" variant="card">
+                      <Attributes.Item label="Server setup">
+                        <StatusBadge status={item.setupStatus} />
+                      </Attributes.Item>
+                      <Attributes.Item label="Prepared">
+                        {item.preparedAt
+                          ? formatDate(item.preparedAt)
+                          : "Not prepared"}
+                      </Attributes.Item>
+                      <Attributes.Item label="Latest check">
+                        {latestCheck ? (
+                          <StatusBadge status={latestCheck.status} />
+                        ) : (
+                          "Not checked"
+                        )}
+                      </Attributes.Item>
+                      <Attributes.Item label="Last checked">
+                        {latestCheck?.finishedAt
+                          ? formatDate(latestCheck.finishedAt)
+                          : "Not checked"}
+                      </Attributes.Item>
+                      <Attributes.Item label="Operating system">
+                        {operatingSystem ?? "Unknown"}
+                      </Attributes.Item>
+                      <Attributes.Item label="Docker">
+                        {dockerVersion ?? "Unknown"}
+                      </Attributes.Item>
+                      <Attributes.Item label="Concurrent builds">
+                        {item.config.buildConcurrency ?? 1}
+                      </Attributes.Item>
+                      <Attributes.Item label="Trusted host keys">
+                        {keys.data.hostKeys.length}
+                      </Attributes.Item>
+                    </Attributes>
+                  </div>
                 </div>
               ),
             },
@@ -450,6 +487,129 @@ export function ServerDetail() {
         />
       </div>
     </DashboardPage>
+  );
+}
+
+function ServerPreparationPanel({
+  hasTrustedHostKey,
+  item,
+  latestPreparation,
+  serverId,
+}: {
+  hasTrustedHostKey: boolean;
+  item: Server;
+  latestPreparation: ServerPreparation | undefined;
+  serverId: string;
+}) {
+  const preparing = item.setupStatus === "preparing";
+  const ready = item.setupStatus === "ready";
+  const steps = latestPreparation?.steps ?? [];
+  const activeStep = steps.findIndex(
+    (step) => step.status === "running" || step.status === "failed",
+  );
+  const currentStep =
+    activeStep >= 0
+      ? activeStep
+      : steps.every((step) => step.status === "succeeded")
+        ? steps.length
+        : 0;
+  const disabled =
+    Boolean(item.archivedAt) || ready || preparing || !hasTrustedHostKey;
+
+  return (
+    <div className="grid gap-4">
+      {!ready ? (
+        <Alert status="default">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>Use a fresh, dedicated Ubuntu server</Alert.Title>
+            <Alert.Description>
+              Towbar can reuse compatible Docker and Caddy installations, but it
+              will stop safely when existing packages or configuration conflict.
+              Clean up the reported conflict before trying again.
+            </Alert.Description>
+          </Alert.Content>
+        </Alert>
+      ) : null}
+      {latestPreparation?.status === "failed" &&
+      latestPreparation.errorMessage ? (
+        <Alert status="danger">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>Server preparation stopped</Alert.Title>
+            <Alert.Description>
+              {latestPreparation.errorMessage}
+            </Alert.Description>
+          </Alert.Content>
+        </Alert>
+      ) : null}
+      <Widget>
+        <Widget.Header>
+          <Widget.Title>Server preparation</Widget.Title>
+          <StatusBadge status={item.setupStatus} />
+        </Widget.Header>
+        <Widget.Content className="grid gap-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <p className="max-w-2xl text-sm text-muted">
+              Installs or validates Docker Engine, Caddy, Python, deployment
+              directories, and SSH user access. Apps and resources stay in
+              Server Setup Pending until every step succeeds.
+            </p>
+            <ActionButton<{ preparation: ServerPreparation }>
+              action={() =>
+                api.post<{ preparation: ServerPreparation }>(
+                  `/v1/core/servers/${serverId}/actions/prepare`,
+                )
+              }
+              confirm={{
+                actionLabel: "Prepare server",
+                description:
+                  "Towbar will connect with the trusted SSH host key, install or validate Docker Engine, Caddy, and Python, then verify the host. Existing conflicting services are not removed automatically.",
+                title: "Prepare this server?",
+              }}
+              isDisabled={disabled}
+              pendingLabel="Queueing…"
+              success="Server preparation queued"
+              variant="primary"
+            >
+              Prepare Server
+            </ActionButton>
+          </div>
+          {!hasTrustedHostKey && !ready ? (
+            <p className="text-sm text-warning">
+              Trust at least one verified SSH host key before preparing this
+              server.
+            </p>
+          ) : null}
+          {steps.length ? (
+            <Stepper
+              aria-label="Server preparation progress"
+              currentStep={currentStep}
+              orientation="vertical"
+              size="sm"
+            >
+              {steps.map((step) => (
+                <Stepper.Step key={step.id}>
+                  <Stepper.Indicator />
+                  <Stepper.Content>
+                    <Stepper.Title>
+                      <span className="inline-flex min-w-0 items-center gap-2">
+                        <span className="truncate">{step.title}</span>
+                        <StatusBadge status={step.status} />
+                      </span>
+                    </Stepper.Title>
+                    {step.message ? (
+                      <Stepper.Description>{step.message}</Stepper.Description>
+                    ) : null}
+                  </Stepper.Content>
+                  <Stepper.Separator />
+                </Stepper.Step>
+              ))}
+            </Stepper>
+          ) : null}
+        </Widget.Content>
+      </Widget>
+    </div>
   );
 }
 
