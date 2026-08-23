@@ -327,6 +327,10 @@ export type ServerCheck = {
   status: "queued" | "running" | "succeeded" | "failed";
 };
 
+export type SourceServer = Server & {
+  latestCheck: Pick<ServerCheck, "errorCode" | "status"> | null;
+};
+
 export type TrustedHostKey = {
   algorithm: string;
   createdAt: string;

@@ -506,7 +506,21 @@ function getFixturePayload(path: string): unknown {
     [`/v1/core/sources/${source.id}/aws`, { credential: awsCredential }],
     [`/v1/core/sources/${source.id}/apps`, { apps }],
     [`/v1/core/sources/${source.id}/resources`, { resources }],
-    [`/v1/core/sources/${source.id}/servers`, { servers }],
+    [
+      `/v1/core/sources/${source.id}/servers`,
+      {
+        servers: servers.map((server) => ({
+          ...server,
+          latestCheck:
+            server.id === fixtureIds.server && serverChecks[0]
+              ? {
+                  errorCode: serverChecks[0].errorCode,
+                  status: serverChecks[0].status,
+                }
+              : null,
+        })),
+      },
+    ],
     [`/v1/core/sources/${source.id}/deployments`, { deployments }],
     [`/v1/core/sources/${source.id}/backups`, { backups: sourceBackups }],
     [

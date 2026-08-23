@@ -15,7 +15,7 @@ import type {
   App,
   AwsCredentialMetadata,
   Resource,
-  Server,
+  SourceServer,
   Source,
   SourceSync,
 } from "@workspace/towbar-web-client";
@@ -78,7 +78,7 @@ export function SourceDetail() {
   const resources = useApiQuery<{ resources: Resource[] }>(
     `/v1/core/sources/${sourceId}/resources`,
   );
-  const servers = useApiQuery<{ servers: Server[] }>(
+  const servers = useApiQuery<{ servers: SourceServer[] }>(
     `/v1/core/sources/${sourceId}/servers`,
   );
   const aws = useApiQuery<{ credential: AwsCredentialMetadata | null }>(

@@ -56,7 +56,8 @@ export async function listServers(workspaceId: string) {
 }
 
 export async function listSourceServers(sourceId: string, workspaceId: string) {
-  return await getTowbarDatabase()
+  const database = getTowbarDatabase();
+  const sourceServers = await database
     .select({
       archivedAt: servers.archivedAt,
       canonicalIp: servers.canonicalIp,
@@ -72,6 +73,40 @@ export async function listSourceServers(sourceId: string, workspaceId: string) {
       and(eq(servers.sourceId, sourceId), eq(servers.workspaceId, workspaceId)),
     )
     .orderBy(desc(servers.updatedAt));
+
+  if (sourceServers.length === 0) return [];
+
+  const checks = await database
+    .selectDistinctOn([serverChecks.serverId], {
+      errorCode: serverChecks.errorCode,
+      serverId: serverChecks.serverId,
+      status: serverChecks.status,
+    })
+    .from(serverChecks)
+    .where(
+      inArray(
+        serverChecks.serverId,
+        sourceServers.map((server) => server.id),
+      ),
+    )
+    .orderBy(serverChecks.serverId, desc(serverChecks.createdAt));
+  const latestCheckByServer = new Map<
+    string,
+    { errorCode: string | null; status: (typeof checks)[number]["status"] }
+  >();
+  for (const check of checks) {
+    if (!latestCheckByServer.has(check.serverId)) {
+      latestCheckByServer.set(check.serverId, {
+        errorCode: check.errorCode,
+        status: check.status,
+      });
+    }
+  }
+
+  return sourceServers.map((server) => ({
+    ...server,
+    latestCheck: latestCheckByServer.get(server.id) ?? null,
+  }));
 }
 
 export async function getServer(serverId: string, workspaceId: string) {

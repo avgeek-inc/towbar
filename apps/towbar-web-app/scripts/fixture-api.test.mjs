@@ -241,6 +241,15 @@ test("the local fixture covers first-connection host-key trust", async () => {
   const baseUrl = `http://127.0.0.1:${address.port}`;
 
   try {
+    const sourceServersResponse = await fetch(
+      `${baseUrl}/v1/core/sources/${fixtureIds.source}/servers`,
+    );
+    const sourceServersPayload = await sourceServersResponse.json();
+    assert.deepEqual(sourceServersPayload.servers[0].latestCheck, {
+      errorCode: "HOST_KEY_NOT_TRUSTED",
+      status: "failed",
+    });
+
     const checksResponse = await fetch(
       `${baseUrl}/v1/core/servers/${fixtureIds.server}/checks`,
     );
@@ -266,6 +275,16 @@ test("the local fixture covers first-connection host-key trust", async () => {
     assert.equal(
       keysPayload.hostKeys[0].fingerprint,
       "SHA256:TowbarFixtureHostKey",
+    );
+
+    const trustedSourceServersResponse = await fetch(
+      `${baseUrl}/v1/core/sources/${fixtureIds.source}/servers`,
+    );
+    const trustedSourceServersPayload =
+      await trustedSourceServersResponse.json();
+    assert.equal(
+      trustedSourceServersPayload.servers[0].latestCheck.errorCode,
+      null,
     );
   } finally {
     server.close();

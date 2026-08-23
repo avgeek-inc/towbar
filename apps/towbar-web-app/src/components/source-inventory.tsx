@@ -2,13 +2,15 @@
 
 import { CheckIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import type { App, Resource, Server } from "@workspace/towbar-web-client";
+import type { App, Resource, SourceServer } from "@workspace/towbar-web-client";
+import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
+import { InlineLink } from "@/components/page-parts";
 import { LastSyncedTime, LastSyncedTimeProvider } from "./last-synced-time";
 
 const appColumns: ResourceTableColumn<App>[] = [
@@ -177,7 +179,7 @@ export function SourceServers({
   apps?: App[];
   error?: string;
   resources?: Resource[];
-  servers?: Server[];
+  servers?: SourceServer[];
   sourceId: string;
 }) {
   if (error) return <QueryError message={error} />;
@@ -208,7 +210,10 @@ export function SourceServers({
       ),
     );
   }
-  const serverColumns: ResourceTableColumn<Server>[] = [
+  const untrustedServers = servers.filter(
+    (server) => server.latestCheck?.errorCode === "HOST_KEY_NOT_TRUSTED",
+  );
+  const serverColumns: ResourceTableColumn<SourceServer>[] = [
     {
       cell: (server) => server.canonicalIp,
       className: "min-w-40 tabular-nums",
@@ -257,18 +262,46 @@ export function SourceServers({
     },
   ];
   return (
-    <LastSyncedTimeProvider>
-      <ResourceTable
-        ariaLabel="Source servers"
-        columns={serverColumns}
-        emptyDescription="Declare a server in this Source's manifest to import it."
-        emptyTitle="No servers in this Source"
-        getRowHref={(server) => `/sources/${sourceId}/servers/${server.id}`}
-        getRowKey={(server) => server.id}
-        items={servers}
-        tableClassName="min-w-[1040px]"
-      />
-    </LastSyncedTimeProvider>
+    <div className="grid gap-6">
+      {untrustedServers.length ? (
+        <Alert status="warning">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>
+              {untrustedServers.length === 1
+                ? "A server host key requires trust"
+                : `${untrustedServers.length} server host keys require trust`}
+            </Alert.Title>
+            <Alert.Description>
+              Towbar stopped before login. Verify each fingerprint independently
+              before trusting a key.
+            </Alert.Description>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              {untrustedServers.map((server) => (
+                <InlineLink
+                  href={`/sources/${sourceId}/servers/${server.id}?section=host-keys`}
+                  key={server.id}
+                >
+                  Review {server.canonicalIp}
+                </InlineLink>
+              ))}
+            </div>
+          </Alert.Content>
+        </Alert>
+      ) : null}
+      <LastSyncedTimeProvider>
+        <ResourceTable
+          ariaLabel="Source servers"
+          columns={serverColumns}
+          emptyDescription="Declare a server in this Source's manifest to import it."
+          emptyTitle="No servers in this Source"
+          getRowHref={(server) => `/sources/${sourceId}/servers/${server.id}`}
+          getRowKey={(server) => server.id}
+          items={servers}
+          tableClassName="min-w-[1040px]"
+        />
+      </LastSyncedTimeProvider>
+    </div>
   );
 }
 

@@ -282,7 +282,7 @@ export function ServerDetail() {
               <Alert.Title>Untrusted SSH host key</Alert.Title>
               <Alert.Description>
                 Towbar stopped before login. Verify the discovered fingerprint
-                independently, then trust at least one matching key from the SSH
+                independently, then trust at least one matching key from the
                 Host Keys tab.
               </Alert.Description>
             </Alert.Content>
@@ -349,8 +349,8 @@ export function ServerDetail() {
               ),
             },
             {
-              value: "ssh-host-keys",
-              label: "SSH Host Keys",
+              value: "host-keys",
+              label: "Host Keys",
               icon: <HugeiconsIcon icon={Key01Icon} />,
               indicator: {
                 label: String(hostKeyRows.length),
@@ -358,7 +358,7 @@ export function ServerDetail() {
               },
               content: (
                 <ResourceTable
-                  ariaLabel={`SSH host keys for ${item.canonicalIp}`}
+                  ariaLabel={`Host keys for ${item.canonicalIp}`}
                   columns={hostKeyColumns}
                   emptyDescription="Run a server check to discover the SSH host keys presented by this server."
                   emptyTitle="No SSH host keys"
