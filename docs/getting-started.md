@@ -56,8 +56,8 @@ openssl rand -base64 32 | tr -d '\n'
 ```
 
 Put those values in `.env`. For an internet reachable installation, also
-replace the four base URLs before building. The
-API, web app, and SSO need distinct HTTPS origins. `TOWBAR_WEBSITE_BASE_URL` is
+replace the three base URLs before building. The API and web app need reachable
+HTTPS origins; login stays on the web app origin. `TOWBAR_WEBSITE_BASE_URL` is
 an external link target; Towbar does not run the website in this repository.
 
 Start the stack:
@@ -68,10 +68,15 @@ docker compose ps
 ```
 
 Open `TOWBAR_APP_BASE_URL`; with the default local configuration it is
-`http://localhost:4021`. Towbar sends the first visitor to a one-time setup form
-for the owner name, email, and password. The API serializes that creation and
-locks setup permanently after the first account exists. Complete setup while
-the services are still loopback-bound, before enabling public ingress.
+`http://localhost:4021`. Towbar sends the first visitor to `/login` and a
+one-time setup form for the owner name, email, and password. The API serializes
+that creation and locks setup permanently after the first account exists.
+Complete setup while the services are still loopback-bound, before enabling
+public ingress.
+
+If the owner password is later forgotten, use the environment-and-restart
+procedure in [Configuration](configuration.md#forgotten-owner-password).
+Towbar has no browser-accessible password-reset flow.
 
 The loopback defaults are suitable for evaluating the UI on the host. GitHub
 webhooks require the API URL to be reachable over HTTPS, so a complete

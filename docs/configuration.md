@@ -20,7 +20,7 @@ length.
 
 ## Public origins
 
-Set all four base URLs before building images. Browser bundles embed public
+Set all three base URLs before building images. Browser bundles embed public
 URLs at build time. The website URL is an external navigation target; this
 repository does not run the marketing or documentation website.
 
@@ -28,8 +28,12 @@ repository does not run the marketing or documentation website.
 | ------------------------- | ---------------------------- |
 | `TOWBAR_API_BASE_URL`     | `https://api.towbar.example` |
 | `TOWBAR_APP_BASE_URL`     | `https://app.towbar.example` |
-| `TOWBAR_SSO_BASE_URL`     | `https://sso.towbar.example` |
 | `TOWBAR_WEBSITE_BASE_URL` | `https://towbar.example`     |
+
+Keep the app and API under the same registrable site, as in the example above,
+or proxy the API through that site. Login is rendered by the web app and sends
+credentialed requests directly to the API; there is no separate authentication
+origin.
 
 The default `TOWBAR_BIND_ADDRESS=127.0.0.1` keeps services private to the host.
 Terminate TLS at a reverse proxy on that host or a private load balancer.
@@ -61,10 +65,31 @@ Towbar rejects partially configured GitHub App credentials.
 
 ## Initial owner
 
-Towbar does not accept owner credentials through environment variables. On an
-empty database, the sign-in origin presents a one-time owner setup form. The
-first successful submission creates the owner atomically and permanently locks
-account creation. Keep the default loopback binding until this step is complete.
+Towbar does not accept initial owner credentials through environment variables.
+On an empty database, the web app's `/login` page presents a one-time owner
+setup form. The first successful submission creates the owner atomically and
+permanently locks account creation. Keep the default loopback binding until
+this step is complete.
+
+## Forgotten owner password
+
+Towbar deliberately exposes no public forgot-password or reset-password route.
+Recovery is an explicit control-plane restart operation:
+
+1. Generate a high-entropy temporary password with `openssl rand -base64 32`.
+2. Set `TOWBAR_OWNER_RESET_EMAIL` to the existing owner email and
+   `TOWBAR_OWNER_RESET_PASSWORD` to that temporary value in `.env`.
+3. Run `docker compose up --detach --force-recreate api`.
+4. Sign in at `${TOWBAR_APP_BASE_URL}/login` with the temporary password.
+5. Change the password under **Settings → Account**.
+6. Remove both reset variables and recreate the API container again.
+
+The API fails fast if only one variable is set, if the email is not an enabled
+owner, or if the temporary password is shorter than 20 characters. Applying a
+reset revokes every existing session. PostgreSQL stores only an HMAC
+fingerprint, so an unchanged reset value is not reapplied on a later restart.
+The temporary password remains visible to the host/container administrator
+while configured, which is why it must be random, short-lived, and removed.
 
 ## Deployment targets and Source credentials
 

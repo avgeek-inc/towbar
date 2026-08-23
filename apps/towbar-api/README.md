@@ -20,16 +20,23 @@ pnpm --filter towbar-api build
 Production uses separate runtime and migrator PostgreSQL credentials. GitHub
 App credentials, the internal HMAC key, and `TOWBAR_CREDENTIALS_KEY` are host
 secrets and must never be stored in PostgreSQL or committed. The production
-image exposes compiled, dependency-complete operator commands:
+image exposes the compiled migration command:
 
 ```sh
 node dist/cli/migrate.js
-node dist/cli/issue-recovery-token.js
 ```
 
-An empty installation exposes a one-time owner setup operation through the SSO
-screen. The transaction is serialized and setup locks after the first account
-exists; owner credentials are never passed through environment variables.
+An empty installation exposes a one-time owner setup operation through the web
+app's `/login` screen. The transaction is serialized and setup locks after the
+first account exists. Login and setup create the API session directly; there is
+no authorization-code exchange or separate authentication origin.
+
+Forgotten-owner recovery is an operator-only startup operation. Configure
+`TOWBAR_OWNER_RESET_EMAIL` and a high-entropy temporary
+`TOWBAR_OWNER_RESET_PASSWORD`, restart the API, sign in normally, and change the
+password in Settings. The API stores only a keyed fingerprint of the recovery
+value, revokes existing sessions, and refuses to reapply the same value on a
+later restart. Towbar exposes no unauthenticated password-reset route.
 
 Signed GitHub push webhooks synchronize only the manifest's configured branch.
 After a successful push sync, the API admits apps with automatic deployment

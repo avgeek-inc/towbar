@@ -5,6 +5,10 @@ Sources, Apps, Resources, and Servers from the API and exposes only operational
 actions. Resources remain nested inside their owning Source alongside Apps,
 Servers, and deployment history.
 
+The web app also owns `/login` and the locked first-run owner setup. Password
+authentication creates the API session directly; Towbar has no separate SSO
+application, authorization-code callback, signup, or public password-reset UI.
+
 The Server Overview owns preparation: it recommends a fresh Ubuntu target,
 shows the durable setup steps, and keeps deployables visibly in `Server Setup
 Pending` until the Server is ready.

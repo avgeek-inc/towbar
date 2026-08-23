@@ -23,14 +23,13 @@ flowchart LR
 
 ## What runs
 
-The Compose stack builds and runs four Towbar applications:
+The Compose stack builds and runs three Towbar applications:
 
 | Service   | Purpose                                                    | Default address  |
 | --------- | ---------------------------------------------------------- | ---------------- |
 | `api`     | Authentication, source sync, inventory, and deployment API | `127.0.0.1:4020` |
 | `worker`  | Temporal deployment and maintenance worker                 | Internal only    |
 | `web-app` | Operator dashboard                                         | `127.0.0.1:4021` |
-| `sso`     | Sign-in and account recovery                               | `127.0.0.1:4022` |
 
 PostgreSQL and Temporal are foundation services. Temporal UI is available on
 `127.0.0.1:8233`. Database migrations run as a one-shot job before the API.
@@ -75,7 +74,7 @@ docker compose up --build --detach --wait
 Open `http://localhost:4021`. Towbar redirects to the first-run setup screen,
 where you create the owner account. Account creation is atomically locked as
 soon as that owner exists. Complete this loopback-only step before placing the
-three public services behind an internet-reachable proxy.
+web app and API behind an internet-reachable proxy.
 
 Useful commands:
 
@@ -104,7 +103,7 @@ storage.
 ## Production notes
 
 - The default bind address is loopback. Put a maintained TLS reverse proxy in
-  front of the three HTTP services and set their public base URLs before build.
+  front of the web app and API and set their public base URLs before build.
 - Never publish PostgreSQL, Temporal, or Temporal UI directly to the internet.
 - Back up the `postgres-data` volume with a tested PostgreSQL backup process.
 - Give the GitHub App read-only repository contents permission and subscribe
@@ -134,7 +133,7 @@ narrower commands.
 ## Repository layout
 
 ```text
-apps/       API, worker, dashboard, and SSO
+apps/       API, worker, and dashboard with same-domain sign-in
 packages/   Manifest, database, deployer, client, UI, and shared tooling
 infra/      Container initialization assets
 docs/       Architecture and operator documentation

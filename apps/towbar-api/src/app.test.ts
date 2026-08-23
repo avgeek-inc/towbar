@@ -9,7 +9,6 @@ process.env.TOWBAR_CREDENTIALS_KEY =
 process.env.TOWBAR_INTERNAL_HMAC_SECRET =
   "test-hmac-secret-that-is-long-enough";
 process.env.TOWBAR_APP_BASE_URL = "https://app.towbar.test";
-process.env.TOWBAR_SSO_BASE_URL = "https://sso.towbar.test";
 
 let app: Awaited<ReturnType<typeof loadApp>>;
 let internalApp: Awaited<ReturnType<typeof loadInternalApp>>;
@@ -86,19 +85,39 @@ void describe("Towbar API boundaries", () => {
     assert.equal(body.error.code, "PAYLOAD_TOO_LARGE");
   });
 
-  void it("rejects public authentication mutations without a trusted origin", async () => {
-    const response = await app.request("/v1/public/auth/forgot-password", {
+  void it("rejects public authentication mutations without the app origin", async () => {
+    const response = await app.request("/v1/public/auth/login-email", {
       method: "POST",
     });
     assert.equal(response.status, 403);
   });
 
-  void it("allows public authentication mutations from the SSO origin", async () => {
-    const response = await app.request("/v1/public/auth/forgot-password", {
+  void it("allows public authentication mutations only from the app origin", async () => {
+    const trusted = await app.request("/v1/public/auth/login-email", {
+      headers: { origin: "https://app.towbar.test" },
+      method: "POST",
+    });
+    assert.equal(trusted.status, 400);
+
+    const formerSso = await app.request("/v1/public/auth/login-email", {
       headers: { origin: "https://sso.towbar.test" },
       method: "POST",
     });
-    assert.equal(response.status, 202);
+    assert.equal(formerSso.status, 403);
+  });
+
+  void it("does not expose authorization-code or password-recovery routes", async () => {
+    for (const path of [
+      "/v1/public/auth/exchange-code",
+      "/v1/public/auth/forgot-password",
+      "/v1/public/auth/reset-password",
+    ]) {
+      const response = await app.request(path, {
+        headers: { origin: "https://app.towbar.test" },
+        method: "POST",
+      });
+      assert.equal(response.status, 404, path);
+    }
   });
 
   void it("does not reflect invalid request identifiers", async () => {

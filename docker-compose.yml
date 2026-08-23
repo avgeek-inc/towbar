@@ -10,7 +10,6 @@ x-backend-environment: &backend-environment
   TEMPORAL_NAMESPACE: default
   TOWBAR_API_BASE_URL: ${TOWBAR_API_BASE_URL:-http://localhost:4020}
   TOWBAR_APP_BASE_URL: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
-  TOWBAR_SSO_BASE_URL: ${TOWBAR_SSO_BASE_URL:-http://localhost:4022}
   TOWBAR_WEBSITE_BASE_URL: ${TOWBAR_WEBSITE_BASE_URL:-https://towbar.dev}
   TOWBAR_INTERNAL_HMAC_SECRET: ${TOWBAR_INTERNAL_HMAC_SECRET:?set TOWBAR_INTERNAL_HMAC_SECRET}
 
@@ -102,6 +101,8 @@ services:
       DATABASE_TOWBAR_URL: postgres://towbar_app:${TOWBAR_DATABASE_RUNTIME_PASSWORD:?set TOWBAR_DATABASE_RUNTIME_PASSWORD}@postgres:5432/towbar
       TOWBAR_CREDENTIALS_KEY: ${TOWBAR_CREDENTIALS_KEY:?set TOWBAR_CREDENTIALS_KEY}
       TOWBAR_TRUSTED_PROXY_HOPS: ${TOWBAR_TRUSTED_PROXY_HOPS:-0}
+      TOWBAR_OWNER_RESET_EMAIL: ${TOWBAR_OWNER_RESET_EMAIL:-}
+      TOWBAR_OWNER_RESET_PASSWORD: ${TOWBAR_OWNER_RESET_PASSWORD:-}
       GITHUB_APP_ID: ${GITHUB_APP_ID:-}
       GITHUB_APP_SLUG: ${GITHUB_APP_SLUG:-}
       GITHUB_APP_PRIVATE_KEY_BASE64: ${GITHUB_APP_PRIVATE_KEY_BASE64:-}
@@ -135,8 +136,6 @@ services:
       dockerfile: apps/towbar-web-app/Dockerfile
       args:
         NEXT_PUBLIC_TOWBAR_API_BASE_URL: ${TOWBAR_API_BASE_URL:-http://localhost:4020}
-        NEXT_PUBLIC_TOWBAR_APP_BASE_URL: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
-        NEXT_PUBLIC_TOWBAR_SSO_BASE_URL: ${TOWBAR_SSO_BASE_URL:-http://localhost:4022}
         NEXT_PUBLIC_TOWBAR_WEBSITE_BASE_URL: ${TOWBAR_WEBSITE_BASE_URL:-https://towbar.dev}
         SOURCE_COMMIT: ${SOURCE_COMMIT:-development}
     restart: unless-stopped
@@ -146,23 +145,6 @@ services:
     networks: [platform]
     ports:
       - "${TOWBAR_BIND_ADDRESS:-127.0.0.1}:${TOWBAR_APP_PORT:-4021}:4021"
-
-  sso:
-    image: towbar/sso:${TOWBAR_IMAGE_TAG:-local}
-    build:
-      context: .
-      dockerfile: apps/towbar-sso/Dockerfile
-      args:
-        NEXT_PUBLIC_TOWBAR_API_BASE_URL: ${TOWBAR_API_BASE_URL:-http://localhost:4020}
-        NEXT_PUBLIC_TOWBAR_APP_BASE_URL: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
-        SOURCE_COMMIT: ${SOURCE_COMMIT:-development}
-    restart: unless-stopped
-    depends_on:
-      api:
-        condition: service_healthy
-    networks: [platform]
-    ports:
-      - "${TOWBAR_BIND_ADDRESS:-127.0.0.1}:${TOWBAR_SSO_PORT:-4022}:4022"
 
 networks:
   platform:

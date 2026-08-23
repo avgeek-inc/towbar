@@ -33,10 +33,7 @@ export const requireTrustedMutationOrigin: MiddlewareHandler = async (
     return;
   }
   const origin = context.req.header("origin");
-  const allowed = new Set([
-    new URL(getEnv().TOWBAR_APP_BASE_URL).origin,
-    new URL(getEnv().TOWBAR_SSO_BASE_URL).origin,
-  ]);
+  const allowed = new Set([new URL(getEnv().TOWBAR_APP_BASE_URL).origin]);
   if (!origin || !allowed.has(origin)) {
     throw forbidden("Request origin is not allowed");
   }

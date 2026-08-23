@@ -133,6 +133,9 @@ export const passwordCredentials = pgTable("towbar_password_credentials", {
     .primaryKey()
     .references(() => users.id, { onDelete: "cascade" }),
   passwordHash: text("password_hash").notNull(),
+  operatorResetFingerprint: varchar("operator_reset_fingerprint", {
+    length: 64,
+  }),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -172,47 +175,6 @@ export const sessions = pgTable(
     uniqueIndex("uq_towbar_sessions_token_hash").on(table.tokenHash),
     index("idx_towbar_sessions_user_id").on(table.userId),
     index("idx_towbar_sessions_expires_at").on(table.expiresAt),
-  ],
-);
-
-export const authCodes = pgTable(
-  "towbar_auth_codes",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    codeHash: varchar("code_hash", { length: 64 }).notNull(),
-    redirectUri: text("redirect_uri").notNull(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    consumedAt: timestamp("consumed_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    uniqueIndex("uq_towbar_auth_codes_code_hash").on(table.codeHash),
-    index("idx_towbar_auth_codes_expires_at").on(table.expiresAt),
-  ],
-);
-
-export const passwordResetTokens = pgTable(
-  "towbar_password_reset_tokens",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    tokenHash: varchar("token_hash", { length: 64 }).notNull(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    consumedAt: timestamp("consumed_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    uniqueIndex("uq_towbar_password_reset_token_hash").on(table.tokenHash),
-    index("idx_towbar_password_reset_expires_at").on(table.expiresAt),
   ],
 );
 

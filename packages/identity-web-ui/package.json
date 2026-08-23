@@ -1,6 +1,6 @@
 {
   "name": "@workspace/identity-web-ui",
-  "description": "Authentication components used by Towbar SSO.",
+  "description": "Authentication components used by Towbar applications.",
   "type": "module",
   "private": true,
   "license": "Apache-2.0",

@@ -14,8 +14,6 @@ import type { Context } from "hono";
 const loginWindowMs = 15 * 60 * 1_000;
 const loginAccountAttemptLimit = 12;
 const loginAddressAttemptLimit = 30;
-const exchangeAttemptLimit = 60;
-const resetAttemptLimit = 30;
 const setupAttemptLimit = 10;
 
 type AttemptWindow = { attempts: number; expiresAt: Date };
@@ -107,20 +105,6 @@ export async function clearPasswordLoginAccountRateLimit(email: string) {
     );
 }
 
-export async function enforceAuthorizationCodeRateLimit(clientAddress: string) {
-  await enforceSingleSubjectLimit(
-    `exchange-address:${clientAddress}`,
-    exchangeAttemptLimit,
-  );
-}
-
-export async function enforcePasswordResetRateLimit(clientAddress: string) {
-  await enforceSingleSubjectLimit(
-    `reset-address:${clientAddress}`,
-    resetAttemptLimit,
-  );
-}
-
 export async function enforceInitialSetupRateLimit(clientAddress: string) {
   await enforceSingleSubjectLimit(
     `setup-address:${clientAddress}`,
@@ -148,6 +132,8 @@ async function incrementPersistentBucket(
 ): Promise<AttemptWindow> {
   const database = getTowbarDatabase();
   const expiresAt = new Date(now.getTime() + windowMs);
+  const nowTimestamp = sql`${now.toISOString()}::timestamptz`;
+  const expiresAtTimestamp = sql`${expiresAt.toISOString()}::timestamptz`;
   const [bucket] = await database
     .insert(authRateLimitBuckets)
     .values({
@@ -159,8 +145,8 @@ async function incrementPersistentBucket(
     .onConflictDoUpdate({
       target: authRateLimitBuckets.keyHash,
       set: {
-        attempts: sql<number>`case when ${authRateLimitBuckets.expiresAt} <= ${now} then 1 else ${authRateLimitBuckets.attempts} + 1 end`,
-        expiresAt: sql<Date>`case when ${authRateLimitBuckets.expiresAt} <= ${now} then ${expiresAt} else ${authRateLimitBuckets.expiresAt} end`,
+        attempts: sql<number>`case when ${authRateLimitBuckets.expiresAt} <= ${nowTimestamp} then 1 else ${authRateLimitBuckets.attempts} + 1 end`,
+        expiresAt: sql<Date>`case when ${authRateLimitBuckets.expiresAt} <= ${nowTimestamp} then ${expiresAtTimestamp} else ${authRateLimitBuckets.expiresAt} end`,
         updatedAt: now,
       },
     })

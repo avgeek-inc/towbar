@@ -1,3 +1,5 @@
+import { createHmac } from "node:crypto";
+
 import { and, count, desc, eq, gt, isNull, ne, sql } from "drizzle-orm";
 
 import {
@@ -6,9 +8,7 @@ import {
   hashPassword,
 } from "@workspace/towbar-core/security";
 import {
-  authCodes,
   passwordCredentials,
-  passwordResetTokens,
   sessions,
   users,
   workspaceMembers,
@@ -23,7 +23,6 @@ import {
   verifyPasswordWithCapacityLimit,
 } from "./password-verification.js";
 
-const authorizationCodeLifetimeMs = 5 * 60 * 1_000;
 export const sessionLifetimeSeconds = 7 * 24 * 60 * 60;
 const unknownAccountPasswordHash =
   "$towbar$argon2id$v=1$m=65536,t=3,p=4$pOGJD7pP_rgy7saYUKKf2Q$58GDGqYgHVdoGe31MHyOUNV9wIFp86NJw0tUqQPkgGM";
@@ -39,14 +38,12 @@ export async function createInitialOwner(input: {
   displayName: string;
   email: string;
   password: string;
-  redirectUri: string;
 }) {
-  const redirectUri = validateRedirectUri(input.redirectUri);
   const passwordHash = await runPasswordOperationWithCapacityLimit(() =>
     hashPassword(input.password),
   );
   const database = getTowbarDatabase();
-  return await database.transaction(async (transaction) => {
+  const userId = await database.transaction(async (transaction) => {
     await transaction.execute(
       sql`select pg_advisory_xact_lock(hashtext('towbar-initial-owner'))`,
     );
@@ -83,23 +80,15 @@ export async function createInitialOwner(input: {
       workspaceId: workspace.id,
     });
 
-    const authorizationCode = createOpaqueToken();
-    await transaction.insert(authCodes).values({
-      codeHash: hashOpaqueToken(authorizationCode),
-      expiresAt: new Date(Date.now() + authorizationCodeLifetimeMs),
-      redirectUri,
-      userId: user.id,
-    });
-    return { authorizationCode, redirectUri };
+    return user.id;
   });
+  return await createSessionForUser(userId);
 }
 
 export async function authenticatePassword(input: {
   email: string;
   password: string;
-  redirectUri: string;
 }) {
-  const redirectUri = validateRedirectUri(input.redirectUri);
   const database = getTowbarDatabase();
   const [account] = await database
     .select({
@@ -119,41 +108,12 @@ export async function authenticatePassword(input: {
     throw unauthorized("Email or password is incorrect");
   }
 
-  const authorizationCode = createOpaqueToken();
-  await database.insert(authCodes).values({
-    codeHash: hashOpaqueToken(authorizationCode),
-    expiresAt: new Date(Date.now() + authorizationCodeLifetimeMs),
-    redirectUri,
-    userId: account.userId,
-  });
-  return { authorizationCode, redirectUri };
+  return await createSessionForUser(account.userId);
 }
 
-export async function exchangeAuthorizationCode(input: {
-  authorizationCode: string;
-  redirectUri: string;
-}) {
-  const redirectUri = validateRedirectUri(input.redirectUri);
+async function createSessionForUser(userId: string) {
   const database = getTowbarDatabase();
   return await database.transaction(async (transaction) => {
-    const [code] = await transaction
-      .select({
-        id: authCodes.id,
-        userId: authCodes.userId,
-      })
-      .from(authCodes)
-      .where(
-        and(
-          eq(authCodes.codeHash, hashOpaqueToken(input.authorizationCode)),
-          eq(authCodes.redirectUri, redirectUri),
-          isNull(authCodes.consumedAt),
-          gt(authCodes.expiresAt, new Date()),
-        ),
-      )
-      .for("update")
-      .limit(1);
-    if (!code) throw unauthorized("Authorization code is invalid or expired");
-
     const [identity] = await transaction
       .select({
         email: users.email,
@@ -165,14 +125,9 @@ export async function exchangeAuthorizationCode(input: {
       .from(users)
       .innerJoin(workspaceMembers, eq(workspaceMembers.userId, users.id))
       .innerJoin(workspaces, eq(workspaces.id, workspaceMembers.workspaceId))
-      .where(and(eq(users.id, code.userId), isNull(users.disabledAt)))
+      .where(and(eq(users.id, userId), isNull(users.disabledAt)))
       .limit(1);
     if (!identity) throw unauthorized("Account is unavailable");
-
-    await transaction
-      .update(authCodes)
-      .set({ consumedAt: new Date() })
-      .where(eq(authCodes.id, code.id));
 
     const sessionToken = createOpaqueToken();
     const [session] = await transaction
@@ -335,41 +290,63 @@ export async function changePassword(input: {
   });
 }
 
-export async function resetPassword(input: {
-  newPassword: string;
-  token: string;
-}) {
-  const passwordHash = await hashPassword(input.newPassword);
+export async function applyOwnerPasswordResetFromEnvironment() {
+  const env = getEnv();
+  if (!env.TOWBAR_OWNER_RESET_EMAIL || !env.TOWBAR_OWNER_RESET_PASSWORD) {
+    return { status: "disabled" } as const;
+  }
+  const email = normalizeEmail(env.TOWBAR_OWNER_RESET_EMAIL);
+  const temporaryPassword = env.TOWBAR_OWNER_RESET_PASSWORD;
+  const fingerprint = createHmac("sha256", env.TOWBAR_INTERNAL_HMAC_SECRET)
+    .update(`owner-password-reset:${email}:`, "utf8")
+    .update(temporaryPassword, "utf8")
+    .digest("hex");
+  const passwordHash = await runPasswordOperationWithCapacityLimit(() =>
+    hashPassword(temporaryPassword),
+  );
   const database = getTowbarDatabase();
-  await database.transaction(async (transaction) => {
-    const [reset] = await transaction
+  return await database.transaction(async (transaction) => {
+    await transaction.execute(
+      sql`select pg_advisory_xact_lock(hashtext('towbar-owner-password-reset'))`,
+    );
+    const [credential] = await transaction
       .select({
-        id: passwordResetTokens.id,
-        userId: passwordResetTokens.userId,
+        fingerprint: passwordCredentials.operatorResetFingerprint,
+        userId: users.id,
       })
-      .from(passwordResetTokens)
+      .from(users)
+      .innerJoin(passwordCredentials, eq(passwordCredentials.userId, users.id))
+      .innerJoin(workspaceMembers, eq(workspaceMembers.userId, users.id))
       .where(
         and(
-          eq(passwordResetTokens.tokenHash, hashOpaqueToken(input.token)),
-          isNull(passwordResetTokens.consumedAt),
-          gt(passwordResetTokens.expiresAt, new Date()),
+          eq(users.email, email),
+          eq(workspaceMembers.role, "owner"),
+          isNull(users.disabledAt),
         ),
       )
       .for("update")
       .limit(1);
-    if (!reset) throw unauthorized("Recovery token is invalid or expired");
+    if (!credential) {
+      throw new Error(`Towbar owner ${email} was not found`);
+    }
+    if (credential.fingerprint === fingerprint) {
+      return { email, status: "already-applied" } as const;
+    }
     await transaction
       .update(passwordCredentials)
-      .set({ passwordHash, updatedAt: new Date() })
-      .where(eq(passwordCredentials.userId, reset.userId));
-    await transaction
-      .update(passwordResetTokens)
-      .set({ consumedAt: new Date() })
-      .where(eq(passwordResetTokens.id, reset.id));
+      .set({
+        operatorResetFingerprint: fingerprint,
+        passwordHash,
+        updatedAt: new Date(),
+      })
+      .where(eq(passwordCredentials.userId, credential.userId));
     await transaction
       .update(sessions)
       .set({ revokedAt: new Date() })
-      .where(eq(sessions.userId, reset.userId));
+      .where(
+        and(eq(sessions.userId, credential.userId), isNull(sessions.revokedAt)),
+      );
+    return { email, status: "applied" } as const;
   });
 }
 
@@ -387,12 +364,4 @@ export async function revokeSessionByToken(userId: string, token: string) {
 
 export function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
-}
-
-function validateRedirectUri(value: string) {
-  const redirect = new URL(value);
-  if (redirect.origin !== new URL(getEnv().TOWBAR_APP_BASE_URL).origin) {
-    throw unauthorized("Redirect URI is not allowed");
-  }
-  return redirect.toString();
 }

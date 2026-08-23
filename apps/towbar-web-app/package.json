@@ -21,6 +21,7 @@
   "dependencies": {
     "@hugeicons/core-free-icons": "catalog:",
     "@hugeicons/react": "catalog:",
+    "@workspace/identity-web-ui": "workspace:*",
     "@workspace/towbar-web-client": "workspace:*",
     "@workspace/towbar-web-ui": "workspace:*",
     "@workspace/web-design-system": "workspace:*",

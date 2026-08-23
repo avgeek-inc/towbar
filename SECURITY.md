@@ -33,6 +33,9 @@ to repository security advisories.
 - Destination hosts use SSH keys, pinned host identity, current security
   updates, and least-privilege network rules.
 - Installation secrets are unique, randomly generated, and never committed.
+- Owner password-reset environment values are high-entropy, used only for the
+  documented recovery restart, and removed immediately after the password is
+  changed in Settings.
 
 Towbar does not provide a security boundary against a malicious contributor who
 is authorized to modify the deployment branch. Review and branch protection are

@@ -10,8 +10,8 @@ Towbar has a control plane and a deployment plane.
   Compose-network listener.
 - `towbar-worker` executes Temporal workflows and activities. API-to-worker
   callbacks are signed with an installation-wide HMAC secret.
-- `towbar-web-app` and `towbar-sso` are separate Next.js applications with
-  distinct public origins. The marketing and documentation website is maintained
+- `towbar-web-app` owns the operator dashboard, first-run setup, and login on one
+  public origin. The marketing and documentation website is maintained
   separately from this self-hosted control plane.
 - PostgreSQL stores control-plane state. The API uses a restricted runtime role;
   migrations use the database owner role. First-run owner setup is an atomic,
@@ -37,7 +37,7 @@ that branch with GitHub rules appropriate to your environment.
 
 ## Trust boundaries
 
-1. Browser to the three public HTTP origins.
+1. Browser to the web app and API public origins.
 2. GitHub webhook to the API, authenticated with the webhook secret.
 3. API to worker/internal routes, authenticated with HMAC signatures and replay
    protection.

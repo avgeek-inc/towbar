@@ -32,8 +32,6 @@ jobs:
         env:
           SENTRY_ALLOW_MISSING: "true"
           NEXT_PUBLIC_TOWBAR_API_BASE_URL: http://localhost:4020
-          NEXT_PUBLIC_TOWBAR_APP_BASE_URL: http://localhost:4021
-          NEXT_PUBLIC_TOWBAR_SSO_BASE_URL: http://localhost:4022
           NEXT_PUBLIC_TOWBAR_WEBSITE_BASE_URL: https://towbar.dev
 
   compose:
@@ -48,6 +46,5 @@ jobs:
           sed -i 's/replace-with-different-64-random-hex-characters/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/' .env
           sed -i 's/replace-with-base64-encoded-32-byte-key/Y2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2M=/' .env
           sed -i 's/replace-with-at-least-32-random-characters/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/' .env
-          sed -i 's/replace-with-a-long-owner-password/not-used-by-compose-build/' .env
       - run: docker compose config --quiet
       - run: docker compose build

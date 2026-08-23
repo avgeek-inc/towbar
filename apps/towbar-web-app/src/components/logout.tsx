@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 import { Spinner } from "@workspace/web-design-system/feedback/spinner";
 
 import { api } from "@/lib/api";
-import { config } from "@/lib/config";
 
 export function Logout() {
   const started = useRef(false);
@@ -15,7 +14,7 @@ export function Logout() {
     api
       .delete("/v1/core/session")
       .catch(() => undefined)
-      .finally(() => window.location.replace(config.ssoBaseUrl));
+      .finally(() => window.location.replace("/login"));
   }, []);
 
   return (

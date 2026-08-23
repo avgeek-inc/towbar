@@ -14,7 +14,6 @@ import {
 import { Spinner } from "@workspace/web-design-system/feedback/spinner";
 
 import { api } from "@/lib/api";
-import { config } from "@/lib/config";
 import {
   applicationHeader,
   applicationPolicy,
@@ -28,8 +27,8 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
   const navigate = useCallback((href: string) => router.push(href), [router]);
   const [user, setUser] = useState<TowbarUser | null>();
   const sidebarState = usePersistentAppSidebar("towbar-sidebar");
-  const isSessionTransition =
-    pathname === "/auth/callback" || pathname === "/logout";
+  const isLogin = pathname === "/login";
+  const isSessionTransition = pathname === "/logout";
   useEffect(() => {
     if (isSessionTransition) return;
     let active = true;
@@ -42,13 +41,20 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
     };
   }, [isSessionTransition]);
   useEffect(() => {
-    if (user !== null || isSessionTransition) return;
-    const login = new URL(config.ssoBaseUrl);
-    login.searchParams.set("redirectUri", `${config.appBaseUrl}/auth/callback`);
-    window.location.replace(login);
-  }, [isSessionTransition, user]);
+    if (isSessionTransition || user === undefined) return;
+    if (isLogin && user) {
+      router.replace("/");
+      return;
+    }
+    if (!isLogin && user === null) {
+      const next =
+        pathname === "/" ? "" : `?next=${encodeURIComponent(pathname)}`;
+      router.replace(`/login${next}`);
+    }
+  }, [isLogin, isSessionTransition, pathname, router, user]);
 
   if (isSessionTransition) return children;
+  if (isLogin && user === null) return children;
   if (!user) {
     return (
       <div className="grid min-h-dvh place-items-center" aria-busy="true">

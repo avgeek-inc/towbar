@@ -38,7 +38,6 @@ const envSchema = z
     TOWBAR_INTERNAL_HMAC_SECRET: z.string().min(32),
     TOWBAR_API_BASE_URL: z.string().url().default("http://localhost:4020"),
     TOWBAR_APP_BASE_URL: z.string().url().default("http://localhost:4021"),
-    TOWBAR_SSO_BASE_URL: z.string().url().default("http://localhost:4022"),
     TOWBAR_WEBSITE_BASE_URL: z.string().url().default("https://towbar.dev"),
     TOWBAR_TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).max(8).default(0),
     TOWBAR_PASSWORD_VERIFY_CONCURRENCY: z.coerce
@@ -53,6 +52,12 @@ const envSchema = z
       .min(1)
       .max(100)
       .default(16),
+    TOWBAR_OWNER_RESET_EMAIL: optionalEnvironmentString(
+      z.string().email().max(320),
+    ),
+    TOWBAR_OWNER_RESET_PASSWORD: optionalEnvironmentString(
+      z.string().min(20).max(1_024),
+    ),
     TEMPORAL_ADDRESS: z.string().min(1).default("127.0.0.1:7233"),
     TEMPORAL_NAMESPACE: z.string().min(1).default("default"),
     TEMPORAL_API_KEY: optionalEnvironmentString(z.string().min(1)),
@@ -87,6 +92,16 @@ const envSchema = z
           "GITHUB_APP_ID, GITHUB_APP_SLUG, a GitHub private key, and GITHUB_WEBHOOK_SECRET must be configured together",
       });
     }
+    if (
+      Boolean(value.TOWBAR_OWNER_RESET_EMAIL) !==
+      Boolean(value.TOWBAR_OWNER_RESET_PASSWORD)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "TOWBAR_OWNER_RESET_EMAIL and TOWBAR_OWNER_RESET_PASSWORD must be configured together",
+      });
+    }
   });
 
 export type TowbarEnv = z.infer<typeof envSchema>;
@@ -100,10 +115,7 @@ export function getEnv() {
 
 export function getAllowedOrigins() {
   const env = getEnv();
-  return new Set([
-    new URL(env.TOWBAR_APP_BASE_URL).origin,
-    new URL(env.TOWBAR_SSO_BASE_URL).origin,
-  ]);
+  return new Set([new URL(env.TOWBAR_APP_BASE_URL).origin]);
 }
 
 export function requireGitHubEnv() {

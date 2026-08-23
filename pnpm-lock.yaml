@@ -217,58 +217,6 @@ importers:
         specifier: "catalog:"
         version: 5.9.3
 
-  apps/towbar-sso:
-    dependencies:
-      "@workspace/identity-web-ui":
-        specifier: workspace:*
-        version: link:../../packages/identity-web-ui
-      "@workspace/towbar-web-client":
-        specifier: workspace:*
-        version: link:../../packages/towbar-web-client
-      "@workspace/towbar-web-ui":
-        specifier: workspace:*
-        version: link:../../packages/towbar-web-ui
-      "@workspace/web-design-system":
-        specifier: workspace:*
-        version: link:../../packages/web-design-system
-      "@workspace/web-page-sections":
-        specifier: workspace:*
-        version: link:../../packages/web-page-sections
-      next:
-        specifier: "catalog:"
-        version: 16.3.2(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      react:
-        specifier: "catalog:"
-        version: 19.2.8
-      react-dom:
-        specifier: "catalog:"
-        version: 19.2.8(react@19.2.8)
-    devDependencies:
-      "@tailwindcss/postcss":
-        specifier: "catalog:"
-        version: 4.3.3
-      "@types/node":
-        specifier: "catalog:"
-        version: 24.13.3
-      "@types/react":
-        specifier: "catalog:"
-        version: 19.2.18
-      "@types/react-dom":
-        specifier: "catalog:"
-        version: 19.2.4(@types/react@19.2.18)
-      "@workspace/eslint-config":
-        specifier: workspace:^
-        version: link:../../packages/eslint-config
-      "@workspace/typescript-config":
-        specifier: workspace:*
-        version: link:../../packages/typescript-config
-      eslint:
-        specifier: "catalog:"
-        version: 9.39.5(jiti@2.7.0)
-      typescript:
-        specifier: "catalog:"
-        version: 5.9.3
-
   apps/towbar-web-app:
     dependencies:
       "@hugeicons/core-free-icons":
@@ -277,6 +225,9 @@ importers:
       "@hugeicons/react":
         specifier: "catalog:"
         version: 1.1.10(react@19.2.8)
+      "@workspace/identity-web-ui":
+        specifier: workspace:*
+        version: link:../../packages/identity-web-ui
       "@workspace/towbar-web-client":
         specifier: workspace:*
         version: link:../../packages/towbar-web-client

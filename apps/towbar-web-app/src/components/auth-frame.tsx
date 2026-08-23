@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
 
 import {
@@ -6,6 +5,8 @@ import {
   IdentityAuthHeading,
 } from "@workspace/identity-web-ui/identity-auth-frame";
 import { TowbarLockup } from "@workspace/towbar-web-ui/brand";
+
+import type { ReactNode } from "react";
 
 export function AuthFrame({
   children,
@@ -19,7 +20,7 @@ export function AuthFrame({
   return (
     <IdentityAuthFrame>
       <div className="grid gap-8">
-        <Link aria-label="Towbar home" className="w-fit" href="/">
+        <Link aria-label="Towbar sign in" className="w-fit" href="/login">
           <TowbarLockup />
         </Link>
         <IdentityAuthHeading title={title} titleElementType="h1">

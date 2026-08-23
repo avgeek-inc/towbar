@@ -14,8 +14,6 @@
     "prebuild": "pnpm --filter @workspace/towbar-core build && pnpm --filter @workspace/towbar-database build && pnpm --filter @workspace/observability-node build",
     "build": "tsc --project tsconfig.build.json",
     "database:migrate:production": "node dist/cli/migrate.js",
-    "recovery:issue": "tsx src/cli/issue-recovery-token.ts",
-    "recovery:issue:production": "node dist/cli/issue-recovery-token.js",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix --max-warnings 0",
     "test": "tsx --test \"src/**/*.test.ts\"",

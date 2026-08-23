@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 
+import "@workspace/identity-web-ui/styles.css";
 import "@workspace/web-design-system/styles/globals.css";
 import "@workspace/web-page-sections/styles.css";
 import { WorkspaceDocument } from "@workspace/web-design-system/layouts/workspace-document";

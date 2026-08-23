@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useState, type FormEvent } from "react";
 
@@ -19,12 +18,10 @@ import { PasswordInput } from "@workspace/web-design-system/forms/password-input
 
 import { AuthFrame } from "@/components/auth-frame";
 import { api } from "@/lib/api";
-import { config } from "@/lib/config";
 
 export function LoginForm() {
   const params = useSearchParams();
-  const candidate = params.get("redirectUri");
-  const redirectUri = safeRedirect(candidate);
+  const next = safeNextPath(params.get("next"));
   const [setupRequired, setSetupRequired] = useState<boolean>();
   const [statusError, setStatusError] = useState<string>();
 
@@ -69,46 +66,26 @@ export function LoginForm() {
       />
     );
   }
-  if (setupRequired) return <InitialOwnerSetup redirectUri={redirectUri} />;
+  if (setupRequired) return <InitialOwnerSetup />;
 
   return (
     <AuthFrame description="Use your Towbar owner account." title="Sign in">
       <IdentityCredentialsForm
         identifierLabel="Email"
         identifierType="email"
-        passwordAction={
-          <Link
-            className="typography--body-sm underline-offset-4 pointer-fine:hover:underline"
-            href="/forgot-password"
-          >
-            Forgot password?
-          </Link>
-        }
         onSubmit={async ({ identifier, password }) => {
-          const result = await api.post<{
-            authorizationCode: string;
-            redirectUri: string;
-          }>("/v1/public/auth/login-email", {
+          await api.post("/v1/public/auth/login-email", {
             email: identifier,
             password,
-            redirectUri,
           });
-          const target = new URL(result.redirectUri);
-          target.searchParams.set(
-            "authorizationCode",
-            result.authorizationCode,
-          );
-          window.location.assign(target);
+          window.location.replace(next);
         }}
       />
-      <p className="text-muted typography--body-sm">
-        Account creation is locked after the initial setup.
-      </p>
     </AuthFrame>
   );
 }
 
-function InitialOwnerSetup({ redirectUri }: { redirectUri: string }) {
+function InitialOwnerSetup() {
   const nameId = useId();
   const emailId = useId();
   const passwordId = useId();
@@ -142,19 +119,13 @@ function InitialOwnerSetup({ redirectUri }: { redirectUri: string }) {
     setSubmissionError(undefined);
     setIsSubmitting(true);
     try {
-      const result = await api.post<{
-        authorizationCode: string;
-        redirectUri: string;
-      }>("/v1/public/auth/setup", {
+      await api.post("/v1/public/auth/setup", {
         confirmPassword,
         displayName,
         email,
         password,
-        redirectUri,
       });
-      const target = new URL(result.redirectUri);
-      target.searchParams.set("authorizationCode", result.authorizationCode);
-      window.location.assign(target);
+      window.location.replace("/");
     } catch (error) {
       setSubmissionError(
         error instanceof Error ? error.message : "Unable to set up Towbar",
@@ -237,15 +208,10 @@ function InitialOwnerSetup({ redirectUri }: { redirectUri: string }) {
     </AuthFrame>
   );
 }
-function safeRedirect(candidate: string | null) {
-  const fallback = `${config.appBaseUrl}/auth/callback`;
-  if (!candidate) return fallback;
-  try {
-    const url = new URL(candidate);
-    return url.origin === new URL(config.appBaseUrl).origin
-      ? url.toString()
-      : fallback;
-  } catch {
-    return fallback;
+
+function safeNextPath(candidate: string | null) {
+  if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//")) {
+    return "/";
   }
+  return candidate === "/login" || candidate === "/logout" ? "/" : candidate;
 }
