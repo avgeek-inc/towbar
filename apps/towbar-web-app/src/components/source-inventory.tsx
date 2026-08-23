@@ -302,7 +302,7 @@ function HostKeyIndicator({
   const trusted = status === "trusted";
   return (
     <span
-      className={`inline-flex items-center gap-2 ${trusted ? "text-success" : "text-danger"}`}
+      className={`inline-flex items-center gap-2 ${trusted ? "text-success-soft-foreground" : "text-danger-soft-foreground"}`}
     >
       <HugeiconsIcon
         aria-hidden="true"
@@ -320,7 +320,7 @@ function AutoDeployIndicator({ enabled }: { enabled: boolean }) {
       {enabled ? (
         <HugeiconsIcon
           aria-hidden="true"
-          className="text-success size-5"
+          className="text-success-soft-foreground size-5"
           icon={CheckIcon}
         />
       ) : (

@@ -13,7 +13,7 @@ const align = {
 const color = {
   default: "text-foreground",
   muted: "text-muted",
-  danger: "text-danger",
+  danger: "text-danger-soft-foreground",
 } as const;
 
 export type TypographyHeadingProps = ComponentProps<"h1"> & {

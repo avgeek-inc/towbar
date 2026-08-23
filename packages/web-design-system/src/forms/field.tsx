@@ -19,7 +19,7 @@ export function FieldError({ className, ...props }: ComponentProps<"p">) {
   return (
     <p
       role="alert"
-      className={cn("text-sm text-danger", className)}
+      className={cn("text-danger-soft-foreground text-sm", className)}
       {...props}
     />
   );
