@@ -3,6 +3,7 @@
 import {
   Activity01Icon,
   Delete02Icon,
+  Key01Icon,
   ServerStack01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -36,6 +37,13 @@ type DiscoveredKey = {
   algorithm: string;
   fingerprint: string;
   publicKey: string;
+};
+
+type HostKeyRow = {
+  algorithm: string;
+  fingerprint: string;
+  publicKey?: string;
+  status: "trusted" | "untrusted";
 };
 
 export function ServerDetail() {
@@ -113,6 +121,19 @@ export function ServerDetail() {
     );
   }
   const discovered = readDiscoveredKeys(checks.data.checks);
+  const trustedFingerprints = new Set(
+    keys.data.hostKeys.map((key) => key.fingerprint),
+  );
+  const hostKeyRows: HostKeyRow[] = [
+    ...keys.data.hostKeys.map((key) => ({
+      algorithm: key.algorithm,
+      fingerprint: key.fingerprint,
+      status: "trusted" as const,
+    })),
+    ...discovered
+      .filter((key) => !trustedFingerprints.has(key.fingerprint))
+      .map((key) => ({ ...key, status: "untrusted" as const })),
+  ];
   const latestCheck = checks.data.checks[0];
   const operatingSystem = readCheckResult(latestCheck, "operatingSystem");
   const dockerVersion = readCheckResult(latestCheck, "dockerVersion");
@@ -164,6 +185,62 @@ export function ServerDetail() {
       cell: (orphan) => <span className="capitalize">{orphan.kind}</span>,
     },
   ];
+  const hostKeyColumns: ResourceTableColumn<HostKeyRow>[] = [
+    {
+      key: "algorithm",
+      header: "Algorithm",
+      cell: (key) => key.algorithm,
+      className: "whitespace-nowrap font-medium",
+    },
+    {
+      key: "fingerprint",
+      header: "Fingerprint",
+      cell: (key) => (
+        <TypographyCode className="break-all">{key.fingerprint}</TypographyCode>
+      ),
+      className: "w-full min-w-72",
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (key) => <StatusBadge status={key.status} />,
+    },
+    {
+      key: "action",
+      header: "Action",
+      cell: (key) =>
+        key.status === "untrusted" && key.publicKey ? (
+          <ActionButton
+            action={() =>
+              api.post(
+                `/v1/core/servers/${serverId}/host-keys/actions/trust`,
+                key,
+              )
+            }
+            confirm={{
+              actionLabel: "Trust key",
+              description:
+                "Only continue if you verified this fingerprint through an independent channel.",
+              title: (
+                <span className="inline-flex flex-wrap items-center gap-1.5">
+                  <span>Trust</span>
+                  <TypographyCode className="break-all">
+                    {key.fingerprint}
+                  </TypographyCode>
+                  <span>?</span>
+                </span>
+              ),
+            }}
+            success="Host key trusted"
+          >
+            Trust key
+          </ActionButton>
+        ) : (
+          <span className="text-muted">—</span>
+        ),
+      className: "whitespace-nowrap",
+    },
+  ];
 
   return (
     <DashboardPage
@@ -205,48 +282,9 @@ export function ServerDetail() {
               <Alert.Title>Untrusted SSH host key</Alert.Title>
               <Alert.Description>
                 Towbar stopped before login. Verify the discovered fingerprint
-                independently, then trust at least one matching host key.
+                independently, then trust at least one matching key from the SSH
+                Host Keys tab.
               </Alert.Description>
-              <div className="mt-4 grid gap-3">
-                {discovered.map((key) => (
-                  <div
-                    className="flex flex-wrap items-center justify-between gap-3 border-t border-default-200 pt-3"
-                    key={key.fingerprint}
-                  >
-                    <div className="grid min-w-0 gap-1">
-                      <span className="font-medium">{key.algorithm}</span>
-                      <TypographyCode className="break-all">
-                        {key.fingerprint}
-                      </TypographyCode>
-                    </div>
-                    <ActionButton
-                      action={() =>
-                        api.post(
-                          `/v1/core/servers/${serverId}/host-keys/actions/trust`,
-                          key,
-                        )
-                      }
-                      confirm={{
-                        actionLabel: "Trust key",
-                        description:
-                          "Only continue if you verified this fingerprint through an independent channel.",
-                        title: (
-                          <span className="inline-flex flex-wrap items-center gap-1.5">
-                            <span>Trust</span>
-                            <TypographyCode className="break-all">
-                              {key.fingerprint}
-                            </TypographyCode>
-                            <span>?</span>
-                          </span>
-                        ),
-                      }}
-                      success="Host key trusted"
-                    >
-                      Trust key
-                    </ActionButton>
-                  </div>
-                ))}
-              </div>
             </Alert.Content>
           </Alert>
         ) : null}
@@ -308,6 +346,26 @@ export function ServerDetail() {
                     </Attributes.Item>
                   </Attributes>
                 </div>
+              ),
+            },
+            {
+              value: "ssh-host-keys",
+              label: "SSH Host Keys",
+              icon: <HugeiconsIcon icon={Key01Icon} />,
+              indicator: {
+                label: String(hostKeyRows.length),
+                variant: discovered.length ? "warning" : "secondary",
+              },
+              content: (
+                <ResourceTable
+                  ariaLabel={`SSH host keys for ${item.canonicalIp}`}
+                  columns={hostKeyColumns}
+                  emptyDescription="Run a server check to discover the SSH host keys presented by this server."
+                  emptyTitle="No SSH host keys"
+                  getRowKey={(key) => key.fingerprint}
+                  items={hostKeyRows}
+                  tableClassName="min-w-[760px]"
+                />
               ),
             },
             {
@@ -427,9 +485,8 @@ function CleanupButton({
 }
 
 function readDiscoveredKeys(checks: ServerCheck[]): DiscoveredKey[] {
-  const failed = checks.find(
-    (check) => check.errorCode === "HOST_KEY_NOT_TRUSTED",
-  );
+  const failed = checks[0];
+  if (failed?.errorCode !== "HOST_KEY_NOT_TRUSTED") return [];
   const value = failed?.result?.discoveredHostKeys;
   if (!Array.isArray(value)) return [];
   return value.filter(

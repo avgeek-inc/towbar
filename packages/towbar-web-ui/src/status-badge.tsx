@@ -9,6 +9,7 @@ const success = new Set([
   "live",
   "ready",
   "succeeded",
+  "trusted",
   "verified",
 ]);
 const warning = new Set([
@@ -36,6 +37,7 @@ const warning = new Set([
   "reconnecting",
   "succeeded_with_warnings",
   "unverified",
+  "untrusted",
   "waiting",
   "waiting_for_server",
 ]);
