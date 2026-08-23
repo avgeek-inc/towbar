@@ -55,22 +55,23 @@ bytes:
 openssl rand -base64 32 | tr -d '\n'
 ```
 
-Put those values and a strong bootstrap password in `.env`. For an internet
-reachable installation, also replace the four base URLs before building. The
+Put those values in `.env`. For an internet reachable installation, also
+replace the four base URLs before building. The
 API, web app, and SSO need distinct HTTPS origins. `TOWBAR_WEBSITE_BASE_URL` is
 an external link target; Towbar does not run the website in this repository.
 
-Start the stack and create the first owner:
+Start the stack:
 
 ```bash
 docker compose up --build --detach --wait
-docker compose --profile bootstrap run --rm bootstrap
 docker compose ps
 ```
 
-The bootstrap command is single-use. Remove its password from `.env` after the
-account exists. The dashboard is at `TOWBAR_APP_BASE_URL`; with the default local
-configuration it is `http://localhost:4021`.
+Open `TOWBAR_APP_BASE_URL`; with the default local configuration it is
+`http://localhost:4021`. Towbar sends the first visitor to a one-time setup form
+for the owner name, email, and password. The API serializes that creation and
+locks setup permanently after the first account exists. Complete setup while
+the services are still loopback-bound, before enabling public ingress.
 
 The loopback defaults are suitable for evaluating the UI on the host. GitHub
 webhooks require the API URL to be reachable over HTTPS, so a complete

@@ -19,8 +19,9 @@ FROM installer AS builder
 COPY --from=pruner /repo/out/full/ ./
 RUN pnpm --filter towbar-api build
 RUN --mount=type=cache,id=towbar-pnpm-store,target=/pnpm/store,sharing=locked \
-  pnpm --filter towbar-api --prod --config.blockExoticSubdeps=false deploy \
-    --legacy --offline --store-dir /pnpm/store /prod/towbar-api
+  pnpm --filter towbar-api --prod --ignore-scripts \
+    --config.blockExoticSubdeps=false deploy --legacy --offline \
+    --store-dir /pnpm/store /prod/towbar-api
 
 FROM base AS runner
 WORKDIR /app
@@ -32,7 +33,7 @@ COPY --from=builder --chown=towbar:towbar /prod/towbar-api ./
 COPY --from=builder --chown=towbar:towbar /repo/apps/towbar-api/dist ./dist
 COPY --from=builder --chown=towbar:towbar /repo/packages/towbar-database/drizzle ./packages/towbar-database/drizzle
 USER towbar
-EXPOSE 4020
+EXPOSE 4020 4023
 HEALTHCHECK --interval=20s --timeout=5s --start-period=15s --retries=5 \
   CMD curl --fail --silent http://127.0.0.1:${PORT}/health >/dev/null || exit 1
 CMD ["node", "dist/index.js"]

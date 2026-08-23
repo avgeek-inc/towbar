@@ -32,7 +32,10 @@ export const requireSignedInternalRequest: MiddlewareHandler = async (
     });
   } catch (error) {
     if (error instanceof RequestSignatureError) {
-      throw unauthorized(`Towbar worker: ${error.message}`);
+      console.warn("Rejected signed internal request", {
+        reason: error.message,
+      });
+      throw unauthorized("Towbar worker request is unauthorized");
     }
     throw error;
   }
@@ -68,7 +71,7 @@ async function claimNonce(nonce: string) {
       .onConflictDoNothing()
       .returning({ nonce: requestNonces.nonce });
     if (created.length === 0) {
-      throw unauthorized("Towbar worker request signature was already used");
+      throw unauthorized("Towbar worker request is unauthorized");
     }
     await database
       .delete(requestNonces)

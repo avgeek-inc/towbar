@@ -15,6 +15,12 @@ const envSchema = z
       .enum(["development", "test", "production"])
       .default("development"),
     PORT: z.coerce.number().int().min(1).max(65_535).default(4_020),
+    TOWBAR_INTERNAL_API_PORT: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(65_535)
+      .default(4_023),
     DATABASE_TOWBAR_URL: z.string().url(),
     TOWBAR_CREDENTIALS_KEY: z.string().superRefine((value, context) => {
       try {
@@ -34,6 +40,19 @@ const envSchema = z
     TOWBAR_APP_BASE_URL: z.string().url().default("http://localhost:4021"),
     TOWBAR_SSO_BASE_URL: z.string().url().default("http://localhost:4022"),
     TOWBAR_WEBSITE_BASE_URL: z.string().url().default("https://towbar.dev"),
+    TOWBAR_TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).max(8).default(0),
+    TOWBAR_PASSWORD_VERIFY_CONCURRENCY: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(8)
+      .default(2),
+    TOWBAR_PASSWORD_VERIFY_QUEUE_LIMIT: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .default(16),
     TEMPORAL_ADDRESS: z.string().min(1).default("127.0.0.1:7233"),
     TEMPORAL_NAMESPACE: z.string().min(1).default("default"),
     TEMPORAL_API_KEY: optionalEnvironmentString(z.string().min(1)),

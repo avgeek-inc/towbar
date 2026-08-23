@@ -1,10 +1,9 @@
-import { and, desc, eq, gt, isNull, ne } from "drizzle-orm";
+import { and, count, desc, eq, gt, isNull, ne, sql } from "drizzle-orm";
 
 import {
   createOpaqueToken,
   hashOpaqueToken,
   hashPassword,
-  verifyPassword,
 } from "@workspace/towbar-core/security";
 import {
   authCodes,
@@ -17,11 +16,83 @@ import {
 } from "@workspace/towbar-database/schema";
 
 import { getEnv } from "../../env.js";
-import { unauthorized } from "../../http/errors.js";
+import { conflict, unauthorized } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
+import {
+  runPasswordOperationWithCapacityLimit,
+  verifyPasswordWithCapacityLimit,
+} from "./password-verification.js";
 
 const authorizationCodeLifetimeMs = 5 * 60 * 1_000;
 export const sessionLifetimeSeconds = 7 * 24 * 60 * 60;
+const unknownAccountPasswordHash =
+  "$towbar$argon2id$v=1$m=65536,t=3,p=4$pOGJD7pP_rgy7saYUKKf2Q$58GDGqYgHVdoGe31MHyOUNV9wIFp86NJw0tUqQPkgGM";
+
+export async function getInitialSetupStatus() {
+  const [result] = await getTowbarDatabase()
+    .select({ value: count() })
+    .from(users);
+  return { setupRequired: (result?.value ?? 0) === 0 };
+}
+
+export async function createInitialOwner(input: {
+  displayName: string;
+  email: string;
+  password: string;
+  redirectUri: string;
+}) {
+  const redirectUri = validateRedirectUri(input.redirectUri);
+  const passwordHash = await runPasswordOperationWithCapacityLimit(() =>
+    hashPassword(input.password),
+  );
+  const database = getTowbarDatabase();
+  return await database.transaction(async (transaction) => {
+    await transaction.execute(
+      sql`select pg_advisory_xact_lock(hashtext('towbar-initial-owner'))`,
+    );
+    const [existing] = await transaction.select({ value: count() }).from(users);
+    if ((existing?.value ?? 0) > 0) {
+      throw conflict(
+        "Towbar setup has already been completed",
+        "SETUP_COMPLETED",
+      );
+    }
+
+    const [user] = await transaction
+      .insert(users)
+      .values({
+        displayName: input.displayName.trim(),
+        email: normalizeEmail(input.email),
+      })
+      .returning({ id: users.id });
+    if (!user) throw new Error("Unable to create the initial owner");
+
+    const [workspace] = await transaction
+      .insert(workspaces)
+      .values({ name: "Towbar", slug: "towbar" })
+      .returning({ id: workspaces.id });
+    if (!workspace) throw new Error("Unable to initialize Towbar");
+
+    await transaction.insert(passwordCredentials).values({
+      passwordHash,
+      userId: user.id,
+    });
+    await transaction.insert(workspaceMembers).values({
+      role: "owner",
+      userId: user.id,
+      workspaceId: workspace.id,
+    });
+
+    const authorizationCode = createOpaqueToken();
+    await transaction.insert(authCodes).values({
+      codeHash: hashOpaqueToken(authorizationCode),
+      expiresAt: new Date(Date.now() + authorizationCodeLifetimeMs),
+      redirectUri,
+      userId: user.id,
+    });
+    return { authorizationCode, redirectUri };
+  });
+}
 
 export async function authenticatePassword(input: {
   email: string;
@@ -40,11 +111,11 @@ export async function authenticatePassword(input: {
     .innerJoin(passwordCredentials, eq(passwordCredentials.userId, users.id))
     .where(eq(users.email, normalizeEmail(input.email)))
     .limit(1);
-  if (
-    !account ||
-    account.disabledAt ||
-    !(await verifyPassword(input.password, account.passwordHash))
-  ) {
+  const passwordMatches = await verifyPasswordWithCapacityLimit(
+    input.password,
+    account?.passwordHash ?? unknownAccountPasswordHash,
+  );
+  if (!account || account.disabledAt || !passwordMatches) {
     throw unauthorized("Email or password is incorrect");
   }
 
@@ -236,11 +307,16 @@ export async function changePassword(input: {
     .limit(1);
   if (
     !credential ||
-    !(await verifyPassword(input.currentPassword, credential.passwordHash))
+    !(await verifyPasswordWithCapacityLimit(
+      input.currentPassword,
+      credential.passwordHash,
+    ))
   ) {
     throw unauthorized("Current password is incorrect");
   }
-  const passwordHash = await hashPassword(input.newPassword);
+  const passwordHash = await runPasswordOperationWithCapacityLimit(() =>
+    hashPassword(input.newPassword),
+  );
   await getTowbarDatabase().transaction(async (transaction) => {
     await transaction
       .update(passwordCredentials)

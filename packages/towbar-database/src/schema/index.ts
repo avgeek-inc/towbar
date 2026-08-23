@@ -138,6 +138,19 @@ export const passwordCredentials = pgTable("towbar_password_credentials", {
     .notNull(),
 });
 
+export const authRateLimitBuckets = pgTable(
+  "towbar_auth_rate_limit_buckets",
+  {
+    keyHash: varchar("key_hash", { length: 64 }).primaryKey(),
+    attempts: integer("attempts").default(0).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index("idx_towbar_auth_rate_limit_expires").on(table.expiresAt)],
+);
+
 export const sessions = pgTable(
   "towbar_sessions",
   {

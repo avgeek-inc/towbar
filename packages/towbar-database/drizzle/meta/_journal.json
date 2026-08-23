@@ -141,6 +141,13 @@
       "when": 1787476275417,
       "tag": "0019_lush_quasimodo",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1787495176444,
+      "tag": "0020_happy_stranger",
+      "breakpoints": true
     }
   ]
 }

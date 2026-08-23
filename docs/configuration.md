@@ -33,6 +33,9 @@ repository does not run the marketing or documentation website.
 
 The default `TOWBAR_BIND_ADDRESS=127.0.0.1` keeps services private to the host.
 Terminate TLS at a reverse proxy on that host or a private load balancer.
+`TOWBAR_TRUSTED_PROXY_HOPS` defaults to `0`, which ignores forwarding headers
+and uses the direct socket address for authentication throttling. Set it only
+to the exact number of trusted proxy hops in front of the API.
 
 ## GitHub App
 
@@ -56,16 +59,12 @@ Store the result in `GITHUB_APP_PRIVATE_KEY_BASE64`. Set `GITHUB_APP_ID`,
 `GITHUB_APP_SLUG`, and a randomly generated `GITHUB_WEBHOOK_SECRET` as well.
 Towbar rejects partially configured GitHub App credentials.
 
-## Bootstrap account
+## Initial owner
 
-`TOWBAR_BOOTSTRAP_*` values are consumed only by the explicit bootstrap profile:
-
-```bash
-docker compose --profile bootstrap run --rm bootstrap
-```
-
-Use a strong, unique password and remove bootstrap values from `.env` after the
-account exists if you do not need to rerun the command.
+Towbar does not accept owner credentials through environment variables. On an
+empty database, the sign-in origin presents a one-time owner setup form. The
+first successful submission creates the owner atomically and permanently locks
+account creation. Keep the default loopback binding until this step is complete.
 
 ## Deployment targets and Source credentials
 

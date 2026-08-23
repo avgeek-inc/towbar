@@ -2,14 +2,17 @@ export type HttpErrorStatus =
   400 | 401 | 403 | 404 | 409 | 413 | 422 | 429 | 500 | 502 | 503;
 
 export class HttpError extends Error {
+  readonly responseHeaders?: Record<string, string>;
+
   constructor(
     readonly status: HttpErrorStatus,
     readonly code: string,
     readonly publicMessage: string,
-    options?: ErrorOptions,
+    options?: ErrorOptions & { responseHeaders?: Record<string, string> },
   ) {
     super(publicMessage, options);
     this.name = "HttpError";
+    this.responseHeaders = options?.responseHeaders;
   }
 }
 

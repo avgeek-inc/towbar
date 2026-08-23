@@ -1,6 +1,6 @@
 import { serve } from "@hono/node-server";
 
-import { app } from "./app.js";
+import { app, internalApp } from "./app.js";
 import { getEnv } from "./env.js";
 import { closeDatabase } from "./infrastructure/database.js";
 import { wakeMaintenanceWorkflow } from "./infrastructure/temporal.js";
@@ -18,6 +18,18 @@ const server = serve(
     );
   },
 );
+const internalServer = serve(
+  {
+    fetch: internalApp.fetch,
+    hostname: "0.0.0.0",
+    port: env.TOWBAR_INTERNAL_API_PORT,
+  },
+  (info) => {
+    process.stdout.write(
+      `Towbar internal API listening on container port ${info.port}\n`,
+    );
+  },
+);
 
 void wakeMaintenanceWorkflow().catch((error: unknown) => {
   console.error("Towbar maintenance workflow could not be started", error);
@@ -25,6 +37,7 @@ void wakeMaintenanceWorkflow().catch((error: unknown) => {
 
 async function shutdown() {
   server.close();
+  internalServer.close();
   await closeDatabase();
 }
 

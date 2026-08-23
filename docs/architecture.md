@@ -5,14 +5,17 @@ Towbar has a control plane and a deployment plane.
 ## Control plane
 
 - `towbar-api` owns HTTP authentication, GitHub integration, source
-  reconciliation, inventory, and operation admission.
+  reconciliation, inventory, and operation admission. Browser/core routes use
+  the published listener; signed worker routes use a separate, un-published
+  Compose-network listener.
 - `towbar-worker` executes Temporal workflows and activities. API-to-worker
   callbacks are signed with an installation-wide HMAC secret.
 - `towbar-web-app` and `towbar-sso` are separate Next.js applications with
   distinct public origins. The marketing and documentation website is maintained
   separately from this self-hosted control plane.
 - PostgreSQL stores control-plane state. The API uses a restricted runtime role;
-  migrations and bootstrap use the owner role.
+  migrations use the database owner role. First-run owner setup is an atomic,
+  single-use API operation.
 - Temporal provides durable queues, retries, and serialized per-server work.
 
 ## Deployment plane

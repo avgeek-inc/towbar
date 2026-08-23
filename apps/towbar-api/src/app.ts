@@ -11,17 +11,20 @@ import { httpObservabilityMiddleware } from "@workspace/observability-node/hono"
 import { getAllowedOrigins, getEnv } from "./env.js";
 import { HttpError } from "./http/errors.js";
 import { pingDatabase } from "./infrastructure/database.js";
-import { v1 } from "./routes/v1/index.js";
+import { internalV1, publicV1 } from "./routes/v1/index.js";
 
 import type { HttpErrorStatus } from "./http/errors.js";
 import type { TowbarHonoEnvironment } from "./http/types.js";
 
-export function createApp() {
+function createRoutedApp(routeScope: "internal" | "public") {
   const app = new Hono<TowbarHonoEnvironment>();
   app.use("*", httpObservabilityMiddleware());
   app.use("*", secureHeaders());
   app.use("*", async (context, next) => {
-    const requestId = context.req.header("x-request-id") ?? randomUUID();
+    const suppliedRequestId = context.req.header("x-request-id");
+    const requestId = isValidRequestId(suppliedRequestId)
+      ? suppliedRequestId
+      : randomUUID();
     context.set("requestId", requestId);
     context.header("x-request-id", requestId);
     await next();
@@ -55,7 +58,7 @@ export function createApp() {
     }
   });
 
-  app.route("/v1", v1);
+  app.route("/v1", routeScope === "internal" ? internalV1 : publicV1);
   app.notFound((context) =>
     context.json(
       {
@@ -69,8 +72,11 @@ export function createApp() {
     ),
   );
   app.onError((error, context) => {
-    const { code, message, status } = normalizeError(error);
+    const { code, headers, message, status } = normalizeError(error);
     if (status >= 500) console.error(error);
+    for (const [name, value] of Object.entries(headers ?? {})) {
+      context.header(name, value);
+    }
     return context.json(
       {
         error: {
@@ -85,14 +91,24 @@ export function createApp() {
   return app;
 }
 
+export function createApp() {
+  return createRoutedApp("public");
+}
+
+export function createInternalApp() {
+  return createRoutedApp("internal");
+}
+
 function normalizeError(error: Error): {
   code: string;
+  headers?: Record<string, string>;
   message: string;
   status: HttpErrorStatus;
 } {
   if (error instanceof HttpError) {
     return {
       code: error.code,
+      headers: error.responseHeaders,
       message: error.publicMessage,
       status: error.status,
     };
@@ -114,4 +130,11 @@ function normalizeError(error: Error): {
   return { code: "INTERNAL_ERROR", message: "Towbar API error", status: 500 };
 }
 
+function isValidRequestId(value: string | undefined): value is string {
+  return Boolean(
+    value && value.length <= 100 && /^[A-Za-z0-9._:-]+$/u.test(value),
+  );
+}
+
 export const app = createApp();
+export const internalApp = createInternalApp();

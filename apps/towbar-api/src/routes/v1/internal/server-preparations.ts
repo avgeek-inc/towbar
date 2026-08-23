@@ -7,7 +7,10 @@ import {
   getServerPreparationExecutionContext,
   updateServerPreparation,
 } from "../../../areas/servers/preparations.js";
-import { readJson } from "../../../http/requests.js";
+import { readJson, readUuidPathParameter } from "../../../http/requests.js";
+
+const preparationId = (value: string) =>
+  readUuidPathParameter(value, "preparationId");
 
 const stepIds = serverPreparationStepDefinitions.map((step) => step.id) as [
   (typeof serverPreparationStepDefinitions)[number]["id"],
@@ -50,7 +53,7 @@ internalServerPreparationRoutes.get(
   async (context) =>
     context.json({
       context: await getServerPreparationExecutionContext(
-        context.req.param("preparationId"),
+        preparationId(context.req.param("preparationId")),
       ),
     }),
 );
@@ -60,7 +63,7 @@ internalServerPreparationRoutes.post(
     const body = await readJson(context, eventSchema);
     return context.json({
       preparation: await updateServerPreparation(
-        context.req.param("preparationId"),
+        preparationId(context.req.param("preparationId")),
         body,
       ),
     });

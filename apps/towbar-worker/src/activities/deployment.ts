@@ -10,6 +10,7 @@ import {
 } from "@workspace/towbar-deployer";
 import { terminalDeploymentStates } from "@workspace/towbar-core/temporal";
 
+import { getEnv } from "../env.js";
 import { signedApiRequest } from "../infrastructure/towbar-api.js";
 import { releaseCommitPayload } from "./release-commit.js";
 
@@ -48,8 +49,7 @@ export async function executeDeploymentActivity(deploymentId: string) {
     ]);
     await executeDeployment({
       context: contextResponse.context,
-      deferCleanup:
-        process.env.TOWBAR_APP_ID === contextResponse.context.app.id,
+      deferCleanup: getEnv().TOWBAR_APP_ID === contextResponse.context.app.id,
       hooks: {
         commitRelease: async (result: DeploymentResult) => {
           return await signedApiRequest<ReleaseCommitResult>(

@@ -13,6 +13,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { usePathname } from "next/navigation";
 import { Toast } from "../overlays/toast";
+import { ThemeSwitcher } from "../controls/theme-switcher";
 import { cn } from "../lib/utils";
 import { useAppNavigate } from "../navigation/app-layout";
 import type {
@@ -101,6 +102,7 @@ function RoutedLink({
 }
 export function ApplicationNavbar({
   config,
+  showThemeSwitcher = false,
 }: {
   config: HeaderConfig;
   hasSidebar?: boolean;
@@ -134,6 +136,7 @@ export function ApplicationNavbar({
             item={config.callToAction}
           />
         ) : null}
+        {showThemeSwitcher ? <ThemeSwitcher size="small" /> : null}
       </nav>
     </header>
   );

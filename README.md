@@ -33,7 +33,7 @@ The Compose stack builds and runs four Towbar applications:
 | `sso`     | Sign-in and account recovery                               | `127.0.0.1:4022` |
 
 PostgreSQL and Temporal are foundation services. Temporal UI is available on
-`127.0.0.1:8233`. Migration and owner bootstrap containers run only as jobs.
+`127.0.0.1:8233`. Database migrations run as a one-shot job before the API.
 
 ## Quick start
 
@@ -70,13 +70,12 @@ Then build and start the stack:
 
 ```bash
 docker compose up --build --detach --wait
-docker compose --profile bootstrap run --rm bootstrap
 ```
 
-Open `http://localhost:4021` and sign in with the bootstrap account. The
-bootstrap command is intentionally single-use and refuses to run after the
-first account exists. Its password should not remain in shell history on shared
-systems.
+Open `http://localhost:4021`. Towbar redirects to the first-run setup screen,
+where you create the owner account. Account creation is atomically locked as
+soon as that owner exists. Complete this loopback-only step before placing the
+three public services behind an internet-reachable proxy.
 
 Useful commands:
 

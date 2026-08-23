@@ -6,8 +6,9 @@ import { publicRoutes } from "./public/index.js";
 
 import type { TowbarHonoEnvironment } from "../../http/types.js";
 
-export const v1 = new Hono<TowbarHonoEnvironment>();
+export const publicV1 = new Hono<TowbarHonoEnvironment>();
+export const internalV1 = new Hono<TowbarHonoEnvironment>();
 
-v1.route("/public", publicRoutes);
-v1.route("/core", coreRoutes);
-v1.route("/internal", internalRoutes);
+publicV1.route("/public", publicRoutes);
+publicV1.route("/core", coreRoutes);
+internalV1.route("/internal", internalRoutes);

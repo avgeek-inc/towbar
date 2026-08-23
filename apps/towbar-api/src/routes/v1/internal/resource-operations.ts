@@ -8,7 +8,10 @@ import {
   getOperationExecutionContext,
   resolveOperationSecrets,
 } from "../../../areas/resource-operations/service.js";
-import { readJson } from "../../../http/requests.js";
+import { readJson, readUuidPathParameter } from "../../../http/requests.js";
+
+const operationId = (value: string) =>
+  readUuidPathParameter(value, "operationId");
 
 const eventSchema = z.discriminatedUnion("state", [
   z
@@ -31,7 +34,7 @@ export const internalResourceOperationRoutes = new Hono();
 internalResourceOperationRoutes.get("/:operationId/context", async (context) =>
   context.json({
     context: await getOperationExecutionContext(
-      context.req.param("operationId"),
+      operationId(context.req.param("operationId")),
     ),
   }),
 );
@@ -40,7 +43,9 @@ internalResourceOperationRoutes.post(
   "/:operationId/secrets/resolve",
   async (context) =>
     context.json({
-      secrets: await resolveOperationSecrets(context.req.param("operationId")),
+      secrets: await resolveOperationSecrets(
+        operationId(context.req.param("operationId")),
+      ),
     }),
 );
 
@@ -50,7 +55,7 @@ internalResourceOperationRoutes.post(
     const input = await readJson(context, eventSchema);
     return context.json({
       operation: await finishResourceOperation(
-        context.req.param("operationId"),
+        operationId(context.req.param("operationId")),
         input,
       ),
     });

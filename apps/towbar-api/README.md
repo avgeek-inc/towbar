@@ -3,6 +3,10 @@
 Hono API for Towbar identity, integrations, Source reconciliation, inventory,
 deployments, and signed worker callbacks.
 
+The public listener uses port `4020`. Signed worker routes are mounted only on
+the separate container-network listener at port `4023`; Compose does not
+publish that port to the host.
+
 ```sh
 pnpm --filter @workspace/towbar-core build
 pnpm --filter @workspace/towbar-database build
@@ -20,9 +24,12 @@ image exposes compiled, dependency-complete operator commands:
 
 ```sh
 node dist/cli/migrate.js
-node dist/cli/bootstrap-owner.js
 node dist/cli/issue-recovery-token.js
 ```
+
+An empty installation exposes a one-time owner setup operation through the SSO
+screen. The transaction is serialized and setup locks after the first account
+exists; owner credentials are never passed through environment variables.
 
 Signed GitHub push webhooks synchronize only the manifest's configured branch.
 After a successful push sync, the API admits apps with automatic deployment

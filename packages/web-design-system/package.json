@@ -42,6 +42,7 @@
     "./buttons/*": "./src/buttons/*.tsx",
     "./charts/*": "./src/charts/*.tsx",
     "./collections/*": "./src/collections/*.tsx",
+    "./controls/*": "./src/controls/*.tsx",
     "./data-display/*": "./src/data-display/*.tsx",
     "./feedback/*": "./src/feedback/*.tsx",
     "./forms/*": "./src/forms/*.tsx",

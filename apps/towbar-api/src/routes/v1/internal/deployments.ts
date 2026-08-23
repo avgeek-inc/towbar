@@ -13,7 +13,10 @@ import {
   resolveDeploymentSecrets,
 } from "../../../areas/deployments/service.js";
 import { continueAutomaticDeployments } from "../../../areas/apps/automatic-deployments.js";
-import { readJson } from "../../../http/requests.js";
+import { readJson, readUuidPathParameter } from "../../../http/requests.js";
+
+const deploymentId = (value: string) =>
+  readUuidPathParameter(value, "deploymentId");
 
 const eventSchema = z
   .object({
@@ -41,13 +44,15 @@ export const internalDeploymentRoutes = new Hono();
 internalDeploymentRoutes.get("/:deploymentId/context", async (context) =>
   context.json({
     context: await getDeploymentExecutionContext(
-      context.req.param("deploymentId"),
+      deploymentId(context.req.param("deploymentId")),
     ),
   }),
 );
 internalDeploymentRoutes.get("/:deploymentId/recovery", async (context) =>
   context.json(
-    await getDeploymentRecoveryStatus(context.req.param("deploymentId")),
+    await getDeploymentRecoveryStatus(
+      deploymentId(context.req.param("deploymentId")),
+    ),
   ),
 );
 internalDeploymentRoutes.post(
@@ -55,7 +60,7 @@ internalDeploymentRoutes.post(
   async (context) =>
     context.json({
       secrets: await resolveDeploymentSecrets(
-        context.req.param("deploymentId"),
+        deploymentId(context.req.param("deploymentId")),
       ),
     }),
 );
@@ -63,7 +68,9 @@ internalDeploymentRoutes.post(
   "/:deploymentId/auto-deploy/continue",
   async (context) =>
     context.json(
-      await continueAutomaticDeployments(context.req.param("deploymentId")),
+      await continueAutomaticDeployments(
+        deploymentId(context.req.param("deploymentId")),
+      ),
     ),
 );
 
@@ -71,14 +78,19 @@ internalDeploymentRoutes.post(
   "/:deploymentId/secrets/login/resolve",
   async (context) => {
     return context.json({
-      login: await resolveDeploymentLogin(context.req.param("deploymentId")),
+      login: await resolveDeploymentLogin(
+        deploymentId(context.req.param("deploymentId")),
+      ),
     });
   },
 );
 internalDeploymentRoutes.post("/:deploymentId/events", async (context) => {
   const body = await readJson(context, eventSchema);
   return context.json(
-    await recordDeploymentEvent(context.req.param("deploymentId"), body),
+    await recordDeploymentEvent(
+      deploymentId(context.req.param("deploymentId")),
+      body,
+    ),
   );
 });
 internalDeploymentRoutes.post(
@@ -86,7 +98,10 @@ internalDeploymentRoutes.post(
   async (context) => {
     const body = await readJson(context, releaseSchema);
     return context.json(
-      await commitDeploymentRelease(context.req.param("deploymentId"), body),
+      await commitDeploymentRelease(
+        deploymentId(context.req.param("deploymentId")),
+        body,
+      ),
     );
   },
 );

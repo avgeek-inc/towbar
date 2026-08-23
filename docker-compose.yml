@@ -101,6 +101,7 @@ services:
       <<: *backend-environment
       DATABASE_TOWBAR_URL: postgres://towbar_app:${TOWBAR_DATABASE_RUNTIME_PASSWORD:?set TOWBAR_DATABASE_RUNTIME_PASSWORD}@postgres:5432/towbar
       TOWBAR_CREDENTIALS_KEY: ${TOWBAR_CREDENTIALS_KEY:?set TOWBAR_CREDENTIALS_KEY}
+      TOWBAR_TRUSTED_PROXY_HOPS: ${TOWBAR_TRUSTED_PROXY_HOPS:-0}
       GITHUB_APP_ID: ${GITHUB_APP_ID:-}
       GITHUB_APP_SLUG: ${GITHUB_APP_SLUG:-}
       GITHUB_APP_PRIVATE_KEY_BASE64: ${GITHUB_APP_PRIVATE_KEY_BASE64:-}
@@ -122,7 +123,8 @@ services:
         condition: service_healthy
     environment:
       <<: *backend-environment
-      TOWBAR_API_BASE_URL: http://api:4020
+      TOWBAR_API_BASE_URL: http://api:4023
+      TOWBAR_APP_ID: ${TOWBAR_APP_ID:-}
       WORKER_HEALTH_PORT: 4030
     networks: [platform]
 
@@ -161,23 +163,6 @@ services:
     networks: [platform]
     ports:
       - "${TOWBAR_BIND_ADDRESS:-127.0.0.1}:${TOWBAR_SSO_PORT:-4022}:4022"
-
-  bootstrap:
-    <<: *api-image
-    profiles: [bootstrap]
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-    command: ["node", "dist/cli/bootstrap-owner.js"]
-    environment:
-      DATABASE_TOWBAR_MIGRATOR_URL: postgres://towbar:${TOWBAR_POSTGRES_PASSWORD:?set TOWBAR_POSTGRES_PASSWORD}@postgres:5432/towbar
-      TOWBAR_BOOTSTRAP_EMAIL: ${TOWBAR_BOOTSTRAP_EMAIL:?set TOWBAR_BOOTSTRAP_EMAIL}
-      TOWBAR_BOOTSTRAP_NAME: ${TOWBAR_BOOTSTRAP_NAME:-Towbar Owner}
-      TOWBAR_BOOTSTRAP_PASSWORD: ${TOWBAR_BOOTSTRAP_PASSWORD:?set TOWBAR_BOOTSTRAP_PASSWORD}
-      TOWBAR_BOOTSTRAP_WORKSPACE_NAME: ${TOWBAR_BOOTSTRAP_WORKSPACE_NAME:-Towbar}
-      TOWBAR_BOOTSTRAP_WORKSPACE_SLUG: ${TOWBAR_BOOTSTRAP_WORKSPACE_SLUG:-towbar}
-    networks: [platform]
-    restart: "no"
 
 networks:
   platform:

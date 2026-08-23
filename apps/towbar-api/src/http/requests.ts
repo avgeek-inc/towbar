@@ -1,10 +1,22 @@
-import type { z } from "zod";
+import { z } from "zod";
 
 import { HttpError } from "./errors.js";
 
 import type { Context } from "hono";
 
 const defaultLimit = 1 * 1_024 * 1_024;
+
+export function readUuidPathParameter(value: string, name: string) {
+  const parsed = z.uuid().safeParse(value);
+  if (!parsed.success) {
+    throw new HttpError(
+      400,
+      "INVALID_PATH_PARAMETER",
+      `${name} must be a valid UUID`,
+    );
+  }
+  return parsed.data;
+}
 
 export async function readJson<T>(
   context: Context,

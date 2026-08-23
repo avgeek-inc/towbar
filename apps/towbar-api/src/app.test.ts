@@ -12,14 +12,21 @@ process.env.TOWBAR_APP_BASE_URL = "https://app.towbar.test";
 process.env.TOWBAR_SSO_BASE_URL = "https://sso.towbar.test";
 
 let app: Awaited<ReturnType<typeof loadApp>>;
+let internalApp: Awaited<ReturnType<typeof loadInternalApp>>;
 
 async function loadApp() {
   const { createApp } = await import("./app.js");
   return createApp();
 }
 
+async function loadInternalApp() {
+  const { createInternalApp } = await import("./app.js");
+  return createInternalApp();
+}
+
 void before(async () => {
   app = await loadApp();
+  internalApp = await loadInternalApp();
 });
 
 void describe("Towbar API boundaries", () => {
@@ -57,8 +64,13 @@ void describe("Towbar API boundaries", () => {
     assert.equal(untrusted.headers.get("access-control-allow-origin"), null);
   });
 
-  void it("rejects unsigned worker requests before they reach a handler", async () => {
+  void it("does not mount worker routes on the public listener", async () => {
     const response = await app.request("/v1/internal/health");
+    assert.equal(response.status, 404);
+  });
+
+  void it("rejects unsigned worker requests on the internal listener", async () => {
+    const response = await internalApp.request("/v1/internal/health");
     assert.equal(response.status, 401);
     const body = (await response.json()) as { error: { code: string } };
     assert.equal(body.error.code, "UNAUTHORIZED");
@@ -74,28 +86,33 @@ void describe("Towbar API boundaries", () => {
     assert.equal(body.error.code, "PAYLOAD_TOO_LARGE");
   });
 
-  void it("rate limits repeated password login attempts", async () => {
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      const response = await app.request("/v1/public/auth/login-email", {
-        body: "{}",
-        headers: {
-          "cf-connecting-ip": "198.51.100.42",
-          "content-type": "application/json",
-        },
-        method: "POST",
-      });
-      assert.equal(response.status, 400);
-    }
-
-    const blocked = await app.request("/v1/public/auth/login-email", {
-      body: "{}",
-      headers: {
-        "cf-connecting-ip": "198.51.100.42",
-        "content-type": "application/json",
-      },
+  void it("rejects public authentication mutations without a trusted origin", async () => {
+    const response = await app.request("/v1/public/auth/forgot-password", {
       method: "POST",
     });
-    assert.equal(blocked.status, 429);
-    assert.ok(Number(blocked.headers.get("retry-after")) > 0);
+    assert.equal(response.status, 403);
+  });
+
+  void it("allows public authentication mutations from the SSO origin", async () => {
+    const response = await app.request("/v1/public/auth/forgot-password", {
+      headers: { origin: "https://sso.towbar.test" },
+      method: "POST",
+    });
+    assert.equal(response.status, 202);
+  });
+
+  void it("does not reflect invalid request identifiers", async () => {
+    const response = await app.request("/v1/public/signup", {
+      headers: { "x-request-id": "invalid request id with spaces" },
+      method: "POST",
+    });
+    assert.notEqual(
+      response.headers.get("x-request-id"),
+      "invalid request id with spaces",
+    );
+    assert.match(
+      response.headers.get("x-request-id") ?? "",
+      /^[a-f0-9-]{36}$/u,
+    );
   });
 });
