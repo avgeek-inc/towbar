@@ -17,8 +17,6 @@ import type {
 } from "@workspace/towbar-web-client";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
-import { ItemCard } from "@workspace/web-design-system/data-display/item-card";
-import { ItemCardGroup } from "@workspace/web-design-system/data-display/item-card-group";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
@@ -28,12 +26,7 @@ import {
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
-import {
-  ActionButton,
-  DashboardPage,
-  PageTabs,
-  SectionBlock,
-} from "@/components/page-parts";
+import { ActionButton, DashboardPage, PageTabs } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
@@ -212,8 +205,48 @@ export function ServerDetail() {
               <Alert.Title>Untrusted SSH host key</Alert.Title>
               <Alert.Description>
                 Towbar stopped before login. Verify the discovered fingerprint
-                independently before trusting this server.
+                independently, then trust at least one matching host key.
               </Alert.Description>
+              <div className="mt-4 grid gap-3">
+                {discovered.map((key) => (
+                  <div
+                    className="flex flex-wrap items-center justify-between gap-3 border-t border-default-200 pt-3"
+                    key={key.fingerprint}
+                  >
+                    <div className="grid min-w-0 gap-1">
+                      <span className="font-medium">{key.algorithm}</span>
+                      <TypographyCode className="break-all">
+                        {key.fingerprint}
+                      </TypographyCode>
+                    </div>
+                    <ActionButton
+                      action={() =>
+                        api.post(
+                          `/v1/core/servers/${serverId}/host-keys/actions/trust`,
+                          key,
+                        )
+                      }
+                      confirm={{
+                        actionLabel: "Trust key",
+                        description:
+                          "Only continue if you verified this fingerprint through an independent channel.",
+                        title: (
+                          <span className="inline-flex flex-wrap items-center gap-1.5">
+                            <span>Trust</span>
+                            <TypographyCode className="break-all">
+                              {key.fingerprint}
+                            </TypographyCode>
+                            <span>?</span>
+                          </span>
+                        ),
+                      }}
+                      success="Host key trusted"
+                    >
+                      Trust key
+                    </ActionButton>
+                  </div>
+                ))}
+              </div>
             </Alert.Content>
           </Alert>
         ) : null}
@@ -274,56 +307,6 @@ export function ServerDetail() {
                       {keys.data.hostKeys.length}
                     </Attributes.Item>
                   </Attributes>
-                  {discovered.length ? (
-                    <div className="lg:col-span-2">
-                      <SectionBlock
-                        description="Compare each fingerprint against the server console or cloud provider."
-                        title="Trust first connection"
-                      >
-                        <ItemCardGroup variant="secondary">
-                          {discovered.map((key) => (
-                            <ItemCard key={key.fingerprint} variant="outline">
-                              <ItemCard.Content>
-                                <ItemCard.Title>{key.algorithm}</ItemCard.Title>
-                                <ItemCard.Description>
-                                  <TypographyCode className="break-all">
-                                    {key.fingerprint}
-                                  </TypographyCode>
-                                </ItemCard.Description>
-                              </ItemCard.Content>
-                              <ItemCard.Action>
-                                <ActionButton
-                                  action={() =>
-                                    api.post(
-                                      `/v1/core/servers/${serverId}/host-keys/actions/trust`,
-                                      key,
-                                    )
-                                  }
-                                  confirm={{
-                                    actionLabel: "Trust key",
-                                    description:
-                                      "Only continue if you verified this fingerprint through an independent channel.",
-                                    title: (
-                                      <span className="inline-flex flex-wrap items-center gap-1.5">
-                                        <span>Trust</span>
-                                        <TypographyCode className="break-all">
-                                          {key.fingerprint}
-                                        </TypographyCode>
-                                        <span>?</span>
-                                      </span>
-                                    ),
-                                  }}
-                                  success="Host key trusted"
-                                >
-                                  Trust key
-                                </ActionButton>
-                              </ItemCard.Action>
-                            </ItemCard>
-                          ))}
-                        </ItemCardGroup>
-                      </SectionBlock>
-                    </div>
-                  ) : null}
                 </div>
               ),
             },
