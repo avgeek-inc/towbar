@@ -11,6 +11,7 @@ const baseConfig = createNextConfig((config) => config, {
 
 const nextConfig: NextConfig = {
   ...baseConfig,
+  agentRules: false,
   async redirects() {
     return [
       ...((await baseConfig.redirects?.()) ?? []),

@@ -231,3 +231,44 @@ test("the local fixture covers runtime controls and log capture", async () => {
     await once(server, "close");
   }
 });
+
+test("the local fixture covers first-connection host-key trust", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  try {
+    const checksResponse = await fetch(
+      `${baseUrl}/v1/core/servers/${fixtureIds.server}/checks`,
+    );
+    const checksPayload = await checksResponse.json();
+    const untrustedCheck = checksPayload.checks.find(
+      (check) => check.errorCode === "HOST_KEY_NOT_TRUSTED",
+    );
+    assert.equal(
+      untrustedCheck.result.discoveredHostKeys[0].fingerprint,
+      "SHA256:TowbarFixtureHostKey",
+    );
+
+    const trustResponse = await fetch(
+      `${baseUrl}/v1/core/servers/${fixtureIds.server}/host-keys/actions/trust`,
+      { method: "POST" },
+    );
+    assert.equal(trustResponse.status, 201);
+
+    const keysResponse = await fetch(
+      `${baseUrl}/v1/core/servers/${fixtureIds.server}/host-keys`,
+    );
+    const keysPayload = await keysResponse.json();
+    assert.equal(
+      keysPayload.hostKeys[0].fingerprint,
+      "SHA256:TowbarFixtureHostKey",
+    );
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});

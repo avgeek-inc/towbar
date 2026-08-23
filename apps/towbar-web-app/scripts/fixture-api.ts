@@ -256,14 +256,13 @@ const githubRepositories: GitHubRepository[] = [
   },
 ];
 
-const hostKeys: TrustedHostKey[] = [
-  {
-    algorithm: "ssh-ed25519",
-    createdAt: fixtureNow,
-    fingerprint: "SHA256:TowbarFixtureHostKey",
-    id: "c1111111-1111-4111-8111-111111111111",
-  },
-];
+const discoveredHostKey = {
+  algorithm: "ssh-ed25519",
+  fingerprint: "SHA256:TowbarFixtureHostKey",
+  publicKey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITowbarFixtureHostKey",
+};
+
+const hostKeys: TrustedHostKey[] = [];
 
 const userSessions: UserSession[] = [
   {
@@ -283,6 +282,16 @@ const userSessions: UserSession[] = [
 ];
 
 const serverChecks: ServerCheck[] = [
+  {
+    createdAt: fixtureNow,
+    errorCode: "HOST_KEY_NOT_TRUSTED",
+    errorMessage: "The server SSH host key has not been explicitly trusted",
+    finishedAt: fixtureNow,
+    id: "f1111111-1111-4111-8111-000000000000",
+    result: { discoveredHostKeys: [discoveredHostKey] },
+    startedAt: fixtureNow,
+    status: "failed",
+  },
   {
     createdAt: fixtureNow,
     errorCode: null,
@@ -377,6 +386,28 @@ export function createFixtureApiServer() {
       path === `/v1/core/sources/${source.id}/actions/sync`
     ) {
       return writeJson(response, 202, { sync: { id: sourceSync.id } });
+    }
+    if (
+      request.method === "POST" &&
+      path === `/v1/core/servers/${fixtureIds.server}/host-keys/actions/trust`
+    ) {
+      if (
+        !hostKeys.some(
+          (key) => key.fingerprint === discoveredHostKey.fingerprint,
+        )
+      ) {
+        hostKeys.push({
+          algorithm: discoveredHostKey.algorithm,
+          createdAt: new Date().toISOString(),
+          fingerprint: discoveredHostKey.fingerprint,
+          id: "c1111111-1111-4111-8111-111111111111",
+        });
+      }
+      const failedCheckIndex = serverChecks.findIndex(
+        (check) => check.errorCode === "HOST_KEY_NOT_TRUSTED",
+      );
+      if (failedCheckIndex >= 0) serverChecks.splice(failedCheckIndex, 1);
+      return writeJson(response, 201, { hostKey: hostKeys[0] });
     }
     const runtimeActionMatch = path.match(
       /^\/v1\/core\/(apps|resources)\/([^/]+)\/actions\/(backup|logs|restart|start|stop)$/,
