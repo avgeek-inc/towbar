@@ -21,6 +21,7 @@ import type {
 } from "@workspace/towbar-web-client";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
+import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
 import { Pagination } from "@workspace/web-design-system/navigation/pagination";
 import { Tabs } from "@workspace/web-design-system/navigation/tabs";
@@ -100,6 +101,10 @@ export function SourceDetail() {
 
   const item = source.data.source;
   const latestSync = syncs.data.syncs[0];
+  const untrustedServers =
+    servers.data?.servers.filter(
+      (server) => server.hostKeyStatus === "untrusted",
+    ) ?? [];
   const syncColumns: ResourceTableColumn<SourceSync>[] = [
     {
       key: "commit",
@@ -187,6 +192,23 @@ export function SourceDetail() {
         </span>
       }
     >
+      {untrustedServers.length ? (
+        <Alert status="warning">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>
+              {untrustedServers.length === 1
+                ? "A server has untrusted host keys"
+                : `${untrustedServers.length} servers have untrusted host keys`}
+            </Alert.Title>
+            <Alert.Description>
+              Towbar stops before login on affected servers. Run a server check,
+              verify each fingerprint independently, then trust matching keys
+              from each server&apos;s Host Keys tab.
+            </Alert.Description>
+          </Alert.Content>
+        </Alert>
+      ) : null}
       <PageTabs
         defaultValue="apps"
         tabs={[
@@ -416,7 +438,7 @@ function SourceSubtabs({
       defaultSelectedKey={defaultSelectedKey}
       orientation="vertical"
     >
-      <div className="grid gap-6 lg:grid-cols-[14rem_minmax(0,1fr)]">
+      <div className="grid items-start gap-4 lg:grid-cols-[14rem_minmax(0,1fr)]">
         <Tabs.ListContainer className="w-full">
           <Tabs.List aria-label={ariaLabel} className="w-full">
             {tabs.map((tab) => (

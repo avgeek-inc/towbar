@@ -245,10 +245,8 @@ test("the local fixture covers first-connection host-key trust", async () => {
       `${baseUrl}/v1/core/sources/${fixtureIds.source}/servers`,
     );
     const sourceServersPayload = await sourceServersResponse.json();
-    assert.deepEqual(sourceServersPayload.servers[0].latestCheck, {
-      errorCode: "HOST_KEY_NOT_TRUSTED",
-      status: "failed",
-    });
+    assert.equal(sourceServersPayload.servers[0].hostKeyStatus, "untrusted");
+    assert.equal(sourceServersPayload.servers[1].hostKeyStatus, "trusted");
 
     const checksResponse = await fetch(
       `${baseUrl}/v1/core/servers/${fixtureIds.server}/checks`,
@@ -283,8 +281,8 @@ test("the local fixture covers first-connection host-key trust", async () => {
     const trustedSourceServersPayload =
       await trustedSourceServersResponse.json();
     assert.equal(
-      trustedSourceServersPayload.servers[0].latestCheck.errorCode,
-      null,
+      trustedSourceServersPayload.servers[0].hostKeyStatus,
+      "trusted",
     );
   } finally {
     server.close();

@@ -190,7 +190,7 @@ export function ServerDetail() {
       key: "algorithm",
       header: "Algorithm",
       cell: (key) => key.algorithm,
-      className: "whitespace-nowrap font-medium",
+      className: "whitespace-nowrap",
     },
     {
       key: "fingerprint",

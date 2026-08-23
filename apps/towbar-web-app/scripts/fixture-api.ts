@@ -32,6 +32,7 @@ export const fixtureIds = {
   imageResource: "41111111-1111-4111-8111-444444444444",
   resource: "41111111-1111-4111-8111-111111111111",
   secondaryPostgres: "41111111-1111-4111-8111-333333333333",
+  secondaryServer: "21111111-1111-4111-8111-222222222222",
   server: "21111111-1111-4111-8111-111111111111",
   source: "11111111-1111-4111-8111-111111111111",
   sync: "91111111-1111-4111-8111-111111111111",
@@ -79,11 +80,7 @@ const source: Source = {
 
 const servers: Server[] = [
   createServerFixture(fixtureIds.server, "192.0.2.10", "ubuntu"),
-  createServerFixture(
-    "21111111-1111-4111-8111-222222222222",
-    "192.0.2.11",
-    "deploy",
-  ),
+  createServerFixture(fixtureIds.secondaryServer, "192.0.2.11", "deploy"),
 ];
 
 const apps: FixtureApp[] = [
@@ -262,7 +259,20 @@ const discoveredHostKey = {
   publicKey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITowbarFixtureHostKey",
 };
 
-const hostKeys: TrustedHostKey[] = [];
+const hostKeysByServer = new Map<string, TrustedHostKey[]>([
+  [fixtureIds.server, []],
+  [
+    fixtureIds.secondaryServer,
+    [
+      {
+        algorithm: "ssh-ed25519",
+        createdAt: fixtureNow,
+        fingerprint: "SHA256:TowbarFixtureTrustedHostKey",
+        id: "c1111111-1111-4111-8111-222222222222",
+      },
+    ],
+  ],
+]);
 
 const userSessions: UserSession[] = [
   {
@@ -391,6 +401,7 @@ export function createFixtureApiServer() {
       request.method === "POST" &&
       path === `/v1/core/servers/${fixtureIds.server}/host-keys/actions/trust`
     ) {
+      const hostKeys = hostKeysByServer.get(fixtureIds.server)!;
       if (
         !hostKeys.some(
           (key) => key.fingerprint === discoveredHostKey.fingerprint,
@@ -511,13 +522,14 @@ function getFixturePayload(path: string): unknown {
       {
         servers: servers.map((server) => ({
           ...server,
-          latestCheck:
-            server.id === fixtureIds.server && serverChecks[0]
-              ? {
-                  errorCode: serverChecks[0].errorCode,
-                  status: serverChecks[0].status,
-                }
-              : null,
+          hostKeyStatus:
+            (hostKeysByServer.get(server.id)?.length ?? 0) > 0 &&
+            !(
+              server.id === fixtureIds.server &&
+              serverChecks[0]?.errorCode === "HOST_KEY_NOT_TRUSTED"
+            )
+              ? "trusted"
+              : "untrusted",
         })),
       },
     ],
@@ -595,7 +607,9 @@ function getFixturePayload(path: string): unknown {
       };
     }
     if (child === "checks") return { checks: serverChecks };
-    if (child === "host-keys") return { hostKeys };
+    if (child === "host-keys") {
+      return { hostKeys: hostKeysByServer.get(server.id) ?? [] };
+    }
     if (child === "orphans") return { orphans: orphanItems };
     return { canCleanupOrphans: true, server };
   }

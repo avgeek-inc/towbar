@@ -109,7 +109,7 @@ export function ApplicationNavbar({
   return (
     <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-5 border-b border-separator bg-background/90 px-4 backdrop-blur sm:px-6">
       <a
-        className="inline-flex items-center gap-3 font-semibold"
+        className="inline-flex items-center gap-3 font-medium"
         href={config.homeHref}
       >
         {config.brand.logoSrc ? (
@@ -152,7 +152,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
       className="flex min-h-dvh flex-col gap-8 p-4"
     >
       <RoutedLink
-        className="inline-flex items-center gap-3 px-2 py-1 font-semibold"
+        className="inline-flex items-center gap-3 px-2 py-1 font-medium"
         item={homeItem}
       >
         {config.brand.logoSrc ? (
@@ -173,7 +173,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
                 item.kind === "link" ? (
                   <RoutedLink
                     className={cn(
-                      "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium",
+                      "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-normal",
                       pathname === item.href ||
                         (item.href !== "/" && pathname.startsWith(item.href))
                         ? "bg-default text-foreground"
@@ -189,7 +189,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
                   </RoutedLink>
                 ) : (
                   <button
-                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-start text-sm font-medium text-muted hover:bg-default/60 hover:text-foreground"
+                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-start text-sm font-normal text-muted hover:bg-default/60 hover:text-foreground"
                     disabled={item.disabled}
                     key={item.id}
                     onClick={item.onSelect}
@@ -210,7 +210,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
         <div className="mt-auto grid gap-1">
           {config.footerActions.map((item) => (
             <button
-              className="flex items-center gap-3 rounded-xl px-3 py-2 text-start text-sm font-medium text-muted hover:bg-default/60 disabled:opacity-50"
+              className="flex items-center gap-3 rounded-xl px-3 py-2 text-start text-sm font-normal text-muted hover:bg-default/60 disabled:opacity-50"
               disabled={item.disabled}
               key={item.id}
               onClick={item.onSelect}

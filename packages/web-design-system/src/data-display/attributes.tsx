@@ -41,9 +41,18 @@ const Root = forwardRef<HTMLDivElement, AttributesProps>(
     ref,
   ) => (
     <VariantContext.Provider value={variant}>
-      <Widget ref={ref} className={cn("min-w-0", className)} {...props}>
+      <Widget
+        ref={ref}
+        className={cn("min-w-0 overflow-hidden", className)}
+        {...props}
+      >
         <Widget.Header>
-          <Widget.Title>{title}</Widget.Title>
+          <Widget.Title
+            className="min-w-0 truncate text-xs font-medium text-muted"
+            title={typeof title === "string" ? title : undefined}
+          >
+            {title}
+          </Widget.Title>
         </Widget.Header>
         <Widget.Content className={variant === "list" ? "p-0" : undefined}>
           <dl
@@ -92,8 +101,8 @@ const Item = forwardRef<HTMLDivElement, AttributesItemProps>(
         </dt>
         <dd
           className={cn(
-            "min-w-0 text-sm font-medium",
-            variant === "list" && "text-end font-semibold",
+            "min-w-0 text-sm font-normal",
+            variant === "list" && "text-end",
           )}
         >
           {children}

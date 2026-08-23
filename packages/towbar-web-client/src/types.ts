@@ -328,7 +328,7 @@ export type ServerCheck = {
 };
 
 export type SourceServer = Server & {
-  latestCheck: Pick<ServerCheck, "errorCode" | "status"> | null;
+  hostKeyStatus: "trusted" | "untrusted";
 };
 
 export type TrustedHostKey = {

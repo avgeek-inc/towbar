@@ -67,7 +67,7 @@ export function SettingsPage({
         selectedKey={selectedTab}
         onSelectionChange={selectTab}
       >
-        <div className="grid min-w-0 gap-4 lg:grid-cols-[14rem_minmax(0,1fr)]">
+        <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[14rem_minmax(0,1fr)]">
           <Tabs.ListContainer className="w-full">
             <Tabs.List aria-label="Settings sections" className="w-full">
               {settingsNavigation.map((item) => (

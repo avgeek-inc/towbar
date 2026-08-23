@@ -61,11 +61,9 @@ export function DashboardPage({
       title={title}
       titleContent={titleContent}
     >
-      {Children.toArray(children).map((child, index) => (
-        <PageSection key={`dashboard-section-${index}`} yPadding="compact">
-          {child}
-        </PageSection>
-      ))}
+      <PageSection className="grid gap-6 pt-0" yPadding="compact">
+        {Children.toArray(children)}
+      </PageSection>
     </ApplicationPage>
   );
 }

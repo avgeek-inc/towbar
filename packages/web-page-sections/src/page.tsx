@@ -38,7 +38,7 @@ function TitledPage({
         <PageSection yPadding="compact">
           <header className="flex flex-wrap items-center justify-between gap-5">
             <div className="flex min-w-0 flex-wrap items-center gap-3">
-              <TypographyHeading level={1}>
+              <TypographyHeading elementType="h1" level={2}>
                 {titleContent ?? title}
               </TypographyHeading>
               {badge}
