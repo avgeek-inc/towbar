@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { parseCredentialsMasterKey } from "@workspace/towbar-core";
+
 function optionalEnvironmentString(schema: z.ZodString) {
   return z.preprocess(
     (value) => (value === "" ? undefined : value),
@@ -14,7 +16,19 @@ const envSchema = z
       .default("development"),
     PORT: z.coerce.number().int().min(1).max(65_535).default(4_020),
     DATABASE_TOWBAR_URL: z.string().url(),
-    TOWBAR_CREDENTIALS_KEY: z.string().min(40),
+    TOWBAR_CREDENTIALS_KEY: z.string().superRefine((value, context) => {
+      try {
+        parseCredentialsMasterKey(value);
+      } catch (error) {
+        context.addIssue({
+          code: "custom",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Invalid credential encryption key",
+        });
+      }
+    }),
     TOWBAR_INTERNAL_HMAC_SECRET: z.string().min(32),
     TOWBAR_API_BASE_URL: z.string().url().default("http://localhost:4020"),
     TOWBAR_APP_BASE_URL: z.string().url().default("http://localhost:4021"),

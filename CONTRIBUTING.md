@@ -37,5 +37,8 @@ docker compose build
 - Explain security, migration, and rollback implications when applicable.
 - Preserve Source scoping and avoid logging secret values.
 
+Project stewardship and the current code owner are recorded in
+[MAINTAINERS.md](MAINTAINERS.md).
+
 By contributing, you agree that your contributions are licensed under the
 Apache License 2.0.

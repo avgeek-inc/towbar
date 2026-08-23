@@ -12,8 +12,11 @@ Do not commit `.env`.
 | `TOWBAR_CREDENTIALS_KEY`           | Encrypts stored Source AWS credentials  |
 | `TOWBAR_INTERNAL_HMAC_SECRET`      | Signs API and worker internal requests  |
 
-Generate every value independently. Hex output from `openssl rand -hex 32` is
-URL-safe for the Compose database URLs.
+Generate the PostgreSQL passwords and HMAC secret independently with
+`openssl rand -hex 32`. Hex output is URL-safe for the Compose database URLs.
+`TOWBAR_CREDENTIALS_KEY` must instead be a separate 32-byte Base64 value from
+`openssl rand -base64 32 | tr -d '\n'`; Towbar rejects any other decoded key
+length.
 
 ## Public origins
 

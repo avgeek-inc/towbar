@@ -6,6 +6,7 @@ import {
   encryptCredential,
   hashOpaqueToken,
   hashPassword,
+  parseCredentialsMasterKey,
   verifyPassword,
 } from "./security.js";
 
@@ -39,6 +40,13 @@ void test("binds encrypted credentials to authenticated record context", () => {
       masterKey,
     }),
   );
+});
+
+void test("accepts only a Base64-encoded 32-byte credential key", () => {
+  const encoded = Buffer.alloc(32, 7).toString("base64");
+  assert.equal(parseCredentialsMasterKey(encoded).byteLength, 32);
+  assert.throws(() => parseCredentialsMasterKey("short"));
+  assert.throws(() => parseCredentialsMasterKey("a".repeat(64)));
 });
 
 void test("hashes high-entropy session tokens deterministically", () => {

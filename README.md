@@ -6,6 +6,16 @@ servers, dependencies, domains, secrets, and deployment policy. Towbar keeps the
 manifest as the source of truth and runs deployments through durable Temporal
 workflows.
 
+```mermaid
+flowchart LR
+  discover[Discover Towbar] --> install[Run the control plane]
+  install --> github[Connect a GitHub App]
+  github --> source[Add a Source]
+  source --> sync[Sync deployment.yml]
+  sync --> verify[Verify the server]
+  verify --> deploy[Deploy]
+```
+
 > [!IMPORTANT]
 > This repository is an early open-source extraction. Review the security and
 > operational assumptions before exposing it to the public internet.
@@ -26,6 +36,9 @@ PostgreSQL and Temporal are foundation services. Temporal UI is available on
 
 ## Quick start
 
+For the complete operator journey, start with the
+[getting-started guide](docs/getting-started.md). The short path is:
+
 Requirements:
 
 - Docker Engine with Compose v2
@@ -33,15 +46,23 @@ Requirements:
 - OpenSSL for generating local secrets
 
 ```bash
-git clone https://github.com/OWNER/towbar.git
+git clone https://github.com/avgeek-inc/towbar.git
 cd towbar
 cp .env.example .env
 ```
 
-Replace every placeholder in `.env`. Generate independent random values:
+Replace every placeholder in `.env`. The database and signing secrets can use
+independent hex values:
 
 ```bash
 openssl rand -hex 32
+```
+
+The credential-encryption key has a different format and must decode to exactly
+32 bytes:
+
+```bash
+openssl rand -base64 32 | tr -d '\n'
 ```
 
 Then build and start the stack:
@@ -83,7 +104,7 @@ storage.
 ## Production notes
 
 - The default bind address is loopback. Put a maintained TLS reverse proxy in
-  front of the four HTTP services and set their public base URLs before build.
+  front of the three HTTP services and set their public base URLs before build.
 - Never publish PostgreSQL, Temporal, or Temporal UI directly to the internet.
 - Back up the `postgres-data` volume with a tested PostgreSQL backup process.
 - Give the GitHub App read-only repository contents permission and subscribe
@@ -130,6 +151,10 @@ or to your own documentation site.
 
 Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and
 follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+Towbar is authored by **Avgeek, Inc.** and maintained by
+[Praveen Thirumurugan (@praveentcom)](https://github.com/praveentcom). See
+[MAINTAINERS.md](MAINTAINERS.md) for project stewardship.
 
 ## License
 

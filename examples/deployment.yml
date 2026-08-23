@@ -1,0 +1,39 @@
+# Copy this file to .towbar/deployment.yml in the repository you want to deploy.
+# Replace every example value before syncing the Source.
+version: 1
+
+source:
+  branch: main
+
+servers:
+  - ip: 203.0.113.10
+    buildConcurrency: 2
+    ssh:
+      username: deploy
+    secrets:
+      login: aws:example/production/server-login
+
+apps:
+  - id: hello-towbar
+    name: Hello Towbar
+    description: A Dockerfile application deployed by Towbar.
+    server: 203.0.113.10
+    dockerfile: Dockerfile
+    context: .
+    autoDeploy:
+      inputs:
+        - Dockerfile
+        - package.json
+        - src/**
+    container:
+      port: 3000
+      resources:
+        cpus: 0.5
+        memory: 512m
+    health:
+      path: /health
+      timeoutSeconds: 60
+    domains:
+      primary: hello.example.com
+    tls:
+      mode: direct

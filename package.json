@@ -2,6 +2,28 @@
   "name": "towbar",
   "version": "0.1.0",
   "description": "Opinionated, source-driven deployments to Ubuntu servers you own.",
+  "keywords": [
+    "deployment",
+    "devops",
+    "docker",
+    "github-app",
+    "self-hosted",
+    "temporal",
+    "ubuntu"
+  ],
+  "homepage": "https://towbar.dev",
+  "bugs": "https://github.com/avgeek-inc/towbar/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avgeek-inc/towbar.git"
+  },
+  "author": "Avgeek, Inc.",
+  "maintainers": [
+    {
+      "name": "Praveen Thirumurugan",
+      "url": "https://github.com/praveentcom"
+    }
+  ],
   "private": true,
   "license": "Apache-2.0",
   "scripts": {

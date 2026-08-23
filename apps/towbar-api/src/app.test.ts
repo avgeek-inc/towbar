@@ -5,7 +5,7 @@ process.env.DATABASE_TOWBAR_URL =
   "postgres://towbar:test@127.0.0.1:5432/towbar";
 process.env.DATABASE_TOWBAR_MIGRATOR_URL = process.env.DATABASE_TOWBAR_URL;
 process.env.TOWBAR_CREDENTIALS_KEY =
-  "test-credentials-key-that-is-at-least-forty-characters";
+  "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=";
 process.env.TOWBAR_INTERNAL_HMAC_SECRET =
   "test-hmac-secret-that-is-long-enough";
 process.env.TOWBAR_APP_BASE_URL = "https://app.towbar.test";
