@@ -42,7 +42,7 @@ export DEBIAN_FRONTEND=noninteractive
 "${"$"}{SUDO[@]}" apt-get update -qq
 "${"$"}{SUDO[@]}" apt-get install -y --no-install-recommends \
   apt-transport-https ca-certificates coreutils curl debian-archive-keyring \
-  debian-keyring gnupg python3 sudo
+  debian-keyring gnupg python3 sudo >/dev/null
 printf '%s\n' "$(python3 --version 2>&1)"
 `;
 
@@ -91,7 +91,8 @@ if test "$docker_compatible" = false; then
   export DEBIAN_FRONTEND=noninteractive
   "${"$"}{SUDO[@]}" apt-get update -qq
   "${"$"}{SUDO[@]}" apt-get install -y --no-install-recommends \
-    containerd.io docker-buildx-plugin docker-ce docker-ce-cli docker-compose-plugin
+    containerd.io docker-buildx-plugin docker-ce docker-ce-cli docker-compose-plugin \
+    >/dev/null
 fi
 "${"$"}{SUDO[@]}" systemctl enable --now docker
 docker_version="$("${"$"}{SUDO[@]}" docker version --format '{{.Server.Version}}')"
@@ -130,7 +131,7 @@ if test "$has_caddy" = false; then
   rm -f "$key_source" "$keyring" "$list_file"
   export DEBIAN_FRONTEND=noninteractive
   "${"$"}{SUDO[@]}" apt-get update -qq
-  "${"$"}{SUDO[@]}" apt-get install -y --no-install-recommends caddy
+  "${"$"}{SUDO[@]}" apt-get install -y --no-install-recommends caddy >/dev/null
 fi
 if test "$requires_cloudflare" = true && \
   ! caddy list-modules 2>/dev/null | grep -Fxq dns.providers.cloudflare; then

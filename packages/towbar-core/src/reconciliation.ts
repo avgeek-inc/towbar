@@ -44,9 +44,16 @@ export function reconcileManifest(input: {
     input.desired.resources ?? [],
     (resource) => resource.id,
   );
+  const referencedServerIps = new Set(
+    [...input.desired.apps, ...(input.desired.resources ?? [])].map(
+      (deployable) => deployable.server,
+    ),
+  );
   const servers = reconcileEntities(
     input.currentServers,
-    input.desired.servers,
+    input.desired.servers.filter((server) =>
+      referencedServerIps.has(server.ip),
+    ),
     (server) => server.ip,
   );
   const summary: ManifestReconciliation["summary"] = {

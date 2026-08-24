@@ -44,6 +44,12 @@ export type ServerPreparationStep = {
   title: string;
 };
 
+export const serverPreparationStepMessageMaxLength = 1_000;
+
+export function limitServerPreparationStepMessage(message: string) {
+  return message.slice(0, serverPreparationStepMessageMaxLength);
+}
+
 export function createServerPreparationSteps(): ServerPreparationStep[] {
   return serverPreparationStepDefinitions.map((step) => ({
     ...step,

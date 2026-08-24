@@ -54,3 +54,15 @@ void test("requires pinned SSH trust and verifies the installed services", () =>
   assert.match(serverPreparationScripts.verifyServer, /caddy validate/);
   assert.match(serverPreparationScripts.verifyServer, /python3/);
 });
+
+void test("keeps package-manager progress out of preparation step messages", () => {
+  assert.match(
+    serverPreparationScripts.installPrerequisites,
+    /python3 sudo >\/dev\/null/,
+  );
+  assert.match(
+    serverPreparationScripts.installDocker,
+    /docker-compose-plugin \\\s+>\/dev\/null/,
+  );
+  assert.match(serverPreparationScripts.installCaddy, /caddy >\/dev\/null/);
+});

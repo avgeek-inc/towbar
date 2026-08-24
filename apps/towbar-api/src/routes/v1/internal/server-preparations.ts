@@ -1,7 +1,10 @@
 import { Hono } from "hono";
 import { z } from "zod";
 
-import { serverPreparationStepDefinitions } from "@workspace/towbar-core";
+import {
+  serverPreparationStepDefinitions,
+  serverPreparationStepMessageMaxLength,
+} from "@workspace/towbar-core";
 
 import {
   getServerPreparationExecutionContext,
@@ -20,7 +23,7 @@ const stepSchema = z
   .object({
     finishedAt: z.string().datetime().nullable(),
     id: z.enum(stepIds),
-    message: z.string().max(1_000).nullable(),
+    message: z.string().max(serverPreparationStepMessageMaxLength).nullable(),
     startedAt: z.string().datetime().nullable(),
     status: z.enum(["waiting", "running", "succeeded", "failed"]),
     title: z.string().trim().min(1).max(100),

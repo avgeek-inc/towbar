@@ -4,6 +4,7 @@ import {
   type ServerPreparationStep,
   type ServerPreparationStepId,
   createServerPreparationSteps,
+  limitServerPreparationStepMessage,
 } from "@workspace/towbar-core";
 import {
   HostKeyNotTrustedError,
@@ -37,7 +38,7 @@ export async function executeServerPreparationActivity(preparationId: string) {
       step.startedAt ??= now;
       step.finishedAt = now;
     }
-    step.message = input.message;
+    step.message = limitServerPreparationStepMessage(input.message);
     step.status = input.status;
     await signedApiRequest(
       "POST",

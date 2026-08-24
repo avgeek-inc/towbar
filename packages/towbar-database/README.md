@@ -15,6 +15,8 @@ only authenticated ciphertext envelopes.
 
 The Apps table materializes manifest-owned deployables. `archived_at` records
 that an ID is absent from the latest successful Source sync and is cleared if
-that ID reappears; there is no separate decommission lifecycle state.
+that ID reappears; there is no separate decommission lifecycle state. Servers
+use the same reversible archive state and remain active only while at least one
+desired App or Resource references them.
 
 [Packages](../README.md) · [Repository](../../README.md)

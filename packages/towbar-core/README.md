@@ -17,7 +17,9 @@ Zod schema, fixtures, and parser tests in lockstep.
 
 Sources declare one authoritative `branch` (default `main`). Servers declare
 bounded `buildConcurrency` and may use a private `ssh.host` distinct from the
-public server `ip`. Apps may opt into `autoDeploy`, declare named root
+public server `ip`. A successful sync archives declared Servers that are not
+referenced by an App or Resource and restores them when a reference reappears.
+Apps may opt into `autoDeploy`, declare named root
 `deploymentInputs`, select those groups plus repository globs through
 `autoDeploy.inputs`, declare acyclic `dependsOn` IDs, and run image-scoped
 `preDeploy`/`postDeploy` hooks. Plain `autoDeploy: true` intentionally treats

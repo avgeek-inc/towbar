@@ -99,6 +99,27 @@ void test("restores an archived record when its identity reappears", () => {
   assert.equal(result.apps[0]?.action, "restore");
 });
 
+void test("archives a declared server when no deployable references it", () => {
+  const currentServer = desired.servers[0]!;
+  const result = reconcileManifest({
+    currentApps: [],
+    currentResources: [],
+    currentServers: [
+      {
+        archivedAt: null,
+        config: currentServer,
+        configDigest: digestValue(currentServer),
+        id: "database-server-id",
+        identity: currentServer.ip,
+      },
+    ],
+    desired: { ...desired, apps: [], resources: [] },
+  });
+
+  assert.equal(result.servers[0]?.action, "archive");
+  assert.equal(result.servers[0]?.current?.id, "database-server-id");
+});
+
 void test("reconciles Resources independently from Apps", () => {
   const resource = {
     autoDeploy: false,
@@ -130,4 +151,5 @@ void test("reconciles Resources independently from Apps", () => {
   });
   assert.equal(result.resources[0]?.action, "create");
   assert.equal(result.resources[0]?.desired?.id, "database");
+  assert.equal(result.servers[0]?.action, "create");
 });
