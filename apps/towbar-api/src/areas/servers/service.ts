@@ -28,17 +28,6 @@ export const sshLoginSecretSchema = z
   })
   .strict();
 
-const publicServerCheckSelection = {
-  createdAt: serverChecks.createdAt,
-  errorCode: serverChecks.errorCode,
-  errorMessage: serverChecks.errorMessage,
-  finishedAt: serverChecks.finishedAt,
-  id: serverChecks.id,
-  result: serverChecks.result,
-  startedAt: serverChecks.startedAt,
-  status: serverChecks.status,
-} as const;
-
 const serverSelection = {
   archivedAt: servers.archivedAt,
   canonicalIp: servers.canonicalIp,
@@ -245,15 +234,6 @@ export async function listServerDeployments(
     .from(deployments)
     .where(eq(deployments.serverId, serverId))
     .orderBy(desc(deployments.createdAt));
-}
-
-export async function listServerChecks(serverId: string, workspaceId: string) {
-  await getServer(serverId, workspaceId);
-  return await getTowbarDatabase()
-    .select(publicServerCheckSelection)
-    .from(serverChecks)
-    .where(eq(serverChecks.serverId, serverId))
-    .orderBy(desc(serverChecks.createdAt));
 }
 
 export async function listTrustedHostKeys(

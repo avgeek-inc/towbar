@@ -14,12 +14,15 @@ import type {
   ResourceOperation,
   Server,
   ServerCheck,
+  ServerChecksPage,
   ServerPreparation,
   TrustedHostKey,
 } from "@workspace/towbar-web-client";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
+import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
+import { Pagination } from "@workspace/web-design-system/navigation/pagination";
 import { Stepper } from "@workspace/web-design-system/navigation/stepper";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -49,6 +52,8 @@ type HostKeyRow = {
   status: "trusted" | "untrusted";
 };
 
+const SERVER_CHECK_PAGE_SIZE = 10;
+
 export function ServerDetail() {
   const { serverId, sourceId } = useParams<{
     serverId: string;
@@ -69,8 +74,8 @@ export function ServerDetail() {
         }
       : undefined,
   );
-  const checks = useApiQuery<{ checks: ServerCheck[] }>(
-    `/v1/core/servers/${serverId}/checks`,
+  const checks = useApiQuery<ServerChecksPage>(
+    `/v1/core/servers/${serverId}/checks?page=1&limit=${SERVER_CHECK_PAGE_SIZE}`,
     5_000,
   );
   const keys = useApiQuery<{ hostKeys: TrustedHostKey[] }>(
@@ -138,7 +143,9 @@ export function ServerDetail() {
       </DashboardPage>
     );
   }
-  const discovered = readDiscoveredKeys(checks.data.checks);
+  const discovered = readDiscoveredKeys(
+    checks.data.latestCheck ? [checks.data.latestCheck] : [],
+  );
   const trustedFingerprints = new Set(
     keys.data.hostKeys.map((key) => key.fingerprint),
   );
@@ -152,7 +159,7 @@ export function ServerDetail() {
       .filter((key) => !trustedFingerprints.has(key.fingerprint))
       .map((key) => ({ ...key, status: "untrusted" as const })),
   ];
-  const latestCheck = checks.data.checks[0];
+  const latestCheck = checks.data.latestCheck;
   const latestPreparation = preparations.data.preparations[0];
   const operatingSystem = readCheckResult(latestCheck, "operatingSystem");
   const dockerVersion = readCheckResult(latestCheck, "dockerVersion");
@@ -411,18 +418,15 @@ export function ServerDetail() {
               label: "Checks",
               icon: <HugeiconsIcon icon={Activity01Icon} />,
               indicator: {
-                label: String(checks.data.checks.length),
+                label: String(checks.data.pagination.total),
                 variant: "secondary",
               },
               content: (
-                <ResourceTable
-                  ariaLabel={`${item.canonicalIp} checks`}
+                <ServerCheckHistory
                   columns={checkColumns}
-                  emptyDescription="Run a server check to validate SSH, Docker, and the host environment."
-                  emptyTitle="No checks yet"
-                  getRowKey={(check) => check.id}
-                  items={checks.data.checks}
-                  tableClassName="min-w-[900px]"
+                  firstPage={checks.data}
+                  serverId={serverId}
+                  serverIp={item.canonicalIp}
                 />
               ),
             },
@@ -488,6 +492,59 @@ export function ServerDetail() {
         />
       </div>
     </DashboardPage>
+  );
+}
+
+function ServerCheckHistory({
+  columns,
+  firstPage,
+  serverId,
+  serverIp,
+}: {
+  columns: ResourceTableColumn<ServerCheck>[];
+  firstPage: ServerChecksPage;
+  serverId: string;
+  serverIp: string;
+}) {
+  const pagination = useTablePagination({
+    pageSize: firstPage.pagination.limit,
+    total: firstPage.pagination.total,
+  });
+  const requestedPage = useApiQuery<ServerChecksPage>(
+    pagination.page === 1
+      ? null
+      : `/v1/core/servers/${serverId}/checks?page=${pagination.page}&limit=${pagination.pageSize}`,
+    5_000,
+  );
+  const page = pagination.page === 1 ? firstPage : requestedPage.data;
+
+  return (
+    <div className="grid gap-4">
+      {requestedPage.error ? (
+        <QueryError message={requestedPage.error} />
+      ) : page ? (
+        <ResourceTable
+          ariaLabel={`${serverIp} checks`}
+          columns={columns}
+          emptyDescription="Run a server check to validate SSH, Docker, and the host environment."
+          emptyTitle="No checks yet"
+          getRowKey={(check) => check.id}
+          items={page.checks}
+          tableClassName="min-w-[900px]"
+        />
+      ) : (
+        <QueryLoading />
+      )}
+      {firstPage.pagination.total > pagination.pageSize ? (
+        <Pagination
+          aria-label={`${serverIp} check history pages`}
+          page={pagination.page}
+          size="sm"
+          totalPages={pagination.totalPages ?? 1}
+          onPageChange={pagination.setPage}
+        />
+      ) : null}
+    </div>
   );
 }
 
@@ -674,7 +731,7 @@ function summarizeCheck(result: Record<string, unknown> | null) {
 }
 
 function readCheckResult(
-  check: ServerCheck | undefined,
+  check: ServerCheck | null | undefined,
   key: "dockerVersion" | "operatingSystem",
 ) {
   const value = check?.result?.[key];

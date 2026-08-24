@@ -331,6 +331,19 @@ export type ServerCheck = {
   status: "queued" | "running" | "succeeded" | "failed";
 };
 
+export type PaginationMetadata = {
+  limit: number;
+  page: number;
+  total: number;
+  totalPages: number;
+};
+
+export type ServerChecksPage = {
+  checks: ServerCheck[];
+  latestCheck: ServerCheck | null;
+  pagination: PaginationMetadata;
+};
+
 export type ServerPreparationStep = {
   finishedAt: string | null;
   id:

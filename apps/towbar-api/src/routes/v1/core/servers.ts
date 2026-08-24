@@ -4,7 +4,6 @@ import { z } from "zod";
 import {
   getServer,
   listServerApps,
-  listServerChecks,
   listServerDeployments,
   listServerResources,
   listServers,
@@ -12,6 +11,7 @@ import {
   requestServerCheck,
   trustServerHostKey,
 } from "../../../areas/servers/service.js";
+import { listServerChecks } from "../../../areas/servers/checks.js";
 import {
   listServerPreparations,
   requestServerPreparation,
@@ -33,6 +33,12 @@ const hostKeySchema = z
   })
   .strict();
 const sourceRequestSchema = z.object({ sourceId: z.string().uuid() }).strict();
+const serverChecksQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(100).default(10),
+    page: z.coerce.number().int().min(1).default(1),
+  })
+  .strict();
 const cleanupSchema = z
   .object({
     items: z
@@ -85,14 +91,16 @@ serverRoutes.get("/:serverId/deployments", async (context) =>
     ),
   }),
 );
-serverRoutes.get("/:serverId/checks", async (context) =>
-  context.json({
-    checks: await listServerChecks(
-      context.req.param("serverId"),
-      context.get("user").workspaceId,
-    ),
-  }),
-);
+serverRoutes.get("/:serverId/checks", async (context) => {
+  const pagination = serverChecksQuerySchema.parse(context.req.query());
+  return context.json(
+    await listServerChecks({
+      ...pagination,
+      serverId: context.req.param("serverId"),
+      workspaceId: context.get("user").workspaceId,
+    }),
+  );
+});
 serverRoutes.get("/:serverId/preparations", async (context) =>
   context.json({
     preparations: await listServerPreparations(

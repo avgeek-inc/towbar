@@ -417,7 +417,13 @@ export const serverChecks = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => [index("idx_towbar_server_checks_server").on(table.serverId)],
+  (table) => [
+    index("idx_towbar_server_checks_server").on(
+      table.serverId,
+      table.createdAt,
+      table.id,
+    ),
+  ],
 );
 
 export const serverPreparations = pgTable(

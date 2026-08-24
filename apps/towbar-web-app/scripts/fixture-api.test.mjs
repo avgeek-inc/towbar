@@ -233,6 +233,34 @@ test("the local fixture covers runtime controls and log capture", async () => {
   }
 });
 
+test("the local fixture paginates server checks newest first", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  try {
+    const response = await fetch(
+      `${baseUrl}/v1/core/servers/${fixtureIds.server}/checks?page=2&limit=1`,
+    );
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.deepEqual(payload.pagination, {
+      limit: 1,
+      page: 2,
+      total: 2,
+      totalPages: 2,
+    });
+    assert.equal(payload.checks.length, 1);
+    assert.notEqual(payload.checks[0].id, payload.latestCheck.id);
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
 test("the local fixture covers first-connection host-key trust", async () => {
   const server = createFixtureApiServer();
   server.listen(0, "127.0.0.1");

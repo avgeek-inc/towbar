@@ -393,7 +393,8 @@ export function createFixtureApiServer() {
       return;
     }
 
-    const path = new URL(request.url ?? "/", "http://localhost").pathname;
+    const requestUrl = new URL(request.url ?? "/", "http://localhost");
+    const path = requestUrl.pathname;
     if (request.method === "POST" && path === "/v1/core/sources") {
       return writeJson(response, 201, { source });
     }
@@ -508,13 +509,16 @@ export function createFixtureApiServer() {
       return writeDeploymentEvents(response, deployment);
     }
 
-    const payload = getFixturePayload(path);
+    const payload = getFixturePayload(path, requestUrl.searchParams);
     if (payload === undefined) return writeNotFound(response);
     writeJson(response, 200, payload);
   });
 }
 
-function getFixturePayload(path: string): unknown {
+function getFixturePayload(
+  path: string,
+  searchParams: URLSearchParams,
+): unknown {
   const fixedPayloads = new Map<string, unknown>([
     ["/v1/core/session", { user }],
     ["/v1/core/profile", { user }],
@@ -634,7 +638,25 @@ function getFixturePayload(path: string): unknown {
         deployments: deployments.filter((item) => item.serverId === server.id),
       };
     }
-    if (child === "checks") return { checks: serverChecks };
+    if (child === "checks") {
+      const page = readPositiveInteger(searchParams.get("page"), 1);
+      const limit = Math.min(
+        100,
+        readPositiveInteger(searchParams.get("limit"), 10),
+      );
+      const total = serverChecks.length;
+      const offset = (page - 1) * limit;
+      return {
+        checks: serverChecks.slice(offset, offset + limit),
+        latestCheck: serverChecks[0] ?? null,
+        pagination: {
+          limit,
+          page,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    }
     if (child === "preparations") {
       return {
         preparations: serverPreparationsByServer.get(server.id) ?? [],
@@ -648,6 +670,12 @@ function getFixturePayload(path: string): unknown {
   }
 
   return undefined;
+}
+
+function readPositiveInteger(value: string | null, fallback: number) {
+  if (!value) return fallback;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 function createServerFixture(
