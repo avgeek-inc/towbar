@@ -27,7 +27,7 @@ if test "$(id -u)" -ne 0; then
     printf 'The SSH user is not root and sudo is unavailable.\n' >&2
     exit 72
   }
-  sudo -n true || {
+  sudo -n true 2>/dev/null || {
     printf 'The SSH user needs passwordless sudo access.\n' >&2
     exit 72
   }

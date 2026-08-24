@@ -93,7 +93,7 @@ export function useApiQuery<T>(path: string | null, refreshMs?: number) {
     const handleVisibilityChange = () => {
       if (!document.hidden) void load(true);
     };
-    void load();
+    void load(revision > 0);
     const timer = refreshMs
       ? setInterval(() => {
           if (!document.hidden) void load(true);

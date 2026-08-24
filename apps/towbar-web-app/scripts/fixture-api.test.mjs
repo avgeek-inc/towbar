@@ -3,6 +3,7 @@ import { once } from "node:events";
 import test from "node:test";
 
 import { createFixtureApiServer, fixtureIds } from "./fixture-api.ts";
+import { reconcileServerSetupStatus } from "../src/lib/server-preparation-status.ts";
 
 const readRoutes = [
   "/v1/core/session",
@@ -45,6 +46,13 @@ const readRoutes = [
   `/v1/core/deployments/${fixtureIds.deployment}/steps`,
   `/v1/core/deployments/${fixtureIds.deployment}/logs`,
 ];
+
+test("terminal preparation state replaces a stale preparing server state", () => {
+  assert.equal(reconcileServerSetupStatus("preparing", "failed"), "failed");
+  assert.equal(reconcileServerSetupStatus("preparing", "succeeded"), "ready");
+  assert.equal(reconcileServerSetupStatus("preparing", "running"), "preparing");
+  assert.equal(reconcileServerSetupStatus("pending", "succeeded"), "pending");
+});
 
 test("the local fixture covers every authenticated page read contract", async () => {
   const server = createFixtureApiServer();

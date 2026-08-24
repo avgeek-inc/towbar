@@ -105,7 +105,7 @@ function normalizeFailedSteps(steps: ServerPreparationStep[], error: unknown) {
 }
 
 function preparationFailureMessage(error: unknown) {
-  const detail = safeErrorMessage(error);
+  const detail = safeErrorMessage(error).replace(/[.\s]+$/u, "");
   return `${detail}. Towbar stopped without removing existing services. Use a fresh Ubuntu server, or clean up the conflicting installation before trying again.`.slice(
     0,
     1_000,

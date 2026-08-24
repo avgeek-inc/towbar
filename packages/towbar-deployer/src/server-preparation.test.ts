@@ -45,6 +45,10 @@ void test("refuses conflicting installations instead of removing them", () => {
 
 void test("requires pinned SSH trust and verifies the installed services", () => {
   assert.match(serverPreparationScripts.inspectServer, /Ubuntu 22\.04/);
+  assert.match(
+    serverPreparationScripts.inspectServer,
+    /sudo -n true 2>\/dev\/null/,
+  );
   assert.match(serverPreparationScripts.verifyServer, /systemctl is-active/);
   assert.match(serverPreparationScripts.verifyServer, /docker info/);
   assert.match(serverPreparationScripts.verifyServer, /caddy validate/);

@@ -36,6 +36,7 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { ActionButton, DashboardPage, PageTabs } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
+import { reconcileServerSetupStatus } from "@/lib/server-preparation-status";
 import { formatDate } from "./dashboard-overview";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 
@@ -85,6 +86,16 @@ export function ServerDetail() {
     `/v1/core/servers/${serverId}/preparations`,
     3_000,
   );
+  const latestPreparationStatus = preparations.data?.preparations[0]?.status;
+  const refreshServer = server.refresh;
+  useEffect(() => {
+    if (
+      latestPreparationStatus === "failed" ||
+      latestPreparationStatus === "succeeded"
+    ) {
+      refreshServer();
+    }
+  }, [latestPreparationStatus, refreshServer]);
   const orphans = useApiQuery<{ orphans: OrphanItem[] }>(
     `/v1/core/servers/${serverId}/orphans`,
     5_000,
@@ -161,6 +172,10 @@ export function ServerDetail() {
   ];
   const latestCheck = checks.data.latestCheck;
   const latestPreparation = preparations.data.preparations[0];
+  const setupStatus = reconcileServerSetupStatus(
+    item.setupStatus,
+    latestPreparation?.status,
+  );
   const operatingSystem = readCheckResult(latestCheck, "operatingSystem");
   const dockerVersion = readCheckResult(latestCheck, "dockerVersion");
   const checkColumns: ResourceTableColumn<ServerCheck>[] = [
@@ -286,7 +301,7 @@ export function ServerDetail() {
         </ActionButton>
       }
       badge={
-        <StatusBadge status={item.archivedAt ? "archived" : item.setupStatus} />
+        <StatusBadge status={item.archivedAt ? "archived" : setupStatus} />
       }
       breadcrumbAncestors={breadcrumbAncestors}
       title={item.canonicalIp}
@@ -331,6 +346,7 @@ export function ServerDetail() {
                     item={item}
                     latestPreparation={latestPreparation}
                     serverId={serverId}
+                    setupStatus={setupStatus}
                   />
                   <div className="grid gap-8 lg:grid-cols-2">
                     <Attributes columns={2} title="Connection" variant="card">
@@ -357,7 +373,7 @@ export function ServerDetail() {
                     </Attributes>
                     <Attributes columns={2} title="Operations" variant="card">
                       <Attributes.Item label="Server setup">
-                        <StatusBadge status={item.setupStatus} />
+                        <StatusBadge status={setupStatus} />
                       </Attributes.Item>
                       <Attributes.Item label="Prepared">
                         {item.preparedAt
@@ -553,14 +569,16 @@ function ServerPreparationPanel({
   item,
   latestPreparation,
   serverId,
+  setupStatus,
 }: {
   hasTrustedHostKey: boolean;
   item: Server;
   latestPreparation: ServerPreparation | undefined;
   serverId: string;
+  setupStatus: Server["setupStatus"];
 }) {
-  const preparing = item.setupStatus === "preparing";
-  const ready = item.setupStatus === "ready";
+  const preparing = setupStatus === "preparing";
+  const ready = setupStatus === "ready";
   const steps = latestPreparation?.steps ?? [];
   const activeStep = steps.findIndex(
     (step) => step.status === "running" || step.status === "failed",
@@ -604,7 +622,7 @@ function ServerPreparationPanel({
       <Widget>
         <Widget.Header>
           <Widget.Title>Server preparation</Widget.Title>
-          <StatusBadge status={item.setupStatus} />
+          <StatusBadge status={setupStatus} />
         </Widget.Header>
         <Widget.Content className="grid gap-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
