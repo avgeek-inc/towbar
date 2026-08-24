@@ -18,9 +18,8 @@ and disclosure timeline with the reporter.
 
 ## Supported versions
 
-Until the first stable release, only the latest commit on `main` receives
-security fixes. Production operators should pin a reviewed commit and subscribe
-to repository security advisories.
+Security fixes are provided for the latest `1.x` release. Production operators
+should pin a reviewed release and subscribe to repository security advisories.
 
 ## Security assumptions
 
