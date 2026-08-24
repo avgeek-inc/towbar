@@ -7,7 +7,7 @@ function Root({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "grid justify-items-center gap-5 px-6 py-10 text-center",
+        "flex flex-col items-center justify-center gap-5 px-6 py-10 text-center",
         className,
       )}
       {...props}
