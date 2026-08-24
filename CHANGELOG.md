@@ -3,6 +3,14 @@
 All notable changes to Towbar are documented in this file. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Manual App and Resource deployments now immediately admit the latest
+  synchronized revision instead of blocking on a Source sync. AWS secret values
+  continue to resolve at execution time.
+
 ## [1.0.0] - 2026-08-24
 
 ### Added

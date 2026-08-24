@@ -16,7 +16,6 @@ import { conflict, notFound, unprocessable } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueueDeployment } from "../../infrastructure/temporal.js";
 import { publicDeploymentSelection } from "../deployment-selection.js";
-import { synchronizeSourceNow } from "../sources/service.js";
 import { requireSatisfiedAppDependencies } from "./dependencies.js";
 import { scopeDeploymentIdempotencyKey } from "./idempotency.js";
 import { getApp, getResource } from "./queries.js";
@@ -70,7 +69,6 @@ export async function requestAppDeployment(input: {
   expectedCommitSha?: string;
   idempotencyKey: string;
   requestedBy: string | null;
-  synchronize?: boolean;
   workspaceId: string;
   expectedType?: "app" | "resource";
 }) {
@@ -82,20 +80,6 @@ export async function requestAppDeployment(input: {
   const existing = await findIdempotentDeployment(request);
   if (existing) return { deployment: existing, replayed: true };
 
-  if (request.synchronize !== false) {
-    if (!request.requestedBy) {
-      throw new Error("Manual deployment synchronization requires an actor");
-    }
-    const initial = await getAppForDeployment(
-      request.appId,
-      request.workspaceId,
-    );
-    await synchronizeSourceNow(
-      initial.sourceId,
-      request.workspaceId,
-      request.requestedBy,
-    );
-  }
   const target = await getAppForDeployment(request.appId, request.workspaceId);
   requireDeployableType(target.config, request.expectedType ?? "app");
   if (target.archivedAt) {

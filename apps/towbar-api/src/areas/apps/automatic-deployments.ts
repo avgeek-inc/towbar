@@ -175,7 +175,6 @@ async function scheduleEligibleAutomaticDeployments(input: {
           syncId: input.syncId,
         }),
         requestedBy: null,
-        synchronize: false,
         workspaceId: input.workspaceId,
       });
     }),
