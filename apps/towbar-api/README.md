@@ -39,8 +39,11 @@ value, revokes existing sessions, and refuses to reapply the same value on a
 later restart. Towbar exposes no unauthenticated password-reset route.
 
 Signed GitHub push webhooks synchronize only the manifest's configured branch.
-After a successful push sync, the API admits apps with automatic deployment
-enabled only when their effective deployment digest changed. The digest covers
+After any successful Source sync, including an operator-requested sync, the API
+admits apps and Resources with automatic deployment enabled when they are
+missing or their effective deployment digest changed. This lets `Sync now`
+recover deployables that were previously ineligible because their Server was
+not prepared. The digest covers
 the selected Git tree inputs, runtime configuration, and target server
 configuration. Plain `autoDeploy: true` remains compatible and treats every
 commit as changed; `autoDeploy.inputs` enables path-aware selection. A repeated

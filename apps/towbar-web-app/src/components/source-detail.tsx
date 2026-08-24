@@ -153,7 +153,7 @@ export function SourceDetail() {
               confirm={{
                 actionLabel: "Sync source",
                 description:
-                  "Towbar will fetch the latest commit from the configured branch, validate the manifest, and reconcile this Source. Changed deployables with auto-deploy enabled may be queued.",
+                  "Towbar will fetch the latest commit, validate and reconcile the manifest, then queue every eligible missing or outdated deployable with auto-deploy enabled.",
                 title: "Sync this Source now?",
               }}
               pendingLabel="Queueing sync…"

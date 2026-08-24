@@ -14,7 +14,19 @@ import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { selectAutomaticDeploymentCandidates } from "./automatic-deployment-selection.js";
 import { requestAppDeployment } from "./service.js";
 
-export async function scheduleSourcePushDeployments(syncId: string) {
+type SourceSyncAdmission = {
+  commitSha: string | null;
+  requestedBy: string | null;
+  status: "queued" | "running" | "succeeded" | "failed";
+};
+
+export function isSourceSyncEligibleForAutomaticDeployments(
+  sync: SourceSyncAdmission,
+): sync is SourceSyncAdmission & { commitSha: string } {
+  return sync.status === "succeeded" && sync.commitSha !== null;
+}
+
+export async function scheduleSourceAutomaticDeployments(syncId: string) {
   const [sync] = await getTowbarDatabase()
     .select({
       commitSha: sourceSyncs.commitSha,
@@ -27,12 +39,7 @@ export async function scheduleSourcePushDeployments(syncId: string) {
     .innerJoin(sources, eq(sources.id, sourceSyncs.sourceId))
     .where(eq(sourceSyncs.id, syncId))
     .limit(1);
-  if (
-    !sync ||
-    sync.requestedBy ||
-    sync.status !== "succeeded" ||
-    !sync.commitSha
-  ) {
+  if (!sync || !isSourceSyncEligibleForAutomaticDeployments(sync)) {
     return { deploymentIds: [] };
   }
   return await scheduleEligibleAutomaticDeployments({
