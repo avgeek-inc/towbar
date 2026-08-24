@@ -8,9 +8,11 @@ starts and checks a candidate, reconciles guarded Cloudflare orange-cloud
 records when declared, renders Caddy routing, and promotes only after
 validation.
 
-Apps use Docker's default bridge unless `container.network` explicitly names an
-existing network. The executor verifies a declared network before building and
-attaches the candidate and any declared deployment hooks to it.
+Apps use Docker's default bridge unless `container.network` explicitly names a
+network. The executor reuses an existing network or creates a managed bridge
+network on first deployment, then attaches the candidate and any declared
+deployment hooks to it. Concurrent first deployments converge on the same
+network without requiring an operator bootstrap step.
 
 Pre- and post-deploy hooks execute in disposable containers from the selected
 image, with the app's network and resource limits, an explicit hook-only secret

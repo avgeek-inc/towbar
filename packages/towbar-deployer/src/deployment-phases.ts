@@ -11,6 +11,7 @@ import {
   buildRemoteScript,
   configureCaddyScript,
   containerHealthRemoteScript,
+  ensureNetworkRemoteScript,
   finalizeRemoteScript,
   healthRemoteScript,
   hookRemoteScript,
@@ -68,7 +69,7 @@ export async function prepareDeploymentImage(input: DeploymentPhaseInput) {
   );
   if (input.context.app.container.network) {
     await input.session.run(
-      'docker network inspect "$1" >/dev/null',
+      ensureNetworkRemoteScript,
       [input.context.app.container.network],
       { signal: input.signal, timeoutMs: 30_000 },
     );

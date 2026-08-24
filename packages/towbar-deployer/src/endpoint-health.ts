@@ -1,4 +1,6 @@
-import { runCommand } from "./process.js";
+import { CommandError, runCommand } from "./process.js";
+
+const originHealthAttempts = 90;
 
 export async function checkPublicEndpoint(
   domain: string,
@@ -30,7 +32,7 @@ export async function checkOriginEndpoint(
   signal?: AbortSignal,
 ) {
   let lastError: unknown;
-  for (let attempt = 0; attempt < 30; attempt += 1) {
+  for (let attempt = 0; attempt < originHealthAttempts; attempt += 1) {
     try {
       await runCommand(
         "curl",
@@ -43,9 +45,17 @@ export async function checkOriginEndpoint(
       await abortableDelay(2_000, signal);
     }
   }
-  throw new Error("Direct origin HTTPS health check failed", {
-    cause: lastError,
-  });
+  throw new Error(originHealthFailureMessage(lastError), { cause: lastError });
+}
+
+export function originHealthFailureMessage(error: unknown) {
+  if (!(error instanceof CommandError)) {
+    return "Direct origin HTTPS health check failed";
+  }
+  const detail = error.stderr.trim().split("\n").at(-1)?.trim();
+  return detail
+    ? `Direct origin HTTPS health check failed: ${detail.slice(0, 300)}`
+    : "Direct origin HTTPS health check failed";
 }
 
 export function originHealthCurlArguments(

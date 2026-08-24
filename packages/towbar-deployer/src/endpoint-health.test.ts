@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { originHealthCurlArguments } from "./endpoint-health.js";
+import {
+  originHealthCurlArguments,
+  originHealthFailureMessage,
+} from "./endpoint-health.js";
+import { CommandError } from "./process.js";
 
 void describe("direct origin health checks", () => {
   void it("pins the hostname and SNI to an IPv4 origin", () => {
@@ -21,5 +25,17 @@ void describe("direct origin health checks", () => {
       "/health",
     );
     assert.ok(args.includes("app.example.com:443:[2001:db8::10]"));
+  });
+
+  void it("surfaces the final curl failure without unbounded output", () => {
+    const message = originHealthFailureMessage(
+      new CommandError(
+        "curl exited unsuccessfully",
+        "",
+        `ignored\ncurl: (60) ${"x".repeat(500)}`,
+      ),
+    );
+    assert.match(message, /curl: \(60\)/);
+    assert.ok(message.length <= 345);
   });
 });

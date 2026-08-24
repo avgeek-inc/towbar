@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   buildRemoteScript,
+  ensureNetworkRemoteScript,
   finalizeRemoteScript,
   hookRemoteScript,
   rollbackCandidateScript,
@@ -12,6 +13,13 @@ import {
 } from "./remote-scripts.js";
 
 void describe("remote deployment scripts", () => {
+  void it("creates declared Docker networks idempotently", () => {
+    assert.match(ensureNetworkRemoteScript, /docker network inspect/);
+    assert.match(ensureNetworkRemoteScript, /docker network create/);
+    assert.match(ensureNetworkRemoteScript, /--driver bridge/);
+    assert.match(ensureNetworkRemoteScript, /towbar\.managed=true/);
+  });
+
   void it("retains only the image tags supplied by the release ledger", () => {
     assert.match(finalizeRemoteScript, /for retained_image in "\$@"/);
     assert.match(

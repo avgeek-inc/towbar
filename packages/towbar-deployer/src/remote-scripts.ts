@@ -334,6 +334,23 @@ while true; do
 done
 `;
 
+export const ensureNetworkRemoteScript = String.raw`
+set -euo pipefail
+network_name="$1"
+if docker network inspect "$network_name" >/dev/null 2>&1; then
+  exit 0
+fi
+if docker network create \
+  --driver bridge \
+  --label towbar.managed=true \
+  "$network_name" >/dev/null 2>&1; then
+  exit 0
+fi
+# A concurrent deployment may have created the shared network after the first
+# inspection. Accept that race only when the requested network now exists.
+docker network inspect "$network_name" >/dev/null
+`;
+
 export const configureCaddyScript = String.raw`
 set -euo pipefail
 remote_dir="$1"

@@ -64,6 +64,10 @@ entities. Resources support versioned images plus PostgreSQL and Redis presets.
 Root shared build/deployment secret references are copied into immutable
 deployable snapshots and resolved only at execution time.
 
+Declared Docker networks are created as managed bridge networks on first use
+and reused by subsequent apps and Resources on that Server. Operators do not
+need to pre-create manifest-owned networks.
+
 Server preparation is a durable, Source-scoped operation. Readiness is bound
 to the exact normalized Server configuration digest; a manifest change makes
 the Server pending again. Deployment admission and automatic-deployment
