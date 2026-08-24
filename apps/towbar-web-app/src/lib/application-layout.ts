@@ -23,7 +23,7 @@ const sidebarIcons = defineSidebarIcons({
 
 const brand = {
   accessibleLabel: "Towbar home",
-  id: "towbar",
+  id: "company",
   logo: createElement(TowbarBrandLogo),
   title: "Towbar",
 } as const;
