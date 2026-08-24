@@ -111,7 +111,7 @@ if test "$(id -u)" -eq 0; then SUDO=(); else SUDO=(sudo -n); fi
 has_caddy=false
 if command -v caddy >/dev/null; then has_caddy=true; fi
 if test "$has_caddy" = true && test "$requires_cloudflare" = true && \
-  ! caddy list-modules 2>/dev/null | grep -Fxq dns.providers.cloudflare; then
+  ! caddy list-modules 2>/dev/null | grep -Fx dns.providers.cloudflare >/dev/null; then
   if ! dpkg-query -W -f='${"$"}{Status}' caddy 2>/dev/null | grep -Fq 'install ok installed'; then
     printf 'The existing Caddy binary is not package-managed and lacks the Cloudflare DNS module. Remove it or use a fresh server.\n' >&2
     exit 72
@@ -134,7 +134,7 @@ if test "$has_caddy" = false; then
   "${"$"}{SUDO[@]}" apt-get install -y --no-install-recommends caddy >/dev/null
 fi
 if test "$requires_cloudflare" = true && \
-  ! caddy list-modules 2>/dev/null | grep -Fxq dns.providers.cloudflare; then
+  ! caddy list-modules 2>/dev/null | grep -Fx dns.providers.cloudflare >/dev/null; then
   build_directory="$(mktemp -d)"
   "${"$"}{SUDO[@]}" docker run --rm \
     --entrypoint xcaddy \
@@ -144,7 +144,7 @@ if test "$requires_cloudflare" = true && \
     --with github.com/caddy-dns/cloudflare@v0.2.4 \
     --output /out/caddy
   "${"$"}{SUDO[@]}" test -x "$build_directory/caddy"
-  "${"$"}{SUDO[@]}" "$build_directory/caddy" list-modules | grep -Fxq dns.providers.cloudflare
+  "${"$"}{SUDO[@]}" "$build_directory/caddy" list-modules | grep -Fx dns.providers.cloudflare >/dev/null
   if ! "${"$"}{SUDO[@]}" dpkg-divert --list /usr/bin/caddy | grep -Fq /usr/bin/caddy.default; then
     "${"$"}{SUDO[@]}" dpkg-divert --divert /usr/bin/caddy.default --rename /usr/bin/caddy
   fi
@@ -156,7 +156,7 @@ fi
 "${"$"}{SUDO[@]}" install -d -m 0755 /etc/caddy /etc/caddy/towbar
 "${"$"}{SUDO[@]}" systemctl enable --now caddy
 if test "$requires_cloudflare" = true; then
-  caddy list-modules | grep -Fxq dns.providers.cloudflare
+  caddy list-modules | grep -Fx dns.providers.cloudflare >/dev/null
 fi
 printf '%s\n' "$(caddy version | awk '{print $1}')"
 `;
@@ -191,7 +191,7 @@ if test "$ssh_user" != root; then
   id -nG "$ssh_user" | tr ' ' '\n' | grep -Fxq docker
 fi
 if test "$requires_cloudflare" = true; then
-  caddy list-modules | grep -Fxq dns.providers.cloudflare
+  caddy list-modules | grep -Fx dns.providers.cloudflare >/dev/null
 fi
 "${"$"}{SUDO[@]}" test -d /etc/caddy/towbar
 "${"$"}{SUDO[@]}" caddy validate --config /etc/caddy/Caddyfile >/dev/null

@@ -66,3 +66,13 @@ void test("keeps package-manager progress out of preparation step messages", () 
   );
   assert.match(serverPreparationScripts.installCaddy, /caddy >\/dev\/null/);
 });
+
+void test("fully consumes Caddy module output under pipefail", () => {
+  for (const script of [
+    serverPreparationScripts.installCaddy,
+    serverPreparationScripts.verifyServer,
+  ]) {
+    assert.match(script, /grep -Fx dns\.providers\.cloudflare >\/dev\/null/);
+    assert.doesNotMatch(script, /grep -Fxq dns\.providers\.cloudflare/);
+  }
+});

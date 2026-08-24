@@ -599,7 +599,7 @@ async function preflight(
   signal?: AbortSignal,
 ) {
   await session.run(
-    'set -euo pipefail\nrequires_cloudflare="$1"\n. /etc/os-release\ntest "$ID" = ubuntu\ncommand -v docker >/dev/null\ndocker info >/dev/null\ncommand -v caddy >/dev/null\ncommand -v python3 >/dev/null\ncommand -v timeout >/dev/null\nsudo -n /usr/bin/test -d /etc/caddy\nif test "$requires_cloudflare" = true; then caddy list-modules | grep -Fxq dns.providers.cloudflare; fi\ntest "$(df -Pk /var/lib/docker | awk \'NR==2 {print $4}\')" -gt 1048576\n',
+    'set -euo pipefail\nrequires_cloudflare="$1"\n. /etc/os-release\ntest "$ID" = ubuntu\ncommand -v docker >/dev/null\ndocker info >/dev/null\ncommand -v caddy >/dev/null\ncommand -v python3 >/dev/null\ncommand -v timeout >/dev/null\nsudo -n /usr/bin/test -d /etc/caddy\nif test "$requires_cloudflare" = true; then caddy list-modules | grep -Fx dns.providers.cloudflare >/dev/null; fi\ntest "$(df -Pk /var/lib/docker | awk \'NR==2 {print $4}\')" -gt 1048576\n',
     [String(requiresCloudflareModule)],
     { signal, timeoutMs: 30_000 },
   );

@@ -11,7 +11,7 @@ test "$ID" = ubuntu
 command -v docker >/dev/null
 docker version --format '{{.Server.Version}}' >/tmp/towbar-docker-version
 command -v caddy >/dev/null
-if test "$requires_cloudflare" = true; then caddy list-modules | grep -Fxq dns.providers.cloudflare; fi
+if test "$requires_cloudflare" = true; then caddy list-modules | grep -Fx dns.providers.cloudflare >/dev/null; fi
 sudo -n /usr/bin/test -d /etc/caddy
 printf '%s\n' "$PRETTY_NAME" "$(cat /tmp/towbar-docker-version)" "$(caddy version | awk '{print $1}')" "$(df -Pk /var/lib/docker | awk 'NR==2 {print $4}')"
 rm -f /tmp/towbar-docker-version
