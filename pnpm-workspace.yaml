@@ -33,7 +33,7 @@ catalog:
   "@aws-sdk/client-s3": ^3.1093.0
   "@aws-sdk/client-secrets-manager": ^3.1093.0
   "@aws-sdk/client-sts": ^3.1093.0
-  "@eslint/js": ^9.39.4
+  "@eslint/js": ^10.0.1
   "@fontsource-variable/inter": ^5.3.0
   "@heroui/react": 3.2.4
   "@heroui/styles": 3.2.4
@@ -46,12 +46,12 @@ catalog:
   "@temporalio/client": ^1.16.1
   "@temporalio/worker": ^1.16.1
   "@temporalio/workflow": ^1.16.1
-  "@types/node": ^24.12.2
+  "@types/node": ^26.2.0
   "@types/react": ^19.2.14
   "@types/react-dom": ^19.2.3
   clsx: ^2.1.1
   drizzle-orm: ^0.45.2
-  eslint: ^9.39.4
+  eslint: ^10.9.0
   next: ^16.2.11
   postgres: ^3.4.9
   prettier: ^3.8.3
@@ -60,8 +60,8 @@ catalog:
   react-dom: ^19.2.5
   react-hook-form: ^7.73.1
   recharts: ^3.10.1
-  tailwind-merge: ^3.5.0
+  tailwind-merge: ^3.6.0
   tailwindcss: ^4.2.4
-  typescript: ^5.9.3
+  typescript: ^7.0.2
   yaml: ^2.8.3
   zod: ^4.3.6
