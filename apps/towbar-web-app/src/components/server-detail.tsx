@@ -634,7 +634,7 @@ function ServerPreparationPanel({
             </ActionButton>
           </div>
           {!hasTrustedHostKey && !ready ? (
-            <p className="text-sm text-warning">
+            <p className="text-warning-soft-foreground text-sm">
               Trust at least one verified SSH host key before preparing this
               server.
             </p>
