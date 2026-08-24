@@ -231,10 +231,11 @@ export function ServerDetail() {
         key.status === "untrusted" && key.publicKey ? (
           <ActionButton
             action={() =>
-              api.post(
-                `/v1/core/servers/${serverId}/host-keys/actions/trust`,
-                key,
-              )
+              api.post(`/v1/core/servers/${serverId}/host-keys/actions/trust`, {
+                algorithm: key.algorithm,
+                fingerprint: key.fingerprint,
+                publicKey: key.publicKey,
+              })
             }
             confirm={{
               actionLabel: "Trust key",
