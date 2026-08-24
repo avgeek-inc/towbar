@@ -146,9 +146,10 @@ export function ApplicationNavbar({
           >
             <BrandLockup
               logo={
-                config.brand.logoSrc ? (
+                config.brand.logo ??
+                (config.brand.logoSrc ? (
                   <img alt="" className="size-8" src={config.brand.logoSrc} />
-                ) : null
+                ) : null)
               }
             >
               {config.brand.title}
@@ -200,9 +201,10 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
       >
         <BrandLockup
           logo={
-            config.brand.logoSrc ? (
+            config.brand.logo ??
+            (config.brand.logoSrc ? (
               <img alt="" className="size-8" src={config.brand.logoSrc} />
-            ) : null
+            ) : null)
           }
         >
           {config.brand.title}

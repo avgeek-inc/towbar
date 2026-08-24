@@ -4,7 +4,9 @@ import {
   Logout03Icon,
   Settings02Icon,
 } from "@hugeicons/core-free-icons";
+import { createElement } from "react";
 
+import { TowbarBrandLogo } from "@workspace/towbar-web-ui/brand";
 import type {
   ApplicationPolicy,
   HeaderConfig,
@@ -21,8 +23,8 @@ const sidebarIcons = defineSidebarIcons({
 
 const brand = {
   accessibleLabel: "Towbar home",
-  id: "company",
-  logoSrc: "/towbar-mark.svg",
+  id: "towbar",
+  logo: createElement(TowbarBrandLogo),
   title: "Towbar",
 } as const;
 

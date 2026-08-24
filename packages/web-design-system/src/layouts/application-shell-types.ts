@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import type { SidebarIcon } from "./sidebar-icons";
 
 export type ApplicationKind = "public" | "product" | "internal";
@@ -18,6 +20,7 @@ export interface ShellLinkConfig {
 export interface HeaderBrandConfig {
   accessibleLabel: string;
   id: string;
+  logo?: ReactNode;
   logoSrc?: string;
   title: string;
 }
