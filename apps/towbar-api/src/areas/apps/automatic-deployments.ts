@@ -26,6 +26,16 @@ export function isSourceSyncEligibleForAutomaticDeployments(
   return sync.status === "succeeded" && sync.commitSha !== null;
 }
 
+export function sourceSyncDeploymentIdempotencyKey(input: {
+  commitSha: string;
+  deploymentDigest: string;
+  manifestId: string;
+  sourceId: string;
+  syncId?: string;
+}) {
+  return `${input.syncId ? `sync:${input.syncId}` : "push"}:${input.sourceId}:${input.commitSha}:${input.deploymentDigest}:${input.manifestId}`;
+}
+
 export async function scheduleSourceAutomaticDeployments(syncId: string) {
   const [sync] = await getTowbarDatabase()
     .select({
@@ -45,6 +55,7 @@ export async function scheduleSourceAutomaticDeployments(syncId: string) {
   return await scheduleEligibleAutomaticDeployments({
     commitSha: sync.commitSha,
     sourceId: sync.sourceId,
+    syncId,
     workspaceId: sync.workspaceId,
   });
 }
@@ -76,6 +87,7 @@ export async function continueAutomaticDeployments(deploymentId: string) {
 async function scheduleEligibleAutomaticDeployments(input: {
   commitSha: string;
   sourceId: string;
+  syncId?: string;
   workspaceId: string;
 }) {
   const database = getTowbarDatabase();
@@ -145,19 +157,28 @@ async function scheduleEligibleAutomaticDeployments(input: {
   });
 
   const results = await Promise.all(
-    eligible.map((candidate) =>
-      requestAppDeployment({
+    eligible.map((candidate) => {
+      if (!candidate.deploymentDigest) {
+        throw new Error("Automatic deployment candidate is not materialized");
+      }
+      return requestAppDeployment({
         appId: candidate.appId,
         expectedType: isNormalizedResource(candidate.config)
           ? "resource"
           : "app",
         expectedCommitSha: input.commitSha,
-        idempotencyKey: `push:${input.sourceId}:${input.commitSha}:${candidate.deploymentDigest}:${candidate.manifestId}`,
+        idempotencyKey: sourceSyncDeploymentIdempotencyKey({
+          commitSha: input.commitSha,
+          deploymentDigest: candidate.deploymentDigest,
+          manifestId: candidate.manifestId,
+          sourceId: input.sourceId,
+          syncId: input.syncId,
+        }),
         requestedBy: null,
         synchronize: false,
         workspaceId: input.workspaceId,
-      }),
-    ),
+      });
+    }),
   );
   return {
     deploymentIds: results.map((result) => result.deployment.id),

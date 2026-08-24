@@ -43,7 +43,8 @@ After any successful Source sync, including an operator-requested sync, the API
 admits apps and Resources with automatic deployment enabled when they are
 missing or their effective deployment digest changed. This lets `Sync now`
 recover deployables that were previously ineligible because their Server was
-not prepared. The digest covers
+not prepared, and retry deployables that failed during an earlier sync. Active
+requests and current releases remain deduplicated. The digest covers
 the selected Git tree inputs, runtime configuration, and target server
 configuration. Plain `autoDeploy: true` remains compatible and treats every
 commit as changed; `autoDeploy.inputs` enables path-aware selection. A repeated
