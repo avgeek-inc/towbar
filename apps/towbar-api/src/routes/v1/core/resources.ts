@@ -66,7 +66,7 @@ resourceRoutes.get("/:resourceId/secrets", async (context) => {
 resourceRoutes.post("/:resourceId/secrets/reveal", async (context) => {
   const user = context.get("user");
   if (user.workspaceRole !== "owner") {
-    throw forbidden("Only workspace owners can reveal Resource secrets");
+    throw forbidden("Only the owner can reveal Resource secrets");
   }
   const input = await readJson(context, secretReferenceSchema, 4 * 1_024);
   const secret = await revealResourceSecretBinding({
@@ -82,7 +82,7 @@ resourceRoutes.post("/:resourceId/secrets/reveal", async (context) => {
 resourceRoutes.patch("/:resourceId/secrets", async (context) => {
   const user = context.get("user");
   if (user.workspaceRole !== "owner") {
-    throw forbidden("Only workspace owners can manage Resource secrets");
+    throw forbidden("Only the owner can manage Resource secrets");
   }
   const input = await readJson(context, secretMutationSchema, 256 * 1_024);
   const secret = await updateResourceSecretBinding({

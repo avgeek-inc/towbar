@@ -1,4 +1,4 @@
-export type ServerSetupStatus = "pending" | "preparing" | "ready" | "failed";
+type ServerSetupStatus = "pending" | "preparing" | "ready" | "failed";
 
 type ServerPreparationStatus = "queued" | "running" | "succeeded" | "failed";
 

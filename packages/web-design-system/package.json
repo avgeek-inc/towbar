@@ -15,8 +15,6 @@
     "@hugeicons/core-free-icons": "catalog:",
     "@hugeicons/react": "catalog:",
     "@sentry/nextjs": "catalog:",
-    "@sentry/react": "catalog:",
-    "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "next": "catalog:",
     "react": "catalog:",

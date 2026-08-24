@@ -1,9 +1,9 @@
 # Towbar web app
 
-Private deployment dashboard for `app.towbar.dev`. It reads manifest-owned
+Self-hosted deployment dashboard for Towbar. It reads manifest-owned
 Sources, Apps, Resources, and Servers from the API and exposes only operational
 actions. Resources remain nested inside their owning Source alongside Apps,
-Servers, and deployment history.
+and Servers; Apps and Resources expose their own deployment history.
 
 The web app also owns `/login` and the locked first-run owner setup. Password
 authentication creates the API session directly; Towbar has no separate SSO
@@ -18,7 +18,7 @@ Their configuration and lifecycle are read-only projections of the Source
 manifest; removal and restoration happen through Git and Source sync.
 The App and Resource Secrets tabs show only deployable-owned bindings. Resources
 expose deployment bindings only. Root-shared build and deployment bindings are
-edited from the owning Source's Secrets tab. Owners can add, replace, or delete
+edited from the owning Source's Secrets tab. The owner can add, replace, or delete
 values, then optionally queue the affected deployable. Values are fetched only
 through an explicit owner-only reveal request; the UI cannot change a manifest
 reference.

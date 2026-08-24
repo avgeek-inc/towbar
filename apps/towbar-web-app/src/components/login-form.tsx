@@ -18,6 +18,7 @@ import { PasswordInput } from "@workspace/web-design-system/forms/password-input
 
 import { AuthFrame } from "@/components/auth-frame";
 import { api } from "@/lib/api";
+import { safeNextPath } from "@/lib/safe-next-path";
 
 export function LoginForm() {
   const params = useSearchParams();
@@ -207,11 +208,4 @@ function InitialOwnerSetup() {
       </p>
     </AuthFrame>
   );
-}
-
-function safeNextPath(candidate: string | null) {
-  if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//")) {
-    return "/";
-  }
-  return candidate === "/login" || candidate === "/logout" ? "/" : candidate;
 }

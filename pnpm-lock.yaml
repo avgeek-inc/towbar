@@ -6,6 +6,9 @@ settings:
 
 catalogs:
   default:
+    "@aws-sdk/client-s3":
+      specifier: ^3.1093.0
+      version: 3.1116.0
     "@aws-sdk/client-secrets-manager":
       specifier: ^3.1093.0
       version: 3.1116.0
@@ -36,9 +39,6 @@ catalogs:
     "@sentry/nextjs":
       specifier: ^10.67.0
       version: 10.70.0
-    "@sentry/react":
-      specifier: ^10.67.0
-      version: 10.70.0
     "@tailwindcss/postcss":
       specifier: ^4.2.4
       version: 4.3.3
@@ -63,9 +63,6 @@ catalogs:
     "@types/react-dom":
       specifier: ^19.2.3
       version: 19.2.4
-    class-variance-authority:
-      specifier: ^0.7.1
-      version: 0.7.1
     clsx:
       specifier: ^2.1.1
       version: 2.1.1
@@ -153,9 +150,6 @@ importers:
       typescript:
         specifier: "catalog:"
         version: 5.9.3
-      yaml:
-        specifier: "catalog:"
-        version: 2.9.0
 
   apps/towbar-api:
     dependencies:
@@ -251,9 +245,6 @@ importers:
         specifier: "catalog:"
         version: 19.2.8(react@19.2.8)
     devDependencies:
-      "@tailwindcss/postcss":
-        specifier: "catalog:"
-        version: 4.3.3
       "@types/node":
         specifier: "catalog:"
         version: 24.13.3
@@ -272,6 +263,9 @@ importers:
       eslint:
         specifier: "catalog:"
         version: 9.39.5(jiti@2.7.0)
+      tsx:
+        specifier: ^4.21.0
+        version: 4.23.12
       typescript:
         specifier: "catalog:"
         version: 5.9.3
@@ -279,7 +273,7 @@ importers:
   apps/towbar-worker:
     dependencies:
       "@aws-sdk/client-s3":
-        specifier: ^3.1093.0
+        specifier: "catalog:"
         version: 3.1116.0
       "@temporalio/activity":
         specifier: "catalog:"
@@ -369,9 +363,6 @@ importers:
       react:
         specifier: "catalog:"
         version: 19.2.8
-      react-dom:
-        specifier: "catalog:"
-        version: 19.2.8(react@19.2.8)
       react-hook-form:
         specifier: "catalog:"
         version: 7.86.0(react@19.2.8)
@@ -382,9 +373,6 @@ importers:
       "@types/react":
         specifier: "catalog:"
         version: 19.2.18
-      "@types/react-dom":
-        specifier: "catalog:"
-        version: 19.2.4(@types/react@19.2.18)
       "@workspace/eslint-config":
         specifier: workspace:*
         version: link:../eslint-config
@@ -486,9 +474,6 @@ importers:
       "@workspace/towbar-core":
         specifier: workspace:*
         version: link:../towbar-core
-      ssh2:
-        specifier: ^1.17.0
-        version: 1.17.0
       zod:
         specifier: "catalog:"
         version: 4.4.3
@@ -496,9 +481,6 @@ importers:
       "@types/node":
         specifier: "catalog:"
         version: 24.13.3
-      "@types/ssh2":
-        specifier: ^1.15.5
-        version: 1.15.5
       "@workspace/eslint-config":
         specifier: workspace:^
         version: link:../eslint-config
@@ -589,12 +571,6 @@ importers:
       "@sentry/nextjs":
         specifier: "catalog:"
         version: 10.70.0(@opentelemetry/core@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.10.0(@opentelemetry/api@1.9.1))(next@16.3.2(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)(webpack@5.109.2)
-      "@sentry/react":
-        specifier: "catalog:"
-        version: 10.70.0(react@19.2.8)
-      class-variance-authority:
-        specifier: "catalog:"
-        version: 0.7.1
       clsx:
         specifier: "catalog:"
         version: 2.1.1
@@ -653,16 +629,10 @@ importers:
       react:
         specifier: "catalog:"
         version: 19.2.8
-      react-dom:
-        specifier: "catalog:"
-        version: 19.2.8(react@19.2.8)
     devDependencies:
       "@types/react":
         specifier: "catalog:"
         version: 19.2.18
-      "@types/react-dom":
-        specifier: "catalog:"
-        version: 19.2.4(@types/react@19.2.18)
       "@workspace/eslint-config":
         specifier: workspace:*
         version: link:../eslint-config
@@ -3714,12 +3684,6 @@ packages:
         integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==,
       }
 
-  "@types/node@18.19.130":
-    resolution:
-      {
-        integrity: sha512-GRaXQx6jGfL8sKfaIDD6OupbIHBr9jv7Jnaml9tB7l4v068PAOXqfcujMMo5PhbIs6ggR1XODELqahT2R8v0fg==,
-      }
-
   "@types/node@24.13.3":
     resolution:
       {
@@ -3738,12 +3702,6 @@ packages:
     resolution:
       {
         integrity: sha512-AnzbBERsrLKtk2XSfTbYRLjQPdy116Sty4q+T+Bp3IC4l6jNBvreVPAHmpq9qhXQM7CXZPjLVmGMw9sy+hxQ3w==,
-      }
-
-  "@types/ssh2@1.15.5":
-    resolution:
-      {
-        integrity: sha512-N1ASjp/nXH3ovBHddRJpli4ozpk6UdDYIX4RJWFa9L1YKnzdhTlVmiGHm4DZnj/jLbqZpes4aeR30EFGQtvhQQ==,
       }
 
   "@types/use-sync-external-store@0.0.6":
@@ -4087,12 +4045,6 @@ packages:
       }
     engines: { node: ">= 0.4" }
 
-  asn1@0.2.6:
-    resolution:
-      {
-        integrity: sha512-ix/FxPn0MDjeyJ7i/yoHGFt/EX6LyNbxSEhPPXODPL+KB0VPk86UYfL0lMdy+KCnv+fmvIzySwaK5COwqVbWTQ==,
-      }
-
   ast-types-flow@0.0.8:
     resolution:
       {
@@ -4155,12 +4107,6 @@ packages:
     engines: { node: ">=6.0.0" }
     hasBin: true
 
-  bcrypt-pbkdf@1.0.2:
-    resolution:
-      {
-        integrity: sha512-qeFIXtP4MSoi6NLqO12WfqARWWuCKi2Rn/9hJLEmtB5yTNr9DqFWkJRCf2qShWzPeAMRnOgCrq0sg/KLv5ES9w==,
-      }
-
   bowser@2.14.1:
     resolution:
       {
@@ -4200,13 +4146,6 @@ packages:
       {
         integrity: sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==,
       }
-
-  buildcheck@0.0.7:
-    resolution:
-      {
-        integrity: sha512-lHblz4ahamxpTmnsk+MNTRWsjYKv965MwOrSJyeD588rR3Jcu7swE+0wN5F+PbL5cjgu/9ObkhfzEPuofEMwLA==,
-      }
-    engines: { node: ">=10.0.0" }
 
   call-bind-apply-helpers@1.0.2:
     resolution:
@@ -4260,12 +4199,6 @@ packages:
     resolution:
       {
         integrity: sha512-Ca8swihM+/4yKecYHY52kgJd300hi2lADU/a1RxNTRe+RJ9jvqQlESpbz9DnG9mowez8qwXHB8qYdIUw9e+F5Q==,
-      }
-
-  class-variance-authority@0.7.1:
-    resolution:
-      {
-        integrity: sha512-Ka+9Trutv7G8M6WT6SeiRWz792K5qEqIGEGzXKhAE6xOWAY6pPH8U+9IY3oCMv6kqTmLsv7Xh/2w2RigkePMsg==,
       }
 
   client-only@0.0.1:
@@ -4324,13 +4257,6 @@ packages:
       {
         integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==,
       }
-
-  cpu-features@0.0.10:
-    resolution:
-      {
-        integrity: sha512-9IkYqtX3YHPCzoVg1Py+o9057a3i0fp7S530UWokCSaFVTc7CwXPRiOjRjBQQ18ZCNafx78YfnG+HALxtVmOGA==,
-      }
-    engines: { node: ">=10.0.0" }
 
   croner@10.0.1:
     resolution:
@@ -5943,12 +5869,6 @@ packages:
       }
     engines: { node: ">=12.13" }
 
-  nan@2.28.0:
-    resolution:
-      {
-        integrity: sha512-fTsDz99OTq2sVePhGdp4qQhggZFtKr64ZNVyVajRKtMOkJxYekplBh577PiJB12v/D3s2E5cGtOI45LWp6rnLQ==,
-      }
-
   nanoid@3.3.18:
     resolution:
       {
@@ -6612,13 +6532,6 @@ packages:
       }
     engines: { node: ">= 12" }
 
-  ssh2@1.17.0:
-    resolution:
-      {
-        integrity: sha512-wPldCk3asibAjQ/kziWQQt1Wh3PgDFpC0XpwclzKcdT1vql6KeYxf5LIt4nlFkUeR8WuphYMKqUA56X4rjbfgQ==,
-      }
-    engines: { node: ">=10.16.0" }
-
   stacktrace-parser@0.1.11:
     resolution:
       {
@@ -6869,12 +6782,6 @@ packages:
         integrity: sha512-7bziOlRqH0hJx80h/3mbicLW7o8qLsH5+RaLR2t+OHM3D0JlWGODQKQ4cxbK7WlvmUxpcj6Kgu6EKqjrGFe3QQ==,
       }
 
-  tweetnacl@0.14.5:
-    resolution:
-      {
-        integrity: sha512-KXXFFdAbFXY4geFIwoyNK+f5Z1b7swfXABfL7HXCmoIWMKU3dmS26672A4EeQtDzLKy7SXmfBu51JolvEKwtGA==,
-      }
-
   type-check@0.4.0:
     resolution:
       {
@@ -6941,12 +6848,6 @@ packages:
         integrity: sha512-nWJ91DjeOkej/TA8pXQ3myruKpKEYgqvpw9lz4OPHj/NWFNluYrjbz9j01CJ8yKQd2g4jFoOkINCTW2I5LEEyw==,
       }
     engines: { node: ">= 0.4" }
-
-  undici-types@5.26.5:
-    resolution:
-      {
-        integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==,
-      }
 
   undici-types@7.18.2:
     resolution:
@@ -8966,10 +8867,6 @@ snapshots:
 
   "@types/json-schema@7.0.15": {}
 
-  "@types/node@18.19.130":
-    dependencies:
-      undici-types: 5.26.5
-
   "@types/node@24.13.3":
     dependencies:
       undici-types: 7.18.2
@@ -8981,10 +8878,6 @@ snapshots:
   "@types/react@19.2.18":
     dependencies:
       csstype: 3.2.3
-
-  "@types/ssh2@1.15.5":
-    dependencies:
-      "@types/node": 18.19.130
 
   "@types/use-sync-external-store@0.0.6": {}
 
@@ -9269,10 +9162,6 @@ snapshots:
       get-intrinsic: 1.3.0
       is-array-buffer: 3.0.5
 
-  asn1@0.2.6:
-    dependencies:
-      safer-buffer: 2.1.2
-
   ast-types-flow@0.0.8: {}
 
   astring@1.9.0: {}
@@ -9292,10 +9181,6 @@ snapshots:
   balanced-match@4.0.4: {}
 
   baseline-browser-mapping@2.11.17: {}
-
-  bcrypt-pbkdf@1.0.2:
-    dependencies:
-      tweetnacl: 0.14.5
 
   bowser@2.14.1: {}
 
@@ -9321,9 +9206,6 @@ snapshots:
       update-browserslist-db: 1.3.1(browserslist@4.28.8)
 
   buffer-from@1.1.2: {}
-
-  buildcheck@0.0.7:
-    optional: true
 
   call-bind-apply-helpers@1.0.2:
     dependencies:
@@ -9355,10 +9237,6 @@ snapshots:
 
   cjs-module-lexer@2.2.1: {}
 
-  class-variance-authority@0.7.1:
-    dependencies:
-      clsx: 2.1.1
-
   client-only@0.0.1: {}
 
   cliui@8.0.1:
@@ -9382,12 +9260,6 @@ snapshots:
   concat-map@0.0.1: {}
 
   convert-source-map@2.0.0: {}
-
-  cpu-features@0.0.10:
-    dependencies:
-      buildcheck: 0.0.7
-      nan: 2.28.0
-    optional: true
 
   croner@10.0.1: {}
 
@@ -10374,9 +10246,6 @@ snapshots:
 
   ms@3.0.0-canary.1: {}
 
-  nan@2.28.0:
-    optional: true
-
   nanoid@3.3.18: {}
 
   natural-compare@1.4.0: {}
@@ -10881,14 +10750,6 @@ snapshots:
 
   source-map@0.7.6: {}
 
-  ssh2@1.17.0:
-    dependencies:
-      asn1: 0.2.6
-      bcrypt-pbkdf: 1.0.2
-    optionalDependencies:
-      cpu-features: 0.0.10
-      nan: 2.28.0
-
   stacktrace-parser@0.1.11:
     dependencies:
       type-fest: 0.7.1
@@ -11053,8 +10914,6 @@ snapshots:
 
   tw-animate-css@1.4.0: {}
 
-  tweetnacl@0.14.5: {}
-
   type-check@0.4.0:
     dependencies:
       prelude-ls: 1.2.1
@@ -11113,8 +10972,6 @@ snapshots:
       has-bigints: 1.1.0
       has-symbols: 1.1.0
       which-boxed-primitive: 1.1.1
-
-  undici-types@5.26.5: {}
 
   undici-types@7.18.2: {}
 

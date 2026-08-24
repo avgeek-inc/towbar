@@ -12,7 +12,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { App, Deployment, Release } from "@workspace/towbar-web-client";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 import { Tabs } from "@workspace/web-design-system/navigation/tabs";
@@ -41,22 +41,16 @@ type AppRecord = App & {
 export function AppDetail() {
   const { appId, sourceId } = useParams<{
     appId: string;
-    sourceId?: string;
+    sourceId: string;
   }>();
   const router = useRouter();
   const app = useApiQuery<{ app: App & { serverId: string } }>(
     `/v1/core/apps/${appId}`,
   );
-  const resolvedSourceId = sourceId ?? app.data?.app.sourceId;
-  const breadcrumbAncestors = useSourceBreadcrumbs(
-    resolvedSourceId,
-    resolvedSourceId
-      ? {
-          href: `/sources/${resolvedSourceId}?section=apps`,
-          label: "Apps",
-        }
-      : undefined,
-  );
+  const breadcrumbAncestors = useSourceBreadcrumbs(sourceId, {
+    href: `/sources/${sourceId}?section=apps`,
+    label: "Apps",
+  });
   const deployments = useApiQuery<{ deployments: Deployment[] }>(
     `/v1/core/apps/${appId}/deployments`,
     5_000,
@@ -64,11 +58,6 @@ export function AppDetail() {
   const releases = useApiQuery<{ releases: Release[] }>(
     `/v1/core/apps/${appId}/releases`,
   );
-  useEffect(() => {
-    if (!sourceId && app.data) {
-      router.replace(`/sources/${app.data.app.sourceId}/apps/${appId}`);
-    }
-  }, [app.data, appId, router, sourceId]);
   const error = app.error ?? deployments.error ?? releases.error;
   if (error)
     return (
@@ -84,13 +73,7 @@ export function AppDetail() {
     );
 
   const item = app.data.app;
-  if (!sourceId)
-    return (
-      <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="App">
-        <QueryLoading />
-      </DashboardPage>
-    );
-  if (sourceId && item.sourceId !== sourceId) {
+  if (item.sourceId !== sourceId) {
     return (
       <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="App">
         <QueryError

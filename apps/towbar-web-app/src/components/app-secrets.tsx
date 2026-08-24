@@ -88,7 +88,6 @@ export function AppSecrets({
             deployableId={appId}
             deployableType="app"
             endpoint={`/v1/core/apps/${appId}/secrets`}
-            ownerId={appId}
             scope="app"
             sourceId={sourceId}
             stage={stage}
@@ -139,7 +138,6 @@ export function ResourceSecrets({
       deployableId={resourceId}
       deployableType="resource"
       endpoint={endpoint}
-      ownerId={resourceId}
       scope="app"
       sourceId={sourceId}
       stage="deployment"
@@ -193,7 +191,6 @@ export function SourceSecrets({ sourceId }: { sourceId: string }) {
             canDeploy={false}
             canManageSecrets={data.canManageSecrets}
             endpoint={endpoint}
-            ownerId={sourceId}
             scope="shared"
             sourceId={sourceId}
             stage={stage}
@@ -213,7 +210,6 @@ function SecretStageEditor({
   deployableType,
   endpoint,
   onUpdated,
-  ownerId,
   scope,
   sourceId,
   stage,
@@ -225,7 +221,6 @@ function SecretStageEditor({
   deployableType?: "app" | "resource";
   endpoint: string;
   onUpdated: () => void;
-  ownerId: string;
   scope: AppSecretBinding["uses"][number]["scope"];
   sourceId: string;
   stage: SecretStageGroup;
@@ -261,7 +256,6 @@ function SecretStageEditor({
           deployableType={deployableType}
           endpoint={endpoint}
           key={binding.reference}
-          ownerId={ownerId}
           sourceId={sourceId}
           onUpdated={onUpdated}
         />
@@ -278,7 +272,6 @@ function SecretVariablesEditor({
   deployableType,
   endpoint,
   onUpdated,
-  ownerId,
   sourceId,
 }: {
   binding: AppSecretBinding;
@@ -288,7 +281,6 @@ function SecretVariablesEditor({
   deployableType?: "app" | "resource";
   endpoint: string;
   onUpdated: () => void;
-  ownerId: string;
   sourceId: string;
 }) {
   const router = useRouter();
@@ -304,8 +296,6 @@ function SecretVariablesEditor({
   const [validationError, setValidationError] = useState<string>();
   const canEdit =
     canManageSecrets && binding.editable && binding.status === "available";
-  const formId = `secret-editor-${ownerId}-${binding.reference.replaceAll(/[^A-Za-z0-9_-]/gu, "-")}`;
-
   function addKey() {
     setNewKeys((current) => [
       ...current,
@@ -330,10 +320,7 @@ function SecretVariablesEditor({
   async function toggleValues() {
     if (showValues) {
       setShowValues(false);
-      return;
-    }
-    if (revealed) {
-      setShowValues(true);
+      setRevealed(undefined);
       return;
     }
     setRevealing(true);
@@ -454,7 +441,7 @@ function SecretVariablesEditor({
         </Alert>
       ) : null}
 
-      <form className="grid gap-4" id={formId} onSubmit={submit}>
+      <form className="grid gap-4" onSubmit={submit}>
         {validationError ? <FieldError>{validationError}</FieldError> : null}
         <Table>
           <Table.ScrollContainer>
@@ -639,7 +626,6 @@ function SecretVariablesEditor({
             </Button>
             <div className="flex flex-wrap justify-end gap-2">
               <Button
-                form={formId}
                 isDisabled={busy}
                 type="submit"
                 value="save"
@@ -648,12 +634,7 @@ function SecretVariablesEditor({
                 {busy ? "Saving…" : "Save changes"}
               </Button>
               {canDeploy ? (
-                <Button
-                  form={formId}
-                  isDisabled={busy}
-                  type="submit"
-                  value="save-and-deploy"
-                >
+                <Button isDisabled={busy} type="submit" value="save-and-deploy">
                   {busy ? "Saving…" : "Save and deploy"}
                 </Button>
               ) : null}

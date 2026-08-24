@@ -13,11 +13,12 @@ import {
   sshHostKeys,
 } from "@workspace/towbar-database/schema";
 
-import { conflict, notFound } from "../../http/errors.js";
+import { badRequest, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueueServerCheck } from "../../infrastructure/temporal.js";
 import { publicDeploymentSelection } from "../deployment-selection.js";
 import { resolveAwsSecret } from "../aws/service.js";
+import { parseTrustedHostKey } from "./host-key.js";
 
 export const sshLoginSecretSchema = z
   .object({
@@ -263,15 +264,21 @@ export async function trustServerHostKey(input: {
   workspaceId: string;
 }) {
   await getServer(input.serverId, input.workspaceId);
-  if (!input.publicKey.startsWith(`${input.algorithm} `)) {
-    throw conflict("Host public key does not match its declared algorithm");
+  let hostKey: ReturnType<typeof parseTrustedHostKey>;
+  try {
+    hostKey = parseTrustedHostKey(input);
+  } catch (error) {
+    throw badRequest(
+      error instanceof Error ? error.message : "Host public key is invalid",
+      "INVALID_HOST_KEY",
+    );
   }
   const [key] = await getTowbarDatabase()
     .insert(sshHostKeys)
-    .values(input)
+    .values({ ...input, ...hostKey })
     .onConflictDoUpdate({
       target: [sshHostKeys.serverId, sshHostKeys.fingerprint],
-      set: { publicKey: input.publicKey, revokedAt: null },
+      set: { publicKey: hostKey.publicKey, revokedAt: null },
     })
     .returning({
       algorithm: sshHostKeys.algorithm,

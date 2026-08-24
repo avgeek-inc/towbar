@@ -14,6 +14,7 @@ import { Menu01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { usePathname } from "next/navigation";
 import { Button } from "../buttons/button";
+import { AlertDialog } from "../overlays/alert-dialog";
 import { Toast } from "../overlays/toast";
 import { ThemeSwitcher } from "../controls/theme-switcher";
 import { cn } from "../lib/utils";
@@ -27,6 +28,7 @@ import type {
   FooterConfig,
   HeaderConfig,
   SidebarConfig,
+  SidebarActionConfig,
   ShellLinkConfig,
 } from "./application-shell-types";
 
@@ -238,18 +240,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
                     {item.label}
                   </RoutedLink>
                 ) : (
-                  <button
-                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-start text-sm font-normal text-muted hover:bg-default/60 hover:text-foreground"
-                    disabled={item.disabled}
-                    key={item.id}
-                    onClick={item.onSelect}
-                    type="button"
-                  >
-                    {item.icon ? (
-                      <HugeiconsIcon icon={item.icon} size={18} />
-                    ) : null}
-                    {item.label}
-                  </button>
+                  <SidebarAction item={item} key={item.id} />
                 ),
               )}
             </div>
@@ -259,20 +250,75 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
       {config.footerActions?.length ? (
         <div className="mt-auto grid gap-1">
           {config.footerActions.map((item) => (
-            <button
-              className="flex items-center gap-3 rounded-xl px-3 py-2 text-start text-sm font-normal text-muted hover:bg-default/60 disabled:opacity-50"
-              disabled={item.disabled}
-              key={item.id}
-              onClick={item.onSelect}
-              type="button"
-            >
-              {item.icon ? <HugeiconsIcon icon={item.icon} size={18} /> : null}
-              {item.label}
-            </button>
+            <SidebarAction item={item} key={item.id} />
           ))}
         </div>
       ) : null}
     </nav>
+  );
+}
+
+function SidebarAction({ item }: { item: SidebarActionConfig }) {
+  const [isConfirming, setIsConfirming] = useState(false);
+  const trigger = (
+    <button
+      aria-label={item.accessibleLabel}
+      className={cn(
+        "flex items-center gap-3 rounded-xl px-3 py-2 text-start text-sm font-normal text-muted hover:bg-default/60 hover:text-foreground disabled:opacity-50",
+        item.destructive && "hover:text-danger",
+      )}
+      disabled={item.disabled}
+      onClick={() => {
+        if (item.confirmation) setIsConfirming(true);
+        else item.onSelect();
+      }}
+      type="button"
+    >
+      {item.icon ? (
+        <HugeiconsIcon aria-hidden="true" icon={item.icon} size={18} />
+      ) : null}
+      {item.label}
+    </button>
+  );
+
+  if (!item.confirmation) return trigger;
+
+  return (
+    <>
+      {trigger}
+      <AlertDialog.Backdrop
+        isOpen={isConfirming}
+        onOpenChange={setIsConfirming}
+      >
+        <AlertDialog.Container>
+          <AlertDialog.Dialog>
+            <AlertDialog.Header>
+              <AlertDialog.Heading>
+                {item.confirmation.title}
+              </AlertDialog.Heading>
+            </AlertDialog.Header>
+            <AlertDialog.Body>{item.confirmation.description}</AlertDialog.Body>
+            <AlertDialog.Footer>
+              <Button
+                variant="secondary"
+                onPress={() => setIsConfirming(false)}
+              >
+                {item.confirmation.cancelLabel}
+              </Button>
+              <Button
+                variant={item.destructive ? "danger" : "primary"}
+                onPress={() => {
+                  setIsConfirming(false);
+                  item.onSelect();
+                }}
+              >
+                {item.confirmation.confirmLabel}
+              </Button>
+            </AlertDialog.Footer>
+          </AlertDialog.Dialog>
+        </AlertDialog.Container>
+      </AlertDialog.Backdrop>
+    </>
   );
 }
 export function ApplicationFooter({

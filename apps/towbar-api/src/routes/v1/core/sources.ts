@@ -79,7 +79,7 @@ sourceRoutes.get("/:sourceId/secrets", async (context) => {
 sourceRoutes.post("/:sourceId/secrets/reveal", async (context) => {
   const user = context.get("user");
   if (user.workspaceRole !== "owner") {
-    throw forbidden("Only workspace owners can reveal shared Source secrets");
+    throw forbidden("Only the owner can reveal shared Source secrets");
   }
   const sourceId = context.req.param("sourceId");
   await getSource(sourceId, user.workspaceId);
@@ -97,7 +97,7 @@ sourceRoutes.post("/:sourceId/secrets/reveal", async (context) => {
 sourceRoutes.patch("/:sourceId/secrets", async (context) => {
   const user = context.get("user");
   if (user.workspaceRole !== "owner") {
-    throw forbidden("Only workspace owners can manage shared Source secrets");
+    throw forbidden("Only the owner can manage shared Source secrets");
   }
   const sourceId = context.req.param("sourceId");
   await getSource(sourceId, user.workspaceId);

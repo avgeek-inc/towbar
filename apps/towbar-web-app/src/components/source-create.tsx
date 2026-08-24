@@ -54,7 +54,7 @@ export function SourceCreate() {
   if (!connection.data.connection)
     return (
       <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Add source">
-        <EmptyState className="min-h-64 justify-center">
+        <EmptyState>
           <EmptyState.Header>
             <EmptyState.Title>GitHub not connected</EmptyState.Title>
             <EmptyState.Description>
@@ -84,7 +84,7 @@ export function SourceCreate() {
   if (repositories.data.repositories.length === 0)
     return (
       <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Add source">
-        <EmptyState className="min-h-64 justify-center">
+        <EmptyState>
           <EmptyState.Header>
             <EmptyState.Title>No repositories available</EmptyState.Title>
             <EmptyState.Description>
@@ -113,7 +113,7 @@ export function SourceCreate() {
                 ],
                 [
                   "Sync manifest",
-                  "Towbar validates and imports deployment.yml.",
+                  "Towbar validates and imports .towbar/deployment.yml.",
                 ],
               ].map(([title, description]) => (
                 <Stepper.Step key={title}>

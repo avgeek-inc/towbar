@@ -14,26 +14,6 @@ const nextConfig: NextConfig = {
   ...baseConfig,
   agentRules: false,
   allowedDevOrigins: ["127.0.0.1", "localhost"],
-  async redirects() {
-    return [
-      ...((await baseConfig.redirects?.()) ?? []),
-      {
-        source: "/settings/account",
-        destination: "/settings?section=account",
-        permanent: false,
-      },
-      {
-        source: "/settings/github",
-        destination: "/settings?section=github",
-        permanent: false,
-      },
-      {
-        source: "/settings/security",
-        destination: "/settings?section=security",
-        permanent: false,
-      },
-    ];
-  },
 };
 
 export default nextConfig;

@@ -349,7 +349,7 @@ export function RuntimeLogs({
 
   if (!latest) {
     return (
-      <EmptyState className="min-h-64 justify-center">
+      <EmptyState>
         <EmptyState.Header>
           <EmptyState.Title>No logs captured</EmptyState.Title>
           <EmptyState.Description>
@@ -378,7 +378,7 @@ export function RuntimeLogs({
             {result.logs}
           </CodePanel>
         ) : (
-          <EmptyState className="min-h-64 justify-center">
+          <EmptyState>
             <EmptyState.Header>
               <EmptyState.Title>No log output returned</EmptyState.Title>
               <EmptyState.Description>

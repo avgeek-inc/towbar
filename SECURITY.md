@@ -32,6 +32,9 @@ to repository security advisories.
 - AWS identities are scoped to the Secrets Manager paths required by one Source.
   Read access covers declared execution secrets; write access is limited to App
   environment bundles intentionally managed through Towbar.
+- The installation owner is trusted to reveal values for attached App,
+  Resource, and shared environment bundles. Reveal responses are not cached,
+  persisted in PostgreSQL, or written to application logs.
 - Destination hosts use SSH keys, pinned host identity, current security
   updates, and least-privilege network rules.
 - Installation secrets are unique, randomly generated, and never committed.

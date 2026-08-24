@@ -126,7 +126,7 @@ export function ResourceBackups({
             ) : null}
           </div>
         ) : (
-          <EmptyState className="min-h-48 justify-center">
+          <EmptyState>
             <EmptyState.Header>
               <EmptyState.Title>Backups not configured</EmptyState.Title>
               <EmptyState.Description>
@@ -151,7 +151,6 @@ export function ResourceBackups({
           <ResourceTable
             ariaLabel={`${resource.name} backups`}
             columns={backupColumns}
-            emptyClassName="min-h-40"
             emptyDescription="Create a manual backup or wait for the next scheduled backup."
             emptyTitle="No retained backups"
             getRowKey={(backup) => backup.id}

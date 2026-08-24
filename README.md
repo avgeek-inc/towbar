@@ -18,8 +18,8 @@ flowchart LR
 ```
 
 > [!IMPORTANT]
-> This repository is an early open-source extraction. Review the security and
-> operational assumptions before exposing it to the public internet.
+> Towbar is under active development. Review the security and operational
+> assumptions before exposing an installation to the public internet.
 
 ## What runs
 

@@ -1,7 +1,7 @@
 import { deployments } from "@workspace/towbar-database/schema";
 import { sql } from "drizzle-orm";
 
-export type PublicDeploymentTrigger = "auto_deploy" | "manual" | "rollback";
+type PublicDeploymentTrigger = "auto_deploy" | "manual" | "rollback";
 
 /** Fields safe and useful for authenticated dashboard responses. */
 export const publicDeploymentSelection = {

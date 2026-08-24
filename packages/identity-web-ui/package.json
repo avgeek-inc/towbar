@@ -12,13 +12,11 @@
     "@hookform/resolvers": "catalog:",
     "@workspace/web-design-system": "workspace:*",
     "react": "catalog:",
-    "react-dom": "catalog:",
     "react-hook-form": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@types/react": "catalog:",
-    "@types/react-dom": "catalog:",
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "eslint": "catalog:",

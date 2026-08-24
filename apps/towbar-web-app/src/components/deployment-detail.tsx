@@ -11,7 +11,6 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect } from "react";
 import type { Deployment } from "@workspace/towbar-web-client";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
@@ -50,7 +49,7 @@ const terminal = new Set([
 export function DeploymentDetail() {
   const { deploymentId, sourceId } = useParams<{
     deploymentId: string;
-    sourceId?: string;
+    sourceId: string;
   }>();
   const router = useRouter();
   const stream = useDeploymentStream(deploymentId);
@@ -62,17 +61,16 @@ export function DeploymentDetail() {
       ? `/v1/core/${stream.deployment.deployableKind === "app" ? "apps" : "resources"}/${stream.deployment.appId}`
       : null,
   );
-  const resolvedSourceId = sourceId ?? stream.deployment?.sourceId;
   const deployableSection = stream.deployment
     ? stream.deployment.deployableKind === "app"
       ? "apps"
       : "resources"
     : undefined;
   const sourceBreadcrumbAncestors = useSourceBreadcrumbs(
-    resolvedSourceId,
-    resolvedSourceId && deployableSection
+    sourceId,
+    deployableSection
       ? {
-          href: `/sources/${resolvedSourceId}?section=${deployableSection}`,
+          href: `/sources/${sourceId}?section=${deployableSection}`,
           label: deployableSection === "apps" ? "Apps" : "Resources",
         }
       : undefined,
@@ -82,23 +80,16 @@ export function DeploymentDetail() {
   const serverIp =
     deployable.data?.app?.serverIp ?? deployable.data?.resource?.serverIp;
   const breadcrumbAncestors = (
-    resolvedSourceId && stream.deployment && deployableName
+    stream.deployment && deployableName
       ? [
           ...sourceBreadcrumbAncestors,
           {
-            href: `/sources/${resolvedSourceId}/${deployableSection}/${stream.deployment.appId}`,
+            href: `/sources/${sourceId}/${deployableSection}/${stream.deployment.appId}`,
             label: deployableName,
           },
         ]
       : sourceBreadcrumbAncestors
   ) as BreadcrumbAncestors;
-  useEffect(() => {
-    if (!sourceId && stream.deployment) {
-      router.replace(
-        `/sources/${stream.deployment.sourceId}/deployments/${deploymentId}`,
-      );
-    }
-  }, [deploymentId, router, sourceId, stream.deployment]);
   if (stream.error && !stream.deployment)
     return (
       <DashboardPage
@@ -119,16 +110,7 @@ export function DeploymentDetail() {
     );
 
   const item = stream.deployment;
-  if (!sourceId)
-    return (
-      <DashboardPage
-        breadcrumbAncestors={sourceBreadcrumbAncestors}
-        title="Deployment"
-      >
-        <QueryLoading />
-      </DashboardPage>
-    );
-  if (sourceId && item.sourceId !== sourceId) {
+  if (item.sourceId !== sourceId) {
     return (
       <DashboardPage
         breadcrumbAncestors={sourceBreadcrumbAncestors}
@@ -409,7 +391,7 @@ export function DeploymentDetail() {
                   .join("\n")}
               </CodePanel>
             ) : (
-              <EmptyState className="min-h-64 justify-center">
+              <EmptyState>
                 <EmptyState.Header>
                   <EmptyState.Title>
                     {terminal.has(item.state)

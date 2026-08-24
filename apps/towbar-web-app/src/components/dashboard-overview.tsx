@@ -28,6 +28,7 @@ const activitySeries = [
   },
   { color: "var(--color-danger)", key: "failed", label: "Failed" },
 ];
+const activityAxisTick = { fill: "var(--muted)", fontSize: 12 } as const;
 
 export function DashboardOverview() {
   const apps = useApiQuery<{ apps: App[] }>("/v1/core/apps");
@@ -139,10 +140,11 @@ export function DashboardOverview() {
               <LineChart.Grid vertical={false} />
               <LineChart.XAxis
                 dataKey="date"
+                tick={activityAxisTick}
                 tickFormatter={(value) => formatActivityDate(String(value))}
                 tickMargin={8}
               />
-              <LineChart.YAxis width={32} />
+              <LineChart.YAxis tick={activityAxisTick} width={32} />
               {activitySeries.map((series) => (
                 <LineChart.Line
                   dataKey={series.key}
@@ -166,7 +168,7 @@ export function DashboardOverview() {
               />
             </LineChart>
           ) : (
-            <EmptyState className="min-h-64 justify-center">
+            <EmptyState>
               <EmptyState.Header>
                 <EmptyState.Title>No deployment activity yet</EmptyState.Title>
                 <EmptyState.Description className="max-w-sm text-pretty">

@@ -11,6 +11,7 @@ import { ApplicationFrame } from "@/components/application-frame";
 export const metadata: Metadata = {
   title: { default: "Towbar", template: "%s · Towbar" },
   description: "Deploy Dockerfile applications to your Ubuntu servers.",
+  icons: { icon: "/towbar-mark.svg" },
   robots: { follow: false, index: false },
 };
 

@@ -38,7 +38,7 @@ const envSchema = z
     TOWBAR_INTERNAL_HMAC_SECRET: z.string().min(32),
     TOWBAR_API_BASE_URL: z.string().url().default("http://localhost:4020"),
     TOWBAR_APP_BASE_URL: z.string().url().default("http://localhost:4021"),
-    TOWBAR_WEBSITE_BASE_URL: z.string().url().default("https://towbar.dev"),
+    TOWBAR_WEBSITE_BASE_URL: z.string().url().default("https://www.towbar.dev"),
     TOWBAR_TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).max(8).default(0),
     TOWBAR_PASSWORD_VERIFY_CONCURRENCY: z.coerce
       .number()
@@ -104,7 +104,7 @@ const envSchema = z
     }
   });
 
-export type TowbarEnv = z.infer<typeof envSchema>;
+type TowbarEnv = z.infer<typeof envSchema>;
 
 let cachedEnv: TowbarEnv | undefined;
 

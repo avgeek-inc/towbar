@@ -8,7 +8,7 @@ import { cn } from "@workspace/web-design-system/lib/utils";
 import type { ComponentPropsWithoutRef } from "react";
 
 const brandImageBaseUrl =
-  "https://images.avgeek.ltd/cdn-cgi/imagedelivery/phvjnb9w1G6QHeeoMJptkQ";
+  "https://www.towbar.dev/cdn-cgi/imagedelivery/phvjnb9w1G6QHeeoMJptkQ";
 const fallbackLogoSource = "/towbar-mark.svg";
 const brandLogoSources = {
   dark: brandLogoSource("dark"),

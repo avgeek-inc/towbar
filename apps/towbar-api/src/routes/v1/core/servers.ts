@@ -27,7 +27,10 @@ import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
 const hostKeySchema = z
   .object({
-    algorithm: z.string().trim().min(1).max(80),
+    algorithm: z
+      .string()
+      .trim()
+      .regex(/^[A-Za-z0-9][A-Za-z0-9@._+-]{0,79}$/u),
     fingerprint: z.string().trim().startsWith("SHA256:").max(255),
     publicKey: z.string().trim().min(32).max(16_384),
   })

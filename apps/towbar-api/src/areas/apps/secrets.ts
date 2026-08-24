@@ -19,10 +19,9 @@ import { getApp, getResource } from "./queries.js";
 
 import type { NormalizedApp, NormalizedResource } from "@workspace/towbar-core";
 
-export type AppSecretStage =
-  "build" | "deployment" | "pre_deploy" | "post_deploy";
+type AppSecretStage = "build" | "deployment" | "pre_deploy" | "post_deploy";
 
-export type AppSecretUse = {
+type AppSecretUse = {
   scope: "app" | "shared";
   stage: AppSecretStage;
 };

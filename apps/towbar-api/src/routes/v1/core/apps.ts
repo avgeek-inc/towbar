@@ -60,7 +60,7 @@ appRoutes.get("/:appId/secrets", async (context) => {
 appRoutes.post("/:appId/secrets/reveal", async (context) => {
   const user = context.get("user");
   if (user.workspaceRole !== "owner") {
-    throw forbidden("Only workspace owners can reveal App secrets");
+    throw forbidden("Only the owner can reveal App secrets");
   }
   const input = await readJson(context, secretReferenceSchema, 4 * 1_024);
   const secret = await revealAppSecretBinding({
@@ -76,7 +76,7 @@ appRoutes.post("/:appId/secrets/reveal", async (context) => {
 appRoutes.patch("/:appId/secrets", async (context) => {
   const user = context.get("user");
   if (user.workspaceRole !== "owner") {
-    throw forbidden("Only workspace owners can manage App secrets");
+    throw forbidden("Only the owner can manage App secrets");
   }
   const input = await readJson(context, secretMutationSchema, 256 * 1_024);
   const secret = await updateAppSecretBinding({

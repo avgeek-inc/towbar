@@ -99,7 +99,7 @@ export function GitHubSettings() {
       <div>{action}</div>
     </div>
   ) : (
-    <EmptyState className="min-h-64 justify-center">
+    <EmptyState>
       <EmptyState.Header>
         <EmptyState.Title>GitHub not connected</EmptyState.Title>
         <EmptyState.Description className="max-w-md text-pretty">

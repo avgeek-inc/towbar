@@ -184,10 +184,12 @@ In the dashboard:
    Resources remain `Server Setup Pending` and cannot deploy before this point.
 
 App secret references remain manifest-owned. On an App's **Secrets** tab,
-Towbar returns only key names and version metadata. Values entered there are
-merged into the referenced AWS JSON object server-side and are never returned
-to the browser. **Save and deploy** explicitly queues a deployment because a
-Secrets Manager version change does not create a Git commit.
+Towbar initially returns only key names and version metadata. The owner can
+explicitly reveal the current values through a no-store API response while
+editing them; Towbar does not persist those values in PostgreSQL or logs. Saves
+are merged into the referenced AWS JSON object server-side. **Save and deploy**
+explicitly queues a deployment because a Secrets Manager version change does
+not create a Git commit.
 
 If preparation stops on an existing server, use the reported step and command
 failure to remove only the conflicting installation, then retry. A fresh

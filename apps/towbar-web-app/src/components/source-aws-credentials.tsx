@@ -83,7 +83,7 @@ export function SourceAwsCredentials({
         </div>
       ) : null}
       {!credential ? (
-        <EmptyState className="min-h-64 justify-center">
+        <EmptyState>
           <EmptyState.Header>
             <EmptyState.Title>No AWS credentials</EmptyState.Title>
             <EmptyState.Description>

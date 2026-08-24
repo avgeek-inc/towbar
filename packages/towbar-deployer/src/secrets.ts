@@ -1,7 +1,7 @@
 import type { DeploymentSecrets } from "./types.js";
 
 const environmentKeyPattern = /^[A-Za-z_][A-Za-z0-9_]*$/u;
-export const aggregateBuildSecretKey = "GOD_BUILD_ENV_JSON";
+export const aggregateBuildSecretKey = "TOWBAR_BUILD_ENV_JSON";
 
 export function validateDeploymentSecrets(secrets: DeploymentSecrets) {
   for (const [key, value] of Object.entries({

@@ -6,8 +6,8 @@
   "engines": {
     "node": ">=24"
   },
-  "description": "Towbar private deployment dashboard.",
-  "homepage": "https://app.towbar.dev",
+  "description": "Towbar self-hosted deployment dashboard.",
+  "homepage": "https://www.towbar.dev",
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0 --port 4021 --turbopack",
     "dev:fixture-api": "node ./scripts/fixture-api.ts",
@@ -15,6 +15,7 @@
     "build": "pnpm next build",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint --fix . --max-warnings 0",
+    "test": "tsx --test \"src/**/*.test.ts\" && pnpm test:fixture-api",
     "test:fixture-api": "node --test ./scripts/fixture-api.test.mjs",
     "typecheck": "tsc --noEmit"
   },
@@ -31,13 +32,13 @@
     "react-dom": "catalog:"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@workspace/eslint-config": "workspace:^",
     "@workspace/typescript-config": "workspace:*",
     "eslint": "catalog:",
+    "tsx": "^4.21.0",
     "typescript": "catalog:"
   }
 }

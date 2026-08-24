@@ -196,13 +196,6 @@ export async function findSession(sessionToken: string) {
   };
 }
 
-export async function revokeSession(sessionId: string) {
-  await getTowbarDatabase()
-    .update(sessions)
-    .set({ revokedAt: new Date() })
-    .where(eq(sessions.id, sessionId));
-}
-
 export async function listUserSessions(userId: string) {
   return await getTowbarDatabase()
     .select({
@@ -362,6 +355,6 @@ export async function revokeSessionByToken(userId: string, token: string) {
     );
 }
 
-export function normalizeEmail(value: string) {
+function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
 }

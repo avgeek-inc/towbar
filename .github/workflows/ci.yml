@@ -17,9 +17,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      # v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      # v4.4.0
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320
+      # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -32,13 +35,14 @@ jobs:
         env:
           SENTRY_ALLOW_MISSING: "true"
           NEXT_PUBLIC_TOWBAR_API_BASE_URL: http://localhost:4020
-          NEXT_PUBLIC_TOWBAR_WEBSITE_BASE_URL: https://towbar.dev
+          NEXT_PUBLIC_TOWBAR_WEBSITE_BASE_URL: https://www.towbar.dev
 
   compose:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      # v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Configure non-production Compose values
         run: |
           cp .env.example .env

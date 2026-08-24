@@ -10,7 +10,7 @@ x-backend-environment: &backend-environment
   TEMPORAL_NAMESPACE: default
   TOWBAR_API_BASE_URL: ${TOWBAR_API_BASE_URL:-http://localhost:4020}
   TOWBAR_APP_BASE_URL: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
-  TOWBAR_WEBSITE_BASE_URL: ${TOWBAR_WEBSITE_BASE_URL:-https://towbar.dev}
+  TOWBAR_WEBSITE_BASE_URL: ${TOWBAR_WEBSITE_BASE_URL:-https://www.towbar.dev}
   TOWBAR_INTERNAL_HMAC_SECRET: ${TOWBAR_INTERNAL_HMAC_SECRET:?set TOWBAR_INTERNAL_HMAC_SECRET}
 
 services:
@@ -136,7 +136,7 @@ services:
       dockerfile: apps/towbar-web-app/Dockerfile
       args:
         NEXT_PUBLIC_TOWBAR_API_BASE_URL: ${TOWBAR_API_BASE_URL:-http://localhost:4020}
-        NEXT_PUBLIC_TOWBAR_WEBSITE_BASE_URL: ${TOWBAR_WEBSITE_BASE_URL:-https://towbar.dev}
+        NEXT_PUBLIC_TOWBAR_WEBSITE_BASE_URL: ${TOWBAR_WEBSITE_BASE_URL:-https://www.towbar.dev}
         SOURCE_COMMIT: ${SOURCE_COMMIT:-development}
     restart: unless-stopped
     depends_on:

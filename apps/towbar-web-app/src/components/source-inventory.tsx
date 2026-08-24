@@ -13,7 +13,7 @@ import {
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
-import { LastSyncedTime, LastSyncedTimeProvider } from "./last-synced-time";
+import { LastSyncedTime, RelativeTimeProvider } from "./last-synced-time";
 
 const appColumns: ResourceTableColumn<App>[] = [
   {
@@ -137,7 +137,7 @@ export function SourceApps({
   if (error) return <QueryError message={error} />;
   if (!apps) return <QueryLoading variant="list" />;
   return (
-    <LastSyncedTimeProvider>
+    <RelativeTimeProvider>
       <ResourceTable
         ariaLabel="Source apps"
         columns={appColumns}
@@ -148,7 +148,7 @@ export function SourceApps({
         items={apps}
         tableClassName="min-w-[960px]"
       />
-    </LastSyncedTimeProvider>
+    </RelativeTimeProvider>
   );
 }
 
@@ -164,7 +164,7 @@ export function SourceResources({
   if (error) return <QueryError message={error} />;
   if (!resources) return <QueryLoading variant="list" />;
   return (
-    <LastSyncedTimeProvider>
+    <RelativeTimeProvider>
       <ResourceTable
         ariaLabel="Source resources"
         columns={resourceColumns}
@@ -177,7 +177,7 @@ export function SourceResources({
         items={resources}
         tableClassName="min-w-[1080px]"
       />
-    </LastSyncedTimeProvider>
+    </RelativeTimeProvider>
   );
 }
 
@@ -279,7 +279,7 @@ export function SourceServers({
     },
   ];
   return (
-    <LastSyncedTimeProvider>
+    <RelativeTimeProvider>
       <ResourceTable
         ariaLabel="Source servers"
         columns={serverColumns}
@@ -290,7 +290,7 @@ export function SourceServers({
         items={servers}
         tableClassName="min-w-[1160px]"
       />
-    </LastSyncedTimeProvider>
+    </RelativeTimeProvider>
   );
 }
 

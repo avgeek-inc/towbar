@@ -40,7 +40,7 @@ const storedAwsCredentialPayloadSchema = awsCredentialPayloadSchema
   .extend({ $source: z.unknown().optional() })
   .strict();
 
-export type AwsCredentialPayload = z.infer<typeof awsCredentialPayloadSchema>;
+type AwsCredentialPayload = z.infer<typeof awsCredentialPayloadSchema>;
 export type EnvironmentSecretPurpose = "build" | "deployment";
 
 export type EnvironmentSecretMutation = {

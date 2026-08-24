@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Children } from "react";
 import type { ComponentProps, FormEvent, Key, ReactNode } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { Alert } from "@workspace/web-design-system/feedback/alert";
@@ -29,7 +29,7 @@ import { TowbarSection } from "@workspace/towbar-web-ui/section";
 
 import { refreshApiQueries } from "@/hooks/use-api-query";
 
-export const appBreadcrumb = [{ href: "/", label: "Towbar" }] as const;
+const appBreadcrumb = [{ href: "/", label: "Towbar" }] as const;
 export const sourcesBreadcrumb = [
   ...appBreadcrumb,
   { href: "/sources", label: "Sources" },
@@ -120,7 +120,6 @@ export function PageTabs({
   }>;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const requestedSection = searchParams.get("section");
   const selectedKey = tabs.some((tab) => tab.value === requestedSection)
@@ -134,7 +133,14 @@ export function PageTabs({
     if (value === defaultValue) params.delete("section");
     else params.set("section", value);
     const query = params.toString();
-    router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    // Page tabs are client-only state. Native history keeps the permalink and
+    // Next navigation hooks in sync without reprocessing the metadata head,
+    // which would briefly clear the browser tab title on every selection.
+    window.history.pushState(
+      null,
+      "",
+      query ? `${pathname}?${query}` : pathname,
+    );
   }
 
   return (
@@ -237,6 +243,7 @@ export function ActionButton<T>({
   variant?: "danger" | "primary" | "secondary";
 }) {
   const [busy, setBusy] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
   async function runAction() {
     setBusy(true);
     try {
@@ -265,7 +272,7 @@ export function ActionButton<T>({
       isDisabled={busy || isDisabled}
       isIconOnly={isIconOnly}
       variant={variant}
-      onPress={confirm ? undefined : runAction}
+      onPress={confirm ? () => setIsConfirming(true) : runAction}
     >
       {triggerContent}
     </Button>
@@ -275,9 +282,12 @@ export function ActionButton<T>({
   }
 
   return (
-    <AlertDialog>
+    <>
       {trigger}
-      <AlertDialog.Backdrop>
+      <AlertDialog.Backdrop
+        isOpen={isConfirming}
+        onOpenChange={setIsConfirming}
+      >
         <AlertDialog.Container>
           <AlertDialog.Dialog>
             <AlertDialog.Header>
@@ -286,17 +296,19 @@ export function ActionButton<T>({
             <AlertDialog.Body>{confirm.description}</AlertDialog.Body>
             <AlertDialog.Footer>
               <Button
-                slot="close"
-                variant="secondary"
                 isDisabled={busy || isDisabled}
+                variant="secondary"
+                onPress={() => setIsConfirming(false)}
               >
                 Cancel
               </Button>
               <Button
-                slot="close"
                 isDisabled={busy || isDisabled}
                 variant={variant === "danger" ? "danger" : "primary"}
-                onPress={runAction}
+                onPress={() => {
+                  setIsConfirming(false);
+                  void runAction();
+                }}
               >
                 {busy ? pendingLabel : (confirm.actionLabel ?? children)}
               </Button>
@@ -304,7 +316,7 @@ export function ActionButton<T>({
           </AlertDialog.Dialog>
         </AlertDialog.Container>
       </AlertDialog.Backdrop>
-    </AlertDialog>
+    </>
   );
 }
 

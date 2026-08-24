@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://towbar.dev/schemas/deployment.v1.json",
+  "$id": "https://www.towbar.dev/schemas/deployment.v1.json",
   "title": "Towbar deployment manifest v1",
   "type": "object",
   "additionalProperties": false,

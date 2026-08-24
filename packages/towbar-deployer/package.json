@@ -20,12 +20,10 @@
   },
   "dependencies": {
     "@workspace/towbar-core": "workspace:*",
-    "ssh2": "^1.17.0",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "@types/ssh2": "^1.15.5",
     "@workspace/eslint-config": "workspace:^",
     "@workspace/typescript-config": "workspace:*",
     "eslint": "catalog:",

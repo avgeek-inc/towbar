@@ -14,7 +14,7 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { DashboardPage } from "@/components/page-parts";
 import { prefetchApiQueries, useApiQuery } from "@/hooks/use-api-query";
-import { LastSyncedTime, LastSyncedTimeProvider } from "./last-synced-time";
+import { LastSyncedTime, RelativeTimeProvider } from "./last-synced-time";
 
 export function SourceIndex() {
   const router = useRouter();
@@ -81,7 +81,7 @@ export function SourceIndex() {
       ) : !query.data ? (
         <QueryLoading variant="table" />
       ) : (
-        <LastSyncedTimeProvider>
+        <RelativeTimeProvider>
           <ResourceTable
             ariaLabel="Sources"
             columns={columns}
@@ -107,7 +107,7 @@ export function SourceIndex() {
             }}
             tableClassName="min-w-[720px]"
           />
-        </LastSyncedTimeProvider>
+        </RelativeTimeProvider>
       )}
     </DashboardPage>
   );

@@ -3,7 +3,6 @@ import type { ComponentProps, ReactNode } from "react";
 
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Table } from "@workspace/web-design-system/data-display/table";
-import { cn } from "@workspace/web-design-system/lib/utils";
 
 export type ResourceTableColumn<T> = {
   cell: (item: T) => ReactNode;
@@ -46,7 +45,7 @@ export function ResourceTable<T>({
 }) {
   if (items.length === 0) {
     return (
-      <EmptyState className={cn("min-h-64", emptyClassName)}>
+      <EmptyState className={emptyClassName}>
         <EmptyState.Header>
           <EmptyState.Title>{emptyTitle}</EmptyState.Title>
           <EmptyState.Description>{emptyDescription}</EmptyState.Description>

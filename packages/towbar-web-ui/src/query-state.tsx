@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Skeleton } from "@workspace/web-design-system/feedback/skeleton";
@@ -9,6 +11,21 @@ export function QueryLoading({
 }: {
   variant?: "dashboard" | "detail" | "list" | "table";
 }) {
+  const [showSkeleton, setShowSkeleton] = useState(false);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setShowSkeleton(true), 600);
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  if (!showSkeleton) {
+    return (
+      <span className="sr-only" role="status">
+        Loading
+      </span>
+    );
+  }
+
   if (variant === "list") {
     return (
       <div aria-label="Loading list" className="grid gap-2" role="status">

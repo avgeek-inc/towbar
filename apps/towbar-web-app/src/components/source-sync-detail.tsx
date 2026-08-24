@@ -268,7 +268,7 @@ function ChangeBadge({ action }: { action: ReconciliationAction }) {
 function SyncIssues({ value }: { value: unknown }) {
   if (!Array.isArray(value) || value.length === 0) {
     return (
-      <EmptyState className="min-h-64 justify-center">
+      <EmptyState>
         <EmptyState.Header>
           <EmptyState.Title>No validation issues</EmptyState.Title>
           <EmptyState.Description>

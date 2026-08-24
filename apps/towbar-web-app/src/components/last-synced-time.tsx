@@ -21,8 +21,6 @@ export function RelativeTimeProvider({ children }: { children: ReactNode }) {
   return children;
 }
 
-export const LastSyncedTimeProvider = RelativeTimeProvider;
-
 export function RelativeTime({
   label,
   value,
@@ -96,7 +94,7 @@ export function LastSyncedTime({ value }: { value: string }) {
   return <RelativeTime label="Last synced" value={value} />;
 }
 
-export function formatRecentTime(value: string, now: number) {
+function formatRecentTime(value: string, now: number) {
   const elapsed = now - new Date(value).getTime();
   if (!Number.isFinite(elapsed) || elapsed < 0 || elapsed >= dayMs)
     return undefined;
@@ -112,8 +110,6 @@ export function formatRecentTime(value: string, now: number) {
   if (minutes === 0) return `${hourLabel} ago`;
   return `${hourLabel} ${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
 }
-
-export const formatRecentSyncTime = formatRecentTime;
 
 function subscribeToClock(listener: () => void) {
   listeners.add(listener);

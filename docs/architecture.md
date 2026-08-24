@@ -32,8 +32,9 @@ image, starts a replacement container, verifies health, updates the proxy, and
 retains only the configured release set.
 
 An owner may also edit the JSON environment bundle behind a secret reference
-already attached to an App. The browser receives key names and AWS version
-metadata, never values. The API re-reads the current version, rejects stale
+already attached to an App or Resource. Listings expose key names and AWS
+version metadata. An explicit owner-only reveal request returns the current
+values with no-store caching while the editor is open. The API rejects stale
 edits, merges key-level changes in memory, and writes a new Secrets Manager
 version. PostgreSQL stores neither the secret value nor an editable copy of the
 reference.

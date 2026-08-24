@@ -1,4 +1,4 @@
-import { execFile, spawn } from "node:child_process";
+import { execFile } from "node:child_process";
 
 export type CommandResult = { stderr: string; stdout: string };
 export type CommandOutputHandlers = {
@@ -80,49 +80,6 @@ export async function runCommand(
       enqueue(options.onStderr, value);
     });
     if (options.input !== undefined) child.stdin?.end(options.input);
-  });
-}
-
-export async function pipeCommands(input: {
-  producer: { args: string[]; cwd?: string; executable: string };
-  consumer: { args: string[]; executable: string };
-  signal?: AbortSignal;
-}) {
-  await new Promise<void>((resolve, reject) => {
-    const producer = spawn(input.producer.executable, input.producer.args, {
-      cwd: input.producer.cwd,
-      signal: input.signal,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    const consumer = spawn(input.consumer.executable, input.consumer.args, {
-      signal: input.signal,
-      stdio: ["pipe", "ignore", "pipe"],
-    });
-    producer.stdout.pipe(consumer.stdin);
-    let stderr = "";
-    producer.stderr.on("data", (value: Buffer) => {
-      stderr += value.toString("utf8");
-    });
-    consumer.stderr.on("data", (value: Buffer) => {
-      stderr += value.toString("utf8");
-    });
-    let producerCode: number | null = null;
-    let consumerCode: number | null = null;
-    const finish = () => {
-      if (producerCode === null || consumerCode === null) return;
-      if (producerCode === 0 && consumerCode === 0) resolve();
-      else reject(new CommandError("Pipeline failed", "", stderr));
-    };
-    producer.on("error", reject);
-    consumer.on("error", reject);
-    producer.on("close", (code) => {
-      producerCode = code;
-      finish();
-    });
-    consumer.on("close", (code) => {
-      consumerCode = code;
-      finish();
-    });
   });
 }
 

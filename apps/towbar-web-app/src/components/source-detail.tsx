@@ -294,7 +294,7 @@ export function SourceDetail() {
                         {manifest.data.manifest.rawManifest}
                       </CodePanel>
                     ) : (
-                      <EmptyState className="min-h-64 justify-center">
+                      <EmptyState>
                         <EmptyState.Header>
                           <EmptyState.Title>
                             No manifest imported

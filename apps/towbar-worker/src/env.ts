@@ -14,7 +14,7 @@ const envSchema = z.object({
   WORKER_HEALTH_PORT: z.coerce.number().int().min(1).max(65_535).default(4_030),
 });
 
-export type TowbarWorkerEnv = z.infer<typeof envSchema>;
+type TowbarWorkerEnv = z.infer<typeof envSchema>;
 
 let cached: TowbarWorkerEnv | undefined;
 

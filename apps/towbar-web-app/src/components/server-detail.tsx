@@ -7,7 +7,7 @@ import {
   ServerStack01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useEffect } from "react";
 import type {
   OrphanItem,
@@ -58,23 +58,16 @@ const SERVER_CHECK_PAGE_SIZE = 10;
 export function ServerDetail() {
   const { serverId, sourceId } = useParams<{
     serverId: string;
-    sourceId?: string;
+    sourceId: string;
   }>();
-  const router = useRouter();
   const server = useApiQuery<{
     canCleanupOrphans: boolean;
     server: Server;
   }>(`/v1/core/servers/${serverId}`);
-  const resolvedSourceId = sourceId ?? server.data?.server.sourceId;
-  const breadcrumbAncestors = useSourceBreadcrumbs(
-    resolvedSourceId,
-    resolvedSourceId
-      ? {
-          href: `/sources/${resolvedSourceId}?section=servers`,
-          label: "Servers",
-        }
-      : undefined,
-  );
+  const breadcrumbAncestors = useSourceBreadcrumbs(sourceId, {
+    href: `/sources/${sourceId}?section=servers`,
+    label: "Servers",
+  });
   const checks = useApiQuery<ServerChecksPage>(
     `/v1/core/servers/${serverId}/checks?page=1&limit=${SERVER_CHECK_PAGE_SIZE}`,
     5_000,
@@ -100,13 +93,6 @@ export function ServerDetail() {
     `/v1/core/servers/${serverId}/orphans`,
     5_000,
   );
-  useEffect(() => {
-    if (!sourceId && server.data) {
-      router.replace(
-        `/sources/${server.data.server.sourceId}/servers/${serverId}`,
-      );
-    }
-  }, [router, server.data, serverId, sourceId]);
   const error =
     server.error ??
     checks.error ??
@@ -133,18 +119,12 @@ export function ServerDetail() {
     );
 
   const item = server.data.server;
-  if (!sourceId)
-    return (
-      <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="Server">
-        <QueryLoading />
-      </DashboardPage>
-    );
   const orphanItems = orphans.data.orphans;
   const orphanVolumes = orphanItems.filter((item) => item.kind === "volume");
   const disposableOrphans = orphanItems.filter(
     (item) => item.kind !== "volume",
   );
-  if (sourceId && item.sourceId !== sourceId) {
+  if (item.sourceId !== sourceId) {
     return (
       <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="Server">
         <QueryError

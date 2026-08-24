@@ -34,7 +34,7 @@ void describe("deployment secrets", () => {
     assert.throws(
       () =>
         validateDeploymentSecrets(
-          secrets({ build: { GOD_BUILD_ENV_JSON: "reserved" } }),
+          secrets({ build: { TOWBAR_BUILD_ENV_JSON: "reserved" } }),
         ),
       /reserved for Towbar's aggregate build secret/u,
     );

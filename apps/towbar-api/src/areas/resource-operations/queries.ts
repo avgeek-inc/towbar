@@ -79,25 +79,6 @@ export async function getDeployableTarget(
   };
 }
 
-export async function getBackup(backupId: string, workspaceId: string) {
-  const [backup] = await getTowbarDatabase()
-    .select()
-    .from(resourceOperations)
-    .where(
-      and(
-        eq(resourceOperations.id, backupId),
-        eq(resourceOperations.workspaceId, workspaceId),
-        eq(resourceOperations.type, "backup"),
-        eq(resourceOperations.state, "succeeded"),
-        isNull(resourceOperations.deletedAt),
-      ),
-    )
-    .limit(1);
-  if (!backup) throw notFound("Backup");
-  backupOperationResultSchema.parse(backup.result);
-  return backup;
-}
-
 export async function getCleanupExpected(serverId: string) {
   const deployables = await getTowbarDatabase()
     .select({ id: apps.id })

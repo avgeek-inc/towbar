@@ -147,7 +147,7 @@ const resources: FixtureResource[] = [
 ];
 
 const fixtureSecretKeys = new Map<string, string[]>([
-  [sharedBuildSecret, ["HEROUI_PRO_LICENSE", "HUGEICONS_LICENSE_KEY"]],
+  [sharedBuildSecret, ["BUILD_CACHE_TOKEN", "PACKAGE_REGISTRY_TOKEN"]],
   [sharedDeploymentSecret, ["SENTRY_DSN"]],
   ...apps.flatMap((app) => [
     [app.config.secrets.build!, ["NPM_TOKEN"]] as [string, string[]],
