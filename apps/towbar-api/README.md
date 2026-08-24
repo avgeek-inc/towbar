@@ -64,6 +64,12 @@ entities. Resources support versioned images plus PostgreSQL and Redis presets.
 Root shared build/deployment secret references are copied into immutable
 deployable snapshots and resolved only at execution time.
 
+Manual App and Resource deployments admit the latest successfully synchronized
+revision without synchronizing the Source again. This keeps redeploy admission
+fast and lets a redeploy consume newly updated AWS Secrets Manager values,
+which are resolved just in time by the worker. Use `Sync now` for repository or
+manifest changes; signed GitHub webhooks keep the configured branch current.
+
 Owners can inspect key names and edit values for JSON environment bundles
 already attached to an App or Resource. Resources expose deployment bindings
 only; build bindings apply only to Apps. The API performs the read/merge/write
