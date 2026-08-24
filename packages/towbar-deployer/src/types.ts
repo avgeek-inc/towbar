@@ -69,6 +69,10 @@ export type ServerCheckContext = {
     } | null;
     deployableId: string;
     desiredState: RuntimeDesiredState;
+    health:
+      | { command: string[]; timeoutSeconds: number; type: "command" }
+      | { path: string; timeoutSeconds: number; type: "http" }
+      | { timeoutSeconds: number; type: "container" };
     release: { containerName: string; imageTag: string } | null;
   }>;
   expectedImageTags: string[];

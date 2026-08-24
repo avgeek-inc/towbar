@@ -41,6 +41,7 @@ python3 - "$source_id" "$expected_json" <<'PYTHON'
 import json
 import subprocess
 import sys
+import urllib.request
 
 source_id = sys.argv[1]
 expected = json.loads(sys.argv[2])
@@ -54,6 +55,48 @@ def inspect(kind, name):
         return None
     value = json.loads(result.stdout)
     return value[0] if value else None
+
+def evaluate_health(item, container, running):
+    if not running:
+        return "none"
+    health = item["health"]
+    health_type = health["type"]
+    timeout = min(float(health.get("timeoutSeconds", 5)), 5.0)
+    if health_type == "command":
+        try:
+            result = subprocess.run(
+                ["docker", "exec", container.get("Name", "").lstrip("/"), *health["command"]],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+            return "healthy" if result.returncode == 0 else "unhealthy"
+        except (OSError, subprocess.TimeoutExpired):
+            return "unhealthy"
+    if health_type == "http":
+        connectivity = item.get("connectivity") or {}
+        container_port = connectivity.get("containerPort")
+        port_key = f"{container_port}/tcp"
+        bindings = (container.get("NetworkSettings", {}).get("Ports") or {}).get(port_key) or []
+        host_port = next((binding.get("HostPort") for binding in bindings if binding.get("HostPort")), None)
+        if not host_port:
+            return "unhealthy"
+        try:
+            with urllib.request.urlopen(
+                f'http://127.0.0.1:{host_port}{health["path"]}',
+                timeout=timeout,
+            ) as response:
+                return "healthy" if response.status < 400 else "unhealthy"
+        except Exception:
+            return "unhealthy"
+    health_value = (container.get("State", {}).get("Health") or {}).get("Status")
+    return (
+        "healthy" if health_value == "healthy" else
+        "starting" if health_value == "starting" else
+        "unhealthy" if health_value == "unhealthy" else
+        "none"
+    )
 
 expected_containers = {
     item["release"]["containerName"]
@@ -93,13 +136,7 @@ for item in expected["deployables"]:
         continue
     labels = container.get("Config", {}).get("Labels") or {}
     running = bool(container.get("State", {}).get("Running"))
-    health_value = (container.get("State", {}).get("Health") or {}).get("Status")
-    health = (
-        "healthy" if health_value == "healthy" else
-        "starting" if health_value == "starting" else
-        "unhealthy" if health_value == "unhealthy" else
-        "none"
-    )
+    health = evaluate_health(item, container, running)
     image = container.get("Config", {}).get("Image")
     reasons = []
     if image != release["imageTag"]:
@@ -200,6 +237,10 @@ export async function inspectServerRuntime(input: {
     } | null;
     deployableId: string;
     desiredState: RuntimeDesiredState;
+    health:
+      | { command: string[]; timeoutSeconds: number; type: "command" }
+      | { path: string; timeoutSeconds: number; type: "http" }
+      | { timeoutSeconds: number; type: "container" };
     release: { containerName: string; imageTag: string } | null;
   }>;
   imageTags: string[];

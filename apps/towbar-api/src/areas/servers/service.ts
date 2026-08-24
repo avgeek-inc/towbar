@@ -412,17 +412,21 @@ export async function getServerCheckExecutionContext(checkId: string) {
       const resource = isNormalizedResource(deployable.config)
         ? deployable.config
         : null;
+      const containerPort = deployable.config.container.port;
       return {
-        connectivity: resource?.container.port
+        connectivity: containerPort
           ? {
-              containerPort: resource.container.port,
-              hostPort: resource.access?.sshTunnel.hostPort ?? null,
-              network: resource.container.network ?? null,
-              networkAlias: resource.container.networkAlias ?? null,
+              containerPort,
+              hostPort: resource?.access?.sshTunnel.hostPort ?? null,
+              network: deployable.config.container.network ?? null,
+              networkAlias: resource?.container.networkAlias ?? null,
             }
           : null,
         deployableId: deployable.deployableId,
         desiredState: deployable.desiredState ?? "running",
+        health: resource
+          ? resource.health
+          : { ...deployable.config.health, type: "http" as const },
         release: release
           ? {
               containerName: release.containerName,

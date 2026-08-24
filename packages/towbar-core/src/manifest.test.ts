@@ -266,6 +266,9 @@ void test("normalizes image, PostgreSQL, and Redis resources", () => {
     { mountPath: "/data", name: "data" },
   ]);
   assert.equal(database?.image, "postgres:17-alpine");
+  assert.deepEqual(database?.container.volumes, [
+    { mountPath: "/var/lib/postgresql/data", name: "data" },
+  ]);
   assert.equal(database?.health.type, "command");
   assert.deepEqual(database?.access, {
     sshTunnel: { hostPort: 15_432 },
@@ -282,6 +285,16 @@ void test("normalizes image, PostgreSQL, and Redis resources", () => {
   });
   assert.equal(metrics?.image, "prom/prometheus:v3.5.0");
   assert.equal(metrics?.health.type, "http");
+});
+
+void test("uses the PostgreSQL 18 data root for managed volumes", () => {
+  const parsed = parseDeploymentManifest(
+    `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    image: postgres:18-alpine\n    server: 203.0.113.10\n`,
+  ).manifest;
+
+  assert.deepEqual(parsed.resources?.[0]?.container.volumes, [
+    { mountPath: "/var/lib/postgresql", name: "data" },
+  ]);
 });
 
 void test("validates hourly-or-slower UTC backup cron schedules", () => {

@@ -62,6 +62,7 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 export function formatStatus(status: string) {
+  if (status === "none") return "No health check";
   return status
     .split("_")
     .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)

@@ -477,12 +477,34 @@ export async function commitDeploymentRelease(
         .returning();
     }
     if (!release) throw new Error("Unable to commit deployment release");
+    const runtimeCheckedAt = new Date();
     await transaction
       .insert(deployableRuntimeStates)
-      .values({ appId: deployment.appId, desiredState: "running" })
+      .values({
+        appId: deployment.appId,
+        checkedAt: runtimeCheckedAt,
+        desiredState: "running",
+        driftReasons: [],
+        driftStatus: "in_sync",
+        healthStatus: "healthy",
+        observedContainerName: input.containerName,
+        observedImage: input.imageTag,
+        observedState: "running",
+        updatedAt: runtimeCheckedAt,
+      })
       .onConflictDoUpdate({
         target: deployableRuntimeStates.appId,
-        set: { desiredState: "running", updatedAt: new Date() },
+        set: {
+          checkedAt: runtimeCheckedAt,
+          desiredState: "running",
+          driftReasons: [],
+          driftStatus: "in_sync",
+          healthStatus: "healthy",
+          observedContainerName: input.containerName,
+          observedImage: input.imageTag,
+          observedState: "running",
+          updatedAt: runtimeCheckedAt,
+        },
       });
 
     const retainedReleases = await transaction

@@ -59,4 +59,12 @@ void describe("runtime inspection", () => {
     assert.match(runtimeInspectionScript, /HostIp/);
     assert.match(runtimeInspectionScript, /127\.0\.0\.1/);
   });
+
+  void it("runs manifest-defined HTTP and command health checks", () => {
+    assert.match(runtimeInspectionScript, /health_type == "http"/);
+    assert.match(runtimeInspectionScript, /urllib\.request\.urlopen/);
+    assert.match(runtimeInspectionScript, /health_type == "command"/);
+    assert.match(runtimeInspectionScript, /"docker", "exec"/);
+    assert.match(runtimeInspectionScript, /timeout=timeout/);
+  });
 });

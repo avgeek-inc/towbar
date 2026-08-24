@@ -379,7 +379,13 @@ fi
 if test -s "$remote_dir/cloudflare.env"; then
   sudo install -m 600 "$remote_dir/cloudflare.env" /etc/caddy/towbar/cloudflare.env
   sudo install -d -m 755 /etc/systemd/system/caddy.service.d
-  printf '%s\n' '[Service]' 'EnvironmentFile=/etc/caddy/towbar/cloudflare.env' | sudo tee /etc/systemd/system/caddy.service.d/towbar.conf >/dev/null
+  caddy_binary="$(command -v caddy)"
+  printf '%s\n' \
+    '[Service]' \
+    'EnvironmentFile=/etc/caddy/towbar/cloudflare.env' \
+    'ExecStart=' \
+    "ExecStart=$caddy_binary run --config /etc/caddy/Caddyfile" \
+    | sudo tee /etc/systemd/system/caddy.service.d/towbar.conf >/dev/null
   sudo systemctl daemon-reload
 fi
 sudo caddy fmt --overwrite "/etc/caddy/towbar/$app_id.caddy"
@@ -422,7 +428,13 @@ if test -f "$remote_dir/caddy.previous.state"; then
     if test "$(cat "$remote_dir/cloudflare.previous.state")" = present; then
       sudo install -m 600 "$remote_dir/cloudflare.previous" /etc/caddy/towbar/cloudflare.env
       sudo install -d -m 755 /etc/systemd/system/caddy.service.d
-      printf '%s\n' '[Service]' 'EnvironmentFile=/etc/caddy/towbar/cloudflare.env' | sudo tee /etc/systemd/system/caddy.service.d/towbar.conf >/dev/null
+      caddy_binary="$(command -v caddy)"
+      printf '%s\n' \
+        '[Service]' \
+        'EnvironmentFile=/etc/caddy/towbar/cloudflare.env' \
+        'ExecStart=' \
+        "ExecStart=$caddy_binary run --config /etc/caddy/Caddyfile" \
+        | sudo tee /etc/systemd/system/caddy.service.d/towbar.conf >/dev/null
     else
       sudo rm -f /etc/caddy/towbar/cloudflare.env /etc/systemd/system/caddy.service.d/towbar.conf
     fi

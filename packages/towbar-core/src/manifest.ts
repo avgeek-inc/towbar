@@ -1154,8 +1154,9 @@ function normalizeResource(
   sharedSecrets: { build: string[]; deployment: string[] },
 ): NormalizedResource {
   const kind = resource.type;
+  const image = resource.image ?? defaultResourceImage(kind)!;
   const port = resource.container?.port ?? defaultResourcePort(kind);
-  const defaultVolume = defaultResourceVolume(kind);
+  const defaultVolume = defaultResourceVolume(kind, image);
   const declaredVolumes = resource.container?.volumes ?? [];
   const volumes = defaultVolume
     ? declaredVolumes.some(
@@ -1188,7 +1189,7 @@ function normalizeResource(
       : {}),
     health,
     id: resource.id,
-    image: resource.image ?? defaultResourceImage(kind)!,
+    image,
     kind,
     name: resource.name,
     secrets: resource.secrets?.deployment
@@ -1364,12 +1365,27 @@ function defaultResourcePort(type: "image" | "postgres" | "redis") {
   return undefined;
 }
 
-function defaultResourceVolume(type: "image" | "postgres" | "redis") {
+function defaultResourceVolume(
+  type: "image" | "postgres" | "redis",
+  image: string,
+) {
   if (type === "postgres") {
-    return { mountPath: "/var/lib/postgresql/data", name: "data" };
+    return {
+      mountPath:
+        postgresImageMajorVersion(image) >= 18
+          ? "/var/lib/postgresql"
+          : "/var/lib/postgresql/data",
+      name: "data",
+    };
   }
   if (type === "redis") return { mountPath: "/data", name: "data" };
   return undefined;
+}
+
+function postgresImageMajorVersion(image: string) {
+  const tag = image.split("@")[0]?.split(":").at(-1) ?? "";
+  const match = /^(\d+)/u.exec(tag);
+  return match ? Number(match[1]) : 0;
 }
 
 function defaultResourceLimits(type: "image" | "postgres" | "redis") {

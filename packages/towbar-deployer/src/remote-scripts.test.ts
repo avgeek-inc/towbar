@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   buildRemoteScript,
+  configureCaddyScript,
   ensureNetworkRemoteScript,
   finalizeRemoteScript,
   hookRemoteScript,
@@ -37,6 +38,13 @@ void describe("remote deployment scripts", () => {
       rollbackCandidateScript,
       /docker start "\$previous_container"/,
     );
+  });
+
+  void it("does not log the Cloudflare token through Caddy's environment dump", () => {
+    assert.match(configureCaddyScript, /EnvironmentFile=/);
+    assert.match(configureCaddyScript, /ExecStart=/);
+    assert.doesNotMatch(configureCaddyScript, /--environ/);
+    assert.doesNotMatch(rollbackCandidateScript, /--environ/);
   });
 
   void it("bounds remote archive expansion before extracting", () => {
