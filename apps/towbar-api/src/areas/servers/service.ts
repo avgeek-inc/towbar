@@ -59,7 +59,9 @@ export async function listServers(workspaceId: string) {
   const rows = await database
     .select(serverSelection)
     .from(servers)
-    .where(eq(servers.workspaceId, workspaceId))
+    .where(
+      and(eq(servers.workspaceId, workspaceId), isNull(servers.archivedAt)),
+    )
     .orderBy(desc(servers.updatedAt));
   const latestPreparations = await getLatestServerPreparations(
     rows.map((server) => server.id),
@@ -75,7 +77,11 @@ export async function listSourceServers(sourceId: string, workspaceId: string) {
     .select(serverSelection)
     .from(servers)
     .where(
-      and(eq(servers.sourceId, sourceId), eq(servers.workspaceId, workspaceId)),
+      and(
+        eq(servers.sourceId, sourceId),
+        eq(servers.workspaceId, workspaceId),
+        isNull(servers.archivedAt),
+      ),
     )
     .orderBy(desc(servers.updatedAt));
 
@@ -122,7 +128,13 @@ export async function getServer(serverId: string, workspaceId: string) {
   const [server] = await database
     .select(serverSelection)
     .from(servers)
-    .where(and(eq(servers.id, serverId), eq(servers.workspaceId, workspaceId)))
+    .where(
+      and(
+        eq(servers.id, serverId),
+        eq(servers.workspaceId, workspaceId),
+        isNull(servers.archivedAt),
+      ),
+    )
     .limit(1);
   if (!server) throw notFound("Server");
   const latestPreparations = await getLatestServerPreparations([server.id]);
@@ -183,6 +195,7 @@ async function listServerDeployables(
     .where(
       and(
         eq(apps.serverId, serverId),
+        isNull(apps.archivedAt),
         type === "app" ? eq(apps.kind, "app") : ne(apps.kind, "app"),
       ),
     )

@@ -1,4 +1,4 @@
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, isNull, ne } from "drizzle-orm";
 
 import {
   apps,
@@ -61,6 +61,8 @@ async function listDeployables(
         sourceId
           ? and(eq(apps.workspaceId, workspaceId), eq(apps.sourceId, sourceId))
           : eq(apps.workspaceId, workspaceId),
+        isNull(apps.archivedAt),
+        isNull(servers.archivedAt),
         type === "app" ? eq(apps.kind, "app") : ne(apps.kind, "app"),
       ),
     )
@@ -136,6 +138,8 @@ async function getDeployable(
       and(
         eq(apps.id, appId),
         eq(apps.workspaceId, workspaceId),
+        isNull(apps.archivedAt),
+        isNull(servers.archivedAt),
         type === "app" ? eq(apps.kind, "app") : ne(apps.kind, "app"),
       ),
     )
