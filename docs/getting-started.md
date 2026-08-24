@@ -147,7 +147,10 @@ Store the SSH private key in AWS Secrets Manager as a JSON object:
 
 The Source's AWS identity needs `sts:GetCallerIdentity` and
 `secretsmanager:GetSecretValue` only for the secret paths declared by that
-Source. Add narrowly scoped S3 permissions only when using managed backups.
+Source. To edit App environment bundles from the App's **Secrets** tab, also
+grant `secretsmanager:PutSecretValue` only on those specific build, deployment,
+and hook secret ARNs. Server login and Cloudflare credentials do not need write
+permission. Add narrowly scoped S3 permissions only when using managed backups.
 
 ## 5. Add the deployment manifest
 
@@ -179,6 +182,12 @@ In the dashboard:
 6. Open the Server's **Overview** tab and choose **Prepare Server**.
 7. Follow the durable preparation steps until the Server is `Ready`. Apps and
    Resources remain `Server Setup Pending` and cannot deploy before this point.
+
+App secret references remain manifest-owned. On an App's **Secrets** tab,
+Towbar returns only key names and version metadata. Values entered there are
+merged into the referenced AWS JSON object server-side and are never returned
+to the browser. **Save and deploy** explicitly queues a deployment because a
+Secrets Manager version change does not create a Git commit.
 
 If preparation stops on an existing server, use the reported step and command
 failure to remove only the conflicting installation, then retry. A fresh

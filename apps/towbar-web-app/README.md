@@ -16,6 +16,12 @@ Pending` until the Server is ready.
 App and Resource pages show observed health/drift and bounded runtime actions.
 Their configuration and lifecycle are read-only projections of the Source
 manifest; removal and restoration happen through Git and Source sync.
+The App and Resource Secrets tabs show only deployable-owned bindings. Resources
+expose deployment bindings only. Root-shared build and deployment bindings are
+edited from the owning Source's Secrets tab. Owners can add, replace, or delete
+values, then optionally queue the affected deployable. Values are fetched only
+through an explicit owner-only reveal request; the UI cannot change a manifest
+reference.
 Database Resource pages expose verified backup policy, manual capture, and
 retained S3 artifact metadata. When configured by the manifest, the Resource
 connection view exposes non-secret private-network and SSH-tunnel coordinates

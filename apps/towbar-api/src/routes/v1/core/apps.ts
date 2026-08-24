@@ -10,11 +10,20 @@ import {
   requestAppRollback,
 } from "../../../areas/apps/service.js";
 import {
+  listAppSecretBindings,
+  revealAppSecretBinding,
+  updateAppSecretBinding,
+} from "../../../areas/apps/secrets.js";
+import {
   listDeployableOperations,
   requestDeployableOperation,
 } from "../../../areas/resource-operations/service.js";
-import { badRequest } from "../../../http/errors.js";
+import { badRequest, forbidden } from "../../../http/errors.js";
 import { readJson } from "../../../http/requests.js";
+import {
+  secretMutationSchema,
+  secretReferenceSchema,
+} from "./secret-requests.js";
 
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
@@ -24,7 +33,6 @@ const rollbackSchema = z
 const logsSchema = z
   .object({ tail: z.number().int().min(1).max(5_000) })
   .strict();
-
 export const appRoutes = new Hono<TowbarHonoEnvironment>();
 
 appRoutes.get("/", async (context) =>
@@ -36,6 +44,52 @@ appRoutes.get("/:appId", async (context) => {
   return context.json({
     app: await getApp(context.req.param("appId"), user.workspaceId),
   });
+});
+
+appRoutes.get("/:appId/secrets", async (context) => {
+  const user = context.get("user");
+  return context.json({
+    bindings: await listAppSecretBindings({
+      appId: context.req.param("appId"),
+      workspaceId: user.workspaceId,
+    }),
+    canManageSecrets: user.workspaceRole === "owner",
+  });
+});
+
+appRoutes.post("/:appId/secrets/reveal", async (context) => {
+  const user = context.get("user");
+  if (user.workspaceRole !== "owner") {
+    throw forbidden("Only workspace owners can reveal App secrets");
+  }
+  const input = await readJson(context, secretReferenceSchema, 4 * 1_024);
+  const secret = await revealAppSecretBinding({
+    appId: context.req.param("appId"),
+    reference: input.reference,
+    workspaceId: user.workspaceId,
+  });
+  context.header("Cache-Control", "no-store, max-age=0");
+  context.header("Pragma", "no-cache");
+  return context.json({ secret });
+});
+
+appRoutes.patch("/:appId/secrets", async (context) => {
+  const user = context.get("user");
+  if (user.workspaceRole !== "owner") {
+    throw forbidden("Only workspace owners can manage App secrets");
+  }
+  const input = await readJson(context, secretMutationSchema, 256 * 1_024);
+  const secret = await updateAppSecretBinding({
+    appId: context.req.param("appId"),
+    mutation: {
+      delete: input.delete,
+      expectedVersionId: input.expectedVersionId,
+      set: input.set,
+    },
+    reference: input.reference,
+    workspaceId: user.workspaceId,
+  });
+  return context.json({ secret });
 });
 
 appRoutes.get("/:appId/deployments", async (context) =>

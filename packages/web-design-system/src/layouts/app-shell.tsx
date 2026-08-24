@@ -68,7 +68,7 @@ function Content({
   return (
     <div
       className={cn(
-        "mx-auto min-h-full w-full min-w-0 px-4 py-6 sm:px-6 lg:px-8",
+        "mx-auto min-h-full w-full min-w-0 px-4 py-3 sm:px-6 sm:py-6 lg:px-8",
         widths[variant ?? contentWidth],
         className,
       )}

@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import type {
   App,
   Deployment,
@@ -71,24 +72,48 @@ export function DashboardOverview() {
     unhealthyServerKeys.has(getServerKey(server.sourceId, server.canonicalIp)),
   ).length;
   const activity = buildDeploymentActivity(deploymentItems);
+  const metrics = [
+    {
+      label: "Servers",
+      unhealthyCount: unhealthyServers,
+      value: activeServers.length,
+    },
+    {
+      label: "Apps",
+      unhealthyCount: unhealthyApps,
+      value: activeApps.length,
+    },
+    {
+      label: "Resources",
+      unhealthyCount: unhealthyResources,
+      value: activeResources.length,
+    },
+  ];
 
   return (
     <DashboardPage title="Overview">
-      <div className="min-w-0 overflow-x-auto pb-2">
-        <KPIGroup className="min-w-[42rem]">
-          <MetricCard label="Servers" value={activeServers.length}>
-            <HealthChip unhealthyCount={unhealthyServers} />
+      <div className="grid gap-3 sm:hidden">
+        {metrics.map((metric) => (
+          <MetricCard
+            className="rounded-3xl border border-separator bg-surface"
+            key={metric.label}
+            label={metric.label}
+            value={metric.value}
+          >
+            <HealthChip unhealthyCount={metric.unhealthyCount} />
           </MetricCard>
-          <KPIGroup.Separator />
-          <MetricCard label="Apps" value={activeApps.length}>
-            <HealthChip unhealthyCount={unhealthyApps} />
-          </MetricCard>
-          <KPIGroup.Separator />
-          <MetricCard label="Resources" value={activeResources.length}>
-            <HealthChip unhealthyCount={unhealthyResources} />
-          </MetricCard>
-        </KPIGroup>
+        ))}
       </div>
+      <KPIGroup className="hidden sm:flex">
+        {metrics.map((metric, index) => (
+          <Fragment key={metric.label}>
+            {index ? <KPIGroup.Separator /> : null}
+            <MetricCard label={metric.label} value={metric.value}>
+              <HealthChip unhealthyCount={metric.unhealthyCount} />
+            </MetricCard>
+          </Fragment>
+        ))}
+      </KPIGroup>
 
       <Widget className="min-w-0">
         <Widget.Header className="flex-wrap py-2">

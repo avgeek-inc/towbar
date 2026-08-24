@@ -26,12 +26,15 @@ export function BreadcrumbTrail({
       className={cn("min-w-0 overflow-hidden", className)}
       data-slot="breadcrumb"
     >
-      <ol className="flex min-w-0 items-center gap-2 overflow-x-auto text-sm">
+      <ol className="flex min-w-0 items-center gap-2 overflow-hidden text-sm whitespace-nowrap">
         {visibleItems.map((item, index) => {
           const isLast = index === visibleItems.length - 1;
           return (
             <li
-              className="flex min-w-0 shrink-0 items-center gap-2 last:shrink"
+              className={cn(
+                "flex min-w-0 items-center gap-2",
+                isLast ? "flex-1" : "shrink",
+              )}
               key={`${item.href ?? item.label}-${index}`}
             >
               {index > 0 ? (
@@ -41,8 +44,9 @@ export function BreadcrumbTrail({
               ) : null}
               {item.href && !isLast ? (
                 <a
-                  className="truncate text-muted hover:text-foreground"
+                  className="block min-w-0 max-w-40 truncate text-muted hover:text-foreground sm:max-w-64"
                   href={item.href}
+                  title={item.label}
                   onClick={(event: MouseEvent<HTMLAnchorElement>) => {
                     if (!navigate) return;
                     event.preventDefault();
@@ -54,7 +58,7 @@ export function BreadcrumbTrail({
               ) : (
                 <span
                   aria-current={isLast ? "page" : undefined}
-                  className="truncate font-medium text-foreground"
+                  className="block min-w-0 truncate font-medium text-foreground"
                   title={item.label}
                 >
                   {item.label}

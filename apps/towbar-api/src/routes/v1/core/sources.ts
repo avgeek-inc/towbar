@@ -13,11 +13,20 @@ import {
   requestSourceSync,
 } from "../../../areas/sources/service.js";
 import { listApps, listResources } from "../../../areas/apps/service.js";
+import {
+  listSourceSharedSecretBindings,
+  revealSourceSharedSecretBinding,
+  updateSourceSharedSecretBinding,
+} from "../../../areas/apps/secrets.js";
 import { listDeployments } from "../../../areas/deployments/service.js";
 import { listSourceServers } from "../../../areas/servers/service.js";
 import { listSourceBackups } from "../../../areas/resource-operations/service.js";
 import { forbidden } from "../../../http/errors.js";
 import { readJson } from "../../../http/requests.js";
+import {
+  secretMutationSchema,
+  secretReferenceSchema,
+} from "./secret-requests.js";
 
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
@@ -29,7 +38,6 @@ const sourceSchema = z
     repositoryOwner: z.string().trim().min(1).max(255),
   })
   .strict();
-
 export const sourceRoutes = new Hono<TowbarHonoEnvironment>();
 
 sourceRoutes.get("/", async (context) =>
@@ -53,6 +61,58 @@ sourceRoutes.get("/:sourceId", async (context) => {
     canManageSource: user.workspaceRole === "owner",
     source: await getSource(context.req.param("sourceId"), user.workspaceId),
   });
+});
+
+sourceRoutes.get("/:sourceId/secrets", async (context) => {
+  const user = context.get("user");
+  const sourceId = context.req.param("sourceId");
+  await getSource(sourceId, user.workspaceId);
+  return context.json({
+    bindings: await listSourceSharedSecretBindings({
+      sourceId,
+      workspaceId: user.workspaceId,
+    }),
+    canManageSecrets: user.workspaceRole === "owner",
+  });
+});
+
+sourceRoutes.post("/:sourceId/secrets/reveal", async (context) => {
+  const user = context.get("user");
+  if (user.workspaceRole !== "owner") {
+    throw forbidden("Only workspace owners can reveal shared Source secrets");
+  }
+  const sourceId = context.req.param("sourceId");
+  await getSource(sourceId, user.workspaceId);
+  const input = await readJson(context, secretReferenceSchema, 4 * 1_024);
+  const secret = await revealSourceSharedSecretBinding({
+    reference: input.reference,
+    sourceId,
+    workspaceId: user.workspaceId,
+  });
+  context.header("Cache-Control", "no-store, max-age=0");
+  context.header("Pragma", "no-cache");
+  return context.json({ secret });
+});
+
+sourceRoutes.patch("/:sourceId/secrets", async (context) => {
+  const user = context.get("user");
+  if (user.workspaceRole !== "owner") {
+    throw forbidden("Only workspace owners can manage shared Source secrets");
+  }
+  const sourceId = context.req.param("sourceId");
+  await getSource(sourceId, user.workspaceId);
+  const input = await readJson(context, secretMutationSchema, 256 * 1_024);
+  const secret = await updateSourceSharedSecretBinding({
+    mutation: {
+      delete: input.delete,
+      expectedVersionId: input.expectedVersionId,
+      set: input.set,
+    },
+    reference: input.reference,
+    sourceId,
+    workspaceId: user.workspaceId,
+  });
+  return context.json({ secret });
 });
 
 sourceRoutes.get("/:sourceId/apps", async (context) => {

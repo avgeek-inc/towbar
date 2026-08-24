@@ -49,9 +49,9 @@ export function PageSection({
         width === "content" && "mx-auto w-full max-w-7xl",
         xPadding === "default" && "px-4 sm:px-6 lg:px-8",
         yPadding === "default"
-          ? "py-10"
+          ? "py-6 sm:py-10"
           : yPadding === "compact"
-            ? "py-6"
+            ? "py-3 sm:py-6"
             : "py-0",
         className,
       )}

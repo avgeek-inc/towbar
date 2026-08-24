@@ -1,18 +1,21 @@
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 import { KPI } from "@workspace/web-design-system/data-display/kpi";
+import { cn } from "@workspace/web-design-system/lib/utils";
 
 export function MetricCard({
   children,
+  className,
   label,
   value,
 }: {
   children?: ReactNode;
+  className?: ComponentProps<typeof KPI>["className"];
   label: string;
   value: number | string;
 }) {
   return (
-    <KPI className="min-w-0">
+    <KPI className={cn("min-w-0", className)}>
       <KPI.Header>
         <KPI.Title>{label}</KPI.Title>
       </KPI.Header>

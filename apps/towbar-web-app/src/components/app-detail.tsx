@@ -5,6 +5,7 @@ import {
   CodeIcon,
   DashboardCircleIcon,
   FileViewIcon,
+  Key01Icon,
   Rocket01Icon,
   ServerStack01Icon,
   Settings01Icon,
@@ -21,12 +22,14 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { ActionButton, DashboardPage, PageTabs } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
+import { useResponsiveTabsOrientation } from "@/hooks/use-responsive-tabs-orientation";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 import { DeploymentTable } from "./deployment-table";
+import { AppSecrets } from "./app-secrets";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 import {
-  RuntimeActionToolbar,
+  DeployableActionsMenu,
   RuntimeLogs,
   RuntimeOverview,
 } from "./runtime-operations";
@@ -111,39 +114,14 @@ export function AppDetail() {
       actions={
         !item.archivedAt ? (
           <div className="flex flex-wrap justify-end gap-2">
-            <RuntimeActionToolbar
+            <DeployableActionsMenu
               active={item.serverReady}
               deployableId={appId}
+              previousReleaseId={previous?.id}
               runtimeState={item.runtimeState}
+              sourceId={item.sourceId}
               type="app"
             />
-            {previous ? (
-              <ActionButton
-                action={() =>
-                  api.post<{ deployment: Deployment }>(
-                    `/v1/core/apps/${appId}/actions/rollback`,
-                    { releaseId: previous.id },
-                    { "Idempotency-Key": crypto.randomUUID() },
-                  )
-                }
-                confirm={{
-                  actionLabel: "Queue rollback",
-                  description:
-                    "Towbar will check the saved image, routing, TLS, and public endpoint before switching traffic.",
-                  title: "Roll back to the previous deployment?",
-                }}
-                onSuccess={(result) =>
-                  router.push(
-                    `/sources/${item.sourceId}/deployments/${result.deployment.id}`,
-                  )
-                }
-                pendingLabel="Queueing…"
-                isDisabled={!item.serverReady}
-                success="Rollback queued"
-              >
-                Rollback
-              </ActionButton>
-            ) : null}
             <ActionButton
               action={() =>
                 api.post<{ deployment: Deployment }>(
@@ -290,11 +268,11 @@ export function AppDetail() {
             label: "Runtime",
             icon: <HugeiconsIcon icon={Activity01Icon} />,
             indicator: !item.serverReady
-              ? { label: "Setup pending", variant: "warning" }
+              ? { dot: true, label: "Setup pending", variant: "warning" }
               : item.runtimeState.healthStatus === "unhealthy"
                 ? { label: "Unhealthy", variant: "destructive" }
                 : item.runtimeState.driftStatus === "drifted"
-                  ? { label: "Drifted", variant: "warning" }
+                  ? { dot: true, label: "Drifted", variant: "warning" }
                   : undefined,
             content: (
               <RuntimeOverview runtimeState={item.runtimeState} type="app" />
@@ -309,6 +287,18 @@ export function AppDetail() {
                 active={!item.archivedAt && item.serverReady}
                 deployableId={appId}
                 type="app"
+              />
+            ),
+          },
+          {
+            value: "secrets",
+            label: "Secrets",
+            icon: <HugeiconsIcon icon={Key01Icon} />,
+            content: (
+              <AppSecrets
+                appId={appId}
+                canDeploy={!item.archivedAt && item.serverReady}
+                sourceId={item.sourceId}
               />
             ),
           },
@@ -354,6 +344,7 @@ export function AppDetail() {
 }
 
 function AppConfigurationTabs({ item }: { item: AppRecord }) {
+  const orientation = useResponsiveTabsOrientation();
   const tabs: Array<{ content: ReactNode; label: string; value: string }> = [
     {
       value: "build",
@@ -460,13 +451,19 @@ function AppConfigurationTabs({ item }: { item: AppRecord }) {
   ];
 
   return (
-    <Tabs className="block" defaultSelectedKey="build" orientation="vertical">
+    <Tabs
+      className="block"
+      defaultSelectedKey="build"
+      orientation={orientation}
+    >
       <div className="grid gap-4 lg:grid-cols-[13rem_minmax(0,1fr)]">
         <Tabs.ListContainer className="h-fit w-full self-start">
           <Tabs.List aria-label="App configuration" className="w-full">
             {tabs.map((tab) => (
               <Tabs.Tab
-                className="justify-start"
+                className={
+                  orientation === "vertical" ? "justify-start" : undefined
+                }
                 id={tab.value}
                 key={tab.value}
               >

@@ -61,7 +61,11 @@ export function DashboardPage({
       title={title}
       titleContent={titleContent}
     >
-      <PageSection className="grid gap-6 pt-0" yPadding="compact">
+      <PageSection
+        className="grid gap-4 pt-0 sm:gap-6"
+        xPadding="none"
+        yPadding="compact"
+      >
         {Children.toArray(children)}
       </PageSection>
     </ApplicationPage>
@@ -102,6 +106,7 @@ export function PageTabs({
       | boolean
       | {
           label?: string;
+          dot?: boolean;
           variant?:
             | "default"
             | "secondary"
@@ -158,23 +163,32 @@ export function PageTabs({
                   {tab.label}
                 </span>
                 {tab.indicator ? (
-                  <Chip
-                    aria-label={
-                      typeof tab.indicator === "object"
-                        ? tab.indicator.label
-                        : undefined
-                    }
-                    size="small"
-                    variant={
-                      typeof tab.indicator === "object"
-                        ? tab.indicator.variant
-                        : "default"
-                    }
-                  >
-                    {typeof tab.indicator === "object"
-                      ? (tab.indicator.label ?? "Active")
-                      : "Active"}
-                  </Chip>
+                  typeof tab.indicator === "object" && tab.indicator.dot ? (
+                    <span
+                      aria-label={tab.indicator.label ?? "Warning"}
+                      className="bg-warning size-2 shrink-0 rounded-full"
+                      role="img"
+                      title={tab.indicator.label ?? "Warning"}
+                    />
+                  ) : (
+                    <Chip
+                      aria-label={
+                        typeof tab.indicator === "object"
+                          ? tab.indicator.label
+                          : undefined
+                      }
+                      size="small"
+                      variant={
+                        typeof tab.indicator === "object"
+                          ? tab.indicator.variant
+                          : "default"
+                      }
+                    >
+                      {typeof tab.indicator === "object"
+                        ? (tab.indicator.label ?? "Active")
+                        : "Active"}
+                    </Chip>
+                  )
                 ) : null}
               </span>
               <Tabs.Indicator />
@@ -184,7 +198,7 @@ export function PageTabs({
       </Tabs.ListContainer>
       {tabs.map((tab) => (
         <Tabs.Panel
-          className="w-full min-w-0 max-w-full outline-none"
+          className="m-0 w-full min-w-0 max-w-full p-0 outline-none"
           id={tab.value}
           key={tab.value}
         >

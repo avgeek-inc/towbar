@@ -13,6 +13,7 @@ import type { Key, ReactNode } from "react";
 import { Tabs } from "@workspace/web-design-system/navigation/tabs";
 
 import { DashboardPage } from "@/components/page-parts";
+import { useResponsiveTabsOrientation } from "@/hooks/use-responsive-tabs-orientation";
 
 const settingsNavigation = [
   { icon: UserAccountIcon, label: "Account", value: "account" },
@@ -29,6 +30,7 @@ export function SettingsPage({
 }: Record<SettingsSection, ReactNode>) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const orientation = useResponsiveTabsOrientation();
   const requestedSection = searchParams.get("section");
   const selectedTab =
     settingsNavigation.find((item) => item.value === requestedSection)?.value ??
@@ -63,7 +65,7 @@ export function SettingsPage({
     <DashboardPage title="Settings">
       <Tabs
         className="block"
-        orientation="vertical"
+        orientation={orientation}
         selectedKey={selectedTab}
         onSelectionChange={selectTab}
       >

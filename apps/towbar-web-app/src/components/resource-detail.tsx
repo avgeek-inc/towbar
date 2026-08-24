@@ -6,6 +6,7 @@ import {
   DatabaseBackupIcon,
   DatabaseIcon,
   FileViewIcon,
+  Key01Icon,
   Rocket01Icon,
   ServerStack01Icon,
   Settings01Icon,
@@ -26,13 +27,15 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { ActionButton, DashboardPage, PageTabs } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
+import { useResponsiveTabsOrientation } from "@/hooks/use-responsive-tabs-orientation";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 import { DeploymentTable, formatDeploymentTrigger } from "./deployment-table";
 import { ResourceBackups } from "./resource-backups";
+import { ResourceSecrets } from "./app-secrets";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 import {
-  RuntimeActionToolbar,
+  DeployableActionsMenu,
   RuntimeLogs,
   RuntimeOverview,
 } from "./runtime-operations";
@@ -196,11 +199,11 @@ export function ResourceDetail() {
       label: "Runtime",
       icon: <HugeiconsIcon icon={Activity01Icon} />,
       indicator: !item.serverReady
-        ? ({ label: "Setup pending", variant: "warning" } as const)
+        ? ({ dot: true, label: "Setup pending", variant: "warning" } as const)
         : item.runtimeState.healthStatus === "unhealthy"
           ? ({ label: "Unhealthy", variant: "destructive" } as const)
           : item.runtimeState.driftStatus === "drifted"
-            ? ({ label: "Drifted", variant: "warning" } as const)
+            ? ({ dot: true, label: "Drifted", variant: "warning" } as const)
             : undefined,
       content: (
         <RuntimeOverview runtimeState={item.runtimeState} type="resource" />
@@ -233,6 +236,18 @@ export function ResourceDetail() {
             ),
           },
         ]),
+    {
+      value: "secrets",
+      label: "Secrets",
+      icon: <HugeiconsIcon icon={Key01Icon} />,
+      content: (
+        <ResourceSecrets
+          canDeploy={!item.archivedAt && item.serverReady}
+          resourceId={resourceId}
+          sourceId={item.sourceId}
+        />
+      ),
+    },
     {
       value: "configuration",
       label: "Configuration",
@@ -278,39 +293,14 @@ export function ResourceDetail() {
       actions={
         !item.archivedAt ? (
           <div className="flex flex-wrap justify-end gap-2">
-            <RuntimeActionToolbar
+            <DeployableActionsMenu
               active={item.serverReady}
               deployableId={resourceId}
+              previousReleaseId={previous?.id}
               runtimeState={item.runtimeState}
+              sourceId={sourceId}
               type="resource"
             />
-            {previous ? (
-              <ActionButton
-                action={() =>
-                  api.post<{ deployment: Deployment }>(
-                    `/v1/core/resources/${resourceId}/actions/rollback`,
-                    { releaseId: previous.id },
-                    { "Idempotency-Key": crypto.randomUUID() },
-                  )
-                }
-                confirm={{
-                  actionLabel: "Queue rollback",
-                  description:
-                    "Towbar will stop the current container, start the retained image against the same persistent volumes, and restore the current release if validation fails.",
-                  title: "Roll back this resource?",
-                }}
-                onSuccess={(result) =>
-                  router.push(
-                    `/sources/${sourceId}/deployments/${result.deployment.id}`,
-                  )
-                }
-                pendingLabel="Queueing…"
-                isDisabled={!item.serverReady}
-                success="Rollback queued"
-              >
-                Rollback
-              </ActionButton>
-            ) : null}
             <ActionButton
               action={() =>
                 api.post<{ deployment: Deployment }>(
@@ -364,6 +354,7 @@ export function ResourceDetail() {
 }
 
 function ResourceConfigurationTabs({ item }: { item: ResourceRecord }) {
+  const orientation = useResponsiveTabsOrientation();
   const tabs: Array<{ content: ReactNode; label: string; value: string }> = [
     {
       value: "image",
@@ -480,13 +471,19 @@ function ResourceConfigurationTabs({ item }: { item: ResourceRecord }) {
   ];
 
   return (
-    <Tabs className="block" defaultSelectedKey="image" orientation="vertical">
+    <Tabs
+      className="block"
+      defaultSelectedKey="image"
+      orientation={orientation}
+    >
       <div className="grid gap-4 lg:grid-cols-[13rem_minmax(0,1fr)]">
         <Tabs.ListContainer className="h-fit w-full self-start">
           <Tabs.List aria-label="Resource configuration" className="w-full">
             {tabs.map((tab) => (
               <Tabs.Tab
-                className="justify-start"
+                className={
+                  orientation === "vertical" ? "justify-start" : undefined
+                }
                 id={tab.value}
                 key={tab.value}
               >

@@ -10,7 +10,6 @@ import type {
   Resource,
 } from "@workspace/towbar-web-client";
 import { Button } from "@workspace/web-design-system/buttons/button";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { ProgressCircle } from "@workspace/web-design-system/feedback/progress-circle";
 import { Popover } from "@workspace/web-design-system/overlays/popover";
 import { ScrollShadow } from "@workspace/web-design-system/utilities/scroll-shadow";
@@ -90,7 +89,8 @@ export function DeploymentQueue() {
     [apps.data, resources.data],
   );
 
-  if (!deployments.data || deployments.error) return null;
+  if (!deployments.data || deployments.error || pending.length === 0)
+    return null;
 
   function openDeployment(deployment: Deployment) {
     setIsOpen(false);
@@ -106,15 +106,10 @@ export function DeploymentQueue() {
           variant="outline"
         >
           <ProgressCircle
-            aria-label={
-              pending.length
-                ? "Deployments in progress"
-                : "No deployments in progress"
-            }
-            color={pending.length ? "accent" : "default"}
-            isIndeterminate={pending.length > 0}
+            aria-label="Deployments in progress"
+            color="accent"
+            isIndeterminate
             size="sm"
-            value={0}
           >
             <ProgressCircle.Track>
               <ProgressCircle.TrackCircle />
@@ -134,44 +129,31 @@ export function DeploymentQueue() {
             <div className="border-b border-separator px-4 py-3">
               <Popover.Heading>Deployment queue</Popover.Heading>
             </div>
-            {pending.length ? (
-              <ScrollShadow className="max-h-80" hideScrollBar>
-                <div className="divide-y divide-separator">
-                  {pending.map((deployment) => {
-                    const deployableName =
-                      deployableNames.get(deployment.appId) ??
-                      "Unavailable deployable";
-                    return (
-                      <Button
-                        className="h-auto min-h-14 w-full justify-between rounded-none bg-overlay px-4 py-3 text-start"
-                        key={deployment.id}
-                        variant="ghost"
-                        onPress={() => openDeployment(deployment)}
+            <ScrollShadow className="max-h-80" hideScrollBar>
+              <div className="divide-y divide-separator">
+                {pending.map((deployment) => {
+                  const deployableName =
+                    deployableNames.get(deployment.appId) ??
+                    "Unavailable deployable";
+                  return (
+                    <Button
+                      className="h-auto min-h-14 w-full justify-between rounded-none bg-overlay px-4 py-3 text-start"
+                      key={deployment.id}
+                      variant="ghost"
+                      onPress={() => openDeployment(deployment)}
+                    >
+                      <span
+                        className="min-w-0 truncate font-medium"
+                        title={deployableName}
                       >
-                        <span
-                          className="min-w-0 truncate font-medium"
-                          title={deployableName}
-                        >
-                          {deployableName}
-                        </span>
-                        <DeploymentStateIndicator state={deployment.state} />
-                      </Button>
-                    );
-                  })}
-                </div>
-              </ScrollShadow>
-            ) : (
-              <EmptyState className="min-h-32 justify-center">
-                <EmptyState.Header>
-                  <EmptyState.Title>
-                    No deployments in progress
-                  </EmptyState.Title>
-                  <EmptyState.Description>
-                    Queued and active deployments will appear here.
-                  </EmptyState.Description>
-                </EmptyState.Header>
-              </EmptyState>
-            )}
+                        {deployableName}
+                      </span>
+                      <DeploymentStateIndicator state={deployment.state} />
+                    </Button>
+                  );
+                })}
+              </div>
+            </ScrollShadow>
           </Popover.Dialog>
         </Popover.Content>
       </Popover>

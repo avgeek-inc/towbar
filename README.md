@@ -108,8 +108,9 @@ storage.
 - Back up the `postgres-data` volume with a tested PostgreSQL backup process.
 - Give the GitHub App read-only repository contents permission and subscribe
   only to the events Towbar needs.
-- Give each Source's AWS identity permission only to read its expected Secrets
-  Manager paths.
+- Give each Source's AWS identity read access only to its declared Secrets
+  Manager paths. Grant `PutSecretValue` only for App and Resource environment
+  bundles that operators are allowed to edit through Towbar.
 - Pin SSH host keys through Towbar and keep destination hosts patched.
 
 Read [SECURITY.md](SECURITY.md) and [the architecture guide](docs/architecture.md)

@@ -1,9 +1,16 @@
 import { randomUUID } from "node:crypto";
-import { createServer, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
 import { pathToFileURL } from "node:url";
 
 import type {
   App,
+  AppSecretBinding,
+  AppSecretUse,
+  AppSecretsResponse,
   AwsCredentialMetadata,
   Deployment,
   DeploymentEvent,
@@ -51,6 +58,8 @@ type FixtureResource = Resource & {
 const fixtureNow = "2026-08-22T09:00:00.000Z";
 const commitSha = "c".repeat(40);
 const manifestDigest = "d".repeat(64);
+const sharedBuildSecret = "aws:fixture/shared/build";
+const sharedDeploymentSecret = "aws:fixture/shared/deployment";
 const terminalStates = new Set<DeploymentState>([
   "cancelled",
   "failed",
@@ -136,6 +145,46 @@ const resources: FixtureResource[] = [
     servers[1]!,
   ),
 ];
+
+const fixtureSecretKeys = new Map<string, string[]>([
+  [sharedBuildSecret, ["HEROUI_PRO_LICENSE", "HUGEICONS_LICENSE_KEY"]],
+  [sharedDeploymentSecret, ["SENTRY_DSN"]],
+  ...apps.flatMap((app) => [
+    [app.config.secrets.build!, ["NPM_TOKEN"]] as [string, string[]],
+    [app.config.secrets.deployment!, ["DATABASE_URL", "SESSION_SECRET"]] as [
+      string,
+      string[],
+    ],
+  ]),
+  ...resources.flatMap((resource) =>
+    resource.config.secrets.deployment
+      ? [
+          [
+            resource.config.secrets.deployment,
+            resource.kind === "postgres"
+              ? ["POSTGRES_PASSWORD"]
+              : resource.kind === "redis"
+                ? ["REDIS_PASSWORD"]
+                : ["SERVICE_TOKEN"],
+          ] as [string, string[]],
+        ]
+      : [],
+  ),
+]);
+const fixtureSecretVersions = new Map(
+  [...fixtureSecretKeys.keys()].map((reference) => [
+    reference,
+    crypto.randomUUID(),
+  ]),
+);
+const fixtureSecretValues = new Map(
+  [...fixtureSecretKeys.entries()].map(([reference, keys]) => [
+    reference,
+    Object.fromEntries(
+      keys.map((key) => [key, `fixture-${key.toLowerCase()}`]),
+    ),
+  ]),
+);
 
 const deployments: Deployment[] = [
   createDeploymentFixture(
@@ -405,6 +454,127 @@ export function createFixtureApiServer() {
       return writeJson(response, 202, { sync: { id: sourceSync.id } });
     }
     if (
+      request.method === "PATCH" &&
+      path === `/v1/core/sources/${source.id}/secrets`
+    ) {
+      void readRequestJson(request)
+        .then((input) => {
+          const payload = input as {
+            delete?: string[];
+            expectedVersionId?: string;
+            reference?: string;
+            set?: Record<string, string>;
+          };
+          const binding = getFixtureSourceSecrets().bindings.find(
+            (candidate) => candidate.reference === payload.reference,
+          );
+          const currentVersion = payload.reference
+            ? fixtureSecretVersions.get(payload.reference)
+            : undefined;
+          if (!payload.reference || !binding || !currentVersion) {
+            return writeNotFound(response);
+          }
+          if (payload.expectedVersionId !== currentVersion) {
+            return writeJson(response, 409, {
+              error: { message: "This secret changed after it was loaded." },
+            });
+          }
+          applyFixtureSecretMutation(payload.reference, payload);
+          return writeJson(response, 200, {
+            secret: getFixtureSourceSecrets().bindings.find(
+              (candidate) => candidate.reference === payload.reference,
+            ),
+          });
+        })
+        .catch(() =>
+          writeJson(response, 400, {
+            error: { message: "Request body must be valid JSON" },
+          }),
+        );
+      return;
+    }
+    if (
+      request.method === "POST" &&
+      path === `/v1/core/sources/${source.id}/secrets/reveal`
+    ) {
+      void readRequestJson(request)
+        .then((input) => {
+          const reference = (input as { reference?: string }).reference;
+          const binding = getFixtureSourceSecrets().bindings.find(
+            (candidate) => candidate.reference === reference,
+          );
+          if (!reference || !binding) return writeNotFound(response);
+          return writeFixtureSecretReveal(response, reference);
+        })
+        .catch(() => writeJson(response, 400, { error: "Invalid JSON" }));
+      return;
+    }
+    const secretMutationMatch = path.match(
+      /^\/v1\/core\/(apps|resources)\/([^/]+)\/secrets$/,
+    );
+    if (request.method === "PATCH" && secretMutationMatch) {
+      const deployable =
+        secretMutationMatch[1] === "apps"
+          ? apps.find((item) => item.id === secretMutationMatch[2])
+          : resources.find((item) => item.id === secretMutationMatch[2]);
+      if (!deployable) return writeNotFound(response);
+      void readRequestJson(request)
+        .then((input) => {
+          const payload = input as {
+            delete?: string[];
+            expectedVersionId?: string;
+            reference?: string;
+            set?: Record<string, string>;
+          };
+          const currentVersion = payload.reference
+            ? fixtureSecretVersions.get(payload.reference)
+            : undefined;
+          const binding = getFixtureDeployableSecrets(deployable).bindings.find(
+            (candidate) => candidate.reference === payload.reference,
+          );
+          if (!payload.reference || !currentVersion || !binding) {
+            return writeNotFound(response);
+          }
+          if (payload.expectedVersionId !== currentVersion) {
+            return writeJson(response, 409, {
+              error: { message: "This secret changed after it was loaded." },
+            });
+          }
+          applyFixtureSecretMutation(payload.reference, payload);
+          const secret = getFixtureDeployableSecrets(deployable).bindings.find(
+            (candidate) => candidate.reference === payload.reference,
+          );
+          return writeJson(response, 200, { secret });
+        })
+        .catch(() =>
+          writeJson(response, 400, {
+            error: { message: "Request body must be valid JSON" },
+          }),
+        );
+      return;
+    }
+    const secretRevealMatch = path.match(
+      /^\/v1\/core\/(apps|resources)\/([^/]+)\/secrets\/reveal$/,
+    );
+    if (request.method === "POST" && secretRevealMatch) {
+      const deployable =
+        secretRevealMatch[1] === "apps"
+          ? apps.find((item) => item.id === secretRevealMatch[2])
+          : resources.find((item) => item.id === secretRevealMatch[2]);
+      if (!deployable) return writeNotFound(response);
+      void readRequestJson(request)
+        .then((input) => {
+          const reference = (input as { reference?: string }).reference;
+          const binding = getFixtureDeployableSecrets(deployable).bindings.find(
+            (candidate) => candidate.reference === reference,
+          );
+          if (!reference || !binding) return writeNotFound(response);
+          return writeFixtureSecretReveal(response, reference);
+        })
+        .catch(() => writeJson(response, 400, { error: "Invalid JSON" }));
+      return;
+    }
+    if (
       request.method === "POST" &&
       path === `/v1/core/servers/${fixtureIds.server}/host-keys/actions/trust`
     ) {
@@ -502,6 +672,27 @@ export function createFixtureApiServer() {
       runtimeOperations.unshift(operation);
       return writeJson(response, 202, { operation });
     }
+    const deployActionMatch = path.match(
+      /^\/v1\/core\/(apps|resources)\/([^/]+)\/actions\/deploy$/,
+    );
+    if (request.method === "POST" && deployActionMatch) {
+      const deployable =
+        deployActionMatch[1] === "apps"
+          ? apps.find((item) => item.id === deployActionMatch[2])
+          : resources.find((item) => item.id === deployActionMatch[2]);
+      if (!deployable) return writeNotFound(response);
+      const server = servers.find((item) => item.id === deployable.serverId);
+      if (!server) return writeNotFound(response);
+      const deployment = createDeploymentFixture(
+        randomUUID(),
+        deployable,
+        server,
+        "queued",
+        new Date().toISOString(),
+      );
+      deployments.unshift(deployment);
+      return writeJson(response, 202, { deployment });
+    }
     const eventMatch = path.match(/^\/v1\/core\/deployments\/([^/]+)\/events$/);
     if (eventMatch) {
       const deployment = deployments.find((item) => item.id === eventMatch[1]);
@@ -592,6 +783,21 @@ function getFixturePayload(
     return { deployment };
   }
 
+  if (path === `/v1/core/sources/${source.id}/secrets`) {
+    return getFixtureSourceSecrets();
+  }
+
+  const deployableSecretsMatch = path.match(
+    /^\/v1\/core\/(apps|resources)\/([^/]+)\/secrets$/,
+  );
+  if (deployableSecretsMatch) {
+    const deployable =
+      deployableSecretsMatch[1] === "apps"
+        ? apps.find((item) => item.id === deployableSecretsMatch[2])
+        : resources.find((item) => item.id === deployableSecretsMatch[2]);
+    return deployable ? getFixtureDeployableSecrets(deployable) : undefined;
+  }
+
   const deployableMatch = path.match(
     /^\/v1\/core\/(apps|resources)\/([^/]+)(?:\/(deployments|releases|operations))?$/,
   );
@@ -678,6 +884,131 @@ function readPositiveInteger(value: string | null, fallback: number) {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function getFixtureDeployableSecrets(
+  deployable: FixtureApp | FixtureResource,
+): AppSecretsResponse {
+  return getFixtureSecretsResponse(
+    getFixtureSecretUses(deployable).filter((use) => use.scope === "app"),
+  );
+}
+
+function getFixtureSourceSecrets(): AppSecretsResponse {
+  return getFixtureSecretsResponse(
+    [...apps, ...resources]
+      .flatMap((deployable) => getFixtureSecretUses(deployable))
+      .filter((use) => use.scope === "shared"),
+  );
+}
+
+function getFixtureSecretsResponse(
+  uses: Array<AppSecretUse & { reference: string }>,
+): AppSecretsResponse {
+  const references = [...new Set(uses.map((use) => use.reference))].sort();
+  return {
+    bindings: references.map((reference) => ({
+      affectedDeployables: [...apps, ...resources]
+        .flatMap((deployable) => {
+          const affectedUses = getFixtureSecretUses(deployable).filter(
+            (use) => use.reference === reference,
+          );
+          if (affectedUses.length === 0) return [];
+          return [
+            {
+              id: deployable.id,
+              kind:
+                deployable.kind === "app"
+                  ? ("app" as const)
+                  : ("resource" as const),
+              manifestId: deployable.manifestId,
+              name: deployable.name,
+              uses: affectedUses.map(({ reference: _, ...use }) => use),
+            },
+          ];
+        })
+        .sort((left, right) => left.name.localeCompare(right.name)),
+      changedAt: fixtureNow,
+      editable: true,
+      errorMessage: null,
+      keys: fixtureSecretKeys.get(reference) ?? [],
+      provider: "aws",
+      providerReference: reference.slice("aws:".length),
+      reference,
+      status: "available",
+      uses: uses
+        .filter((use) => use.reference === reference)
+        .map(({ reference: _, ...use }) => use),
+      versionId: fixtureSecretVersions.get(reference) ?? null,
+    })) satisfies AppSecretBinding[],
+    canManageSecrets: true,
+  };
+}
+
+function applyFixtureSecretMutation(
+  reference: string,
+  payload: { delete?: string[]; set?: Record<string, string> },
+) {
+  const keys = new Set(fixtureSecretKeys.get(reference) ?? []);
+  const values = { ...(fixtureSecretValues.get(reference) ?? {}) };
+  for (const key of payload.delete ?? []) {
+    keys.delete(key);
+    delete values[key];
+  }
+  for (const [key, value] of Object.entries(payload.set ?? {})) {
+    keys.add(key);
+    values[key] = value;
+  }
+  fixtureSecretKeys.set(reference, [...keys].sort());
+  fixtureSecretValues.set(reference, values);
+  fixtureSecretVersions.set(reference, crypto.randomUUID());
+}
+
+function writeFixtureSecretReveal(response: ServerResponse, reference: string) {
+  response.setHeader("cache-control", "no-store, max-age=0");
+  response.setHeader("pragma", "no-cache");
+  return writeJson(response, 200, {
+    secret: {
+      changedAt: fixtureNow,
+      values: fixtureSecretValues.get(reference) ?? {},
+      versionId: fixtureSecretVersions.get(reference),
+    },
+  });
+}
+
+function getFixtureSecretUses(deployable: FixtureApp | FixtureResource) {
+  const uses: Array<AppSecretUse & { reference: string }> = [];
+  if (deployable.kind === "app") {
+    for (const reference of deployable.config.sharedSecrets?.build ?? []) {
+      uses.push({ reference, scope: "shared", stage: "build" });
+    }
+    if (deployable.config.secrets.build) {
+      uses.push({
+        reference: deployable.config.secrets.build,
+        scope: "app",
+        stage: "build",
+      });
+    }
+  }
+  for (const reference of deployable.config.sharedSecrets?.deployment ?? []) {
+    uses.push({ reference, scope: "shared", stage: "deployment" });
+  }
+  if (deployable.config.secrets.deployment) {
+    uses.push({
+      reference: deployable.config.secrets.deployment,
+      scope: "app",
+      stage: "deployment",
+    });
+  }
+  return uses;
+}
+
+async function readRequestJson(request: IncomingMessage) {
+  const chunks: Buffer[] = [];
+  for await (const chunk of request) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown;
+}
+
 function createServerFixture(
   id: string,
   canonicalIp: string,
@@ -739,7 +1070,15 @@ function createAppFixture(
       health: { path: "/health", timeoutSeconds: 30 },
       id: manifestId,
       name,
+      secrets: {
+        build: `aws:fixture/apps/${manifestId}/build`,
+        deployment: `aws:fixture/apps/${manifestId}/deployment`,
+      },
       server: server.canonicalIp,
+      sharedSecrets: {
+        build: [sharedBuildSecret],
+        deployment: [sharedDeploymentSecret],
+      },
     },
     description: `${name} fixture`,
     id,
@@ -812,7 +1151,14 @@ function createResourceFixture(
             : "axllent/mailpit:v1.27",
       kind,
       name,
+      secrets: {
+        deployment: `aws:fixture/resources/${manifestId}/deployment`,
+      },
       server: server.canonicalIp,
+      sharedSecrets: {
+        build: [sharedBuildSecret],
+        deployment: [sharedDeploymentSecret],
+      },
     },
     description: `${name} fixture`,
     id,

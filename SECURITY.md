@@ -30,6 +30,8 @@ to repository security advisories.
 - PostgreSQL, Temporal, Temporal UI, and SSH are restricted by host and network
   controls rather than exposed broadly.
 - AWS identities are scoped to the Secrets Manager paths required by one Source.
+  Read access covers declared execution secrets; write access is limited to App
+  environment bundles intentionally managed through Towbar.
 - Destination hosts use SSH keys, pinned host identity, current security
   updates, and least-privilege network rules.
 - Installation secrets are unique, randomly generated, and never committed.

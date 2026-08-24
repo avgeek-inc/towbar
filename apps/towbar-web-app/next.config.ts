@@ -13,6 +13,7 @@ const baseConfig = createNextConfig((config) => config, {
 const nextConfig: NextConfig = {
   ...baseConfig,
   agentRules: false,
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
   async redirects() {
     return [
       ...((await baseConfig.redirects?.()) ?? []),

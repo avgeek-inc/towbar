@@ -98,6 +98,14 @@ variables. Add a Source, store its scoped AWS credential through the dashboard,
 and declare servers and deployables in `.towbar/deployment.yml`. Secret values
 remain in AWS Secrets Manager; the manifest stores provider references only.
 
+The App **Secrets** tab can add, replace, or remove individual JSON environment
+keys behind an attached reference. Towbar reads the current value and performs
+the merge in the API, checks the expected AWS version before writing, and never
+returns values to the browser. Shared references show every affected App or
+Resource before an operator edits them. This flow requires narrowly scoped
+`secretsmanager:GetSecretValue` and `secretsmanager:PutSecretValue` permissions;
+changing the reference itself still requires a manifest commit and Source sync.
+
 The current deployment schema is served by the configured website at
 `${TOWBAR_WEBSITE_BASE_URL}/schemas/deployment.v1.json` and documented under
 `${TOWBAR_WEBSITE_BASE_URL}/docs/deployment-file`.

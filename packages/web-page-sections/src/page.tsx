@@ -37,10 +37,14 @@ function TitledPage({
     <Page
       {...props}
       lead={
-        <PageSection yPadding="compact">
+        <PageSection xPadding="none" yPadding="compact">
           <header className="flex flex-wrap items-center justify-between gap-5">
             <div className="flex min-w-0 flex-wrap items-center gap-3">
-              <TypographyHeading elementType="h2" level={2}>
+              <TypographyHeading
+                className="flex min-w-0 items-center"
+                elementType="h2"
+                level={2}
+              >
                 {titleContent ?? title}
               </TypographyHeading>
               {badge}

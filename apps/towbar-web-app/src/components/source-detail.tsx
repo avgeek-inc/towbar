@@ -5,12 +5,13 @@ import {
   DatabaseIcon,
   GithubIcon,
   InformationSquareIcon,
+  Key01Icon,
   ServerStack01Icon,
   Settings01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import { type Key, type ReactNode } from "react";
 import type {
   App,
   AwsCredentialMetadata,
@@ -43,9 +44,11 @@ import {
   sourcesBreadcrumb,
 } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
+import { useResponsiveTabsOrientation } from "@/hooks/use-responsive-tabs-orientation";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 import { SourceAwsCredentials } from "./source-aws-credentials";
+import { SourceSecrets } from "./app-secrets";
 import { SourceApps, SourceResources, SourceServers } from "./source-inventory";
 
 type ManifestResponse = {
@@ -266,6 +269,12 @@ export function SourceDetail() {
             ),
           },
           {
+            value: "secrets",
+            label: "Secrets",
+            icon: <HugeiconsIcon icon={Key01Icon} />,
+            content: <SourceSecrets sourceId={sourceId} />,
+          },
+          {
             value: "info",
             label: "Info",
             icon: <HugeiconsIcon icon={InformationSquareIcon} />,
@@ -319,63 +328,89 @@ export function SourceDetail() {
             label: "Settings",
             icon: <HugeiconsIcon icon={Settings01Icon} />,
             content: (
-              <SourceSubtabs
-                ariaLabel="Source settings"
-                defaultSelectedKey="aws"
-                tabs={[
-                  {
-                    value: "aws",
-                    label: "AWS credentials",
-                    content: (
-                      <SourceAwsCredentials
-                        canManage={source.data.canManageSource}
-                        query={aws}
-                        sourceId={sourceId}
-                      />
-                    ),
-                  },
-                  ...(source.data.canManageSource
-                    ? [
-                        {
-                          value: "danger",
-                          label: "Danger zone",
-                          content: (
-                            <SectionBlock
-                              description="Deleting a Source removes its credential, imported inventory, operational history, and source-owned server records. Backup objects already in S3 follow your bucket lifecycle."
-                              title="Danger zone"
-                            >
-                              <div>
-                                <ActionButton
-                                  action={() =>
-                                    api.delete(`/v1/core/sources/${sourceId}`)
-                                  }
-                                  confirm={{
-                                    actionLabel: "Delete Source permanently",
-                                    description:
-                                      "This permanently deletes the Source credential, sync history, Apps, Resources, Deployments, Releases, backup metadata, runtime operations, Servers, checks, and trust records. This cannot be undone.",
-                                    title:
-                                      "Delete this Source and all of its data?",
-                                  }}
-                                  onSuccess={() => router.push("/sources")}
-                                  pendingLabel="Deleting…"
-                                  success="Source deleted"
-                                  variant="danger"
-                                >
-                                  Delete Source
-                                </ActionButton>
-                              </div>
-                            </SectionBlock>
-                          ),
-                        },
-                      ]
-                    : []),
-                ]}
+              <SourceSettings
+                awsData={aws.data}
+                awsError={aws.error}
+                canManage={source.data.canManageSource}
+                onDelete={() => router.push("/sources")}
+                refreshAws={aws.refresh}
+                sourceId={sourceId}
               />
             ),
           },
         ]}
       />
     </DashboardPage>
+  );
+}
+
+function SourceSettings({
+  awsData,
+  awsError,
+  canManage,
+  onDelete,
+  refreshAws,
+  sourceId,
+}: {
+  awsData?: { credential: AwsCredentialMetadata | null };
+  awsError?: string;
+  canManage: boolean;
+  onDelete: () => void;
+  refreshAws: () => void;
+  sourceId: string;
+}) {
+  return (
+    <SourceSubtabs
+      ariaLabel="Source settings"
+      defaultSelectedKey="aws"
+      tabs={[
+        {
+          value: "aws",
+          label: "AWS credentials",
+          content: (
+            <SourceAwsCredentials
+              canManage={canManage}
+              query={{ data: awsData, error: awsError, refresh: refreshAws }}
+              sourceId={sourceId}
+            />
+          ),
+        },
+        ...(canManage
+          ? [
+              {
+                value: "danger",
+                label: "Danger zone",
+                content: (
+                  <SectionBlock
+                    description="Deleting a Source removes its credential, imported inventory, operational history, and source-owned server records. Backup objects already in S3 follow your bucket lifecycle."
+                    title="Danger zone"
+                  >
+                    <div>
+                      <ActionButton
+                        action={() =>
+                          api.delete(`/v1/core/sources/${sourceId}`)
+                        }
+                        confirm={{
+                          actionLabel: "Delete Source permanently",
+                          description:
+                            "This permanently deletes the Source credential, sync history, Apps, Resources, Deployments, Releases, backup metadata, runtime operations, Servers, checks, and trust records. This cannot be undone.",
+                          title: "Delete this Source and all of its data?",
+                        }}
+                        onSuccess={onDelete}
+                        pendingLabel="Deleting…"
+                        success="Source deleted"
+                        variant="danger"
+                      >
+                        Delete Source
+                      </ActionButton>
+                    </div>
+                  </SectionBlock>
+                ),
+              },
+            ]
+          : []),
+      ]}
+    />
   );
 }
 
@@ -426,24 +461,34 @@ function SourceSyncHistory({
 function SourceSubtabs({
   ariaLabel,
   defaultSelectedKey,
+  onSelectionChange,
+  selectedKey,
   tabs,
 }: {
   ariaLabel: string;
   defaultSelectedKey: string;
+  onSelectionChange?: (key: Key) => void;
+  selectedKey?: string;
   tabs: Array<{ content: ReactNode; label: string; value: string }>;
 }) {
+  const orientation = useResponsiveTabsOrientation();
+
   return (
     <Tabs
       className="block"
-      defaultSelectedKey={defaultSelectedKey}
-      orientation="vertical"
+      defaultSelectedKey={selectedKey ? undefined : defaultSelectedKey}
+      orientation={orientation}
+      selectedKey={selectedKey}
+      onSelectionChange={onSelectionChange}
     >
       <div className="grid items-start gap-4 lg:grid-cols-[14rem_minmax(0,1fr)]">
         <Tabs.ListContainer className="w-full">
           <Tabs.List aria-label={ariaLabel} className="w-full">
             {tabs.map((tab) => (
               <Tabs.Tab
-                className="justify-start"
+                className={
+                  orientation === "vertical" ? "justify-start" : undefined
+                }
                 id={tab.value}
                 key={tab.value}
               >

@@ -64,6 +64,13 @@ entities. Resources support versioned images plus PostgreSQL and Redis presets.
 Root shared build/deployment secret references are copied into immutable
 deployable snapshots and resolved only at execution time.
 
+Owners can inspect key names and edit values for JSON environment bundles
+already attached to an App or Resource. Resources expose deployment bindings
+only; build bindings apply only to Apps. The API performs the read/merge/write
+operation against AWS Secrets Manager with an expected-version check; responses
+contain only key names and version metadata. References remain manifest-owned
+and secret values are never persisted in PostgreSQL.
+
 Declared Docker networks are created as managed bridge networks on first use
 and reused by subsequent apps and Resources on that Server. Operators do not
 need to pre-create manifest-owned networks.

@@ -27,6 +27,7 @@ export type App = {
       port: number;
       resources?: { cpus: number; memory: string };
     };
+    context?: string;
     deploymentInputs?: string[];
     dependsOn?: string[];
     description?: string;
@@ -50,9 +51,11 @@ export type App = {
     };
     id: string;
     name: string;
+    secrets: { build?: string; deployment?: string };
     server: string;
     sharedSecrets?: { build: string[]; deployment: string[] };
     sourceBranch?: string;
+    tls?: { mode: "cloudflare-dns" | "direct" };
   };
   description: string | null;
   id: string;
@@ -65,6 +68,47 @@ export type App = {
   sourceId: string;
   sourceRevision: string;
   updatedAt: string;
+};
+
+export type AppSecretStage =
+  "build" | "deployment" | "pre_deploy" | "post_deploy";
+
+export type AppSecretUse = {
+  scope: "app" | "shared";
+  stage: AppSecretStage;
+};
+
+export type AppSecretBinding = {
+  affectedDeployables: Array<{
+    id: string;
+    kind: "app" | "resource";
+    manifestId: string;
+    name: string;
+    uses: AppSecretUse[];
+  }>;
+  changedAt: string | null;
+  editable: boolean;
+  errorMessage: string | null;
+  keys: string[];
+  provider: "aws";
+  providerReference: string;
+  reference: string;
+  status: "available" | "unavailable";
+  uses: AppSecretUse[];
+  versionId: string | null;
+};
+
+export type AppSecretsResponse = {
+  bindings: AppSecretBinding[];
+  canManageSecrets: boolean;
+};
+
+export type AppSecretRevealResponse = {
+  secret: {
+    changedAt: string;
+    values: Record<string, string>;
+    versionId: string;
+  };
 };
 
 export type Resource = {
@@ -105,6 +149,7 @@ export type Resource = {
     image: string;
     kind: "image" | "postgres" | "redis";
     name: string;
+    secrets: { deployment?: string };
     server: string;
     sharedSecrets?: { build: string[]; deployment: string[] };
     sourceBranch?: string;

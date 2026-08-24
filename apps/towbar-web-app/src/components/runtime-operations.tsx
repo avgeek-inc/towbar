@@ -1,98 +1,243 @@
 "use client";
 
-import { PlayIcon, ReloadIcon, StopIcon } from "@hugeicons/core-free-icons";
+import {
+  MoreHorizontalIcon,
+  PlayIcon,
+  ReloadIcon,
+  StopIcon,
+  Undo02Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import type {
+  Deployment,
   ResourceOperation,
   RuntimeState,
 } from "@workspace/towbar-web-client";
+import { Button } from "@workspace/web-design-system/buttons/button";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
+import { Label } from "@workspace/web-design-system/forms/label";
+import { AlertDialog } from "@workspace/web-design-system/overlays/alert-dialog";
+import { Dropdown } from "@workspace/web-design-system/overlays/dropdown";
+import { toast } from "@workspace/web-design-system/overlays/toast";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { CodePanel } from "@workspace/towbar-web-ui/code-panel";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { ActionButton } from "@/components/page-parts";
-import { useApiQuery } from "@/hooks/use-api-query";
+import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 
 type DeployableType = "app" | "resource";
+type DeployableAction = "restart" | "rollback" | "start" | "stop";
 
-export function RuntimeActionToolbar({
+export function DeployableActionsMenu({
   active,
   deployableId,
+  previousReleaseId,
   runtimeState,
+  sourceId,
   type,
 }: {
   active: boolean;
   deployableId: string;
+  previousReleaseId?: string;
   runtimeState: RuntimeState;
+  sourceId: string;
   type: DeployableType;
 }) {
-  if (!active) return null;
+  const router = useRouter();
+  const [selectedAction, setSelectedAction] = useState<DeployableAction | null>(
+    null,
+  );
+  const [busy, setBusy] = useState(false);
   const path = type === "app" ? "apps" : "resources";
-  const action = (name: "restart" | "start" | "stop") =>
-    api.post(`/v1/core/${path}/${deployableId}/actions/${name}`, undefined, {
-      "Idempotency-Key": crypto.randomUUID(),
-    });
+  const actions: DeployableAction[] = [
+    "start",
+    ...(runtimeState.observedState !== "stopped"
+      ? (["restart", "stop"] as const)
+      : []),
+    ...(previousReleaseId ? (["rollback"] as const) : []),
+  ];
+  const selection = selectedAction
+    ? getDeployableActionDetails(selectedAction, type)
+    : null;
+
+  async function runAction() {
+    if (!selectedAction || !selection) return;
+    setBusy(true);
+    try {
+      if (selectedAction === "rollback") {
+        const result = await api.post<{ deployment: Deployment }>(
+          `/v1/core/${path}/${deployableId}/actions/rollback`,
+          { releaseId: previousReleaseId },
+          { "Idempotency-Key": crypto.randomUUID() },
+        );
+        router.push(`/sources/${sourceId}/deployments/${result.deployment.id}`);
+      } else {
+        await api.post(
+          `/v1/core/${path}/${deployableId}/actions/${selectedAction}`,
+          undefined,
+          { "Idempotency-Key": crypto.randomUUID() },
+        );
+      }
+      toast.success(selection.success);
+      refreshApiQueries();
+      setSelectedAction(null);
+    } catch (error) {
+      toast.danger(error instanceof Error ? error.message : "Action failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <>
-      <ActionButton
-        action={() => action("start")}
-        ariaLabel={`Start ${type}`}
-        confirm={{
-          actionLabel: `Start ${type}`,
-          description:
-            "Towbar will start the container using its current deployed configuration.",
-          title: `Start this ${type}?`,
+      <Dropdown>
+        <Button
+          aria-label={`More ${type} actions`}
+          isDisabled={!active}
+          isIconOnly
+          variant="ghost"
+        >
+          <HugeiconsIcon aria-hidden="true" icon={MoreHorizontalIcon} />
+        </Button>
+        <Dropdown.Popover className="min-w-48">
+          <Dropdown.Menu
+            aria-label={`${type === "app" ? "App" : "Resource"} actions`}
+            onAction={(key) =>
+              setSelectedAction(String(key) as DeployableAction)
+            }
+          >
+            {actions.map((action) => {
+              const details = getDeployableActionDetails(action, type);
+              return (
+                <Dropdown.Item
+                  id={action}
+                  key={action}
+                  textValue={details.label}
+                  variant={details.danger ? "danger" : undefined}
+                >
+                  <HugeiconsIcon
+                    aria-hidden="true"
+                    className={
+                      details.danger
+                        ? "size-4 shrink-0 text-danger"
+                        : "size-4 shrink-0 text-muted"
+                    }
+                    icon={actionIcon(action)}
+                  />
+                  <Label>{details.label}</Label>
+                </Dropdown.Item>
+              );
+            })}
+          </Dropdown.Menu>
+        </Dropdown.Popover>
+      </Dropdown>
+      <AlertDialog.Backdrop
+        isOpen={Boolean(selection)}
+        onOpenChange={(open) => {
+          if (!open && !busy) setSelectedAction(null);
         }}
-        isIconOnly
-        pendingLabel="Queueing start…"
-        success="Start queued"
       >
-        <HugeiconsIcon aria-hidden="true" icon={PlayIcon} />
-      </ActionButton>
-      {runtimeState.observedState !== "stopped" ? (
-        <ActionButton
-          action={() => action("restart")}
-          ariaLabel={`Restart ${type}`}
-          confirm={{
-            actionLabel: `Restart ${type}`,
-            description:
-              "Towbar will briefly interrupt the running container and start it again using its current deployed configuration.",
-            title: `Restart this ${type}?`,
-          }}
-          isIconOnly
-          pendingLabel="Queueing restart…"
-          success="Restart queued"
-        >
-          <HugeiconsIcon aria-hidden="true" icon={ReloadIcon} />
-        </ActionButton>
-      ) : null}
-      {runtimeState.observedState !== "stopped" ? (
-        <ActionButton
-          action={() => action("stop")}
-          ariaLabel={`Stop ${type}`}
-          confirm={{
-            actionLabel: `Stop ${type}`,
-            description:
-              "Towbar will stop the running container. It stays stopped until Start, Restart, or a new deployment succeeds.",
-            title: `Stop this ${type}?`,
-          }}
-          isIconOnly
-          pendingLabel="Stopping…"
-          success="Stop queued"
-          variant="danger"
-        >
-          <HugeiconsIcon aria-hidden="true" icon={StopIcon} />
-        </ActionButton>
-      ) : null}
+        <AlertDialog.Container>
+          <AlertDialog.Dialog>
+            <AlertDialog.Header>
+              <AlertDialog.Icon
+                status={selection?.danger ? "danger" : "accent"}
+              />
+              <AlertDialog.Heading>{selection?.title}</AlertDialog.Heading>
+            </AlertDialog.Header>
+            <AlertDialog.Body>{selection?.description}</AlertDialog.Body>
+            <AlertDialog.Footer>
+              <Button
+                isDisabled={busy}
+                variant="secondary"
+                onPress={() => setSelectedAction(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                isDisabled={busy}
+                variant={selection?.danger ? "danger" : "primary"}
+                onPress={runAction}
+              >
+                {busy ? selection?.pendingLabel : selection?.label}
+              </Button>
+            </AlertDialog.Footer>
+          </AlertDialog.Dialog>
+        </AlertDialog.Container>
+      </AlertDialog.Backdrop>
     </>
   );
+}
+
+function getDeployableActionDetails(
+  action: DeployableAction,
+  type: DeployableType,
+) {
+  switch (action) {
+    case "start":
+      return {
+        danger: false,
+        description:
+          "Towbar will start the container using its current deployed configuration.",
+        label: `Start ${type}`,
+        pendingLabel: "Queueing start…",
+        success: "Start queued",
+        title: `Start this ${type}?`,
+      };
+    case "restart":
+      return {
+        danger: false,
+        description:
+          "Towbar will briefly interrupt the running container and start it again using its current deployed configuration.",
+        label: `Restart ${type}`,
+        pendingLabel: "Queueing restart…",
+        success: "Restart queued",
+        title: `Restart this ${type}?`,
+      };
+    case "stop":
+      return {
+        danger: true,
+        description:
+          "Towbar will stop the running container. It stays stopped until Start, Restart, or a new deployment succeeds.",
+        label: `Stop ${type}`,
+        pendingLabel: "Stopping…",
+        success: "Stop queued",
+        title: `Stop this ${type}?`,
+      };
+    case "rollback":
+      return {
+        danger: false,
+        description:
+          type === "app"
+            ? "Towbar will check the retained image, routing, TLS, and public endpoint before switching traffic."
+            : "Towbar will stop the current container, start the retained image against the same persistent volumes, and restore the current release if validation fails.",
+        label: `Roll back ${type}`,
+        pendingLabel: "Queueing rollback…",
+        success: "Rollback queued",
+        title: `Roll back this ${type}?`,
+      };
+  }
+}
+
+function actionIcon(action: DeployableAction) {
+  switch (action) {
+    case "start":
+      return PlayIcon;
+    case "restart":
+      return ReloadIcon;
+    case "stop":
+      return StopIcon;
+    case "rollback":
+      return Undo02Icon;
+  }
 }
 
 export function RuntimeOverview({

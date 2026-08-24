@@ -61,7 +61,10 @@ const Legend = forwardRef<HTMLDivElement, ComponentPropsWithRef<"div">>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("flex items-center gap-4 text-xs text-muted", className)}
+      className={cn(
+        "flex items-center gap-2.5 text-[0.6875rem] leading-4 text-muted",
+        className,
+      )}
       data-slot="widget-legend"
       {...props}
     />
@@ -74,13 +77,13 @@ const LegendItem = forwardRef<
 >(({ color, className, children, ...props }, ref) => (
   <span
     ref={ref}
-    className={cn("inline-flex items-center gap-1.5", className)}
+    className={cn("inline-flex items-center gap-1", className)}
     data-slot="widget-legend-item"
     {...props}
   >
     <span
       aria-hidden="true"
-      className="size-2 rounded-full"
+      className="size-1.5 rounded-full"
       style={{ backgroundColor: color } as CSSProperties}
     />
     {children}
