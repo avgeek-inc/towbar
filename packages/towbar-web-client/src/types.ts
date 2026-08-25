@@ -292,6 +292,12 @@ export type Deployment = {
   id: string;
   kind: "deploy" | "rollback";
   manifestDigest: string;
+  queueBlocker?:
+    | "server_capacity"
+    | "server_check"
+    | "server_operation"
+    | "server_preparation"
+    | null;
   serverId: string;
   sourceId: string;
   startedAt: string | null;
