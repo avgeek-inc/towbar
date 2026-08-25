@@ -15,6 +15,7 @@ import { type Key, type ReactNode } from "react";
 import type {
   App,
   AwsCredentialMetadata,
+  Deployment,
   Resource,
   SourceServer,
   Source,
@@ -78,12 +79,19 @@ export function SourceDetail() {
   );
   const apps = useApiQuery<{ apps: App[] }>(
     `/v1/core/sources/${sourceId}/apps`,
+    5_000,
   );
   const resources = useApiQuery<{ resources: Resource[] }>(
     `/v1/core/sources/${sourceId}/resources`,
+    5_000,
   );
   const servers = useApiQuery<{ servers: SourceServer[] }>(
     `/v1/core/sources/${sourceId}/servers`,
+    5_000,
+  );
+  const deployments = useApiQuery<{ deployments: Deployment[] }>(
+    `/v1/core/sources/${sourceId}/deployments`,
+    5_000,
   );
   const aws = useApiQuery<{ credential: AwsCredentialMetadata | null }>(
     `/v1/core/sources/${sourceId}/aws`,
@@ -225,7 +233,8 @@ export function SourceDetail() {
             content: (
               <SourceApps
                 apps={apps.data?.apps}
-                error={apps.error}
+                deployments={deployments.data?.deployments}
+                error={apps.error ?? deployments.error}
                 sourceId={sourceId}
               />
             ),
@@ -242,7 +251,8 @@ export function SourceDetail() {
               : undefined,
             content: (
               <SourceResources
-                error={resources.error}
+                deployments={deployments.data?.deployments}
+                error={resources.error ?? deployments.error}
                 resources={resources.data?.resources}
                 sourceId={sourceId}
               />
@@ -261,7 +271,13 @@ export function SourceDetail() {
             content: (
               <SourceServers
                 apps={apps.data?.apps}
-                error={servers.error ?? apps.error ?? resources.error}
+                deployments={deployments.data?.deployments}
+                error={
+                  servers.error ??
+                  apps.error ??
+                  resources.error ??
+                  deployments.error
+                }
                 resources={resources.data?.resources}
                 servers={servers.data?.servers}
                 sourceId={sourceId}
