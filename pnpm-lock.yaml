@@ -545,6 +545,9 @@ importers:
       eslint:
         specifier: "catalog:"
         version: 9.39.5(jiti@2.7.0)
+      tsx:
+        specifier: ^4.21.0
+        version: 4.23.12
       typescript:
         specifier: "catalog:"
         version: 5.9.3

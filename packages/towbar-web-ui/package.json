@@ -6,6 +6,7 @@
   "private": true,
   "scripts": {
     "lint": "eslint . --max-warnings 0",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -21,6 +22,7 @@
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "eslint": "catalog:",
+    "tsx": "^4.21.0",
     "typescript": "catalog:"
   },
   "exports": {

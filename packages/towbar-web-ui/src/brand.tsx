@@ -16,7 +16,7 @@ const brandLogoSources = {
 } as const;
 
 function brandLogoSource(theme: "dark" | "light") {
-  return `${brandImageBaseUrl}/brands/company/logo/${theme}-transparent-edge/w=128,fit=scale-down`;
+  return `${brandImageBaseUrl}/brands/towbar/logo/${theme}-transparent-edge/w=128,fit=scale-down`;
 }
 
 export function TowbarBrandLogo({
