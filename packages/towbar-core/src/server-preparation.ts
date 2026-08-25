@@ -59,3 +59,24 @@ export function createServerPreparationSteps(): ServerPreparationStep[] {
     status: "waiting",
   }));
 }
+
+export function serverPreparationInputs(server: NormalizedServer) {
+  return {
+    ip: server.ip,
+    secrets: server.secrets,
+    ssh: server.ssh,
+  };
+}
+
+export function requiresServerPreparation(
+  current: NormalizedServer,
+  desired: NormalizedServer,
+) {
+  return (
+    digestValue(serverPreparationInputs(current)) !==
+    digestValue(serverPreparationInputs(desired))
+  );
+}
+import { digestValue } from "./manifest-values.js";
+
+import type { NormalizedServer } from "./manifest.js";
