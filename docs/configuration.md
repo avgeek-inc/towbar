@@ -111,3 +111,35 @@ changing the reference itself still requires a manifest commit and Source sync.
 The current deployment schema is served by the configured website at
 `${TOWBAR_WEBSITE_BASE_URL}/schemas/deployment.v1.json` and documented under
 `${TOWBAR_WEBSITE_BASE_URL}/docs/deployment-file`.
+
+## Automatic release deployment
+
+The `Deploy release` GitHub workflow deploys each stable published release to
+one existing Towbar installation. It assumes an AWS role through GitHub OIDC
+and runs the release script on the host through Systems Manager; no AWS access
+key or SSH private key is stored in GitHub.
+
+Configure these variables on a GitHub environment named `production`:
+
+| Variable                       | Purpose                                      |
+| ------------------------------ | -------------------------------------------- |
+| `TOWBAR_DEPLOY_AWS_ROLE_ARN`   | OIDC role assumed by the release workflow    |
+| `TOWBAR_DEPLOY_AWS_REGION`     | Region containing the managed EC2 instance   |
+| `TOWBAR_DEPLOY_INSTANCE_ID`    | Only instance the role may command           |
+| `TOWBAR_DEPLOY_PATH`           | Existing checkout; defaults to `/opt/towbar` |
+| `TOWBAR_DEPLOY_API_HEALTH_URL` | Optional public API health endpoint          |
+| `TOWBAR_DEPLOY_APP_HEALTH_URL` | Optional public app health endpoint          |
+
+Trust only `repo:<owner>/<repository>:environment:production` in the role's
+OIDC policy. Grant `ssm:SendCommand` only for `AWS-RunShellScript` and the
+target instance, plus `ssm:GetCommandInvocation` for reporting the result. The
+instance must be online in Systems Manager and the deployment directory must
+contain a clean Git checkout plus an owner-readable-only `.env` file.
+Restrict the environment's deployment branches and tags to the protected
+default branch and stable release tags.
+
+The workflow verifies the published tag and package version, streams the
+protected default branch's `infra/deploy-release.sh` to SSM, checks out the
+exact release commit on the host, builds it there, runs migrations, waits for
+Compose health, and verifies the running API commit. A failed replacement
+attempts to restore the previous checkout and images.

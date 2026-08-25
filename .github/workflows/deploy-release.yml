@@ -1,0 +1,173 @@
+name: Deploy release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Stable published release tag to deploy
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: towbar-production-release
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.release.draft == false && github.event.release.prerelease == false)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+    env:
+      AWS_REGION: ${{ vars.TOWBAR_DEPLOY_AWS_REGION }}
+      DEPLOY_INSTANCE_ID: ${{ vars.TOWBAR_DEPLOY_INSTANCE_ID }}
+      DEPLOY_PATH: ${{ vars.TOWBAR_DEPLOY_PATH || '/opt/towbar' }}
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
+    steps:
+      # v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Validate stable published release
+        id: release
+        env:
+          DEPLOY_ROLE_ARN: ${{ vars.TOWBAR_DEPLOY_AWS_ROLE_ARN }}
+        run: |
+          set -euo pipefail
+          : "${DEPLOY_ROLE_ARN:?set TOWBAR_DEPLOY_AWS_ROLE_ARN in the production environment}"
+          : "${AWS_REGION:?set TOWBAR_DEPLOY_AWS_REGION in the production environment}"
+          : "${DEPLOY_INSTANCE_ID:?set TOWBAR_DEPLOY_INSTANCE_ID in the production environment}"
+
+          if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Release tag must be a stable semantic version" >&2
+            exit 1
+          fi
+          if [[ "$DEPLOY_PATH" != /* || "$DEPLOY_PATH" == / ]]; then
+            echo "TOWBAR_DEPLOY_PATH must be a specific absolute path" >&2
+            exit 1
+          fi
+
+          release_json="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG")"
+          jq -e \
+            '.draft == false and .prerelease == false and .published_at != null' \
+            <<<"$release_json" >/dev/null
+
+          git fetch --force --tags origin \
+            "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+          release_commit="$(git rev-parse "$RELEASE_TAG^{commit}")"
+          package_version="$(git show "$RELEASE_TAG:package.json" | jq -r .version)"
+          test "$package_version" = "${RELEASE_TAG#v}"
+          echo "commit=$release_commit" >>"$GITHUB_OUTPUT"
+
+      # v6.2.3
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+        with:
+          aws-region: ${{ vars.TOWBAR_DEPLOY_AWS_REGION }}
+          role-session-name: towbar-release-${{ github.run_id }}
+          role-to-assume: ${{ vars.TOWBAR_DEPLOY_AWS_ROLE_ARN }}
+
+      - name: Deploy exact release through SSM
+        env:
+          RELEASE_COMMIT: ${{ steps.release.outputs.commit }}
+        run: |
+          set -euo pipefail
+
+          script_base64="$(base64 --wrap=0 infra/deploy-release.sh)"
+          remote_command="$(
+            jq -rn \
+              --arg script "$script_base64" \
+              --arg tag "$RELEASE_TAG" \
+              --arg commit "$RELEASE_COMMIT" \
+              --arg path "$DEPLOY_PATH" \
+              '[
+                "printf", "%s", ($script | @sh),
+                "|", "base64", "--decode",
+                "|", "flock", "--nonblock", "/var/lock/towbar-release-deploy.lock",
+                "bash", "-s", "--", ($tag | @sh), ($commit | @sh), ($path | @sh)
+              ] | join(" ")'
+          )"
+          parameters="$(
+            jq -cn \
+              --arg command "$remote_command" \
+              '{commands: [$command], executionTimeout: ["2400"]}'
+          )"
+
+          command_id="$(
+            aws ssm send-command \
+              --region "$AWS_REGION" \
+              --instance-ids "$DEPLOY_INSTANCE_ID" \
+              --document-name AWS-RunShellScript \
+              --comment "Deploy Towbar $RELEASE_TAG" \
+              --timeout-seconds 2700 \
+              --parameters "$parameters" \
+              --query Command.CommandId \
+              --output text
+          )"
+          echo "SSM command: $command_id"
+
+          status=Pending
+          deadline=$((SECONDS + 2400))
+          while ((SECONDS < deadline)); do
+            status="$(
+              aws ssm get-command-invocation \
+                --region "$AWS_REGION" \
+                --command-id "$command_id" \
+                --instance-id "$DEPLOY_INSTANCE_ID" \
+                --query Status \
+                --output text 2>/dev/null || true
+            )"
+            case "$status" in
+              Success | Cancelled | TimedOut | Failed | Cancelling) break ;;
+            esac
+            sleep 10
+          done
+
+          aws ssm get-command-invocation \
+            --region "$AWS_REGION" \
+            --command-id "$command_id" \
+            --instance-id "$DEPLOY_INSTANCE_ID" \
+            --query StandardOutputContent \
+            --output text || true
+          aws ssm get-command-invocation \
+            --region "$AWS_REGION" \
+            --command-id "$command_id" \
+            --instance-id "$DEPLOY_INSTANCE_ID" \
+            --query StandardErrorContent \
+            --output text >&2 || true
+
+          if [[ "$status" != Success ]]; then
+            echo "SSM deployment finished with status: $status" >&2
+            exit 1
+          fi
+
+      - name: Verify public health
+        env:
+          API_HEALTH_URL: ${{ vars.TOWBAR_DEPLOY_API_HEALTH_URL }}
+          APP_HEALTH_URL: ${{ vars.TOWBAR_DEPLOY_APP_HEALTH_URL }}
+          RELEASE_COMMIT: ${{ steps.release.outputs.commit }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$API_HEALTH_URL" ]]; then
+            api_version="$(
+              curl --fail --silent --show-error --retry 8 --retry-all-errors \
+                --retry-delay 3 "$API_HEALTH_URL" | jq -r .version
+            )"
+            test "$api_version" = "$RELEASE_COMMIT"
+          fi
+          if [[ -n "$APP_HEALTH_URL" ]]; then
+            curl --fail --silent --show-error --retry 8 --retry-all-errors \
+              --retry-delay 3 "$APP_HEALTH_URL" >/dev/null
+          fi
