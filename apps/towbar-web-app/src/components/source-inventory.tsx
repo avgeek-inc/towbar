@@ -6,141 +6,173 @@ import {
   CheckmarkCircle02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import type { App, Resource, SourceServer } from "@workspace/towbar-web-client";
+import type {
+  App,
+  Deployment,
+  DeploymentState,
+  Resource,
+  SourceServer,
+} from "@workspace/towbar-web-client";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
+import {
+  getActiveDeploymentStates,
+  resolveInventoryStatus,
+  resolveInventorySyncStatus,
+} from "@/lib/inventory-status";
 import { LastSyncedTime, RelativeTimeProvider } from "./last-synced-time";
 
-const appColumns: ResourceTableColumn<App>[] = [
-  {
-    cell: (app) => app.name,
-    className: "min-w-56",
-    header: "App Name",
-    key: "name",
-  },
-  {
-    cell: (app) => app.serverIp,
-    className: "min-w-36 tabular-nums",
-    header: "Server",
-    key: "server",
-  },
-  {
-    cell: (app) => (
-      <AutoDeployIndicator enabled={Boolean(app.config.autoDeploy)} />
-    ),
-    className: "w-32",
-    header: "Auto-deploy",
-    key: "auto-deploy",
-  },
-  {
-    cell: (app) => <StatusBadge status={app.runtimeState.driftStatus} />,
-    className: "w-32",
-    header: "Sync status",
-    key: "sync-status",
-  },
-  {
-    cell: (app) => <LastSyncedTime value={app.updatedAt} />,
-    className: "min-w-48 whitespace-nowrap",
-    header: "Last synced",
-    key: "last-synced",
-  },
-  {
-    cell: (app) => (
-      <StatusBadge
-        status={
-          app.archivedAt
-            ? "archived"
-            : app.serverReady
-              ? app.runtimeState.healthStatus
-              : "server_setup_pending"
-        }
-      />
-    ),
-    className: "w-32",
-    header: "Status",
-    key: "status",
-  },
-];
+function appColumns(
+  activeDeploymentStates: Map<string, DeploymentState>,
+): ResourceTableColumn<App>[] {
+  return [
+    {
+      cell: (app) => app.name,
+      className: "min-w-56",
+      header: "App Name",
+      key: "name",
+    },
+    {
+      cell: (app) => app.serverIp,
+      className: "min-w-36 tabular-nums",
+      header: "Server",
+      key: "server",
+    },
+    {
+      cell: (app) => (
+        <AutoDeployIndicator enabled={Boolean(app.config.autoDeploy)} />
+      ),
+      className: "w-32",
+      header: "Auto-deploy",
+      key: "auto-deploy",
+    },
+    {
+      cell: (app) => (
+        <StatusBadge
+          status={resolveInventorySyncStatus(
+            app.runtimeState.driftStatus,
+            activeDeploymentStates.get(app.id),
+          )}
+        />
+      ),
+      className: "w-32",
+      header: "Sync status",
+      key: "sync-status",
+    },
+    {
+      cell: (app) => <LastSyncedTime value={app.updatedAt} />,
+      className: "min-w-48 whitespace-nowrap",
+      header: "Last synced",
+      key: "last-synced",
+    },
+    {
+      cell: (app) => (
+        <StatusBadge
+          status={resolveInventoryStatus({
+            activeDeploymentState: activeDeploymentStates.get(app.id),
+            archived: Boolean(app.archivedAt),
+            healthStatus: app.runtimeState.healthStatus,
+            serverReady: app.serverReady,
+          })}
+        />
+      ),
+      className: "w-32",
+      header: "Status",
+      key: "status",
+    },
+  ];
+}
 
-const resourceColumns: ResourceTableColumn<Resource>[] = [
-  {
-    cell: (resource) => resource.name,
-    className: "min-w-56",
-    header: "Resource Name",
-    key: "name",
-  },
-  {
-    cell: (resource) => formatResourceKind(resource.kind),
-    className: "min-w-28",
-    header: "Type",
-    key: "type",
-  },
-  {
-    cell: (resource) => resource.serverIp,
-    className: "min-w-36 tabular-nums",
-    header: "Server",
-    key: "server",
-  },
-  {
-    cell: (resource) => (
-      <AutoDeployIndicator enabled={Boolean(resource.config.autoDeploy)} />
-    ),
-    className: "w-32",
-    header: "Auto-deploy",
-    key: "auto-deploy",
-  },
-  {
-    cell: (resource) => (
-      <StatusBadge status={resource.runtimeState.driftStatus} />
-    ),
-    className: "w-32",
-    header: "Sync status",
-    key: "sync-status",
-  },
-  {
-    cell: (resource) => <LastSyncedTime value={resource.updatedAt} />,
-    className: "min-w-48 whitespace-nowrap",
-    header: "Last synced",
-    key: "last-synced",
-  },
-  {
-    cell: (resource) => (
-      <StatusBadge
-        status={
-          resource.archivedAt
-            ? "archived"
-            : resource.serverReady
-              ? resource.runtimeState.healthStatus
-              : "server_setup_pending"
-        }
-      />
-    ),
-    className: "w-32",
-    header: "Status",
-    key: "status",
-  },
-];
+function resourceColumns(
+  activeDeploymentStates: Map<string, DeploymentState>,
+): ResourceTableColumn<Resource>[] {
+  return [
+    {
+      cell: (resource) => resource.name,
+      className: "min-w-56",
+      header: "Resource Name",
+      key: "name",
+    },
+    {
+      cell: (resource) => formatResourceKind(resource.kind),
+      className: "min-w-28",
+      header: "Type",
+      key: "type",
+    },
+    {
+      cell: (resource) => resource.serverIp,
+      className: "min-w-36 tabular-nums",
+      header: "Server",
+      key: "server",
+    },
+    {
+      cell: (resource) => (
+        <AutoDeployIndicator enabled={Boolean(resource.config.autoDeploy)} />
+      ),
+      className: "w-32",
+      header: "Auto-deploy",
+      key: "auto-deploy",
+    },
+    {
+      cell: (resource) => (
+        <StatusBadge
+          status={resolveInventorySyncStatus(
+            resource.runtimeState.driftStatus,
+            activeDeploymentStates.get(resource.id),
+          )}
+        />
+      ),
+      className: "w-32",
+      header: "Sync status",
+      key: "sync-status",
+    },
+    {
+      cell: (resource) => <LastSyncedTime value={resource.updatedAt} />,
+      className: "min-w-48 whitespace-nowrap",
+      header: "Last synced",
+      key: "last-synced",
+    },
+    {
+      cell: (resource) => (
+        <StatusBadge
+          status={resolveInventoryStatus({
+            activeDeploymentState: activeDeploymentStates.get(resource.id),
+            archived: Boolean(resource.archivedAt),
+            healthStatus: resource.runtimeState.healthStatus,
+            serverReady: resource.serverReady,
+          })}
+        />
+      ),
+      className: "w-32",
+      header: "Status",
+      key: "status",
+    },
+  ];
+}
 
 export function SourceApps({
   apps,
+  deployments,
   error,
   sourceId,
 }: {
   apps?: App[];
+  deployments?: Deployment[];
   error?: string;
   sourceId: string;
 }) {
   if (error) return <QueryError message={error} />;
-  if (!apps) return <QueryLoading variant="list" />;
+  if (!apps || !deployments) return <QueryLoading variant="list" />;
+  const activeDeploymentStates = getActiveDeploymentStates(deployments);
   return (
     <RelativeTimeProvider>
       <ResourceTable
         ariaLabel="Source apps"
-        columns={appColumns}
+        columns={appColumns(activeDeploymentStates)}
         emptyDescription="A successful manifest sync imports this Source's apps."
         emptyTitle="No apps in this Source"
         getRowHref={(app) => `/sources/${sourceId}/apps/${app.id}`}
@@ -153,21 +185,24 @@ export function SourceApps({
 }
 
 export function SourceResources({
+  deployments,
   error,
   resources,
   sourceId,
 }: {
+  deployments?: Deployment[];
   error?: string;
   resources?: Resource[];
   sourceId: string;
 }) {
   if (error) return <QueryError message={error} />;
-  if (!resources) return <QueryLoading variant="list" />;
+  if (!resources || !deployments) return <QueryLoading variant="list" />;
+  const activeDeploymentStates = getActiveDeploymentStates(deployments);
   return (
     <RelativeTimeProvider>
       <ResourceTable
         ariaLabel="Source resources"
-        columns={resourceColumns}
+        columns={resourceColumns(activeDeploymentStates)}
         emptyDescription="Declare an image, PostgreSQL, or Redis resource in this Source's manifest."
         emptyTitle="No resources in this Source"
         getRowHref={(resource) =>
@@ -183,29 +218,39 @@ export function SourceResources({
 
 export function SourceServers({
   apps,
+  deployments,
   error,
   resources,
   servers,
   sourceId,
 }: {
   apps?: App[];
+  deployments?: Deployment[];
   error?: string;
   resources?: Resource[];
   servers?: SourceServer[];
   sourceId: string;
 }) {
   if (error) return <QueryError message={error} />;
-  if (!servers || !apps || !resources) return <QueryLoading variant="list" />;
+  if (!servers || !apps || !resources || !deployments)
+    return <QueryLoading variant="list" />;
+  const activeDeploymentStates = getActiveDeploymentStates(deployments);
   const appCounts = new Map<string, number>();
   const resourceCounts = new Map<string, number>();
-  const syncStatuses = new Map<string, App["runtimeState"]["driftStatus"]>();
+  const syncStatuses = new Map<
+    string,
+    App["runtimeState"]["driftStatus"] | DeploymentState
+  >();
   for (const app of apps) {
     appCounts.set(app.serverIp, (appCounts.get(app.serverIp) ?? 0) + 1);
     syncStatuses.set(
       app.serverIp,
       mergeSyncStatus(
         syncStatuses.get(app.serverIp),
-        app.runtimeState.driftStatus,
+        resolveInventorySyncStatus(
+          app.runtimeState.driftStatus,
+          activeDeploymentStates.get(app.id),
+        ),
       ),
     );
   }
@@ -218,7 +263,10 @@ export function SourceServers({
       resource.serverIp,
       mergeSyncStatus(
         syncStatuses.get(resource.serverIp),
-        resource.runtimeState.driftStatus,
+        resolveInventorySyncStatus(
+          resource.runtimeState.driftStatus,
+          activeDeploymentStates.get(resource.id),
+        ),
       ),
     );
   }
@@ -346,10 +394,12 @@ function formatDeployableCounts(apps: number, resources: number) {
 }
 
 function mergeSyncStatus(
-  current: App["runtimeState"]["driftStatus"] | undefined,
-  next: App["runtimeState"]["driftStatus"],
-): App["runtimeState"]["driftStatus"] {
+  current: App["runtimeState"]["driftStatus"] | DeploymentState | undefined,
+  next: App["runtimeState"]["driftStatus"] | DeploymentState,
+): App["runtimeState"]["driftStatus"] | DeploymentState {
   if (current === "drifted" || next === "drifted") return "drifted";
+  if (current && current !== "unknown" && current !== "in_sync") return current;
+  if (next !== "unknown" && next !== "in_sync") return next;
   if (current === "unknown" || next === "unknown") return "unknown";
   return "in_sync";
 }
