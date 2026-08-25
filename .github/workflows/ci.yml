@@ -26,6 +26,8 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
+      - run: bash -n infra/deploy-release.sh
+      - run: shellcheck infra/deploy-release.sh
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm lint
