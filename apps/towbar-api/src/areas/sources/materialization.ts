@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 
-import { digestValue } from "@workspace/towbar-core";
+import { digestValue, requiresServerPreparation } from "@workspace/towbar-core";
 import { apps, servers } from "@workspace/towbar-database/schema";
 
 import type {
@@ -27,7 +27,13 @@ export async function upsertServer(
   const desired = input.action.desired!;
   const digest = digestValue(desired);
   const [existing] = await transaction
-    .select({ id: servers.id })
+    .select({
+      config: servers.config,
+      configDigest: servers.configDigest,
+      id: servers.id,
+      preparedAt: servers.preparedAt,
+      preparedConfigDigest: servers.preparedConfigDigest,
+    })
     .from(servers)
     .where(
       and(
@@ -36,14 +42,22 @@ export async function upsertServer(
       ),
     )
     .limit(1);
-  let serverId = existing?.id;
-  if (serverId) {
+  let serverId: string;
+  if (existing) {
+    serverId = existing.id;
+    const preservePreparation =
+      Boolean(existing.preparedAt) &&
+      existing.preparedConfigDigest === existing.configDigest &&
+      !requiresServerPreparation(existing.config, desired);
     await transaction
       .update(servers)
       .set({
         archivedAt: null,
         config: desired,
         configDigest: digest,
+        preparedConfigDigest: preservePreparation
+          ? digest
+          : existing.preparedConfigDigest,
         sourceId: input.sourceId,
         sourceRevision: input.commitSha,
         updatedAt: new Date(),
