@@ -55,7 +55,7 @@ runtime_args=()
 if test -n "$network_name"; then runtime_args+=(--network "$network_name"); fi
 if test -n "$resource_cpus"; then runtime_args+=(--cpus "$resource_cpus"); fi
 if test -n "$resource_memory"; then runtime_args+=(--memory "$resource_memory"); fi
-/usr/bin/python3 - "$remote_dir/secrets/runtime" \
+/usr/bin/python3 - "$remote_dir/secrets/runtime" "$container_name" "$container_port" \
   /usr/bin/docker run -d "${"$"}{runtime_args[@]}" \
   --name "$container_name" \
   --restart unless-stopped \
@@ -69,22 +69,86 @@ if test -n "$resource_memory"; then runtime_args+=(--memory "$resource_memory");
   --label "towbar.deployable=$TOWBAR_DEPLOYABLE_ID" \
   --label "towbar.source=$TOWBAR_SOURCE_ID" \
   --label "towbar.deployment=$TOWBAR_DEPLOYMENT_ID" \
-  -p "127.0.0.1::$container_port" \
+  --label "towbar.host-port=__TOWBAR_HOST_PORT__" \
+  -p "__TOWBAR_PUBLISH__" \
   "$image_tag" <<'PYTHON' >/dev/null
+import hashlib
 import os
 from pathlib import Path
+import socket
+import subprocess
 import sys
 
 runtime_directory = Path(sys.argv[1])
-command = sys.argv[2:]
+container_name = sys.argv[2]
+container_port = sys.argv[3]
+command = sys.argv[4:]
 runtime_arguments: list[str] = []
 for secret_path in sorted(runtime_directory.iterdir()):
     if not secret_path.is_file():
         continue
     os.environ[secret_path.name] = secret_path.read_text(encoding="utf-8")
     runtime_arguments.extend(("--env", secret_path.name))
-command[3:3] = runtime_arguments
-os.execve(command[0], command, os.environ)
+
+# Docker records an anonymous loopback publication with an empty HostPort and
+# may assign a different port when it restarts the container. Caddy would then
+# retain the obsolete upstream. Select an explicit port instead so the binding
+# remains stable for the lifetime of the container, including restarts.
+port_minimum = 20_000
+port_count = 10_000
+seed = int.from_bytes(
+    hashlib.sha256(os.environ["TOWBAR_DEPLOYABLE_ID"].encode()).digest()[:4],
+    "big",
+)
+retryable_errors = (
+    "address already in use",
+    "port is already allocated",
+)
+
+for offset in range(port_count):
+    host_port = port_minimum + ((seed + offset) % port_count)
+    probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        probe.bind(("127.0.0.1", host_port))
+    except OSError:
+        probe.close()
+        continue
+    probe.close()
+
+    publish = f"127.0.0.1:{host_port}:{container_port}"
+    candidate_command = [
+        argument
+        .replace("__TOWBAR_HOST_PORT__", str(host_port))
+        .replace("__TOWBAR_PUBLISH__", publish)
+        for argument in command
+    ]
+    candidate_command[3:3] = runtime_arguments
+    result = subprocess.run(
+        candidate_command,
+        check=False,
+        env=os.environ,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    if result.returncode == 0:
+        sys.stdout.write(result.stdout)
+        raise SystemExit(0)
+
+    error = result.stderr.strip()
+    if not any(fragment in error.lower() for fragment in retryable_errors):
+        if error:
+            print(error, file=sys.stderr)
+        raise SystemExit(result.returncode)
+
+    subprocess.run(
+        ["/usr/bin/docker", "rm", "-f", container_name],
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+raise SystemExit("Towbar could not allocate a stable loopback host port")
 PYTHON
 docker port "$container_name" "$container_port/tcp" | awk -F: 'NR==1 {print $NF}'
 `;
