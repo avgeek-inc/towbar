@@ -121,7 +121,7 @@ export function DeploymentQueue() {
           </span>
         </Button>
         <Popover.Content
-          className="w-[min(22rem,calc(100vw-2rem))] overflow-hidden bg-overlay"
+          className="w-[min(22rem,calc(100vw-2rem))] overflow-hidden border border-separator bg-overlay"
           offset={8}
           placement="top end"
         >
