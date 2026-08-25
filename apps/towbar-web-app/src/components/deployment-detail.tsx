@@ -38,6 +38,7 @@ import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 import { formatDeploymentTrigger } from "./deployment-table";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
+import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
 
 const terminal = new Set([
   "cancelled",
@@ -110,6 +111,7 @@ export function DeploymentDetail() {
     );
 
   const item = stream.deployment;
+  const displayStatus = getDeploymentDisplayStatus(item);
   if (item.sourceId !== sourceId) {
     return (
       <DashboardPage
@@ -181,7 +183,7 @@ export function DeploymentDetail() {
   return (
     <DashboardPage
       actions={actions}
-      badge={<StatusBadge status={item.state} />}
+      badge={<StatusBadge status={displayStatus} />}
       breadcrumbAncestors={breadcrumbAncestors}
       breadcrumbLabel={`Deployment ${item.id.slice(0, 8)}`}
       title={`Deployment ${item.id.slice(0, 8)}`}
@@ -327,7 +329,7 @@ export function DeploymentDetail() {
               <Widget className="min-w-0">
                 <Widget.Header>
                   <Widget.Title>
-                    {formatStatus(currentStep?.state ?? item.state)}
+                    {formatStatus(currentStep?.state ?? displayStatus)}
                   </Widget.Title>
                   <StatusBadge status={stream.connection} />
                 </Widget.Header>

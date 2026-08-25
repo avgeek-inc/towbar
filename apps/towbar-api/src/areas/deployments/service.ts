@@ -34,6 +34,7 @@ import { resolveAwsSecret } from "../aws/service.js";
 import { createInstallationToken } from "../github/client.js";
 import { sshLoginSecretSchema } from "../servers/service.js";
 import { collectRetainedImageTags } from "./image-retention.js";
+import { attachDeploymentQueueBlockers } from "./queue-blocker-query.js";
 
 import type { DeploymentState } from "@workspace/towbar-core/temporal";
 
@@ -60,7 +61,7 @@ const publicDeploymentLogSelection = {
 };
 
 export async function listDeployments(workspaceId: string, sourceId?: string) {
-  return await getTowbarDatabase()
+  const items = await getTowbarDatabase()
     .select(publicDeploymentSelection)
     .from(deployments)
     .where(
@@ -72,6 +73,7 @@ export async function listDeployments(workspaceId: string, sourceId?: string) {
         : eq(deployments.workspaceId, workspaceId),
     )
     .orderBy(desc(deployments.createdAt));
+  return await attachDeploymentQueueBlockers(items);
 }
 
 export async function getDeployment(deploymentId: string, workspaceId: string) {
@@ -86,7 +88,7 @@ export async function getDeployment(deploymentId: string, workspaceId: string) {
     )
     .limit(1);
   if (!deployment) throw notFound("Deployment");
-  return deployment;
+  return (await attachDeploymentQueueBlockers([deployment]))[0]!;
 }
 
 export async function listDeploymentSteps(

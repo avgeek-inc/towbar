@@ -1,16 +1,27 @@
-import { and, desc, eq, isNull, ne } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, ne, notInArray } from "drizzle-orm";
 
 import {
   getLatestBackupScheduleOccurrence,
   isNormalizedResource,
 } from "@workspace/towbar-core";
-import { apps, serverChecks, servers } from "@workspace/towbar-database/schema";
+import { terminalDeploymentStates } from "@workspace/towbar-core/temporal";
+import {
+  apps,
+  deployments,
+  resourceOperations,
+  serverChecks,
+  serverPreparations,
+  servers,
+} from "@workspace/towbar-database/schema";
 
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { requestServerCheck } from "../servers/service.js";
 import { requestDeployableOperation } from "./service.js";
 
 export async function runMaintenanceSweep() {
+  // Scheduled deployable work has priority; health checks are maintenance and
+  // should enter a server coordinator only after its queue becomes idle.
+  const backupsQueued = await queueScheduledBackups();
   const activeServers = await getTowbarDatabase()
     .select({
       id: servers.id,
@@ -31,9 +42,11 @@ export async function runMaintenanceSweep() {
       .orderBy(desc(serverChecks.createdAt))
       .limit(1);
     if (
-      !latest ||
-      (!["queued", "running"].includes(latest.status) &&
-        Date.now() - latest.createdAt.getTime() >= 5 * 60_000)
+      shouldQueueMaintenanceServerCheck({
+        hasPendingServerWork: await hasPendingServerWork(server.id),
+        latestCheck: latest,
+        now: new Date(),
+      })
     ) {
       const queued = await requestServerCheck({
         requestedBy: null,
@@ -45,6 +58,10 @@ export async function runMaintenanceSweep() {
     }
   }
 
+  return { backupsQueued, checksQueued };
+}
+
+async function queueScheduledBackups() {
   const resources = await getTowbarDatabase()
     .select({ id: apps.id, config: apps.config, workspaceId: apps.workspaceId })
     .from(apps)
@@ -69,5 +86,60 @@ export async function runMaintenanceSweep() {
       })
       .catch(() => undefined);
   }
-  return { backupsQueued, checksQueued };
+  return backupsQueued;
+}
+
+async function hasPendingServerWork(serverId: string) {
+  const database = getTowbarDatabase();
+  const [activeDeployments, activeOperations, activePreparations] =
+    await Promise.all([
+      database
+        .select({ id: deployments.id })
+        .from(deployments)
+        .where(
+          and(
+            eq(deployments.serverId, serverId),
+            notInArray(deployments.state, [...terminalDeploymentStates]),
+          ),
+        )
+        .limit(1),
+      database
+        .select({ id: resourceOperations.id })
+        .from(resourceOperations)
+        .where(
+          and(
+            eq(resourceOperations.serverId, serverId),
+            inArray(resourceOperations.state, ["queued", "running"]),
+          ),
+        )
+        .limit(1),
+      database
+        .select({ id: serverPreparations.id })
+        .from(serverPreparations)
+        .where(
+          and(
+            eq(serverPreparations.serverId, serverId),
+            inArray(serverPreparations.status, ["queued", "running"]),
+          ),
+        )
+        .limit(1),
+    ]);
+  return Boolean(
+    activeDeployments[0] || activeOperations[0] || activePreparations[0],
+  );
+}
+
+export function shouldQueueMaintenanceServerCheck(input: {
+  hasPendingServerWork: boolean;
+  latestCheck:
+    | { createdAt: Date; status: "failed" | "queued" | "running" | "succeeded" }
+    | undefined;
+  now: Date;
+}) {
+  if (input.hasPendingServerWork) return false;
+  if (!input.latestCheck) return true;
+  if (["queued", "running"].includes(input.latestCheck.status)) return false;
+  return (
+    input.now.getTime() - input.latestCheck.createdAt.getTime() >= 5 * 60_000
+  );
 }

@@ -24,6 +24,7 @@ import { Tabs } from "@workspace/web-design-system/navigation/tabs";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
+import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
 
 import { ActionButton, DashboardPage, PageTabs } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -150,7 +151,9 @@ export function ResourceDetail() {
           <Attributes columns={2} title="Latest deployment" variant="card">
             <Attributes.Item label="Status">
               {latestDeployment ? (
-                <StatusBadge status={latestDeployment.state} />
+                <StatusBadge
+                  status={getDeploymentDisplayStatus(latestDeployment)}
+                />
               ) : (
                 "Not deployed"
               )}

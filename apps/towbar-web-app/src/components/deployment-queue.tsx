@@ -16,6 +16,7 @@ import { ScrollShadow } from "@workspace/web-design-system/utilities/scroll-shad
 import { formatStatus } from "@workspace/towbar-web-ui/status-badge";
 
 import { useApiQuery } from "@/hooks/use-api-query";
+import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
 
 const terminalDeploymentStates = new Set<DeploymentState>([
   "cancelled",
@@ -30,8 +31,8 @@ const waitingDeploymentStates = new Set<DeploymentState>([
   "waiting_for_server",
 ]);
 
-function DeploymentStateIndicator({ state }: { state: DeploymentState }) {
-  const isWaiting = waitingDeploymentStates.has(state);
+function DeploymentStateIndicator({ deployment }: { deployment: Deployment }) {
+  const isWaiting = waitingDeploymentStates.has(deployment.state);
 
   return (
     <span className="flex shrink-0 items-center gap-2">
@@ -54,7 +55,7 @@ function DeploymentStateIndicator({ state }: { state: DeploymentState }) {
         </ProgressCircle>
       )}
       <span className="typography--body-sm text-muted">
-        {formatStatus(state)}
+        {formatStatus(getDeploymentDisplayStatus(deployment))}
       </span>
     </span>
   );
@@ -148,7 +149,7 @@ export function DeploymentQueue() {
                       >
                         {deployableName}
                       </span>
-                      <DeploymentStateIndicator state={deployment.state} />
+                      <DeploymentStateIndicator deployment={deployment} />
                     </Button>
                   );
                 })}

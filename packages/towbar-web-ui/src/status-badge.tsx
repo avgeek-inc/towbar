@@ -40,6 +40,10 @@ const warning = new Set([
   "untrusted",
   "waiting",
   "waiting_for_server",
+  "waiting_for_server_capacity",
+  "waiting_for_server_check",
+  "waiting_for_server_operation",
+  "waiting_for_server_preparation",
   "server_setup_pending",
   "pending",
 ]);

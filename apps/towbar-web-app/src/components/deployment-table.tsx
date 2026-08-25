@@ -11,6 +11,7 @@ import {
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { RelativeTime, RelativeTimeProvider } from "./last-synced-time";
+import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
 
 const DEPLOYMENT_PAGE_SIZE = 10;
 
@@ -76,7 +77,9 @@ export function DeploymentTable({
     {
       key: "status",
       header: "Status",
-      cell: (deployment) => <StatusBadge status={deployment.state} />,
+      cell: (deployment) => (
+        <StatusBadge status={getDeploymentDisplayStatus(deployment)} />
+      ),
       className: "whitespace-nowrap",
     },
   ];
