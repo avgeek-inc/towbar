@@ -130,9 +130,12 @@ Configure these variables on a GitHub environment named `production`:
 | `TOWBAR_DEPLOY_API_HEALTH_URL` | Optional public API health endpoint          |
 | `TOWBAR_DEPLOY_APP_HEALTH_URL` | Optional public app health endpoint          |
 
-Trust only `repo:<owner>/<repository>:environment:production` in the role's
-OIDC policy. Grant `ssm:SendCommand` only for `AWS-RunShellScript` and the
-target instance, plus `ssm:GetCommandInvocation` for reporting the result. The
+Read the repository's OIDC subject prefix with
+`gh api repos/<owner>/<repository>/actions/oidc/customization/sub --jq .sub_claim_prefix`,
+then trust only `<returned-prefix>:environment:production` in the role's OIDC
+policy. This supports GitHub's immutable repository-ID subject without using a
+wildcard. Grant `ssm:SendCommand` only for `AWS-RunShellScript` and the target
+instance, plus `ssm:GetCommandInvocation` for reporting the result. The
 instance must be online in Systems Manager and the deployment directory must
 contain a clean Git checkout plus an owner-readable-only `.env` file.
 Restrict the environment's deployment branches and tags to the protected
