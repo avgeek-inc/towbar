@@ -44,7 +44,8 @@ async function main() {
     activities: instrumentedActivities,
     connection,
     identity: `towbar-worker-${process.pid}`,
-    maxConcurrentActivityTaskExecutions: 4,
+    maxConcurrentActivityTaskExecutions:
+      env.TOWBAR_WORKER_MAX_CONCURRENT_ACTIVITIES,
     namespace: env.TEMPORAL_NAMESPACE,
     taskQueue: towbarTaskQueue,
     workflowBundle: await loadWorkflowBundle(),

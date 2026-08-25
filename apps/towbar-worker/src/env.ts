@@ -11,6 +11,12 @@ const envSchema = z.object({
   ),
   TOWBAR_API_BASE_URL: z.string().url().default("http://127.0.0.1:4020"),
   TOWBAR_INTERNAL_HMAC_SECRET: z.string().min(32),
+  TOWBAR_WORKER_MAX_CONCURRENT_ACTIVITIES: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(64)
+    .default(4),
   WORKER_HEALTH_PORT: z.coerce.number().int().min(1).max(65_535).default(4_030),
 });
 
@@ -19,6 +25,10 @@ type TowbarWorkerEnv = z.infer<typeof envSchema>;
 let cached: TowbarWorkerEnv | undefined;
 
 export function getEnv() {
-  cached ??= envSchema.parse(process.env);
+  cached ??= parseEnv(process.env);
   return cached;
+}
+
+export function parseEnv(input: NodeJS.ProcessEnv) {
+  return envSchema.parse(input);
 }

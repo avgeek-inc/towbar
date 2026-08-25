@@ -98,6 +98,11 @@ variables. Add a Source, store its scoped AWS credential through the dashboard,
 and declare servers and deployables in `.towbar/deployment.yml`. Secret values
 remain in AWS Secrets Manager; the manifest stores provider references only.
 
+`TOWBAR_WORKER_MAX_CONCURRENT_ACTIVITIES` defaults to `4` and limits activity
+execution across every Source. Keep it above the largest server
+`buildConcurrency` value with capacity left for Source sync and maintenance.
+Each destination server still enforces its own manifest limit.
+
 The App and Resource **Secrets** tabs can add, replace, or remove individual
 JSON environment keys behind an attached reference. Listings expose only key
 names and version metadata. The owner can explicitly reveal current values

@@ -126,6 +126,7 @@ services:
       <<: *backend-environment
       TOWBAR_API_BASE_URL: http://api:4023
       TOWBAR_APP_ID: ${TOWBAR_APP_ID:-}
+      TOWBAR_WORKER_MAX_CONCURRENT_ACTIVITIES: ${TOWBAR_WORKER_MAX_CONCURRENT_ACTIVITIES:-4}
       WORKER_HEALTH_PORT: 4030
     networks: [platform]
 
