@@ -46,7 +46,7 @@ catalog:
   "@temporalio/client": ^1.16.1
   "@temporalio/worker": ^1.16.1
   "@temporalio/workflow": ^1.16.1
-  "@types/node": ^24.12.2
+  "@types/node": ^26.2.0
   "@types/react": ^19.2.14
   "@types/react-dom": ^19.2.3
   clsx: ^2.1.1
@@ -60,7 +60,7 @@ catalog:
   react-dom: ^19.2.5
   react-hook-form: ^7.73.1
   recharts: ^3.10.1
-  tailwind-merge: ^3.5.0
+  tailwind-merge: ^3.6.0
   tailwindcss: ^4.2.4
   typescript: ^5.9.3
   yaml: ^2.8.3
