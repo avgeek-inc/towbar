@@ -5,6 +5,12 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Application containers now retain their loopback host port across Docker
+  restarts, preventing Caddy from keeping an obsolete upstream after an OOM or
+  runtime restart.
+
 ## [1.0.2] - 2026-08-25
 
 ### Added

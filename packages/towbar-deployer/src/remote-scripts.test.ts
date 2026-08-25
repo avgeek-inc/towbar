@@ -58,7 +58,7 @@ void describe("remote deployment scripts", () => {
     assert.match(startRemoteScript, /secrets\/runtime/);
     assert.match(startRemoteScript, /secret_path\.read_text/);
     assert.match(startRemoteScript, /\("--env", secret_path\.name\)/);
-    assert.match(startRemoteScript, /os\.execve/);
+    assert.match(startRemoteScript, /subprocess\.run/);
     assert.match(startRemoteScript, /\/usr\/bin\/docker run/);
     assert.doesNotMatch(startRemoteScript, /--env-file/);
   });
@@ -68,6 +68,17 @@ void describe("remote deployment scripts", () => {
       startRemoteScript,
       /--env "SOURCE_COMMIT=\$TOWBAR_COMMIT_SHA"/,
     );
+  });
+
+  void it("publishes applications on explicit restart-stable loopback ports", () => {
+    assert.match(startRemoteScript, /port_minimum = 20_000/);
+    assert.match(
+      startRemoteScript,
+      /127\.0\.0\.1:\{host_port\}:\{container_port\}/,
+    );
+    assert.match(startRemoteScript, /towbar\.host-port=__TOWBAR_HOST_PORT__/);
+    assert.match(startRemoteScript, /port is already allocated/);
+    assert.doesNotMatch(startRemoteScript, /127\.0\.0\.1::\$container_port/);
   });
 
   void it("starts resources with stable labeled volumes and stops only the previous release", () => {
