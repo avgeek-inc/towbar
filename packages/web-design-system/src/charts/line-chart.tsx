@@ -33,6 +33,11 @@ function Root({
     </div>
   );
 }
+
+function Grid(props: ComponentProps<typeof CartesianGrid>) {
+  return <CartesianGrid stroke="var(--separator)" {...props} />;
+}
+
 type TooltipEntry = {
   color?: string;
   dataKey?: string | number;
@@ -82,7 +87,7 @@ function TooltipContent({
   );
 }
 export const LineChart = Object.assign(Root, {
-  Grid: CartesianGrid,
+  Grid,
   Line,
   Root,
   Tooltip,
