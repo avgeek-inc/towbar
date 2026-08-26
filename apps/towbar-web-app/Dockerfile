@@ -21,7 +21,8 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
   NEXT_PUBLIC_TOWBAR_WEBSITE_BASE_URL=${NEXT_PUBLIC_TOWBAR_WEBSITE_BASE_URL} \
   SENTRY_ALLOW_MISSING=true SOURCE_COMMIT=${SOURCE_COMMIT}
 COPY --from=pruner /repo/out/full/ ./
-RUN pnpm --filter towbar-web-app build
+RUN mkdir -p apps/towbar-web-app/public \
+  && pnpm --filter towbar-web-app build
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=4021
