@@ -1,12 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import type { CheckStatus } from "@workspace/towbar-database/schema";
+
 import { serverCheckIdsToPrune } from "./check-retention.js";
 
-function check(
-  id: string,
-  status: "failed" | "queued" | "running" | "succeeded" = "succeeded",
-) {
+function check(id: string, status: CheckStatus = "succeeded") {
   return { id, status };
 }
 

@@ -48,6 +48,7 @@ export const checkStatusEnum = pgEnum("towbar_check_status", [
   "succeeded",
   "failed",
 ]);
+export type CheckStatus = (typeof checkStatusEnum.enumValues)[number];
 export const credentialVerificationStatusEnum = pgEnum(
   "towbar_credential_verification_status",
   ["unverified", "verified", "failed"],
