@@ -195,10 +195,10 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
   return (
     <nav
       aria-label={config.accessibleLabel}
-      className="flex min-h-dvh flex-col gap-8 p-4"
+      className="flex min-h-dvh flex-col"
     >
       <RoutedLink
-        className="inline-flex min-w-0 items-center px-2 py-1"
+        className="inline-flex min-w-0 items-center px-4 pb-2 pt-4"
         item={homeItem}
       >
         <BrandLockup
@@ -212,30 +212,30 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
           {config.brand.title}
         </BrandLockup>
       </RoutedLink>
-      <div className="grid gap-6">
+      <div className="grid flex-1 content-start gap-1 overflow-y-auto px-3">
         {config.groups.map((group) => (
-          <section className="grid gap-2" key={group.id}>
+          <section className="grid gap-1 [&+&]:mt-2" key={group.id}>
             {group.label ? (
-              <h2 className="px-3 text-xs font-medium text-muted">
+              <h2 className="px-2 py-1.5 text-xs font-medium text-muted">
                 {group.label}
               </h2>
             ) : null}
-            <div className="grid gap-1">
+            <div className="grid gap-0.5">
               {group.items.map((item) =>
                 item.kind === "link" ? (
                   <RoutedLink
                     className={cn(
-                      "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-normal",
+                      "flex min-h-9 items-center gap-3 rounded-2xl px-2 py-1.5 text-sm",
                       pathname === item.href ||
                         (item.href !== "/" && pathname.startsWith(item.href))
-                        ? "bg-default text-foreground"
-                        : "text-muted hover:bg-default/60 hover:text-foreground",
+                        ? "bg-default font-medium text-foreground"
+                        : "font-normal text-muted hover:bg-default/60 hover:text-foreground",
                     )}
                     item={item}
                     key={item.id}
                   >
                     {item.icon ? (
-                      <HugeiconsIcon icon={item.icon} size={18} />
+                      <HugeiconsIcon icon={item.icon} size={16} />
                     ) : null}
                     {item.label}
                   </RoutedLink>
@@ -248,7 +248,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
         ))}
       </div>
       {config.footerActions?.length ? (
-        <div className="mt-auto grid gap-1">
+        <div className="mt-auto grid gap-1 px-3 pb-4 pt-2">
           {config.footerActions.map((item) => (
             <SidebarAction item={item} key={item.id} />
           ))}
@@ -264,7 +264,7 @@ function SidebarAction({ item }: { item: SidebarActionConfig }) {
     <button
       aria-label={item.accessibleLabel}
       className={cn(
-        "flex items-center gap-3 rounded-xl px-3 py-2 text-start text-sm font-normal text-muted hover:bg-default/60 hover:text-foreground disabled:opacity-50",
+        "flex min-h-9 items-center gap-3 rounded-2xl px-2 py-1.5 text-start text-sm font-normal text-muted hover:bg-default/60 hover:text-foreground disabled:opacity-50",
         item.destructive && "hover:text-danger",
       )}
       disabled={item.disabled}
@@ -275,7 +275,7 @@ function SidebarAction({ item }: { item: SidebarActionConfig }) {
       type="button"
     >
       {item.icon ? (
-        <HugeiconsIcon aria-hidden="true" icon={item.icon} size={18} />
+        <HugeiconsIcon aria-hidden="true" icon={item.icon} size={16} />
       ) : null}
       {item.label}
     </button>

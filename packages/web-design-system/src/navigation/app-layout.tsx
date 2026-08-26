@@ -80,7 +80,7 @@ export function AppLayout({
         className={cn(
           "min-h-dvh",
           sidebar && sidebarOpen
-            ? "lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]"
+            ? "lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]"
             : "",
           className,
         )}
@@ -93,7 +93,7 @@ export function AppLayout({
               onClick={() => onSidebarOpenChange?.(false)}
               type="button"
             />
-            <aside className="fixed inset-y-0 start-0 z-50 w-64 overflow-y-auto border-r border-separator bg-surface lg:sticky lg:top-0 lg:z-auto lg:h-dvh">
+            <aside className="fixed inset-y-0 start-0 z-50 w-60 overflow-y-auto border-r border-separator bg-background lg:sticky lg:top-0 lg:z-auto lg:h-dvh">
               {sidebar}
             </aside>
           </>
