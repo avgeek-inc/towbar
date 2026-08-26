@@ -7,10 +7,13 @@ import {
   listServerDeployments,
   listServerResources,
   listServers,
-  listTrustedHostKeys,
   requestServerCheck,
-  trustServerHostKey,
 } from "../../../areas/servers/service.js";
+import {
+  listTrustedHostKeys,
+  revokeServerHostKey,
+  trustServerHostKey,
+} from "../../../areas/servers/trusted-host-keys.js";
 import { listServerChecks } from "../../../areas/servers/checks.js";
 import {
   listServerPreparations,
@@ -191,6 +194,15 @@ serverRoutes.post("/:serverId/host-keys/actions/trust", async (context) => {
     },
     201,
   );
+});
+serverRoutes.delete("/:serverId/host-keys/:hostKeyId", async (context) => {
+  const user = context.get("user");
+  await revokeServerHostKey({
+    hostKeyId: context.req.param("hostKeyId"),
+    serverId: context.req.param("serverId"),
+    workspaceId: user.workspaceId,
+  });
+  return context.body(null, 204);
 });
 
 function requireIdempotencyKey(value: string | undefined) {
