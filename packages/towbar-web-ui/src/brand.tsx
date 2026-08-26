@@ -4,20 +4,18 @@ import { useCallback, useState } from "react";
 
 import { BrandLockup } from "@workspace/web-design-system/media/brand-lockup";
 import { cn } from "@workspace/web-design-system/lib/utils";
+import {
+  getTowbarBrandFaviconSource,
+  getTowbarBrandLogoSource,
+} from "@workspace/towbar-web-ui/brand-assets";
 
 import type { ComponentPropsWithoutRef } from "react";
 
-const brandImageBaseUrl =
-  "https://www.towbar.dev/cdn-cgi/imagedelivery/phvjnb9w1G6QHeeoMJptkQ";
-const fallbackLogoSource = "/towbar-mark.svg";
+const fallbackLogoSource = getTowbarBrandFaviconSource();
 const brandLogoSources = {
-  dark: brandLogoSource("dark"),
-  light: brandLogoSource("light"),
+  dark: getTowbarBrandLogoSource("dark"),
+  light: getTowbarBrandLogoSource("light"),
 } as const;
-
-function brandLogoSource(theme: "dark" | "light") {
-  return `${brandImageBaseUrl}/brands/company/logo/${theme}-transparent-edge/w=128,fit=scale-down`;
-}
 
 export function TowbarBrandLogo({
   className,
