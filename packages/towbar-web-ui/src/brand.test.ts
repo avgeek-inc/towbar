@@ -3,6 +3,7 @@ import test from "node:test";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
+import { getTowbarBrandFaviconSource } from "./brand-assets.js";
 import { TowbarLockup } from "./brand.js";
 
 Object.assign(globalThis, { React });
@@ -14,4 +15,11 @@ void test("Towbar lockup uses the Towbar brand assets", () => {
   assert.match(markup, /brands\/towbar\/logo\/dark-transparent-edge/u);
   assert.doesNotMatch(markup, /brands\/company\/logo/u);
   assert.match(markup, />Towbar<\/span>/u);
+});
+
+void test("Towbar favicon uses the managed brand asset", () => {
+  const source = getTowbarBrandFaviconSource();
+
+  assert.match(source, /brands\/towbar\/favicon/u);
+  assert.doesNotMatch(source, /towbar-mark\.svg/u);
 });

@@ -26,6 +26,7 @@
     "typescript": "catalog:"
   },
   "exports": {
+    "./brand-assets": "./src/brand-assets.ts",
     "./*": "./src/*.tsx"
   }
 }
