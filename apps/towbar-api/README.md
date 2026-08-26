@@ -86,6 +86,10 @@ to the exact normalized Server configuration digest; a manifest change makes
 the Server pending again. Deployment admission and automatic-deployment
 selection both require a current successful preparation.
 
+Server check history is retained as a rolling window of the newest 500 checks
+per Server. Older completed checks are removed as checks finish, while queued
+and running checks are preserved until they reach a terminal state.
+
 App and Resource lifecycle is manifest-owned. A deployable missing from the
 latest successful Source sync is archived; the same manifest ID reappearing
 restores it. Towbar has no independent decommission action or lifecycle flag.

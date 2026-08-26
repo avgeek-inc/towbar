@@ -5,6 +5,7 @@ import {
   isNormalizedResource,
 } from "@workspace/towbar-core";
 import { terminalDeploymentStates } from "@workspace/towbar-core/temporal";
+import type { CheckStatus } from "@workspace/towbar-database/schema";
 import {
   apps,
   deployments,
@@ -131,9 +132,7 @@ async function hasPendingServerWork(serverId: string) {
 
 export function shouldQueueMaintenanceServerCheck(input: {
   hasPendingServerWork: boolean;
-  latestCheck:
-    | { createdAt: Date; status: "failed" | "queued" | "running" | "succeeded" }
-    | undefined;
+  latestCheck: { createdAt: Date; status: CheckStatus } | undefined;
   now: Date;
 }) {
   if (input.hasPendingServerWork) return false;
