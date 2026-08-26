@@ -18,6 +18,7 @@ import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueueServerCheck } from "../../infrastructure/temporal.js";
 import { publicDeploymentSelection } from "../deployment-selection.js";
 import { resolveAwsSecret } from "../aws/service.js";
+import { pruneServerCheckHistory } from "./check-retention.js";
 
 export const sshLoginSecretSchema = z
   .object({
@@ -260,7 +261,8 @@ export async function requestServerCheck(input: {
     });
     return toPublicServerCheck(check);
   } catch (error) {
-    await getTowbarDatabase()
+    const database = getTowbarDatabase();
+    await database
       .update(serverChecks)
       .set({
         errorCode: "TEMPORAL_UNAVAILABLE",
@@ -269,6 +271,7 @@ export async function requestServerCheck(input: {
         status: "failed",
       })
       .where(eq(serverChecks.id, check.id));
+    await pruneServerCheckHistory(database, check.serverId);
     throw error;
   }
 }
@@ -463,6 +466,7 @@ export async function finishServerCheck(
           });
       }
     }
+    await pruneServerCheckHistory(transaction, check.serverId);
     return check;
   });
 }
