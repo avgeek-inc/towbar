@@ -516,6 +516,28 @@ test("the local fixture covers first-connection host-key trust", async () => {
       trustedSourceServersPayload.servers[0].hostKeyStatus,
       "trusted",
     );
+
+    const revokeResponse = await fetch(
+      `${baseUrl}/v1/core/servers/${fixtureIds.server}/host-keys/${keysPayload.hostKeys[0].id}`,
+      { method: "DELETE" },
+    );
+    assert.equal(revokeResponse.status, 204);
+
+    const revokedKeysResponse = await fetch(
+      `${baseUrl}/v1/core/servers/${fixtureIds.server}/host-keys`,
+    );
+    const revokedKeysPayload = await revokedKeysResponse.json();
+    assert.deepEqual(revokedKeysPayload.hostKeys, []);
+
+    const untrustedSourceServersResponse = await fetch(
+      `${baseUrl}/v1/core/sources/${fixtureIds.source}/servers`,
+    );
+    const untrustedSourceServersPayload =
+      await untrustedSourceServersResponse.json();
+    assert.equal(
+      untrustedSourceServersPayload.servers[0].hostKeyStatus,
+      "untrusted",
+    );
   } finally {
     server.close();
     await once(server, "close");

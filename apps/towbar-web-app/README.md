@@ -28,7 +28,8 @@ connection view exposes non-secret private-network and SSH-tunnel coordinates
 for tools such as TablePlus. Database restores remain a manual operator task.
 Server pages list only Source-scoped orphan candidates from the latest check;
 owner-confirmed cleanup is destructive and persistent volumes are never
-removed automatically.
+removed automatically. Trusted SSH host keys can be explicitly untrusted from
+the Server's Host Keys tab after confirmation.
 
 ## Local UI fixture
 

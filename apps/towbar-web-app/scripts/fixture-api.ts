@@ -597,6 +597,22 @@ export function createFixtureApiServer() {
       if (failedCheckIndex >= 0) serverChecks.splice(failedCheckIndex, 1);
       return writeJson(response, 201, { hostKey: hostKeys[0] });
     }
+    const revokeHostKeyMatch = path.match(
+      /^\/v1\/core\/servers\/([^/]+)\/host-keys\/([^/]+)$/,
+    );
+    if (request.method === "DELETE" && revokeHostKeyMatch) {
+      const hostKeys = hostKeysByServer.get(revokeHostKeyMatch[1]!);
+      const index = hostKeys?.findIndex(
+        (key) => key.id === revokeHostKeyMatch[2],
+      );
+      if (!hostKeys || index === undefined || index < 0) {
+        return writeNotFound(response);
+      }
+      hostKeys.splice(index, 1);
+      response.writeHead(204);
+      response.end();
+      return;
+    }
     const prepareServerMatch = path.match(
       /^\/v1\/core\/servers\/([^/]+)\/actions\/prepare$/,
     );

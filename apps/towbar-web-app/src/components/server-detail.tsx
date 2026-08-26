@@ -49,6 +49,7 @@ type DiscoveredKey = {
 type HostKeyRow = {
   algorithm: string;
   fingerprint: string;
+  id?: string;
   publicKey?: string;
   status: "trusted" | "untrusted";
 };
@@ -144,6 +145,7 @@ export function ServerDetail() {
     ...keys.data.hostKeys.map((key) => ({
       algorithm: key.algorithm,
       fingerprint: key.fingerprint,
+      id: key.id,
       status: "trusted" as const,
     })),
     ...discovered
@@ -230,7 +232,32 @@ export function ServerDetail() {
       key: "action",
       header: "Action",
       cell: (key) =>
-        key.status === "untrusted" && key.publicKey ? (
+        key.status === "trusted" && key.id ? (
+          <ActionButton
+            action={() =>
+              api.delete(`/v1/core/servers/${serverId}/host-keys/${key.id}`)
+            }
+            confirm={{
+              actionLabel: "Untrust key",
+              description:
+                "Towbar will stop accepting this SSH host key. Verify and trust a replacement before the next server operation if this is the last trusted key.",
+              title: (
+                <span className="inline-flex flex-wrap items-center gap-1.5">
+                  <span>Untrust</span>
+                  <TypographyCode className="break-all">
+                    {key.fingerprint}
+                  </TypographyCode>
+                  <span>?</span>
+                </span>
+              ),
+            }}
+            pendingLabel="Untrusting…"
+            success="Host key untrusted"
+            variant="danger"
+          >
+            Untrust key
+          </ActionButton>
+        ) : key.status === "untrusted" && key.publicKey ? (
           <ActionButton
             action={() =>
               api.post(`/v1/core/servers/${serverId}/host-keys/actions/trust`, {
