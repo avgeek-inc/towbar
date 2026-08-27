@@ -12,14 +12,12 @@ host runtime in activities, persists each step through signed API callbacks,
 and never puts SSH credentials into workflow history. Self-deployment uses a delayed cleanup handoff after
 the candidate worker is healthy and its release is durable.
 
-Eligible roots queue immediately after a successful webhook or operator Source
-sync. A successful automatic deployment asks the API to admit any newly eligible `autoDeploy`
-dependents. A dependency is ready when its current release matches its desired
-deployment digest, so an unchanged dependency may remain on an older Source
-commit. Source reconciliation and admission requests may each use up to two
-minutes of the five-minute Temporal activity attempt so repository-tree
-materialization is not constrained by the default internal request timeout.
-Failed dependency chains do not continue.
+Eligible roots queue independently after a successful webhook or operator
+Source sync. Towbar applies no cross-deployment ordering; the server coordinator
+only enforces per-server concurrency and per-deployable serialization. Source
+reconciliation and admission requests may each use up to two minutes of the
+five-minute Temporal activity attempt so repository-tree materialization is not
+constrained by the default internal request timeout.
 
 The same coordinator serializes a Resource with itself. Stateful Resource
 promotion stops the current container only after the selected image is ready,

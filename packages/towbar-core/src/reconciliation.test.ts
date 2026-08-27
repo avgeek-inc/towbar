@@ -26,7 +26,6 @@ const desired: NormalizedDeploymentManifest = {
       context: ".",
       deploymentInputs: [],
       container: { port: 3000 },
-      dependsOn: [],
       health: { path: "/api/health", timeoutSeconds: 60 },
       hooks: {},
       secrets: {},
@@ -128,7 +127,6 @@ void test("reconciles Resources independently from Apps", () => {
       resources: { cpus: 1, memory: "1g" },
       volumes: [{ mountPath: "/var/lib/postgresql/data", name: "data" }],
     },
-    dependsOn: [],
     health: {
       command: ["pg_isready"],
       timeoutSeconds: 60,

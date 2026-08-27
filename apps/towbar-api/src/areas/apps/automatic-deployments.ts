@@ -3,7 +3,6 @@ import { isNormalizedResource } from "@workspace/towbar-core";
 
 import {
   apps,
-  deployments,
   releases,
   servers,
   sourceSyncs,
@@ -60,28 +59,11 @@ export async function scheduleSourceAutomaticDeployments(syncId: string) {
   });
 }
 
-export async function continueAutomaticDeployments(deploymentId: string) {
-  const [deployment] = await getTowbarDatabase()
-    .select({
-      commitSha: deployments.commitSha,
-      kind: deployments.kind,
-      requestedBy: deployments.requestedBy,
-      sourceId: deployments.sourceId,
-      state: deployments.state,
-      workspaceId: deployments.workspaceId,
-    })
-    .from(deployments)
-    .where(eq(deployments.id, deploymentId))
-    .limit(1);
-  if (
-    !deployment ||
-    deployment.requestedBy ||
-    deployment.kind !== "deploy" ||
-    !["succeeded", "succeeded_with_warnings"].includes(deployment.state)
-  ) {
-    return { deploymentIds: [] };
-  }
-  return await scheduleEligibleAutomaticDeployments(deployment);
+export function continueAutomaticDeployments(deploymentId: string) {
+  // Existing deployment Workflow histories contain this activity. Keep its
+  // signed API target available as a no-op until those histories have drained.
+  void deploymentId;
+  return { deploymentIds: [] };
 }
 
 async function scheduleEligibleAutomaticDeployments(input: {
@@ -129,9 +111,7 @@ async function scheduleEligibleAutomaticDeployments(input: {
     );
   const releaseStates = await database
     .select({
-      archivedAt: apps.archivedAt,
       currentDeploymentDigest: releases.deploymentDigest,
-      desiredDeploymentDigest: apps.deploymentDigest,
       manifestId: apps.manifestId,
     })
     .from(apps)

@@ -380,9 +380,6 @@ function ResourceConfigurationTabs({ item }: { item: ResourceRecord }) {
               {item.sourceRevision.slice(0, 12)}
             </TypographyCode>
           </Attributes.Item>
-          <Attributes.Item label="Depends on">
-            {renderCodeList(item.config.dependsOn)}
-          </Attributes.Item>
           <Attributes.Item label="Command">
             {item.config.container.command.length ? (
               <TypographyCode className="break-all">
@@ -548,19 +545,6 @@ function ResourceConnectionDetails({ item }: { item: ResourceRecord }) {
         </>
       ) : null}
     </Attributes>
-  );
-}
-
-function renderCodeList(values: string[] | undefined) {
-  if (!values?.length) return "None";
-  return (
-    <span className="flex flex-wrap gap-1.5">
-      {values.map((value) => (
-        <TypographyCode className="break-all" key={value}>
-          {value}
-        </TypographyCode>
-      ))}
-    </span>
   );
 }
 

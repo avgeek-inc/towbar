@@ -21,7 +21,6 @@ const app: NormalizedApp = {
   container: { port: 4_020 },
   context: ".",
   deploymentInputs: [],
-  dependsOn: [],
   dockerfile: "apps/api/Dockerfile",
   health: { path: "/health", timeoutSeconds: 30 },
   hooks: {
@@ -50,7 +49,6 @@ const resource: NormalizedResource = {
     resources: { cpus: 1, memory: "1g" },
     volumes: [],
   },
-  dependsOn: [],
   health: { timeoutSeconds: 30, type: "container" },
   id: "database",
   image: "postgres:18-alpine",

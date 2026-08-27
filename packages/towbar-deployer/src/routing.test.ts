@@ -13,7 +13,6 @@ function context(
       autoDeploy: false,
       container: { port: 3_000 },
       context: ".",
-      dependsOn: [],
       deploymentInputs: [],
       dockerfile: "Dockerfile",
       domains: {

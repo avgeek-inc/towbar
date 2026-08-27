@@ -11,7 +11,6 @@ import { secretReferenceSchema } from "./secret-reference.js";
 import {
   canonicalIp,
   digestValue,
-  findDependencyCycles,
   findDuplicates,
   isValidBranchName,
   normalizeDomain,
@@ -351,10 +350,6 @@ const appSchema = z
     server: ipAddressSchema,
     dockerfile: repositoryPathSchema,
     context: repositoryPathSchema.optional(),
-    dependsOn: z
-      .array(z.string().trim().regex(appIdPattern))
-      .max(50)
-      .optional(),
     container: z
       .object({
         network: z.string().trim().regex(dockerNetworkPattern).optional(),
@@ -516,10 +511,6 @@ const resourceSchema = z
     type: z.enum(["image", "postgres", "redis"]),
     image: z.string().trim().regex(dockerImagePattern).optional(),
     server: ipAddressSchema,
-    dependsOn: z
-      .array(z.string().trim().regex(appIdPattern))
-      .max(50)
-      .optional(),
     container: z
       .object({
         command: z.array(hookArgumentSchema).min(1).max(64).optional(),
@@ -658,9 +649,6 @@ export const deploymentManifestSchema = z
     const serverByIp = new Map(
       manifest.servers.map((server) => [canonicalIp(server.ip), server]),
     );
-    const deployableIds = new Set(
-      deployables.map((deployable) => deployable.id),
-    );
     const claimedDomains = new Map<string, string>();
     const claimedNetworkAliases = new Map<string, string>();
     const claimedSshTunnelPorts = new Map<string, string>();
@@ -761,29 +749,6 @@ export const deploymentManifestSchema = z
         });
       }
 
-      findDuplicates(app.dependsOn ?? []).forEach((dependencyId) =>
-        context.addIssue({
-          code: "custom",
-          message: `Dependency '${dependencyId}' is declared more than once`,
-          path: [collection, appIndex, "dependsOn"],
-        }),
-      );
-      (app.dependsOn ?? []).forEach((dependencyId, dependencyIndex) => {
-        if (dependencyId === app.id) {
-          context.addIssue({
-            code: "custom",
-            message: "An app cannot depend on itself",
-            path: [collection, appIndex, "dependsOn", dependencyIndex],
-          });
-        } else if (!deployableIds.has(dependencyId)) {
-          context.addIssue({
-            code: "custom",
-            message: `Dependency '${dependencyId}' is not declared in this manifest`,
-            path: [collection, appIndex, "dependsOn", dependencyIndex],
-          });
-        }
-      });
-
       if (!app.domains) return;
       const domains = [
         app.domains.primary,
@@ -803,15 +768,6 @@ export const deploymentManifestSchema = z
         claimedDomains.set(domain, app.id);
       });
     });
-
-    for (const appId of findDependencyCycles(deployables)) {
-      const appIndex = deployables.findIndex((app) => app.id === appId);
-      context.addIssue({
-        code: "custom",
-        message: `Deployable '${appId}' participates in a dependency cycle`,
-        path: ["dependsOn", appIndex],
-      });
-    }
   });
 
 export type DeploymentManifestInput = z.input<typeof deploymentManifestSchema>;
@@ -846,7 +802,6 @@ export type NormalizedApp = {
   };
   context: string;
   deploymentInputs: string[];
-  dependsOn: string[];
   description?: string;
   dockerfile: string;
   domains?: {
@@ -897,7 +852,6 @@ export type NormalizedResource = {
     resources: { cpus: number; memory: string };
     volumes: Array<{ mountPath: string; name: string }>;
   };
-  dependsOn: string[];
   description?: string;
   domains?: NormalizedApp["domains"];
   health:
@@ -1059,7 +1013,6 @@ export function normalizeDeploymentManifest(
           dockerfile: normalizeRepositoryPath(app.dockerfile),
           context: normalizeRepositoryPath(app.context ?? "."),
           deploymentInputs: automaticDeployment.inputs,
-          dependsOn: [...(app.dependsOn ?? [])].sort(),
           container: {
             ...(app.container.network
               ? { network: app.container.network.trim() }
@@ -1172,7 +1125,6 @@ function normalizeResource(
     autoDeploy: resource.autoDeploy ?? false,
     ...(backup ? { backup } : {}),
     container: normalizeResourceContainer(resource, kind, port, volumes),
-    dependsOn: [...(resource.dependsOn ?? [])].sort(),
     ...(resource.description ? { description: resource.description } : {}),
     ...(resource.domains
       ? {

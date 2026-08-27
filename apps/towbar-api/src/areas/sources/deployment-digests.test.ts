@@ -25,7 +25,6 @@ const app = {
   autoDeploy: true,
   container: { port: 3_000 },
   context: ".",
-  dependsOn: [],
   deploymentInputs: ["apps/web/**"],
   dockerfile: "apps/web/Dockerfile",
   health: { path: "/health", timeoutSeconds: 60 },

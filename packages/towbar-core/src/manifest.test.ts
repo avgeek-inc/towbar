@@ -44,7 +44,6 @@ apps:
     server: 203.0.113.10
     dockerfile: apps/towbar-web-app/Dockerfile
     context: .
-    dependsOn: []
     container:
       network: towbar-platform
       port: 3000
@@ -101,7 +100,6 @@ void test("parses and canonicalizes a version 1 manifest", () => {
     cpus: 0.5,
     memory: "1g",
   });
-  assert.deepEqual(result.manifest.apps[0]?.dependsOn, []);
   assert.deepEqual(result.manifest.apps[0]?.hooks, {
     postDeploy: {
       command: ["node", "dist/cli/post-deploy.js"],
@@ -182,7 +180,7 @@ void test("publishes container resource limits in the JSON schema", () => {
   );
 });
 
-void test("publishes server concurrency, dependencies, and hooks in the JSON schema", () => {
+void test("publishes server concurrency and hooks in the JSON schema", () => {
   const rootProperties = schemaObject(deploymentJsonSchema, "properties");
   const serverProperties = schemaObject(
     deploymentJsonSchema,
@@ -204,7 +202,7 @@ void test("publishes server concurrency, dependencies, and hooks in the JSON sch
     minimum: 1,
     type: "integer",
   });
-  assert.equal(schemaObject(appProperties.dependsOn).uniqueItems, true);
+  assert.equal(appProperties.dependsOn, undefined);
   assert.equal(schemaObject(appProperties.hooks).minProperties, 1);
   assert.deepEqual(schemaObject(rootProperties.source, "properties").branch, {
     default: "main",
@@ -238,6 +236,7 @@ void test("publishes server concurrency, dependencies, and hooks in the JSON sch
     "items",
     "properties",
   );
+  assert.equal(resourceProperties.dependsOn, undefined);
   assert.deepEqual(
     schemaObject(
       resourceProperties.access,
@@ -510,32 +509,17 @@ void test("rejects invalid container resource limits", () => {
   );
 });
 
-void test("rejects missing, duplicate, self, and cyclic dependencies", () => {
-  const base = manifest.replace("    dependsOn: []\n", "");
-  const invalid = base
-    .replace(
-      "  - id: towbar-web-app",
-      `  - id: api\n    name: API\n    server: 203.0.113.10\n    dockerfile: apps/api/Dockerfile\n    dependsOn: [worker]\n    container:\n      port: 4000\n  - id: worker\n    name: Worker\n    server: 203.0.113.10\n    dockerfile: apps/worker/Dockerfile\n    dependsOn: [api]\n    container:\n      port: 4001\n  - id: towbar-web-app`,
-    )
-    .replace(
-      "    context: .\n",
-      "    context: .\n    dependsOn: [towbar-web-app, missing, missing]\n",
-    );
+void test("rejects the removed dependsOn manifest field", () => {
+  const invalid = manifest.replace(
+    "    context: .\n",
+    "    context: .\n    dependsOn: [api]\n",
+  );
   assert.throws(
     () => parseDeploymentManifest(invalid),
     (error) => {
       assert.ok(error instanceof ManifestValidationError);
-      assert.ok(error.issues.some((issue) => issue.message.includes("itself")));
       assert.ok(
-        error.issues.some((issue) => issue.message.includes("not declared")),
-      );
-      assert.ok(
-        error.issues.some((issue) => issue.message.includes("more than once")),
-      );
-      assert.ok(
-        error.issues.some((issue) =>
-          issue.message.includes("dependency cycle"),
-        ),
+        error.issues.some((issue) => issue.message.includes("dependsOn")),
       );
       return true;
     },

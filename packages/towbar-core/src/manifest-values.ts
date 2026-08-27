@@ -146,35 +146,3 @@ export function findDuplicates(values: string[]) {
   });
   return [...duplicates].sort();
 }
-
-export function findDependencyCycles(
-  apps: Array<{ dependsOn?: string[]; id: string }>,
-) {
-  const dependencies = new Map(
-    apps.map((app) => [app.id, app.dependsOn ?? []]),
-  );
-  const visiting = new Set<string>();
-  const visited = new Set<string>();
-  const cyclic = new Set<string>();
-  const stack: string[] = [];
-
-  const visit = (appId: string) => {
-    if (visited.has(appId)) return;
-    if (visiting.has(appId)) {
-      const cycleStart = stack.indexOf(appId);
-      stack.slice(cycleStart).forEach((entry) => cyclic.add(entry));
-      return;
-    }
-    visiting.add(appId);
-    stack.push(appId);
-    for (const dependencyId of dependencies.get(appId) ?? []) {
-      if (dependencies.has(dependencyId)) visit(dependencyId);
-    }
-    stack.pop();
-    visiting.delete(appId);
-    visited.add(appId);
-  };
-
-  apps.forEach((app) => visit(app.id));
-  return [...cyclic].sort();
-}

@@ -21,26 +21,28 @@ public server `ip`. A successful sync archives declared Servers that are not
 referenced by an App or Resource and restores them when a reference reappears.
 Apps may opt into `autoDeploy`, declare named root
 `deploymentInputs`, select those groups plus repository globs through
-`autoDeploy.inputs`, declare acyclic `dependsOn` IDs, and run image-scoped
-`preDeploy`/`postDeploy` hooks. Plain `autoDeploy: true` intentionally treats
-every Source commit as changed for backward compatibility. Normalized snapshots
-expand input groups and include their security-sensitive and
-automatic-deployment configuration.
+`autoDeploy.inputs`, and run image-scoped `preDeploy`/`postDeploy` hooks. Plain
+`autoDeploy: true` intentionally treats every Source commit as changed for
+backward compatibility. Towbar does not impose deployment ordering between
+deployables. Operators who require ordering can disable automatic deployment
+for the downstream deployable and admit it manually after its prerequisite.
+Normalized snapshots expand input groups and include their security-sensitive
+and automatic-deployment configuration.
 
 Towbar hashes the path, Git mode, object type, and object SHA of every matched
 file. That source-input digest is combined with runtime and server configuration
 to decide whether an automatic deployment is needed. Scheduling-only fields
-such as `autoDeploy`, `deploymentInputs`, `dependsOn`, and `sourceBranch` do not
-change the runtime digest. A truncated Git tree falls back to commit-sensitive
-deployment rather than risking a false skip.
+such as `autoDeploy`, `deploymentInputs`, and `sourceBranch` do not change the
+runtime digest. A truncated Git tree falls back to commit-sensitive deployment
+rather than risking a false skip.
 
 Root `secrets.build` and `secrets.deployment` arrays declare Source-wide JSON
 environment bundles. Apps merge those with their own bundles; app keys override
 shared keys, while duplicate keys between shared bundles fail closed.
 
 `resources` declares first-class `image`, `postgres`, and `redis` deployables.
-They share stable IDs, dependencies, queueing, deployments, releases, and Source
-deletion with Apps. Resource images require an explicit non-`latest` tag or
+They share stable IDs, queueing, deployments, releases, and Source deletion
+with Apps. Resource images require an explicit non-`latest` tag or
 digest. PostgreSQL and Redis add bounded defaults, built-in health checks, and
 persistent logical volumes.
 
