@@ -1,36 +1,6 @@
-export type ServerWorkItem =
-  | {
-      appId: string;
-      buildConcurrency: number;
-      id: string;
-      kind: "deployment";
-      previewBuildConcurrency?: number;
-      priority?: "preview" | "production";
-    }
-  | {
-      appId: string;
-      buildConcurrency: number;
-      id: string;
-      kind: "preview-cleanup";
-      previewBuildConcurrency: number;
-    }
-  | {
-      buildConcurrency: number;
-      id: string;
-      kind: "server-check";
-    }
-  | {
-      buildConcurrency: number;
-      id: string;
-      kind: "server-preparation";
-    }
-  | {
-      appId: string | null;
-      buildConcurrency: number;
-      exclusive: boolean;
-      id: string;
-      kind: "resource-operation";
-    };
+import type { ServerWorkItem } from "@workspace/towbar-core/temporal";
+
+export type { ServerWorkItem } from "@workspace/towbar-core/temporal";
 
 export function nextServerWorkIndex(input: {
   activeAppIds: Set<string>;

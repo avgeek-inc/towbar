@@ -16,6 +16,7 @@ export async function processPreviewBranchEventActivity(
   return await signedApiRequest<{
     cleanupIds: string[];
     deploymentIds: string[];
+    retry: boolean;
   }>("POST", "/v1/internal/previews/events", event, { timeoutMs: 120_000 });
 }
 

@@ -130,7 +130,9 @@ function executeServerWork(item: ServerWorkItem) {
     }).then(() => undefined);
   }
   if (item.kind === "preview-cleanup") {
-    return executePreviewCleanupActivity(item.id).then(() => undefined);
+    return executePreviewCleanupActivity(item.previewEnvironmentId).then(
+      () => undefined,
+    );
   }
   return executeChild(runDeploymentWorkflow, {
     args: [{ deploymentId: item.id }],

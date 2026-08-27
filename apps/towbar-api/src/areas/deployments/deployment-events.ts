@@ -12,10 +12,7 @@ import {
 
 import { notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
-import {
-  publishPreviewDeploymentStatus,
-  recordPreviewTerminalState,
-} from "./preview-status.js";
+import { propagatePreviewDeploymentState } from "./preview-status.js";
 
 import type { DeploymentState } from "@workspace/towbar-core/temporal";
 
@@ -104,12 +101,9 @@ export async function recordDeploymentEvent(
     };
   });
   if (input.state) {
-    await recordPreviewTerminalState(deploymentId, input.state);
-  }
-  if (input.state && result.stateChanged) {
-    await publishPreviewDeploymentStatus(deploymentId, input.state).catch(
-      () => undefined,
-    );
+    await propagatePreviewDeploymentState(deploymentId, input.state, {
+      publish: result.stateChanged,
+    });
   }
   return { accepted: result.accepted };
 }

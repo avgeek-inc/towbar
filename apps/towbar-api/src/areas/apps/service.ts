@@ -154,6 +154,7 @@ export async function requestAppDeployment(input: {
           .where(
             and(
               eq(deployments.appId, target.id),
+              eq(deployments.environment, "production"),
               eq(deployments.deploymentDigest, deploymentDigest),
               notInArray(deployments.state, [
                 "cancelled",
@@ -183,6 +184,7 @@ export async function requestAppDeployment(input: {
         .where(
           and(
             eq(deployments.appId, target.id),
+            eq(deployments.environment, "production"),
             eq(deployments.state, "queued"),
           ),
         );

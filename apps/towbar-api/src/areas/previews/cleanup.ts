@@ -16,7 +16,14 @@ import {
   resolveDeploymentCloudflareSecret,
   resolveDeploymentLogin,
 } from "../deployments/service.js";
-import { publishPreviewDeploymentStatus } from "../deployments/preview-status.js";
+import {
+  propagatePreviewDeploymentState,
+  publishPreviewDeploymentStatus,
+} from "../deployments/preview-status.js";
+import {
+  enqueueClaimedPreviewCleanups,
+  previewCleanupAdmissionFailureMessage,
+} from "./cleanup-admission.js";
 
 const cleanablePreviewStatuses = [
   "building",
@@ -151,7 +158,7 @@ async function queuePreviewCleanup(
   if (environments.length > 0) {
     const ids = environments.map((environment) => environment.id);
     const now = new Date();
-    await getTowbarDatabase()
+    const skippedDeployments = await getTowbarDatabase()
       .update(deployments)
       .set({
         errorCode: "PREVIEW_DELETED",
@@ -165,7 +172,13 @@ async function queuePreviewCleanup(
           inArray(deployments.previewEnvironmentId, ids),
           eq(deployments.state, "queued"),
         ),
-      );
+      )
+      .returning({ id: deployments.id });
+    await Promise.all(
+      skippedDeployments.map((deployment) =>
+        propagatePreviewDeploymentState(deployment.id, "skipped"),
+      ),
+    );
   }
   const serverRows = environments.length
     ? await getTowbarDatabase()
@@ -182,18 +195,49 @@ async function queuePreviewCleanup(
           ),
         )
     : [];
-  const serverById = new Map(serverRows.map((server) => [server.id, server]));
-  for (const environment of environments) {
-    const server = serverById.get(environment.serverId);
-    if (!server) continue;
-    await enqueuePreviewCleanup({
-      appId: environment.appId,
-      buildConcurrency: server.config.buildConcurrency ?? 1,
-      previewBuildConcurrency: server.config.previewBuildConcurrency ?? 1,
-      previewEnvironmentId: environment.id,
-      serverIp: server.ip,
-    });
-  }
+  const serverById = new Map(
+    serverRows.map((server) => [
+      server.id,
+      {
+        buildConcurrency: server.config.buildConcurrency ?? 1,
+        ip: server.ip,
+        previewBuildConcurrency: server.config.previewBuildConcurrency ?? 1,
+      },
+    ]),
+  );
+  await enqueueClaimedPreviewCleanups({
+    enqueue: async (environment, server) => {
+      await enqueuePreviewCleanup({
+        appId: environment.appId,
+        buildConcurrency: server.buildConcurrency,
+        previewBuildConcurrency: server.previewBuildConcurrency,
+        previewEnvironmentId: environment.id,
+        serverIp: server.ip,
+      });
+    },
+    environments,
+    markFailed: markPreviewCleanupAdmissionFailed,
+    serverById,
+  });
+}
+
+async function markPreviewCleanupAdmissionFailed(
+  environment: { id: string },
+  error: unknown,
+) {
+  await getTowbarDatabase()
+    .update(previewEnvironments)
+    .set({
+      errorMessage: previewCleanupAdmissionFailureMessage(error),
+      status: "cleanup_failed",
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(previewEnvironments.id, environment.id),
+        eq(previewEnvironments.status, "deleting"),
+      ),
+    );
 }
 
 export async function getPreviewCleanupContext(previewEnvironmentId: string) {

@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import { Client, Connection } from "@temporalio/client";
 
@@ -11,7 +11,10 @@ import {
   towbarTaskQueue,
 } from "@workspace/towbar-core/temporal";
 
-import type { PreviewBranchEvent } from "@workspace/towbar-core/temporal";
+import type {
+  PreviewBranchEvent,
+  ServerWorkItem,
+} from "@workspace/towbar-core/temporal";
 
 import { getEnv } from "../env.js";
 
@@ -112,13 +115,12 @@ export async function enqueuePreviewCleanup(input: {
       args: [],
       signal: "enqueueServerWork",
       signalArgs: [
-        {
+        createPreviewCleanupWorkItem({
           appId: input.appId,
           buildConcurrency: input.buildConcurrency,
-          id: input.previewEnvironmentId,
-          kind: "preview-cleanup",
           previewBuildConcurrency: input.previewBuildConcurrency,
-        },
+          previewEnvironmentId: input.previewEnvironmentId,
+        }),
       ],
       taskQueue: towbarTaskQueue,
       workflowId,
@@ -126,6 +128,20 @@ export async function enqueuePreviewCleanup(input: {
     },
   );
   return { workflowId };
+}
+
+export function createPreviewCleanupWorkItem(
+  input: Omit<
+    Extract<ServerWorkItem, { kind: "preview-cleanup" }>,
+    "id" | "kind"
+  >,
+  attemptId = randomUUID(),
+): Extract<ServerWorkItem, { kind: "preview-cleanup" }> {
+  return {
+    ...input,
+    id: attemptId,
+    kind: "preview-cleanup",
+  };
 }
 
 export async function enqueueServerCheck(input: {

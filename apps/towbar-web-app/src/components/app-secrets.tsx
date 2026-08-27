@@ -26,12 +26,14 @@ import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
+import {
+  belongsToSecretStageGroup,
+  type SecretStageGroup,
+} from "@/lib/secret-stage";
 
 const environmentKeyPattern = /^[A-Za-z_][A-Za-z0-9_]*$/u;
 
 type NewSecretKey = { id: string; key: string; value: string };
-type SecretStageGroup =
-  "build" | "deployment" | "preview_build" | "preview_deployment";
 
 export function AppSecrets({
   appId,
@@ -238,7 +240,8 @@ function SecretStageEditor({
 }) {
   const available = bindings.filter((binding) =>
     binding.uses.some(
-      (use) => use.scope === scope && belongsToStage(use.stage, stage),
+      (use) =>
+        use.scope === scope && belongsToSecretStageGroup(use.stage, stage),
     ),
   );
 
@@ -657,16 +660,6 @@ function SecretVariablesEditor({
       </form>
     </div>
   );
-}
-
-function belongsToStage(
-  stage: AppSecretBinding["uses"][number]["stage"],
-  group: SecretStageGroup,
-) {
-  if (group === "build") return stage === "build";
-  if (group === "preview_build") return stage === "preview_build";
-  if (group === "preview_deployment") return stage.startsWith("preview_");
-  return !stage.startsWith("preview_") && stage !== "build";
 }
 
 function formatSecretStage(stage: SecretStageGroup) {

@@ -44,6 +44,7 @@ export async function checkServer(
       throw new Error("Server preflight returned an incomplete result");
     }
     const inspection = await inspectServerRuntime({
+      containerNames: context.expectedContainerNames,
       deployables: context.expectedDeployables,
       imageTags: context.expectedImageTags,
       session,

@@ -112,6 +112,41 @@ export const previewBranchEventSchema = z
 
 export type PreviewBranchEvent = z.infer<typeof previewBranchEventSchema>;
 
+export type ServerWorkItem =
+  | {
+      appId: string;
+      buildConcurrency: number;
+      id: string;
+      kind: "deployment";
+      previewBuildConcurrency?: number;
+      priority?: "preview" | "production";
+    }
+  | {
+      appId: string;
+      buildConcurrency: number;
+      id: string;
+      kind: "preview-cleanup";
+      previewBuildConcurrency: number;
+      previewEnvironmentId: string;
+    }
+  | {
+      buildConcurrency: number;
+      id: string;
+      kind: "server-check";
+    }
+  | {
+      buildConcurrency: number;
+      id: string;
+      kind: "server-preparation";
+    }
+  | {
+      appId: string | null;
+      buildConcurrency: number;
+      exclusive: boolean;
+      id: string;
+      kind: "resource-operation";
+    };
+
 export function deploymentWorkflowId(deploymentId: string) {
   return `towbar-deployment/${deploymentId}`;
 }

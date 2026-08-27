@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, notInArray } from "drizzle-orm";
 
 import { terminalDeploymentStates } from "@workspace/towbar-core/temporal";
 import {
@@ -42,8 +42,22 @@ export async function recordPreviewTerminalState(
       and(
         eq(previewEnvironments.id, deployment.previewEnvironmentId),
         eq(previewEnvironments.latestDeploymentId, deploymentId),
+        notInArray(previewEnvironments.status, ["deleting", "deleted"]),
       ),
     );
+}
+
+export async function propagatePreviewDeploymentState(
+  deploymentId: string,
+  state: DeploymentState,
+  options: { publish?: boolean } = {},
+) {
+  await recordPreviewTerminalState(deploymentId, state);
+  if (options.publish !== false) {
+    await publishPreviewDeploymentStatus(deploymentId, state).catch(
+      () => undefined,
+    );
+  }
 }
 
 export async function publishPreviewDeploymentStatus(

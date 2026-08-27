@@ -3,6 +3,7 @@ import {
   defineSignal,
   proxyActivities,
   setHandler,
+  sleep,
 } from "@temporalio/workflow";
 
 import type * as activities from "../activities/index.js";
@@ -31,8 +32,13 @@ export async function runPreviewLifecycleWorkflow() {
   for (;;) {
     const available = await condition(() => pending !== null, "30 minutes");
     if (!available) return;
-    const event = pending;
+    const event: PreviewBranchEvent | null = pending;
     pending = null;
-    if (event) await processPreviewBranchEventActivity(event);
+    if (!event) continue;
+    const result = await processPreviewBranchEventActivity(event);
+    if (result.retry) {
+      if (pending === null) pending = event;
+      await sleep("15 seconds");
+    }
   }
 }

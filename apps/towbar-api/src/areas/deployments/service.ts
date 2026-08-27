@@ -33,6 +33,7 @@ import { resolveAwsSecret } from "../aws/service.js";
 import { createInstallationToken } from "../github/client.js";
 import { sshLoginSecretSchema } from "../servers/service.js";
 import { collectRetainedImageTags } from "./image-retention.js";
+import { propagatePreviewDeploymentState } from "./preview-status.js";
 import { attachDeploymentQueueBlockers } from "./queue-blocker-query.js";
 
 export {
@@ -138,7 +139,10 @@ export async function cancelDeployment(
     deploymentId,
     workspaceId,
   );
-  if (cancelledBeforeStart) return cancelledBeforeStart;
+  if (cancelledBeforeStart) {
+    await propagatePreviewDeploymentState(deploymentId, "cancelled");
+    return cancelledBeforeStart;
+  }
   await cancelDeploymentWorkflow(deploymentId);
   return deployment;
 }

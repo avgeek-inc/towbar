@@ -27,8 +27,12 @@ import {
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueueDeployment } from "../../infrastructure/temporal.js";
 import { fetchGitHubRepositoryTree } from "../github/client.js";
-import { publishPreviewDeploymentStatus } from "../deployments/preview-status.js";
+import {
+  propagatePreviewDeploymentState,
+  publishPreviewDeploymentStatus,
+} from "../deployments/preview-status.js";
 import { calculateReleaseDeploymentDigest } from "../sources/deployment-digests.js";
+import { shouldDeferPreviewAdmission } from "./admission-state.js";
 import { requestPreviewBranchCleanup } from "./cleanup.js";
 
 import type { PreviewBranchEvent } from "@workspace/towbar-core/temporal";
@@ -100,13 +104,16 @@ export async function processPreviewBranchEvent(raw: PreviewBranchEvent) {
     .where(eq(sources.id, event.sourceId))
     .limit(1);
   if (!source || source.status !== "active" || event.branch === source.branch) {
-    return { cleanupIds: [], deploymentIds: [] };
+    return { cleanupIds: [], deploymentIds: [], retry: false };
   }
   if (event.deleted) {
-    return await requestPreviewBranchCleanup(event.sourceId, event.branch);
+    return {
+      ...(await requestPreviewBranchCleanup(event.sourceId, event.branch)),
+      retry: false,
+    };
   }
   if (!event.commitSha || !source.latestManifestDigest) {
-    return { cleanupIds: [], deploymentIds: [] };
+    return { cleanupIds: [], deploymentIds: [], retry: false };
   }
 
   const candidates = await database
@@ -138,7 +145,7 @@ export async function processPreviewBranchEvent(raw: PreviewBranchEvent) {
       candidate.serverPreparedConfigDigest === candidate.serverConfigDigest,
   );
   if (eligible.length === 0) {
-    return { cleanupIds: [], deploymentIds: [] };
+    return { cleanupIds: [], deploymentIds: [], retry: false };
   }
   const repositoryTree = eligible.some(
     (candidate) => candidate.config.deploymentInputs.length > 0,
@@ -185,6 +192,11 @@ export async function processPreviewBranchEvent(raw: PreviewBranchEvent) {
       workspaceId: source.workspaceId,
     });
     admissions.push(admission);
+    await Promise.all(
+      admission.supersededDeploymentIds.map((deploymentId) =>
+        propagatePreviewDeploymentState(deploymentId, "skipped"),
+      ),
+    );
     if (admission.deploymentId && admission.created) {
       await publishPreviewDeploymentStatus(
         admission.deploymentId,
@@ -211,6 +223,7 @@ export async function processPreviewBranchEvent(raw: PreviewBranchEvent) {
     deploymentIds: admissions
       .map((admission) => admission.deploymentId)
       .filter((id): id is string => Boolean(id)),
+    retry: admissions.some((admission) => admission.deferred),
   };
 }
 
@@ -235,6 +248,33 @@ async function admitPreviewDeployment(input: {
   const deploymentId = randomUUID();
   const expiresAt = new Date(Date.now() + input.ttlHours * 60 * 60_000);
   const admission = await database.transaction(async (transaction) => {
+    const [existingEnvironment] = await transaction
+      .select({
+        id: previewEnvironments.id,
+        status: previewEnvironments.status,
+      })
+      .from(previewEnvironments)
+      .where(
+        and(
+          eq(previewEnvironments.sourceId, input.sourceId),
+          eq(previewEnvironments.appId, input.appId),
+          eq(previewEnvironments.gitRef, gitRef),
+        ),
+      )
+      .for("update")
+      .limit(1);
+    if (
+      existingEnvironment &&
+      shouldDeferPreviewAdmission(existingEnvironment.status)
+    ) {
+      return {
+        created: false,
+        deferred: true,
+        deploymentId: null,
+        environmentId: existingEnvironment.id,
+        supersededDeploymentIds: [],
+      };
+    }
     const [environment] = await transaction
       .insert(previewEnvironments)
       .values({
@@ -295,8 +335,10 @@ async function admitPreviewDeployment(input: {
         .where(eq(previewEnvironments.id, environment.id));
       return {
         created: false,
+        deferred: false,
         deploymentId: null,
         environmentId: environment.id,
+        supersededDeploymentIds: [],
       };
     }
 
@@ -316,13 +358,15 @@ async function admitPreviewDeployment(input: {
     if (active) {
       return {
         created: false,
+        deferred: false,
         deploymentId: active.id,
         environmentId: environment.id,
+        supersededDeploymentIds: [],
       };
     }
 
     const now = new Date();
-    await transaction
+    const supersededDeployments = await transaction
       .update(deployments)
       .set({
         errorCode: "PREVIEW_SUPERSEDED",
@@ -336,7 +380,8 @@ async function admitPreviewDeployment(input: {
           eq(deployments.previewEnvironmentId, environment.id),
           eq(deployments.state, "queued"),
         ),
-      );
+      )
+      .returning({ id: deployments.id });
     await transaction.insert(deployments).values({
       appId: input.appId,
       appSnapshot: input.config,
@@ -363,7 +408,15 @@ async function admitPreviewDeployment(input: {
       .update(previewEnvironments)
       .set({ latestDeploymentId: deploymentId, updatedAt: now })
       .where(eq(previewEnvironments.id, environment.id));
-    return { created: true, deploymentId, environmentId: environment.id };
+    return {
+      created: true,
+      deferred: false,
+      deploymentId,
+      environmentId: environment.id,
+      supersededDeploymentIds: supersededDeployments.map(
+        (deployment) => deployment.id,
+      ),
+    };
   });
   return admission;
 }
@@ -377,23 +430,15 @@ async function markPreviewAdmissionFailed(
       ? error.message.slice(0, 1_000)
       : "Preview deployment queue is unavailable";
   const now = new Date();
-  await getTowbarDatabase().transaction(async (transaction) => {
-    await transaction
-      .update(deployments)
-      .set({
-        errorCode: "TEMPORAL_UNAVAILABLE",
-        errorMessage: message,
-        finishedAt: now,
-        state: "failed",
-        updatedAt: now,
-      })
-      .where(eq(deployments.id, deploymentId));
-    await transaction
-      .update(previewEnvironments)
-      .set({ errorMessage: message, status: "failed", updatedAt: now })
-      .where(eq(previewEnvironments.latestDeploymentId, deploymentId));
-  });
-  await publishPreviewDeploymentStatus(deploymentId, "failed").catch(
-    () => undefined,
-  );
+  await getTowbarDatabase()
+    .update(deployments)
+    .set({
+      errorCode: "TEMPORAL_UNAVAILABLE",
+      errorMessage: message,
+      finishedAt: now,
+      state: "failed",
+      updatedAt: now,
+    })
+    .where(eq(deployments.id, deploymentId));
+  await propagatePreviewDeploymentState(deploymentId, "failed");
 }

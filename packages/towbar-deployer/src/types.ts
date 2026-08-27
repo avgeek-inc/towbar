@@ -73,6 +73,7 @@ export type PreviewCleanupContext = {
 export type ServerCheckContext = {
   checkId: string;
   config: NormalizedServer;
+  expectedContainerNames: string[];
   expectedDeployables: Array<{
     connectivity: {
       containerPort: number;
