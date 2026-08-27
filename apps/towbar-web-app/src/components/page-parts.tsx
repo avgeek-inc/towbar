@@ -105,6 +105,7 @@ export function PageTabs({
     indicator?:
       | boolean
       | {
+          ariaLabel?: string;
           label?: string;
           dot?: boolean;
           variant?:
@@ -171,16 +172,24 @@ export function PageTabs({
                 {tab.indicator ? (
                   typeof tab.indicator === "object" && tab.indicator.dot ? (
                     <span
-                      aria-label={tab.indicator.label ?? "Warning"}
+                      aria-label={
+                        tab.indicator.ariaLabel ??
+                        tab.indicator.label ??
+                        "Warning"
+                      }
                       className="bg-warning size-2 shrink-0 rounded-full"
                       role="img"
-                      title={tab.indicator.label ?? "Warning"}
+                      title={
+                        tab.indicator.ariaLabel ??
+                        tab.indicator.label ??
+                        "Warning"
+                      }
                     />
                   ) : (
                     <Chip
                       aria-label={
                         typeof tab.indicator === "object"
-                          ? tab.indicator.label
+                          ? (tab.indicator.ariaLabel ?? tab.indicator.label)
                           : undefined
                       }
                       size="small"

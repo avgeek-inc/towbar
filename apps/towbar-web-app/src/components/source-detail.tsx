@@ -24,7 +24,6 @@ import type {
 } from "@workspace/towbar-web-client";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
 import { Pagination } from "@workspace/web-design-system/navigation/pagination";
 import { Tabs } from "@workspace/web-design-system/navigation/tabs";
@@ -208,23 +207,6 @@ export function SourceDetail() {
         </span>
       }
     >
-      {untrustedServers.length ? (
-        <Alert status="warning">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>
-              {untrustedServers.length === 1
-                ? "A server has untrusted host keys"
-                : `${untrustedServers.length} servers have untrusted host keys`}
-            </Alert.Title>
-            <Alert.Description>
-              Towbar stops before login on affected servers. Run a server check,
-              verify each fingerprint independently, then trust matching keys
-              from each server&apos;s Host Keys tab.
-            </Alert.Description>
-          </Alert.Content>
-        </Alert>
-      ) : null}
       <PageTabs
         defaultValue="apps"
         tabs={[
@@ -271,8 +253,11 @@ export function SourceDetail() {
             icon: <HugeiconsIcon icon={ServerStack01Icon} />,
             indicator: servers.data
               ? {
+                  ariaLabel: untrustedServers.length
+                    ? `${servers.data.servers.length} total; ${untrustedServers.length} ${untrustedServers.length === 1 ? "server has" : "servers have"} untrusted host keys`
+                    : `${servers.data.servers.length} total`,
                   label: String(servers.data.servers.length),
-                  variant: "secondary",
+                  variant: untrustedServers.length ? "warning" : "secondary",
                 }
               : undefined,
             content: (
