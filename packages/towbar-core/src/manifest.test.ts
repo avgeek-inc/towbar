@@ -26,6 +26,7 @@ secrets:
 servers:
   - ip: 203.0.113.10
     buildConcurrency: 3
+    previewBuildConcurrency: 2
     ssh:
       host: 10.0.0.10
       username: deploy
@@ -66,6 +67,15 @@ apps:
         - host: old.towbar.dev
     tls:
       mode: cloudflare-dns
+    preview:
+      enabled: true
+      domain: PREVIEW.TOWBAR.DEV.
+      ttlHours: 48
+      secrets:
+        build: aws:example/preview/towbar-web-app/build
+        deployment: aws:example/preview/towbar-web-app/deployment
+        hooks:
+          preDeploy: aws:example/preview/towbar-database/migration
 `;
 
 const deploymentJsonSchema = JSON.parse(
@@ -81,6 +91,7 @@ void test("parses and canonicalizes a version 1 manifest", () => {
   assert.equal(result.manifest.servers[0]?.ssh.port, 22);
   assert.equal(result.manifest.servers[0]?.ssh.host, "10.0.0.10");
   assert.equal(result.manifest.servers[0]?.buildConcurrency, 3);
+  assert.equal(result.manifest.servers[0]?.previewBuildConcurrency, 2);
   assert.deepEqual(result.manifest.source, { branch: "release" });
   assert.deepEqual(result.manifest.secrets, {
     build: ["aws:example/production/shared/frontend-build"],
@@ -110,6 +121,18 @@ void test("parses and canonicalizes a version 1 manifest", () => {
       secrets: "aws:example/production/towbar-database/migration",
       timeoutSeconds: 300,
     },
+  });
+  assert.deepEqual(result.manifest.apps[0]?.preview, {
+    domain: "preview.towbar.dev",
+    enabled: true,
+    secrets: {
+      build: "aws:example/preview/towbar-web-app/build",
+      deployment: "aws:example/preview/towbar-web-app/deployment",
+      hooks: {
+        preDeploy: "aws:example/preview/towbar-database/migration",
+      },
+    },
+    ttlHours: 48,
   });
 });
 
@@ -202,6 +225,17 @@ void test("publishes server concurrency and hooks in the JSON schema", () => {
     minimum: 1,
     type: "integer",
   });
+  assert.deepEqual(serverProperties.previewBuildConcurrency, {
+    default: 1,
+    maximum: 4,
+    minimum: 1,
+    type: "integer",
+  });
+  assert.deepEqual(schemaObject(appProperties.preview).required, [
+    "enabled",
+    "domain",
+    "secrets",
+  ]);
   assert.equal(appProperties.dependsOn, undefined);
   assert.equal(schemaObject(appProperties.hooks).minProperties, 1);
   assert.deepEqual(schemaObject(rootProperties.source, "properties").branch, {

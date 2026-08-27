@@ -47,6 +47,7 @@ void describe("runtime inspection", () => {
     assert.match(runtimeInspectionScript, /label=towbar\.managed=true/);
     assert.match(runtimeInspectionScript, /towbar\.source/);
     assert.match(runtimeInspectionScript, /expected_containers/);
+    assert.match(runtimeInspectionScript, /expected\["containerNames"\]/);
     assert.match(runtimeInspectionScript, /expected_images/);
     assert.doesNotMatch(runtimeInspectionScript, /system prune/);
   });

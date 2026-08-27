@@ -50,6 +50,16 @@ export type App = {
     };
     id: string;
     name: string;
+    preview?: {
+      domain: string;
+      enabled: true;
+      secrets: {
+        build?: string;
+        deployment?: string;
+        hooks?: { postDeploy?: string; preDeploy?: string };
+      };
+      ttlHours: number;
+    };
     secrets: { build?: string; deployment?: string };
     server: string;
     sharedSecrets?: { build: string[]; deployment: string[] };
@@ -70,7 +80,14 @@ export type App = {
 };
 
 export type AppSecretStage =
-  "build" | "deployment" | "pre_deploy" | "post_deploy";
+  | "build"
+  | "deployment"
+  | "pre_deploy"
+  | "post_deploy"
+  | "preview_build"
+  | "preview_deployment"
+  | "preview_pre_deploy"
+  | "preview_post_deploy";
 
 export type AppSecretUse = {
   scope: "app" | "shared";
@@ -171,6 +188,7 @@ export type Server = {
   canonicalIp: string;
   config: {
     buildConcurrency?: number;
+    previewBuildConcurrency?: number;
     ip: string;
     ssh: { host?: string; port: number; username: string };
   };
@@ -284,10 +302,14 @@ export type Deployment = {
   commitSha: string;
   createdAt: string;
   deployableKind: "app" | "image" | "postgres" | "redis";
+  environment: "preview" | "production";
   errorCode: string | null;
   errorMessage: string | null;
   finishedAt: string | null;
   id: string;
+  gitRef: string | null;
+  githubDeploymentId: string | null;
+  hostname: string | null;
   kind: "deploy" | "rollback";
   manifestDigest: string;
   queueBlocker?:
@@ -301,6 +323,25 @@ export type Deployment = {
   startedAt: string | null;
   state: DeploymentState;
   trigger: "auto_deploy" | "manual" | "rollback";
+  updatedAt: string;
+};
+
+export type PreviewEnvironment = {
+  appId: string;
+  appName: string;
+  branch: string;
+  createdAt: string;
+  errorMessage: string | null;
+  expiresAt: string;
+  gitRef: string;
+  hostname: string;
+  id: string;
+  latestCommitSha: string;
+  latestDeploymentId: string | null;
+  pullRequestNumber: number;
+  pullRequestUrl: string;
+  sourceId: string;
+  status: "building" | "healthy" | "failed" | "deleting" | "cleanup_failed";
   updatedAt: string;
 };
 

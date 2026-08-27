@@ -4,6 +4,7 @@ export * from "./deployment.js";
 export * from "./endpoint-health.js";
 export * from "./deployment-identity.js";
 export * from "./promotion-boundary.js";
+export * from "./preview-cleanup.js";
 export * from "./release-selection.js";
 export * from "./resource-operations.js";
 export * from "./runtime-inspection.js";

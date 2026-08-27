@@ -1,5 +1,6 @@
 export * from "./deployment-inputs.js";
 export * from "./manifest.js";
+export * from "./preview.js";
 export * from "./reconciliation.js";
 export * from "./request-signing.js";
 export * from "./resource-operations.js";

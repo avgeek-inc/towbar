@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   buildRemoteScript,
+  cleanupPreviewRemoteScript,
   configureCaddyScript,
   ensureNetworkRemoteScript,
   finalizeRemoteScript,
@@ -14,6 +15,12 @@ import {
 } from "./remote-scripts.js";
 
 void describe("remote deployment scripts", () => {
+  void it("removes only the supplied Preview runtime assets", () => {
+    assert.match(cleanupPreviewRemoteScript, /docker rm -f/);
+    assert.match(cleanupPreviewRemoteScript, /docker image rm/);
+    assert.match(cleanupPreviewRemoteScript, /towbar\/\$runtime_id\.caddy/);
+    assert.doesNotMatch(cleanupPreviewRemoteScript, /docker system prune/);
+  });
   void it("creates declared Docker networks idempotently", () => {
     assert.match(ensureNetworkRemoteScript, /docker network inspect/);
     assert.match(ensureNetworkRemoteScript, /docker network create/);

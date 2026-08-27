@@ -12,6 +12,8 @@ import {
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { selectAutomaticDeploymentCandidates } from "./automatic-deployment-selection.js";
 import { requestAppDeployment } from "./service.js";
+import { requestDisabledPreviewCleanups } from "../previews/cleanup.js";
+import { scheduleSourcePreviewReconciliations } from "../previews/service.js";
 
 type SourceSyncAdmission = {
   commitSha: string | null;
@@ -51,12 +53,15 @@ export async function scheduleSourceAutomaticDeployments(syncId: string) {
   if (!sync || !isSourceSyncEligibleForAutomaticDeployments(sync)) {
     return { deploymentIds: [] };
   }
-  return await scheduleEligibleAutomaticDeployments({
+  const result = await scheduleEligibleAutomaticDeployments({
     commitSha: sync.commitSha,
     sourceId: sync.sourceId,
     syncId,
     workspaceId: sync.workspaceId,
   });
+  await requestDisabledPreviewCleanups(sync.sourceId);
+  await scheduleSourcePreviewReconciliations(sync.sourceId);
+  return result;
 }
 
 export function continueAutomaticDeployments(deploymentId: string) {

@@ -1,35 +1,17 @@
-export type ServerWorkItem =
-  | {
-      appId: string;
-      buildConcurrency: number;
-      id: string;
-      kind: "deployment";
-    }
-  | {
-      buildConcurrency: number;
-      id: string;
-      kind: "server-check";
-    }
-  | {
-      buildConcurrency: number;
-      id: string;
-      kind: "server-preparation";
-    }
-  | {
-      appId: string | null;
-      buildConcurrency: number;
-      exclusive: boolean;
-      id: string;
-      kind: "resource-operation";
-    };
+import type { ServerWorkItem } from "@workspace/towbar-core/temporal";
+
+export type { ServerWorkItem } from "@workspace/towbar-core/temporal";
 
 export function nextServerWorkIndex(input: {
   activeAppIds: Set<string>;
   activeCount: number;
+  activePreviewCount?: number;
   buildConcurrency: number;
+  previewBuildConcurrency?: number;
   queue: ServerWorkItem[];
 }) {
   if (input.activeCount >= input.buildConcurrency) return -1;
+  let previewIndex = -1;
   for (let index = 0; index < input.queue.length; index += 1) {
     const item = input.queue[index];
     if (!item) continue;
@@ -42,7 +24,16 @@ export function nextServerWorkIndex(input: {
       // barriers so they cannot race a deployment on the same server.
       return input.activeCount === 0 && index === 0 ? index : -1;
     }
-    if (!item.appId || !input.activeAppIds.has(item.appId)) return index;
+    if (!item.appId || input.activeAppIds.has(item.appId)) continue;
+    if (item.kind === "preview-cleanup") return index;
+    if (item.kind === "resource-operation") return index;
+    if ((item.priority ?? "production") === "production") return index;
+    if (
+      previewIndex < 0 &&
+      (input.activePreviewCount ?? 0) < (input.previewBuildConcurrency ?? 1)
+    ) {
+      previewIndex = index;
+    }
   }
-  return -1;
+  return previewIndex;
 }

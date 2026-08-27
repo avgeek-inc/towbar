@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import { Client, Connection } from "@temporalio/client";
 
@@ -11,9 +11,21 @@ import {
   towbarTaskQueue,
 } from "@workspace/towbar-core/temporal";
 
+import type {
+  PreviewPullRequestEvent,
+  ServerWorkItem,
+} from "@workspace/towbar-core/temporal";
+
 import { getEnv } from "../env.js";
 
 let clientPromise: Promise<Client> | undefined;
+
+export function previewLifecycleWorkflowId(
+  sourceId: string,
+  pullRequestNumber: number,
+) {
+  return `towbar-preview/v2/${sourceId}/pull/${pullRequestNumber}`;
+}
 
 export async function enqueueSourceSync(input: {
   sourceId: string;
@@ -36,6 +48,8 @@ export async function enqueueDeployment(input: {
   appId: string;
   buildConcurrency: number;
   deploymentId: string;
+  previewBuildConcurrency?: number;
+  priority?: "preview" | "production";
   serverIp: string;
 }) {
   const client = await getTemporalClient();
@@ -55,6 +69,8 @@ export async function enqueueDeployment(input: {
           buildConcurrency: input.buildConcurrency,
           id: input.deploymentId,
           kind: "deployment",
+          previewBuildConcurrency: input.previewBuildConcurrency ?? 1,
+          priority: input.priority ?? "production",
         },
       ],
       taskQueue: towbarTaskQueue,
@@ -63,6 +79,73 @@ export async function enqueueDeployment(input: {
     },
   );
   return { workflowId };
+}
+
+export async function enqueuePreviewPullRequestEvent(
+  event: PreviewPullRequestEvent,
+) {
+  const client = await getTemporalClient();
+  const workflowId = previewLifecycleWorkflowId(
+    event.sourceId,
+    event.pullRequestNumber,
+  );
+  await client.workflow.signalWithStart("runPreviewLifecycleWorkflow", {
+    args: [],
+    signal: "previewPullRequestEvent",
+    signalArgs: [event],
+    taskQueue: towbarTaskQueue,
+    workflowId,
+    workflowIdReusePolicy: "ALLOW_DUPLICATE",
+  });
+  return { workflowId };
+}
+
+export async function enqueuePreviewCleanup(input: {
+  appId: string;
+  buildConcurrency: number;
+  previewBuildConcurrency: number;
+  previewEnvironmentId: string;
+  serverIp: string;
+}) {
+  const client = await getTemporalClient();
+  const serverHash = createHash("sha256")
+    .update(input.serverIp)
+    .digest("hex")
+    .slice(0, 32);
+  const workflowId = serverCoordinatorWorkflowId(serverHash);
+  await client.workflow.signalWithStart(
+    "runConcurrentServerCoordinatorWorkflow",
+    {
+      args: [],
+      signal: "enqueueServerWork",
+      signalArgs: [
+        createPreviewCleanupWorkItem({
+          appId: input.appId,
+          buildConcurrency: input.buildConcurrency,
+          previewBuildConcurrency: input.previewBuildConcurrency,
+          previewEnvironmentId: input.previewEnvironmentId,
+        }),
+      ],
+      taskQueue: towbarTaskQueue,
+      workflowId,
+      workflowIdReusePolicy: "ALLOW_DUPLICATE",
+    },
+  );
+  return { workflowId };
+}
+
+export function createPreviewCleanupWorkItem(
+  input: Omit<
+    Extract<ServerWorkItem, { kind: "preview-cleanup" }>,
+    "id" | "kind"
+  >,
+  attemptId = randomUUID(),
+): Extract<ServerWorkItem, { kind: "preview-cleanup" }> {
+  return {
+    ...input,
+    id: attemptId,
+    kind: "preview-cleanup",
+  };
 }
 
 export async function enqueueServerCheck(input: {

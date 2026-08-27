@@ -21,6 +21,7 @@ type CloudflareRecord = {
 
 export async function reconcileCloudflareForDeployment(input: {
   app: NormalizedDeployable;
+  appId?: string;
   credentials: { apiToken: string } | null;
   server: NormalizedServer;
 }) {
@@ -39,7 +40,7 @@ export async function reconcileCloudflareForDeployment(input: {
   await reconcileCloudflareDns({
     apiToken: input.credentials.apiToken,
     allowUnmanagedAdoption: true,
-    appId: input.app.id,
+    appId: input.appId ?? input.app.id,
     domains,
     serverIp: input.server.ip,
   });
@@ -134,6 +135,32 @@ export async function reconcileCloudflareDns(input: {
   }
 }
 
+export async function deleteCloudflarePreviewDns(input: {
+  apiToken: string;
+  appId: string;
+  fetcher?: CloudflareFetch;
+  hostname: string;
+}) {
+  const fetcher = input.fetcher ?? fetch;
+  const hostname = normalizeHostname(input.hostname);
+  const zoneId = await findZoneId(hostname, input.apiToken, fetcher, new Map());
+  const records = await cloudflareRequest<CloudflareRecord[]>(
+    `/zones/${zoneId}/dns_records?name=${encodeURIComponent(hostname)}&per_page=100`,
+    input.apiToken,
+    fetcher,
+  );
+  const expectedComment = `${managedCommentPrefix} ${input.appId}`;
+  for (const record of records) {
+    if (record.comment !== expectedComment) continue;
+    await cloudflareRequest(
+      `/zones/${zoneId}/dns_records/${record.id}`,
+      input.apiToken,
+      fetcher,
+      { method: "DELETE" },
+    );
+  }
+}
+
 export async function verifyCloudflareTlsMode(input: {
   apiToken: string;
   domains: string[];
@@ -195,7 +222,7 @@ async function cloudflareRequest<T = unknown>(
   path: string,
   token: string,
   fetcher: CloudflareFetch,
-  mutation?: { body: unknown; method: "POST" | "PUT" },
+  mutation?: { body: unknown; method: "POST" | "PUT" } | { method: "DELETE" },
 ) {
   let response: Response;
   try {
@@ -203,10 +230,17 @@ async function cloudflareRequest<T = unknown>(
       headers: {
         accept: "application/json",
         authorization: `Bearer ${token}`,
-        ...(mutation ? { "content-type": "application/json" } : {}),
+        ...(mutation && "body" in mutation
+          ? { "content-type": "application/json" }
+          : {}),
       },
       ...(mutation
-        ? { body: JSON.stringify(mutation.body), method: mutation.method }
+        ? {
+            ...(mutation.method === "DELETE"
+              ? {}
+              : { body: JSON.stringify(mutation.body) }),
+            method: mutation.method,
+          }
         : {}),
       signal: AbortSignal.timeout(15_000),
     });
@@ -226,7 +260,7 @@ async function cloudflareRequest<T = unknown>(
         : "Cloudflare rejected the DNS change",
     );
   }
-  return value.result;
+  return value.result as T;
 }
 
 function normalizeHostname(value: string) {

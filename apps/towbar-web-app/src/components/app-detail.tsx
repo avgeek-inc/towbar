@@ -5,6 +5,7 @@ import {
   CodeIcon,
   DashboardCircleIcon,
   FileViewIcon,
+  GitBranchIcon,
   Key01Icon,
   Rocket01Icon,
   ServerStack01Icon,
@@ -28,6 +29,7 @@ import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 import { DeploymentTable } from "./deployment-table";
 import { AppSecrets } from "./app-secrets";
+import { PreviewEnvironments } from "./preview-environments";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 import {
   DeployableActionsMenu,
@@ -249,6 +251,18 @@ export function AppDetail() {
               />
             ),
           },
+          ...(item.config.preview?.enabled
+            ? [
+                {
+                  value: "previews",
+                  label: "Previews",
+                  icon: <HugeiconsIcon icon={GitBranchIcon} />,
+                  content: (
+                    <PreviewEnvironments appId={appId} sourceId={sourceId} />
+                  ),
+                },
+              ]
+            : []),
           {
             value: "runtime",
             label: "Runtime",
@@ -431,6 +445,48 @@ function AppConfigurationTabs({ item }: { item: AppRecord }) {
         </Attributes>
       ),
     },
+    ...(item.config.preview?.enabled
+      ? [
+          {
+            value: "preview",
+            label: "Preview",
+            content: (
+              <Attributes
+                columns={2}
+                title="Preview configuration"
+                variant="card"
+              >
+                <Attributes.Item label="Base domain">
+                  {item.config.preview.domain}
+                </Attributes.Item>
+                <Attributes.Item label="Time to live">
+                  {item.config.preview.ttlHours} hours
+                </Attributes.Item>
+                <Attributes.Item label="Build secrets">
+                  {item.config.preview.secrets.build
+                    ? "Configured"
+                    : "Not configured"}
+                </Attributes.Item>
+                <Attributes.Item label="Deployment secrets">
+                  {item.config.preview.secrets.deployment
+                    ? "Configured"
+                    : "Not configured"}
+                </Attributes.Item>
+                <Attributes.Item label="Pre-deploy hook secrets">
+                  {item.config.preview.secrets.hooks?.preDeploy
+                    ? "Configured"
+                    : "Not configured"}
+                </Attributes.Item>
+                <Attributes.Item label="Post-deploy hook secrets">
+                  {item.config.preview.secrets.hooks?.postDeploy
+                    ? "Configured"
+                    : "Not configured"}
+                </Attributes.Item>
+              </Attributes>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (

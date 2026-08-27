@@ -5,6 +5,7 @@ import {
   assertDeploymentTransition,
   canTransitionDeployment,
   deploymentWorkflowId,
+  previewPullRequestEventSchema,
   serverCoordinatorWorkflowId,
 } from "./temporal.js";
 
@@ -24,6 +25,32 @@ void test("accepts only forward or terminal deployment transitions", () => {
   assert.equal(canTransitionDeployment("skipped", "waiting_for_server"), false);
   assert.equal(canTransitionDeployment("succeeded", "building"), false);
   assert.throws(() => assertDeploymentTransition("queued", "building"));
+});
+
+void test("accepts only bounded pull request reconciliation events", () => {
+  assert.deepEqual(
+    previewPullRequestEventSchema.parse({
+      pullRequestNumber: 42,
+      sourceId: "018f47a0-64e7-7b44-8500-2e4cb0c8f9aa",
+    }),
+    {
+      pullRequestNumber: 42,
+      sourceId: "018f47a0-64e7-7b44-8500-2e4cb0c8f9aa",
+    },
+  );
+  assert.throws(() =>
+    previewPullRequestEventSchema.parse({
+      pullRequestNumber: 0,
+      sourceId: "018f47a0-64e7-7b44-8500-2e4cb0c8f9aa",
+    }),
+  );
+  assert.throws(() =>
+    previewPullRequestEventSchema.parse({
+      branch: "feature/legacy",
+      pullRequestNumber: 42,
+      sourceId: "018f47a0-64e7-7b44-8500-2e4cb0c8f9aa",
+    }),
+  );
 });
 
 void test("uses stable workflow ids", () => {

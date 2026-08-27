@@ -88,7 +88,9 @@ Create one GitHub App for this Towbar installation:
 
 - Repository contents: read-only
 - Repository metadata: read-only
-- Webhook events: `push` and `installation`
+- Pull requests: read-only (required when using Preview deployments)
+- Deployments: read and write (required when using Preview deployments)
+- Webhook events: `push`, `pull_request`, and `installation`
 - Webhook URL: `${TOWBAR_API_BASE_URL}/v1/public/webhooks/github`
 - Setup URL with redirect enabled:
   `${TOWBAR_APP_BASE_URL}/settings?section=github`

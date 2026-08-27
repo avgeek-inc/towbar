@@ -22,6 +22,10 @@ edited from the owning Source's Secrets tab. The owner can add, replace, or dele
 values, then optionally queue the affected deployable. Values are fetched only
 through an explicit owner-only reveal request; the UI cannot change a manifest
 reference.
+Apps with Preview enabled expose pull request environments, stable URLs,
+expiry, latest deployment status, and an owner cleanup action. The owning
+Source also shows all active Preview environments. Preview build and deployment
+secret bindings are edited independently from production bindings.
 Database Resource pages expose verified backup policy, manual capture, and
 retained S3 artifact metadata. When configured by the manifest, the Resource
 connection view exposes non-secret private-network and SSH-tunnel coordinates

@@ -69,6 +69,41 @@ const gitTreeSchema = z.object({
   truncated: z.boolean(),
 });
 
+const githubDeploymentSchema = z.object({ id: z.number().int().positive() });
+
+const pullRequestSchema = z.object({
+  base: z.object({
+    ref: z.string().min(1).max(255),
+    repo: z.object({ full_name: z.string().min(3).max(255) }),
+  }),
+  draft: z.boolean().nullable(),
+  head: z.object({
+    ref: z.string().min(1).max(255),
+    repo: z.object({ full_name: z.string().min(3).max(255) }).nullable(),
+    sha: z.string().regex(/^[a-f0-9]{40}$/u),
+  }),
+  merged: z.boolean(),
+  number: z.number().int().positive().max(2_147_483_647),
+  state: z.enum(["closed", "open"]),
+});
+const pullRequestListSchema = z.array(
+  z.object({
+    number: z.number().int().positive().max(2_147_483_647),
+  }),
+);
+
+export type GitHubPullRequest = {
+  baseBranch: string;
+  baseRepository: string;
+  draft: boolean;
+  headBranch: string;
+  headRepository: string | null;
+  headSha: string;
+  merged: boolean;
+  number: number;
+  state: "closed" | "open";
+};
+
 export async function getGitHubInstallation(installationId: string) {
   const jwt = await createGitHubAppJwt();
   const value = await githubRequest(`/app/installations/${installationId}`, {
@@ -203,6 +238,57 @@ export async function fetchGitHubRepositoryTree(input: {
   };
 }
 
+export async function fetchGitHubPullRequest(input: {
+  installationId: string;
+  pullRequestNumber: number;
+  repositoryName: string;
+  repositoryOwner: string;
+}): Promise<GitHubPullRequest> {
+  const token = await createInstallationToken(input.installationId);
+  const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
+  const pullRequest = pullRequestSchema.parse(
+    await githubRequest(
+      `/repos/${repository}/pulls/${input.pullRequestNumber}`,
+      { token },
+    ),
+  );
+  return {
+    baseBranch: pullRequest.base.ref,
+    baseRepository: pullRequest.base.repo.full_name,
+    draft: pullRequest.draft ?? false,
+    headBranch: pullRequest.head.ref,
+    headRepository: pullRequest.head.repo?.full_name ?? null,
+    headSha: pullRequest.head.sha,
+    merged: pullRequest.merged,
+    number: pullRequest.number,
+    state: pullRequest.state,
+  };
+}
+
+export async function listOpenGitHubPullRequestNumbers(input: {
+  baseBranch: string;
+  installationId: string;
+  repositoryName: string;
+  repositoryOwner: string;
+}) {
+  const token = await createInstallationToken(input.installationId);
+  const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
+  const pullRequestNumbers: number[] = [];
+  for (let page = 1; page <= 10; page += 1) {
+    const pullRequests = pullRequestListSchema.parse(
+      await githubRequest(
+        `/repos/${repository}/pulls?state=open&base=${encodeURIComponent(input.baseBranch)}&per_page=100&page=${page}`,
+        { token },
+      ),
+    );
+    pullRequestNumbers.push(
+      ...pullRequests.map((pullRequest) => pullRequest.number),
+    );
+    if (pullRequests.length < 100) break;
+  }
+  return pullRequestNumbers;
+}
+
 function isGitHubNotFound(error: unknown): error is HttpError {
   return error instanceof HttpError && error.status === 404;
 }
@@ -224,6 +310,59 @@ export async function createInstallationToken(installationId: string) {
   return value.token;
 }
 
+export async function createGitHubPreviewDeployment(input: {
+  commitSha: string;
+  environment: string;
+  environmentUrl: string;
+  installationId: string;
+  repositoryName: string;
+  repositoryOwner: string;
+}) {
+  const token = await createInstallationToken(input.installationId);
+  const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
+  const deployment = githubDeploymentSchema.parse(
+    await githubRequest(`/repos/${repository}/deployments`, {
+      body: {
+        auto_merge: false,
+        description: "Towbar Preview deployment",
+        environment: input.environment,
+        payload: { environmentUrl: input.environmentUrl, managedBy: "towbar" },
+        production_environment: false,
+        ref: input.commitSha,
+        required_contexts: [],
+        transient_environment: true,
+      },
+      method: "POST",
+      token,
+    }),
+  );
+  return String(deployment.id);
+}
+
+export async function updateGitHubPreviewDeployment(input: {
+  deploymentId: string;
+  environmentUrl: string;
+  installationId: string;
+  repositoryName: string;
+  repositoryOwner: string;
+  state:
+    "error" | "failure" | "inactive" | "in_progress" | "queued" | "success";
+}) {
+  const token = await createInstallationToken(input.installationId);
+  const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
+  await githubRequest(
+    `/repos/${repository}/deployments/${encodeURIComponent(input.deploymentId)}/statuses`,
+    {
+      body: {
+        environment_url: input.environmentUrl,
+        state: input.state,
+      },
+      method: "POST",
+      token,
+    },
+  );
+}
+
 async function createGitHubAppJwt() {
   const github = requireGitHubEnv();
   const now = Math.floor(Date.now() / 1_000);
@@ -237,7 +376,11 @@ async function createGitHubAppJwt() {
 
 async function githubRequest(
   path: string,
-  options: { method?: "DELETE" | "GET" | "POST"; token: string },
+  options: {
+    body?: unknown;
+    method?: "DELETE" | "GET" | "POST";
+    token: string;
+  },
 ) {
   let response: Response;
   try {
@@ -247,7 +390,12 @@ async function githubRequest(
         authorization: `Bearer ${options.token}`,
         "user-agent": "towbar.dev",
         "x-github-api-version": "2022-11-28",
+        ...(options.body === undefined
+          ? {}
+          : { "content-type": "application/json" }),
       },
+      body:
+        options.body === undefined ? undefined : JSON.stringify(options.body),
       method: options.method ?? "GET",
       signal: AbortSignal.timeout(15_000),
     });

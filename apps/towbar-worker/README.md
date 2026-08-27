@@ -24,6 +24,12 @@ promotion stops the current container only after the selected image is ready,
 reuses stable volumes, and restarts the prior container when pre-commit
 validation fails.
 
+Preview pull request events use one durable workflow per Source and pull
+request, which coalesces rapid updates to the latest reconciliation. Preview
+deployments share the server coordinator but run below production and
+maintenance priority with their own manifest-bounded concurrency. Preview
+cleanup is durable and targets only the pull request runtime identity.
+
 The coordinator also runs bounded Resource operations. Operations for one
 deployable serialize with its deployments; server-wide orphan cleanup is an
 exclusive barrier. A durable maintenance workflow wakes every five minutes to

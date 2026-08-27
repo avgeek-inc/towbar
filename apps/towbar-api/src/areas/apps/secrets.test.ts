@@ -15,6 +15,8 @@ const sharedDeployment = "aws:example/shared/deployment";
 const appBuild = "aws:example/apps/api/build";
 const appDeployment = "aws:example/apps/api/deployment";
 const preDeploy = "aws:example/apps/api/pre-deploy";
+const previewBuild = "aws:example/apps/api/preview-build";
+const previewDeployment = "aws:example/apps/api/preview-deployment";
 
 const app: NormalizedApp = {
   autoDeploy: true,
@@ -32,6 +34,16 @@ const app: NormalizedApp = {
   },
   id: "api",
   name: "API",
+  preview: {
+    domain: "preview.example.com",
+    enabled: true,
+    secrets: {
+      build: previewBuild,
+      deployment: previewDeployment,
+      hooks: {},
+    },
+    ttlHours: 72,
+  },
   secrets: { build: appBuild, deployment: appDeployment },
   server: "192.0.2.10",
   sharedSecrets: {
@@ -68,6 +80,12 @@ void test("collects every effective App secret use without treating Resource bui
     { reference: sharedBuild, scope: "shared", stage: "build" },
     { reference: appBuild, scope: "app", stage: "build" },
     { reference: preDeploy, scope: "app", stage: "pre_deploy" },
+    { reference: previewBuild, scope: "app", stage: "preview_build" },
+    {
+      reference: previewDeployment,
+      scope: "app",
+      stage: "preview_deployment",
+    },
     {
       reference: sharedDeployment,
       scope: "shared",
@@ -106,7 +124,7 @@ void test("App bindings contain only App-owned references", () => {
   ]);
   assert.deepEqual(
     bindings.map((binding) => binding.reference),
-    [appBuild, appDeployment, preDeploy],
+    [appBuild, appDeployment, preDeploy, previewBuild, previewDeployment],
   );
   assert.equal(
     bindings.every((binding) =>

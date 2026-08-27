@@ -98,11 +98,7 @@ def evaluate_health(item, container, running):
         "none"
     )
 
-expected_containers = {
-    item["release"]["containerName"]
-    for item in expected["deployables"]
-    if item.get("release")
-}
+expected_containers = set(expected["containerNames"])
 expected_deployables = {item["deployableId"] for item in expected["deployables"]}
 expected_images = set(expected["imageTags"])
 runtime = []
@@ -228,6 +224,7 @@ PYTHON
 `;
 
 export async function inspectServerRuntime(input: {
+  containerNames: string[];
   deployables: Array<{
     connectivity: {
       containerPort: number;
@@ -252,6 +249,7 @@ export async function inspectServerRuntime(input: {
     [
       input.sourceId,
       JSON.stringify({
+        containerNames: input.containerNames,
         deployables: input.deployables,
         imageTags: input.imageTags,
       }),

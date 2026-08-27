@@ -162,6 +162,27 @@
       "when": 1787540511021,
       "tag": "0022_polite_lilith",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1787834108730,
+      "tag": "0023_simple_scarecrow",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1787834958670,
+      "tag": "0024_naive_arachne",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1787841065459,
+      "tag": "0025_green_robbie_robertson",
+      "breakpoints": true
     }
   ]
 }

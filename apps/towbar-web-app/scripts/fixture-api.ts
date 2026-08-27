@@ -20,6 +20,7 @@ import type {
   GitHubConnection,
   GitHubRepository,
   OrphanItem,
+  PreviewEnvironment,
   Release,
   Resource,
   ResourceOperation,
@@ -37,6 +38,8 @@ import type {
 export const fixtureIds = {
   app: "31111111-1111-4111-8111-222222222222",
   deployment: "61111111-1111-4111-8111-111111111111",
+  preview: "b1111111-1111-4111-8111-111111111111",
+  previewDeployment: "61111111-1111-4111-8111-444444444444",
   imageResource: "41111111-1111-4111-8111-444444444444",
   resource: "41111111-1111-4111-8111-111111111111",
   secondaryPostgres: "41111111-1111-4111-8111-333333333333",
@@ -155,6 +158,22 @@ const fixtureSecretKeys = new Map<string, string[]>([
       string,
       string[],
     ],
+    ...(app.config.preview?.secrets.build
+      ? [
+          [app.config.preview.secrets.build, ["PREVIEW_NPM_TOKEN"]] as [
+            string,
+            string[],
+          ],
+        ]
+      : []),
+    ...(app.config.preview?.secrets.deployment
+      ? [
+          [
+            app.config.preview.secrets.deployment,
+            ["PREVIEW_DATABASE_URL", "PREVIEW_SESSION_SECRET"],
+          ] as [string, string[]],
+        ]
+      : []),
   ]),
   ...resources.flatMap((resource) =>
     resource.config.secrets.deployment
@@ -235,6 +254,44 @@ const deployments: Deployment[] = [
       index % 3 === 0 ? "auto_deploy" : index % 5 === 0 ? "rollback" : "manual",
     );
   }),
+];
+
+const previewDeployment: Deployment = {
+  ...createDeploymentFixture(
+    fixtureIds.previewDeployment,
+    apps[1]!,
+    servers[1]!,
+    "succeeded",
+    fixtureNow,
+    "auto_deploy",
+  ),
+  environment: "preview",
+  gitRef: "refs/pull/42/head",
+  githubDeploymentId: "123456789",
+  hostname:
+    "example-website-feature-preview-fixture-a1b2c3d4.preview.example.com",
+};
+deployments.push(previewDeployment);
+
+const previews: PreviewEnvironment[] = [
+  {
+    appId: apps[1]!.id,
+    appName: apps[1]!.name,
+    branch: "feature/preview-fixture",
+    createdAt: fixtureNow,
+    errorMessage: null,
+    expiresAt: "2026-08-25T09:00:00.000Z",
+    gitRef: "refs/heads/feature/preview-fixture",
+    hostname: previewDeployment.hostname!,
+    id: fixtureIds.preview,
+    latestCommitSha: commitSha,
+    latestDeploymentId: previewDeployment.id,
+    pullRequestNumber: 42,
+    pullRequestUrl: "https://github.com/avgeek-inc/towbar/pull/42",
+    sourceId: source.id,
+    status: "healthy",
+    updatedAt: fixtureNow,
+  },
 ];
 
 const releases: Release[] = [...apps, ...resources].map(
@@ -574,6 +631,18 @@ export function createFixtureApiServer() {
         .catch(() => writeJson(response, 400, { error: "Invalid JSON" }));
       return;
     }
+    const deletePreviewMatch = path.match(
+      /^\/v1\/core\/previews\/([^/]+)\/actions\/delete$/,
+    );
+    if (request.method === "POST" && deletePreviewMatch) {
+      const preview = previews.find(
+        (item) => item.id === deletePreviewMatch[1],
+      );
+      if (!preview) return writeNotFound(response);
+      preview.status = "deleting";
+      preview.updatedAt = new Date().toISOString();
+      return writeJson(response, 202, { accepted: true });
+    }
     if (
       request.method === "POST" &&
       path === `/v1/core/servers/${fixtureIds.server}/host-keys/actions/trust`
@@ -739,7 +808,14 @@ function getFixturePayload(
     ["/v1/core/apps", { apps }],
     ["/v1/core/resources", { resources }],
     ["/v1/core/servers", { servers }],
-    ["/v1/core/deployments", { deployments }],
+    [
+      "/v1/core/deployments",
+      {
+        deployments: deployments.filter(
+          (deployment) => deployment.environment === "production",
+        ),
+      },
+    ],
     [`/v1/core/sources/${source.id}`, { canManageSource: true, source }],
     [
       `/v1/core/sources/${source.id}/manifest`,
@@ -755,6 +831,7 @@ function getFixturePayload(
     [`/v1/core/sources/${source.id}/syncs`, { syncs: [sourceSync] }],
     [`/v1/core/sources/${source.id}/aws`, { credential: awsCredential }],
     [`/v1/core/sources/${source.id}/apps`, { apps }],
+    [`/v1/core/sources/${source.id}/previews`, { previews }],
     [`/v1/core/sources/${source.id}/resources`, { resources }],
     [
       `/v1/core/sources/${source.id}/servers`,
@@ -772,7 +849,14 @@ function getFixturePayload(
         })),
       },
     ],
-    [`/v1/core/sources/${source.id}/deployments`, { deployments }],
+    [
+      `/v1/core/sources/${source.id}/deployments`,
+      {
+        deployments: deployments.filter(
+          (deployment) => deployment.environment === "production",
+        ),
+      },
+    ],
     [`/v1/core/sources/${source.id}/backups`, { backups: sourceBackups }],
     [
       `/v1/core/sources/${source.id}/syncs/${sourceSync.id}`,
@@ -815,7 +899,7 @@ function getFixturePayload(
   }
 
   const deployableMatch = path.match(
-    /^\/v1\/core\/(apps|resources)\/([^/]+)(?:\/(deployments|releases|operations))?$/,
+    /^\/v1\/core\/(apps|resources)\/([^/]+)(?:\/(deployments|releases|operations|previews))?$/,
   );
   if (deployableMatch) {
     const [kind, id, child] = deployableMatch.slice(1);
@@ -826,8 +910,13 @@ function getFixturePayload(
     if (!deployable) return undefined;
     if (child === "deployments") {
       return {
-        deployments: deployments.filter((item) => item.appId === id),
+        deployments: deployments.filter(
+          (item) => item.appId === id && item.environment === "production",
+        ),
       };
+    }
+    if (child === "previews") {
+      return { previews: previews.filter((item) => item.appId === id) };
     }
     if (child === "releases") {
       return { releases: releases.filter((item) => item.appId === id) };
@@ -1003,6 +1092,20 @@ function getFixtureSecretUses(deployable: FixtureApp | FixtureResource) {
         stage: "build",
       });
     }
+    if (deployable.config.preview?.secrets.build) {
+      uses.push({
+        reference: deployable.config.preview.secrets.build,
+        scope: "app",
+        stage: "preview_build",
+      });
+    }
+    if (deployable.config.preview?.secrets.deployment) {
+      uses.push({
+        reference: deployable.config.preview.secrets.deployment,
+        scope: "app",
+        stage: "preview_deployment",
+      });
+    }
   }
   for (const reference of deployable.config.sharedSecrets?.deployment ?? []) {
     uses.push({ reference, scope: "shared", stage: "deployment" });
@@ -1036,6 +1139,7 @@ function createServerFixture(
     canonicalIp,
     config: {
       buildConcurrency: 2,
+      previewBuildConcurrency: 1,
       ip: canonicalIp,
       ssh: { port: 22, username },
     },
@@ -1090,6 +1194,20 @@ function createAppFixture(
         build: `aws:fixture/apps/${manifestId}/build`,
         deployment: `aws:fixture/apps/${manifestId}/deployment`,
       },
+      ...(id === fixtureIds.app
+        ? {
+            preview: {
+              domain: "preview.example.com",
+              enabled: true as const,
+              secrets: {
+                build: `aws:fixture/apps/${manifestId}/preview-build`,
+                deployment: `aws:fixture/apps/${manifestId}/preview-deployment`,
+                hooks: {},
+              },
+              ttlHours: 72,
+            },
+          }
+        : {}),
       server: server.canonicalIp,
       sharedSecrets: {
         build: [sharedBuildSecret],
@@ -1302,6 +1420,7 @@ function createDeploymentFixture(
     commitSha,
     createdAt,
     deployableKind: deployable.kind,
+    environment: "production",
     errorCode: state === "failed" ? "FIXTURE_FAILURE" : null,
     errorMessage:
       state === "failed" ? "Representative fixture deployment failure." : null,
@@ -1310,6 +1429,9 @@ function createDeploymentFixture(
         ? new Date(new Date(startedAt).getTime() + 92_000).toISOString()
         : null,
     id,
+    gitRef: null,
+    githubDeploymentId: null,
+    hostname: null,
     kind: trigger === "rollback" ? "rollback" : "deploy",
     manifestDigest,
     serverId: server.id,

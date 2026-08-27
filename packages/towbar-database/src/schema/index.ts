@@ -15,6 +15,7 @@ import {
 import { sql } from "drizzle-orm";
 
 import { deploymentStates } from "@workspace/towbar-core/temporal";
+import { deploymentEnvironments } from "@workspace/towbar-core/preview";
 
 import type {
   PersistedResourceOperationRequest,
@@ -57,6 +58,10 @@ export const deploymentStateEnum = pgEnum(
   "towbar_deployment_state",
   deploymentStates,
 );
+export const deploymentEnvironmentEnum = pgEnum(
+  "towbar_deployment_environment",
+  deploymentEnvironments,
+);
 export const deploymentKindEnum = pgEnum("towbar_deployment_kind", [
   "deploy",
   "rollback",
@@ -76,6 +81,10 @@ export const deployableKindEnum = pgEnum("towbar_deployable_kind", [
   "postgres",
   "redis",
 ]);
+export const previewEnvironmentStatusEnum = pgEnum(
+  "towbar_preview_environment_status",
+  ["building", "healthy", "failed", "deleting", "cleanup_failed", "deleted"],
+);
 export const resourceOperationTypeEnum = pgEnum(
   "towbar_resource_operation_type",
   [
@@ -527,6 +536,60 @@ export const apps = pgTable(
   ],
 );
 
+export const previewEnvironments = pgTable(
+  "towbar_preview_environments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "cascade" }),
+    appId: uuid("app_id")
+      .notNull()
+      .references(() => apps.id, { onDelete: "cascade" }),
+    serverId: uuid("server_id")
+      .notNull()
+      .references(() => servers.id, { onDelete: "restrict" }),
+    pullRequestNumber: integer("pull_request_number").notNull(),
+    branch: varchar("branch", { length: 255 }).notNull(),
+    gitRef: varchar("git_ref", { length: 512 }).notNull(),
+    hostname: varchar("hostname", { length: 253 }).notNull(),
+    runtimeId: varchar("runtime_id", { length: 255 }).notNull(),
+    latestCommitSha: varchar("latest_commit_sha", { length: 64 }).notNull(),
+    latestDeploymentId: uuid("latest_deployment_id"),
+    status: previewEnvironmentStatusEnum("status")
+      .default("building")
+      .notNull(),
+    errorMessage: varchar("error_message", { length: 1_000 }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_preview_environment_ref").on(
+      table.sourceId,
+      table.appId,
+      table.gitRef,
+    ),
+    uniqueIndex("uq_towbar_preview_environment_hostname").on(table.hostname),
+    index("idx_towbar_preview_environment_source_status").on(
+      table.sourceId,
+      table.status,
+    ),
+    index("idx_towbar_preview_environment_expires").on(
+      table.status,
+      table.expiresAt,
+    ),
+  ],
+);
+
 export const deployments = pgTable(
   "towbar_deployments",
   {
@@ -551,6 +614,16 @@ export const deployments = pgTable(
       length: 255,
     }).notNull(),
     kind: deploymentKindEnum("kind").default("deploy").notNull(),
+    environment: deploymentEnvironmentEnum("environment")
+      .default("production")
+      .notNull(),
+    gitRef: varchar("git_ref", { length: 512 }),
+    hostname: varchar("hostname", { length: 253 }),
+    githubDeploymentId: varchar("github_deployment_id", { length: 40 }),
+    previewEnvironmentId: uuid("preview_environment_id").references(
+      () => previewEnvironments.id,
+      { onDelete: "restrict" },
+    ),
     deployableKind: deployableKindEnum("deployable_kind")
       .default("app")
       .notNull(),
@@ -587,6 +660,10 @@ export const deployments = pgTable(
       "chk_towbar_deployments_rollback_snapshot",
       sql`(${table.kind} = 'deploy' AND ${table.rollbackReleaseSnapshot} IS NULL) OR (${table.kind} = 'rollback' AND ${table.rollbackReleaseSnapshot} IS NOT NULL)`,
     ),
+    check(
+      "chk_towbar_deployments_environment",
+      sql`(${table.environment} = 'production' AND ${table.previewEnvironmentId} IS NULL AND ${table.gitRef} IS NULL AND ${table.hostname} IS NULL) OR (${table.environment} = 'preview' AND ${table.previewEnvironmentId} IS NOT NULL AND ${table.gitRef} IS NOT NULL AND ${table.hostname} IS NOT NULL)`,
+    ),
     uniqueIndex("uq_towbar_deployments_idempotency").on(
       table.workspaceId,
       table.idempotencyKey,
@@ -601,6 +678,10 @@ export const deployments = pgTable(
     index("idx_towbar_deployments_server_state").on(
       table.serverId,
       table.state,
+    ),
+    index("idx_towbar_deployments_preview_created").on(
+      table.previewEnvironmentId,
+      table.createdAt,
     ),
   ],
 );
@@ -663,6 +744,14 @@ export const releases = pgTable(
     deploymentId: uuid("deployment_id")
       .notNull()
       .references(() => deployments.id, { onDelete: "restrict" }),
+    environment: deploymentEnvironmentEnum("environment")
+      .default("production")
+      .notNull(),
+    gitRef: varchar("git_ref", { length: 512 }),
+    previewEnvironmentId: uuid("preview_environment_id").references(
+      () => previewEnvironments.id,
+      { onDelete: "restrict" },
+    ),
     status: releaseStatusEnum("status").notNull(),
     commitSha: varchar("commit_sha", { length: 64 }).notNull(),
     configDigest: varchar("config_digest", { length: 64 }),
@@ -678,6 +767,14 @@ export const releases = pgTable(
   (table) => [
     uniqueIndex("uq_towbar_releases_deployment").on(table.deploymentId),
     index("idx_towbar_releases_app_status").on(table.appId, table.status),
+    index("idx_towbar_releases_preview_status").on(
+      table.previewEnvironmentId,
+      table.status,
+    ),
+    check(
+      "chk_towbar_releases_environment",
+      sql`(${table.environment} = 'production' AND ${table.previewEnvironmentId} IS NULL AND ${table.gitRef} IS NULL) OR (${table.environment} = 'preview' AND ${table.previewEnvironmentId} IS NOT NULL AND ${table.gitRef} IS NOT NULL)`,
+    ),
   ],
 );
 

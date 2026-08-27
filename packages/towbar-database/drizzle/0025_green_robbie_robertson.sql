@@ -1,0 +1,1 @@
+ALTER TABLE "towbar_preview_environments" ADD COLUMN "pull_request_number" integer NOT NULL;

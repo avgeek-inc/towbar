@@ -17,12 +17,14 @@ import {
 
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { requestServerCheck } from "../servers/service.js";
+import { requestExpiredPreviewCleanups } from "../previews/cleanup.js";
 import { requestDeployableOperation } from "./service.js";
 
 export async function runMaintenanceSweep() {
   // Scheduled deployable work has priority; health checks are maintenance and
   // should enter a server coordinator only after its queue becomes idle.
   const backupsQueued = await queueScheduledBackups();
+  const previewCleanupsQueued = await requestExpiredPreviewCleanups();
   const activeServers = await getTowbarDatabase()
     .select({
       id: servers.id,
@@ -59,7 +61,7 @@ export async function runMaintenanceSweep() {
     }
   }
 
-  return { backupsQueued, checksQueued };
+  return { backupsQueued, checksQueued, previewCleanupsQueued };
 }
 
 async function queueScheduledBackups() {

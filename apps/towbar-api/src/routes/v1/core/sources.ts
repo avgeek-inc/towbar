@@ -21,6 +21,7 @@ import {
 import { listDeployments } from "../../../areas/deployments/service.js";
 import { listSourceServers } from "../../../areas/servers/service.js";
 import { listSourceBackups } from "../../../areas/resource-operations/service.js";
+import { listPreviewEnvironments } from "../../../areas/previews/service.js";
 import { forbidden } from "../../../http/errors.js";
 import { readJson } from "../../../http/requests.js";
 import {
@@ -164,6 +165,17 @@ sourceRoutes.get("/:sourceId/backups", async (context) => {
       context.req.param("sourceId"),
       user.workspaceId,
     ),
+  });
+});
+
+sourceRoutes.get("/:sourceId/previews", async (context) => {
+  const user = context.get("user");
+  await getSource(context.req.param("sourceId"), user.workspaceId);
+  return context.json({
+    previews: await listPreviewEnvironments({
+      sourceId: context.req.param("sourceId"),
+      workspaceId: user.workspaceId,
+    }),
   });
 });
 

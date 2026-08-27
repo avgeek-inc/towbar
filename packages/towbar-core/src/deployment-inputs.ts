@@ -73,6 +73,7 @@ export function getDeployableDeploymentDigest(input: {
 }) {
   const server = { ...input.server } as Record<string, unknown>;
   delete server.buildConcurrency;
+  delete server.previewBuildConcurrency;
   return digestValue({
     runtimeConfig: getDeploymentRuntimeConfig(input.deployable),
     server,
@@ -89,6 +90,7 @@ function getDeploymentRuntimeConfig(deployable: NormalizedDeployable) {
   delete value.description;
   delete value.deploymentInputs;
   delete value.name;
+  delete value.preview;
   delete value.sourceBranch;
   return value;
 }

@@ -75,6 +75,12 @@
             "maximum": 16,
             "default": 1
           },
+          "previewBuildConcurrency": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4,
+            "default": 1
+          },
           "ip": { "type": "string" },
           "ssh": {
             "type": "object",
@@ -253,6 +259,37 @@
             "required": ["mode"],
             "properties": {
               "mode": { "enum": ["direct", "cloudflare-dns"] }
+            }
+          },
+          "preview": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["enabled", "domain", "secrets"],
+            "properties": {
+              "enabled": { "const": true },
+              "domain": { "type": "string", "minLength": 1, "maxLength": 253 },
+              "ttlHours": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 720,
+                "default": 72
+              },
+              "secrets": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "build": { "$ref": "#/$defs/secretReference" },
+                  "deployment": { "$ref": "#/$defs/secretReference" },
+                  "hooks": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "preDeploy": { "$ref": "#/$defs/secretReference" },
+                      "postDeploy": { "$ref": "#/$defs/secretReference" }
+                    }
+                  }
+                }
+              }
             }
           }
         }

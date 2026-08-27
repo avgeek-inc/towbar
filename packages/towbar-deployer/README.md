@@ -8,6 +8,11 @@ starts and checks a candidate, reconciles guarded Cloudflare orange-cloud
 records when declared, renders Caddy routing, and promotes only after
 validation.
 
+Preview Apps use a branch-derived runtime identity, container namespace, Caddy
+route, release ledger, and DNS ownership tag. Cleanup accepts that immutable
+identity and removes only its retained containers, images, route, and exact
+Cloudflare record. It never prunes the host or removes persistent volumes.
+
 Apps use Docker's default bridge unless `container.network` explicitly names a
 network. The executor reuses an existing network or creates a managed bridge
 network on first deployment, then attaches the candidate and any declared

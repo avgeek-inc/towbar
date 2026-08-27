@@ -19,6 +19,10 @@ import { enqueueServerCheck } from "../../infrastructure/temporal.js";
 import { publicDeploymentSelection } from "../deployment-selection.js";
 import { resolveAwsSecret } from "../aws/service.js";
 import { pruneServerCheckHistory } from "./check-retention.js";
+import {
+  selectCurrentContainerNames,
+  selectCurrentProductionReleaseByDeployable,
+} from "./release-selection.js";
 
 export const sshLoginSecretSchema = z
   .object({
@@ -343,6 +347,7 @@ export async function getServerCheckExecutionContext(checkId: string) {
         .select({
           appId: releases.appId,
           containerName: releases.containerName,
+          environment: releases.environment,
           imageTag: releases.imageTag,
           status: releases.status,
         })
@@ -354,17 +359,15 @@ export async function getServerCheckExecutionContext(checkId: string) {
           ),
         )
     : [];
-  const currentReleaseByDeployable = new Map(
-    retainedReleases
-      .filter((release) => release.status === "current")
-      .map((release) => [release.appId, release] as const),
-  );
+  const currentReleaseByDeployable =
+    selectCurrentProductionReleaseByDeployable(retainedReleases);
   await getTowbarDatabase()
     .update(serverChecks)
     .set({ startedAt: new Date(), status: "running" })
     .where(eq(serverChecks.id, checkId));
   return {
     ...context,
+    expectedContainerNames: selectCurrentContainerNames(retainedReleases),
     expectedDeployables: deployables.map((deployable) => {
       const release = currentReleaseByDeployable.get(deployable.deployableId);
       const resource = isNormalizedResource(deployable.config)

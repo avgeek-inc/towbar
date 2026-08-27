@@ -48,7 +48,9 @@ a Source. Configure a GitHub App with:
 
 - Repository contents: read-only
 - Repository metadata: read-only
-- Webhook events: push and installation
+- Pull requests: read-only (required for Preview deployments)
+- Deployments: read and write (required for Preview deployment statuses)
+- Webhook events: push, pull request, and installation
 - Webhook URL: `${TOWBAR_API_BASE_URL}/v1/public/webhooks/github`
 - Setup URL with redirect enabled:
   `${TOWBAR_APP_BASE_URL}/settings?section=github`
@@ -116,6 +118,70 @@ changing the reference itself still requires a manifest commit and Source sync.
 The current deployment schema is served by the configured website at
 `${TOWBAR_WEBSITE_BASE_URL}/schemas/deployment.v1.json` and documented under
 `${TOWBAR_WEBSITE_BASE_URL}/docs/deployment-file`.
+
+## Preview deployments
+
+Preview deployments are opt-in per App. Opening a same-repository pull request
+that targets `source.branch` builds its immutable head commit and promotes it
+to one stable PR URL. Draft pull requests are supported. Resources are not
+cloned, and production shared or App secrets are never inherited.
+
+```yaml
+servers:
+  - ip: 203.0.113.10
+    buildConcurrency: 4
+    previewBuildConcurrency: 1
+    ssh:
+      username: deploy
+    secrets:
+      login: aws:example/production/server-login
+
+apps:
+  - id: hello-towbar
+    # Existing production configuration omitted.
+    preview:
+      enabled: true
+      domain: preview.example.com
+      ttlHours: 72
+      secrets:
+        build: aws:example/preview/hello-build
+        deployment: aws:example/preview/hello-runtime
+        hooks:
+          preDeploy: aws:example/preview/hello-migrations
+```
+
+The generated hostname includes the App ID, pull request number, and a stable
+Source/PR hash, for example
+`hello-towbar-pr-42-a1b2c3d4.preview.example.com`. With
+`tls.mode: cloudflare-dns`, Towbar creates and removes the exact proxied DNS
+record. With `tls.mode: direct`, route the Preview base domain to the target
+server yourself, normally through wildcard DNS. If Cloudflare proxies a nested
+Preview wildcard, confirm that the zone's certificate covers that hostname;
+DNS wildcard support does not by itself extend Universal SSL certificate
+coverage to every nested level.
+
+`previewBuildConcurrency` defaults to `1`, cannot exceed `buildConcurrency`,
+and is capped at `4`. Preview builds have lower queue priority than production,
+Resource, cleanup, and server operations. A newer PR commit supersedes only
+queued work for that App and PR. A failed build leaves the last healthy Preview
+live. Merging or closing the pull request, retargeting it away from
+`source.branch`, disabling Preview in the next successful Source sync,
+manually deleting it in Towbar, or reaching `ttlHours` queues targeted
+container, image, route, and DNS cleanup; persistent volumes and Resources are
+never removed. Reopening an eligible pull request recreates its Preview.
+
+Towbar reconciles `opened`, `reopened`, `synchronize`, `edited`, and `closed`
+webhooks against the pull request's current GitHub state. This makes duplicate,
+delayed, and out-of-order deliveries safe and keeps branch renames under the
+same PR identity. Pull requests from forks and pull requests targeting another
+base branch are not deployed. A successful `Sync now` also reconciles open
+eligible pull requests and existing Preview environments, so enabling Preview
+after a PR opens or recovering a missed webhook does not require a new commit.
+
+Treat Preview pull requests as executable deployment input. Use separate,
+least-privilege Preview secret references with disposable or non-production
+credentials. Production branch, target server, domains, Resource
+configuration, and secrets remain controlled only by the production manifest.
 
 ## Automatic release deployment
 
