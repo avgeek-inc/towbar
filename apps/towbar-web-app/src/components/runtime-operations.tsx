@@ -18,12 +18,10 @@ import type {
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { AlertDialog } from "@workspace/web-design-system/overlays/alert-dialog";
 import { Dropdown } from "@workspace/web-design-system/overlays/dropdown";
 import { toast } from "@workspace/web-design-system/overlays/toast";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { CodePanel } from "@workspace/towbar-web-ui/code-panel";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
@@ -238,75 +236,6 @@ function actionIcon(action: DeployableAction) {
     case "rollback":
       return Undo02Icon;
   }
-}
-
-export function RuntimeOverview({
-  runtimeState,
-  type,
-}: {
-  runtimeState: RuntimeState;
-  type: DeployableType;
-}) {
-  return (
-    <div className="grid gap-4">
-      {runtimeState.driftStatus === "drifted" ? (
-        <Alert status="warning">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>Configuration changed outside Towbar</Alert.Title>
-            <Alert.Description>
-              {runtimeState.driftReasons.length ? (
-                <ul className="grid list-disc gap-1 ps-5">
-                  {runtimeState.driftReasons.map((reason) => (
-                    <li key={reason}>{reason}</li>
-                  ))}
-                </ul>
-              ) : (
-                `The running container no longer matches this ${type}'s configuration.`
-              )}
-            </Alert.Description>
-          </Alert.Content>
-        </Alert>
-      ) : null}
-      <Attributes title="Current state" variant="card">
-        <Attributes.Item label="Expected">
-          <StatusBadge status={runtimeState.desiredState} />
-        </Attributes.Item>
-        <Attributes.Item label="Running">
-          <StatusBadge status={runtimeState.observedState} />
-        </Attributes.Item>
-        <Attributes.Item label="Health">
-          <StatusBadge status={runtimeState.healthStatus} />
-        </Attributes.Item>
-        <Attributes.Item label="Configuration">
-          <StatusBadge status={runtimeState.driftStatus} />
-        </Attributes.Item>
-        <Attributes.Item label="Last checked">
-          {runtimeState.checkedAt
-            ? formatDate(runtimeState.checkedAt)
-            : "Not checked yet"}
-        </Attributes.Item>
-        <Attributes.Item label="Container">
-          {runtimeState.observedContainerName ? (
-            <TypographyCode>
-              {runtimeState.observedContainerName}
-            </TypographyCode>
-          ) : (
-            "Not observed"
-          )}
-        </Attributes.Item>
-        <Attributes.Item label="Image">
-          {runtimeState.observedImage ? (
-            <TypographyCode className="break-all">
-              {runtimeState.observedImage}
-            </TypographyCode>
-          ) : (
-            "Not observed"
-          )}
-        </Attributes.Item>
-      </Attributes>
-    </div>
-  );
 }
 
 export function RuntimeLogs({

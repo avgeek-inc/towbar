@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Activity01Icon,
   CodeIcon,
   DashboardCircleIcon,
   FileViewIcon,
@@ -30,11 +29,7 @@ import { DeploymentTable } from "./deployment-table";
 import { AppSecrets } from "./app-secrets";
 import { PreviewEnvironments } from "./preview-environments";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
-import {
-  DeployableActionsMenu,
-  RuntimeLogs,
-  RuntimeOverview,
-} from "./runtime-operations";
+import { DeployableActionsMenu, RuntimeLogs } from "./runtime-operations";
 
 type AppRecord = App & {
   serverId: string;
@@ -179,6 +174,9 @@ export function AppDetail() {
                   <Attributes.Item label="Running state">
                     <StatusBadge status={item.runtimeState.observedState} />
                   </Attributes.Item>
+                  <Attributes.Item label="Configuration">
+                    <StatusBadge status={item.runtimeState.driftStatus} />
+                  </Attributes.Item>
                   <Attributes.Item label="Server setup">
                     <StatusBadge
                       status={item.serverReady ? "ready" : "pending"}
@@ -262,21 +260,6 @@ export function AppDetail() {
                 },
               ]
             : []),
-          {
-            value: "runtime",
-            label: "Runtime",
-            icon: <HugeiconsIcon icon={Activity01Icon} />,
-            indicator: !item.serverReady
-              ? { dot: true, label: "Setup pending", variant: "warning" }
-              : item.runtimeState.healthStatus === "unhealthy"
-                ? { label: "Unhealthy", variant: "destructive" }
-                : item.runtimeState.driftStatus === "drifted"
-                  ? { dot: true, label: "Drifted", variant: "warning" }
-                  : undefined,
-            content: (
-              <RuntimeOverview runtimeState={item.runtimeState} type="app" />
-            ),
-          },
           {
             value: "logs",
             label: "Logs",

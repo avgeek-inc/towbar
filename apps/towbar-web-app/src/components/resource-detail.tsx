@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Activity01Icon,
   CodeIcon,
   DatabaseBackupIcon,
   DatabaseIcon,
@@ -34,11 +33,7 @@ import { DeploymentTable, formatDeploymentTrigger } from "./deployment-table";
 import { ResourceBackups } from "./resource-backups";
 import { ResourceSecrets } from "./app-secrets";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
-import {
-  DeployableActionsMenu,
-  RuntimeLogs,
-  RuntimeOverview,
-} from "./runtime-operations";
+import { DeployableActionsMenu, RuntimeLogs } from "./runtime-operations";
 
 type ResourceRecord = Resource & {
   serverId: string;
@@ -132,6 +127,9 @@ export function ResourceDetail() {
             <Attributes.Item label="Running state">
               <StatusBadge status={item.runtimeState.observedState} />
             </Attributes.Item>
+            <Attributes.Item label="Configuration">
+              <StatusBadge status={item.runtimeState.driftStatus} />
+            </Attributes.Item>
             <Attributes.Item label="Server setup">
               <StatusBadge status={item.serverReady ? "ready" : "pending"} />
             </Attributes.Item>
@@ -194,21 +192,6 @@ export function ResourceDetail() {
           deployments={orderedDeployments}
           emptyDescription="Use Deploy when this resource is ready."
         />
-      ),
-    },
-    {
-      value: "runtime",
-      label: "Runtime",
-      icon: <HugeiconsIcon icon={Activity01Icon} />,
-      indicator: !item.serverReady
-        ? ({ dot: true, label: "Setup pending", variant: "warning" } as const)
-        : item.runtimeState.healthStatus === "unhealthy"
-          ? ({ label: "Unhealthy", variant: "destructive" } as const)
-          : item.runtimeState.driftStatus === "drifted"
-            ? ({ dot: true, label: "Drifted", variant: "warning" } as const)
-            : undefined,
-      content: (
-        <RuntimeOverview runtimeState={item.runtimeState} type="resource" />
       ),
     },
     {
