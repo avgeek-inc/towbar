@@ -48,6 +48,7 @@ a Source. Configure a GitHub App with:
 
 - Repository contents: read-only
 - Repository metadata: read-only
+- Deployments: read and write (required for Preview deployment statuses)
 - Webhook events: push and installation
 - Webhook URL: `${TOWBAR_API_BASE_URL}/v1/public/webhooks/github`
 - Setup URL with redirect enabled:
@@ -116,6 +117,60 @@ changing the reference itself still requires a manifest commit and Source sync.
 The current deployment schema is served by the configured website at
 `${TOWBAR_WEBSITE_BASE_URL}/schemas/deployment.v1.json` and documented under
 `${TOWBAR_WEBSITE_BASE_URL}/docs/deployment-file`.
+
+## Preview deployments
+
+Preview deployments are opt-in per App. A push to any same-repository branch
+other than `source.branch` builds that immutable commit and promotes it to one
+stable branch URL. Resources are not cloned, and production shared or App
+secrets are never inherited.
+
+```yaml
+servers:
+  - ip: 203.0.113.10
+    buildConcurrency: 4
+    previewBuildConcurrency: 1
+    ssh:
+      username: deploy
+    secrets:
+      login: aws:example/production/server-login
+
+apps:
+  - id: hello-towbar
+    # Existing production configuration omitted.
+    preview:
+      enabled: true
+      domain: preview.example.com
+      ttlHours: 72
+      secrets:
+        build: aws:example/preview/hello-build
+        deployment: aws:example/preview/hello-runtime
+        hooks:
+          preDeploy: aws:example/preview/hello-migrations
+```
+
+The generated hostname includes the App ID, a sanitized branch name, and a
+stable branch hash, for example
+`hello-towbar-feature-login-a1b2c3d4.preview.example.com`. With
+`tls.mode: cloudflare-dns`, Towbar creates and removes the exact proxied DNS
+record. With `tls.mode: direct`, route the Preview base domain to the target
+server yourself, normally through wildcard DNS.
+
+`previewBuildConcurrency` defaults to `1`, cannot exceed `buildConcurrency`,
+and is capped at `4`. Preview builds have lower queue priority than production,
+Resource, cleanup, and server operations. A newer push supersedes only queued
+work for that App and branch. A failed build leaves the last healthy Preview
+live. Deleting the branch, disabling Preview in the next successful Source
+sync, manually deleting it in Towbar, or reaching `ttlHours` queues targeted
+container, image, route, and DNS cleanup; persistent volumes and Resources are
+never removed.
+
+Treat Preview branches as executable deployment input. Use separate,
+least-privilege Preview secret references with disposable or non-production
+credentials. Towbar accepts branch pushes only from the installed Source
+repository and does not deploy fork pull requests. Production branch, target
+server, domains, Resource configuration, and secrets remain controlled only by
+the production manifest.
 
 ## Automatic release deployment
 

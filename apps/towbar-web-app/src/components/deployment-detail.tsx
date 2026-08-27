@@ -142,7 +142,8 @@ export function DeploymentDetail() {
     >
       Cancel
     </ActionButton>
-  ) : item.state === "failed" || item.state === "cancelled" ? (
+  ) : item.environment === "production" &&
+    (item.state === "failed" || item.state === "cancelled") ? (
     <ActionButton
       action={() =>
         api.post<{ deployment: Deployment }>(
@@ -250,6 +251,9 @@ export function DeploymentDetail() {
                   <Attributes.Item label="Action">
                     {item.kind === "rollback" ? "Rollback" : "Deploy"}
                   </Attributes.Item>
+                  <Attributes.Item label="Environment">
+                    <StatusBadge status={item.environment} />
+                  </Attributes.Item>
                   <Attributes.Item label="Trigger">
                     {formatDeploymentTrigger(item.trigger)}
                   </Attributes.Item>
@@ -307,6 +311,23 @@ export function DeploymentDetail() {
                       {item.commitSha.slice(0, 12)}
                     </TypographyCode>
                   </Attributes.Item>
+                  {item.gitRef ? (
+                    <Attributes.Item label="Git ref">
+                      <TypographyCode>{item.gitRef}</TypographyCode>
+                    </Attributes.Item>
+                  ) : null}
+                  {item.hostname ? (
+                    <Attributes.Item label="URL">
+                      <a
+                        className="underline decoration-muted underline-offset-4 hover:decoration-current"
+                        href={`https://${item.hostname}`}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        {item.hostname}
+                      </a>
+                    </Attributes.Item>
+                  ) : null}
                   <Attributes.Item label="Manifest digest">
                     <TypographyCode title={item.manifestDigest}>
                       {item.manifestDigest.slice(0, 12)}

@@ -5,6 +5,7 @@ import path from "node:path";
 import {
   deploymentCleanupId,
   deploymentRemoteIdentity,
+  deploymentRuntimeId,
 } from "./deployment-identity.js";
 import {
   finishPromotedDeployment,
@@ -125,7 +126,7 @@ export async function executeDeployment(input: {
             selectedImageTag,
             String(selectedImage.removeOnFailure),
             context.currentRelease?.containerName ?? "",
-            context.app.id,
+            deploymentRuntimeId(context),
           ],
           { timeoutMs: 120_000 },
         )
@@ -168,7 +169,7 @@ export async function rollbackInterruptedDeployment(input: {
         selectedImage.imageTag,
         String(selectedImage.removeOnFailure),
         input.context.currentRelease?.containerName ?? "",
-        input.context.app.id,
+        deploymentRuntimeId(input.context),
       ],
       { timeoutMs: 120_000 },
     );

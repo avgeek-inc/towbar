@@ -90,6 +90,28 @@ export type DeploymentWorkflowInput = z.infer<
   typeof deploymentWorkflowInputSchema
 >;
 
+export const previewBranchEventSchema = z
+  .object({
+    branch: z.string().min(1).max(255),
+    commitSha: z
+      .string()
+      .regex(/^[a-f0-9]{40}$/u)
+      .nullable(),
+    deleted: z.boolean(),
+    sourceId: z.string().uuid(),
+  })
+  .strict()
+  .superRefine((event, context) => {
+    if (event.deleted !== (event.commitSha === null)) {
+      context.addIssue({
+        code: "custom",
+        message: "Deleted Preview events must omit the commit SHA",
+      });
+    }
+  });
+
+export type PreviewBranchEvent = z.infer<typeof previewBranchEventSchema>;
+
 export function deploymentWorkflowId(deploymentId: string) {
   return `towbar-deployment/${deploymentId}`;
 }

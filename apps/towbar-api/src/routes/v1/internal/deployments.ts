@@ -8,10 +8,10 @@ import {
   deploymentStateSchema,
   getDeploymentExecutionContext,
   getDeploymentRecoveryStatus,
-  recordDeploymentEvent,
   resolveDeploymentLogin,
   resolveDeploymentSecrets,
 } from "../../../areas/deployments/service.js";
+import { recordDeploymentEvent } from "../../../areas/deployments/deployment-events.js";
 import { continueAutomaticDeployments } from "../../../areas/apps/automatic-deployments.js";
 import { readJson, readUuidPathParameter } from "../../../http/requests.js";
 

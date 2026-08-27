@@ -31,10 +31,13 @@ export type DeploymentExecutionContext = {
   commitSha: string;
   deploymentId: string;
   deployableId: string;
+  environment?: "preview" | "production";
+  gitRef?: string | null;
   githubToken: string | null;
   kind: "deploy" | "rollback";
   repositoryName: string;
   repositoryOwner: string;
+  runtimeId?: string;
   sourceId: string;
   rollbackRelease: {
     commitSha: string;
@@ -55,6 +58,16 @@ export type TrustedHostKey = {
   algorithm: string;
   fingerprint: string;
   publicKey: string;
+};
+
+export type PreviewCleanupContext = {
+  containerNames: string[];
+  hostname: string;
+  imageTags: string[];
+  previewEnvironmentId: string;
+  runtimeId: string;
+  server: NormalizedServer;
+  trustedHostKeys: TrustedHostKey[];
 };
 
 export type ServerCheckContext = {

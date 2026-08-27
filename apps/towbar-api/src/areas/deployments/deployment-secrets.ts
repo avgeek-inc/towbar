@@ -141,6 +141,10 @@ async function resolveCloudflareSecret(
   );
 }
 
+export async function resolveDeploymentCloudflareSecret(deploymentId: string) {
+  return await resolveCloudflareSecret(await getSecretDeployment(deploymentId));
+}
+
 async function resolveHookSecrets(
   deployment: SecretDeployment & { kind: "deploy" | "rollback" },
   application: NormalizedApp | null,

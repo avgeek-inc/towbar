@@ -18,6 +18,7 @@ import {
   listDeployableOperations,
   requestDeployableOperation,
 } from "../../../areas/resource-operations/service.js";
+import { listPreviewEnvironments } from "../../../areas/previews/service.js";
 import { badRequest, forbidden } from "../../../http/errors.js";
 import { readJson } from "../../../http/requests.js";
 import {
@@ -107,6 +108,15 @@ appRoutes.get("/:appId/releases", async (context) =>
       context.req.param("appId"),
       context.get("user").workspaceId,
     ),
+  }),
+);
+
+appRoutes.get("/:appId/previews", async (context) =>
+  context.json({
+    previews: await listPreviewEnvironments({
+      appId: context.req.param("appId"),
+      workspaceId: context.get("user").workspaceId,
+    }),
   }),
 );
 

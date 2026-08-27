@@ -13,6 +13,7 @@ import {
 import { requireGitHubEnv } from "../../env.js";
 import { badRequest, unauthorized } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
+import { enqueuePreviewBranchEvent } from "../../infrastructure/temporal.js";
 import { requestSourceSync } from "../sources/service.js";
 
 const pushSchema = z.object({
@@ -63,67 +64,12 @@ export async function processGitHubWebhook(input: {
   if (created.length === 0) return { accepted: true, duplicate: true };
 
   try {
-    let sourceId: string | null = null;
-    if (input.eventName === "push") {
-      const push = pushSchema.parse(payload);
-      const branch = push.ref.startsWith("refs/heads/")
-        ? push.ref.slice("refs/heads/".length)
-        : null;
-      if (branch && !push.deleted && !/^0{40}$/u.test(push.after)) {
-        const [source] = await database
-          .select({ id: sources.id, workspaceId: sources.workspaceId })
-          .from(sources)
-          .innerJoin(
-            githubInstallations,
-            eq(githubInstallations.id, sources.githubInstallationId),
-          )
-          .where(
-            and(
-              eq(
-                githubInstallations.installationId,
-                String(push.installation.id),
-              ),
-              eq(sources.repositoryOwner, push.repository.owner.login),
-              eq(sources.repositoryName, push.repository.name),
-              eq(sources.branch, branch),
-              eq(sources.status, "active"),
-            ),
-          )
-          .limit(1);
-        if (source) {
-          sourceId = source.id;
-          await requestSourceSync({
-            requestedBy: null,
-            sourceId: source.id,
-            workspaceId: source.workspaceId,
-          });
-        }
-      }
-    } else if (input.eventName === "installation") {
-      const installation = installationSchema.parse(payload);
-      if (["deleted", "suspend"].includes(installation.action)) {
-        await database
-          .update(githubInstallations)
-          .set({ suspendedAt: new Date(), updatedAt: new Date() })
-          .where(
-            eq(
-              githubInstallations.installationId,
-              String(installation.installation.id),
-            ),
-          );
-      }
-      if (installation.action === "unsuspend") {
-        await database
-          .update(githubInstallations)
-          .set({ suspendedAt: null, updatedAt: new Date() })
-          .where(
-            eq(
-              githubInstallations.installationId,
-              String(installation.installation.id),
-            ),
-          );
-      }
-    }
+    const sourceId =
+      input.eventName === "push"
+        ? await processPush(payload)
+        : input.eventName === "installation"
+          ? await processInstallation(payload)
+          : null;
     await database
       .update(githubWebhookDeliveries)
       .set({ processedAt: new Date(), sourceId })
@@ -135,6 +81,77 @@ export async function processGitHubWebhook(input: {
       .where(eq(githubWebhookDeliveries.deliveryId, input.deliveryId));
     throw error;
   }
+}
+
+async function processPush(payload: unknown) {
+  const push = pushSchema.parse(payload);
+  const branch = push.ref.startsWith("refs/heads/")
+    ? push.ref.slice("refs/heads/".length)
+    : null;
+  if (!branch) return null;
+  const matchingSources = await getTowbarDatabase()
+    .select({
+      branch: sources.branch,
+      id: sources.id,
+      workspaceId: sources.workspaceId,
+    })
+    .from(sources)
+    .innerJoin(
+      githubInstallations,
+      eq(githubInstallations.id, sources.githubInstallationId),
+    )
+    .where(
+      and(
+        eq(githubInstallations.installationId, String(push.installation.id)),
+        eq(sources.repositoryOwner, push.repository.owner.login),
+        eq(sources.repositoryName, push.repository.name),
+        eq(sources.status, "active"),
+      ),
+    )
+    .orderBy(sources.createdAt);
+  const deleted = isDeletedPush(push);
+  for (const source of matchingSources) {
+    if (source.branch === branch) {
+      if (deleted) continue;
+      await requestSourceSync({
+        requestedBy: null,
+        sourceId: source.id,
+        workspaceId: source.workspaceId,
+      });
+      continue;
+    }
+    await enqueuePreviewBranchEvent({
+      branch,
+      commitSha: deleted ? null : push.after,
+      deleted,
+      sourceId: source.id,
+    });
+  }
+  return matchingSources[0]?.id ?? null;
+}
+
+async function processInstallation(payload: unknown) {
+  const installation = installationSchema.parse(payload);
+  const suspendedAt = ["deleted", "suspend"].includes(installation.action)
+    ? new Date()
+    : installation.action === "unsuspend"
+      ? null
+      : undefined;
+  if (suspendedAt === undefined) return null;
+  await getTowbarDatabase()
+    .update(githubInstallations)
+    .set({ suspendedAt, updatedAt: new Date() })
+    .where(
+      eq(
+        githubInstallations.installationId,
+        String(installation.installation.id),
+      ),
+    );
+  return null;
+}
+
+function isDeletedPush(push: z.infer<typeof pushSchema>) {
+  return push.deleted || /^0{40}$/u.test(push.after);
 }
 
 function verifyWebhookSignature(body: string, supplied: string) {

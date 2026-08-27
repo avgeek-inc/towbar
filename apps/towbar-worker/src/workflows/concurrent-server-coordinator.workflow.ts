@@ -30,17 +30,35 @@ const { executeServerPreparationActivity } = proxyActivities<typeof activities>(
     startToCloseTimeout: "30 minutes",
   },
 );
+const { executePreviewCleanupActivity } = proxyActivities<typeof activities>({
+  retry: {
+    initialInterval: "2 seconds",
+    maximumAttempts: 3,
+    maximumInterval: "30 seconds",
+  },
+  startToCloseTimeout: "5 minutes",
+});
 
 export async function runConcurrentServerCoordinatorWorkflow() {
   const queue: ServerWorkItem[] = [];
   const seen = new Set<string>();
-  const active = new Map<string, { appId: string | null }>();
+  const active = new Map<string, { appId: string | null; preview: boolean }>();
   const completed: string[] = [];
   let buildConcurrency = 1;
+  let previewBuildConcurrency = 1;
   setHandler(enqueueServerWork, (item) => {
     if (seen.has(item.id)) return;
     seen.add(item.id);
     buildConcurrency = Math.max(1, Math.min(16, item.buildConcurrency ?? 1));
+    previewBuildConcurrency = Math.max(
+      1,
+      Math.min(
+        buildConcurrency,
+        item.kind === "deployment" || item.kind === "preview-cleanup"
+          ? (item.previewBuildConcurrency ?? 1)
+          : 1,
+      ),
+    );
     queue.push(item);
   });
   for (;;) {
@@ -53,7 +71,9 @@ export async function runConcurrentServerCoordinatorWorkflow() {
       const index = nextServerWorkIndex({
         activeAppIds: activeAppIds(active),
         activeCount: active.size,
+        activePreviewCount: activePreviewCount(active),
         buildConcurrency,
+        previewBuildConcurrency,
         queue,
       });
       if (index < 0) break;
@@ -67,9 +87,12 @@ export async function runConcurrentServerCoordinatorWorkflow() {
         });
       active.set(item.id, {
         appId:
-          item.kind === "deployment" || item.kind === "resource-operation"
+          item.kind === "deployment" ||
+          item.kind === "resource-operation" ||
+          item.kind === "preview-cleanup"
             ? item.appId
             : null,
+        preview: item.kind === "deployment" && item.priority === "preview",
       });
     }
 
@@ -84,7 +107,9 @@ export async function runConcurrentServerCoordinatorWorkflow() {
         nextServerWorkIndex({
           activeAppIds: activeAppIds(active),
           activeCount: active.size,
+          activePreviewCount: activePreviewCount(active),
           buildConcurrency,
+          previewBuildConcurrency,
           queue,
         }) >= 0,
     );
@@ -104,16 +129,27 @@ function executeServerWork(item: ServerWorkItem) {
       workflowId: resourceOperationWorkflowId(item.id),
     }).then(() => undefined);
   }
+  if (item.kind === "preview-cleanup") {
+    return executePreviewCleanupActivity(item.id).then(() => undefined);
+  }
   return executeChild(runDeploymentWorkflow, {
     args: [{ deploymentId: item.id }],
     workflowId: deploymentWorkflowId(item.id),
   }).then(() => undefined);
 }
 
-function activeAppIds(active: Map<string, { appId: string | null }>) {
+function activeAppIds(
+  active: Map<string, { appId: string | null; preview: boolean }>,
+) {
   return new Set(
     [...active.values()]
       .map((work) => work.appId)
       .filter((appId): appId is string => Boolean(appId)),
   );
+}
+
+function activePreviewCount(
+  active: Map<string, { appId: string | null; preview: boolean }>,
+) {
+  return [...active.values()].filter((work) => work.preview).length;
 }

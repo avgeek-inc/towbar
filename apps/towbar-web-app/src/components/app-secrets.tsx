@@ -30,7 +30,8 @@ import { api } from "@/lib/api";
 const environmentKeyPattern = /^[A-Za-z_][A-Za-z0-9_]*$/u;
 
 type NewSecretKey = { id: string; key: string; value: string };
-type SecretStageGroup = "build" | "deployment";
+type SecretStageGroup =
+  "build" | "deployment" | "preview_build" | "preview_deployment";
 
 export function AppSecrets({
   appId,
@@ -67,8 +68,8 @@ export function AppSecrets({
 
   return (
     <Tabs className="block" defaultSelectedKey="build">
-      <Tabs.ListContainer className="w-72 max-w-full">
-        <Tabs.List className="w-full" aria-label="App secret stages">
+      <Tabs.ListContainer className="max-w-full w-fit">
+        <Tabs.List aria-label="App secret stages">
           <Tabs.Tab id="build">
             Build
             <Tabs.Indicator />
@@ -77,13 +78,23 @@ export function AppSecrets({
             Deployment
             <Tabs.Indicator />
           </Tabs.Tab>
+          <Tabs.Tab id="preview_build">
+            Preview build
+            <Tabs.Indicator />
+          </Tabs.Tab>
+          <Tabs.Tab id="preview_deployment">
+            Preview deployment
+            <Tabs.Indicator />
+          </Tabs.Tab>
         </Tabs.List>
       </Tabs.ListContainer>
-      {(["build", "deployment"] as const).map((stage) => (
+      {(
+        ["build", "deployment", "preview_build", "preview_deployment"] as const
+      ).map((stage) => (
         <Tabs.Panel className="m-0 block p-0 pt-6" id={stage} key={stage}>
           <SecretStageEditor
             bindings={data.bindings}
-            canDeploy={canDeploy}
+            canDeploy={canDeploy && !stage.startsWith("preview_")}
             canManageSecrets={data.canManageSecrets}
             deployableId={appId}
             deployableType="app"
@@ -235,10 +246,12 @@ function SecretStageEditor({
     return (
       <EmptyState>
         <EmptyState.Header>
-          <EmptyState.Title>No {stage} secrets configured</EmptyState.Title>
+          <EmptyState.Title>
+            No {formatSecretStage(stage).toLowerCase()} secrets configured
+          </EmptyState.Title>
           <EmptyState.Description>
-            Add a {stage} secret reference to .towbar/deployment.yml and sync
-            this Source.
+            Add a {formatSecretStage(stage).toLowerCase()} secret reference to
+            .towbar/deployment.yml and sync this Source.
           </EmptyState.Description>
         </EmptyState.Header>
       </EmptyState>
@@ -650,5 +663,12 @@ function belongsToStage(
   stage: AppSecretBinding["uses"][number]["stage"],
   group: SecretStageGroup,
 ) {
-  return group === "build" ? stage === "build" : stage !== "build";
+  if (group === "build") return stage === "build";
+  if (group === "preview_build") return stage === "preview_build";
+  if (group === "preview_deployment") return stage.startsWith("preview_");
+  return !stage.startsWith("preview_") && stage !== "build";
+}
+
+function formatSecretStage(stage: SecretStageGroup) {
+  return stage.replaceAll("_", " ");
 }

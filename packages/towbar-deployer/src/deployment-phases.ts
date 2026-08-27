@@ -3,7 +3,10 @@ import path from "node:path";
 
 import { createBuildContextArchive } from "./build-context.js";
 import { parseCandidatePort } from "./candidate-port.js";
-import { deploymentCleanupId } from "./deployment-identity.js";
+import {
+  deploymentCleanupId,
+  deploymentRuntimeId,
+} from "./deployment-identity.js";
 import { reconcileCloudflareForDeployment } from "./cloudflare.js";
 import { checkOriginEndpoint, checkPublicEndpoint } from "./endpoint-health.js";
 import { runWithSafeLogs, safeLog, transition } from "./executor-hooks.js";
@@ -160,7 +163,7 @@ export async function startAndVerifyCandidate(input: DeploymentPhaseInput) {
     : await input.session.run(
         `export TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3" TOWBAR_SOURCE_ID="$4" TOWBAR_DEPLOYABLE_ID="$5"\nshift 5\n${startRemoteScript}`,
         [
-          input.context.app.id,
+          deploymentRuntimeId(input.context),
           input.context.deploymentId,
           input.context.commitSha,
           input.context.sourceId,
@@ -349,7 +352,7 @@ async function buildDeploymentImage(
       await input.session.run(
         `export TOWBAR_APP_ID="$1" TOWBAR_COMMIT_SHA="$2" TOWBAR_SOURCE_ID="$3" TOWBAR_DEPLOYABLE_ID="$4"\nshift 4\n${buildRemoteScript}`,
         [
-          input.context.app.id,
+          deploymentRuntimeId(input.context),
           input.context.commitSha,
           input.context.sourceId,
           input.context.deployableId,
@@ -401,6 +404,7 @@ async function configureAndVerifyRouting(
   );
   await reconcileCloudflareForDeployment({
     app: input.context.app,
+    appId: deploymentRuntimeId(input.context),
     credentials: input.secrets.cloudflare,
     server: input.context.server,
   });
@@ -438,7 +442,7 @@ async function configureAndVerifyRouting(
   );
   await input.session.run(
     configureCaddyScript,
-    [input.remoteDirectory, input.context.app.id],
+    [input.remoteDirectory, deploymentRuntimeId(input.context)],
     { signal: input.signal, timeoutMs: 180_000 },
   );
   await transition(
@@ -553,7 +557,7 @@ async function runDeploymentHook(
       await input.session.run(
         `export TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3"\nshift 3\n${hookRemoteScript}`,
         [
-          input.context.app.id,
+          deploymentRuntimeId(input.context),
           input.context.deploymentId,
           input.context.commitSha,
           input.remoteDirectory,

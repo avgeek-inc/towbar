@@ -11,9 +11,19 @@ import {
   towbarTaskQueue,
 } from "@workspace/towbar-core/temporal";
 
+import type { PreviewBranchEvent } from "@workspace/towbar-core/temporal";
+
 import { getEnv } from "../env.js";
 
 let clientPromise: Promise<Client> | undefined;
+
+export function previewLifecycleWorkflowId(sourceId: string, branch: string) {
+  const refHash = createHash("sha256")
+    .update(`refs/heads/${branch}`)
+    .digest("hex")
+    .slice(0, 24);
+  return `towbar-preview/v1/${sourceId}/${refHash}`;
+}
 
 export async function enqueueSourceSync(input: {
   sourceId: string;
@@ -36,6 +46,8 @@ export async function enqueueDeployment(input: {
   appId: string;
   buildConcurrency: number;
   deploymentId: string;
+  previewBuildConcurrency?: number;
+  priority?: "preview" | "production";
   serverIp: string;
 }) {
   const client = await getTemporalClient();
@@ -55,6 +67,57 @@ export async function enqueueDeployment(input: {
           buildConcurrency: input.buildConcurrency,
           id: input.deploymentId,
           kind: "deployment",
+          previewBuildConcurrency: input.previewBuildConcurrency ?? 1,
+          priority: input.priority ?? "production",
+        },
+      ],
+      taskQueue: towbarTaskQueue,
+      workflowId,
+      workflowIdReusePolicy: "ALLOW_DUPLICATE",
+    },
+  );
+  return { workflowId };
+}
+
+export async function enqueuePreviewBranchEvent(event: PreviewBranchEvent) {
+  const client = await getTemporalClient();
+  const workflowId = previewLifecycleWorkflowId(event.sourceId, event.branch);
+  await client.workflow.signalWithStart("runPreviewLifecycleWorkflow", {
+    args: [],
+    signal: "previewBranchEvent",
+    signalArgs: [event],
+    taskQueue: towbarTaskQueue,
+    workflowId,
+    workflowIdReusePolicy: "ALLOW_DUPLICATE",
+  });
+  return { workflowId };
+}
+
+export async function enqueuePreviewCleanup(input: {
+  appId: string;
+  buildConcurrency: number;
+  previewBuildConcurrency: number;
+  previewEnvironmentId: string;
+  serverIp: string;
+}) {
+  const client = await getTemporalClient();
+  const serverHash = createHash("sha256")
+    .update(input.serverIp)
+    .digest("hex")
+    .slice(0, 32);
+  const workflowId = serverCoordinatorWorkflowId(serverHash);
+  await client.workflow.signalWithStart(
+    "runConcurrentServerCoordinatorWorkflow",
+    {
+      args: [],
+      signal: "enqueueServerWork",
+      signalArgs: [
+        {
+          appId: input.appId,
+          buildConcurrency: input.buildConcurrency,
+          id: input.previewEnvironmentId,
+          kind: "preview-cleanup",
+          previewBuildConcurrency: input.previewBuildConcurrency,
         },
       ],
       taskQueue: towbarTaskQueue,

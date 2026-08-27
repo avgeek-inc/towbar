@@ -576,3 +576,32 @@ nohup bash -c '
 ' -- "$remote_dir" "$app_id" "$container_name" "$delay_seconds" "$retained_file" \
   </dev/null >/dev/null 2>&1 &
 `;
+
+export const cleanupPreviewRemoteScript = String.raw`
+set -euo pipefail
+runtime_id="$1"
+shift
+container_count="$1"
+shift
+for ((index = 0; index < container_count; index += 1)); do
+  docker rm -f "$1" >/dev/null 2>&1 || true
+  shift
+done
+image_count="$1"
+shift
+for ((index = 0; index < image_count; index += 1)); do
+  docker image rm "$1" >/dev/null 2>&1 || true
+  shift
+done
+sudo rm -f "/etc/caddy/towbar/$runtime_id.caddy"
+validate_args=(--config /etc/caddy/Caddyfile)
+if sudo test -s /etc/caddy/towbar/cloudflare.env; then
+  validate_args+=(--envfile /etc/caddy/towbar/cloudflare.env)
+fi
+sudo caddy validate "${"$"}{validate_args[@]}"
+if sudo test -s /etc/caddy/towbar/cloudflare.env; then
+  sudo systemctl restart caddy
+else
+  sudo systemctl reload caddy
+fi
+`;

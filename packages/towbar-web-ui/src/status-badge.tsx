@@ -14,6 +14,7 @@ const success = new Set([
 ]);
 const warning = new Set([
   "building",
+  "deleting",
   "checking_health",
   "checking_public_endpoint",
   "checking_server",
@@ -50,6 +51,7 @@ const warning = new Set([
 const destructive = new Set([
   "decommissioned",
   "failed",
+  "cleanup_failed",
   "suspended",
   "unhealthy",
 ]);

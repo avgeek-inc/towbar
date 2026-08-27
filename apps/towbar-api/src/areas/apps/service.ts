@@ -26,7 +26,12 @@ export async function listAppDeployments(appId: string, workspaceId: string) {
   return await getTowbarDatabase()
     .select(publicDeploymentSelection)
     .from(deployments)
-    .where(eq(deployments.appId, appId))
+    .where(
+      and(
+        eq(deployments.appId, appId),
+        eq(deployments.environment, "production"),
+      ),
+    )
     .orderBy(desc(deployments.createdAt));
 }
 
@@ -35,7 +40,9 @@ export async function listAppReleases(appId: string, workspaceId: string) {
   return await getTowbarDatabase()
     .select()
     .from(releases)
-    .where(eq(releases.appId, appId))
+    .where(
+      and(eq(releases.appId, appId), eq(releases.environment, "production")),
+    )
     .orderBy(desc(releases.promotedAt));
 }
 
@@ -47,7 +54,12 @@ export async function listResourceDeployments(
   return await getTowbarDatabase()
     .select(publicDeploymentSelection)
     .from(deployments)
-    .where(eq(deployments.appId, resourceId))
+    .where(
+      and(
+        eq(deployments.appId, resourceId),
+        eq(deployments.environment, "production"),
+      ),
+    )
     .orderBy(desc(deployments.createdAt));
 }
 
@@ -59,7 +71,12 @@ export async function listResourceReleases(
   return await getTowbarDatabase()
     .select()
     .from(releases)
-    .where(eq(releases.appId, resourceId))
+    .where(
+      and(
+        eq(releases.appId, resourceId),
+        eq(releases.environment, "production"),
+      ),
+    )
     .orderBy(desc(releases.promotedAt));
 }
 
@@ -216,6 +233,7 @@ export async function requestAppDeployment(input: {
       appId: target.id,
       buildConcurrency: target.serverConfig.buildConcurrency ?? 1,
       deploymentId,
+      previewBuildConcurrency: target.serverConfig.previewBuildConcurrency ?? 1,
       serverIp: target.serverIp,
     });
   } catch (error) {
@@ -332,6 +350,8 @@ export async function requestAppRollback(input: {
       appId: deployment.appId,
       buildConcurrency: deployment.serverSnapshot.buildConcurrency ?? 1,
       deploymentId,
+      previewBuildConcurrency:
+        deployment.serverSnapshot.previewBuildConcurrency ?? 1,
       serverIp: deployment.serverSnapshot.ip,
     });
   } catch (error) {

@@ -119,6 +119,20 @@ const appAutoDeploySchema = z.union([
     .strict(),
 ]);
 
+const previewSecretsSchema = z
+  .object({
+    build: secretReferenceSchema.optional(),
+    deployment: secretReferenceSchema.optional(),
+    hooks: z
+      .object({
+        postDeploy: secretReferenceSchema.optional(),
+        preDeploy: secretReferenceSchema.optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+
 const domainSchema = z
   .string()
   .trim()
@@ -150,6 +164,7 @@ const redirectSchema = z
 const serverSchema = z
   .object({
     buildConcurrency: z.number().int().min(1).max(16).optional(),
+    previewBuildConcurrency: z.number().int().min(1).max(4).optional(),
     ip: ipAddressSchema,
     ssh: z
       .object({
@@ -394,6 +409,15 @@ const appSchema = z
       })
       .strict()
       .optional(),
+    preview: z
+      .object({
+        domain: domainSchema,
+        enabled: z.literal(true),
+        secrets: previewSecretsSchema,
+        ttlHours: z.number().int().min(1).max(720).optional(),
+      })
+      .strict()
+      .optional(),
   })
   .strict()
   .superRefine((app, context) => {
@@ -427,6 +451,21 @@ const appSchema = z
         code: "custom",
         message: "TLS configuration requires a primary domain",
         path: ["tls"],
+      });
+    }
+    if (app.preview && !app.domains) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Preview deployments require production domains and TLS configuration",
+        path: ["preview", "domain"],
+      });
+    }
+    if (app.preview && !app.tls) {
+      context.addIssue({
+        code: "custom",
+        message: "Preview deployments require TLS configuration",
+        path: ["preview", "domain"],
       });
     }
   });
@@ -774,6 +813,7 @@ export type DeploymentManifestInput = z.input<typeof deploymentManifestSchema>;
 
 export type NormalizedServer = {
   buildConcurrency: number;
+  previewBuildConcurrency?: number;
   ip: string;
   proxy?: {
     cloudflare: {
@@ -815,6 +855,16 @@ export type NormalizedApp = {
   };
   id: string;
   name: string;
+  preview?: {
+    domain: string;
+    enabled: true;
+    secrets: {
+      build?: string;
+      deployment?: string;
+      hooks: { postDeploy?: string; preDeploy?: string };
+    };
+    ttlHours: number;
+  };
   secrets: {
     build?: string;
     deployment?: string;
@@ -978,6 +1028,10 @@ export function normalizeDeploymentManifest(
     servers: parsed.servers
       .map((server) => ({
         buildConcurrency: server.buildConcurrency ?? 1,
+        previewBuildConcurrency: Math.min(
+          server.previewBuildConcurrency ?? 1,
+          server.buildConcurrency ?? 1,
+        ),
         ip: canonicalIp(server.ip),
         ssh: {
           host: canonicalIp(server.ssh.host ?? server.ip),
@@ -1046,6 +1100,7 @@ export function normalizeDeploymentManifest(
               : {}),
           },
           sharedSecrets,
+          ...normalizePreviewConfig(app.preview),
           ...(app.domains
             ? {
                 domains: {
@@ -1364,5 +1419,32 @@ function normalizeDeploymentHook(input: {
     command: [...input.command],
     ...(input.secrets ? { secrets: input.secrets } : {}),
     timeoutSeconds: input.timeoutSeconds ?? 300,
+  };
+}
+
+function normalizePreviewConfig(
+  input: z.output<typeof appSchema>["preview"],
+): Pick<NormalizedApp, "preview"> {
+  if (!input) return {};
+  return {
+    preview: {
+      domain: normalizeDomain(input.domain),
+      enabled: true,
+      secrets: {
+        ...(input.secrets.build ? { build: input.secrets.build } : {}),
+        ...(input.secrets.deployment
+          ? { deployment: input.secrets.deployment }
+          : {}),
+        hooks: {
+          ...(input.secrets.hooks?.postDeploy
+            ? { postDeploy: input.secrets.hooks.postDeploy }
+            : {}),
+          ...(input.secrets.hooks?.preDeploy
+            ? { preDeploy: input.secrets.hooks.preDeploy }
+            : {}),
+        },
+      },
+      ttlHours: input.ttlHours ?? 72,
+    },
   };
 }

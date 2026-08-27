@@ -9,7 +9,12 @@ const deployment = (
   id: string,
   appId: string,
   buildConcurrency = 2,
-): ServerWorkItem => ({ appId, buildConcurrency, id, kind: "deployment" });
+): Extract<ServerWorkItem, { kind: "deployment" }> => ({
+  appId,
+  buildConcurrency,
+  id,
+  kind: "deployment",
+});
 
 void test("starts independent app builds up to server concurrency", () => {
   assert.equal(
@@ -117,5 +122,46 @@ void test("serializes resource operations with their deployable and cleanup with
       ],
     }),
     0,
+  );
+});
+
+void test("prioritizes production work over queued Preview builds", () => {
+  assert.equal(
+    nextServerWorkIndex({
+      activeAppIds: new Set(),
+      activeCount: 0,
+      activePreviewCount: 0,
+      buildConcurrency: 3,
+      previewBuildConcurrency: 1,
+      queue: [
+        {
+          ...deployment("preview", "website"),
+          previewBuildConcurrency: 1,
+          priority: "preview",
+        },
+        { ...deployment("production", "api"), priority: "production" },
+      ],
+    }),
+    1,
+  );
+});
+
+void test("caps Preview builds independently from production concurrency", () => {
+  assert.equal(
+    nextServerWorkIndex({
+      activeAppIds: new Set(["website"]),
+      activeCount: 1,
+      activePreviewCount: 1,
+      buildConcurrency: 4,
+      previewBuildConcurrency: 1,
+      queue: [
+        {
+          ...deployment("preview-admin", "admin"),
+          previewBuildConcurrency: 1,
+          priority: "preview",
+        },
+      ],
+    }),
+    -1,
   );
 });

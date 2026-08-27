@@ -19,7 +19,15 @@ import { getApp, getResource } from "./queries.js";
 
 import type { NormalizedApp, NormalizedResource } from "@workspace/towbar-core";
 
-type AppSecretStage = "build" | "deployment" | "pre_deploy" | "post_deploy";
+type AppSecretStage =
+  | "build"
+  | "deployment"
+  | "pre_deploy"
+  | "post_deploy"
+  | "preview_build"
+  | "preview_deployment"
+  | "preview_pre_deploy"
+  | "preview_post_deploy";
 
 type AppSecretUse = {
   scope: "app" | "shared";
@@ -291,6 +299,26 @@ export function collectDeployableSecretUses(
     if (config.hooks.postDeploy?.secrets) {
       add([config.hooks.postDeploy.secrets], "app", "post_deploy");
     }
+    if (config.preview?.secrets.build) {
+      add([config.preview.secrets.build], "app", "preview_build");
+    }
+    if (config.preview?.secrets.deployment) {
+      add([config.preview.secrets.deployment], "app", "preview_deployment");
+    }
+    if (config.preview?.secrets.hooks.preDeploy) {
+      add(
+        [config.preview.secrets.hooks.preDeploy],
+        "app",
+        "preview_pre_deploy",
+      );
+    }
+    if (config.preview?.secrets.hooks.postDeploy) {
+      add(
+        [config.preview.secrets.hooks.postDeploy],
+        "app",
+        "preview_post_deploy",
+      );
+    }
   }
   add(config.sharedSecrets?.deployment ?? [], "shared", "deployment");
   if (config.secrets.deployment) {
@@ -450,7 +478,11 @@ async function listSourceDeployables(
 }
 
 function secretPurpose(uses: AppSecretUse[]): EnvironmentSecretPurpose {
-  return uses.every((use) => use.stage === "build") ? "build" : "deployment";
+  return uses.every(
+    (use) => use.stage === "build" || use.stage === "preview_build",
+  )
+    ? "build"
+    : "deployment";
 }
 
 async function getSecretBindingOwner(input: {

@@ -19,4 +19,9 @@ that ID reappears; there is no separate decommission lifecycle state. Servers
 use the same reversible archive state and remain active only while at least one
 desired App or Resource references them.
 
+Preview environments are Source/App/Git-ref scoped. Their deployments and
+releases carry an explicit environment and never update the production runtime
+observation row. Deleted Preview records remain as operational history while
+their runtime artifacts are removed durably.
+
 [Packages](../README.md) · [Repository](../../README.md)

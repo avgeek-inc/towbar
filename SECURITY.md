@@ -25,6 +25,9 @@ should pin a reviewed release and subscribe to repository security advisories.
 
 - The configured Git branch is trusted deployment input and is protected by the
   repository owner.
+- Any same-repository branch is trusted executable input for Apps with Preview
+  enabled. Preview references use separate, least-privilege, non-production
+  credentials; production and shared secret references are not inherited.
 - Towbar's public HTTP services are deployed behind TLS.
 - PostgreSQL, Temporal, Temporal UI, and SSH are restricted by host and network
   controls rather than exposed broadly.
@@ -42,5 +45,6 @@ should pin a reviewed release and subscribe to repository security advisories.
   changed in Settings.
 
 Towbar does not provide a security boundary against a malicious contributor who
-is authorized to modify the deployment branch. Review and branch protection are
-part of the trust model.
+is authorized to modify a deployed production or Preview branch. Review,
+branch protection, secret separation, and the decision to enable Preview are
+part of the trust model. Fork pull requests are not Preview deployment input.

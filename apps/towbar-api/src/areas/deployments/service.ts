@@ -6,11 +6,9 @@ import {
   gt,
   inArray,
   isNull,
-  max,
   notInArray,
 } from "drizzle-orm";
 import {
-  assertDeploymentTransition,
   deploymentStateSchema,
   terminalDeploymentStates,
 } from "@workspace/towbar-core/temporal";
@@ -21,6 +19,7 @@ import {
   deploymentSteps,
   deployments,
   githubInstallations,
+  previewEnvironments,
   releases,
   sources,
   sshHostKeys,
@@ -36,10 +35,9 @@ import { sshLoginSecretSchema } from "../servers/service.js";
 import { collectRetainedImageTags } from "./image-retention.js";
 import { attachDeploymentQueueBlockers } from "./queue-blocker-query.js";
 
-import type { DeploymentState } from "@workspace/towbar-core/temporal";
-
 export {
   mergeEnvironmentSecretBundles,
+  resolveDeploymentCloudflareSecret,
   resolveDeploymentSecrets,
 } from "./deployment-secrets.js";
 const publicDeploymentStepSelection = {
@@ -69,8 +67,12 @@ export async function listDeployments(workspaceId: string, sourceId?: string) {
         ? and(
             eq(deployments.workspaceId, workspaceId),
             eq(deployments.sourceId, sourceId),
+            eq(deployments.environment, "production"),
           )
-        : eq(deployments.workspaceId, workspaceId),
+        : and(
+            eq(deployments.workspaceId, workspaceId),
+            eq(deployments.environment, "production"),
+          ),
     )
     .orderBy(desc(deployments.createdAt));
   return await attachDeploymentQueueBlockers(items);
@@ -179,11 +181,14 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
       appId: deployments.appId,
       commitSha: deployments.commitSha,
       deploymentId: deployments.id,
+      environment: deployments.environment,
+      gitRef: deployments.gitRef,
       installationId: githubInstallations.installationId,
       kind: deployments.kind,
       repositoryName: sources.repositoryName,
       repositoryOwner: sources.repositoryOwner,
       rollbackRelease: deployments.rollbackReleaseSnapshot,
+      previewEnvironmentId: deployments.previewEnvironmentId,
       server: deployments.serverSnapshot,
       serverId: deployments.serverId,
       sourceId: deployments.sourceId,
@@ -221,7 +226,13 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
     })
     .from(releases)
     .where(
-      and(eq(releases.appId, context.appId), eq(releases.status, "current")),
+      and(
+        eq(releases.appId, context.appId),
+        eq(releases.status, "current"),
+        context.environment === "preview"
+          ? eq(releases.previewEnvironmentId, context.previewEnvironmentId!)
+          : eq(releases.environment, "production"),
+      ),
     )
     .limit(1);
   const { appId, ...publicContext } = context;
@@ -229,6 +240,10 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
     ...publicContext,
     currentRelease: currentRelease ?? null,
     deployableId: appId,
+    runtimeId:
+      context.environment === "preview"
+        ? await getPreviewRuntimeId(context.previewEnvironmentId!)
+        : context.app.id,
     githubToken:
       context.kind === "deploy"
         ? await createInstallationToken(context.installationId)
@@ -259,7 +274,12 @@ export async function resolveDeploymentLogin(deploymentId: string) {
 
 export async function getDeploymentRecoveryStatus(deploymentId: string) {
   const [deployment] = await getTowbarDatabase()
-    .select({ appId: deployments.appId, state: deployments.state })
+    .select({
+      appId: deployments.appId,
+      environment: deployments.environment,
+      previewEnvironmentId: deployments.previewEnvironmentId,
+      state: deployments.state,
+    })
     .from(deployments)
     .where(eq(deployments.id, deploymentId))
     .limit(1);
@@ -279,6 +299,9 @@ export async function getDeploymentRecoveryStatus(deploymentId: string) {
       and(
         eq(releases.appId, deployment.appId),
         inArray(releases.status, ["current", "previous"]),
+        deployment.previewEnvironmentId
+          ? eq(releases.previewEnvironmentId, deployment.previewEnvironmentId)
+          : eq(releases.environment, "production"),
       ),
     );
   const rollbackReservations = await getTowbarDatabase()
@@ -289,6 +312,13 @@ export async function getDeploymentRecoveryStatus(deploymentId: string) {
     .where(
       and(
         eq(deployments.appId, deployment.appId),
+        eq(deployments.environment, deployment.environment),
+        deployment.previewEnvironmentId
+          ? eq(
+              deployments.previewEnvironmentId,
+              deployment.previewEnvironmentId,
+            )
+          : isNull(deployments.previewEnvironmentId),
         eq(deployments.kind, "rollback"),
         notInArray(deployments.state, [
           "cancelled",
@@ -309,106 +339,6 @@ export async function getDeploymentRecoveryStatus(deploymentId: string) {
   };
 }
 
-export async function recordDeploymentEvent(
-  deploymentId: string,
-  input: {
-    errorCode?: string;
-    log?: { content: string; stream: "stderr" | "stdout" };
-    message?: string;
-    state?: DeploymentState;
-  },
-) {
-  return await getTowbarDatabase().transaction(async (transaction) => {
-    const [deployment] = await transaction
-      .select({ state: deployments.state })
-      .from(deployments)
-      .where(eq(deployments.id, deploymentId))
-      .for("update")
-      .limit(1);
-    if (!deployment) throw notFound("Deployment");
-
-    if (input.state && input.state !== deployment.state) {
-      assertDeploymentTransition(deployment.state, input.state);
-      const [lastStep] = await transaction
-        .select({
-          id: deploymentSteps.id,
-          sequence: deploymentSteps.sequence,
-          status: deploymentSteps.status,
-        })
-        .from(deploymentSteps)
-        .where(eq(deploymentSteps.deploymentId, deploymentId))
-        .orderBy(desc(deploymentSteps.sequence))
-        .limit(1);
-      const now = new Date();
-      if (lastStep?.status === "running") {
-        await transaction
-          .update(deploymentSteps)
-          .set({
-            finishedAt: now,
-            status:
-              input.state === "failed"
-                ? "failed"
-                : input.state === "cancelled"
-                  ? "skipped"
-                  : "succeeded",
-          })
-          .where(eq(deploymentSteps.id, lastStep.id));
-      }
-      const isTerminal = terminalDeploymentStates.has(input.state);
-      await transaction.insert(deploymentSteps).values({
-        deploymentId,
-        finishedAt: isTerminal ? now : null,
-        message: sanitizeMessage(input.message),
-        sequence: (lastStep?.sequence ?? -1) + 1,
-        startedAt: now,
-        state: input.state,
-        status:
-          input.state === "failed" || input.state === "succeeded_with_warnings"
-            ? "failed"
-            : input.state === "cancelled" || input.state === "skipped"
-              ? "skipped"
-              : isTerminal
-                ? "succeeded"
-                : "running",
-      });
-      await transaction
-        .update(deployments)
-        .set({
-          errorCode: ["failed", "succeeded_with_warnings"].includes(input.state)
-            ? (input.errorCode ??
-              (input.state === "failed"
-                ? "DEPLOYMENT_FAILED"
-                : "POST_DEPLOY_HOOK_FAILED"))
-            : null,
-          errorMessage: ["failed", "succeeded_with_warnings"].includes(
-            input.state,
-          )
-            ? sanitizeMessage(input.message)
-            : null,
-          finishedAt: terminalDeploymentStates.has(input.state) ? now : null,
-          startedAt: deployment.state === "queued" ? now : undefined,
-          state: input.state,
-          updatedAt: now,
-        })
-        .where(eq(deployments.id, deploymentId));
-    }
-
-    if (input.log) {
-      const [lastLog] = await transaction
-        .select({ sequence: max(deploymentLogChunks.sequence) })
-        .from(deploymentLogChunks)
-        .where(eq(deploymentLogChunks.deploymentId, deploymentId));
-      await transaction.insert(deploymentLogChunks).values({
-        content: sanitizeLog(input.log.content),
-        deploymentId,
-        sequence: (lastLog?.sequence ?? -1) + 1,
-        stream: input.log.stream,
-      });
-    }
-    return { accepted: true };
-  });
-}
-
 export async function commitDeploymentRelease(
   deploymentId: string,
   input: { containerName: string; imageTag: string },
@@ -421,12 +351,36 @@ export async function commitDeploymentRelease(
         commitSha: deployments.commitSha,
         deploymentDigest: deployments.deploymentDigest,
         sourceInputDigest: deployments.sourceInputDigest,
+        environment: deployments.environment,
+        gitRef: deployments.gitRef,
+        previewEnvironmentId: deployments.previewEnvironmentId,
       })
       .from(deployments)
       .where(eq(deployments.id, deploymentId))
       .for("update")
       .limit(1);
     if (!deployment) throw notFound("Deployment");
+    if (deployment.previewEnvironmentId) {
+      const [environment] = await transaction
+        .select({
+          latestCommitSha: previewEnvironments.latestCommitSha,
+          status: previewEnvironments.status,
+        })
+        .from(previewEnvironments)
+        .where(eq(previewEnvironments.id, deployment.previewEnvironmentId))
+        .for("update")
+        .limit(1);
+      if (
+        !environment ||
+        environment.latestCommitSha !== deployment.commitSha ||
+        !["building", "healthy", "failed"].includes(environment.status)
+      ) {
+        throw conflict(
+          "A newer Preview commit is already available",
+          "PREVIEW_SUPERSEDED",
+        );
+      }
+    }
     const [existingRelease] = await transaction
       .select()
       .from(releases)
@@ -443,6 +397,12 @@ export async function commitDeploymentRelease(
           and(
             eq(releases.appId, deployment.appId),
             eq(releases.status, "previous"),
+            deployment.previewEnvironmentId
+              ? eq(
+                  releases.previewEnvironmentId,
+                  deployment.previewEnvironmentId,
+                )
+              : eq(releases.environment, "production"),
           ),
         );
       await transaction
@@ -452,6 +412,12 @@ export async function commitDeploymentRelease(
           and(
             eq(releases.appId, deployment.appId),
             eq(releases.status, "current"),
+            deployment.previewEnvironmentId
+              ? eq(
+                  releases.previewEnvironmentId,
+                  deployment.previewEnvironmentId,
+                )
+              : eq(releases.environment, "production"),
           ),
         );
       [release] = await transaction
@@ -464,6 +430,9 @@ export async function commitDeploymentRelease(
           containerName: input.containerName,
           deploymentId,
           imageTag: input.imageTag,
+          environment: deployment.environment,
+          gitRef: deployment.gitRef,
+          previewEnvironmentId: deployment.previewEnvironmentId,
           sourceInputDigest: deployment.sourceInputDigest,
           status: "current",
         })
@@ -480,23 +449,11 @@ export async function commitDeploymentRelease(
     }
     if (!release) throw new Error("Unable to commit deployment release");
     const runtimeCheckedAt = new Date();
-    await transaction
-      .insert(deployableRuntimeStates)
-      .values({
-        appId: deployment.appId,
-        checkedAt: runtimeCheckedAt,
-        desiredState: "running",
-        driftReasons: [],
-        driftStatus: "in_sync",
-        healthStatus: "healthy",
-        observedContainerName: input.containerName,
-        observedImage: input.imageTag,
-        observedState: "running",
-        updatedAt: runtimeCheckedAt,
-      })
-      .onConflictDoUpdate({
-        target: deployableRuntimeStates.appId,
-        set: {
+    if (deployment.environment === "production") {
+      await transaction
+        .insert(deployableRuntimeStates)
+        .values({
+          appId: deployment.appId,
           checkedAt: runtimeCheckedAt,
           desiredState: "running",
           driftReasons: [],
@@ -506,8 +463,22 @@ export async function commitDeploymentRelease(
           observedImage: input.imageTag,
           observedState: "running",
           updatedAt: runtimeCheckedAt,
-        },
-      });
+        })
+        .onConflictDoUpdate({
+          target: deployableRuntimeStates.appId,
+          set: {
+            checkedAt: runtimeCheckedAt,
+            desiredState: "running",
+            driftReasons: [],
+            driftStatus: "in_sync",
+            healthStatus: "healthy",
+            observedContainerName: input.containerName,
+            observedImage: input.imageTag,
+            observedState: "running",
+            updatedAt: runtimeCheckedAt,
+          },
+        });
+    }
 
     const retainedReleases = await transaction
       .select({ imageTag: releases.imageTag })
@@ -516,6 +487,9 @@ export async function commitDeploymentRelease(
         and(
           eq(releases.appId, deployment.appId),
           inArray(releases.status, ["current", "previous"]),
+          deployment.previewEnvironmentId
+            ? eq(releases.previewEnvironmentId, deployment.previewEnvironmentId)
+            : eq(releases.environment, "production"),
         ),
       );
     const rollbackReservations = await transaction
@@ -526,6 +500,13 @@ export async function commitDeploymentRelease(
       .where(
         and(
           eq(deployments.appId, deployment.appId),
+          eq(deployments.environment, deployment.environment),
+          deployment.previewEnvironmentId
+            ? eq(
+                deployments.previewEnvironmentId,
+                deployment.previewEnvironmentId,
+              )
+            : isNull(deployments.previewEnvironmentId),
           eq(deployments.kind, "rollback"),
           notInArray(deployments.state, [
             "cancelled",
@@ -550,27 +531,14 @@ export async function commitDeploymentRelease(
   };
 }
 
-function sanitizeMessage(value: string | undefined) {
-  return value ? stripControlCharacters(value, true).slice(0, 1_000) : null;
-}
-
-function sanitizeLog(value: string) {
-  return stripControlCharacters(value, false).slice(0, 64 * 1_024);
-}
-
-function stripControlCharacters(value: string, replaceWhitespace: boolean) {
-  let result = "";
-  for (const character of value) {
-    const code = character.codePointAt(0) ?? 0;
-    if (code === 9 || code === 10 || code === 13) {
-      result += replaceWhitespace ? " " : character;
-    } else if (code >= 32 && code !== 127) {
-      result += character;
-    } else if (replaceWhitespace) {
-      result += " ";
-    }
-  }
-  return result;
+async function getPreviewRuntimeId(previewEnvironmentId: string) {
+  const [environment] = await getTowbarDatabase()
+    .select({ runtimeId: previewEnvironments.runtimeId })
+    .from(previewEnvironments)
+    .where(eq(previewEnvironments.id, previewEnvironmentId))
+    .limit(1);
+  if (!environment) throw notFound("Preview environment");
+  return environment.runtimeId;
 }
 
 export { deploymentStateSchema };

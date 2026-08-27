@@ -29,6 +29,12 @@ for the downstream deployable and admit it manually after its prerequisite.
 Normalized snapshots expand input groups and include their security-sensitive
 and automatic-deployment configuration.
 
+Apps may also opt into Preview deployments for same-repository branches. The
+normalized contract supplies an isolated Preview domain, TTL, and build,
+runtime, and hook secret references. Snapshot generation deliberately removes
+production and shared secrets. Servers bound lower-priority Preview work with
+`previewBuildConcurrency` independently of their total `buildConcurrency`.
+
 Towbar hashes the path, Git mode, object type, and object SHA of every matched
 file. That source-input digest is combined with runtime and server configuration
 to decide whether an automatic deployment is needed. Scheduling-only fields
