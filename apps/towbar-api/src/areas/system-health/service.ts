@@ -1,10 +1,6 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
-import {
-  githubInstallations,
-  sourceAwsCredentials,
-  sources,
-} from "@workspace/towbar-database/schema";
+import { githubInstallations } from "@workspace/towbar-database/schema";
 import type {
   SystemHealth,
   SystemHealthCheck,
@@ -17,7 +13,6 @@ import {
   pingDatabase,
 } from "../../infrastructure/database.js";
 import { wakeMaintenanceWorkflow } from "../../infrastructure/temporal.js";
-import { verifyStoredAwsCredentials } from "../aws/service.js";
 import { getGitHubInstallation } from "../github/client.js";
 import {
   listSystemHealthSignals,
@@ -33,7 +28,7 @@ export async function getSystemHealth(
   workspaceId: string,
 ): Promise<SystemHealth> {
   await pingDatabase();
-  const [signals, githubConnection, awsCredentials] = await Promise.all([
+  const [signals, githubConnection] = await Promise.all([
     listSystemHealthSignals(workspaceId),
     getTowbarDatabase()
       .select({
@@ -43,14 +38,6 @@ export async function getSystemHealth(
       .from(githubInstallations)
       .where(eq(githubInstallations.workspaceId, workspaceId))
       .limit(1),
-    getTowbarDatabase()
-      .select({
-        sourceId: sourceAwsCredentials.sourceId,
-        status: sourceAwsCredentials.verificationStatus,
-        verifiedAt: sourceAwsCredentials.verifiedAt,
-      })
-      .from(sourceAwsCredentials)
-      .where(eq(sourceAwsCredentials.workspaceId, workspaceId)),
   ]);
   const byComponent = new Map(
     signals.map((signal) => [signal.component, signal]),
@@ -89,7 +76,6 @@ export async function getSystemHealth(
       connection: githubConnection[0],
       signal: byComponent.get("github"),
     }),
-    awsCheck({ credentials: awsCredentials, signal: byComponent.get("aws") }),
   ];
   return {
     checkedAt: new Date().toISOString(),
@@ -105,7 +91,6 @@ export async function runSystemHealthChecks(workspaceId: string) {
   await Promise.all([
     checkTemporal(workspaceId, version),
     checkGitHub(workspaceId),
-    checkAws(workspaceId),
   ]);
   return await getSystemHealth(workspaceId);
 }
@@ -189,56 +174,6 @@ async function checkGitHub(workspaceId: string) {
   }
 }
 
-async function checkAws(workspaceId: string) {
-  const activeSources = await getTowbarDatabase()
-    .select({ id: sources.id })
-    .from(sources)
-    .where(
-      and(
-        eq(sources.workspaceId, workspaceId),
-        eq(sources.status, "active"),
-        isNull(sources.archivedAt),
-      ),
-    );
-  if (activeSources.length === 0) {
-    await recordSystemHealthSignal({
-      component: "aws",
-      details: { sources: 0 },
-      key: `${workspaceId}:aws`,
-      message: "AWS access will be checked after the first Source is added.",
-      status: "unknown",
-      workspaceId,
-    });
-    return;
-  }
-  const results = [];
-  for (let index = 0; index < activeSources.length; index += 4) {
-    results.push(
-      ...(await Promise.all(
-        activeSources
-          .slice(index, index + 4)
-          .map((source) =>
-            verifyStoredAwsCredentials({ sourceId: source.id, workspaceId }),
-          ),
-      )),
-    );
-  }
-  const healthy = results.filter(
-    (result) => result.status === "healthy",
-  ).length;
-  await recordSystemHealthSignal({
-    component: "aws",
-    details: { healthy, sources: results.length },
-    key: `${workspaceId}:aws`,
-    message:
-      healthy === results.length
-        ? `AWS verified credentials for ${healthy} ${healthy === 1 ? "Source" : "Sources"}.`
-        : `AWS verified ${healthy} of ${results.length} Source credentials.`,
-    status: healthy === results.length ? "healthy" : "critical",
-    workspaceId,
-  });
-}
-
 function signalCheck(input: {
   description: string;
   id: "temporal" | "worker";
@@ -309,48 +244,6 @@ function githubCheck(input: {
     remediationLabel: status === "healthy" ? null : "Open GitHub settings",
     status,
     title: "GitHub App",
-  };
-}
-
-function awsCheck(input: {
-  credentials: Array<{
-    sourceId: string;
-    status: string;
-    verifiedAt: Date | null;
-  }>;
-  signal: SystemHealthSignal | undefined;
-}): SystemHealthCheck {
-  const verified = input.credentials.filter(
-    (item) => item.status === "verified",
-  ).length;
-  const status = input.signal
-    ? freshSignalStatus(input.signal, 24 * 60 * 60_000)
-    : input.credentials.length === 0
-      ? "unknown"
-      : verified === input.credentials.length
-        ? "attention"
-        : "critical";
-  return {
-    checkedAt:
-      input.signal?.checkedAt.toISOString() ??
-      input.credentials
-        .map((item) => item.verifiedAt)
-        .filter((value): value is Date => Boolean(value))
-        .sort((left, right) => right.getTime() - left.getTime())[0]
-        ?.toISOString() ??
-      null,
-    description:
-      input.signal?.message ??
-      (input.credentials.length === 0
-        ? "AWS access will be checked after a Source credential is saved."
-        : verified === input.credentials.length
-          ? `${verified} Source ${verified === 1 ? "credential was" : "credentials were"} verified when saved. Run checks to verify again.`
-          : `${input.credentials.length - verified} Source ${input.credentials.length - verified === 1 ? "credential needs" : "credentials need"} attention.`),
-    id: "aws",
-    remediationHref: null,
-    remediationLabel: null,
-    status,
-    title: "AWS access",
   };
 }
 

@@ -470,18 +470,8 @@ let systemHealth: SystemHealth = {
       status: "healthy",
       title: "GitHub App",
     },
-    {
-      checkedAt: systemHealthFixtureNow,
-      description:
-        "1 Source credential was verified when saved. Run checks to verify again.",
-      id: "aws",
-      remediationHref: null,
-      remediationLabel: null,
-      status: "attention",
-      title: "AWS access",
-    },
   ],
-  status: "attention",
+  status: "healthy",
   version: "1.0.2-fixture",
 };
 
@@ -667,10 +657,6 @@ export function createFixtureApiServer() {
         checks: systemHealth.checks.map((check) => ({
           ...check,
           checkedAt,
-          description:
-            check.id === "aws"
-              ? "AWS verified credentials for 1 Source."
-              : check.description,
           status: "healthy",
         })),
         status: "healthy",

@@ -74,10 +74,10 @@ test("the local fixture separates control-plane checks from server capacity", as
     );
     assert.equal(response.status, 200);
     const health = await response.json();
-    assert.equal(health.checks.length, 5);
+    assert.equal(health.checks.length, 4);
     assert.equal(
-      health.checks.find((check) => check.id === "aws").status,
-      "healthy",
+      health.checks.some((check) => check.id === "aws"),
+      false,
     );
     assert.equal("runtimeCapacity" in health, false);
     const capacityResponse = await fetch(
