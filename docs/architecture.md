@@ -31,22 +31,23 @@ connects to the target Ubuntu host over SSH, builds or pulls the requested
 image, starts a replacement container, verifies health, updates the proxy, and
 retains only the configured release set.
 
-For an App with Preview enabled, a same-repository non-production branch push
-signals one durable workflow per Source and Git ref. Repeated pushes coalesce
-to the newest pending commit while deployments retain immutable snapshots and
-independent history. Preview runtime identities, containers, releases, Caddy
-routes, and exact DNS records are isolated from production. The per-server
-coordinator gives production and maintenance work priority and applies a
-separate bounded Preview concurrency. Promotion checks that the commit is still
-the environment's latest before changing its route, so stale work cannot
-replace a newer Preview. Failures preserve the last healthy release.
+For an App with Preview enabled, a relevant same-repository pull request event
+signals one durable workflow per Source and pull request. The API reads current
+GitHub state before reconciling, and repeated events coalesce while deployments
+retain immutable snapshots and independent history. Preview runtime identities,
+containers, releases, Caddy routes, and exact DNS records are isolated from
+production. The per-server coordinator gives production and maintenance work
+priority and applies a separate bounded Preview concurrency. Promotion checks
+that the commit is still the environment's latest before changing its route,
+so stale work cannot replace a newer Preview. Failures preserve the last
+healthy release.
 
-Branch deletion, expiry, manifest disablement, and an owner action all enter
-the same durable cleanup path. Cleanup revalidates Towbar-owned runtime
-identities and removes only that Preview's containers, images, Caddy route, and
-DNS record. Apps and Resources in the production inventory are unchanged.
-GitHub Deployment statuses mirror the Preview lifecycle when the GitHub App has
-deployment write permission.
+Pull request merge, closure, or retargeting, plus expiry, manifest disablement,
+and an owner action, all enter the same durable cleanup path. Cleanup
+revalidates Towbar-owned runtime identities and removes only that Preview's
+containers, images, Caddy route, and DNS record. Apps and Resources in the
+production inventory are unchanged. GitHub Deployment statuses mirror the
+Preview lifecycle when the GitHub App has deployment write permission.
 
 An owner may also edit the JSON environment bundle behind a secret reference
 already attached to an App or Resource. Listings expose key names and AWS
@@ -57,7 +58,7 @@ version. PostgreSQL stores neither the secret value nor an editable copy of the
 reference.
 
 Repository contents are trusted deployment input. Anyone who can change the
-configured production branch or an enabled Preview branch can execute its
+configured production branch or an enabled Preview pull request can execute its
 build and runtime behavior with the secrets assigned to that environment.
 Protect production and restrict Preview credentials accordingly.
 

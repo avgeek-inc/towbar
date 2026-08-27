@@ -266,7 +266,7 @@ const previewDeployment: Deployment = {
     "auto_deploy",
   ),
   environment: "preview",
-  gitRef: "refs/heads/feature/preview-fixture",
+  gitRef: "refs/pull/42/head",
   githubDeploymentId: "123456789",
   hostname:
     "example-website-feature-preview-fixture-a1b2c3d4.preview.example.com",
@@ -286,6 +286,8 @@ const previews: PreviewEnvironment[] = [
     id: fixtureIds.preview,
     latestCommitSha: commitSha,
     latestDeploymentId: previewDeployment.id,
+    pullRequestNumber: 42,
+    pullRequestUrl: "https://github.com/avgeek-inc/towbar/pull/42",
     sourceId: source.id,
     status: "healthy",
     updatedAt: fixtureNow,

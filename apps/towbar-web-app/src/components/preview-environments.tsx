@@ -33,19 +33,27 @@ export function PreviewEnvironments({
 
   const columns: ResourceTableColumn<PreviewEnvironment>[] = [
     {
-      key: "branch",
-      header: "Branch",
+      key: "pull-request",
+      header: "Pull request",
       className: "min-w-48",
-      cell: (preview) =>
-        preview.latestDeploymentId ? (
-          <InlineLink
-            href={`/sources/${preview.sourceId}/deployments/${preview.latestDeploymentId}`}
+      cell: (preview) => (
+        <div className="flex flex-col items-start gap-1">
+          <a
+            className="focus-visible:ring-focus rounded-md underline decoration-muted underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2"
+            href={preview.pullRequestUrl}
+            rel="noreferrer"
+            target="_blank"
+          >
+            PR #{preview.pullRequestNumber}
+          </a>
+          <span
+            className="max-w-48 truncate text-sm text-muted"
+            title={preview.branch}
           >
             {preview.branch}
-          </InlineLink>
-        ) : (
-          preview.branch
-        ),
+          </span>
+        </div>
+      ),
     },
     ...(!appId
       ? [
@@ -99,23 +107,32 @@ export function PreviewEnvironments({
       header: "Actions",
       className: "whitespace-nowrap",
       cell: (preview) => (
-        <ActionButton
-          action={() =>
-            api.post(`/v1/core/previews/${preview.id}/actions/delete`)
-          }
-          confirm={{
-            actionLabel: "Delete Preview",
-            description:
-              "Towbar will remove this branch's container, image, route, and DNS record. A later push can create it again while Preview remains enabled.",
-            title: `Delete the ${preview.branch} Preview?`,
-          }}
-          isDisabled={preview.status === "deleting"}
-          pendingLabel="Queueing…"
-          success="Preview cleanup queued"
-          variant="danger"
-        >
-          Delete
-        </ActionButton>
+        <div className="flex items-center gap-3">
+          {preview.latestDeploymentId ? (
+            <InlineLink
+              href={`/sources/${preview.sourceId}/deployments/${preview.latestDeploymentId}`}
+            >
+              Deployment
+            </InlineLink>
+          ) : null}
+          <ActionButton
+            action={() =>
+              api.post(`/v1/core/previews/${preview.id}/actions/delete`)
+            }
+            confirm={{
+              actionLabel: "Delete Preview",
+              description:
+                "Towbar will remove this pull request's container, image, route, and DNS record. A later commit can create it again while the pull request remains open and Preview is enabled.",
+              title: `Delete Preview for PR #${preview.pullRequestNumber}?`,
+            }}
+            isDisabled={preview.status === "deleting"}
+            pendingLabel="Queueing…"
+            success="Preview cleanup queued"
+            variant="danger"
+          >
+            Delete
+          </ActionButton>
+        </div>
       ),
     },
   ];
@@ -124,7 +141,7 @@ export function PreviewEnvironments({
     <ResourceTable
       ariaLabel="Preview deployments"
       columns={columns}
-      emptyDescription="Enable Preview for an app in the deployment manifest, then push a non-production branch."
+      emptyDescription="Enable Preview for an app, then open a same-repository pull request targeting the Source branch."
       emptyTitle="No Preview deployments"
       getRowKey={(preview) => preview.id}
       items={query.data.previews}

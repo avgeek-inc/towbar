@@ -71,6 +71,39 @@ const gitTreeSchema = z.object({
 
 const githubDeploymentSchema = z.object({ id: z.number().int().positive() });
 
+const pullRequestSchema = z.object({
+  base: z.object({
+    ref: z.string().min(1).max(255),
+    repo: z.object({ full_name: z.string().min(3).max(255) }),
+  }),
+  draft: z.boolean().nullable(),
+  head: z.object({
+    ref: z.string().min(1).max(255),
+    repo: z.object({ full_name: z.string().min(3).max(255) }).nullable(),
+    sha: z.string().regex(/^[a-f0-9]{40}$/u),
+  }),
+  merged: z.boolean(),
+  number: z.number().int().positive().max(2_147_483_647),
+  state: z.enum(["closed", "open"]),
+});
+const pullRequestListSchema = z.array(
+  z.object({
+    number: z.number().int().positive().max(2_147_483_647),
+  }),
+);
+
+export type GitHubPullRequest = {
+  baseBranch: string;
+  baseRepository: string;
+  draft: boolean;
+  headBranch: string;
+  headRepository: string | null;
+  headSha: string;
+  merged: boolean;
+  number: number;
+  state: "closed" | "open";
+};
+
 export async function getGitHubInstallation(installationId: string) {
   const jwt = await createGitHubAppJwt();
   const value = await githubRequest(`/app/installations/${installationId}`, {
@@ -203,6 +236,57 @@ export async function fetchGitHubRepositoryTree(input: {
       )
       .map(({ mode, path, sha, type }) => ({ mode, path, sha, type })),
   };
+}
+
+export async function fetchGitHubPullRequest(input: {
+  installationId: string;
+  pullRequestNumber: number;
+  repositoryName: string;
+  repositoryOwner: string;
+}): Promise<GitHubPullRequest> {
+  const token = await createInstallationToken(input.installationId);
+  const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
+  const pullRequest = pullRequestSchema.parse(
+    await githubRequest(
+      `/repos/${repository}/pulls/${input.pullRequestNumber}`,
+      { token },
+    ),
+  );
+  return {
+    baseBranch: pullRequest.base.ref,
+    baseRepository: pullRequest.base.repo.full_name,
+    draft: pullRequest.draft ?? false,
+    headBranch: pullRequest.head.ref,
+    headRepository: pullRequest.head.repo?.full_name ?? null,
+    headSha: pullRequest.head.sha,
+    merged: pullRequest.merged,
+    number: pullRequest.number,
+    state: pullRequest.state,
+  };
+}
+
+export async function listOpenGitHubPullRequestNumbers(input: {
+  baseBranch: string;
+  installationId: string;
+  repositoryName: string;
+  repositoryOwner: string;
+}) {
+  const token = await createInstallationToken(input.installationId);
+  const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
+  const pullRequestNumbers: number[] = [];
+  for (let page = 1; page <= 10; page += 1) {
+    const pullRequests = pullRequestListSchema.parse(
+      await githubRequest(
+        `/repos/${repository}/pulls?state=open&base=${encodeURIComponent(input.baseBranch)}&per_page=100&page=${page}`,
+        { token },
+      ),
+    );
+    pullRequestNumbers.push(
+      ...pullRequests.map((pullRequest) => pullRequest.number),
+    );
+    if (pullRequests.length < 100) break;
+  }
+  return pullRequestNumbers;
 }
 
 function isGitHubNotFound(error: unknown): error is HttpError {

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 
-import { previewBranchEventSchema } from "@workspace/towbar-core/temporal";
+import { previewPullRequestEventSchema } from "@workspace/towbar-core/temporal";
 import { z } from "zod";
 
 import {
@@ -8,15 +8,15 @@ import {
   recordPreviewCleanupResult,
   resolvePreviewCleanupSecrets,
 } from "../../../areas/previews/cleanup.js";
-import { processPreviewBranchEvent } from "../../../areas/previews/service.js";
+import { processPreviewPullRequestEvent } from "../../../areas/previews/service.js";
 import { readJson, readUuidPathParameter } from "../../../http/requests.js";
 
 export const internalPreviewRoutes = new Hono();
 
 internalPreviewRoutes.post("/events", async (context) =>
   context.json(
-    await processPreviewBranchEvent(
-      await readJson(context, previewBranchEventSchema),
+    await processPreviewPullRequestEvent(
+      await readJson(context, previewPullRequestEventSchema),
     ),
   ),
 );

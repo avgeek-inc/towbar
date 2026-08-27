@@ -4,14 +4,14 @@ import {
   deleteCloudflarePreviewDns,
 } from "@workspace/towbar-deployer";
 
-import type { PreviewBranchEvent } from "@workspace/towbar-core/temporal";
+import type { PreviewPullRequestEvent } from "@workspace/towbar-core/temporal";
 import type {
   PreviewCleanupContext,
   SshLoginSecret,
 } from "@workspace/towbar-deployer";
 
-export async function processPreviewBranchEventActivity(
-  event: PreviewBranchEvent,
+export async function processPreviewPullRequestEventActivity(
+  event: PreviewPullRequestEvent,
 ) {
   return await signedApiRequest<{
     cleanupIds: string[];

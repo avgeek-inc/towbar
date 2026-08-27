@@ -552,6 +552,7 @@ export const previewEnvironments = pgTable(
     serverId: uuid("server_id")
       .notNull()
       .references(() => servers.id, { onDelete: "restrict" }),
+    pullRequestNumber: integer("pull_request_number").notNull(),
     branch: varchar("branch", { length: 255 }).notNull(),
     gitRef: varchar("git_ref", { length: 512 }).notNull(),
     hostname: varchar("hostname", { length: 253 }).notNull(),

@@ -5,6 +5,13 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+### Added
+
+- Opt-in pull request Preview deployments with stable PR-scoped URLs,
+  isolated secrets, GitHub Deployment statuses, bounded lower-priority builds,
+  Source-sync recovery, and automatic cleanup after merge, closure,
+  retargeting, expiry, disablement, or an owner request.
+
 ### Changed
 
 - Removed manifest-level deployment dependencies. Eligible automatic

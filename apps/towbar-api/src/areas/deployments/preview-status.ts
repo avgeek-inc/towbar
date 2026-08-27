@@ -72,11 +72,16 @@ export async function publishPreviewDeploymentStatus(
       githubDeploymentId: deployments.githubDeploymentId,
       hostname: deployments.hostname,
       installationId: githubInstallations.installationId,
+      pullRequestNumber: previewEnvironments.pullRequestNumber,
       repositoryName: sources.repositoryName,
       repositoryOwner: sources.repositoryOwner,
     })
     .from(deployments)
     .innerJoin(sources, eq(sources.id, deployments.sourceId))
+    .innerJoin(
+      previewEnvironments,
+      eq(previewEnvironments.id, deployments.previewEnvironmentId),
+    )
     .innerJoin(
       githubInstallations,
       eq(githubInstallations.id, sources.githubInstallationId),
@@ -95,7 +100,7 @@ export async function publishPreviewDeploymentStatus(
     githubDeploymentId = await createGitHubPreviewDeployment({
       commitSha: deployment.commitSha,
       environment:
-        `Preview · ${deployment.app.name} · ${deployment.gitRef.slice("refs/heads/".length)}`.slice(
+        `Preview · ${deployment.app.name} · PR #${deployment.pullRequestNumber}`.slice(
           0,
           255,
         ),

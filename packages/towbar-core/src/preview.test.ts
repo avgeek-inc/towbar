@@ -55,28 +55,27 @@ const app: NormalizedApp = {
   tls: { mode: "cloudflare-dns" },
 };
 
-void test("creates a stable branch hostname and isolated runtime identity", () => {
+void test("creates a stable pull request hostname and isolated runtime identity", () => {
   const input = {
     appId: app.id,
-    branch: "feature/TW-4 preview deploys",
     domain: app.preview!.domain,
+    pullRequestNumber: 42,
+    sourceId: "018f47a0-64e7-7b44-8500-2e4cb0c8f9aa",
   };
   const hostname = previewHostname(input);
   assert.equal(hostname, previewHostname(input));
-  assert.match(
-    hostname,
-    /^example-feature-tw-4-preview-deploys-[a-f0-9]{8}\.preview\.example\.com$/u,
-  );
-  assert.equal(previewRef(input.branch), `refs/heads/${input.branch}`);
-  assert.notEqual(previewRuntimeId(app.id, input.branch), app.id);
+  assert.match(hostname, /^example-pr-42-[a-f0-9]{8}\.preview\.example\.com$/u);
+  assert.equal(previewRef(input.pullRequestNumber), "refs/pull/42/head");
+  assert.notEqual(previewRuntimeId(input), app.id);
   assert.ok(hostname.split(".")[0]!.length <= 63);
 });
 
 void test("keeps Preview DNS labels valid for maximum-length app IDs", () => {
   const hostname = previewHostname({
     appId: "a".repeat(63),
-    branch: "feature/this-is-a-long-branch-name-that-needs-truncation",
     domain: "preview.example.com",
+    pullRequestNumber: 123_456,
+    sourceId: "018f47a0-64e7-7b44-8500-2e4cb0c8f9aa",
   });
   assert.ok(hostname.split(".")[0]!.length <= 63);
   assert.match(hostname, /-[a-f0-9]{8}\.preview\.example\.com$/u);

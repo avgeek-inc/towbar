@@ -13,8 +13,9 @@ import {
 import { requireGitHubEnv } from "../../env.js";
 import { badRequest, unauthorized } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
-import { enqueuePreviewBranchEvent } from "../../infrastructure/temporal.js";
+import { enqueuePreviewPullRequestEvent } from "../../infrastructure/temporal.js";
 import { requestSourceSync } from "../sources/service.js";
+import { shouldReconcilePreviewPullRequest } from "./webhook-events.js";
 
 const pushSchema = z.object({
   after: z.string().regex(/^[a-f0-9]{40}$/u),
@@ -29,6 +30,15 @@ const pushSchema = z.object({
 const installationSchema = z.object({
   action: z.string(),
   installation: z.object({ id: z.number().int().positive() }),
+});
+const pullRequestSchema = z.object({
+  action: z.string().min(1).max(100),
+  installation: z.object({ id: z.number().int().positive() }),
+  number: z.number().int().positive().max(2_147_483_647),
+  repository: z.object({
+    name: z.string(),
+    owner: z.object({ login: z.string() }),
+  }),
 });
 
 export async function processGitHubWebhook(input: {
@@ -67,9 +77,11 @@ export async function processGitHubWebhook(input: {
     const sourceId =
       input.eventName === "push"
         ? await processPush(payload)
-        : input.eventName === "installation"
-          ? await processInstallation(payload)
-          : null;
+        : input.eventName === "pull_request"
+          ? await processPullRequest(payload)
+          : input.eventName === "installation"
+            ? await processInstallation(payload)
+            : null;
     await database
       .update(githubWebhookDeliveries)
       .set({ processedAt: new Date(), sourceId })
@@ -89,7 +101,46 @@ async function processPush(payload: unknown) {
     ? push.ref.slice("refs/heads/".length)
     : null;
   if (!branch) return null;
-  const matchingSources = await getTowbarDatabase()
+  const matchingSources = await findActiveSources({
+    installationId: push.installation.id,
+    repositoryName: push.repository.name,
+    repositoryOwner: push.repository.owner.login,
+  });
+  const deleted = isDeletedPush(push);
+  for (const source of matchingSources) {
+    if (source.branch !== branch || deleted) continue;
+    await requestSourceSync({
+      requestedBy: null,
+      sourceId: source.id,
+      workspaceId: source.workspaceId,
+    });
+  }
+  return matchingSources[0]?.id ?? null;
+}
+
+async function processPullRequest(payload: unknown) {
+  const pullRequest = pullRequestSchema.parse(payload);
+  if (!shouldReconcilePreviewPullRequest(pullRequest.action)) return null;
+  const matchingSources = await findActiveSources({
+    installationId: pullRequest.installation.id,
+    repositoryName: pullRequest.repository.name,
+    repositoryOwner: pullRequest.repository.owner.login,
+  });
+  for (const source of matchingSources) {
+    await enqueuePreviewPullRequestEvent({
+      pullRequestNumber: pullRequest.number,
+      sourceId: source.id,
+    });
+  }
+  return matchingSources[0]?.id ?? null;
+}
+
+async function findActiveSources(input: {
+  installationId: number;
+  repositoryName: string;
+  repositoryOwner: string;
+}) {
+  return await getTowbarDatabase()
     .select({
       branch: sources.branch,
       id: sources.id,
@@ -102,32 +153,13 @@ async function processPush(payload: unknown) {
     )
     .where(
       and(
-        eq(githubInstallations.installationId, String(push.installation.id)),
-        eq(sources.repositoryOwner, push.repository.owner.login),
-        eq(sources.repositoryName, push.repository.name),
+        eq(githubInstallations.installationId, String(input.installationId)),
+        eq(sources.repositoryOwner, input.repositoryOwner),
+        eq(sources.repositoryName, input.repositoryName),
         eq(sources.status, "active"),
       ),
     )
     .orderBy(sources.createdAt);
-  const deleted = isDeletedPush(push);
-  for (const source of matchingSources) {
-    if (source.branch === branch) {
-      if (deleted) continue;
-      await requestSourceSync({
-        requestedBy: null,
-        sourceId: source.id,
-        workspaceId: source.workspaceId,
-      });
-      continue;
-    }
-    await enqueuePreviewBranchEvent({
-      branch,
-      commitSha: deleted ? null : push.after,
-      deleted,
-      sourceId: source.id,
-    });
-  }
-  return matchingSources[0]?.id ?? null;
 }
 
 async function processInstallation(payload: unknown) {

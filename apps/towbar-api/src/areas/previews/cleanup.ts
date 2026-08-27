@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNull, lt } from "drizzle-orm";
 
-import { isNormalizedResource, previewRef } from "@workspace/towbar-core";
+import { isNormalizedResource } from "@workspace/towbar-core";
 import {
   apps,
   deployments,
@@ -32,18 +32,22 @@ const cleanablePreviewStatuses = [
   "cleanup_failed",
 ] satisfies Array<(typeof previewEnvironments.$inferSelect)["status"]>;
 
-export async function requestPreviewBranchCleanup(
-  sourceId: string,
-  branch: string,
-) {
-  const gitRef = previewRef(branch);
+export async function requestPreviewPullRequestCleanup(input: {
+  pullRequestNumber: number;
+  reason: string;
+  sourceId: string;
+}) {
   const environments = await getTowbarDatabase()
     .update(previewEnvironments)
-    .set({ status: "deleting", updatedAt: new Date() })
+    .set({
+      errorMessage: input.reason,
+      status: "deleting",
+      updatedAt: new Date(),
+    })
     .where(
       and(
-        eq(previewEnvironments.sourceId, sourceId),
-        eq(previewEnvironments.gitRef, gitRef),
+        eq(previewEnvironments.sourceId, input.sourceId),
+        eq(previewEnvironments.pullRequestNumber, input.pullRequestNumber),
         inArray(previewEnvironments.status, cleanablePreviewStatuses),
       ),
     )
@@ -52,7 +56,7 @@ export async function requestPreviewBranchCleanup(
       id: previewEnvironments.id,
       serverId: previewEnvironments.serverId,
     });
-  await queuePreviewCleanup(environments, "The Git branch was deleted");
+  await queuePreviewCleanup(environments, input.reason);
   return {
     cleanupIds: environments.map((environment) => environment.id),
     deploymentIds: [],

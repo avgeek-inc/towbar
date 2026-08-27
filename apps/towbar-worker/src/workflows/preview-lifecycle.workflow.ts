@@ -7,11 +7,12 @@ import {
 } from "@temporalio/workflow";
 
 import type * as activities from "../activities/index.js";
-import type { PreviewBranchEvent } from "@workspace/towbar-core/temporal";
+import type { PreviewPullRequestEvent } from "@workspace/towbar-core/temporal";
 
-const previewBranchEvent =
-  defineSignal<[PreviewBranchEvent]>("previewBranchEvent");
-const { processPreviewBranchEventActivity } = proxyActivities<
+const previewPullRequestEvent = defineSignal<[PreviewPullRequestEvent]>(
+  "previewPullRequestEvent",
+);
+const { processPreviewPullRequestEventActivity } = proxyActivities<
   typeof activities
 >({
   heartbeatTimeout: "30 seconds",
@@ -24,18 +25,18 @@ const { processPreviewBranchEventActivity } = proxyActivities<
 });
 
 export async function runPreviewLifecycleWorkflow() {
-  let pending: PreviewBranchEvent | null = null;
-  setHandler(previewBranchEvent, (event) => {
+  let pending: PreviewPullRequestEvent | null = null;
+  setHandler(previewPullRequestEvent, (event) => {
     pending = event;
   });
 
   for (;;) {
     const available = await condition(() => pending !== null, "30 minutes");
     if (!available) return;
-    const event: PreviewBranchEvent | null = pending;
+    const event: PreviewPullRequestEvent | null = pending;
     pending = null;
     if (!event) continue;
-    const result = await processPreviewBranchEventActivity(event);
+    const result = await processPreviewPullRequestEventActivity(event);
     if (result.retry) {
       if (pending === null) pending = event;
       await sleep("15 seconds");

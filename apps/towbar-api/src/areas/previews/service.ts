@@ -12,7 +12,7 @@ import {
 } from "@workspace/towbar-core";
 import {
   deploymentWorkflowId,
-  previewBranchEventSchema,
+  previewPullRequestEventSchema,
 } from "@workspace/towbar-core/temporal";
 import {
   apps,
@@ -25,17 +25,28 @@ import {
 } from "@workspace/towbar-database/schema";
 
 import { getTowbarDatabase } from "../../infrastructure/database.js";
-import { enqueueDeployment } from "../../infrastructure/temporal.js";
-import { fetchGitHubRepositoryTree } from "../github/client.js";
+import {
+  enqueueDeployment,
+  enqueuePreviewPullRequestEvent,
+} from "../../infrastructure/temporal.js";
+import {
+  fetchGitHubPullRequest,
+  fetchGitHubRepositoryTree,
+  listOpenGitHubPullRequestNumbers,
+} from "../github/client.js";
 import {
   propagatePreviewDeploymentState,
   publishPreviewDeploymentStatus,
 } from "../deployments/preview-status.js";
 import { calculateReleaseDeploymentDigest } from "../sources/deployment-digests.js";
 import { shouldDeferPreviewAdmission } from "./admission-state.js";
-import { requestPreviewBranchCleanup } from "./cleanup.js";
+import { requestPreviewPullRequestCleanup } from "./cleanup.js";
+import {
+  previewPullRequestDisposition,
+  previewPullRequestsToReconcile,
+} from "./pull-request.js";
 
-import type { PreviewBranchEvent } from "@workspace/towbar-core/temporal";
+import type { PreviewPullRequestEvent } from "@workspace/towbar-core/temporal";
 import type { NormalizedApp } from "@workspace/towbar-core";
 
 const terminalStates = [
@@ -46,12 +57,88 @@ const terminalStates = [
   "succeeded_with_warnings",
 ] satisfies Array<(typeof deployments.$inferSelect)["state"]>;
 
+export async function scheduleSourcePreviewReconciliations(sourceId: string) {
+  const database = getTowbarDatabase();
+  const [[source], appRows] = await Promise.all([
+    database
+      .select({
+        branch: sources.branch,
+        installationId: githubInstallations.installationId,
+        repositoryName: sources.repositoryName,
+        repositoryOwner: sources.repositoryOwner,
+        status: sources.status,
+      })
+      .from(sources)
+      .innerJoin(
+        githubInstallations,
+        eq(githubInstallations.id, sources.githubInstallationId),
+      )
+      .where(eq(sources.id, sourceId))
+      .limit(1),
+    database
+      .select({ config: apps.config })
+      .from(apps)
+      .where(
+        and(
+          eq(apps.sourceId, sourceId),
+          eq(apps.kind, "app"),
+          isNull(apps.archivedAt),
+        ),
+      ),
+  ]);
+  if (
+    !source ||
+    source.status !== "active" ||
+    !appRows.some(
+      (app) =>
+        !isNormalizedResource(app.config) &&
+        app.config.preview?.enabled === true,
+    )
+  ) {
+    return { pullRequestNumbers: [] };
+  }
+
+  const [openPullRequestNumbers, existingEnvironments] = await Promise.all([
+    listOpenGitHubPullRequestNumbers({
+      baseBranch: source.branch,
+      installationId: source.installationId,
+      repositoryName: source.repositoryName,
+      repositoryOwner: source.repositoryOwner,
+    }),
+    database
+      .selectDistinct({
+        pullRequestNumber: previewEnvironments.pullRequestNumber,
+      })
+      .from(previewEnvironments)
+      .where(
+        and(
+          eq(previewEnvironments.sourceId, sourceId),
+          ne(previewEnvironments.status, "deleted"),
+        ),
+      ),
+  ]);
+  const pullRequestNumbers = previewPullRequestsToReconcile(
+    openPullRequestNumbers,
+    existingEnvironments.map((environment) => environment.pullRequestNumber),
+  );
+  for (let index = 0; index < pullRequestNumbers.length; index += 10) {
+    await Promise.all(
+      pullRequestNumbers
+        .slice(index, index + 10)
+        .map((pullRequestNumber) =>
+          enqueuePreviewPullRequestEvent({ pullRequestNumber, sourceId }),
+        ),
+    );
+  }
+  return { pullRequestNumbers };
+}
+
 export async function listPreviewEnvironments(input: {
   appId?: string;
   sourceId?: string;
   workspaceId: string;
 }) {
-  return await getTowbarDatabase()
+  const rows = await getTowbarDatabase()
     .select({
       appId: previewEnvironments.appId,
       appName: apps.name,
@@ -64,12 +151,16 @@ export async function listPreviewEnvironments(input: {
       id: previewEnvironments.id,
       latestCommitSha: previewEnvironments.latestCommitSha,
       latestDeploymentId: previewEnvironments.latestDeploymentId,
+      pullRequestNumber: previewEnvironments.pullRequestNumber,
+      repositoryName: sources.repositoryName,
+      repositoryOwner: sources.repositoryOwner,
       sourceId: previewEnvironments.sourceId,
       status: previewEnvironments.status,
       updatedAt: previewEnvironments.updatedAt,
     })
     .from(previewEnvironments)
     .innerJoin(apps, eq(apps.id, previewEnvironments.appId))
+    .innerJoin(sources, eq(sources.id, previewEnvironments.sourceId))
     .where(
       and(
         eq(previewEnvironments.workspaceId, input.workspaceId),
@@ -81,10 +172,16 @@ export async function listPreviewEnvironments(input: {
       ),
     )
     .orderBy(desc(previewEnvironments.updatedAt));
+  return rows.map(({ repositoryName, repositoryOwner, ...preview }) => ({
+    ...preview,
+    pullRequestUrl: `https://github.com/${repositoryOwner}/${repositoryName}/pull/${preview.pullRequestNumber}`,
+  }));
 }
 
-export async function processPreviewBranchEvent(raw: PreviewBranchEvent) {
-  const event = previewBranchEventSchema.parse(raw);
+export async function processPreviewPullRequestEvent(
+  raw: PreviewPullRequestEvent,
+) {
+  const event = previewPullRequestEventSchema.parse(raw);
   const database = getTowbarDatabase();
   const [source] = await database
     .select({
@@ -103,16 +200,32 @@ export async function processPreviewBranchEvent(raw: PreviewBranchEvent) {
     )
     .where(eq(sources.id, event.sourceId))
     .limit(1);
-  if (!source || source.status !== "active" || event.branch === source.branch) {
+  if (!source || source.status !== "active") {
     return { cleanupIds: [], deploymentIds: [], retry: false };
   }
-  if (event.deleted) {
+  const pullRequest = await fetchGitHubPullRequest({
+    installationId: source.installationId,
+    pullRequestNumber: event.pullRequestNumber,
+    repositoryName: source.repositoryName,
+    repositoryOwner: source.repositoryOwner,
+  });
+  const disposition = previewPullRequestDisposition({
+    pullRequest,
+    repositoryName: source.repositoryName,
+    repositoryOwner: source.repositoryOwner,
+    sourceBranch: source.branch,
+  });
+  if (disposition.action === "cleanup") {
     return {
-      ...(await requestPreviewBranchCleanup(event.sourceId, event.branch)),
+      ...(await requestPreviewPullRequestCleanup({
+        pullRequestNumber: event.pullRequestNumber,
+        reason: disposition.reason,
+        sourceId: event.sourceId,
+      })),
       retry: false,
     };
   }
-  if (!event.commitSha || !source.latestManifestDigest) {
+  if (!source.latestManifestDigest) {
     return { cleanupIds: [], deploymentIds: [], retry: false };
   }
 
@@ -151,7 +264,7 @@ export async function processPreviewBranchEvent(raw: PreviewBranchEvent) {
     (candidate) => candidate.config.deploymentInputs.length > 0,
   )
     ? await fetchGitHubRepositoryTree({
-        commitSha: event.commitSha,
+        commitSha: pullRequest.headSha,
         installationId: source.installationId,
         repositoryName: source.repositoryName,
         repositoryOwner: source.repositoryOwner,
@@ -162,15 +275,16 @@ export async function processPreviewBranchEvent(raw: PreviewBranchEvent) {
   for (const candidate of eligible) {
     const hostname = previewHostname({
       appId: candidate.manifestId,
-      branch: event.branch,
       domain: candidate.config.preview!.domain,
+      pullRequestNumber: pullRequest.number,
+      sourceId: event.sourceId,
     });
     const snapshot = createPreviewAppSnapshot(candidate.config, {
-      branch: event.branch,
+      branch: pullRequest.headBranch,
       hostname,
     });
     const digests = calculateReleaseDeploymentDigest({
-      commitSha: event.commitSha,
+      commitSha: pullRequest.headSha,
       deployable: snapshot,
       deploymentInputs: candidate.config.deploymentInputs,
       repositoryTree,
@@ -178,12 +292,13 @@ export async function processPreviewBranchEvent(raw: PreviewBranchEvent) {
     });
     const admission = await admitPreviewDeployment({
       appId: candidate.appId,
-      branch: event.branch,
-      commitSha: event.commitSha,
+      branch: pullRequest.headBranch,
+      commitSha: pullRequest.headSha,
       config: snapshot,
       deploymentDigest: digests.deploymentDigest,
       hostname,
       manifestDigest: source.latestManifestDigest,
+      pullRequestNumber: pullRequest.number,
       server: candidate.server,
       serverId: candidate.serverId,
       sourceId: event.sourceId,
@@ -235,6 +350,7 @@ async function admitPreviewDeployment(input: {
   deploymentDigest: string;
   hostname: string;
   manifestDigest: string;
+  pullRequestNumber: number;
   server: (typeof servers.$inferSelect)["config"];
   serverId: string;
   sourceId: string;
@@ -243,8 +359,12 @@ async function admitPreviewDeployment(input: {
   workspaceId: string;
 }) {
   const database = getTowbarDatabase();
-  const gitRef = previewRef(input.branch);
-  const runtimeId = previewRuntimeId(input.config.id, input.branch);
+  const gitRef = previewRef(input.pullRequestNumber);
+  const runtimeId = previewRuntimeId({
+    appId: input.config.id,
+    pullRequestNumber: input.pullRequestNumber,
+    sourceId: input.sourceId,
+  });
   const deploymentId = randomUUID();
   const expiresAt = new Date(Date.now() + input.ttlHours * 60 * 60_000);
   const admission = await database.transaction(async (transaction) => {
@@ -284,6 +404,7 @@ async function admitPreviewDeployment(input: {
         gitRef,
         hostname: input.hostname,
         latestCommitSha: input.commitSha,
+        pullRequestNumber: input.pullRequestNumber,
         runtimeId,
         serverId: input.serverId,
         sourceId: input.sourceId,
@@ -302,6 +423,7 @@ async function admitPreviewDeployment(input: {
           expiresAt,
           hostname: input.hostname,
           latestCommitSha: input.commitSha,
+          pullRequestNumber: input.pullRequestNumber,
           runtimeId,
           serverId: input.serverId,
           status: "building",

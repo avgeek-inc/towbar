@@ -19,7 +19,7 @@ truth and runs deployments through durable Temporal workflows.
 - AWS Secrets Manager values are resolved just in time and stay out of Git.
 - SSH host-key pinning, server preparation, health checks, and queued
   deployments are built in.
-- Opt-in branch Previews use stable URLs, isolated secrets, and automatic
+- Opt-in pull request Previews use stable URLs, isolated secrets, and automatic
   cleanup without changing production health or release history.
 - PostgreSQL and Temporal provide persistent state and durable execution.
 

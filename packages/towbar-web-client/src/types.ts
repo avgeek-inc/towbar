@@ -338,6 +338,8 @@ export type PreviewEnvironment = {
   id: string;
   latestCommitSha: string;
   latestDeploymentId: string | null;
+  pullRequestNumber: number;
+  pullRequestUrl: string;
   sourceId: string;
   status: "building" | "healthy" | "failed" | "deleting" | "cleanup_failed";
   updatedAt: string;

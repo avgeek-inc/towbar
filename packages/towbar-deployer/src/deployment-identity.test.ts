@@ -17,7 +17,7 @@ const context = {
   runtimeId: "website-preview-123456789abc",
 } as DeploymentExecutionContext;
 
-void test("uses a branch-scoped runtime identity for Preview deployments", () => {
+void test("uses a Preview-scoped runtime identity for Preview deployments", () => {
   assert.equal(deploymentRuntimeId(context), context.runtimeId);
   assert.equal(deploymentCleanupId(context), context.runtimeId);
   assert.match(

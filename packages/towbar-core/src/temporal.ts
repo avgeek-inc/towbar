@@ -90,27 +90,16 @@ export type DeploymentWorkflowInput = z.infer<
   typeof deploymentWorkflowInputSchema
 >;
 
-export const previewBranchEventSchema = z
+export const previewPullRequestEventSchema = z
   .object({
-    branch: z.string().min(1).max(255),
-    commitSha: z
-      .string()
-      .regex(/^[a-f0-9]{40}$/u)
-      .nullable(),
-    deleted: z.boolean(),
+    pullRequestNumber: z.number().int().positive().max(2_147_483_647),
     sourceId: z.string().uuid(),
   })
-  .strict()
-  .superRefine((event, context) => {
-    if (event.deleted !== (event.commitSha === null)) {
-      context.addIssue({
-        code: "custom",
-        message: "Deleted Preview events must omit the commit SHA",
-      });
-    }
-  });
+  .strict();
 
-export type PreviewBranchEvent = z.infer<typeof previewBranchEventSchema>;
+export type PreviewPullRequestEvent = z.infer<
+  typeof previewPullRequestEventSchema
+>;
 
 export type ServerWorkItem =
   | {

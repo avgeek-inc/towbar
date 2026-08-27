@@ -376,9 +376,14 @@ export async function commitDeploymentRelease(
         .limit(1);
       if (
         !environment ||
-        environment.latestCommitSha !== deployment.commitSha ||
         !["building", "healthy", "failed"].includes(environment.status)
       ) {
+        throw conflict(
+          "The Preview environment is no longer active",
+          "PREVIEW_UNAVAILABLE",
+        );
+      }
+      if (environment.latestCommitSha !== deployment.commitSha) {
         throw conflict(
           "A newer Preview commit is already available",
           "PREVIEW_SUPERSEDED",

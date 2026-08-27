@@ -7,37 +7,40 @@ import type { NormalizedApp, NormalizedDeploymentHook } from "./manifest.js";
 export const deploymentEnvironments = ["production", "preview"] as const;
 export type DeploymentEnvironment = (typeof deploymentEnvironments)[number];
 
-export function previewRef(branch: string) {
-  return `refs/heads/${branch}`;
+export function previewRef(pullRequestNumber: number) {
+  return `refs/pull/${pullRequestNumber}/head`;
 }
 
-export function previewRefHash(branch: string) {
+export function previewRefHash(input: {
+  pullRequestNumber: number;
+  sourceId: string;
+}) {
   return createHash("sha256")
-    .update(previewRef(branch))
+    .update(`${input.sourceId}:${previewRef(input.pullRequestNumber)}`)
     .digest("hex")
     .slice(0, 12);
 }
 
 export function previewHostname(input: {
   appId: string;
-  branch: string;
   domain: string;
+  pullRequestNumber: number;
+  sourceId: string;
 }) {
-  const hash = previewRefHash(input.branch).slice(0, 8);
+  const hash = previewRefHash(input).slice(0, 8);
   const appSlug = trimTrailingDashes(input.appId.slice(0, 32));
-  const maximumSlugLength = Math.max(1, 63 - appSlug.length - hash.length - 2);
-  const normalizedBranch = input.branch
-    .toLowerCase()
-    .replace(/[^a-z0-9-]+/gu, "-");
-  const slug =
-    trimTrailingDashes(
-      trimDashes(normalizedBranch).slice(0, maximumSlugLength),
-    ) || "branch";
-  return normalizeDomain(`${appSlug}-${slug}-${hash}.${input.domain}`);
+  const suffix = `pr-${input.pullRequestNumber}-${hash}`;
+  const maximumSlugLength = Math.max(1, 63 - suffix.length - 1);
+  const slug = trimTrailingDashes(appSlug.slice(0, maximumSlugLength));
+  return normalizeDomain(`${slug}-${suffix}.${input.domain}`);
 }
 
-export function previewRuntimeId(appId: string, branch: string) {
-  return `${appId}-preview-${previewRefHash(branch)}`;
+export function previewRuntimeId(input: {
+  appId: string;
+  pullRequestNumber: number;
+  sourceId: string;
+}) {
+  return `${input.appId}-preview-${previewRefHash(input)}`;
 }
 
 export function createPreviewAppSnapshot(
@@ -80,12 +83,6 @@ function previewHook(
     timeoutSeconds: hook.timeoutSeconds,
   };
   return preDeploy ? { preDeploy: value } : { postDeploy: value };
-}
-
-function trimDashes(value: string) {
-  let start = 0;
-  while (value.charCodeAt(start) === 45) start += 1;
-  return trimTrailingDashes(value.slice(start));
 }
 
 function trimTrailingDashes(value: string) {

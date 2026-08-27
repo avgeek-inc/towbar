@@ -12,7 +12,7 @@ import {
 } from "@workspace/towbar-core/temporal";
 
 import type {
-  PreviewBranchEvent,
+  PreviewPullRequestEvent,
   ServerWorkItem,
 } from "@workspace/towbar-core/temporal";
 
@@ -20,12 +20,11 @@ import { getEnv } from "../env.js";
 
 let clientPromise: Promise<Client> | undefined;
 
-export function previewLifecycleWorkflowId(sourceId: string, branch: string) {
-  const refHash = createHash("sha256")
-    .update(`refs/heads/${branch}`)
-    .digest("hex")
-    .slice(0, 24);
-  return `towbar-preview/v1/${sourceId}/${refHash}`;
+export function previewLifecycleWorkflowId(
+  sourceId: string,
+  pullRequestNumber: number,
+) {
+  return `towbar-preview/v2/${sourceId}/pull/${pullRequestNumber}`;
 }
 
 export async function enqueueSourceSync(input: {
@@ -82,12 +81,17 @@ export async function enqueueDeployment(input: {
   return { workflowId };
 }
 
-export async function enqueuePreviewBranchEvent(event: PreviewBranchEvent) {
+export async function enqueuePreviewPullRequestEvent(
+  event: PreviewPullRequestEvent,
+) {
   const client = await getTemporalClient();
-  const workflowId = previewLifecycleWorkflowId(event.sourceId, event.branch);
+  const workflowId = previewLifecycleWorkflowId(
+    event.sourceId,
+    event.pullRequestNumber,
+  );
   await client.workflow.signalWithStart("runPreviewLifecycleWorkflow", {
     args: [],
-    signal: "previewBranchEvent",
+    signal: "previewPullRequestEvent",
     signalArgs: [event],
     taskQueue: towbarTaskQueue,
     workflowId,
