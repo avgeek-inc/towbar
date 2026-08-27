@@ -338,19 +338,6 @@ export function ServerDetail() {
       }
     >
       <div className="grid gap-6">
-        {discovered.length ? (
-          <Alert status="warning">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>Untrusted SSH host key</Alert.Title>
-              <Alert.Description>
-                Towbar stopped before login. Verify the discovered fingerprint
-                independently, then trust at least one matching key from the
-                Host Keys tab.
-              </Alert.Description>
-            </Alert.Content>
-          </Alert>
-        ) : null}
         <PageTabs
           defaultValue="overview"
           tabs={[
@@ -622,19 +609,6 @@ function ServerPreparationPanel({
 
   return (
     <div className="grid gap-4">
-      {!ready ? (
-        <Alert status="default">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>Use a fresh, dedicated Ubuntu server</Alert.Title>
-            <Alert.Description>
-              Towbar can reuse compatible Docker and Caddy installations, but it
-              will stop safely when existing packages or configuration conflict.
-              Clean up the reported conflict before trying again.
-            </Alert.Description>
-          </Alert.Content>
-        </Alert>
-      ) : null}
       {latestPreparation?.status === "failed" &&
       latestPreparation.errorMessage ? (
         <Alert status="danger">
