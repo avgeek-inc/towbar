@@ -9,6 +9,7 @@ import { EmptyState } from "@workspace/web-design-system/data-display/empty-stat
 import { Table } from "@workspace/web-design-system/data-display/table";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { cn } from "@workspace/web-design-system/lib/utils";
+import { TypographyHeading } from "@workspace/web-design-system/typography/typography";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { formatDate } from "./dashboard-overview";
@@ -199,7 +200,9 @@ function CapacityValue({
   return (
     <div className="grid content-start gap-2">
       <span className="text-sm font-medium">{label}</span>
-      <span className="text-2xl font-medium tabular-nums">{value}</span>
+      <TypographyHeading className="tabular-nums" level={5}>
+        {value}
+      </TypographyHeading>
       <span className="text-xs text-muted">{detail}</span>
     </div>
   );
