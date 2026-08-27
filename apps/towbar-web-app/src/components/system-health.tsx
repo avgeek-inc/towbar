@@ -124,10 +124,11 @@ function HealthSummary({ health }: { health: SystemHealth }) {
         : health.status === "critical"
           ? "Immediate attention required"
           : "Operational attention recommended";
-  const description =
-    health.status === "healthy"
-      ? "The control plane is connected and current server checks show capacity headroom."
-      : `${issues} control-plane ${issues === 1 ? "check needs" : "checks need"} review and ${runtimeIssues} ${runtimeIssues === 1 ? "server shows" : "servers show"} capacity pressure.`;
+  const description = healthSummaryDescription({
+    issues,
+    runtimeIssues,
+    status: health.status,
+  });
   return (
     <div className="flex flex-col gap-4 rounded-3xl border border-separator bg-surface p-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-start gap-3">
@@ -204,6 +205,9 @@ function ControlPlane({
 }
 
 function RuntimeCapacitySection({ servers }: { servers: RuntimeCapacity[] }) {
+  const runtimes = servers.flatMap((server) =>
+    server.runtimes.map((runtime) => ({ runtime, server })),
+  );
   return (
     <div className="grid gap-3">
       <div>
@@ -217,6 +221,7 @@ function RuntimeCapacitySection({ servers }: { servers: RuntimeCapacity[] }) {
           {servers.map((server) => (
             <ServerCapacityCard key={server.id} server={server} />
           ))}
+          {runtimes.length ? <ManagedRuntimesTable rows={runtimes} /> : null}
         </div>
       ) : (
         <Widget>
@@ -314,79 +319,93 @@ function ServerCapacityCard({ server }: { server: RuntimeCapacity }) {
             <span>Host up {formatDuration(server.uptimeSeconds)}</span>
           ) : null}
         </div>
-        {server.runtimes.length ? (
-          <details className="group rounded-2xl border border-separator">
-            <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-              <span className="inline-flex items-center gap-2">
-                Runtime details
-                <span
-                  aria-hidden="true"
-                  className="text-muted transition-transform group-open:rotate-90"
-                >
-                  ›
-                </span>
-              </span>
-            </summary>
-            <div className="border-t border-separator">
-              <Table>
-                <Table.ScrollContainer>
-                  <Table.Content
-                    aria-label={`Runtime capacity on ${server.ip}`}
+      </Widget.Content>
+    </Widget>
+  );
+}
+
+function ManagedRuntimesTable({
+  rows,
+}: {
+  rows: Array<{
+    runtime: RuntimeCapacity["runtimes"][number];
+    server: RuntimeCapacity;
+  }>;
+}) {
+  return (
+    <Widget>
+      <Widget.Header>
+        <div className="grid gap-1">
+          <Widget.Title>Managed runtimes</Widget.Title>
+          <p className="text-xs text-muted">
+            Current container health and usage from the latest server checks.
+          </p>
+        </div>
+        <Chip variant="secondary">{rows.length}</Chip>
+      </Widget.Header>
+      <Widget.Content className="p-0">
+        <Table>
+          <Table.ScrollContainer>
+            <Table.Content aria-label="Managed runtime capacity">
+              <Table.Header>
+                <Table.Column isRowHeader>Runtime</Table.Column>
+                <Table.Column>Server</Table.Column>
+                <Table.Column>Health</Table.Column>
+                <Table.Column className="text-right">CPU</Table.Column>
+                <Table.Column className="text-right">Memory</Table.Column>
+                <Table.Column className="text-right">Restarts</Table.Column>
+                <Table.Column>Started</Table.Column>
+              </Table.Header>
+              <Table.Body>
+                {rows.map(({ runtime, server }) => (
+                  <Table.Row
+                    id={`${server.id}:${runtime.id}`}
+                    key={`${server.id}:${runtime.id}`}
                   >
-                    <Table.Header>
-                      <Table.Column isRowHeader>Runtime</Table.Column>
-                      <Table.Column>Health</Table.Column>
-                      <Table.Column>CPU</Table.Column>
-                      <Table.Column>Memory</Table.Column>
-                      <Table.Column>Restarts</Table.Column>
-                      <Table.Column>Started</Table.Column>
-                    </Table.Header>
-                    <Table.Body>
-                      {server.runtimes.map((runtime) => (
-                        <Table.Row id={runtime.id} key={runtime.id}>
-                          <Table.Cell>
-                            <div className="grid min-w-44 gap-0.5">
-                              <span className="font-medium">
-                                {runtime.name}
-                              </span>
-                              <span className="text-xs capitalize text-muted">
-                                {runtime.kind}
-                              </span>
-                            </div>
-                          </Table.Cell>
-                          <Table.Cell>
-                            <StatusBadge status={runtime.healthStatus} />
-                          </Table.Cell>
-                          <Table.Cell className="tabular-nums">
-                            {runtime.cpuPercent === null
-                              ? "—"
-                              : `${runtime.cpuPercent.toFixed(1)}%`}
-                          </Table.Cell>
-                          <Table.Cell className="whitespace-nowrap tabular-nums">
-                            {runtime.memoryUsageBytes === null
-                              ? "—"
-                              : formatRuntimeMemory(
-                                  runtime.memoryUsageBytes,
-                                  runtime.memoryLimitBytes,
-                                )}
-                          </Table.Cell>
-                          <Table.Cell className="tabular-nums">
-                            {runtime.restartCount ?? "—"}
-                          </Table.Cell>
-                          <Table.Cell className="whitespace-nowrap">
-                            {runtime.startedAt
-                              ? formatDate(runtime.startedAt)
-                              : "—"}
-                          </Table.Cell>
-                        </Table.Row>
-                      ))}
-                    </Table.Body>
-                  </Table.Content>
-                </Table.ScrollContainer>
-              </Table>
-            </div>
-          </details>
-        ) : null}
+                    <Table.Cell>
+                      <div className="grid min-w-44 gap-0.5">
+                        <span className="font-medium">{runtime.name}</span>
+                        <span className="text-xs capitalize text-muted">
+                          {runtime.kind}
+                        </span>
+                      </div>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Link
+                        className="whitespace-nowrap underline-offset-4 hover:underline"
+                        href={`/sources/${server.sourceId}/servers/${server.id}`}
+                      >
+                        {server.ip}
+                      </Link>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <StatusBadge status={runtime.healthStatus} />
+                    </Table.Cell>
+                    <Table.Cell className="text-right tabular-nums">
+                      {runtime.cpuPercent === null
+                        ? "—"
+                        : `${runtime.cpuPercent.toFixed(1)}%`}
+                    </Table.Cell>
+                    <Table.Cell className="whitespace-nowrap text-right tabular-nums">
+                      {runtime.memoryUsageBytes === null
+                        ? "—"
+                        : formatRuntimeMemory(
+                            runtime.memoryUsageBytes,
+                            runtime.memoryLimitBytes,
+                          )}
+                    </Table.Cell>
+                    <Table.Cell className="text-right tabular-nums">
+                      {runtime.restartCount ?? "—"}
+                    </Table.Cell>
+                    <Table.Cell className="whitespace-nowrap">
+                      {runtime.startedAt ? formatDate(runtime.startedAt) : "—"}
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table.Content>
+          </Table.ScrollContainer>
+        </Table>
       </Widget.Content>
     </Widget>
   );
@@ -463,4 +482,33 @@ function formatDuration(seconds: number) {
 
 function shortVersion(version: string) {
   return /^[a-f0-9]{40}$/u.test(version) ? version.slice(0, 12) : version;
+}
+
+function healthSummaryDescription(input: {
+  issues: number;
+  runtimeIssues: number;
+  status: SystemHealthStatus;
+}) {
+  if (input.status === "healthy") {
+    return "The control plane is connected and current server checks show capacity headroom.";
+  }
+  if (input.status === "unknown") {
+    return "Run checks to establish a current control-plane and server baseline.";
+  }
+  const parts = [];
+  if (input.issues) {
+    parts.push(
+      `${input.issues} control-plane ${input.issues === 1 ? "check needs" : "checks need"} review`,
+    );
+  } else {
+    parts.push("The control plane is healthy");
+  }
+  if (input.runtimeIssues) {
+    parts.push(
+      `${input.runtimeIssues} ${input.runtimeIssues === 1 ? "server shows" : "servers show"} capacity pressure`,
+    );
+  } else {
+    parts.push("runtime capacity is healthy");
+  }
+  return `${parts.join("; ")}.`;
 }
