@@ -2,7 +2,6 @@
 
 import {
   CodeIcon,
-  DatabaseBackupIcon,
   DatabaseIcon,
   FileViewIcon,
   Key01Icon,
@@ -30,7 +29,7 @@ import { useResponsiveTabsOrientation } from "@/hooks/use-responsive-tabs-orient
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 import { DeploymentTable, formatDeploymentTrigger } from "./deployment-table";
-import { ResourceBackups } from "./resource-backups";
+import { ResourceBackupConfiguration } from "./resource-backup-configuration";
 import { ResourceSecrets } from "./app-secrets";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 import { DeployableActionsMenu, RuntimeLogs } from "./runtime-operations";
@@ -206,21 +205,6 @@ export function ResourceDetail() {
         />
       ),
     },
-    ...(item.kind === "image"
-      ? []
-      : [
-          {
-            value: "backups",
-            label: "Backups",
-            icon: <HugeiconsIcon icon={DatabaseBackupIcon} />,
-            content: (
-              <ResourceBackups
-                active={!item.archivedAt && item.serverReady}
-                resource={item}
-              />
-            ),
-          },
-        ]),
     {
       value: "secrets",
       label: "Secrets",
@@ -382,6 +366,20 @@ function ResourceConfigurationTabs({ item }: { item: ResourceRecord }) {
           },
         ]
       : []),
+    ...(item.kind === "image"
+      ? []
+      : [
+          {
+            value: "backups",
+            label: "Backups",
+            content: (
+              <ResourceBackupConfiguration
+                active={!item.archivedAt && item.serverReady}
+                resource={item}
+              />
+            ),
+          },
+        ]),
     {
       value: "delivery",
       label: "Delivery",
