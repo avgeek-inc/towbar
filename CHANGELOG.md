@@ -5,24 +5,40 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-28
+
 ### Added
 
 - Opt-in pull request Preview deployments with stable PR-scoped URLs,
   isolated secrets, GitHub Deployment statuses, bounded lower-priority builds,
   Source-sync recovery, and automatic cleanup after merge, closure,
   retargeting, expiry, disablement, or an owner request.
+- Existing GitHub App installations must approve the new read-only Pull
+  requests permission and Pull request webhook before enabling Previews.
+- Actionable control-plane health checks plus host and container CPU, memory,
+  disk, uptime, restart, and runtime-capacity signals.
+- Confirmed SSH host-key revocation while preserving the server's trust
+  history.
 
 ### Changed
 
 - Removed manifest-level deployment dependencies. Eligible automatic
   deployments now queue independently, while operators who need ordering can
   disable automatic deployment and admit downstream deployables manually.
+  Manifests must remove any existing `dependsOn` declarations before syncing.
+- Shared Source secrets now live under Settings, managed backup policy lives
+  under Resource Configuration, and App/Resource/Server inventories surface
+  compact operational metrics without redundant status columns.
+- Automatic maintenance checks wait behind deployment work, and completed
+  server-check history is bounded while active checks remain addressable.
 
 ### Fixed
 
 - Application containers now retain their loopback host port across Docker
   restarts, preventing Caddy from keeping an obsolete upstream after an OOM or
   runtime restart.
+- Restored the managed Towbar lockup and favicon, kept Docker builds valid when
+  no local public assets exist, and aligned the application sidebar spacing.
 
 ## [1.0.2] - 2026-08-25
 
@@ -65,7 +81,8 @@ All notable changes to Towbar are documented in this file. This project follows
 - Source-scoped AWS Secrets Manager integration and environment editors.
 - A same-domain owner setup, authentication, and operations dashboard.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/avgeek-inc/towbar/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/avgeek-inc/towbar/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/avgeek-inc/towbar/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/avgeek-inc/towbar/tree/v1.0.0
