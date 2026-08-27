@@ -9,7 +9,6 @@ import {
   Key01Icon,
   Rocket01Icon,
   ServerStack01Icon,
-  Settings01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
@@ -256,38 +255,6 @@ export function ResourceDetail() {
       label: "Configuration",
       icon: <HugeiconsIcon icon={CodeIcon} />,
       content: <ResourceConfigurationTabs item={item} />,
-    },
-    {
-      value: "settings",
-      label: "Settings",
-      icon: <HugeiconsIcon icon={Settings01Icon} />,
-      content: (
-        <Attributes columns={3} title="Resource details" variant="card">
-          <Attributes.Item label="Lifecycle">
-            <StatusBadge status={lifecycleStatus} />
-          </Attributes.Item>
-          <Attributes.Item label="Resource type">
-            {formatResourceKind(item.kind)}
-          </Attributes.Item>
-          <Attributes.Item label="Manifest ID">
-            <TypographyCode>{item.manifestId}</TypographyCode>
-          </Attributes.Item>
-          <Attributes.Item label="Resource ID">
-            <TypographyCode className="break-all">{item.id}</TypographyCode>
-          </Attributes.Item>
-          <Attributes.Item label="Source revision">
-            <TypographyCode title={item.sourceRevision}>
-              {item.sourceRevision.slice(0, 12)}
-            </TypographyCode>
-          </Attributes.Item>
-          <Attributes.Item label="Last updated">
-            {formatDate(item.updatedAt)}
-          </Attributes.Item>
-          <Attributes.Item label="Archived">
-            {item.archivedAt ? formatDate(item.archivedAt) : "No"}
-          </Attributes.Item>
-        </Attributes>
-      ),
     },
   ];
 

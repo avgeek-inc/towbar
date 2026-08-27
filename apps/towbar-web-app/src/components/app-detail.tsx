@@ -9,7 +9,6 @@ import {
   Key01Icon,
   Rocket01Icon,
   ServerStack01Icon,
-  Settings01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
@@ -307,35 +306,6 @@ export function AppDetail() {
             label: "Configuration",
             icon: <HugeiconsIcon icon={CodeIcon} />,
             content: <AppConfigurationTabs item={item} />,
-          },
-          {
-            value: "settings",
-            label: "Settings",
-            icon: <HugeiconsIcon icon={Settings01Icon} />,
-            content: (
-              <Attributes columns={3} title="App details" variant="card">
-                <Attributes.Item label="Lifecycle">
-                  <StatusBadge status={lifecycleStatus} />
-                </Attributes.Item>
-                <Attributes.Item label="Manifest ID">
-                  <TypographyCode>{item.manifestId}</TypographyCode>
-                </Attributes.Item>
-                <Attributes.Item label="App ID">
-                  <TypographyCode>{item.id}</TypographyCode>
-                </Attributes.Item>
-                <Attributes.Item label="Source revision">
-                  <TypographyCode title={item.sourceRevision}>
-                    {item.sourceRevision.slice(0, 12)}
-                  </TypographyCode>
-                </Attributes.Item>
-                <Attributes.Item label="Last updated">
-                  {formatDate(item.updatedAt)}
-                </Attributes.Item>
-                <Attributes.Item label="Archived">
-                  {item.archivedAt ? formatDate(item.archivedAt) : "No"}
-                </Attributes.Item>
-              </Attributes>
-            ),
           },
         ]}
       />
