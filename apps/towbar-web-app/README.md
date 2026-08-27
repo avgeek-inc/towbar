@@ -18,22 +18,27 @@ Their configuration and lifecycle are read-only projections of the Source
 manifest; removal and restoration happen through Git and Source sync.
 The App and Resource Secrets tabs show only deployable-owned bindings. Resources
 expose deployment bindings only. Root-shared build and deployment bindings are
-edited from the owning Source's Secrets tab. The owner can add, replace, or delete
-values, then optionally queue the affected deployable. Values are fetched only
-through an explicit owner-only reveal request; the UI cannot change a manifest
-reference.
+edited from the owning Source's Settings tab. The owner can add, replace, or
+delete values, then optionally queue the affected deployable. Values are fetched
+only through an explicit owner-only reveal request; the UI cannot change a
+manifest reference.
 Apps with Preview enabled expose pull request environments, stable URLs,
-expiry, latest deployment status, and an owner cleanup action. The owning
-Source also shows all active Preview environments. Preview build and deployment
-secret bindings are edited independently from production bindings.
+expiry, latest deployment status, and an owner cleanup action from the App
+page. Preview build and deployment secret bindings are edited independently
+from production bindings.
 Database Resource pages expose verified backup policy, manual capture, and
 retained S3 artifact metadata. When configured by the manifest, the Resource
 connection view exposes non-secret private-network and SSH-tunnel coordinates
 for tools such as TablePlus. Database restores remain a manual operator task.
-Server pages list only Source-scoped orphan candidates from the latest check;
-owner-confirmed cleanup is destructive and persistent volumes are never
-removed automatically. Trusted SSH host keys can be explicitly untrusted from
-the Server's Host Keys tab after confirmation.
+Server pages show host capacity on Overview and container capacity in an
+Apps/Resources tab. Host CPU, memory, Docker disk pressure, and uptime are shown
+separately from the runtime inventory, whose CPU and memory values include
+compact usage meters. The owning Source repeats those meters in its Apps and
+Resources inventories without a separate sync-status column. Server pages also
+list only Source-scoped orphan candidates from the latest check; owner-confirmed
+cleanup is destructive and persistent volumes are never removed automatically.
+Trusted SSH host keys can be explicitly untrusted from the Server's Host Keys
+tab after confirmation.
 
 ## Local UI fixture
 

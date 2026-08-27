@@ -59,13 +59,18 @@ export const orphanItemSchema = z
 export type OrphanItem = z.infer<typeof orphanItemSchema>;
 
 export type RuntimeInspection = {
+  cpuPercent: number | null;
   deployableId: string;
   driftReasons: string[];
   driftStatus: RuntimeDriftState;
   healthStatus: RuntimeHealthState;
+  memoryLimitBytes: number | null;
+  memoryUsageBytes: number | null;
   observedContainerName: string | null;
   observedImage: string | null;
   observedState: RuntimeObservedState;
+  restartCount: number | null;
+  startedAt: string | null;
 };
 
 export type ResourceReleaseSnapshot = {

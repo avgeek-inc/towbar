@@ -2,6 +2,7 @@
 
 import {
   Activity01Icon,
+  DashboardCircleIcon,
   Delete02Icon,
   Key01Icon,
   ServerStack01Icon,
@@ -12,6 +13,7 @@ import { useEffect } from "react";
 import type {
   OrphanItem,
   ResourceOperation,
+  RuntimeCapacity,
   Server,
   ServerCheck,
   ServerChecksPage,
@@ -38,6 +40,10 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { reconcileServerSetupStatus } from "@/lib/server-preparation-status";
 import { formatDate } from "./dashboard-overview";
+import {
+  ServerHostCapacity,
+  ServerRuntimeCapacityTable,
+} from "./server-capacity";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 
 type DiscoveredKey = {
@@ -73,6 +79,10 @@ export function ServerDetail() {
     `/v1/core/servers/${serverId}/checks?page=1&limit=${SERVER_CHECK_PAGE_SIZE}`,
     5_000,
   );
+  const capacity = useApiQuery<{ capacity: RuntimeCapacity }>(
+    `/v1/core/servers/${serverId}/capacity`,
+    5_000,
+  );
   const keys = useApiQuery<{ hostKeys: TrustedHostKey[] }>(
     `/v1/core/servers/${serverId}/host-keys`,
   );
@@ -97,6 +107,7 @@ export function ServerDetail() {
   const error =
     server.error ??
     checks.error ??
+    capacity.error ??
     keys.error ??
     preparations.error ??
     orphans.error;
@@ -109,6 +120,7 @@ export function ServerDetail() {
   if (
     !server.data ||
     !checks.data ||
+    !capacity.data ||
     !keys.data ||
     !preparations.data ||
     !orphans.data
@@ -313,10 +325,10 @@ export function ServerDetail() {
       breadcrumbAncestors={breadcrumbAncestors}
       title={item.canonicalIp}
       titleContent={
-        <span className="inline-flex min-w-0 items-center gap-3">
+        <span className="inline-flex min-w-0 items-center gap-2">
           <HugeiconsIcon
             aria-hidden="true"
-            className="size-8 shrink-0"
+            className="size-6 shrink-0"
             icon={ServerStack01Icon}
           />
           <span className="truncate" title={item.canonicalIp}>
@@ -326,19 +338,6 @@ export function ServerDetail() {
       }
     >
       <div className="grid gap-6">
-        {discovered.length ? (
-          <Alert status="warning">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>Untrusted SSH host key</Alert.Title>
-              <Alert.Description>
-                Towbar stopped before login. Verify the discovered fingerprint
-                independently, then trust at least one matching key from the
-                Host Keys tab.
-              </Alert.Description>
-            </Alert.Content>
-          </Alert>
-        ) : null}
         <PageTabs
           defaultValue="overview"
           tabs={[
@@ -355,6 +354,7 @@ export function ServerDetail() {
                     serverId={serverId}
                     setupStatus={setupStatus}
                   />
+                  <ServerHostCapacity capacity={capacity.data.capacity} />
                   <div className="grid gap-8 lg:grid-cols-2">
                     <Attributes columns={2} title="Connection" variant="card">
                       <Attributes.Item label="IP address">
@@ -414,6 +414,14 @@ export function ServerDetail() {
                     </Attributes>
                   </div>
                 </div>
+              ),
+            },
+            {
+              value: "apps-resources",
+              label: "Apps/Resources",
+              icon: <HugeiconsIcon icon={DashboardCircleIcon} />,
+              content: (
+                <ServerRuntimeCapacityTable capacity={capacity.data.capacity} />
               ),
             },
             {
@@ -601,19 +609,6 @@ function ServerPreparationPanel({
 
   return (
     <div className="grid gap-4">
-      {!ready ? (
-        <Alert status="default">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>Use a fresh, dedicated Ubuntu server</Alert.Title>
-            <Alert.Description>
-              Towbar can reuse compatible Docker and Caddy installations, but it
-              will stop safely when existing packages or configuration conflict.
-              Clean up the reported conflict before trying again.
-            </Alert.Description>
-          </Alert.Content>
-        </Alert>
-      ) : null}
       {latestPreparation?.status === "failed" &&
       latestPreparation.errorMessage ? (
         <Alert status="danger">

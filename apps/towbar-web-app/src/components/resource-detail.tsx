@@ -1,15 +1,12 @@
 "use client";
 
 import {
-  Activity01Icon,
   CodeIcon,
-  DatabaseBackupIcon,
   DatabaseIcon,
   FileViewIcon,
   Key01Icon,
   Rocket01Icon,
   ServerStack01Icon,
-  Settings01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
@@ -32,14 +29,10 @@ import { useResponsiveTabsOrientation } from "@/hooks/use-responsive-tabs-orient
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 import { DeploymentTable, formatDeploymentTrigger } from "./deployment-table";
-import { ResourceBackups } from "./resource-backups";
+import { ResourceBackupConfiguration } from "./resource-backup-configuration";
 import { ResourceSecrets } from "./app-secrets";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
-import {
-  DeployableActionsMenu,
-  RuntimeLogs,
-  RuntimeOverview,
-} from "./runtime-operations";
+import { DeployableActionsMenu, RuntimeLogs } from "./runtime-operations";
 
 type ResourceRecord = Resource & {
   serverId: string;
@@ -133,6 +126,9 @@ export function ResourceDetail() {
             <Attributes.Item label="Running state">
               <StatusBadge status={item.runtimeState.observedState} />
             </Attributes.Item>
+            <Attributes.Item label="Configuration">
+              <StatusBadge status={item.runtimeState.driftStatus} />
+            </Attributes.Item>
             <Attributes.Item label="Server setup">
               <StatusBadge status={item.serverReady ? "ready" : "pending"} />
             </Attributes.Item>
@@ -198,21 +194,6 @@ export function ResourceDetail() {
       ),
     },
     {
-      value: "runtime",
-      label: "Runtime",
-      icon: <HugeiconsIcon icon={Activity01Icon} />,
-      indicator: !item.serverReady
-        ? ({ dot: true, label: "Setup pending", variant: "warning" } as const)
-        : item.runtimeState.healthStatus === "unhealthy"
-          ? ({ label: "Unhealthy", variant: "destructive" } as const)
-          : item.runtimeState.driftStatus === "drifted"
-            ? ({ dot: true, label: "Drifted", variant: "warning" } as const)
-            : undefined,
-      content: (
-        <RuntimeOverview runtimeState={item.runtimeState} type="resource" />
-      ),
-    },
-    {
       value: "logs",
       label: "Logs",
       icon: <HugeiconsIcon icon={FileViewIcon} />,
@@ -224,21 +205,6 @@ export function ResourceDetail() {
         />
       ),
     },
-    ...(item.kind === "image"
-      ? []
-      : [
-          {
-            value: "backups",
-            label: "Backups",
-            icon: <HugeiconsIcon icon={DatabaseBackupIcon} />,
-            content: (
-              <ResourceBackups
-                active={!item.archivedAt && item.serverReady}
-                resource={item}
-              />
-            ),
-          },
-        ]),
     {
       value: "secrets",
       label: "Secrets",
@@ -256,38 +222,6 @@ export function ResourceDetail() {
       label: "Configuration",
       icon: <HugeiconsIcon icon={CodeIcon} />,
       content: <ResourceConfigurationTabs item={item} />,
-    },
-    {
-      value: "settings",
-      label: "Settings",
-      icon: <HugeiconsIcon icon={Settings01Icon} />,
-      content: (
-        <Attributes columns={3} title="Resource details" variant="card">
-          <Attributes.Item label="Lifecycle">
-            <StatusBadge status={lifecycleStatus} />
-          </Attributes.Item>
-          <Attributes.Item label="Resource type">
-            {formatResourceKind(item.kind)}
-          </Attributes.Item>
-          <Attributes.Item label="Manifest ID">
-            <TypographyCode>{item.manifestId}</TypographyCode>
-          </Attributes.Item>
-          <Attributes.Item label="Resource ID">
-            <TypographyCode className="break-all">{item.id}</TypographyCode>
-          </Attributes.Item>
-          <Attributes.Item label="Source revision">
-            <TypographyCode title={item.sourceRevision}>
-              {item.sourceRevision.slice(0, 12)}
-            </TypographyCode>
-          </Attributes.Item>
-          <Attributes.Item label="Last updated">
-            {formatDate(item.updatedAt)}
-          </Attributes.Item>
-          <Attributes.Item label="Archived">
-            {item.archivedAt ? formatDate(item.archivedAt) : "No"}
-          </Attributes.Item>
-        </Attributes>
-      ),
     },
   ];
 
@@ -339,10 +273,10 @@ export function ResourceDetail() {
       breadcrumbAncestors={breadcrumbAncestors}
       title={item.name}
       titleContent={
-        <span className="inline-flex min-w-0 items-center gap-3">
+        <span className="inline-flex min-w-0 items-center gap-2">
           <HugeiconsIcon
             aria-hidden="true"
-            className="size-8 shrink-0"
+            className="size-6 shrink-0"
             icon={DatabaseIcon}
           />
           <span className="truncate" title={item.name}>
@@ -432,6 +366,20 @@ function ResourceConfigurationTabs({ item }: { item: ResourceRecord }) {
           },
         ]
       : []),
+    ...(item.kind === "image"
+      ? []
+      : [
+          {
+            value: "backups",
+            label: "Backups",
+            content: (
+              <ResourceBackupConfiguration
+                active={!item.archivedAt && item.serverReady}
+                resource={item}
+              />
+            ),
+          },
+        ]),
     {
       value: "delivery",
       label: "Delivery",

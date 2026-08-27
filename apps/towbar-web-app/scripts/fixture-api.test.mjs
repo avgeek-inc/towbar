@@ -16,12 +16,14 @@ const readRoutes = [
   "/v1/core/resources",
   "/v1/core/servers",
   "/v1/core/deployments",
+  "/v1/core/system-health",
   `/v1/core/sources/${fixtureIds.source}`,
   `/v1/core/sources/${fixtureIds.source}/manifest`,
   `/v1/core/sources/${fixtureIds.source}/syncs`,
   `/v1/core/sources/${fixtureIds.source}/aws`,
   `/v1/core/sources/${fixtureIds.source}/secrets`,
   `/v1/core/sources/${fixtureIds.source}/apps`,
+  `/v1/core/sources/${fixtureIds.source}/capacity`,
   `/v1/core/sources/${fixtureIds.source}/resources`,
   `/v1/core/sources/${fixtureIds.source}/servers`,
   `/v1/core/sources/${fixtureIds.source}/deployments`,
@@ -41,6 +43,7 @@ const readRoutes = [
   `/v1/core/servers/${fixtureIds.server}/apps`,
   `/v1/core/servers/${fixtureIds.server}/resources`,
   `/v1/core/servers/${fixtureIds.server}/deployments`,
+  `/v1/core/servers/${fixtureIds.server}/capacity`,
   `/v1/core/servers/${fixtureIds.server}/checks`,
   `/v1/core/servers/${fixtureIds.server}/preparations`,
   `/v1/core/servers/${fixtureIds.server}/host-keys`,
@@ -55,6 +58,51 @@ test("terminal preparation state replaces a stale preparing server state", () =>
   assert.equal(reconcileServerSetupStatus("preparing", "succeeded"), "ready");
   assert.equal(reconcileServerSetupStatus("preparing", "running"), "preparing");
   assert.equal(reconcileServerSetupStatus("pending", "succeeded"), "pending");
+});
+
+test("the local fixture separates control-plane checks from server capacity", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:${address.port}/v1/core/system-health/actions/check`,
+      { method: "POST" },
+    );
+    assert.equal(response.status, 200);
+    const health = await response.json();
+    assert.equal(health.checks.length, 4);
+    assert.equal(
+      health.checks.some((check) => check.id === "aws"),
+      false,
+    );
+    assert.equal("runtimeCapacity" in health, false);
+    const capacityResponse = await fetch(
+      `http://127.0.0.1:${address.port}/v1/core/servers/${fixtureIds.server}/capacity`,
+    );
+    assert.equal(capacityResponse.status, 200);
+    const { capacity } = await capacityResponse.json();
+    assert.equal(capacity.id, fixtureIds.server);
+    assert.equal(capacity.runtimes.length > 0, true);
+    const sourceCapacityResponse = await fetch(
+      `http://127.0.0.1:${address.port}/v1/core/sources/${fixtureIds.source}/capacity`,
+    );
+    assert.equal(sourceCapacityResponse.status, 200);
+    const { capacities } = await sourceCapacityResponse.json();
+    assert.equal(capacities.length, 2);
+    assert.equal(
+      capacities.some((item) =>
+        item.runtimes.some((runtime) => runtime.id === fixtureIds.app),
+      ),
+      true,
+    );
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
 });
 
 test("the local fixture covers every authenticated page read contract", async () => {

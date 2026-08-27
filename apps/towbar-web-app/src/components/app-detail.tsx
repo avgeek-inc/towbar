@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Activity01Icon,
   CodeIcon,
   DashboardCircleIcon,
   FileViewIcon,
@@ -9,7 +8,6 @@ import {
   Key01Icon,
   Rocket01Icon,
   ServerStack01Icon,
-  Settings01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
@@ -31,11 +29,7 @@ import { DeploymentTable } from "./deployment-table";
 import { AppSecrets } from "./app-secrets";
 import { PreviewEnvironments } from "./preview-environments";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
-import {
-  DeployableActionsMenu,
-  RuntimeLogs,
-  RuntimeOverview,
-} from "./runtime-operations";
+import { DeployableActionsMenu, RuntimeLogs } from "./runtime-operations";
 
 type AppRecord = App & {
   serverId: string;
@@ -143,10 +137,10 @@ export function AppDetail() {
       breadcrumbAncestors={breadcrumbAncestors}
       title={item.name}
       titleContent={
-        <span className="inline-flex min-w-0 items-center gap-3">
+        <span className="inline-flex min-w-0 items-center gap-2">
           <HugeiconsIcon
             aria-hidden="true"
-            className="size-8 shrink-0"
+            className="size-6 shrink-0"
             icon={DashboardCircleIcon}
           />
           <span className="truncate" title={item.name}>
@@ -179,6 +173,9 @@ export function AppDetail() {
                   </Attributes.Item>
                   <Attributes.Item label="Running state">
                     <StatusBadge status={item.runtimeState.observedState} />
+                  </Attributes.Item>
+                  <Attributes.Item label="Configuration">
+                    <StatusBadge status={item.runtimeState.driftStatus} />
                   </Attributes.Item>
                   <Attributes.Item label="Server setup">
                     <StatusBadge
@@ -264,21 +261,6 @@ export function AppDetail() {
               ]
             : []),
           {
-            value: "runtime",
-            label: "Runtime",
-            icon: <HugeiconsIcon icon={Activity01Icon} />,
-            indicator: !item.serverReady
-              ? { dot: true, label: "Setup pending", variant: "warning" }
-              : item.runtimeState.healthStatus === "unhealthy"
-                ? { label: "Unhealthy", variant: "destructive" }
-                : item.runtimeState.driftStatus === "drifted"
-                  ? { dot: true, label: "Drifted", variant: "warning" }
-                  : undefined,
-            content: (
-              <RuntimeOverview runtimeState={item.runtimeState} type="app" />
-            ),
-          },
-          {
             value: "logs",
             label: "Logs",
             icon: <HugeiconsIcon icon={FileViewIcon} />,
@@ -307,35 +289,6 @@ export function AppDetail() {
             label: "Configuration",
             icon: <HugeiconsIcon icon={CodeIcon} />,
             content: <AppConfigurationTabs item={item} />,
-          },
-          {
-            value: "settings",
-            label: "Settings",
-            icon: <HugeiconsIcon icon={Settings01Icon} />,
-            content: (
-              <Attributes columns={3} title="App details" variant="card">
-                <Attributes.Item label="Lifecycle">
-                  <StatusBadge status={lifecycleStatus} />
-                </Attributes.Item>
-                <Attributes.Item label="Manifest ID">
-                  <TypographyCode>{item.manifestId}</TypographyCode>
-                </Attributes.Item>
-                <Attributes.Item label="App ID">
-                  <TypographyCode>{item.id}</TypographyCode>
-                </Attributes.Item>
-                <Attributes.Item label="Source revision">
-                  <TypographyCode title={item.sourceRevision}>
-                    {item.sourceRevision.slice(0, 12)}
-                  </TypographyCode>
-                </Attributes.Item>
-                <Attributes.Item label="Last updated">
-                  {formatDate(item.updatedAt)}
-                </Attributes.Item>
-                <Attributes.Item label="Archived">
-                  {item.archivedAt ? formatDate(item.archivedAt) : "No"}
-                </Attributes.Item>
-              </Attributes>
-            ),
           },
         ]}
       />

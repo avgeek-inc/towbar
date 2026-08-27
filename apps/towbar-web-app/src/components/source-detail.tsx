@@ -4,27 +4,26 @@ import {
   DashboardCircleIcon,
   DatabaseIcon,
   GithubIcon,
-  GitBranchIcon,
   InformationSquareIcon,
-  Key01Icon,
   ServerStack01Icon,
   Settings01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { type Key, type ReactNode } from "react";
 import type {
   App,
+  AppSecretsResponse,
   AwsCredentialMetadata,
   Deployment,
   Resource,
+  RuntimeCapacity,
   SourceServer,
   Source,
   SourceSync,
 } from "@workspace/towbar-web-client";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
 import { Pagination } from "@workspace/web-design-system/navigation/pagination";
 import { Tabs } from "@workspace/web-design-system/navigation/tabs";
@@ -50,9 +49,8 @@ import { useResponsiveTabsOrientation } from "@/hooks/use-responsive-tabs-orient
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 import { SourceAwsCredentials } from "./source-aws-credentials";
-import { SourceSecrets } from "./app-secrets";
+import { SourceSecretStageEditor } from "./app-secrets";
 import { SourceApps, SourceResources, SourceServers } from "./source-inventory";
-import { PreviewEnvironments } from "./preview-environments";
 
 type ManifestResponse = {
   manifest: {
@@ -68,6 +66,7 @@ const SOURCE_SYNC_PAGE_SIZE = 10;
 export function SourceDetail() {
   const { sourceId } = useParams<{ sourceId: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const source = useApiQuery<{
     canManageSource: boolean;
     source: Source;
@@ -93,6 +92,10 @@ export function SourceDetail() {
   );
   const deployments = useApiQuery<{ deployments: Deployment[] }>(
     `/v1/core/sources/${sourceId}/deployments`,
+    5_000,
+  );
+  const capacity = useApiQuery<{ capacities: RuntimeCapacity[] }>(
+    `/v1/core/sources/${sourceId}/capacity`,
     5_000,
   );
   const aws = useApiQuery<{ credential: AwsCredentialMetadata | null }>(
@@ -193,10 +196,10 @@ export function SourceDetail() {
       }
       title={item.repositoryName}
       titleContent={
-        <span className="inline-flex min-w-0 items-center gap-3">
+        <span className="inline-flex min-w-0 items-center gap-2">
           <HugeiconsIcon
             aria-hidden="true"
-            className="size-8 shrink-0"
+            className="size-6 shrink-0"
             icon={GithubIcon}
           />
           <span className="truncate" title={item.repositoryName}>
@@ -205,23 +208,6 @@ export function SourceDetail() {
         </span>
       }
     >
-      {untrustedServers.length ? (
-        <Alert status="warning">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>
-              {untrustedServers.length === 1
-                ? "A server has untrusted host keys"
-                : `${untrustedServers.length} servers have untrusted host keys`}
-            </Alert.Title>
-            <Alert.Description>
-              Towbar stops before login on affected servers. Run a server check,
-              verify each fingerprint independently, then trust matching keys
-              from each server&apos;s Host Keys tab.
-            </Alert.Description>
-          </Alert.Content>
-        </Alert>
-      ) : null}
       <PageTabs
         defaultValue="apps"
         tabs={[
@@ -235,8 +221,9 @@ export function SourceDetail() {
             content: (
               <SourceApps
                 apps={apps.data?.apps}
+                capacities={capacity.data?.capacities}
                 deployments={deployments.data?.deployments}
-                error={apps.error ?? deployments.error}
+                error={apps.error ?? capacity.error ?? deployments.error}
                 sourceId={sourceId}
               />
             ),
@@ -253,8 +240,9 @@ export function SourceDetail() {
               : undefined,
             content: (
               <SourceResources
+                capacities={capacity.data?.capacities}
                 deployments={deployments.data?.deployments}
-                error={resources.error ?? deployments.error}
+                error={resources.error ?? capacity.error ?? deployments.error}
                 resources={resources.data?.resources}
                 sourceId={sourceId}
               />
@@ -266,37 +254,21 @@ export function SourceDetail() {
             icon: <HugeiconsIcon icon={ServerStack01Icon} />,
             indicator: servers.data
               ? {
+                  ariaLabel: untrustedServers.length
+                    ? `${servers.data.servers.length} total; ${untrustedServers.length} ${untrustedServers.length === 1 ? "server has" : "servers have"} untrusted host keys`
+                    : `${servers.data.servers.length} total`,
                   label: String(servers.data.servers.length),
-                  variant: "secondary",
+                  variant: untrustedServers.length ? "warning" : "secondary",
                 }
               : undefined,
             content: (
               <SourceServers
-                apps={apps.data?.apps}
-                deployments={deployments.data?.deployments}
-                error={
-                  servers.error ??
-                  apps.error ??
-                  resources.error ??
-                  deployments.error
-                }
-                resources={resources.data?.resources}
+                capacities={capacity.data?.capacities}
+                error={servers.error ?? capacity.error}
                 servers={servers.data?.servers}
                 sourceId={sourceId}
               />
             ),
-          },
-          {
-            value: "previews",
-            label: "Previews",
-            icon: <HugeiconsIcon icon={GitBranchIcon} />,
-            content: <PreviewEnvironments sourceId={sourceId} />,
-          },
-          {
-            value: "secrets",
-            label: "Secrets",
-            icon: <HugeiconsIcon icon={Key01Icon} />,
-            content: <SourceSecrets sourceId={sourceId} />,
           },
           {
             value: "info",
@@ -356,6 +328,7 @@ export function SourceDetail() {
                 awsData={aws.data}
                 awsError={aws.error}
                 canManage={source.data.canManageSource}
+                isActive={searchParams.get("section") === "settings"}
                 onDelete={() => router.push("/sources")}
                 refreshAws={aws.refresh}
                 sourceId={sourceId}
@@ -372,6 +345,7 @@ function SourceSettings({
   awsData,
   awsError,
   canManage,
+  isActive,
   onDelete,
   refreshAws,
   sourceId,
@@ -379,10 +353,20 @@ function SourceSettings({
   awsData?: { credential: AwsCredentialMetadata | null };
   awsError?: string;
   canManage: boolean;
+  isActive: boolean;
   onDelete: () => void;
   refreshAws: () => void;
   sourceId: string;
 }) {
+  const hasAwsCredentials = Boolean(awsData?.credential);
+  const secrets = useApiQuery<AppSecretsResponse>(
+    isActive && hasAwsCredentials
+      ? `/v1/core/sources/${sourceId}/secrets`
+      : null,
+  );
+  const secretsDisabledReason =
+    "Add AWS credentials before editing shared secrets";
+
   return (
     <SourceSubtabs
       ariaLabel="Source settings"
@@ -398,6 +382,32 @@ function SourceSettings({
               sourceId={sourceId}
             />
           ),
+        },
+        {
+          value: "build-secrets",
+          label: "Build Secrets",
+          isDisabled: !hasAwsCredentials,
+          disabledReason: secretsDisabledReason,
+          content: hasAwsCredentials ? (
+            <SourceSecretStageEditor
+              query={secrets}
+              sourceId={sourceId}
+              stage="build"
+            />
+          ) : null,
+        },
+        {
+          value: "deployment-secrets",
+          label: "Deployment Secrets",
+          isDisabled: !hasAwsCredentials,
+          disabledReason: secretsDisabledReason,
+          content: hasAwsCredentials ? (
+            <SourceSecretStageEditor
+              query={secrets}
+              sourceId={sourceId}
+              stage="deployment"
+            />
+          ) : null,
         },
         ...(canManage
           ? [
@@ -493,7 +503,13 @@ function SourceSubtabs({
   defaultSelectedKey: string;
   onSelectionChange?: (key: Key) => void;
   selectedKey?: string;
-  tabs: Array<{ content: ReactNode; label: string; value: string }>;
+  tabs: Array<{
+    content: ReactNode;
+    disabledReason?: string;
+    isDisabled?: boolean;
+    label: string;
+    value: string;
+  }>;
 }) {
   const orientation = useResponsiveTabsOrientation();
 
@@ -510,13 +526,21 @@ function SourceSubtabs({
           <Tabs.List aria-label={ariaLabel} className="w-full">
             {tabs.map((tab) => (
               <Tabs.Tab
+                aria-label={
+                  tab.isDisabled && tab.disabledReason
+                    ? `${tab.label}. ${tab.disabledReason}`
+                    : undefined
+                }
                 className={
                   orientation === "vertical" ? "justify-start" : undefined
                 }
                 id={tab.value}
+                isDisabled={tab.isDisabled}
                 key={tab.value}
               >
-                {tab.label}
+                <span title={tab.isDisabled ? tab.disabledReason : undefined}>
+                  {tab.label}
+                </span>
                 <Tabs.Indicator />
               </Tabs.Tab>
             ))}

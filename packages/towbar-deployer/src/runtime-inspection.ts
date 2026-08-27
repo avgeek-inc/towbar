@@ -14,6 +14,7 @@ const inspectionSchema = z
     runtime: z.array(
       z
         .object({
+          cpuPercent: z.number().nonnegative().nullable(),
           deployableId: z.string().uuid(),
           driftReasons: z.array(z.string()),
           driftStatus: z.enum(["drifted", "in_sync", "unknown"]),
@@ -24,9 +25,13 @@ const inspectionSchema = z
             "unhealthy",
             "unknown",
           ]),
+          memoryLimitBytes: z.number().int().nonnegative().nullable(),
+          memoryUsageBytes: z.number().int().nonnegative().nullable(),
           observedContainerName: z.string().nullable(),
           observedImage: z.string().nullable(),
           observedState: z.enum(["missing", "running", "stopped", "unknown"]),
+          restartCount: z.number().int().nonnegative().nullable(),
+          startedAt: z.string().datetime().nullable(),
         })
         .strict(),
     ),
@@ -42,6 +47,7 @@ import json
 import subprocess
 import sys
 import urllib.request
+import re
 
 source_id = sys.argv[1]
 expected = json.loads(sys.argv[2])
@@ -55,6 +61,72 @@ def inspect(kind, name):
         return None
     value = json.loads(result.stdout)
     return value[0] if value else None
+
+def parse_bytes(value):
+    match = re.fullmatch(r"\s*([0-9.]+)\s*([KMGTPE]?i?B)\s*", value or "", re.IGNORECASE)
+    if not match:
+        return None
+    amount = float(match.group(1))
+    unit = match.group(2).lower()
+    powers = {"b": 0, "kb": 1, "kib": 1, "mb": 2, "mib": 2, "gb": 3, "gib": 3, "tb": 4, "tib": 4, "pb": 5, "pib": 5, "eb": 6, "eib": 6}
+    base = 1024 if "i" in unit else 1000
+    return int(amount * (base ** powers[unit]))
+
+def collect_runtime_stats():
+    container_names = {
+        item["release"]["containerName"]
+        for item in expected["deployables"]
+        if item.get("release")
+    }
+    if not container_names:
+        return {}
+    # Query running containers once, then retain only expected release names.
+    # Supplying a missing expected name makes Docker fail the whole stats call
+    # and would otherwise hide metrics for every healthy container.
+    result = command("docker", "stats", "--no-stream", "--format", "{{json .}}")
+    if result.returncode != 0:
+        return {}
+    stats_by_name = {}
+    for line in result.stdout.splitlines():
+        try:
+            stats = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        name = stats.get("Name") or stats.get("Container")
+        if name in container_names:
+            stats_by_name[name] = stats
+    return stats_by_name
+
+def runtime_metrics(container_name, container, stats_by_name):
+    started_at = (container.get("State") or {}).get("StartedAt")
+    if not started_at or started_at.startswith("0001-"):
+        started_at = None
+    stats = stats_by_name.get(container_name)
+    if not stats:
+        return {
+            "cpuPercent": None,
+            "memoryLimitBytes": None,
+            "memoryUsageBytes": None,
+            "restartCount": int(container.get("RestartCount") or 0),
+            "startedAt": started_at,
+        }
+    try:
+        memory_usage, _, memory_limit = (stats.get("MemUsage") or "").partition("/")
+        return {
+            "cpuPercent": float((stats.get("CPUPerc") or "").strip().rstrip("%")),
+            "memoryLimitBytes": parse_bytes(memory_limit),
+            "memoryUsageBytes": parse_bytes(memory_usage),
+            "restartCount": int(container.get("RestartCount") or 0),
+            "startedAt": started_at,
+        }
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return {
+            "cpuPercent": None,
+            "memoryLimitBytes": None,
+            "memoryUsageBytes": None,
+            "restartCount": int(container.get("RestartCount") or 0),
+            "startedAt": started_at,
+        }
 
 def evaluate_health(item, container, running):
     if not running:
@@ -101,6 +173,7 @@ def evaluate_health(item, container, running):
 expected_containers = set(expected["containerNames"])
 expected_deployables = {item["deployableId"] for item in expected["deployables"]}
 expected_images = set(expected["imageTags"])
+runtime_stats = collect_runtime_stats()
 runtime = []
 
 for item in expected["deployables"]:
@@ -109,31 +182,42 @@ for item in expected["deployables"]:
     release = item.get("release")
     if not release:
         runtime.append({
+            "cpuPercent": None,
             "deployableId": deployable_id,
             "driftReasons": [],
             "driftStatus": "unknown",
             "healthStatus": "unknown",
+            "memoryLimitBytes": None,
+            "memoryUsageBytes": None,
             "observedContainerName": None,
             "observedImage": None,
             "observedState": "unknown",
+            "restartCount": None,
+            "startedAt": None,
         })
         continue
     container = inspect("container", release["containerName"])
     if not container:
         runtime.append({
+            "cpuPercent": None,
             "deployableId": deployable_id,
             "driftReasons": ["Current release container is missing"],
             "driftStatus": "drifted",
             "healthStatus": "unknown",
+            "memoryLimitBytes": None,
+            "memoryUsageBytes": None,
             "observedContainerName": None,
             "observedImage": None,
             "observedState": "missing",
+            "restartCount": None,
+            "startedAt": None,
         })
         continue
     labels = container.get("Config", {}).get("Labels") or {}
     running = bool(container.get("State", {}).get("Running"))
     health = evaluate_health(item, container, running)
     image = container.get("Config", {}).get("Image")
+    metrics = runtime_metrics(release["containerName"], container, runtime_stats)
     reasons = []
     if image != release["imageTag"]:
         reasons.append("Container image differs from the current release")
@@ -166,6 +250,7 @@ for item in expected["deployables"]:
             ):
                 reasons.append("Container is missing its configured loopback host port")
     runtime.append({
+        **metrics,
         "deployableId": deployable_id,
         "driftReasons": reasons,
         "driftStatus": "drifted" if reasons else "in_sync",

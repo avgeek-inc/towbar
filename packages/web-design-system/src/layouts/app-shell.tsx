@@ -198,7 +198,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
       className="flex min-h-dvh flex-col"
     >
       <RoutedLink
-        className="inline-flex min-w-0 items-center px-4 pb-2 pt-4"
+        className="inline-flex min-h-16 min-w-0 items-center border-b border-separator px-4"
         item={homeItem}
       >
         <BrandLockup
@@ -212,7 +212,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
           {config.brand.title}
         </BrandLockup>
       </RoutedLink>
-      <div className="grid flex-1 content-start gap-1 overflow-y-auto px-3">
+      <div className="grid flex-1 content-start gap-1 overflow-y-auto px-3 pt-2">
         {config.groups.map((group) => (
           <section className="grid gap-1 [&+&]:mt-2" key={group.id}>
             {group.label ? (

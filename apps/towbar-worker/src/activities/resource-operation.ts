@@ -11,6 +11,7 @@ import { executeResourceOperation } from "@workspace/towbar-deployer";
 import { isNormalizedResource } from "@workspace/towbar-core";
 
 import { signedApiRequest } from "../infrastructure/towbar-api.js";
+import { getEnv } from "../env.js";
 
 import type {
   BackupStorage,
@@ -96,7 +97,9 @@ export async function markResourceOperationInterruptedActivity(
 }
 
 export async function runMaintenanceSweepActivity() {
-  await signedApiRequest("POST", "/v1/internal/maintenance/sweep");
+  await signedApiRequest("POST", "/v1/internal/maintenance/sweep", {
+    version: getEnv().SOURCE_COMMIT,
+  });
 }
 
 function s3Storage(client: S3Client): BackupStorage {

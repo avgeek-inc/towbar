@@ -20,13 +20,18 @@ void describe("runtime inspection", () => {
           ],
           runtime: [
             {
+              cpuPercent: 4.2,
               deployableId: "10000000-0000-4000-8000-000000000001",
               driftReasons: [],
               driftStatus: "in_sync",
               healthStatus: "healthy",
+              memoryLimitBytes: 1073741824,
+              memoryUsageBytes: 268435456,
               observedContainerName: "towbar-api-release",
               observedImage: "towbar/deployable-api:release",
               observedState: "running",
+              restartCount: 1,
+              startedAt: "2026-08-28T10:00:00.000Z",
             },
           ],
         }),
@@ -67,5 +72,16 @@ void describe("runtime inspection", () => {
     assert.match(runtimeInspectionScript, /health_type == "command"/);
     assert.match(runtimeInspectionScript, /"docker", "exec"/);
     assert.match(runtimeInspectionScript, /timeout=timeout/);
+  });
+
+  void it("collects bounded container capacity signals", () => {
+    assert.match(runtimeInspectionScript, /docker", "stats", "--no-stream"/);
+    assert.match(runtimeInspectionScript, /collect_runtime_stats/);
+    assert.doesNotMatch(runtimeInspectionScript, /\*container_names/);
+    assert.match(runtimeInspectionScript, /if name in container_names/);
+    assert.match(runtimeInspectionScript, /stats_by_name/);
+    assert.match(runtimeInspectionScript, /RestartCount/);
+    assert.match(runtimeInspectionScript, /memoryUsageBytes/);
+    assert.match(runtimeInspectionScript, /cpuPercent/);
   });
 });

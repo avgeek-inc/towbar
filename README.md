@@ -17,8 +17,8 @@ truth and runs deployments through durable Temporal workflows.
   Resources, domains, and deployment policy.
 - Builds run on the target host, without requiring a container registry.
 - AWS Secrets Manager values are resolved just in time and stay out of Git.
-- SSH host-key pinning, server preparation, health checks, and queued
-  deployments are built in.
+- SSH host-key pinning, server preparation, queued deployments, control-plane
+  diagnostics, and runtime capacity checks are built in.
 - Opt-in pull request Previews use stable URLs, isolated secrets, and automatic
   cleanup without changing production health or release history.
 - PostgreSQL and Temporal provide persistent state and durable execution.

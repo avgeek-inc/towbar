@@ -139,6 +139,16 @@ export type DeploymentResult = {
 export type ServerCheckResult = {
   caddyVersion: string;
   diskAvailableKb: number;
+  host: {
+    cpuLogicalCount: number;
+    cpuUsagePercent: number;
+    diskAvailableKb: number;
+    diskTotalKb: number;
+    loadAverage1m: number;
+    memoryAvailableKb: number;
+    memoryTotalKb: number;
+    uptimeSeconds: number;
+  };
   dockerVersion: string;
   hostKey: TrustedHostKey;
   operatingSystem: string;

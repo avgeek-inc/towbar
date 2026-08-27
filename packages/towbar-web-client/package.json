@@ -4,6 +4,9 @@
   "license": "Apache-2.0",
   "type": "module",
   "private": true,
+  "dependencies": {
+    "@workspace/towbar-core": "workspace:*"
+  },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit"

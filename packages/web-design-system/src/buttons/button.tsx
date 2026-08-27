@@ -24,12 +24,14 @@ export type ButtonLinkProps = Omit<
 export function ButtonLink({
   className,
   size,
+  style,
   variant,
   ...props
 }: ButtonLinkProps) {
   return (
     <HeroLink
       className={buttonVariants({ className, size, variant })}
+      style={{ color: "var(--button-fg)", ...style }}
       {...props}
     />
   );
