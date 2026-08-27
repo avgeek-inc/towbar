@@ -4,7 +4,6 @@ import {
   DashboardCircleIcon,
   DatabaseIcon,
   GithubIcon,
-  GitBranchIcon,
   InformationSquareIcon,
   Key01Icon,
   ServerStack01Icon,
@@ -53,7 +52,6 @@ import { formatDate } from "./dashboard-overview";
 import { SourceAwsCredentials } from "./source-aws-credentials";
 import { SourceSecrets } from "./app-secrets";
 import { SourceApps, SourceResources, SourceServers } from "./source-inventory";
-import { PreviewEnvironments } from "./preview-environments";
 
 type ManifestResponse = {
   manifest: {
@@ -286,12 +284,6 @@ export function SourceDetail() {
                 sourceId={sourceId}
               />
             ),
-          },
-          {
-            value: "previews",
-            label: "Previews",
-            icon: <HugeiconsIcon icon={GitBranchIcon} />,
-            content: <PreviewEnvironments sourceId={sourceId} />,
           },
           {
             value: "secrets",

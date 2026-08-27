@@ -2,8 +2,8 @@
 
 import {
   AlertCircleIcon,
-  CheckIcon,
   CheckmarkCircle02Icon,
+  WebhookIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
@@ -37,7 +37,12 @@ function appColumns(
 ): ResourceTableColumn<App>[] {
   return [
     {
-      cell: (app) => app.name,
+      cell: (app) => (
+        <DeployableName
+          autoDeploy={Boolean(app.config.autoDeploy)}
+          name={app.name}
+        />
+      ),
       className: "min-w-56",
       header: "App Name",
       key: "name",
@@ -47,14 +52,6 @@ function appColumns(
       className: "min-w-36 tabular-nums",
       header: "Server",
       key: "server",
-    },
-    {
-      cell: (app) => (
-        <AutoDeployIndicator enabled={Boolean(app.config.autoDeploy)} />
-      ),
-      className: "w-32",
-      header: "Auto-deploy",
-      key: "auto-deploy",
     },
     {
       cell: (app) => <RuntimeCpuMeter runtime={runtimeById.get(app.id)} />,
@@ -67,12 +64,6 @@ function appColumns(
       className: "min-w-56",
       header: "Memory",
       key: "memory",
-    },
-    {
-      cell: (app) => <LastSyncedTime value={app.updatedAt} />,
-      className: "min-w-48 whitespace-nowrap",
-      header: "Last synced",
-      key: "last-synced",
     },
     {
       cell: (app) => (
@@ -89,6 +80,12 @@ function appColumns(
       header: "Status",
       key: "status",
     },
+    {
+      cell: (app) => <LastSyncedTime value={app.updatedAt} />,
+      className: "min-w-48 whitespace-nowrap",
+      header: "Last synced",
+      key: "last-synced",
+    },
   ];
 }
 
@@ -98,7 +95,12 @@ function resourceColumns(
 ): ResourceTableColumn<Resource>[] {
   return [
     {
-      cell: (resource) => resource.name,
+      cell: (resource) => (
+        <DeployableName
+          autoDeploy={Boolean(resource.config.autoDeploy)}
+          name={resource.name}
+        />
+      ),
       className: "min-w-56",
       header: "Resource Name",
       key: "name",
@@ -117,14 +119,6 @@ function resourceColumns(
     },
     {
       cell: (resource) => (
-        <AutoDeployIndicator enabled={Boolean(resource.config.autoDeploy)} />
-      ),
-      className: "w-32",
-      header: "Auto-deploy",
-      key: "auto-deploy",
-    },
-    {
-      cell: (resource) => (
         <RuntimeCpuMeter runtime={runtimeById.get(resource.id)} />
       ),
       className: "min-w-40",
@@ -140,12 +134,6 @@ function resourceColumns(
       key: "memory",
     },
     {
-      cell: (resource) => <LastSyncedTime value={resource.updatedAt} />,
-      className: "min-w-48 whitespace-nowrap",
-      header: "Last synced",
-      key: "last-synced",
-    },
-    {
       cell: (resource) => (
         <StatusBadge
           status={resolveInventoryStatus({
@@ -159,6 +147,12 @@ function resourceColumns(
       className: "w-32",
       header: "Status",
       key: "status",
+    },
+    {
+      cell: (resource) => <LastSyncedTime value={resource.updatedAt} />,
+      className: "min-w-48 whitespace-nowrap",
+      header: "Last synced",
+      key: "last-synced",
     },
   ];
 }
@@ -191,7 +185,7 @@ export function SourceApps({
         getRowHref={(app) => `/sources/${sourceId}/apps/${app.id}`}
         getRowKey={(app) => app.id}
         items={apps}
-        tableClassName="min-w-[1160px]"
+        tableClassName="min-w-[1040px]"
       />
     </RelativeTimeProvider>
   );
@@ -227,7 +221,7 @@ export function SourceResources({
         }
         getRowKey={(resource) => resource.id}
         items={resources}
-        tableClassName="min-w-[1280px]"
+        tableClassName="min-w-[1160px]"
       />
     </RelativeTimeProvider>
   );
@@ -289,12 +283,6 @@ export function SourceServers({
       key: "deployables",
     },
     {
-      cell: (server) => <LastSyncedTime value={server.updatedAt} />,
-      className: "min-w-48 whitespace-nowrap",
-      header: "Last synced",
-      key: "last-synced",
-    },
-    {
       cell: (server) => (
         <StatusBadge
           status={server.archivedAt ? "archived" : server.setupStatus}
@@ -303,6 +291,12 @@ export function SourceServers({
       className: "w-32",
       header: "Status",
       key: "status",
+    },
+    {
+      cell: (server) => <LastSyncedTime value={server.updatedAt} />,
+      className: "min-w-48 whitespace-nowrap",
+      header: "Last synced",
+      key: "last-synced",
     },
   ];
   return (
@@ -341,23 +335,32 @@ function HostKeyIndicator({
   );
 }
 
-function AutoDeployIndicator({ enabled }: { enabled: boolean }) {
+function DeployableName({
+  autoDeploy,
+  name,
+}: {
+  autoDeploy: boolean;
+  name: string;
+}) {
   return (
-    <span className="inline-flex min-h-6 items-center">
-      {enabled ? (
-        <HugeiconsIcon
-          aria-hidden="true"
-          className="text-success-soft-foreground size-5"
-          icon={CheckIcon}
-        />
-      ) : (
-        <span aria-hidden="true" className="text-muted typography--body-sm">
-          —
-        </span>
-      )}
-      <span className="sr-only">
-        Auto-deploy {enabled ? "enabled" : "disabled"}
+    <span className="inline-flex min-w-0 items-center gap-2">
+      <span className="truncate" title={name}>
+        {name}
       </span>
+      {autoDeploy ? (
+        <span
+          aria-label="Auto-deploy enabled"
+          className="text-success-soft-foreground inline-flex size-5 shrink-0 self-center items-center justify-center leading-none"
+          role="img"
+          title="Auto-deploy enabled"
+        >
+          <HugeiconsIcon
+            aria-hidden="true"
+            className="size-4"
+            icon={WebhookIcon}
+          />
+        </span>
+      ) : null}
     </span>
   );
 }
