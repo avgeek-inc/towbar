@@ -1,9 +1,6 @@
 "use client";
 
-import { Copy01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 import type { Resource, SourceBackup } from "@workspace/towbar-web-client";
-import { Button } from "@workspace/web-design-system/buttons/button";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Card } from "@workspace/web-design-system/layout/card";
@@ -39,7 +36,11 @@ export function ResourceBackupConfiguration({
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+    <div
+      className={
+        active ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]" : "grid gap-4"
+      }
+    >
       <Attributes title="Backup policy" variant="card">
         <Attributes.Item label="Schedule">
           {backup.schedule ? (
@@ -126,15 +127,15 @@ function LatestBackupValue({ resource }: { resource: Resource }) {
   }
 
   return (
-    <Button
-      aria-label={`Copy S3 object key from backup created ${label}`}
-      className="-ml-2 h-auto min-h-11 justify-start gap-2 px-2 py-0 font-normal"
-      size="sm"
-      variant="ghost"
-      onPress={copyObjectKey}
-    >
+    <span className="flex min-h-7 flex-wrap items-center gap-x-3 gap-y-1">
       <span>{label}</span>
-      <HugeiconsIcon aria-hidden="true" className="size-4" icon={Copy01Icon} />
-    </Button>
+      <button
+        className="focus-visible:ring-focus relative inline-flex min-h-7 items-center rounded-md font-medium underline-offset-4 outline-none after:absolute after:-inset-x-1 after:-inset-y-2 pointer-fine:hover:underline focus-visible:ring-2"
+        type="button"
+        onClick={copyObjectKey}
+      >
+        Copy S3 key
+      </button>
+    </span>
   );
 }
