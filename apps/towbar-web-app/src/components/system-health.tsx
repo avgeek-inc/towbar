@@ -94,46 +94,8 @@ export function SystemHealthPage() {
         </span>
       }
     >
-      <HealthSummary health={health} />
       <ControlPlane checks={health.checks} version={health.version} />
     </DashboardPage>
-  );
-}
-
-function HealthSummary({ health }: { health: SystemHealth }) {
-  const presentation = statusPresentation[health.status];
-  const issues = health.checks.filter(
-    (check) => check.status === "attention" || check.status === "critical",
-  ).length;
-  const title =
-    health.status === "healthy"
-      ? "All systems operational"
-      : health.status === "unknown"
-        ? "Run the first system check"
-        : health.status === "critical"
-          ? "Immediate attention required"
-          : "Operational attention recommended";
-  const description = healthSummaryDescription({
-    issues,
-    status: health.status,
-  });
-  return (
-    <div className="flex flex-col gap-4 rounded-3xl border border-separator bg-surface p-5 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex min-w-0 items-start gap-3">
-        <HugeiconsIcon
-          aria-hidden="true"
-          className={cn("mt-0.5 size-6 shrink-0", presentation.text)}
-          icon={presentation.icon}
-        />
-        <div className="grid min-w-0 gap-1">
-          <h2 className="text-lg font-medium">{title}</h2>
-          <p className="max-w-3xl text-sm text-muted">{description}</p>
-        </div>
-      </div>
-      <p className="shrink-0 text-xs text-muted">
-        Snapshot {formatDate(health.checkedAt)}
-      </p>
-    </div>
   );
 }
 
@@ -199,17 +161,4 @@ function HealthStatusChip({ status }: { status: SystemHealthStatus }) {
 
 function shortVersion(version: string) {
   return /^[a-f0-9]{40}$/u.test(version) ? version.slice(0, 12) : version;
-}
-
-function healthSummaryDescription(input: {
-  issues: number;
-  status: SystemHealthStatus;
-}) {
-  if (input.status === "healthy") {
-    return "The API, worker, workflow engine, and connected providers are operational.";
-  }
-  if (input.status === "unknown") {
-    return "Run checks to establish a current control-plane baseline.";
-  }
-  return `${input.issues} control-plane ${input.issues === 1 ? "check needs" : "checks need"} review.`;
 }
