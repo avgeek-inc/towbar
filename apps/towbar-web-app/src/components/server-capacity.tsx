@@ -258,7 +258,10 @@ function CapacityValue({
   return (
     <div className="grid content-start gap-0.5">
       <span className="text-sm font-medium">{label}</span>
-      <TypographyHeading className="leading-5 tabular-nums" level={5}>
+      <TypographyHeading
+        className="font-medium leading-5 tabular-nums"
+        level={5}
+      >
         {value}
       </TypographyHeading>
       <span className="text-xs text-muted">{detail}</span>

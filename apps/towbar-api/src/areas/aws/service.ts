@@ -152,55 +152,6 @@ async function validateAwsCredentials(input: {
   }
 }
 
-export async function verifyStoredAwsCredentials(input: {
-  sourceId: string;
-  workspaceId: string;
-}) {
-  const database = getTowbarDatabase();
-  const verifiedAt = new Date();
-  try {
-    const credential = await getDecryptedAwsCredential(input);
-    const identity = await validateAwsCredentials({
-      payload: credential.payload,
-      region: credential.region,
-    });
-    await database
-      .update(sourceAwsCredentials)
-      .set({
-        updatedAt: verifiedAt,
-        verificationMessage: identity.Account
-          ? `AWS account ${identity.Account}`
-          : "AWS identity verified",
-        verificationStatus: "verified",
-        verifiedAt,
-      })
-      .where(eq(sourceAwsCredentials.sourceId, input.sourceId));
-    return {
-      message: identity.Account
-        ? `AWS account ${identity.Account}`
-        : "AWS identity verified",
-      status: "healthy" as const,
-    };
-  } catch (error) {
-    await database
-      .update(sourceAwsCredentials)
-      .set({
-        updatedAt: verifiedAt,
-        verificationMessage: "AWS identity verification failed",
-        verificationStatus: "failed",
-        verifiedAt,
-      })
-      .where(eq(sourceAwsCredentials.sourceId, input.sourceId));
-    return {
-      message:
-        error instanceof Error
-          ? error.message.slice(0, 500)
-          : "AWS identity verification failed",
-      status: "critical" as const,
-    };
-  }
-}
-
 export async function deleteAwsCredentials(input: {
   sourceId: string;
   workspaceId: string;

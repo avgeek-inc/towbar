@@ -526,6 +526,11 @@ function SourceSubtabs({
           <Tabs.List aria-label={ariaLabel} className="w-full">
             {tabs.map((tab) => (
               <Tabs.Tab
+                aria-label={
+                  tab.isDisabled && tab.disabledReason
+                    ? `${tab.label}. ${tab.disabledReason}`
+                    : undefined
+                }
                 className={
                   orientation === "vertical" ? "justify-start" : undefined
                 }

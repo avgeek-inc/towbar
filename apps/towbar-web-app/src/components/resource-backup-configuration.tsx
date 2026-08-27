@@ -130,7 +130,7 @@ function LatestBackupValue({ resource }: { resource: Resource }) {
     <span className="flex min-h-7 flex-wrap items-center gap-x-3 gap-y-1">
       <span>{label}</span>
       <button
-        className="focus-visible:ring-focus relative inline-flex min-h-7 items-center rounded-md font-medium underline-offset-4 outline-none after:absolute after:-inset-x-1 after:-inset-y-2 pointer-fine:hover:underline focus-visible:ring-2"
+        className="focus-visible:ring-focus relative inline-flex min-h-7 items-center rounded-md font-medium underline-offset-4 outline-none after:absolute after:-inset-x-1 after:-inset-y-2 after:content-[''] pointer-fine:hover:underline focus-visible:ring-2"
         type="button"
         onClick={copyObjectKey}
       >

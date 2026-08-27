@@ -73,16 +73,17 @@ def parse_bytes(value):
     return int(amount * (base ** powers[unit]))
 
 def collect_runtime_stats():
-    container_names = [
+    container_names = {
         item["release"]["containerName"]
         for item in expected["deployables"]
         if item.get("release")
-    ]
+    }
     if not container_names:
         return {}
-    result = command(
-        "docker", "stats", "--no-stream", "--format", "{{json .}}", *container_names
-    )
+    # Query running containers once, then retain only expected release names.
+    # Supplying a missing expected name makes Docker fail the whole stats call
+    # and would otherwise hide metrics for every healthy container.
+    result = command("docker", "stats", "--no-stream", "--format", "{{json .}}")
     if result.returncode != 0:
         return {}
     stats_by_name = {}
@@ -92,7 +93,7 @@ def collect_runtime_stats():
         except json.JSONDecodeError:
             continue
         name = stats.get("Name") or stats.get("Container")
-        if name:
+        if name in container_names:
             stats_by_name[name] = stats
     return stats_by_name
 

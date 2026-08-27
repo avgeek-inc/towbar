@@ -77,6 +77,8 @@ void describe("runtime inspection", () => {
   void it("collects bounded container capacity signals", () => {
     assert.match(runtimeInspectionScript, /docker", "stats", "--no-stream"/);
     assert.match(runtimeInspectionScript, /collect_runtime_stats/);
+    assert.doesNotMatch(runtimeInspectionScript, /\*container_names/);
+    assert.match(runtimeInspectionScript, /if name in container_names/);
     assert.match(runtimeInspectionScript, /stats_by_name/);
     assert.match(runtimeInspectionScript, /RestartCount/);
     assert.match(runtimeInspectionScript, /memoryUsageBytes/);
