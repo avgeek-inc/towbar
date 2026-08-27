@@ -325,10 +325,10 @@ export function ServerDetail() {
       breadcrumbAncestors={breadcrumbAncestors}
       title={item.canonicalIp}
       titleContent={
-        <span className="inline-flex min-w-0 items-center gap-3">
+        <span className="inline-flex min-w-0 items-center gap-2">
           <HugeiconsIcon
             aria-hidden="true"
-            className="size-8 shrink-0"
+            className="size-6 shrink-0"
             icon={ServerStack01Icon}
           />
           <span className="truncate" title={item.canonicalIp}>

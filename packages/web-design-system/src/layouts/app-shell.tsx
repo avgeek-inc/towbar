@@ -212,7 +212,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
           {config.brand.title}
         </BrandLockup>
       </RoutedLink>
-      <div className="grid flex-1 content-start gap-1 overflow-y-auto px-3">
+      <div className="grid flex-1 content-start gap-1 overflow-y-auto px-3 pt-2">
         {config.groups.map((group) => (
           <section className="grid gap-1 [&+&]:mt-2" key={group.id}>
             {group.label ? (

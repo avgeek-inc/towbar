@@ -196,10 +196,10 @@ export function SourceDetail() {
       }
       title={item.repositoryName}
       titleContent={
-        <span className="inline-flex min-w-0 items-center gap-3">
+        <span className="inline-flex min-w-0 items-center gap-2">
           <HugeiconsIcon
             aria-hidden="true"
-            className="size-8 shrink-0"
+            className="size-6 shrink-0"
             icon={GithubIcon}
           />
           <span className="truncate" title={item.repositoryName}>
