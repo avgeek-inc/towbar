@@ -498,6 +498,10 @@ importers:
         version: 5.9.3
 
   packages/towbar-web-client:
+    dependencies:
+      "@workspace/towbar-core":
+        specifier: workspace:*
+        version: link:../towbar-core
     devDependencies:
       "@workspace/eslint-config":
         specifier: workspace:*

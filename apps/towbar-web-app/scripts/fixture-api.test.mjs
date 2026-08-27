@@ -16,6 +16,7 @@ const readRoutes = [
   "/v1/core/resources",
   "/v1/core/servers",
   "/v1/core/deployments",
+  "/v1/core/system-health",
   `/v1/core/sources/${fixtureIds.source}`,
   `/v1/core/sources/${fixtureIds.source}/manifest`,
   `/v1/core/sources/${fixtureIds.source}/syncs`,
@@ -55,6 +56,33 @@ test("terminal preparation state replaces a stale preparing server state", () =>
   assert.equal(reconcileServerSetupStatus("preparing", "succeeded"), "ready");
   assert.equal(reconcileServerSetupStatus("preparing", "running"), "preparing");
   assert.equal(reconcileServerSetupStatus("pending", "succeeded"), "pending");
+});
+
+test("the local fixture runs system checks and returns runtime capacity", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:${address.port}/v1/core/system-health/actions/check`,
+      { method: "POST" },
+    );
+    assert.equal(response.status, 200);
+    const health = await response.json();
+    assert.equal(health.checks.length, 5);
+    assert.equal(
+      health.checks.find((check) => check.id === "aws").status,
+      "healthy",
+    );
+    assert.equal(health.runtimeCapacity.length, 2);
+    assert.equal(health.runtimeCapacity[0].runtimes.length > 0, true);
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
 });
 
 test("the local fixture covers every authenticated page read contract", async () => {

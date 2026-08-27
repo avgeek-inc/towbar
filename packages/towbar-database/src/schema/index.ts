@@ -925,3 +925,30 @@ export const auditEvents = pgTable(
     ),
   ],
 );
+
+export const systemHealthSignals = pgTable(
+  "towbar_system_health_signals",
+  {
+    key: varchar("key", { length: 255 }).primaryKey(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, {
+      onDelete: "cascade",
+    }),
+    component: varchar("component", { length: 80 }).notNull(),
+    status: varchar("status", { length: 32 }).notNull(),
+    message: varchar("message", { length: 500 }).notNull(),
+    version: varchar("version", { length: 64 }),
+    details: jsonb("details")
+      .$type<Record<string, boolean | number | string | null>>()
+      .notNull()
+      .default({}),
+    checkedAt: timestamp("checked_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_towbar_system_health_workspace").on(
+      table.workspaceId,
+      table.component,
+    ),
+  ],
+);

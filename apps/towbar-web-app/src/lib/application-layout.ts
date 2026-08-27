@@ -1,6 +1,7 @@
 import {
   DashboardSquare01Icon,
   GitBranchIcon,
+  HealthIcon,
   Logout03Icon,
   Settings02Icon,
 } from "@hugeicons/core-free-icons";
@@ -19,6 +20,7 @@ const sidebarIcons = defineSidebarIcons({
   overview: DashboardSquare01Icon,
   settings: Settings02Icon,
   sources: GitBranchIcon,
+  health: HealthIcon,
 });
 
 const brand = {
@@ -55,6 +57,13 @@ const sidebar = {
           label: "Sources",
           href: "/sources",
           icon: sidebarIcons.sources,
+        },
+        {
+          kind: "link",
+          id: "health",
+          label: "System health",
+          href: "/system-health",
+          icon: sidebarIcons.health,
         },
       ],
     },

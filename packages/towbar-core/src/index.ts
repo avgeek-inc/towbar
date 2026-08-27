@@ -7,4 +7,5 @@ export * from "./resource-operations.js";
 export * from "./security.js";
 export * from "./secret-reference.js";
 export * from "./server-preparation.js";
+export * from "./system-health.js";
 export * from "./temporal.js";

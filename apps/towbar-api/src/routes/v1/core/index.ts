@@ -14,6 +14,7 @@ import { serverRoutes } from "./servers.js";
 import { resourceRoutes } from "./resources.js";
 import { previewRoutes } from "./previews.js";
 import { sourceRoutes } from "./sources.js";
+import { systemHealthRoutes } from "./system-health.js";
 
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
@@ -30,4 +31,5 @@ coreRoutes.route("/resources", resourceRoutes);
 coreRoutes.route("/previews", previewRoutes);
 coreRoutes.route("/servers", serverRoutes);
 coreRoutes.route("/deployments", deploymentRoutes);
+coreRoutes.route("/system-health", systemHealthRoutes);
 coreRoutes.route("/", accountRoutes);

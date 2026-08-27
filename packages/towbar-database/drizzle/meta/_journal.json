@@ -183,6 +183,13 @@
       "when": 1787841065459,
       "tag": "0025_green_robbie_robertson",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1787864031826,
+      "tag": "0026_ancient_trish_tilby",
+      "breakpoints": true
     }
   ]
 }
