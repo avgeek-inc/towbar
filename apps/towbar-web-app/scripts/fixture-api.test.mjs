@@ -23,6 +23,7 @@ const readRoutes = [
   `/v1/core/sources/${fixtureIds.source}/aws`,
   `/v1/core/sources/${fixtureIds.source}/secrets`,
   `/v1/core/sources/${fixtureIds.source}/apps`,
+  `/v1/core/sources/${fixtureIds.source}/capacity`,
   `/v1/core/sources/${fixtureIds.source}/resources`,
   `/v1/core/sources/${fixtureIds.source}/servers`,
   `/v1/core/sources/${fixtureIds.source}/deployments`,
@@ -86,6 +87,18 @@ test("the local fixture separates control-plane checks from server capacity", as
     const { capacity } = await capacityResponse.json();
     assert.equal(capacity.id, fixtureIds.server);
     assert.equal(capacity.runtimes.length > 0, true);
+    const sourceCapacityResponse = await fetch(
+      `http://127.0.0.1:${address.port}/v1/core/sources/${fixtureIds.source}/capacity`,
+    );
+    assert.equal(sourceCapacityResponse.status, 200);
+    const { capacities } = await sourceCapacityResponse.json();
+    assert.equal(capacities.length, 2);
+    assert.equal(
+      capacities.some((item) =>
+        item.runtimes.some((runtime) => runtime.id === fixtureIds.app),
+      ),
+      true,
+    );
   } finally {
     server.close();
     await once(server, "close");

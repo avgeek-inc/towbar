@@ -11,6 +11,7 @@ import type {
   Deployment,
   DeploymentState,
   Resource,
+  RuntimeCapacity,
   SourceServer,
 } from "@workspace/towbar-web-client";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -22,12 +23,17 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import {
   getActiveDeploymentStates,
   resolveInventoryStatus,
-  resolveInventorySyncStatus,
 } from "@/lib/inventory-status";
 import { LastSyncedTime, RelativeTimeProvider } from "./last-synced-time";
+import {
+  RuntimeCpuMeter,
+  RuntimeMemoryMeter,
+  type RuntimeMetric,
+} from "./server-capacity";
 
 function appColumns(
   activeDeploymentStates: Map<string, DeploymentState>,
+  runtimeById: Map<string, RuntimeMetric>,
 ): ResourceTableColumn<App>[] {
   return [
     {
@@ -51,17 +57,16 @@ function appColumns(
       key: "auto-deploy",
     },
     {
-      cell: (app) => (
-        <StatusBadge
-          status={resolveInventorySyncStatus(
-            app.runtimeState.driftStatus,
-            activeDeploymentStates.get(app.id),
-          )}
-        />
-      ),
-      className: "w-32",
-      header: "Sync status",
-      key: "sync-status",
+      cell: (app) => <RuntimeCpuMeter runtime={runtimeById.get(app.id)} />,
+      className: "min-w-40",
+      header: "CPU",
+      key: "cpu",
+    },
+    {
+      cell: (app) => <RuntimeMemoryMeter runtime={runtimeById.get(app.id)} />,
+      className: "min-w-56",
+      header: "Memory",
+      key: "memory",
     },
     {
       cell: (app) => <LastSyncedTime value={app.updatedAt} />,
@@ -89,6 +94,7 @@ function appColumns(
 
 function resourceColumns(
   activeDeploymentStates: Map<string, DeploymentState>,
+  runtimeById: Map<string, RuntimeMetric>,
 ): ResourceTableColumn<Resource>[] {
   return [
     {
@@ -119,16 +125,19 @@ function resourceColumns(
     },
     {
       cell: (resource) => (
-        <StatusBadge
-          status={resolveInventorySyncStatus(
-            resource.runtimeState.driftStatus,
-            activeDeploymentStates.get(resource.id),
-          )}
-        />
+        <RuntimeCpuMeter runtime={runtimeById.get(resource.id)} />
       ),
-      className: "w-32",
-      header: "Sync status",
-      key: "sync-status",
+      className: "min-w-40",
+      header: "CPU",
+      key: "cpu",
+    },
+    {
+      cell: (resource) => (
+        <RuntimeMemoryMeter runtime={runtimeById.get(resource.id)} />
+      ),
+      className: "min-w-56",
+      header: "Memory",
+      key: "memory",
     },
     {
       cell: (resource) => <LastSyncedTime value={resource.updatedAt} />,
@@ -156,53 +165,61 @@ function resourceColumns(
 
 export function SourceApps({
   apps,
+  capacities,
   deployments,
   error,
   sourceId,
 }: {
   apps?: App[];
+  capacities?: RuntimeCapacity[];
   deployments?: Deployment[];
   error?: string;
   sourceId: string;
 }) {
   if (error) return <QueryError message={error} />;
-  if (!apps || !deployments) return <QueryLoading variant="list" />;
+  if (!apps || !capacities || !deployments)
+    return <QueryLoading variant="list" />;
   const activeDeploymentStates = getActiveDeploymentStates(deployments);
+  const runtimeById = getRuntimeByDeployableId(capacities);
   return (
     <RelativeTimeProvider>
       <ResourceTable
         ariaLabel="Source apps"
-        columns={appColumns(activeDeploymentStates)}
+        columns={appColumns(activeDeploymentStates, runtimeById)}
         emptyDescription="A successful manifest sync imports this Source's apps."
         emptyTitle="No apps in this Source"
         getRowHref={(app) => `/sources/${sourceId}/apps/${app.id}`}
         getRowKey={(app) => app.id}
         items={apps}
-        tableClassName="min-w-[960px]"
+        tableClassName="min-w-[1160px]"
       />
     </RelativeTimeProvider>
   );
 }
 
 export function SourceResources({
+  capacities,
   deployments,
   error,
   resources,
   sourceId,
 }: {
+  capacities?: RuntimeCapacity[];
   deployments?: Deployment[];
   error?: string;
   resources?: Resource[];
   sourceId: string;
 }) {
   if (error) return <QueryError message={error} />;
-  if (!resources || !deployments) return <QueryLoading variant="list" />;
+  if (!resources || !capacities || !deployments)
+    return <QueryLoading variant="list" />;
   const activeDeploymentStates = getActiveDeploymentStates(deployments);
+  const runtimeById = getRuntimeByDeployableId(capacities);
   return (
     <RelativeTimeProvider>
       <ResourceTable
         ariaLabel="Source resources"
-        columns={resourceColumns(activeDeploymentStates)}
+        columns={resourceColumns(activeDeploymentStates, runtimeById)}
         emptyDescription="Declare an image, PostgreSQL, or Redis resource in this Source's manifest."
         emptyTitle="No resources in this Source"
         getRowHref={(resource) =>
@@ -210,7 +227,7 @@ export function SourceResources({
         }
         getRowKey={(resource) => resource.id}
         items={resources}
-        tableClassName="min-w-[1080px]"
+        tableClassName="min-w-[1280px]"
       />
     </RelativeTimeProvider>
   );
@@ -218,56 +235,28 @@ export function SourceResources({
 
 export function SourceServers({
   apps,
-  deployments,
   error,
   resources,
   servers,
   sourceId,
 }: {
   apps?: App[];
-  deployments?: Deployment[];
   error?: string;
   resources?: Resource[];
   servers?: SourceServer[];
   sourceId: string;
 }) {
   if (error) return <QueryError message={error} />;
-  if (!servers || !apps || !resources || !deployments)
-    return <QueryLoading variant="list" />;
-  const activeDeploymentStates = getActiveDeploymentStates(deployments);
+  if (!servers || !apps || !resources) return <QueryLoading variant="list" />;
   const appCounts = new Map<string, number>();
   const resourceCounts = new Map<string, number>();
-  const syncStatuses = new Map<
-    string,
-    App["runtimeState"]["driftStatus"] | DeploymentState
-  >();
   for (const app of apps) {
     appCounts.set(app.serverIp, (appCounts.get(app.serverIp) ?? 0) + 1);
-    syncStatuses.set(
-      app.serverIp,
-      mergeSyncStatus(
-        syncStatuses.get(app.serverIp),
-        resolveInventorySyncStatus(
-          app.runtimeState.driftStatus,
-          activeDeploymentStates.get(app.id),
-        ),
-      ),
-    );
   }
   for (const resource of resources) {
     resourceCounts.set(
       resource.serverIp,
       (resourceCounts.get(resource.serverIp) ?? 0) + 1,
-    );
-    syncStatuses.set(
-      resource.serverIp,
-      mergeSyncStatus(
-        syncStatuses.get(resource.serverIp),
-        resolveInventorySyncStatus(
-          resource.runtimeState.driftStatus,
-          activeDeploymentStates.get(resource.id),
-        ),
-      ),
     );
   }
   const serverColumns: ResourceTableColumn<SourceServer>[] = [
@@ -300,16 +289,6 @@ export function SourceServers({
       key: "deployables",
     },
     {
-      cell: (server) => (
-        <StatusBadge
-          status={syncStatuses.get(server.canonicalIp) ?? "unknown"}
-        />
-      ),
-      className: "w-32",
-      header: "Sync status",
-      key: "sync-status",
-    },
-    {
       cell: (server) => <LastSyncedTime value={server.updatedAt} />,
       className: "min-w-48 whitespace-nowrap",
       header: "Last synced",
@@ -336,7 +315,7 @@ export function SourceServers({
         getRowHref={(server) => `/sources/${sourceId}/servers/${server.id}`}
         getRowKey={(server) => server.id}
         items={servers}
-        tableClassName="min-w-[1160px]"
+        tableClassName="min-w-[1000px]"
       />
     </RelativeTimeProvider>
   );
@@ -393,13 +372,10 @@ function formatDeployableCounts(apps: number, resources: number) {
   return `${apps} ${apps === 1 ? "app" : "apps"} · ${resources} ${resources === 1 ? "resource" : "resources"}`;
 }
 
-function mergeSyncStatus(
-  current: App["runtimeState"]["driftStatus"] | DeploymentState | undefined,
-  next: App["runtimeState"]["driftStatus"] | DeploymentState,
-): App["runtimeState"]["driftStatus"] | DeploymentState {
-  if (current === "drifted" || next === "drifted") return "drifted";
-  if (current && current !== "unknown" && current !== "in_sync") return current;
-  if (next !== "unknown" && next !== "in_sync") return next;
-  if (current === "unknown" || next === "unknown") return "unknown";
-  return "in_sync";
+function getRuntimeByDeployableId(capacities: RuntimeCapacity[]) {
+  return new Map(
+    capacities.flatMap((capacity) =>
+      capacity.runtimes.map((runtime) => [runtime.id, runtime] as const),
+    ),
+  );
 }

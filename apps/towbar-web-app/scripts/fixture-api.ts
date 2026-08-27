@@ -1008,6 +1008,7 @@ function getFixturePayload(
     [`/v1/core/sources/${source.id}/syncs`, { syncs: [sourceSync] }],
     [`/v1/core/sources/${source.id}/aws`, { credential: awsCredential }],
     [`/v1/core/sources/${source.id}/apps`, { apps }],
+    [`/v1/core/sources/${source.id}/capacity`, { capacities: runtimeCapacity }],
     [`/v1/core/sources/${source.id}/previews`, { previews }],
     [`/v1/core/sources/${source.id}/resources`, { resources }],
     [

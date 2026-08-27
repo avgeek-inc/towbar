@@ -18,6 +18,7 @@ import type {
   AwsCredentialMetadata,
   Deployment,
   Resource,
+  RuntimeCapacity,
   SourceServer,
   Source,
   SourceSync,
@@ -93,6 +94,10 @@ export function SourceDetail() {
   );
   const deployments = useApiQuery<{ deployments: Deployment[] }>(
     `/v1/core/sources/${sourceId}/deployments`,
+    5_000,
+  );
+  const capacity = useApiQuery<{ capacities: RuntimeCapacity[] }>(
+    `/v1/core/sources/${sourceId}/capacity`,
     5_000,
   );
   const aws = useApiQuery<{ credential: AwsCredentialMetadata | null }>(
@@ -235,8 +240,9 @@ export function SourceDetail() {
             content: (
               <SourceApps
                 apps={apps.data?.apps}
+                capacities={capacity.data?.capacities}
                 deployments={deployments.data?.deployments}
-                error={apps.error ?? deployments.error}
+                error={apps.error ?? capacity.error ?? deployments.error}
                 sourceId={sourceId}
               />
             ),
@@ -253,8 +259,9 @@ export function SourceDetail() {
               : undefined,
             content: (
               <SourceResources
+                capacities={capacity.data?.capacities}
                 deployments={deployments.data?.deployments}
-                error={resources.error ?? deployments.error}
+                error={resources.error ?? capacity.error ?? deployments.error}
                 resources={resources.data?.resources}
                 sourceId={sourceId}
               />
@@ -273,13 +280,7 @@ export function SourceDetail() {
             content: (
               <SourceServers
                 apps={apps.data?.apps}
-                deployments={deployments.data?.deployments}
-                error={
-                  servers.error ??
-                  apps.error ??
-                  resources.error ??
-                  deployments.error
-                }
+                error={servers.error ?? apps.error ?? resources.error}
                 resources={resources.data?.resources}
                 servers={servers.data?.servers}
                 sourceId={sourceId}

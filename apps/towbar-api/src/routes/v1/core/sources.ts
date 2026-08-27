@@ -19,6 +19,7 @@ import {
   updateSourceSharedSecretBinding,
 } from "../../../areas/apps/secrets.js";
 import { listDeployments } from "../../../areas/deployments/service.js";
+import { listSourceCapacity } from "../../../areas/servers/capacity.js";
 import { listSourceServers } from "../../../areas/servers/service.js";
 import { listSourceBackups } from "../../../areas/resource-operations/service.js";
 import { listPreviewEnvironments } from "../../../areas/previews/service.js";
@@ -143,6 +144,15 @@ sourceRoutes.get("/:sourceId/servers", async (context) => {
       context.req.param("sourceId"),
       user.workspaceId,
     ),
+  });
+});
+
+sourceRoutes.get("/:sourceId/capacity", async (context) => {
+  const user = context.get("user");
+  const sourceId = context.req.param("sourceId");
+  await getSource(sourceId, user.workspaceId);
+  return context.json({
+    capacities: await listSourceCapacity(user.workspaceId, sourceId),
   });
 });
 

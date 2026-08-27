@@ -16,6 +16,7 @@ import { formatDate } from "./dashboard-overview";
 import { formatBytes } from "./runtime-operations";
 
 type MeterStatus = "healthy" | "attention" | "critical";
+export type RuntimeMetric = RuntimeCapacity["runtimes"][number];
 
 const capacityStatusPresentation = {
   attention: { label: "Attention", variant: "warning" as const },
@@ -116,75 +117,82 @@ export function ServerRuntimeCapacityTable({
             <Table.Column>Started</Table.Column>
           </Table.Header>
           <Table.Body>
-            {capacity.runtimes.map((runtime) => {
-              const memoryPercent =
-                runtime.memoryUsageBytes !== null && runtime.memoryLimitBytes
-                  ? percentage(
-                      runtime.memoryUsageBytes,
-                      runtime.memoryLimitBytes,
-                    )
-                  : null;
-              return (
-                <Table.Row id={runtime.id} key={runtime.id}>
-                  <Table.Cell>
-                    <div className="grid min-w-44 gap-0.5">
-                      <Link
-                        className="font-medium underline-offset-4 hover:underline"
-                        href={`/sources/${capacity.sourceId}/${runtime.kind === "app" ? "apps" : "resources"}/${runtime.id}`}
-                      >
-                        {runtime.name}
-                      </Link>
-                      <span className="text-xs capitalize text-muted">
-                        {runtime.kind === "app"
-                          ? "App"
-                          : formatResourceKind(runtime.kind)}
-                      </span>
-                    </div>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <StatusBadge status={runtime.healthStatus} />
-                  </Table.Cell>
-                  <Table.Cell>
-                    {runtime.cpuPercent === null ? (
-                      <span className="text-muted">—</span>
-                    ) : (
-                      <CompactMeter
-                        label={`${runtime.name} CPU used`}
-                        status={meterStatus(runtime.cpuPercent, 75, 90)}
-                        value={runtime.cpuPercent}
-                        valueLabel={`${runtime.cpuPercent.toFixed(1)}%`}
-                      />
-                    )}
-                  </Table.Cell>
-                  <Table.Cell>
-                    {runtime.memoryUsageBytes === null ? (
-                      <span className="text-muted">—</span>
-                    ) : memoryPercent === null ? (
-                      <span className="whitespace-nowrap tabular-nums">
-                        {formatBytes(runtime.memoryUsageBytes)}
-                      </span>
-                    ) : (
-                      <CompactMeter
-                        label={`${runtime.name} memory used`}
-                        status={meterStatus(memoryPercent, 85, 95)}
-                        value={memoryPercent}
-                        valueLabel={`${formatBytes(runtime.memoryUsageBytes)} / ${formatBytes(runtime.memoryLimitBytes!)}`}
-                      />
-                    )}
-                  </Table.Cell>
-                  <Table.Cell className="text-right tabular-nums">
-                    {runtime.restartCount ?? "—"}
-                  </Table.Cell>
-                  <Table.Cell className="whitespace-nowrap">
-                    {runtime.startedAt ? formatDate(runtime.startedAt) : "—"}
-                  </Table.Cell>
-                </Table.Row>
-              );
-            })}
+            {capacity.runtimes.map((runtime) => (
+              <Table.Row id={runtime.id} key={runtime.id}>
+                <Table.Cell>
+                  <div className="grid min-w-44 gap-0.5">
+                    <Link
+                      className="font-medium underline-offset-4 hover:underline"
+                      href={`/sources/${capacity.sourceId}/${runtime.kind === "app" ? "apps" : "resources"}/${runtime.id}`}
+                    >
+                      {runtime.name}
+                    </Link>
+                    <span className="text-xs capitalize text-muted">
+                      {runtime.kind === "app"
+                        ? "App"
+                        : formatResourceKind(runtime.kind)}
+                    </span>
+                  </div>
+                </Table.Cell>
+                <Table.Cell>
+                  <StatusBadge status={runtime.healthStatus} />
+                </Table.Cell>
+                <Table.Cell>
+                  <RuntimeCpuMeter runtime={runtime} />
+                </Table.Cell>
+                <Table.Cell>
+                  <RuntimeMemoryMeter runtime={runtime} />
+                </Table.Cell>
+                <Table.Cell className="text-right tabular-nums">
+                  {runtime.restartCount ?? "—"}
+                </Table.Cell>
+                <Table.Cell className="whitespace-nowrap">
+                  {runtime.startedAt ? formatDate(runtime.startedAt) : "—"}
+                </Table.Cell>
+              </Table.Row>
+            ))}
           </Table.Body>
         </Table.Content>
       </Table.ScrollContainer>
     </Table>
+  );
+}
+
+export function RuntimeCpuMeter({ runtime }: { runtime?: RuntimeMetric }) {
+  if (!runtime || runtime.cpuPercent === null) {
+    return <span className="text-muted">—</span>;
+  }
+  return (
+    <CompactMeter
+      label={`${runtime.name} CPU used`}
+      status={meterStatus(runtime.cpuPercent, 75, 90)}
+      value={runtime.cpuPercent}
+      valueLabel={`${runtime.cpuPercent.toFixed(1)}%`}
+    />
+  );
+}
+
+export function RuntimeMemoryMeter({ runtime }: { runtime?: RuntimeMetric }) {
+  if (!runtime || runtime.memoryUsageBytes === null) {
+    return <span className="text-muted">—</span>;
+  }
+  const memoryPercent = runtime.memoryLimitBytes
+    ? percentage(runtime.memoryUsageBytes, runtime.memoryLimitBytes)
+    : null;
+  if (memoryPercent === null) {
+    return (
+      <span className="whitespace-nowrap tabular-nums">
+        {formatBytes(runtime.memoryUsageBytes)}
+      </span>
+    );
+  }
+  return (
+    <CompactMeter
+      label={`${runtime.name} memory used`}
+      status={meterStatus(memoryPercent, 85, 95)}
+      value={memoryPercent}
+      valueLabel={`${formatBytes(runtime.memoryUsageBytes)} / ${formatBytes(runtime.memoryLimitBytes!)}`}
+    />
   );
 }
 

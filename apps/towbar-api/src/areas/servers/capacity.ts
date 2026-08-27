@@ -50,14 +50,32 @@ export async function getServerCapacity(
   workspaceId: string,
   serverId: string,
 ): Promise<RuntimeCapacity | null> {
-  const [capacity] = await listRuntimeCapacity(workspaceId, serverId);
+  const [capacity] = await listRuntimeCapacity({ serverId, workspaceId });
   return capacity ?? null;
 }
 
-async function listRuntimeCapacity(
+export async function listSourceCapacity(
   workspaceId: string,
-  serverId: string,
+  sourceId: string,
 ): Promise<RuntimeCapacity[]> {
+  return listRuntimeCapacity({ sourceId, workspaceId });
+}
+
+async function listRuntimeCapacity({
+  serverId,
+  sourceId,
+  workspaceId,
+}: {
+  serverId?: string;
+  sourceId?: string;
+  workspaceId: string;
+}): Promise<RuntimeCapacity[]> {
+  const serverScope = [
+    eq(servers.workspaceId, workspaceId),
+    isNull(servers.archivedAt),
+  ];
+  if (serverId) serverScope.push(eq(servers.id, serverId));
+  if (sourceId) serverScope.push(eq(servers.sourceId, sourceId));
   const serverRows = await getTowbarDatabase()
     .select({
       id: servers.id,
@@ -65,13 +83,7 @@ async function listRuntimeCapacity(
       sourceId: servers.sourceId,
     })
     .from(servers)
-    .where(
-      and(
-        eq(servers.workspaceId, workspaceId),
-        isNull(servers.archivedAt),
-        eq(servers.id, serverId),
-      ),
-    );
+    .where(and(...serverScope));
   if (serverRows.length === 0) return [];
   const serverIds = serverRows.map((server) => server.id);
   const [latestChecks, latestSuccessfulChecks, deployables] = await Promise.all(
