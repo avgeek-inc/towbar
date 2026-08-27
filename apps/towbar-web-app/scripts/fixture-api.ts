@@ -24,6 +24,7 @@ import type {
   Release,
   Resource,
   ResourceOperation,
+  RuntimeCapacity,
   Server,
   ServerCheck,
   ServerPreparation,
@@ -480,103 +481,104 @@ let systemHealth: SystemHealth = {
       title: "AWS access",
     },
   ],
-  runtimeCapacity: [
-    {
-      checkedAt: systemHealthFixtureNow,
-      cpu: { loadAverage1m: 1.7, logicalCount: 4, usagePercent: 38.4 },
-      disk: {
-        availableBytes: 12_884_901_888,
-        totalBytes: 107_374_182_400,
-        usedPercent: 88,
-      },
-      id: fixtureIds.server,
-      ip: servers[0]!.canonicalIp,
-      latestCheckStatus: "succeeded",
-      memory: {
-        availableBytes: 5_583_457_280,
-        totalBytes: 17_179_869_184,
-        usedPercent: 67.5,
-      },
-      runtimes: [
-        {
-          cpuPercent: 4.7,
-          healthStatus: "healthy",
-          id: apps[0]!.id,
-          kind: "app",
-          memoryLimitBytes: 4_294_967_296,
-          memoryUsageBytes: 734_003_200,
-          name: apps[0]!.name,
-          observedState: "running",
-          restartCount: 2,
-          startedAt: "2026-08-21T09:00:00.000Z",
-        },
-        {
-          cpuPercent: 1.2,
-          healthStatus: "healthy",
-          id: resources[0]!.id,
-          kind: "postgres",
-          memoryLimitBytes: 4_294_967_296,
-          memoryUsageBytes: 1_342_177_280,
-          name: resources[0]!.name,
-          observedState: "running",
-          restartCount: 0,
-          startedAt: "2026-08-20T09:00:00.000Z",
-        },
-      ],
-      sourceId: source.id,
-      status: "attention",
-      uptimeSeconds: 1_236_420,
-    },
-    {
-      checkedAt: systemHealthFixtureNow,
-      cpu: { loadAverage1m: 0.8, logicalCount: 8, usagePercent: 22.6 },
-      disk: {
-        availableBytes: 73_014_444_032,
-        totalBytes: 107_374_182_400,
-        usedPercent: 32,
-      },
-      id: fixtureIds.secondaryServer,
-      ip: servers[1]!.canonicalIp,
-      latestCheckStatus: "succeeded",
-      memory: {
-        availableBytes: 22_548_578_304,
-        totalBytes: 34_359_738_368,
-        usedPercent: 34.4,
-      },
-      runtimes: [
-        ...apps.slice(1).map((app, index) => ({
-          cpuPercent: 1.4 + index,
-          healthStatus: "healthy" as const,
-          id: app.id,
-          kind: "app" as const,
-          memoryLimitBytes: 4_294_967_296,
-          memoryUsageBytes: 314_572_800 + index * 52_428_800,
-          name: app.name,
-          observedState: "running" as const,
-          restartCount: 0,
-          startedAt: "2026-08-22T07:00:00.000Z",
-        })),
-        ...resources.slice(1).map((resource, index) => ({
-          cpuPercent: 0.8 + index,
-          healthStatus: "healthy" as const,
-          id: resource.id,
-          kind: resource.kind,
-          memoryLimitBytes: 4_294_967_296,
-          memoryUsageBytes: 262_144_000 + index * 78_643_200,
-          name: resource.name,
-          observedState: "running" as const,
-          restartCount: 0,
-          startedAt: "2026-08-22T07:00:00.000Z",
-        })),
-      ],
-      sourceId: source.id,
-      status: "healthy",
-      uptimeSeconds: 923_580,
-    },
-  ],
   status: "attention",
   version: "1.0.2-fixture",
 };
+
+const runtimeCapacity: RuntimeCapacity[] = [
+  {
+    checkedAt: systemHealthFixtureNow,
+    cpu: { loadAverage1m: 1.7, logicalCount: 4, usagePercent: 38.4 },
+    disk: {
+      availableBytes: 12_884_901_888,
+      totalBytes: 107_374_182_400,
+      usedPercent: 88,
+    },
+    id: fixtureIds.server,
+    ip: servers[0]!.canonicalIp,
+    latestCheckStatus: "succeeded",
+    memory: {
+      availableBytes: 5_583_457_280,
+      totalBytes: 17_179_869_184,
+      usedPercent: 67.5,
+    },
+    runtimes: [
+      {
+        cpuPercent: 4.7,
+        healthStatus: "healthy",
+        id: apps[0]!.id,
+        kind: "app",
+        memoryLimitBytes: 4_294_967_296,
+        memoryUsageBytes: 734_003_200,
+        name: apps[0]!.name,
+        observedState: "running",
+        restartCount: 2,
+        startedAt: "2026-08-21T09:00:00.000Z",
+      },
+      {
+        cpuPercent: 1.2,
+        healthStatus: "healthy",
+        id: resources[0]!.id,
+        kind: "postgres",
+        memoryLimitBytes: 4_294_967_296,
+        memoryUsageBytes: 1_342_177_280,
+        name: resources[0]!.name,
+        observedState: "running",
+        restartCount: 0,
+        startedAt: "2026-08-20T09:00:00.000Z",
+      },
+    ],
+    sourceId: source.id,
+    status: "attention",
+    uptimeSeconds: 1_236_420,
+  },
+  {
+    checkedAt: systemHealthFixtureNow,
+    cpu: { loadAverage1m: 0.8, logicalCount: 8, usagePercent: 22.6 },
+    disk: {
+      availableBytes: 73_014_444_032,
+      totalBytes: 107_374_182_400,
+      usedPercent: 32,
+    },
+    id: fixtureIds.secondaryServer,
+    ip: servers[1]!.canonicalIp,
+    latestCheckStatus: "succeeded",
+    memory: {
+      availableBytes: 22_548_578_304,
+      totalBytes: 34_359_738_368,
+      usedPercent: 34.4,
+    },
+    runtimes: [
+      ...apps.slice(1).map((app, index) => ({
+        cpuPercent: 1.4 + index,
+        healthStatus: "healthy" as const,
+        id: app.id,
+        kind: "app" as const,
+        memoryLimitBytes: 4_294_967_296,
+        memoryUsageBytes: 314_572_800 + index * 52_428_800,
+        name: app.name,
+        observedState: "running" as const,
+        restartCount: 0,
+        startedAt: "2026-08-22T07:00:00.000Z",
+      })),
+      ...resources.slice(1).map((resource, index) => ({
+        cpuPercent: 0.8 + index,
+        healthStatus: "healthy" as const,
+        id: resource.id,
+        kind: resource.kind,
+        memoryLimitBytes: 4_294_967_296,
+        memoryUsageBytes: 262_144_000 + index * 78_643_200,
+        name: resource.name,
+        observedState: "running" as const,
+        restartCount: 0,
+        startedAt: "2026-08-22T07:00:00.000Z",
+      })),
+    ],
+    sourceId: source.id,
+    status: "healthy",
+    uptimeSeconds: 923_580,
+  },
+];
 
 const serverPreparationsByServer = new Map<string, ServerPreparation[]>([
   [fixtureIds.server, []],
@@ -671,11 +673,7 @@ export function createFixtureApiServer() {
               : check.description,
           status: "healthy",
         })),
-        status: systemHealth.runtimeCapacity.some(
-          (server) => server.status === "attention",
-        )
-          ? "attention"
-          : "healthy",
+        status: "healthy",
       };
       return writeJson(response, 200, systemHealth);
     }
@@ -1105,7 +1103,7 @@ function getFixturePayload(
   }
 
   const serverMatch = path.match(
-    /^\/v1\/core\/servers\/([^/]+)(?:\/(apps|resources|deployments|checks|host-keys|orphans|preparations))?$/,
+    /^\/v1\/core\/servers\/([^/]+)(?:\/(apps|resources|deployments|capacity|checks|host-keys|orphans|preparations))?$/,
   );
   if (serverMatch) {
     const server = servers.find((item) => item.id === serverMatch[1]);
@@ -1126,6 +1124,11 @@ function getFixturePayload(
     if (child === "deployments") {
       return {
         deployments: deployments.filter((item) => item.serverId === server.id),
+      };
+    }
+    if (child === "capacity") {
+      return {
+        capacity: runtimeCapacity.find((item) => item.id === server.id),
       };
     }
     if (child === "checks") {

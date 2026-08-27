@@ -23,7 +23,8 @@ import {
   getServerOrphans,
   requestOrphanCleanup,
 } from "../../../areas/resource-operations/service.js";
-import { badRequest, forbidden } from "../../../http/errors.js";
+import { getServerCapacity } from "../../../areas/servers/capacity.js";
+import { badRequest, forbidden, notFound } from "../../../http/errors.js";
 import { readJson } from "../../../http/requests.js";
 
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
@@ -97,6 +98,14 @@ serverRoutes.get("/:serverId/deployments", async (context) =>
     ),
   }),
 );
+serverRoutes.get("/:serverId/capacity", async (context) => {
+  const serverId = context.req.param("serverId");
+  const workspaceId = context.get("user").workspaceId;
+  await getServer(serverId, workspaceId);
+  const capacity = await getServerCapacity(workspaceId, serverId);
+  if (!capacity) throw notFound("Server capacity");
+  return context.json({ capacity });
+});
 serverRoutes.get("/:serverId/checks", async (context) => {
   const pagination = serverChecksQuerySchema.parse(context.req.query());
   return context.json(

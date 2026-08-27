@@ -30,10 +30,13 @@ Database Resource pages expose verified backup policy, manual capture, and
 retained S3 artifact metadata. When configured by the manifest, the Resource
 connection view exposes non-secret private-network and SSH-tunnel coordinates
 for tools such as TablePlus. Database restores remain a manual operator task.
-Server pages list only Source-scoped orphan candidates from the latest check;
-owner-confirmed cleanup is destructive and persistent volumes are never
-removed automatically. Trusted SSH host keys can be explicitly untrusted from
-the Server's Host Keys tab after confirmation.
+Server pages show host capacity on Overview and container capacity in an
+Apps/Resources tab. Host CPU, memory, Docker disk pressure, and uptime are shown
+separately from the runtime inventory, whose CPU and memory values include
+compact usage meters. Server pages also list only Source-scoped orphan
+candidates from the latest check; owner-confirmed cleanup is destructive and
+persistent volumes are never removed automatically. Trusted SSH host keys can
+be explicitly untrusted from the Server's Host Keys tab after confirmation.
 
 ## Local UI fixture
 

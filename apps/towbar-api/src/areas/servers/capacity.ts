@@ -46,8 +46,17 @@ const serverResultSchema = z
   })
   .passthrough();
 
-export async function getRuntimeCapacity(
+export async function getServerCapacity(
   workspaceId: string,
+  serverId: string,
+): Promise<RuntimeCapacity | null> {
+  const [capacity] = await listRuntimeCapacity(workspaceId, serverId);
+  return capacity ?? null;
+}
+
+async function listRuntimeCapacity(
+  workspaceId: string,
+  serverId: string,
 ): Promise<RuntimeCapacity[]> {
   const serverRows = await getTowbarDatabase()
     .select({
@@ -57,7 +66,11 @@ export async function getRuntimeCapacity(
     })
     .from(servers)
     .where(
-      and(eq(servers.workspaceId, workspaceId), isNull(servers.archivedAt)),
+      and(
+        eq(servers.workspaceId, workspaceId),
+        isNull(servers.archivedAt),
+        eq(servers.id, serverId),
+      ),
     );
   if (serverRows.length === 0) return [];
   const serverIds = serverRows.map((server) => server.id);

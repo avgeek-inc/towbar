@@ -2,6 +2,7 @@
 
 import {
   Activity01Icon,
+  DashboardCircleIcon,
   Delete02Icon,
   Key01Icon,
   ServerStack01Icon,
@@ -12,6 +13,7 @@ import { useEffect } from "react";
 import type {
   OrphanItem,
   ResourceOperation,
+  RuntimeCapacity,
   Server,
   ServerCheck,
   ServerChecksPage,
@@ -38,6 +40,10 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { reconcileServerSetupStatus } from "@/lib/server-preparation-status";
 import { formatDate } from "./dashboard-overview";
+import {
+  ServerHostCapacity,
+  ServerRuntimeCapacityTable,
+} from "./server-capacity";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 
 type DiscoveredKey = {
@@ -73,6 +79,10 @@ export function ServerDetail() {
     `/v1/core/servers/${serverId}/checks?page=1&limit=${SERVER_CHECK_PAGE_SIZE}`,
     5_000,
   );
+  const capacity = useApiQuery<{ capacity: RuntimeCapacity }>(
+    `/v1/core/servers/${serverId}/capacity`,
+    5_000,
+  );
   const keys = useApiQuery<{ hostKeys: TrustedHostKey[] }>(
     `/v1/core/servers/${serverId}/host-keys`,
   );
@@ -97,6 +107,7 @@ export function ServerDetail() {
   const error =
     server.error ??
     checks.error ??
+    capacity.error ??
     keys.error ??
     preparations.error ??
     orphans.error;
@@ -109,6 +120,7 @@ export function ServerDetail() {
   if (
     !server.data ||
     !checks.data ||
+    !capacity.data ||
     !keys.data ||
     !preparations.data ||
     !orphans.data
@@ -355,6 +367,7 @@ export function ServerDetail() {
                     serverId={serverId}
                     setupStatus={setupStatus}
                   />
+                  <ServerHostCapacity capacity={capacity.data.capacity} />
                   <div className="grid gap-8 lg:grid-cols-2">
                     <Attributes columns={2} title="Connection" variant="card">
                       <Attributes.Item label="IP address">
@@ -414,6 +427,14 @@ export function ServerDetail() {
                     </Attributes>
                   </div>
                 </div>
+              ),
+            },
+            {
+              value: "apps-resources",
+              label: "Apps/Resources",
+              icon: <HugeiconsIcon icon={DashboardCircleIcon} />,
+              content: (
+                <ServerRuntimeCapacityTable capacity={capacity.data.capacity} />
               ),
             },
             {

@@ -42,6 +42,7 @@ const readRoutes = [
   `/v1/core/servers/${fixtureIds.server}/apps`,
   `/v1/core/servers/${fixtureIds.server}/resources`,
   `/v1/core/servers/${fixtureIds.server}/deployments`,
+  `/v1/core/servers/${fixtureIds.server}/capacity`,
   `/v1/core/servers/${fixtureIds.server}/checks`,
   `/v1/core/servers/${fixtureIds.server}/preparations`,
   `/v1/core/servers/${fixtureIds.server}/host-keys`,
@@ -58,7 +59,7 @@ test("terminal preparation state replaces a stale preparing server state", () =>
   assert.equal(reconcileServerSetupStatus("pending", "succeeded"), "pending");
 });
 
-test("the local fixture runs system checks and returns runtime capacity", async () => {
+test("the local fixture separates control-plane checks from server capacity", async () => {
   const server = createFixtureApiServer();
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -77,8 +78,14 @@ test("the local fixture runs system checks and returns runtime capacity", async 
       health.checks.find((check) => check.id === "aws").status,
       "healthy",
     );
-    assert.equal(health.runtimeCapacity.length, 2);
-    assert.equal(health.runtimeCapacity[0].runtimes.length > 0, true);
+    assert.equal("runtimeCapacity" in health, false);
+    const capacityResponse = await fetch(
+      `http://127.0.0.1:${address.port}/v1/core/servers/${fixtureIds.server}/capacity`,
+    );
+    assert.equal(capacityResponse.status, 200);
+    const { capacity } = await capacityResponse.json();
+    assert.equal(capacity.id, fixtureIds.server);
+    assert.equal(capacity.runtimes.length > 0, true);
   } finally {
     server.close();
     await once(server, "close");

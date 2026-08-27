@@ -19,7 +19,6 @@ import {
 import { wakeMaintenanceWorkflow } from "../../infrastructure/temporal.js";
 import { verifyStoredAwsCredentials } from "../aws/service.js";
 import { getGitHubInstallation } from "../github/client.js";
-import { getRuntimeCapacity } from "./capacity.js";
 import {
   listSystemHealthSignals,
   recordSystemHealthSignal,
@@ -34,27 +33,25 @@ export async function getSystemHealth(
   workspaceId: string,
 ): Promise<SystemHealth> {
   await pingDatabase();
-  const [signals, runtimeCapacity, githubConnection, awsCredentials] =
-    await Promise.all([
-      listSystemHealthSignals(workspaceId),
-      getRuntimeCapacity(workspaceId),
-      getTowbarDatabase()
-        .select({
-          accountLogin: githubInstallations.accountLogin,
-          suspendedAt: githubInstallations.suspendedAt,
-        })
-        .from(githubInstallations)
-        .where(eq(githubInstallations.workspaceId, workspaceId))
-        .limit(1),
-      getTowbarDatabase()
-        .select({
-          sourceId: sourceAwsCredentials.sourceId,
-          status: sourceAwsCredentials.verificationStatus,
-          verifiedAt: sourceAwsCredentials.verifiedAt,
-        })
-        .from(sourceAwsCredentials)
-        .where(eq(sourceAwsCredentials.workspaceId, workspaceId)),
-    ]);
+  const [signals, githubConnection, awsCredentials] = await Promise.all([
+    listSystemHealthSignals(workspaceId),
+    getTowbarDatabase()
+      .select({
+        accountLogin: githubInstallations.accountLogin,
+        suspendedAt: githubInstallations.suspendedAt,
+      })
+      .from(githubInstallations)
+      .where(eq(githubInstallations.workspaceId, workspaceId))
+      .limit(1),
+    getTowbarDatabase()
+      .select({
+        sourceId: sourceAwsCredentials.sourceId,
+        status: sourceAwsCredentials.verificationStatus,
+        verifiedAt: sourceAwsCredentials.verifiedAt,
+      })
+      .from(sourceAwsCredentials)
+      .where(eq(sourceAwsCredentials.workspaceId, workspaceId)),
+  ]);
   const byComponent = new Map(
     signals.map((signal) => [signal.component, signal]),
   );
@@ -97,11 +94,7 @@ export async function getSystemHealth(
   return {
     checkedAt: new Date().toISOString(),
     checks,
-    runtimeCapacity,
-    status: highestStatus([
-      ...checks.map((check) => check.status),
-      ...runtimeCapacity.map((item) => item.status),
-    ]),
+    status: highestStatus(checks.map((check) => check.status)),
     version,
   };
 }
