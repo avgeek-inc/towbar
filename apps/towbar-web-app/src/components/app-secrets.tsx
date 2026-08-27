@@ -70,21 +70,21 @@ export function AppSecrets({
 
   return (
     <Tabs className="block" defaultSelectedKey="build">
-      <Tabs.ListContainer className="max-w-full w-fit">
-        <Tabs.List aria-label="App secret stages">
-          <Tabs.Tab id="build">
+      <Tabs.ListContainer className="w-fit max-w-full overflow-x-auto">
+        <Tabs.List aria-label="App secret stages" className="min-w-max">
+          <Tabs.Tab className="whitespace-nowrap" id="build">
             Build
             <Tabs.Indicator />
           </Tabs.Tab>
-          <Tabs.Tab id="deployment">
+          <Tabs.Tab className="whitespace-nowrap" id="deployment">
             Deployment
             <Tabs.Indicator />
           </Tabs.Tab>
-          <Tabs.Tab id="preview_build">
+          <Tabs.Tab className="whitespace-nowrap" id="preview_build">
             Preview build
             <Tabs.Indicator />
           </Tabs.Tab>
-          <Tabs.Tab id="preview_deployment">
+          <Tabs.Tab className="whitespace-nowrap" id="preview_deployment">
             Preview deployment
             <Tabs.Indicator />
           </Tabs.Tab>
