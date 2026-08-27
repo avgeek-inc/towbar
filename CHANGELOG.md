@@ -5,6 +5,12 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+### Changed
+
+- Removed manifest-level deployment dependencies. Eligible automatic
+  deployments now queue independently, while operators who need ordering can
+  disable automatic deployment and admit downstream deployables manually.
+
 ### Fixed
 
 - Application containers now retain their loopback host port across Docker

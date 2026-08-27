@@ -1,13 +1,6 @@
-import { findUnavailableAppDependencies } from "./dependencies.js";
-
-import type { DependencyReleaseState } from "./dependencies.js";
-
 type AutomaticDeploymentCandidate = {
   archivedAt: Date | null;
-  config: {
-    autoDeploy?: boolean;
-    dependsOn?: string[];
-  };
+  config: { autoDeploy?: boolean };
   deploymentDigest: string | null;
   manifestId: string;
   kind: "app" | "image" | "postgres" | "redis";
@@ -15,12 +8,17 @@ type AutomaticDeploymentCandidate = {
   sourceRevision: string | null;
 };
 
+export type AutomaticDeploymentReleaseState = {
+  currentDeploymentDigest: string | null;
+  manifestId: string;
+};
+
 export function selectAutomaticDeploymentCandidates<
   Candidate extends AutomaticDeploymentCandidate,
 >(input: {
   candidates: Candidate[];
   commitSha: string;
-  releases: DependencyReleaseState[];
+  releases: AutomaticDeploymentReleaseState[];
 }) {
   const currentReleaseByApp = new Map(
     input.releases.map((release) => [release.manifestId, release]),
@@ -35,17 +33,13 @@ export function selectAutomaticDeploymentCandidates<
       !isCandidateCurrent(
         candidate,
         currentReleaseByApp.get(candidate.manifestId),
-      ) &&
-      findUnavailableAppDependencies({
-        dependencyIds: candidate.config.dependsOn ?? [],
-        releases: input.releases,
-      }).length === 0,
+      ),
   );
 }
 
 function isCandidateCurrent(
   candidate: AutomaticDeploymentCandidate,
-  release: DependencyReleaseState | undefined,
+  release: AutomaticDeploymentReleaseState | undefined,
 ) {
   return Boolean(
     release &&

@@ -83,6 +83,8 @@ export function getDeployableDeploymentDigest(input: {
 function getDeploymentRuntimeConfig(deployable: NormalizedDeployable) {
   const value = { ...deployable } as Record<string, unknown>;
   delete value.autoDeploy;
+  // Ignore the scheduling field retained by deployments admitted before
+  // dependency support was removed from the manifest contract.
   delete value.dependsOn;
   delete value.description;
   delete value.deploymentInputs;

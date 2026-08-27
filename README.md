@@ -14,7 +14,7 @@ truth and runs deployments through durable Temporal workflows.
 ## Highlights
 
 - GitHub repositories and versioned manifests define Sources, Servers, Apps,
-  Resources, domains, dependencies, and deployment policy.
+  Resources, domains, and deployment policy.
 - Builds run on the target host, without requiring a container registry.
 - AWS Secrets Manager values are resolved just in time and stay out of Git.
 - SSH host-key pinning, server preparation, health checks, and queued

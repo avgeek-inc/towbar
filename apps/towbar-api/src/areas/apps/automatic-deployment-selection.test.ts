@@ -11,12 +11,12 @@ const active = {
   sourceRevision: "current",
 };
 
-void test("selects changed roots and waits for dependencies by deployment digest", () => {
+void test("selects changed roots independently by deployment digest", () => {
   const candidates = [
     { ...active, config: { autoDeploy: true }, manifestId: "api" },
     {
       ...active,
-      config: { autoDeploy: true, dependsOn: ["api"] },
+      config: { autoDeploy: true },
       deploymentDigest: "web-desired",
       manifestId: "web",
     },
@@ -29,14 +29,12 @@ void test("selects changed roots and waits for dependencies by deployment digest
       commitSha: "current",
       releases: [
         {
-          archivedAt: null,
           currentDeploymentDigest: "api-old",
-          desiredDeploymentDigest: "desired",
           manifestId: "api",
         },
       ],
     }).map((candidate) => candidate.manifestId),
-    ["api"],
+    ["api", "web"],
   );
 
   assert.deepEqual(
@@ -45,9 +43,7 @@ void test("selects changed roots and waits for dependencies by deployment digest
       commitSha: "current",
       releases: [
         {
-          archivedAt: null,
           currentDeploymentDigest: "desired",
-          desiredDeploymentDigest: "desired",
           manifestId: "api",
         },
       ],
@@ -104,9 +100,7 @@ void test("excludes stale, inactive, already-current, and manual apps", () => {
       commitSha: "current",
       releases: [
         {
-          archivedAt: null,
           currentDeploymentDigest: "desired",
-          desiredDeploymentDigest: "desired",
           manifestId: "already-current",
         },
       ],
@@ -124,9 +118,7 @@ void test("uses the same deployment digest rule for Resources", () => {
     manifestId: "database",
   };
   const release = {
-    archivedAt: null,
     currentDeploymentDigest: "resource-v1",
-    desiredDeploymentDigest: "resource-v2",
     manifestId: "database",
   };
   assert.deepEqual(

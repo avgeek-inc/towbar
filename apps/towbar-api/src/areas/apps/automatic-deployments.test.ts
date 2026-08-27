@@ -2,9 +2,16 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  continueAutomaticDeployments,
   isSourceSyncEligibleForAutomaticDeployments,
   sourceSyncDeploymentIdempotencyKey,
 } from "./automatic-deployments.js";
+
+void test("does not chain automatic deployments after a deployment completes", () => {
+  assert.deepEqual(continueAutomaticDeployments("deployment-id"), {
+    deploymentIds: [],
+  });
+});
 
 void test("admits automatic deployments after webhook and operator syncs", () => {
   assert.equal(

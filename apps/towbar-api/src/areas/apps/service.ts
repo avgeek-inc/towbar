@@ -16,7 +16,6 @@ import { conflict, notFound, unprocessable } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueueDeployment } from "../../infrastructure/temporal.js";
 import { publicDeploymentSelection } from "../deployment-selection.js";
-import { requireSatisfiedAppDependencies } from "./dependencies.js";
 import { scopeDeploymentIdempotencyKey } from "./idempotency.js";
 import { getApp, getResource } from "./queries.js";
 
@@ -98,12 +97,6 @@ export async function requestAppDeployment(input: {
       "SOURCE_REVISION_SUPERSEDED",
     );
   }
-  await requireSatisfiedAppDependencies({
-    app: target.config,
-    sourceId: target.sourceId,
-    workspaceId: request.workspaceId,
-  });
-
   const deploymentId = randomUUID();
   let admission;
   try {

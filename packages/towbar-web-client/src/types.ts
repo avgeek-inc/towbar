@@ -29,7 +29,6 @@ export type App = {
     };
     context?: string;
     deploymentInputs?: string[];
-    dependsOn?: string[];
     description?: string;
     dockerfile: string;
     domains?: {
@@ -135,7 +134,6 @@ export type Resource = {
       resources: { cpus: number; memory: string };
       volumes: Array<{ mountPath: string; name: string }>;
     };
-    dependsOn?: string[];
     description?: string;
     domains?: {
       primary: string;

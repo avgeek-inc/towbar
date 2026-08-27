@@ -77,7 +77,6 @@ void test("deployment metadata and scheduling controls do not change the runtime
     autoDeploy: true,
     container: { port: 3_000 },
     context: ".",
-    dependsOn: [],
     deploymentInputs: ["apps/web/**"],
     dockerfile: "apps/web/Dockerfile",
     health: { path: "/health", timeoutSeconds: 60 },
@@ -107,7 +106,6 @@ void test("deployment metadata and scheduling controls do not change the runtime
       deployable: {
         ...app,
         autoDeploy: false,
-        dependsOn: ["api"],
         description: "Display-only description",
         deploymentInputs: ["packages/shared/**"],
         name: "Renamed Web",

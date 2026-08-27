@@ -350,9 +350,6 @@ function AppConfigurationTabs({ item }: { item: AppRecord }) {
               {item.sourceRevision.slice(0, 12)}
             </TypographyCode>
           </Attributes.Item>
-          <Attributes.Item label="Depends on">
-            {renderCodeList(item.config.dependsOn)}
-          </Attributes.Item>
           <Attributes.Item label="Shared build secrets">
             {formatCount(
               item.config.sharedSecrets?.build.length ?? 0,
