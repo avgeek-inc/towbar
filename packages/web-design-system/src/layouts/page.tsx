@@ -51,7 +51,7 @@ export function PageSection({
         yPadding === "default"
           ? "py-6 sm:py-10"
           : yPadding === "compact"
-            ? "py-3 sm:py-6"
+            ? "py-3 sm:py-4"
             : "py-0",
         className,
       )}

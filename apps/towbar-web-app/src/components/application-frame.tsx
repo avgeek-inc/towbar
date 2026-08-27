@@ -83,7 +83,9 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
         toggleShortcut
         {...sidebarState}
       >
-        <AppShell.Content variant="broad">{children}</AppShell.Content>
+        <AppShell.Content className="py-0 sm:py-0" variant="broad">
+          {children}
+        </AppShell.Content>
         <DeploymentQueue />
       </AppLayout>
     </AppShell>

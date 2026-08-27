@@ -18,10 +18,10 @@ Their configuration and lifecycle are read-only projections of the Source
 manifest; removal and restoration happen through Git and Source sync.
 The App and Resource Secrets tabs show only deployable-owned bindings. Resources
 expose deployment bindings only. Root-shared build and deployment bindings are
-edited from the owning Source's Secrets tab. The owner can add, replace, or delete
-values, then optionally queue the affected deployable. Values are fetched only
-through an explicit owner-only reveal request; the UI cannot change a manifest
-reference.
+edited from the owning Source's Settings tab. The owner can add, replace, or
+delete values, then optionally queue the affected deployable. Values are fetched
+only through an explicit owner-only reveal request; the UI cannot change a
+manifest reference.
 Apps with Preview enabled expose pull request environments, stable URLs,
 expiry, latest deployment status, and an owner cleanup action from the App
 page. Preview build and deployment secret bindings are edited independently
