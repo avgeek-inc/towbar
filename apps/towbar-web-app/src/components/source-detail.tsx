@@ -262,9 +262,8 @@ export function SourceDetail() {
               : undefined,
             content: (
               <SourceServers
-                apps={apps.data?.apps}
-                error={servers.error ?? apps.error ?? resources.error}
-                resources={resources.data?.resources}
+                capacities={capacity.data?.capacities}
+                error={servers.error ?? capacity.error}
                 servers={servers.data?.servers}
                 sourceId={sourceId}
               />

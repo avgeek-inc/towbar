@@ -196,6 +196,56 @@ export function RuntimeMemoryMeter({ runtime }: { runtime?: RuntimeMetric }) {
   );
 }
 
+export function ServerHostMeter({
+  capacity,
+  metric,
+}: {
+  capacity?: RuntimeCapacity;
+  metric: "cpu" | "disk" | "memory";
+}) {
+  const presentation =
+    metric === "cpu" && capacity?.cpu
+      ? {
+          label: "CPU",
+          status: meterStatus(capacity.cpu.usagePercent, 75, 90),
+          value: capacity.cpu.usagePercent,
+        }
+      : metric === "memory" && capacity?.memory
+        ? {
+            label: "Memory",
+            status: meterStatus(capacity.memory.usedPercent, 85, 95),
+            value: capacity.memory.usedPercent,
+          }
+        : metric === "disk" && capacity?.disk
+          ? {
+              label: "Docker disk",
+              status: meterStatus(capacity.disk.usedPercent, 85, 95),
+              value: capacity.disk.usedPercent,
+            }
+          : null;
+  if (!capacity || !presentation) {
+    return <span className="text-muted">—</span>;
+  }
+  return (
+    <CompactMeter
+      label={`${capacity.ip} ${presentation.label} used`}
+      status={presentation.status}
+      value={presentation.value}
+      valueLabel={`${presentation.value.toFixed(1)}%`}
+    />
+  );
+}
+
+export function ServerUptime({ capacity }: { capacity?: RuntimeCapacity }) {
+  return (
+    <span className="whitespace-nowrap tabular-nums">
+      {capacity?.uptimeSeconds === null || capacity?.uptimeSeconds === undefined
+        ? "—"
+        : formatDuration(capacity.uptimeSeconds)}
+    </span>
+  );
+}
+
 function CapacityValue({
   detail,
   label,

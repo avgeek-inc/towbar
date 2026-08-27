@@ -28,6 +28,8 @@ import { LastSyncedTime, RelativeTimeProvider } from "./last-synced-time";
 import {
   RuntimeCpuMeter,
   RuntimeMemoryMeter,
+  ServerHostMeter,
+  ServerUptime,
   type RuntimeMetric,
 } from "./server-capacity";
 
@@ -228,31 +230,21 @@ export function SourceResources({
 }
 
 export function SourceServers({
-  apps,
+  capacities,
   error,
-  resources,
   servers,
   sourceId,
 }: {
-  apps?: App[];
+  capacities?: RuntimeCapacity[];
   error?: string;
-  resources?: Resource[];
   servers?: SourceServer[];
   sourceId: string;
 }) {
   if (error) return <QueryError message={error} />;
-  if (!servers || !apps || !resources) return <QueryLoading variant="list" />;
-  const appCounts = new Map<string, number>();
-  const resourceCounts = new Map<string, number>();
-  for (const app of apps) {
-    appCounts.set(app.serverIp, (appCounts.get(app.serverIp) ?? 0) + 1);
-  }
-  for (const resource of resources) {
-    resourceCounts.set(
-      resource.serverIp,
-      (resourceCounts.get(resource.serverIp) ?? 0) + 1,
-    );
-  }
+  if (!servers || !capacities) return <QueryLoading variant="list" />;
+  const capacityByServerId = new Map(
+    capacities.map((capacity) => [capacity.id, capacity] as const),
+  );
   const serverColumns: ResourceTableColumn<SourceServer>[] = [
     {
       cell: (server) => server.canonicalIp,
@@ -267,20 +259,45 @@ export function SourceServers({
       key: "host-keys",
     },
     {
-      cell: (server) => server.config.ssh.username,
-      className: "min-w-36",
-      header: "Username",
-      key: "username",
+      cell: (server) => (
+        <ServerHostMeter
+          capacity={capacityByServerId.get(server.id)}
+          metric="cpu"
+        />
+      ),
+      className: "min-w-40",
+      header: "CPU",
+      key: "cpu",
     },
     {
-      cell: (server) =>
-        formatDeployableCounts(
-          appCounts.get(server.canonicalIp) ?? 0,
-          resourceCounts.get(server.canonicalIp) ?? 0,
-        ),
-      className: "min-w-48 tabular-nums",
-      header: "Apps/Resources",
-      key: "deployables",
+      cell: (server) => (
+        <ServerHostMeter
+          capacity={capacityByServerId.get(server.id)}
+          metric="memory"
+        />
+      ),
+      className: "min-w-40",
+      header: "Memory",
+      key: "memory",
+    },
+    {
+      cell: (server) => (
+        <ServerHostMeter
+          capacity={capacityByServerId.get(server.id)}
+          metric="disk"
+        />
+      ),
+      className: "min-w-40",
+      header: "Docker disk",
+      key: "disk",
+    },
+    {
+      cell: (server) => (
+        <ServerUptime capacity={capacityByServerId.get(server.id)} />
+      ),
+      className: "min-w-28",
+      header: "Uptime",
+      key: "uptime",
     },
     {
       cell: (server) => (
@@ -309,7 +326,7 @@ export function SourceServers({
         getRowHref={(server) => `/sources/${sourceId}/servers/${server.id}`}
         getRowKey={(server) => server.id}
         items={servers}
-        tableClassName="min-w-[1000px]"
+        tableClassName="min-w-[1360px]"
       />
     </RelativeTimeProvider>
   );
@@ -369,10 +386,6 @@ function formatResourceKind(kind: Resource["kind"]) {
   if (kind === "postgres") return "PostgreSQL";
   if (kind === "redis") return "Redis";
   return "Image";
-}
-
-function formatDeployableCounts(apps: number, resources: number) {
-  return `${apps} ${apps === 1 ? "app" : "apps"} · ${resources} ${resources === 1 ? "resource" : "resources"}`;
 }
 
 function getRuntimeByDeployableId(capacities: RuntimeCapacity[]) {
