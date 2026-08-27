@@ -159,59 +159,33 @@ export function ResourceSecrets({
   );
 }
 
-export function SourceSecrets({ sourceId }: { sourceId: string }) {
-  const searchParams = useSearchParams();
-  const active = searchParams.get("section") === "secrets";
-  const endpoint = `/v1/core/sources/${sourceId}/secrets`;
-  const query = useApiQuery<AppSecretsResponse>(active ? endpoint : null);
-
-  if (!active) return null;
+export function SourceSecretStageEditor({
+  query,
+  sourceId,
+  stage,
+}: {
+  query: {
+    data?: AppSecretsResponse;
+    error?: string;
+    refresh: () => void;
+  };
+  sourceId: string;
+  stage: Extract<SecretStageGroup, "build" | "deployment">;
+}) {
   if (query.error) return <QueryError message={query.error} />;
   if (!query.data) return <QueryLoading />;
-  const data = query.data;
-  if (data.bindings.length === 0) {
-    return (
-      <EmptyState>
-        <EmptyState.Header>
-          <EmptyState.Title>No shared secrets configured</EmptyState.Title>
-          <EmptyState.Description>
-            Add shared build or deployment secret references to
-            .towbar/deployment.yml and sync this Source.
-          </EmptyState.Description>
-        </EmptyState.Header>
-      </EmptyState>
-    );
-  }
 
   return (
-    <Tabs className="block" defaultSelectedKey="build">
-      <Tabs.ListContainer className="w-72 max-w-full">
-        <Tabs.List className="w-full" aria-label="Shared Source secret stages">
-          <Tabs.Tab id="build">
-            Build
-            <Tabs.Indicator />
-          </Tabs.Tab>
-          <Tabs.Tab id="deployment">
-            Deployment
-            <Tabs.Indicator />
-          </Tabs.Tab>
-        </Tabs.List>
-      </Tabs.ListContainer>
-      {(["build", "deployment"] as const).map((stage) => (
-        <Tabs.Panel className="m-0 block p-0 pt-6" id={stage} key={stage}>
-          <SecretStageEditor
-            bindings={data.bindings}
-            canDeploy={false}
-            canManageSecrets={data.canManageSecrets}
-            endpoint={endpoint}
-            scope="shared"
-            sourceId={sourceId}
-            stage={stage}
-            onUpdated={query.refresh}
-          />
-        </Tabs.Panel>
-      ))}
-    </Tabs>
+    <SecretStageEditor
+      bindings={query.data.bindings}
+      canDeploy={false}
+      canManageSecrets={query.data.canManageSecrets}
+      endpoint={`/v1/core/sources/${sourceId}/secrets`}
+      scope="shared"
+      sourceId={sourceId}
+      stage={stage}
+      onUpdated={query.refresh}
+    />
   );
 }
 

@@ -5,15 +5,15 @@ import {
   DatabaseIcon,
   GithubIcon,
   InformationSquareIcon,
-  Key01Icon,
   ServerStack01Icon,
   Settings01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { type Key, type ReactNode } from "react";
 import type {
   App,
+  AppSecretsResponse,
   AwsCredentialMetadata,
   Deployment,
   Resource,
@@ -49,7 +49,7 @@ import { useResponsiveTabsOrientation } from "@/hooks/use-responsive-tabs-orient
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 import { SourceAwsCredentials } from "./source-aws-credentials";
-import { SourceSecrets } from "./app-secrets";
+import { SourceSecretStageEditor } from "./app-secrets";
 import { SourceApps, SourceResources, SourceServers } from "./source-inventory";
 
 type ManifestResponse = {
@@ -66,6 +66,7 @@ const SOURCE_SYNC_PAGE_SIZE = 10;
 export function SourceDetail() {
   const { sourceId } = useParams<{ sourceId: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const source = useApiQuery<{
     canManageSource: boolean;
     source: Source;
@@ -270,12 +271,6 @@ export function SourceDetail() {
             ),
           },
           {
-            value: "secrets",
-            label: "Secrets",
-            icon: <HugeiconsIcon icon={Key01Icon} />,
-            content: <SourceSecrets sourceId={sourceId} />,
-          },
-          {
             value: "info",
             label: "Info",
             icon: <HugeiconsIcon icon={InformationSquareIcon} />,
@@ -333,6 +328,7 @@ export function SourceDetail() {
                 awsData={aws.data}
                 awsError={aws.error}
                 canManage={source.data.canManageSource}
+                isActive={searchParams.get("section") === "settings"}
                 onDelete={() => router.push("/sources")}
                 refreshAws={aws.refresh}
                 sourceId={sourceId}
@@ -349,6 +345,7 @@ function SourceSettings({
   awsData,
   awsError,
   canManage,
+  isActive,
   onDelete,
   refreshAws,
   sourceId,
@@ -356,10 +353,20 @@ function SourceSettings({
   awsData?: { credential: AwsCredentialMetadata | null };
   awsError?: string;
   canManage: boolean;
+  isActive: boolean;
   onDelete: () => void;
   refreshAws: () => void;
   sourceId: string;
 }) {
+  const hasAwsCredentials = Boolean(awsData?.credential);
+  const secrets = useApiQuery<AppSecretsResponse>(
+    isActive && hasAwsCredentials
+      ? `/v1/core/sources/${sourceId}/secrets`
+      : null,
+  );
+  const secretsDisabledReason =
+    "Add AWS credentials before editing shared secrets";
+
   return (
     <SourceSubtabs
       ariaLabel="Source settings"
@@ -375,6 +382,32 @@ function SourceSettings({
               sourceId={sourceId}
             />
           ),
+        },
+        {
+          value: "build-secrets",
+          label: "Build Secrets",
+          isDisabled: !hasAwsCredentials,
+          disabledReason: secretsDisabledReason,
+          content: hasAwsCredentials ? (
+            <SourceSecretStageEditor
+              query={secrets}
+              sourceId={sourceId}
+              stage="build"
+            />
+          ) : null,
+        },
+        {
+          value: "deployment-secrets",
+          label: "Deployment Secrets",
+          isDisabled: !hasAwsCredentials,
+          disabledReason: secretsDisabledReason,
+          content: hasAwsCredentials ? (
+            <SourceSecretStageEditor
+              query={secrets}
+              sourceId={sourceId}
+              stage="deployment"
+            />
+          ) : null,
         },
         ...(canManage
           ? [
@@ -470,7 +503,13 @@ function SourceSubtabs({
   defaultSelectedKey: string;
   onSelectionChange?: (key: Key) => void;
   selectedKey?: string;
-  tabs: Array<{ content: ReactNode; label: string; value: string }>;
+  tabs: Array<{
+    content: ReactNode;
+    disabledReason?: string;
+    isDisabled?: boolean;
+    label: string;
+    value: string;
+  }>;
 }) {
   const orientation = useResponsiveTabsOrientation();
 
@@ -491,9 +530,12 @@ function SourceSubtabs({
                   orientation === "vertical" ? "justify-start" : undefined
                 }
                 id={tab.value}
+                isDisabled={tab.isDisabled}
                 key={tab.value}
               >
-                {tab.label}
+                <span title={tab.isDisabled ? tab.disabledReason : undefined}>
+                  {tab.label}
+                </span>
                 <Tabs.Indicator />
               </Tabs.Tab>
             ))}
