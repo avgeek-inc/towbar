@@ -22,6 +22,7 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
   SENTRY_ALLOW_MISSING=true SOURCE_COMMIT=${SOURCE_COMMIT}
 COPY --from=pruner /repo/out/full/ ./
 RUN mkdir -p apps/towbar-web-app/public \
+  && pnpm --filter @workspace/towbar-core build \
   && pnpm --filter towbar-web-app build
 FROM base AS runner
 WORKDIR /app
