@@ -5,6 +5,20 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-08-28
+
+### Added
+
+- Pull request Preview deployments now maintain one aggregate GitHub comment
+  with each App's build status, ready Preview URL, and Towbar deployment link.
+  Towbar updates the same comment through build and cleanup transitions.
+
+### Changed
+
+- Preview comments require the GitHub App's Pull requests permission to be
+  upgraded from read-only to read and write. Existing installations must
+  approve the permission change before Towbar can publish comments.
+
 ## [1.1.0] - 2026-08-28
 
 ### Added
@@ -81,7 +95,8 @@ All notable changes to Towbar are documented in this file. This project follows
 - Source-scoped AWS Secrets Manager integration and environment editors.
 - A same-domain owner setup, authentication, and operations dashboard.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/avgeek-inc/towbar/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/avgeek-inc/towbar/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/avgeek-inc/towbar/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/avgeek-inc/towbar/compare/v1.0.0...v1.0.1
