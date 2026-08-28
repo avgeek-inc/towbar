@@ -82,6 +82,8 @@ const issueCommentSchema = z.object({
 });
 const issueCommentListSchema = z.array(issueCommentSchema);
 
+type GitHubIssueComment = z.infer<typeof issueCommentSchema>;
+
 const pullRequestFileListSchema = z.array(
   z.object({
     filename: z.string().min(1).max(4_096),
@@ -427,35 +429,62 @@ export async function upsertGitHubPullRequestComment(input: {
   const token = await createInstallationToken(input.installationId);
   const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
   const appId = requireGitHubEnv().appId;
-  let existing: z.infer<typeof issueCommentSchema> | undefined;
+  const comments: GitHubIssueComment[] = [];
   for (let page = 1; page <= 10; page += 1) {
-    const comments = issueCommentListSchema.parse(
+    const pageComments = issueCommentListSchema.parse(
       await githubRequest(
         `/repos/${repository}/issues/${input.pullRequestNumber}/comments?per_page=100&page=${page}`,
         { token },
       ),
     );
-    existing = comments.find(
+    comments.push(...pageComments);
+    if (pageComments.length < 100) break;
+  }
+  const { canonical, duplicates } = classifyGitHubPullRequestComments({
+    appId,
+    comments,
+    marker: input.marker,
+  });
+  let comment = canonical;
+  if (!comment || comment.body !== input.body) {
+    comment = issueCommentSchema.parse(
+      await githubRequest(
+        comment
+          ? `/repos/${repository}/issues/comments/${comment.id}`
+          : `/repos/${repository}/issues/${input.pullRequestNumber}/comments`,
+        {
+          body: { body: input.body },
+          method: comment ? "PATCH" : "POST",
+          token,
+        },
+      ),
+    );
+  }
+  for (const duplicate of duplicates) {
+    await githubRequest(
+      `/repos/${repository}/issues/comments/${duplicate.id}`,
+      { method: "DELETE", token },
+    );
+  }
+  return String(comment.id);
+}
+
+export function classifyGitHubPullRequestComments(input: {
+  appId: string;
+  comments: GitHubIssueComment[];
+  marker: string;
+}) {
+  const matches = input.comments
+    .filter(
       (comment) =>
         comment.body?.includes(input.marker) === true &&
-        String(comment.performed_via_github_app?.id) === appId,
-    );
-    if (existing || comments.length < 100) break;
-  }
-  if (existing?.body === input.body) return String(existing.id);
-  const comment = issueCommentSchema.parse(
-    await githubRequest(
-      existing
-        ? `/repos/${repository}/issues/comments/${existing.id}`
-        : `/repos/${repository}/issues/${input.pullRequestNumber}/comments`,
-      {
-        body: { body: input.body },
-        method: existing ? "PATCH" : "POST",
-        token,
-      },
-    ),
-  );
-  return String(comment.id);
+        String(comment.performed_via_github_app?.id) === input.appId,
+    )
+    .sort((left, right) => left.id - right.id);
+  return {
+    canonical: matches[0],
+    duplicates: matches.slice(1),
+  };
 }
 
 async function createGitHubAppJwt() {
