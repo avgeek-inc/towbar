@@ -24,6 +24,10 @@ import {
   enqueueClaimedPreviewCleanups,
   previewCleanupAdmissionFailureMessage,
 } from "./cleanup-admission.js";
+import {
+  publishPreviewPullRequestComment,
+  publishPreviewPullRequestCommentForEnvironment,
+} from "./pr-comment.js";
 
 const cleanablePreviewStatuses = [
   "building",
@@ -57,6 +61,10 @@ export async function requestPreviewPullRequestCleanup(input: {
       serverId: previewEnvironments.serverId,
     });
   await queuePreviewCleanup(environments, input.reason);
+  await publishPreviewPullRequestComment({
+    pullRequestNumber: input.pullRequestNumber,
+    sourceId: input.sourceId,
+  }).catch(() => undefined);
   return {
     cleanupIds: environments.map((environment) => environment.id),
     deploymentIds: [],
@@ -81,12 +89,15 @@ export async function requestPreviewEnvironmentCleanup(input: {
     .returning({
       appId: previewEnvironments.appId,
       id: previewEnvironments.id,
+      pullRequestNumber: previewEnvironments.pullRequestNumber,
       serverId: previewEnvironments.serverId,
+      sourceId: previewEnvironments.sourceId,
     });
   await queuePreviewCleanup(
     environments,
     input.reason ?? "Preview cleanup was requested",
   );
+  await publishPreviewCommentGroups(environments);
   return { accepted: environments.length > 0 };
 }
 
@@ -103,9 +114,12 @@ export async function requestExpiredPreviewCleanups(now = new Date()) {
     .returning({
       appId: previewEnvironments.appId,
       id: previewEnvironments.id,
+      pullRequestNumber: previewEnvironments.pullRequestNumber,
       serverId: previewEnvironments.serverId,
+      sourceId: previewEnvironments.sourceId,
     });
   await queuePreviewCleanup(environments, "The Preview deployment expired");
+  await publishPreviewCommentGroups(environments);
   return environments.length;
 }
 
@@ -147,11 +161,14 @@ export async function requestDisabledPreviewCleanups(sourceId: string) {
       .returning({
         appId: previewEnvironments.appId,
         id: previewEnvironments.id,
+        pullRequestNumber: previewEnvironments.pullRequestNumber,
         serverId: previewEnvironments.serverId,
+        sourceId: previewEnvironments.sourceId,
       });
     if (claimed) cleanups.push(claimed);
   }
   await queuePreviewCleanup(cleanups, "Preview deployments were disabled");
+  await publishPreviewCommentGroups(cleanups);
   return cleanups.length;
 }
 
@@ -242,6 +259,9 @@ async function markPreviewCleanupAdmissionFailed(
         eq(previewEnvironments.status, "deleting"),
       ),
     );
+  await publishPreviewPullRequestCommentForEnvironment(environment.id).catch(
+    () => undefined,
+  );
 }
 
 export async function getPreviewCleanupContext(previewEnvironmentId: string) {
@@ -320,7 +340,11 @@ export async function recordPreviewCleanupResult(
 ) {
   const now = new Date();
   const [environment] = await getTowbarDatabase()
-    .select({ latestDeploymentId: previewEnvironments.latestDeploymentId })
+    .select({
+      latestDeploymentId: previewEnvironments.latestDeploymentId,
+      pullRequestNumber: previewEnvironments.pullRequestNumber,
+      sourceId: previewEnvironments.sourceId,
+    })
     .from(previewEnvironments)
     .where(eq(previewEnvironments.id, previewEnvironmentId))
     .limit(1);
@@ -347,5 +371,25 @@ export async function recordPreviewCleanupResult(
       "inactive",
     ).catch(() => undefined);
   }
+  if (environment) {
+    await publishPreviewPullRequestComment(environment).catch(() => undefined);
+  }
   return { accepted: true };
+}
+
+async function publishPreviewCommentGroups(
+  environments: Array<{ pullRequestNumber: number; sourceId: string }>,
+) {
+  const groups = new Map<string, (typeof environments)[number]>();
+  for (const environment of environments) {
+    groups.set(
+      `${environment.sourceId}:${environment.pullRequestNumber}`,
+      environment,
+    );
+  }
+  await Promise.all(
+    [...groups.values()].map((environment) =>
+      publishPreviewPullRequestComment(environment).catch(() => undefined),
+    ),
+  );
 }

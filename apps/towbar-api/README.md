@@ -56,9 +56,10 @@ Relevant pull request events for Apps with Preview enabled enter a Source/PR
 coalescing workflow. The API reads the pull request's current state before each
 reconciliation, so delayed or out-of-order webhooks cannot recreate a closed
 Preview. Admission records independent Preview deployments and releases,
-publishes GitHub Deployment statuses, and keeps production runtime health
-unchanged. Pull request merge or closure, retargeting, TTL expiry, manifest
-disablement, and owner deletion converge on the same cleanup admission path.
+publishes GitHub Deployment statuses, updates one aggregate Preview comment on
+the pull request, and keeps production runtime health unchanged. Pull request
+merge or closure, retargeting, TTL expiry, manifest disablement, and owner
+deletion converge on the same cleanup admission path.
 
 AWS credentials and Servers are Source-scoped. Server identity is
 `(source_id, canonical_ip)`, allowing independent Sources to target the same IP

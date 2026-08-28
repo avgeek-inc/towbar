@@ -45,6 +45,7 @@ import {
   previewPullRequestDisposition,
   previewPullRequestsToReconcile,
 } from "./pull-request.js";
+import { publishPreviewPullRequestComment } from "./pr-comment.js";
 
 import type { PreviewPullRequestEvent } from "@workspace/towbar-core/temporal";
 import type { NormalizedApp } from "@workspace/towbar-core";
@@ -333,6 +334,10 @@ export async function processPreviewPullRequestEvent(
       }
     }
   }
+  await publishPreviewPullRequestComment({
+    pullRequestNumber: pullRequest.number,
+    sourceId: event.sourceId,
+  }).catch(() => undefined);
   return {
     cleanupIds: [],
     deploymentIds: admissions
