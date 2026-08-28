@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  combinePreviewPullRequestCommentEntries,
   previewPullRequestCommentMarker,
   renderPreviewPullRequestComment,
 } from "./pr-comment.js";
@@ -31,6 +32,14 @@ void test("renders all app previews in one status table", () => {
         hostname: "admin-pr-42.preview.example.com",
       },
       {
+        appName: "Docs",
+        deploymentId: null,
+        deploymentState: null,
+        environmentStatus: null,
+        hostname: null,
+        skippedReason: "no matching changes",
+      },
+      {
         appName: "Website",
         deploymentId: "41111111-1111-4111-8111-111111111111",
         deploymentState: "succeeded",
@@ -43,6 +52,7 @@ void test("renders all app previews in one status table", () => {
   });
   assert.match(body, /Admin \\| Console \| 🟡 Building/u);
   assert.match(body, /Website \| 🟢 Ready/u);
+  assert.match(body, /Docs \| ⚪ Skipped — no matching changes/u);
   assert.match(
     body,
     /\[Open preview\]\(https:\/\/website-pr-42\.preview\.example\.com\)/u,
@@ -74,4 +84,45 @@ void test("shows cleanup and failure states without exposing error details", () 
   });
   assert.match(body, /API \| ⚪ Cleaned up/u);
   assert.match(body, /Worker \| 🔴 Failed/u);
+});
+
+void test("shows cleanup before replacing a deleted environment with skipped", () => {
+  const skipped = [
+    {
+      appId: "app-1",
+      appName: "Website",
+      reason: "no matching changes",
+    },
+  ];
+  const deleting = combinePreviewPullRequestCommentEntries(
+    [
+      {
+        appId: "app-1",
+        appName: "Website",
+        deploymentId: null,
+        deploymentState: null,
+        environmentStatus: "deleting",
+        hostname: "website-pr-42.preview.example.com",
+      },
+    ],
+    skipped,
+  );
+  assert.equal(deleting.length, 1);
+  assert.equal(deleting[0]?.environmentStatus, "deleting");
+
+  const deleted = combinePreviewPullRequestCommentEntries(
+    [
+      {
+        appId: "app-1",
+        appName: "Website",
+        deploymentId: null,
+        deploymentState: null,
+        environmentStatus: "deleted",
+        hostname: "website-pr-42.preview.example.com",
+      },
+    ],
+    skipped,
+  );
+  assert.equal(deleted.length, 1);
+  assert.equal(deleted[0]?.skippedReason, "no matching changes");
 });

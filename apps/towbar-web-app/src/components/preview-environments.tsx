@@ -69,16 +69,19 @@ export function PreviewEnvironments({
       key: "url",
       header: "URL",
       className: "min-w-64",
-      cell: (preview) => (
-        <a
-          className="focus-visible:ring-focus inline-flex rounded-md underline decoration-muted underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2"
-          href={`https://${preview.hostname}`}
-          rel="noreferrer"
-          target="_blank"
-        >
-          {preview.hostname}
-        </a>
-      ),
+      cell: (preview) =>
+        preview.status === "healthy" ? (
+          <a
+            className="focus-visible:ring-focus inline-flex rounded-md underline decoration-muted underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2"
+            href={`https://${preview.hostname}`}
+            rel="noreferrer"
+            target="_blank"
+          >
+            {preview.hostname}
+          </a>
+        ) : (
+          preview.hostname
+        ),
     },
     {
       key: "commit",
@@ -99,8 +102,23 @@ export function PreviewEnvironments({
     {
       key: "status",
       header: "Status",
-      className: "whitespace-nowrap",
-      cell: (preview) => <StatusBadge status={preview.status} />,
+      className: "min-w-56",
+      cell: (preview) => (
+        <div className="flex flex-col items-start gap-1">
+          <StatusBadge status={preview.status} />
+          {preview.status === "cleanup_failed" && preview.errorMessage ? (
+            <span className="line-clamp-2 text-sm text-danger">
+              {preview.errorMessage}
+            </span>
+          ) : null}
+          {preview.status === "cleanup_failed" &&
+          preview.nextCleanupAttemptAt ? (
+            <span className="text-sm text-muted">
+              Automatic retry {formatDate(preview.nextCleanupAttemptAt)}
+            </span>
+          ) : null}
+        </div>
+      ),
     },
     {
       key: "actions",
@@ -115,23 +133,35 @@ export function PreviewEnvironments({
               Deployment
             </InlineLink>
           ) : null}
-          <ActionButton
-            action={() =>
-              api.post(`/v1/core/previews/${preview.id}/actions/delete`)
-            }
-            confirm={{
-              actionLabel: "Delete Preview",
-              description:
-                "Towbar will remove this pull request's container, image, route, and DNS record. A later commit can create it again while the pull request remains open and Preview is enabled.",
-              title: `Delete Preview for PR #${preview.pullRequestNumber}?`,
-            }}
-            isDisabled={preview.status === "deleting"}
-            pendingLabel="Queueing…"
-            success="Preview cleanup queued"
-            variant="danger"
-          >
-            Delete
-          </ActionButton>
+          {preview.status === "cleanup_failed" ? (
+            <ActionButton
+              action={() =>
+                api.post(`/v1/core/previews/${preview.id}/actions/delete`)
+              }
+              pendingLabel="Queueing…"
+              success="Preview cleanup retry queued"
+            >
+              Retry cleanup
+            </ActionButton>
+          ) : (
+            <ActionButton
+              action={() =>
+                api.post(`/v1/core/previews/${preview.id}/actions/delete`)
+              }
+              confirm={{
+                actionLabel: "Delete Preview",
+                description:
+                  "Towbar will remove this pull request's container, image, route, and DNS record. A later commit can create it again while the pull request remains open and Preview is enabled.",
+                title: `Delete Preview for PR #${preview.pullRequestNumber}?`,
+              }}
+              isDisabled={preview.status === "deleting"}
+              pendingLabel="Queueing…"
+              success="Preview cleanup queued"
+              variant="danger"
+            >
+              Delete
+            </ActionButton>
+          )}
         </div>
       ),
     },

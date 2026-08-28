@@ -14,6 +14,11 @@ import {
   updateGitHubPreviewDeployment,
 } from "../github/client.js";
 import { publishPreviewPullRequestCommentForDeployment } from "../previews/pr-comment.js";
+import {
+  markPreviewReportDeliveryAttempt,
+  markPreviewReportDeliveryFailed,
+  markPreviewReportDeliverySucceeded,
+} from "../previews/reporting-state.js";
 
 import type { DeploymentState } from "@workspace/towbar-core/temporal";
 
@@ -81,6 +86,7 @@ export async function publishPreviewDeploymentStatus(
       pullRequestNumber: previewEnvironments.pullRequestNumber,
       repositoryName: sources.repositoryName,
       repositoryOwner: sources.repositoryOwner,
+      sourceId: deployments.sourceId,
     })
     .from(deployments)
     .innerJoin(sources, eq(sources.id, deployments.sourceId))
@@ -100,42 +106,55 @@ export async function publishPreviewDeploymentStatus(
     )
     .limit(1);
   if (!deployment?.hostname || !deployment.gitRef) return;
-  let githubDeploymentId = deployment.githubDeploymentId;
-  if (state === "inactive" && !githubDeploymentId) return;
-  if (!githubDeploymentId) {
-    githubDeploymentId = await createGitHubPreviewDeployment({
-      commitSha: deployment.commitSha,
-      environment:
-        `Preview · ${deployment.app.name} · PR #${deployment.pullRequestNumber}`.slice(
-          0,
-          255,
-        ),
-      environmentUrl: `https://${deployment.hostname}`,
-      installationId: deployment.installationId,
-      repositoryName: deployment.repositoryName,
-      repositoryOwner: deployment.repositoryOwner,
-    });
-    await getTowbarDatabase()
-      .update(deployments)
-      .set({ githubDeploymentId, updatedAt: new Date() })
-      .where(
-        and(
-          eq(deployments.id, deploymentId),
-          isNull(deployments.githubDeploymentId),
-        ),
-      );
+  const report = {
+    pullRequestNumber: deployment.pullRequestNumber,
+    sourceId: deployment.sourceId,
+  };
+  await markPreviewReportDeliveryAttempt(report, "deployment");
+  try {
+    let githubDeploymentId = deployment.githubDeploymentId;
+    if (state !== "inactive" || githubDeploymentId) {
+      if (!githubDeploymentId) {
+        githubDeploymentId = await createGitHubPreviewDeployment({
+          commitSha: deployment.commitSha,
+          environment:
+            `Preview · ${deployment.app.name} · PR #${deployment.pullRequestNumber}`.slice(
+              0,
+              255,
+            ),
+          environmentUrl: `https://${deployment.hostname}`,
+          installationId: deployment.installationId,
+          repositoryName: deployment.repositoryName,
+          repositoryOwner: deployment.repositoryOwner,
+        });
+        await getTowbarDatabase()
+          .update(deployments)
+          .set({ githubDeploymentId, updatedAt: new Date() })
+          .where(
+            and(
+              eq(deployments.id, deploymentId),
+              isNull(deployments.githubDeploymentId),
+            ),
+          );
+      }
+      const githubState =
+        state === "inactive" ? "inactive" : previewGitHubDeploymentState(state);
+      if (githubState) {
+        await updateGitHubPreviewDeployment({
+          deploymentId: githubDeploymentId,
+          environmentUrl: `https://${deployment.hostname}`,
+          installationId: deployment.installationId,
+          repositoryName: deployment.repositoryName,
+          repositoryOwner: deployment.repositoryOwner,
+          state: githubState,
+        });
+      }
+    }
+    await markPreviewReportDeliverySucceeded(report, "deployment");
+  } catch (error) {
+    await markPreviewReportDeliveryFailed(report, "deployment", error);
+    throw error;
   }
-  const githubState =
-    state === "inactive" ? "inactive" : previewGitHubDeploymentState(state);
-  if (!githubState) return;
-  await updateGitHubPreviewDeployment({
-    deploymentId: githubDeploymentId,
-    environmentUrl: `https://${deployment.hostname}`,
-    installationId: deployment.installationId,
-    repositoryName: deployment.repositoryName,
-    repositoryOwner: deployment.repositoryOwner,
-    state: githubState,
-  });
 }
 
 function previewGitHubDeploymentState(state: DeploymentState) {

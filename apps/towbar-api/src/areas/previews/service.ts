@@ -26,15 +26,11 @@ import {
 } from "@workspace/towbar-database/schema";
 
 import { getTowbarDatabase } from "../../infrastructure/database.js";
-import {
-  enqueueDeployment,
-  enqueuePreviewPullRequestEvent,
-} from "../../infrastructure/temporal.js";
+import { enqueueDeployment } from "../../infrastructure/temporal.js";
 import {
   fetchGitHubPullRequest,
   fetchGitHubPullRequestChangedPaths,
   fetchGitHubRepositoryTree,
-  listOpenGitHubPullRequestNumbers,
 } from "../github/client.js";
 import {
   propagatePreviewDeploymentState,
@@ -49,11 +45,12 @@ import {
   requestPreviewInputMismatchCleanups,
   requestPreviewPullRequestCleanup,
 } from "./cleanup.js";
-import {
-  previewPullRequestDisposition,
-  previewPullRequestsToReconcile,
-} from "./pull-request.js";
+import { previewPullRequestDisposition } from "./pull-request.js";
 import { publishPreviewPullRequestComment } from "./pr-comment.js";
+import {
+  closePreviewPullRequestReport,
+  recordPreviewPullRequestPlan,
+} from "./reporting-state.js";
 
 import type { PreviewPullRequestEvent } from "@workspace/towbar-core/temporal";
 import type { NormalizedApp } from "@workspace/towbar-core";
@@ -66,81 +63,7 @@ const terminalStates = [
   "succeeded_with_warnings",
 ] satisfies Array<(typeof deployments.$inferSelect)["state"]>;
 
-export async function scheduleSourcePreviewReconciliations(sourceId: string) {
-  const database = getTowbarDatabase();
-  const [[source], appRows] = await Promise.all([
-    database
-      .select({
-        branch: sources.branch,
-        installationId: githubInstallations.installationId,
-        repositoryName: sources.repositoryName,
-        repositoryOwner: sources.repositoryOwner,
-        status: sources.status,
-      })
-      .from(sources)
-      .innerJoin(
-        githubInstallations,
-        eq(githubInstallations.id, sources.githubInstallationId),
-      )
-      .where(eq(sources.id, sourceId))
-      .limit(1),
-    database
-      .select({ config: apps.config })
-      .from(apps)
-      .where(
-        and(
-          eq(apps.sourceId, sourceId),
-          eq(apps.kind, "app"),
-          isNull(apps.archivedAt),
-        ),
-      ),
-  ]);
-  if (
-    !source ||
-    source.status !== "active" ||
-    !appRows.some(
-      (app) =>
-        !isNormalizedResource(app.config) &&
-        app.config.preview?.enabled === true,
-    )
-  ) {
-    return { pullRequestNumbers: [] };
-  }
-
-  const [openPullRequestNumbers, existingEnvironments] = await Promise.all([
-    listOpenGitHubPullRequestNumbers({
-      baseBranch: source.branch,
-      installationId: source.installationId,
-      repositoryName: source.repositoryName,
-      repositoryOwner: source.repositoryOwner,
-    }),
-    database
-      .selectDistinct({
-        pullRequestNumber: previewEnvironments.pullRequestNumber,
-      })
-      .from(previewEnvironments)
-      .where(
-        and(
-          eq(previewEnvironments.sourceId, sourceId),
-          ne(previewEnvironments.status, "deleted"),
-        ),
-      ),
-  ]);
-  const pullRequestNumbers = previewPullRequestsToReconcile(
-    openPullRequestNumbers,
-    existingEnvironments.map((environment) => environment.pullRequestNumber),
-  );
-  for (let index = 0; index < pullRequestNumbers.length; index += 10) {
-    await Promise.all(
-      pullRequestNumbers
-        .slice(index, index + 10)
-        .map((pullRequestNumber) =>
-          enqueuePreviewPullRequestEvent({ pullRequestNumber, sourceId }),
-        ),
-    );
-  }
-  return { pullRequestNumbers };
-}
+export { scheduleSourcePreviewReconciliations } from "./reconciliation-scheduler.js";
 
 export async function listPreviewEnvironments(input: {
   appId?: string;
@@ -152,6 +75,7 @@ export async function listPreviewEnvironments(input: {
       appId: previewEnvironments.appId,
       appName: apps.name,
       branch: previewEnvironments.branch,
+      cleanupAttempts: previewEnvironments.cleanupAttempts,
       createdAt: previewEnvironments.createdAt,
       errorMessage: previewEnvironments.errorMessage,
       expiresAt: previewEnvironments.expiresAt,
@@ -160,6 +84,7 @@ export async function listPreviewEnvironments(input: {
       id: previewEnvironments.id,
       latestCommitSha: previewEnvironments.latestCommitSha,
       latestDeploymentId: previewEnvironments.latestDeploymentId,
+      nextCleanupAttemptAt: previewEnvironments.nextCleanupAttemptAt,
       pullRequestNumber: previewEnvironments.pullRequestNumber,
       repositoryName: sources.repositoryName,
       repositoryOwner: sources.repositoryOwner,
@@ -225,6 +150,10 @@ export async function processPreviewPullRequestEvent(
     sourceBranch: source.branch,
   });
   if (disposition.action === "cleanup") {
+    await closePreviewPullRequestReport({
+      pullRequestNumber: event.pullRequestNumber,
+      sourceId: event.sourceId,
+    });
     return {
       ...(await requestPreviewPullRequestCleanup({
         pullRequestNumber: event.pullRequestNumber,
@@ -241,6 +170,7 @@ export async function processPreviewPullRequestEvent(
   const candidates = await database
     .select({
       appId: apps.id,
+      appName: apps.name,
       config: apps.config,
       manifestId: apps.manifestId,
       server: servers.config,
@@ -287,6 +217,21 @@ export async function processPreviewPullRequestEvent(
     }),
   );
   const relevantAppIds = new Set(relevant.map((candidate) => candidate.appId));
+  await recordPreviewPullRequestPlan({
+    branch: pullRequest.headBranch,
+    hasDeployments: relevant.length > 0,
+    latestCommitSha: pullRequest.headSha,
+    pullRequestNumber: pullRequest.number,
+    skippedApps: eligible
+      .filter((candidate) => !relevantAppIds.has(candidate.appId))
+      .map((candidate) => ({
+        appId: candidate.appId,
+        appName: candidate.appName,
+        reason: "no matching changes",
+      })),
+    sourceId: event.sourceId,
+    workspaceId: source.workspaceId,
+  });
   const cleanup = await requestPreviewInputMismatchCleanups({
     appIds: eligible
       .filter((candidate) => !relevantAppIds.has(candidate.appId))
@@ -295,6 +240,10 @@ export async function processPreviewPullRequestEvent(
     sourceId: event.sourceId,
   });
   if (relevant.length === 0) {
+    await publishPreviewPullRequestComment({
+      pullRequestNumber: pullRequest.number,
+      sourceId: event.sourceId,
+    }).catch(() => undefined);
     return { ...cleanup, deploymentIds: [], retry: false };
   }
   const repositoryTree = relevant.some(

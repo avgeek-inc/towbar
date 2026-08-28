@@ -21,6 +21,7 @@ import type {
   GitHubRepository,
   OrphanItem,
   PreviewEnvironment,
+  PreviewReportingHealth,
   Release,
   Resource,
   ResourceOperation,
@@ -281,6 +282,7 @@ const previews: PreviewEnvironment[] = [
     appId: apps[1]!.id,
     appName: apps[1]!.name,
     branch: "feature/preview-fixture",
+    cleanupAttempts: 0,
     createdAt: fixtureNow,
     errorMessage: null,
     expiresAt: "2026-08-25T09:00:00.000Z",
@@ -289,10 +291,31 @@ const previews: PreviewEnvironment[] = [
     id: fixtureIds.preview,
     latestCommitSha: commitSha,
     latestDeploymentId: previewDeployment.id,
+    nextCleanupAttemptAt: null,
     pullRequestNumber: 42,
     pullRequestUrl: "https://github.com/avgeek-inc/towbar/pull/42",
     sourceId: source.id,
     status: "healthy",
+    updatedAt: fixtureNow,
+  },
+  {
+    appId: apps[1]!.id,
+    appName: apps[1]!.name,
+    branch: "fix/preview-cleanup",
+    cleanupAttempts: 2,
+    createdAt: fixtureNow,
+    errorMessage: "The server could not be reached over SSH",
+    expiresAt: "2026-08-25T09:00:00.000Z",
+    gitRef: "refs/heads/fix/preview-cleanup",
+    hostname: "example-website-pr-43.preview.example.com",
+    id: "b1111111-1111-4111-8111-222222222222",
+    latestCommitSha: "e".repeat(40),
+    latestDeploymentId: null,
+    nextCleanupAttemptAt: "2026-08-28T04:15:00.000Z",
+    pullRequestNumber: 43,
+    pullRequestUrl: "https://github.com/avgeek-inc/towbar/pull/43",
+    sourceId: source.id,
+    status: "cleanup_failed",
     updatedAt: fixtureNow,
   },
 ];
@@ -349,6 +372,12 @@ const githubConnection: GitHubConnection = {
   },
   suspendedAt: null,
   updatedAt: fixtureNow,
+};
+
+const previewReporting: PreviewReportingHealth = {
+  failedCount: 1,
+  lastError: "GitHub temporarily rejected the Preview status update",
+  lastFailedAt: fixtureNow,
 };
 
 const githubRepositories: GitHubRepository[] = [
@@ -814,6 +843,19 @@ export function createFixtureApiServer() {
     }
     if (
       request.method === "POST" &&
+      path === "/v1/core/github/actions/retry-preview-reporting"
+    ) {
+      previewReporting.failedCount = 0;
+      previewReporting.lastError = null;
+      previewReporting.lastFailedAt = null;
+      return writeJson(response, 200, {
+        attempted: 1,
+        failed: 0,
+        succeeded: 1,
+      });
+    }
+    if (
+      request.method === "POST" &&
       path === `/v1/core/servers/${fixtureIds.server}/host-keys/actions/trust`
     ) {
       const hostKeys = hostKeysByServer.get(fixtureIds.server)!;
@@ -971,7 +1013,13 @@ function getFixturePayload(
       "/v1/core/sessions",
       { currentSessionId: userSessions[0]!.id, sessions: userSessions },
     ],
-    ["/v1/core/github", { connection: githubConnection }],
+    [
+      "/v1/core/github",
+      {
+        connection: githubConnection,
+        previewReporting,
+      },
+    ],
     ["/v1/core/github/repositories", { repositories: githubRepositories }],
     ["/v1/core/sources", { sources: [source] }],
     ["/v1/core/apps", { apps }],

@@ -8,6 +8,8 @@ import {
   getGitHubConnectionStatus,
   getWorkspaceGitHubRepositories,
 } from "../../../areas/github/service.js";
+import { retryFailedPreviewReporting } from "../../../areas/previews/reporting-retry.js";
+import { getPreviewReportingHealth } from "../../../areas/previews/reporting-state.js";
 import { readJson } from "../../../http/requests.js";
 
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
@@ -22,10 +24,19 @@ const completeSchema = z
 export const githubRoutes = new Hono<TowbarHonoEnvironment>();
 
 githubRoutes.get("/", async (context) => {
-  const connection = await getGitHubConnectionStatus(
+  const workspaceId = context.get("user").workspaceId;
+  const [connection, previewReporting] = await Promise.all([
+    getGitHubConnectionStatus(workspaceId),
+    getPreviewReportingHealth(workspaceId),
+  ]);
+  return context.json({ connection, previewReporting });
+});
+
+githubRoutes.post("/actions/retry-preview-reporting", async (context) => {
+  const result = await retryFailedPreviewReporting(
     context.get("user").workspaceId,
   );
-  return context.json({ connection });
+  return context.json(result);
 });
 
 githubRoutes.post("/actions/installation-url", async (context) => {
