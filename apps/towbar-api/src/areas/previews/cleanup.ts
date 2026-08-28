@@ -71,6 +71,44 @@ export async function requestPreviewPullRequestCleanup(input: {
   };
 }
 
+export async function requestPreviewInputMismatchCleanups(input: {
+  appIds: string[];
+  pullRequestNumber: number;
+  sourceId: string;
+}) {
+  if (input.appIds.length === 0) return { cleanupIds: [] as string[] };
+  const reason =
+    "Pull request changes no longer match this App's deployment inputs";
+  const environments = await getTowbarDatabase()
+    .update(previewEnvironments)
+    .set({
+      errorMessage: reason,
+      status: "deleting",
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(previewEnvironments.sourceId, input.sourceId),
+        eq(previewEnvironments.pullRequestNumber, input.pullRequestNumber),
+        inArray(previewEnvironments.appId, input.appIds),
+        inArray(previewEnvironments.status, cleanablePreviewStatuses),
+      ),
+    )
+    .returning({
+      appId: previewEnvironments.appId,
+      id: previewEnvironments.id,
+      serverId: previewEnvironments.serverId,
+    });
+  await queuePreviewCleanup(environments, reason);
+  await publishPreviewPullRequestComment({
+    pullRequestNumber: input.pullRequestNumber,
+    sourceId: input.sourceId,
+  }).catch(() => undefined);
+  return {
+    cleanupIds: environments.map((environment) => environment.id),
+  };
+}
+
 export async function requestPreviewEnvironmentCleanup(input: {
   previewEnvironmentId: string;
   reason?: string;

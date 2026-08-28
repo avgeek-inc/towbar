@@ -5,7 +5,7 @@ import {
   completeInstallation,
   createInstallationUrl,
   disconnectGitHub,
-  getGitHubConnection,
+  getGitHubConnectionStatus,
   getWorkspaceGitHubRepositories,
 } from "../../../areas/github/service.js";
 import { readJson } from "../../../http/requests.js";
@@ -22,7 +22,9 @@ const completeSchema = z
 export const githubRoutes = new Hono<TowbarHonoEnvironment>();
 
 githubRoutes.get("/", async (context) => {
-  const connection = await getGitHubConnection(context.get("user").workspaceId);
+  const connection = await getGitHubConnectionStatus(
+    context.get("user").workspaceId,
+  );
   return context.json({ connection });
 });
 

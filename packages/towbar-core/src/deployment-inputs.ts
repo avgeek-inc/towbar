@@ -16,23 +16,42 @@ export type RepositoryTree = {
   entries: RepositoryTreeEntry[];
 };
 
+export type RepositoryChangedPaths = {
+  complete: boolean;
+  paths: string[];
+};
+
+export function shouldDeployForChangedPaths(input: {
+  changedPaths: RepositoryChangedPaths;
+  deploymentInputs: string[];
+}) {
+  if (input.deploymentInputs.length === 0 || !input.changedPaths.complete) {
+    return true;
+  }
+  return input.changedPaths.paths.some((path) =>
+    matchesDeploymentInput(path, input.deploymentInputs),
+  );
+}
+
 export function selectDeploymentInputEntries(
   inputs: string[],
   tree: RepositoryTree,
 ) {
   if (!tree.complete) return [];
   return tree.entries
-    .filter((entry) =>
-      inputs.some((input) =>
-        minimatch(entry.path, input, {
-          dot: true,
-          nocomment: true,
-          nonegate: true,
-          nocase: false,
-        }),
-      ),
-    )
+    .filter((entry) => matchesDeploymentInput(entry.path, inputs))
     .sort((left, right) => left.path.localeCompare(right.path));
+}
+
+function matchesDeploymentInput(path: string, inputs: string[]) {
+  return inputs.some((input) =>
+    minimatch(path, input, {
+      dot: true,
+      nocomment: true,
+      nonegate: true,
+      nocase: false,
+    }),
+  );
 }
 
 export function getSourceInputDigest(input: {

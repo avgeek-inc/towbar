@@ -9,6 +9,7 @@ import {
   previewHostname,
   previewRef,
   previewRuntimeId,
+  shouldDeployForChangedPaths,
 } from "@workspace/towbar-core";
 import {
   deploymentWorkflowId,
@@ -31,6 +32,7 @@ import {
 } from "../../infrastructure/temporal.js";
 import {
   fetchGitHubPullRequest,
+  fetchGitHubPullRequestChangedPaths,
   fetchGitHubRepositoryTree,
   listOpenGitHubPullRequestNumbers,
 } from "../github/client.js";
@@ -39,8 +41,14 @@ import {
   publishPreviewDeploymentStatus,
 } from "../deployments/preview-status.js";
 import { calculateReleaseDeploymentDigest } from "../sources/deployment-digests.js";
-import { shouldDeferPreviewAdmission } from "./admission-state.js";
-import { requestPreviewPullRequestCleanup } from "./cleanup.js";
+import {
+  isPreviewReleaseCurrent,
+  shouldDeferPreviewAdmission,
+} from "./admission-state.js";
+import {
+  requestPreviewInputMismatchCleanups,
+  requestPreviewPullRequestCleanup,
+} from "./cleanup.js";
 import {
   previewPullRequestDisposition,
   previewPullRequestsToReconcile,
@@ -261,7 +269,35 @@ export async function processPreviewPullRequestEvent(
   if (eligible.length === 0) {
     return { cleanupIds: [], deploymentIds: [], retry: false };
   }
-  const repositoryTree = eligible.some(
+  const changedPaths = eligible.some(
+    (candidate) => candidate.config.deploymentInputs.length > 0,
+  )
+    ? await fetchGitHubPullRequestChangedPaths({
+        changedFileCount: pullRequest.changedFileCount,
+        installationId: source.installationId,
+        pullRequestNumber: pullRequest.number,
+        repositoryName: source.repositoryName,
+        repositoryOwner: source.repositoryOwner,
+      })
+    : { complete: true, paths: [] };
+  const relevant = eligible.filter((candidate) =>
+    shouldDeployForChangedPaths({
+      changedPaths,
+      deploymentInputs: candidate.config.deploymentInputs,
+    }),
+  );
+  const relevantAppIds = new Set(relevant.map((candidate) => candidate.appId));
+  const cleanup = await requestPreviewInputMismatchCleanups({
+    appIds: eligible
+      .filter((candidate) => !relevantAppIds.has(candidate.appId))
+      .map((candidate) => candidate.appId),
+    pullRequestNumber: pullRequest.number,
+    sourceId: event.sourceId,
+  });
+  if (relevant.length === 0) {
+    return { ...cleanup, deploymentIds: [], retry: false };
+  }
+  const repositoryTree = relevant.some(
     (candidate) => candidate.config.deploymentInputs.length > 0,
   )
     ? await fetchGitHubRepositoryTree({
@@ -273,7 +309,7 @@ export async function processPreviewPullRequestEvent(
     : undefined;
 
   const admissions = [];
-  for (const candidate of eligible) {
+  for (const candidate of relevant) {
     const hostname = previewHostname({
       appId: candidate.manifestId,
       domain: candidate.config.preview!.domain,
@@ -339,7 +375,7 @@ export async function processPreviewPullRequestEvent(
     sourceId: event.sourceId,
   }).catch(() => undefined);
   return {
-    cleanupIds: [],
+    cleanupIds: cleanup.cleanupIds,
     deploymentIds: admissions
       .map((admission) => admission.deploymentId)
       .filter((id): id is string => Boolean(id)),
@@ -441,7 +477,6 @@ async function admitPreviewDeployment(input: {
 
     const [current] = await transaction
       .select({
-        commitSha: releases.commitSha,
         deploymentDigest: releases.deploymentDigest,
       })
       .from(releases)
@@ -453,8 +488,7 @@ async function admitPreviewDeployment(input: {
       )
       .limit(1);
     if (
-      current?.commitSha === input.commitSha &&
-      current.deploymentDigest === input.deploymentDigest
+      isPreviewReleaseCurrent(current?.deploymentDigest, input.deploymentDigest)
     ) {
       await transaction
         .update(previewEnvironments)
