@@ -11,6 +11,7 @@ import type { GitHubPullRequest } from "../github/client.js";
 const pullRequest: GitHubPullRequest = {
   baseBranch: "main",
   baseRepository: "avgeek-inc/example",
+  changedFileCount: 1,
   draft: false,
   headBranch: "feature/preview",
   headRepository: "avgeek-inc/example",

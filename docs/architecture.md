@@ -33,8 +33,11 @@ retains only the configured release set.
 
 For an App with Preview enabled, a relevant same-repository pull request event
 signals one durable workflow per Source and pull request. The API reads current
-GitHub state before reconciling, and repeated events coalesce while deployments
-retain immutable snapshots and independent history. Preview runtime identities,
+GitHub state and changed files before reconciling. Apps with path-aware
+`autoDeploy.inputs` are admitted only when the pull request changes a matching
+path; incomplete GitHub file listings fail safe by remaining eligible. Repeated
+events coalesce while deployments retain immutable snapshots and independent
+history. Preview runtime identities,
 containers, releases, Caddy routes, and exact DNS records are isolated from
 production. The per-server coordinator gives production and maintenance work
 priority and applies a separate bounded Preview concurrency. Promotion checks

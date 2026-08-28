@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   getDeployableDeploymentDigest,
   getSourceInputDigest,
+  shouldDeployForChangedPaths,
 } from "./deployment-inputs.js";
 
 import type { NormalizedApp, NormalizedServer } from "./manifest.js";
@@ -68,6 +69,52 @@ void test("falls back to the commit when no path contract is configured or the t
       deploymentInputs: ["apps/api/**"],
       tree: { complete: false, entries: [] },
     }).fallback,
+    true,
+  );
+});
+
+void test("selects Preview deployments only when pull request paths match", () => {
+  assert.equal(
+    shouldDeployForChangedPaths({
+      changedPaths: {
+        complete: true,
+        paths: ["apps/company-website/src/app/page.tsx"],
+      },
+      deploymentInputs: [
+        "packages/web-design-system/**",
+        "apps/company-website/**",
+      ],
+    }),
+    true,
+  );
+  assert.equal(
+    shouldDeployForChangedPaths({
+      changedPaths: {
+        complete: true,
+        paths: ["apps/internal-hq-web-app/src/app/page.tsx"],
+      },
+      deploymentInputs: [
+        "packages/web-design-system/**",
+        "apps/company-website/**",
+      ],
+    }),
+    false,
+  );
+});
+
+void test("keeps commit-sensitive and incomplete pull requests eligible", () => {
+  assert.equal(
+    shouldDeployForChangedPaths({
+      changedPaths: { complete: true, paths: [] },
+      deploymentInputs: [],
+    }),
+    true,
+  );
+  assert.equal(
+    shouldDeployForChangedPaths({
+      changedPaths: { complete: false, paths: [] },
+      deploymentInputs: ["apps/company-website/**"],
+    }),
     true,
   );
 });

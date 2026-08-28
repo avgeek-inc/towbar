@@ -177,9 +177,16 @@ Towbar reconciles `opened`, `reopened`, `synchronize`, `edited`, and `closed`
 webhooks against the pull request's current GitHub state. This makes duplicate,
 delayed, and out-of-order deliveries safe and keeps branch renames under the
 same PR identity. Pull requests from forks and pull requests targeting another
-base branch are not deployed. A successful `Sync now` also reconciles open
-eligible pull requests and existing Preview environments, so enabling Preview
-after a PR opens or recovering a missed webhook does not require a new commit.
+base branch are not deployed. When an App configures `autoDeploy.inputs`,
+Preview admission uses those same expanded path patterns against the pull
+request's complete changed-file list. An unrelated pull request does not create
+a Preview, and reverting all matching changes cleans up an existing Preview.
+An incomplete GitHub changed-file response remains eligible rather than risking
+a false skip. Apps using plain `autoDeploy: true` remain commit-sensitive and
+Preview every eligible pull request. A successful `Sync now` also reconciles
+open eligible pull requests and existing Preview environments, so enabling
+Preview after a PR opens or recovering a missed webhook does not require a new
+commit.
 Towbar also maintains one comment per Source and pull request with every App's
 build status, Preview URL, and deployment details link. A hidden stable marker
 lets Towbar update the same GitHub comment instead of posting a new comment for

@@ -26,8 +26,10 @@ validation fails.
 
 Preview pull request events use one durable workflow per Source and pull
 request, which coalesces rapid updates to the latest reconciliation. Preview
-deployments share the server coordinator but run below production and
-maintenance priority with their own manifest-bounded concurrency. Preview
+admission honors each App's expanded `autoDeploy.inputs` against the pull
+request changed-file list, so unrelated pull requests do not consume build
+capacity. Deployments share the server coordinator but run below production
+and maintenance priority with their own manifest-bounded concurrency. Preview
 cleanup is durable and targets only the pull request runtime identity.
 
 The coordinator also runs bounded Resource operations. Operations for one

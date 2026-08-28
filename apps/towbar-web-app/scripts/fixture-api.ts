@@ -340,6 +340,13 @@ const githubConnection: GitHubConnection = {
   accountType: "Organization",
   id: "b1111111-1111-4111-8111-111111111111",
   installationId: "12345678",
+  permissionReadiness: {
+    contents: "read",
+    deployments: "write",
+    preview: "ready",
+    pullRequests: "write",
+    status: "available",
+  },
   suspendedAt: null,
   updatedAt: fixtureNow,
 };

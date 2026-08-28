@@ -16,6 +16,7 @@ import {
   getGitHubInstallation,
   listGitHubRepositories,
 } from "./client.js";
+import { githubPermissionReadiness } from "./permissions.js";
 
 export async function getGitHubConnection(workspaceId: string) {
   const [installation] = await getTowbarDatabase()
@@ -31,6 +32,32 @@ export async function getGitHubConnection(workspaceId: string) {
     .where(eq(githubInstallations.workspaceId, workspaceId))
     .limit(1);
   return installation ?? null;
+}
+
+export async function getGitHubConnectionStatus(workspaceId: string) {
+  const connection = await getGitHubConnection(workspaceId);
+  if (!connection) return null;
+  if (connection.suspendedAt) {
+    return {
+      ...connection,
+      permissionReadiness: { status: "unavailable" as const },
+    };
+  }
+  try {
+    const installation = await getGitHubInstallation(connection.installationId);
+    return {
+      ...connection,
+      permissionReadiness: {
+        ...githubPermissionReadiness(installation.permissions),
+        status: "available" as const,
+      },
+    };
+  } catch {
+    return {
+      ...connection,
+      permissionReadiness: { status: "unavailable" as const },
+    };
+  }
 }
 
 export async function createInstallationUrl(input: {

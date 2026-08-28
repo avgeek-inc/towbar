@@ -375,6 +375,15 @@ export type GitHubConnection = {
   accountType: string;
   id: string;
   installationId: string;
+  permissionReadiness:
+    | {
+        contents: "none" | "read" | "write";
+        deployments: "none" | "read" | "write";
+        preview: "missing" | "ready";
+        pullRequests: "none" | "read" | "write";
+        status: "available";
+      }
+    | { status: "unavailable" };
   suspendedAt: string | null;
   updatedAt: string;
 };

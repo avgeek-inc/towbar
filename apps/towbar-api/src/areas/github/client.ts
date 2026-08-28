@@ -15,6 +15,7 @@ const installationSchema = z.object({
     type: z.string(),
   }),
   id: z.number().int().positive(),
+  permissions: z.record(z.string(), z.string()),
   suspended_at: z.string().nullable(),
 });
 
@@ -81,11 +82,19 @@ const issueCommentSchema = z.object({
 });
 const issueCommentListSchema = z.array(issueCommentSchema);
 
+const pullRequestFileListSchema = z.array(
+  z.object({
+    filename: z.string().min(1).max(4_096),
+    previous_filename: z.string().min(1).max(4_096).optional(),
+  }),
+);
+
 const pullRequestSchema = z.object({
   base: z.object({
     ref: z.string().min(1).max(255),
     repo: z.object({ full_name: z.string().min(3).max(255) }),
   }),
+  changed_files: z.number().int().nonnegative(),
   draft: z.boolean().nullable(),
   head: z.object({
     ref: z.string().min(1).max(255),
@@ -105,6 +114,7 @@ const pullRequestListSchema = z.array(
 export type GitHubPullRequest = {
   baseBranch: string;
   baseRepository: string;
+  changedFileCount: number;
   draft: boolean;
   headBranch: string;
   headRepository: string | null;
@@ -265,6 +275,7 @@ export async function fetchGitHubPullRequest(input: {
   return {
     baseBranch: pullRequest.base.ref,
     baseRepository: pullRequest.base.repo.full_name,
+    changedFileCount: pullRequest.changed_files,
     draft: pullRequest.draft ?? false,
     headBranch: pullRequest.head.ref,
     headRepository: pullRequest.head.repo?.full_name ?? null,
@@ -272,6 +283,38 @@ export async function fetchGitHubPullRequest(input: {
     merged: pullRequest.merged,
     number: pullRequest.number,
     state: pullRequest.state,
+  };
+}
+
+export async function fetchGitHubPullRequestChangedPaths(input: {
+  changedFileCount: number;
+  installationId: string;
+  pullRequestNumber: number;
+  repositoryName: string;
+  repositoryOwner: string;
+}) {
+  if (input.changedFileCount === 0) return { complete: true, paths: [] };
+  const token = await createInstallationToken(input.installationId);
+  const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
+  const paths: string[] = [];
+  let fetchedFileCount = 0;
+  for (let page = 1; page <= 30; page += 1) {
+    const files = pullRequestFileListSchema.parse(
+      await githubRequest(
+        `/repos/${repository}/pulls/${input.pullRequestNumber}/files?per_page=100&page=${page}`,
+        { token },
+      ),
+    );
+    fetchedFileCount += files.length;
+    for (const file of files) {
+      paths.push(file.filename);
+      if (file.previous_filename) paths.push(file.previous_filename);
+    }
+    if (files.length < 100 || fetchedFileCount >= input.changedFileCount) break;
+  }
+  return {
+    complete: fetchedFileCount >= input.changedFileCount,
+    paths,
   };
 }
 
