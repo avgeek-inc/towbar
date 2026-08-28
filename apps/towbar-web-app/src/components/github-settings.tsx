@@ -2,7 +2,10 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import type { GitHubConnection } from "@workspace/towbar-web-client";
+import type {
+  GitHubConnection,
+  PreviewReportingHealth,
+} from "@workspace/towbar-web-client";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
@@ -18,9 +21,10 @@ export function GitHubSettings() {
   const params = useSearchParams();
   const completed = useRef(false);
   const [callbackError, setCallbackError] = useState<string>();
-  const query = useApiQuery<{ connection: GitHubConnection | null }>(
-    "/v1/core/github",
-  );
+  const query = useApiQuery<{
+    connection: GitHubConnection | null;
+    previewReporting: PreviewReportingHealth;
+  }>("/v1/core/github");
   const installationId = params.get("installation_id");
   const state = params.get("state");
   useEffect(() => {
@@ -46,6 +50,7 @@ export function GitHubSettings() {
   if (callbackError) return <QueryError message={callbackError} />;
   if (installationId && state) return <QueryLoading />;
   const connection = query.data.connection;
+  const previewReporting = query.data.previewReporting;
   const previewPermissionState = connection?.permissionReadiness.status;
   const previewPermissionsReady =
     connection !== null &&
@@ -86,6 +91,42 @@ export function GitHubSettings() {
   );
   return connection ? (
     <div className="grid gap-4">
+      {previewReporting.failedCount > 0 ? (
+        <Alert status="warning">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>Preview reporting needs retry</Alert.Title>
+            <Alert.Description>
+              GitHub did not receive every Preview status or pull request
+              comment update. Deployments and cleanup continue independently.
+              {previewReporting.lastError
+                ? ` Last error: ${previewReporting.lastError}`
+                : ""}
+            </Alert.Description>
+            <div className="mt-3">
+              <ActionButton
+                action={async () => {
+                  const result = await api.post<{
+                    attempted: number;
+                    failed: number;
+                    succeeded: number;
+                  }>("/v1/core/github/actions/retry-preview-reporting");
+                  if (result.failed > 0) {
+                    throw new Error(
+                      `${result.failed} Preview report${result.failed === 1 ? "" : "s"} still could not reach GitHub`,
+                    );
+                  }
+                  return result;
+                }}
+                pendingLabel="Retrying…"
+                success="Preview reporting retried"
+              >
+                Retry reporting
+              </ActionButton>
+            </div>
+          </Alert.Content>
+        </Alert>
+      ) : null}
       {!connection.suspendedAt && !previewPermissionsReady ? (
         <Alert status="warning">
           <Alert.Indicator />

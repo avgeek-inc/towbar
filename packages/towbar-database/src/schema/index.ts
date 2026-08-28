@@ -85,6 +85,10 @@ export const previewEnvironmentStatusEnum = pgEnum(
   "towbar_preview_environment_status",
   ["building", "healthy", "failed", "deleting", "cleanup_failed", "deleted"],
 );
+export const previewReportDeliveryStatusEnum = pgEnum(
+  "towbar_preview_report_delivery_status",
+  ["pending", "published", "failed"],
+);
 export const resourceOperationTypeEnum = pgEnum(
   "towbar_resource_operation_type",
   [
@@ -563,6 +567,13 @@ export const previewEnvironments = pgTable(
       .default("building")
       .notNull(),
     errorMessage: varchar("error_message", { length: 1_000 }),
+    cleanupAttempts: integer("cleanup_attempts").default(0).notNull(),
+    lastCleanupAttemptAt: timestamp("last_cleanup_attempt_at", {
+      withTimezone: true,
+    }),
+    nextCleanupAttemptAt: timestamp("next_cleanup_attempt_at", {
+      withTimezone: true,
+    }),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -586,6 +597,73 @@ export const previewEnvironments = pgTable(
     index("idx_towbar_preview_environment_expires").on(
       table.status,
       table.expiresAt,
+    ),
+  ],
+);
+
+export const previewPullRequestReports = pgTable(
+  "towbar_preview_pull_request_reports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "cascade" }),
+    pullRequestNumber: integer("pull_request_number").notNull(),
+    branch: varchar("branch", { length: 255 }).notNull(),
+    latestCommitSha: varchar("latest_commit_sha", { length: 64 }).notNull(),
+    skippedApps: jsonb("skipped_apps")
+      .$type<Array<{ appId: string; appName: string; reason: string }>>()
+      .default([])
+      .notNull(),
+    commentDeliveryStatus: previewReportDeliveryStatusEnum(
+      "comment_delivery_status",
+    )
+      .default("pending")
+      .notNull(),
+    commentDeliveryError: varchar("comment_delivery_error", { length: 1_000 }),
+    commentLastAttemptedAt: timestamp("comment_last_attempted_at", {
+      withTimezone: true,
+    }),
+    commentPublishedAt: timestamp("comment_published_at", {
+      withTimezone: true,
+    }),
+    deploymentDeliveryStatus: previewReportDeliveryStatusEnum(
+      "deployment_delivery_status",
+    )
+      .default("pending")
+      .notNull(),
+    deploymentDeliveryError: varchar("deployment_delivery_error", {
+      length: 1_000,
+    }),
+    deploymentLastAttemptedAt: timestamp("deployment_last_attempted_at", {
+      withTimezone: true,
+    }),
+    deploymentPublishedAt: timestamp("deployment_published_at", {
+      withTimezone: true,
+    }),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_preview_report_source_pr").on(
+      table.sourceId,
+      table.pullRequestNumber,
+    ),
+    index("idx_towbar_preview_report_workspace_comment").on(
+      table.workspaceId,
+      table.commentDeliveryStatus,
+    ),
+    index("idx_towbar_preview_report_workspace_deployment").on(
+      table.workspaceId,
+      table.deploymentDeliveryStatus,
     ),
   ],
 );

@@ -330,6 +330,7 @@ export type PreviewEnvironment = {
   appId: string;
   appName: string;
   branch: string;
+  cleanupAttempts: number;
   createdAt: string;
   errorMessage: string | null;
   expiresAt: string;
@@ -338,6 +339,7 @@ export type PreviewEnvironment = {
   id: string;
   latestCommitSha: string;
   latestDeploymentId: string | null;
+  nextCleanupAttemptAt: string | null;
   pullRequestNumber: number;
   pullRequestUrl: string;
   sourceId: string;
@@ -386,6 +388,12 @@ export type GitHubConnection = {
     | { status: "unavailable" };
   suspendedAt: string | null;
   updatedAt: string;
+};
+
+export type PreviewReportingHealth = {
+  failedCount: number;
+  lastError: string | null;
+  lastFailedAt: string | null;
 };
 
 export type GitHubRepository = {

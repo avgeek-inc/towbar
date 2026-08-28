@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, lt } from "drizzle-orm";
+import { and, eq, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 
 import { isNormalizedResource } from "@workspace/towbar-core";
 import {
@@ -24,6 +24,7 @@ import {
   enqueueClaimedPreviewCleanups,
   previewCleanupAdmissionFailureMessage,
 } from "./cleanup-admission.js";
+import { nextPreviewCleanupAttemptAt } from "./cleanup-retry.js";
 import {
   publishPreviewPullRequestComment,
   publishPreviewPullRequestCommentForEnvironment,
@@ -41,12 +42,16 @@ export async function requestPreviewPullRequestCleanup(input: {
   reason: string;
   sourceId: string;
 }) {
+  const now = new Date();
   const environments = await getTowbarDatabase()
     .update(previewEnvironments)
     .set({
+      cleanupAttempts: sql`${previewEnvironments.cleanupAttempts} + 1`,
       errorMessage: input.reason,
+      lastCleanupAttemptAt: now,
+      nextCleanupAttemptAt: null,
       status: "deleting",
-      updatedAt: new Date(),
+      updatedAt: now,
     })
     .where(
       and(
@@ -77,14 +82,18 @@ export async function requestPreviewInputMismatchCleanups(input: {
   sourceId: string;
 }) {
   if (input.appIds.length === 0) return { cleanupIds: [] as string[] };
+  const now = new Date();
   const reason =
     "Pull request changes no longer match this App's deployment inputs";
   const environments = await getTowbarDatabase()
     .update(previewEnvironments)
     .set({
+      cleanupAttempts: sql`${previewEnvironments.cleanupAttempts} + 1`,
       errorMessage: reason,
+      lastCleanupAttemptAt: now,
+      nextCleanupAttemptAt: null,
       status: "deleting",
-      updatedAt: new Date(),
+      updatedAt: now,
     })
     .where(
       and(
@@ -114,9 +123,16 @@ export async function requestPreviewEnvironmentCleanup(input: {
   reason?: string;
   workspaceId: string;
 }) {
+  const now = new Date();
   const environments = await getTowbarDatabase()
     .update(previewEnvironments)
-    .set({ status: "deleting", updatedAt: new Date() })
+    .set({
+      cleanupAttempts: sql`${previewEnvironments.cleanupAttempts} + 1`,
+      lastCleanupAttemptAt: now,
+      nextCleanupAttemptAt: null,
+      status: "deleting",
+      updatedAt: now,
+    })
     .where(
       and(
         eq(previewEnvironments.id, input.previewEnvironmentId),
@@ -142,11 +158,30 @@ export async function requestPreviewEnvironmentCleanup(input: {
 export async function requestExpiredPreviewCleanups(now = new Date()) {
   const environments = await getTowbarDatabase()
     .update(previewEnvironments)
-    .set({ status: "deleting", updatedAt: now })
+    .set({
+      cleanupAttempts: sql`${previewEnvironments.cleanupAttempts} + 1`,
+      lastCleanupAttemptAt: now,
+      nextCleanupAttemptAt: null,
+      status: "deleting",
+      updatedAt: now,
+    })
     .where(
-      and(
-        lt(previewEnvironments.expiresAt, now),
-        inArray(previewEnvironments.status, cleanablePreviewStatuses),
+      or(
+        and(
+          lt(previewEnvironments.expiresAt, now),
+          inArray(previewEnvironments.status, [
+            "building",
+            "healthy",
+            "failed",
+          ]),
+        ),
+        and(
+          eq(previewEnvironments.status, "cleanup_failed"),
+          or(
+            isNull(previewEnvironments.nextCleanupAttemptAt),
+            lte(previewEnvironments.nextCleanupAttemptAt, now),
+          ),
+        ),
       ),
     )
     .returning({
@@ -162,6 +197,7 @@ export async function requestExpiredPreviewCleanups(now = new Date()) {
 }
 
 export async function requestDisabledPreviewCleanups(sourceId: string) {
+  const now = new Date();
   const activeEnvironments = await getTowbarDatabase()
     .select({
       appId: previewEnvironments.appId,
@@ -189,7 +225,13 @@ export async function requestDisabledPreviewCleanups(sourceId: string) {
     }
     const [claimed] = await getTowbarDatabase()
       .update(previewEnvironments)
-      .set({ status: "deleting", updatedAt: new Date() })
+      .set({
+        cleanupAttempts: sql`${previewEnvironments.cleanupAttempts} + 1`,
+        lastCleanupAttemptAt: now,
+        nextCleanupAttemptAt: null,
+        status: "deleting",
+        updatedAt: now,
+      })
       .where(
         and(
           eq(previewEnvironments.id, environment.id),
@@ -284,12 +326,22 @@ async function markPreviewCleanupAdmissionFailed(
   environment: { id: string },
   error: unknown,
 ) {
+  const [preview] = await getTowbarDatabase()
+    .select({ cleanupAttempts: previewEnvironments.cleanupAttempts })
+    .from(previewEnvironments)
+    .where(eq(previewEnvironments.id, environment.id))
+    .limit(1);
+  const now = new Date();
   await getTowbarDatabase()
     .update(previewEnvironments)
     .set({
       errorMessage: previewCleanupAdmissionFailureMessage(error),
+      nextCleanupAttemptAt: nextPreviewCleanupAttemptAt(
+        preview?.cleanupAttempts ?? 1,
+        now,
+      ),
       status: "cleanup_failed",
-      updatedAt: new Date(),
+      updatedAt: now,
     })
     .where(
       and(
@@ -379,6 +431,7 @@ export async function recordPreviewCleanupResult(
   const now = new Date();
   const [environment] = await getTowbarDatabase()
     .select({
+      cleanupAttempts: previewEnvironments.cleanupAttempts,
       latestDeploymentId: previewEnvironments.latestDeploymentId,
       pullRequestNumber: previewEnvironments.pullRequestNumber,
       sourceId: previewEnvironments.sourceId,
@@ -392,6 +445,9 @@ export async function recordPreviewCleanupResult(
       .set({
         deletedAt: input.succeeded ? now : null,
         errorMessage: input.errorMessage?.slice(0, 1_000) ?? null,
+        nextCleanupAttemptAt: input.succeeded
+          ? null
+          : nextPreviewCleanupAttemptAt(environment?.cleanupAttempts ?? 1, now),
         status: input.succeeded ? "deleted" : "cleanup_failed",
         updatedAt: now,
       })
