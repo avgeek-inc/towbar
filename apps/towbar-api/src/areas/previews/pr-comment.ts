@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 
 import {
   apps,
@@ -132,18 +132,25 @@ export async function publishPreviewPullRequestComment(input: {
   const marker = previewPullRequestCommentMarker(input);
   await markPreviewReportDeliveryAttempt(input, "comment");
   try {
-    const comment = await upsertGitHubPullRequestComment({
-      body: renderPreviewPullRequestComment({
-        appBaseUrl: getEnv().TOWBAR_APP_BASE_URL,
-        entries,
+    const comment = await database.transaction(async (transaction) => {
+      // GitHub comment creation has no idempotency key, so keep discovery and
+      // creation inside one cross-process critical section.
+      await transaction.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${marker}, 0))`,
+      );
+      return await upsertGitHubPullRequestComment({
+        body: renderPreviewPullRequestComment({
+          appBaseUrl: getEnv().TOWBAR_APP_BASE_URL,
+          entries,
+          marker,
+          sourceId: input.sourceId,
+        }),
+        installationId: source.installationId,
         marker,
-        sourceId: input.sourceId,
-      }),
-      installationId: source.installationId,
-      marker,
-      pullRequestNumber: input.pullRequestNumber,
-      repositoryName: source.repositoryName,
-      repositoryOwner: source.repositoryOwner,
+        pullRequestNumber: input.pullRequestNumber,
+        repositoryName: source.repositoryName,
+        repositoryOwner: source.repositoryOwner,
+      });
     });
     await markPreviewReportDeliverySucceeded(input, "comment");
     return comment;
