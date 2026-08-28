@@ -48,12 +48,15 @@ a Source. Configure a GitHub App with:
 
 - Repository contents: read-only
 - Repository metadata: read-only
-- Pull requests: read-only (required for Preview deployments)
+- Pull requests: read and write (required for Preview deployments and their PR status comment)
 - Deployments: read and write (required for Preview deployment statuses)
 - Webhook events: push, pull request, and installation
 - Webhook URL: `${TOWBAR_API_BASE_URL}/v1/public/webhooks/github`
 - Setup URL with redirect enabled:
   `${TOWBAR_APP_BASE_URL}/settings?section=github`
+
+Existing installations must approve the Pull requests permission upgrade before
+Towbar can create or update the Preview status comment.
 
 Encode the downloaded PEM without line wrapping:
 
@@ -177,6 +180,10 @@ same PR identity. Pull requests from forks and pull requests targeting another
 base branch are not deployed. A successful `Sync now` also reconciles open
 eligible pull requests and existing Preview environments, so enabling Preview
 after a PR opens or recovering a missed webhook does not require a new commit.
+Towbar also maintains one comment per Source and pull request with every App's
+build status, Preview URL, and deployment details link. A hidden stable marker
+lets Towbar update the same GitHub comment instead of posting a new comment for
+each state change.
 
 Treat Preview pull requests as executable deployment input. Use separate,
 least-privilege Preview secret references with disposable or non-production

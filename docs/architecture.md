@@ -47,7 +47,9 @@ and an owner action, all enter the same durable cleanup path. Cleanup
 revalidates Towbar-owned runtime identities and removes only that Preview's
 containers, images, Caddy route, and DNS record. Apps and Resources in the
 production inventory are unchanged. GitHub Deployment statuses mirror the
-Preview lifecycle when the GitHub App has deployment write permission.
+Preview lifecycle, while one aggregate PR comment reports every App's build
+status and Preview URL. Towbar updates that comment in place when the GitHub
+App has deployment and pull-request write permission.
 
 An owner may also edit the JSON environment bundle behind a secret reference
 already attached to an App or Resource. Listings expose key names and AWS

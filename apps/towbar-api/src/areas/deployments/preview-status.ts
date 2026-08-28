@@ -13,6 +13,7 @@ import {
   createGitHubPreviewDeployment,
   updateGitHubPreviewDeployment,
 } from "../github/client.js";
+import { publishPreviewPullRequestCommentForDeployment } from "../previews/pr-comment.js";
 
 import type { DeploymentState } from "@workspace/towbar-core/temporal";
 
@@ -54,9 +55,14 @@ export async function propagatePreviewDeploymentState(
 ) {
   await recordPreviewTerminalState(deploymentId, state);
   if (options.publish !== false) {
-    await publishPreviewDeploymentStatus(deploymentId, state).catch(
-      () => undefined,
-    );
+    await Promise.all([
+      publishPreviewDeploymentStatus(deploymentId, state).catch(
+        () => undefined,
+      ),
+      publishPreviewPullRequestCommentForDeployment(deploymentId).catch(
+        () => undefined,
+      ),
+    ]);
   }
 }
 

@@ -71,6 +71,16 @@ const gitTreeSchema = z.object({
 
 const githubDeploymentSchema = z.object({ id: z.number().int().positive() });
 
+const issueCommentSchema = z.object({
+  body: z.string().nullable(),
+  id: z.number().int().positive(),
+  performed_via_github_app: z
+    .object({ id: z.number().int().positive() })
+    .nullable()
+    .optional(),
+});
+const issueCommentListSchema = z.array(issueCommentSchema);
+
 const pullRequestSchema = z.object({
   base: z.object({
     ref: z.string().min(1).max(255),
@@ -363,6 +373,48 @@ export async function updateGitHubPreviewDeployment(input: {
   );
 }
 
+export async function upsertGitHubPullRequestComment(input: {
+  body: string;
+  installationId: string;
+  marker: string;
+  pullRequestNumber: number;
+  repositoryName: string;
+  repositoryOwner: string;
+}) {
+  const token = await createInstallationToken(input.installationId);
+  const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
+  const appId = requireGitHubEnv().appId;
+  let existing: z.infer<typeof issueCommentSchema> | undefined;
+  for (let page = 1; page <= 10; page += 1) {
+    const comments = issueCommentListSchema.parse(
+      await githubRequest(
+        `/repos/${repository}/issues/${input.pullRequestNumber}/comments?per_page=100&page=${page}`,
+        { token },
+      ),
+    );
+    existing = comments.find(
+      (comment) =>
+        comment.body?.includes(input.marker) === true &&
+        String(comment.performed_via_github_app?.id) === appId,
+    );
+    if (existing || comments.length < 100) break;
+  }
+  if (existing?.body === input.body) return String(existing.id);
+  const comment = issueCommentSchema.parse(
+    await githubRequest(
+      existing
+        ? `/repos/${repository}/issues/comments/${existing.id}`
+        : `/repos/${repository}/issues/${input.pullRequestNumber}/comments`,
+      {
+        body: { body: input.body },
+        method: existing ? "PATCH" : "POST",
+        token,
+      },
+    ),
+  );
+  return String(comment.id);
+}
+
 async function createGitHubAppJwt() {
   const github = requireGitHubEnv();
   const now = Math.floor(Date.now() / 1_000);
@@ -378,7 +430,7 @@ async function githubRequest(
   path: string,
   options: {
     body?: unknown;
-    method?: "DELETE" | "GET" | "POST";
+    method?: "DELETE" | "GET" | "PATCH" | "POST";
     token: string;
   },
 ) {
