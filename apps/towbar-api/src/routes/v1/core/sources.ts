@@ -23,6 +23,10 @@ import { listSourceCapacity } from "../../../areas/servers/capacity.js";
 import { listSourceServers } from "../../../areas/servers/service.js";
 import { listSourceBackups } from "../../../areas/resource-operations/service.js";
 import { listPreviewEnvironments } from "../../../areas/previews/service.js";
+import {
+  getDeploymentPlan,
+  listDeploymentPlans,
+} from "../../../areas/plans/service.js";
 import { forbidden } from "../../../http/errors.js";
 import { readJson } from "../../../http/requests.js";
 import {
@@ -183,6 +187,27 @@ sourceRoutes.get("/:sourceId/previews", async (context) => {
   await getSource(context.req.param("sourceId"), user.workspaceId);
   return context.json({
     previews: await listPreviewEnvironments({
+      sourceId: context.req.param("sourceId"),
+      workspaceId: user.workspaceId,
+    }),
+  });
+});
+
+sourceRoutes.get("/:sourceId/plans", async (context) => {
+  const user = context.get("user");
+  return context.json({
+    plans: await listDeploymentPlans({
+      sourceId: context.req.param("sourceId"),
+      workspaceId: user.workspaceId,
+    }),
+  });
+});
+
+sourceRoutes.get("/:sourceId/plans/:planId", async (context) => {
+  const user = context.get("user");
+  return context.json({
+    plan: await getDeploymentPlan({
+      planId: context.req.param("planId"),
       sourceId: context.req.param("sourceId"),
       workspaceId: user.workspaceId,
     }),

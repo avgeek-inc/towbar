@@ -43,6 +43,13 @@ such as `autoDeploy`, `deploymentInputs`, and `sourceBranch` do not change the
 runtime digest. A truncated Git tree falls back to commit-sensitive deployment
 rather than risking a false skip.
 
+Deployment planning is deterministic domain logic in this package. Given the
+same normalized candidate, materialized inventory, repository changes, target
+deployment digests, and validation checks, it emits the same ordered plan.
+Full plans include explicit no-op rows; pull-request plans omit deployables
+whose input patterns and configuration are unchanged. The plan reports field
+paths and reasons, never field values or mutable inventory objects.
+
 Root `secrets.build` and `secrets.deployment` arrays declare Source-wide JSON
 environment bundles. Apps merge those with their own bundles; app keys override
 shared keys, while duplicate keys between shared bundles fail closed.

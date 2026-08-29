@@ -24,4 +24,9 @@ releases carry an explicit environment and never update the production runtime
 observation row. Deleted Preview records remain as operational history while
 their runtime artifacts are removed durably.
 
+Deployment plans are immutable Source-scoped records keyed by a deterministic
+identity digest. They retain current and target commit and manifest identities
+plus the serialized comparison. Mutable GitHub Check delivery state lives in a
+separate one-to-one table so retries never rewrite the plan itself.
+
 [Packages](../README.md) · [Repository](../../README.md)

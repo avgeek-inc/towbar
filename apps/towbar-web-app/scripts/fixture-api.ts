@@ -15,6 +15,7 @@ import type {
   Deployment,
   DeploymentEvent,
   DeploymentLog,
+  DeploymentPlan,
   DeploymentState,
   DeploymentStep,
   GitHubConnection,
@@ -41,6 +42,7 @@ import type {
 export const fixtureIds = {
   app: "31111111-1111-4111-8111-222222222222",
   deployment: "61111111-1111-4111-8111-111111111111",
+  deploymentPlan: "71111111-1111-4111-8111-111111111112",
   preview: "b1111111-1111-4111-8111-111111111111",
   previewDeployment: "61111111-1111-4111-8111-444444444444",
   imageResource: "41111111-1111-4111-8111-444444444444",
@@ -348,6 +350,67 @@ const sourceSync: SourceSync = {
   status: "succeeded",
 };
 
+const deploymentPlans: DeploymentPlan[] = [
+  {
+    branch: "feature/deployment-plan-fixture",
+    createdAt: fixtureNow,
+    currentCommitSha: commitSha,
+    currentManifestDigest: manifestDigest,
+    githubCheckError: null,
+    githubCheckRunId: "1234567890",
+    githubCheckStatus: "published",
+    id: fixtureIds.deploymentPlan,
+    plan: {
+      checks: [
+        {
+          code: "manifest_schema",
+          message: "The candidate deployment manifest is valid.",
+          status: "passed",
+        },
+        {
+          code: "server_capacity",
+          entityId: fixtureIds.server,
+          entityKind: "server",
+          message:
+            "192.0.2.10 has limited Docker disk capacity. Review the server before deployment.",
+          references: ["192.0.2.10"],
+          status: "warning",
+        },
+      ],
+      items: [
+        {
+          action: "update",
+          automaticDeployment: true,
+          changedFields: ["dockerfile", "health.path"],
+          entityId: apps[1]!.manifestId,
+          entityKind: "app",
+          matchedPaths: ["apps/example-website/src/page.tsx"],
+          name: apps[1]!.name,
+          reasons: ["Deployment inputs changed in this pull request"],
+        },
+        {
+          action: "no_op",
+          automaticDeployment: false,
+          changedFields: [],
+          entityId: resources[0]!.manifestId,
+          entityKind: "resource",
+          matchedPaths: [],
+          name: resources[0]!.name,
+          reasons: ["No material configuration change"],
+        },
+      ],
+      status: "ready",
+      summary: { archive: 0, create: 0, no_op: 1, restore: 0, update: 1 },
+    },
+    pullRequestNumber: 42,
+    sourceId: source.id,
+    status: "ready",
+    targetCommitSha: "e".repeat(40),
+    targetManifestDigest: "f".repeat(64),
+    trigger: "pull_request",
+  },
+];
+
 const awsCredential: AwsCredentialMetadata = {
   accessKeyIdSuffix: "ABCD",
   createdAt: fixtureNow,
@@ -364,8 +427,10 @@ const githubConnection: GitHubConnection = {
   id: "b1111111-1111-4111-8111-111111111111",
   installationId: "12345678",
   permissionReadiness: {
+    checks: "write",
     contents: "read",
     deployments: "write",
+    planning: "ready",
     preview: "ready",
     pullRequests: "write",
     status: "available",
@@ -1051,6 +1116,7 @@ function getFixturePayload(
     [`/v1/core/sources/${source.id}/apps`, { apps }],
     [`/v1/core/sources/${source.id}/capacity`, { capacities: runtimeCapacity }],
     [`/v1/core/sources/${source.id}/previews`, { previews }],
+    [`/v1/core/sources/${source.id}/plans`, { plans: deploymentPlans }],
     [`/v1/core/sources/${source.id}/resources`, { resources }],
     [
       `/v1/core/sources/${source.id}/servers`,
@@ -1084,6 +1150,16 @@ function getFixturePayload(
   ]);
   const fixed = fixedPayloads.get(path);
   if (fixed !== undefined) return fixed;
+
+  const deploymentPlanMatch = path.match(
+    new RegExp(`^/v1/core/sources/${source.id}/plans/([^/]+)$`),
+  );
+  if (deploymentPlanMatch) {
+    const plan = deploymentPlans.find(
+      (item) => item.id === deploymentPlanMatch[1],
+    );
+    return plan ? { plan } : undefined;
+  }
 
   const deploymentMatch = path.match(
     /^\/v1\/core\/deployments\/([^/]+)(?:\/(steps|logs))?$/,

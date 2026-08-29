@@ -31,6 +31,15 @@ connects to the target Ubuntu host over SSH, builds or pulls the requested
 image, starts a replacement container, verifies health, updates the proxy, and
 retains only the configured release set.
 
+Deployment planning is an API-owned, read-only path before admission. It
+normalizes a candidate manifest, compares it with the active Source inventory,
+calculates effective deployment-input digests, and persists the deterministic
+result with both manifest identities. Plan validation reads server observations
+and credential metadata but never secret values. It cannot enqueue Temporal
+work or mutate Source inventory. Pull request reconciliation reports this same
+plan through one idempotent GitHub Check Run; the Check links back to the
+immutable plan while Preview reconciliation continues independently.
+
 For an App with Preview enabled, a relevant same-repository pull request event
 signals one durable workflow per Source and pull request. The API reads current
 GitHub state and changed files before reconciling. Apps with path-aware

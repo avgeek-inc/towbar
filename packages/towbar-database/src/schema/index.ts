@@ -18,6 +18,7 @@ import { deploymentStates } from "@workspace/towbar-core/temporal";
 import { deploymentEnvironments } from "@workspace/towbar-core/preview";
 
 import type {
+  DeploymentPlan,
   PersistedResourceOperationRequest,
   ResourceOperationResult,
   EncryptedCredential,
@@ -87,6 +88,18 @@ export const previewEnvironmentStatusEnum = pgEnum(
 );
 export const previewReportDeliveryStatusEnum = pgEnum(
   "towbar_preview_report_delivery_status",
+  ["pending", "published", "failed"],
+);
+export const deploymentPlanTriggerEnum = pgEnum(
+  "towbar_deployment_plan_trigger",
+  ["manual", "pull_request"],
+);
+export const deploymentPlanStatusEnum = pgEnum(
+  "towbar_deployment_plan_status",
+  ["ready", "blocked"],
+);
+export const deploymentPlanDeliveryStatusEnum = pgEnum(
+  "towbar_deployment_plan_delivery_status",
   ["pending", "published", "failed"],
 );
 export const resourceOperationTypeEnum = pgEnum(
@@ -356,6 +369,72 @@ export const sourceSyncs = pgTable(
       table.sourceId,
       table.createdAt,
     ),
+  ],
+);
+
+export const deploymentPlans = pgTable(
+  "towbar_deployment_plans",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "cascade" }),
+    requestedBy: uuid("requested_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    identityDigest: varchar("identity_digest", { length: 64 }).notNull(),
+    trigger: deploymentPlanTriggerEnum("trigger").notNull(),
+    status: deploymentPlanStatusEnum("status").notNull(),
+    pullRequestNumber: integer("pull_request_number"),
+    branch: varchar("branch", { length: 255 }).notNull(),
+    currentCommitSha: varchar("current_commit_sha", { length: 64 }),
+    targetCommitSha: varchar("target_commit_sha", { length: 64 }).notNull(),
+    currentManifestDigest: varchar("current_manifest_digest", { length: 64 }),
+    targetManifestDigest: varchar("target_manifest_digest", { length: 64 }),
+    candidateDigest: varchar("candidate_digest", { length: 64 }).notNull(),
+    plan: jsonb("plan").$type<DeploymentPlan>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "chk_towbar_deployment_plans_trigger",
+      sql`(${table.trigger} = 'manual' AND ${table.pullRequestNumber} IS NULL) OR (${table.trigger} = 'pull_request' AND ${table.pullRequestNumber} IS NOT NULL)`,
+    ),
+    uniqueIndex("uq_towbar_deployment_plans_identity").on(
+      table.sourceId,
+      table.identityDigest,
+    ),
+    index("idx_towbar_deployment_plans_source_created").on(
+      table.sourceId,
+      table.createdAt,
+    ),
+  ],
+);
+
+export const deploymentPlanGithubChecks = pgTable(
+  "towbar_deployment_plan_github_checks",
+  {
+    planId: uuid("plan_id")
+      .primaryKey()
+      .references(() => deploymentPlans.id, { onDelete: "cascade" }),
+    checkRunId: varchar("check_run_id", { length: 40 }),
+    status: deploymentPlanDeliveryStatusEnum("status")
+      .default("pending")
+      .notNull(),
+    errorMessage: varchar("error_message", { length: 1_000 }),
+    lastAttemptedAt: timestamp("last_attempted_at", { withTimezone: true }),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_towbar_deployment_plan_checks_status").on(table.status),
   ],
 );
 

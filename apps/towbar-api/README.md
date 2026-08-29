@@ -61,6 +61,14 @@ the pull request, and keeps production runtime health unchanged. Pull request
 merge or closure, retargeting, TTL expiry, manifest disablement, and owner
 deletion converge on the same cleanup admission path.
 
+The same eligible pull request reconciliation creates an immutable deployment
+plan before Preview admission. Planning reads the PR head manifest, current
+Source inventory, repository input digests, server observations, credential
+metadata, and active operation state without resolving secret values or
+enqueueing work. The API publishes one completed GitHub Check per Source and
+head commit and links it to the full plan. Repeated deliveries update the
+existing Check; planning failures do not block Preview reconciliation.
+
 AWS credentials and Servers are Source-scoped. Server identity is
 `(source_id, canonical_ip)`, allowing independent Sources to target the same IP
 without sharing configuration or trust records. Deleting a Source permanently

@@ -88,6 +88,7 @@ Create one GitHub App for this Towbar installation:
 
 - Repository contents: read-only
 - Repository metadata: read-only
+- Checks: read and write (required for deployment-plan reporting)
 - Pull requests: read and write (required for Preview deployments and their PR status comment)
 - Deployments: read and write (required when using Preview deployments)
 - Webhook events: `push`, `pull_request`, and `installation`
@@ -148,11 +149,12 @@ Store the SSH private key in AWS Secrets Manager as a JSON object:
 ```
 
 The Source's AWS identity needs `sts:GetCallerIdentity` and
-`secretsmanager:GetSecretValue` only for the secret paths declared by that
-Source. To edit App environment bundles from the App's **Secrets** tab, also
-grant `secretsmanager:PutSecretValue` only on those specific build, deployment,
-and hook secret ARNs. Server login and Cloudflare credentials do not need write
-permission. Add narrowly scoped S3 permissions only when using managed backups.
+`secretsmanager:DescribeSecret` and `secretsmanager:GetSecretValue` only for the
+secret paths declared by that Source. To edit App environment bundles from the
+App's **Secrets** tab, also grant `secretsmanager:PutSecretValue` only on those
+specific build, deployment, and hook secret ARNs. Server login and Cloudflare
+credentials do not need write permission. Add narrowly scoped S3 permissions
+only when using managed backups.
 
 ## 5. Add the deployment manifest
 
@@ -200,7 +202,13 @@ unclear.
 
 ## 7. Make the first deployment
 
-Open **Source → Apps**, select the imported app, and choose **Deploy**. Towbar
+Before changing the server, open **Source → Plans** and choose **Generate
+plan**. Confirm the candidate commit and manifest digest, review every planned
+change and explicit no-op, and resolve any blocking validation. Generating the
+plan is read-only: it does not sync, deploy, archive, restore, or resolve secret
+values.
+
+Then open **Source → Apps**, select the imported app, and choose **Deploy**. Towbar
 queues the operation, fetches the immutable Git commit, transfers the selected
 build context, builds on the target, checks health, configures Caddy, and
 promotes the candidate.
@@ -216,7 +224,8 @@ A working installation has all of the following:
 After the manual deployment succeeds, push a change matching
 `autoDeploy.inputs`. The GitHub delivery, Source sync, and deployment should
 appear independently in Towbar; a successful sync alone does not imply a
-successful deployment.
+successful deployment. A deployment-relevant pull request also receives one
+`Towbar deployment plan` GitHub Check linked to the immutable comparison.
 
 ## Useful diagnostics
 

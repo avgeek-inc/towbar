@@ -5,6 +5,15 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+### Added
+
+- Immutable, side-effect-free deployment plans compare a candidate commit with
+  active Source state, classify create/update/archive/restore/no-op changes,
+  and validate domains, servers, capacity, secret references, and operation
+  conflicts without resolving secret values.
+- Deployment-relevant pull requests publish one idempotent GitHub Check linked
+  to the full Towbar plan; unmatched input patterns omit irrelevant rows.
+
 ## [1.1.1] - 2026-08-28
 
 ### Added

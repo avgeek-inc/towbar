@@ -33,6 +33,18 @@ export function shouldDeployForChangedPaths(input: {
   );
 }
 
+export function getMatchingChangedPaths(input: {
+  changedPaths: RepositoryChangedPaths;
+  deploymentInputs: string[];
+}) {
+  if (!input.changedPaths.complete || input.deploymentInputs.length === 0) {
+    return [];
+  }
+  return [...new Set(input.changedPaths.paths)]
+    .filter((path) => matchesDeploymentInput(path, input.deploymentInputs))
+    .sort((left, right) => left.localeCompare(right));
+}
+
 export function selectDeploymentInputEntries(
   inputs: string[],
   tree: RepositoryTree,
