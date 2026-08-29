@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import {
+  DescribeSecretCommand,
   GetSecretValueCommand,
   PutSecretValueCommand,
   SecretsManagerClient,
@@ -174,6 +175,40 @@ export async function resolveAwsSecret(input: {
   const { client, reference } = await createSecretsManagerContext(input);
   try {
     return (await readAwsSecretValue(client, reference.reference)).value;
+  } finally {
+    client.destroy();
+  }
+}
+
+export async function inspectAwsSecretReferences(input: {
+  secretReferences: string[];
+  sourceId: string;
+  workspaceId: string;
+}) {
+  const credential = await getDecryptedAwsCredential(input);
+  const client = new SecretsManagerClient({
+    credentials: createAwsSdkCredentials(credential.payload),
+    region: credential.region,
+  });
+  try {
+    return await Promise.all(
+      [...new Set(input.secretReferences)]
+        .sort((left, right) => left.localeCompare(right))
+        .map(async (secretReference) => {
+          const reference = parseSecretReference(secretReference);
+          if (reference.provider !== "aws") {
+            return { available: false, reference: secretReference };
+          }
+          try {
+            await client.send(
+              new DescribeSecretCommand({ SecretId: reference.reference }),
+            );
+            return { available: true, reference: secretReference };
+          } catch {
+            return { available: false, reference: secretReference };
+          }
+        }),
+    );
   } finally {
     client.destroy();
   }

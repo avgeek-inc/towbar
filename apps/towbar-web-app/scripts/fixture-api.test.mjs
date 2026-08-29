@@ -24,6 +24,8 @@ const readRoutes = [
   `/v1/core/sources/${fixtureIds.source}/secrets`,
   `/v1/core/sources/${fixtureIds.source}/apps`,
   `/v1/core/sources/${fixtureIds.source}/capacity`,
+  `/v1/core/sources/${fixtureIds.source}/plans`,
+  `/v1/core/sources/${fixtureIds.source}/plans/${fixtureIds.deploymentPlan}`,
   `/v1/core/sources/${fixtureIds.source}/resources`,
   `/v1/core/sources/${fixtureIds.source}/servers`,
   `/v1/core/sources/${fixtureIds.source}/deployments`,
@@ -346,6 +348,47 @@ test("the local fixture covers source creation and the initial sync", async () =
     assert.equal(syncResponse.status, 202);
     const syncPayload = await syncResponse.json();
     assert.equal(syncPayload.sync.id, fixtureIds.sync);
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
+test("the local fixture covers immutable deployment planning", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  try {
+    const listResponse = await fetch(
+      `${baseUrl}/v1/core/sources/${fixtureIds.source}/plans`,
+    );
+    assert.equal(listResponse.status, 200);
+    const initial = await listResponse.json();
+    assert.equal(initial.plans[0].id, fixtureIds.deploymentPlan);
+    assert.equal(initial.plans[0].plan.summary.update, 1);
+    assert.equal(initial.plans[0].plan.summary.no_op, 1);
+
+    const createResponse = await fetch(
+      `${baseUrl}/v1/core/sources/${fixtureIds.source}/actions/plan`,
+      { method: "POST" },
+    );
+    assert.equal(createResponse.status, 201);
+    const created = await createResponse.json();
+    assert.equal(created.plan.trigger, "manual");
+    assert.equal(created.plan.plan.status, "ready");
+    assert.equal(created.plan.plan.summary.no_op > 0, true);
+
+    const detailResponse = await fetch(
+      `${baseUrl}/v1/core/sources/${fixtureIds.source}/plans/${created.plan.id}`,
+    );
+    assert.equal(detailResponse.status, 200);
+    const detail = await detailResponse.json();
+    assert.equal(detail.plan.id, created.plan.id);
+    assert.equal("candidateManifest" in detail.plan, false);
   } finally {
     server.close();
     await once(server, "close");

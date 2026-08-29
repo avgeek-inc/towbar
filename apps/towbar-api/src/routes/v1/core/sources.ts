@@ -23,6 +23,11 @@ import { listSourceCapacity } from "../../../areas/servers/capacity.js";
 import { listSourceServers } from "../../../areas/servers/service.js";
 import { listSourceBackups } from "../../../areas/resource-operations/service.js";
 import { listPreviewEnvironments } from "../../../areas/previews/service.js";
+import {
+  createManualDeploymentPlan,
+  getDeploymentPlan,
+  listDeploymentPlans,
+} from "../../../areas/plans/service.js";
 import { forbidden } from "../../../http/errors.js";
 import { readJson } from "../../../http/requests.js";
 import {
@@ -189,6 +194,27 @@ sourceRoutes.get("/:sourceId/previews", async (context) => {
   });
 });
 
+sourceRoutes.get("/:sourceId/plans", async (context) => {
+  const user = context.get("user");
+  return context.json({
+    plans: await listDeploymentPlans({
+      sourceId: context.req.param("sourceId"),
+      workspaceId: user.workspaceId,
+    }),
+  });
+});
+
+sourceRoutes.get("/:sourceId/plans/:planId", async (context) => {
+  const user = context.get("user");
+  return context.json({
+    plan: await getDeploymentPlan({
+      planId: context.req.param("planId"),
+      sourceId: context.req.param("sourceId"),
+      workspaceId: user.workspaceId,
+    }),
+  });
+});
+
 sourceRoutes.get("/:sourceId/manifest", async (context) =>
   context.json({
     manifest: await getSourceManifest(
@@ -206,6 +232,16 @@ sourceRoutes.post("/:sourceId/actions/preview-sync", async (context) =>
     ),
   ),
 );
+
+sourceRoutes.post("/:sourceId/actions/plan", async (context) => {
+  const user = context.get("user");
+  const plan = await createManualDeploymentPlan({
+    requestedBy: user.id,
+    sourceId: context.req.param("sourceId"),
+    workspaceId: user.workspaceId,
+  });
+  return context.json({ plan }, 201);
+});
 
 sourceRoutes.post("/:sourceId/actions/sync", async (context) => {
   const user = context.get("user");

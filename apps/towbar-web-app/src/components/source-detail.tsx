@@ -7,6 +7,7 @@ import {
   InformationSquareIcon,
   ServerStack01Icon,
   Settings01Icon,
+  ValidationIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -51,6 +52,7 @@ import { formatDate } from "./dashboard-overview";
 import { SourceAwsCredentials } from "./source-aws-credentials";
 import { SourceSecretStageEditor } from "./app-secrets";
 import { SourceApps, SourceResources, SourceServers } from "./source-inventory";
+import { SourcePlans } from "./source-plans";
 
 type ManifestResponse = {
   manifest: {
@@ -269,6 +271,12 @@ export function SourceDetail() {
                 sourceId={sourceId}
               />
             ),
+          },
+          {
+            value: "plans",
+            label: "Plans",
+            icon: <HugeiconsIcon icon={ValidationIcon} />,
+            content: <SourcePlans sourceId={sourceId} />,
           },
           {
             value: "info",

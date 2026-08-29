@@ -39,6 +39,11 @@ list only Source-scoped orphan candidates from the latest check; owner-confirmed
 cleanup is destructive and persistent volumes are never removed automatically.
 Trusted SSH host keys can be explicitly untrusted from the Server's Host Keys
 tab after confirmation.
+Source pages also expose immutable deployment plans. Operators can generate a
+manual, read-only comparison against the configured branch, or open a
+pull-request plan from its GitHub Check. The plan detail shows current and
+target identities, validation, create/update/archive/restore/no-op rows,
+changed field names, and matched repository paths without secret values.
 
 ## Local UI fixture
 
@@ -51,5 +56,6 @@ NEXT_PUBLIC_TOWBAR_API_BASE_URL=http://127.0.0.1:4420 pnpm --filter towbar-web-a
 ```
 
 The fixture covers every authenticated page, including nested Source, App,
-Resource, Server, Deployment, and Source Sync routes. It listens on port 4420
-to remain isolated from the normal Towbar API development port.
+Resource, Server, Deployment, Deployment Plan, and Source Sync routes. It
+listens on port 4420 to remain isolated from the normal Towbar API development
+port.

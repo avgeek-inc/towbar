@@ -6,7 +6,7 @@ import { conflict } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 
 import type {
-  MaterializedManifestEntity,
+  MaterializedDeploymentPlanEntity,
   NormalizedApp,
   NormalizedDeploymentManifest,
   NormalizedResource,
@@ -20,6 +20,7 @@ export async function loadCurrentInventory(sourceId: string) {
       archivedAt: apps.archivedAt,
       config: apps.config,
       configDigest: apps.configDigest,
+      deploymentDigest: apps.deploymentDigest,
       id: apps.id,
       identity: apps.manifestId,
     })
@@ -38,12 +39,12 @@ export async function loadCurrentInventory(sourceId: string) {
   return {
     apps: currentApps.filter(
       (app) => app.config.kind === "app" || !app.config.kind,
-    ) as Array<MaterializedManifestEntity<NormalizedApp>>,
+    ) as Array<MaterializedDeploymentPlanEntity<NormalizedApp>>,
     resources: currentApps.filter(
       (app) => app.config.kind && app.config.kind !== "app",
-    ) as Array<MaterializedManifestEntity<NormalizedResource>>,
+    ) as Array<MaterializedDeploymentPlanEntity<NormalizedResource>>,
     servers: currentServers as Array<
-      MaterializedManifestEntity<NormalizedServer>
+      MaterializedDeploymentPlanEntity<NormalizedServer>
     >,
   };
 }

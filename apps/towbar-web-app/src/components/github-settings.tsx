@@ -56,6 +56,12 @@ export function GitHubSettings() {
     connection !== null &&
     previewPermissionState === "available" &&
     connection.permissionReadiness.preview === "ready";
+  const planningPermissionsReady =
+    connection !== null &&
+    previewPermissionState === "available" &&
+    connection.permissionReadiness.planning === "ready";
+  const reportingPermissionsReady =
+    previewPermissionsReady && planningPermissionsReady;
   const action = connection ? (
     connection.suspendedAt ? (
       <ActionButton
@@ -127,19 +133,19 @@ export function GitHubSettings() {
           </Alert.Content>
         </Alert>
       ) : null}
-      {!connection.suspendedAt && !previewPermissionsReady ? (
+      {!connection.suspendedAt && !reportingPermissionsReady ? (
         <Alert status="warning">
           <Alert.Indicator />
           <Alert.Content>
             <Alert.Title>
               {previewPermissionState === "unavailable"
                 ? "GitHub permissions could not be verified"
-                : "Preview reporting needs additional permissions"}
+                : "GitHub reporting needs additional permissions"}
             </Alert.Title>
             <Alert.Description>
               {previewPermissionState === "unavailable"
                 ? "Towbar could not confirm the installation permissions. Try again before relying on Preview status reporting."
-                : "Grant Pull requests and Deployments read and write access so Towbar can publish Preview statuses and keep one status comment updated on each pull request."}
+                : "Grant Checks, Pull requests, and Deployments read and write access, plus Contents read access. Towbar uses them for deployment-plan Checks and Preview reporting."}
             </Alert.Description>
           </Alert.Content>
         </Alert>
@@ -164,9 +170,14 @@ export function GitHubSettings() {
             status={previewPermissionsReady ? "ready" : "attention"}
           />
         </Attributes.Item>
+        <Attributes.Item label="Deployment plans">
+          <StatusBadge
+            status={planningPermissionsReady ? "ready" : "attention"}
+          />
+        </Attributes.Item>
       </Attributes>
       <div className="flex flex-wrap gap-3">
-        {!connection.suspendedAt && !previewPermissionsReady ? (
+        {!connection.suspendedAt && !reportingPermissionsReady ? (
           <ActionButton
             action={openGitHubInstallation}
             success="Opening GitHub"
@@ -183,8 +194,9 @@ export function GitHubSettings() {
         <EmptyState.Title>GitHub not connected</EmptyState.Title>
         <EmptyState.Description className="max-w-md text-pretty">
           Install the GitHub App and choose only the repositories Towbar should
-          manage. Towbar writes only Preview deployment statuses and the single
-          status comment it maintains for each pull request.
+          manage. Towbar writes deployment-plan Checks, Preview deployment
+          statuses, and the single status comment it maintains for each pull
+          request.
         </EmptyState.Description>
       </EmptyState.Header>
       <EmptyState.Content>{action}</EmptyState.Content>

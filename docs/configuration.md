@@ -48,6 +48,7 @@ a Source. Configure a GitHub App with:
 
 - Repository contents: read-only
 - Repository metadata: read-only
+- Checks: read and write (required for deployment-plan reporting)
 - Pull requests: read and write (required for Preview deployments and their PR status comment)
 - Deployments: read and write (required for Preview deployment statuses)
 - Webhook events: push, pull request, and installation
@@ -55,8 +56,9 @@ a Source. Configure a GitHub App with:
 - Setup URL with redirect enabled:
   `${TOWBAR_APP_BASE_URL}/settings?section=github`
 
-Existing installations must approve the Pull requests permission upgrade before
-Towbar can create or update the Preview status comment.
+Existing installations must approve the Checks and Pull requests permission
+upgrades before Towbar can publish deployment-plan Checks or update the Preview
+status comment.
 
 Encode the downloaded PEM without line wrapping:
 
@@ -115,12 +117,37 @@ through a no-store response while editing them. Towbar performs the merge in
 the API, checks the expected AWS version before writing, and does not persist
 secret values in PostgreSQL or logs. Shared references show every affected App
 or Resource before an operator edits them. This flow requires narrowly scoped
-`secretsmanager:GetSecretValue` and `secretsmanager:PutSecretValue` permissions;
-changing the reference itself still requires a manifest commit and Source sync.
+`secretsmanager:DescribeSecret`, `secretsmanager:GetSecretValue`, and
+`secretsmanager:PutSecretValue` permissions; changing the reference itself
+still requires a manifest commit and Source sync.
 
 The current deployment schema is served by the configured website at
 `${TOWBAR_WEBSITE_BASE_URL}/schemas/deployment.v1.json` and documented under
 `${TOWBAR_WEBSITE_BASE_URL}/docs/deployment-file`.
+
+## Deployment plans
+
+Source **Plans** are side-effect-free comparisons between an immutable
+candidate commit and the Source's currently materialized inventory. Generating
+a manual plan fetches the configured branch but does not sync, archive, deploy,
+resolve secret values, or change a server. The plan stores the current and
+target manifest digests, then classifies every App, Resource, and Server as
+create, update, archive, restore, or no-op.
+
+Validation covers manifest schema, domain ownership, Source branch alignment,
+server preparation and observed capacity, declared secret references by name,
+and conflicting active operations. Secret bindings are checked with
+`secretsmanager:DescribeSecret`; secret values are never fetched for a plan.
+A failed validation marks the plan **Blocked** and includes an actionable
+message; warnings remain visible without blocking the comparison.
+
+For a same-repository pull request targeting the Source branch, Towbar creates
+the same comparison against the PR head commit and publishes one completed
+`Towbar deployment plan` Check Run for that commit. App rows respect
+`autoDeploy.inputs`; unrelated paths do not create irrelevant plan rows. The
+Check links to the immutable plan detail page. Repeated webhook deliveries
+update the existing Check instead of creating another one. Plan generation is
+observational and never gates or orders Preview or production deployments.
 
 ## Preview deployments
 

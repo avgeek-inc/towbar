@@ -37,6 +37,8 @@ import {
   publishPreviewDeploymentStatus,
 } from "../deployments/preview-status.js";
 import { calculateReleaseDeploymentDigest } from "../sources/deployment-digests.js";
+import { publishDeploymentPlanGitHubCheck } from "../plans/github-check.js";
+import { createPullRequestDeploymentPlan } from "../plans/service.js";
 import {
   isPreviewReleaseCurrent,
   shouldDeferPreviewAdmission,
@@ -163,6 +165,25 @@ export async function processPreviewPullRequestEvent(
       retry: false,
     };
   }
+  const changedPaths = await fetchGitHubPullRequestChangedPaths({
+    changedFileCount: pullRequest.changedFileCount,
+    installationId: source.installationId,
+    pullRequestNumber: pullRequest.number,
+    repositoryName: source.repositoryName,
+    repositoryOwner: source.repositoryOwner,
+  });
+  try {
+    const plan = await createPullRequestDeploymentPlan({
+      pullRequest,
+      repositoryChanges: changedPaths,
+      sourceId: event.sourceId,
+      workspaceId: source.workspaceId,
+    });
+    await publishDeploymentPlanGitHubCheck(plan.id);
+  } catch {
+    // Planning and GitHub reporting are observational. Preview reconciliation
+    // remains independent and records its own result.
+  }
   if (!source.latestManifestDigest) {
     return { cleanupIds: [], deploymentIds: [], retry: false };
   }
@@ -199,17 +220,6 @@ export async function processPreviewPullRequestEvent(
   if (eligible.length === 0) {
     return { cleanupIds: [], deploymentIds: [], retry: false };
   }
-  const changedPaths = eligible.some(
-    (candidate) => candidate.config.deploymentInputs.length > 0,
-  )
-    ? await fetchGitHubPullRequestChangedPaths({
-        changedFileCount: pullRequest.changedFileCount,
-        installationId: source.installationId,
-        pullRequestNumber: pullRequest.number,
-        repositoryName: source.repositoryName,
-        repositoryOwner: source.repositoryOwner,
-      })
-    : { complete: true, paths: [] };
   const relevant = eligible.filter((candidate) =>
     shouldDeployForChangedPaths({
       changedPaths,

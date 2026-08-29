@@ -1,4 +1,5 @@
 export * from "./deployment-inputs.js";
+export * from "./deployment-plan.js";
 export * from "./manifest.js";
 export * from "./preview.js";
 export * from "./reconciliation.js";

@@ -18,6 +18,48 @@ export type Source = {
   updatedAt: string;
 };
 
+export type DeploymentPlanAction =
+  "archive" | "create" | "no_op" | "restore" | "update";
+
+export type DeploymentPlan = {
+  branch: string;
+  createdAt: string;
+  currentCommitSha: string | null;
+  currentManifestDigest: string | null;
+  githubCheckError?: string | null;
+  githubCheckRunId?: string | null;
+  githubCheckStatus: "failed" | "pending" | "published" | null;
+  id: string;
+  plan: {
+    checks: Array<{
+      code: string;
+      entityId?: string;
+      entityKind?: "app" | "resource" | "server" | "source";
+      message: string;
+      references?: string[];
+      status: "failed" | "passed" | "warning";
+    }>;
+    items: Array<{
+      action: DeploymentPlanAction;
+      automaticDeployment: boolean;
+      changedFields: string[];
+      entityId: string;
+      entityKind: "app" | "resource" | "server";
+      matchedPaths: string[];
+      name: string;
+      reasons: string[];
+    }>;
+    status: "blocked" | "ready";
+    summary: Record<DeploymentPlanAction, number>;
+  };
+  pullRequestNumber: number | null;
+  sourceId: string;
+  status: "blocked" | "ready";
+  targetCommitSha: string;
+  targetManifestDigest: string | null;
+  trigger: "manual" | "pull_request";
+};
+
 export type App = {
   archivedAt: string | null;
   config: {
@@ -379,8 +421,10 @@ export type GitHubConnection = {
   installationId: string;
   permissionReadiness:
     | {
+        checks: "none" | "read" | "write";
         contents: "none" | "read" | "write";
         deployments: "none" | "read" | "write";
+        planning: "missing" | "ready";
         preview: "missing" | "ready";
         pullRequests: "none" | "read" | "write";
         status: "available";
