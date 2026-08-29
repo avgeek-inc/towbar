@@ -183,6 +183,9 @@ importers:
       jose:
         specifier: ^6.2.9
         version: 6.2.9
+      nodemailer:
+        specifier: ^9.0.6
+        version: 9.0.6
       postgres:
         specifier: "catalog:"
         version: 3.4.9
@@ -193,6 +196,9 @@ importers:
       "@types/node":
         specifier: "catalog:"
         version: 26.2.0
+      "@types/nodemailer":
+        specifier: ^8.0.1
+        version: 8.0.1
       "@workspace/eslint-config":
         specifier: workspace:^
         version: link:../../packages/eslint-config
@@ -3697,6 +3703,12 @@ packages:
         integrity: sha512-5IviulTZeRNp2vAJ514cc/HUlY5nZ9fCbq9DMyC52BrhFZACo3nI0R7qBxhQmo/d27NFe96ur/b7Wwxklda+kg==,
       }
 
+  "@types/nodemailer@8.0.1":
+    resolution:
+      {
+        integrity: sha512-PxpaInm8V1JQDd4j0ds5HfvWQk8JupS1C0Picb96QJsrrRDjBH+DlK7L4ZdNSqNULhiZRQHc40nLVShaGxXAMw==,
+      }
+
   "@types/react-dom@19.2.4":
     resolution:
       {
@@ -5952,6 +5964,13 @@ packages:
         integrity: sha512-D9UOmYG3UH1V+ENW56t5QXBwJw1YEY18ruVeus89Rw+SyIgjPkCO84bRzO3uNIYosJbNwiabWVn48o3uJLjxFQ==,
       }
     engines: { node: ">=18" }
+
+  nodemailer@9.0.6:
+    resolution:
+      {
+        integrity: sha512-IQUGFdhdGwI9+AWX+FpUt4DLmvFaOjTMEoneTIWX/RXxuy1TdenPwWrvFMSfLkPKl+HQEXWuSAxEMMbPYXtBmg==,
+      }
+    engines: { node: ">=6.0.0" }
 
   object-assign@4.1.1:
     resolution:
@@ -8878,6 +8897,10 @@ snapshots:
     dependencies:
       undici-types: 8.3.0
 
+  "@types/nodemailer@8.0.1":
+    dependencies:
+      "@types/node": 26.2.0
+
   "@types/react-dom@19.2.4(@types/react@19.2.18)":
     dependencies:
       "@types/react": 19.2.18
@@ -10299,6 +10322,8 @@ snapshots:
       whatwg-url: 5.0.0
 
   node-releases@2.0.53: {}
+
+  nodemailer@9.0.6: {}
 
   object-assign@4.1.1: {}
 

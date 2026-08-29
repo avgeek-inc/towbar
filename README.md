@@ -26,6 +26,9 @@ truth and runs deployments through durable Temporal workflows.
   release history.
 - Deployment-relevant pull requests publish one idempotent GitHub Check linked
   to the complete plan in Towbar.
+- Source-scoped Slack and SMTP destinations deliver operational events through
+  durable, independently retryable attempts without storing credentials in
+  Towbar.
 - PostgreSQL and Temporal provide persistent state and durable execution.
 
 ## Quick start

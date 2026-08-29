@@ -18,11 +18,13 @@ import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueueServerCheck } from "../../infrastructure/temporal.js";
 import { publicDeploymentSelection } from "../deployment-selection.js";
 import { resolveAwsSecret } from "../aws/service.js";
+import { emitServerCheckNotifications } from "../notifications/events.js";
 import { pruneServerCheckHistory } from "./check-retention.js";
 import {
   selectCurrentContainerNames,
   selectCurrentProductionReleaseByDeployable,
 } from "./release-selection.js";
+import { parseRuntimeInspections } from "./runtime-inspection.js";
 
 export const sshLoginSecretSchema = z
   .object({
@@ -413,7 +415,7 @@ export async function finishServerCheck(
         status: "failed";
       },
 ) {
-  return await getTowbarDatabase().transaction(async (transaction) => {
+  const outcome = await getTowbarDatabase().transaction(async (transaction) => {
     const finishedAt = new Date();
     const [check] = await transaction
       .update(serverChecks)
@@ -427,18 +429,63 @@ export async function finishServerCheck(
       .where(eq(serverChecks.id, checkId))
       .returning();
     if (!check) throw notFound("Server check");
+    const [previousCheck] = await transaction
+      .select({ status: serverChecks.status })
+      .from(serverChecks)
+      .where(
+        and(
+          eq(serverChecks.serverId, check.serverId),
+          ne(serverChecks.id, check.id),
+        ),
+      )
+      .orderBy(desc(serverChecks.createdAt))
+      .limit(1);
+    const runtimeTransitions: Array<{
+      deployableId: string;
+      recovered: boolean;
+    }> = [];
     if (input.status === "succeeded") {
       const runtime = parseRuntimeInspections(input.result.runtime);
-      const allowed = new Set(
-        (
-          await transaction
-            .select({ id: apps.id })
-            .from(apps)
-            .where(eq(apps.serverId, check.serverId))
-        ).map((app) => app.id),
+      const deployables = await transaction
+        .select({
+          healthStatus: deployableRuntimeStates.healthStatus,
+          id: apps.id,
+        })
+        .from(apps)
+        .leftJoin(
+          deployableRuntimeStates,
+          eq(deployableRuntimeStates.appId, apps.id),
+        )
+        .where(eq(apps.serverId, check.serverId));
+      const priorHealthByDeployable = new Map(
+        deployables.map((deployable) => [
+          deployable.id,
+          deployable.healthStatus,
+        ]),
       );
+      const allowed = new Set(deployables.map((deployable) => deployable.id));
       for (const inspection of runtime) {
         if (!allowed.has(inspection.deployableId)) continue;
+        const priorHealth = priorHealthByDeployable.get(
+          inspection.deployableId,
+        );
+        if (
+          inspection.healthStatus === "unhealthy" &&
+          priorHealth !== "unhealthy"
+        ) {
+          runtimeTransitions.push({
+            deployableId: inspection.deployableId,
+            recovered: false,
+          });
+        } else if (
+          inspection.healthStatus === "healthy" &&
+          priorHealth === "unhealthy"
+        ) {
+          runtimeTransitions.push({
+            deployableId: inspection.deployableId,
+            recovered: true,
+          });
+        }
         await transaction
           .insert(deployableRuntimeStates)
           .values({
@@ -470,37 +517,23 @@ export async function finishServerCheck(
       }
     }
     await pruneServerCheckHistory(transaction, check.serverId);
-    return check;
+    return {
+      check,
+      runtimeTransitions,
+      serverBecameUnhealthy:
+        input.status === "failed" && previousCheck?.status !== "failed",
+      serverRecovered:
+        input.status === "succeeded" && previousCheck?.status === "failed",
+    };
   });
-}
-
-function parseRuntimeInspections(value: unknown) {
-  return z
-    .array(
-      z
-        .object({
-          cpuPercent: z.number().nonnegative().nullable(),
-          deployableId: z.string().uuid(),
-          driftReasons: z.array(z.string().max(500)).max(20),
-          driftStatus: z.enum(["drifted", "in_sync", "unknown"]),
-          healthStatus: z.enum([
-            "healthy",
-            "none",
-            "starting",
-            "unhealthy",
-            "unknown",
-          ]),
-          memoryLimitBytes: z.number().int().nonnegative().nullable(),
-          memoryUsageBytes: z.number().int().nonnegative().nullable(),
-          observedContainerName: z.string().max(255).nullable(),
-          observedImage: z.string().max(512).nullable(),
-          observedState: z.enum(["missing", "running", "stopped", "unknown"]),
-          restartCount: z.number().int().nonnegative().nullable(),
-          startedAt: z.string().datetime().nullable(),
-        })
-        .strict(),
-    )
-    .parse(value);
+  await emitServerCheckNotifications({
+    checkId: outcome.check.id,
+    runtimeTransitions: outcome.runtimeTransitions,
+    serverBecameUnhealthy: outcome.serverBecameUnhealthy,
+    serverId: outcome.check.serverId,
+    serverRecovered: outcome.serverRecovered,
+  });
+  return outcome.check;
 }
 
 async function getLatestServerPreparations(serverIds: string[]) {

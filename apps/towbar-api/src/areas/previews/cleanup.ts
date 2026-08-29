@@ -20,6 +20,7 @@ import {
   propagatePreviewDeploymentState,
   publishPreviewDeploymentStatus,
 } from "../deployments/preview-status.js";
+import { emitPreviewNotification } from "../notifications/events.js";
 import {
   enqueueClaimedPreviewCleanups,
   previewCleanupAdmissionFailureMessage,
@@ -463,6 +464,12 @@ export async function recordPreviewCleanupResult(
     await publishPreviewDeploymentStatus(
       environment.latestDeploymentId,
       "inactive",
+    ).catch(() => undefined);
+  }
+  if (input.succeeded) {
+    await emitPreviewNotification(
+      previewEnvironmentId,
+      "preview.cleaned_up",
     ).catch(() => undefined);
   }
   if (environment) {

@@ -1,6 +1,7 @@
 export * from "./deployment-inputs.js";
 export * from "./deployment-plan.js";
 export * from "./manifest.js";
+export * from "./notifications.js";
 export * from "./preview.js";
 export * from "./reconciliation.js";
 export * from "./request-signing.js";

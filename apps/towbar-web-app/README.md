@@ -43,6 +43,10 @@ Source pages also expose immutable pull-request deployment plans from their
 GitHub Checks. The plan detail shows current and target identities, validation,
 create/update/archive/restore/no-op rows, changed field names, and matched
 repository paths without secret values.
+Source Settings also contains a Notifications section for Slack and SMTP
+destinations. Owners select event categories, keep credentials behind an AWS
+secret reference, send a test, inspect delivery history, and retry a corrected
+failed delivery without exposing provider secrets in the browser.
 
 ## Local UI fixture
 

@@ -204,6 +204,13 @@
       "when": 1788040577569,
       "tag": "0028_sticky_infant_terrible",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1788044610176,
+      "tag": "0029_fuzzy_owl",
+      "breakpoints": true
     }
   ]
 }

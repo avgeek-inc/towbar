@@ -161,6 +161,58 @@ export type AppSecretsResponse = {
   canManageSecrets: boolean;
 };
 
+export type NotificationCategory =
+  "deployments" | "previews" | "health" | "backups" | "restores";
+
+export type NotificationDestination = {
+  categories: NotificationCategory[];
+  config:
+    | Record<string, never>
+    | {
+        from: string;
+        host: string;
+        port: number;
+        recipients: string[];
+        secure: boolean;
+        subjectPrefix: string;
+      };
+  createdAt: string;
+  enabled: boolean;
+  id: string;
+  name: string;
+  provider: "slack" | "smtp";
+  secretReference: string;
+  sourceId: string;
+  updatedAt: string;
+};
+
+export type NotificationDelivery = {
+  attemptCount: number;
+  category: NotificationCategory | "test";
+  createdAt: string;
+  cycle: number;
+  deliveredAt: string | null;
+  destinationId: string;
+  destinationName: string;
+  errorCode: string | null;
+  errorMessage: string | null;
+  eventId: string;
+  eventType: string;
+  id: string;
+  nextAttemptAt: string | null;
+  payload: {
+    details: Record<string, boolean | number | string | null>;
+    entity: { id: string; kind: string; name: string };
+    message: string;
+    occurredAt: string;
+    source: { id: string; name: string };
+    title: string;
+  };
+  provider: "slack" | "smtp";
+  state: "pending" | "delivering" | "retrying" | "succeeded" | "failed";
+  updatedAt: string;
+};
+
 export type AppSecretRevealResponse = {
   secret: {
     changedAt: string;

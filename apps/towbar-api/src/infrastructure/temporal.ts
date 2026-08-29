@@ -5,6 +5,7 @@ import { Client, Connection } from "@temporalio/client";
 import {
   deploymentWorkflowId,
   maintenanceWorkflowId,
+  notificationDeliveryWorkflowId,
   resourceOperationWorkflowId,
   serverCoordinatorWorkflowId,
   sourceCoordinatorWorkflowId,
@@ -259,6 +260,28 @@ export async function wakeMaintenanceWorkflow() {
   return { workflowId };
 }
 
+export async function enqueueNotificationDelivery(input: {
+  cycle: number;
+  deliveryId: string;
+}) {
+  const client = await getTemporalClient();
+  const workflowId = notificationDeliveryWorkflowId(
+    input.deliveryId,
+    input.cycle,
+  );
+  try {
+    await client.workflow.start("runNotificationDeliveryWorkflow", {
+      args: [input],
+      taskQueue: towbarTaskQueue,
+      workflowId,
+      workflowIdReusePolicy: "ALLOW_DUPLICATE",
+    });
+  } catch (error) {
+    if (!isWorkflowAlreadyStarted(error)) throw error;
+  }
+  return { workflowId };
+}
+
 export async function cancelDeploymentWorkflow(deploymentId: string) {
   const client = await getTemporalClient();
   await client.workflow.getHandle(deploymentWorkflowId(deploymentId)).cancel();
@@ -281,4 +304,14 @@ async function createTemporalClient() {
       : {}),
   });
   return new Client({ connection, namespace: env.TEMPORAL_NAMESPACE });
+}
+
+function isWorkflowAlreadyStarted(error: unknown) {
+  return (
+    error instanceof Error &&
+    [
+      "WorkflowExecutionAlreadyStartedError",
+      "WorkflowExecutionAlreadyStarted",
+    ].includes(error.name)
+  );
 }

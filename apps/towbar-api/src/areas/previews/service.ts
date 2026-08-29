@@ -36,6 +36,10 @@ import {
   propagatePreviewDeploymentState,
   publishPreviewDeploymentStatus,
 } from "../deployments/preview-status.js";
+import {
+  emitDeploymentNotification,
+  emitPreviewNotification,
+} from "../notifications/events.js";
 import { calculateReleaseDeploymentDigest } from "../sources/deployment-digests.js";
 import { publishDeploymentPlanGitHubCheck } from "../plans/github-check.js";
 import { createPullRequestDeploymentPlan } from "../plans/service.js";
@@ -308,7 +312,17 @@ export async function processPreviewPullRequestEvent(
         propagatePreviewDeploymentState(deploymentId, "skipped"),
       ),
     );
+    if (admission.supersededDeploymentIds.length > 0) {
+      await emitPreviewNotification(
+        admission.environmentId,
+        "preview.superseded",
+      ).catch(() => undefined);
+    }
     if (admission.deploymentId && admission.created) {
+      await emitDeploymentNotification(
+        admission.deploymentId,
+        "deployment.queued",
+      ).catch(() => undefined);
       await publishPreviewDeploymentStatus(
         admission.deploymentId,
         "queued",

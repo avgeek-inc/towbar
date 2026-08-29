@@ -51,6 +51,11 @@ import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 import { SourceAwsCredentials } from "./source-aws-credentials";
 import { SourceSecretStageEditor } from "./app-secrets";
+import {
+  SourceNotifications,
+  type NotificationDeliveriesResponse,
+  type NotificationDestinationsResponse,
+} from "./source-notifications";
 import { SourceApps, SourceResources, SourceServers } from "./source-inventory";
 import { SourcePlans } from "./source-plans";
 
@@ -372,6 +377,18 @@ function SourceSettings({
       ? `/v1/core/sources/${sourceId}/secrets`
       : null,
   );
+  const notificationDestinations =
+    useApiQuery<NotificationDestinationsResponse>(
+      isActive && hasAwsCredentials
+        ? `/v1/core/sources/${sourceId}/notifications/destinations`
+        : null,
+    );
+  const notificationDeliveries = useApiQuery<NotificationDeliveriesResponse>(
+    isActive && hasAwsCredentials
+      ? `/v1/core/sources/${sourceId}/notifications/deliveries`
+      : null,
+    5_000,
+  );
   const secretsDisabledReason =
     "Add AWS credentials before editing shared secrets";
 
@@ -390,6 +407,21 @@ function SourceSettings({
               sourceId={sourceId}
             />
           ),
+        },
+        {
+          value: "notifications",
+          label: "Notifications",
+          isDisabled: !hasAwsCredentials,
+          disabledReason:
+            "Add AWS credentials before configuring notification destinations",
+          content: hasAwsCredentials ? (
+            <SourceNotifications
+              canManage={canManage}
+              deliveries={notificationDeliveries}
+              destinations={notificationDestinations}
+              sourceId={sourceId}
+            />
+          ) : null,
         },
         {
           value: "build-secrets",
@@ -529,8 +561,8 @@ function SourceSubtabs({
       selectedKey={selectedKey}
       onSelectionChange={onSelectionChange}
     >
-      <div className="grid items-start gap-4 lg:grid-cols-[14rem_minmax(0,1fr)]">
-        <Tabs.ListContainer className="w-full">
+      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[14rem_minmax(0,1fr)]">
+        <Tabs.ListContainer className="w-full min-w-0 max-w-full">
           <Tabs.List aria-label={ariaLabel} className="w-full">
             {tabs.map((tab) => (
               <Tabs.Tab

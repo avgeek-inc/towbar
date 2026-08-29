@@ -20,6 +20,8 @@ import type {
   DeploymentStep,
   GitHubConnection,
   GitHubRepository,
+  NotificationDelivery,
+  NotificationDestination,
   OrphanItem,
   PreviewEnvironment,
   PreviewReportingHealth,
@@ -713,6 +715,53 @@ const sourceBackups: SourceBackup[] = [
     231_902_104,
   ),
 ];
+const notificationDestinations: NotificationDestination[] = [
+  {
+    categories: ["deployments", "previews", "health"],
+    config: {},
+    createdAt: fixtureNow,
+    enabled: true,
+    id: "a1111111-1111-4111-8111-111111111111",
+    name: "Engineering Slack",
+    provider: "slack",
+    secretReference: "aws:fixture/notifications/slack",
+    sourceId: source.id,
+    updatedAt: fixtureNow,
+  },
+  {
+    categories: ["backups", "restores"],
+    config: {
+      from: "towbar@example.com",
+      host: "smtp.example.com",
+      port: 587,
+      recipients: ["operations@example.com"],
+      secure: false,
+      subjectPrefix: "Towbar",
+    },
+    createdAt: fixtureNow,
+    enabled: false,
+    id: "a1111111-1111-4111-8111-222222222222",
+    name: "Operations email",
+    provider: "smtp",
+    secretReference: "aws:fixture/notifications/smtp",
+    sourceId: source.id,
+    updatedAt: fixtureNow,
+  },
+];
+const notificationDeliveries: NotificationDelivery[] = [
+  createNotificationDeliveryFixture(
+    "b1111111-1111-4111-8111-111111111111",
+    notificationDestinations[0]!,
+    "deployment.failed",
+    "failed",
+  ),
+  createNotificationDeliveryFixture(
+    "b1111111-1111-4111-8111-222222222222",
+    notificationDestinations[0]!,
+    "preview.ready",
+    "succeeded",
+  ),
+];
 const orphanItems: OrphanItem[] = [];
 
 const workflowStates: DeploymentState[] = [
@@ -772,6 +821,89 @@ export function createFixtureApiServer() {
       path === `/v1/core/sources/${source.id}/actions/sync`
     ) {
       return writeJson(response, 202, { sync: { id: sourceSync.id } });
+    }
+    const notificationDestinationMatch = path.match(
+      new RegExp(
+        `^/v1/core/sources/${source.id}/notifications/destinations(?:/([^/]+)(?:/actions/test)?)?$`,
+      ),
+    );
+    if (notificationDestinationMatch && request.method === "POST") {
+      const destinationId = notificationDestinationMatch[1];
+      if (destinationId && path.endsWith("/actions/test")) {
+        const destination = notificationDestinations.find(
+          (item) => item.id === destinationId,
+        );
+        if (!destination) return writeNotFound(response);
+        const delivery = createNotificationDeliveryFixture(
+          randomUUID(),
+          destination,
+          "notification.test",
+          "pending",
+        );
+        notificationDeliveries.unshift(delivery);
+        return writeJson(response, 202, { delivery });
+      }
+      void readRequestJson(request)
+        .then((input) => {
+          const now = new Date().toISOString();
+          const destination = {
+            ...(input as Omit<
+              NotificationDestination,
+              "createdAt" | "id" | "sourceId" | "updatedAt"
+            >),
+            createdAt: now,
+            id: randomUUID(),
+            sourceId: source.id,
+            updatedAt: now,
+          } satisfies NotificationDestination;
+          notificationDestinations.push(destination);
+          return writeJson(response, 201, { destination });
+        })
+        .catch(() => writeJson(response, 400, { error: "Invalid JSON" }));
+      return;
+    }
+    if (notificationDestinationMatch && request.method === "PUT") {
+      const destination = notificationDestinations.find(
+        (item) => item.id === notificationDestinationMatch[1],
+      );
+      if (!destination) return writeNotFound(response);
+      void readRequestJson(request)
+        .then((input) => {
+          Object.assign(destination, input, {
+            updatedAt: new Date().toISOString(),
+          });
+          return writeJson(response, 200, { destination });
+        })
+        .catch(() => writeJson(response, 400, { error: "Invalid JSON" }));
+      return;
+    }
+    if (notificationDestinationMatch && request.method === "DELETE") {
+      const index = notificationDestinations.findIndex(
+        (item) => item.id === notificationDestinationMatch[1],
+      );
+      if (index < 0) return writeNotFound(response);
+      notificationDestinations.splice(index, 1);
+      response.writeHead(204);
+      response.end();
+      return;
+    }
+    const notificationRetryMatch = path.match(
+      new RegExp(
+        `^/v1/core/sources/${source.id}/notifications/deliveries/([^/]+)/actions/retry$`,
+      ),
+    );
+    if (notificationRetryMatch && request.method === "POST") {
+      const delivery = notificationDeliveries.find(
+        (item) => item.id === notificationRetryMatch[1],
+      );
+      if (!delivery) return writeNotFound(response);
+      delivery.state = "pending";
+      delivery.cycle += 1;
+      delivery.attemptCount = 0;
+      delivery.errorCode = null;
+      delivery.errorMessage = null;
+      delivery.updatedAt = new Date().toISOString();
+      return writeJson(response, 202, { delivery });
     }
     if (
       request.method === "PATCH" &&
@@ -1143,6 +1275,14 @@ function getFixturePayload(
       },
     ],
     [`/v1/core/sources/${source.id}/backups`, { backups: sourceBackups }],
+    [
+      `/v1/core/sources/${source.id}/notifications/destinations`,
+      { canManageNotifications: true, destinations: notificationDestinations },
+    ],
+    [
+      `/v1/core/sources/${source.id}/notifications/deliveries`,
+      { deliveries: notificationDeliveries },
+    ],
     [
       `/v1/core/sources/${source.id}/syncs/${sourceSync.id}`,
       { sync: sourceSync },
@@ -1702,6 +1842,62 @@ function createBackupFixture(
     state: "succeeded",
     type: "backup",
     updatedAt: createdAt,
+  };
+}
+
+function createNotificationDeliveryFixture(
+  id: string,
+  destination: NotificationDestination,
+  eventType: string,
+  state: NotificationDelivery["state"],
+): NotificationDelivery {
+  const failed = state === "failed";
+  return {
+    attemptCount: failed ? 5 : 1,
+    category:
+      eventType === "notification.test"
+        ? "test"
+        : eventType.startsWith("preview.")
+          ? "previews"
+          : "deployments",
+    createdAt: fixtureNow,
+    cycle: 1,
+    deliveredAt: state === "succeeded" ? fixtureNow : null,
+    destinationId: destination.id,
+    destinationName: destination.name,
+    errorCode: failed ? "PROVIDER_REQUEST_FAILED" : null,
+    errorMessage: failed
+      ? "The provider rejected the notification request."
+      : null,
+    eventId: randomUUID(),
+    eventType,
+    id,
+    nextAttemptAt: null,
+    payload: {
+      details: {},
+      entity: {
+        id: fixtureIds.deployment,
+        kind: "deployment",
+        name: "Example Website",
+      },
+      message:
+        eventType === "preview.ready"
+          ? "Example Website Preview is ready."
+          : eventType === "notification.test"
+            ? "Towbar successfully reached this notification destination."
+            : "Example Website deployment failed its health check.",
+      occurredAt: fixtureNow,
+      source: { id: source.id, name: source.repositoryName },
+      title:
+        eventType === "preview.ready"
+          ? "Preview ready"
+          : eventType === "notification.test"
+            ? "Test notification"
+            : "Deployment failed",
+    },
+    provider: destination.provider,
+    state,
+    updatedAt: fixtureNow,
   };
 }
 

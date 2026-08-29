@@ -1,4 +1,13 @@
-import { and, desc, eq, inArray, isNull, ne, notInArray } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  ne,
+  notInArray,
+} from "drizzle-orm";
 
 import {
   getLatestBackupScheduleOccurrence,
@@ -18,6 +27,8 @@ import {
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { requestServerCheck } from "../servers/service.js";
 import { requestExpiredPreviewCleanups } from "../previews/cleanup.js";
+import { enqueueDueNotificationDeliveries } from "../notifications/delivery-service.js";
+import { emitBackupStaleNotification } from "../notifications/events.js";
 import { requestDeployableOperation } from "./service.js";
 
 export async function runMaintenanceSweep() {
@@ -25,6 +36,7 @@ export async function runMaintenanceSweep() {
   // should enter a server coordinator only after its queue becomes idle.
   const backupsQueued = await queueScheduledBackups();
   const previewCleanupsQueued = await requestExpiredPreviewCleanups();
+  const notificationDeliveriesQueued = await enqueueDueNotificationDeliveries();
   const activeServers = await getTowbarDatabase()
     .select({
       id: servers.id,
@@ -61,7 +73,12 @@ export async function runMaintenanceSweep() {
     }
   }
 
-  return { backupsQueued, checksQueued, previewCleanupsQueued };
+  return {
+    backupsQueued,
+    checksQueued,
+    notificationDeliveriesQueued,
+    previewCleanupsQueued,
+  };
 }
 
 async function queueScheduledBackups() {
@@ -88,6 +105,26 @@ async function queueScheduledBackups() {
         if (!result.replayed) backupsQueued += 1;
       })
       .catch(() => undefined);
+    if (now.getTime() - occurrence.getTime() >= 2 * 60 * 60_000) {
+      const [successfulBackup] = await getTowbarDatabase()
+        .select({ id: resourceOperations.id })
+        .from(resourceOperations)
+        .where(
+          and(
+            eq(resourceOperations.resourceId, resource.id),
+            eq(resourceOperations.type, "backup"),
+            eq(resourceOperations.state, "succeeded"),
+            gte(resourceOperations.createdAt, occurrence),
+          ),
+        )
+        .limit(1);
+      if (!successfulBackup) {
+        await emitBackupStaleNotification({
+          occurrence,
+          resourceId: resource.id,
+        }).catch(() => undefined);
+      }
+    }
   }
   return backupsQueued;
 }
