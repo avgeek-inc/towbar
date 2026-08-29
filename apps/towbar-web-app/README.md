@@ -39,11 +39,10 @@ list only Source-scoped orphan candidates from the latest check; owner-confirmed
 cleanup is destructive and persistent volumes are never removed automatically.
 Trusted SSH host keys can be explicitly untrusted from the Server's Host Keys
 tab after confirmation.
-Source pages also expose immutable deployment plans. Operators can generate a
-manual, read-only comparison against the configured branch, or open a
-pull-request plan from its GitHub Check. The plan detail shows current and
-target identities, validation, create/update/archive/restore/no-op rows,
-changed field names, and matched repository paths without secret values.
+Source pages also expose immutable pull-request deployment plans from their
+GitHub Checks. The plan detail shows current and target identities, validation,
+create/update/archive/restore/no-op rows, changed field names, and matched
+repository paths without secret values.
 
 ## Local UI fixture
 

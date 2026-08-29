@@ -25,10 +25,7 @@ import {
 import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { inspectAwsSecretReferences } from "../aws/service.js";
-import {
-  fetchGitHubManifestSnapshot,
-  fetchGitHubSourceSnapshot,
-} from "../github/client.js";
+import { fetchGitHubManifestSnapshot } from "../github/client.js";
 import { listSourceCapacity } from "../servers/capacity.js";
 import {
   calculateDesiredDeploymentDigests,
@@ -65,24 +62,6 @@ const publicPlanSelection = {
   trigger: deploymentPlans.trigger,
 };
 
-export async function createManualDeploymentPlan(input: {
-  requestedBy: string;
-  sourceId: string;
-  workspaceId: string;
-}) {
-  const source = await getPlanningSource(input.sourceId, input.workspaceId);
-  const snapshot = await fetchGitHubSourceSnapshot(source);
-  return await createAndPersistDeploymentPlan({
-    branch: source.branch,
-    candidate: snapshot,
-    pullRequestNumber: null,
-    repositoryChanges: undefined,
-    requestedBy: input.requestedBy,
-    source,
-    trigger: "manual",
-  });
-}
-
 export async function createPullRequestDeploymentPlan(input: {
   pullRequest: GitHubPullRequest;
   repositoryChanges: RepositoryChangedPaths;
@@ -105,21 +84,17 @@ export async function createPullRequestDeploymentPlan(input: {
       }),
       plan: buildBlockedDeploymentPlan(planChecksFromCandidateError(error)),
       pullRequestNumber: input.pullRequest.number,
-      requestedBy: null,
       source,
       targetCommitSha: input.pullRequest.headSha,
       targetManifestDigest: null,
-      trigger: "pull_request",
     });
   }
-  return await createAndPersistDeploymentPlan({
+  return await createAndPersistPullRequestDeploymentPlan({
     branch: input.pullRequest.headBranch,
     candidate,
     pullRequestNumber: input.pullRequest.number,
     repositoryChanges: input.repositoryChanges,
-    requestedBy: null,
     source,
-    trigger: "pull_request",
   });
 }
 
@@ -138,7 +113,12 @@ export async function listDeploymentPlans(input: {
       deploymentPlanGithubChecks,
       eq(deploymentPlanGithubChecks.planId, deploymentPlans.id),
     )
-    .where(eq(deploymentPlans.sourceId, input.sourceId))
+    .where(
+      and(
+        eq(deploymentPlans.sourceId, input.sourceId),
+        eq(deploymentPlans.trigger, "pull_request"),
+      ),
+    )
     .orderBy(desc(deploymentPlans.createdAt), desc(deploymentPlans.id));
 }
 
@@ -171,14 +151,12 @@ export async function getDeploymentPlan(input: {
   return plan;
 }
 
-async function createAndPersistDeploymentPlan(input: {
+async function createAndPersistPullRequestDeploymentPlan(input: {
   branch: string;
   candidate: { commitSha: string; manifestSource: string };
-  pullRequestNumber: number | null;
-  repositoryChanges: RepositoryChangedPaths | undefined;
-  requestedBy: string | null;
+  pullRequestNumber: number;
+  repositoryChanges: RepositoryChangedPaths;
   source: PlanningSource;
-  trigger: "manual" | "pull_request";
 }) {
   const candidateDigest = digestValue(input.candidate.manifestSource);
   let targetManifestDigest: string | null = null;
@@ -215,7 +193,7 @@ async function createAndPersistDeploymentPlan(input: {
       currentResources: current.resources,
       currentServers: current.servers,
       desired: parsed.manifest,
-      mode: input.trigger === "manual" ? "full" : "pull_request",
+      mode: "pull_request",
       repositoryChanges: input.repositoryChanges,
       targetDeploymentDigests: new Map(
         [...targetDigests].map(([id, digest]) => [id, digest.deploymentDigest]),
@@ -230,11 +208,9 @@ async function createAndPersistDeploymentPlan(input: {
     candidateDigest,
     plan,
     pullRequestNumber: input.pullRequestNumber,
-    requestedBy: input.requestedBy,
     source: input.source,
     targetCommitSha: input.candidate.commitSha,
     targetManifestDigest,
-    trigger: input.trigger,
   });
 }
 
@@ -242,12 +218,10 @@ async function persistDeploymentPlan(input: {
   branch: string;
   candidateDigest: string;
   plan: DeploymentPlan;
-  pullRequestNumber: number | null;
-  requestedBy: string | null;
+  pullRequestNumber: number;
   source: PlanningSource;
   targetCommitSha: string;
   targetManifestDigest: string | null;
-  trigger: "manual" | "pull_request";
 }) {
   const identityDigest = digestValue({
     candidateDigest: input.candidateDigest,
@@ -258,7 +232,7 @@ async function persistDeploymentPlan(input: {
     sourceId: input.source.id,
     targetCommitSha: input.targetCommitSha,
     targetManifestDigest: input.targetManifestDigest,
-    trigger: input.trigger,
+    trigger: "pull_request",
   });
   const database = getTowbarDatabase();
   const [inserted] = await database
@@ -271,12 +245,12 @@ async function persistDeploymentPlan(input: {
       identityDigest,
       plan: input.plan,
       pullRequestNumber: input.pullRequestNumber,
-      requestedBy: input.requestedBy,
+      requestedBy: null,
       sourceId: input.source.id,
       status: input.plan.status,
       targetCommitSha: input.targetCommitSha,
       targetManifestDigest: input.targetManifestDigest,
-      trigger: input.trigger,
+      trigger: "pull_request",
       workspaceId: input.source.workspaceId,
     })
     .onConflictDoNothing()
@@ -296,12 +270,10 @@ async function persistDeploymentPlan(input: {
         .limit(1)
     )[0];
   if (!persisted) throw new Error("Unable to persist deployment plan");
-  if (input.trigger === "pull_request") {
-    await database
-      .insert(deploymentPlanGithubChecks)
-      .values({ planId: persisted.id })
-      .onConflictDoNothing();
-  }
+  await database
+    .insert(deploymentPlanGithubChecks)
+    .values({ planId: persisted.id })
+    .onConflictDoNothing();
   return persisted;
 }
 

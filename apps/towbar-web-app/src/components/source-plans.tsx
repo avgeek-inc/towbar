@@ -1,9 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 import type { DeploymentPlan } from "@workspace/towbar-web-client";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
@@ -12,12 +9,9 @@ import {
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { useApiQuery } from "@/hooks/use-api-query";
-import { api } from "@/lib/api";
-import { ActionButton } from "./page-parts";
 import { formatDate } from "./dashboard-overview";
 
 export function SourcePlans({ sourceId }: { sourceId: string }) {
-  const router = useRouter();
   const query = useApiQuery<{ plans: DeploymentPlan[] }>(
     `/v1/core/sources/${sourceId}/plans`,
     5_000,
@@ -26,25 +20,11 @@ export function SourcePlans({ sourceId }: { sourceId: string }) {
   if (!query.data) return <QueryLoading />;
   const columns: ResourceTableColumn<DeploymentPlan>[] = [
     {
-      key: "revision",
-      header: "Target",
-      cell: (plan) => (
-        <span className="grid gap-0.5">
-          <TypographyCode>{plan.targetCommitSha.slice(0, 12)}</TypographyCode>
-          <span className="text-muted typography--body-xs font-normal">
-            {plan.pullRequestNumber
-              ? `PR #${plan.pullRequestNumber}`
-              : plan.branch}
-          </span>
-        </span>
-      ),
-      className: "min-w-40",
-    },
-    {
-      key: "trigger",
-      header: "Trigger",
+      key: "pull-request",
+      header: "Pull request",
       cell: (plan) =>
-        plan.trigger === "pull_request" ? "Pull request" : "Manual",
+        plan.pullRequestNumber ? `PR #${plan.pullRequestNumber}` : "—",
+      className: "min-w-36",
     },
     {
       key: "changes",
@@ -65,44 +45,11 @@ export function SourcePlans({ sourceId }: { sourceId: string }) {
     },
   ];
   return (
-    <div className="grid gap-4">
-      <div className="flex justify-end">
-        <ActionButton
-          action={() =>
-            api.post<{ plan: DeploymentPlan }>(
-              `/v1/core/sources/${sourceId}/actions/plan`,
-            )
-          }
-          onSuccess={({ plan }) =>
-            router.push(`/sources/${sourceId}/plans/${plan.id}`)
-          }
-          pendingLabel="Generating…"
-          success="Deployment plan generated"
-          variant="primary"
-        >
-          Generate plan
-        </ActionButton>
-      </div>
+    <div>
       <ResourceTable
         ariaLabel="Deployment plans"
         columns={columns}
-        emptyAction={
-          <ActionButton
-            action={() =>
-              api.post<{ plan: DeploymentPlan }>(
-                `/v1/core/sources/${sourceId}/actions/plan`,
-              )
-            }
-            onSuccess={({ plan }) =>
-              router.push(`/sources/${sourceId}/plans/${plan.id}`)
-            }
-            pendingLabel="Generating…"
-            success="Deployment plan generated"
-          >
-            Generate first plan
-          </ActionButton>
-        }
-        emptyDescription="Generate a read-only comparison before changing this Source. Pull requests also publish their plan as one GitHub Check."
+        emptyDescription="Deployment-relevant pull requests publish a GitHub Check linked to their plan in Towbar."
         emptyTitle="No deployment plans"
         getRowHref={(plan) => `/sources/${sourceId}/plans/${plan.id}`}
         getRowKey={(plan) => plan.id}

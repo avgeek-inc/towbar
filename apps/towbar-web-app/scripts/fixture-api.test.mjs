@@ -354,7 +354,7 @@ test("the local fixture covers source creation and the initial sync", async () =
   }
 });
 
-test("the local fixture covers immutable deployment planning", async () => {
+test("the local fixture covers pull request deployment planning", async () => {
   const server = createFixtureApiServer();
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -372,22 +372,20 @@ test("the local fixture covers immutable deployment planning", async () => {
     assert.equal(initial.plans[0].plan.summary.update, 1);
     assert.equal(initial.plans[0].plan.summary.no_op, 1);
 
-    const createResponse = await fetch(
+    const manualResponse = await fetch(
       `${baseUrl}/v1/core/sources/${fixtureIds.source}/actions/plan`,
       { method: "POST" },
     );
-    assert.equal(createResponse.status, 201);
-    const created = await createResponse.json();
-    assert.equal(created.plan.trigger, "manual");
-    assert.equal(created.plan.plan.status, "ready");
-    assert.equal(created.plan.plan.summary.no_op > 0, true);
+    assert.equal(manualResponse.status, 404);
 
     const detailResponse = await fetch(
-      `${baseUrl}/v1/core/sources/${fixtureIds.source}/plans/${created.plan.id}`,
+      `${baseUrl}/v1/core/sources/${fixtureIds.source}/plans/${fixtureIds.deploymentPlan}`,
     );
     assert.equal(detailResponse.status, 200);
     const detail = await detailResponse.json();
-    assert.equal(detail.plan.id, created.plan.id);
+    assert.equal(detail.plan.id, fixtureIds.deploymentPlan);
+    assert.equal(detail.plan.pullRequestNumber, 42);
+    assert.equal(detail.plan.trigger, "pull_request");
     assert.equal("candidateManifest" in detail.plan, false);
   } finally {
     server.close();

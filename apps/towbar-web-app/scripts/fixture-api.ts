@@ -774,60 +774,6 @@ export function createFixtureApiServer() {
       return writeJson(response, 202, { sync: { id: sourceSync.id } });
     }
     if (
-      request.method === "POST" &&
-      path === `/v1/core/sources/${source.id}/actions/plan`
-    ) {
-      const plan: DeploymentPlan = {
-        ...deploymentPlans[0]!,
-        branch: source.branch,
-        createdAt: new Date().toISOString(),
-        githubCheckRunId: null,
-        githubCheckStatus: null,
-        id: randomUUID(),
-        plan: {
-          checks: [
-            {
-              code: "manifest_schema",
-              message: "The candidate deployment manifest is valid.",
-              status: "passed",
-            },
-          ],
-          items: [...apps, ...resources, ...servers].map((item) => ({
-            action: "no_op" as const,
-            automaticDeployment:
-              "config" in item && "autoDeploy" in item.config
-                ? Boolean(item.config.autoDeploy)
-                : false,
-            changedFields: [],
-            entityId: "manifestId" in item ? item.manifestId : item.canonicalIp,
-            entityKind:
-              "manifestId" in item
-                ? item.kind === "app"
-                  ? ("app" as const)
-                  : ("resource" as const)
-                : ("server" as const),
-            matchedPaths: [],
-            name: "name" in item ? item.name : item.canonicalIp,
-            reasons: ["No material configuration change"],
-          })),
-          status: "ready",
-          summary: {
-            archive: 0,
-            create: 0,
-            no_op: apps.length + resources.length + servers.length,
-            restore: 0,
-            update: 0,
-          },
-        },
-        pullRequestNumber: null,
-        targetCommitSha: source.latestCommitSha!,
-        targetManifestDigest: source.latestManifestDigest,
-        trigger: "manual",
-      };
-      deploymentPlans.unshift(plan);
-      return writeJson(response, 201, { plan });
-    }
-    if (
       request.method === "PATCH" &&
       path === `/v1/core/sources/${source.id}/secrets`
     ) {

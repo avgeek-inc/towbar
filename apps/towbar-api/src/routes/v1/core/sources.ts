@@ -24,7 +24,6 @@ import { listSourceServers } from "../../../areas/servers/service.js";
 import { listSourceBackups } from "../../../areas/resource-operations/service.js";
 import { listPreviewEnvironments } from "../../../areas/previews/service.js";
 import {
-  createManualDeploymentPlan,
   getDeploymentPlan,
   listDeploymentPlans,
 } from "../../../areas/plans/service.js";
@@ -232,16 +231,6 @@ sourceRoutes.post("/:sourceId/actions/preview-sync", async (context) =>
     ),
   ),
 );
-
-sourceRoutes.post("/:sourceId/actions/plan", async (context) => {
-  const user = context.get("user");
-  const plan = await createManualDeploymentPlan({
-    requestedBy: user.id,
-    sourceId: context.req.param("sourceId"),
-    workspaceId: user.workspaceId,
-  });
-  return context.json({ plan }, 201);
-});
 
 sourceRoutes.post("/:sourceId/actions/sync", async (context) => {
   const user = context.get("user");
