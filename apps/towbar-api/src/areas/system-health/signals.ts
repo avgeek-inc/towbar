@@ -55,6 +55,7 @@ export async function recordMaintenanceHeartbeat(input: {
   details: {
     backupsQueued: number;
     checksQueued: number;
+    notificationDeliveriesQueued: number;
     previewCleanupsQueued: number;
   };
   version: string;

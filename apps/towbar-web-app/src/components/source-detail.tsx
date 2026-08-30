@@ -27,7 +27,6 @@ import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
 import { Pagination } from "@workspace/web-design-system/navigation/pagination";
-import { Tabs } from "@workspace/web-design-system/navigation/tabs";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { CodePanel } from "@workspace/towbar-web-ui/code-panel";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -46,13 +45,17 @@ import {
   sourcesBreadcrumb,
 } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
-import { useResponsiveTabsOrientation } from "@/hooks/use-responsive-tabs-orientation";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 import { SourceAwsCredentials } from "./source-aws-credentials";
 import { SourceSecretStageEditor } from "./app-secrets";
+import {
+  SourceNotifications,
+  type NotificationDestinationsResponse,
+} from "./source-notifications";
 import { SourceApps, SourceResources, SourceServers } from "./source-inventory";
 import { SourcePlans } from "./source-plans";
+import { ResponsiveSubtabs } from "./responsive-subtabs";
 
 type ManifestResponse = {
   manifest: {
@@ -372,12 +375,19 @@ function SourceSettings({
       ? `/v1/core/sources/${sourceId}/secrets`
       : null,
   );
+  const notificationDestinations =
+    useApiQuery<NotificationDestinationsResponse>(
+      isActive
+        ? `/v1/core/sources/${sourceId}/notifications/destinations`
+        : null,
+    );
   const secretsDisabledReason =
     "Add AWS credentials before editing shared secrets";
 
   return (
     <SourceSubtabs
       ariaLabel="Source settings"
+      collapseOnMobile
       defaultSelectedKey="aws"
       tabs={[
         {
@@ -392,29 +402,23 @@ function SourceSettings({
           ),
         },
         {
-          value: "build-secrets",
-          label: "Build Secrets",
-          isDisabled: !hasAwsCredentials,
-          disabledReason: secretsDisabledReason,
-          content: hasAwsCredentials ? (
-            <SourceSecretStageEditor
-              query={secrets}
+          value: "notifications",
+          label: "Notifications",
+          content: (
+            <SourceNotifications
+              canManage={canManage}
+              destinations={notificationDestinations}
               sourceId={sourceId}
-              stage="build"
             />
-          ) : null,
+          ),
         },
         {
-          value: "deployment-secrets",
-          label: "Deployment Secrets",
+          value: "secrets",
+          label: "Secrets",
           isDisabled: !hasAwsCredentials,
           disabledReason: secretsDisabledReason,
           content: hasAwsCredentials ? (
-            <SourceSecretStageEditor
-              query={secrets}
-              sourceId={sourceId}
-              stage="deployment"
-            />
+            <SourceSecrets query={secrets} sourceId={sourceId} />
           ) : null,
         },
         ...(canManage
@@ -452,6 +456,43 @@ function SourceSettings({
             ]
           : []),
       ]}
+    />
+  );
+}
+
+function SourceSecrets({
+  query,
+  sourceId,
+}: {
+  query: {
+    data?: AppSecretsResponse;
+    error?: string;
+    refresh: () => void;
+  };
+  sourceId: string;
+}) {
+  const stages = [
+    { label: "Build", value: "build" },
+    { label: "Deployment", value: "deployment" },
+  ] as const;
+
+  return (
+    <ResponsiveSubtabs
+      ariaLabel="Shared secret types"
+      defaultSelectedKey="build"
+      layout="inline"
+      panelClassName="md:pt-6"
+      tabs={stages.map(({ label, value: stage }) => ({
+        label,
+        value: stage,
+        content: (
+          <SourceSecretStageEditor
+            query={query}
+            sourceId={sourceId}
+            stage={stage}
+          />
+        ),
+      }))}
     />
   );
 }
@@ -502,12 +543,14 @@ function SourceSyncHistory({
 
 function SourceSubtabs({
   ariaLabel,
+  collapseOnMobile = false,
   defaultSelectedKey,
   onSelectionChange,
   selectedKey,
   tabs,
 }: {
   ariaLabel: string;
+  collapseOnMobile?: boolean;
   defaultSelectedKey: string;
   onSelectionChange?: (key: Key) => void;
   selectedKey?: string;
@@ -519,54 +562,16 @@ function SourceSubtabs({
     value: string;
   }>;
 }) {
-  const orientation = useResponsiveTabsOrientation();
-
   return (
-    <Tabs
-      className="block"
-      defaultSelectedKey={selectedKey ? undefined : defaultSelectedKey}
-      orientation={orientation}
+    <ResponsiveSubtabs
+      ariaLabel={ariaLabel}
+      collapseOnMobile={collapseOnMobile}
+      defaultSelectedKey={defaultSelectedKey}
       selectedKey={selectedKey}
+      sidebarWidth="wide"
+      tabs={tabs}
       onSelectionChange={onSelectionChange}
-    >
-      <div className="grid items-start gap-4 lg:grid-cols-[14rem_minmax(0,1fr)]">
-        <Tabs.ListContainer className="w-full">
-          <Tabs.List aria-label={ariaLabel} className="w-full">
-            {tabs.map((tab) => (
-              <Tabs.Tab
-                aria-label={
-                  tab.isDisabled && tab.disabledReason
-                    ? `${tab.label}. ${tab.disabledReason}`
-                    : undefined
-                }
-                className={
-                  orientation === "vertical" ? "justify-start" : undefined
-                }
-                id={tab.value}
-                isDisabled={tab.isDisabled}
-                key={tab.value}
-              >
-                <span title={tab.isDisabled ? tab.disabledReason : undefined}>
-                  {tab.label}
-                </span>
-                <Tabs.Indicator />
-              </Tabs.Tab>
-            ))}
-          </Tabs.List>
-        </Tabs.ListContainer>
-        <div className="min-w-0">
-          {tabs.map((tab) => (
-            <Tabs.Panel
-              className="m-0 block p-0"
-              id={tab.value}
-              key={tab.value}
-            >
-              {tab.content}
-            </Tabs.Panel>
-          ))}
-        </div>
-      </div>
-    </Tabs>
+    />
   );
 }
 

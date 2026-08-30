@@ -13,6 +13,7 @@ import {
 import { notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { propagatePreviewDeploymentState } from "./preview-status.js";
+import { emitDeploymentNotification } from "../notifications/events.js";
 
 import type { DeploymentState } from "@workspace/towbar-core/temporal";
 
@@ -97,6 +98,7 @@ export async function recordDeploymentEvent(
     }
     return {
       accepted: true,
+      previousState: deployment.state,
       stateChanged: Boolean(input.state && input.state !== deployment.state),
     };
   });
@@ -104,8 +106,34 @@ export async function recordDeploymentEvent(
     await propagatePreviewDeploymentState(deploymentId, input.state, {
       publish: result.stateChanged,
     });
+    if (result.stateChanged) {
+      const notificationType = deploymentNotificationType(
+        result.previousState,
+        input.state,
+      );
+      if (notificationType) {
+        await emitDeploymentNotification(deploymentId, notificationType).catch(
+          () => undefined,
+        );
+      }
+    }
   }
   return { accepted: result.accepted };
+}
+
+function deploymentNotificationType(
+  previous: DeploymentState,
+  next: DeploymentState,
+) {
+  if (previous === "queued" && !terminalDeploymentStates.has(next)) {
+    return "deployment.started" as const;
+  }
+  if (next === "succeeded" || next === "succeeded_with_warnings") {
+    return "deployment.succeeded" as const;
+  }
+  if (next === "failed") return "deployment.failed" as const;
+  if (next === "cancelled") return "deployment.cancelled" as const;
+  return null;
 }
 
 function completedStepStatus(state: DeploymentState) {

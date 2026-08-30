@@ -19,6 +19,7 @@ import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueueResourceOperation } from "../../infrastructure/temporal.js";
 import { getDecryptedAwsCredential, resolveAwsSecret } from "../aws/service.js";
 import { resolveRuntimeEnvironmentSecrets } from "../deployments/deployment-secrets.js";
+import { emitResourceOperationNotification } from "../notifications/events.js";
 import {
   requestServerCheck,
   sshLoginSecretSchema,
@@ -358,6 +359,18 @@ export async function finishResourceOperation(
       workspaceId: operation.workspaceId,
     }).catch(() => undefined);
   }
+  if (operation.state === "failed" && operation.type === "backup") {
+    await emitResourceOperationNotification(
+      operation.id,
+      "backup.failed",
+    ).catch(() => undefined);
+  }
+  if (operation.type === "restore") {
+    await emitResourceOperationNotification(
+      operation.id,
+      operation.state === "succeeded" ? "restore.succeeded" : "restore.failed",
+    ).catch(() => undefined);
+  }
   return operation;
 }
 
@@ -442,6 +455,11 @@ async function admitOperation(input: {
         updatedAt: new Date(),
       })
       .where(eq(resourceOperations.id, id));
+    if (input.request.type === "backup") {
+      await emitResourceOperationNotification(id, "backup.failed").catch(
+        () => undefined,
+      );
+    }
     throw error;
   }
   return { operation: created, replayed: false };

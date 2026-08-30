@@ -14,6 +14,7 @@ import {
   updateGitHubPreviewDeployment,
 } from "../github/client.js";
 import { publishPreviewPullRequestCommentForDeployment } from "../previews/pr-comment.js";
+import { emitPreviewNotification } from "../notifications/events.js";
 import {
   markPreviewReportDeliveryAttempt,
   markPreviewReportDeliveryFailed,
@@ -37,7 +38,7 @@ export async function recordPreviewTerminalState(
     .limit(1);
   if (!deployment?.previewEnvironmentId) return;
   const succeeded = ["succeeded", "succeeded_with_warnings"].includes(state);
-  await getTowbarDatabase()
+  const [updated] = await getTowbarDatabase()
     .update(previewEnvironments)
     .set({
       errorMessage: succeeded ? null : deployment.errorMessage,
@@ -50,7 +51,14 @@ export async function recordPreviewTerminalState(
         eq(previewEnvironments.latestDeploymentId, deploymentId),
         notInArray(previewEnvironments.status, ["deleting", "deleted"]),
       ),
-    );
+    )
+    .returning({ id: previewEnvironments.id });
+  if (updated && (succeeded || state === "failed")) {
+    await emitPreviewNotification(
+      updated.id,
+      succeeded ? "preview.ready" : "preview.failed",
+    ).catch(() => undefined);
+  }
 }
 
 export async function propagatePreviewDeploymentState(

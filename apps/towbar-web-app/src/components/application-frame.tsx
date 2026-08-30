@@ -20,6 +20,7 @@ import {
   createApplicationSidebar,
 } from "@/lib/application-layout";
 import { DeploymentQueue } from "@/components/deployment-queue";
+import { NotificationCenter } from "@/components/notification-center";
 
 export function ApplicationFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -69,6 +70,7 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
         navigate={navigate}
         navbar={
           <ApplicationNavbar
+            actions={<NotificationCenter />}
             config={applicationHeader}
             hasSidebar
             onSidebarToggle={() =>

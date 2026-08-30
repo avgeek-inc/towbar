@@ -110,11 +110,13 @@ function RoutedLink({
   );
 }
 export function ApplicationNavbar({
+  actions,
   config,
   hasSidebar = false,
   onSidebarToggle,
   showThemeSwitcher = false,
 }: {
+  actions?: ReactNode;
   config: HeaderConfig;
   hasSidebar?: boolean;
   onSidebarToggle?: () => void;
@@ -179,6 +181,7 @@ export function ApplicationNavbar({
             item={config.callToAction}
           />
         ) : null}
+        {actions}
         {showThemeSwitcher ? <ThemeSwitcher size="small" /> : null}
       </nav>
     </header>

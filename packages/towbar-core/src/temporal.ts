@@ -148,6 +148,13 @@ export function maintenanceWorkflowId() {
   return "towbar-maintenance/v1";
 }
 
+export function notificationDeliveryWorkflowId(
+  deliveryId: string,
+  cycle: number,
+) {
+  return `towbar-notification-delivery/${deliveryId}/cycle/${cycle}`;
+}
+
 export function serverCoordinatorWorkflowId(canonicalIpHash: string) {
   return `towbar-server/v2/${canonicalIpHash}`;
 }

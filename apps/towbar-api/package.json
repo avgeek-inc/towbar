@@ -31,11 +31,13 @@
     "drizzle-orm": "catalog:",
     "hono": "^4.12.31",
     "jose": "^6.2.9",
+    "nodemailer": "^9.0.6",
     "postgres": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@types/nodemailer": "^8.0.1",
     "@workspace/eslint-config": "workspace:^",
     "@workspace/typescript-config": "workspace:*",
     "eslint": "catalog:",

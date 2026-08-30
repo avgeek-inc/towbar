@@ -1,4 +1,5 @@
 import {
+  boolean,
   check,
   index,
   integer,
@@ -19,6 +20,10 @@ import { deploymentEnvironments } from "@workspace/towbar-core/preview";
 
 import type {
   DeploymentPlan,
+  NotificationCategory,
+  NotificationDestinationInput,
+  NotificationEventPayload,
+  NotificationEventType,
   PersistedResourceOperationRequest,
   ResourceOperationResult,
   EncryptedCredential,
@@ -138,6 +143,18 @@ export const runtimeDriftStateEnum = pgEnum("towbar_runtime_drift_state", [
   "in_sync",
   "unknown",
 ]);
+export const notificationProviderEnum = pgEnum("towbar_notification_provider", [
+  "slack",
+  "smtp",
+]);
+export const notificationDeliveryStateEnum = pgEnum(
+  "towbar_notification_delivery_state",
+  ["pending", "delivering", "retrying", "succeeded", "failed"],
+);
+export const notificationAttemptStateEnum = pgEnum(
+  "towbar_notification_attempt_state",
+  ["running", "succeeded", "retryable_failure", "terminal_failure"],
+);
 export const users = pgTable(
   "towbar_users",
   {
@@ -336,6 +353,139 @@ export const sourceAwsCredentials = pgTable(
   (table) => [
     uniqueIndex("uq_towbar_aws_credentials_source").on(table.sourceId),
     index("idx_towbar_aws_credentials_workspace").on(table.workspaceId),
+  ],
+);
+
+export const notificationDestinations = pgTable(
+  "towbar_notification_destinations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "cascade" }),
+    provider: notificationProviderEnum("provider").notNull(),
+    enabled: boolean("enabled").default(true).notNull(),
+    categories: jsonb("categories").$type<NotificationCategory[]>().notNull(),
+    config: jsonb("config")
+      .$type<NotificationDestinationInput["config"]>()
+      .notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_towbar_notification_destinations_source").on(table.sourceId),
+  ],
+);
+
+export const notificationEvents = pgTable(
+  "towbar_notification_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "cascade" }),
+    dedupeKey: varchar("dedupe_key", { length: 512 }).notNull(),
+    type: varchar("type", { length: 80 })
+      .$type<NotificationEventType>()
+      .notNull(),
+    category: varchar("category", { length: 40 })
+      .$type<NotificationCategory | "test">()
+      .notNull(),
+    payload: jsonb("payload").$type<NotificationEventPayload>().notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_notification_events_dedupe").on(
+      table.sourceId,
+      table.dedupeKey,
+    ),
+    index("idx_towbar_notification_events_source_created").on(
+      table.sourceId,
+      table.createdAt,
+    ),
+  ],
+);
+
+export const notificationDeliveries = pgTable(
+  "towbar_notification_deliveries",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => notificationEvents.id, { onDelete: "cascade" }),
+    destinationId: uuid("destination_id")
+      .notNull()
+      .references(() => notificationDestinations.id, { onDelete: "cascade" }),
+    state: notificationDeliveryStateEnum("state").default("pending").notNull(),
+    cycle: integer("cycle").default(1).notNull(),
+    attemptCount: integer("attempt_count").default(0).notNull(),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }),
+    lastErrorCode: varchar("last_error_code", { length: 100 }),
+    lastErrorMessage: varchar("last_error_message", { length: 1_000 }),
+    lastAttemptedAt: timestamp("last_attempted_at", { withTimezone: true }),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_notification_deliveries_event_destination").on(
+      table.eventId,
+      table.destinationId,
+    ),
+    index("idx_towbar_notification_deliveries_state_next").on(
+      table.state,
+      table.nextAttemptAt,
+    ),
+    index("idx_towbar_notification_deliveries_destination_created").on(
+      table.destinationId,
+      table.createdAt,
+    ),
+  ],
+);
+
+export const notificationDeliveryAttempts = pgTable(
+  "towbar_notification_delivery_attempts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    deliveryId: uuid("delivery_id")
+      .notNull()
+      .references(() => notificationDeliveries.id, { onDelete: "cascade" }),
+    cycle: integer("cycle").notNull(),
+    sequence: integer("sequence").notNull(),
+    state: notificationAttemptStateEnum("state").default("running").notNull(),
+    providerStatus: varchar("provider_status", { length: 100 }),
+    errorCode: varchar("error_code", { length: 100 }),
+    errorMessage: varchar("error_message", { length: 1_000 }),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_notification_attempts_identity").on(
+      table.deliveryId,
+      table.cycle,
+      table.sequence,
+    ),
+    index("idx_towbar_notification_attempts_delivery").on(table.deliveryId),
   ],
 );
 

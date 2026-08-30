@@ -16,6 +16,7 @@ import { conflict, notFound, unprocessable } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueueDeployment } from "../../infrastructure/temporal.js";
 import { publicDeploymentSelection } from "../deployment-selection.js";
+import { emitDeploymentNotification } from "../notifications/events.js";
 import { scopeDeploymentIdempotencyKey } from "./idempotency.js";
 import { getApp, getResource } from "./queries.js";
 
@@ -230,6 +231,9 @@ export async function requestAppDeployment(input: {
       replayed: true,
     };
   }
+  await emitDeploymentNotification(deploymentId, "deployment.queued").catch(
+    () => undefined,
+  );
   try {
     await enqueueDeployment({
       appId: target.id,
@@ -249,6 +253,9 @@ export async function requestAppDeployment(input: {
         updatedAt: new Date(),
       })
       .where(eq(deployments.id, deploymentId));
+    await emitDeploymentNotification(deploymentId, "deployment.failed").catch(
+      () => undefined,
+    );
     throw error;
   }
   return {
@@ -347,6 +354,9 @@ export async function requestAppRollback(input: {
     throw error;
   }
   if (!deployment) throw new Error("Unable to admit rollback");
+  await emitDeploymentNotification(deploymentId, "deployment.queued").catch(
+    () => undefined,
+  );
   try {
     await enqueueDeployment({
       appId: deployment.appId,
@@ -367,6 +377,9 @@ export async function requestAppRollback(input: {
         updatedAt: new Date(),
       })
       .where(eq(deployments.id, deploymentId));
+    await emitDeploymentNotification(deploymentId, "deployment.failed").catch(
+      () => undefined,
+    );
     throw error;
   }
   return {

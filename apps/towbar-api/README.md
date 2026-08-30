@@ -113,7 +113,18 @@ restores it. Towbar has no independent decommission action or lifecycle flag.
 
 Runtime actions, database backups, and scoped orphan cleanup are admitted as
 immutable asynchronous operations. Cleanup requires an administrator. Towbar
-does not expose a database restore operation. A recurring Temporal maintenance workflow asks the API to
-queue read-only server reconciliation and due manifest-declared cron backups.
+does not expose a database restore operation. A recurring Temporal maintenance
+workflow asks the API to queue read-only server reconciliation and due
+manifest-declared cron backups.
+
+Owners can configure multiple Source-scoped Slack and SMTP notification
+destinations for deployment, Preview, runtime health, backup, and restore event
+categories. Towbar stores only an AWS Secrets Manager reference, resolves the
+provider credential just in time, and records a separate durable delivery and
+bounded retry history for every matching destination. Test sends and manual
+retries use the same delivery pipeline. Slack targets are restricted to Slack
+incoming-webhook origins; SMTP targets must resolve exclusively to public
+addresses and are connected through a pinned address with TLS server-name
+verification.
 
 [Applications](../README.md) · [Repository](../../README.md)

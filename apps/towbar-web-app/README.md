@@ -14,14 +14,14 @@ shows the durable setup steps, and keeps deployables visibly in `Server Setup
 Pending` until the Server is ready.
 
 App and Resource pages show observed health/drift and bounded runtime actions.
-Their configuration and lifecycle are read-only projections of the Source
-manifest; removal and restoration happen through Git and Source sync.
-The App and Resource Secrets tabs show only deployable-owned bindings. Resources
-expose deployment bindings only. Root-shared build and deployment bindings are
-edited from the owning Source's Settings tab. The owner can add, replace, or
-delete values, then optionally queue the affected deployable. Values are fetched
-only through an explicit owner-only reveal request; the UI cannot change a
-manifest reference.
+Their settings and lifecycle are read-only projections of the Source manifest;
+removal and restoration happen through Git and Source sync. Each Settings
+section contains its deployable-owned secret bindings; Resources expose
+deployment bindings only. Root-shared build and deployment bindings are grouped
+under Secrets in the owning Source's Settings section. The owner can add,
+replace, or delete values, then optionally queue the affected deployable. Values
+are fetched only through an explicit owner-only reveal request; the UI cannot
+change a manifest reference.
 Apps with Preview enabled expose pull request environments, stable URLs,
 expiry, latest deployment status, and an owner cleanup action from the App
 page. Preview build and deployment secret bindings are edited independently
@@ -43,6 +43,11 @@ Source pages also expose immutable pull-request deployment plans from their
 GitHub Checks. The plan detail shows current and target identities, validation,
 create/update/archive/restore/no-op rows, changed field names, and matched
 repository paths without secret values.
+Source Settings also contains a Notifications section for Slack and SMTP
+destinations. Provider credentials are configured once through the Towbar API
+environment. Owners select event categories and supply only a Slack channel ID
+or email recipients; recent operational events appear in the application
+header without exposing provider secrets in the browser.
 
 ## Local UI fixture
 

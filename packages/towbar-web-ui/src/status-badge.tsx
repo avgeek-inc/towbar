@@ -49,6 +49,8 @@ const warning = new Set([
   "waiting_for_server_preparation",
   "server_setup_pending",
   "pending",
+  "delivering",
+  "retrying",
 ]);
 const destructive = new Set([
   "blocked",
