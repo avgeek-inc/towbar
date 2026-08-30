@@ -413,29 +413,12 @@ function SourceSettings({
           ),
         },
         {
-          value: "build-secrets",
-          label: "Build Secrets",
+          value: "secrets",
+          label: "Secrets",
           isDisabled: !hasAwsCredentials,
           disabledReason: secretsDisabledReason,
           content: hasAwsCredentials ? (
-            <SourceSecretStageEditor
-              query={secrets}
-              sourceId={sourceId}
-              stage="build"
-            />
-          ) : null,
-        },
-        {
-          value: "deployment-secrets",
-          label: "Deployment Secrets",
-          isDisabled: !hasAwsCredentials,
-          disabledReason: secretsDisabledReason,
-          content: hasAwsCredentials ? (
-            <SourceSecretStageEditor
-              query={secrets}
-              sourceId={sourceId}
-              stage="deployment"
-            />
+            <SourceSecrets query={secrets} sourceId={sourceId} />
           ) : null,
         },
         ...(canManage
@@ -473,6 +456,43 @@ function SourceSettings({
             ]
           : []),
       ]}
+    />
+  );
+}
+
+function SourceSecrets({
+  query,
+  sourceId,
+}: {
+  query: {
+    data?: AppSecretsResponse;
+    error?: string;
+    refresh: () => void;
+  };
+  sourceId: string;
+}) {
+  const stages = [
+    { label: "Build", value: "build" },
+    { label: "Deployment", value: "deployment" },
+  ] as const;
+
+  return (
+    <ResponsiveSubtabs
+      ariaLabel="Shared secret types"
+      defaultSelectedKey="build"
+      layout="inline"
+      panelClassName="md:pt-6"
+      tabs={stages.map(({ label, value: stage }) => ({
+        label,
+        value: stage,
+        content: (
+          <SourceSecretStageEditor
+            query={query}
+            sourceId={sourceId}
+            stage={stage}
+          />
+        ),
+      }))}
     />
   );
 }

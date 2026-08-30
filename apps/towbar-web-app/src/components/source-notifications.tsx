@@ -236,13 +236,6 @@ export function SourceNotifications({
           </Alert.Content>
         </Alert>
       ) : null}
-      {canManage ? (
-        <div className="flex justify-end">
-          <Button isDisabled={!hasProvider} onPress={() => openEditor()}>
-            Add destination
-          </Button>
-        </div>
-      ) : null}
       <ResourceTable
         ariaLabel="Notification destinations"
         columns={destinationColumns}
@@ -251,6 +244,13 @@ export function SourceNotifications({
         getRowKey={(destination) => destination.id}
         items={destinations.data.destinations}
       />
+      {canManage ? (
+        <div>
+          <Button isDisabled={!hasProvider} onPress={() => openEditor()}>
+            Add destination
+          </Button>
+        </div>
+      ) : null}
 
       <Modal isOpen={editorOpen} onOpenChange={setEditorOpen}>
         <Modal.Backdrop>

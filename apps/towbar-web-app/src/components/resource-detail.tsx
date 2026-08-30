@@ -1,12 +1,11 @@
 "use client";
 
 import {
-  CodeIcon,
   DatabaseIcon,
   FileViewIcon,
-  Key01Icon,
   Rocket01Icon,
   ServerStack01Icon,
+  Settings01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
@@ -205,22 +204,10 @@ export function ResourceDetail() {
       ),
     },
     {
-      value: "secrets",
-      label: "Secrets",
-      icon: <HugeiconsIcon icon={Key01Icon} />,
-      content: (
-        <ResourceSecrets
-          canDeploy={!item.archivedAt && item.serverReady}
-          resourceId={resourceId}
-          sourceId={item.sourceId}
-        />
-      ),
-    },
-    {
-      value: "configuration",
-      label: "Configuration",
-      icon: <HugeiconsIcon icon={CodeIcon} />,
-      content: <ResourceConfigurationTabs item={item} />,
+      value: "settings",
+      label: "Settings",
+      icon: <HugeiconsIcon icon={Settings01Icon} />,
+      content: <ResourceSettings item={item} resourceId={resourceId} />,
     },
   ];
 
@@ -289,7 +276,13 @@ export function ResourceDetail() {
   );
 }
 
-function ResourceConfigurationTabs({ item }: { item: ResourceRecord }) {
+function ResourceSettings({
+  item,
+  resourceId,
+}: {
+  item: ResourceRecord;
+  resourceId: string;
+}) {
   const tabs: Array<{ content: ReactNode; label: string; value: string }> = [
     {
       value: "image",
@@ -414,11 +407,22 @@ function ResourceConfigurationTabs({ item }: { item: ResourceRecord }) {
         </Attributes>
       ),
     },
+    {
+      value: "secrets",
+      label: "Secrets",
+      content: (
+        <ResourceSecrets
+          canDeploy={!item.archivedAt && item.serverReady}
+          resourceId={resourceId}
+          sourceId={item.sourceId}
+        />
+      ),
+    },
   ];
 
   return (
     <ResponsiveSubtabs
-      ariaLabel="Resource configuration"
+      ariaLabel="Resource settings"
       defaultSelectedKey="image"
       tabs={tabs}
     />

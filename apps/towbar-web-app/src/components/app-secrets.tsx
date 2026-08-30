@@ -45,7 +45,7 @@ export function AppSecrets({
   sourceId: string;
 }) {
   const searchParams = useSearchParams();
-  const active = searchParams.get("section") === "secrets";
+  const active = searchParams.get("section") === "settings";
   const query = useApiQuery<AppSecretsResponse>(
     active ? `/v1/core/apps/${appId}/secrets` : null,
   );
@@ -113,7 +113,7 @@ export function ResourceSecrets({
   sourceId: string;
 }) {
   const searchParams = useSearchParams();
-  const active = searchParams.get("section") === "secrets";
+  const active = searchParams.get("section") === "settings";
   const endpoint = `/v1/core/resources/${resourceId}/secrets`;
   const query = useApiQuery<AppSecretsResponse>(active ? endpoint : null);
 

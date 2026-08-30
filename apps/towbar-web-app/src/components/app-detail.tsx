@@ -1,13 +1,12 @@
 "use client";
 
 import {
-  CodeIcon,
   DashboardCircleIcon,
   FileViewIcon,
   GitBranchIcon,
-  Key01Icon,
   Rocket01Icon,
   ServerStack01Icon,
+  Settings01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
@@ -272,22 +271,10 @@ export function AppDetail() {
             ),
           },
           {
-            value: "secrets",
-            label: "Secrets",
-            icon: <HugeiconsIcon icon={Key01Icon} />,
-            content: (
-              <AppSecrets
-                appId={appId}
-                canDeploy={!item.archivedAt && item.serverReady}
-                sourceId={item.sourceId}
-              />
-            ),
-          },
-          {
-            value: "configuration",
-            label: "Configuration",
-            icon: <HugeiconsIcon icon={CodeIcon} />,
-            content: <AppConfigurationTabs item={item} />,
+            value: "settings",
+            label: "Settings",
+            icon: <HugeiconsIcon icon={Settings01Icon} />,
+            content: <AppSettings appId={appId} item={item} />,
           },
         ]}
       />
@@ -295,7 +282,7 @@ export function AppDetail() {
   );
 }
 
-function AppConfigurationTabs({ item }: { item: AppRecord }) {
+function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
   const tabs: Array<{ content: ReactNode; label: string; value: string }> = [
     {
       value: "build",
@@ -438,11 +425,22 @@ function AppConfigurationTabs({ item }: { item: AppRecord }) {
           },
         ]
       : []),
+    {
+      value: "secrets",
+      label: "Secrets",
+      content: (
+        <AppSecrets
+          appId={appId}
+          canDeploy={!item.archivedAt && item.serverReady}
+          sourceId={item.sourceId}
+        />
+      ),
+    },
   ];
 
   return (
     <ResponsiveSubtabs
-      ariaLabel="App configuration"
+      ariaLabel="App settings"
       defaultSelectedKey="build"
       tabs={tabs}
     />
