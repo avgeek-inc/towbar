@@ -30,13 +30,12 @@ import { requestExpiredPreviewCleanups } from "../previews/cleanup.js";
 import { enqueueDueNotificationDeliveries } from "../notifications/delivery-service.js";
 import { emitBackupStaleNotification } from "../notifications/events.js";
 import { requestDeployableOperation } from "./service.js";
-import { admitDueDeferredAutomaticDeployments } from "../apps/automatic-deployments.js";
+import { admitResumedAutomaticDeployments } from "../apps/automatic-deployments.js";
 
 export async function runMaintenanceSweep() {
   // Scheduled deployable work has priority; health checks are maintenance and
   // should enter a server coordinator only after its queue becomes idle.
-  const automaticDeploymentsQueued =
-    await admitDueDeferredAutomaticDeployments();
+  const automaticDeploymentsQueued = await admitResumedAutomaticDeployments();
   const backupsQueued = await queueScheduledBackups();
   const previewCleanupsQueued = await requestExpiredPreviewCleanups();
   const notificationDeliveriesQueued = await enqueueDueNotificationDeliveries();

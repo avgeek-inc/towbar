@@ -97,11 +97,12 @@ sourceRoutes.patch("/:sourceId/auto-deploy-control", async (context) => {
     sourceId,
     workspaceId: user.workspaceId,
   });
-  if (result.shouldReevaluate) {
-    await wakeMaintenanceWorkflow();
+  const { shouldReevaluate, ...autoDeploy } = result;
+  if (shouldReevaluate) {
+    void wakeMaintenanceWorkflow().catch(() => undefined);
   }
   return context.json({
-    autoDeploy: result,
+    autoDeploy,
     canManageAutoDeploy: user.workspaceRole === "owner",
   });
 });

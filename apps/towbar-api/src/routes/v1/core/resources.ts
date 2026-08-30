@@ -81,11 +81,12 @@ resourceRoutes.patch("/:resourceId/auto-deploy-control", async (context) => {
     ...(await readJson(context, autoDeployControlPatchSchema)),
     workspaceId: user.workspaceId,
   });
-  if (result.shouldReevaluate) {
-    await wakeMaintenanceWorkflow();
+  const { shouldReevaluate, ...autoDeploy } = result;
+  if (shouldReevaluate) {
+    void wakeMaintenanceWorkflow().catch(() => undefined);
   }
   return context.json({
-    autoDeploy: result,
+    autoDeploy,
     canManageAutoDeploy: user.workspaceRole === "owner",
   });
 });

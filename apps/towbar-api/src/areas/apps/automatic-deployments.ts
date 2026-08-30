@@ -98,11 +98,19 @@ export async function scheduleLatestAutomaticDeploymentsForSource(input: {
   });
 }
 
-export async function admitDueDeferredAutomaticDeployments() {
+export async function admitResumedAutomaticDeployments() {
   const sourceRows = await getTowbarDatabase()
     .selectDistinct({ sourceId: apps.sourceId, workspaceId: apps.workspaceId })
     .from(apps)
-    .where(isNotNull(apps.deferredAutomaticDeployment));
+    .innerJoin(sources, eq(sources.id, apps.sourceId))
+    .where(
+      and(
+        isNotNull(apps.deferredAutomaticDeployment),
+        eq(apps.autoDeployPaused, false),
+        eq(sources.autoDeployPaused, false),
+        eq(sources.status, "active"),
+      ),
+    );
   let deploymentsQueued = 0;
   for (const source of sourceRows) {
     const result = await scheduleLatestAutomaticDeploymentsForSource(source);
