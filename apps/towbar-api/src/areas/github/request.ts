@@ -70,7 +70,14 @@ export async function githubRequest(
         : ((await response.json()) as unknown);
     }
 
-    const failure = classifyGitHubResponseFailure(response);
+    const failureBody =
+      response.status === 403
+        ? await response
+            .clone()
+            .text()
+            .catch(() => "")
+        : "";
+    const failure = classifyGitHubResponseFailure(response, failureBody);
     await response.body?.cancel().catch(() => undefined);
     if (failure.retryable && attempt < attemptLimit) {
       await dependencies.sleep(
@@ -91,13 +98,20 @@ export async function githubRequest(
   );
 }
 
-export function classifyGitHubResponseFailure(response: Response) {
+export function classifyGitHubResponseFailure(
+  response: Response,
+  failureBody = "",
+) {
   const requestId = response.headers.get("x-github-request-id");
   const requestSuffix = requestId ? ` (${requestId})` : "";
   const rateLimited =
     response.status === 429 ||
     (response.status === 403 &&
-      response.headers.get("x-ratelimit-remaining") === "0");
+      (response.headers.get("x-ratelimit-remaining") === "0" ||
+        response.headers.has("retry-after") ||
+        /secondary rate limit|rate limit exceeded|exceeded (?:a )?(?:secondary |api )?rate limit|abuse detection/iu.test(
+          failureBody,
+        )));
   if (rateLimited) {
     const retryAfter = retryAfterMilliseconds(response.headers);
     return {

@@ -53,6 +53,31 @@ void test("reports exhausted timeouts as retryable connectivity failures", async
   );
 });
 
+void test("reports exhausted connection resets as retryable connectivity failures", async () => {
+  await assert.rejects(
+    githubRequest(
+      "/meta",
+      { token: "test-token" },
+      {
+        fetch: () => {
+          const error = new Error("socket reset") as Error & { code: string };
+          error.code = "ECONNRESET";
+          throw error;
+        },
+        sleep: () => Promise.resolve(),
+      },
+    ),
+    (error: unknown) => {
+      assert.ok(error instanceof HttpError);
+      assert.equal(error.status, 503);
+      assert.equal(error.code, "SERVICE_UNAVAILABLE");
+      assert.match(error.message, /could not be reached after 3 attempts/u);
+      assert.doesNotMatch(error.message, /rejected/u);
+      return true;
+    },
+  );
+});
+
 void test("retries temporary GitHub responses", async () => {
   let attempts = 0;
   const value = await githubRequest(
@@ -107,6 +132,21 @@ void test("distinguishes rate limits from permission failures", () => {
   const permission = classifyGitHubResponseFailure(
     new Response(null, { status: 403 }),
   );
+  const secondaryRateLimit = classifyGitHubResponseFailure(
+    new Response(null, {
+      headers: {
+        "retry-after": "60",
+        "x-ratelimit-remaining": "42",
+      },
+      status: 403,
+    }),
+  );
+  const secondaryRateLimitWithoutHeaders = classifyGitHubResponseFailure(
+    new Response(null, { status: 403 }),
+    JSON.stringify({
+      message: "You have exceeded a secondary rate limit.",
+    }),
+  );
   const authentication = classifyGitHubResponseFailure(
     new Response(null, { status: 401 }),
   );
@@ -117,6 +157,11 @@ void test("distinguishes rate limits from permission failures", () => {
   assert.equal(permission.code, "GITHUB_REQUEST_FAILED");
   assert.equal(permission.retryable, false);
   assert.match(permission.publicMessage, /denied this request/u);
+  assert.equal(secondaryRateLimit.code, "GITHUB_RATE_LIMITED");
+  assert.equal(secondaryRateLimit.retryable, true);
+  assert.equal(secondaryRateLimit.retryAfterMilliseconds, 60_000);
+  assert.equal(secondaryRateLimitWithoutHeaders.code, "GITHUB_RATE_LIMITED");
+  assert.equal(secondaryRateLimitWithoutHeaders.retryable, true);
   assert.equal(authentication.status, 403);
   assert.equal(authentication.retryable, false);
 });
