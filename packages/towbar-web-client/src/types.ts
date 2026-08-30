@@ -69,12 +69,12 @@ export type DeploymentPlan = {
       name: string;
       reasons: string[];
     }>;
-    status: "blocked" | "ready";
+    status: "blocked" | "ready" | "skipped";
     summary: Record<DeploymentPlanAction, number>;
   };
   pullRequestNumber: number | null;
   sourceId: string;
-  status: "blocked" | "ready";
+  status: "blocked" | "ready" | "skipped";
   targetCommitSha: string;
   targetManifestDigest: string | null;
   trigger: "manual" | "pull_request";

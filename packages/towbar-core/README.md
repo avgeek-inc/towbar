@@ -49,8 +49,10 @@ Deployment planning is deterministic domain logic in this package. Given the
 same normalized candidate, materialized inventory, repository changes, target
 deployment digests, and validation checks, it emits the same ordered plan.
 Full plans include explicit no-op rows; pull-request plans omit deployables
-whose input patterns and configuration are unchanged. The plan reports field
-paths and reasons, never field values or mutable inventory objects.
+whose input patterns and configuration are unchanged. A pull-request plan with
+no actionable rows is `skipped`, while warnings remain non-blocking and failed
+checks produce a `blocked` plan. The plan reports field paths and reasons, never
+field values or mutable inventory objects.
 
 Root `secrets.build` and `secrets.deployment` arrays declare Source-wide JSON
 environment bundles. Apps merge those with their own bundles; app keys override

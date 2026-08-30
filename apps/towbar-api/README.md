@@ -69,7 +69,13 @@ Source inventory, repository input digests, server observations, credential
 metadata, and active operation state without resolving secret values or
 enqueueing work. The API publishes one completed GitHub Check per Source and
 head commit and links it to the full plan. Repeated deliveries update the
-existing Check; planning failures do not block Preview reconciliation.
+existing Check and reuse the same plan record and Preview deployment work for
+that Source, pull request, and head commit.
+Pull requests with no matching deployable changes produce a neutral `skipped`
+plan without evaluating unrelated server capacity, readiness, or secret
+bindings. Transient GitHub transport, rate-limit, and availability failures are
+retried instead of being persisted as blocked plans. GitHub Check reporting is
+tracked independently and cannot change or invalidate a persisted plan.
 
 AWS credentials and Servers are Source-scoped. Server identity is
 `(source_id, canonical_ip)`, allowing independent Sources to target the same IP

@@ -2,10 +2,16 @@ import { requiresServerPreparation } from "@workspace/towbar-core";
 
 import type {
   DeploymentPlanCheck,
+  DeploymentPlanItem,
   NormalizedDeploymentManifest,
   NormalizedServer,
   RuntimeCapacity,
 } from "@workspace/towbar-core";
+
+export type DeploymentPlanValidationScope = {
+  deployableIds: string[];
+  serverIps: string[];
+};
 
 export type DeploymentPlanValidationContext = {
   activeOperationDescriptions: string[];
@@ -26,6 +32,24 @@ export type DeploymentPlanValidationContext = {
 export function buildDeploymentPlanValidationChecks(input: {
   context: DeploymentPlanValidationContext;
   manifest: NormalizedDeploymentManifest;
+  scope?: DeploymentPlanValidationScope;
+}): DeploymentPlanCheck[] {
+  const scope = input.scope ?? fullManifestScope(input.manifest);
+  return [
+    ...buildCandidateDeploymentPlanValidationChecks({
+      manifest: input.manifest,
+      sourceBranch: input.context.sourceBranch,
+    }),
+    ...validateDomains({ ...input, scope }),
+    ...validateServers({ ...input, scope }),
+    ...validateSecretBindings({ ...input, scope }),
+    ...validateOperationConflicts(input.context.activeOperationDescriptions),
+  ];
+}
+
+export function buildCandidateDeploymentPlanValidationChecks(input: {
+  manifest: NormalizedDeploymentManifest;
+  sourceBranch: string;
 }): DeploymentPlanCheck[] {
   return [
     {
@@ -33,12 +57,56 @@ export function buildDeploymentPlanValidationChecks(input: {
       message: "The candidate manifest matches the Towbar v1 schema",
       status: "passed",
     },
-    ...validateSourceBranch(input),
-    ...validateDomains(input),
-    ...validateServers(input),
-    ...validateSecretBindings(input),
-    ...validateOperationConflicts(input.context.activeOperationDescriptions),
+    ...validateSourceBranch({
+      context: { sourceBranch: input.sourceBranch },
+      manifest: input.manifest,
+    }),
   ];
+}
+
+export function buildDeploymentPlanValidationScope(input: {
+  items: DeploymentPlanItem[];
+  manifest: NormalizedDeploymentManifest;
+}): DeploymentPlanValidationScope {
+  const deployableIds = new Set(
+    input.items
+      .filter(
+        (item) =>
+          item.action !== "no_op" &&
+          (item.entityKind === "app" || item.entityKind === "resource"),
+      )
+      .map((item) => item.entityId),
+  );
+  const serverIps = new Set(
+    input.items
+      .filter((item) => item.action !== "no_op" && item.entityKind === "server")
+      .map((item) => item.entityId),
+  );
+  for (const deployable of deployables(input.manifest)) {
+    if (deployableIds.has(deployable.id)) serverIps.add(deployable.server);
+  }
+  return {
+    deployableIds: [...deployableIds].sort((left, right) =>
+      left.localeCompare(right),
+    ),
+    serverIps: [...serverIps].sort((left, right) => left.localeCompare(right)),
+  };
+}
+
+export function collectPlanSecretReferences(
+  manifest: NormalizedDeploymentManifest,
+  scope: DeploymentPlanValidationScope,
+) {
+  const deployableIds = new Set(scope.deployableIds);
+  const serverIps = new Set(scope.serverIps);
+  const scopedDeployables = deployables(manifest).filter((deployable) =>
+    deployableIds.has(deployable.id),
+  );
+  return collectSecretReferences([
+    ...(scopedDeployables.length > 0 ? [manifest.secrets] : []),
+    ...scopedDeployables,
+    ...manifest.servers.filter((server) => serverIps.has(server.ip)),
+  ]);
 }
 
 export function collectSecretReferences(value: unknown) {
@@ -60,7 +128,7 @@ export function parseDockerMemoryBytes(value: string) {
 }
 
 function validateSourceBranch(input: {
-  context: DeploymentPlanValidationContext;
+  context: Pick<DeploymentPlanValidationContext, "sourceBranch">;
   manifest: NormalizedDeploymentManifest;
 }): DeploymentPlanCheck[] {
   if (input.manifest.source.branch === input.context.sourceBranch) return [];
@@ -77,12 +145,15 @@ function validateSourceBranch(input: {
 function validateDomains(input: {
   context: DeploymentPlanValidationContext;
   manifest: NormalizedDeploymentManifest;
+  scope: DeploymentPlanValidationScope;
 }) {
   const claims = new Map(
     input.context.existingDomainClaims.map((claim) => [claim.domain, claim]),
   );
-  return deployables(input.manifest).flatMap<DeploymentPlanCheck>(
-    (deployable) =>
+  const deployableIds = new Set(input.scope.deployableIds);
+  return deployables(input.manifest)
+    .filter((deployable) => deployableIds.has(deployable.id))
+    .flatMap<DeploymentPlanCheck>((deployable) =>
       deployable.domains
         ? [
             deployable.domains.primary,
@@ -106,12 +177,13 @@ function validateDomains(input: {
               : [];
           })
         : [],
-  );
+    );
 }
 
 function validateServers(input: {
   context: DeploymentPlanValidationContext;
   manifest: NormalizedDeploymentManifest;
+  scope: DeploymentPlanValidationScope;
 }) {
   const materialized = new Map(
     input.context.materializedServers.map((server) => [server.ip, server]),
@@ -119,47 +191,50 @@ function validateServers(input: {
   const capacities = new Map(
     input.context.capacities.map((capacity) => [capacity.ip, capacity]),
   );
-  return input.manifest.servers.flatMap<DeploymentPlanCheck>((server) => {
-    const checks: DeploymentPlanCheck[] = [];
-    const current = materialized.get(server.ip);
-    if (!current) {
-      checks.push({
-        code: "server_not_materialized",
-        entityId: server.ip,
-        entityKind: "server",
-        message:
-          "Sync this Source, trust its SSH host key, and prepare the new server before deployment",
-        status: "failed",
-      });
+  const serverIps = new Set(input.scope.serverIps);
+  return input.manifest.servers
+    .filter((server) => serverIps.has(server.ip))
+    .flatMap<DeploymentPlanCheck>((server) => {
+      const checks: DeploymentPlanCheck[] = [];
+      const current = materialized.get(server.ip);
+      if (!current) {
+        checks.push({
+          code: "server_not_materialized",
+          entityId: server.ip,
+          entityKind: "server",
+          message:
+            "Sync this Source, trust its SSH host key, and prepare the new server before deployment",
+          status: "failed",
+        });
+        return checks;
+      }
+      if (
+        !current.preparedAt ||
+        current.preparedConfigDigest !== current.configDigest ||
+        requiresServerPreparation(current.config, server)
+      ) {
+        checks.push({
+          code: "server_not_ready",
+          entityId: server.ip,
+          entityKind: "server",
+          message:
+            "The server must be prepared for the candidate configuration before deployment",
+          status: "failed",
+        });
+      } else {
+        checks.push({
+          code: "server_ready",
+          entityId: server.ip,
+          entityKind: "server",
+          message: "The server is prepared for the candidate configuration",
+          status: "passed",
+        });
+      }
+      checks.push(
+        ...capacityChecks(input.manifest, server.ip, capacities.get(server.ip)),
+      );
       return checks;
-    }
-    if (
-      !current.preparedAt ||
-      current.preparedConfigDigest !== current.configDigest ||
-      requiresServerPreparation(current.config, server)
-    ) {
-      checks.push({
-        code: "server_not_ready",
-        entityId: server.ip,
-        entityKind: "server",
-        message:
-          "The server must be prepared for the candidate configuration before deployment",
-        status: "failed",
-      });
-    } else {
-      checks.push({
-        code: "server_ready",
-        entityId: server.ip,
-        entityKind: "server",
-        message: "The server is prepared for the candidate configuration",
-        status: "passed",
-      });
-    }
-    checks.push(
-      ...capacityChecks(input.manifest, server.ip, capacities.get(server.ip)),
-    );
-    return checks;
-  });
+    });
 }
 
 function capacityChecks(
@@ -221,7 +296,7 @@ function capacityChecks(
       entityId: serverIp,
       entityKind: "server",
       message: `Declared container CPU limits (${declared.cpus}) exceed ${capacity.cpu.logicalCount} logical CPUs`,
-      status: "failed",
+      status: "warning",
     });
   }
   if (capacity.memory && declared.memoryBytes > capacity.memory.totalBytes) {
@@ -248,8 +323,9 @@ function capacityChecks(
 function validateSecretBindings(input: {
   context: DeploymentPlanValidationContext;
   manifest: NormalizedDeploymentManifest;
+  scope: DeploymentPlanValidationScope;
 }): DeploymentPlanCheck[] {
-  const references = collectSecretReferences(input.manifest);
+  const references = collectPlanSecretReferences(input.manifest, input.scope);
   if (references.length === 0) return [];
   if (input.context.credentialStatus !== "verified") {
     return [
@@ -293,12 +369,21 @@ function validateOperationConflicts(descriptions: string[]) {
       code: "operation_conflict",
       entityKind: "source",
       message: description,
-      status: "failed",
+      status: "warning",
     }));
 }
 
 function deployables(manifest: NormalizedDeploymentManifest) {
   return [...manifest.apps, ...(manifest.resources ?? [])];
+}
+
+function fullManifestScope(
+  manifest: NormalizedDeploymentManifest,
+): DeploymentPlanValidationScope {
+  return {
+    deployableIds: deployables(manifest).map((deployable) => deployable.id),
+    serverIps: manifest.servers.map((server) => server.ip),
+  };
 }
 
 function visitStrings(value: unknown, callback: (value: string) => void) {

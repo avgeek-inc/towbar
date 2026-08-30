@@ -121,10 +121,35 @@ void test("omits irrelevant pull request no-op rows", () => {
   });
 
   assert.deepEqual(plan.items, []);
+  assert.equal(plan.status, "skipped");
   assert.deepEqual(plan.summary, {
     archive: 0,
     create: 0,
     no_op: 0,
+    restore: 0,
+    update: 0,
+  });
+});
+
+void test("skips pull request plans that contain only no-op rows", () => {
+  const plan = buildDeploymentPlan({
+    currentApps: [currentApp],
+    currentResources: [],
+    currentServers: [currentServer],
+    desired: manifest,
+    mode: "pull_request",
+    repositoryChanges: {
+      complete: true,
+      paths: ["apps/website/src/page.tsx"],
+    },
+    targetDeploymentDigests: new Map([["website", "old-digest"]]),
+  });
+
+  assert.equal(plan.status, "skipped");
+  assert.deepEqual(plan.summary, {
+    archive: 0,
+    create: 0,
+    no_op: 1,
     restore: 0,
     update: 0,
   });

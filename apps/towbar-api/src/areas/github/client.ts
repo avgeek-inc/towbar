@@ -4,10 +4,8 @@ import { SignJWT } from "jose";
 import { z } from "zod";
 
 import { requireGitHubEnv } from "../../env.js";
-import { HttpError, serviceUnavailable } from "../../http/errors.js";
-
-const githubApiBaseUrl = "https://api.github.com";
-const githubAccept = "application/vnd.github+json";
+import { HttpError } from "../../http/errors.js";
+import { githubRequest } from "./request.js";
 
 const installationSchema = z.object({
   account: z.object({
@@ -379,6 +377,7 @@ export async function createInstallationToken(installationId: string) {
   const value = installationTokenSchema.parse(
     await githubRequest(`/app/installations/${installationId}/access_tokens`, {
       method: "POST",
+      retry: true,
       token: jwt,
     }),
   );
@@ -576,50 +575,4 @@ async function createGitHubAppJwt() {
     .setIssuer(github.appId)
     .setExpirationTime(now + 9 * 60)
     .sign(createPrivateKey(github.privateKey));
-}
-
-async function githubRequest(
-  path: string,
-  options: {
-    body?: unknown;
-    method?: "DELETE" | "GET" | "PATCH" | "POST";
-    token: string;
-  },
-) {
-  let response: Response;
-  try {
-    response = await fetch(`${githubApiBaseUrl}${path}`, {
-      headers: {
-        accept: githubAccept,
-        authorization: `Bearer ${options.token}`,
-        "user-agent": "towbar.dev",
-        "x-github-api-version": "2022-11-28",
-        ...(options.body === undefined
-          ? {}
-          : { "content-type": "application/json" }),
-      },
-      body:
-        options.body === undefined ? undefined : JSON.stringify(options.body),
-      method: options.method ?? "GET",
-      signal: AbortSignal.timeout(15_000),
-    });
-  } catch (error) {
-    throw serviceUnavailable("GitHub could not be reached", { cause: error });
-  }
-  if (!response.ok) {
-    const requestId = response.headers.get("x-github-request-id");
-    throw new HttpError(
-      githubErrorStatus(response.status),
-      "GITHUB_REQUEST_FAILED",
-      requestId
-        ? `GitHub rejected the request (${requestId})`
-        : "GitHub rejected the request",
-    );
-  }
-  return response.status === 204 ? null : ((await response.json()) as unknown);
-}
-
-function githubErrorStatus(status: number): 403 | 404 | 409 | 502 {
-  if (status === 403 || status === 404 || status === 409) return status;
-  return 502;
 }
