@@ -31,6 +31,7 @@ import { ResponsiveSubtabs } from "./responsive-subtabs";
 import { ResourceSecrets } from "./app-secrets";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 import { DeployableActionsMenu, RuntimeLogs } from "./runtime-operations";
+import { AutoDeployControlEditor } from "./auto-deploy-control";
 
 type ResourceRecord = Resource & {
   serverId: string;
@@ -406,6 +407,11 @@ function ResourceSettings({
           </Attributes.Item>
         </Attributes>
       ),
+    },
+    {
+      value: "auto-deploy",
+      label: "Auto-deploy",
+      content: <AutoDeployControlEditor id={resourceId} type="resource" />,
     },
     {
       value: "secrets",

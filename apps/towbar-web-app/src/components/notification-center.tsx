@@ -5,7 +5,6 @@ import { Notification02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import type { NotificationEvent } from "@workspace/towbar-web-client";
-import { buttonVariants } from "@workspace/web-design-system/buttons/button";
 import { usePageVisibilityInterval } from "@workspace/web-design-system/hooks/use-page-visibility-interval";
 import { Popover } from "@workspace/web-design-system/overlays/popover";
 import { ScrollShadow } from "@workspace/web-design-system/utilities/scroll-shadow";
@@ -83,13 +82,9 @@ export function NotificationCenter() {
             ? `Notifications, ${unreadCount} unread`
             : "Notifications"
         }
-        className={buttonVariants({
-          className: "relative size-10 min-h-10 min-w-10",
-          isIconOnly: true,
-          variant: "ghost",
-        })}
+        className="relative isolate grid size-8 shrink-0 cursor-pointer touch-manipulation place-items-center rounded-full text-muted outline-none transition-[color,background-color,transform] before:absolute before:-inset-1.5 before:content-[''] hover:bg-default hover:text-foreground active:scale-[0.96] data-[focus-visible=true]:ring-2 data-[focus-visible=true]:ring-focus data-[focus-visible=true]:ring-offset-2 data-[focus-visible=true]:ring-offset-background motion-reduce:transition-none"
       >
-        <HugeiconsIcon aria-hidden="true" icon={Notification02Icon} size={20} />
+        <HugeiconsIcon aria-hidden="true" icon={Notification02Icon} size={18} />
         {unreadCount > 0 ? (
           <span className="absolute end-0.5 top-0.5 grid min-h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[0.625rem] font-medium leading-4 text-danger-foreground">
             {Math.min(unreadCount, 9)}
@@ -100,7 +95,7 @@ export function NotificationCenter() {
         className="w-[min(24rem,calc(100vw-2rem))] p-0"
         placement="bottom end"
       >
-        <Popover.Dialog className="outline-none">
+        <Popover.Dialog className="p-0 outline-none">
           <div className="border-b border-separator px-4 py-3">
             <Popover.Heading className="font-medium">
               Notifications

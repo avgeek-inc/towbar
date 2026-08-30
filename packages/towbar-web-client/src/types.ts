@@ -18,6 +18,26 @@ export type Source = {
   updatedAt: string;
 };
 
+export type AutoDeployControlResponse = {
+  autoDeploy: {
+    effective: {
+      paused: boolean;
+      pending: {
+        commitSha: string;
+        deploymentDigest: string;
+        deferredAt: string;
+        manifestId: string;
+        reason: "paused";
+        scope: "deployable" | "source";
+      } | null;
+      scope: "deployable" | "source" | null;
+    };
+    manifestAutoDeployEnabled?: boolean;
+    paused: boolean;
+  };
+  canManageAutoDeploy: boolean;
+};
+
 export type DeploymentPlanAction =
   "archive" | "create" | "no_op" | "restore" | "update";
 

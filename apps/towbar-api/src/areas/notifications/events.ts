@@ -24,8 +24,7 @@ export async function emitDeploymentNotification(
     | "deployment.started"
     | "deployment.succeeded"
     | "deployment.failed"
-    | "deployment.cancelled"
-    | "deployment.circuit_open",
+    | "deployment.cancelled",
 ) {
   const [deployment] = await getTowbarDatabase()
     .select({

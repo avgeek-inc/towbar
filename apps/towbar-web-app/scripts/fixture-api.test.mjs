@@ -21,6 +21,7 @@ const readRoutes = [
   `/v1/core/sources/${fixtureIds.source}/manifest`,
   `/v1/core/sources/${fixtureIds.source}/syncs`,
   `/v1/core/sources/${fixtureIds.source}/aws`,
+  `/v1/core/sources/${fixtureIds.source}/auto-deploy-control`,
   `/v1/core/sources/${fixtureIds.source}/secrets`,
   `/v1/core/sources/${fixtureIds.source}/apps`,
   `/v1/core/sources/${fixtureIds.source}/capacity`,
@@ -32,11 +33,13 @@ const readRoutes = [
   `/v1/core/sources/${fixtureIds.source}/backups`,
   `/v1/core/sources/${fixtureIds.source}/syncs/${fixtureIds.sync}`,
   `/v1/core/apps/${fixtureIds.app}`,
+  `/v1/core/apps/${fixtureIds.app}/auto-deploy-control`,
   `/v1/core/apps/${fixtureIds.app}/secrets`,
   `/v1/core/apps/${fixtureIds.app}/deployments`,
   `/v1/core/apps/${fixtureIds.app}/releases`,
   `/v1/core/apps/${fixtureIds.app}/operations`,
   `/v1/core/resources/${fixtureIds.resource}`,
+  `/v1/core/resources/${fixtureIds.resource}/auto-deploy-control`,
   `/v1/core/resources/${fixtureIds.resource}/secrets`,
   `/v1/core/resources/${fixtureIds.resource}/deployments`,
   `/v1/core/resources/${fixtureIds.resource}/releases`,
@@ -120,6 +123,36 @@ test("the local fixture covers every authenticated page read contract", async ()
       assert.equal(response.status, 200, route);
       assert.match(response.headers.get("content-type") ?? "", /json/, route);
     }
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
+test("the local fixture supports automatic deployment control edits", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  try {
+    const response = await fetch(
+      `${baseUrl}/v1/core/apps/${fixtureIds.app}/auto-deploy-control`,
+      {
+        body: JSON.stringify({
+          paused: true,
+        }),
+        headers: { "content-type": "application/json" },
+        method: "PATCH",
+      },
+    );
+    assert.equal(response.status, 200);
+    const result = await response.json();
+    assert.equal(result.autoDeploy.paused, true);
+    assert.equal(result.autoDeploy.effective.paused, true);
+    assert.equal(result.autoDeploy.effective.scope, "deployable");
   } finally {
     server.close();
     await once(server, "close");

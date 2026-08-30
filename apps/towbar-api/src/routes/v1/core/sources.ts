@@ -29,6 +29,12 @@ import {
 } from "../../../areas/plans/service.js";
 import { forbidden } from "../../../http/errors.js";
 import { readJson } from "../../../http/requests.js";
+import { autoDeployControlPatchSchema } from "./auto-deploy-control-requests.js";
+import {
+  getSourceAutoDeployControl,
+  updateSourceAutoDeployControl,
+} from "../../../areas/auto-deploy-controls/service.js";
+import { wakeMaintenanceWorkflow } from "../../../infrastructure/temporal.js";
 import {
   secretMutationSchema,
   secretReferenceSchema,
@@ -66,6 +72,38 @@ sourceRoutes.get("/:sourceId", async (context) => {
   return context.json({
     canManageSource: user.workspaceRole === "owner",
     source: await getSource(context.req.param("sourceId"), user.workspaceId),
+  });
+});
+
+sourceRoutes.get("/:sourceId/auto-deploy-control", async (context) => {
+  const user = context.get("user");
+  return context.json({
+    autoDeploy: await getSourceAutoDeployControl(
+      context.req.param("sourceId"),
+      user.workspaceId,
+    ),
+    canManageAutoDeploy: user.workspaceRole === "owner",
+  });
+});
+
+sourceRoutes.patch("/:sourceId/auto-deploy-control", async (context) => {
+  const user = context.get("user");
+  if (user.workspaceRole !== "owner") {
+    throw forbidden("Only the owner can manage automatic deployment controls");
+  }
+  const sourceId = context.req.param("sourceId");
+  const result = await updateSourceAutoDeployControl({
+    ...(await readJson(context, autoDeployControlPatchSchema)),
+    sourceId,
+    workspaceId: user.workspaceId,
+  });
+  const { shouldReevaluate, ...autoDeploy } = result;
+  if (shouldReevaluate) {
+    void wakeMaintenanceWorkflow().catch(() => undefined);
+  }
+  return context.json({
+    autoDeploy,
+    canManageAutoDeploy: user.workspaceRole === "owner",
   });
 });
 

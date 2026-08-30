@@ -19,6 +19,7 @@ import { deploymentStates } from "@workspace/towbar-core/temporal";
 import { deploymentEnvironments } from "@workspace/towbar-core/preview";
 
 import type {
+  DeferredAutomaticDeployment,
   DeploymentPlan,
   NotificationCategory,
   NotificationDestinationInput,
@@ -304,6 +305,7 @@ export const sources = pgTable(
     latestCommitSha: varchar("latest_commit_sha", { length: 64 }),
     latestManifestDigest: varchar("latest_manifest_digest", { length: 64 }),
     latestSuccessfulSyncId: uuid("latest_successful_sync_id"),
+    autoDeployPaused: boolean("auto_deploy_paused").default(false).notNull(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -750,6 +752,10 @@ export const apps = pgTable(
     deploymentDigest: varchar("deployment_digest", { length: 64 }),
     sourceInputDigest: varchar("source_input_digest", { length: 64 }),
     sourceRevision: varchar("source_revision", { length: 64 }).notNull(),
+    autoDeployPaused: boolean("auto_deploy_paused").default(false).notNull(),
+    deferredAutomaticDeployment: jsonb(
+      "deferred_automatic_deployment",
+    ).$type<DeferredAutomaticDeployment>(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

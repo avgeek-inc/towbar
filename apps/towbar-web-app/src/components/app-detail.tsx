@@ -28,6 +28,7 @@ import { PreviewEnvironments } from "./preview-environments";
 import { ResponsiveSubtabs } from "./responsive-subtabs";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 import { DeployableActionsMenu, RuntimeLogs } from "./runtime-operations";
+import { AutoDeployControlEditor } from "./auto-deploy-control";
 
 type AppRecord = App & {
   serverId: string;
@@ -425,6 +426,11 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
           },
         ]
       : []),
+    {
+      value: "auto-deploy",
+      label: "Auto-deploy",
+      content: <AutoDeployControlEditor id={appId} type="app" />,
+    },
     {
       value: "secrets",
       label: "Secrets",

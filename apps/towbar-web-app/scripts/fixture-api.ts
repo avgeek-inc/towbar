@@ -11,6 +11,7 @@ import type {
   AppSecretBinding,
   AppSecretUse,
   AppSecretsResponse,
+  AutoDeployControlResponse,
   AwsCredentialMetadata,
   Deployment,
   DeploymentEvent,
@@ -98,6 +99,12 @@ const source: Source = {
   status: "active",
   updatedAt: fixtureNow,
 };
+
+const sourceAutoDeployControl = createAutoDeployControlFixture("source");
+const deployableAutoDeployControls = new Map<
+  string,
+  AutoDeployControlResponse["autoDeploy"]
+>();
 
 const servers: Server[] = [
   createServerFixture(fixtureIds.server, "192.0.2.10", "ubuntu", false),
@@ -809,6 +816,45 @@ export function createFixtureApiServer() {
     ) {
       return writeJson(response, 202, { sync: { id: sourceSync.id } });
     }
+    const autoDeployControlMatch = path.match(
+      /^\/v1\/core\/(sources|apps|resources)\/([^/]+)\/auto-deploy-control$/,
+    );
+    if (autoDeployControlMatch) {
+      const [, kind, id] = autoDeployControlMatch;
+      const control =
+        kind === "sources"
+          ? id === source.id
+            ? sourceAutoDeployControl
+            : undefined
+          : getFixtureDeployableAutoDeployControl(kind!, id!);
+      if (!control) return writeNotFound(response);
+      if (request.method === "GET") {
+        return writeJson(response, 200, {
+          autoDeploy: control,
+          canManageAutoDeploy: true,
+        });
+      }
+      if (request.method === "PATCH") {
+        void readRequestJson(request)
+          .then((input) => {
+            applyFixtureAutoDeployControlPatch(
+              control,
+              input as Record<string, unknown>,
+              kind === "sources" ? "source" : "deployable",
+            );
+            return writeJson(response, 200, {
+              autoDeploy: control,
+              canManageAutoDeploy: true,
+            });
+          })
+          .catch(() =>
+            writeJson(response, 400, {
+              error: { message: "Request body must be valid JSON" },
+            }),
+          );
+        return;
+      }
+    }
     const notificationDestinationMatch = path.match(
       new RegExp(
         `^/v1/core/sources/${source.id}/notifications/destinations(?:/([^/]+)(?:/actions/test)?)?$`,
@@ -1389,6 +1435,80 @@ function getFixturePayload(
   }
 
   return undefined;
+}
+
+function createAutoDeployControlFixture(
+  targetType: "app" | "resource" | "source",
+): AutoDeployControlResponse["autoDeploy"] {
+  return {
+    ...(targetType === "source" ? {} : { manifestAutoDeployEnabled: true }),
+    effective: {
+      paused: false,
+      pending: null,
+      scope: null,
+    },
+    paused: false,
+  };
+}
+
+function getFixtureDeployableAutoDeployControl(kind: string, id: string) {
+  const deployable =
+    kind === "apps"
+      ? apps.find((item) => item.id === id)
+      : resources.find((item) => item.id === id);
+  if (!deployable) return undefined;
+  let control = deployableAutoDeployControls.get(id);
+  if (!control) {
+    control = createAutoDeployControlFixture(
+      kind === "apps" ? "app" : "resource",
+    );
+    refreshFixtureAutoDeployEffectiveState(control, "deployable");
+    deployableAutoDeployControls.set(id, control);
+  }
+  return control;
+}
+
+function applyFixtureAutoDeployControlPatch(
+  target: AutoDeployControlResponse["autoDeploy"],
+  patch: Record<string, unknown>,
+  targetType: "deployable" | "source",
+) {
+  if (typeof patch.paused === "boolean") {
+    target.paused = patch.paused;
+  }
+  refreshFixtureAutoDeployEffectiveState(target, targetType);
+  if (targetType === "source") {
+    for (const deployable of deployableAutoDeployControls.values()) {
+      refreshFixtureAutoDeployEffectiveState(deployable, "deployable");
+    }
+  }
+}
+
+function refreshFixtureAutoDeployEffectiveState(
+  target: AutoDeployControlResponse["autoDeploy"],
+  targetType: "deployable" | "source",
+) {
+  if (targetType === "deployable" && sourceAutoDeployControl.paused) {
+    target.effective = {
+      paused: true,
+      pending: target.effective.pending,
+      scope: "source",
+    };
+    return;
+  }
+  if (target.paused) {
+    target.effective = {
+      paused: true,
+      pending: target.effective.pending,
+      scope: targetType === "source" ? "source" : "deployable",
+    };
+    return;
+  }
+  target.effective = {
+    paused: false,
+    pending: null,
+    scope: null,
+  };
 }
 
 function readPositiveInteger(value: string | null, fallback: number) {

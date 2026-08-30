@@ -56,6 +56,7 @@ import {
 import { SourceApps, SourceResources, SourceServers } from "./source-inventory";
 import { SourcePlans } from "./source-plans";
 import { ResponsiveSubtabs } from "./responsive-subtabs";
+import { AutoDeployControlEditor } from "./auto-deploy-control";
 
 type ManifestResponse = {
   manifest: {
@@ -400,6 +401,11 @@ function SourceSettings({
               sourceId={sourceId}
             />
           ),
+        },
+        {
+          value: "auto-deploy",
+          label: "Auto-deploy",
+          content: <AutoDeployControlEditor id={sourceId} type="source" />,
         },
         {
           value: "notifications",
