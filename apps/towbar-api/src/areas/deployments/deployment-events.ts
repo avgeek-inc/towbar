@@ -14,6 +14,7 @@ import { notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { propagatePreviewDeploymentState } from "./preview-status.js";
 import { emitDeploymentNotification } from "../notifications/events.js";
+import { requestDeploymentVulnerabilityScan } from "../vulnerability-scans/service.js";
 
 import type { DeploymentState } from "@workspace/towbar-core/temporal";
 
@@ -113,6 +114,11 @@ export async function recordDeploymentEvent(
       );
       if (notificationType) {
         await emitDeploymentNotification(deploymentId, notificationType).catch(
+          () => undefined,
+        );
+      }
+      if (["succeeded", "succeeded_with_warnings"].includes(input.state)) {
+        await requestDeploymentVulnerabilityScan({ deploymentId }).catch(
           () => undefined,
         );
       }

@@ -474,6 +474,42 @@ export type Deployment = {
   state: DeploymentState;
   trigger: "auto_deploy" | "manual" | "rollback";
   updatedAt: string;
+  vulnerabilityScan?: VulnerabilityScan | null;
+  vulnerabilityScanningEnabled?: boolean;
+};
+
+export type VulnerabilitySeverityTotals = {
+  critical: number;
+  high: number;
+  low: number;
+  medium: number;
+  unknown: number;
+};
+
+export type VulnerabilityScan = {
+  completedAt: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  findingsTruncated: boolean;
+  id: string;
+  imageDigest: string;
+  requestedAt: string;
+  scannerName: string | null;
+  scannerVersion: string | null;
+  severityTotals: VulnerabilitySeverityTotals;
+  startedAt: string | null;
+  state: "pending" | "running" | "clean" | "findings" | "failed" | "stale";
+  vulnerabilityDatabaseUpdatedAt: string | null;
+};
+
+export type VulnerabilityFinding = {
+  advisoryId: string;
+  fixedVersion: string | null;
+  id: string;
+  installedVersion: string;
+  packageName: string;
+  severity: "critical" | "high" | "medium" | "low" | "unknown";
+  target: string;
 };
 
 export type PreviewEnvironment = {

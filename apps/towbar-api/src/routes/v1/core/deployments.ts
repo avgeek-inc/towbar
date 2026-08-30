@@ -10,7 +10,11 @@ import {
   listDeploymentSteps,
   listDeployments,
 } from "../../../areas/deployments/service.js";
-import { badRequest } from "../../../http/errors.js";
+import {
+  listDeploymentVulnerabilityFindings,
+  requestDeploymentVulnerabilityScan,
+} from "../../../areas/vulnerability-scans/service.js";
+import { badRequest, forbidden } from "../../../http/errors.js";
 
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
@@ -47,6 +51,16 @@ deploymentRoutes.get("/:deploymentId/logs", async (context) =>
       workspaceId: context.get("user").workspaceId,
     }),
   }),
+);
+deploymentRoutes.get(
+  "/:deploymentId/vulnerability-scan/findings",
+  async (context) =>
+    context.json({
+      findings: await listDeploymentVulnerabilityFindings({
+        deploymentId: context.req.param("deploymentId"),
+        workspaceId: context.get("user").workspaceId,
+      }),
+    }),
 );
 deploymentRoutes.get("/:deploymentId/events", async (context) => {
   const deploymentId = context.req.param("deploymentId");
@@ -113,6 +127,22 @@ deploymentRoutes.post("/:deploymentId/actions/retry", async (context) => {
   });
   return context.json(result, result.replayed ? 200 : 202);
 });
+
+deploymentRoutes.post(
+  "/:deploymentId/vulnerability-scan/actions/rescan",
+  async (context) => {
+    const user = context.get("user");
+    if (user.workspaceRole !== "owner") {
+      throw forbidden("Only workspace owners can request an image rescan");
+    }
+    const result = await requestDeploymentVulnerabilityScan({
+      deploymentId: context.req.param("deploymentId"),
+      force: true,
+      workspaceId: user.workspaceId,
+    });
+    return context.json(result, result?.replayed ? 200 : 202);
+  },
+);
 
 function parseLastEventSequence(value: string | undefined) {
   if (!value) return -1;

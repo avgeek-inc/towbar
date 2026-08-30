@@ -13,6 +13,7 @@ import type { NotificationProviderConfiguration } from "./configuration.js";
 
 import type {
   NotificationEventPayload,
+  NotificationEventType,
   NotificationProvider,
 } from "@workspace/towbar-core";
 
@@ -33,22 +34,30 @@ export class NotificationProviderError extends Error {
 export async function deliverNotification(input: {
   config: unknown;
   eventId: string;
+  eventType: NotificationEventType;
   payload: NotificationEventPayload;
   provider: NotificationProvider;
   providerConfiguration: NotificationProviderConfiguration;
+  thread?: { messageId: string; threadId: string; updateRoot: boolean } | null;
 }) {
   const payload = notificationEventPayloadSchema.parse(input.payload);
   if (input.provider === "slack") {
     if (input.providerConfiguration.provider !== "slack") {
       throw invalidProviderConfiguration("Slack");
     }
-    await sendSlackNotification({
+    const result = await sendSlackNotification({
       config: slackNotificationConfigSchema.parse(input.config),
       eventId: input.eventId,
+      eventType: input.eventType,
       payload,
       providerConfiguration: input.providerConfiguration,
+      thread: input.thread,
     });
-    return { providerStatus: "accepted" };
+    return {
+      providerMessageId: result.messageId,
+      providerStatus: "accepted",
+      providerThreadId: result.threadId,
+    };
   }
   if (input.providerConfiguration.provider !== "smtp") {
     throw invalidProviderConfiguration("SMTP");
@@ -61,40 +70,203 @@ export async function deliverNotification(input: {
   });
 }
 
-async function sendSlackNotification(input: {
-  config: { channelId: string };
-  eventId: string;
+type SlackApiRequest = (
+  method: "chat.postMessage" | "chat.update",
+  payload: Record<string, unknown>,
+  botToken: string,
+) => Promise<Record<string, unknown>>;
+
+export async function sendSlackNotification(
+  input: {
+    config: { channelId: string };
+    eventId: string;
+    eventType: NotificationEventType;
+    payload: NotificationEventPayload;
+    providerConfiguration: { appBaseUrl: string; botToken: string };
+    thread?: {
+      messageId: string;
+      threadId: string;
+      updateRoot: boolean;
+    } | null;
+  },
+  request: SlackApiRequest = slackApiRequest,
+) {
+  const message = input.eventType.startsWith("deployment.")
+    ? renderSlackDeploymentMessage(input)
+    : renderSlackGenericMessage(input);
+  if (!input.thread) {
+    const created = await request(
+      "chat.postMessage",
+      {
+        ...message,
+        channel: input.config.channelId,
+        client_msg_id: input.eventId,
+      },
+      input.providerConfiguration.botToken,
+    );
+    const messageId = requireSlackMessageId(created);
+    return { messageId, threadId: messageId };
+  }
+  if (input.thread.updateRoot) {
+    await request(
+      "chat.update",
+      {
+        ...message,
+        channel: input.config.channelId,
+        ts: input.thread.messageId,
+      },
+      input.providerConfiguration.botToken,
+    );
+  }
+  await request(
+    "chat.postMessage",
+    {
+      blocks: renderSlackLifecycleReply(input),
+      channel: input.config.channelId,
+      client_msg_id: input.eventId,
+      text: message.text,
+      thread_ts: input.thread.threadId,
+    },
+    input.providerConfiguration.botToken,
+  );
+  return input.thread;
+}
+
+function renderSlackGenericMessage(input: {
   payload: NotificationEventPayload;
-  providerConfiguration: { botToken: string };
 }) {
-  const body = JSON.stringify({
+  return {
     blocks: [
       {
         text: {
-          text: `*${escapeSlack(input.payload.title)}*\n${escapeSlack(input.payload.message)}`,
+          text: escapeSlack(input.payload.title),
+          type: "plain_text",
+        },
+        type: "header",
+      },
+      {
+        text: {
+          text: escapeSlack(input.payload.message),
           type: "mrkdwn",
         },
         type: "section",
       },
+      ...(compactSlackDetails(input.payload.details).length
+        ? [
+            {
+              fields: compactSlackDetails(input.payload.details),
+              type: "section",
+            },
+          ]
+        : []),
       {
         elements: [
           {
-            text: `Towbar event ${input.eventId} · ${input.payload.source.name}`,
+            text: `${escapeSlack(input.payload.source.name)} · ${formatSlackTimestamp(input.payload.occurredAt)}`,
             type: "mrkdwn",
           },
         ],
         type: "context",
       },
     ],
-    channel: input.config.channelId,
     text: `${input.payload.title}: ${input.payload.message}`.slice(0, 3_000),
-  });
+  };
+}
+
+export function renderSlackDeploymentMessage(input: {
+  eventId: string;
+  eventType: NotificationEventType;
+  payload: NotificationEventPayload;
+  providerConfiguration: { appBaseUrl: string };
+}) {
+  const details = compactSlackDetails(input.payload.details);
+  const deploymentUrl = new URL(
+    `/sources/${input.payload.source.id}/deployments/${input.payload.entity.id}`,
+    input.providerConfiguration.appBaseUrl,
+  ).toString();
+  return {
+    blocks: [
+      {
+        text: {
+          text: `${deploymentStatusIcon(input.eventType)} ${escapeSlack(input.payload.entity.name)}`,
+          type: "plain_text",
+        },
+        type: "header",
+      },
+      {
+        fields: [
+          {
+            text: `*Status*\n${escapeSlack(deploymentStatus(input.eventType))}`,
+            type: "mrkdwn",
+          },
+          {
+            text: `*Source*\n${escapeSlack(input.payload.source.name)}`,
+            type: "mrkdwn",
+          },
+          ...details,
+        ].slice(0, 10),
+        type: "section",
+      },
+      {
+        elements: [
+          {
+            text: escapeSlack(input.payload.message),
+            type: "mrkdwn",
+          },
+        ],
+        type: "context",
+      },
+      {
+        elements: [
+          {
+            text: { text: "View deployment", type: "plain_text" },
+            type: "button",
+            url: deploymentUrl,
+          },
+        ],
+        type: "actions",
+      },
+    ],
+    text: `${input.payload.title}: ${input.payload.message}`.slice(0, 3_000),
+  };
+}
+
+function renderSlackLifecycleReply(input: {
+  eventId: string;
+  eventType: NotificationEventType;
+  payload: NotificationEventPayload;
+}) {
+  return [
+    {
+      text: {
+        text: `*${deploymentStatusIcon(input.eventType)} ${escapeSlack(input.payload.title)}*\n${escapeSlack(input.payload.message)}`,
+        type: "mrkdwn",
+      },
+      type: "section",
+    },
+    {
+      elements: [
+        {
+          text: `${formatSlackTimestamp(input.payload.occurredAt)} · event ${input.eventId}`,
+          type: "mrkdwn",
+        },
+      ],
+      type: "context",
+    },
+  ];
+}
+
+async function slackApiRequest(
+  method: "chat.postMessage" | "chat.update",
+  payload: Record<string, unknown>,
+  botToken: string,
+) {
   let response: Response;
   try {
-    response = await fetch("https://slack.com/api/chat.postMessage", {
-      body,
+    response = await fetch(`https://slack.com/api/${method}`, {
+      body: JSON.stringify(payload),
       headers: {
-        authorization: `Bearer ${input.providerConfiguration.botToken}`,
+        authorization: `Bearer ${botToken}`,
         "content-type": "application/json; charset=utf-8",
       },
       method: "POST",
@@ -105,7 +277,7 @@ async function sendSlackNotification(input: {
     throw classifyNetworkError(error, "Slack could not be reached");
   }
   const result = await readBoundedResponse(response);
-  if (response.ok && result.ok === true) return;
+  if (response.ok && result.ok === true) return result;
   const retryable =
     response.status === 429 ||
     response.status >= 500 ||
@@ -120,6 +292,57 @@ async function sendSlackNotification(input: {
       ? result.error.slice(0, 100)
       : String(response.status),
   );
+}
+
+function requireSlackMessageId(result: Record<string, unknown>) {
+  if (typeof result.ts === "string" && result.ts.length <= 100) {
+    return result.ts;
+  }
+  throw new NotificationProviderError(
+    "SLACK_INVALID_RESPONSE",
+    "Slack accepted the notification without returning a message ID",
+    true,
+  );
+}
+
+function compactSlackDetails(details: NotificationEventPayload["details"]) {
+  return Object.entries(details)
+    .filter(
+      ([, value]) => value !== null && value !== undefined && value !== "",
+    )
+    .slice(0, 6)
+    .map(([key, value]) => ({
+      text: `*${escapeSlack(titleCase(key))}*\n${escapeSlack(String(value))}`,
+      type: "mrkdwn",
+    }));
+}
+
+function deploymentStatus(type: NotificationEventType) {
+  return type.startsWith("deployment.")
+    ? titleCase(type.slice("deployment.".length))
+    : "Updated";
+}
+
+function deploymentStatusIcon(type: NotificationEventType) {
+  if (type === "deployment.succeeded") return "✅";
+  if (type === "deployment.failed" || type === "deployment.cancelled") {
+    return "❌";
+  }
+  if (type === "deployment.started") return "🔵";
+  return "🟡";
+}
+
+function titleCase(value: string) {
+  return value
+    .replaceAll("_", " ")
+    .replace(/\b\w/gu, (character) => character.toUpperCase());
+}
+
+function formatSlackTimestamp(value: string) {
+  const epoch = Math.floor(new Date(value).getTime() / 1_000);
+  return Number.isFinite(epoch)
+    ? `<!date^${epoch}^{date_short_pretty} at {time}|${value}>`
+    : value;
 }
 
 async function sendSmtpNotification(input: {
@@ -357,7 +580,7 @@ function invalidProviderConfiguration(provider: string) {
 async function readBoundedResponse(response: Response) {
   const text = (await response.text()).slice(0, 16 * 1_024);
   try {
-    return JSON.parse(text) as { error?: unknown; ok?: unknown };
+    return JSON.parse(text) as Record<string, unknown>;
   } catch {
     return {};
   }

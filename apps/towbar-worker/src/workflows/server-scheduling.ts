@@ -6,12 +6,14 @@ export function nextServerWorkIndex(input: {
   activeAppIds: Set<string>;
   activeCount: number;
   activePreviewCount?: number;
+  activeVulnerabilityScanCount?: number;
   buildConcurrency: number;
   previewBuildConcurrency?: number;
   queue: ServerWorkItem[];
 }) {
   if (input.activeCount >= input.buildConcurrency) return -1;
   let previewIndex = -1;
+  let vulnerabilityScanIndex = -1;
   for (let index = 0; index < input.queue.length; index += 1) {
     const item = input.queue[index];
     if (!item) continue;
@@ -27,6 +29,15 @@ export function nextServerWorkIndex(input: {
     if (!item.appId || input.activeAppIds.has(item.appId)) continue;
     if (item.kind === "preview-cleanup") return index;
     if (item.kind === "resource-operation") return index;
+    if (item.kind === "vulnerability-scan") {
+      if (
+        (input.activeVulnerabilityScanCount ?? 0) < 1 &&
+        vulnerabilityScanIndex < 0
+      ) {
+        vulnerabilityScanIndex = index;
+      }
+      continue;
+    }
     if ((item.priority ?? "production") === "production") return index;
     if (
       previewIndex < 0 &&
@@ -35,5 +46,5 @@ export function nextServerWorkIndex(input: {
       previewIndex = index;
     }
   }
-  return previewIndex;
+  return previewIndex >= 0 ? previewIndex : vulnerabilityScanIndex;
 }

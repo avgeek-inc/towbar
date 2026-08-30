@@ -6,6 +6,7 @@ import {
   notificationDeliveryAttempts,
   notificationDestinations,
   notificationEvents,
+  notificationThreads,
 } from "@workspace/towbar-database/schema";
 
 import { getTowbarDatabase } from "../../infrastructure/database.js";
@@ -56,12 +57,21 @@ export async function executeNotificationDeliveryAttempt(input: {
         false,
       );
     }
+    const thread = await claimNotificationThread(delivery);
     const result = await deliverNotification({
       config: delivery.config,
       eventId: delivery.eventId,
+      eventType: delivery.eventType,
       payload: delivery.payload,
       provider: delivery.provider,
       providerConfiguration,
+      thread,
+    });
+    await completeNotificationThread(delivery, {
+      providerMessageId:
+        "providerMessageId" in result ? result.providerMessageId : undefined,
+      providerThreadId:
+        "providerThreadId" in result ? result.providerThreadId : undefined,
     });
     await finishAttempt(input, {
       providerStatus: result.providerStatus,
@@ -69,6 +79,7 @@ export async function executeNotificationDeliveryAttempt(input: {
     });
     return { outcome: "succeeded" as const };
   } catch (error) {
+    await releaseNotificationThreadClaim(delivery).catch(() => undefined);
     const classified = classifyDeliveryError(error);
     const retryable =
       classified.retryable && input.attempt < maximumAutomaticAttempts;
@@ -115,7 +126,10 @@ async function claimAttempt(input: {
         cycle: notificationDeliveries.cycle,
         destinationEnabled: notificationDestinations.enabled,
         destinationDeletedAt: notificationDestinations.deletedAt,
+        destinationId: notificationDestinations.id,
+        deliveryId: notificationDeliveries.id,
         eventId: notificationEvents.id,
+        eventType: notificationEvents.type,
         payload: notificationEvents.payload,
         provider: notificationDestinations.provider,
         state: notificationDeliveries.state,
@@ -205,6 +219,152 @@ async function claimAttempt(input: {
       .where(eq(notificationDeliveries.id, input.deliveryId));
     return { delivery };
   });
+}
+
+async function claimNotificationThread(delivery: {
+  deliveryId: string;
+  destinationId: string;
+  eventType: string;
+  payload: {
+    entity: { id: string; kind: string };
+    occurredAt: string;
+  };
+  provider: string;
+}) {
+  if (
+    delivery.provider !== "slack" ||
+    !delivery.eventType.startsWith("deployment.") ||
+    delivery.payload.entity.kind !== "deployment"
+  ) {
+    return null;
+  }
+  return await getTowbarDatabase().transaction(async (transaction) => {
+    await transaction
+      .insert(notificationThreads)
+      .values({
+        creatingDeliveryId: delivery.deliveryId,
+        destinationId: delivery.destinationId,
+        entityId: delivery.payload.entity.id,
+        entityKind: delivery.payload.entity.kind,
+        latestEventAt: new Date(delivery.payload.occurredAt),
+      })
+      .onConflictDoNothing({
+        target: [
+          notificationThreads.destinationId,
+          notificationThreads.entityKind,
+          notificationThreads.entityId,
+        ],
+      });
+    const [thread] = await transaction
+      .select()
+      .from(notificationThreads)
+      .where(
+        and(
+          eq(notificationThreads.destinationId, delivery.destinationId),
+          eq(notificationThreads.entityKind, delivery.payload.entity.kind),
+          eq(notificationThreads.entityId, delivery.payload.entity.id),
+        ),
+      )
+      .for("update")
+      .limit(1);
+    if (!thread) throw new Error("Unable to reserve notification thread");
+    if (thread.providerMessageId && thread.providerThreadId) {
+      const eventAt = new Date(delivery.payload.occurredAt);
+      const updateRoot = eventAt.getTime() >= thread.latestEventAt.getTime();
+      if (updateRoot) {
+        await transaction
+          .update(notificationThreads)
+          .set({ latestEventAt: eventAt, updatedAt: new Date() })
+          .where(eq(notificationThreads.id, thread.id));
+      }
+      return {
+        messageId: thread.providerMessageId,
+        threadId: thread.providerThreadId,
+        updateRoot,
+      };
+    }
+    const claimExpired = Date.now() - thread.updatedAt.getTime() >= 2 * 60_000;
+    if (
+      thread.creatingDeliveryId &&
+      thread.creatingDeliveryId !== delivery.deliveryId &&
+      !claimExpired
+    ) {
+      throw new NotificationProviderError(
+        "NOTIFICATION_THREAD_PENDING",
+        "The deployment notification thread is being created",
+        true,
+      );
+    }
+    await transaction
+      .update(notificationThreads)
+      .set({
+        creatingDeliveryId: delivery.deliveryId,
+        updatedAt: new Date(),
+      })
+      .where(eq(notificationThreads.id, thread.id));
+    return null;
+  });
+}
+
+async function completeNotificationThread(
+  delivery: {
+    deliveryId: string;
+    destinationId: string;
+    eventType: string;
+    payload: { entity: { id: string; kind: string } };
+    provider: string;
+  },
+  result: { providerMessageId?: string; providerThreadId?: string },
+) {
+  if (
+    delivery.provider !== "slack" ||
+    !delivery.eventType.startsWith("deployment.") ||
+    !result.providerMessageId ||
+    !result.providerThreadId
+  ) {
+    return;
+  }
+  await getTowbarDatabase()
+    .update(notificationThreads)
+    .set({
+      creatingDeliveryId: null,
+      providerMessageId: result.providerMessageId,
+      providerThreadId: result.providerThreadId,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(notificationThreads.destinationId, delivery.destinationId),
+        eq(notificationThreads.entityKind, delivery.payload.entity.kind),
+        eq(notificationThreads.entityId, delivery.payload.entity.id),
+      ),
+    );
+}
+
+async function releaseNotificationThreadClaim(delivery: {
+  deliveryId: string;
+  destinationId: string;
+  eventType: string;
+  payload: { entity: { id: string; kind: string } };
+  provider: string;
+}) {
+  if (
+    delivery.provider !== "slack" ||
+    !delivery.eventType.startsWith("deployment.")
+  ) {
+    return;
+  }
+  await getTowbarDatabase()
+    .update(notificationThreads)
+    .set({ creatingDeliveryId: null, updatedAt: new Date() })
+    .where(
+      and(
+        eq(notificationThreads.destinationId, delivery.destinationId),
+        eq(notificationThreads.entityKind, delivery.payload.entity.kind),
+        eq(notificationThreads.entityId, delivery.payload.entity.id),
+        eq(notificationThreads.creatingDeliveryId, delivery.deliveryId),
+      ),
+    );
 }
 
 async function finishAttempt(

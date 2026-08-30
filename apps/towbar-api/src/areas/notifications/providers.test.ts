@@ -1,9 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { slackNotificationConfigSchema } from "@workspace/towbar-core";
+import {
+  notificationEventPayloadSchema,
+  slackNotificationConfigSchema,
+} from "@workspace/towbar-core";
 
-import { isPrivateOrReservedAddress } from "./providers.js";
+import {
+  isPrivateOrReservedAddress,
+  renderSlackDeploymentMessage,
+  sendSlackNotification,
+} from "./providers.js";
 
 void test("accepts Slack channel IDs without storing credentials", () => {
   assert.deepEqual(
@@ -37,4 +44,82 @@ void test("blocks private and reserved SMTP targets", () => {
   }
   assert.equal(isPrivateOrReservedAddress("8.8.8.8"), false);
   assert.equal(isPrivateOrReservedAddress("2606:4700:4700::1111"), false);
+});
+
+const deploymentPayload = notificationEventPayloadSchema.parse({
+  details: { commit: "abc123", trigger: "Auto deploy" },
+  entity: { id: "deployment-1", kind: "deployment", name: "Towbar API" },
+  message: "The deployment passed its health check.",
+  occurredAt: "2026-08-30T10:00:00.000Z",
+  source: {
+    id: "11111111-1111-4111-8111-111111111111",
+    name: "platform",
+  },
+  title: "Deployment succeeded",
+});
+
+void test("renders a compact Slack deployment summary with a Towbar link", () => {
+  const message = renderSlackDeploymentMessage({
+    eventId: "event-1",
+    eventType: "deployment.succeeded",
+    payload: deploymentPayload,
+    providerConfiguration: { appBaseUrl: "https://app.towbar.dev" },
+  });
+  assert.match(message.text, /Deployment succeeded/u);
+  assert.equal(message.blocks.at(-1)?.type, "actions");
+  assert.match(
+    JSON.stringify(message.blocks),
+    /https:\/\/app\.towbar\.dev\/sources\/11111111-1111-4111-8111-111111111111\/deployments\/deployment-1/u,
+  );
+});
+
+void test("updates the Slack root only for the newest lifecycle event and always replies", async () => {
+  const calls: Array<{ method: string; payload: Record<string, unknown> }> = [];
+  const request = (method: string, payload: Record<string, unknown>) => {
+    calls.push({ method, payload });
+    return Promise.resolve({ ok: true, ts: "171234.5678" });
+  };
+  const base = {
+    config: { channelId: "C12345678" },
+    eventId: "event-2",
+    eventType: "deployment.succeeded" as const,
+    payload: deploymentPayload,
+    providerConfiguration: {
+      appBaseUrl: "https://app.towbar.dev",
+      botToken: "test-token",
+    },
+  };
+  await sendSlackNotification(
+    {
+      ...base,
+      thread: {
+        messageId: "root-message",
+        threadId: "root-thread",
+        updateRoot: false,
+      },
+    },
+    request,
+  );
+  assert.deepEqual(
+    calls.map((call) => call.method),
+    ["chat.postMessage"],
+  );
+  assert.equal(calls[0]?.payload.thread_ts, "root-thread");
+
+  calls.length = 0;
+  await sendSlackNotification(
+    {
+      ...base,
+      thread: {
+        messageId: "root-message",
+        threadId: "root-thread",
+        updateRoot: true,
+      },
+    },
+    request,
+  );
+  assert.deepEqual(
+    calls.map((call) => call.method),
+    ["chat.update", "chat.postMessage"],
+  );
 });

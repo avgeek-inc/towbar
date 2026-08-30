@@ -232,6 +232,13 @@
       "when": 1788102567077,
       "tag": "0032_cooing_maggott",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1788108667897,
+      "tag": "0033_panoramic_calypso",
+      "breakpoints": true
     }
   ]
 }

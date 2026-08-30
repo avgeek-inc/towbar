@@ -165,3 +165,65 @@ void test("caps Preview builds independently from production concurrency", () =>
     -1,
   );
 });
+
+void test("runs vulnerability scans after production and Preview builds and serializes by app", () => {
+  const scan: ServerWorkItem = {
+    appId: "api",
+    buildConcurrency: 3,
+    cycle: 1,
+    id: "scan",
+    kind: "vulnerability-scan",
+  };
+  assert.equal(
+    nextServerWorkIndex({
+      activeAppIds: new Set(),
+      activeCount: 0,
+      buildConcurrency: 3,
+      queue: [
+        scan,
+        { ...deployment("production", "website"), priority: "production" },
+      ],
+    }),
+    1,
+  );
+  assert.equal(
+    nextServerWorkIndex({
+      activeAppIds: new Set(["api"]),
+      activeCount: 1,
+      buildConcurrency: 3,
+      queue: [scan],
+    }),
+    -1,
+  );
+});
+
+void test("runs at most one vulnerability scan per server", () => {
+  const scan: ServerWorkItem = {
+    appId: "worker",
+    buildConcurrency: 4,
+    cycle: 1,
+    id: "worker-scan",
+    kind: "vulnerability-scan",
+  };
+
+  assert.equal(
+    nextServerWorkIndex({
+      activeAppIds: new Set(["api"]),
+      activeCount: 1,
+      activeVulnerabilityScanCount: 1,
+      buildConcurrency: 4,
+      queue: [scan],
+    }),
+    -1,
+  );
+  assert.equal(
+    nextServerWorkIndex({
+      activeAppIds: new Set(["api"]),
+      activeCount: 1,
+      activeVulnerabilityScanCount: 1,
+      buildConcurrency: 4,
+      queue: [scan, deployment("website", "website")],
+    }),
+    1,
+  );
+});

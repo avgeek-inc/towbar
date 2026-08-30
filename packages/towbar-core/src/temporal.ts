@@ -129,6 +129,13 @@ export type ServerWorkItem =
       kind: "server-preparation";
     }
   | {
+      appId: string;
+      buildConcurrency: number;
+      cycle: number;
+      id: string;
+      kind: "vulnerability-scan";
+    }
+  | {
       appId: string | null;
       buildConcurrency: number;
       exclusive: boolean;
@@ -153,6 +160,10 @@ export function notificationDeliveryWorkflowId(
   cycle: number,
 ) {
   return `towbar-notification-delivery/${deliveryId}/cycle/${cycle}`;
+}
+
+export function vulnerabilityScanWorkflowId(scanId: string, cycle: number) {
+  return `towbar-vulnerability-scan/${scanId}/cycle/${cycle}`;
 }
 
 export function serverCoordinatorWorkflowId(canonicalIpHash: string) {

@@ -36,6 +36,7 @@ import {
 } from "./service.js";
 import { assureConfiguredResourceBackups } from "./backup-assurance.js";
 import { admitResumedAutomaticDeployments } from "../apps/automatic-deployments.js";
+import { enqueueDueVulnerabilityScans } from "../vulnerability-scans/service.js";
 
 export async function runMaintenanceSweep() {
   // Scheduled deployable work has priority; health checks are maintenance and
@@ -46,6 +47,7 @@ export async function runMaintenanceSweep() {
   const restoreCleanupsQueued = await queueExpiredRestoreCleanups();
   const previewCleanupsQueued = await requestExpiredPreviewCleanups();
   const notificationDeliveriesQueued = await enqueueDueNotificationDeliveries();
+  const vulnerabilityScansQueued = await enqueueDueVulnerabilityScans();
   const activeServers = await getTowbarDatabase()
     .select({
       id: servers.id,
@@ -90,6 +92,7 @@ export async function runMaintenanceSweep() {
     notificationDeliveriesQueued,
     previewCleanupsQueued,
     restoreCleanupsQueued,
+    vulnerabilityScansQueued,
   };
 }
 

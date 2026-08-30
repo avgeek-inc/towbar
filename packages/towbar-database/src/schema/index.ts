@@ -37,6 +37,7 @@ import type {
   BackupAssuranceStatus,
   RestoreOperationPhase,
   ServerPreparationStep,
+  VulnerabilitySeverityTotals,
 } from "@workspace/towbar-core";
 
 export const workspaceRoleEnum = pgEnum("towbar_workspace_role", [
@@ -163,6 +164,14 @@ export const notificationDeliveryStateEnum = pgEnum(
 export const notificationAttemptStateEnum = pgEnum(
   "towbar_notification_attempt_state",
   ["running", "succeeded", "retryable_failure", "terminal_failure"],
+);
+export const vulnerabilityScanStateEnum = pgEnum(
+  "towbar_vulnerability_scan_state",
+  ["pending", "running", "clean", "findings", "failed"],
+);
+export const vulnerabilitySeverityEnum = pgEnum(
+  "towbar_vulnerability_severity",
+  ["critical", "high", "medium", "low", "unknown"],
 );
 export const users = pgTable(
   "towbar_users",
@@ -496,6 +505,43 @@ export const notificationDeliveryAttempts = pgTable(
       table.sequence,
     ),
     index("idx_towbar_notification_attempts_delivery").on(table.deliveryId),
+  ],
+);
+
+export const notificationThreads = pgTable(
+  "towbar_notification_threads",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    destinationId: uuid("destination_id")
+      .notNull()
+      .references(() => notificationDestinations.id, { onDelete: "cascade" }),
+    entityKind: varchar("entity_kind", { length: 40 }).notNull(),
+    entityId: varchar("entity_id", { length: 255 }).notNull(),
+    creatingDeliveryId: uuid("creating_delivery_id").references(
+      () => notificationDeliveries.id,
+      { onDelete: "set null" },
+    ),
+    providerThreadId: varchar("provider_thread_id", { length: 100 }),
+    providerMessageId: varchar("provider_message_id", { length: 100 }),
+    latestEventAt: timestamp("latest_event_at", {
+      withTimezone: true,
+    }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_notification_threads_destination_entity").on(
+      table.destinationId,
+      table.entityKind,
+      table.entityId,
+    ),
+    index("idx_towbar_notification_threads_destination").on(
+      table.destinationId,
+    ),
   ],
 );
 
@@ -1054,6 +1100,90 @@ export const deploymentLogChunks = pgTable(
       table.sequence,
     ),
     index("idx_towbar_deployment_logs_created").on(table.createdAt),
+  ],
+);
+
+export const imageVulnerabilityScans = pgTable(
+  "towbar_image_vulnerability_scans",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "restrict" }),
+    appId: uuid("app_id")
+      .notNull()
+      .references(() => apps.id, { onDelete: "restrict" }),
+    serverId: uuid("server_id")
+      .notNull()
+      .references(() => servers.id, { onDelete: "restrict" }),
+    deploymentId: uuid("deployment_id")
+      .notNull()
+      .references(() => deployments.id, { onDelete: "restrict" }),
+    imageDigest: varchar("image_digest", { length: 71 }).notNull(),
+    state: vulnerabilityScanStateEnum("state").default("pending").notNull(),
+    cycle: integer("cycle").default(1).notNull(),
+    scannerName: varchar("scanner_name", { length: 100 }),
+    scannerVersion: varchar("scanner_version", { length: 100 }),
+    vulnerabilityDatabaseUpdatedAt: timestamp(
+      "vulnerability_database_updated_at",
+      { withTimezone: true },
+    ),
+    severityTotals: jsonb("severity_totals")
+      .$type<VulnerabilitySeverityTotals>()
+      .notNull(),
+    findingsTruncated: boolean("findings_truncated").default(false).notNull(),
+    errorCode: varchar("error_code", { length: 100 }),
+    errorMessage: varchar("error_message", { length: 1_000 }),
+    requestedAt: timestamp("requested_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_vulnerability_scans_workspace_digest").on(
+      table.workspaceId,
+      table.imageDigest,
+    ),
+    index("idx_towbar_vulnerability_scans_state_requested").on(
+      table.state,
+      table.requestedAt,
+    ),
+    index("idx_towbar_vulnerability_scans_deployment").on(table.deploymentId),
+  ],
+);
+
+export const imageVulnerabilityFindings = pgTable(
+  "towbar_image_vulnerability_findings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    scanId: uuid("scan_id")
+      .notNull()
+      .references(() => imageVulnerabilityScans.id, { onDelete: "cascade" }),
+    advisoryId: varchar("advisory_id", { length: 160 }).notNull(),
+    severity: vulnerabilitySeverityEnum("severity").notNull(),
+    packageName: varchar("package_name", { length: 255 }).notNull(),
+    installedVersion: varchar("installed_version", { length: 255 }).notNull(),
+    fixedVersion: varchar("fixed_version", { length: 255 }),
+    target: varchar("target", { length: 512 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_towbar_vulnerability_findings_scan_severity").on(
+      table.scanId,
+      table.severity,
+    ),
   ],
 );
 

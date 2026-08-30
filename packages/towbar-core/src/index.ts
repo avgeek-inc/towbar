@@ -14,3 +14,4 @@ export * from "./server-capacity.js";
 export * from "./server-preparation.js";
 export * from "./system-health.js";
 export * from "./temporal.js";
+export * from "./vulnerability-scanning.js";

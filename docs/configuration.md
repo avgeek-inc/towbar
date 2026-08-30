@@ -98,6 +98,25 @@ Recreate the API container after changing provider variables:
 docker compose up --detach --force-recreate api
 ```
 
+## Image vulnerability scanning
+
+Set `TOWBAR_VULNERABILITY_SCANNING_ENABLED=true` to queue an optional scan of
+the immutable image digest after each successful deployment. Towbar reuses one
+result per workspace and image digest, stores only bounded normalized findings,
+and keeps scan failures separate from deployment health. The deployment detail
+page shows severity totals, actionable findings, scanner metadata, and stale or
+failed states.
+
+`TOWBAR_VULNERABILITY_SCAN_MAX_AGE_HOURS` controls when completed results are
+labelled stale and defaults to `168` hours. `TOWBAR_TRIVY_IMAGE` configures the
+worker-side scanner and must pin both a Trivy tag and image digest. The shipped
+default is a reviewed multi-architecture pin. Recreate both the API and worker
+after changing scanner configuration:
+
+```bash
+docker compose up --detach --force-recreate api worker
+```
+
 ## Initial owner
 
 Towbar does not accept initial owner credentials through environment variables.
