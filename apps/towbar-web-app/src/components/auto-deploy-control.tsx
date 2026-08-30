@@ -322,6 +322,14 @@ function MaintenanceWindowFields({
   onChange: (value: AutoDeployMaintenanceWindow) => void;
   value: AutoDeployMaintenanceWindow;
 }) {
+  const [timezones, setTimezones] = useState(() =>
+    initialTimezoneOptions(value.timezone),
+  );
+
+  useEffect(() => {
+    setTimezones(supportedTimezoneOptions(value.timezone));
+  }, [value.timezone]);
+
   return (
     <FieldSet className="rounded-3xl border border-separator p-4 sm:p-6">
       <FieldLegend>Maintenance window</FieldLegend>
@@ -341,7 +349,7 @@ function MaintenanceWindowFields({
             }
           >
             <Checkbox.Content className="min-h-11 w-fit">
-              <Checkbox.Control>
+              <Checkbox.Control className="border border-border">
                 <Checkbox.Indicator />
               </Checkbox.Control>
               <Label>{day.label}</Label>
@@ -382,28 +390,60 @@ function MaintenanceWindowFields({
             }
           />
         </Field>
-        <Field>
-          <FieldLabel htmlFor="auto-deploy-window-timezone">
-            Timezone
-          </FieldLabel>
-          <Input
-            autoComplete="off"
-            id="auto-deploy-window-timezone"
-            disabled={disabled}
-            spellCheck={false}
-            value={value.timezone}
-            variant="secondary"
-            onChange={(event) =>
-              onChange({ ...value, timezone: event.currentTarget.value })
-            }
-          />
-        </Field>
+        <Select
+          fullWidth
+          isDisabled={disabled}
+          selectedKey={value.timezone}
+          variant="secondary"
+          onSelectionChange={(key) =>
+            onChange({ ...value, timezone: String(key) })
+          }
+        >
+          <Label>Timezone</Label>
+          <Select.Trigger>
+            <Select.Value />
+            <Select.Indicator />
+          </Select.Trigger>
+          <Select.Popover>
+            <ListBox>
+              {timezones.map((timezone) => (
+                <ListBox.Item id={timezone} key={timezone} textValue={timezone}>
+                  {timezone}
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+              ))}
+            </ListBox>
+          </Select.Popover>
+        </Select>
       </div>
       <FieldDescription>
         Times use the selected IANA timezone and follow daylight-saving changes.
       </FieldDescription>
     </FieldSet>
   );
+}
+
+function initialTimezoneOptions(current: string) {
+  return [...new Set([current, "UTC"].filter(Boolean))];
+}
+
+function supportedTimezoneOptions(current: string) {
+  const timezones = initialTimezoneOptions(current);
+  const supportedValuesOf = (
+    Intl as typeof Intl & {
+      supportedValuesOf?: (key: "timeZone") => string[];
+    }
+  ).supportedValuesOf;
+
+  if (supportedValuesOf) {
+    timezones.push(...supportedValuesOf.call(Intl, "timeZone"));
+  }
+
+  return [...new Set(timezones)].sort((left, right) => {
+    if (left === "UTC") return -1;
+    if (right === "UTC") return 1;
+    return left.localeCompare(right);
+  });
 }
 
 function ControlAuditEvents({
