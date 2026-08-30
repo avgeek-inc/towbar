@@ -20,6 +20,7 @@ apps:
     server: 203.0.113.10
     dockerfile: Dockerfile
     context: .
+    vulnerabilityScanning: true
     autoDeploy:
       inputs:
         - Dockerfile

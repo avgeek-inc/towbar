@@ -100,12 +100,24 @@ docker compose up --detach --force-recreate api
 
 ## Image vulnerability scanning
 
-Set `TOWBAR_VULNERABILITY_SCANNING_ENABLED=true` to queue an optional scan of
-the immutable image digest after each successful deployment. Towbar reuses one
-result per workspace and image digest, stores only bounded normalized findings,
-and keeps scan failures separate from deployment health. The deployment detail
-page shows severity totals, actionable findings, scanner metadata, and stale or
-failed states.
+Set `TOWBAR_VULNERABILITY_SCANNING_ENABLED=true` to make image scanning
+available to Sources. Each App must then opt in explicitly in its deployment
+manifest:
+
+```yaml
+apps:
+  - id: hello-towbar
+    vulnerabilityScanning: true
+```
+
+Towbar queues a scan of that App's immutable image digest after each successful
+production or Preview deployment. Changing only this App policy does not force
+a redeployment, and Resources are not scanned. Towbar reuses one result per
+workspace and image digest, stores only bounded normalized findings, and keeps
+scan failures separate from deployment health. The deployment detail page
+shows severity totals, actionable findings, scanner metadata, and stale or
+failed states. Disabling the App policy stops new scans without deleting prior
+results.
 
 `TOWBAR_VULNERABILITY_SCAN_MAX_AGE_HOURS` controls when completed results are
 labelled stale and defaults to `168` hours. `TOWBAR_TRIVY_IMAGE` configures the

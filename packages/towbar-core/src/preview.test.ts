@@ -12,6 +12,7 @@ import type { NormalizedApp } from "./manifest.js";
 
 const app: NormalizedApp = {
   autoDeploy: true,
+  vulnerabilityScanning: true,
   container: { port: 3000 },
   context: ".",
   deploymentInputs: ["apps/example/**"],
@@ -87,6 +88,7 @@ void test("builds Preview snapshots without production or shared secrets", () =>
     hostname: "example-feature-tw-4.preview.example.com",
   });
   assert.equal(snapshot.preview, undefined);
+  assert.equal(snapshot.vulnerabilityScanning, true);
   assert.equal(snapshot.sourceBranch, "feature/tw-4");
   assert.deepEqual(snapshot.domains, {
     primary: "example-feature-tw-4.preview.example.com",
