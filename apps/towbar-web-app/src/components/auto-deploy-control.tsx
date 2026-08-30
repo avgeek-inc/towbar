@@ -69,7 +69,7 @@ export function AutoDeployControlEditor({
   return (
     <form onSubmit={save}>
       <Card>
-        <Card.Content className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <Card.Content className="grid gap-5">
           <Switch
             isDisabled={!query.data.canManageAutoDeploy}
             isSelected={paused}
@@ -90,7 +90,7 @@ export function AutoDeployControlEditor({
             </Switch.Content>
           </Switch>
           <Button
-            className="self-start sm:self-center"
+            className="w-fit"
             isDisabled={
               saving ||
               !query.data.canManageAutoDeploy ||
