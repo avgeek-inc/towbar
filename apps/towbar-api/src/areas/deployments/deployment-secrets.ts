@@ -46,6 +46,10 @@ export async function resolveDeploymentSecrets(deploymentId: string) {
   return { build, cloudflare, hooks, login, runtime };
 }
 
+export async function resolveDeploymentLogin(deploymentId: string) {
+  return await resolveLoginSecret(await getSecretDeployment(deploymentId));
+}
+
 async function getSecretDeployment(deploymentId: string) {
   const [deployment] = await getTowbarDatabase()
     .select({

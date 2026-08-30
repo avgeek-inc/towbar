@@ -42,6 +42,8 @@ import type {
   TowbarUser,
   TrustedHostKey,
   UserSession,
+  VulnerabilityFinding,
+  VulnerabilityScan,
 } from "@workspace/towbar-web-client";
 
 export const fixtureIds = {
@@ -289,6 +291,27 @@ const previewDeployment: Deployment = {
     "example-website-feature-preview-fixture-a1b2c3d4.preview.example.com",
 };
 deployments.push(previewDeployment);
+
+const vulnerabilityFindings: VulnerabilityFinding[] = [
+  {
+    advisoryId: "CVE-2026-12001",
+    fixedVersion: "3.2.4-r1",
+    id: "a1111111-1111-4111-8111-111111111111",
+    installedVersion: "3.2.3-r0",
+    packageName: "libxml2",
+    severity: "high",
+    target: "node:24-alpine (alpine 3.23.1)",
+  },
+  {
+    advisoryId: "CVE-2026-12002",
+    fixedVersion: "1.2.14-r0",
+    id: "a1111111-1111-4111-8111-222222222222",
+    installedVersion: "1.2.13-r0",
+    packageName: "zlib",
+    severity: "medium",
+    target: "node:24-alpine (alpine 3.23.1)",
+  },
+];
 
 const previews: PreviewEnvironment[] = [
   {
@@ -1370,6 +1393,28 @@ export function createFixtureApiServer() {
       deployments.unshift(deployment);
       return writeJson(response, 202, { deployment });
     }
+    const vulnerabilityRescanMatch = path.match(
+      /^\/v1\/core\/deployments\/([^/]+)\/vulnerability-scan\/actions\/rescan$/,
+    );
+    if (request.method === "POST" && vulnerabilityRescanMatch) {
+      const deployment = deployments.find(
+        (item) => item.id === vulnerabilityRescanMatch[1],
+      );
+      if (!deployment?.vulnerabilityScan) return writeNotFound(response);
+      deployment.vulnerabilityScan = {
+        ...deployment.vulnerabilityScan,
+        completedAt: null,
+        errorCode: null,
+        errorMessage: null,
+        requestedAt: new Date().toISOString(),
+        startedAt: null,
+        state: "pending",
+      };
+      return writeJson(response, 202, {
+        replayed: false,
+        scan: deployment.vulnerabilityScan,
+      });
+    }
     const eventMatch = path.match(/^\/v1\/core\/deployments\/([^/]+)\/events$/);
     if (eventMatch) {
       const deployment = deployments.find((item) => item.id === eventMatch[1]);
@@ -1489,6 +1534,17 @@ function getFixturePayload(
   const deploymentMatch = path.match(
     /^\/v1\/core\/deployments\/([^/]+)(?:\/(steps|logs))?$/,
   );
+  const vulnerabilityFindingsMatch = path.match(
+    /^\/v1\/core\/deployments\/([^/]+)\/vulnerability-scan\/findings$/,
+  );
+  if (vulnerabilityFindingsMatch) {
+    const deployment = deployments.find(
+      (item) => item.id === vulnerabilityFindingsMatch[1],
+    );
+    return deployment?.vulnerabilityScan
+      ? { findings: vulnerabilityFindings }
+      : undefined;
+  }
   if (deploymentMatch) {
     const deployment = deployments.find(
       (item) => item.id === deploymentMatch[1],
@@ -2191,7 +2247,11 @@ function createDeploymentFixture(
   trigger: Deployment["trigger"] = "manual",
 ): Deployment {
   const terminal = terminalStates.has(state);
+  const scanCompletedAt = new Date(
+    new Date(createdAt).getTime() + 102_000,
+  ).toISOString();
   const startedAt = state === "queued" ? null : createdAt;
+  const imageDigest = `sha256:${id.replaceAll("-", "").repeat(2)}`;
   return {
     appId: deployable.id,
     commitSha,
@@ -2211,7 +2271,7 @@ function createDeploymentFixture(
     hostname: null,
     imageDigest:
       state === "succeeded" || state === "succeeded_with_warnings"
-        ? `sha256:${"e".repeat(64)}`
+        ? imageDigest
         : null,
     imagePlatform:
       state === "succeeded" || state === "succeeded_with_warnings"
@@ -2226,6 +2286,54 @@ function createDeploymentFixture(
     state,
     trigger,
     updatedAt: createdAt,
+    vulnerabilityScan:
+      state === "succeeded" || state === "succeeded_with_warnings"
+        ? createVulnerabilityScanFixture({
+            completedAt: scanCompletedAt,
+            createdAt,
+            id,
+            imageDigest,
+          })
+        : null,
+    vulnerabilityScanningEnabled: true,
+  };
+}
+
+function createVulnerabilityScanFixture(input: {
+  completedAt: string;
+  createdAt: string;
+  id: string;
+  imageDigest: string;
+}): VulnerabilityScan {
+  const state = (
+    ["findings", "clean", "failed", "stale", "pending", "running"] as const
+  )[Number.parseInt(input.id.at(-1) ?? "0", 16) % 6]!;
+  const completed = ["clean", "findings", "failed", "stale"].includes(state);
+  const findings = state === "findings" || state === "stale";
+  const scannerStarted = state !== "pending";
+  return {
+    completedAt: completed ? input.completedAt : null,
+    errorCode: state === "failed" ? "VULNERABILITY_SCAN_FAILED" : null,
+    errorMessage:
+      state === "failed"
+        ? "The scanner could not refresh its vulnerability database."
+        : null,
+    findingsTruncated: false,
+    id: `a${input.id.slice(1)}`,
+    imageDigest: input.imageDigest,
+    requestedAt: input.createdAt,
+    scannerName: scannerStarted ? "trivy" : null,
+    scannerVersion: scannerStarted ? "0.74.0" : null,
+    severityTotals: findings
+      ? { critical: 0, high: 1, low: 2, medium: 1, unknown: 0 }
+      : { critical: 0, high: 0, low: 0, medium: 0, unknown: 0 },
+    startedAt: scannerStarted ? input.createdAt : null,
+    state,
+    vulnerabilityDatabaseUpdatedAt: scannerStarted
+      ? state === "stale"
+        ? "2026-07-01T00:00:00.000Z"
+        : "2026-08-14T00:00:00.000Z"
+      : null,
   };
 }
 

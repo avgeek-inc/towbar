@@ -4,6 +4,7 @@ const success = new Set([
   "active",
   "approved",
   "connected",
+  "clean",
   "current",
   "success",
   "healthy",
@@ -53,6 +54,7 @@ const warning = new Set([
   "pending",
   "stale",
   "delivering",
+  "findings",
   "retrying",
 ]);
 const destructive = new Set([

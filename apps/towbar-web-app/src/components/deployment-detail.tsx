@@ -37,6 +37,7 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 import { formatDeploymentTrigger } from "./deployment-table";
+import { DeploymentVulnerabilityScanPanel } from "./deployment-vulnerability-scan";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
 
@@ -246,120 +247,123 @@ export function DeploymentDetail() {
             label: "Overview",
             icon: <HugeiconsIcon icon={InformationSquareIcon} />,
             content: (
-              <div className="grid gap-8 lg:grid-cols-2">
-                <Attributes columns={2} title="Deployment" variant="card">
-                  <Attributes.Item label="Action">
-                    {item.kind === "rollback" ? "Rollback" : "Deploy"}
-                  </Attributes.Item>
-                  <Attributes.Item label="Environment">
-                    <StatusBadge status={item.environment} />
-                  </Attributes.Item>
-                  <Attributes.Item label="Trigger">
-                    {formatDeploymentTrigger(item.trigger)}
-                  </Attributes.Item>
-                  <Attributes.Item label="Requested">
-                    {formatDate(item.createdAt)}
-                  </Attributes.Item>
-                  <Attributes.Item label="Started">
-                    {item.startedAt ? formatDate(item.startedAt) : "Waiting"}
-                  </Attributes.Item>
-                  <Attributes.Item label="Finished">
-                    {item.finishedAt
-                      ? formatDate(item.finishedAt)
-                      : "Not finished"}
-                  </Attributes.Item>
-                </Attributes>
-                <Attributes columns={2} title="Target" variant="card">
-                  <Attributes.Item
-                    icon={
-                      <HugeiconsIcon
-                        icon={
-                          item.deployableKind === "app"
-                            ? DashboardCircleIcon
-                            : DatabaseIcon
-                        }
-                      />
-                    }
-                    label={item.deployableKind === "app" ? "App" : "Resource"}
-                  >
-                    <InlineLink
-                      href={
-                        item.deployableKind === "app"
-                          ? `/sources/${item.sourceId}/apps/${item.appId}`
-                          : `/sources/${item.sourceId}/resources/${item.appId}`
+              <div className="grid gap-8">
+                <div className="grid gap-8 lg:grid-cols-2">
+                  <Attributes columns={2} title="Deployment" variant="card">
+                    <Attributes.Item label="Action">
+                      {item.kind === "rollback" ? "Rollback" : "Deploy"}
+                    </Attributes.Item>
+                    <Attributes.Item label="Environment">
+                      <StatusBadge status={item.environment} />
+                    </Attributes.Item>
+                    <Attributes.Item label="Trigger">
+                      {formatDeploymentTrigger(item.trigger)}
+                    </Attributes.Item>
+                    <Attributes.Item label="Requested">
+                      {formatDate(item.createdAt)}
+                    </Attributes.Item>
+                    <Attributes.Item label="Started">
+                      {item.startedAt ? formatDate(item.startedAt) : "Waiting"}
+                    </Attributes.Item>
+                    <Attributes.Item label="Finished">
+                      {item.finishedAt
+                        ? formatDate(item.finishedAt)
+                        : "Not finished"}
+                    </Attributes.Item>
+                  </Attributes>
+                  <Attributes columns={2} title="Target" variant="card">
+                    <Attributes.Item
+                      icon={
+                        <HugeiconsIcon
+                          icon={
+                            item.deployableKind === "app"
+                              ? DashboardCircleIcon
+                              : DatabaseIcon
+                          }
+                        />
                       }
+                      label={item.deployableKind === "app" ? "App" : "Resource"}
                     >
-                      {deployableName ?? (
-                        <TypographyCode>{item.appId}</TypographyCode>
-                      )}
-                    </InlineLink>
-                  </Attributes.Item>
-                  <Attributes.Item
-                    icon={<HugeiconsIcon icon={ServerStack01Icon} />}
-                    label="Server"
-                  >
-                    <InlineLink
-                      href={`/sources/${item.sourceId}/servers/${item.serverId}`}
-                    >
-                      {serverIp ?? (
-                        <TypographyCode>{item.serverId}</TypographyCode>
-                      )}
-                    </InlineLink>
-                  </Attributes.Item>
-                  <Attributes.Item label="Commit">
-                    <TypographyCode title={item.commitSha}>
-                      {item.commitSha.slice(0, 12)}
-                    </TypographyCode>
-                  </Attributes.Item>
-                  {item.gitRef ? (
-                    <Attributes.Item label="Git ref">
-                      <TypographyCode>{item.gitRef}</TypographyCode>
-                    </Attributes.Item>
-                  ) : null}
-                  {item.hostname ? (
-                    <Attributes.Item label="URL">
-                      <a
-                        className="underline decoration-muted underline-offset-4 hover:decoration-current"
-                        href={`https://${item.hostname}`}
-                        rel="noreferrer"
-                        target="_blank"
+                      <InlineLink
+                        href={
+                          item.deployableKind === "app"
+                            ? `/sources/${item.sourceId}/apps/${item.appId}`
+                            : `/sources/${item.sourceId}/resources/${item.appId}`
+                        }
                       >
-                        {item.hostname}
-                      </a>
+                        {deployableName ?? (
+                          <TypographyCode>{item.appId}</TypographyCode>
+                        )}
+                      </InlineLink>
                     </Attributes.Item>
-                  ) : null}
-                  <Attributes.Item label="Manifest digest">
-                    <TypographyCode title={item.manifestDigest}>
-                      {item.manifestDigest.slice(0, 12)}
-                    </TypographyCode>
-                  </Attributes.Item>
-                  <Attributes.Item label="Image digest">
-                    {item.imageDigest ? (
-                      <TypographyCode title={item.imageDigest}>
-                        {item.imageDigest.slice(7, 19)}
+                    <Attributes.Item
+                      icon={<HugeiconsIcon icon={ServerStack01Icon} />}
+                      label="Server"
+                    >
+                      <InlineLink
+                        href={`/sources/${item.sourceId}/servers/${item.serverId}`}
+                      >
+                        {serverIp ?? (
+                          <TypographyCode>{item.serverId}</TypographyCode>
+                        )}
+                      </InlineLink>
+                    </Attributes.Item>
+                    <Attributes.Item label="Commit">
+                      <TypographyCode title={item.commitSha}>
+                        {item.commitSha.slice(0, 12)}
                       </TypographyCode>
-                    ) : (
-                      "Not recorded"
-                    )}
-                  </Attributes.Item>
-                  <Attributes.Item label="Image platform">
-                    {item.imagePlatform ?? "Not recorded"}
-                  </Attributes.Item>
-                  <Attributes.Item label="Source inputs">
-                    {item.sourceInputDigest ? (
-                      <TypographyCode title={item.sourceInputDigest}>
-                        {item.sourceInputDigest.slice(0, 12)}
+                    </Attributes.Item>
+                    {item.gitRef ? (
+                      <Attributes.Item label="Git ref">
+                        <TypographyCode>{item.gitRef}</TypographyCode>
+                      </Attributes.Item>
+                    ) : null}
+                    {item.hostname ? (
+                      <Attributes.Item label="URL">
+                        <a
+                          className="underline decoration-muted underline-offset-4 hover:decoration-current"
+                          href={`https://${item.hostname}`}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          {item.hostname}
+                        </a>
+                      </Attributes.Item>
+                    ) : null}
+                    <Attributes.Item label="Manifest digest">
+                      <TypographyCode title={item.manifestDigest}>
+                        {item.manifestDigest.slice(0, 12)}
                       </TypographyCode>
-                    ) : (
-                      "Commit-sensitive"
-                    )}
-                  </Attributes.Item>
-                  <Attributes.Item label="Deployment ID">
-                    <TypographyCode title={item.id}>
-                      {item.id.slice(0, 8)}
-                    </TypographyCode>
-                  </Attributes.Item>
-                </Attributes>
+                    </Attributes.Item>
+                    <Attributes.Item label="Image digest">
+                      {item.imageDigest ? (
+                        <TypographyCode title={item.imageDigest}>
+                          {item.imageDigest.slice(7, 19)}
+                        </TypographyCode>
+                      ) : (
+                        "Not recorded"
+                      )}
+                    </Attributes.Item>
+                    <Attributes.Item label="Image platform">
+                      {item.imagePlatform ?? "Not recorded"}
+                    </Attributes.Item>
+                    <Attributes.Item label="Source inputs">
+                      {item.sourceInputDigest ? (
+                        <TypographyCode title={item.sourceInputDigest}>
+                          {item.sourceInputDigest.slice(0, 12)}
+                        </TypographyCode>
+                      ) : (
+                        "Commit-sensitive"
+                      )}
+                    </Attributes.Item>
+                    <Attributes.Item label="Deployment ID">
+                      <TypographyCode title={item.id}>
+                        {item.id.slice(0, 8)}
+                      </TypographyCode>
+                    </Attributes.Item>
+                  </Attributes>
+                </div>
+                <DeploymentVulnerabilityScanPanel deployment={item} />
               </div>
             ),
           },

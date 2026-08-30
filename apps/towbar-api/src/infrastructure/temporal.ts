@@ -10,6 +10,7 @@ import {
   serverCoordinatorWorkflowId,
   sourceCoordinatorWorkflowId,
   towbarTaskQueue,
+  vulnerabilityScanWorkflowId,
 } from "@workspace/towbar-core/temporal";
 
 import type {
@@ -244,6 +245,43 @@ export async function enqueueResourceOperation(input: {
     },
   );
   return { workflowId: resourceOperationWorkflowId(input.operationId) };
+}
+
+export async function enqueueVulnerabilityScan(input: {
+  appId: string;
+  buildConcurrency: number;
+  cycle: number;
+  scanId: string;
+  serverIp: string;
+}) {
+  const client = await getTemporalClient();
+  const serverHash = createHash("sha256")
+    .update(input.serverIp)
+    .digest("hex")
+    .slice(0, 32);
+  const workflowId = serverCoordinatorWorkflowId(serverHash);
+  await client.workflow.signalWithStart(
+    "runConcurrentServerCoordinatorWorkflow",
+    {
+      args: [],
+      signal: "enqueueServerWork",
+      signalArgs: [
+        {
+          appId: input.appId,
+          buildConcurrency: input.buildConcurrency,
+          cycle: input.cycle,
+          id: input.scanId,
+          kind: "vulnerability-scan",
+        },
+      ],
+      taskQueue: towbarTaskQueue,
+      workflowId,
+      workflowIdReusePolicy: "ALLOW_DUPLICATE",
+    },
+  );
+  return {
+    workflowId: vulnerabilityScanWorkflowId(input.scanId, input.cycle),
+  };
 }
 
 export async function wakeMaintenanceWorkflow() {

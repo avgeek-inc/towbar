@@ -29,3 +29,13 @@ void test("worker activity concurrency accepts a bounded override", () => {
     }),
   );
 });
+
+void test("requires the vulnerability scanner image to pin a tag and digest", () => {
+  assert.match(
+    parseEnv(requiredEnv).TOWBAR_TRIVY_IMAGE,
+    /^aquasec\/trivy:0\.74\.0@sha256:[a-f0-9]{64}$/u,
+  );
+  assert.throws(() =>
+    parseEnv({ ...requiredEnv, TOWBAR_TRIVY_IMAGE: "aquasec/trivy:latest" }),
+  );
+});

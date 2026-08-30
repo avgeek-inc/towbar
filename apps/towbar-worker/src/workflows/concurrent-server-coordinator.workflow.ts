@@ -9,12 +9,17 @@ import {
 import {
   deploymentWorkflowId,
   resourceOperationWorkflowId,
+  vulnerabilityScanWorkflowId,
 } from "@workspace/towbar-core/temporal";
 
 import type * as activities from "../activities/index.js";
 import { runDeploymentWorkflow } from "./deployment.workflow.js";
 import { runResourceOperationWorkflow } from "./resource-operation.workflow.js";
-import { nextServerWorkIndex } from "./server-scheduling.js";
+import { runVulnerabilityScanWorkflow } from "./vulnerability-scan.workflow.js";
+import {
+  nextServerWorkIndex,
+  serverWorkIdentity,
+} from "./server-scheduling.js";
 import type { ServerWorkItem } from "./server-scheduling.js";
 
 const enqueueServerWork = defineSignal<[ServerWorkItem]>("enqueueServerWork");
@@ -42,13 +47,17 @@ const { executePreviewCleanupActivity } = proxyActivities<typeof activities>({
 export async function runConcurrentServerCoordinatorWorkflow() {
   const queue: ServerWorkItem[] = [];
   const seen = new Set<string>();
-  const active = new Map<string, { appId: string | null; preview: boolean }>();
+  const active = new Map<
+    string,
+    { appId: string | null; preview: boolean; vulnerabilityScan: boolean }
+  >();
   const completed: string[] = [];
   let buildConcurrency = 1;
   let previewBuildConcurrency = 1;
   setHandler(enqueueServerWork, (item) => {
-    if (seen.has(item.id)) return;
-    seen.add(item.id);
+    const workId = serverWorkIdentity(item);
+    if (seen.has(workId)) return;
+    seen.add(workId);
     buildConcurrency = Math.max(1, Math.min(16, item.buildConcurrency ?? 1));
     previewBuildConcurrency = Math.max(
       1,
@@ -72,6 +81,7 @@ export async function runConcurrentServerCoordinatorWorkflow() {
         activeAppIds: activeAppIds(active),
         activeCount: active.size,
         activePreviewCount: activePreviewCount(active),
+        activeVulnerabilityScanCount: activeVulnerabilityScanCount(active),
         buildConcurrency,
         previewBuildConcurrency,
         queue,
@@ -79,20 +89,23 @@ export async function runConcurrentServerCoordinatorWorkflow() {
       if (index < 0) break;
       const [item] = queue.splice(index, 1);
       if (!item) break;
+      const workId = serverWorkIdentity(item);
       const completion = executeServerWork(item);
       void completion
         .catch(() => undefined)
         .then(() => {
-          completed.push(item.id);
+          completed.push(workId);
         });
-      active.set(item.id, {
+      active.set(workId, {
         appId:
           item.kind === "deployment" ||
           item.kind === "resource-operation" ||
-          item.kind === "preview-cleanup"
+          item.kind === "preview-cleanup" ||
+          item.kind === "vulnerability-scan"
             ? item.appId
             : null,
         preview: item.kind === "deployment" && item.priority === "preview",
+        vulnerabilityScan: item.kind === "vulnerability-scan",
       });
     }
 
@@ -108,6 +121,7 @@ export async function runConcurrentServerCoordinatorWorkflow() {
           activeAppIds: activeAppIds(active),
           activeCount: active.size,
           activePreviewCount: activePreviewCount(active),
+          activeVulnerabilityScanCount: activeVulnerabilityScanCount(active),
           buildConcurrency,
           previewBuildConcurrency,
           queue,
@@ -134,6 +148,12 @@ function executeServerWork(item: ServerWorkItem) {
       () => undefined,
     );
   }
+  if (item.kind === "vulnerability-scan") {
+    return executeChild(runVulnerabilityScanWorkflow, {
+      args: [{ cycle: item.cycle, scanId: item.id }],
+      workflowId: vulnerabilityScanWorkflowId(item.id, item.cycle),
+    }).then(() => undefined);
+  }
   return executeChild(runDeploymentWorkflow, {
     args: [{ deploymentId: item.id }],
     workflowId: deploymentWorkflowId(item.id),
@@ -141,7 +161,10 @@ function executeServerWork(item: ServerWorkItem) {
 }
 
 function activeAppIds(
-  active: Map<string, { appId: string | null; preview: boolean }>,
+  active: Map<
+    string,
+    { appId: string | null; preview: boolean; vulnerabilityScan: boolean }
+  >,
 ) {
   return new Set(
     [...active.values()]
@@ -151,7 +174,19 @@ function activeAppIds(
 }
 
 function activePreviewCount(
-  active: Map<string, { appId: string | null; preview: boolean }>,
+  active: Map<
+    string,
+    { appId: string | null; preview: boolean; vulnerabilityScan: boolean }
+  >,
 ) {
   return [...active.values()].filter((work) => work.preview).length;
+}
+
+function activeVulnerabilityScanCount(
+  active: Map<
+    string,
+    { appId: string | null; preview: boolean; vulnerabilityScan: boolean }
+  >,
+) {
+  return [...active.values()].filter((work) => work.vulnerabilityScan).length;
 }

@@ -11,6 +11,7 @@ import {
   notificationDeliveries,
   notificationDestinations,
   notificationEvents,
+  notificationThreads,
   sources,
 } from "@workspace/towbar-database/schema";
 
@@ -106,18 +107,30 @@ export async function updateNotificationDestination(input: {
     input.destination,
   );
   requireAvailableProvider(destination);
-  const [updated] = await getTowbarDatabase()
-    .update(notificationDestinations)
-    .set({ ...destination, updatedAt: new Date() })
-    .where(
-      and(
-        eq(notificationDestinations.id, input.destinationId),
-        eq(notificationDestinations.sourceId, input.sourceId),
-        eq(notificationDestinations.workspaceId, input.workspaceId),
-        isNull(notificationDestinations.deletedAt),
-      ),
-    )
-    .returning(publicDestinationSelection);
+  const [updated] = await getTowbarDatabase().transaction(
+    async (transaction) => {
+      const [result] = await transaction
+        .update(notificationDestinations)
+        .set({ ...destination, updatedAt: new Date() })
+        .where(
+          and(
+            eq(notificationDestinations.id, input.destinationId),
+            eq(notificationDestinations.sourceId, input.sourceId),
+            eq(notificationDestinations.workspaceId, input.workspaceId),
+            isNull(notificationDestinations.deletedAt),
+          ),
+        )
+        .returning(publicDestinationSelection);
+      if (result) {
+        // A destination can move to a different Slack channel. New deployment
+        // events must not update a root message created for the previous config.
+        await transaction
+          .delete(notificationThreads)
+          .where(eq(notificationThreads.destinationId, input.destinationId));
+      }
+      return [result];
+    },
+  );
   if (!updated) throw notFound("Notification destination");
   return updated;
 }

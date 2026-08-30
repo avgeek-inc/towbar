@@ -10,6 +10,7 @@ import {
   deployments,
   githubInstallations,
   githubWebhookDeliveries,
+  imageVulnerabilityScans,
   releases,
   resourceOperations,
   serverChecks,
@@ -97,61 +98,77 @@ export async function deleteSource(sourceId: string, workspaceId: string) {
       .where(eq(servers.sourceId, sourceId))
       .for("update");
 
-    const [activeDeployment, activeCheck, activeSync, activeOperation] =
-      await Promise.all([
-        transaction
-          .select({ id: deployments.id })
-          .from(deployments)
-          .where(
-            and(
-              eq(deployments.sourceId, sourceId),
-              notInArray(deployments.state, [
-                "cancelled",
-                "failed",
-                "skipped",
-                "succeeded",
-                "succeeded_with_warnings",
-              ]),
-            ),
-          )
-          .limit(1),
-        transaction
-          .select({ id: serverChecks.id })
-          .from(serverChecks)
-          .innerJoin(servers, eq(servers.id, serverChecks.serverId))
-          .where(
-            and(
-              eq(servers.sourceId, sourceId),
-              inArray(serverChecks.status, ["queued", "running"]),
-            ),
-          )
-          .limit(1),
-        transaction
-          .select({ id: sourceSyncs.id })
-          .from(sourceSyncs)
-          .where(
-            and(
-              eq(sourceSyncs.sourceId, sourceId),
-              inArray(sourceSyncs.status, ["queued", "running"]),
-            ),
-          )
-          .limit(1),
-        transaction
-          .select({ id: resourceOperations.id })
-          .from(resourceOperations)
-          .where(
-            and(
-              eq(resourceOperations.sourceId, sourceId),
-              inArray(resourceOperations.state, ["queued", "running"]),
-            ),
-          )
-          .limit(1),
-      ]);
+    const [
+      activeDeployment,
+      activeCheck,
+      activeSync,
+      activeOperation,
+      activeVulnerabilityScan,
+    ] = await Promise.all([
+      transaction
+        .select({ id: deployments.id })
+        .from(deployments)
+        .where(
+          and(
+            eq(deployments.sourceId, sourceId),
+            notInArray(deployments.state, [
+              "cancelled",
+              "failed",
+              "skipped",
+              "succeeded",
+              "succeeded_with_warnings",
+            ]),
+          ),
+        )
+        .limit(1),
+      transaction
+        .select({ id: serverChecks.id })
+        .from(serverChecks)
+        .innerJoin(servers, eq(servers.id, serverChecks.serverId))
+        .where(
+          and(
+            eq(servers.sourceId, sourceId),
+            inArray(serverChecks.status, ["queued", "running"]),
+          ),
+        )
+        .limit(1),
+      transaction
+        .select({ id: sourceSyncs.id })
+        .from(sourceSyncs)
+        .where(
+          and(
+            eq(sourceSyncs.sourceId, sourceId),
+            inArray(sourceSyncs.status, ["queued", "running"]),
+          ),
+        )
+        .limit(1),
+      transaction
+        .select({ id: resourceOperations.id })
+        .from(resourceOperations)
+        .where(
+          and(
+            eq(resourceOperations.sourceId, sourceId),
+            inArray(resourceOperations.state, ["queued", "running"]),
+          ),
+        )
+        .limit(1),
+      transaction
+        .select({ id: imageVulnerabilityScans.id })
+        .from(imageVulnerabilityScans)
+        .where(
+          and(
+            eq(imageVulnerabilityScans.sourceId, sourceId),
+            inArray(imageVulnerabilityScans.state, ["pending", "running"]),
+          ),
+        )
+        .limit(1),
+    ]);
     if (
       activeDeployment.length ||
       activeCheck.length ||
       activeSync.length ||
-      activeOperation.length
+      activeOperation.length ||
+      activeVulnerabilityScan.length
     ) {
       throw conflict(
         "Cancel or wait for active Source operations before deletion",
@@ -167,6 +184,9 @@ export async function deleteSource(sourceId: string, workspaceId: string) {
     if (appIds.length > 0) {
       await transaction.delete(releases).where(inArray(releases.appId, appIds));
     }
+    await transaction
+      .delete(imageVulnerabilityScans)
+      .where(eq(imageVulnerabilityScans.sourceId, sourceId));
     await transaction
       .delete(deployments)
       .where(eq(deployments.sourceId, sourceId));

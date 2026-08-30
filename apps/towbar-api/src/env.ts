@@ -39,6 +39,16 @@ const envSchema = z
     TOWBAR_API_BASE_URL: z.string().url().default("http://localhost:4020"),
     TOWBAR_APP_BASE_URL: z.string().url().default("http://localhost:4021"),
     TOWBAR_WEBSITE_BASE_URL: z.string().url().default("https://www.towbar.dev"),
+    TOWBAR_VULNERABILITY_SCANNING_ENABLED: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((value) => value === "true"),
+    TOWBAR_VULNERABILITY_SCAN_MAX_AGE_HOURS: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(720)
+      .default(168),
     TOWBAR_TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).max(8).default(0),
     TOWBAR_PASSWORD_VERIFY_CONCURRENCY: z.coerce
       .number()

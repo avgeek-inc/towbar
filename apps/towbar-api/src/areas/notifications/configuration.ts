@@ -3,6 +3,7 @@ import { getEnv } from "../../env.js";
 import type { NotificationProvider } from "@workspace/towbar-core";
 
 export type SlackProviderConfiguration = {
+  appBaseUrl: string;
   botToken: string;
   provider: "slack";
 };
@@ -36,6 +37,7 @@ export function getNotificationProviderConfiguration(
   if (provider === "slack") {
     return env.TOWBAR_SLACK_BOT_TOKEN
       ? {
+          appBaseUrl: env.TOWBAR_APP_BASE_URL,
           botToken: env.TOWBAR_SLACK_BOT_TOKEN,
           provider: "slack",
         }

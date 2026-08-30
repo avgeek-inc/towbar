@@ -25,21 +25,22 @@ import {
   sshHostKeys,
 } from "@workspace/towbar-database/schema";
 
+import { getEnv } from "../../env.js";
 import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { cancelDeploymentWorkflow } from "../../infrastructure/temporal.js";
-import { publicDeploymentSelection } from "../deployment-selection.js";
-import { resolveAwsSecret } from "../aws/service.js";
 import { createInstallationToken } from "../github/client.js";
-import { sshLoginSecretSchema } from "../servers/service.js";
-import { collectRetainedImageTags } from "./image-retention.js";
 import { emitDeploymentNotification } from "../notifications/events.js";
+import { publicDeploymentSelection } from "../deployment-selection.js";
+import { getDeploymentVulnerabilityScan } from "../vulnerability-scans/service.js";
+import { collectRetainedImageTags } from "./image-retention.js";
 import { propagatePreviewDeploymentState } from "./preview-status.js";
 import { attachDeploymentQueueBlockers } from "./queue-blocker-query.js";
 
 export {
   mergeEnvironmentSecretBundles,
   resolveDeploymentCloudflareSecret,
+  resolveDeploymentLogin,
   resolveDeploymentSecrets,
 } from "./deployment-secrets.js";
 const publicDeploymentStepSelection = {
@@ -92,7 +93,16 @@ export async function getDeployment(deploymentId: string, workspaceId: string) {
     )
     .limit(1);
   if (!deployment) throw notFound("Deployment");
-  return (await attachDeploymentQueueBlockers([deployment]))[0]!;
+  const [item] = await attachDeploymentQueueBlockers([deployment]);
+  return {
+    ...item!,
+    vulnerabilityScan: await getDeploymentVulnerabilityScan(
+      deployment,
+      workspaceId,
+    ),
+    vulnerabilityScanningEnabled:
+      getEnv().TOWBAR_VULNERABILITY_SCANNING_ENABLED,
+  };
 }
 
 export async function listDeploymentSteps(
@@ -259,26 +269,6 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
         : null,
     trustedHostKeys,
   };
-}
-
-export async function resolveDeploymentLogin(deploymentId: string) {
-  const [deployment] = await getTowbarDatabase()
-    .select({
-      server: deployments.serverSnapshot,
-      sourceId: deployments.sourceId,
-      workspaceId: deployments.workspaceId,
-    })
-    .from(deployments)
-    .where(eq(deployments.id, deploymentId))
-    .limit(1);
-  if (!deployment) throw notFound("Deployment");
-  return sshLoginSecretSchema.parse(
-    await resolveAwsSecret({
-      secretReference: deployment.server.secrets.login,
-      sourceId: deployment.sourceId,
-      workspaceId: deployment.workspaceId,
-    }),
-  );
 }
 
 export async function getDeploymentRecoveryStatus(deploymentId: string) {
