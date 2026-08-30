@@ -17,7 +17,6 @@ import { Table } from "@workspace/web-design-system/data-display/table";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { FieldError } from "@workspace/web-design-system/forms/field";
 import { Input } from "@workspace/web-design-system/forms/input";
-import { Tabs } from "@workspace/web-design-system/navigation/tabs";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { Tooltip } from "@workspace/web-design-system/overlays/tooltip";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
@@ -26,6 +25,7 @@ import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
+import { ResponsiveSubtabs } from "./responsive-subtabs";
 import {
   belongsToSecretStageGroup,
   type SecretStageGroup,
@@ -68,32 +68,23 @@ export function AppSecrets({
     );
   }
 
+  const stages = [
+    { label: "Build", value: "build" },
+    { label: "Deployment", value: "deployment" },
+    { label: "Preview build", value: "preview_build" },
+    { label: "Preview deployment", value: "preview_deployment" },
+  ] as const;
+
   return (
-    <Tabs className="block" defaultSelectedKey="build">
-      <Tabs.ListContainer className="w-fit max-w-full overflow-x-auto">
-        <Tabs.List aria-label="App secret stages" className="min-w-max">
-          <Tabs.Tab className="whitespace-nowrap" id="build">
-            Build
-            <Tabs.Indicator />
-          </Tabs.Tab>
-          <Tabs.Tab className="whitespace-nowrap" id="deployment">
-            Deployment
-            <Tabs.Indicator />
-          </Tabs.Tab>
-          <Tabs.Tab className="whitespace-nowrap" id="preview_build">
-            Preview build
-            <Tabs.Indicator />
-          </Tabs.Tab>
-          <Tabs.Tab className="whitespace-nowrap" id="preview_deployment">
-            Preview deployment
-            <Tabs.Indicator />
-          </Tabs.Tab>
-        </Tabs.List>
-      </Tabs.ListContainer>
-      {(
-        ["build", "deployment", "preview_build", "preview_deployment"] as const
-      ).map((stage) => (
-        <Tabs.Panel className="m-0 block p-0 pt-6" id={stage} key={stage}>
+    <ResponsiveSubtabs
+      ariaLabel="App secret stages"
+      defaultSelectedKey="build"
+      layout="inline"
+      panelClassName="md:pt-6"
+      tabs={stages.map(({ label, value: stage }) => ({
+        label,
+        value: stage,
+        content: (
           <SecretStageEditor
             bindings={data.bindings}
             canDeploy={canDeploy && !stage.startsWith("preview_")}
@@ -106,9 +97,9 @@ export function AppSecrets({
             stage={stage}
             onUpdated={query.refresh}
           />
-        </Tabs.Panel>
-      ))}
-    </Tabs>
+        ),
+      }))}
+    />
   );
 }
 

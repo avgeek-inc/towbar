@@ -17,7 +17,6 @@ import type {
   Resource,
 } from "@workspace/towbar-web-client";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
-import { Tabs } from "@workspace/web-design-system/navigation/tabs";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
@@ -25,11 +24,11 @@ import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
 
 import { ActionButton, DashboardPage, PageTabs } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
-import { useResponsiveTabsOrientation } from "@/hooks/use-responsive-tabs-orientation";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 import { DeploymentTable, formatDeploymentTrigger } from "./deployment-table";
 import { ResourceBackupConfiguration } from "./resource-backup-configuration";
+import { ResponsiveSubtabs } from "./responsive-subtabs";
 import { ResourceSecrets } from "./app-secrets";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 import { DeployableActionsMenu, RuntimeLogs } from "./runtime-operations";
@@ -291,7 +290,6 @@ export function ResourceDetail() {
 }
 
 function ResourceConfigurationTabs({ item }: { item: ResourceRecord }) {
-  const orientation = useResponsiveTabsOrientation();
   const tabs: Array<{ content: ReactNode; label: string; value: string }> = [
     {
       value: "image",
@@ -419,41 +417,11 @@ function ResourceConfigurationTabs({ item }: { item: ResourceRecord }) {
   ];
 
   return (
-    <Tabs
-      className="block"
+    <ResponsiveSubtabs
+      ariaLabel="Resource configuration"
       defaultSelectedKey="image"
-      orientation={orientation}
-    >
-      <div className="grid gap-4 lg:grid-cols-[13rem_minmax(0,1fr)]">
-        <Tabs.ListContainer className="h-fit w-full self-start">
-          <Tabs.List aria-label="Resource configuration" className="w-full">
-            {tabs.map((tab) => (
-              <Tabs.Tab
-                className={
-                  orientation === "vertical" ? "justify-start" : undefined
-                }
-                id={tab.value}
-                key={tab.value}
-              >
-                <span className="relative z-10">{tab.label}</span>
-                <Tabs.Indicator />
-              </Tabs.Tab>
-            ))}
-          </Tabs.List>
-        </Tabs.ListContainer>
-        <div className="min-w-0">
-          {tabs.map((tab) => (
-            <Tabs.Panel
-              className="m-0 block p-0"
-              id={tab.value}
-              key={tab.value}
-            >
-              {tab.content}
-            </Tabs.Panel>
-          ))}
-        </div>
-      </div>
-    </Tabs>
+      tabs={tabs}
+    />
   );
 }
 

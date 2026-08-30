@@ -11,7 +11,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { type Key, type ReactNode, useState } from "react";
+import { type Key, type ReactNode } from "react";
 import type {
   App,
   AppSecretsResponse,
@@ -25,11 +25,8 @@ import type {
 } from "@workspace/towbar-web-client";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { ListBox, Select } from "@workspace/web-design-system/forms/select";
 import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
 import { Pagination } from "@workspace/web-design-system/navigation/pagination";
-import { Tabs } from "@workspace/web-design-system/navigation/tabs";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { CodePanel } from "@workspace/towbar-web-ui/code-panel";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -48,7 +45,6 @@ import {
   sourcesBreadcrumb,
 } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
-import { useResponsiveTabsOrientation } from "@/hooks/use-responsive-tabs-orientation";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 import { SourceAwsCredentials } from "./source-aws-credentials";
@@ -59,6 +55,7 @@ import {
 } from "./source-notifications";
 import { SourceApps, SourceResources, SourceServers } from "./source-inventory";
 import { SourcePlans } from "./source-plans";
+import { ResponsiveSubtabs } from "./responsive-subtabs";
 
 type ManifestResponse = {
   manifest: {
@@ -545,95 +542,16 @@ function SourceSubtabs({
     value: string;
   }>;
 }) {
-  const orientation = useResponsiveTabsOrientation();
-  const [internalSelectedKey, setInternalSelectedKey] =
-    useState(defaultSelectedKey);
-  const activeKey = selectedKey ?? internalSelectedKey;
-
-  function selectTab(key: Key | null) {
-    if (key === null) return;
-    const nextKey = String(key);
-    if (selectedKey === undefined) setInternalSelectedKey(nextKey);
-    onSelectionChange?.(key);
-  }
-
   return (
-    <Tabs
-      className="block"
-      orientation={orientation}
-      selectedKey={activeKey}
-      onSelectionChange={selectTab}
-    >
-      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[14rem_minmax(0,1fr)]">
-        {collapseOnMobile ? (
-          <Select
-            fullWidth
-            className="md:hidden"
-            selectedKey={activeKey}
-            variant="secondary"
-            onSelectionChange={selectTab}
-          >
-            <Label className="sr-only">{ariaLabel}</Label>
-            <Select.Trigger>
-              <Select.Value />
-              <Select.Indicator />
-            </Select.Trigger>
-            <Select.Popover>
-              <ListBox>
-                {tabs.map((tab) => (
-                  <ListBox.Item
-                    id={tab.value}
-                    isDisabled={tab.isDisabled}
-                    key={tab.value}
-                    textValue={tab.label}
-                  >
-                    {tab.label}
-                    <ListBox.ItemIndicator />
-                  </ListBox.Item>
-                ))}
-              </ListBox>
-            </Select.Popover>
-          </Select>
-        ) : null}
-        <Tabs.ListContainer
-          className={`w-full min-w-0 max-w-full ${collapseOnMobile ? "hidden md:block" : ""}`}
-        >
-          <Tabs.List aria-label={ariaLabel} className="w-full">
-            {tabs.map((tab) => (
-              <Tabs.Tab
-                aria-label={
-                  tab.isDisabled && tab.disabledReason
-                    ? `${tab.label}. ${tab.disabledReason}`
-                    : undefined
-                }
-                className={
-                  orientation === "vertical" ? "justify-start" : undefined
-                }
-                id={tab.value}
-                isDisabled={tab.isDisabled}
-                key={tab.value}
-              >
-                <span title={tab.isDisabled ? tab.disabledReason : undefined}>
-                  {tab.label}
-                </span>
-                <Tabs.Indicator />
-              </Tabs.Tab>
-            ))}
-          </Tabs.List>
-        </Tabs.ListContainer>
-        <div className="min-w-0">
-          {tabs.map((tab) => (
-            <Tabs.Panel
-              className="m-0 block p-0"
-              id={tab.value}
-              key={tab.value}
-            >
-              {tab.content}
-            </Tabs.Panel>
-          ))}
-        </div>
-      </div>
-    </Tabs>
+    <ResponsiveSubtabs
+      ariaLabel={ariaLabel}
+      collapseOnMobile={collapseOnMobile}
+      defaultSelectedKey={defaultSelectedKey}
+      selectedKey={selectedKey}
+      sidebarWidth="wide"
+      tabs={tabs}
+      onSelectionChange={onSelectionChange}
+    />
   );
 }
 

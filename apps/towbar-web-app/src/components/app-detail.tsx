@@ -14,7 +14,6 @@ import { useParams, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import type { App, Deployment, Release } from "@workspace/towbar-web-client";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
-import { Tabs } from "@workspace/web-design-system/navigation/tabs";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
@@ -22,12 +21,12 @@ import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
 
 import { ActionButton, DashboardPage, PageTabs } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
-import { useResponsiveTabsOrientation } from "@/hooks/use-responsive-tabs-orientation";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 import { DeploymentTable } from "./deployment-table";
 import { AppSecrets } from "./app-secrets";
 import { PreviewEnvironments } from "./preview-environments";
+import { ResponsiveSubtabs } from "./responsive-subtabs";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 import { DeployableActionsMenu, RuntimeLogs } from "./runtime-operations";
 
@@ -297,7 +296,6 @@ export function AppDetail() {
 }
 
 function AppConfigurationTabs({ item }: { item: AppRecord }) {
-  const orientation = useResponsiveTabsOrientation();
   const tabs: Array<{ content: ReactNode; label: string; value: string }> = [
     {
       value: "build",
@@ -443,41 +441,11 @@ function AppConfigurationTabs({ item }: { item: AppRecord }) {
   ];
 
   return (
-    <Tabs
-      className="block"
+    <ResponsiveSubtabs
+      ariaLabel="App configuration"
       defaultSelectedKey="build"
-      orientation={orientation}
-    >
-      <div className="grid gap-4 lg:grid-cols-[13rem_minmax(0,1fr)]">
-        <Tabs.ListContainer className="h-fit w-full self-start">
-          <Tabs.List aria-label="App configuration" className="w-full">
-            {tabs.map((tab) => (
-              <Tabs.Tab
-                className={
-                  orientation === "vertical" ? "justify-start" : undefined
-                }
-                id={tab.value}
-                key={tab.value}
-              >
-                <span className="relative z-10">{tab.label}</span>
-                <Tabs.Indicator />
-              </Tabs.Tab>
-            ))}
-          </Tabs.List>
-        </Tabs.ListContainer>
-        <div className="min-w-0">
-          {tabs.map((tab) => (
-            <Tabs.Panel
-              className="m-0 block p-0"
-              id={tab.value}
-              key={tab.value}
-            >
-              {tab.content}
-            </Tabs.Panel>
-          ))}
-        </div>
-      </div>
-    </Tabs>
+      tabs={tabs}
+    />
   );
 }
 
