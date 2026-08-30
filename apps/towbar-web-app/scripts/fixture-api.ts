@@ -815,7 +815,7 @@ const workflowStates: DeploymentState[] = [
 
 export function createFixtureApiServer() {
   return createServer((request, response) => {
-    setCorsHeaders(response, request.headers.origin);
+    if (!authorizeFixtureCorsRequest(response, request.headers.origin)) return;
     if (request.method === "OPTIONS") {
       response.writeHead(204);
       response.end();
@@ -2325,8 +2325,26 @@ function writeDeploymentEvents(
   response.on("close", () => clearInterval(keepAlive));
 }
 
-function setCorsHeaders(response: ServerResponse, origin?: string) {
-  if (origin) response.setHeader("access-control-allow-origin", origin);
+const allowedFixtureOrigins = new Set([
+  "http://127.0.0.1:4021",
+  "http://[::1]:4021",
+  "http://localhost:4021",
+]);
+
+function authorizeFixtureCorsRequest(
+  response: ServerResponse,
+  origin?: string,
+) {
+  response.setHeader("vary", "Origin");
+  if (!origin) return true;
+  if (!allowedFixtureOrigins.has(origin)) {
+    writeJson(response, 403, {
+      error: { message: "Origin is not allowed by the local fixture API" },
+    });
+    return false;
+  }
+
+  response.setHeader("access-control-allow-origin", origin);
   response.setHeader("access-control-allow-credentials", "true");
   response.setHeader(
     "access-control-allow-headers",
@@ -2336,6 +2354,7 @@ function setCorsHeaders(response: ServerResponse, origin?: string) {
     "access-control-allow-methods",
     "DELETE,GET,OPTIONS,PATCH,POST,PUT",
   );
+  return true;
 }
 
 function writeJson(response: ServerResponse, status: number, payload: unknown) {

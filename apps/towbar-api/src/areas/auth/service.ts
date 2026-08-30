@@ -1,5 +1,3 @@
-import { createHmac } from "node:crypto";
-
 import { and, count, desc, eq, gt, isNull, ne, sql } from "drizzle-orm";
 
 import {
@@ -22,6 +20,10 @@ import {
   runPasswordOperationWithCapacityLimit,
   verifyPasswordWithCapacityLimit,
 } from "./password-verification.js";
+import {
+  createOperatorResetIdempotencyMarker,
+  matchesOperatorResetIdempotencyMarker,
+} from "./operator-reset-idempotency.js";
 
 export const sessionLifetimeSeconds = 7 * 24 * 60 * 60;
 const unknownAccountPasswordHash =
@@ -290,10 +292,11 @@ export async function applyOwnerPasswordResetFromEnvironment() {
   }
   const email = normalizeEmail(env.TOWBAR_OWNER_RESET_EMAIL);
   const temporaryPassword = env.TOWBAR_OWNER_RESET_PASSWORD;
-  const fingerprint = createHmac("sha256", env.TOWBAR_INTERNAL_HMAC_SECRET)
-    .update(`owner-password-reset:${email}:`, "utf8")
-    .update(temporaryPassword, "utf8")
-    .digest("hex");
+  const resetMarker = createOperatorResetIdempotencyMarker({
+    email,
+    internalHmacSecret: env.TOWBAR_INTERNAL_HMAC_SECRET,
+    temporaryPassword,
+  });
   const passwordHash = await runPasswordOperationWithCapacityLimit(() =>
     hashPassword(temporaryPassword),
   );
@@ -322,13 +325,15 @@ export async function applyOwnerPasswordResetFromEnvironment() {
     if (!credential) {
       throw new Error(`Towbar owner ${email} was not found`);
     }
-    if (credential.fingerprint === fingerprint) {
+    if (
+      matchesOperatorResetIdempotencyMarker(resetMarker, credential.fingerprint)
+    ) {
       return { email, status: "already-applied" } as const;
     }
     await transaction
       .update(passwordCredentials)
       .set({
-        operatorResetFingerprint: fingerprint,
+        operatorResetFingerprint: resetMarker,
         passwordHash,
         updatedAt: new Date(),
       })

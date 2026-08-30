@@ -65,6 +65,110 @@ test("terminal preparation state replaces a stale preparing server state", () =>
   assert.equal(reconcileServerSetupStatus("pending", "succeeded"), "pending");
 });
 
+test("the local fixture permits credentialed CORS only from exact web fixture origins", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  try {
+    for (const origin of [
+      "http://127.0.0.1:4021",
+      "http://[::1]:4021",
+      "http://localhost:4021",
+    ]) {
+      const response = await fetch(`${baseUrl}/v1/core/session`, {
+        headers: { origin },
+      });
+      assert.equal(response.status, 200, origin);
+      assert.equal(response.headers.get("access-control-allow-origin"), origin);
+      assert.equal(
+        response.headers.get("access-control-allow-credentials"),
+        "true",
+      );
+      assert.match(response.headers.get("vary") ?? "", /\bOrigin\b/u);
+    }
+
+    const toolingResponse = await fetch(`${baseUrl}/v1/core/session`);
+    assert.equal(toolingResponse.status, 200);
+    assert.equal(
+      toolingResponse.headers.get("access-control-allow-origin"),
+      null,
+    );
+    assert.equal(
+      toolingResponse.headers.get("access-control-allow-credentials"),
+      null,
+    );
+    assert.match(toolingResponse.headers.get("vary") ?? "", /\bOrigin\b/u);
+
+    const preflight = await fetch(`${baseUrl}/v1/core/session`, {
+      headers: { origin: "http://localhost:4021" },
+      method: "OPTIONS",
+    });
+    assert.equal(preflight.status, 204);
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
+test("the local fixture rejects disallowed origins before state changes", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+  const route = `/v1/core/apps/${fixtureIds.app}/auto-deploy-control`;
+
+  try {
+    const beforeResponse = await fetch(`${baseUrl}${route}`);
+    assert.equal(beforeResponse.status, 200);
+    const before = await beforeResponse.json();
+
+    for (const origin of [
+      "null",
+      "http://localhost:4022",
+      "http://localhost.evil.example:4021",
+      "http://localhost:4021@evil.example",
+      "not-an-origin",
+    ]) {
+      const response = await fetch(`${baseUrl}${route}`, {
+        body: JSON.stringify({ paused: !before.autoDeploy.paused }),
+        headers: { "content-type": "application/json", origin },
+        method: "PATCH",
+      });
+      assert.equal(response.status, 403, origin);
+      assert.equal(
+        response.headers.get("access-control-allow-origin"),
+        null,
+        origin,
+      );
+      assert.equal(
+        response.headers.get("access-control-allow-credentials"),
+        null,
+        origin,
+      );
+    }
+
+    const preflight = await fetch(`${baseUrl}${route}`, {
+      headers: { origin: "https://attacker.example" },
+      method: "OPTIONS",
+    });
+    assert.equal(preflight.status, 403);
+
+    const afterResponse = await fetch(`${baseUrl}${route}`);
+    assert.equal(afterResponse.status, 200);
+    const after = await afterResponse.json();
+    assert.equal(after.autoDeploy.paused, before.autoDeploy.paused);
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
 test("the local fixture separates control-plane checks from server capacity", async () => {
   const server = createFixtureApiServer();
   server.listen(0, "127.0.0.1");
