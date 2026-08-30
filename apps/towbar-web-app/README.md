@@ -48,6 +48,8 @@ Source pages also expose immutable pull-request deployment plans from their
 GitHub Checks. The plan detail shows current and target identities, validation,
 create/update/archive/restore/no-op rows, changed field names, and matched
 repository paths without secret values.
+Deployment details show the immutable Docker image digest and platform together
+with the source commit, manifest digest, and selected source-input digest.
 Source Settings also contains a Notifications section for Slack and SMTP
 destinations. Provider credentials are configured once through the Towbar API
 environment. Owners select event categories and supply only a Slack channel ID

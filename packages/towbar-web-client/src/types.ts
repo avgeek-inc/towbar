@@ -457,6 +457,8 @@ export type Deployment = {
   gitRef: string | null;
   githubDeploymentId: string | null;
   hostname: string | null;
+  imageDigest: string | null;
+  imagePlatform: string | null;
   kind: "deploy" | "rollback";
   manifestDigest: string;
   queueBlocker?:
@@ -467,6 +469,7 @@ export type Deployment = {
     | null;
   serverId: string;
   sourceId: string;
+  sourceInputDigest: string | null;
   startedAt: string | null;
   state: DeploymentState;
   trigger: "auto_deploy" | "manual" | "rollback";
@@ -645,6 +648,8 @@ export type Release = {
   containerName: string;
   deploymentId: string;
   id: string;
+  imageDigest: string | null;
+  imagePlatform: string | null;
   imageTag: string;
   promotedAt: string;
   status: "current" | "previous" | "superseded";

@@ -954,6 +954,8 @@ export const deployments = pgTable(
     deploymentDigest: varchar("deployment_digest", { length: 64 }),
     sourceInputDigest: varchar("source_input_digest", { length: 64 }),
     manifestDigest: varchar("manifest_digest", { length: 64 }).notNull(),
+    imageDigest: varchar("image_digest", { length: 71 }),
+    imagePlatform: varchar("image_platform", { length: 64 }),
     appSnapshot: jsonb("app_snapshot").$type<NormalizedDeployable>().notNull(),
     serverSnapshot: jsonb("server_snapshot")
       .$type<NormalizedServer>()
@@ -1078,6 +1080,8 @@ export const releases = pgTable(
     configDigest: varchar("config_digest", { length: 64 }),
     deploymentDigest: varchar("deployment_digest", { length: 64 }),
     sourceInputDigest: varchar("source_input_digest", { length: 64 }),
+    imageDigest: varchar("image_digest", { length: 71 }),
+    imagePlatform: varchar("image_platform", { length: 64 }),
     imageTag: varchar("image_tag", { length: 512 }).notNull(),
     containerName: varchar("container_name", { length: 255 }).notNull(),
     promotedAt: timestamp("promoted_at", { withTimezone: true })

@@ -350,7 +350,12 @@ export async function getDeploymentRecoveryStatus(deploymentId: string) {
 
 export async function commitDeploymentRelease(
   deploymentId: string,
-  input: { containerName: string; imageTag: string },
+  input: {
+    containerName: string;
+    imageDigest: string;
+    imagePlatform: string;
+    imageTag: string;
+  },
 ) {
   const result = await getTowbarDatabase().transaction(async (transaction) => {
     const [deployment] = await transaction
@@ -443,6 +448,8 @@ export async function commitDeploymentRelease(
           deploymentDigest: deployment.deploymentDigest,
           containerName: input.containerName,
           deploymentId,
+          imageDigest: input.imageDigest,
+          imagePlatform: input.imagePlatform,
           imageTag: input.imageTag,
           environment: deployment.environment,
           gitRef: deployment.gitRef,
@@ -450,18 +457,35 @@ export async function commitDeploymentRelease(
           sourceInputDigest: deployment.sourceInputDigest,
           status: "current",
         })
-        .onConflictDoUpdate({
-          target: releases.deploymentId,
-          set: {
-            containerName: input.containerName,
-            imageTag: input.imageTag,
-            status: "current",
-            supersededAt: null,
-          },
-        })
+        .onConflictDoNothing({ target: releases.deploymentId })
         .returning();
+      if (!release) {
+        [release] = await transaction
+          .select()
+          .from(releases)
+          .where(eq(releases.deploymentId, deploymentId))
+          .limit(1);
+      }
     }
     if (!release) throw new Error("Unable to commit deployment release");
+    if (
+      release.imageDigest &&
+      (release.imageDigest !== input.imageDigest ||
+        release.imagePlatform !== input.imagePlatform)
+    ) {
+      throw conflict(
+        "The committed release has different image provenance",
+        "RELEASE_PROVENANCE_CONFLICT",
+      );
+    }
+    await transaction
+      .update(deployments)
+      .set({
+        imageDigest: release.imageDigest ?? input.imageDigest,
+        imagePlatform: release.imagePlatform ?? input.imagePlatform,
+        updatedAt: new Date(),
+      })
+      .where(eq(deployments.id, deploymentId));
     const runtimeCheckedAt = new Date();
     if (deployment.environment === "production") {
       await transaction

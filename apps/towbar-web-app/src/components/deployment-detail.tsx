@@ -333,6 +333,27 @@ export function DeploymentDetail() {
                       {item.manifestDigest.slice(0, 12)}
                     </TypographyCode>
                   </Attributes.Item>
+                  <Attributes.Item label="Image digest">
+                    {item.imageDigest ? (
+                      <TypographyCode title={item.imageDigest}>
+                        {item.imageDigest.slice(7, 19)}
+                      </TypographyCode>
+                    ) : (
+                      "Not recorded"
+                    )}
+                  </Attributes.Item>
+                  <Attributes.Item label="Image platform">
+                    {item.imagePlatform ?? "Not recorded"}
+                  </Attributes.Item>
+                  <Attributes.Item label="Source inputs">
+                    {item.sourceInputDigest ? (
+                      <TypographyCode title={item.sourceInputDigest}>
+                        {item.sourceInputDigest.slice(0, 12)}
+                      </TypographyCode>
+                    ) : (
+                      "Commit-sensitive"
+                    )}
+                  </Attributes.Item>
                   <Attributes.Item label="Deployment ID">
                     <TypographyCode title={item.id}>
                       {item.id.slice(0, 8)}

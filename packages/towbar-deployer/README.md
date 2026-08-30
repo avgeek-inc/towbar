@@ -39,6 +39,9 @@ along with Towbar's app, deployment, and commit metadata variables.
 Application candidates receive an explicit loopback host port selected by the
 executor. Docker therefore retains the same Caddy upstream when a container is
 restarted by its runtime policy instead of assigning a new anonymous port.
+Before promotion, the executor reads the candidate's content-addressed Docker
+image digest and platform from the target host and includes them in the signed
+release commit.
 
 Resource deployments pull a versioned image, create a release-owned local tag,
 and replace only the current Resource container. Logical volume names map to

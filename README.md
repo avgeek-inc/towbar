@@ -19,6 +19,8 @@ truth and runs deployments through durable Temporal workflows.
 - AWS Secrets Manager values are resolved just in time and stay out of Git.
 - Immutable deployment plans compare a candidate commit with active Source
   state before any mutation, including explicit no-op rows and validation.
+- Successful releases retain their content-addressed Docker image digest and
+  platform alongside the existing source, manifest, and build-input digests.
 - SSH host-key pinning, server preparation, queued deployments, control-plane
   diagnostics, and runtime capacity checks are built in.
 - Opt-in pull request Previews use stable URLs, isolated secrets, one live PR

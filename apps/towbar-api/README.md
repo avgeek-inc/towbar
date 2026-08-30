@@ -80,6 +80,9 @@ Apps and Resources share the deployment ledger but remain separate API and UI
 entities. Resources support versioned images plus PostgreSQL and Redis presets.
 Root shared build/deployment secret references are copied into immutable
 deployable snapshots and resolved only at execution time.
+Successful release commits also persist the Docker image content digest and
+platform reported by the target host. Existing source, manifest, configuration,
+and selected-input digests remain the rest of the provenance record.
 
 Manual App and Resource deployments admit the latest successfully synchronized
 revision without synchronizing the Source again. This keeps redeploy admission

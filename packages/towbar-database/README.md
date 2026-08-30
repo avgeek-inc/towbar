@@ -29,4 +29,8 @@ identity digest. They retain current and target commit and manifest identities
 plus the serialized comparison. Mutable GitHub Check delivery state lives in a
 separate one-to-one table so retries never rewrite the plan itself.
 
+Successful deployments and releases retain the target Docker image's
+content-addressed digest and platform. Older records remain readable with
+unknown provenance until they are redeployed.
+
 [Packages](../README.md) · [Repository](../../README.md)
