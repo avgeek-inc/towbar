@@ -33,6 +33,9 @@ import type {
   NormalizedDeployable,
   NormalizedDeploymentManifest,
   NormalizedServer,
+  BackupAssuranceCheck,
+  BackupAssuranceStatus,
+  RestoreOperationPhase,
   ServerPreparationStep,
 } from "@workspace/towbar-core";
 
@@ -116,13 +119,18 @@ export const resourceOperationTypeEnum = pgEnum(
     "cleanup_orphans",
     "restart",
     "restore",
+    "restore_cleanup",
     "start",
     "stop",
   ],
 );
 export const resourceOperationStateEnum = pgEnum(
   "towbar_resource_operation_state",
-  ["queued", "running", "succeeded", "failed"],
+  ["queued", "running", "succeeded", "failed", "cancelled"],
+);
+export const backupAssuranceStatusEnum = pgEnum(
+  "towbar_backup_assurance_status",
+  ["missing", "stale", "not_restore_ready", "restore_ready"],
 );
 export const runtimeDesiredStateEnum = pgEnum("towbar_runtime_desired_state", [
   "running",
@@ -1116,6 +1124,7 @@ export const resourceOperations = pgTable(
     }).notNull(),
     type: resourceOperationTypeEnum("type").notNull(),
     state: resourceOperationStateEnum("state").default("queued").notNull(),
+    phase: varchar("phase", { length: 64 }).$type<RestoreOperationPhase>(),
     request: jsonb("request")
       .$type<PersistedResourceOperationRequest>()
       .notNull(),
@@ -1128,6 +1137,7 @@ export const resourceOperations = pgTable(
     errorMessage: varchar("error_message", { length: 1_000 }),
     startedAt: timestamp("started_at", { withTimezone: true }),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
+    cancelRequestedAt: timestamp("cancel_requested_at", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -1152,6 +1162,69 @@ export const resourceOperations = pgTable(
       table.serverId,
       table.state,
     ),
+  ],
+);
+
+export const resourceOperationEvents = pgTable(
+  "towbar_resource_operation_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    operationId: uuid("operation_id")
+      .notNull()
+      .references(() => resourceOperations.id, { onDelete: "cascade" }),
+    sequence: integer("sequence").notNull(),
+    phase: varchar("phase", { length: 64 })
+      .$type<RestoreOperationPhase>()
+      .notNull(),
+    level: varchar("level", { length: 16 })
+      .$type<"error" | "info" | "success">()
+      .default("info")
+      .notNull(),
+    message: varchar("message", { length: 1_000 }).notNull(),
+    command: varchar("command", { length: 1_000 }),
+    metadata: jsonb("metadata")
+      .$type<Record<string, boolean | number | string | null>>()
+      .notNull()
+      .default({}),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_resource_operation_events_sequence").on(
+      table.operationId,
+      table.sequence,
+    ),
+    index("idx_towbar_resource_operation_events_created").on(
+      table.operationId,
+      table.createdAt,
+    ),
+  ],
+);
+
+export const resourceBackupAssurances = pgTable(
+  "towbar_resource_backup_assurances",
+  {
+    resourceId: uuid("resource_id")
+      .notNull()
+      .references(() => apps.id, { onDelete: "cascade" }),
+    backupOperationId: uuid("backup_operation_id")
+      .primaryKey()
+      .references(() => resourceOperations.id, { onDelete: "cascade" }),
+    status: backupAssuranceStatusEnum("status").notNull(),
+    restoreReady: boolean("restore_ready").default(false).notNull(),
+    checks: jsonb("checks")
+      .$type<BackupAssuranceCheck[]>()
+      .notNull()
+      .default([]),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_towbar_backup_assurances_resource").on(table.resourceId),
+    index("idx_towbar_backup_assurances_status").on(table.status),
   ],
 );
 

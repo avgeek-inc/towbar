@@ -470,7 +470,7 @@ test("the local fixture covers retained backups from multiple Resources", async 
     );
     assert.equal(response.status, 200);
     const payload = await response.json();
-    assert.equal(payload.backups.length, 2);
+    assert.equal(payload.backups.length, 3);
     assert.equal(
       payload.backups.some(
         (backup) => backup.resourceId === fixtureIds.resource,

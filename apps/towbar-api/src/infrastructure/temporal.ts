@@ -287,6 +287,13 @@ export async function cancelDeploymentWorkflow(deploymentId: string) {
   await client.workflow.getHandle(deploymentWorkflowId(deploymentId)).cancel();
 }
 
+export async function cancelResourceOperationWorkflow(operationId: string) {
+  const client = await getTemporalClient();
+  await client.workflow
+    .getHandle(resourceOperationWorkflowId(operationId))
+    .cancel();
+}
+
 async function getTemporalClient() {
   clientPromise ??= createTemporalClient().catch((error: unknown) => {
     clientPromise = undefined;

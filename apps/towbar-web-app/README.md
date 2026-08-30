@@ -32,7 +32,9 @@ from production bindings.
 Database Resource pages expose verified backup policy, manual capture, and
 retained S3 artifact metadata. When configured by the manifest, the Resource
 connection view exposes non-secret private-network and SSH-tunnel coordinates
-for tools such as TablePlus. Database restores remain a manual operator task.
+for tools such as TablePlus. Owners can restore an individually assured,
+retained PostgreSQL or Redis backup through an isolated candidate, validated
+promotion, and bounded rollback-volume retention.
 Server pages show host capacity on Overview and container capacity in an
 Apps/Resources tab. Host CPU, memory, Docker disk pressure, and uptime are shown
 separately from the runtime inventory, whose CPU and memory values include

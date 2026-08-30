@@ -17,9 +17,14 @@ import type {
   BackupStorage,
   ResourceOperationExecutionContext,
   ResourceOperationExecutorResult,
+  ResourceOperationHooks,
   ResourceOperationSecrets,
 } from "./types.js";
 import type { NormalizedResource, OrphanItem } from "@workspace/towbar-core";
+import {
+  executeManagedRestore,
+  executeRestoreCleanup,
+} from "./resource-restore.js";
 
 const createBackupScript = String.raw`
 set -euo pipefail
@@ -40,11 +45,13 @@ if test "$kind" = postgres; then
   docker cp "$backup_path" "$container:/tmp/towbar-backup.dump"
   docker exec "$container" pg_restore --list /tmp/towbar-backup.dump >/dev/null
   docker exec "$container" rm -f /tmp/towbar-backup.dump
+  docker exec "$container" postgres --version | sed -E 's/.* ([0-9]+)(\..*)?$/\1/'
 elif test "$kind" = redis; then
   docker exec "$container" sh -c 'rm -f /tmp/towbar-backup.rdb; redis-cli -a "$REDIS_PASSWORD" --no-auth-warning --rdb /tmp/towbar-backup.rdb >/dev/null; test -s /tmp/towbar-backup.rdb'
   docker exec "$container" redis-check-rdb /tmp/towbar-backup.rdb >/dev/null
   docker cp "$container:/tmp/towbar-backup.rdb" "$backup_path"
   docker exec "$container" rm -f /tmp/towbar-backup.rdb
+  docker exec "$container" redis-server --version | sed -E 's/.*v=([0-9]+)(\..*)?.*/\1/'
 else
   exit 64
 fi
@@ -136,6 +143,7 @@ PYTHON
 
 export async function executeResourceOperation(input: {
   context: ResourceOperationExecutionContext;
+  hooks?: ResourceOperationHooks;
   secrets: ResourceOperationSecrets;
   storage?: BackupStorage;
   signal?: AbortSignal;
@@ -169,6 +177,23 @@ export async function executeResourceOperation(input: {
         cleaned: result.cleaned.map((item) => orphanItemSchema.parse(item)),
         skipped: result.skipped.map((item) => orphanItemSchema.parse(item)),
       };
+    }
+
+    if (context.request.type === "restore") {
+      return await executeManagedRestore({
+        ...input,
+        hooks: input.hooks ?? {},
+        localDirectory,
+        remoteDirectory,
+        session,
+      });
+    }
+    if (context.request.type === "restore_cleanup") {
+      return await executeRestoreCleanup({
+        context,
+        session,
+        signal,
+      });
     }
 
     const deployable = context.deployable;
@@ -239,7 +264,7 @@ async function createBackup(input: {
   const extension = input.deployable.kind === "postgres" ? "dump" : "rdb";
   const localPath = path.join(input.localDirectory, `backup.${extension}`);
   const remotePath = `${input.remoteDirectory}/backup.${extension}`;
-  await input.session.run(
+  const { stdout } = await input.session.run(
     createBackupScript,
     [
       input.deployable.kind,
@@ -251,6 +276,10 @@ async function createBackup(input: {
     ],
     { signal: input.signal, timeoutMs: 30 * 60_000 },
   );
+  const engineMajorVersion = Number(stdout.trim().split(/\s+/u).at(-1));
+  if (!Number.isSafeInteger(engineMajorVersion) || engineMajorVersion <= 0) {
+    throw new Error("Backup engine major version could not be determined");
+  }
   await input.session.download(remotePath, localPath, {
     signal: input.signal,
     timeoutMs: 30 * 60_000,
@@ -269,14 +298,40 @@ async function createBackup(input: {
   if (metadata.size > maximumBackupBytes) {
     throw new Error("Backup exceeds Towbar's 20 GiB safety limit");
   }
-  await input.storage.upload({
+  const format =
+    input.deployable.kind === "postgres" ? "postgres-custom" : "redis-rdb";
+  const upload = await input.storage.upload({
     bucket: backup.s3.bucket,
     encryption: backup.s3.encryption,
     key,
     ...(backup.s3.kmsKeyId ? { kmsKeyId: backup.s3.kmsKeyId } : {}),
     localPath,
+    metadata: {
+      "towbar-checksum": checksum,
+      "towbar-engine": input.deployable.kind,
+      "towbar-engine-major-version": String(engineMajorVersion),
+      "towbar-format": format,
+      "towbar-metadata-version": "1",
+    },
     sizeBytes: metadata.size,
   });
+  const verified = await input.storage.headObject({
+    bucket: backup.s3.bucket,
+    key,
+    ...(upload.versionId ? { versionId: upload.versionId } : {}),
+  });
+  if (
+    !verified.exists ||
+    verified.checksum !== checksum ||
+    verified.sizeBytes !== metadata.size ||
+    verified.engine !== input.deployable.kind ||
+    verified.engineMajorVersion !== engineMajorVersion ||
+    verified.format !== format ||
+    verified.metadataVersion !== 1 ||
+    verified.encryption !== backup.s3.encryption
+  ) {
+    throw new Error("Uploaded backup failed restore-readiness verification");
+  }
   const deletedBackupIds: string[] = [];
   const warnings: string[] = [];
   for (const candidate of input.context.retentionBackups) {
@@ -295,7 +350,12 @@ async function createBackup(input: {
     checksum,
     deletedBackupIds,
     encryption: backup.s3.encryption,
+    engine: input.deployable.kind,
+    engineMajorVersion,
+    format,
     key,
+    metadataVersion: 1,
+    ...(upload.versionId ? { objectVersionId: upload.versionId } : {}),
     region: backup.s3.region ?? input.secrets.aws.region,
     sizeBytes: metadata.size,
     verifiedAt: new Date().toISOString(),

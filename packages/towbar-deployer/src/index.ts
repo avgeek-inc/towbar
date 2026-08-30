@@ -7,6 +7,7 @@ export * from "./promotion-boundary.js";
 export * from "./preview-cleanup.js";
 export * from "./release-selection.js";
 export * from "./resource-operations.js";
+export * from "./resource-restore.js";
 export * from "./runtime-inspection.js";
 export * from "./routing.js";
 export * from "./secrets.js";

@@ -116,10 +116,12 @@ latest successful Source sync is archived; the same manifest ID reappearing
 restores it. Towbar has no independent decommission action or lifecycle flag.
 
 Runtime actions, database backups, and scoped orphan cleanup are admitted as
-immutable asynchronous operations. Cleanup requires an administrator. Towbar
-does not expose a database restore operation. A recurring Temporal maintenance
-workflow asks the API to queue read-only server reconciliation and due
-manifest-declared cron backups.
+immutable asynchronous operations. Cleanup requires an administrator. Managed
+database restores require owner confirmation and a reason, revalidate the
+selected retained object, and expose an append-only progress trail. A recurring
+Temporal maintenance workflow asks the API to queue read-only server
+reconciliation, due manifest-declared cron backups, backup assurance checks,
+and expired rollback-volume cleanup.
 
 Owners can configure multiple Source-scoped Slack and SMTP notification
 destinations for deployment, Preview, runtime health, backup, and restore event

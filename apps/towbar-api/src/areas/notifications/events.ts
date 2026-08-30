@@ -131,6 +131,7 @@ export async function emitResourceOperationNotification(
     | "backup.failed"
     | "restore.started"
     | "restore.succeeded"
+    | "restore.cancelled"
     | "restore.failed"
     | "restore.rolled_back",
 ) {
@@ -294,6 +295,53 @@ export async function emitBackupStaleNotification(input: {
     }),
     sourceId: resource.sourceId,
     type: "backup.stale",
+    workspaceId: resource.workspaceId,
+  });
+}
+
+export async function emitBackupAssuranceNotification(input: {
+  backupId: string | null;
+  checkedAt: Date;
+  resourceId: string;
+  status: "not_restore_ready" | "stale";
+}) {
+  if (input.status === "stale") {
+    await emitBackupStaleNotification({
+      occurrence: input.checkedAt,
+      resourceId: input.resourceId,
+    });
+    return;
+  }
+  const [resource] = await getTowbarDatabase()
+    .select({
+      name: apps.name,
+      repositoryName: sources.repositoryName,
+      sourceId: apps.sourceId,
+      workspaceId: apps.workspaceId,
+    })
+    .from(apps)
+    .innerJoin(sources, eq(sources.id, apps.sourceId))
+    .where(eq(apps.id, input.resourceId))
+    .limit(1);
+  if (!resource) return;
+  await emitNotificationEvent({
+    dedupeKey: `backup.not_restorable:${input.resourceId}:${input.backupId ?? "missing"}:${input.checkedAt.toISOString()}`,
+    payload: notificationEventPayload({
+      details: {
+        backupId: input.backupId,
+        checkedAt: input.checkedAt.toISOString(),
+      },
+      entity: {
+        id: input.resourceId,
+        kind: "resource",
+        name: resource.name,
+      },
+      message: `${resource.name} has a retained backup that failed restore-readiness assurance.`,
+      source: { id: resource.sourceId, name: resource.repositoryName },
+      title: "Backup is not restore-ready",
+    }),
+    sourceId: resource.sourceId,
+    type: "backup.not_restorable",
     workspaceId: resource.workspaceId,
   });
 }

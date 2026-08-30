@@ -27,7 +27,9 @@ Towbar version 1 is intentionally narrow. It fits an operator who has:
 
 Towbar treats the configured Git branch as deployment truth. It does not offer
 public sign-up, build arbitrary untrusted pull requests, publish a container
-registry, or restore databases automatically. Read
+registry, or restore databases automatically. Managed PostgreSQL and Redis
+restores are explicit owner actions with confirmation, isolated validation,
+and rollback safeguards. Read
 [the architecture guide](architecture.md) and [SECURITY.md](../SECURITY.md)
 before exposing an installation to the internet.
 
@@ -154,7 +156,10 @@ secret paths declared by that Source. To edit App environment bundles from the
 App's **Secrets** tab, also grant `secretsmanager:PutSecretValue` only on those
 specific build, deployment, and hook secret ARNs. Server login and Cloudflare
 credentials do not need write permission. Add narrowly scoped S3 permissions
-only when using managed backups.
+only when using managed backups. Restores also require `s3:GetObject` for the
+exact declared backup prefix. See
+[Managed database restores](managed-restores.md) before relying on a backup for
+recovery.
 
 ## 5. Add the deployment manifest
 

@@ -1,7 +1,10 @@
-import { createReadStream } from "node:fs";
+import { createReadStream, createWriteStream } from "node:fs";
+import { pipeline } from "node:stream/promises";
 
 import {
   DeleteObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -53,6 +56,15 @@ export async function executeResourceOperationActivity(operationId: string) {
     }
     const result = await executeResourceOperation({
       context,
+      hooks: {
+        progress: async (progress) => {
+          await signedApiRequest(
+            "POST",
+            `/v1/internal/resource-operations/${operationId}/progress`,
+            progress,
+          );
+        },
+      },
       secrets,
       ...(storage ? { storage } : {}),
       signal: activity.cancellationSignal,
@@ -63,13 +75,16 @@ export async function executeResourceOperationActivity(operationId: string) {
       { result, state: "succeeded" },
     );
   } catch (error) {
+    const cancelled = error instanceof Error && error.name === "AbortError";
+    const result = restoreFailureResult(error);
     await signedApiRequest(
       "POST",
       `/v1/internal/resource-operations/${operationId}/events`,
       {
         errorCode: classifyError(error),
         errorMessage: safeErrorMessage(error),
-        state: "failed",
+        ...(result ? { result } : {}),
+        state: cancelled ? "cancelled" : "failed",
       },
     ).catch(() => undefined);
     throw ApplicationFailure.create({
@@ -107,26 +122,113 @@ function s3Storage(client: S3Client): BackupStorage {
     deleteObject: async ({ bucket, key }) => {
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
     },
+    download: async ({ bucket, key, localPath, versionId }) => {
+      const object = await client.send(
+        new GetObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          ...(versionId ? { VersionId: versionId } : {}),
+        }),
+      );
+      if (!object.Body) throw new Error("Backup object has no body");
+      await pipeline(
+        object.Body as NodeJS.ReadableStream,
+        createWriteStream(localPath, { mode: 0o600 }),
+      );
+    },
+    headObject: async ({ bucket, key, versionId }) => {
+      try {
+        const object = await client.send(
+          new HeadObjectCommand({
+            Bucket: bucket,
+            Key: key,
+            ...(versionId ? { VersionId: versionId } : {}),
+          }),
+        );
+        const metadata = object.Metadata ?? {};
+        return {
+          checksum: metadata["towbar-checksum"],
+          encryption:
+            object.ServerSideEncryption === "aws:kms"
+              ? "aws:kms"
+              : object.ServerSideEncryption === "AES256"
+                ? "AES256"
+                : undefined,
+          engine: parseEngine(metadata["towbar-engine"]),
+          engineMajorVersion: parsePositiveInteger(
+            metadata["towbar-engine-major-version"],
+          ),
+          exists: true,
+          format: parseFormat(metadata["towbar-format"]),
+          metadataVersion: parsePositiveInteger(
+            metadata["towbar-metadata-version"],
+          ),
+          sizeBytes: object.ContentLength,
+        };
+      } catch (error) {
+        if (isS3ObjectMissing(error)) return { exists: false };
+        throw error;
+      }
+    },
     upload: async ({
       bucket,
       encryption,
       key,
       kmsKeyId,
       localPath,
+      metadata,
       sizeBytes,
     }) => {
-      await client.send(
+      const result = await client.send(
         new PutObjectCommand({
           Body: createReadStream(localPath),
           Bucket: bucket,
           ContentLength: sizeBytes,
           Key: key,
+          Metadata: metadata,
           ServerSideEncryption: encryption,
           ...(kmsKeyId ? { SSEKMSKeyId: kmsKeyId } : {}),
         }),
       );
+      return result.VersionId ? { versionId: result.VersionId } : {};
     },
   };
+}
+
+function parsePositiveInteger(value: string | undefined) {
+  if (!value || !/^\d+$/u.test(value)) return undefined;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function isS3ObjectMissing(error: unknown) {
+  if (typeof error !== "object" || error === null) return false;
+  const candidate = error as {
+    $metadata?: { httpStatusCode?: number };
+    name?: string;
+  };
+  return (
+    candidate.$metadata?.httpStatusCode === 404 ||
+    candidate.name === "NoSuchKey" ||
+    candidate.name === "NotFound"
+  );
+}
+
+function parseEngine(value: string | undefined) {
+  return value === "postgres" || value === "redis" ? value : undefined;
+}
+
+function parseFormat(value: string | undefined) {
+  return value === "postgres-custom" || value === "redis-rdb"
+    ? value
+    : undefined;
+}
+
+function restoreFailureResult(error: unknown) {
+  if (typeof error === "object" && error !== null && "restoreResult" in error) {
+    return (error as { restoreResult: unknown }).restoreResult;
+  }
+  return undefined;
 }
 
 function classifyError(error: unknown) {
