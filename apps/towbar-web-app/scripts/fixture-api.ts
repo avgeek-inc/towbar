@@ -20,8 +20,8 @@ import type {
   DeploymentStep,
   GitHubConnection,
   GitHubRepository,
-  NotificationDelivery,
   NotificationDestination,
+  NotificationEvent,
   OrphanItem,
   PreviewEnvironment,
   PreviewReportingHealth,
@@ -718,48 +718,37 @@ const sourceBackups: SourceBackup[] = [
 const notificationDestinations: NotificationDestination[] = [
   {
     categories: ["deployments", "previews", "health"],
-    config: {},
+    config: { channelId: "C0123456789" },
     createdAt: fixtureNow,
     enabled: true,
     id: "a1111111-1111-4111-8111-111111111111",
     name: "Engineering Slack",
     provider: "slack",
-    secretReference: "aws:fixture/notifications/slack",
     sourceId: source.id,
     updatedAt: fixtureNow,
   },
   {
     categories: ["backups", "restores"],
     config: {
-      from: "towbar@example.com",
-      host: "smtp.example.com",
-      port: 587,
       recipients: ["operations@example.com"],
-      secure: false,
-      subjectPrefix: "Towbar",
     },
     createdAt: fixtureNow,
     enabled: false,
     id: "a1111111-1111-4111-8111-222222222222",
     name: "Operations email",
     provider: "smtp",
-    secretReference: "aws:fixture/notifications/smtp",
     sourceId: source.id,
     updatedAt: fixtureNow,
   },
 ];
-const notificationDeliveries: NotificationDelivery[] = [
-  createNotificationDeliveryFixture(
+const notificationEvents: NotificationEvent[] = [
+  createNotificationEventFixture(
     "b1111111-1111-4111-8111-111111111111",
-    notificationDestinations[0]!,
     "deployment.failed",
-    "failed",
   ),
-  createNotificationDeliveryFixture(
+  createNotificationEventFixture(
     "b1111111-1111-4111-8111-222222222222",
-    notificationDestinations[0]!,
     "preview.ready",
-    "succeeded",
   ),
 ];
 const orphanItems: OrphanItem[] = [];
@@ -834,14 +823,12 @@ export function createFixtureApiServer() {
           (item) => item.id === destinationId,
         );
         if (!destination) return writeNotFound(response);
-        const delivery = createNotificationDeliveryFixture(
-          randomUUID(),
-          destination,
-          "notification.test",
-          "pending",
+        notificationEvents.unshift(
+          createNotificationEventFixture(randomUUID(), "notification.test"),
         );
-        notificationDeliveries.unshift(delivery);
-        return writeJson(response, 202, { delivery });
+        return writeJson(response, 202, {
+          delivery: { cycle: 1, id: randomUUID() },
+        });
       }
       void readRequestJson(request)
         .then((input) => {
@@ -886,24 +873,6 @@ export function createFixtureApiServer() {
       response.writeHead(204);
       response.end();
       return;
-    }
-    const notificationRetryMatch = path.match(
-      new RegExp(
-        `^/v1/core/sources/${source.id}/notifications/deliveries/([^/]+)/actions/retry$`,
-      ),
-    );
-    if (notificationRetryMatch && request.method === "POST") {
-      const delivery = notificationDeliveries.find(
-        (item) => item.id === notificationRetryMatch[1],
-      );
-      if (!delivery) return writeNotFound(response);
-      delivery.state = "pending";
-      delivery.cycle += 1;
-      delivery.attemptCount = 0;
-      delivery.errorCode = null;
-      delivery.errorMessage = null;
-      delivery.updatedAt = new Date().toISOString();
-      return writeJson(response, 202, { delivery });
     }
     if (
       request.method === "PATCH" &&
@@ -1277,12 +1246,13 @@ function getFixturePayload(
     [`/v1/core/sources/${source.id}/backups`, { backups: sourceBackups }],
     [
       `/v1/core/sources/${source.id}/notifications/destinations`,
-      { canManageNotifications: true, destinations: notificationDestinations },
+      {
+        canManageNotifications: true,
+        destinations: notificationDestinations,
+        providers: { slack: true, smtp: true },
+      },
     ],
-    [
-      `/v1/core/sources/${source.id}/notifications/deliveries`,
-      { deliveries: notificationDeliveries },
-    ],
+    [`/v1/core/notifications`, { notifications: notificationEvents }],
     [
       `/v1/core/sources/${source.id}/syncs/${sourceSync.id}`,
       { sync: sourceSync },
@@ -1845,59 +1815,45 @@ function createBackupFixture(
   };
 }
 
-function createNotificationDeliveryFixture(
+function createNotificationEventFixture(
   id: string,
-  destination: NotificationDestination,
   eventType: string,
-  state: NotificationDelivery["state"],
-): NotificationDelivery {
-  const failed = state === "failed";
-  return {
-    attemptCount: failed ? 5 : 1,
-    category:
-      eventType === "notification.test"
-        ? "test"
-        : eventType.startsWith("preview.")
-          ? "previews"
-          : "deployments",
-    createdAt: fixtureNow,
-    cycle: 1,
-    deliveredAt: state === "succeeded" ? fixtureNow : null,
-    destinationId: destination.id,
-    destinationName: destination.name,
-    errorCode: failed ? "PROVIDER_REQUEST_FAILED" : null,
-    errorMessage: failed
-      ? "The provider rejected the notification request."
-      : null,
-    eventId: randomUUID(),
-    eventType,
-    id,
-    nextAttemptAt: null,
-    payload: {
-      details: {},
-      entity: {
-        id: fixtureIds.deployment,
-        kind: "deployment",
-        name: "Example Website",
-      },
-      message:
-        eventType === "preview.ready"
-          ? "Example Website Preview is ready."
-          : eventType === "notification.test"
-            ? "Towbar successfully reached this notification destination."
-            : "Example Website deployment failed its health check.",
-      occurredAt: fixtureNow,
-      source: { id: source.id, name: source.repositoryName },
-      title:
-        eventType === "preview.ready"
-          ? "Preview ready"
-          : eventType === "notification.test"
-            ? "Test notification"
-            : "Deployment failed",
+): NotificationEvent {
+  const category =
+    eventType === "notification.test"
+      ? "test"
+      : eventType.startsWith("preview.")
+        ? "previews"
+        : "deployments";
+  const payload = {
+    details: {},
+    entity: {
+      id: fixtureIds.deployment,
+      kind: "deployment",
+      name: "Example Website",
     },
-    provider: destination.provider,
-    state,
-    updatedAt: fixtureNow,
+    message:
+      eventType === "preview.ready"
+        ? "Example Website Preview is ready."
+        : eventType === "notification.test"
+          ? "Towbar successfully reached this notification destination."
+          : "Example Website deployment failed its health check.",
+    occurredAt: fixtureNow,
+    source: { id: source.id, name: source.repositoryName },
+    title:
+      eventType === "preview.ready"
+        ? "Preview ready"
+        : eventType === "notification.test"
+          ? "Test notification"
+          : "Deployment failed",
+  };
+  return {
+    category,
+    createdAt: fixtureNow,
+    id,
+    occurredAt: fixtureNow,
+    payload,
+    type: eventType,
   };
 }
 

@@ -53,7 +53,6 @@ import { SourceAwsCredentials } from "./source-aws-credentials";
 import { SourceSecretStageEditor } from "./app-secrets";
 import {
   SourceNotifications,
-  type NotificationDeliveriesResponse,
   type NotificationDestinationsResponse,
 } from "./source-notifications";
 import { SourceApps, SourceResources, SourceServers } from "./source-inventory";
@@ -379,16 +378,10 @@ function SourceSettings({
   );
   const notificationDestinations =
     useApiQuery<NotificationDestinationsResponse>(
-      isActive && hasAwsCredentials
+      isActive
         ? `/v1/core/sources/${sourceId}/notifications/destinations`
         : null,
     );
-  const notificationDeliveries = useApiQuery<NotificationDeliveriesResponse>(
-    isActive && hasAwsCredentials
-      ? `/v1/core/sources/${sourceId}/notifications/deliveries`
-      : null,
-    5_000,
-  );
   const secretsDisabledReason =
     "Add AWS credentials before editing shared secrets";
 
@@ -411,17 +404,13 @@ function SourceSettings({
         {
           value: "notifications",
           label: "Notifications",
-          isDisabled: !hasAwsCredentials,
-          disabledReason:
-            "Add AWS credentials before configuring notification destinations",
-          content: hasAwsCredentials ? (
+          content: (
             <SourceNotifications
               canManage={canManage}
-              deliveries={notificationDeliveries}
               destinations={notificationDestinations}
               sourceId={sourceId}
             />
-          ) : null,
+          ),
         },
         {
           value: "build-secrets",

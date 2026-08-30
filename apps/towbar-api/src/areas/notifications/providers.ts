@@ -6,10 +6,10 @@ import nodemailer from "nodemailer";
 import {
   notificationEventPayloadSchema,
   slackNotificationConfigSchema,
-  slackNotificationSecretSchema,
   smtpNotificationConfigSchema,
-  smtpNotificationSecretSchema,
 } from "@workspace/towbar-core";
+
+import type { NotificationProviderConfiguration } from "./configuration.js";
 
 import type {
   NotificationEventPayload,
@@ -35,34 +35,38 @@ export async function deliverNotification(input: {
   eventId: string;
   payload: NotificationEventPayload;
   provider: NotificationProvider;
-  secret: unknown;
+  providerConfiguration: NotificationProviderConfiguration;
 }) {
   const payload = notificationEventPayloadSchema.parse(input.payload);
   if (input.provider === "slack") {
+    if (input.providerConfiguration.provider !== "slack") {
+      throw invalidProviderConfiguration("Slack");
+    }
     await sendSlackNotification({
       config: slackNotificationConfigSchema.parse(input.config),
       eventId: input.eventId,
       payload,
-      secret: slackNotificationSecretSchema.parse(input.secret),
+      providerConfiguration: input.providerConfiguration,
     });
     return { providerStatus: "accepted" };
+  }
+  if (input.providerConfiguration.provider !== "smtp") {
+    throw invalidProviderConfiguration("SMTP");
   }
   return await sendSmtpNotification({
     config: smtpNotificationConfigSchema.parse(input.config),
     eventId: input.eventId,
     payload,
-    secret: smtpNotificationSecretSchema.parse(input.secret),
+    providerConfiguration: input.providerConfiguration,
   });
 }
 
 async function sendSlackNotification(input: {
-  config: Record<string, never>;
+  config: { channelId: string };
   eventId: string;
   payload: NotificationEventPayload;
-  secret: { webhookUrl: string };
+  providerConfiguration: { botToken: string };
 }) {
-  void input.config;
-  const target = validateSlackWebhookUrl(input.secret.webhookUrl);
   const body = JSON.stringify({
     blocks: [
       {
@@ -82,13 +86,17 @@ async function sendSlackNotification(input: {
         type: "context",
       },
     ],
+    channel: input.config.channelId,
     text: `${input.payload.title}: ${input.payload.message}`.slice(0, 3_000),
   });
   let response: Response;
   try {
-    response = await fetch(target, {
+    response = await fetch("https://slack.com/api/chat.postMessage", {
       body,
-      headers: { "content-type": "application/json; charset=utf-8" },
+      headers: {
+        authorization: `Bearer ${input.providerConfiguration.botToken}`,
+        "content-type": "application/json; charset=utf-8",
+      },
       method: "POST",
       redirect: "manual",
       signal: AbortSignal.timeout(providerTimeoutMs),
@@ -96,53 +104,60 @@ async function sendSlackNotification(input: {
   } catch (error) {
     throw classifyNetworkError(error, "Slack could not be reached");
   }
-  await response.body?.cancel().catch(() => undefined);
-  if (response.ok) return;
-  const retryable = response.status === 429 || response.status >= 500;
+  const result = await readBoundedResponse(response);
+  if (response.ok && result.ok === true) return;
+  const retryable =
+    response.status === 429 ||
+    response.status >= 500 ||
+    result.error === "ratelimited";
   throw new NotificationProviderError(
     retryable ? "SLACK_TEMPORARY_FAILURE" : "SLACK_REJECTED",
     retryable
       ? "Slack temporarily rejected the notification"
       : "Slack rejected the notification configuration",
     retryable,
-    String(response.status),
+    typeof result.error === "string"
+      ? result.error.slice(0, 100)
+      : String(response.status),
   );
 }
 
 async function sendSmtpNotification(input: {
-  config: {
-    from: string;
-    host: string;
-    port: number;
-    recipients: string[];
-    secure: boolean;
-    subjectPrefix: string;
-  };
+  config: { recipients: string[] };
   eventId: string;
   payload: NotificationEventPayload;
-  secret: { password: string; username: string };
+  providerConfiguration: {
+    from: string;
+    host: string;
+    password?: string;
+    port: number;
+    secure: boolean;
+    subjectPrefix: string;
+    username?: string;
+  };
 }) {
-  const address = await resolvePublicSmtpAddress(input.config.host);
+  const provider = input.providerConfiguration;
+  const address = await resolvePublicSmtpAddress(provider.host);
   const transport = nodemailer.createTransport({
-    auth: {
-      pass: input.secret.password,
-      user: input.secret.username,
-    },
+    auth:
+      provider.username && provider.password
+        ? { pass: provider.password, user: provider.username }
+        : undefined,
     connectionTimeout: providerTimeoutMs,
     disableFileAccess: true,
     disableUrlAccess: true,
     greetingTimeout: providerTimeoutMs,
     host: address,
-    port: input.config.port,
-    secure: input.config.secure,
+    port: provider.port,
+    secure: provider.secure,
     socketTimeout: providerTimeoutMs,
-    tls: { servername: input.config.host },
+    tls: { servername: provider.host },
   });
   try {
     const result = await transport.sendMail({
-      from: input.config.from,
+      from: provider.from,
       messageId: `<${input.eventId}@towbar.invalid>`,
-      subject: `[${input.config.subjectPrefix}] ${input.payload.title}`.slice(
+      subject: `[${provider.subjectPrefix}] ${input.payload.title}`.slice(
         0,
         255,
       ),
@@ -155,27 +170,6 @@ async function sendSmtpNotification(input: {
   } finally {
     transport.close();
   }
-}
-
-export function validateSlackWebhookUrl(value: string) {
-  const target = new URL(value);
-  const allowedHosts = new Set(["hooks.slack.com", "hooks.slack-gov.com"]);
-  if (
-    target.protocol !== "https:" ||
-    !allowedHosts.has(target.hostname) ||
-    (target.port && target.port !== "443") ||
-    target.username ||
-    target.password ||
-    target.hash ||
-    !target.pathname.startsWith("/services/")
-  ) {
-    throw new NotificationProviderError(
-      "INVALID_SLACK_WEBHOOK",
-      "Use an HTTPS Slack incoming webhook URL",
-      false,
-    );
-  }
-  return target;
 }
 
 export async function resolvePublicSmtpAddress(host: string) {
@@ -350,4 +344,21 @@ function escapeSlack(value: string) {
 
 function capitalize(value: string) {
   return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+}
+
+function invalidProviderConfiguration(provider: string) {
+  return new NotificationProviderError(
+    "PROVIDER_NOT_CONFIGURED",
+    `${provider} notifications are not configured for this Towbar instance`,
+    false,
+  );
+}
+
+async function readBoundedResponse(response: Response) {
+  const text = (await response.text()).slice(0, 16 * 1_024);
+  try {
+    return JSON.parse(text) as { error?: unknown; ok?: unknown };
+  } catch {
+    return {};
+  }
 }

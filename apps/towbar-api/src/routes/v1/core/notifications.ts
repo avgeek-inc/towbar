@@ -5,12 +5,11 @@ import { notificationDestinationInputSchema } from "@workspace/towbar-core";
 import {
   createNotificationDestination,
   deleteNotificationDestination,
-  listNotificationDeliveries,
   listNotificationDestinations,
-  retryNotificationDelivery,
   testNotificationDestination,
   updateNotificationDestination,
 } from "../../../areas/notifications/service.js";
+import { notificationProviderAvailability } from "../../../areas/notifications/configuration.js";
 import { forbidden } from "../../../http/errors.js";
 import { readJson } from "../../../http/requests.js";
 
@@ -26,6 +25,7 @@ notificationRoutes.get("/destinations", async (context) => {
       sourceId: context.req.param("sourceId")!,
       workspaceId: user.workspaceId,
     }),
+    providers: notificationProviderAvailability(),
   });
 });
 
@@ -79,34 +79,6 @@ notificationRoutes.post(
     const user = context.get("user");
     const delivery = await testNotificationDestination({
       destinationId: context.req.param("destinationId"),
-      sourceId: context.req.param("sourceId")!,
-      workspaceId: user.workspaceId,
-    });
-    return context.json({ delivery }, 202);
-  },
-);
-
-notificationRoutes.get("/deliveries", async (context) => {
-  const user = context.get("user");
-  const requestedLimit = Number(context.req.query("limit") ?? 100);
-  return context.json({
-    deliveries: await listNotificationDeliveries({
-      limit: Number.isInteger(requestedLimit)
-        ? Math.max(1, requestedLimit)
-        : 100,
-      sourceId: context.req.param("sourceId")!,
-      workspaceId: user.workspaceId,
-    }),
-  });
-});
-
-notificationRoutes.post(
-  "/deliveries/:deliveryId/actions/retry",
-  async (context) => {
-    requireOwner(context.get("user").workspaceRole);
-    const user = context.get("user");
-    const delivery = await retryNotificationDelivery({
-      deliveryId: context.req.param("deliveryId"),
       sourceId: context.req.param("sourceId")!,
       workspaceId: user.workspaceId,
     });

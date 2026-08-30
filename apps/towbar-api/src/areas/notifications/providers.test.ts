@@ -1,23 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  isPrivateOrReservedAddress,
-  validateSlackWebhookUrl,
-} from "./providers.js";
+import { slackNotificationConfigSchema } from "@workspace/towbar-core";
 
-void test("accepts only Slack incoming webhook endpoints", () => {
-  assert.equal(
-    validateSlackWebhookUrl("https://hooks.slack.com/services/T/B/token").host,
-    "hooks.slack.com",
+import { isPrivateOrReservedAddress } from "./providers.js";
+
+void test("accepts Slack channel IDs without storing credentials", () => {
+  assert.deepEqual(
+    slackNotificationConfigSchema.parse({ channelId: "C12345678" }),
+    {
+      channelId: "C12345678",
+    },
   );
   assert.throws(
-    () => validateSlackWebhookUrl("https://127.0.0.1/services/T/B/token"),
-    /Slack incoming webhook/u,
-  );
-  assert.throws(
-    () => validateSlackWebhookUrl("https://hooks.slack.com.example/services/x"),
-    /Slack incoming webhook/u,
+    () => slackNotificationConfigSchema.parse({ channelId: "#general" }),
+    /valid Slack channel ID/u,
   );
 });
 

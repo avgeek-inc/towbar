@@ -17,6 +17,7 @@ import {
 import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { getSource } from "../sources/service.js";
+import { notificationProviderAvailability } from "./configuration.js";
 import { enqueueDeliveries } from "./delivery-service.js";
 
 import type {
@@ -33,7 +34,6 @@ const publicDestinationSelection = {
   id: notificationDestinations.id,
   name: notificationDestinations.name,
   provider: notificationDestinations.provider,
-  secretReference: notificationDestinations.secretReference,
   sourceId: notificationDestinations.sourceId,
   updatedAt: notificationDestinations.updatedAt,
 };
@@ -56,6 +56,25 @@ export async function listNotificationDestinations(input: {
     .orderBy(asc(notificationDestinations.name));
 }
 
+export async function listNotificationEvents(input: {
+  limit?: number;
+  workspaceId: string;
+}) {
+  return await getTowbarDatabase()
+    .select({
+      category: notificationEvents.category,
+      createdAt: notificationEvents.createdAt,
+      id: notificationEvents.id,
+      occurredAt: notificationEvents.occurredAt,
+      payload: notificationEvents.payload,
+      type: notificationEvents.type,
+    })
+    .from(notificationEvents)
+    .where(eq(notificationEvents.workspaceId, input.workspaceId))
+    .orderBy(desc(notificationEvents.occurredAt))
+    .limit(Math.min(input.limit ?? 20, 50));
+}
+
 export async function createNotificationDestination(input: {
   destination: NotificationDestinationInput;
   sourceId: string;
@@ -65,6 +84,7 @@ export async function createNotificationDestination(input: {
   const destination = notificationDestinationInputSchema.parse(
     input.destination,
   );
+  requireAvailableProvider(destination);
   const [created] = await getTowbarDatabase()
     .insert(notificationDestinations)
     .values({
@@ -86,6 +106,7 @@ export async function updateNotificationDestination(input: {
   const destination = notificationDestinationInputSchema.parse(
     input.destination,
   );
+  requireAvailableProvider(destination);
   const [updated] = await getTowbarDatabase()
     .update(notificationDestinations)
     .set({ ...destination, updatedAt: new Date() })
@@ -245,107 +266,6 @@ export async function testNotificationDestination(input: {
   return delivery;
 }
 
-export async function listNotificationDeliveries(input: {
-  limit?: number;
-  sourceId: string;
-  workspaceId: string;
-}) {
-  await getSource(input.sourceId, input.workspaceId);
-  return await getTowbarDatabase()
-    .select({
-      attemptCount: notificationDeliveries.attemptCount,
-      category: notificationEvents.category,
-      createdAt: notificationDeliveries.createdAt,
-      cycle: notificationDeliveries.cycle,
-      deliveredAt: notificationDeliveries.deliveredAt,
-      destinationId: notificationDestinations.id,
-      destinationName: notificationDestinations.name,
-      errorCode: notificationDeliveries.lastErrorCode,
-      errorMessage: notificationDeliveries.lastErrorMessage,
-      eventId: notificationEvents.id,
-      eventType: notificationEvents.type,
-      id: notificationDeliveries.id,
-      nextAttemptAt: notificationDeliveries.nextAttemptAt,
-      payload: notificationEvents.payload,
-      provider: notificationDestinations.provider,
-      state: notificationDeliveries.state,
-      updatedAt: notificationDeliveries.updatedAt,
-    })
-    .from(notificationDeliveries)
-    .innerJoin(
-      notificationEvents,
-      eq(notificationEvents.id, notificationDeliveries.eventId),
-    )
-    .innerJoin(
-      notificationDestinations,
-      eq(notificationDestinations.id, notificationDeliveries.destinationId),
-    )
-    .where(
-      and(
-        eq(notificationEvents.sourceId, input.sourceId),
-        eq(notificationEvents.workspaceId, input.workspaceId),
-      ),
-    )
-    .orderBy(desc(notificationDeliveries.createdAt))
-    .limit(Math.min(input.limit ?? 100, 200));
-}
-
-export async function retryNotificationDelivery(input: {
-  deliveryId: string;
-  sourceId: string;
-  workspaceId: string;
-}) {
-  const now = new Date();
-  const delivery = await getTowbarDatabase().transaction(
-    async (transaction) => {
-      const [current] = await transaction
-        .select({
-          cycle: notificationDeliveries.cycle,
-          id: notificationDeliveries.id,
-          state: notificationDeliveries.state,
-        })
-        .from(notificationDeliveries)
-        .innerJoin(
-          notificationEvents,
-          eq(notificationEvents.id, notificationDeliveries.eventId),
-        )
-        .where(
-          and(
-            eq(notificationDeliveries.id, input.deliveryId),
-            eq(notificationEvents.sourceId, input.sourceId),
-            eq(notificationEvents.workspaceId, input.workspaceId),
-          ),
-        )
-        .for("update")
-        .limit(1);
-      if (!current || current.state !== "failed") return null;
-      const [updated] = await transaction
-        .update(notificationDeliveries)
-        .set({
-          attemptCount: 0,
-          cycle: current.cycle + 1,
-          deliveredAt: null,
-          lastAttemptedAt: null,
-          lastErrorCode: null,
-          lastErrorMessage: null,
-          nextAttemptAt: null,
-          state: "pending",
-          updatedAt: now,
-        })
-        .where(eq(notificationDeliveries.id, current.id))
-        .returning({
-          cycle: notificationDeliveries.cycle,
-          id: notificationDeliveries.id,
-        });
-      return updated ?? null;
-    },
-  );
-  if (!delivery)
-    throw conflict("Only failed notification deliveries can be retried");
-  await enqueueDeliveries([delivery]);
-  return delivery;
-}
-
 export function notificationEventPayload(
   input: {
     details?: NotificationEventPayload["details"];
@@ -364,4 +284,15 @@ export function notificationEventPayload(
     source: input.source,
     title: input.title,
   });
+}
+
+function requireAvailableProvider(destination: NotificationDestinationInput) {
+  if (
+    destination.enabled &&
+    !notificationProviderAvailability()[destination.provider]
+  ) {
+    throw conflict(
+      `${destination.provider === "slack" ? "Slack" : "SMTP"} notifications are not configured for this Towbar instance`,
+    );
+  }
 }

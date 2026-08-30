@@ -16,6 +16,7 @@ import { previewRoutes } from "./previews.js";
 import { sourceRoutes } from "./sources.js";
 import { systemHealthRoutes } from "./system-health.js";
 import { notificationRoutes } from "./notifications.js";
+import { notificationCenterRoutes } from "./notification-center.js";
 
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
@@ -27,6 +28,7 @@ coreRoutes.route("/session", sessionRoutes);
 coreRoutes.route("/github", githubRoutes);
 coreRoutes.route("/sources/:sourceId/aws", awsRoutes);
 coreRoutes.route("/sources/:sourceId/notifications", notificationRoutes);
+coreRoutes.route("/notifications", notificationCenterRoutes);
 coreRoutes.route("/sources", sourceRoutes);
 coreRoutes.route("/apps", appRoutes);
 coreRoutes.route("/resources", resourceRoutes);

@@ -10,7 +10,7 @@ import {
 
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueueNotificationDelivery } from "../../infrastructure/temporal.js";
-import { resolveAwsSecret } from "../aws/service.js";
+import { getNotificationProviderConfiguration } from "./configuration.js";
 import { NotificationProviderError, deliverNotification } from "./providers.js";
 
 const maximumAutomaticAttempts = 5;
@@ -46,17 +46,22 @@ export async function executeNotificationDeliveryAttempt(input: {
   if (claimed.outcome) return claimed.outcome;
   const { delivery } = claimed;
   try {
-    const secret = await resolveAwsSecret({
-      secretReference: delivery.secretReference,
-      sourceId: delivery.sourceId,
-      workspaceId: delivery.workspaceId,
-    });
+    const providerConfiguration = getNotificationProviderConfiguration(
+      delivery.provider,
+    );
+    if (!providerConfiguration) {
+      throw new NotificationProviderError(
+        "PROVIDER_NOT_CONFIGURED",
+        `${delivery.provider === "slack" ? "Slack" : "SMTP"} notifications are not configured for this Towbar instance`,
+        false,
+      );
+    }
     const result = await deliverNotification({
       config: delivery.config,
       eventId: delivery.eventId,
       payload: delivery.payload,
       provider: delivery.provider,
-      secret,
+      providerConfiguration,
     });
     await finishAttempt(input, {
       providerStatus: result.providerStatus,
@@ -113,10 +118,7 @@ async function claimAttempt(input: {
         eventId: notificationEvents.id,
         payload: notificationEvents.payload,
         provider: notificationDestinations.provider,
-        secretReference: notificationDestinations.secretReference,
-        sourceId: notificationEvents.sourceId,
         state: notificationDeliveries.state,
-        workspaceId: notificationEvents.workspaceId,
       })
       .from(notificationDeliveries)
       .innerJoin(
@@ -272,13 +274,13 @@ function classifyDeliveryError(error: unknown) {
   if (error instanceof ZodError) {
     return new NotificationProviderError(
       "INVALID_DESTINATION_CONFIGURATION",
-      "The destination or its secret does not match the required format",
+      "The notification destination does not match the required format",
       false,
     );
   }
   return new NotificationProviderError(
-    "SECRET_RESOLUTION_FAILED",
-    "The destination secret could not be resolved",
+    "NOTIFICATION_DELIVERY_FAILED",
+    "The notification could not be delivered",
     true,
   );
 }

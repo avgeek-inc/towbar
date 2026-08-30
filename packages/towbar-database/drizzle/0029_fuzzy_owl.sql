@@ -39,7 +39,6 @@ CREATE TABLE "towbar_notification_destinations" (
 	"enabled" boolean DEFAULT true NOT NULL,
 	"categories" jsonb NOT NULL,
 	"config" jsonb NOT NULL,
-	"secret_reference" varchar(1024) NOT NULL,
 	"deleted_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL

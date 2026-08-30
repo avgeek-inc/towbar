@@ -1,15 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
 
 import type {
   NotificationCategory,
-  NotificationDelivery,
   NotificationDestination,
 } from "@workspace/towbar-web-client";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
+import { Checkbox } from "@workspace/web-design-system/forms/checkbox";
 import {
   Field,
   FieldDescription,
@@ -18,6 +18,9 @@ import {
   FieldLegend,
 } from "@workspace/web-design-system/forms/field";
 import { Input } from "@workspace/web-design-system/forms/input";
+import { Label } from "@workspace/web-design-system/forms/label";
+import { ListBox, Select } from "@workspace/web-design-system/forms/select";
+import { Switch } from "@workspace/web-design-system/forms/switch";
 import { Modal } from "@workspace/web-design-system/overlays/modal";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -30,16 +33,14 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { ActionButton, SectionBlock } from "@/components/page-parts";
 import { api } from "@/lib/api";
-import { formatDate } from "./dashboard-overview";
 
 export type NotificationDestinationsResponse = {
   canManageNotifications: boolean;
   destinations: NotificationDestination[];
+  providers: ProviderAvailability;
 };
 
-export type NotificationDeliveriesResponse = {
-  deliveries: NotificationDelivery[];
-};
+type ProviderAvailability = { slack: boolean; smtp: boolean };
 
 type Query<T> = {
   data?: T;
@@ -49,16 +50,11 @@ type Query<T> = {
 
 type DestinationDraft = {
   categories: NotificationCategory[];
+  channelId: string;
   enabled: boolean;
-  from: string;
-  host: string;
   name: string;
-  port: string;
   provider: "slack" | "smtp";
   recipients: string;
-  secretReference: string;
-  secure: boolean;
-  subjectPrefix: string;
 };
 
 const categoryOptions = [
@@ -69,114 +65,41 @@ const categoryOptions = [
   { label: "Restores", value: "restores" },
 ] satisfies Array<{ label: string; value: NotificationCategory }>;
 
-const emptyDraft: DestinationDraft = {
-  categories: categoryOptions.map((category) => category.value),
-  enabled: true,
-  from: "",
-  host: "",
-  name: "",
-  port: "587",
-  provider: "slack",
-  recipients: "",
-  secretReference: "",
-  secure: false,
-  subjectPrefix: "Towbar",
-};
+const providerOptions = [
+  { label: "Slack", value: "slack" },
+  { label: "Email", value: "smtp" },
+] as const;
 
 export function SourceNotifications({
   canManage,
-  deliveries,
   destinations,
   sourceId,
 }: {
   canManage: boolean;
-  deliveries: Query<NotificationDeliveriesResponse>;
   destinations: Query<NotificationDestinationsResponse>;
   sourceId: string;
 }) {
-  const [draft, setDraft] = useState<DestinationDraft>(emptyDraft);
+  const [draft, setDraft] = useState<DestinationDraft>(() =>
+    emptyDraft("slack"),
+  );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>();
   const endpoint = `/v1/core/sources/${sourceId}/notifications`;
 
-  const deliveryColumns = useMemo<ResourceTableColumn<NotificationDelivery>[]>(
-    () => [
-      {
-        key: "event",
-        header: "Event",
-        cell: (delivery) => (
-          <ResourceName
-            description={delivery.payload.message}
-            name={delivery.payload.title}
-          />
-        ),
-        className: "min-w-72",
-      },
-      {
-        key: "destination",
-        header: "Destination",
-        cell: (delivery) => delivery.destinationName,
-        className: "min-w-40 whitespace-nowrap",
-      },
-      {
-        key: "attempts",
-        header: "Attempts",
-        cell: (delivery) => delivery.attemptCount,
-      },
-      {
-        key: "status",
-        header: "Status",
-        cell: (delivery) => (
-          <ResourceName
-            description={delivery.errorMessage ?? undefined}
-            name={<StatusBadge status={delivery.state} />}
-          />
-        ),
-        className: "min-w-56",
-      },
-      {
-        key: "updated",
-        header: "Updated",
-        cell: (delivery) => formatDate(delivery.updatedAt),
-        className: "whitespace-nowrap",
-      },
-      {
-        key: "actions",
-        header: "Actions",
-        cell: (delivery) =>
-          delivery.state === "failed" && canManage ? (
-            <ActionButton
-              action={() =>
-                api.post(`${endpoint}/deliveries/${delivery.id}/actions/retry`)
-              }
-              onSuccess={() => deliveries.refresh()}
-              pendingLabel="Retrying…"
-              success="Notification delivery queued again"
-            >
-              Retry
-            </ActionButton>
-          ) : (
-            <span className="text-muted">—</span>
-          ),
-      },
-    ],
-    [canManage, deliveries, endpoint],
-  );
+  if (destinations.error) return <QueryError message={destinations.error} />;
+  if (!destinations.data) return <QueryLoading />;
 
-  if (destinations.error || deliveries.error) {
-    return <QueryError message={destinations.error ?? deliveries.error!} />;
-  }
-  if (!destinations.data || !deliveries.data) return <QueryLoading />;
-
+  const providers = destinations.data.providers;
+  const hasProvider = providers.slack || providers.smtp;
   const destinationColumns: ResourceTableColumn<NotificationDestination>[] = [
     {
       key: "destination",
       header: "Destination",
       cell: (destination) => (
         <ResourceName
-          description={destination.secretReference}
+          description={destinationTarget(destination)}
           name={destination.name}
         />
       ),
@@ -197,7 +120,15 @@ export function SourceNotifications({
       key: "status",
       header: "Status",
       cell: (destination) => (
-        <StatusBadge status={destination.enabled ? "active" : "disabled"} />
+        <StatusBadge
+          status={
+            !providers[destination.provider]
+              ? "unavailable"
+              : destination.enabled
+                ? "active"
+                : "disabled"
+          }
+        />
       ),
     },
     {
@@ -212,8 +143,9 @@ export function SourceNotifications({
                   `${endpoint}/destinations/${destination.id}/actions/test`,
                 )
               }
-              isDisabled={!destination.enabled}
-              onSuccess={() => deliveries.refresh()}
+              isDisabled={
+                !destination.enabled || !providers[destination.provider]
+              }
               pendingLabel="Sending…"
               success="Test notification queued"
             >
@@ -229,13 +161,10 @@ export function SourceNotifications({
               confirm={{
                 actionLabel: "Delete destination",
                 description:
-                  "Future events will no longer be delivered here. Existing delivery history is retained.",
+                  "Future operational events will no longer be sent to this destination.",
                 title: `Delete ${destination.name}?`,
               }}
-              onSuccess={() => {
-                destinations.refresh();
-                deliveries.refresh();
-              }}
+              onSuccess={destinations.refresh}
               pendingLabel="Deleting…"
               success="Notification destination deleted"
               variant="danger"
@@ -251,8 +180,13 @@ export function SourceNotifications({
   ];
 
   function openEditor(destination?: NotificationDestination) {
+    const defaultProvider = providers.slack ? "slack" : "smtp";
     setEditingId(destination?.id ?? null);
-    setDraft(destination ? draftFromDestination(destination) : emptyDraft);
+    setDraft(
+      destination
+        ? draftFromDestination(destination)
+        : emptyDraft(defaultProvider),
+    );
     setSaveError(undefined);
     setEditorOpen(true);
   }
@@ -261,6 +195,12 @@ export function SourceNotifications({
     event.preventDefault();
     if (draft.categories.length === 0) {
       setSaveError("Select at least one event category");
+      return;
+    }
+    if (!providers[draft.provider]) {
+      setSaveError(
+        `${providerLabel(draft.provider)} is not configured for this Towbar instance`,
+      );
       return;
     }
     setSaving(true);
@@ -289,38 +229,40 @@ export function SourceNotifications({
   return (
     <div className="grid gap-4 sm:gap-6">
       <SectionBlock
-        description="Send selected operational events to one or more independent destinations. Credentials stay in your Source-scoped AWS secret."
+        description="Choose which operational events this Source sends. Provider credentials are configured once when Towbar is deployed."
         title="Notification destinations"
       >
         <div className="grid gap-4">
+          {!hasProvider ? (
+            <Alert status="warning">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Title>No notification providers configured</Alert.Title>
+                <Alert.Description>
+                  Add Slack or SMTP environment variables to the Towbar API,
+                  then restart it before adding a destination.
+                </Alert.Description>
+              </Alert.Content>
+            </Alert>
+          ) : null}
           {canManage ? (
-            <Button className="w-fit" onPress={() => openEditor()}>
+            <Button
+              className="w-fit"
+              isDisabled={!hasProvider}
+              onPress={() => openEditor()}
+            >
               Add destination
             </Button>
           ) : null}
           <ResourceTable
             ariaLabel="Notification destinations"
             columns={destinationColumns}
-            emptyDescription="Add Slack or SMTP delivery without changing deployment workflows."
+            emptyDescription="Add Slack or email delivery without changing deployment workflows."
             emptyTitle="No notification destinations"
             getRowKey={(destination) => destination.id}
             items={destinations.data.destinations}
           />
         </div>
-      </SectionBlock>
-
-      <SectionBlock
-        description="Each event and destination has its own durable delivery record. Failed deliveries can be retried after correcting the destination."
-        title="Delivery history"
-      >
-        <ResourceTable
-          ariaLabel="Notification delivery history"
-          columns={deliveryColumns}
-          emptyDescription="Delivery attempts will appear after Towbar emits a matching event or you send a test."
-          emptyTitle="No notification deliveries"
-          getRowKey={(delivery) => delivery.id}
-          items={deliveries.data.deliveries}
-        />
       </SectionBlock>
 
       <Modal isOpen={editorOpen} onOpenChange={setEditorOpen}>
@@ -363,104 +305,122 @@ export function SourceNotifications({
                         }
                       />
                     </Field>
+                    <Select
+                      isRequired
+                      selectedKey={draft.provider}
+                      variant="secondary"
+                      onSelectionChange={(key) =>
+                        setDraft({
+                          ...draft,
+                          provider: String(key) as "slack" | "smtp",
+                        })
+                      }
+                    >
+                      <Label>Provider</Label>
+                      <Select.Trigger>
+                        <Select.Value />
+                        <Select.Indicator />
+                      </Select.Trigger>
+                      <Select.Popover>
+                        <ListBox>
+                          {providerOptions.map((provider) => (
+                            <ListBox.Item
+                              id={provider.value}
+                              isDisabled={!providers[provider.value]}
+                              key={provider.value}
+                              textValue={provider.label}
+                            >
+                              {provider.label}
+                              <ListBox.ItemIndicator />
+                            </ListBox.Item>
+                          ))}
+                        </ListBox>
+                      </Select.Popover>
+                    </Select>
+                  </div>
+
+                  {draft.provider === "slack" ? (
                     <Field>
-                      <FieldLabel htmlFor="notification-provider">
-                        Provider
+                      <FieldLabel htmlFor="notification-channel">
+                        Slack channel ID
                       </FieldLabel>
-                      <select
-                        className="bg-secondary text-foreground focus-visible:ring-focus min-h-11 rounded-xl px-3 text-base outline-none focus-visible:ring-2"
-                        id="notification-provider"
-                        value={draft.provider}
+                      <Input
+                        id="notification-channel"
+                        maxLength={80}
+                        placeholder="C0123456789"
+                        required
+                        value={draft.channelId}
+                        variant="secondary"
                         onChange={(event) =>
                           setDraft({
                             ...draft,
-                            provider: event.currentTarget.value as
-                              "slack" | "smtp",
+                            channelId: event.currentTarget.value,
                           })
                         }
-                      >
-                        <option value="slack">Slack</option>
-                        <option value="smtp">Email (SMTP)</option>
-                      </select>
+                      />
+                      <FieldDescription>
+                        Invite the configured Towbar bot to this channel first.
+                      </FieldDescription>
                     </Field>
-                  </div>
-
-                  <Field>
-                    <FieldLabel htmlFor="notification-secret">
-                      AWS secret reference
-                    </FieldLabel>
-                    <Input
-                      id="notification-secret"
-                      maxLength={1_024}
-                      placeholder={
-                        draft.provider === "slack"
-                          ? "aws:production/notifications/slack"
-                          : "aws:production/notifications/smtp"
-                      }
-                      required
-                      value={draft.secretReference}
-                      variant="secondary"
-                      onChange={(event) =>
-                        setDraft({
-                          ...draft,
-                          secretReference: event.currentTarget.value,
-                        })
-                      }
-                    />
-                    <FieldDescription>
-                      {draft.provider === "slack"
-                        ? "The secret must contain webhookUrl."
-                        : "The secret must contain username and password."}
-                    </FieldDescription>
-                  </Field>
-
-                  {draft.provider === "smtp" ? (
-                    <SmtpFields draft={draft} onChange={setDraft} />
-                  ) : null}
+                  ) : (
+                    <Field>
+                      <FieldLabel htmlFor="notification-recipients">
+                        Recipients
+                      </FieldLabel>
+                      <Input
+                        id="notification-recipients"
+                        required
+                        value={draft.recipients}
+                        variant="secondary"
+                        onChange={(event) =>
+                          setDraft({
+                            ...draft,
+                            recipients: event.currentTarget.value,
+                          })
+                        }
+                      />
+                      <FieldDescription>
+                        Separate multiple email addresses with commas.
+                      </FieldDescription>
+                    </Field>
+                  )}
 
                   <FieldSet>
                     <FieldLegend>Event categories</FieldLegend>
-                    <div className="grid gap-1 sm:grid-cols-2">
+                    <div className="grid gap-2 sm:grid-cols-2">
                       {categoryOptions.map((category) => (
-                        <label
-                          className="inline-flex min-h-11 items-center gap-3"
+                        <Checkbox
+                          isSelected={draft.categories.includes(category.value)}
                           key={category.value}
+                          onChange={(selected) =>
+                            setDraft({
+                              ...draft,
+                              categories: selected
+                                ? [...draft.categories, category.value]
+                                : draft.categories.filter(
+                                    (value) => value !== category.value,
+                                  ),
+                            })
+                          }
                         >
-                          <input
-                            checked={draft.categories.includes(category.value)}
-                            className="size-4 accent-[var(--accent)]"
-                            type="checkbox"
-                            onChange={(event) =>
-                              setDraft({
-                                ...draft,
-                                categories: event.currentTarget.checked
-                                  ? [...draft.categories, category.value]
-                                  : draft.categories.filter(
-                                      (value) => value !== category.value,
-                                    ),
-                              })
-                            }
-                          />
-                          <span>{category.label}</span>
-                        </label>
+                          <Checkbox.Control>
+                            <Checkbox.Indicator />
+                          </Checkbox.Control>
+                          <Checkbox.Content>{category.label}</Checkbox.Content>
+                        </Checkbox>
                       ))}
                     </div>
                   </FieldSet>
 
-                  <label className="inline-flex min-h-11 items-center gap-3">
-                    <input
-                      checked={draft.enabled}
-                      className="size-4 accent-[var(--accent)]"
-                      type="checkbox"
-                      onChange={(event) =>
-                        setDraft({
-                          ...draft,
-                          enabled: event.currentTarget.checked,
-                        })
-                      }
-                    />
-                    <span>Enable this destination</span>
-                  </label>
+                  <Switch
+                    isSelected={draft.enabled}
+                    onChange={(enabled) => setDraft({ ...draft, enabled })}
+                  >
+                    <Switch.Control>
+                      <Switch.Thumb />
+                    </Switch.Control>
+                    <Switch.Content>Enable this destination</Switch.Content>
+                  </Switch>
 
                   <div className="flex justify-end gap-3">
                     <Button
@@ -484,122 +444,33 @@ export function SourceNotifications({
   );
 }
 
-function SmtpFields({
-  draft,
-  onChange,
-}: {
-  draft: DestinationDraft;
-  onChange: (draft: DestinationDraft) => void;
-}) {
-  return (
-    <div className="grid gap-5 sm:grid-cols-2">
-      <Field>
-        <FieldLabel htmlFor="notification-smtp-host">SMTP host</FieldLabel>
-        <Input
-          id="notification-smtp-host"
-          maxLength={253}
-          required
-          value={draft.host}
-          variant="secondary"
-          onChange={(event) =>
-            onChange({ ...draft, host: event.currentTarget.value })
-          }
-        />
-      </Field>
-      <Field>
-        <FieldLabel htmlFor="notification-smtp-port">Port</FieldLabel>
-        <Input
-          id="notification-smtp-port"
-          max={65_535}
-          min={1}
-          required
-          type="number"
-          value={draft.port}
-          variant="secondary"
-          onChange={(event) =>
-            onChange({ ...draft, port: event.currentTarget.value })
-          }
-        />
-      </Field>
-      <Field>
-        <FieldLabel htmlFor="notification-smtp-from">From</FieldLabel>
-        <Input
-          id="notification-smtp-from"
-          maxLength={320}
-          required
-          type="email"
-          value={draft.from}
-          variant="secondary"
-          onChange={(event) =>
-            onChange({ ...draft, from: event.currentTarget.value })
-          }
-        />
-      </Field>
-      <Field>
-        <FieldLabel htmlFor="notification-smtp-prefix">
-          Subject prefix
-        </FieldLabel>
-        <Input
-          id="notification-smtp-prefix"
-          maxLength={80}
-          value={draft.subjectPrefix}
-          variant="secondary"
-          onChange={(event) =>
-            onChange({ ...draft, subjectPrefix: event.currentTarget.value })
-          }
-        />
-      </Field>
-      <Field className="sm:col-span-2">
-        <FieldLabel htmlFor="notification-smtp-recipients">
-          Recipients
-        </FieldLabel>
-        <Input
-          id="notification-smtp-recipients"
-          required
-          value={draft.recipients}
-          variant="secondary"
-          onChange={(event) =>
-            onChange({ ...draft, recipients: event.currentTarget.value })
-          }
-        />
-        <FieldDescription>
-          Separate multiple email addresses with commas.
-        </FieldDescription>
-      </Field>
-      <label className="inline-flex min-h-11 items-center gap-3 sm:col-span-2">
-        <input
-          checked={draft.secure}
-          className="size-4 accent-[var(--accent)]"
-          type="checkbox"
-          onChange={(event) =>
-            onChange({ ...draft, secure: event.currentTarget.checked })
-          }
-        />
-        <span>Use implicit TLS</span>
-      </label>
-    </div>
-  );
+function emptyDraft(provider: "slack" | "smtp"): DestinationDraft {
+  return {
+    categories: categoryOptions.map((category) => category.value),
+    channelId: "",
+    enabled: true,
+    name: "",
+    provider,
+    recipients: "",
+  };
 }
 
 function draftFromDestination(
   destination: NotificationDestination,
 ): DestinationDraft {
-  const smtp =
-    destination.provider === "smtp" && "host" in destination.config
-      ? destination.config
-      : null;
   return {
     categories: destination.categories,
+    channelId:
+      destination.provider === "slack" && "channelId" in destination.config
+        ? destination.config.channelId
+        : "",
     enabled: destination.enabled,
-    from: smtp?.from ?? "",
-    host: smtp?.host ?? "",
     name: destination.name,
-    port: String(smtp?.port ?? 587),
     provider: destination.provider,
-    recipients: smtp?.recipients.join(", ") ?? "",
-    secretReference: destination.secretReference,
-    secure: smtp?.secure ?? false,
-    subjectPrefix: smtp?.subjectPrefix ?? "Towbar",
+    recipients:
+      destination.provider === "smtp" && "recipients" in destination.config
+        ? destination.config.recipients.join(", ")
+        : "",
   };
 }
 
@@ -608,30 +479,38 @@ function destinationPayload(draft: DestinationDraft) {
     categories: draft.categories,
     enabled: draft.enabled,
     name: draft.name.trim(),
-    secretReference: draft.secretReference.trim(),
   };
   if (draft.provider === "slack") {
-    return { ...base, config: {}, provider: "slack" as const };
+    return {
+      ...base,
+      config: { channelId: draft.channelId.trim() },
+      provider: "slack" as const,
+    };
   }
   return {
     ...base,
     config: {
-      from: draft.from.trim(),
-      host: draft.host.trim(),
-      port: Number(draft.port),
       recipients: draft.recipients
         .split(",")
         .map((recipient) => recipient.trim())
         .filter(Boolean),
-      secure: draft.secure,
-      subjectPrefix: draft.subjectPrefix.trim(),
     },
     provider: "smtp" as const,
   };
 }
 
+function destinationTarget(destination: NotificationDestination) {
+  if (destination.provider === "slack" && "channelId" in destination.config) {
+    return destination.config.channelId;
+  }
+  if (destination.provider === "smtp" && "recipients" in destination.config) {
+    return destination.config.recipients.join(", ");
+  }
+  return undefined;
+}
+
 function providerLabel(provider: NotificationDestination["provider"]) {
-  return provider === "slack" ? "Slack" : "Email (SMTP)";
+  return provider === "slack" ? "Slack" : "Email";
 }
 
 function titleCase(value: string) {

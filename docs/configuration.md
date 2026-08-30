@@ -70,6 +70,34 @@ Store the result in `GITHUB_APP_PRIVATE_KEY_BASE64`. Set `GITHUB_APP_ID`,
 `GITHUB_APP_SLUG`, and a randomly generated `GITHUB_WEBHOOK_SECRET` as well.
 Towbar rejects partially configured GitHub App credentials.
 
+## Notification providers
+
+Notification provider credentials belong to the Towbar installation. They are
+never stored on a Source or resolved through the Source's AWS credentials.
+After a provider is configured, each Source can opt in by supplying only its
+delivery target under **Source → Settings → Notifications**.
+
+### Slack
+
+Create a Slack app with a bot token that has `chat:write`, install it in the
+workspace, and set `TOWBAR_SLACK_BOT_TOKEN`. Invite the bot to each channel that
+should receive notifications. A Source then stores only that channel's ID,
+such as `C0123456789`.
+
+### Email
+
+Set `TOWBAR_SMTP_HOST` and `TOWBAR_SMTP_FROM` to enable email notifications.
+`TOWBAR_SMTP_PORT` defaults to `587`, `TOWBAR_SMTP_SECURE` defaults to `false`,
+and `TOWBAR_SMTP_SUBJECT_PREFIX` defaults to `Towbar`. If the server requires
+authentication, set both `TOWBAR_SMTP_USERNAME` and `TOWBAR_SMTP_PASSWORD`; the
+API rejects a partial pair. A Source stores only its recipient email addresses.
+
+Recreate the API container after changing provider variables:
+
+```bash
+docker compose up --detach --force-recreate api
+```
+
 ## Initial owner
 
 Towbar does not accept initial owner credentials through environment variables.

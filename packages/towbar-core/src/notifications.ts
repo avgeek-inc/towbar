@@ -106,33 +106,20 @@ const notificationDestinationBaseSchema = z.object({
   categories: z.array(notificationCategorySchema).min(1).max(5),
   enabled: z.boolean(),
   name: z.string().trim().min(1).max(120),
-  secretReference: z.string().trim().min(1).max(1_024),
 });
 
-export const slackNotificationConfigSchema = z.object({}).strict();
-export const slackNotificationSecretSchema = z
-  .object({ webhookUrl: z.string().url().max(2_048) })
+export const slackNotificationConfigSchema = z
+  .object({
+    channelId: z
+      .string()
+      .trim()
+      .regex(/^[A-Z][A-Z0-9]{1,79}$/u, "Enter a valid Slack channel ID"),
+  })
   .strict();
 
 export const smtpNotificationConfigSchema = z
   .object({
-    from: z.string().email().max(320),
-    host: z.string().trim().min(1).max(253),
-    port: z.number().int().min(1).max(65_535),
     recipients: z.array(z.string().email().max(320)).min(1).max(20),
-    secure: z.boolean(),
-    subjectPrefix: z
-      .string()
-      .trim()
-      .max(80)
-      .refine((value) => !/[\r\n]/u.test(value), "Invalid subject prefix")
-      .default("Towbar"),
-  })
-  .strict();
-export const smtpNotificationSecretSchema = z
-  .object({
-    password: z.string().min(1).max(4_096),
-    username: z.string().min(1).max(320),
   })
   .strict();
 

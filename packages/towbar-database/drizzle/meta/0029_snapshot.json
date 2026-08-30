@@ -1899,12 +1899,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "secret_reference": {
-          "name": "secret_reference",
-          "type": "varchar(1024)",
-          "primaryKey": false,
-          "notNull": true
-        },
         "deleted_at": {
           "name": "deleted_at",
           "type": "timestamp with time zone",
