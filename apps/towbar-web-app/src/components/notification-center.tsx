@@ -5,7 +5,6 @@ import { Notification02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import type { NotificationEvent } from "@workspace/towbar-web-client";
-import { buttonVariants } from "@workspace/web-design-system/buttons/button";
 import { usePageVisibilityInterval } from "@workspace/web-design-system/hooks/use-page-visibility-interval";
 import { Popover } from "@workspace/web-design-system/overlays/popover";
 import { ScrollShadow } from "@workspace/web-design-system/utilities/scroll-shadow";
@@ -83,12 +82,7 @@ export function NotificationCenter() {
             ? `Notifications, ${unreadCount} unread`
             : "Notifications"
         }
-        className={buttonVariants({
-          className:
-            "relative size-8 min-h-8 min-w-8 before:absolute before:-inset-1 before:content-['']",
-          isIconOnly: true,
-          variant: "ghost",
-        })}
+        className="relative isolate grid size-8 shrink-0 cursor-pointer touch-manipulation place-items-center rounded-full text-muted outline-none transition-[color,background-color,transform] before:absolute before:-inset-1.5 before:content-[''] hover:bg-default hover:text-foreground active:scale-[0.96] data-[focus-visible=true]:ring-2 data-[focus-visible=true]:ring-focus data-[focus-visible=true]:ring-offset-2 data-[focus-visible=true]:ring-offset-background motion-reduce:transition-none"
       >
         <HugeiconsIcon aria-hidden="true" icon={Notification02Icon} size={18} />
         {unreadCount > 0 ? (

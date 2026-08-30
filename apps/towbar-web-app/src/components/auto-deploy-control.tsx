@@ -5,12 +5,10 @@ import type { FormEvent } from "react";
 
 import type {
   AutoDeployControl,
-  AutoDeployControlAuditEvent,
   AutoDeployControlResponse,
   AutoDeployMaintenanceWindow,
 } from "@workspace/towbar-web-client";
 import { Button } from "@workspace/web-design-system/buttons/button";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { Checkbox } from "@workspace/web-design-system/forms/checkbox";
 import {
@@ -27,10 +25,6 @@ import { Switch } from "@workspace/web-design-system/forms/switch";
 import { Card } from "@workspace/web-design-system/layout/card";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
-import {
-  ResourceTable,
-  type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
 
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
@@ -307,8 +301,6 @@ export function AutoDeployControlEditor({
           </Card.Footer>
         </Card>
       </form>
-
-      <ControlAuditEvents events={data.recentEvents} />
     </div>
   );
 }
@@ -446,47 +438,6 @@ function supportedTimezoneOptions(current: string) {
   });
 }
 
-function ControlAuditEvents({
-  events,
-}: {
-  events: AutoDeployControlAuditEvent[];
-}) {
-  const columns: ResourceTableColumn<AutoDeployControlAuditEvent>[] = [
-    {
-      key: "event",
-      header: "Event",
-      cell: (event) => auditEventLabel(event.action),
-      className: "min-w-56",
-    },
-    {
-      key: "scope",
-      header: "Scope",
-      cell: (event) => <Chip variant="secondary">{event.targetType}</Chip>,
-    },
-    {
-      key: "actor",
-      header: "Actor",
-      cell: (event) => event.actor?.displayName ?? "Towbar",
-    },
-    {
-      key: "time",
-      header: "Changed",
-      cell: (event) => formatDate(event.createdAt),
-      className: "whitespace-nowrap",
-    },
-  ];
-  return (
-    <ResourceTable
-      ariaLabel="Automatic deployment control history"
-      columns={columns}
-      emptyDescription="Pause, window, circuit, and bypass changes will appear here."
-      emptyTitle="No control changes yet"
-      getRowKey={(event) => event.id}
-      items={events}
-    />
-  );
-}
-
 function controlDraft(control: AutoDeployControl): ControlDraft {
   return {
     failureThreshold: String(control.failureThreshold),
@@ -533,13 +484,6 @@ function minuteToTime(value: number) {
 function timeToMinute(value: string) {
   const [hour = "0", minute = "0"] = value.split(":");
   return Number(hour) * 60 + Number(minute);
-}
-
-function auditEventLabel(action: AutoDeployControlAuditEvent["action"]) {
-  if (action === "auto_deploy.circuit_opened") return "Circuit opened";
-  if (action === "auto_deploy.circuit_recovered") return "Circuit recovered";
-  if (action === "auto_deploy.manual_bypass") return "Manual bypass";
-  return "Controls updated";
 }
 
 function titleCase(value: string) {
