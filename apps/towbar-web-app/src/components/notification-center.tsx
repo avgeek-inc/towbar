@@ -95,7 +95,7 @@ export function NotificationCenter() {
         className="w-[min(24rem,calc(100vw-2rem))] p-0"
         placement="bottom end"
       >
-        <Popover.Dialog className="outline-none">
+        <Popover.Dialog className="p-0 outline-none">
           <div className="border-b border-separator px-4 py-3">
             <Popover.Heading className="font-medium">
               Notifications
