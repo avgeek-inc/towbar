@@ -5,11 +5,13 @@ const success = new Set([
   "approved",
   "connected",
   "current",
+  "success",
   "healthy",
   "live",
   "passed",
   "published",
   "ready",
+  "restore_ready",
   "succeeded",
   "trusted",
   "verified",
@@ -49,16 +51,19 @@ const warning = new Set([
   "waiting_for_server_preparation",
   "server_setup_pending",
   "pending",
+  "stale",
   "delivering",
   "retrying",
 ]);
 const destructive = new Set([
   "blocked",
   "decommissioned",
+  "error",
   "failed",
   "cleanup_failed",
   "suspended",
   "unhealthy",
+  "not_restore_ready",
 ]);
 
 export function StatusBadge({ status }: { status: string }) {

@@ -21,6 +21,7 @@
     "format": "prettier --write \"**/*.ts\""
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "catalog:",
     "@aws-sdk/client-secrets-manager": "catalog:",
     "@aws-sdk/client-sts": "catalog:",
     "@hono/node-server": "^2.0.11",

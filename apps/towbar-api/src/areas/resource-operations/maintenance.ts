@@ -12,6 +12,7 @@ import {
 import {
   getLatestBackupScheduleOccurrence,
   isNormalizedResource,
+  restoreOperationResultSchema,
 } from "@workspace/towbar-core";
 import { terminalDeploymentStates } from "@workspace/towbar-core/temporal";
 import type { CheckStatus } from "@workspace/towbar-database/schema";
@@ -29,7 +30,11 @@ import { requestServerCheck } from "../servers/service.js";
 import { requestExpiredPreviewCleanups } from "../previews/cleanup.js";
 import { enqueueDueNotificationDeliveries } from "../notifications/delivery-service.js";
 import { emitBackupStaleNotification } from "../notifications/events.js";
-import { requestDeployableOperation } from "./service.js";
+import {
+  requestDeployableOperation,
+  requestRestoreCleanup,
+} from "./service.js";
+import { assureConfiguredResourceBackups } from "./backup-assurance.js";
 import { admitResumedAutomaticDeployments } from "../apps/automatic-deployments.js";
 
 export async function runMaintenanceSweep() {
@@ -37,6 +42,8 @@ export async function runMaintenanceSweep() {
   // should enter a server coordinator only after its queue becomes idle.
   const automaticDeploymentsQueued = await admitResumedAutomaticDeployments();
   const backupsQueued = await queueScheduledBackups();
+  const backupsAssured = await assureConfiguredResourceBackups();
+  const restoreCleanupsQueued = await queueExpiredRestoreCleanups();
   const previewCleanupsQueued = await requestExpiredPreviewCleanups();
   const notificationDeliveriesQueued = await enqueueDueNotificationDeliveries();
   const activeServers = await getTowbarDatabase()
@@ -77,11 +84,57 @@ export async function runMaintenanceSweep() {
 
   return {
     automaticDeploymentsQueued,
+    backupsAssured,
     backupsQueued,
     checksQueued,
     notificationDeliveriesQueued,
     previewCleanupsQueued,
+    restoreCleanupsQueued,
   };
+}
+
+async function queueExpiredRestoreCleanups() {
+  const completedRestores = await getTowbarDatabase()
+    .select({
+      id: resourceOperations.id,
+      resourceId: resourceOperations.resourceId,
+      result: resourceOperations.result,
+      workspaceId: resourceOperations.workspaceId,
+    })
+    .from(resourceOperations)
+    .where(
+      and(
+        eq(resourceOperations.type, "restore"),
+        eq(resourceOperations.state, "succeeded"),
+        isNull(resourceOperations.deletedAt),
+      ),
+    );
+  const now = Date.now();
+  let queued = 0;
+  for (const restore of completedRestores) {
+    if (!restore.resourceId) continue;
+    const result = restoreOperationResultSchema.safeParse(restore.result);
+    if (
+      !result.success ||
+      result.data.previousVolumes.length === 0 ||
+      !result.data.rollbackAvailableUntil ||
+      new Date(result.data.rollbackAvailableUntil).getTime() > now
+    ) {
+      continue;
+    }
+    await requestRestoreCleanup({
+      idempotencyKey: `expired-restore-cleanup:${restore.id}`,
+      requestedBy: null,
+      resourceId: restore.resourceId,
+      restoreId: restore.id,
+      workspaceId: restore.workspaceId,
+    })
+      .then((admission) => {
+        if (!admission.replayed) queued += 1;
+      })
+      .catch(() => undefined);
+  }
+  return queued;
 }
 
 async function queueScheduledBackups() {

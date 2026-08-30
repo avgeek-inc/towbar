@@ -8,6 +8,7 @@ import { pathToFileURL } from "node:url";
 
 import type {
   App,
+  BackupAssurance,
   AppSecretBinding,
   AppSecretUse,
   AppSecretsResponse,
@@ -29,6 +30,7 @@ import type {
   Release,
   Resource,
   ResourceOperation,
+  ResourceOperationEvent,
   RuntimeCapacity,
   Server,
   ServerCheck,
@@ -687,12 +689,14 @@ const serverPreparationsByServer = new Map<string, ServerPreparation[]>([
 
 const runtimeOperations: ResourceOperation[] = [
   {
+    cancelRequestedAt: null,
     createdAt: fixtureNow,
     deletedAt: null,
     errorCode: null,
     errorMessage: null,
     finishedAt: fixtureNow,
     id: "e1111111-1111-4111-8111-111111111111",
+    phase: null,
     request: { tail: 500, type: "capture_logs" },
     requestedBy: user.id,
     resourceId: fixtureIds.app,
@@ -721,7 +725,35 @@ const sourceBackups: SourceBackup[] = [
     "2026-08-21T18:15:00.000Z",
     231_902_104,
   ),
+  createBackupFixture(
+    "f1111111-1111-4111-8111-333333333333",
+    resources[1]!,
+    "2026-08-21T14:15:00.000Z",
+    48_331_776,
+  ),
 ];
+const backupAssurances: BackupAssurance[] = sourceBackups.map((backup) => ({
+  backupOperationId: backup.id,
+  checkedAt: fixtureNow,
+  checks: [
+    "freshness",
+    "object_exists",
+    "size",
+    "checksum",
+    "encryption",
+    "engine",
+    "format",
+  ].map((name) => ({
+    message: `${name.replaceAll("_", " ")} verified`,
+    name,
+    passed: true,
+  })),
+  resourceId: backup.resourceId!,
+  restoreReady: true,
+  status: "restore_ready",
+  updatedAt: fixtureNow,
+}));
+const operationEventsByOperation = new Map<string, ResourceOperationEvent[]>();
 const notificationDestinations: NotificationDestination[] = [
   {
     categories: ["deployments", "previews", "health"],
@@ -1128,6 +1160,141 @@ export function createFixtureApiServer() {
     const runtimeActionMatch = path.match(
       /^\/v1\/core\/(apps|resources)\/([^/]+)\/actions\/(backup|logs|restart|start|stop)$/,
     );
+    const restoreActionMatch = path.match(
+      /^\/v1\/core\/resources\/([^/]+)\/actions\/restore$/,
+    );
+    if (request.method === "POST" && restoreActionMatch) {
+      const resource = resources.find(
+        (item) => item.id === restoreActionMatch[1],
+      );
+      if (!resource) return writeNotFound(response);
+      void readRequestJson(request)
+        .then((input) => {
+          const payload = input as {
+            backupId?: string;
+            confirmation?: string;
+            reason?: string;
+          };
+          const backup = sourceBackups.find(
+            (item) =>
+              item.id === payload.backupId && item.resourceId === resource.id,
+          );
+          if (!backup || payload.confirmation !== resource.name) {
+            return writeJson(response, 422, {
+              error: { message: "Backup or confirmation is invalid" },
+            });
+          }
+          const now = new Date().toISOString();
+          const operation: ResourceOperation = {
+            cancelRequestedAt: null,
+            createdAt: now,
+            deletedAt: null,
+            errorCode: null,
+            errorMessage: null,
+            finishedAt: null,
+            id: randomUUID(),
+            phase: "restoring_candidate",
+            request: {
+              backupId: backup.id,
+              reason: payload.reason ?? "Fixture restore request",
+              type: "restore",
+            },
+            requestedBy: user.id,
+            resourceId: resource.id,
+            result: null,
+            serverId: resource.serverId,
+            sourceId: resource.sourceId,
+            startedAt: now,
+            state: "running",
+            type: "restore",
+            updatedAt: now,
+          };
+          runtimeOperations.unshift(operation);
+          operationEventsByOperation.set(operation.id, [
+            {
+              command: "docker inspect <active-runtime>",
+              createdAt: now,
+              id: randomUUID(),
+              level: "success",
+              message: "Backup, server, and active runtime passed preflight",
+              metadata: {},
+              phase: "preflight",
+              sequence: 1,
+            },
+            {
+              command: null,
+              createdAt: now,
+              id: randomUUID(),
+              level: "info",
+              message: "Restoring into an isolated candidate volume",
+              metadata: {},
+              phase: "restoring_candidate",
+              sequence: 2,
+            },
+          ]);
+          return writeJson(response, 202, { operation });
+        })
+        .catch(() =>
+          writeJson(response, 400, {
+            error: { message: "Request body must be valid JSON" },
+          }),
+        );
+      return;
+    }
+    const restoreCleanupMatch = path.match(
+      /^\/v1\/core\/resources\/([^/]+)\/actions\/restore-cleanup$/,
+    );
+    if (request.method === "POST" && restoreCleanupMatch) {
+      const resource = resources.find(
+        (item) => item.id === restoreCleanupMatch[1],
+      );
+      if (!resource) return writeNotFound(response);
+      const now = new Date().toISOString();
+      const operation: ResourceOperation = {
+        cancelRequestedAt: null,
+        createdAt: now,
+        deletedAt: null,
+        errorCode: null,
+        errorMessage: null,
+        finishedAt: now,
+        id: randomUUID(),
+        phase: null,
+        request: { type: "restore_cleanup" },
+        requestedBy: user.id,
+        resourceId: resource.id,
+        result: {
+          cleanedVolumes: ["towbar-fixture-previous"],
+          restoreId: "fixture-restore",
+          skippedVolumes: [],
+        },
+        serverId: resource.serverId,
+        sourceId: resource.sourceId,
+        startedAt: now,
+        state: "succeeded",
+        type: "restore_cleanup",
+        updatedAt: now,
+      };
+      runtimeOperations.unshift(operation);
+      return writeJson(response, 202, { operation });
+    }
+    const cancelRestoreMatch = path.match(
+      /^\/v1\/core\/resources\/([^/]+)\/operations\/([^/]+)\/actions\/cancel$/,
+    );
+    if (request.method === "POST" && cancelRestoreMatch) {
+      const operation = runtimeOperations.find(
+        (item) =>
+          item.resourceId === cancelRestoreMatch[1] &&
+          item.id === cancelRestoreMatch[2] &&
+          item.type === "restore",
+      );
+      if (!operation) return writeNotFound(response);
+      operation.cancelRequestedAt = new Date().toISOString();
+      operation.state = "cancelled";
+      operation.phase = "cancelled";
+      operation.finishedAt = operation.cancelRequestedAt;
+      operation.updatedAt = operation.cancelRequestedAt;
+      return writeJson(response, 200, { operation });
+    }
     if (request.method === "POST" && runtimeActionMatch) {
       const [, kind, deployableId, requestedAction] = runtimeActionMatch;
       const deployable =
@@ -1150,12 +1317,14 @@ export function createFixtureApiServer() {
                   : undefined;
       if (!type) return writeNotFound(response);
       const operation = {
+        cancelRequestedAt: null,
         createdAt: now,
         deletedAt: null,
         errorCode: null,
         errorMessage: null,
         finishedAt: now,
         id: randomUUID(),
+        phase: null,
         request: { type },
         requestedBy: user.id,
         resourceId: deployable.id,
@@ -1347,6 +1516,30 @@ function getFixturePayload(
     return deployable ? getFixtureDeployableSecrets(deployable) : undefined;
   }
 
+  const backupAssuranceMatch = path.match(
+    /^\/v1\/core\/resources\/([^/]+)\/backup-assurance$/,
+  );
+  if (backupAssuranceMatch) {
+    const resourceId = backupAssuranceMatch[1]!;
+    const assurances = backupAssurances.filter(
+      (assurance) => assurance.resourceId === resourceId,
+    );
+    return {
+      assurance: assurances[0] ?? null,
+      assurances,
+      canRestore: true,
+    };
+  }
+
+  const operationEventsMatch = path.match(
+    /^\/v1\/core\/resources\/([^/]+)\/operations\/([^/]+)\/events$/,
+  );
+  if (operationEventsMatch) {
+    return {
+      events: operationEventsByOperation.get(operationEventsMatch[2]!) ?? [],
+    };
+  }
+
   const deployableMatch = path.match(
     /^\/v1\/core\/(apps|resources)\/([^/]+)(?:\/(deployments|releases|operations|previews))?$/,
   );
@@ -1370,7 +1563,13 @@ function getFixturePayload(
     if (child === "releases") {
       return { releases: releases.filter((item) => item.appId === id) };
     }
-    if (child === "operations") return { operations: runtimeOperations };
+    if (child === "operations") {
+      return {
+        operations: runtimeOperations.filter(
+          (operation) => operation.resourceId === id,
+        ),
+      };
+    }
     return kind === "apps" ? { app: deployable } : { resource: deployable };
   }
 
@@ -1900,12 +2099,14 @@ function createBackupFixture(
 ): SourceBackup {
   const key = `${resource.manifestId}/${createdAt.replaceAll(":", "-")}.dump`;
   return {
+    cancelRequestedAt: null,
     createdAt,
     deletedAt: null,
     errorCode: null,
     errorMessage: null,
     finishedAt: createdAt,
     id,
+    phase: null,
     request: { type: "backup" },
     requestedBy: user.id,
     resourceId: resource.id,
@@ -1918,7 +2119,11 @@ function createBackupFixture(
       checksum: "sha256:" + "a".repeat(64),
       deletedBackupIds: [],
       encryption: "AES256",
+      engine: resource.kind === "redis" ? "redis" : "postgres",
+      engineMajorVersion: resource.kind === "redis" ? 8 : 18,
+      format: resource.kind === "redis" ? "redis-rdb" : "postgres-custom",
       key,
+      metadataVersion: 1,
       region: "ap-south-1",
       sizeBytes,
       verifiedAt: createdAt,

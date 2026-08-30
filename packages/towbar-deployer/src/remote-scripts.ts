@@ -258,12 +258,23 @@ for ((index = 0; index < volume_count; index += 1)); do
   logical_name="$1"
   mount_path="$2"
   shift 2
-  volume_name="towbar-$deployable_id-$logical_name"
+  state_dir="/var/lib/towbar/resources/$deployable_id/volumes"
+  sudo install -d -m 0755 -o "$(id -u)" -g "$(id -g)" "$state_dir"
+  pointer="$state_dir/$logical_name.active"
+  legacy_volume="towbar-$deployable_id-$logical_name"
+  if ! test -s "$pointer"; then
+    printf '%s\n' "$legacy_volume" >"$pointer.tmp"
+    mv "$pointer.tmp" "$pointer"
+  fi
+  volume_name="$(cat "$pointer")"
+  case "$volume_name" in towbar-*) ;; *) exit 65 ;; esac
   docker volume create \
     --label "towbar.managed=true" \
     --label "towbar.deployable=$deployable_id" \
     --label "towbar.source=$TOWBAR_SOURCE_ID" \
     "$volume_name" >/dev/null
+  test "$(docker volume inspect --format '{{index .Labels "towbar.managed"}}' "$volume_name")" = true
+  test "$(docker volume inspect --format '{{index .Labels "towbar.deployable"}}' "$volume_name")" = "$deployable_id"
   runtime_args+=(--mount "type=volume,src=$volume_name,dst=$mount_path")
 done
 if test -n "$previous_container" && docker container inspect "$previous_container" >/dev/null 2>&1; then

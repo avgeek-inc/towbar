@@ -6,7 +6,11 @@ import {
   resourceOperationTypes,
 } from "./resource-operations.js";
 
-void test("does not admit Towbar-managed database restores", () => {
-  assert.equal(resourceOperationTypes.includes("restore" as never), false);
-  assert.equal(resourceOperationTypeSchema.safeParse("restore").success, false);
+void test("admits restore and rollback-volume cleanup as managed operations", () => {
+  assert.equal(resourceOperationTypes.includes("restore"), true);
+  assert.equal(resourceOperationTypeSchema.safeParse("restore").success, true);
+  assert.equal(
+    resourceOperationTypeSchema.safeParse("restore_cleanup").success,
+    true,
+  );
 });

@@ -1,43 +1,43 @@
-import { randomUUID } from "node:crypto";
-
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, max } from "drizzle-orm";
 import {
-  backupOperationResultSchema,
   isNormalizedResource,
+  restoreOperationPhaseSchema,
+  restoreOperationResultSchema,
 } from "@workspace/towbar-core";
-import { resourceOperationWorkflowId } from "@workspace/towbar-core/temporal";
 import {
   apps,
-  deployableRuntimeStates,
+  auditEvents,
+  resourceOperationEvents,
   resourceOperations,
   servers,
-  sshHostKeys,
 } from "@workspace/towbar-database/schema";
 
 import { conflict, notFound, unprocessable } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
-import { enqueueResourceOperation } from "../../infrastructure/temporal.js";
-import { getDecryptedAwsCredential, resolveAwsSecret } from "../aws/service.js";
-import { resolveRuntimeEnvironmentSecrets } from "../deployments/deployment-secrets.js";
+import { cancelResourceOperationWorkflow } from "../../infrastructure/temporal.js";
 import { emitResourceOperationNotification } from "../notifications/events.js";
+import { admitOperation } from "./admission.js";
+import { assureResourceBackup } from "./backup-assurance.js";
 import {
-  requestServerCheck,
-  sshLoginSecretSchema,
-} from "../servers/service.js";
-import {
-  getCleanupExpected,
   getDeployableTarget,
-  getRetentionBackups,
+  getResourceBackupAssurance,
   getServerOrphans,
+  listOperationEvents,
+  listResourceBackupAssurances,
   publicOperationSelection,
 } from "./queries.js";
 
-import type {
-  ResourceOperationRequest,
-  ResourceOperationResult,
-} from "@workspace/towbar-core";
-
 export { getServerOrphans } from "./queries.js";
+export { finishResourceOperation } from "./completion.js";
+export {
+  getOperationExecutionContext,
+  resolveOperationSecrets,
+} from "./execution.js";
+export {
+  getResourceBackupAssurance,
+  listOperationEvents,
+  listResourceBackupAssurances,
+};
 
 export async function listDeployableOperations(
   deployableId: string,
@@ -120,6 +120,311 @@ export async function requestDeployableOperation(input: {
   });
 }
 
+export async function requestResourceRestore(input: {
+  backupId: string;
+  confirmation: string;
+  idempotencyKey: string;
+  reason: string;
+  requestedBy: string;
+  resourceId: string;
+  workspaceId: string;
+}) {
+  const target = await getDeployableTarget(input.resourceId, input.workspaceId);
+  if (target.archivedAt)
+    throw conflict("Archived Resources cannot be restored");
+  if (
+    !target.serverPreparedAt ||
+    target.serverPreparedConfigDigest !== target.serverConfigDigest
+  ) {
+    throw conflict(
+      "Prepare this server before restoring a Resource",
+      "SERVER_SETUP_PENDING",
+    );
+  }
+  const resource = requireBackupResource(target.config);
+  if (!target.currentRelease) {
+    throw unprocessable("Deploy this Resource before restoring a backup");
+  }
+  if (input.confirmation !== resource.name) {
+    throw unprocessable(
+      `Type ${resource.name} exactly to confirm this destructive restore`,
+      "RESTORE_CONFIRMATION_MISMATCH",
+    );
+  }
+  const assurance = await assureResourceBackup(
+    target.id,
+    new Date(),
+    input.backupId,
+  );
+  if (!assurance.restoreReady || assurance.backupId !== input.backupId) {
+    throw conflict(
+      "Only a retained restore-ready backup can be restored",
+      "BACKUP_NOT_RESTORE_READY",
+    );
+  }
+  const [backup] = await getTowbarDatabase()
+    .select({ id: resourceOperations.id })
+    .from(resourceOperations)
+    .where(
+      and(
+        eq(resourceOperations.id, input.backupId),
+        eq(resourceOperations.resourceId, target.id),
+        eq(resourceOperations.sourceId, target.sourceId),
+        eq(resourceOperations.workspaceId, input.workspaceId),
+        eq(resourceOperations.type, "backup"),
+        eq(resourceOperations.state, "succeeded"),
+        isNull(resourceOperations.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (!backup) throw notFound("Retained backup");
+  const admitted = await admitOperation({
+    appSnapshot: resource,
+    idempotencyKey: input.idempotencyKey,
+    request: {
+      backupId: backup.id,
+      reason: input.reason,
+      release: target.currentRelease,
+      type: "restore",
+    },
+    requestedBy: input.requestedBy,
+    resourceId: target.id,
+    serverId: target.serverId,
+    serverIp: target.serverIp,
+    serverSnapshot: target.serverConfig,
+    sourceId: target.sourceId,
+    workspaceId: input.workspaceId,
+  });
+  if (!admitted.replayed) {
+    await getTowbarDatabase()
+      .insert(auditEvents)
+      .values({
+        action: "resource.restore.requested",
+        actorUserId: input.requestedBy,
+        metadata: {
+          backupId: backup.id,
+          operationId: admitted.operation.id,
+          reason: input.reason,
+        },
+        targetId: target.id,
+        targetType: "resource",
+        workspaceId: input.workspaceId,
+      });
+    await emitResourceOperationNotification(
+      admitted.operation.id,
+      "restore.started",
+    ).catch(() => undefined);
+  }
+  return admitted;
+}
+
+export async function requestRestoreCleanup(input: {
+  idempotencyKey: string;
+  requestedBy: string | null;
+  resourceId: string;
+  restoreId: string;
+  workspaceId: string;
+}) {
+  const target = await getDeployableTarget(input.resourceId, input.workspaceId);
+  if (!target.currentRelease) throw unprocessable("Resource is not deployed");
+  const [restore] = await getTowbarDatabase()
+    .select({ result: resourceOperations.result })
+    .from(resourceOperations)
+    .where(
+      and(
+        eq(resourceOperations.id, input.restoreId),
+        eq(resourceOperations.resourceId, target.id),
+        eq(resourceOperations.workspaceId, input.workspaceId),
+        eq(resourceOperations.type, "restore"),
+        eq(resourceOperations.state, "succeeded"),
+      ),
+    )
+    .limit(1);
+  const result = restoreOperationResultSchema.safeParse(restore?.result);
+  if (!result.success || result.data.previousVolumes.length === 0) {
+    throw conflict("This restore has no rollback volumes to clean up");
+  }
+  const scopedKey = `restore_cleanup:${target.id}:${input.idempotencyKey}`;
+  const existingCleanups = await getTowbarDatabase()
+    .select({
+      idempotencyKey: resourceOperations.idempotencyKey,
+      request: resourceOperations.request,
+      state: resourceOperations.state,
+    })
+    .from(resourceOperations)
+    .where(
+      and(
+        eq(resourceOperations.resourceId, target.id),
+        eq(resourceOperations.workspaceId, input.workspaceId),
+        eq(resourceOperations.type, "restore_cleanup"),
+      ),
+    );
+  if (
+    existingCleanups.some(
+      (cleanup) =>
+        cleanup.idempotencyKey !== scopedKey &&
+        cleanup.request.type === "restore_cleanup" &&
+        cleanup.request.restoreId === input.restoreId &&
+        ["queued", "running", "succeeded"].includes(cleanup.state),
+    )
+  ) {
+    throw conflict(
+      "This restore's rollback volumes are already being cleaned up",
+    );
+  }
+  const admitted = await admitOperation({
+    appSnapshot: target.config,
+    idempotencyKey: input.idempotencyKey,
+    request: {
+      release: target.currentRelease,
+      restoreId: input.restoreId,
+      type: "restore_cleanup",
+      volumes: result.data.previousVolumes.map((volume) => volume.volumeName),
+    },
+    requestedBy: input.requestedBy,
+    resourceId: target.id,
+    serverId: target.serverId,
+    serverIp: target.serverIp,
+    serverSnapshot: target.serverConfig,
+    sourceId: target.sourceId,
+    workspaceId: input.workspaceId,
+  });
+  if (!admitted.replayed) {
+    await getTowbarDatabase()
+      .insert(auditEvents)
+      .values({
+        action: "resource.restore_cleanup.requested",
+        actorUserId: input.requestedBy,
+        metadata: {
+          operationId: admitted.operation.id,
+          restoreId: input.restoreId,
+        },
+        targetId: target.id,
+        targetType: "resource",
+        workspaceId: input.workspaceId,
+      });
+  }
+  return admitted;
+}
+
+export async function cancelResourceRestore(input: {
+  operationId: string;
+  requestedBy: string;
+  resourceId: string;
+  workspaceId: string;
+}) {
+  const [operation] = await getTowbarDatabase()
+    .select(publicOperationSelection)
+    .from(resourceOperations)
+    .where(
+      and(
+        eq(resourceOperations.id, input.operationId),
+        eq(resourceOperations.resourceId, input.resourceId),
+        eq(resourceOperations.workspaceId, input.workspaceId),
+        eq(resourceOperations.type, "restore"),
+      ),
+    )
+    .limit(1);
+  if (!operation) throw notFound("Restore operation");
+  if (!["queued", "running"].includes(operation.state)) {
+    throw conflict("This restore can no longer be cancelled");
+  }
+  if (
+    operation.phase &&
+    [
+      "promoting",
+      "verifying_promotion",
+      "rolling_back",
+      "retaining_previous",
+      "succeeded",
+      "failed",
+      "cancelled",
+    ].includes(operation.phase)
+  ) {
+    throw conflict(
+      "Promotion has started; Towbar must finish promotion or rollback",
+      "RESTORE_PROMOTION_IN_PROGRESS",
+    );
+  }
+  if (operation.cancelRequestedAt) {
+    await cancelResourceOperationWorkflow(operation.id);
+    return operation;
+  }
+  const now = new Date();
+  const [updated] = await getTowbarDatabase()
+    .update(resourceOperations)
+    .set({ cancelRequestedAt: now, updatedAt: now })
+    .where(
+      and(
+        eq(resourceOperations.id, operation.id),
+        isNull(resourceOperations.cancelRequestedAt),
+      ),
+    )
+    .returning(publicOperationSelection);
+  if (!updated) {
+    await cancelResourceOperationWorkflow(operation.id);
+    return operation;
+  }
+  await getTowbarDatabase()
+    .insert(auditEvents)
+    .values({
+      action: "resource.restore.cancel_requested",
+      actorUserId: input.requestedBy,
+      metadata: { operationId: operation.id },
+      targetId: input.resourceId,
+      targetType: "resource",
+      workspaceId: input.workspaceId,
+    });
+  await cancelResourceOperationWorkflow(operation.id);
+  return updated;
+}
+
+export async function appendResourceOperationProgress(
+  operationId: string,
+  input: {
+    command?: string;
+    level: "error" | "info" | "success";
+    message: string;
+    metadata: Record<string, boolean | number | string | null>;
+    phase: string;
+  },
+) {
+  const phase = restoreOperationPhaseSchema.parse(input.phase);
+  return await getTowbarDatabase().transaction(async (transaction) => {
+    const [operation] = await transaction
+      .select({ id: resourceOperations.id, type: resourceOperations.type })
+      .from(resourceOperations)
+      .where(eq(resourceOperations.id, operationId))
+      .for("update")
+      .limit(1);
+    if (!operation || operation.type !== "restore") {
+      throw notFound("Restore operation");
+    }
+    const [latest] = await transaction
+      .select({ sequence: max(resourceOperationEvents.sequence) })
+      .from(resourceOperationEvents)
+      .where(eq(resourceOperationEvents.operationId, operationId));
+    const sequence = (latest?.sequence ?? 0) + 1;
+    const [event] = await transaction
+      .insert(resourceOperationEvents)
+      .values({
+        command: input.command,
+        level: input.level,
+        message: input.message,
+        metadata: input.metadata,
+        operationId,
+        phase,
+        sequence,
+      })
+      .returning();
+    await transaction
+      .update(resourceOperations)
+      .set({ phase, updatedAt: new Date() })
+      .where(eq(resourceOperations.id, operationId));
+    return event;
+  });
+}
+
 export async function requestOrphanCleanup(input: {
   idempotencyKey: string;
   items: Array<{ kind: "container" | "image" | "volume"; name: string }>;
@@ -173,298 +478,6 @@ export async function requestOrphanCleanup(input: {
   });
 }
 
-export async function getOperationExecutionContext(operationId: string) {
-  const [operation] = await getTowbarDatabase()
-    .select()
-    .from(resourceOperations)
-    .where(eq(resourceOperations.id, operationId))
-    .limit(1);
-  if (!operation) throw notFound("Resource operation");
-  if (operation.request.type === "restore") {
-    throw conflict("Towbar-managed database restore is no longer supported");
-  }
-  if (operation.state === "queued") {
-    await getTowbarDatabase()
-      .update(resourceOperations)
-      .set({ startedAt: new Date(), state: "running", updatedAt: new Date() })
-      .where(
-        and(
-          eq(resourceOperations.id, operationId),
-          eq(resourceOperations.state, "queued"),
-        ),
-      );
-  } else if (operation.state !== "running") {
-    throw conflict("Resource operation is already complete");
-  }
-  const trustedHostKeys = await getTowbarDatabase()
-    .select({
-      algorithm: sshHostKeys.algorithm,
-      fingerprint: sshHostKeys.fingerprint,
-      publicKey: sshHostKeys.publicKey,
-    })
-    .from(sshHostKeys)
-    .where(
-      and(
-        eq(sshHostKeys.serverId, operation.serverId),
-        isNull(sshHostKeys.revokedAt),
-      ),
-    );
-  const currentRelease =
-    operation.request.type === "cleanup_orphans"
-      ? null
-      : operation.request.release;
-  const cleanupExpected = await getCleanupExpected(operation.serverId);
-  return {
-    cleanupExpected,
-    currentRelease,
-    deployable: operation.appSnapshot,
-    deployableId: operation.resourceId,
-    operationId: operation.id,
-    request: operation.request,
-    retentionBackups:
-      operation.request.type === "backup" && operation.resourceId
-        ? await getRetentionBackups(operation.resourceId, operation.appSnapshot)
-        : [],
-    server: operation.serverSnapshot,
-    sourceId: operation.sourceId,
-    trustedHostKeys,
-  };
-}
-
-export async function resolveOperationSecrets(operationId: string) {
-  const [operation] = await getTowbarDatabase()
-    .select({
-      app: resourceOperations.appSnapshot,
-      request: resourceOperations.request,
-      resourceId: resourceOperations.resourceId,
-      server: resourceOperations.serverSnapshot,
-      sourceId: resourceOperations.sourceId,
-      workspaceId: resourceOperations.workspaceId,
-    })
-    .from(resourceOperations)
-    .where(eq(resourceOperations.id, operationId))
-    .limit(1);
-  if (!operation) throw notFound("Resource operation");
-  if (operation.request.type === "restore") {
-    throw conflict("Towbar-managed database restore is no longer supported");
-  }
-  const login = sshLoginSecretSchema.parse(
-    await resolveAwsSecret({
-      secretReference: operation.server.secrets.login,
-      sourceId: operation.sourceId,
-      workspaceId: operation.workspaceId,
-    }),
-  );
-  const runtime =
-    operation.request.type === "capture_logs" && operation.app
-      ? await resolveRuntimeEnvironmentSecrets({
-          app: operation.app,
-          sourceId: operation.sourceId,
-          workspaceId: operation.workspaceId,
-        })
-      : {};
-  const requiresAws = operation.request.type === "backup";
-  const awsCredential = requiresAws
-    ? await getDecryptedAwsCredential({
-        sourceId: operation.sourceId,
-        workspaceId: operation.workspaceId,
-      })
-    : null;
-  return {
-    aws: awsCredential
-      ? { ...awsCredential.payload, region: awsCredential.region }
-      : null,
-    login,
-    sensitiveValues: [
-      login.privateKey,
-      ...(awsCredential ? [awsCredential.payload.secretAccessKey] : []),
-      ...Object.values(runtime),
-    ],
-  };
-}
-
-export async function finishResourceOperation(
-  operationId: string,
-  input:
-    | { result: ResourceOperationResult; state: "succeeded" }
-    | { errorCode: string; errorMessage: string; state: "failed" },
-) {
-  const operation = await getTowbarDatabase().transaction(
-    async (transaction) => {
-      const [current] = await transaction
-        .select()
-        .from(resourceOperations)
-        .where(eq(resourceOperations.id, operationId))
-        .for("update")
-        .limit(1);
-      if (!current) throw notFound("Resource operation");
-      if (["failed", "succeeded"].includes(current.state)) return current;
-      const finishedAt = new Date();
-      const [updated] = await transaction
-        .update(resourceOperations)
-        .set({
-          errorCode: input.state === "failed" ? input.errorCode : null,
-          errorMessage: input.state === "failed" ? input.errorMessage : null,
-          finishedAt,
-          result: input.state === "succeeded" ? input.result : null,
-          state: input.state,
-          updatedAt: finishedAt,
-        })
-        .where(eq(resourceOperations.id, current.id))
-        .returning();
-      if (!updated) throw new Error("Unable to finish Resource operation");
-      if (input.state === "succeeded" && current.resourceId) {
-        if (["restart", "start", "stop"].includes(current.type)) {
-          await transaction
-            .insert(deployableRuntimeStates)
-            .values({
-              appId: current.resourceId,
-              desiredState: current.type === "stop" ? "stopped" : "running",
-              updatedAt: finishedAt,
-            })
-            .onConflictDoUpdate({
-              target: deployableRuntimeStates.appId,
-              set: {
-                desiredState: current.type === "stop" ? "stopped" : "running",
-                updatedAt: finishedAt,
-              },
-            });
-        }
-        if (current.type === "backup") {
-          const result = backupOperationResultSchema.parse(input.result);
-          if (result.deletedBackupIds.length) {
-            await transaction
-              .update(resourceOperations)
-              .set({ deletedAt: finishedAt, updatedAt: finishedAt })
-              .where(
-                and(
-                  inArray(resourceOperations.id, result.deletedBackupIds),
-                  eq(resourceOperations.resourceId, current.resourceId),
-                ),
-              );
-          }
-        }
-      }
-      return updated;
-    },
-  );
-  if (
-    input.state === "succeeded" &&
-    ["cleanup_orphans", "restart", "start", "stop"].includes(operation.type)
-  ) {
-    await requestServerCheck({
-      requestedBy: null,
-      serverId: operation.serverId,
-      sourceId: operation.sourceId,
-      workspaceId: operation.workspaceId,
-    }).catch(() => undefined);
-  }
-  if (operation.state === "failed" && operation.type === "backup") {
-    await emitResourceOperationNotification(
-      operation.id,
-      "backup.failed",
-    ).catch(() => undefined);
-  }
-  if (operation.type === "restore") {
-    await emitResourceOperationNotification(
-      operation.id,
-      operation.state === "succeeded" ? "restore.succeeded" : "restore.failed",
-    ).catch(() => undefined);
-  }
-  return operation;
-}
-
-async function admitOperation(input: {
-  appSnapshot: (typeof apps.$inferSelect)["config"] | null;
-  exclusive?: boolean;
-  idempotencyKey: string;
-  request: ResourceOperationRequest;
-  requestedBy: string | null;
-  resourceId: string | null;
-  serverId: string;
-  serverIp: string;
-  serverSnapshot: (typeof servers.$inferSelect)["config"];
-  sourceId: string;
-  workspaceId: string;
-}) {
-  const scopedKey = `${input.request.type}:${input.resourceId ?? input.serverId}:${input.idempotencyKey}`;
-  const [existing] = await getTowbarDatabase()
-    .select(publicOperationSelection)
-    .from(resourceOperations)
-    .where(
-      and(
-        eq(resourceOperations.workspaceId, input.workspaceId),
-        eq(resourceOperations.idempotencyKey, scopedKey),
-      ),
-    )
-    .limit(1);
-  if (existing) return { operation: existing, replayed: true };
-  const id = randomUUID();
-  let created;
-  try {
-    [created] = await getTowbarDatabase()
-      .insert(resourceOperations)
-      .values({
-        appSnapshot: input.appSnapshot,
-        id,
-        idempotencyKey: scopedKey,
-        request: input.request,
-        requestedBy: input.requestedBy,
-        resourceId: input.resourceId,
-        serverId: input.serverId,
-        serverSnapshot: input.serverSnapshot,
-        sourceId: input.sourceId,
-        temporalWorkflowId: resourceOperationWorkflowId(id),
-        type: input.request.type,
-        workspaceId: input.workspaceId,
-      })
-      .returning(publicOperationSelection);
-  } catch (error) {
-    if (isUniqueViolation(error)) {
-      const [replay] = await getTowbarDatabase()
-        .select(publicOperationSelection)
-        .from(resourceOperations)
-        .where(
-          and(
-            eq(resourceOperations.workspaceId, input.workspaceId),
-            eq(resourceOperations.idempotencyKey, scopedKey),
-          ),
-        )
-        .limit(1);
-      if (replay) return { operation: replay, replayed: true };
-    }
-    throw error;
-  }
-  if (!created) throw new Error("Unable to create Resource operation");
-  try {
-    await enqueueResourceOperation({
-      appId: input.resourceId,
-      buildConcurrency: input.serverSnapshot.buildConcurrency ?? 1,
-      exclusive: input.exclusive ?? false,
-      operationId: id,
-      serverIp: input.serverIp,
-    });
-  } catch (error) {
-    await getTowbarDatabase()
-      .update(resourceOperations)
-      .set({
-        errorCode: "TEMPORAL_UNAVAILABLE",
-        errorMessage: "Resource operation queue is unavailable",
-        finishedAt: new Date(),
-        state: "failed",
-        updatedAt: new Date(),
-      })
-      .where(eq(resourceOperations.id, id));
-    if (input.request.type === "backup") {
-      await emitResourceOperationNotification(id, "backup.failed").catch(
-        () => undefined,
-      );
-    }
-    throw error;
-  }
-  return { operation: created, replayed: false };
-}
-
 function requireDatabaseResource(config: (typeof apps.$inferSelect)["config"]) {
   if (
     !isNormalizedResource(config) ||
@@ -485,13 +498,4 @@ function requireBackupResource(config: (typeof apps.$inferSelect)["config"]) {
     );
   }
   return resource;
-}
-
-function isUniqueViolation(error: unknown) {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "23505"
-  );
 }

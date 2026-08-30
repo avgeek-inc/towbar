@@ -10,8 +10,14 @@ import {
   requestAppRollback,
 } from "../../../areas/apps/service.js";
 import {
+  cancelResourceRestore,
+  getResourceBackupAssurance,
   listDeployableOperations,
+  listOperationEvents,
+  listResourceBackupAssurances,
   requestDeployableOperation,
+  requestResourceRestore,
+  requestRestoreCleanup,
 } from "../../../areas/resource-operations/service.js";
 import {
   listResourceSecretBindings,
@@ -38,6 +44,16 @@ const rollbackSchema = z
   .strict();
 const logsSchema = z
   .object({ tail: z.number().int().min(1).max(5_000) })
+  .strict();
+const restoreSchema = z
+  .object({
+    backupId: z.string().uuid(),
+    confirmation: z.string().trim().min(1).max(255),
+    reason: z.string().trim().min(10).max(1_000),
+  })
+  .strict();
+const restoreCleanupSchema = z
+  .object({ restoreId: z.string().uuid() })
   .strict();
 
 export const resourceRoutes = new Hono<TowbarHonoEnvironment>();
@@ -164,6 +180,32 @@ resourceRoutes.get("/:resourceId/operations", async (context) =>
   }),
 );
 
+resourceRoutes.get("/:resourceId/backup-assurance", async (context) => {
+  const user = context.get("user");
+  return context.json({
+    assurance: await getResourceBackupAssurance(
+      context.req.param("resourceId"),
+      user.workspaceId,
+    ),
+    assurances: await listResourceBackupAssurances(
+      context.req.param("resourceId"),
+      user.workspaceId,
+    ),
+    canRestore: user.workspaceRole === "owner",
+  });
+});
+
+resourceRoutes.get(
+  "/:resourceId/operations/:operationId/events",
+  async (context) =>
+    context.json({
+      events: await listOperationEvents(
+        context.req.param("operationId"),
+        context.get("user").workspaceId,
+      ),
+    }),
+);
+
 resourceRoutes.post("/:resourceId/actions/deploy", async (context) => {
   const idempotencyKey = requireIdempotencyKey(
     context.req.header("idempotency-key"),
@@ -211,6 +253,60 @@ for (const action of ["backup", "restart", "start", "stop"] as const) {
     return context.json(result, result.replayed ? 200 : 202);
   });
 }
+
+resourceRoutes.post("/:resourceId/actions/restore", async (context) => {
+  const user = context.get("user");
+  if (user.workspaceRole !== "owner") {
+    throw forbidden("Only the owner can restore database Resources");
+  }
+  const input = await readJson(context, restoreSchema);
+  const result = await requestResourceRestore({
+    ...input,
+    idempotencyKey: requireIdempotencyKey(
+      context.req.header("idempotency-key"),
+    ),
+    requestedBy: user.id,
+    resourceId: context.req.param("resourceId"),
+    workspaceId: user.workspaceId,
+  });
+  return context.json(result, result.replayed ? 200 : 202);
+});
+
+resourceRoutes.post("/:resourceId/actions/restore-cleanup", async (context) => {
+  const user = context.get("user");
+  if (user.workspaceRole !== "owner") {
+    throw forbidden("Only the owner can clean up rollback volumes");
+  }
+  const input = await readJson(context, restoreCleanupSchema);
+  const result = await requestRestoreCleanup({
+    ...input,
+    idempotencyKey: requireIdempotencyKey(
+      context.req.header("idempotency-key"),
+    ),
+    requestedBy: user.id,
+    resourceId: context.req.param("resourceId"),
+    workspaceId: user.workspaceId,
+  });
+  return context.json(result, result.replayed ? 200 : 202);
+});
+
+resourceRoutes.post(
+  "/:resourceId/operations/:operationId/actions/cancel",
+  async (context) => {
+    const user = context.get("user");
+    if (user.workspaceRole !== "owner") {
+      throw forbidden("Only the owner can cancel database restores");
+    }
+    return context.json({
+      operation: await cancelResourceRestore({
+        operationId: context.req.param("operationId"),
+        requestedBy: user.id,
+        resourceId: context.req.param("resourceId"),
+        workspaceId: user.workspaceId,
+      }),
+    });
+  },
+);
 
 resourceRoutes.post("/:resourceId/actions/logs", async (context) => {
   const user = context.get("user");

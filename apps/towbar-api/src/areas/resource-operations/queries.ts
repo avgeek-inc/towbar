@@ -9,6 +9,8 @@ import {
 import {
   apps,
   releases,
+  resourceBackupAssurances,
+  resourceOperationEvents,
   resourceOperations,
   serverChecks,
   servers,
@@ -25,6 +27,8 @@ export const publicOperationSelection = {
   finishedAt: resourceOperations.finishedAt,
   id: resourceOperations.id,
   requestedBy: resourceOperations.requestedBy,
+  phase: resourceOperations.phase,
+  cancelRequestedAt: resourceOperations.cancelRequestedAt,
   request: resourceOperations.request,
   resourceId: resourceOperations.resourceId,
   result: resourceOperations.result,
@@ -35,6 +39,70 @@ export const publicOperationSelection = {
   type: resourceOperations.type,
   updatedAt: resourceOperations.updatedAt,
 } as const;
+
+export async function getResourceBackupAssurance(
+  resourceId: string,
+  workspaceId: string,
+) {
+  return (
+    (await listResourceBackupAssurances(resourceId, workspaceId))[0] ?? null
+  );
+}
+
+export async function listResourceBackupAssurances(
+  resourceId: string,
+  workspaceId: string,
+) {
+  await getDeployableTarget(resourceId, workspaceId);
+  return await getTowbarDatabase()
+    .select({
+      backupOperationId: resourceBackupAssurances.backupOperationId,
+      checkedAt: resourceBackupAssurances.checkedAt,
+      checks: resourceBackupAssurances.checks,
+      resourceId: resourceBackupAssurances.resourceId,
+      restoreReady: resourceBackupAssurances.restoreReady,
+      status: resourceBackupAssurances.status,
+      updatedAt: resourceBackupAssurances.updatedAt,
+    })
+    .from(resourceBackupAssurances)
+    .innerJoin(
+      resourceOperations,
+      eq(resourceOperations.id, resourceBackupAssurances.backupOperationId),
+    )
+    .where(eq(resourceBackupAssurances.resourceId, resourceId))
+    .orderBy(desc(resourceOperations.createdAt));
+}
+
+export async function listOperationEvents(
+  operationId: string,
+  workspaceId: string,
+) {
+  const [operation] = await getTowbarDatabase()
+    .select({ id: resourceOperations.id })
+    .from(resourceOperations)
+    .where(
+      and(
+        eq(resourceOperations.id, operationId),
+        eq(resourceOperations.workspaceId, workspaceId),
+      ),
+    )
+    .limit(1);
+  if (!operation) throw notFound("Resource operation");
+  return await getTowbarDatabase()
+    .select({
+      command: resourceOperationEvents.command,
+      createdAt: resourceOperationEvents.createdAt,
+      id: resourceOperationEvents.id,
+      level: resourceOperationEvents.level,
+      message: resourceOperationEvents.message,
+      metadata: resourceOperationEvents.metadata,
+      phase: resourceOperationEvents.phase,
+      sequence: resourceOperationEvents.sequence,
+    })
+    .from(resourceOperationEvents)
+    .where(eq(resourceOperationEvents.operationId, operationId))
+    .orderBy(resourceOperationEvents.sequence);
+}
 
 export async function getDeployableTarget(
   deployableId: string,

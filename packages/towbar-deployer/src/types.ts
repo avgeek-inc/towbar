@@ -177,6 +177,11 @@ export type ResourceOperationExecutionContext = {
   deployableId: string | null;
   operationId: string;
   retentionBackups: Array<{ bucket: string; id: string; key: string }>;
+  restoreBackup: {
+    createdAt: string;
+    id: string;
+    result: import("@workspace/towbar-core").BackupOperationResult;
+  } | null;
   request: ResourceOperationRequest;
   sourceId: string;
   server: NormalizedServer;
@@ -186,19 +191,51 @@ export type ResourceOperationExecutionContext = {
 export type ResourceOperationSecrets = {
   aws: SourceAwsCredential | null;
   login: SshLoginSecret;
+  runtime: Record<string, string>;
   sensitiveValues: string[];
 };
 
 export type BackupStorage = {
   deleteObject(input: { bucket: string; key: string }): Promise<void>;
+  download(input: {
+    bucket: string;
+    key: string;
+    localPath: string;
+    versionId?: string;
+  }): Promise<void>;
+  headObject(input: {
+    bucket: string;
+    key: string;
+    versionId?: string;
+  }): Promise<{
+    checksum?: string;
+    engine?: "postgres" | "redis";
+    engineMajorVersion?: number;
+    encryption?: "AES256" | "aws:kms";
+    exists: boolean;
+    format?: "postgres-custom" | "redis-rdb";
+    metadataVersion?: number;
+    sizeBytes?: number;
+  }>;
   upload(input: {
     bucket: string;
     encryption: "AES256" | "aws:kms";
     key: string;
     kmsKeyId?: string;
     localPath: string;
+    metadata: Record<string, string>;
     sizeBytes: number;
-  }): Promise<void>;
+  }): Promise<{ versionId?: string }>;
+};
+
+export type ResourceOperationHooks = {
+  progress?: (input: {
+    command?: string;
+    level?: "error" | "info" | "success";
+    message: string;
+    metadata?: Record<string, boolean | number | string | null>;
+    phase: import("@workspace/towbar-core").RestoreOperationPhase;
+  }) => Promise<void>;
 };
 
 export type ResourceOperationExecutorResult = ResourceOperationResult & {

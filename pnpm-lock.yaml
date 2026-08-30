@@ -153,6 +153,9 @@ importers:
 
   apps/towbar-api:
     dependencies:
+      "@aws-sdk/client-s3":
+        specifier: "catalog:"
+        version: 3.1115.0
       "@aws-sdk/client-secrets-manager":
         specifier: "catalog:"
         version: 3.1115.0

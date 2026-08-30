@@ -320,11 +320,54 @@ export type BackupResult = {
   checksum: string;
   deletedBackupIds: string[];
   encryption: "AES256" | "aws:kms";
+  engine?: "postgres" | "redis";
+  engineMajorVersion?: number;
+  format?: "postgres-custom" | "redis-rdb";
   key: string;
+  metadataVersion?: 1;
+  objectVersionId?: string;
   region: string;
   sizeBytes: number;
   verifiedAt: string;
   warnings: string[];
+};
+
+export type BackupAssurance = {
+  backupOperationId: string | null;
+  checkedAt: string;
+  checks: Array<{ message: string; name: string; passed: boolean }>;
+  resourceId: string;
+  restoreReady: boolean;
+  status: "missing" | "stale" | "not_restore_ready" | "restore_ready";
+  updatedAt: string;
+};
+
+export type RestoreResult = {
+  activeVolumes: Array<{ logicalName: string; volumeName: string }>;
+  candidateCleaned: boolean;
+  outcome: "promoted" | "candidate_failed" | "rolled_back";
+  previousVolumes: Array<{ logicalName: string; volumeName: string }>;
+  restoredBackupId: string;
+  rollbackAvailableUntil: string | null;
+  validation: {
+    databaseName: string | null;
+    engine: "postgres" | "redis";
+    engineMajorVersion: number;
+    healthVerified: boolean;
+    readable: boolean;
+  } | null;
+  verifiedAt: string | null;
+};
+
+export type ResourceOperationEvent = {
+  command: string | null;
+  createdAt: string;
+  id: string;
+  level: "error" | "info" | "success";
+  message: string;
+  metadata: Record<string, boolean | number | string | null>;
+  phase: string;
+  sequence: number;
 };
 
 export type ResourceOperation = {
@@ -334,6 +377,8 @@ export type ResourceOperation = {
   errorMessage: string | null;
   finishedAt: string | null;
   id: string;
+  cancelRequestedAt: string | null;
+  phase: string | null;
   request: Record<string, unknown> & { type: ResourceOperationType };
   requestedBy: string | null;
   resourceId: string | null;
@@ -341,13 +386,18 @@ export type ResourceOperation = {
     | BackupResult
     | { cleaned: OrphanItem[]; skipped: OrphanItem[] }
     | { logs: string; truncated: boolean }
-    | { restoredBackupId: string; verifiedAt: string }
+    | RestoreResult
+    | {
+        cleanedVolumes: string[];
+        restoreId: string;
+        skippedVolumes: string[];
+      }
     | { state: "running" | "stopped" }
     | null;
   serverId: string;
   sourceId: string;
   startedAt: string | null;
-  state: "queued" | "running" | "succeeded" | "failed";
+  state: "queued" | "running" | "succeeded" | "failed" | "cancelled";
   type: ResourceOperationType;
   updatedAt: string;
 };
@@ -358,6 +408,7 @@ export type ResourceOperationType =
   | "cleanup_orphans"
   | "restart"
   | "restore"
+  | "restore_cleanup"
   | "start"
   | "stop";
 

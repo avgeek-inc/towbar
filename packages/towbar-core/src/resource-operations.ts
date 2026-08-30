@@ -5,6 +5,8 @@ export const resourceOperationTypes = [
   "capture_logs",
   "cleanup_orphans",
   "restart",
+  "restore",
+  "restore_cleanup",
   "start",
   "stop",
 ] as const;
@@ -17,6 +19,7 @@ export const resourceOperationStates = [
   "running",
   "succeeded",
   "failed",
+  "cancelled",
 ] as const;
 
 export type ResourceOperationState = (typeof resourceOperationStates)[number];
@@ -79,19 +82,46 @@ export type ResourceReleaseSnapshot = {
   releaseId: string;
 };
 
+export const restoreOperationPhases = [
+  "queued",
+  "preflight",
+  "downloading_backup",
+  "verifying_backup",
+  "preparing_candidate",
+  "restoring_candidate",
+  "validating_candidate",
+  "promoting",
+  "verifying_promotion",
+  "rolling_back",
+  "retaining_previous",
+  "cleaning_up",
+  "succeeded",
+  "failed",
+  "cancelled",
+] as const;
+
+export const restoreOperationPhaseSchema = z.enum(restoreOperationPhases);
+export type RestoreOperationPhase = z.infer<typeof restoreOperationPhaseSchema>;
+
 export type ResourceOperationRequest =
   | { release: ResourceReleaseSnapshot; type: "backup" }
   | { release: ResourceReleaseSnapshot; tail: number; type: "capture_logs" }
   | { items: OrphanItem[]; type: "cleanup_orphans" }
-  | { release: ResourceReleaseSnapshot; type: "restart" | "start" | "stop" };
-
-export type PersistedResourceOperationRequest =
-  | ResourceOperationRequest
   | {
       backupId: string;
+      reason: string;
       release: ResourceReleaseSnapshot;
       type: "restore";
-    };
+    }
+  | {
+      restoreId: string;
+      release: ResourceReleaseSnapshot;
+      type: "restore_cleanup";
+      volumes: string[];
+    }
+  | { release: ResourceReleaseSnapshot; type: "restart" | "start" | "stop" };
+
+export type PersistedResourceOperationRequest = ResourceOperationRequest;
 
 export type BackupOperationResult = {
   backupId: string;
@@ -99,7 +129,12 @@ export type BackupOperationResult = {
   checksum: string;
   deletedBackupIds: string[];
   encryption: "AES256" | "aws:kms";
+  engine?: "postgres" | "redis";
+  engineMajorVersion?: number;
+  format?: "postgres-custom" | "redis-rdb";
   key: string;
+  metadataVersion?: 1;
+  objectVersionId?: string;
   region: string;
   sizeBytes: number;
   verifiedAt: string;
@@ -115,11 +150,63 @@ export const backupOperationResultSchema = z
     checksum: z.string().regex(/^[a-f0-9]{64}$/u),
     deletedBackupIds: z.array(z.string().uuid()),
     encryption: z.enum(["AES256", "aws:kms"]),
+    engine: z.enum(["postgres", "redis"]).optional(),
+    engineMajorVersion: z.number().int().positive().max(1_000).optional(),
+    format: z.enum(["postgres-custom", "redis-rdb"]).optional(),
     key: z.string().trim().min(1).max(2_048),
+    metadataVersion: z.literal(1).optional(),
+    objectVersionId: z.string().trim().min(1).max(1_024).optional(),
     region: z.string().trim().min(1).max(64),
     sizeBytes: z.number().int().nonnegative().max(maximumBackupBytes),
     verifiedAt: z.string().datetime(),
     warnings: z.array(z.string().max(500)),
+  })
+  .strict();
+
+export const restoreVolumeSchema = z
+  .object({
+    logicalName: z.string().trim().min(1).max(63),
+    volumeName: z.string().trim().min(1).max(255),
+  })
+  .strict();
+
+export const restoreValidationSchema = z
+  .object({
+    databaseName: z.string().trim().min(1).max(255).nullable(),
+    engine: z.enum(["postgres", "redis"]),
+    engineMajorVersion: z.number().int().positive().max(1_000),
+    healthVerified: z.boolean(),
+    readable: z.boolean(),
+  })
+  .strict();
+
+export const restoreOperationResultSchema = z
+  .object({
+    activeVolumes: z.array(restoreVolumeSchema).min(1).max(20),
+    candidateCleaned: z.boolean(),
+    outcome: z.enum([
+      "promoted",
+      "candidate_failed",
+      "rolled_back",
+      "rollback_failed",
+    ]),
+    previousVolumes: z.array(restoreVolumeSchema).max(20),
+    restoredBackupId: z.string().uuid(),
+    rollbackAvailableUntil: z.string().datetime().nullable(),
+    validation: restoreValidationSchema.nullable(),
+    verifiedAt: z.string().datetime().nullable(),
+  })
+  .strict();
+
+export type RestoreOperationResult = z.infer<
+  typeof restoreOperationResultSchema
+>;
+
+export const restoreCleanupResultSchema = z
+  .object({
+    cleanedVolumes: z.array(z.string().trim().min(1).max(255)).max(20),
+    restoreId: z.string().uuid(),
+    skippedVolumes: z.array(z.string().trim().min(1).max(255)).max(20),
   })
   .strict();
 
@@ -137,12 +224,8 @@ export const resourceOperationResultSchema = z.union([
       truncated: z.boolean(),
     })
     .strict(),
-  z
-    .object({
-      restoredBackupId: z.string().uuid(),
-      verifiedAt: z.string().datetime(),
-    })
-    .strict(),
+  restoreOperationResultSchema,
+  restoreCleanupResultSchema,
   z.object({ state: z.enum(runtimeDesiredStates) }).strict(),
 ]);
 
@@ -150,5 +233,6 @@ export type ResourceOperationResult =
   | BackupOperationResult
   | { cleaned: OrphanItem[]; skipped: OrphanItem[] }
   | { logs: string; truncated: boolean }
-  | { restoredBackupId: string; verifiedAt: string }
+  | RestoreOperationResult
+  | z.infer<typeof restoreCleanupResultSchema>
   | { state: RuntimeDesiredState };

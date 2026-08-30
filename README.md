@@ -29,6 +29,8 @@ truth and runs deployments through durable Temporal workflows.
 - Source-scoped Slack and SMTP destinations deliver operational events through
   durable, independently retryable attempts without storing credentials in
   Towbar.
+- Managed PostgreSQL and Redis backups include continuous restore-readiness
+  assurance and safety-gated, auditable restores with bounded rollback.
 - PostgreSQL and Temporal provide persistent state and durable execution.
 
 ## Quick start
@@ -57,6 +59,7 @@ Source, prepare a server, and make the first deployment.
 - [Configuration](docs/configuration.md)
 - [Deployment manifest](https://www.towbar.dev/docs/deployment-file)
 - [Architecture](docs/architecture.md)
+- [Managed database restores](docs/managed-restores.md)
 - [Changelog](CHANGELOG.md)
 - [Security policy](SECURITY.md)
 
