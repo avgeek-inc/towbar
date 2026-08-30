@@ -74,13 +74,15 @@ export function SettingsPage({
             <Tabs.List aria-label="Settings sections" className="w-full">
               {settingsNavigation.map((item) => (
                 <Tabs.Tab id={item.value} key={item.value}>
-                  <span
-                    aria-hidden="true"
-                    className="flex shrink-0 items-center justify-center [&_svg]:size-4"
-                  >
-                    <HugeiconsIcon icon={item.icon} />
+                  <span className="inline-flex min-w-0 items-center gap-2">
+                    <span
+                      aria-hidden="true"
+                      className="flex shrink-0 items-center justify-center [&_svg]:size-4"
+                    >
+                      <HugeiconsIcon icon={item.icon} />
+                    </span>
+                    <span className="truncate">{item.label}</span>
                   </span>
-                  {item.label}
                   <Tabs.Indicator />
                 </Tabs.Tab>
               ))}
