@@ -84,12 +84,13 @@ export function NotificationCenter() {
             : "Notifications"
         }
         className={buttonVariants({
-          className: "relative size-10 min-h-10 min-w-10",
+          className:
+            "relative size-8 min-h-8 min-w-8 before:absolute before:-inset-1 before:content-['']",
           isIconOnly: true,
           variant: "ghost",
         })}
       >
-        <HugeiconsIcon aria-hidden="true" icon={Notification02Icon} size={20} />
+        <HugeiconsIcon aria-hidden="true" icon={Notification02Icon} size={18} />
         {unreadCount > 0 ? (
           <span className="absolute end-0.5 top-0.5 grid min-h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[0.625rem] font-medium leading-4 text-danger-foreground">
             {Math.min(unreadCount, 9)}
