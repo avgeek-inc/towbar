@@ -34,9 +34,11 @@ no authorization-code exchange or separate authentication origin.
 Forgotten-owner recovery is an operator-only startup operation. Configure
 `TOWBAR_OWNER_RESET_EMAIL` and a high-entropy temporary
 `TOWBAR_OWNER_RESET_PASSWORD`, restart the API, sign in normally, and change the
-password in Settings. The API stores only a keyed fingerprint of the recovery
-value, revokes existing sessions, and refuses to reapply the same value on a
-later restart. Towbar exposes no unauthenticated password-reset route.
+password in Settings. The API stores the login credential only as an Argon2id
+password hash. A separate keyed marker records only whether that operator reset
+value has already run; it is never accepted by login. Existing sessions are
+revoked, and the same reset value is not reapplied on a later restart. Towbar
+exposes no unauthenticated password-reset route.
 
 Signed GitHub push webhooks synchronize only the manifest's configured branch.
 After any successful Source sync, including an operator-requested sync, the API
