@@ -132,6 +132,8 @@ export type ReleaseCommitResult = {
 export type DeploymentResult = {
   candidatePort: number;
   containerName: string;
+  imageDigest: string;
+  imagePlatform: string;
   imageTag: string;
   warnings: string[];
 };

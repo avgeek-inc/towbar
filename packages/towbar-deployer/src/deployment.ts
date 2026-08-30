@@ -25,6 +25,7 @@ import {
 import { selectDeploymentImage } from "./release-selection.js";
 import { collectSensitiveValues } from "./secrets.js";
 import { SshSession } from "./ssh.js";
+import { inspectImageProvenance } from "./image-provenance.js";
 
 import type {
   DeploymentExecutionContext,
@@ -83,11 +84,17 @@ export async function executeDeployment(input: {
       signal,
     };
     await prepareDeploymentImage(phaseInput);
+    const imageProvenance = await inspectImageProvenance({
+      imageTag: selectedImageTag,
+      session,
+      signal,
+    });
     const candidatePort = await startAndVerifyCandidate(phaseInput);
 
     const result = {
       candidatePort,
       containerName,
+      ...imageProvenance,
       imageTag: selectedImageTag,
       warnings,
     };

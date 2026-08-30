@@ -35,6 +35,11 @@ const eventSchema = z
 const releaseSchema = z
   .object({
     containerName: z.string().trim().min(1).max(255),
+    imageDigest: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
+    imagePlatform: z
+      .string()
+      .regex(/^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*$/u)
+      .max(64),
     imageTag: z.string().trim().min(1).max(255),
   })
   .strict();

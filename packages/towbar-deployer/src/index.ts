@@ -2,6 +2,7 @@ export * from "./build-context.js";
 export * from "./cloudflare.js";
 export * from "./deployment.js";
 export * from "./endpoint-health.js";
+export * from "./image-provenance.js";
 export * from "./deployment-identity.js";
 export * from "./promotion-boundary.js";
 export * from "./preview-cleanup.js";

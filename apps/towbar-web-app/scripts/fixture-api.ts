@@ -343,6 +343,8 @@ const releases: Release[] = [...apps, ...resources].map(
       deployments[0]!.id,
     id: `a1111111-1111-4111-8111-${String(index).padStart(12, "0")}`,
     imageTag: `towbar/${deployable.manifestId}:${commitSha.slice(0, 12)}`,
+    imageDigest: `sha256:${"e".repeat(64)}`,
+    imagePlatform: "linux/arm64",
     promotedAt: fixtureNow,
     status: "current",
     supersededAt: null,
@@ -2207,10 +2209,19 @@ function createDeploymentFixture(
     gitRef: null,
     githubDeploymentId: null,
     hostname: null,
+    imageDigest:
+      state === "succeeded" || state === "succeeded_with_warnings"
+        ? `sha256:${"e".repeat(64)}`
+        : null,
+    imagePlatform:
+      state === "succeeded" || state === "succeeded_with_warnings"
+        ? "linux/arm64"
+        : null,
     kind: trigger === "rollback" ? "rollback" : "deploy",
     manifestDigest,
     serverId: server.id,
     sourceId: source.id,
+    sourceInputDigest: "f".repeat(64),
     startedAt,
     state,
     trigger,
