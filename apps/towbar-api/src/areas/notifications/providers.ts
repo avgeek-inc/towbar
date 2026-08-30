@@ -55,6 +55,7 @@ export async function deliverNotification(input: {
     });
     return {
       providerMessageId: result.messageId,
+      rootUpdated: result.rootUpdated,
       providerStatus: "accepted",
       providerThreadId: result.threadId,
     };
@@ -105,7 +106,7 @@ export async function sendSlackNotification(
       input.providerConfiguration.botToken,
     );
     const messageId = requireSlackMessageId(created);
-    return { messageId, threadId: messageId };
+    return { messageId, rootUpdated: true, threadId: messageId };
   }
   if (input.thread.updateRoot) {
     await request(
@@ -129,7 +130,7 @@ export async function sendSlackNotification(
     },
     input.providerConfiguration.botToken,
   );
-  return input.thread;
+  return { ...input.thread, rootUpdated: input.thread.updateRoot };
 }
 
 function renderSlackGenericMessage(input: {

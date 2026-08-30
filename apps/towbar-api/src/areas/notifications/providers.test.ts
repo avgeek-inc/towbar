@@ -89,7 +89,7 @@ void test("updates the Slack root only for the newest lifecycle event and always
       botToken: "test-token",
     },
   };
-  await sendSlackNotification(
+  const unchangedRoot = await sendSlackNotification(
     {
       ...base,
       thread: {
@@ -105,9 +105,10 @@ void test("updates the Slack root only for the newest lifecycle event and always
     ["chat.postMessage"],
   );
   assert.equal(calls[0]?.payload.thread_ts, "root-thread");
+  assert.equal(unchangedRoot.rootUpdated, false);
 
   calls.length = 0;
-  await sendSlackNotification(
+  const updatedRoot = await sendSlackNotification(
     {
       ...base,
       thread: {
@@ -122,4 +123,5 @@ void test("updates the Slack root only for the newest lifecycle event and always
     calls.map((call) => call.method),
     ["chat.update", "chat.postMessage"],
   );
+  assert.equal(updatedRoot.rootUpdated, true);
 });

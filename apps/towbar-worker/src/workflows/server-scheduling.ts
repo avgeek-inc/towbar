@@ -2,6 +2,12 @@ import type { ServerWorkItem } from "@workspace/towbar-core/temporal";
 
 export type { ServerWorkItem } from "@workspace/towbar-core/temporal";
 
+export function serverWorkIdentity(item: ServerWorkItem) {
+  return item.kind === "vulnerability-scan"
+    ? `${item.kind}:${item.id}:${item.cycle}`
+    : `${item.kind}:${item.id}`;
+}
+
 export function nextServerWorkIndex(input: {
   activeAppIds: Set<string>;
   activeCount: number;

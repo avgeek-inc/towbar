@@ -16,7 +16,10 @@ import type * as activities from "../activities/index.js";
 import { runDeploymentWorkflow } from "./deployment.workflow.js";
 import { runResourceOperationWorkflow } from "./resource-operation.workflow.js";
 import { runVulnerabilityScanWorkflow } from "./vulnerability-scan.workflow.js";
-import { nextServerWorkIndex } from "./server-scheduling.js";
+import {
+  nextServerWorkIndex,
+  serverWorkIdentity,
+} from "./server-scheduling.js";
 import type { ServerWorkItem } from "./server-scheduling.js";
 
 const enqueueServerWork = defineSignal<[ServerWorkItem]>("enqueueServerWork");
@@ -52,8 +55,9 @@ export async function runConcurrentServerCoordinatorWorkflow() {
   let buildConcurrency = 1;
   let previewBuildConcurrency = 1;
   setHandler(enqueueServerWork, (item) => {
-    if (seen.has(item.id)) return;
-    seen.add(item.id);
+    const workId = serverWorkIdentity(item);
+    if (seen.has(workId)) return;
+    seen.add(workId);
     buildConcurrency = Math.max(1, Math.min(16, item.buildConcurrency ?? 1));
     previewBuildConcurrency = Math.max(
       1,
@@ -85,13 +89,14 @@ export async function runConcurrentServerCoordinatorWorkflow() {
       if (index < 0) break;
       const [item] = queue.splice(index, 1);
       if (!item) break;
+      const workId = serverWorkIdentity(item);
       const completion = executeServerWork(item);
       void completion
         .catch(() => undefined)
         .then(() => {
-          completed.push(item.id);
+          completed.push(workId);
         });
-      active.set(item.id, {
+      active.set(workId, {
         appId:
           item.kind === "deployment" ||
           item.kind === "resource-operation" ||

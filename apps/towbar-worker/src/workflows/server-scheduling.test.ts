@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { nextServerWorkIndex } from "./server-scheduling.js";
+import {
+  nextServerWorkIndex,
+  serverWorkIdentity,
+} from "./server-scheduling.js";
 
 import type { ServerWorkItem } from "./server-scheduling.js";
 
@@ -225,5 +228,21 @@ void test("runs at most one vulnerability scan per server", () => {
       queue: [scan, deployment("website", "website")],
     }),
     1,
+  );
+});
+
+void test("deduplicates one scan cycle without dropping a controlled rescan", () => {
+  const scan: ServerWorkItem = {
+    appId: "api",
+    buildConcurrency: 2,
+    cycle: 1,
+    id: "scan",
+    kind: "vulnerability-scan",
+  };
+
+  assert.equal(serverWorkIdentity(scan), serverWorkIdentity({ ...scan }));
+  assert.notEqual(
+    serverWorkIdentity(scan),
+    serverWorkIdentity({ ...scan, cycle: 2 }),
   );
 });

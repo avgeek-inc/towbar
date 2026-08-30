@@ -72,6 +72,7 @@ export async function executeNotificationDeliveryAttempt(input: {
         "providerMessageId" in result ? result.providerMessageId : undefined,
       providerThreadId:
         "providerThreadId" in result ? result.providerThreadId : undefined,
+      rootUpdated: "rootUpdated" in result ? result.rootUpdated : undefined,
     });
     await finishAttempt(input, {
       providerStatus: result.providerStatus,
@@ -268,21 +269,6 @@ async function claimNotificationThread(delivery: {
       .for("update")
       .limit(1);
     if (!thread) throw new Error("Unable to reserve notification thread");
-    if (thread.providerMessageId && thread.providerThreadId) {
-      const eventAt = new Date(delivery.payload.occurredAt);
-      const updateRoot = eventAt.getTime() >= thread.latestEventAt.getTime();
-      if (updateRoot) {
-        await transaction
-          .update(notificationThreads)
-          .set({ latestEventAt: eventAt, updatedAt: new Date() })
-          .where(eq(notificationThreads.id, thread.id));
-      }
-      return {
-        messageId: thread.providerMessageId,
-        threadId: thread.providerThreadId,
-        updateRoot,
-      };
-    }
     const claimExpired = Date.now() - thread.updatedAt.getTime() >= 2 * 60_000;
     if (
       thread.creatingDeliveryId &&
@@ -291,7 +277,7 @@ async function claimNotificationThread(delivery: {
     ) {
       throw new NotificationProviderError(
         "NOTIFICATION_THREAD_PENDING",
-        "The deployment notification thread is being created",
+        "The deployment notification thread is processing another event",
         true,
       );
     }
@@ -302,6 +288,14 @@ async function claimNotificationThread(delivery: {
         updatedAt: new Date(),
       })
       .where(eq(notificationThreads.id, thread.id));
+    if (thread.providerMessageId && thread.providerThreadId) {
+      const eventAt = new Date(delivery.payload.occurredAt);
+      return {
+        messageId: thread.providerMessageId,
+        threadId: thread.providerThreadId,
+        updateRoot: eventAt.getTime() >= thread.latestEventAt.getTime(),
+      };
+    }
     return null;
   });
 }
@@ -311,10 +305,14 @@ async function completeNotificationThread(
     deliveryId: string;
     destinationId: string;
     eventType: string;
-    payload: { entity: { id: string; kind: string } };
+    payload: { entity: { id: string; kind: string }; occurredAt: string };
     provider: string;
   },
-  result: { providerMessageId?: string; providerThreadId?: string },
+  result: {
+    providerMessageId?: string;
+    providerThreadId?: string;
+    rootUpdated?: boolean;
+  },
 ) {
   if (
     delivery.provider !== "slack" ||
@@ -328,6 +326,9 @@ async function completeNotificationThread(
     .update(notificationThreads)
     .set({
       creatingDeliveryId: null,
+      ...(result.rootUpdated
+        ? { latestEventAt: new Date(delivery.payload.occurredAt) }
+        : {}),
       providerMessageId: result.providerMessageId,
       providerThreadId: result.providerThreadId,
       updatedAt: new Date(),
@@ -337,6 +338,7 @@ async function completeNotificationThread(
         eq(notificationThreads.destinationId, delivery.destinationId),
         eq(notificationThreads.entityKind, delivery.payload.entity.kind),
         eq(notificationThreads.entityId, delivery.payload.entity.id),
+        eq(notificationThreads.creatingDeliveryId, delivery.deliveryId),
       ),
     );
 }
