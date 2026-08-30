@@ -20,7 +20,16 @@ import {
 } from "../../../areas/resource-operations/service.js";
 import { listPreviewEnvironments } from "../../../areas/previews/service.js";
 import { badRequest, forbidden } from "../../../http/errors.js";
-import { readJson } from "../../../http/requests.js";
+import { readJson, readOptionalJson } from "../../../http/requests.js";
+import {
+  deployableAutoDeployControlPatchSchema,
+  manualDeploymentSchema,
+} from "./auto-deploy-control-requests.js";
+import {
+  getDeployableAutoDeployControl,
+  updateDeployableAutoDeployControl,
+} from "../../../areas/auto-deploy-controls/service.js";
+import { wakeMaintenanceWorkflow } from "../../../infrastructure/temporal.js";
 import {
   secretMutationSchema,
   secretReferenceSchema,
@@ -44,6 +53,39 @@ appRoutes.get("/:appId", async (context) => {
   const user = context.get("user");
   return context.json({
     app: await getApp(context.req.param("appId"), user.workspaceId),
+  });
+});
+
+appRoutes.get("/:appId/auto-deploy-control", async (context) => {
+  const user = context.get("user");
+  return context.json({
+    autoDeploy: await getDeployableAutoDeployControl({
+      deployableId: context.req.param("appId"),
+      expectedType: "app",
+      workspaceId: user.workspaceId,
+    }),
+    canManageAutoDeploy: user.workspaceRole === "owner",
+  });
+});
+
+appRoutes.patch("/:appId/auto-deploy-control", async (context) => {
+  const user = context.get("user");
+  if (user.workspaceRole !== "owner") {
+    throw forbidden("Only the owner can manage automatic deployment controls");
+  }
+  const result = await updateDeployableAutoDeployControl({
+    actorUserId: user.id,
+    deployableId: context.req.param("appId"),
+    expectedType: "app",
+    patch: await readJson(context, deployableAutoDeployControlPatchSchema),
+    workspaceId: user.workspaceId,
+  });
+  if (result.shouldReevaluate) {
+    await wakeMaintenanceWorkflow();
+  }
+  return context.json({
+    autoDeploy: result,
+    canManageAutoDeploy: user.workspaceRole === "owner",
   });
 });
 
@@ -134,8 +176,10 @@ appRoutes.post("/:appId/actions/deploy", async (context) => {
     context.req.header("idempotency-key"),
   );
   const user = context.get("user");
+  const input = await readOptionalJson(context, manualDeploymentSchema);
   const result = await requestAppDeployment({
     appId: context.req.param("appId"),
+    bypassAutomaticControl: input.bypassAutomaticControl,
     idempotencyKey,
     requestedBy: user.id,
     workspaceId: user.workspaceId,

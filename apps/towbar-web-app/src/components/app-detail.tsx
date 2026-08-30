@@ -11,7 +11,12 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import type { App, Deployment, Release } from "@workspace/towbar-web-client";
+import type {
+  App,
+  AutoDeployControlResponse,
+  Deployment,
+  Release,
+} from "@workspace/towbar-web-client";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -28,6 +33,7 @@ import { PreviewEnvironments } from "./preview-environments";
 import { ResponsiveSubtabs } from "./responsive-subtabs";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 import { DeployableActionsMenu, RuntimeLogs } from "./runtime-operations";
+import { AutoDeployControlEditor } from "./auto-deploy-control";
 
 type AppRecord = App & {
   serverId: string;
@@ -53,14 +59,18 @@ export function AppDetail() {
   const releases = useApiQuery<{ releases: Release[] }>(
     `/v1/core/apps/${appId}/releases`,
   );
-  const error = app.error ?? deployments.error ?? releases.error;
+  const autoDeploy = useApiQuery<AutoDeployControlResponse>(
+    `/v1/core/apps/${appId}/auto-deploy-control`,
+  );
+  const error =
+    app.error ?? deployments.error ?? releases.error ?? autoDeploy.error;
   if (error)
     return (
       <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="App">
         <QueryError message={error} />
       </DashboardPage>
     );
-  if (!app.data || !deployments.data || !releases.data)
+  if (!app.data || !deployments.data || !releases.data || !autoDeploy.data)
     return (
       <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="App">
         <QueryLoading />
@@ -87,6 +97,8 @@ export function AppDetail() {
   );
   const latestDeployment = orderedDeployments[0];
   const lifecycleStatus = getAppLifecycleStatus(item);
+  const automaticAdmissionBlocked =
+    autoDeploy.data.autoDeploy.effective.blocked;
   return (
     <DashboardPage
       actions={
@@ -104,7 +116,9 @@ export function AppDetail() {
               action={() =>
                 api.post<{ deployment: Deployment }>(
                   `/v1/core/apps/${appId}/actions/deploy`,
-                  undefined,
+                  automaticAdmissionBlocked
+                    ? { bypassAutomaticControl: true }
+                    : undefined,
                   { "Idempotency-Key": crypto.randomUUID() },
                 )
               }
@@ -114,6 +128,15 @@ export function AppDetail() {
                 )
               }
               pendingLabel="Queueing…"
+              confirm={
+                automaticAdmissionBlocked
+                  ? {
+                      actionLabel: "Deploy manually",
+                      description: `${autoDeploy.data.autoDeploy.effective.reasonDetail ?? "Automatic deployment admission is blocked"}. This manual deployment bypasses that control; existing automatic controls remain unchanged.`,
+                      title: "Bypass automatic deployment controls?",
+                    }
+                  : undefined
+              }
               isDisabled={!item.serverReady}
               success="Deployment queued"
               variant="primary"
@@ -274,7 +297,13 @@ export function AppDetail() {
             value: "settings",
             label: "Settings",
             icon: <HugeiconsIcon icon={Settings01Icon} />,
-            content: <AppSettings appId={appId} item={item} />,
+            content: (
+              <AppSettings
+                appId={appId}
+                item={item}
+                onAutoDeployChanged={autoDeploy.refresh}
+              />
+            ),
           },
         ]}
       />
@@ -282,7 +311,15 @@ export function AppDetail() {
   );
 }
 
-function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
+function AppSettings({
+  appId,
+  item,
+  onAutoDeployChanged,
+}: {
+  appId: string;
+  item: AppRecord;
+  onAutoDeployChanged: () => void;
+}) {
   const tabs: Array<{ content: ReactNode; label: string; value: string }> = [
     {
       value: "build",
@@ -425,6 +462,17 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
           },
         ]
       : []),
+    {
+      value: "auto-deploy",
+      label: "Auto-deploy",
+      content: (
+        <AutoDeployControlEditor
+          id={appId}
+          type="app"
+          onChanged={onAutoDeployChanged}
+        />
+      ),
+    },
     {
       value: "secrets",
       label: "Secrets",

@@ -19,6 +19,9 @@ import { deploymentStates } from "@workspace/towbar-core/temporal";
 import { deploymentEnvironments } from "@workspace/towbar-core/preview";
 
 import type {
+  AutoDeployCircuit,
+  AutoDeployControl,
+  DeferredAutomaticDeployment,
   DeploymentPlan,
   NotificationCategory,
   NotificationDestinationInput,
@@ -304,6 +307,20 @@ export const sources = pgTable(
     latestCommitSha: varchar("latest_commit_sha", { length: 64 }),
     latestManifestDigest: varchar("latest_manifest_digest", { length: 64 }),
     latestSuccessfulSyncId: uuid("latest_successful_sync_id"),
+    autoDeployControl: jsonb("auto_deploy_control")
+      .$type<AutoDeployControl>()
+      .default({
+        failureThreshold: 3,
+        maintenanceWindow: null,
+        paused: false,
+        pausedAt: null,
+        pausedBy: null,
+        pauseReason: null,
+        recoveryPolicy: "manual",
+        updatedAt: null,
+        updatedBy: null,
+      })
+      .notNull(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -750,6 +767,32 @@ export const apps = pgTable(
     deploymentDigest: varchar("deployment_digest", { length: 64 }),
     sourceInputDigest: varchar("source_input_digest", { length: 64 }),
     sourceRevision: varchar("source_revision", { length: 64 }).notNull(),
+    autoDeployCircuit: jsonb("auto_deploy_circuit")
+      .$type<AutoDeployCircuit>()
+      .default({
+        consecutiveFailures: 0,
+        failureFingerprint: null,
+        openedAt: null,
+        openedReason: null,
+      })
+      .notNull(),
+    autoDeployControl: jsonb("auto_deploy_control")
+      .$type<AutoDeployControl>()
+      .default({
+        failureThreshold: 3,
+        maintenanceWindow: null,
+        paused: false,
+        pausedAt: null,
+        pausedBy: null,
+        pauseReason: null,
+        recoveryPolicy: "manual",
+        updatedAt: null,
+        updatedBy: null,
+      })
+      .notNull(),
+    deferredAutomaticDeployment: jsonb(
+      "deferred_automatic_deployment",
+    ).$type<DeferredAutomaticDeployment>(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

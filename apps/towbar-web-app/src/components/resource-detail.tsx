@@ -11,6 +11,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import type {
+  AutoDeployControlResponse,
   Deployment,
   Release,
   Resource,
@@ -31,6 +32,7 @@ import { ResponsiveSubtabs } from "./responsive-subtabs";
 import { ResourceSecrets } from "./app-secrets";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 import { DeployableActionsMenu, RuntimeLogs } from "./runtime-operations";
+import { AutoDeployControlEditor } from "./auto-deploy-control";
 
 type ResourceRecord = Resource & {
   serverId: string;
@@ -60,7 +62,11 @@ export function ResourceDetail() {
   const releases = useApiQuery<{ releases: Release[] }>(
     `/v1/core/resources/${resourceId}/releases`,
   );
-  const error = resource.error ?? deployments.error ?? releases.error;
+  const autoDeploy = useApiQuery<AutoDeployControlResponse>(
+    `/v1/core/resources/${resourceId}/auto-deploy-control`,
+  );
+  const error =
+    resource.error ?? deployments.error ?? releases.error ?? autoDeploy.error;
 
   if (error) {
     return (
@@ -69,7 +75,12 @@ export function ResourceDetail() {
       </DashboardPage>
     );
   }
-  if (!resource.data || !deployments.data || !releases.data) {
+  if (
+    !resource.data ||
+    !deployments.data ||
+    !releases.data ||
+    !autoDeploy.data
+  ) {
     return (
       <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="Resource">
         <QueryLoading />
@@ -98,6 +109,8 @@ export function ResourceDetail() {
   );
   const latestDeployment = orderedDeployments[0];
   const lifecycleStatus = getResourceLifecycleStatus(item);
+  const automaticAdmissionBlocked =
+    autoDeploy.data.autoDeploy.effective.blocked;
   const tabs = [
     {
       value: "overview",
@@ -207,7 +220,13 @@ export function ResourceDetail() {
       value: "settings",
       label: "Settings",
       icon: <HugeiconsIcon icon={Settings01Icon} />,
-      content: <ResourceSettings item={item} resourceId={resourceId} />,
+      content: (
+        <ResourceSettings
+          item={item}
+          resourceId={resourceId}
+          onAutoDeployChanged={autoDeploy.refresh}
+        />
+      ),
     },
   ];
 
@@ -228,7 +247,9 @@ export function ResourceDetail() {
               action={() =>
                 api.post<{ deployment: Deployment }>(
                   `/v1/core/resources/${resourceId}/actions/deploy`,
-                  undefined,
+                  automaticAdmissionBlocked
+                    ? { bypassAutomaticControl: true }
+                    : undefined,
                   { "Idempotency-Key": crypto.randomUUID() },
                 )
               }
@@ -238,6 +259,15 @@ export function ResourceDetail() {
                 )
               }
               pendingLabel="Queueing…"
+              confirm={
+                automaticAdmissionBlocked
+                  ? {
+                      actionLabel: "Deploy manually",
+                      description: `${autoDeploy.data.autoDeploy.effective.reasonDetail ?? "Automatic deployment admission is blocked"}. This manual deployment bypasses that control; existing automatic controls remain unchanged.`,
+                      title: "Bypass automatic deployment controls?",
+                    }
+                  : undefined
+              }
               isDisabled={!item.serverReady}
               success="Resource deployment queued"
               variant="primary"
@@ -278,9 +308,11 @@ export function ResourceDetail() {
 
 function ResourceSettings({
   item,
+  onAutoDeployChanged,
   resourceId,
 }: {
   item: ResourceRecord;
+  onAutoDeployChanged: () => void;
   resourceId: string;
 }) {
   const tabs: Array<{ content: ReactNode; label: string; value: string }> = [
@@ -405,6 +437,17 @@ function ResourceSettings({
                 : "Not configured"}
           </Attributes.Item>
         </Attributes>
+      ),
+    },
+    {
+      value: "auto-deploy",
+      label: "Auto-deploy",
+      content: (
+        <AutoDeployControlEditor
+          id={resourceId}
+          type="resource"
+          onChanged={onAutoDeployChanged}
+        />
       ),
     },
     {

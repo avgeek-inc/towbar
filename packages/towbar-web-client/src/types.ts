@@ -18,6 +18,71 @@ export type Source = {
   updatedAt: string;
 };
 
+export type AutoDeployMaintenanceWindow = {
+  daysOfWeek: number[];
+  endMinute: number;
+  startMinute: number;
+  timezone: string;
+};
+
+export type AutoDeployControl = {
+  failureThreshold: number;
+  maintenanceWindow: AutoDeployMaintenanceWindow | null;
+  paused: boolean;
+  pausedAt: string | null;
+  pausedBy: string | null;
+  pauseReason: string | null;
+  recoveryPolicy: "manual" | "on_manual_success";
+  updatedAt: string | null;
+  updatedBy: string | null;
+};
+
+export type AutoDeployControlResponse = {
+  autoDeploy: {
+    circuit?: {
+      consecutiveFailures: number;
+      failureFingerprint: string | null;
+      openedAt: string | null;
+      openedReason: string | null;
+    };
+    control: AutoDeployControl;
+    effective: {
+      actor: { displayName: string; id: string } | null;
+      blocked: boolean;
+      nextOpenAt: string | null;
+      pending: {
+        commitSha: string;
+        deploymentDigest: string;
+        deferredAt: string;
+        manifestId: string;
+        nextEligibleAt: string | null;
+        reason: "circuit_open" | "maintenance_window" | "paused";
+        scope: "deployable" | "source";
+      } | null;
+      reason: "circuit_open" | "maintenance_window" | "paused" | null;
+      reasonDetail: string | null;
+      scope: "deployable" | "source" | null;
+    };
+    manifestAutoDeployEnabled?: boolean;
+    recentEvents: AutoDeployControlAuditEvent[];
+  };
+  canManageAutoDeploy: boolean;
+};
+
+export type AutoDeployControlAuditEvent = {
+  action:
+    | "auto_deploy.control_updated"
+    | "auto_deploy.circuit_opened"
+    | "auto_deploy.circuit_recovered"
+    | "auto_deploy.manual_bypass";
+  actor: { displayName: string; id: string } | null;
+  createdAt: string;
+  id: string;
+  metadata: Record<string, boolean | number | string | null>;
+  targetId: string | null;
+  targetType: string;
+};
+
 export type DeploymentPlanAction =
   "archive" | "create" | "no_op" | "restore" | "update";
 

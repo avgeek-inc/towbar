@@ -1,0 +1,4 @@
+ALTER TABLE "towbar_apps" ADD COLUMN "auto_deploy_circuit" jsonb DEFAULT '{"consecutiveFailures":0,"failureFingerprint":null,"openedAt":null,"openedReason":null}'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "towbar_apps" ADD COLUMN "auto_deploy_control" jsonb DEFAULT '{"failureThreshold":3,"maintenanceWindow":null,"paused":false,"pausedAt":null,"pausedBy":null,"pauseReason":null,"recoveryPolicy":"manual","updatedAt":null,"updatedBy":null}'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "towbar_apps" ADD COLUMN "deferred_automatic_deployment" jsonb;--> statement-breakpoint
+ALTER TABLE "towbar_sources" ADD COLUMN "auto_deploy_control" jsonb DEFAULT '{"failureThreshold":3,"maintenanceWindow":null,"paused":false,"pausedAt":null,"pausedBy":null,"pauseReason":null,"recoveryPolicy":"manual","updatedAt":null,"updatedBy":null}'::jsonb NOT NULL;

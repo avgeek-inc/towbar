@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull, notInArray } from "drizzle-orm";
 import { isNormalizedResource } from "@workspace/towbar-core";
 
 import {
@@ -12,6 +12,10 @@ import {
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { selectAutomaticDeploymentCandidates } from "./automatic-deployment-selection.js";
 import { requestAppDeployment } from "./service.js";
+import {
+  createDeferredAutomaticDeployment,
+  evaluateAutoDeployGate,
+} from "../auto-deploy-controls/service.js";
 import { requestDisabledPreviewCleanups } from "../previews/cleanup.js";
 import { scheduleSourcePreviewReconciliations } from "../previews/service.js";
 
@@ -71,7 +75,43 @@ export function continueAutomaticDeployments(deploymentId: string) {
   return { deploymentIds: [] };
 }
 
-async function scheduleEligibleAutomaticDeployments(input: {
+export async function scheduleLatestAutomaticDeploymentsForSource(input: {
+  sourceId: string;
+  workspaceId: string;
+}) {
+  const [source] = await getTowbarDatabase()
+    .select({ latestCommitSha: sources.latestCommitSha })
+    .from(sources)
+    .where(
+      and(
+        eq(sources.id, input.sourceId),
+        eq(sources.workspaceId, input.workspaceId),
+        eq(sources.status, "active"),
+      ),
+    )
+    .limit(1);
+  if (!source?.latestCommitSha) return { deploymentIds: [] };
+  return await scheduleEligibleAutomaticDeployments({
+    commitSha: source.latestCommitSha,
+    sourceId: input.sourceId,
+    workspaceId: input.workspaceId,
+  });
+}
+
+export async function admitDueDeferredAutomaticDeployments() {
+  const sourceRows = await getTowbarDatabase()
+    .selectDistinct({ sourceId: apps.sourceId, workspaceId: apps.workspaceId })
+    .from(apps)
+    .where(isNotNull(apps.deferredAutomaticDeployment));
+  let deploymentsQueued = 0;
+  for (const source of sourceRows) {
+    const result = await scheduleLatestAutomaticDeploymentsForSource(source);
+    deploymentsQueued += result.deploymentIds.length;
+  }
+  return deploymentsQueued;
+}
+
+export async function scheduleEligibleAutomaticDeployments(input: {
   commitSha: string;
   sourceId: string;
   syncId?: string;
@@ -79,7 +119,10 @@ async function scheduleEligibleAutomaticDeployments(input: {
 }) {
   const database = getTowbarDatabase();
   const [source] = await database
-    .select({ latestCommitSha: sources.latestCommitSha })
+    .select({
+      autoDeployControl: sources.autoDeployControl,
+      latestCommitSha: sources.latestCommitSha,
+    })
     .from(sources)
     .where(
       and(
@@ -97,6 +140,8 @@ async function scheduleEligibleAutomaticDeployments(input: {
     .select({
       appId: apps.id,
       archivedAt: apps.archivedAt,
+      autoDeployCircuit: apps.autoDeployCircuit,
+      autoDeployControl: apps.autoDeployControl,
       config: apps.config,
       deploymentDigest: apps.deploymentDigest,
       manifestId: apps.manifestId,
@@ -141,12 +186,43 @@ async function scheduleEligibleAutomaticDeployments(input: {
     releases: releaseStates,
   });
 
+  const eligibleIds = eligible.map((candidate) => candidate.appId);
+  await database
+    .update(apps)
+    .set({ deferredAutomaticDeployment: null })
+    .where(
+      and(
+        eq(apps.sourceId, input.sourceId),
+        isNotNull(apps.deferredAutomaticDeployment),
+        ...(eligibleIds.length ? [notInArray(apps.id, eligibleIds)] : []),
+      ),
+    );
+
   const results = await Promise.all(
-    eligible.map((candidate) => {
+    eligible.map(async (candidate) => {
       if (!candidate.deploymentDigest) {
         throw new Error("Automatic deployment candidate is not materialized");
       }
-      return requestAppDeployment({
+      const gate = evaluateAutoDeployGate({
+        circuit: candidate.autoDeployCircuit,
+        deployableControl: candidate.autoDeployControl,
+        sourceControl: source.autoDeployControl,
+      });
+      if (gate.blocked) {
+        await database
+          .update(apps)
+          .set({
+            deferredAutomaticDeployment: createDeferredAutomaticDeployment({
+              commitSha: input.commitSha,
+              deploymentDigest: candidate.deploymentDigest,
+              gate,
+              manifestId: candidate.manifestId,
+            }),
+          })
+          .where(eq(apps.id, candidate.appId));
+        return null;
+      }
+      const result = await requestAppDeployment({
         appId: candidate.appId,
         expectedType: isNormalizedResource(candidate.config)
           ? "resource"
@@ -162,9 +238,16 @@ async function scheduleEligibleAutomaticDeployments(input: {
         requestedBy: null,
         workspaceId: input.workspaceId,
       });
+      await database
+        .update(apps)
+        .set({ deferredAutomaticDeployment: null })
+        .where(eq(apps.id, candidate.appId));
+      return result;
     }),
   );
   return {
-    deploymentIds: results.map((result) => result.deployment.id),
+    deploymentIds: results.flatMap((result) =>
+      result ? [result.deployment.id] : [],
+    ),
   };
 }
