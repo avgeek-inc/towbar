@@ -366,7 +366,6 @@ export const notificationDestinations = pgTable(
     sourceId: uuid("source_id")
       .notNull()
       .references(() => sources.id, { onDelete: "cascade" }),
-    name: varchar("name", { length: 120 }).notNull(),
     provider: notificationProviderEnum("provider").notNull(),
     enabled: boolean("enabled").default(true).notNull(),
     categories: jsonb("categories").$type<NotificationCategory[]>().notNull(),
@@ -382,9 +381,6 @@ export const notificationDestinations = pgTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex("uq_towbar_notification_destinations_source_name")
-      .on(table.sourceId, table.name)
-      .where(sql`${table.deletedAt} IS NULL`),
     index("idx_towbar_notification_destinations_source").on(table.sourceId),
   ],
 );

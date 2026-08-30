@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 
 import {
   notificationCategoryForEvent,
@@ -32,7 +32,6 @@ const publicDestinationSelection = {
   createdAt: notificationDestinations.createdAt,
   enabled: notificationDestinations.enabled,
   id: notificationDestinations.id,
-  name: notificationDestinations.name,
   provider: notificationDestinations.provider,
   sourceId: notificationDestinations.sourceId,
   updatedAt: notificationDestinations.updatedAt,
@@ -53,7 +52,7 @@ export async function listNotificationDestinations(input: {
         isNull(notificationDestinations.deletedAt),
       ),
     )
-    .orderBy(asc(notificationDestinations.name));
+    .orderBy(desc(notificationDestinations.createdAt));
 }
 
 export async function listNotificationEvents(input: {

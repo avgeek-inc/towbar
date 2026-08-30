@@ -105,7 +105,6 @@ export type NotificationEventPayload = z.infer<
 const notificationDestinationBaseSchema = z.object({
   categories: z.array(notificationCategorySchema).min(1).max(5),
   enabled: z.boolean(),
-  name: z.string().trim().min(1).max(120),
 });
 
 export const slackNotificationConfigSchema = z

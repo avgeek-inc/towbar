@@ -1867,12 +1867,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "name": {
-          "name": "name",
-          "type": "varchar(120)",
-          "primaryKey": false,
-          "notNull": true
-        },
         "provider": {
           "name": "provider",
           "type": "towbar_notification_provider",
@@ -1921,28 +1915,6 @@
         }
       },
       "indexes": {
-        "uq_towbar_notification_destinations_source_name": {
-          "name": "uq_towbar_notification_destinations_source_name",
-          "columns": [
-            {
-              "expression": "source_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "name",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"towbar_notification_destinations\".\"deleted_at\" IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "idx_towbar_notification_destinations_source": {
           "name": "idx_towbar_notification_destinations_source",
           "columns": [

@@ -24,7 +24,6 @@ void test("accepts provider targets without provider credentials", () => {
     categories: ["deployments", "previews"],
     config: { channelId: "C12345678" },
     enabled: true,
-    name: "Deployments",
     provider: "slack",
   });
   assert.equal(slack.provider, "slack");
@@ -35,7 +34,6 @@ void test("accepts provider targets without provider credentials", () => {
       recipients: ["operator@example.com"],
     },
     enabled: false,
-    name: "Operations email",
     provider: "smtp",
   });
   assert.equal(smtp.provider, "smtp");
@@ -47,7 +45,6 @@ void test("rejects inline provider credentials", () => {
       categories: ["deployments"],
       config: { webhookUrl: "https://hooks.slack.com/services/T/B/token" },
       enabled: true,
-      name: "Slack",
       provider: "slack",
     }),
   );
@@ -59,7 +56,6 @@ void test("rejects inline provider credentials", () => {
         recipients: ["operator@example.com"],
       },
       enabled: true,
-      name: "Email",
       provider: "smtp",
     }),
   );

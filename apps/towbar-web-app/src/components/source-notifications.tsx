@@ -52,7 +52,6 @@ type DestinationDraft = {
   categories: NotificationCategory[];
   channelId: string;
   enabled: boolean;
-  name: string;
   provider: "slack" | "smtp";
   recipients: string;
 };
@@ -99,8 +98,8 @@ export function SourceNotifications({
       header: "Destination",
       cell: (destination) => (
         <ResourceName
-          description={destinationTarget(destination)}
-          name={destination.name}
+          description={providerLabel(destination.provider)}
+          name={destinationTarget(destination)}
         />
       ),
       className: "min-w-64",
@@ -162,7 +161,7 @@ export function SourceNotifications({
                 actionLabel: "Delete destination",
                 description:
                   "Future operational events will no longer be sent to this destination.",
-                title: `Delete ${destination.name}?`,
+                title: `Delete ${providerLabel(destination.provider)} destination?`,
               }}
               onSuccess={destinations.refresh}
               pendingLabel="Deleting…"
@@ -288,56 +287,38 @@ export function SourceNotifications({
                       </Alert.Content>
                     </Alert>
                   ) : null}
-                  <div className="grid gap-5 sm:grid-cols-2">
-                    <Field>
-                      <FieldLabel htmlFor="notification-name">Name</FieldLabel>
-                      <Input
-                        id="notification-name"
-                        maxLength={120}
-                        required
-                        value={draft.name}
-                        variant="secondary"
-                        onChange={(event) =>
-                          setDraft({
-                            ...draft,
-                            name: event.currentTarget.value,
-                          })
-                        }
-                      />
-                    </Field>
-                    <Select
-                      isRequired
-                      selectedKey={draft.provider}
-                      variant="secondary"
-                      onSelectionChange={(key) =>
-                        setDraft({
-                          ...draft,
-                          provider: String(key) as "slack" | "smtp",
-                        })
-                      }
-                    >
-                      <Label>Provider</Label>
-                      <Select.Trigger>
-                        <Select.Value />
-                        <Select.Indicator />
-                      </Select.Trigger>
-                      <Select.Popover>
-                        <ListBox>
-                          {providerOptions.map((provider) => (
-                            <ListBox.Item
-                              id={provider.value}
-                              isDisabled={!providers[provider.value]}
-                              key={provider.value}
-                              textValue={provider.label}
-                            >
-                              {provider.label}
-                              <ListBox.ItemIndicator />
-                            </ListBox.Item>
-                          ))}
-                        </ListBox>
-                      </Select.Popover>
-                    </Select>
-                  </div>
+                  <Select
+                    isRequired
+                    selectedKey={draft.provider}
+                    variant="secondary"
+                    onSelectionChange={(key) =>
+                      setDraft({
+                        ...draft,
+                        provider: String(key) as "slack" | "smtp",
+                      })
+                    }
+                  >
+                    <Label>Provider</Label>
+                    <Select.Trigger>
+                      <Select.Value />
+                      <Select.Indicator />
+                    </Select.Trigger>
+                    <Select.Popover>
+                      <ListBox>
+                        {providerOptions.map((provider) => (
+                          <ListBox.Item
+                            id={provider.value}
+                            isDisabled={!providers[provider.value]}
+                            key={provider.value}
+                            textValue={provider.label}
+                          >
+                            {provider.label}
+                            <ListBox.ItemIndicator />
+                          </ListBox.Item>
+                        ))}
+                      </ListBox>
+                    </Select.Popover>
+                  </Select>
 
                   {draft.provider === "slack" ? (
                     <Field>
@@ -387,7 +368,7 @@ export function SourceNotifications({
 
                   <FieldSet>
                     <FieldLegend>Event categories</FieldLegend>
-                    <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
                       {categoryOptions.map((category) => (
                         <Checkbox
                           isSelected={draft.categories.includes(category.value)}
@@ -403,10 +384,12 @@ export function SourceNotifications({
                             })
                           }
                         >
-                          <Checkbox.Control>
-                            <Checkbox.Indicator />
-                          </Checkbox.Control>
-                          <Checkbox.Content>{category.label}</Checkbox.Content>
+                          <Checkbox.Content className="min-h-8 w-fit">
+                            <Checkbox.Control>
+                              <Checkbox.Indicator />
+                            </Checkbox.Control>
+                            <Label>{category.label}</Label>
+                          </Checkbox.Content>
                         </Checkbox>
                       ))}
                     </div>
@@ -416,10 +399,12 @@ export function SourceNotifications({
                     isSelected={draft.enabled}
                     onChange={(enabled) => setDraft({ ...draft, enabled })}
                   >
-                    <Switch.Control>
-                      <Switch.Thumb />
-                    </Switch.Control>
-                    <Switch.Content>Enable this destination</Switch.Content>
+                    <Switch.Content className="min-h-8 w-fit">
+                      <Switch.Control>
+                        <Switch.Thumb />
+                      </Switch.Control>
+                      <Label>Enable this destination</Label>
+                    </Switch.Content>
                   </Switch>
 
                   <div className="flex justify-end gap-3">
@@ -449,7 +434,6 @@ function emptyDraft(provider: "slack" | "smtp"): DestinationDraft {
     categories: categoryOptions.map((category) => category.value),
     channelId: "",
     enabled: true,
-    name: "",
     provider,
     recipients: "",
   };
@@ -465,7 +449,6 @@ function draftFromDestination(
         ? destination.config.channelId
         : "",
     enabled: destination.enabled,
-    name: destination.name,
     provider: destination.provider,
     recipients:
       destination.provider === "smtp" && "recipients" in destination.config
@@ -478,7 +461,6 @@ function destinationPayload(draft: DestinationDraft) {
   const base = {
     categories: draft.categories,
     enabled: draft.enabled,
-    name: draft.name.trim(),
   };
   if (draft.provider === "slack") {
     return {
@@ -499,14 +481,14 @@ function destinationPayload(draft: DestinationDraft) {
   };
 }
 
-function destinationTarget(destination: NotificationDestination) {
+function destinationTarget(destination: NotificationDestination): string {
   if (destination.provider === "slack" && "channelId" in destination.config) {
     return destination.config.channelId;
   }
   if (destination.provider === "smtp" && "recipients" in destination.config) {
     return destination.config.recipients.join(", ");
   }
-  return undefined;
+  return providerLabel(destination.provider);
 }
 
 function providerLabel(provider: NotificationDestination["provider"]) {

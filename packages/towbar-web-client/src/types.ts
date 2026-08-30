@@ -174,7 +174,6 @@ export type NotificationDestination = {
   createdAt: string;
   enabled: boolean;
   id: string;
-  name: string;
   provider: "slack" | "smtp";
   sourceId: string;
   updatedAt: string;

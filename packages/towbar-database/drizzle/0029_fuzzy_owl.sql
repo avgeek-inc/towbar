@@ -34,7 +34,6 @@ CREATE TABLE "towbar_notification_destinations" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"workspace_id" uuid NOT NULL,
 	"source_id" uuid NOT NULL,
-	"name" varchar(120) NOT NULL,
 	"provider" "towbar_notification_provider" NOT NULL,
 	"enabled" boolean DEFAULT true NOT NULL,
 	"categories" jsonb NOT NULL,
@@ -68,7 +67,6 @@ CREATE INDEX "idx_towbar_notification_deliveries_state_next" ON "towbar_notifica
 CREATE INDEX "idx_towbar_notification_deliveries_destination_created" ON "towbar_notification_deliveries" USING btree ("destination_id","created_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "uq_towbar_notification_attempts_identity" ON "towbar_notification_delivery_attempts" USING btree ("delivery_id","cycle","sequence");--> statement-breakpoint
 CREATE INDEX "idx_towbar_notification_attempts_delivery" ON "towbar_notification_delivery_attempts" USING btree ("delivery_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "uq_towbar_notification_destinations_source_name" ON "towbar_notification_destinations" USING btree ("source_id","name") WHERE "towbar_notification_destinations"."deleted_at" IS NULL;--> statement-breakpoint
 CREATE INDEX "idx_towbar_notification_destinations_source" ON "towbar_notification_destinations" USING btree ("source_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "uq_towbar_notification_events_dedupe" ON "towbar_notification_events" USING btree ("source_id","dedupe_key");--> statement-breakpoint
 CREATE INDEX "idx_towbar_notification_events_source_created" ON "towbar_notification_events" USING btree ("source_id","created_at");
