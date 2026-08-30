@@ -74,7 +74,12 @@ export function SettingsPage({
             <Tabs.List aria-label="Settings sections" className="w-full">
               {settingsNavigation.map((item) => (
                 <Tabs.Tab id={item.value} key={item.value}>
-                  <HugeiconsIcon aria-hidden="true" icon={item.icon} />
+                  <span
+                    aria-hidden="true"
+                    className="flex shrink-0 items-center justify-center [&_svg]:size-4"
+                  >
+                    <HugeiconsIcon icon={item.icon} />
+                  </span>
                   {item.label}
                   <Tabs.Indicator />
                 </Tabs.Tab>
