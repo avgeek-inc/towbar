@@ -27,7 +27,6 @@ import { toast } from "@workspace/web-design-system/overlays/toast";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
-  ResourceName,
   ResourceTable,
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
@@ -36,6 +35,7 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { ActionButton } from "@/components/page-parts";
 import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
+import { summarizeAssuranceChecks } from "@/lib/backup-assurance-summary";
 import { formatDate } from "./dashboard-overview";
 import { formatBytes } from "./runtime-operations";
 
@@ -104,18 +104,23 @@ export function ResourceBackupConfiguration({
   const latestAssurance = latestBackup
     ? assuranceByBackup.get(latestBackup.id)
     : undefined;
+  const assuranceSummary = latestAssurance
+    ? summarizeAssuranceChecks(latestAssurance.checks)
+    : [];
 
   const backupColumns: ResourceTableColumn<SourceBackup>[] = [
     {
       key: "created",
       header: "Created",
-      cell: (item) => (
-        <ResourceName
-          description={formatBytes(item.result.sizeBytes)}
-          name={formatDate(item.finishedAt ?? item.createdAt)}
-        />
-      ),
-      className: "min-w-52",
+      cell: (item) => formatDate(item.finishedAt ?? item.createdAt),
+      className: "min-w-48 whitespace-nowrap tabular-nums",
+    },
+    {
+      key: "size",
+      header: "Size",
+      cell: (item) => formatBytes(item.result.sizeBytes),
+      className: "whitespace-nowrap tabular-nums",
+      headerClassName: "whitespace-nowrap",
     },
     {
       key: "engine",
@@ -168,13 +173,7 @@ export function ResourceBackupConfiguration({
 
   return (
     <div className="grid gap-8">
-      <div
-        className={
-          active
-            ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.65fr)]"
-            : "grid gap-4"
-        }
-      >
+      <div className={active ? "grid gap-6 2xl:grid-cols-2" : "grid gap-6"}>
         <Attributes title="Backup policy" variant="card">
           <Attributes.Item label="Schedule">
             {backup.schedule ? (
@@ -220,22 +219,22 @@ export function ResourceBackupConfiguration({
                   ? `Checked ${formatDate(latestAssurance.checkedAt)}`
                   : "Run a backup before Towbar can verify restore readiness."}
               </p>
-              {latestAssurance ? (
-                <ul className="grid gap-2">
-                  {latestAssurance.checks.map((check) => (
+              {assuranceSummary.length ? (
+                <ul className="grid gap-3 md:grid-cols-3">
+                  {assuranceSummary.map((summary) => (
                     <li
                       className="flex items-start gap-2 typography--body-sm"
-                      key={check.name}
+                      key={summary.name}
                     >
                       <span
                         aria-hidden="true"
                         className={
-                          check.passed ? "text-success" : "text-danger"
+                          summary.passed ? "text-success" : "text-danger"
                         }
                       >
-                        {check.passed ? "●" : "○"}
+                        {summary.passed ? "●" : "○"}
                       </span>
-                      <span>{check.message}</span>
+                      <span>{summary.message}</span>
                     </li>
                   ))}
                 </ul>
@@ -475,14 +474,21 @@ function RestoreHistory({
   );
   const restoreColumns: ResourceTableColumn<ResourceOperation>[] = [
     {
-      key: "operation",
-      header: "Restore",
+      key: "created",
+      header: "Created",
+      cell: (operation) => formatDate(operation.createdAt),
+      className: "min-w-48 whitespace-nowrap tabular-nums",
+    },
+    {
+      key: "restore-id",
+      header: "Restore ID",
       cell: (operation) => (
-        <ResourceName
-          description={formatDate(operation.createdAt)}
-          name={operation.id.slice(0, 8)}
-        />
+        <TypographyCode title={operation.id}>
+          {operation.id.slice(0, 8)}
+        </TypographyCode>
       ),
+      className: "whitespace-nowrap",
+      headerClassName: "whitespace-nowrap",
     },
     {
       key: "reason",
