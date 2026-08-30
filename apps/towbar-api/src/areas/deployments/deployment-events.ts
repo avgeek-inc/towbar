@@ -14,7 +14,6 @@ import { notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { propagatePreviewDeploymentState } from "./preview-status.js";
 import { emitDeploymentNotification } from "../notifications/events.js";
-import { recordAutoDeployCircuitOutcome } from "../auto-deploy-controls/service.js";
 
 import type { DeploymentState } from "@workspace/towbar-core/temporal";
 
@@ -108,16 +107,6 @@ export async function recordDeploymentEvent(
       publish: result.stateChanged,
     });
     if (result.stateChanged) {
-      if (
-        input.state === "failed" ||
-        input.state === "succeeded" ||
-        input.state === "succeeded_with_warnings"
-      ) {
-        await recordAutoDeployCircuitOutcome({
-          deploymentId,
-          state: input.state,
-        });
-      }
       const notificationType = deploymentNotificationType(
         result.previousState,
         input.state,

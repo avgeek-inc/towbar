@@ -19,10 +19,6 @@ import { publicDeploymentSelection } from "../deployment-selection.js";
 import { emitDeploymentNotification } from "../notifications/events.js";
 import { scopeDeploymentIdempotencyKey } from "./idempotency.js";
 import { getApp, getResource } from "./queries.js";
-import {
-  recordAutoDeployCircuitOutcome,
-  requireManualAutoDeployBypass,
-} from "../auto-deploy-controls/service.js";
 
 export { getApp, getResource, listApps, listResources } from "./queries.js";
 
@@ -87,7 +83,6 @@ export async function listResourceReleases(
 
 export async function requestAppDeployment(input: {
   appId: string;
-  bypassAutomaticControl?: boolean;
   expectedCommitSha?: string;
   idempotencyKey: string;
   requestedBy: string | null;
@@ -111,14 +106,6 @@ export async function requestAppDeployment(input: {
     throw unprocessable("The Source must have a successful sync before deploy");
   }
   requireServerReady(target);
-  if (request.requestedBy) {
-    await requireManualAutoDeployBypass({
-      actorUserId: request.requestedBy,
-      bypass: Boolean(request.bypassAutomaticControl),
-      deployableId: request.appId,
-      workspaceId: request.workspaceId,
-    });
-  }
   const commitSha = target.commitSha;
   const deploymentDigest = target.deploymentDigest;
   const manifestDigest = target.manifestDigest;
@@ -269,10 +256,6 @@ export async function requestAppDeployment(input: {
     await emitDeploymentNotification(deploymentId, "deployment.failed").catch(
       () => undefined,
     );
-    await recordAutoDeployCircuitOutcome({
-      deploymentId,
-      state: "failed",
-    });
     throw error;
   }
   return {

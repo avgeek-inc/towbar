@@ -20,7 +20,6 @@ export const notificationEventTypes = [
   "deployment.succeeded",
   "deployment.failed",
   "deployment.cancelled",
-  "deployment.circuit_open",
   "preview.ready",
   "preview.failed",
   "preview.superseded",

@@ -1,5 +1,8 @@
 import { and, eq, isNotNull, notInArray } from "drizzle-orm";
-import { isNormalizedResource } from "@workspace/towbar-core";
+import {
+  evaluateAutoDeployPause,
+  isNormalizedResource,
+} from "@workspace/towbar-core";
 
 import {
   apps,
@@ -12,10 +15,7 @@ import {
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { selectAutomaticDeploymentCandidates } from "./automatic-deployment-selection.js";
 import { requestAppDeployment } from "./service.js";
-import {
-  createDeferredAutomaticDeployment,
-  evaluateAutoDeployGate,
-} from "../auto-deploy-controls/service.js";
+import { createDeferredAutomaticDeployment } from "../auto-deploy-controls/service.js";
 import { requestDisabledPreviewCleanups } from "../previews/cleanup.js";
 import { scheduleSourcePreviewReconciliations } from "../previews/service.js";
 
@@ -120,7 +120,7 @@ export async function scheduleEligibleAutomaticDeployments(input: {
   const database = getTowbarDatabase();
   const [source] = await database
     .select({
-      autoDeployControl: sources.autoDeployControl,
+      autoDeployPaused: sources.autoDeployPaused,
       latestCommitSha: sources.latestCommitSha,
     })
     .from(sources)
@@ -140,8 +140,7 @@ export async function scheduleEligibleAutomaticDeployments(input: {
     .select({
       appId: apps.id,
       archivedAt: apps.archivedAt,
-      autoDeployCircuit: apps.autoDeployCircuit,
-      autoDeployControl: apps.autoDeployControl,
+      autoDeployPaused: apps.autoDeployPaused,
       config: apps.config,
       deploymentDigest: apps.deploymentDigest,
       manifestId: apps.manifestId,
@@ -203,12 +202,11 @@ export async function scheduleEligibleAutomaticDeployments(input: {
       if (!candidate.deploymentDigest) {
         throw new Error("Automatic deployment candidate is not materialized");
       }
-      const gate = evaluateAutoDeployGate({
-        circuit: candidate.autoDeployCircuit,
-        deployableControl: candidate.autoDeployControl,
-        sourceControl: source.autoDeployControl,
+      const gate = evaluateAutoDeployPause({
+        deployablePaused: candidate.autoDeployPaused,
+        sourcePaused: source.autoDeployPaused,
       });
-      if (gate.blocked) {
+      if (gate.paused) {
         await database
           .update(apps)
           .set({

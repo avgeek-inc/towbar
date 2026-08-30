@@ -29,7 +29,7 @@ import {
 } from "../../../areas/plans/service.js";
 import { forbidden } from "../../../http/errors.js";
 import { readJson } from "../../../http/requests.js";
-import { sourceAutoDeployControlPatchSchema } from "./auto-deploy-control-requests.js";
+import { autoDeployControlPatchSchema } from "./auto-deploy-control-requests.js";
 import {
   getSourceAutoDeployControl,
   updateSourceAutoDeployControl,
@@ -93,8 +93,7 @@ sourceRoutes.patch("/:sourceId/auto-deploy-control", async (context) => {
   }
   const sourceId = context.req.param("sourceId");
   const result = await updateSourceAutoDeployControl({
-    actorUserId: user.id,
-    patch: await readJson(context, sourceAutoDeployControlPatchSchema),
+    ...(await readJson(context, autoDeployControlPatchSchema)),
     sourceId,
     workspaceId: user.workspaceId,
   });

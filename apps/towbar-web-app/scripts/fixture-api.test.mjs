@@ -142,10 +142,7 @@ test("the local fixture supports automatic deployment control edits", async () =
       `${baseUrl}/v1/core/apps/${fixtureIds.app}/auto-deploy-control`,
       {
         body: JSON.stringify({
-          failureThreshold: 5,
           paused: true,
-          pauseReason: "Release freeze",
-          recoveryPolicy: "on_manual_success",
         }),
         headers: { "content-type": "application/json" },
         method: "PATCH",
@@ -153,12 +150,9 @@ test("the local fixture supports automatic deployment control edits", async () =
     );
     assert.equal(response.status, 200);
     const result = await response.json();
-    assert.equal(result.autoDeploy.control.failureThreshold, 5);
-    assert.equal(result.autoDeploy.control.recoveryPolicy, "on_manual_success");
-    assert.equal(result.autoDeploy.effective.blocked, true);
-    assert.equal(result.autoDeploy.effective.reason, "paused");
-    assert.equal(result.autoDeploy.effective.reasonDetail, "Release freeze");
-    assert.equal(result.autoDeploy.recentEvents.length, 1);
+    assert.equal(result.autoDeploy.paused, true);
+    assert.equal(result.autoDeploy.effective.paused, true);
+    assert.equal(result.autoDeploy.effective.scope, "deployable");
   } finally {
     server.close();
     await once(server, "close");

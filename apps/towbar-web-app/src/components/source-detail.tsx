@@ -14,7 +14,6 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { type Key, type ReactNode } from "react";
 import type {
   App,
-  AutoDeployControlResponse,
   AppSecretsResponse,
   AwsCredentialMetadata,
   Deployment,
@@ -383,9 +382,6 @@ function SourceSettings({
         ? `/v1/core/sources/${sourceId}/notifications/destinations`
         : null,
     );
-  const autoDeploy = useApiQuery<AutoDeployControlResponse>(
-    isActive ? `/v1/core/sources/${sourceId}/auto-deploy-control` : null,
-  );
   const secretsDisabledReason =
     "Add AWS credentials before editing shared secrets";
 
@@ -409,11 +405,7 @@ function SourceSettings({
         {
           value: "auto-deploy",
           label: "Auto-deploy",
-          content: autoDeploy.error ? (
-            <QueryError message={autoDeploy.error} />
-          ) : (
-            <AutoDeployControlEditor id={sourceId} type="source" />
-          ),
+          content: <AutoDeployControlEditor id={sourceId} type="source" />,
         },
         {
           value: "notifications",

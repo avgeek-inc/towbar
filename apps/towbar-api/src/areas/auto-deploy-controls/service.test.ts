@@ -1,24 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  defaultAutoDeployCircuit,
-  defaultAutoDeployControl,
-} from "@workspace/towbar-core";
+import { evaluateAutoDeployPause } from "@workspace/towbar-core";
 
-import {
-  createDeferredAutomaticDeployment,
-  evaluateAutoDeployGate,
-} from "./service.js";
+import { createDeferredAutomaticDeployment } from "./service.js";
 
-void test("a Source pause takes precedence and retains only the latest deferred revision", () => {
-  const gate = evaluateAutoDeployGate({
-    circuit: defaultAutoDeployCircuit,
-    deployableControl: defaultAutoDeployControl,
-    sourceControl: { ...defaultAutoDeployControl, paused: true },
-  });
-  assert.equal(gate.blocked, true);
-  if (!gate.blocked) return;
+void test("a Source pause retains only the latest deferred revision", () => {
+  const gate = evaluateAutoDeployPause({ sourcePaused: true });
+  assert.equal(gate.paused, true);
+  if (!gate.paused) return;
   assert.deepEqual(
     createDeferredAutomaticDeployment({
       commitSha: "newest",
@@ -32,36 +22,8 @@ void test("a Source pause takes precedence and retains only the latest deferred 
       deferredAt: "2026-08-30T00:00:00.000Z",
       deploymentDigest: "digest",
       manifestId: "api",
-      nextEligibleAt: null,
       reason: "paused",
       scope: "source",
     },
-  );
-});
-
-void test("a deployable circuit is narrow", () => {
-  assert.deepEqual(
-    evaluateAutoDeployGate({
-      circuit: {
-        ...defaultAutoDeployCircuit,
-        openedAt: "2026-08-30T00:00:00Z",
-      },
-      deployableControl: defaultAutoDeployControl,
-      sourceControl: defaultAutoDeployControl,
-    }),
-    {
-      blocked: true,
-      nextOpenAt: null,
-      reason: "circuit_open",
-      scope: "deployable",
-    },
-  );
-  assert.equal(
-    evaluateAutoDeployGate({
-      circuit: defaultAutoDeployCircuit,
-      deployableControl: defaultAutoDeployControl,
-      sourceControl: defaultAutoDeployControl,
-    }).blocked,
-    false,
   );
 });

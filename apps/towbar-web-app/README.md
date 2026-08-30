@@ -22,6 +22,9 @@ under Secrets in the owning Source's Settings section. The owner can add,
 replace, or delete values, then optionally queue the affected deployable. Values
 are fetched only through an explicit owner-only reveal request; the UI cannot
 change a manifest reference.
+Source, App, and Resource Settings each expose one operator control for pausing
+new automatic deployments. A Source pause applies to all of its deployables;
+manual deployment actions remain available.
 Apps with Preview enabled expose pull request environments, stable URLs,
 expiry, latest deployment status, and an owner cleanup action from the App
 page. Preview build and deployment secret bindings are edited independently

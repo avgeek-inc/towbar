@@ -37,26 +37,6 @@ export async function readJson<T>(
   return schema.parse(value);
 }
 
-export async function readOptionalJson<T>(
-  context: Context,
-  schema: z.ZodType<T>,
-  limitBytes = defaultLimit,
-) {
-  const body = await readText(context, limitBytes);
-  if (!body.trim()) return schema.parse({});
-  let value: unknown;
-  try {
-    value = JSON.parse(body);
-  } catch {
-    throw new HttpError(
-      400,
-      "MALFORMED_JSON",
-      "Request body must be valid JSON",
-    );
-  }
-  return schema.parse(value);
-}
-
 export async function readText(context: Context, limitBytes = defaultLimit) {
   const contentLength = Number(context.req.header("content-length") ?? 0);
   if (Number.isFinite(contentLength) && contentLength > limitBytes) {

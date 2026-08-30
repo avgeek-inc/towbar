@@ -86,6 +86,10 @@ revision without synchronizing the Source again. This keeps redeploy admission
 fast and lets a redeploy consume newly updated AWS Secrets Manager values,
 which are resolved just in time by the worker. Use `Sync now` for repository or
 manifest changes; signed GitHub webhooks keep the configured branch current.
+Owners can pause new automatic deployments for an entire Source or one App or
+Resource. Paused revisions remain eligible for reconciliation after the pause
+is removed; manual deployments remain available while automatic admission is
+paused.
 
 Owners can inspect key names and edit values for JSON environment bundles
 already attached to an App or Resource. Resources expose deployment bindings

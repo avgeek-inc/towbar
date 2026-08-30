@@ -19,11 +19,8 @@ import {
   updateResourceSecretBinding,
 } from "../../../areas/apps/secrets.js";
 import { badRequest, forbidden } from "../../../http/errors.js";
-import { readJson, readOptionalJson } from "../../../http/requests.js";
-import {
-  deployableAutoDeployControlPatchSchema,
-  manualDeploymentSchema,
-} from "./auto-deploy-control-requests.js";
+import { readJson } from "../../../http/requests.js";
+import { autoDeployControlPatchSchema } from "./auto-deploy-control-requests.js";
 import {
   getDeployableAutoDeployControl,
   updateDeployableAutoDeployControl,
@@ -79,10 +76,9 @@ resourceRoutes.patch("/:resourceId/auto-deploy-control", async (context) => {
     throw forbidden("Only the owner can manage automatic deployment controls");
   }
   const result = await updateDeployableAutoDeployControl({
-    actorUserId: user.id,
     deployableId: context.req.param("resourceId"),
     expectedType: "resource",
-    patch: await readJson(context, deployableAutoDeployControlPatchSchema),
+    ...(await readJson(context, autoDeployControlPatchSchema)),
     workspaceId: user.workspaceId,
   });
   if (result.shouldReevaluate) {
@@ -172,10 +168,8 @@ resourceRoutes.post("/:resourceId/actions/deploy", async (context) => {
     context.req.header("idempotency-key"),
   );
   const user = context.get("user");
-  const input = await readOptionalJson(context, manualDeploymentSchema);
   const result = await requestAppDeployment({
     appId: context.req.param("resourceId"),
-    bypassAutomaticControl: input.bypassAutomaticControl,
     expectedType: "resource",
     idempotencyKey,
     requestedBy: user.id,

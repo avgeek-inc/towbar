@@ -11,7 +11,6 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import type {
-  AutoDeployControlResponse,
   Deployment,
   Release,
   Resource,
@@ -62,11 +61,7 @@ export function ResourceDetail() {
   const releases = useApiQuery<{ releases: Release[] }>(
     `/v1/core/resources/${resourceId}/releases`,
   );
-  const autoDeploy = useApiQuery<AutoDeployControlResponse>(
-    `/v1/core/resources/${resourceId}/auto-deploy-control`,
-  );
-  const error =
-    resource.error ?? deployments.error ?? releases.error ?? autoDeploy.error;
+  const error = resource.error ?? deployments.error ?? releases.error;
 
   if (error) {
     return (
@@ -75,12 +70,7 @@ export function ResourceDetail() {
       </DashboardPage>
     );
   }
-  if (
-    !resource.data ||
-    !deployments.data ||
-    !releases.data ||
-    !autoDeploy.data
-  ) {
+  if (!resource.data || !deployments.data || !releases.data) {
     return (
       <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="Resource">
         <QueryLoading />
@@ -109,8 +99,6 @@ export function ResourceDetail() {
   );
   const latestDeployment = orderedDeployments[0];
   const lifecycleStatus = getResourceLifecycleStatus(item);
-  const automaticAdmissionBlocked =
-    autoDeploy.data.autoDeploy.effective.blocked;
   const tabs = [
     {
       value: "overview",
@@ -220,13 +208,7 @@ export function ResourceDetail() {
       value: "settings",
       label: "Settings",
       icon: <HugeiconsIcon icon={Settings01Icon} />,
-      content: (
-        <ResourceSettings
-          item={item}
-          resourceId={resourceId}
-          onAutoDeployChanged={autoDeploy.refresh}
-        />
-      ),
+      content: <ResourceSettings item={item} resourceId={resourceId} />,
     },
   ];
 
@@ -247,9 +229,7 @@ export function ResourceDetail() {
               action={() =>
                 api.post<{ deployment: Deployment }>(
                   `/v1/core/resources/${resourceId}/actions/deploy`,
-                  automaticAdmissionBlocked
-                    ? { bypassAutomaticControl: true }
-                    : undefined,
+                  undefined,
                   { "Idempotency-Key": crypto.randomUUID() },
                 )
               }
@@ -259,15 +239,6 @@ export function ResourceDetail() {
                 )
               }
               pendingLabel="Queueing…"
-              confirm={
-                automaticAdmissionBlocked
-                  ? {
-                      actionLabel: "Deploy manually",
-                      description: `${autoDeploy.data.autoDeploy.effective.reasonDetail ?? "Automatic deployment admission is blocked"}. This manual deployment bypasses that control; existing automatic controls remain unchanged.`,
-                      title: "Bypass automatic deployment controls?",
-                    }
-                  : undefined
-              }
               isDisabled={!item.serverReady}
               success="Resource deployment queued"
               variant="primary"
@@ -308,11 +279,9 @@ export function ResourceDetail() {
 
 function ResourceSettings({
   item,
-  onAutoDeployChanged,
   resourceId,
 }: {
   item: ResourceRecord;
-  onAutoDeployChanged: () => void;
   resourceId: string;
 }) {
   const tabs: Array<{ content: ReactNode; label: string; value: string }> = [
@@ -442,13 +411,7 @@ function ResourceSettings({
     {
       value: "auto-deploy",
       label: "Auto-deploy",
-      content: (
-        <AutoDeployControlEditor
-          id={resourceId}
-          type="resource"
-          onChanged={onAutoDeployChanged}
-        />
-      ),
+      content: <AutoDeployControlEditor id={resourceId} type="resource" />,
     },
     {
       value: "secrets",

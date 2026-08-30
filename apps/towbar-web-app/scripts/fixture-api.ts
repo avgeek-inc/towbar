@@ -100,19 +100,6 @@ const source: Source = {
   updatedAt: fixtureNow,
 };
 
-const baseAutoDeployControl: AutoDeployControlResponse["autoDeploy"]["control"] =
-  {
-    failureThreshold: 3,
-    maintenanceWindow: null,
-    paused: false,
-    pausedAt: null,
-    pausedBy: null,
-    pauseReason: null,
-    recoveryPolicy: "manual",
-    updatedAt: null,
-    updatedBy: null,
-  };
-
 const sourceAutoDeployControl = createAutoDeployControlFixture("source");
 const deployableAutoDeployControls = new Map<
   string,
@@ -853,6 +840,7 @@ export function createFixtureApiServer() {
             applyFixtureAutoDeployControlPatch(
               control,
               input as Record<string, unknown>,
+              kind === "sources" ? "source" : "deployable",
             );
             return writeJson(response, 200, {
               autoDeploy: control,
@@ -1453,28 +1441,13 @@ function createAutoDeployControlFixture(
   targetType: "app" | "resource" | "source",
 ): AutoDeployControlResponse["autoDeploy"] {
   return {
-    ...(targetType === "source"
-      ? {}
-      : {
-          circuit: {
-            consecutiveFailures: 0,
-            failureFingerprint: null,
-            openedAt: null,
-            openedReason: null,
-          },
-          manifestAutoDeployEnabled: true,
-        }),
-    control: { ...baseAutoDeployControl },
+    ...(targetType === "source" ? {} : { manifestAutoDeployEnabled: true }),
     effective: {
-      actor: null,
-      blocked: false,
-      nextOpenAt: null,
+      paused: false,
       pending: null,
-      reason: null,
-      reasonDetail: null,
       scope: null,
     },
-    recentEvents: [],
+    paused: false,
   };
 }
 
@@ -1489,6 +1462,7 @@ function getFixtureDeployableAutoDeployControl(kind: string, id: string) {
     control = createAutoDeployControlFixture(
       kind === "apps" ? "app" : "resource",
     );
+    refreshFixtureAutoDeployEffectiveState(control, "deployable");
     deployableAutoDeployControls.set(id, control);
   }
   return control;
@@ -1497,131 +1471,44 @@ function getFixtureDeployableAutoDeployControl(kind: string, id: string) {
 function applyFixtureAutoDeployControlPatch(
   target: AutoDeployControlResponse["autoDeploy"],
   patch: Record<string, unknown>,
+  targetType: "deployable" | "source",
 ) {
-  const now = new Date().toISOString();
   if (typeof patch.paused === "boolean") {
-    target.control.paused = patch.paused;
-    target.control.pausedAt = patch.paused ? now : null;
-    target.control.pausedBy = patch.paused ? user.id : null;
-    target.control.pauseReason = patch.paused
-      ? typeof patch.pauseReason === "string"
-        ? patch.pauseReason
-        : "Paused by operator"
-      : null;
+    target.paused = patch.paused;
   }
-  if ("maintenanceWindow" in patch) {
-    target.control.maintenanceWindow =
-      patch.maintenanceWindow as AutoDeployControlResponse["autoDeploy"]["control"]["maintenanceWindow"];
+  refreshFixtureAutoDeployEffectiveState(target, targetType);
+  if (targetType === "source") {
+    for (const deployable of deployableAutoDeployControls.values()) {
+      refreshFixtureAutoDeployEffectiveState(deployable, "deployable");
+    }
   }
-  if (typeof patch.failureThreshold === "number") {
-    target.control.failureThreshold = patch.failureThreshold;
-  }
-  if (
-    patch.recoveryPolicy === "manual" ||
-    patch.recoveryPolicy === "on_manual_success"
-  ) {
-    target.control.recoveryPolicy = patch.recoveryPolicy;
-  }
-  if (patch.recoverCircuit && target.circuit) {
-    target.circuit = {
-      consecutiveFailures: 0,
-      failureFingerprint: null,
-      openedAt: null,
-      openedReason: null,
-    };
-  }
-  target.control.updatedAt = now;
-  target.control.updatedBy = user.id;
-  target.effective = fixtureAutoDeployEffectiveState(target);
-  target.recentEvents.unshift({
-    action: patch.recoverCircuit
-      ? "auto_deploy.circuit_recovered"
-      : "auto_deploy.control_updated",
-    actor: { displayName: user.name, id: user.id },
-    createdAt: now,
-    id: randomUUID(),
-    metadata: { paused: target.control.paused },
-    targetId: null,
-    targetType: target.circuit ? "app" : "source",
-  });
 }
 
-function fixtureAutoDeployEffectiveState(
+function refreshFixtureAutoDeployEffectiveState(
   target: AutoDeployControlResponse["autoDeploy"],
-): AutoDeployControlResponse["autoDeploy"]["effective"] {
-  const scope = target.circuit ? "deployable" : "source";
-  if (target.control.paused) {
-    return {
-      actor: { displayName: user.name, id: user.id },
-      blocked: true,
-      nextOpenAt: null,
+  targetType: "deployable" | "source",
+) {
+  if (targetType === "deployable" && sourceAutoDeployControl.paused) {
+    target.effective = {
+      paused: true,
       pending: target.effective.pending,
-      reason: "paused",
-      reasonDetail: target.control.pauseReason,
-      scope,
+      scope: "source",
     };
+    return;
   }
-  const window = target.control.maintenanceWindow;
-  if (window && !fixtureMaintenanceWindowOpen(window)) {
-    return {
-      actor: { displayName: user.name, id: user.id },
-      blocked: true,
-      nextOpenAt: new Date(Date.now() + 24 * 60 * 60_000).toISOString(),
+  if (target.paused) {
+    target.effective = {
+      paused: true,
       pending: target.effective.pending,
-      reason: "maintenance_window",
-      reasonDetail: "Outside the configured maintenance window",
-      scope,
+      scope: targetType === "source" ? "source" : "deployable",
     };
+    return;
   }
-  if (target.circuit?.openedAt) {
-    return {
-      actor: null,
-      blocked: true,
-      nextOpenAt: null,
-      pending: target.effective.pending,
-      reason: "circuit_open",
-      reasonDetail: "Comparable deployment failures opened the circuit",
-      scope: "deployable",
-    };
-  }
-  return {
-    actor: null,
-    blocked: false,
-    nextOpenAt: null,
+  target.effective = {
+    paused: false,
     pending: null,
-    reason: null,
-    reasonDetail: null,
     scope: null,
   };
-}
-
-function fixtureMaintenanceWindowOpen(
-  window: NonNullable<
-    AutoDeployControlResponse["autoDeploy"]["control"]["maintenanceWindow"]
-  >,
-) {
-  const values = Object.fromEntries(
-    new Intl.DateTimeFormat("en-US", {
-      hour: "numeric",
-      hourCycle: "h23",
-      minute: "numeric",
-      timeZone: window.timezone,
-      weekday: "short",
-    })
-      .formatToParts(new Date())
-      .map((part) => [part.type, part.value]),
-  );
-  const day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(
-    values.weekday ?? "",
-  );
-  const minute = Number(values.hour) * 60 + Number(values.minute);
-  const crossesMidnight = window.endMinute <= window.startMinute;
-  return crossesMidnight
-    ? (window.daysOfWeek.includes(day) && minute >= window.startMinute) ||
-        (window.daysOfWeek.includes((day + 6) % 7) && minute < window.endMinute)
-    : window.daysOfWeek.includes(day) &&
-        minute >= window.startMinute &&
-        minute < window.endMinute;
 }
 
 function readPositiveInteger(value: string | null, fallback: number) {

@@ -1,5 +1,5 @@
 {
-  "id": "1be9ac54-02a4-4878-8112-e530c0f8a20e",
+  "id": "725b989e-4a35-46b0-87c7-e444b2f71368",
   "prevId": "5613c6ed-ef42-4522-a7a5-335b9120e353",
   "version": "7",
   "dialect": "postgresql",
@@ -89,19 +89,12 @@
           "primaryKey": false,
           "notNull": true
         },
-        "auto_deploy_circuit": {
-          "name": "auto_deploy_circuit",
-          "type": "jsonb",
+        "auto_deploy_paused": {
+          "name": "auto_deploy_paused",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": "'{\"consecutiveFailures\":0,\"failureFingerprint\":null,\"openedAt\":null,\"openedReason\":null}'::jsonb"
-        },
-        "auto_deploy_control": {
-          "name": "auto_deploy_control",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{\"failureThreshold\":3,\"maintenanceWindow\":null,\"paused\":false,\"pausedAt\":null,\"pausedBy\":null,\"pauseReason\":null,\"recoveryPolicy\":\"manual\",\"updatedAt\":null,\"updatedBy\":null}'::jsonb"
+          "default": false
         },
         "deferred_automatic_deployment": {
           "name": "deferred_automatic_deployment",
@@ -4043,12 +4036,12 @@
           "primaryKey": false,
           "notNull": false
         },
-        "auto_deploy_control": {
-          "name": "auto_deploy_control",
-          "type": "jsonb",
+        "auto_deploy_paused": {
+          "name": "auto_deploy_paused",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": "'{\"failureThreshold\":3,\"maintenanceWindow\":null,\"paused\":false,\"pausedAt\":null,\"pausedBy\":null,\"pauseReason\":null,\"recoveryPolicy\":\"manual\",\"updatedAt\":null,\"updatedBy\":null}'::jsonb"
+          "default": false
         },
         "archived_at": {
           "name": "archived_at",
