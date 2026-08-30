@@ -26,8 +26,10 @@ Apps may opt into `autoDeploy`, declare named root
 backward compatibility. Towbar does not impose deployment ordering between
 deployables. Operators who require ordering can disable automatic deployment
 for the downstream deployable and admit it manually after its prerequisite.
-Normalized snapshots expand input groups and include their security-sensitive
-and automatic-deployment configuration.
+Apps may also set `vulnerabilityScanning: true` when the Towbar installation
+enables the scanner capability. This control-plane policy does not change the
+runtime deployment digest. Normalized snapshots expand input groups and
+include their security-sensitive and automatic-deployment configuration.
 
 Apps may also opt into Preview deployments for same-repository pull requests
 targeting the Source branch. The normalized contract supplies an isolated

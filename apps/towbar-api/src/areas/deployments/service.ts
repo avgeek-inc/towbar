@@ -14,6 +14,7 @@ import {
 } from "@workspace/towbar-core/temporal";
 import { digestValue } from "@workspace/towbar-core";
 import {
+  apps,
   deployableRuntimeStates,
   deploymentLogChunks,
   deploymentSteps,
@@ -32,6 +33,7 @@ import { cancelDeploymentWorkflow } from "../../infrastructure/temporal.js";
 import { createInstallationToken } from "../github/client.js";
 import { emitDeploymentNotification } from "../notifications/events.js";
 import { publicDeploymentSelection } from "../deployment-selection.js";
+import { isVulnerabilityScanningEnabled } from "../vulnerability-scans/admission.js";
 import { getDeploymentVulnerabilityScan } from "../vulnerability-scans/service.js";
 import { collectRetainedImageTags } from "./image-retention.js";
 import { propagatePreviewDeploymentState } from "./preview-status.js";
@@ -83,8 +85,9 @@ export async function listDeployments(workspaceId: string, sourceId?: string) {
 
 export async function getDeployment(deploymentId: string, workspaceId: string) {
   const [deployment] = await getTowbarDatabase()
-    .select(publicDeploymentSelection)
+    .select({ ...publicDeploymentSelection, appConfig: apps.config })
     .from(deployments)
+    .innerJoin(apps, eq(apps.id, deployments.appId))
     .where(
       and(
         eq(deployments.id, deploymentId),
@@ -93,15 +96,18 @@ export async function getDeployment(deploymentId: string, workspaceId: string) {
     )
     .limit(1);
   if (!deployment) throw notFound("Deployment");
-  const [item] = await attachDeploymentQueueBlockers([deployment]);
+  const { appConfig, ...publicDeployment } = deployment;
+  const [item] = await attachDeploymentQueueBlockers([publicDeployment]);
   return {
     ...item!,
     vulnerabilityScan: await getDeploymentVulnerabilityScan(
       deployment,
       workspaceId,
     ),
-    vulnerabilityScanningEnabled:
-      getEnv().TOWBAR_VULNERABILITY_SCANNING_ENABLED,
+    vulnerabilityScanningEnabled: isVulnerabilityScanningEnabled({
+      deployable: appConfig,
+      instanceEnabled: getEnv().TOWBAR_VULNERABILITY_SCANNING_ENABLED,
+    }),
   };
 }
 

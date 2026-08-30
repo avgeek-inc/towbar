@@ -23,6 +23,7 @@ const server = {
 
 const app = {
   autoDeploy: true,
+  vulnerabilityScanning: false,
   container: { port: 3_000 },
   context: ".",
   deploymentInputs: ["apps/web/**"],

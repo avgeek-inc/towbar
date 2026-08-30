@@ -41,6 +41,7 @@ apps:
       inputs:
         - $shared-web
         - apps/towbar-web-app/**
+    vulnerabilityScanning: true
     name: Towbar Web App
     server: 203.0.113.10
     dockerfile: apps/towbar-web-app/Dockerfile
@@ -98,6 +99,7 @@ void test("parses and canonicalizes a version 1 manifest", () => {
     deployment: ["aws:example/production/shared/runtime"],
   });
   assert.equal(result.manifest.apps[0]?.autoDeploy, true);
+  assert.equal(result.manifest.apps[0]?.vulnerabilityScanning, true);
   assert.deepEqual(result.manifest.apps[0]?.deploymentInputs, [
     "apps/towbar-web-app/**",
     "packages/web-design-system/**",
@@ -245,6 +247,10 @@ void test("publishes server concurrency and hooks in the JSON schema", () => {
     type: "string",
   });
   assert.equal(schemaObject(appProperties.autoDeploy).default, false);
+  assert.deepEqual(appProperties.vulnerabilityScanning, {
+    default: false,
+    type: "boolean",
+  });
   const autoDeployVariants = schemaObject(appProperties.autoDeploy).oneOf;
   assert.ok(Array.isArray(autoDeployVariants));
   assert.equal(autoDeployVariants.length, 2);

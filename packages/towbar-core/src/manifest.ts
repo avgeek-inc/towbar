@@ -359,6 +359,7 @@ const resourceBackupSchema = z
 const appSchema = z
   .object({
     autoDeploy: appAutoDeploySchema.optional(),
+    vulnerabilityScanning: z.boolean().optional(),
     id: z.string().trim().regex(appIdPattern),
     name: z.string().trim().min(1).max(120),
     description: z.string().trim().max(500).optional(),
@@ -835,6 +836,7 @@ export type NormalizedDeploymentHook = {
 export type NormalizedApp = {
   kind?: "app";
   autoDeploy: boolean;
+  vulnerabilityScanning: boolean;
   container: {
     network?: string;
     port: number;
@@ -1059,6 +1061,7 @@ export function normalizeDeploymentManifest(
         return {
           kind: "app" as const,
           autoDeploy: automaticDeployment.enabled,
+          vulnerabilityScanning: app.vulnerabilityScanning ?? false,
           id: app.id,
           name: app.name,
           ...(app.description ? { description: app.description } : {}),

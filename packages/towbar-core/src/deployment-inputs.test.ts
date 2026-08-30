@@ -122,6 +122,7 @@ void test("keeps commit-sensitive and incomplete pull requests eligible", () => 
 void test("deployment metadata and scheduling controls do not change the runtime digest", () => {
   const app = {
     autoDeploy: true,
+    vulnerabilityScanning: false,
     container: { port: 3_000 },
     context: ".",
     deploymentInputs: ["apps/web/**"],
@@ -157,6 +158,7 @@ void test("deployment metadata and scheduling controls do not change the runtime
         deploymentInputs: ["packages/shared/**"],
         name: "Renamed Web",
         sourceBranch: "release",
+        vulnerabilityScanning: true,
       },
       server: { ...server, buildConcurrency: 8 },
       sourceInputDigest: "source",

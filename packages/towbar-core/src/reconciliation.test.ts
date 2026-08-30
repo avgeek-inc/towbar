@@ -18,6 +18,7 @@ const desired: NormalizedDeploymentManifest = {
   apps: [
     {
       autoDeploy: false,
+      vulnerabilityScanning: false,
       id: "app",
       name: "Renamed app",
       server: "203.0.113.10",

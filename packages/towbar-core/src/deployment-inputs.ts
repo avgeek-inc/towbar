@@ -123,5 +123,6 @@ function getDeploymentRuntimeConfig(deployable: NormalizedDeployable) {
   delete value.name;
   delete value.preview;
   delete value.sourceBranch;
+  delete value.vulnerabilityScanning;
   return value;
 }

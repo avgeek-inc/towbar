@@ -27,6 +27,7 @@ function context(
       server: "192.0.2.1",
       sourceBranch: "main",
       tls: { mode: tlsMode },
+      vulnerabilityScanning: false,
     },
     commitSha: "0123456789abcdef0123456789abcdef01234567",
     currentRelease: null,

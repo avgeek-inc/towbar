@@ -20,6 +20,7 @@ const previewDeployment = "aws:example/apps/api/preview-deployment";
 
 const app: NormalizedApp = {
   autoDeploy: true,
+  vulnerabilityScanning: false,
   container: { port: 4_020 },
   context: ".",
   deploymentInputs: [],

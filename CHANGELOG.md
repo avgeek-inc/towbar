@@ -5,6 +5,13 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+### Changed
+
+- Image vulnerability scanning now requires an explicit
+  `vulnerabilityScanning: true` opt-in on each App in addition to the
+  installation-wide capability flag. The policy can change without forcing an
+  App redeployment, Resources remain unscanned, and prior results are retained.
+
 ## [1.3.0] - 2026-08-30
 
 ### Added
