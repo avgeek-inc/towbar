@@ -5,6 +5,8 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-30
+
 ### Added
 
 - Immutable, side-effect-free deployment plans compare a candidate commit with
@@ -13,6 +15,25 @@ All notable changes to Towbar are documented in this file. This project follows
   conflicts without resolving secret values.
 - Deployment-relevant pull requests publish one idempotent GitHub Check linked
   to the full Towbar plan; unmatched input patterns omit irrelevant rows.
+- Source-scoped Slack and SMTP notifications persist immutable events and use
+  durable, independently retryable delivery attempts.
+- PostgreSQL and Redis backups now expose restore-readiness assurance, while
+  managed PostgreSQL backups support safety-gated, auditable restores with
+  bounded rollback.
+- Source owners can pause automatic deployments without disabling manual
+  operations or changing the deployment manifest.
+
+### Changed
+
+- Preview deployments honor App change patterns, reconcile interrupted
+  lifecycle work, and clean up after pull requests close or merge.
+- Source, App, and Resource settings use consolidated navigation with compact
+  responsive layouts for notifications, secrets, and backup configuration.
+
+### Fixed
+
+- Preview reporting maintains one aggregate pull request comment across build,
+  ready, failure, and cleanup transitions.
 
 ## [1.1.1] - 2026-08-28
 
@@ -104,7 +125,8 @@ All notable changes to Towbar are documented in this file. This project follows
 - Source-scoped AWS Secrets Manager integration and environment editors.
 - A same-domain owner setup, authentication, and operations dashboard.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/avgeek-inc/towbar/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/avgeek-inc/towbar/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/avgeek-inc/towbar/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/avgeek-inc/towbar/compare/v1.0.1...v1.0.2
