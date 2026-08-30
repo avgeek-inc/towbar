@@ -5,6 +5,31 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-08-30
+
+### Added
+
+- Successful deployments record the immutable Docker image digest and platform
+  used by the active release.
+- Optional Trivy vulnerability scans run once per immutable production or
+  Preview image, with owner-controlled rescans, severity totals, scanner
+  metadata, and bounded actionable findings.
+- Slack destinations group each deployment lifecycle into one durable thread,
+  updating its summary while retaining individual event replies.
+
+### Changed
+
+- Vulnerability scans run behind deployment work with isolated scanner
+  resources, offline image analysis, bounded output, and automatic recovery of
+  abandoned scan claims.
+
+### Fixed
+
+- Credentialed fixture API requests now accept only exact loopback origins and
+  reject disallowed origins before route execution.
+- Operator password-reset restart markers are isolated from Argon2id login
+  verification and cannot be used as password hashes.
+
 ## [1.2.0] - 2026-08-30
 
 ### Added
@@ -125,7 +150,8 @@ All notable changes to Towbar are documented in this file. This project follows
 - Source-scoped AWS Secrets Manager integration and environment editors.
 - A same-domain owner setup, authentication, and operations dashboard.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/avgeek-inc/towbar/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/avgeek-inc/towbar/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/avgeek-inc/towbar/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/avgeek-inc/towbar/compare/v1.0.2...v1.1.0
