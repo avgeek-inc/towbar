@@ -11,7 +11,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { type Key, type ReactNode } from "react";
+import { type Key, type ReactNode, useState } from "react";
 import type {
   App,
   AppSecretsResponse,
@@ -25,6 +25,8 @@ import type {
 } from "@workspace/towbar-web-client";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
+import { Label } from "@workspace/web-design-system/forms/label";
+import { ListBox, Select } from "@workspace/web-design-system/forms/select";
 import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
 import { Pagination } from "@workspace/web-design-system/navigation/pagination";
 import { Tabs } from "@workspace/web-design-system/navigation/tabs";
@@ -388,6 +390,7 @@ function SourceSettings({
   return (
     <SourceSubtabs
       ariaLabel="Source settings"
+      collapseOnMobile
       defaultSelectedKey="aws"
       tabs={[
         {
@@ -523,12 +526,14 @@ function SourceSyncHistory({
 
 function SourceSubtabs({
   ariaLabel,
+  collapseOnMobile = false,
   defaultSelectedKey,
   onSelectionChange,
   selectedKey,
   tabs,
 }: {
   ariaLabel: string;
+  collapseOnMobile?: boolean;
   defaultSelectedKey: string;
   onSelectionChange?: (key: Key) => void;
   selectedKey?: string;
@@ -541,17 +546,58 @@ function SourceSubtabs({
   }>;
 }) {
   const orientation = useResponsiveTabsOrientation();
+  const [internalSelectedKey, setInternalSelectedKey] =
+    useState(defaultSelectedKey);
+  const activeKey = selectedKey ?? internalSelectedKey;
+
+  function selectTab(key: Key | null) {
+    if (key === null) return;
+    const nextKey = String(key);
+    if (selectedKey === undefined) setInternalSelectedKey(nextKey);
+    onSelectionChange?.(key);
+  }
 
   return (
     <Tabs
       className="block"
-      defaultSelectedKey={selectedKey ? undefined : defaultSelectedKey}
       orientation={orientation}
-      selectedKey={selectedKey}
-      onSelectionChange={onSelectionChange}
+      selectedKey={activeKey}
+      onSelectionChange={selectTab}
     >
       <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[14rem_minmax(0,1fr)]">
-        <Tabs.ListContainer className="w-full min-w-0 max-w-full">
+        {collapseOnMobile ? (
+          <Select
+            fullWidth
+            className="md:hidden"
+            selectedKey={activeKey}
+            variant="secondary"
+            onSelectionChange={selectTab}
+          >
+            <Label className="sr-only">{ariaLabel}</Label>
+            <Select.Trigger>
+              <Select.Value />
+              <Select.Indicator />
+            </Select.Trigger>
+            <Select.Popover>
+              <ListBox>
+                {tabs.map((tab) => (
+                  <ListBox.Item
+                    id={tab.value}
+                    isDisabled={tab.isDisabled}
+                    key={tab.value}
+                    textValue={tab.label}
+                  >
+                    {tab.label}
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                ))}
+              </ListBox>
+            </Select.Popover>
+          </Select>
+        ) : null}
+        <Tabs.ListContainer
+          className={`w-full min-w-0 max-w-full ${collapseOnMobile ? "hidden md:block" : ""}`}
+        >
           <Tabs.List aria-label={ariaLabel} className="w-full">
             {tabs.map((tab) => (
               <Tabs.Tab

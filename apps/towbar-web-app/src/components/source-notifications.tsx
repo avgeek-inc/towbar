@@ -31,7 +31,7 @@ import {
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
-import { ActionButton, SectionBlock } from "@/components/page-parts";
+import { ActionButton } from "@/components/page-parts";
 import { api } from "@/lib/api";
 
 export type NotificationDestinationsResponse = {
@@ -97,10 +97,7 @@ export function SourceNotifications({
       key: "destination",
       header: "Destination",
       cell: (destination) => (
-        <ResourceName
-          description={providerLabel(destination.provider)}
-          name={destinationTarget(destination)}
-        />
+        <ResourceName name={destinationTarget(destination)} />
       ),
       className: "min-w-64",
     },
@@ -227,42 +224,33 @@ export function SourceNotifications({
 
   return (
     <div className="grid gap-4 sm:gap-6">
-      <SectionBlock
-        description="Choose which operational events this Source sends. Provider credentials are configured once when Towbar is deployed."
-        title="Notification destinations"
-      >
-        <div className="grid gap-4">
-          {!hasProvider ? (
-            <Alert status="warning">
-              <Alert.Indicator />
-              <Alert.Content>
-                <Alert.Title>No notification providers configured</Alert.Title>
-                <Alert.Description>
-                  Add Slack or SMTP environment variables to the Towbar API,
-                  then restart it before adding a destination.
-                </Alert.Description>
-              </Alert.Content>
-            </Alert>
-          ) : null}
-          {canManage ? (
-            <Button
-              className="w-fit"
-              isDisabled={!hasProvider}
-              onPress={() => openEditor()}
-            >
-              Add destination
-            </Button>
-          ) : null}
-          <ResourceTable
-            ariaLabel="Notification destinations"
-            columns={destinationColumns}
-            emptyDescription="Add Slack or email delivery without changing deployment workflows."
-            emptyTitle="No notification destinations"
-            getRowKey={(destination) => destination.id}
-            items={destinations.data.destinations}
-          />
+      {!hasProvider ? (
+        <Alert status="warning">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>No notification providers configured</Alert.Title>
+            <Alert.Description>
+              Add Slack or SMTP environment variables to the Towbar API, then
+              restart it before adding a destination.
+            </Alert.Description>
+          </Alert.Content>
+        </Alert>
+      ) : null}
+      {canManage ? (
+        <div className="flex justify-end">
+          <Button isDisabled={!hasProvider} onPress={() => openEditor()}>
+            Add destination
+          </Button>
         </div>
-      </SectionBlock>
+      ) : null}
+      <ResourceTable
+        ariaLabel="Notification destinations"
+        columns={destinationColumns}
+        emptyDescription="Add Slack or email delivery without changing deployment workflows."
+        emptyTitle="No notification destinations"
+        getRowKey={(destination) => destination.id}
+        items={destinations.data.destinations}
+      />
 
       <Modal isOpen={editorOpen} onOpenChange={setEditorOpen}>
         <Modal.Backdrop>
