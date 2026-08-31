@@ -1,4 +1,5 @@
 import { signedApiRequest } from "../infrastructure/towbar-api.js";
+import { Context } from "@temporalio/activity";
 import {
   cleanupPreviewEnvironment,
   deleteCloudflarePreviewDns,
@@ -13,11 +14,24 @@ import type {
 export async function processPreviewPullRequestEventActivity(
   event: PreviewPullRequestEvent,
 ) {
-  return await signedApiRequest<{
-    cleanupIds: string[];
-    deploymentIds: string[];
-    retry: boolean;
-  }>("POST", "/v1/internal/previews/events", event, { timeoutMs: 120_000 });
+  const activity = Context.current();
+  const pulse = setInterval(
+    () =>
+      activity.heartbeat({
+        pullRequestNumber: event.pullRequestNumber,
+        sourceId: event.sourceId,
+      }),
+    10_000,
+  );
+  try {
+    return await signedApiRequest<{
+      cleanupIds: string[];
+      deploymentIds: string[];
+      retry: boolean;
+    }>("POST", "/v1/internal/previews/events", event, { timeoutMs: 120_000 });
+  } finally {
+    clearInterval(pulse);
+  }
 }
 
 export async function executePreviewCleanupActivity(
