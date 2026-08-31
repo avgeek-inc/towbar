@@ -246,3 +246,17 @@ void test("deduplicates one scan cycle without dropping a controlled rescan", ()
     serverWorkIdentity({ ...scan, cycle: 2 }),
   );
 });
+
+void test("deduplicates repeated Preview signals for one accepted deployment", () => {
+  const preview = {
+    ...deployment("preview-deployment", "website"),
+    previewBuildConcurrency: 1,
+    priority: "preview" as const,
+  };
+
+  assert.equal(serverWorkIdentity(preview), serverWorkIdentity({ ...preview }));
+  assert.notEqual(
+    serverWorkIdentity(preview),
+    serverWorkIdentity({ ...preview, id: "next-preview-deployment" }),
+  );
+});

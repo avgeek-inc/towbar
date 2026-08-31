@@ -24,9 +24,11 @@ export function renderDeploymentPlanGitHubCheck(input: {
   const summary =
     input.plan.status === "blocked"
       ? `${input.plan.checks.filter((check) => check.status === "failed").length} blocking validation issue(s) found.`
-      : changed.length === 0
-        ? "No deployment changes are required."
-        : `${changed.length} deployment change(s) are ready for review.`;
+      : input.plan.status === "skipped"
+        ? "No deployment-relevant changes matched this pull request."
+        : changed.length === 0
+          ? "No deployment changes are required."
+          : `${changed.length} deployment change(s) are ready for review.`;
   const itemRows = input.plan.items
     .slice(0, maximumReportedRows)
     .map(
@@ -43,7 +45,7 @@ export function renderDeploymentPlanGitHubCheck(input: {
     conclusion:
       input.plan.status === "blocked"
         ? ("failure" as const)
-        : input.plan.items.length === 0
+        : input.plan.status === "skipped"
           ? ("neutral" as const)
           : ("success" as const),
     output: {
@@ -80,7 +82,9 @@ export function renderDeploymentPlanGitHubCheck(input: {
       title:
         input.plan.status === "blocked"
           ? "Deployment plan blocked"
-          : "Deployment plan ready",
+          : input.plan.status === "skipped"
+            ? "No deployment changes"
+            : "Deployment plan ready",
     },
   };
 }

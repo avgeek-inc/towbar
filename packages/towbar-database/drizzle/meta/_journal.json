@@ -239,6 +239,13 @@
       "when": 1788108667897,
       "tag": "0033_panoramic_calypso",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1788119547510,
+      "tag": "0034_fuzzy_synch",
+      "breakpoints": true
     }
   ]
 }

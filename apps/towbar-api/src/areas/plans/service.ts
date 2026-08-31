@@ -22,7 +22,7 @@ import {
   sources,
 } from "@workspace/towbar-database/schema";
 
-import { conflict, notFound } from "../../http/errors.js";
+import { HttpError, conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { inspectAwsSecretReferences } from "../aws/service.js";
 import { fetchGitHubManifestSnapshot } from "../github/client.js";
@@ -36,9 +36,12 @@ import {
   loadCurrentInventory,
 } from "../sources/inventory.js";
 import {
+  buildCandidateDeploymentPlanValidationChecks,
   buildDeploymentPlanValidationChecks,
-  collectSecretReferences,
+  buildDeploymentPlanValidationScope,
+  collectPlanSecretReferences,
 } from "./validation.js";
+import { pullRequestDeploymentPlanIdentity } from "./identity.js";
 
 import type {
   DeploymentPlan,
@@ -76,6 +79,7 @@ export async function createPullRequestDeploymentPlan(input: {
       commitSha: input.pullRequest.headSha,
     });
   } catch (error) {
+    if (!isPersistableCandidateError(error)) throw error;
     return await persistDeploymentPlan({
       branch: input.pullRequest.headBranch,
       candidateDigest: digestValue({
@@ -164,42 +168,67 @@ async function createAndPersistPullRequestDeploymentPlan(input: {
   try {
     const parsed = parseDeploymentManifest(input.candidate.manifestSource);
     targetManifestDigest = parsed.digest;
-    const [current, context, repositoryTree] = await Promise.all([
+    const [current, repositoryTree] = await Promise.all([
       loadCurrentInventory(input.source.id),
-      loadValidationContext(input.source, parsed.manifest),
       fetchRepositoryTreeForDeploymentInputs({
         commitSha: input.candidate.commitSha,
         manifestApps: parsed.manifest.apps,
         repository: input.source,
       }),
     ]);
-    const checks = buildDeploymentPlanValidationChecks({
-      context,
+    const staticChecks = buildCandidateDeploymentPlanValidationChecks({
       manifest: parsed.manifest,
+      sourceBranch: input.source.branch,
     });
+    const kindChecks: DeploymentPlanCheck[] = [];
     try {
       assertStableDeployableKinds(current, parsed.manifest);
     } catch (error) {
-      checks.push(planCheckFromError(error, "deployable_kind"));
+      kindChecks.push(planCheckFromError(error, "deployable_kind"));
     }
     const targetDigests = calculateDesiredDeploymentDigests({
       commitSha: input.candidate.commitSha,
       manifest: parsed.manifest,
       repositoryTree,
     });
-    plan = buildDeploymentPlan({
-      checks,
+    const planInput = {
       currentApps: current.apps,
       currentResources: current.resources,
       currentServers: current.servers,
       desired: parsed.manifest,
-      mode: "pull_request",
+      mode: "pull_request" as const,
       repositoryChanges: input.repositoryChanges,
       targetDeploymentDigests: new Map(
         [...targetDigests].map(([id, digest]) => [id, digest.deploymentDigest]),
       ),
+    };
+    const candidatePlan = buildDeploymentPlan({
+      ...planInput,
+      checks: [...staticChecks, ...kindChecks],
     });
+    if (candidatePlan.status === "skipped") {
+      plan = candidatePlan;
+    } else {
+      const scope = buildDeploymentPlanValidationScope({
+        items: candidatePlan.items,
+        manifest: parsed.manifest,
+      });
+      const context = await loadValidationContext(
+        input.source,
+        parsed.manifest,
+        scope,
+      );
+      plan = buildDeploymentPlan({
+        ...planInput,
+        checks: buildDeploymentPlanValidationChecks({
+          context,
+          manifest: parsed.manifest,
+          scope,
+        }).concat(kindChecks),
+      });
+    }
   } catch (error) {
+    if (!isPersistableCandidateError(error)) throw error;
     plan = buildBlockedDeploymentPlan(planChecksFromCandidateError(error));
   }
 
@@ -223,16 +252,10 @@ async function persistDeploymentPlan(input: {
   targetCommitSha: string;
   targetManifestDigest: string | null;
 }) {
-  const identityDigest = digestValue({
-    candidateDigest: input.candidateDigest,
-    currentCommitSha: input.source.latestCommitSha,
-    currentManifestDigest: input.source.latestManifestDigest,
-    plan: input.plan,
+  const identityDigest = pullRequestDeploymentPlanIdentity({
     pullRequestNumber: input.pullRequestNumber,
     sourceId: input.source.id,
     targetCommitSha: input.targetCommitSha,
-    targetManifestDigest: input.targetManifestDigest,
-    trigger: "pull_request",
   });
   const database = getTowbarDatabase();
   const [inserted] = await database
@@ -255,20 +278,30 @@ async function persistDeploymentPlan(input: {
     })
     .onConflictDoNothing()
     .returning(publicPlanSelection);
-  const persisted =
-    inserted ??
-    (
-      await database
-        .select(publicPlanSelection)
-        .from(deploymentPlans)
+  const [updated] = inserted
+    ? []
+    : await database
+        .update(deploymentPlans)
+        .set({
+          branch: input.branch,
+          candidateDigest: input.candidateDigest,
+          currentCommitSha: input.source.latestCommitSha,
+          currentManifestDigest: input.source.latestManifestDigest,
+          identityDigest,
+          plan: input.plan,
+          status: input.plan.status,
+          targetManifestDigest: input.targetManifestDigest,
+        })
         .where(
           and(
             eq(deploymentPlans.sourceId, input.source.id),
-            eq(deploymentPlans.identityDigest, identityDigest),
+            eq(deploymentPlans.pullRequestNumber, input.pullRequestNumber),
+            eq(deploymentPlans.targetCommitSha, input.targetCommitSha),
+            eq(deploymentPlans.trigger, "pull_request"),
           ),
         )
-        .limit(1)
-    )[0];
+        .returning(publicPlanSelection);
+  const persisted = inserted ?? updated;
   if (!persisted) throw new Error("Unable to persist deployment plan");
   await database
     .insert(deploymentPlanGithubChecks)
@@ -317,7 +350,8 @@ async function assertSourceAccess(sourceId: string, workspaceId: string) {
 
 async function loadValidationContext(
   source: PlanningSource,
-  manifest: Parameters<typeof collectSecretReferences>[0],
+  manifest: Parameters<typeof collectPlanSecretReferences>[0],
+  scope: Parameters<typeof collectPlanSecretReferences>[1],
 ) {
   const database = getTowbarDatabase();
   const [domainRows, serverRows, credentialRows, capacities, operations] =
@@ -351,7 +385,7 @@ async function loadValidationContext(
       loadActiveOperationDescriptions(source.id),
     ]);
   const credentialStatus = credentialRows[0]?.status ?? null;
-  const secretReferences = collectSecretReferences(manifest);
+  const secretReferences = collectPlanSecretReferences(manifest, scope);
   const secretBindings =
     credentialStatus === "verified" && secretReferences.length > 0
       ? await inspectAwsSecretReferences({
@@ -486,6 +520,13 @@ function planChecksFromCandidateError(error: unknown): DeploymentPlanCheck[] {
     }));
   }
   return [planCheckFromError(error, "candidate_unavailable")];
+}
+
+function isPersistableCandidateError(error: unknown) {
+  return (
+    error instanceof ManifestValidationError ||
+    (error instanceof HttpError && error.status !== 429 && error.status < 500)
+  );
 }
 
 function planCheckFromError(error: unknown, code: string): DeploymentPlanCheck {

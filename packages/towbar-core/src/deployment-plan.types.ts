@@ -9,7 +9,7 @@ export type DeploymentPlanAction =
   "archive" | "create" | "no_op" | "restore" | "update";
 export type DeploymentPlanEntityKind = "app" | "resource" | "server";
 export type DeploymentPlanCheckStatus = "failed" | "passed" | "warning";
-export type DeploymentPlanStatus = "blocked" | "ready";
+export type DeploymentPlanStatus = "blocked" | "ready" | "skipped";
 
 export type DeploymentPlanItem = {
   action: DeploymentPlanAction;

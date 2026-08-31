@@ -79,12 +79,15 @@ export function buildDeploymentPlan(input: {
     )
     .sort(comparePlanItems);
   const checks = [...(input.checks ?? [])].sort(comparePlanChecks);
+  const hasActionableChanges = items.some((item) => item.action !== "no_op");
   return {
     checks,
     items,
     status: checks.some((check) => check.status === "failed")
       ? "blocked"
-      : "ready",
+      : input.mode === "pull_request" && !hasActionableChanges
+        ? "skipped"
+        : "ready",
     summary: summarizePlanItems(items),
   };
 }

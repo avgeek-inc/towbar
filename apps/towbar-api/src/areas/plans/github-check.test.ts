@@ -8,12 +8,13 @@ void test("renders a no-op pull request as one neutral GitHub Check", () => {
     plan: {
       checks: [],
       items: [],
-      status: "ready",
+      status: "skipped",
       summary: { archive: 0, create: 0, no_op: 0, restore: 0, update: 0 },
     },
   });
   assert.equal(rendered.conclusion, "neutral");
-  assert.match(rendered.output.summary, /No deployment changes/u);
+  assert.equal(rendered.output.title, "No deployment changes");
+  assert.match(rendered.output.summary, /No deployment-relevant changes/u);
   assert.match(rendered.output.text, /No deployment-relevant changes/u);
 });
 

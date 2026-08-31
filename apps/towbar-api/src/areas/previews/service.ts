@@ -1,26 +1,16 @@
-import { randomUUID } from "node:crypto";
-
-import { and, desc, eq, isNull, ne, notInArray } from "drizzle-orm";
+import { and, desc, eq, isNull, ne } from "drizzle-orm";
 
 import {
   createPreviewAppSnapshot,
-  digestValue,
   isNormalizedResource,
   previewHostname,
-  previewRef,
-  previewRuntimeId,
   shouldDeployForChangedPaths,
 } from "@workspace/towbar-core";
-import {
-  deploymentWorkflowId,
-  previewPullRequestEventSchema,
-} from "@workspace/towbar-core/temporal";
+import { previewPullRequestEventSchema } from "@workspace/towbar-core/temporal";
 import {
   apps,
-  deployments,
   githubInstallations,
   previewEnvironments,
-  releases,
   servers,
   sources,
 } from "@workspace/towbar-database/schema";
@@ -43,10 +33,7 @@ import {
 import { calculateReleaseDeploymentDigest } from "../sources/deployment-digests.js";
 import { publishDeploymentPlanGitHubCheck } from "../plans/github-check.js";
 import { createPullRequestDeploymentPlan } from "../plans/service.js";
-import {
-  isPreviewReleaseCurrent,
-  shouldDeferPreviewAdmission,
-} from "./admission-state.js";
+import { admitPreviewDeployment } from "./admission.js";
 import {
   requestPreviewInputMismatchCleanups,
   requestPreviewPullRequestCleanup,
@@ -60,14 +47,6 @@ import {
 
 import type { PreviewPullRequestEvent } from "@workspace/towbar-core/temporal";
 import type { NormalizedApp } from "@workspace/towbar-core";
-
-const terminalStates = [
-  "cancelled",
-  "failed",
-  "skipped",
-  "succeeded",
-  "succeeded_with_warnings",
-] satisfies Array<(typeof deployments.$inferSelect)["state"]>;
 
 export { scheduleSourcePreviewReconciliations } from "./reconciliation-scheduler.js";
 
@@ -176,18 +155,16 @@ export async function processPreviewPullRequestEvent(
     repositoryName: source.repositoryName,
     repositoryOwner: source.repositoryOwner,
   });
-  try {
-    const plan = await createPullRequestDeploymentPlan({
-      pullRequest,
-      repositoryChanges: changedPaths,
-      sourceId: event.sourceId,
-      workspaceId: source.workspaceId,
-    });
-    await publishDeploymentPlanGitHubCheck(plan.id);
-  } catch {
-    // Planning and GitHub reporting are observational. Preview reconciliation
-    // remains independent and records its own result.
-  }
+  const plan = await createPullRequestDeploymentPlan({
+    pullRequest,
+    repositoryChanges: changedPaths,
+    sourceId: event.sourceId,
+    workspaceId: source.workspaceId,
+  });
+  await publishDeploymentPlanGitHubCheck(plan.id).catch(() => {
+    // The persisted plan remains valid when GitHub Check delivery needs its
+    // independent reporting retry.
+  });
   if (!source.latestManifestDigest) {
     return { cleanupIds: [], deploymentIds: [], retry: false };
   }
@@ -327,20 +304,19 @@ export async function processPreviewPullRequestEvent(
         admission.deploymentId,
         "queued",
       ).catch(() => undefined);
-      try {
-        await enqueueDeployment({
-          appId: candidate.appId,
-          buildConcurrency: candidate.server.buildConcurrency ?? 1,
-          deploymentId: admission.deploymentId,
-          previewBuildConcurrency:
-            candidate.server.previewBuildConcurrency ?? 1,
-          priority: "preview",
-          serverIp: candidate.server.ip,
-        });
-      } catch (error) {
-        await markPreviewAdmissionFailed(admission.deploymentId, error);
-        throw error;
-      }
+    }
+    if (admission.deploymentId && admission.shouldEnqueue) {
+      // Signal delivery is uncertain when Temporal is unavailable. Keep the
+      // accepted deployment queued so this Activity retry can safely signal
+      // the same deployment ID again.
+      await enqueueDeployment({
+        appId: candidate.appId,
+        buildConcurrency: candidate.server.buildConcurrency ?? 1,
+        deploymentId: admission.deploymentId,
+        previewBuildConcurrency: candidate.server.previewBuildConcurrency ?? 1,
+        priority: "preview",
+        serverIp: candidate.server.ip,
+      });
     }
   }
   await publishPreviewPullRequestComment({
@@ -354,225 +330,4 @@ export async function processPreviewPullRequestEvent(
       .filter((id): id is string => Boolean(id)),
     retry: admissions.some((admission) => admission.deferred),
   };
-}
-
-async function admitPreviewDeployment(input: {
-  appId: string;
-  branch: string;
-  commitSha: string;
-  config: NormalizedApp;
-  deploymentDigest: string;
-  hostname: string;
-  manifestDigest: string;
-  pullRequestNumber: number;
-  server: (typeof servers.$inferSelect)["config"];
-  serverId: string;
-  sourceId: string;
-  sourceInputDigest: string | null;
-  ttlHours: number;
-  workspaceId: string;
-}) {
-  const database = getTowbarDatabase();
-  const gitRef = previewRef(input.pullRequestNumber);
-  const runtimeId = previewRuntimeId({
-    appId: input.config.id,
-    pullRequestNumber: input.pullRequestNumber,
-    sourceId: input.sourceId,
-  });
-  const deploymentId = randomUUID();
-  const expiresAt = new Date(Date.now() + input.ttlHours * 60 * 60_000);
-  const admission = await database.transaction(async (transaction) => {
-    const [existingEnvironment] = await transaction
-      .select({
-        id: previewEnvironments.id,
-        status: previewEnvironments.status,
-      })
-      .from(previewEnvironments)
-      .where(
-        and(
-          eq(previewEnvironments.sourceId, input.sourceId),
-          eq(previewEnvironments.appId, input.appId),
-          eq(previewEnvironments.gitRef, gitRef),
-        ),
-      )
-      .for("update")
-      .limit(1);
-    if (
-      existingEnvironment &&
-      shouldDeferPreviewAdmission(existingEnvironment.status)
-    ) {
-      return {
-        created: false,
-        deferred: true,
-        deploymentId: null,
-        environmentId: existingEnvironment.id,
-        supersededDeploymentIds: [],
-      };
-    }
-    const [environment] = await transaction
-      .insert(previewEnvironments)
-      .values({
-        appId: input.appId,
-        branch: input.branch,
-        expiresAt,
-        gitRef,
-        hostname: input.hostname,
-        latestCommitSha: input.commitSha,
-        pullRequestNumber: input.pullRequestNumber,
-        runtimeId,
-        serverId: input.serverId,
-        sourceId: input.sourceId,
-        workspaceId: input.workspaceId,
-      })
-      .onConflictDoUpdate({
-        target: [
-          previewEnvironments.sourceId,
-          previewEnvironments.appId,
-          previewEnvironments.gitRef,
-        ],
-        set: {
-          branch: input.branch,
-          deletedAt: null,
-          errorMessage: null,
-          expiresAt,
-          hostname: input.hostname,
-          latestCommitSha: input.commitSha,
-          pullRequestNumber: input.pullRequestNumber,
-          runtimeId,
-          serverId: input.serverId,
-          status: "building",
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
-    if (!environment)
-      throw new Error("Unable to materialize Preview environment");
-
-    const [current] = await transaction
-      .select({
-        deploymentDigest: releases.deploymentDigest,
-      })
-      .from(releases)
-      .where(
-        and(
-          eq(releases.previewEnvironmentId, environment.id),
-          eq(releases.status, "current"),
-        ),
-      )
-      .limit(1);
-    if (
-      isPreviewReleaseCurrent(current?.deploymentDigest, input.deploymentDigest)
-    ) {
-      await transaction
-        .update(previewEnvironments)
-        .set({ status: "healthy", updatedAt: new Date() })
-        .where(eq(previewEnvironments.id, environment.id));
-      return {
-        created: false,
-        deferred: false,
-        deploymentId: null,
-        environmentId: environment.id,
-        supersededDeploymentIds: [],
-      };
-    }
-
-    const [active] = await transaction
-      .select({ id: deployments.id })
-      .from(deployments)
-      .where(
-        and(
-          eq(deployments.previewEnvironmentId, environment.id),
-          eq(deployments.commitSha, input.commitSha),
-          eq(deployments.deploymentDigest, input.deploymentDigest),
-          notInArray(deployments.state, terminalStates),
-        ),
-      )
-      .orderBy(desc(deployments.createdAt))
-      .limit(1);
-    if (active) {
-      return {
-        created: false,
-        deferred: false,
-        deploymentId: active.id,
-        environmentId: environment.id,
-        supersededDeploymentIds: [],
-      };
-    }
-
-    const now = new Date();
-    const supersededDeployments = await transaction
-      .update(deployments)
-      .set({
-        errorCode: "PREVIEW_SUPERSEDED",
-        errorMessage: "Superseded by a newer Preview commit",
-        finishedAt: now,
-        state: "skipped",
-        updatedAt: now,
-      })
-      .where(
-        and(
-          eq(deployments.previewEnvironmentId, environment.id),
-          eq(deployments.state, "queued"),
-        ),
-      )
-      .returning({ id: deployments.id });
-    await transaction.insert(deployments).values({
-      appId: input.appId,
-      appSnapshot: input.config,
-      commitSha: input.commitSha,
-      configDigest: digestValue(input.config),
-      deployableKind: "app",
-      deploymentDigest: input.deploymentDigest,
-      environment: "preview",
-      gitRef,
-      hostname: input.hostname,
-      id: deploymentId,
-      idempotencyKey: `preview:${environment.id}:${input.commitSha}:${input.deploymentDigest}`,
-      manifestDigest: input.manifestDigest,
-      previewEnvironmentId: environment.id,
-      requestedBy: null,
-      serverId: input.serverId,
-      serverSnapshot: input.server,
-      sourceId: input.sourceId,
-      sourceInputDigest: input.sourceInputDigest,
-      temporalWorkflowId: deploymentWorkflowId(deploymentId),
-      workspaceId: input.workspaceId,
-    });
-    await transaction
-      .update(previewEnvironments)
-      .set({ latestDeploymentId: deploymentId, updatedAt: now })
-      .where(eq(previewEnvironments.id, environment.id));
-    return {
-      created: true,
-      deferred: false,
-      deploymentId,
-      environmentId: environment.id,
-      supersededDeploymentIds: supersededDeployments.map(
-        (deployment) => deployment.id,
-      ),
-    };
-  });
-  return admission;
-}
-
-async function markPreviewAdmissionFailed(
-  deploymentId: string,
-  error: unknown,
-) {
-  const message =
-    error instanceof Error
-      ? error.message.slice(0, 1_000)
-      : "Preview deployment queue is unavailable";
-  const now = new Date();
-  await getTowbarDatabase()
-    .update(deployments)
-    .set({
-      errorCode: "TEMPORAL_UNAVAILABLE",
-      errorMessage: message,
-      finishedAt: now,
-      state: "failed",
-      updatedAt: now,
-    })
-    .where(eq(deployments.id, deploymentId));
-  await propagatePreviewDeploymentState(deploymentId, "failed");
 }

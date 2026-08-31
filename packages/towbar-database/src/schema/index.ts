@@ -106,7 +106,7 @@ export const deploymentPlanTriggerEnum = pgEnum(
 );
 export const deploymentPlanStatusEnum = pgEnum(
   "towbar_deployment_plan_status",
-  ["ready", "blocked"],
+  ["ready", "blocked", "skipped"],
 );
 export const deploymentPlanDeliveryStatusEnum = pgEnum(
   "towbar_deployment_plan_delivery_status",
@@ -615,6 +615,9 @@ export const deploymentPlans = pgTable(
       table.sourceId,
       table.identityDigest,
     ),
+    uniqueIndex("uq_towbar_deployment_plans_pull_request_head")
+      .on(table.sourceId, table.pullRequestNumber, table.targetCommitSha)
+      .where(sql`${table.trigger} = 'pull_request'`),
     index("idx_towbar_deployment_plans_source_created").on(
       table.sourceId,
       table.createdAt,
