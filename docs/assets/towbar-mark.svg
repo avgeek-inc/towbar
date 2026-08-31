@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Towbar">
+  <rect width="64" height="64" rx="18" fill="#1c1c1c" />
+  <path d="M18 20h28v8H36v22h-8V28H18z" fill="#fafafa" />
+</svg>

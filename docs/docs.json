@@ -1,0 +1,181 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Towbar",
+  "description": "Git-backed deployments to Ubuntu servers you own.",
+  "logo": {
+    "light": "/assets/towbar-mark.svg",
+    "dark": "/assets/towbar-mark.svg",
+    "href": "/"
+  },
+  "favicon": "/assets/towbar-mark.svg",
+  "colors": {
+    "primary": "#07518E",
+    "light": "#3BA0FF",
+    "dark": "#0F6EC7"
+  },
+  "appearance": {
+    "default": "system"
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "styling": {
+    "eyebrows": "breadcrumbs",
+    "codeblocks": "system"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Start here",
+        "pages": ["docs/index", "docs/getting-started"]
+      },
+      {
+        "group": "Deploy",
+        "pages": ["docs/deployment-file", "docs/configuration"]
+      },
+      {
+        "group": "Operate",
+        "pages": ["docs/managed-restores", "docs/architecture"]
+      },
+      {
+        "group": "Project",
+        "pages": ["docs/security"]
+      }
+    ]
+  },
+  "navbar": {
+    "links": [
+      {
+        "type": "github",
+        "href": "https://github.com/avgeek-inc/towbar"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Open dashboard",
+      "href": "https://app.towbar.dev"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/avgeek-inc/towbar"
+    },
+    "links": [
+      {
+        "header": "Documentation",
+        "items": [
+          {
+            "label": "Getting started",
+            "href": "/docs/getting-started"
+          },
+          {
+            "label": "Deployment manifest",
+            "href": "/docs/deployment-file"
+          },
+          {
+            "label": "Configuration",
+            "href": "/docs/configuration"
+          }
+        ]
+      },
+      {
+        "header": "Project",
+        "items": [
+          {
+            "label": "GitHub",
+            "href": "https://github.com/avgeek-inc/towbar"
+          },
+          {
+            "label": "Changelog",
+            "href": "https://github.com/avgeek-inc/towbar/blob/main/CHANGELOG.md"
+          },
+          {
+            "label": "Security",
+            "href": "/docs/security"
+          }
+        ]
+      },
+      {
+        "header": "Legal",
+        "items": [
+          {
+            "label": "Privacy",
+            "href": "/privacy"
+          },
+          {
+            "label": "Terms",
+            "href": "/terms"
+          },
+          {
+            "label": "Status",
+            "href": "/status"
+          }
+        ]
+      }
+    ]
+  },
+  "contextual": {
+    "options": ["copy", "view", "chatgpt", "claude"]
+  },
+  "seo": {
+    "indexing": "all"
+  },
+  "redirects": [
+    {
+      "source": "/docs/resources",
+      "destination": "/docs/deployment-file"
+    },
+    {
+      "source": "/docs/sources",
+      "destination": "/docs/getting-started"
+    },
+    {
+      "source": "/docs/servers",
+      "destination": "/docs/getting-started"
+    },
+    {
+      "source": "/docs/secrets",
+      "destination": "/docs/configuration"
+    },
+    {
+      "source": "/docs/deployments",
+      "destination": "/docs/deployment-file"
+    },
+    {
+      "source": "/docs/operations",
+      "destination": "/docs/architecture"
+    },
+    {
+      "source": "/docs/domains-tls",
+      "destination": "/docs/deployment-file"
+    },
+    {
+      "source": "/docs/previews",
+      "destination": "/docs/deployment-file"
+    },
+    {
+      "source": "/docs/plans",
+      "destination": "/docs/architecture"
+    },
+    {
+      "source": "/getting-started",
+      "destination": "/docs/getting-started"
+    },
+    {
+      "source": "/configuration",
+      "destination": "/docs/configuration"
+    },
+    {
+      "source": "/architecture",
+      "destination": "/docs/architecture"
+    },
+    {
+      "source": "/managed-restores",
+      "destination": "/docs/managed-restores"
+    }
+  ],
+  "metadata": {
+    "timestamp": true
+  }
+}

@@ -1,0 +1,18 @@
+---
+title: "Privacy"
+description: "How Towbar handles operator and deployment data."
+mode: "center"
+---
+
+Towbar stores account identity, repository installation metadata, desired
+configuration snapshots, deployment history, logs, and encrypted credentials
+needed to operate the installation. It does not sell personal data.
+
+Secret values are write-only by default in the dashboard and are resolved only
+at execution boundaries. Explicit owner-only reveal requests use no-store
+responses; Towbar does not persist revealed values in PostgreSQL or application
+logs.
+
+The hosted documentation is published through Mintlify and links to GitHub and
+the separately operated Towbar dashboard. Those services apply their own
+privacy terms when you use them.

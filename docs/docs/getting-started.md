@@ -1,4 +1,7 @@
-# Getting started
+---
+title: "Getting started"
+description: "Install Towbar, connect GitHub, prepare an Ubuntu server, and complete the first deployment."
+---
 
 This guide follows the complete path from evaluating Towbar to completing a
 first deployment.
@@ -30,7 +33,7 @@ public sign-up, build arbitrary untrusted pull requests, publish a container
 registry, or restore databases automatically. Managed PostgreSQL and Redis
 restores are explicit owner actions with confirmation, isolated validation,
 and rollback safeguards. Read
-[the architecture guide](architecture.md) and [SECURITY.md](../SECURITY.md)
+[the architecture guide](/docs/architecture) and [security guide](/docs/security)
 before exposing an installation to the internet.
 
 ## 2. Install the control plane
@@ -77,7 +80,7 @@ Complete setup while the services are still loopback-bound, before enabling
 public ingress.
 
 If the owner password is later forgotten, use the environment-and-restart
-procedure in [Configuration](configuration.md#forgotten-owner-password).
+procedure in [Configuration](/docs/configuration#forgotten-owner-password).
 Towbar has no browser-accessible password-reset flow.
 
 The loopback defaults are suitable for evaluating the UI on the host. GitHub
@@ -158,12 +161,12 @@ specific build, deployment, and hook secret ARNs. Server login and Cloudflare
 credentials do not need write permission. Add narrowly scoped S3 permissions
 only when using managed backups. Restores also require `s3:GetObject` for the
 exact declared backup prefix. See
-[Managed database restores](managed-restores.md) before relying on a backup for
+[Managed database restores](/docs/managed-restores) before relying on a backup for
 recovery.
 
 ## 5. Add the deployment manifest
 
-Copy [the starter manifest](../examples/deployment.yml) into the repository to
+Copy [the starter manifest](/examples/deployment.yaml) into the repository to
 deploy:
 
 ```bash
@@ -240,7 +243,7 @@ docker compose logs --follow api worker
 docker compose logs --tail 200 temporal
 ```
 
-See [configuration](configuration.md) for every installation variable. If an
+See [configuration](/docs/configuration) for every installation variable. If an
 issue may expose credentials or cross a trust boundary, follow
-[the private reporting process](../SECURITY.md) instead of posting logs to a
+[the private reporting process](/docs/security) instead of posting logs to a
 public issue.

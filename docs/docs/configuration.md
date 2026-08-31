@@ -1,4 +1,7 @@
-# Configuration
+---
+title: "Configuration"
+description: "Configure the Towbar control plane, providers, Source credentials, and release deployment."
+---
 
 Copy `.env.example` to `.env`. Compose reads the file from the repository root.
 Do not commit `.env`.

@@ -1,4 +1,7 @@
-# Managed database restores
+---
+title: "Managed database restores"
+description: "Restore PostgreSQL and Redis backups with explicit validation, promotion, rollback, and audit gates."
+---
 
 Towbar supports manual, safety-gated restores for manifest-managed PostgreSQL
 and Redis Resources that already use managed S3 backups. Restores are never

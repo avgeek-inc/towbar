@@ -1,0 +1,179 @@
+---
+title: "Deployment manifest"
+description: "Declare Towbar Sources, Servers, Apps, Resources, and deployment policy in one strict versioned file."
+---
+
+Commit `.towbar/deployment.yml` to the Source repository. Towbar reads the file
+at an exact commit, validates the complete document against the versioned JSON
+Schema, and reconciles Source inventory atomically. A validation failure changes
+nothing.
+
+<CardGroup cols={2}>
+  <Card
+    title="Download the starter manifest"
+    icon="download"
+    href="/examples/deployment.yaml"
+  >
+    Start from the example kept in lockstep with Towbar's parser tests.
+  </Card>
+  <Card
+    title="View the JSON Schema"
+    icon="braces"
+    href="/schemas/deployment.v1.json"
+  >
+    Add the public schema to an editor or an automated validation step.
+  </Card>
+</CardGroup>
+
+## Minimal app
+
+```yaml
+version: 1
+
+source:
+  branch: main
+
+servers:
+  - ip: 203.0.113.10
+    ssh:
+      username: deploy
+    secrets:
+      login: aws:example/production/server-login
+
+apps:
+  - id: hello-towbar
+    name: Hello Towbar
+    server: 203.0.113.10
+    dockerfile: Dockerfile
+    context: .
+    container:
+      port: 3000
+    health:
+      path: /health
+      timeoutSeconds: 60
+    domains:
+      primary: hello.example.com
+    tls:
+      mode: direct
+```
+
+Replace every example value before synchronizing the Source.
+
+## Stable identity
+
+Every App and Resource has a stable `id`, unique across the complete manifest.
+The display `name` may change without losing deployment or release history. If
+an ID disappears, Towbar archives the deployable; when the same ID and kind
+return, Towbar restores it.
+
+Servers are Source-scoped. The canonical `ip` identifies the server for
+inventory and routing, while optional `ssh.host` may point at a different
+private address used only for SSH.
+
+## Automatic deployments
+
+Apps and Resources remain manual unless `autoDeploy` is enabled. Plain
+`autoDeploy: true` is commit-sensitive for backward compatibility. Apps can
+instead select named root `deploymentInputs` groups and repository globs:
+
+```yaml
+deploymentInputs:
+  web:
+    - package.json
+    - pnpm-lock.yaml
+
+apps:
+  - id: company-website
+    # Other App fields omitted.
+    autoDeploy:
+      inputs:
+        - web
+        - apps/company-website/**
+```
+
+Towbar hashes the matched path, Git mode, object type, and object SHA. It queues
+an automatic deployment only when selected source inputs, runtime
+configuration, or target server configuration changed. An incomplete Git tree
+fails safe by treating the commit as changed.
+
+## Secret references
+
+References use `provider:value` syntax. Version 1 supports AWS Secrets Manager:
+
+```yaml
+secrets:
+  build:
+    - aws:example/shared/build
+  deployment:
+    - aws:example/shared/runtime
+```
+
+Referenced build and deployment values must be flat JSON string maps. Root
+bundles apply to every compatible deployable. Shared bundles merge in manifest
+order and duplicate shared keys fail closed; an App or Resource bundle may
+deliberately override a shared key. Values are resolved only at execution
+boundaries and never belong in the manifest.
+
+## Apps and Resources
+
+Apps build a declared Dockerfile and context on the target host. Resources use
+versioned images and support `image`, `postgres`, and `redis` presets. Apps and
+Resources share stable IDs, queueing, deployments, releases, health checks,
+domains, TLS, Docker networks, resource limits, runtime secrets, and automatic
+deployment policy.
+
+PostgreSQL and Redis Resources may also declare Source-scoped S3 backup storage,
+retention, and an optional five-field UTC cron schedule that runs no more than
+hourly. See [Managed database restores](/docs/managed-restores) before relying
+on a backup for recovery.
+
+## Private networks and operator access
+
+Deployables on the same existing `container.network` can communicate through a
+stable Resource `networkAlias`, which defaults to the Resource ID. Optional
+`access.sshTunnel.hostPort` publishes a database port only on
+`127.0.0.1` of its server for operator tools reached through SSH. Towbar never
+routes that port through Caddy or Cloudflare.
+
+## Preview deployments
+
+Preview deployments are opt-in per App. They run for relevant same-repository
+pull requests targeting `source.branch`, using Preview-only build, runtime, and
+hook secret references. Resources, production secrets, and shared secrets are
+not cloned.
+
+```yaml
+apps:
+  - id: company-website
+    # Production fields omitted.
+    preview:
+      enabled: true
+      domain: preview.example.com
+      ttlHours: 72
+      secrets:
+        build: aws:example/preview/website-build
+        deployment: aws:example/preview/website-runtime
+```
+
+When `autoDeploy.inputs` is path-aware, unrelated pull requests do not create a
+Preview. Towbar maintains one aggregate PR comment per Source and pull request,
+publishes GitHub deployment status, and cleans up on merge, closure,
+retargeting, expiry, manifest disablement, or an owner action.
+
+## Domains and TLS
+
+Use `tls.mode: direct` when public DNS points to the target server and Caddy can
+complete a normal ACME challenge. Use `tls.mode: cloudflare-dns` for proxied
+Cloudflare records; Towbar uses a scoped API token, manages only records it
+owns, and completes a DNS challenge before promotion.
+
+## Validate locally
+
+Use the published schema with any JSON Schema-aware YAML validator. In this
+repository, the parser test keeps the starter manifest aligned with the Zod
+contract and JSON Schema:
+
+```bash
+pnpm --filter @workspace/towbar-core test
+pnpm docs:check
+```
