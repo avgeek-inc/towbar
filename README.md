@@ -8,7 +8,7 @@ truth and runs deployments through durable Temporal workflows.
 
 > [!IMPORTANT]
 > Towbar is under active development. Read [SECURITY.md](SECURITY.md) and the
-> [architecture guide](docs/architecture.md) before exposing an installation to
+> [architecture guide](docs/docs/architecture.md) before exposing an installation to
 > the internet.
 
 ## Highlights
@@ -52,16 +52,16 @@ docker compose up --build --detach --wait
 ```
 
 Open `http://localhost:4021` and create the first owner account. Continue with
-the [getting-started guide](docs/getting-started.md) to connect GitHub, add a
+the [getting-started guide](docs/docs/getting-started.md) to connect GitHub, add a
 Source, prepare a server, and make the first deployment.
 
 ## Documentation
 
-- [Getting started](docs/getting-started.md)
-- [Configuration](docs/configuration.md)
+- [Getting started](docs/docs/getting-started.md)
+- [Configuration](docs/docs/configuration.md)
 - [Deployment manifest](https://www.towbar.dev/docs/deployment-file)
-- [Architecture](docs/architecture.md)
-- [Managed database restores](docs/managed-restores.md)
+- [Architecture](docs/docs/architecture.md)
+- [Managed database restores](docs/docs/managed-restores.md)
 - [Changelog](CHANGELOG.md)
 - [Security policy](SECURITY.md)
 
@@ -74,6 +74,19 @@ corepack enable
 pnpm install --frozen-lockfile
 pnpm verify
 ```
+
+The Mintlify project lives in `docs/`. When the public manifest schema or
+starter manifest changes, update their published copies and verify they remain
+in lockstep:
+
+```bash
+pnpm docs:sync
+pnpm docs:check
+```
+
+Install the [Mintlify CLI](https://www.mintlify.com/docs/cli/install), then run
+`mint dev` from `docs/` for a local documentation preview. Mintlify should be
+configured with `/docs` as this repository's documentation path.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Towbar is
 authored by **Avgeek, Inc.** and maintained by

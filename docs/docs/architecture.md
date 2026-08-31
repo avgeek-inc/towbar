@@ -1,4 +1,7 @@
-# Architecture
+---
+title: "Architecture"
+description: "Understand Towbar's control plane, deployment plane, workflows, and trust boundaries."
+---
 
 Towbar has a control plane and a deployment plane.
 
@@ -88,5 +91,5 @@ Protect production and restrict Preview credentials accordingly.
 6. Containers to Source-declared Docker networks and volumes on destination
    hosts.
 
-See [SECURITY.md](../SECURITY.md) for supported security assumptions and
+See the [security guide](/docs/security) for supported security assumptions and
 reporting instructions.

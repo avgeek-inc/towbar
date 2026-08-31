@@ -13,6 +13,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .nvmrc
+      - name: Validate Mintlify configuration
+        run: npx --yes mint@4.2.851 validate
+        working-directory: docs
+      - name: Check Mintlify links and redirects
+        run: npx --yes mint@4.2.851 broken-links --check-anchors --check-redirects
+        working-directory: docs
+      - name: Audit Mintlify accessibility
+        run: npx --yes mint@4.2.851 a11y
+        working-directory: docs
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -29,6 +49,7 @@ jobs:
       - run: bash -n infra/deploy-release.sh
       - run: shellcheck infra/deploy-release.sh
       - run: pnpm install --frozen-lockfile
+      - run: pnpm docs:check
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
