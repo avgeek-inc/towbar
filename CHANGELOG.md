@@ -5,6 +5,15 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-08-31
+
+### Fixed
+
+- Pull request plan evaluation is now idempotent per Source, pull request, and
+  head commit. Retries reuse existing plans and Preview work, no-change pull
+  requests finish as skipped, transient GitHub failures are classified
+  accurately, and candidate validation remains scoped to relevant changes.
+
 ## [1.3.1] - 2026-08-31
 
 ### Changed
@@ -159,7 +168,8 @@ All notable changes to Towbar are documented in this file. This project follows
 - Source-scoped AWS Secrets Manager integration and environment editors.
 - A same-domain owner setup, authentication, and operations dashboard.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.3.2...HEAD
+[1.3.2]: https://github.com/avgeek-inc/towbar/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/avgeek-inc/towbar/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/avgeek-inc/towbar/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/avgeek-inc/towbar/compare/v1.1.1...v1.2.0
