@@ -5,6 +5,14 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.3.3] - 2026-08-31
+
+### Fixed
+
+- Preview pull request reconciliation now heartbeats while long-running Source
+  evaluation is in progress, preventing Temporal from retrying successful API
+  evaluations after a false heartbeat timeout.
+
 ## [1.3.2] - 2026-08-31
 
 ### Fixed
@@ -168,7 +176,8 @@ All notable changes to Towbar are documented in this file. This project follows
 - Source-scoped AWS Secrets Manager integration and environment editors.
 - A same-domain owner setup, authentication, and operations dashboard.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.3.2...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.3.3...HEAD
+[1.3.3]: https://github.com/avgeek-inc/towbar/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/avgeek-inc/towbar/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/avgeek-inc/towbar/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/avgeek-inc/towbar/compare/v1.2.0...v1.3.0
