@@ -30,8 +30,8 @@
     "@workspace/towbar-core": "workspace:*",
     "@workspace/towbar-database": "workspace:*",
     "drizzle-orm": "catalog:",
-    "hono": "^4.12.31",
-    "jose": "^6.2.9",
+    "hono": "^4.13.5",
+    "jose": "^6.2.10",
     "nodemailer": "^9.0.6",
     "postgres": "catalog:",
     "zod": "catalog:"
