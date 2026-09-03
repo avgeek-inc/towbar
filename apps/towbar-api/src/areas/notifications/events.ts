@@ -10,6 +10,11 @@ import {
 } from "@workspace/towbar-database/schema";
 
 import { getTowbarDatabase } from "../../infrastructure/database.js";
+import {
+  backupFailedNotificationCopy,
+  backupNotRestorableNotificationCopy,
+  backupStaleNotificationCopy,
+} from "./backup-notifications.js";
 import { emitNotificationEvent, notificationEventPayload } from "./service.js";
 
 import type {
@@ -153,23 +158,30 @@ export async function emitResourceOperationNotification(
     .limit(1);
   if (!operation) return;
   const status = type.replace(".", " ").replaceAll("_", " ");
+  const backupCopy =
+    type === "backup.failed"
+      ? backupFailedNotificationCopy(
+          operation.resourceName ?? "database resource",
+        )
+      : null;
   await emitNotificationEvent({
     dedupeKey: `${type}:${operation.id}`,
     payload: notificationEventPayload({
-      details: { errorCode: operation.errorCode },
+      details: backupCopy ? {} : { errorCode: operation.errorCode },
       entity: {
         id: operation.resourceId ?? operation.id,
         kind: type.startsWith("backup") ? "backup" : "restore",
         name: operation.resourceName ?? "Database Resource",
       },
       message:
+        backupCopy?.message ??
         operation.errorMessage ??
         `${operation.resourceName ?? "Database Resource"} ${status}.`,
       source: {
         id: operation.sourceId,
         name: operation.repositoryName,
       },
-      title: capitalize(status),
+      title: backupCopy?.title ?? capitalize(status),
     }),
     sourceId: operation.sourceId,
     type,
@@ -280,18 +292,19 @@ export async function emitBackupStaleNotification(input: {
     .where(eq(apps.id, input.resourceId))
     .limit(1);
   if (!resource) return;
+  const copy = backupStaleNotificationCopy(resource.name, input.occurrence);
   await emitNotificationEvent({
     dedupeKey: `backup.stale:${input.resourceId}:${input.occurrence.toISOString()}`,
     payload: notificationEventPayload({
-      details: { expectedAfter: input.occurrence.toISOString() },
+      details: copy.details,
       entity: {
         id: input.resourceId,
         kind: "resource",
         name: resource.name,
       },
-      message: `${resource.name} has no verified backup for its latest scheduled window.`,
+      message: copy.message,
       source: { id: resource.sourceId, name: resource.repositoryName },
-      title: "Backup is stale",
+      title: copy.title,
     }),
     sourceId: resource.sourceId,
     type: "backup.stale",
@@ -303,15 +316,7 @@ export async function emitBackupAssuranceNotification(input: {
   backupId: string | null;
   checkedAt: Date;
   resourceId: string;
-  status: "not_restore_ready" | "stale";
 }) {
-  if (input.status === "stale") {
-    await emitBackupStaleNotification({
-      occurrence: input.checkedAt,
-      resourceId: input.resourceId,
-    });
-    return;
-  }
   const [resource] = await getTowbarDatabase()
     .select({
       name: apps.name,
@@ -324,21 +329,19 @@ export async function emitBackupAssuranceNotification(input: {
     .where(eq(apps.id, input.resourceId))
     .limit(1);
   if (!resource) return;
+  const copy = backupNotRestorableNotificationCopy(resource.name);
   await emitNotificationEvent({
     dedupeKey: `backup.not_restorable:${input.resourceId}:${input.backupId ?? "missing"}:${input.checkedAt.toISOString()}`,
     payload: notificationEventPayload({
-      details: {
-        backupId: input.backupId,
-        checkedAt: input.checkedAt.toISOString(),
-      },
+      details: {},
       entity: {
         id: input.resourceId,
         kind: "resource",
         name: resource.name,
       },
-      message: `${resource.name} has a retained backup that failed restore-readiness assurance.`,
+      message: copy.message,
       source: { id: resource.sourceId, name: resource.repositoryName },
-      title: "Backup is not restore-ready",
+      title: copy.title,
     }),
     sourceId: resource.sourceId,
     type: "backup.not_restorable",

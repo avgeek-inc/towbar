@@ -11,6 +11,7 @@ import {
   renderSlackDeploymentMessage,
   sendSlackNotification,
 } from "./providers.js";
+import { backupStaleNotificationCopy } from "./backup-notifications.js";
 
 void test("accepts Slack channel IDs without storing credentials", () => {
   assert.deepEqual(
@@ -71,6 +72,47 @@ void test("renders a compact Slack deployment summary with a Towbar link", () =>
     JSON.stringify(message.blocks),
     /https:\/\/app\.towbar\.dev\/sources\/11111111-1111-4111-8111-111111111111\/deployments\/deployment-1/u,
   );
+});
+
+void test("renders a scheduled backup reminder in plain language", async () => {
+  const copy = backupStaleNotificationCopy(
+    "Internal PostgreSQL",
+    new Date("2026-09-03T02:00:00.000Z"),
+  );
+  const calls: Array<{ payload: Record<string, unknown> }> = [];
+  await sendSlackNotification(
+    {
+      config: { channelId: "C12345678" },
+      eventId: "event-backup-stale",
+      eventType: "backup.stale",
+      payload: notificationEventPayloadSchema.parse({
+        ...copy,
+        entity: {
+          id: "resource-1",
+          kind: "resource",
+          name: "Internal PostgreSQL",
+        },
+        occurredAt: "2026-09-03T04:00:00.000Z",
+        source: {
+          id: "11111111-1111-4111-8111-111111111111",
+          name: "platform",
+        },
+      }),
+      providerConfiguration: {
+        appBaseUrl: "https://app.towbar.dev",
+        botToken: "test-token",
+      },
+    },
+    (_method, payload) => {
+      calls.push({ payload });
+      return Promise.resolve({ ok: true, ts: "171234.5678" });
+    },
+  );
+
+  const rendered = JSON.stringify(calls[0]?.payload);
+  assert.match(rendered, /Scheduled backup did not complete/u);
+  assert.match(rendered, /Scheduled For/u);
+  assert.doesNotMatch(rendered, /ExpectedAfter|UnknownError/u);
 });
 
 void test("updates the Slack root only for the newest lifecycle event and always replies", async () => {

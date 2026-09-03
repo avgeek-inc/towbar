@@ -13,6 +13,7 @@ import type {
 } from "@workspace/towbar-web-client";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
+import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
 import {
@@ -35,7 +36,7 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { ActionButton } from "@/components/page-parts";
 import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
-import { summarizeAssuranceChecks } from "@/lib/backup-assurance-summary";
+import { getBackupHealth } from "@/lib/backup-health";
 import { formatDate } from "./dashboard-overview";
 import { formatBytes } from "./runtime-operations";
 
@@ -104,9 +105,14 @@ export function ResourceBackupConfiguration({
   const latestAssurance = latestBackup
     ? assuranceByBackup.get(latestBackup.id)
     : undefined;
-  const assuranceSummary = latestAssurance
-    ? summarizeAssuranceChecks(latestAssurance.checks)
-    : [];
+  const latestBackupOperation = operations.data.operations.find(
+    (operation) => operation.type === "backup",
+  );
+  const backupHealth = getBackupHealth({
+    assurance: latestAssurance,
+    latestBackup,
+    latestOperation: latestBackupOperation,
+  });
 
   const backupColumns: ResourceTableColumn<SourceBackup>[] = [
     {
@@ -172,9 +178,65 @@ export function ResourceBackupConfiguration({
   ];
 
   return (
-    <div className="grid gap-8">
-      <div className={active ? "grid gap-6 2xl:grid-cols-2" : "grid gap-6"}>
-        <Attributes title="Backup policy" variant="card">
+    <div className="grid min-w-0 gap-8">
+      <div className="grid min-w-0 gap-6">
+        <Card className="min-w-0">
+          <Card.Header className="items-start gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="grid min-w-0 flex-1 gap-1">
+              <Card.Title>{backupHealth.title}</Card.Title>
+              <p className="text-muted typography--body-sm">
+                {backupHealth.description}
+              </p>
+            </div>
+            <Chip className="shrink-0" variant={backupHealth.tone}>
+              {backupHealth.label}
+            </Chip>
+          </Card.Header>
+          <Card.Content className="grid min-w-0 gap-3">
+            <ol className="grid overflow-hidden rounded-lg border border-separator divide-y divide-separator md:grid-cols-3 md:divide-x md:divide-y-0">
+              {backupHealth.stages.map((stage) => (
+                <li className="grid content-start gap-2 p-4" key={stage.label}>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium typography--body-sm">
+                      {stage.label}
+                    </span>
+                    <Chip size="small" variant={stage.tone}>
+                      {stage.status}
+                    </Chip>
+                  </div>
+                  <p className="text-muted typography--body-sm">
+                    {stage.description}
+                  </p>
+                </li>
+              ))}
+            </ol>
+            {latestAssurance ? (
+              <p className="text-muted typography--body-xs">
+                Last checked {formatDate(latestAssurance.checkedAt)}
+              </p>
+            ) : null}
+          </Card.Content>
+          {active ? (
+            <Card.Footer className="justify-end">
+              <ActionButton
+                action={() =>
+                  api.post(
+                    `/v1/core/resources/${resource.id}/actions/backup`,
+                    undefined,
+                    { "Idempotency-Key": crypto.randomUUID() },
+                  )
+                }
+                pendingLabel="Queueing backup…"
+                success="Backup queued"
+                variant="primary"
+              >
+                Back up now
+              </ActionButton>
+            </Card.Footer>
+          ) : null}
+        </Card>
+
+        <Attributes title="Backup settings" variant="card">
           <Attributes.Item label="Schedule">
             {backup.schedule ? (
               <span className="inline-flex items-center gap-2">
@@ -199,7 +261,7 @@ export function ResourceBackupConfiguration({
           <Attributes.Item label="Encryption">
             {backup.s3.encryption}
           </Attributes.Item>
-          <Attributes.Item label="Last backed up">
+          <Attributes.Item label="Latest saved backup">
             {latestBackup ? (
               <CopyBackupKey backup={latestBackup} />
             ) : (
@@ -207,60 +269,9 @@ export function ResourceBackupConfiguration({
             )}
           </Attributes.Item>
         </Attributes>
-        {active ? (
-          <Card>
-            <Card.Header>
-              <Card.Title>Restore assurance</Card.Title>
-              <StatusBadge status={latestAssurance?.status ?? "missing"} />
-            </Card.Header>
-            <Card.Content className="grid gap-3">
-              <p className="text-muted typography--body-sm">
-                {latestAssurance
-                  ? `Checked ${formatDate(latestAssurance.checkedAt)}`
-                  : "Run a backup before Towbar can verify restore readiness."}
-              </p>
-              {assuranceSummary.length ? (
-                <ul className="grid gap-3 md:grid-cols-3">
-                  {assuranceSummary.map((summary) => (
-                    <li
-                      className="flex items-start gap-2 typography--body-sm"
-                      key={summary.name}
-                    >
-                      <span
-                        aria-hidden="true"
-                        className={
-                          summary.passed ? "text-success" : "text-danger"
-                        }
-                      >
-                        {summary.passed ? "●" : "○"}
-                      </span>
-                      <span>{summary.message}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </Card.Content>
-            <Card.Footer>
-              <ActionButton
-                action={() =>
-                  api.post(
-                    `/v1/core/resources/${resource.id}/actions/backup`,
-                    undefined,
-                    { "Idempotency-Key": crypto.randomUUID() },
-                  )
-                }
-                pendingLabel="Queueing backup…"
-                success="Backup queued"
-                variant="primary"
-              >
-                Back up now
-              </ActionButton>
-            </Card.Footer>
-          </Card>
-        ) : null}
       </div>
 
-      <section className="grid gap-3">
+      <section className="grid min-w-0 gap-3">
         <h4 className="typography--heading-sm">Retained backups</h4>
         <ResourceTable
           ariaLabel="Retained backups"
@@ -531,7 +542,7 @@ function RestoreHistory({
     },
   ];
   return (
-    <section className="grid gap-3">
+    <section className="grid min-w-0 gap-3">
       <h4 className="typography--heading-sm">Restore history</h4>
       {latestRestore && ["queued", "running"].includes(latestRestore.state) ? (
         <RestoreProgress operation={latestRestore} resourceId={resourceId} />

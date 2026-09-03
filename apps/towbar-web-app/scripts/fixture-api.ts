@@ -717,6 +717,26 @@ const runtimeOperations: ResourceOperation[] = [
     cancelRequestedAt: null,
     createdAt: fixtureNow,
     deletedAt: null,
+    errorCode: "RESOURCE_OPERATION_FAILED",
+    errorMessage: "UnknownError",
+    finishedAt: fixtureNow,
+    id: "e1111111-1111-4111-8111-222222222222",
+    phase: null,
+    request: { type: "backup" },
+    requestedBy: null,
+    resourceId: fixtureIds.secondaryPostgres,
+    result: null,
+    serverId: fixtureIds.secondaryServer,
+    sourceId: fixtureIds.source,
+    startedAt: fixtureNow,
+    state: "failed",
+    type: "backup",
+    updatedAt: fixtureNow,
+  },
+  {
+    cancelRequestedAt: null,
+    createdAt: fixtureNow,
+    deletedAt: null,
     errorCode: null,
     errorMessage: null,
     finishedAt: fixtureNow,
@@ -757,27 +777,33 @@ const sourceBackups: SourceBackup[] = [
     48_331_776,
   ),
 ];
-const backupAssurances: BackupAssurance[] = sourceBackups.map((backup) => ({
-  backupOperationId: backup.id,
-  checkedAt: fixtureNow,
-  checks: [
-    "freshness",
-    "object_exists",
-    "size",
-    "checksum",
-    "encryption",
-    "engine",
-    "format",
-  ].map((name) => ({
-    message: `${name.replaceAll("_", " ")} verified`,
-    name,
-    passed: true,
-  })),
-  resourceId: backup.resourceId!,
-  restoreReady: true,
-  status: "restore_ready",
-  updatedAt: fixtureNow,
-}));
+const backupAssurances: BackupAssurance[] = sourceBackups.map((backup) => {
+  const s3AccessDenied = backup.resourceId === fixtureIds.secondaryPostgres;
+  return {
+    backupOperationId: backup.id,
+    checkedAt: fixtureNow,
+    checks: [
+      "freshness",
+      "object_exists",
+      "size",
+      "checksum",
+      "encryption",
+      "engine",
+      "format",
+    ].map((name) => ({
+      message:
+        s3AccessDenied && name === "object_exists"
+          ? "Source AWS credentials cannot access the S3 object"
+          : `${name.replaceAll("_", " ")} verified`,
+      name,
+      passed: !(s3AccessDenied && name === "object_exists"),
+    })),
+    resourceId: backup.resourceId!,
+    restoreReady: !s3AccessDenied,
+    status: s3AccessDenied ? "not_restore_ready" : "restore_ready",
+    updatedAt: fixtureNow,
+  };
+});
 const operationEventsByOperation = new Map<string, ResourceOperationEvent[]>();
 const notificationDestinations: NotificationDestination[] = [
   {
