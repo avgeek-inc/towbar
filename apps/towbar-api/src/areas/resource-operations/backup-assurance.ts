@@ -15,6 +15,7 @@ import {
 
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { getDecryptedAwsCredential } from "../aws/service.js";
+import { shouldEmitBackupNotRestorableNotification } from "../notifications/backup-notifications.js";
 import { emitBackupAssuranceNotification } from "../notifications/events.js";
 
 import type {
@@ -126,16 +127,16 @@ async function persistBackupAssurance(input: {
         },
       });
   }
-  const unsafeStatus =
-    assurance.status === "stale" || assurance.status === "not_restore_ready"
-      ? assurance.status
-      : null;
-  if (unsafeStatus && previous?.status !== unsafeStatus) {
+  if (
+    shouldEmitBackupNotRestorableNotification(
+      assurance.status,
+      previous?.status,
+    )
+  ) {
     await emitBackupAssuranceNotification({
       backupId: assurance.backupId,
       checkedAt: now,
       resourceId,
-      status: unsafeStatus,
     }).catch(() => undefined);
   }
 }
