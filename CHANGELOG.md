@@ -5,6 +5,18 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.3.4] - 2026-09-03
+
+### Added
+
+- Public Towbar documentation is now published through the Mintlify site.
+
+### Fixed
+
+- Scheduled backup reminders no longer duplicate assurance alerts for the same
+  missed window. Slack messages use plain language, and Resource backup settings
+  now lead with Backup run, S3 copy, and Restore check health states.
+
 ## [1.3.3] - 2026-08-31
 
 ### Fixed
@@ -176,7 +188,8 @@ All notable changes to Towbar are documented in this file. This project follows
 - Source-scoped AWS Secrets Manager integration and environment editors.
 - A same-domain owner setup, authentication, and operations dashboard.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.3.3...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.3.4...HEAD
+[1.3.4]: https://github.com/avgeek-inc/towbar/compare/v1.3.3...v1.3.4
 [1.3.3]: https://github.com/avgeek-inc/towbar/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/avgeek-inc/towbar/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/avgeek-inc/towbar/compare/v1.3.0...v1.3.1
