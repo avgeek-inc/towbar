@@ -101,12 +101,10 @@ export type App = {
     hooks?: {
       postDeploy?: {
         command: string[];
-        secrets?: string;
         timeoutSeconds: number;
       };
       preDeploy?: {
         command: string[];
-        secrets?: string;
         timeoutSeconds: number;
       };
     };
@@ -115,16 +113,9 @@ export type App = {
     preview?: {
       domain: string;
       enabled: true;
-      secrets: {
-        build?: string;
-        deployment?: string;
-        hooks?: { postDeploy?: string; preDeploy?: string };
-      };
       ttlHours: number;
     };
-    secrets: { build?: string; deployment?: string };
     server: string;
-    sharedSecrets?: { build: string[]; deployment: string[] };
     sourceBranch?: string;
     tls?: { mode: "cloudflare-dns" | "direct" };
   };
@@ -142,43 +133,30 @@ export type App = {
 };
 
 export type AppSecretStage =
-  | "build"
-  | "deployment"
-  | "pre_deploy"
-  | "post_deploy"
-  | "preview_build"
-  | "preview_deployment"
-  | "preview_pre_deploy"
-  | "preview_post_deploy";
-
-export type AppSecretUse = {
-  scope: "app" | "shared";
-  stage: AppSecretStage;
-};
-
+  "build" | "deployment" | "pre_deploy" | "post_deploy";
 export type AppSecretBinding = {
+  environment: "production" | "preview";
+  stage: AppSecretStage;
+  keys: string[];
+  inheritedKeys: string[];
+  revision: string | null;
+  inheritedRevision: string | null;
+  updatedAt: string | null;
+  pendingChanges: boolean;
   affectedDeployables: Array<{
     id: string;
-    kind: "app" | "resource";
-    manifestId: string;
     name: string;
-    uses: AppSecretUse[];
+    kind: "app" | "resource" | "preview";
   }>;
-  changedAt: string | null;
-  editable: boolean;
-  errorMessage: string | null;
-  keys: string[];
-  provider: "aws";
-  providerReference: string;
-  reference: string;
-  status: "available" | "unavailable";
-  uses: AppSecretUse[];
-  versionId: string | null;
 };
-
 export type AppSecretsResponse = {
   bindings: AppSecretBinding[];
   canManageSecrets: boolean;
+};
+export type SecretMetadata = {
+  keys: string[];
+  revision: string | null;
+  updatedAt: string | null;
 };
 
 export type NotificationCategory =
@@ -213,14 +191,6 @@ export type NotificationEvent = {
     title: string;
   };
   type: string;
-};
-
-export type AppSecretRevealResponse = {
-  secret: {
-    changedAt: string;
-    values: Record<string, string>;
-    versionId: string;
-  };
 };
 
 export type Resource = {
@@ -260,9 +230,7 @@ export type Resource = {
     image: string;
     kind: "image" | "postgres" | "redis";
     name: string;
-    secrets: { deployment?: string };
     server: string;
-    sharedSecrets?: { build: string[]; deployment: string[] };
     sourceBranch?: string;
     tls?: { mode: "cloudflare-dns" | "direct" };
   };

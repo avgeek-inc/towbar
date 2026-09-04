@@ -370,11 +370,8 @@ function SourceSettings({
   refreshAws: () => void;
   sourceId: string;
 }) {
-  const hasAwsCredentials = Boolean(awsData?.credential);
   const secrets = useApiQuery<AppSecretsResponse>(
-    isActive && hasAwsCredentials
-      ? `/v1/core/sources/${sourceId}/secrets`
-      : null,
+    isActive ? `/v1/core/sources/${sourceId}/secrets` : null,
   );
   const notificationDestinations =
     useApiQuery<NotificationDestinationsResponse>(
@@ -382,18 +379,16 @@ function SourceSettings({
         ? `/v1/core/sources/${sourceId}/notifications/destinations`
         : null,
     );
-  const secretsDisabledReason =
-    "Add AWS credentials before editing shared secrets";
 
   return (
     <SourceSubtabs
       ariaLabel="Source settings"
       collapseOnMobile
-      defaultSelectedKey="aws"
+      defaultSelectedKey="secrets"
       tabs={[
         {
           value: "aws",
-          label: "AWS credentials",
+          label: "S3 backup credentials",
           content: (
             <SourceAwsCredentials
               canManage={canManage}
@@ -421,11 +416,7 @@ function SourceSettings({
         {
           value: "secrets",
           label: "Secrets",
-          isDisabled: !hasAwsCredentials,
-          disabledReason: secretsDisabledReason,
-          content: hasAwsCredentials ? (
-            <SourceSecrets query={secrets} sourceId={sourceId} />
-          ) : null,
+          content: <SourceSecrets query={secrets} sourceId={sourceId} />,
         },
         ...(canManage
           ? [
@@ -479,7 +470,9 @@ function SourceSecrets({
 }) {
   const stages = [
     { label: "Build", value: "build" },
-    { label: "Deployment", value: "deployment" },
+    { label: "Runtime", value: "deployment" },
+    { label: "Pre-deploy", value: "pre_deploy" },
+    { label: "Post-deploy", value: "post_deploy" },
   ] as const;
 
   return (

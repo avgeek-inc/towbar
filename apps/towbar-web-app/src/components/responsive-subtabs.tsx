@@ -54,14 +54,14 @@ export function ResponsiveSubtabs({
 
   return (
     <Tabs
-      className="block"
+      className="block min-w-0"
       orientation={orientation}
       selectedKey={activeKey}
       onSelectionChange={selectTab}
     >
       <div
         className={cn(
-          "grid min-w-0 items-start gap-4",
+          "grid min-w-0 grid-cols-1 items-start gap-4",
           layout === "sidebar"
             ? sidebarWidth === "wide"
               ? "lg:grid-cols-[14rem_minmax(0,1fr)]"

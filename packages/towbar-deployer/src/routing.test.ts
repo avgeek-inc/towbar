@@ -23,7 +23,7 @@ function context(
       hooks: {},
       id: "example",
       name: "Example",
-      secrets: {},
+
       server: "192.0.2.1",
       sourceBranch: "main",
       tls: { mode: tlsMode },
@@ -42,7 +42,7 @@ function context(
     server: {
       buildConcurrency: 1,
       ip: "192.0.2.1",
-      secrets: { login: "aws:example/login" },
+
       ssh: { host: "192.0.2.1", port: 22, username: "deploy" },
     },
     trustedHostKeys: [],

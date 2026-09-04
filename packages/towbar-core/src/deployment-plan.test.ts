@@ -13,7 +13,7 @@ const manifest = normalizeDeploymentManifest({
   servers: [
     {
       ip: "192.0.2.10",
-      secrets: { login: "aws:server/login" },
+
       ssh: { username: "deploy" },
     },
   ],

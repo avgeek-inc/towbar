@@ -37,8 +37,6 @@ servers:
   - ip: 203.0.113.10
     ssh:
       username: deploy
-    secrets:
-      login: aws:example/production/server-login
 
 apps:
   - id: hello-towbar
@@ -96,23 +94,11 @@ an automatic deployment only when selected source inputs, runtime
 configuration, or target server configuration changed. An incomplete Git tree
 fails safe by treating the commit as changed.
 
-## Secret references
+## Managed secrets
 
-References use `provider:value` syntax. Version 1 supports AWS Secrets Manager:
+Secret values and assignments are configured through the Towbar editor and do not belong in YAML. Source production defaults support build, runtime, pre-deploy, and post-deploy stages. Apps can override each stage; resources inherit runtime only. Saved values remain write-only.
 
-```yaml
-secrets:
-  build:
-    - aws:example/shared/build
-  deployment:
-    - aws:example/shared/runtime
-```
-
-Referenced build and deployment values must be flat JSON string maps. Root
-bundles apply to every compatible deployable. Shared bundles merge in manifest
-order and duplicate shared keys fail closed; an App or Resource bundle may
-deliberately override a shared key. Values are resolved only at execution
-boundaries and never belong in the manifest.
+See [Managed secrets](/docs/managed-secrets) for inheritance, explicit deployment, external managers, and recovery.
 
 ## Apps and Resources
 
@@ -139,7 +125,7 @@ routes that port through Caddy or Cloudflare.
 
 Preview deployments are opt-in per App. They run for relevant same-repository
 pull requests targeting `source.branch`, using Preview-only build, runtime, and
-hook secret references. Resources, production secrets, and shared secrets are
+hook values configured in the editor. Resources, production secrets, and shared secrets are
 not cloned.
 
 ```yaml
@@ -150,9 +136,6 @@ apps:
       enabled: true
       domain: preview.example.com
       ttlHours: 72
-      secrets:
-        build: aws:example/preview/website-build
-        deployment: aws:example/preview/website-runtime
 ```
 
 When `autoDeploy.inputs` is path-aware, unrelated pull requests do not create a

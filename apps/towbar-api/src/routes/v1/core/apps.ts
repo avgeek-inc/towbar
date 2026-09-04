@@ -10,11 +10,6 @@ import {
   requestAppRollback,
 } from "../../../areas/apps/service.js";
 import {
-  listAppSecretBindings,
-  revealAppSecretBinding,
-  updateAppSecretBinding,
-} from "../../../areas/apps/secrets.js";
-import {
   listDeployableOperations,
   requestDeployableOperation,
 } from "../../../areas/resource-operations/service.js";
@@ -27,10 +22,6 @@ import {
   updateDeployableAutoDeployControl,
 } from "../../../areas/auto-deploy-controls/service.js";
 import { wakeMaintenanceWorkflow } from "../../../infrastructure/temporal.js";
-import {
-  secretMutationSchema,
-  secretReferenceSchema,
-} from "./secret-requests.js";
 
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
@@ -84,52 +75,6 @@ appRoutes.patch("/:appId/auto-deploy-control", async (context) => {
     autoDeploy,
     canManageAutoDeploy: user.workspaceRole === "owner",
   });
-});
-
-appRoutes.get("/:appId/secrets", async (context) => {
-  const user = context.get("user");
-  return context.json({
-    bindings: await listAppSecretBindings({
-      appId: context.req.param("appId"),
-      workspaceId: user.workspaceId,
-    }),
-    canManageSecrets: user.workspaceRole === "owner",
-  });
-});
-
-appRoutes.post("/:appId/secrets/reveal", async (context) => {
-  const user = context.get("user");
-  if (user.workspaceRole !== "owner") {
-    throw forbidden("Only the owner can reveal App secrets");
-  }
-  const input = await readJson(context, secretReferenceSchema, 4 * 1_024);
-  const secret = await revealAppSecretBinding({
-    appId: context.req.param("appId"),
-    reference: input.reference,
-    workspaceId: user.workspaceId,
-  });
-  context.header("Cache-Control", "no-store, max-age=0");
-  context.header("Pragma", "no-cache");
-  return context.json({ secret });
-});
-
-appRoutes.patch("/:appId/secrets", async (context) => {
-  const user = context.get("user");
-  if (user.workspaceRole !== "owner") {
-    throw forbidden("Only the owner can manage App secrets");
-  }
-  const input = await readJson(context, secretMutationSchema, 256 * 1_024);
-  const secret = await updateAppSecretBinding({
-    appId: context.req.param("appId"),
-    mutation: {
-      delete: input.delete,
-      expectedVersionId: input.expectedVersionId,
-      set: input.set,
-    },
-    reference: input.reference,
-    workspaceId: user.workspaceId,
-  });
-  return context.json({ secret });
 });
 
 appRoutes.get("/:appId/deployments", async (context) =>

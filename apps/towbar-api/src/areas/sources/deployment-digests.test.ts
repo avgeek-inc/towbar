@@ -17,7 +17,7 @@ import type {
 const server = {
   buildConcurrency: 1,
   ip: "203.0.113.10",
-  secrets: { login: "aws:example/server/login" },
+
   ssh: { host: "203.0.113.10", port: 22, username: "deploy" },
 } satisfies NormalizedServer;
 
@@ -33,16 +33,15 @@ const app = {
   id: "web",
   kind: "app",
   name: "Web",
-  secrets: {},
+
   server: server.ip,
-  sharedSecrets: { build: [], deployment: [] },
+
   sourceBranch: "main",
 } satisfies NormalizedApp;
 
 const manifest = {
   apps: [app],
   resources: [],
-  secrets: { build: [], deployment: [] },
   servers: [server],
   source: { branch: "main" },
   version: 1,

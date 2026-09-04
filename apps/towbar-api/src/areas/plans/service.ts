@@ -17,14 +17,13 @@ import {
   serverChecks,
   serverPreparations,
   servers,
-  sourceAwsCredentials,
   sourceSyncs,
   sources,
 } from "@workspace/towbar-database/schema";
 
 import { HttpError, conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
-import { inspectAwsSecretReferences } from "../aws/service.js";
+import { inspectManagedSecrets } from "../secrets/plan-checks.js";
 import { fetchGitHubManifestSnapshot } from "../github/client.js";
 import { listSourceCapacity } from "../servers/capacity.js";
 import {
@@ -39,7 +38,6 @@ import {
   buildCandidateDeploymentPlanValidationChecks,
   buildDeploymentPlanValidationChecks,
   buildDeploymentPlanValidationScope,
-  collectPlanSecretReferences,
 } from "./validation.js";
 import { pullRequestDeploymentPlanIdentity } from "./identity.js";
 
@@ -350,54 +348,43 @@ async function assertSourceAccess(sourceId: string, workspaceId: string) {
 
 async function loadValidationContext(
   source: PlanningSource,
-  manifest: Parameters<typeof collectPlanSecretReferences>[0],
-  scope: Parameters<typeof collectPlanSecretReferences>[1],
+  manifest: import("@workspace/towbar-core").NormalizedDeploymentManifest,
+  scope: import("./validation.js").DeploymentPlanValidationScope,
 ) {
   const database = getTowbarDatabase();
-  const [domainRows, serverRows, credentialRows, capacities, operations] =
-    await Promise.all([
-      database
-        .select({ config: apps.config, manifestId: apps.manifestId })
-        .from(apps)
-        .where(
-          and(
-            eq(apps.workspaceId, source.workspaceId),
-            ne(apps.sourceId, source.id),
-            isNull(apps.archivedAt),
-          ),
+  const [domainRows, serverRows, capacities, operations] = await Promise.all([
+    database
+      .select({ config: apps.config, manifestId: apps.manifestId })
+      .from(apps)
+      .where(
+        and(
+          eq(apps.workspaceId, source.workspaceId),
+          ne(apps.sourceId, source.id),
+          isNull(apps.archivedAt),
         ),
-      database
-        .select({
-          config: servers.config,
-          configDigest: servers.configDigest,
-          ip: servers.canonicalIp,
-          preparedAt: servers.preparedAt,
-          preparedConfigDigest: servers.preparedConfigDigest,
-        })
-        .from(servers)
-        .where(eq(servers.sourceId, source.id)),
-      database
-        .select({ status: sourceAwsCredentials.verificationStatus })
-        .from(sourceAwsCredentials)
-        .where(eq(sourceAwsCredentials.sourceId, source.id))
-        .limit(1),
-      listSourceCapacity(source.workspaceId, source.id),
-      loadActiveOperationDescriptions(source.id),
-    ]);
-  const credentialStatus = credentialRows[0]?.status ?? null;
-  const secretReferences = collectPlanSecretReferences(manifest, scope);
-  const secretBindings =
-    credentialStatus === "verified" && secretReferences.length > 0
-      ? await inspectAwsSecretReferences({
-          secretReferences,
-          sourceId: source.id,
-          workspaceId: source.workspaceId,
-        })
-      : [];
+      ),
+    database
+      .select({
+        config: servers.config,
+        configDigest: servers.configDigest,
+        ip: servers.canonicalIp,
+        preparedAt: servers.preparedAt,
+        preparedConfigDigest: servers.preparedConfigDigest,
+      })
+      .from(servers)
+      .where(eq(servers.sourceId, source.id)),
+    listSourceCapacity(source.workspaceId, source.id),
+    loadActiveOperationDescriptions(source.id),
+  ]);
+  const secretBindings = await inspectManagedSecrets({
+    manifest,
+    scope,
+    sourceId: source.id,
+    workspaceId: source.workspaceId,
+  });
   return {
     activeOperationDescriptions: operations,
     capacities,
-    credentialStatus,
     existingDomainClaims: domainRows.flatMap((row) =>
       row.config.domains
         ? [

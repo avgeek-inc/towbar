@@ -9,8 +9,6 @@ import {
 import {
   buildDeploymentPlanValidationChecks,
   buildDeploymentPlanValidationScope,
-  collectPlanSecretReferences,
-  collectSecretReferences,
   parseDockerMemoryBytes,
 } from "./validation.js";
 
@@ -20,7 +18,7 @@ const manifest = normalizeDeploymentManifest({
   servers: [
     {
       ip: "192.0.2.10",
-      secrets: { login: "aws:source/server-login" },
+
       ssh: { username: "deploy" },
     },
   ],
@@ -37,47 +35,6 @@ const manifest = normalizeDeploymentManifest({
   ],
 });
 
-void test("collects sorted secret names without resolving values", () => {
-  assert.deepEqual(
-    collectSecretReferences({ second: "aws:z", first: ["aws:a", "plain"] }),
-    ["aws:a", "aws:z"],
-  );
-});
-
-void test("does not require shared runtime secrets for an archive-only plan", () => {
-  const candidate = normalizeDeploymentManifest({
-    version: 1,
-    source: { branch: "main" },
-    secrets: { deployment: ["aws:source/shared-runtime"] },
-    servers: [
-      {
-        ip: "192.0.2.10",
-        secrets: { login: "aws:source/server-login" },
-        ssh: { username: "deploy" },
-      },
-    ],
-    apps: [
-      {
-        id: "retained-app",
-        name: "Retained app",
-        server: "192.0.2.10",
-        container: { port: 3000 },
-        context: ".",
-        dockerfile: "Dockerfile",
-        health: { path: "/health" },
-      },
-    ],
-  });
-
-  assert.deepEqual(
-    collectPlanSecretReferences(candidate, {
-      deployableIds: ["archived-app"],
-      serverIps: [],
-    }),
-    [],
-  );
-});
-
 void test("parses normalized Docker memory limits", () => {
   assert.equal(parseDockerMemoryBytes("512m"), 512 * 1_024 ** 2);
   assert.equal(parseDockerMemoryBytes("1g"), 1_024 ** 3);
@@ -90,10 +47,15 @@ void test("returns actionable checks without secret values", () => {
         "Wait for the active Source sync to finish",
       ],
       capacities: [],
-      credentialStatus: null,
+
       existingDomainClaims: [],
       materializedServers: [],
-      secretBindings: [],
+      secretBindings: [
+        {
+          available: false,
+          reference: "Server → Credentials → SSH private key",
+        },
+      ],
       sourceBranch: "main",
     },
     manifest,
@@ -103,7 +65,7 @@ void test("returns actionable checks without secret values", () => {
     true,
   );
   assert.equal(
-    checks.some((check) => check.code === "secret_bindings_unavailable"),
+    checks.some((check) => check.code === "secret_binding_unavailable"),
     true,
   );
   assert.equal(
@@ -114,7 +76,7 @@ void test("returns actionable checks without secret values", () => {
     checks.find((check) => check.code === "operation_conflict")?.status,
     "warning",
   );
-  assert.equal(JSON.stringify(checks).includes("server-login"), true);
+  assert.equal(JSON.stringify(checks).includes("SSH private key"), true);
 });
 
 void test("validates only deployables and servers affected by the plan", () => {
@@ -124,12 +86,12 @@ void test("validates only deployables and servers affected by the plan", () => {
     servers: [
       {
         ip: "192.0.2.10",
-        secrets: { login: "aws:source/server-login" },
+
         ssh: { username: "deploy" },
       },
       {
         ip: "192.0.2.11",
-        secrets: { login: "aws:source/unrelated-login" },
+
         ssh: { username: "deploy" },
       },
     ],
@@ -175,7 +137,7 @@ void test("validates only deployables and servers affected by the plan", () => {
     context: {
       activeOperationDescriptions: [],
       capacities: [],
-      credentialStatus: "verified",
+
       existingDomainClaims: [],
       materializedServers: [
         {
@@ -187,7 +149,10 @@ void test("validates only deployables and servers affected by the plan", () => {
         },
       ],
       secretBindings: [
-        { available: true, reference: "aws:source/server-login" },
+        {
+          available: true,
+          reference: "Server → Credentials → SSH private key",
+        },
       ],
       sourceBranch: "main",
     },
@@ -201,7 +166,7 @@ void test("validates only deployables and servers affected by the plan", () => {
   });
   assert.equal(
     checks.some((check) =>
-      check.references?.includes("aws:source/unrelated-login"),
+      check.references?.includes("Unrelated server credentials"),
     ),
     false,
   );
@@ -238,7 +203,7 @@ void test("warns when declared CPU limits intentionally overcommit the host", ()
           uptimeSeconds: 3_600,
         },
       ],
-      credentialStatus: "verified",
+
       existingDomainClaims: [],
       materializedServers: [
         {
@@ -250,7 +215,10 @@ void test("warns when declared CPU limits intentionally overcommit the host", ()
         },
       ],
       secretBindings: [
-        { available: true, reference: "aws:source/server-login" },
+        {
+          available: true,
+          reference: "Server → Credentials → SSH private key",
+        },
       ],
       sourceBranch: "main",
     },
@@ -268,11 +236,14 @@ void test("blocks secret bindings that cannot be described by name", () => {
     context: {
       activeOperationDescriptions: [],
       capacities: [],
-      credentialStatus: "verified",
+
       existingDomainClaims: [],
       materializedServers: [],
       secretBindings: [
-        { available: false, reference: "aws:source/server-login" },
+        {
+          available: false,
+          reference: "Server → Credentials → SSH private key",
+        },
       ],
       sourceBranch: "main",
     },
@@ -285,8 +256,8 @@ void test("blocks secret bindings that cannot be described by name", () => {
       code: "secret_binding_unavailable",
       entityKind: "source",
       message:
-        "Secret binding 'aws:source/server-login' was not found or cannot be described by the Source AWS credentials",
-      references: ["aws:source/server-login"],
+        "Configure Server → Credentials → SSH private key in Towbar settings before execution",
+      references: ["Server → Credentials → SSH private key"],
       status: "failed",
     },
   );
@@ -301,7 +272,7 @@ void test("keeps preparation valid for scheduler-only server changes", () => {
     context: {
       activeOperationDescriptions: [],
       capacities: [],
-      credentialStatus: "verified",
+
       existingDomainClaims: [],
       materializedServers: [
         {
@@ -313,7 +284,10 @@ void test("keeps preparation valid for scheduler-only server changes", () => {
         },
       ],
       secretBindings: [
-        { available: true, reference: "aws:source/server-login" },
+        {
+          available: true,
+          reference: "Server → Credentials → SSH private key",
+        },
       ],
       sourceBranch: "main",
     },

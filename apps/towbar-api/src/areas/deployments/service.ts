@@ -40,7 +40,6 @@ import { propagatePreviewDeploymentState } from "./preview-status.js";
 import { attachDeploymentQueueBlockers } from "./queue-blocker-query.js";
 
 export {
-  mergeEnvironmentSecretBundles,
   resolveDeploymentCloudflareSecret,
   resolveDeploymentLogin,
   resolveDeploymentSecrets,

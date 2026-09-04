@@ -98,7 +98,7 @@ export function AppLayout({
             </aside>
           </>
         ) : null}
-        <div className="grid min-h-dvh min-w-0 grid-rows-[auto_1fr_auto]">
+        <div className="grid min-h-dvh min-w-0 grid-cols-1 grid-rows-[auto_1fr_auto]">
           {navbar}
           <main className="min-w-0">{children}</main>
           {footer}

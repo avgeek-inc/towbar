@@ -1,39 +1,28 @@
 "use client";
 
-import { ViewIcon, ViewOffSlashIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
-
 import type {
   AppSecretBinding,
-  AppSecretRevealResponse,
+  AppSecretStage,
   AppSecretsResponse,
-  Deployment,
 } from "@workspace/towbar-web-client";
 import { Button } from "@workspace/web-design-system/buttons/button";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { Table } from "@workspace/web-design-system/data-display/table";
-import { Alert } from "@workspace/web-design-system/feedback/alert";
-import { FieldError } from "@workspace/web-design-system/forms/field";
 import { Input } from "@workspace/web-design-system/forms/input";
+import { Textarea } from "@workspace/web-design-system/forms/textarea";
+import { FieldError } from "@workspace/web-design-system/forms/field";
 import { toast } from "@workspace/web-design-system/overlays/toast";
-import { Tooltip } from "@workspace/web-design-system/overlays/tooltip";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
-import { cn } from "@workspace/web-design-system/lib/utils";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
-
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { ResponsiveSubtabs } from "./responsive-subtabs";
-import {
-  belongsToSecretStageGroup,
-  type SecretStageGroup,
-} from "@/lib/secret-stage";
 
-const environmentKeyPattern = /^[A-Za-z_][A-Za-z0-9_]*$/u;
-
-type NewSecretKey = { id: string; key: string; value: string };
+export const stageLabels: Record<AppSecretStage, string> = {
+  build: "Build",
+  deployment: "Runtime",
+  pre_deploy: "Pre-deploy",
+  post_deploy: "Post-deploy",
+};
 
 export function AppSecrets({
   appId,
@@ -44,57 +33,133 @@ export function AppSecrets({
   canDeploy: boolean;
   sourceId: string;
 }) {
-  const searchParams = useSearchParams();
-  const active = searchParams.get("section") === "settings";
-  const query = useApiQuery<AppSecretsResponse>(
-    active ? `/v1/core/apps/${appId}/secrets` : null,
+  const active = useSearchParams().get("section") === "settings";
+  const [environment, setEnvironment] = useState<"production" | "preview">(
+    "production",
   );
-
+  const endpoint = `/v1/core/apps/${appId}/secrets`;
+  const query = useApiQuery<AppSecretsResponse>(
+    active ? `${endpoint}?environment=${environment}` : null,
+  );
   if (!active) return null;
+  return (
+    <div className="grid gap-6">
+      <div className="flex flex-wrap gap-2" aria-label="Secret environment">
+        {(["production", "preview"] as const).map((value) => (
+          <Button
+            key={value}
+            variant={value === environment ? "primary" : "secondary"}
+            aria-pressed={value === environment}
+            onPress={() => setEnvironment(value)}
+          >
+            {value === "production" ? "Production" : "Preview"}
+          </Button>
+        ))}
+      </div>
+      <p className="text-muted">
+        {environment === "preview"
+          ? "Preview secrets are separate. Production and Source secrets are never inherited."
+          : "Source defaults are inherited. App values override matching keys."}{" "}
+        Saved values cannot be viewed.
+      </p>
+      <EnvironmentEditors
+        key={environment}
+        query={query}
+        endpoint={endpoint}
+        canDeploy={canDeploy && environment === "production"}
+        deployable={{ id: appId, kind: "app" }}
+        sourceId={sourceId}
+      />
+    </div>
+  );
+}
+
+export function ResourceSecrets({
+  resourceId,
+  canDeploy,
+  sourceId,
+}: {
+  resourceId: string;
+  canDeploy: boolean;
+  sourceId: string;
+}) {
+  const active = useSearchParams().get("section") === "settings";
+  const endpoint = `/v1/core/resources/${resourceId}/secrets`;
+  const query = useApiQuery<AppSecretsResponse>(active ? endpoint : null);
+  if (!active) return null;
+  return (
+    <div className="grid gap-4">
+      <p className="text-muted">
+        Runtime values override Source defaults. Updating a stored password does
+        not rotate the password inside an existing database.
+      </p>
+      <EnvironmentEditors
+        query={query}
+        endpoint={endpoint}
+        canDeploy={canDeploy}
+        deployable={{ id: resourceId, kind: "resource" }}
+        sourceId={sourceId}
+      />
+    </div>
+  );
+}
+
+type Query = { data?: AppSecretsResponse; error?: string; refresh: () => void };
+export function SourceSecretStageEditor({
+  query,
+  sourceId,
+  stage,
+}: {
+  query: Query;
+  sourceId: string;
+  stage: AppSecretStage;
+}) {
+  if (query.error) return <QueryError message={query.error} />;
+  if (!query.data) return <QueryLoading />;
+  const binding = query.data.bindings.find(
+    (binding) => binding.stage === stage,
+  );
+  if (!binding) return null;
+  return (
+    <SecretVariablesEditor
+      key={`${stage}:${binding.revision}`}
+      binding={binding}
+      endpoint={`/v1/core/sources/${sourceId}/secrets`}
+      canManage={query.data.canManageSecrets}
+      canDeploy={false}
+      sourceId={sourceId}
+      onUpdated={query.refresh}
+    />
+  );
+}
+
+function EnvironmentEditors({
+  query,
+  ...props
+}: {
+  query: Query;
+  endpoint: string;
+  canDeploy: boolean;
+  deployable: { id: string; kind: "app" | "resource" };
+  sourceId: string;
+}) {
   if (query.error) return <QueryError message={query.error} />;
   if (!query.data) return <QueryLoading />;
   const data = query.data;
-  if (data.bindings.length === 0) {
-    return (
-      <EmptyState>
-        <EmptyState.Header>
-          <EmptyState.Title>No secrets configured</EmptyState.Title>
-          <EmptyState.Description>
-            Add build or deployment secret references to .towbar/deployment.yml
-            and sync this Source.
-          </EmptyState.Description>
-        </EmptyState.Header>
-      </EmptyState>
-    );
-  }
-
-  const stages = [
-    { label: "Build", value: "build" },
-    { label: "Deployment", value: "deployment" },
-    { label: "Preview build", value: "preview_build" },
-    { label: "Preview deployment", value: "preview_deployment" },
-  ] as const;
-
   return (
     <ResponsiveSubtabs
-      ariaLabel="App secret stages"
-      defaultSelectedKey="build"
+      ariaLabel="Secret stages"
+      defaultSelectedKey={data.bindings[0]?.stage ?? "build"}
       layout="inline"
-      panelClassName="md:pt-6"
-      tabs={stages.map(({ label, value: stage }) => ({
-        label,
-        value: stage,
+      tabs={data.bindings.map((binding) => ({
+        label: stageLabels[binding.stage],
+        value: binding.stage,
         content: (
-          <SecretStageEditor
-            bindings={data.bindings}
-            canDeploy={canDeploy && !stage.startsWith("preview_")}
-            canManageSecrets={data.canManageSecrets}
-            deployableId={appId}
-            deployableType="app"
-            endpoint={`/v1/core/apps/${appId}/secrets`}
-            scope="app"
-            sourceId={sourceId}
-            stage={stage}
+          <SecretVariablesEditor
+            key={`${binding.environment}:${binding.stage}:${binding.revision}:${binding.inheritedRevision}`}
+            {...props}
+            binding={binding}
+            canManage={data.canManageSecrets}
             onUpdated={query.refresh}
           />
         ),
@@ -103,530 +168,301 @@ export function AppSecrets({
   );
 }
 
-export function ResourceSecrets({
-  canDeploy,
-  resourceId,
-  sourceId,
-}: {
-  canDeploy: boolean;
-  resourceId: string;
-  sourceId: string;
-}) {
-  const searchParams = useSearchParams();
-  const active = searchParams.get("section") === "settings";
-  const endpoint = `/v1/core/resources/${resourceId}/secrets`;
-  const query = useApiQuery<AppSecretsResponse>(active ? endpoint : null);
-
-  if (!active) return null;
-  if (query.error) return <QueryError message={query.error} />;
-  if (!query.data) return <QueryLoading />;
-  if (query.data.bindings.length === 0) {
-    return (
-      <EmptyState>
-        <EmptyState.Header>
-          <EmptyState.Title>No secrets configured</EmptyState.Title>
-          <EmptyState.Description>
-            Add a deployment secret reference to .towbar/deployment.yml and sync
-            this Source.
-          </EmptyState.Description>
-        </EmptyState.Header>
-      </EmptyState>
-    );
-  }
-
-  return (
-    <SecretStageEditor
-      bindings={query.data.bindings}
-      canDeploy={canDeploy}
-      canManageSecrets={query.data.canManageSecrets}
-      deployableId={resourceId}
-      deployableType="resource"
-      endpoint={endpoint}
-      scope="app"
-      sourceId={sourceId}
-      stage="deployment"
-      onUpdated={query.refresh}
-    />
-  );
-}
-
-export function SourceSecretStageEditor({
-  query,
-  sourceId,
-  stage,
-}: {
-  query: {
-    data?: AppSecretsResponse;
-    error?: string;
-    refresh: () => void;
-  };
-  sourceId: string;
-  stage: Extract<SecretStageGroup, "build" | "deployment">;
-}) {
-  if (query.error) return <QueryError message={query.error} />;
-  if (!query.data) return <QueryLoading />;
-
-  return (
-    <SecretStageEditor
-      bindings={query.data.bindings}
-      canDeploy={false}
-      canManageSecrets={query.data.canManageSecrets}
-      endpoint={`/v1/core/sources/${sourceId}/secrets`}
-      scope="shared"
-      sourceId={sourceId}
-      stage={stage}
-      onUpdated={query.refresh}
-    />
-  );
-}
-
-function SecretStageEditor({
-  bindings,
-  canDeploy,
-  canManageSecrets,
-  deployableId,
-  deployableType,
-  endpoint,
-  onUpdated,
-  scope,
-  sourceId,
-  stage,
-}: {
-  bindings: AppSecretBinding[];
-  canDeploy: boolean;
-  canManageSecrets: boolean;
-  deployableId?: string;
-  deployableType?: "app" | "resource";
-  endpoint: string;
-  onUpdated: () => void;
-  scope: AppSecretBinding["uses"][number]["scope"];
-  sourceId: string;
-  stage: SecretStageGroup;
-}) {
-  const available = bindings.filter((binding) =>
-    binding.uses.some(
-      (use) =>
-        use.scope === scope && belongsToSecretStageGroup(use.stage, stage),
-    ),
-  );
-
-  if (available.length === 0) {
-    return (
-      <EmptyState>
-        <EmptyState.Header>
-          <EmptyState.Title>
-            No {formatSecretStage(stage).toLowerCase()} secrets configured
-          </EmptyState.Title>
-          <EmptyState.Description>
-            Add a {formatSecretStage(stage).toLowerCase()} secret reference to
-            .towbar/deployment.yml and sync this Source.
-          </EmptyState.Description>
-        </EmptyState.Header>
-      </EmptyState>
-    );
-  }
-
-  return (
-    <div className="grid gap-10">
-      {available.map((binding) => (
-        <SecretVariablesEditor
-          binding={binding}
-          canDeploy={canDeploy}
-          canManageSecrets={canManageSecrets}
-          deployableId={deployableId}
-          deployableType={deployableType}
-          endpoint={endpoint}
-          key={binding.reference}
-          sourceId={sourceId}
-          onUpdated={onUpdated}
-        />
-      ))}
-    </div>
-  );
-}
-
 function SecretVariablesEditor({
   binding,
-  canDeploy,
-  canManageSecrets,
-  deployableId,
-  deployableType,
   endpoint,
+  canManage,
+  canDeploy,
+  deployable,
   onUpdated,
-  sourceId,
 }: {
   binding: AppSecretBinding;
-  canDeploy: boolean;
-  canManageSecrets: boolean;
-  deployableId?: string;
-  deployableType?: "app" | "resource";
   endpoint: string;
-  onUpdated: () => void;
+  canManage: boolean;
+  canDeploy: boolean;
   sourceId: string;
+  deployable?: { id: string; kind: "app" | "resource" };
+  onUpdated: () => void;
 }) {
-  const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [revealing, setRevealing] = useState(false);
-  const [showValues, setShowValues] = useState(false);
-  const [revealed, setRevealed] = useState<AppSecretRevealResponse["secret"]>();
-  const [deleted, setDeleted] = useState(() => new Set<string>());
-  const [replacements, setReplacements] = useState<
-    Record<string, string | undefined>
-  >({});
-  const [newKeys, setNewKeys] = useState<NewSecretKey[]>([]);
-  const [validationError, setValidationError] = useState<string>();
-  const canEdit =
-    canManageSecrets && binding.editable && binding.status === "available";
-  function addKey() {
-    setNewKeys((current) => [
-      ...current,
-      { id: crypto.randomUUID(), key: "", value: "" },
-    ]);
-  }
-
-  function toggleDelete(key: string) {
-    setDeleted((current) => {
-      const next = new Set(current);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-    setReplacements((current) => {
-      const next = { ...current };
-      delete next[key];
-      return next;
-    });
-  }
-
-  async function toggleValues() {
-    if (showValues) {
-      setShowValues(false);
-      setRevealed(undefined);
-      return;
-    }
-    setRevealing(true);
-    try {
-      const response = await api.post<AppSecretRevealResponse>(
-        `${endpoint}/reveal`,
-        { reference: binding.reference },
-      );
-      setRevealed(response.secret);
-      setShowValues(true);
-    } catch (error) {
-      toast.danger(
-        error instanceof Error
-          ? error.message
-          : "Secret values could not be revealed",
-      );
-    } finally {
-      setRevealing(false);
-    }
-  }
-
+  const [replacements, setReplacements] = useState<Record<string, string>>({});
+  const [deleted, setDeleted] = useState<string[]>([]);
+  const [newKeys, setNewKeys] = useState<
+    Array<{ id: string; key: string; value: string }>
+  >([]);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [error, setError] = useState<string>();
+  const keys = [...new Set([...binding.inheritedKeys, ...binding.keys])].sort();
+  const shared = !deployable;
+  const selectTargets = shared || binding.environment === "preview";
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!canEdit || !binding.versionId) return;
     const intent = (
       (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null
     )?.value;
-    const set = Object.create(null) as Record<string, string>;
-    for (const [key, value] of Object.entries(replacements)) {
-      if (value !== undefined) set[key] = value;
-    }
-    const seen = new Set(binding.keys);
+    const set: Record<string, string> = Object.assign(
+      Object.create(null),
+      replacements,
+    );
+    const seen = new Set(keys);
     for (const row of newKeys) {
       const key = row.key.trim();
-      if (!environmentKeyPattern.test(key)) {
-        setValidationError(
-          "New keys must start with a letter or underscore and contain only letters, numbers, and underscores.",
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/u.test(key) || seen.has(key)) {
+        setError(
+          "Use unique variable names containing letters, numbers, and underscores, starting with a letter or underscore.",
         );
-        return;
-      }
-      if (seen.has(key)) {
-        setValidationError(`Secret key '${key}' is already present.`);
         return;
       }
       seen.add(key);
       set[key] = row.value;
     }
-    if (deleted.size === 0 && Object.keys(set).length === 0) {
-      setValidationError("Add, replace, or remove at least one variable.");
+    if (!Object.keys(set).length && !deleted.length) {
+      setError("Add, replace, or remove at least one variable.");
       return;
     }
-    setValidationError(undefined);
     setBusy(true);
+    setError(undefined);
     try {
-      await api.patch<{ secret: AppSecretBinding }>(endpoint, {
-        delete: [...deleted],
-        expectedVersionId: revealed?.versionId ?? binding.versionId,
-        reference: binding.reference,
+      await api.patch(`${endpoint}/${binding.environment}/${binding.stage}`, {
+        expectedRevision: binding.revision,
         set,
+        delete: deleted,
       });
-      setDeleted(new Set());
       setReplacements({});
+      setDeleted([]);
       setNewKeys([]);
-      setRevealed(undefined);
-      setShowValues(false);
-      onUpdated();
-      toast.success("Secret variables updated");
-      if (intent === "save-and-deploy" && deployableId && deployableType) {
-        try {
-          const result = await api.post<{ deployment: Deployment }>(
-            `/v1/core/${deployableType}s/${deployableId}/actions/deploy`,
-            undefined,
-            { "Idempotency-Key": crypto.randomUUID() },
-          );
-          toast.success("Deployment queued");
-          router.push(
-            `/sources/${sourceId}/deployments/${result.deployment.id}`,
-          );
-        } catch (error) {
-          toast.danger(
-            `Secret saved, but the deployment could not be queued: ${error instanceof Error ? error.message : "Request failed"}`,
-          );
+      toast.success("Secrets saved. Changes apply on the next deployment.");
+      if (intent === "save-and-deploy") {
+        const targets =
+          !selectTargets && deployable
+            ? [deployable]
+            : binding.affectedDeployables.filter((item) =>
+                selected.includes(item.id),
+              );
+        for (const target of targets) {
+          try {
+            await api.post(
+              `/v1/core/${target.kind}s/${target.id}/actions/deploy`,
+              undefined,
+              { "Idempotency-Key": crypto.randomUUID() },
+            );
+            toast.success(
+              `Deployment queued${"name" in target ? ` for ${target.name}` : ""}`,
+            );
+          } catch (failure) {
+            toast.danger(
+              `Secrets saved, but a deployment could not be queued: ${failure instanceof Error ? failure.message : "Request failed"}`,
+            );
+          }
         }
       }
-    } catch (error) {
-      toast.danger(
-        error instanceof Error ? error.message : "Secret could not be updated",
+      onUpdated();
+    } catch (failure) {
+      setError(
+        failure instanceof Error
+          ? failure.message
+          : "Secrets could not be saved",
       );
     } finally {
       setBusy(false);
     }
   }
-
   return (
-    <div className="grid gap-4">
-      <TypographyCode className="w-fit max-w-full break-all">
-        {binding.reference}
-      </TypographyCode>
-
-      {binding.errorMessage ? (
-        <Alert status="danger">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>Secret unavailable</Alert.Title>
-            <Alert.Description>{binding.errorMessage}</Alert.Description>
-          </Alert.Content>
-        </Alert>
+    <form className="grid gap-5" onSubmit={submit}>
+      {binding.pendingChanges ? (
+        <p role="status">Secret changes are waiting for deployment.</p>
       ) : null}
-      {binding.status === "available" && !binding.editable ? (
-        <Alert status="warning">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>Binary secret</Alert.Title>
-            <Alert.Description>
-              Binary AWS secrets cannot be edited through Towbar.
-            </Alert.Description>
-          </Alert.Content>
-        </Alert>
+      {shared ? (
+        <p className="text-muted">
+          These {stageLabels[binding.stage].toLowerCase()} defaults apply to all
+          applicable production apps and resources in this Source. Local
+          overrides take precedence.
+        </p>
       ) : null}
-
-      <form className="grid gap-4" onSubmit={submit}>
-        {validationError ? <FieldError>{validationError}</FieldError> : null}
-        <Table>
-          <Table.ScrollContainer>
-            <Table.Content aria-label="Secret variables">
-              <Table.Header>
-                <Table.Column isRowHeader>Variable</Table.Column>
-                <Table.Column>
-                  <span className="flex items-center justify-between gap-2">
-                    Value
-                    {canManageSecrets && binding.status === "available" ? (
-                      <Tooltip>
-                        <Button
-                          aria-label={
-                            showValues
-                              ? "Hide secret values"
-                              : "Reveal secret values"
-                          }
-                          isDisabled={revealing}
-                          isIconOnly
-                          size="sm"
-                          variant="ghost"
-                          onPress={toggleValues}
-                        >
-                          <HugeiconsIcon
-                            aria-hidden="true"
-                            icon={showValues ? ViewIcon : ViewOffSlashIcon}
-                          />
-                        </Button>
-                        <Tooltip.Content>
-                          {showValues
-                            ? "Hide secret values"
-                            : "Reveal secret values"}
-                        </Tooltip.Content>
-                      </Tooltip>
-                    ) : null}
-                  </span>
-                </Table.Column>
-                <Table.Column>Action</Table.Column>
-              </Table.Header>
-              <Table.Body>
-                {binding.keys.map((key) => {
-                  const isDeleted = deleted.has(key);
-                  const isEdited = Object.hasOwn(replacements, key);
-                  return (
-                    <Table.Row id={`existing-${key}`} key={key}>
-                      <Table.Cell>
-                        <TypographyCode
-                          className={
-                            isDeleted ? "line-through opacity-60" : undefined
-                          }
-                        >
-                          {key}
-                        </TypographyCode>
-                      </Table.Cell>
-                      <Table.Cell className="min-w-64">
-                        <Input
-                          aria-label={`Value for ${key}`}
-                          autoComplete="new-password"
-                          className={cn(
-                            "w-full",
-                            isEdited &&
-                              "bg-warning-soft text-warning-soft-foreground",
-                          )}
-                          disabled={busy || isDeleted}
-                          placeholder={revealed ? undefined : "Unchanged"}
-                          readOnly={!canEdit}
-                          spellCheck={false}
-                          type={showValues ? "text" : "password"}
-                          value={
-                            replacements[key] ?? revealed?.values[key] ?? ""
-                          }
-                          variant="secondary"
-                          onChange={(event) => {
-                            const value = event.currentTarget.value;
-                            setReplacements((current) => ({
-                              ...current,
-                              [key]: value,
-                            }));
-                          }}
-                        />
-                      </Table.Cell>
-                      <Table.Cell className="whitespace-nowrap">
-                        {canEdit ? (
-                          <Button
-                            isDisabled={busy}
-                            size="sm"
-                            variant={isDeleted ? "secondary" : "danger"}
-                            onPress={() => toggleDelete(key)}
-                          >
-                            {isDeleted ? "Keep" : "Remove"}
-                          </Button>
-                        ) : (
-                          "—"
-                        )}
-                      </Table.Cell>
-                    </Table.Row>
-                  );
-                })}
-                {newKeys.map((row, index) => (
-                  <Table.Row id={`new-${row.id}`} key={row.id}>
-                    <Table.Cell className="min-w-52">
-                      <Input
-                        aria-label={`New variable ${index + 1} name`}
-                        autoComplete="off"
-                        className="w-full"
-                        disabled={busy}
-                        placeholder="VARIABLE_NAME"
-                        spellCheck={false}
-                        value={row.key}
-                        variant="secondary"
-                        onChange={(event) => {
-                          const value = event.currentTarget.value;
-                          setNewKeys((current) =>
-                            current.map((candidate) =>
-                              candidate.id === row.id
-                                ? {
-                                    ...candidate,
-                                    key: value,
-                                  }
-                                : candidate,
-                            ),
-                          );
-                        }}
-                      />
-                    </Table.Cell>
-                    <Table.Cell className="min-w-64">
-                      <Input
-                        aria-label={`Value for new variable ${index + 1}`}
-                        autoComplete="new-password"
-                        className="bg-warning-soft text-warning-soft-foreground w-full"
-                        disabled={busy}
-                        spellCheck={false}
-                        type={showValues ? "text" : "password"}
-                        value={row.value}
-                        variant="secondary"
-                        onChange={(event) => {
-                          const value = event.currentTarget.value;
-                          setNewKeys((current) =>
-                            current.map((candidate) =>
-                              candidate.id === row.id
-                                ? {
-                                    ...candidate,
-                                    value,
-                                  }
-                                : candidate,
-                            ),
-                          );
-                        }}
-                      />
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Button
-                        isDisabled={busy}
-                        size="sm"
-                        variant="danger"
-                        onPress={() =>
-                          setNewKeys((current) =>
-                            current.filter(
-                              (candidate) => candidate.id !== row.id,
-                            ),
-                          )
-                        }
-                      >
-                        Remove
-                      </Button>
-                    </Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
-            </Table.Content>
-          </Table.ScrollContainer>
-        </Table>
-
-        {canEdit ? (
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <Button
-              isDisabled={busy || newKeys.length >= 200}
-              variant="secondary"
-              onPress={addKey}
-            >
-              Add variable
-            </Button>
-            <div className="flex flex-wrap justify-end gap-2">
-              <Button
-                isDisabled={busy}
-                type="submit"
-                value="save"
-                variant={canDeploy ? "secondary" : "primary"}
-              >
-                {busy ? "Saving…" : "Save changes"}
-              </Button>
-              {canDeploy ? (
-                <Button isDisabled={busy} type="submit" value="save-and-deploy">
-                  {busy ? "Saving…" : "Save and deploy"}
-                </Button>
-              ) : null}
+      {!keys.length && !newKeys.length ? (
+        <p className="text-muted">
+          No secrets configured. Add a variable to get started.
+        </p>
+      ) : null}
+      {keys.map((key) => {
+        const local = binding.keys.includes(key);
+        const removed = deleted.includes(key);
+        return (
+          <div
+            key={key}
+            className="grid items-start gap-3 border-b border-border pb-4 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]"
+          >
+            <div className="min-w-0">
+              <span className="break-all font-mono text-sm">{key}</span>
+              <p className="text-muted text-sm">
+                {removed
+                  ? binding.inheritedKeys.includes(key)
+                    ? "Source default will apply after saving"
+                    : "Will be removed"
+                  : local
+                    ? binding.inheritedKeys.includes(key)
+                      ? "Local override of Source default"
+                      : "Configured locally"
+                    : "Inherited from Source"}
+              </p>
             </div>
+            <Textarea
+              aria-label={`Replacement value for ${key}`}
+              autoComplete="off"
+              placeholder={
+                local
+                  ? "Configured — enter a replacement"
+                  : "Enter a local override"
+              }
+              value={Object.hasOwn(replacements, key) ? replacements[key]! : ""}
+              disabled={!canManage || busy || removed}
+              onChange={(event) => {
+                const value = event.currentTarget.value;
+                setReplacements((current) => ({ ...current, [key]: value }));
+              }}
+            />
+            {canManage && local ? (
+              <Button
+                variant="secondary"
+                isDisabled={busy}
+                onPress={() => {
+                  setDeleted((current) =>
+                    removed
+                      ? current.filter((item) => item !== key)
+                      : [...current, key],
+                  );
+                  setReplacements((current) => {
+                    const next = { ...current };
+                    delete next[key];
+                    return next;
+                  });
+                }}
+              >
+                {removed ? "Keep" : "Remove"}
+              </Button>
+            ) : null}
           </div>
-        ) : null}
-      </form>
-    </div>
+        );
+      })}
+      {newKeys.map((row, index) => (
+        <div
+          key={row.id}
+          className="grid items-start gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]"
+        >
+          <Input
+            aria-label={`New variable ${index + 1} name`}
+            placeholder="VARIABLE_NAME"
+            disabled={busy}
+            value={row.key}
+            onChange={(event) => {
+              const value = event.currentTarget.value;
+              setNewKeys((current) =>
+                current.map((item) =>
+                  item.id === row.id ? { ...item, key: value } : item,
+                ),
+              );
+            }}
+          />
+          <Textarea
+            aria-label={`New variable ${index + 1} value`}
+            autoComplete="off"
+            placeholder="Value"
+            disabled={busy}
+            value={row.value}
+            onChange={(event) => {
+              const value = event.currentTarget.value;
+              setNewKeys((current) =>
+                current.map((item) =>
+                  item.id === row.id ? { ...item, value } : item,
+                ),
+              );
+            }}
+          />
+          <Button
+            variant="secondary"
+            isDisabled={busy}
+            onPress={() =>
+              setNewKeys((current) =>
+                current.filter((item) => item.id !== row.id),
+              )
+            }
+          >
+            Remove
+          </Button>
+        </div>
+      ))}
+      {selectTargets && binding.affectedDeployables.length ? (
+        <fieldset className="grid gap-2">
+          <legend className="mb-2">
+            {binding.environment === "preview"
+              ? "Preview deployment targets"
+              : "Affected apps and resources"}
+          </legend>
+          {binding.affectedDeployables.map((item) => (
+            <label className="flex min-h-11 items-center gap-3" key={item.id}>
+              <input
+                type="checkbox"
+                disabled={!canManage || busy}
+                checked={selected.includes(item.id)}
+                onChange={(event) => {
+                  const checked = event.currentTarget.checked;
+                  setSelected((current) =>
+                    checked
+                      ? [...current, item.id]
+                      : current.filter((id) => id !== item.id),
+                  );
+                }}
+              />
+              {item.name}
+            </label>
+          ))}
+          <p className="text-muted text-sm">
+            Select targets to deploy after saving.{" "}
+            {shared
+              ? "Existing local overrides remain in effect."
+              : "Each preview uses only app preview secrets."}
+          </p>
+        </fieldset>
+      ) : null}
+      {error ? (
+        <FieldError>
+          {error}{" "}
+          <Button variant="ghost" onPress={onUpdated}>
+            Refresh secrets
+          </Button>
+        </FieldError>
+      ) : null}
+      {canManage ? (
+        <div className="flex flex-wrap justify-between gap-3">
+          <Button
+            variant="secondary"
+            isDisabled={busy || newKeys.length >= 200}
+            onPress={() =>
+              setNewKeys((current) => [
+                ...current,
+                { id: crypto.randomUUID(), key: "", value: "" },
+              ])
+            }
+          >
+            Add variable
+          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="submit"
+              value="save"
+              variant="secondary"
+              isDisabled={busy}
+            >
+              {busy ? "Saving…" : "Save"}
+            </Button>
+            {canDeploy || (selectTargets && selected.length > 0) ? (
+              <Button type="submit" value="save-and-deploy" isDisabled={busy}>
+                Save and deploy
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </form>
   );
-}
-
-function formatSecretStage(stage: SecretStageGroup) {
-  return stage.replaceAll("_", " ");
 }

@@ -11,7 +11,7 @@ import {
 import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueueServerPreparation } from "../../infrastructure/temporal.js";
-import { resolveAwsSecret } from "../aws/service.js";
+import { resolveServerCredentials } from "../secrets/store.js";
 import { sshLoginSecretSchema } from "./service.js";
 
 const publicServerPreparationSelection = {
@@ -172,13 +172,10 @@ export async function getServerPreparationExecutionContext(
       "SERVER_CONFIG_CHANGED",
     );
   }
-  const login = sshLoginSecretSchema.parse(
-    await resolveAwsSecret({
-      secretReference: context.config.secrets.login,
-      sourceId: context.sourceId,
-      workspaceId: context.workspaceId,
-    }),
-  );
+  const credentials = await resolveServerCredentials(context);
+  const login = sshLoginSecretSchema.parse({
+    privateKey: credentials.values.privateKey,
+  });
   const trustedHostKeys = await database
     .select({
       algorithm: sshHostKeys.algorithm,

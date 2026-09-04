@@ -25,7 +25,6 @@ Towbar version 1 is intentionally narrow. It fits an operator who has:
 - a Linux host for the Towbar control plane;
 - one or more maintained Ubuntu deployment servers;
 - GitHub repositories containing Dockerfiles;
-- an AWS account for Source-scoped Secrets Manager values; and
 - authority to create and install a GitHub App.
 
 Towbar treats the configured Git branch as deployment truth. It does not offer
@@ -145,24 +144,9 @@ shows the reason, and asks the operator to clean the server before retrying.
 
 Treat Docker access as root-equivalent.
 
-Store the SSH private key in AWS Secrets Manager as a JSON object:
+After importing the Source, paste the SSH private key into **Server → Settings → Credentials**. Towbar encrypts it in its database. No AWS account is required for deployment.
 
-```json
-{
-  "privateKey": "-----BEGIN OPENSSH PRIVATE KEY-----\n..."
-}
-```
-
-The Source's AWS identity needs `sts:GetCallerIdentity` and
-`secretsmanager:DescribeSecret` and `secretsmanager:GetSecretValue` only for the
-secret paths declared by that Source. To edit App environment bundles from the
-App's **Secrets** tab, also grant `secretsmanager:PutSecretValue` only on those
-specific build, deployment, and hook secret ARNs. Server login and Cloudflare
-credentials do not need write permission. Add narrowly scoped S3 permissions
-only when using managed backups. Restores also require `s3:GetObject` for the
-exact declared backup prefix. See
-[Managed database restores](/docs/managed-restores) before relying on a backup for
-recovery.
+AWS credentials are optional and used only for S3 backups and restores. Configure them under **Source → Settings → S3 backup credentials**, with narrowly scoped S3 permissions for the declared backup prefix. See [Managed database restores](/docs/managed-restores).
 
 ## 5. Add the deployment manifest
 
@@ -174,7 +158,7 @@ mkdir -p .towbar
 cp /path/to/towbar/examples/deployment.yml .towbar/deployment.yml
 ```
 
-Replace the example IP, SSH username, AWS secret reference, domain, Dockerfile,
+Replace the example IP, SSH username, domain, Dockerfile,
 port, and input globs. Commit the file to the branch declared in
 `source.branch`. The starter file is parsed by Towbar's test suite so it cannot
 silently drift away from the published schema.
@@ -185,8 +169,7 @@ In the dashboard:
 
 1. Open **Sources → Add source** and select the installed repository.
 2. Let Towbar import `.towbar/deployment.yml`.
-3. Open **Source → Settings → AWS credentials** and store the Source's scoped
-   access key, secret access key, and default region.
+3. Open the imported server's **Settings** and save its SSH private key under **Server credentials**. Configure a Cloudflare API token here if the manifest enables Cloudflare DNS.
 4. Open **Source → Servers**, select the imported server, and choose
    **Check server**.
 5. Compare the discovered SSH fingerprint with the server console or cloud
@@ -195,13 +178,9 @@ In the dashboard:
 7. Follow the durable preparation steps until the Server is `Ready`. Apps and
    Resources remain `Server Setup Pending` and cannot deploy before this point.
 
-App secret references remain manifest-owned. On an App's **Secrets** tab,
-Towbar initially returns only key names and version metadata. The owner can
-explicitly reveal the current values through a no-store API response while
-editing them; Towbar does not persist those values in PostgreSQL or logs. Saves
-are merged into the referenced AWS JSON object server-side. **Save and deploy**
-explicitly queues a deployment because a Secrets Manager version change does
-not create a Git commit.
+Configure shared production defaults under **Source → Settings → Secrets** and local values under **App/Resource → Settings → Secrets**. Apps have separate build, runtime, and deployment-hook stages. Resources use runtime values. Preview values are configured separately and never inherit production defaults.
+
+Saved values are write-only: the editor shows configured keys and offers replacement inputs. **Save** applies on the next deployment; **Save and deploy** explicitly queues deployment. Shared edits let you select the affected apps and resources to deploy. See [Managed secrets](managed-secrets.md) for precedence, backups, and external secret managers.
 
 If preparation stops on an existing server, use the reported step and command
 failure to remove only the conflicting installation, then retry. A fresh

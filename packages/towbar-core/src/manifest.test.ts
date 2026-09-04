@@ -18,11 +18,6 @@ source:
 deploymentInputs:
   shared-web:
     - packages/web-design-system/**
-secrets:
-  build:
-    - aws:example/production/shared/frontend-build
-  deployment:
-    - aws:example/production/shared/runtime
 servers:
   - ip: 203.0.113.10
     buildConcurrency: 3
@@ -30,11 +25,9 @@ servers:
     ssh:
       host: 10.0.0.10
       username: deploy
-    secrets:
-      login: aws:example/production/server/login
     proxy:
       cloudflare:
-        apiToken: aws:example/production/cloudflare/dns
+        enabled: true
 apps:
   - id: towbar-web-app
     autoDeploy:
@@ -52,13 +45,9 @@ apps:
       resources:
         cpus: 0.5
         memory: 1G
-    secrets:
-      build: aws:example/production/towbar-web-app/build
-      deployment: aws:example/production/towbar-web-app/deployment
     hooks:
       preDeploy:
         command: [node, dist/cli/migrate.js]
-        secrets: aws:example/production/towbar-database/migration
       postDeploy:
         command: [node, dist/cli/post-deploy.js]
         timeoutSeconds: 120
@@ -72,11 +61,6 @@ apps:
       enabled: true
       domain: PREVIEW.TOWBAR.DEV.
       ttlHours: 48
-      secrets:
-        build: aws:example/preview/towbar-web-app/build
-        deployment: aws:example/preview/towbar-web-app/deployment
-        hooks:
-          preDeploy: aws:example/preview/towbar-database/migration
 `;
 
 const deploymentJsonSchema = JSON.parse(
@@ -94,10 +78,7 @@ void test("parses and canonicalizes a version 1 manifest", () => {
   assert.equal(result.manifest.servers[0]?.buildConcurrency, 3);
   assert.equal(result.manifest.servers[0]?.previewBuildConcurrency, 2);
   assert.deepEqual(result.manifest.source, { branch: "release" });
-  assert.deepEqual(result.manifest.secrets, {
-    build: ["aws:example/production/shared/frontend-build"],
-    deployment: ["aws:example/production/shared/runtime"],
-  });
+  assert.equal("secrets" in result.manifest, false);
   assert.equal(result.manifest.apps[0]?.autoDeploy, true);
   assert.equal(result.manifest.apps[0]?.vulnerabilityScanning, true);
   assert.deepEqual(result.manifest.apps[0]?.deploymentInputs, [
@@ -120,20 +101,14 @@ void test("parses and canonicalizes a version 1 manifest", () => {
     },
     preDeploy: {
       command: ["node", "dist/cli/migrate.js"],
-      secrets: "aws:example/production/towbar-database/migration",
+
       timeoutSeconds: 300,
     },
   });
   assert.deepEqual(result.manifest.apps[0]?.preview, {
     domain: "preview.towbar.dev",
     enabled: true,
-    secrets: {
-      build: "aws:example/preview/towbar-web-app/build",
-      deployment: "aws:example/preview/towbar-web-app/deployment",
-      hooks: {
-        preDeploy: "aws:example/preview/towbar-database/migration",
-      },
-    },
+
     ttlHours: 48,
   });
 });
@@ -236,7 +211,6 @@ void test("publishes server concurrency and hooks in the JSON schema", () => {
   assert.deepEqual(schemaObject(appProperties.preview).required, [
     "enabled",
     "domain",
-    "secrets",
   ]);
   assert.equal(appProperties.dependsOn, undefined);
   assert.equal(schemaObject(appProperties.hooks).minProperties, 1);
@@ -259,10 +233,7 @@ void test("publishes server concurrency and hooks in the JSON schema", () => {
       .uniqueItems,
     true,
   );
-  assert.equal(
-    schemaObject(rootProperties.secrets, "properties", "build").uniqueItems,
-    true,
-  );
+  assert.equal(rootProperties.secrets, undefined);
   assert.deepEqual(
     schemaObject(rootProperties.resources, "items", "properties").type,
     { enum: ["image", "postgres", "redis"] },
@@ -296,7 +267,7 @@ void test("publishes server concurrency and hooks in the JSON schema", () => {
 });
 
 void test("normalizes image, PostgreSQL, and Redis resources", () => {
-  const source = `${manifest}\nresources:\n  - id: metrics\n    name: Metrics\n    type: image\n    image: prom/prometheus:v3.5.0\n    server: 203.0.113.10\n    container:\n      port: 9090\n      volumes:\n        - name: config\n          mountPath: /prometheus\n    health:\n      type: http\n      path: /-/healthy\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    access:\n      sshTunnel:\n        hostPort: 15432\n    backup:\n      schedule:\n        cron: "0 3 * * *"\n      retention:\n        keepLast: 14\n      s3:\n        bucket: example-production-backups\n        prefix: databases\n    container:\n      network: towbar-platform\n    secrets:\n      deployment: aws:example/production/database/environment\n  - id: cache\n    name: Cache\n    type: redis\n    server: 203.0.113.10\n    secrets:\n      deployment: aws:example/production/cache/environment\n`;
+  const source = `${manifest}\nresources:\n  - id: metrics\n    name: Metrics\n    type: image\n    image: prom/prometheus:v3.5.0\n    server: 203.0.113.10\n    container:\n      port: 9090\n      volumes:\n        - name: config\n          mountPath: /prometheus\n    health:\n      type: http\n      path: /-/healthy\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    access:\n      sshTunnel:\n        hostPort: 15432\n    backup:\n      schedule:\n        cron: "0 3 * * *"\n      retention:\n        keepLast: 14\n      s3:\n        bucket: example-production-backups\n        prefix: databases\n    container:\n      network: towbar-platform\n  - id: cache\n    name: Cache\n    type: redis\n    server: 203.0.113.10\n`;
   const parsed = parseDeploymentManifest(source).manifest;
   const [cache, database, metrics] = parsed.resources ?? [];
   assert.equal(cache?.image, "redis:8-alpine");
@@ -462,9 +433,7 @@ void test("normalizes Resource image, command, health, volumes, and shared runti
   assert.deepEqual(resource.container.volumes, [
     { mountPath: "/prometheus", name: "data" },
   ]);
-  assert.deepEqual(resource.sharedSecrets.deployment, [
-    "aws:example/production/shared/runtime",
-  ]);
+  assert.equal("sharedSecrets" in resource, false);
 });
 
 void test("defaults to main and rejects unsafe branch names", () => {
@@ -568,7 +537,7 @@ void test("rejects the removed dependsOn manifest field", () => {
 
 void test("rejects Cloudflare TLS without a server token reference", () => {
   const invalid = manifest.replace(
-    "    proxy:\n      cloudflare:\n        apiToken: aws:example/production/cloudflare/dns\n",
+    "    proxy:\n      cloudflare:\n        enabled: true\n",
     "",
   );
   assert.throws(

@@ -1,5 +1,7 @@
 "use client";
 
+import { ConfigurationLinks } from "./configuration-links";
+
 import {
   Activity01Icon,
   DashboardCircleIcon,
@@ -224,7 +226,17 @@ export function DeploymentDetail() {
                 "Deployment failed"
               )}
             </Alert.Title>
-            <Alert.Description>{item.errorMessage}</Alert.Description>
+            <Alert.Description>
+              {item.errorMessage}
+              <ConfigurationLinks
+                sourceId={item.sourceId}
+                serverId={item.serverId}
+                deployable={{
+                  id: item.appId,
+                  kind: item.deployableKind === "app" ? "app" : "resource",
+                }}
+              />
+            </Alert.Description>
           </Alert.Content>
         </Alert>
       ) : stream.connection === "reconnecting" ? (

@@ -8,15 +8,25 @@
   "anyOf": [
     {
       "required": ["apps"],
-      "properties": { "apps": { "minItems": 1 } }
+      "properties": {
+        "apps": {
+          "minItems": 1
+        }
+      }
     },
     {
       "required": ["resources"],
-      "properties": { "resources": { "minItems": 1 } }
+      "properties": {
+        "resources": {
+          "minItems": 1
+        }
+      }
     }
   ],
   "properties": {
-    "version": { "const": 1 },
+    "version": {
+      "const": 1
+    },
     "deploymentInputs": {
       "type": "object",
       "propertyNames": {
@@ -27,7 +37,9 @@
         "minItems": 1,
         "maxItems": 200,
         "uniqueItems": true,
-        "items": { "$ref": "#/$defs/deploymentInputGlob" }
+        "items": {
+          "$ref": "#/$defs/deploymentInputGlob"
+        }
       }
     },
     "source": {
@@ -42,24 +54,6 @@
         }
       }
     },
-    "secrets": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "build": {
-          "type": "array",
-          "maxItems": 50,
-          "uniqueItems": true,
-          "items": { "$ref": "#/$defs/secretReference" }
-        },
-        "deployment": {
-          "type": "array",
-          "maxItems": 50,
-          "uniqueItems": true,
-          "items": { "$ref": "#/$defs/secretReference" }
-        }
-      }
-    },
     "servers": {
       "type": "array",
       "minItems": 1,
@@ -67,7 +61,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["ip", "ssh", "secrets"],
+        "required": ["ip", "ssh"],
         "properties": {
           "buildConcurrency": {
             "type": "integer",
@@ -81,27 +75,25 @@
             "maximum": 4,
             "default": 1
           },
-          "ip": { "type": "string" },
+          "ip": {
+            "type": "string"
+          },
           "ssh": {
             "type": "object",
             "additionalProperties": false,
             "required": ["username"],
             "properties": {
-              "host": { "type": "string" },
-              "username": { "type": "string" },
+              "host": {
+                "type": "string"
+              },
+              "username": {
+                "type": "string"
+              },
               "port": {
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 65535
               }
-            }
-          },
-          "secrets": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["login"],
-            "properties": {
-              "login": { "$ref": "#/$defs/secretReference" }
             }
           },
           "proxy": {
@@ -111,9 +103,12 @@
               "cloudflare": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["apiToken"],
+                "required": ["enabled"],
                 "properties": {
-                  "apiToken": { "$ref": "#/$defs/secretReference" }
+                  "enabled": {
+                    "const": true,
+                    "type": "boolean"
+                  }
                 }
               }
             }
@@ -132,7 +127,9 @@
           "autoDeploy": {
             "default": false,
             "oneOf": [
-              { "type": "boolean" },
+              {
+                "type": "boolean"
+              },
               {
                 "type": "object",
                 "additionalProperties": false,
@@ -143,20 +140,34 @@
                     "minItems": 1,
                     "maxItems": 200,
                     "uniqueItems": true,
-                    "items": { "$ref": "#/$defs/deploymentInputPattern" }
+                    "items": {
+                      "$ref": "#/$defs/deploymentInputPattern"
+                    }
                   }
                 }
               }
             ]
           },
-          "vulnerabilityScanning": { "type": "boolean", "default": false },
+          "vulnerabilityScanning": {
+            "type": "boolean",
+            "default": false
+          },
           "id": {
             "type": "string",
             "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
           },
-          "name": { "type": "string", "minLength": 1, "maxLength": 120 },
-          "description": { "type": "string", "maxLength": 500 },
-          "server": { "type": "string" },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "server": {
+            "type": "string"
+          },
           "dockerfile": {
             "type": "string",
             "minLength": 1,
@@ -221,16 +232,12 @@
             "additionalProperties": false,
             "minProperties": 1,
             "properties": {
-              "preDeploy": { "$ref": "#/$defs/deploymentHook" },
-              "postDeploy": { "$ref": "#/$defs/deploymentHook" }
-            }
-          },
-          "secrets": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "build": { "$ref": "#/$defs/secretReference" },
-              "deployment": { "$ref": "#/$defs/secretReference" }
+              "preDeploy": {
+                "$ref": "#/$defs/deploymentHook"
+              },
+              "postDeploy": {
+                "$ref": "#/$defs/deploymentHook"
+              }
             }
           },
           "domains": {
@@ -238,7 +245,9 @@
             "additionalProperties": false,
             "required": ["primary"],
             "properties": {
-              "primary": { "type": "string" },
+              "primary": {
+                "type": "string"
+              },
               "redirects": {
                 "type": "array",
                 "maxItems": 20,
@@ -247,8 +256,13 @@
                   "additionalProperties": false,
                   "required": ["host"],
                   "properties": {
-                    "host": { "type": "string" },
-                    "status": { "enum": [301, 302], "default": 301 }
+                    "host": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [301, 302],
+                      "default": 301
+                    }
                   }
                 }
               }
@@ -259,37 +273,29 @@
             "additionalProperties": false,
             "required": ["mode"],
             "properties": {
-              "mode": { "enum": ["direct", "cloudflare-dns"] }
+              "mode": {
+                "enum": ["direct", "cloudflare-dns"]
+              }
             }
           },
           "preview": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["enabled", "domain", "secrets"],
+            "required": ["enabled", "domain"],
             "properties": {
-              "enabled": { "const": true },
-              "domain": { "type": "string", "minLength": 1, "maxLength": 253 },
+              "enabled": {
+                "const": true
+              },
+              "domain": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 253
+              },
               "ttlHours": {
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 720,
                 "default": 72
-              },
-              "secrets": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "build": { "$ref": "#/$defs/secretReference" },
-                  "deployment": { "$ref": "#/$defs/secretReference" },
-                  "hooks": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "preDeploy": { "$ref": "#/$defs/secretReference" },
-                      "postDeploy": { "$ref": "#/$defs/secretReference" }
-                    }
-                  }
-                }
               }
             }
           }
@@ -323,20 +329,36 @@
               }
             }
           },
-          "autoDeploy": { "type": "boolean", "default": false },
-          "backup": { "$ref": "#/$defs/resourceBackup" },
+          "autoDeploy": {
+            "type": "boolean",
+            "default": false
+          },
+          "backup": {
+            "$ref": "#/$defs/resourceBackup"
+          },
           "id": {
             "type": "string",
             "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
           },
-          "name": { "type": "string", "minLength": 1, "maxLength": 120 },
-          "description": { "type": "string", "maxLength": 500 },
-          "type": { "enum": ["image", "postgres", "redis"] },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "type": {
+            "enum": ["image", "postgres", "redis"]
+          },
           "image": {
             "type": "string",
             "pattern": "^[A-Za-z0-9][A-Za-z0-9._/:@-]{0,511}$"
           },
-          "server": { "type": "string" },
+          "server": {
+            "type": "string"
+          },
           "container": {
             "type": "object",
             "additionalProperties": false,
@@ -345,7 +367,11 @@
                 "type": "array",
                 "minItems": 1,
                 "maxItems": 64,
-                "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                }
               },
               "network": {
                 "type": "string",
@@ -355,29 +381,34 @@
                 "type": "string",
                 "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
               },
-              "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
-              "resources": { "$ref": "#/$defs/containerResources" },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "resources": {
+                "$ref": "#/$defs/containerResources"
+              },
               "volumes": {
                 "type": "array",
                 "maxItems": 20,
-                "items": { "$ref": "#/$defs/dockerVolume" }
+                "items": {
+                  "$ref": "#/$defs/dockerVolume"
+                }
               }
             }
           },
-          "health": { "$ref": "#/$defs/resourceHealth" },
-          "secrets": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "deployment": { "$ref": "#/$defs/secretReference" }
-            }
+          "health": {
+            "$ref": "#/$defs/resourceHealth"
           },
           "domains": {
             "type": "object",
             "additionalProperties": false,
             "required": ["primary"],
             "properties": {
-              "primary": { "type": "string" },
+              "primary": {
+                "type": "string"
+              },
               "redirects": {
                 "type": "array",
                 "maxItems": 20,
@@ -386,8 +417,13 @@
                   "additionalProperties": false,
                   "required": ["host"],
                   "properties": {
-                    "host": { "type": "string" },
-                    "status": { "enum": [301, 302], "default": 301 }
+                    "host": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [301, 302],
+                      "default": 301
+                    }
                   }
                 }
               }
@@ -398,7 +434,9 @@
             "additionalProperties": false,
             "required": ["mode"],
             "properties": {
-              "mode": { "enum": ["direct", "cloudflare-dns"] }
+              "mode": {
+                "enum": ["direct", "cloudflare-dns"]
+              }
             }
           }
         }
@@ -411,7 +449,11 @@
       "additionalProperties": false,
       "required": ["cpus", "memory"],
       "properties": {
-        "cpus": { "type": "number", "exclusiveMinimum": 0, "maximum": 128 },
+        "cpus": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 128
+        },
         "memory": {
           "type": "string",
           "pattern": "^\\d+(?:\\.\\d+)?[bBkKmMgG]$"
@@ -427,7 +469,11 @@
           "type": "string",
           "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
         },
-        "mountPath": { "type": "string", "minLength": 1, "maxLength": 1024 }
+        "mountPath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
       }
     },
     "deploymentInputGlob": {
@@ -438,7 +484,9 @@
     },
     "deploymentInputPattern": {
       "oneOf": [
-        { "$ref": "#/$defs/deploymentInputGlob" },
+        {
+          "$ref": "#/$defs/deploymentInputGlob"
+        },
         {
           "type": "string",
           "pattern": "^\\$[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
@@ -454,9 +502,12 @@
           "type": "array",
           "minItems": 1,
           "maxItems": 64,
-          "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
         },
-        "secrets": { "$ref": "#/$defs/secretReference" },
         "timeoutSeconds": {
           "type": "integer",
           "minimum": 5,
@@ -465,25 +516,34 @@
         }
       }
     },
-    "secretReference": {
-      "type": "string",
-      "pattern": "^aws:.+$",
-      "maxLength": 1024
-    },
     "resourceHealth": {
       "type": "object",
       "additionalProperties": false,
       "required": ["type"],
       "properties": {
-        "type": { "enum": ["command", "container", "http"] },
-        "path": { "type": "string", "pattern": "^/", "maxLength": 1024 },
+        "type": {
+          "enum": ["command", "container", "http"]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 1024
+        },
         "command": {
           "type": "array",
           "minItems": 1,
           "maxItems": 64,
-          "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
         },
-        "timeoutSeconds": { "type": "integer", "minimum": 5, "maximum": 600 }
+        "timeoutSeconds": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 600
+        }
       }
     },
     "resourceBackup": {
@@ -516,13 +576,21 @@
               "enum": ["AES256", "aws:kms"],
               "default": "AES256"
             },
-            "kmsKeyId": { "type": "string", "minLength": 1, "maxLength": 2048 },
+            "kmsKeyId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            },
             "prefix": {
               "type": "string",
               "maxLength": 512,
               "default": "towbar"
             },
-            "region": { "type": "string", "minLength": 1, "maxLength": 64 }
+            "region": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
           }
         },
         "schedule": {
@@ -530,8 +598,15 @@
           "additionalProperties": false,
           "required": ["cron"],
           "properties": {
-            "cron": { "type": "string", "minLength": 1, "maxLength": 120 },
-            "timezone": { "const": "UTC", "default": "UTC" }
+            "cron": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "timezone": {
+              "const": "UTC",
+              "default": "UTC"
+            }
           }
         }
       }

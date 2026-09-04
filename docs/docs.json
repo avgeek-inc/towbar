@@ -32,7 +32,11 @@
       },
       {
         "group": "Deploy",
-        "pages": ["docs/deployment-file", "docs/configuration"]
+        "pages": [
+          "docs/deployment-file",
+          "docs/configuration",
+          "docs/managed-secrets"
+        ]
       },
       {
         "group": "Operate",

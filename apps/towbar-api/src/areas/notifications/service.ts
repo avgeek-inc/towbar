@@ -84,7 +84,7 @@ export async function createNotificationDestination(input: {
   const destination = notificationDestinationInputSchema.parse(
     input.destination,
   );
-  requireAvailableProvider(destination);
+  await requireAvailableProvider(destination, input.workspaceId);
   const [created] = await getTowbarDatabase()
     .insert(notificationDestinations)
     .values({
@@ -106,7 +106,7 @@ export async function updateNotificationDestination(input: {
   const destination = notificationDestinationInputSchema.parse(
     input.destination,
   );
-  requireAvailableProvider(destination);
+  await requireAvailableProvider(destination, input.workspaceId);
   const [updated] = await getTowbarDatabase().transaction(
     async (transaction) => {
       const [result] = await transaction
@@ -298,10 +298,13 @@ export function notificationEventPayload(
   });
 }
 
-function requireAvailableProvider(destination: NotificationDestinationInput) {
+async function requireAvailableProvider(
+  destination: NotificationDestinationInput,
+  workspaceId: string,
+) {
   if (
     destination.enabled &&
-    !notificationProviderAvailability()[destination.provider]
+    !(await notificationProviderAvailability(workspaceId))[destination.provider]
   ) {
     throw conflict(
       `${destination.provider === "slack" ? "Slack" : "SMTP"} notifications are not configured for this Towbar instance`,

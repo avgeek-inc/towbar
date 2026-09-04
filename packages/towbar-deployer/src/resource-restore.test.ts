@@ -67,9 +67,9 @@ function resourceFixture(engine: Engine): NormalizedResource {
         : "redis:8-alpine@sha256:fixture",
     kind: engine,
     name: engine === "postgres" ? "Primary PostgreSQL" : "Primary Redis",
-    secrets: {},
+
     server: "production",
-    sharedSecrets: { build: [], deployment: [] },
+
     sourceBranch: "main",
   };
 }
@@ -120,7 +120,7 @@ function restoreContext(engine: Engine): ResourceOperationExecutionContext {
     server: {
       buildConcurrency: 4,
       ip: "192.0.2.10",
-      secrets: { login: "aws:fixture/server/login" },
+
       ssh: { host: "192.0.2.10", port: 22, username: "deploy" },
     },
     sourceId,

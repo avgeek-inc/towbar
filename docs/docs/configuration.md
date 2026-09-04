@@ -12,7 +12,7 @@ Do not commit `.env`.
 | ---------------------------------- | --------------------------------------- |
 | `TOWBAR_POSTGRES_PASSWORD`         | PostgreSQL owner and migration password |
 | `TOWBAR_DATABASE_RUNTIME_PASSWORD` | Restricted API database password        |
-| `TOWBAR_CREDENTIALS_KEY`           | Encrypts stored Source AWS credentials  |
+| `TOWBAR_CREDENTIALS_KEY`           | Encrypts stored secrets and credentials |
 | `TOWBAR_INTERNAL_HMAC_SECRET`      | Signs API and worker internal requests  |
 
 Generate the PostgreSQL passwords and HMAC secret independently with
@@ -75,31 +75,9 @@ Towbar rejects partially configured GitHub App credentials.
 
 ## Notification providers
 
-Notification provider credentials belong to the Towbar installation. They are
-never stored on a Source or resolved through the Source's AWS credentials.
-After a provider is configured, each Source can opt in by supplying only its
-delivery target under **Source → Settings → Notifications**.
+Configure providers under **Settings → Notifications** as the installation owner. Credentials are encrypted and write-only. Each Source opts in through **Source → Settings → Notifications**, supplying channel IDs or email recipients and using the existing test-delivery action.
 
-### Slack
-
-Create a Slack app with a bot token that has `chat:write`, install it in the
-workspace, and set `TOWBAR_SLACK_BOT_TOKEN`. Invite the bot to each channel that
-should receive notifications. A Source then stores only that channel's ID,
-such as `C0123456789`.
-
-### Email
-
-Set `TOWBAR_SMTP_HOST` and `TOWBAR_SMTP_FROM` to enable email notifications.
-`TOWBAR_SMTP_PORT` defaults to `587`, `TOWBAR_SMTP_SECURE` defaults to `false`,
-and `TOWBAR_SMTP_SUBJECT_PREFIX` defaults to `Towbar`. If the server requires
-authentication, set both `TOWBAR_SMTP_USERNAME` and `TOWBAR_SMTP_PASSWORD`; the
-API rejects a partial pair. A Source stores only its recipient email addresses.
-
-Recreate the API container after changing provider variables:
-
-```bash
-docker compose up --detach --force-recreate api
-```
+For Slack, enter the installed bot token and invite the bot to the target channels. For SMTP, enter host and sender email; port defaults to `587`, implicit TLS to `false`, and subject prefix to `Towbar`. If authentication is required, configure username and password. Changes apply to the next delivery attempt without restarting Towbar. Provider environment variables are no longer supported.
 
 ## Image vulnerability scanning
 
@@ -162,26 +140,11 @@ while configured, which is why it must be random, short-lived, and removed.
 
 ## Deployment targets and Source credentials
 
-Destination servers are manifest configuration, not installation environment
-variables. Add a Source, store its scoped AWS credential through the dashboard,
-and declare servers and deployables in `.towbar/deployment.yml`. Secret values
-remain in AWS Secrets Manager; the manifest stores provider references only.
+Declare servers and deployables in `.towbar/deployment.yml`, then configure their secrets in Towbar. The manifest accepts no secret references or values. First Source sync does not require credentials; execution reports missing SSH, Cloudflare, or managed-resource passwords.
 
-`TOWBAR_WORKER_MAX_CONCURRENT_ACTIVITIES` defaults to `4` and limits activity
-execution across every Source. Keep it above the largest server
-`buildConcurrency` value with capacity left for Source sync and maintenance.
-Each destination server still enforces its own manifest limit.
+`TOWBAR_WORKER_MAX_CONCURRENT_ACTIVITIES` defaults to `4` and limits activity execution across every Source. Keep it above the largest server `buildConcurrency` value with capacity left for Source sync and maintenance.
 
-The App and Resource **Secrets** tabs can add, replace, or remove individual
-JSON environment keys behind an attached reference. Listings expose only key
-names and version metadata. The owner can explicitly reveal current values
-through a no-store response while editing them. Towbar performs the merge in
-the API, checks the expected AWS version before writing, and does not persist
-secret values in PostgreSQL or logs. Shared references show every affected App
-or Resource before an operator edits them. This flow requires narrowly scoped
-`secretsmanager:DescribeSecret`, `secretsmanager:GetSecretValue`, and
-`secretsmanager:PutSecretValue` permissions; changing the reference itself
-still requires a manifest commit and Source sync.
+The App, Resource, and Source **Secrets** editors provide write-only stage-specific values. Local keys override Source defaults; deleting a local key restores inheritance. Preview values are isolated. Save explicitly, then deploy when ready. Source AWS credentials are only needed for optional S3 operations. See [Managed secrets](/docs/managed-secrets).
 
 The current deployment schema is served by the configured website at
 `${TOWBAR_WEBSITE_BASE_URL}/schemas/deployment.v1.json` and documented under
@@ -197,9 +160,8 @@ target manifest digests, then classifies every App, Resource, and Server as
 create, update, archive, restore, or no-op.
 
 Validation covers manifest schema, domain ownership, Source branch alignment,
-server preparation and observed capacity, declared secret references by name,
-and conflicting active operations. Secret bindings are checked with
-`secretsmanager:DescribeSecret`; secret values are never fetched for a plan.
+server preparation and observed capacity, configured credential key names,
+and conflicting active operations. Secret values are never fetched for a plan.
 A failed validation marks the plan **Blocked** and includes an actionable
 message; warnings remain visible without blocking the comparison.
 
@@ -225,8 +187,6 @@ servers:
     previewBuildConcurrency: 1
     ssh:
       username: deploy
-    secrets:
-      login: aws:example/production/server-login
 
 apps:
   - id: hello-towbar
@@ -235,11 +195,6 @@ apps:
       enabled: true
       domain: preview.example.com
       ttlHours: 72
-      secrets:
-        build: aws:example/preview/hello-build
-        deployment: aws:example/preview/hello-runtime
-        hooks:
-          preDeploy: aws:example/preview/hello-migrations
 ```
 
 The generated hostname includes the App ID, pull request number, and a stable
@@ -282,9 +237,9 @@ lets Towbar update the same GitHub comment instead of posting a new comment for
 each state change.
 
 Treat Preview pull requests as executable deployment input. Use separate,
-least-privilege Preview secret references with disposable or non-production
+least-privilege Preview values with disposable or non-production
 credentials. Production branch, target server, domains, Resource
-configuration, and secrets remain controlled only by the production manifest.
+configuration remain controlled by the production manifest. Secret assignments are controlled only by the Towbar editor.
 
 ## Automatic release deployment
 

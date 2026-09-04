@@ -16,7 +16,6 @@ export type DeploymentPlanValidationScope = {
 export type DeploymentPlanValidationContext = {
   activeOperationDescriptions: string[];
   capacities: RuntimeCapacity[];
-  credentialStatus: "failed" | "unverified" | "verified" | null;
   existingDomainClaims: Array<{ domain: string; manifestId: string }>;
   materializedServers: Array<{
     config: NormalizedServer;
@@ -91,30 +90,6 @@ export function buildDeploymentPlanValidationScope(input: {
     ),
     serverIps: [...serverIps].sort((left, right) => left.localeCompare(right)),
   };
-}
-
-export function collectPlanSecretReferences(
-  manifest: NormalizedDeploymentManifest,
-  scope: DeploymentPlanValidationScope,
-) {
-  const deployableIds = new Set(scope.deployableIds);
-  const serverIps = new Set(scope.serverIps);
-  const scopedDeployables = deployables(manifest).filter((deployable) =>
-    deployableIds.has(deployable.id),
-  );
-  return collectSecretReferences([
-    ...(scopedDeployables.length > 0 ? [manifest.secrets] : []),
-    ...scopedDeployables,
-    ...manifest.servers.filter((server) => serverIps.has(server.ip)),
-  ]);
-}
-
-export function collectSecretReferences(value: unknown) {
-  const references = new Set<string>();
-  visitStrings(value, (candidate) => {
-    if (candidate.startsWith("aws:")) references.add(candidate);
-  });
-  return [...references].sort((left, right) => left.localeCompare(right));
 }
 
 export function parseDockerMemoryBytes(value: string) {
@@ -325,41 +300,17 @@ function validateSecretBindings(input: {
   manifest: NormalizedDeploymentManifest;
   scope: DeploymentPlanValidationScope;
 }): DeploymentPlanCheck[] {
-  const references = collectPlanSecretReferences(input.manifest, input.scope);
-  if (references.length === 0) return [];
-  if (input.context.credentialStatus !== "verified") {
-    return [
-      {
-        code: "secret_bindings_unavailable",
-        entityKind: "source",
-        message:
-          "Configure and verify Source AWS credentials before using the declared secret bindings",
-        references,
-        status: "failed",
-      },
-    ];
-  }
-  const unavailable = input.context.secretBindings.filter(
-    (binding) => !binding.available,
-  );
-  if (unavailable.length > 0) {
-    return unavailable.map((binding) => ({
-      code: "secret_binding_unavailable",
-      entityKind: "source" as const,
-      message: `Secret binding '${binding.reference}' was not found or cannot be described by the Source AWS credentials`,
-      references: [binding.reference],
-      status: "failed" as const,
-    }));
-  }
-  return [
-    {
-      code: "secret_bindings_declared",
-      entityKind: "source",
-      message: `${references.length} secret binding${references.length === 1 ? " is" : "s are"} declared by name; values were not resolved`,
-      references,
-      status: "passed",
-    },
-  ];
+  return input.context.secretBindings.map((binding) => ({
+    code: binding.available
+      ? "secret_binding_available"
+      : "secret_binding_unavailable",
+    entityKind: "source" as const,
+    message: binding.available
+      ? `${binding.reference} is configured`
+      : `Configure ${binding.reference} in Towbar settings before execution`,
+    references: [binding.reference],
+    status: binding.available ? ("passed" as const) : ("failed" as const),
+  }));
 }
 
 function validateOperationConflicts(descriptions: string[]) {
@@ -384,17 +335,4 @@ function fullManifestScope(
     deployableIds: deployables(manifest).map((deployable) => deployable.id),
     serverIps: manifest.servers.map((server) => server.ip),
   };
-}
-
-function visitStrings(value: unknown, callback: (value: string) => void) {
-  if (typeof value === "string") {
-    callback(value);
-    return;
-  }
-  if (Array.isArray(value)) {
-    for (const item of value) visitStrings(item, callback);
-    return;
-  }
-  if (!value || typeof value !== "object") return;
-  for (const item of Object.values(value)) visitStrings(item, callback);
 }

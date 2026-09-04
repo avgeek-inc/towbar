@@ -17,7 +17,7 @@ import { notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueueServerCheck } from "../../infrastructure/temporal.js";
 import { publicDeploymentSelection } from "../deployment-selection.js";
-import { resolveAwsSecret } from "../aws/service.js";
+import { resolveServerCredentials } from "../secrets/store.js";
 import { emitServerCheckNotifications } from "../notifications/events.js";
 import { pruneServerCheckHistory } from "./check-retention.js";
 import {
@@ -309,13 +309,10 @@ export async function getServerCheckExecutionContext(checkId: string) {
     .where(eq(serverChecks.id, checkId))
     .limit(1);
   if (!context) throw notFound("Server check");
-  const login = sshLoginSecretSchema.parse(
-    await resolveAwsSecret({
-      secretReference: context.config.secrets.login,
-      sourceId: context.sourceId,
-      workspaceId: context.workspaceId,
-    }),
-  );
+  const credentials = await resolveServerCredentials(context);
+  const login = sshLoginSecretSchema.parse({
+    privateKey: credentials.values.privateKey,
+  });
   const trustedHostKeys = await getTowbarDatabase()
     .select({
       algorithm: sshHostKeys.algorithm,

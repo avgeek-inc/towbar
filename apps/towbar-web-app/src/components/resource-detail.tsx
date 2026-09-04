@@ -8,7 +8,7 @@ import {
   Settings01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import type {
   Deployment,
@@ -284,6 +284,7 @@ function ResourceSettings({
   item: ResourceRecord;
   resourceId: string;
 }) {
+  const requestedSettings = useSearchParams().get("settings");
   const tabs: Array<{ content: ReactNode; label: string; value: string }> = [
     {
       value: "image",
@@ -392,12 +393,6 @@ function ResourceSettings({
                 ))
               : "None"}
           </Attributes.Item>
-          <Attributes.Item label="Shared deployment secrets">
-            {formatCount(
-              item.config.sharedSecrets?.deployment.length ?? 0,
-              "secret",
-            )}
-          </Attributes.Item>
           <Attributes.Item label="TLS">
             {item.config.tls?.mode === "cloudflare-dns"
               ? "Cloudflare DNS"
@@ -429,7 +424,7 @@ function ResourceSettings({
   return (
     <ResponsiveSubtabs
       ariaLabel="Resource settings"
-      defaultSelectedKey="image"
+      defaultSelectedKey={requestedSettings === "secrets" ? "secrets" : "image"}
       tabs={tabs}
     />
   );
@@ -530,8 +525,4 @@ function getResourceLifecycleStatus(item: ResourceRecord) {
   if (item.archivedAt) return "archived";
   if (!item.serverReady) return "server_setup_pending";
   return "active";
-}
-
-function formatCount(count: number, noun: string) {
-  return `${count} ${noun}${count === 1 ? "" : "s"}`;
 }

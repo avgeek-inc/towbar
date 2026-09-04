@@ -1,65 +1,20 @@
 import { eq } from "drizzle-orm";
-import { z } from "zod";
-
 import { isNormalizedResource } from "@workspace/towbar-core";
 import { deployments } from "@workspace/towbar-database/schema";
-
-import { notFound } from "../../http/errors.js";
+import { notFound, unprocessable } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
-import { resolveAwsSecret } from "../aws/service.js";
+import { resolveEnvironmentStage } from "../apps/secrets.js";
+import { resolveServerCredentials } from "../secrets/store.js";
 import { sshLoginSecretSchema } from "../servers/service.js";
+import type { SecretStage } from "@workspace/towbar-core";
+import type { SecretDatabase } from "../secrets/store.js";
 
-import type { NormalizedApp } from "@workspace/towbar-core";
-
-const environmentSecretSchema = z.record(
-  z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/u),
-  z.string().max(128 * 1_024),
-);
-const cloudflareSecretSchema = z
-  .object({
-    apiToken: z
-      .string()
-      .min(20)
-      .regex(/^[A-Za-z0-9_-]+$/u),
-  })
-  .strict();
-
-type SecretDeployment = {
-  sourceId: string;
-  workspaceId: string;
-};
-
-export async function resolveDeploymentSecrets(deploymentId: string) {
-  const deployment = await getSecretDeployment(deploymentId);
-  const resource = isNormalizedResource(deployment.app) ? deployment.app : null;
-  const application: NormalizedApp | null = resource
-    ? null
-    : (deployment.app as NormalizedApp);
-  const [login, build, runtime, cloudflare, hooks] = await Promise.all([
-    resolveLoginSecret(deployment),
-    resolveBuildSecrets(deployment, application),
-    resolveRuntimeSecrets(deployment),
-    resolveCloudflareSecret(deployment),
-    resolveHookSecrets(deployment, application),
-  ]);
-  requireResourcePasswords(resource?.kind, runtime);
-  return { build, cloudflare, hooks, login, runtime };
-}
-
-export async function resolveDeploymentLogin(deploymentId: string) {
-  return await resolveLoginSecret(await getSecretDeployment(deploymentId));
-}
-
-async function getSecretDeployment(deploymentId: string) {
-  const [deployment] = await getTowbarDatabase()
-    .select({
-      app: deployments.appSnapshot,
-      appId: deployments.appId,
-      kind: deployments.kind,
-      server: deployments.serverSnapshot,
-      sourceId: deployments.sourceId,
-      workspaceId: deployments.workspaceId,
-    })
+async function getSecretDeployment(
+  deploymentId: string,
+  database: SecretDatabase = getTowbarDatabase(),
+) {
+  const [deployment] = await database
+    .select()
     .from(deployments)
     .where(eq(deployments.id, deploymentId))
     .limit(1);
@@ -67,171 +22,127 @@ async function getSecretDeployment(deploymentId: string) {
   return deployment;
 }
 
-async function resolveLoginSecret(
-  deployment: SecretDeployment & {
-    server: { secrets: { login: string } };
-  },
-) {
-  return sshLoginSecretSchema.parse(
-    await resolveAwsSecret({
-      secretReference: deployment.server.secrets.login,
-      sourceId: deployment.sourceId,
-      workspaceId: deployment.workspaceId,
-    }),
+export async function resolveDeploymentSecrets(deploymentId: string) {
+  return await getTowbarDatabase().transaction(
+    async (database) => {
+      const deployment = await getSecretDeployment(deploymentId, database);
+      const app = deployment.appSnapshot;
+      const resource = isNormalizedResource(app);
+      const credentials = await resolveServerCredentials(deployment, database);
+      const revisions: Record<string, string | null> = {
+        credentials: credentials.revision,
+      };
+      async function stage(stage: SecretStage, required: boolean) {
+        if (!required) return {};
+        const result = await resolveEnvironmentStage(
+          {
+            workspaceId: deployment.workspaceId,
+            sourceId: deployment.sourceId,
+            appId: deployment.appId,
+            environment: deployment.environment,
+            stage,
+          },
+          database,
+        );
+        Object.assign(revisions, result.revisions);
+        return result.values;
+      }
+      const runtime = await stage("deployment", true);
+      requireResourcePasswords(resource ? app.kind : undefined, runtime);
+      const build = await stage(
+        "build",
+        !resource && deployment.kind === "deploy",
+      );
+      const hooks = {
+        preDeploy: await stage(
+          "pre_deploy",
+          !resource &&
+            deployment.kind === "deploy" &&
+            Boolean(app.hooks.preDeploy),
+        ),
+        postDeploy: await stage(
+          "post_deploy",
+          !resource &&
+            deployment.kind === "deploy" &&
+            Boolean(app.hooks.postDeploy),
+        ),
+      };
+      const cloudflare = cloudflareCredential(
+        deployment.serverSnapshot,
+        credentials.values,
+      );
+      await database
+        .update(deployments)
+        .set({ secretRevisions: revisions })
+        .where(eq(deployments.id, deploymentId));
+      return {
+        build,
+        runtime,
+        hooks,
+        cloudflare,
+        login: sshLoginSecretSchema.parse({
+          privateKey: credentials.values.privateKey,
+        }),
+      };
+    },
+    { isolationLevel: "repeatable read" },
   );
 }
 
-async function resolveBuildSecrets(
-  deployment: SecretDeployment & { kind: "deploy" | "rollback" },
-  application: NormalizedApp | null,
-) {
-  if (deployment.kind !== "deploy" || !application) return {};
-  const shared = await resolveSharedEnvironmentSecrets(
-    application.sharedSecrets?.build ?? [],
-    deployment,
-  );
-  const app = application.secrets.build
-    ? await resolveEnvironmentSecret(application.secrets.build, deployment)
-    : {};
-  return mergeEnvironmentSecretBundles([shared], app);
-}
-
-async function resolveRuntimeSecrets(
-  deployment: SecretDeployment & {
-    app: {
-      secrets: { deployment?: string };
-      sharedSecrets?: { deployment: string[] };
-    };
-  },
-) {
-  return await resolveRuntimeEnvironmentSecrets({
-    app: deployment.app,
-    sourceId: deployment.sourceId,
-    workspaceId: deployment.workspaceId,
+export async function resolveDeploymentLogin(deploymentId: string) {
+  const deployment = await getSecretDeployment(deploymentId);
+  const credentials = await resolveServerCredentials(deployment);
+  return sshLoginSecretSchema.parse({
+    privateKey: credentials.values.privateKey,
   });
 }
 
-export async function resolveRuntimeEnvironmentSecrets(input: {
-  app: {
-    secrets: { deployment?: string };
-    sharedSecrets?: { deployment: string[] };
-  };
-  sourceId: string;
-  workspaceId: string;
-}) {
-  const shared = await resolveSharedEnvironmentSecrets(
-    input.app.sharedSecrets?.deployment ?? [],
-    input,
-  );
-  const deployable = input.app.secrets.deployment
-    ? await resolveEnvironmentSecret(input.app.secrets.deployment, input)
-    : {};
-  return mergeEnvironmentSecretBundles([shared], deployable);
-}
-
-async function resolveCloudflareSecret(
-  deployment: SecretDeployment & {
-    server: { proxy?: { cloudflare: { apiToken: string } } };
-  },
+function cloudflareCredential(
+  server: { proxy?: { cloudflare: { enabled: true } } },
+  values: Record<string, string>,
 ) {
-  const secretReference = deployment.server.proxy?.cloudflare.apiToken;
-  if (!secretReference) return null;
-  return cloudflareSecretSchema.parse(
-    await resolveAwsSecret({
-      secretReference,
-      sourceId: deployment.sourceId,
-      workspaceId: deployment.workspaceId,
-    }),
-  );
+  if (!server.proxy?.cloudflare.enabled) return null;
+  if (!values.apiToken)
+    throw unprocessable(
+      "Configure the Cloudflare API token in Server → Settings → Credentials",
+      "CLOUDFLARE_CREDENTIALS_MISSING",
+    );
+  return { apiToken: values.apiToken };
 }
 
 export async function resolveDeploymentCloudflareSecret(deploymentId: string) {
-  return await resolveCloudflareSecret(await getSecretDeployment(deploymentId));
-}
-
-async function resolveHookSecrets(
-  deployment: SecretDeployment & { kind: "deploy" | "rollback" },
-  application: NormalizedApp | null,
-) {
-  if (deployment.kind !== "deploy" || !application) {
-    return { postDeploy: {}, preDeploy: {} };
-  }
-  return {
-    postDeploy: await resolveOptionalEnvironmentSecret(
-      application.hooks.postDeploy?.secrets,
-      deployment,
-    ),
-    preDeploy: await resolveOptionalEnvironmentSecret(
-      application.hooks.preDeploy?.secrets,
-      deployment,
-    ),
-  };
-}
-
-async function resolveOptionalEnvironmentSecret(
-  secretReference: string | undefined,
-  deployment: SecretDeployment,
-) {
-  return secretReference
-    ? await resolveEnvironmentSecret(secretReference, deployment)
-    : {};
-}
-
-async function resolveEnvironmentSecret(
-  secretReference: string,
-  deployment: SecretDeployment,
-) {
-  return environmentSecretSchema.parse(
-    await resolveAwsSecret({
-      secretReference,
-      sourceId: deployment.sourceId,
-      workspaceId: deployment.workspaceId,
-    }),
+  const deployment = await getSecretDeployment(deploymentId);
+  return cloudflareCredential(
+    deployment.serverSnapshot,
+    (await resolveServerCredentials(deployment)).values,
   );
 }
 
-async function resolveSharedEnvironmentSecrets(
-  secretReferences: string[],
-  deployment: SecretDeployment,
+export async function resolveRuntimeEnvironmentSecrets(
+  input: { appId: string; sourceId: string; workspaceId: string },
+  database: SecretDatabase = getTowbarDatabase(),
 ) {
-  const bundles = await Promise.all(
-    secretReferences.map((reference) =>
-      resolveEnvironmentSecret(reference, deployment),
-    ),
-  );
-  return mergeEnvironmentSecretBundles(bundles);
+  return (
+    await resolveEnvironmentStage(
+      { ...input, environment: "production", stage: "deployment" },
+      database,
+    )
+  ).values;
 }
 
-function requireResourcePasswords(
-  kind: "image" | "postgres" | "redis" | undefined,
+export function requireResourcePasswords(
+  kind: string | undefined,
   runtime: Record<string, string>,
 ) {
-  if (kind === "postgres" && !runtime.POSTGRES_PASSWORD) {
-    throw new Error(
-      "PostgreSQL resources require POSTGRES_PASSWORD in deployment secrets",
+  const key =
+    kind === "postgres"
+      ? "POSTGRES_PASSWORD"
+      : kind === "redis"
+        ? "REDIS_PASSWORD"
+        : null;
+  if (key && !runtime[key])
+    throw unprocessable(
+      `Configure ${key} in Resource → Settings → Secrets`,
+      "RESOURCE_PASSWORD_MISSING",
     );
-  }
-  if (kind === "redis" && !runtime.REDIS_PASSWORD) {
-    throw new Error(
-      "Redis resources require REDIS_PASSWORD in deployment secrets",
-    );
-  }
-}
-
-export function mergeEnvironmentSecretBundles(
-  sharedBundles: Array<Record<string, string>>,
-  deployableBundle: Record<string, string> = {},
-) {
-  const merged: Record<string, string> = {};
-  for (const bundle of sharedBundles) {
-    for (const [key, value] of Object.entries(bundle)) {
-      if (Object.hasOwn(merged, key)) {
-        throw new Error(
-          `Shared secret bundles define duplicate environment key '${key}'`,
-        );
-      }
-      merged[key] = value;
-    }
-  }
-  return { ...merged, ...deployableBundle };
 }

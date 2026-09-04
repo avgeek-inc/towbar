@@ -22,12 +22,12 @@ const app: NormalizedApp = {
   hooks: {
     postDeploy: {
       command: ["node", "post-deploy.js"],
-      secrets: "aws:production/post-deploy",
+
       timeoutSeconds: 60,
     },
     preDeploy: {
       command: ["node", "migrate.js"],
-      secrets: "aws:production/migrate",
+
       timeoutSeconds: 300,
     },
   },
@@ -36,22 +36,12 @@ const app: NormalizedApp = {
   preview: {
     domain: "preview.example.com",
     enabled: true,
-    secrets: {
-      build: "aws:preview/build",
-      deployment: "aws:preview/deployment",
-      hooks: { preDeploy: "aws:preview/migrate" },
-    },
+
     ttlHours: 72,
   },
-  secrets: {
-    build: "aws:production/build",
-    deployment: "aws:production/deployment",
-  },
+
   server: "203.0.113.10",
-  sharedSecrets: {
-    build: ["aws:production/shared-build"],
-    deployment: ["aws:production/shared-deployment"],
-  },
+
   sourceBranch: "main",
   tls: { mode: "cloudflare-dns" },
 };
@@ -94,13 +84,8 @@ void test("builds Preview snapshots without production or shared secrets", () =>
     primary: "example-feature-tw-4.preview.example.com",
     redirects: [],
   });
-  assert.deepEqual(snapshot.secrets, {
-    build: "aws:preview/build",
-    deployment: "aws:preview/deployment",
-  });
-  assert.deepEqual(snapshot.sharedSecrets, { build: [], deployment: [] });
-  assert.equal(snapshot.hooks.preDeploy?.secrets, "aws:preview/migrate");
-  assert.equal(snapshot.hooks.postDeploy?.secrets, undefined);
+  assert.equal("secrets" in snapshot, false);
+  assert.equal("sharedSecrets" in snapshot, false);
   assert.deepEqual(snapshot.hooks.postDeploy?.command, [
     "node",
     "post-deploy.js",
