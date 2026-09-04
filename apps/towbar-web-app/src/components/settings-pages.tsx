@@ -21,7 +21,7 @@ export function ProfileSettings() {
   if (!profile.data) return <QueryLoading />;
 
   return (
-    <div className="grid max-w-4xl min-w-0 gap-6">
+    <div className="grid min-w-0 gap-6 lg:grid-cols-2 lg:items-start">
       <FormCard description={profile.data.user.email} title="Profile details">
         <SimpleForm
           fields={[
