@@ -180,7 +180,7 @@ In the dashboard:
 
 Configure shared production defaults under **Source → Settings → Secrets** and local values under **App/Resource → Settings → Secrets**. Apps have separate build, runtime, and deployment-hook stages. Resources use runtime values. Preview values are configured separately and never inherit production defaults.
 
-Saved values are write-only: the editor shows configured keys and offers replacement inputs. **Save** applies on the next deployment; **Save and deploy** explicitly queues deployment. Shared edits let you select the affected apps and resources to deploy. See [Managed secrets](managed-secrets.md) for precedence, backups, and external secret managers.
+Saved values are write-only: the editor shows configured keys and offers replacement inputs. **Save** applies on the next deployment; **Save and deploy** explicitly queues deployment. Shared edits let you select the affected apps and resources to deploy. See [Managed secrets](/docs/managed-secrets) for precedence, backups, and external secret managers.
 
 If preparation stops on an existing server, use the reported step and command
 failure to remove only the conflicting installation, then retry. A fresh
