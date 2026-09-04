@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 import { normalizeDomain } from "./manifest-values.js";
 
-import type { NormalizedApp, NormalizedDeploymentHook } from "./manifest.js";
+import type { NormalizedApp } from "./manifest.js";
 
 export const deploymentEnvironments = ["production", "preview"] as const;
 export type DeploymentEnvironment = (typeof deploymentEnvironments)[number];
@@ -50,39 +50,13 @@ export function createPreviewAppSnapshot(
   if (!app.preview?.enabled) {
     throw new Error(`App '${app.id}' does not enable Preview deployments`);
   }
-  const preview = app.preview;
-  const hooks = {
-    ...previewHook(app.hooks.postDeploy, preview.secrets.hooks.postDeploy),
-    ...previewHook(app.hooks.preDeploy, preview.secrets.hooks.preDeploy, true),
-  };
   return {
     ...app,
     domains: { primary: input.hostname, redirects: [] },
-    hooks,
+    hooks: app.hooks,
     preview: undefined,
-    secrets: {
-      ...(preview.secrets.build ? { build: preview.secrets.build } : {}),
-      ...(preview.secrets.deployment
-        ? { deployment: preview.secrets.deployment }
-        : {}),
-    },
-    sharedSecrets: { build: [], deployment: [] },
     sourceBranch: input.branch,
   };
-}
-
-function previewHook(
-  hook: NormalizedDeploymentHook | undefined,
-  secret: string | undefined,
-  preDeploy = false,
-) {
-  if (!hook) return {};
-  const value = {
-    command: [...hook.command],
-    ...(secret ? { secrets: secret } : {}),
-    timeoutSeconds: hook.timeoutSeconds,
-  };
-  return preDeploy ? { preDeploy: value } : { postDeploy: value };
 }
 
 function trimTrailingDashes(value: string) {

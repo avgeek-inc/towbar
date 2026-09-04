@@ -1,5 +1,7 @@
 "use client";
 
+import { ConfigurationLinks } from "./configuration-links";
+
 import {
   MoreHorizontalIcon,
   PlayIcon,
@@ -326,6 +328,12 @@ export function RuntimeLogs({
           </Attributes.Item>
           <Attributes.Item label="Result">
             {latest.errorMessage ?? "Waiting for the worker"}
+            {latest.errorMessage ? (
+              <ConfigurationLinks
+                sourceId={latest.sourceId}
+                serverId={latest.serverId}
+              />
+            ) : null}
           </Attributes.Item>
         </Attributes>
       )}

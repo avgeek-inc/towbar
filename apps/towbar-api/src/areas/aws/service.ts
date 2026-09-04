@@ -1,11 +1,5 @@
 import { randomUUID } from "node:crypto";
 
-import {
-  DescribeSecretCommand,
-  GetSecretValueCommand,
-  PutSecretValueCommand,
-  SecretsManagerClient,
-} from "@aws-sdk/client-secrets-manager";
 import { GetCallerIdentityCommand, STSClient } from "@aws-sdk/client-sts";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -14,19 +8,11 @@ import {
   decryptCredential,
   encryptCredential,
   parseCredentialsMasterKey,
-  parseSecretReference,
-  stableStringify,
-  validateSecretObject,
 } from "@workspace/towbar-core";
 import { sourceAwsCredentials } from "@workspace/towbar-database/schema";
 
 import { getEnv } from "../../env.js";
-import {
-  conflict,
-  notFound,
-  serviceUnavailable,
-  unprocessable,
-} from "../../http/errors.js";
+import { notFound, serviceUnavailable } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { getSource } from "../sources/service.js";
 
@@ -42,14 +28,6 @@ const storedAwsCredentialPayloadSchema = awsCredentialPayloadSchema
   .strict();
 
 type AwsCredentialPayload = z.infer<typeof awsCredentialPayloadSchema>;
-export type EnvironmentSecretPurpose = "build" | "deployment";
-
-export type EnvironmentSecretMutation = {
-  delete: string[];
-  expectedVersionId: string;
-  set: Record<string, string>;
-};
-
 export async function getAwsCredentialMetadata(input: {
   sourceId: string;
   workspaceId: string;
@@ -165,237 +143,6 @@ export async function deleteAwsCredentials(input: {
         eq(sourceAwsCredentials.workspaceId, input.workspaceId),
       ),
     );
-}
-
-export async function resolveAwsSecret(input: {
-  secretReference: string;
-  sourceId: string;
-  workspaceId: string;
-}) {
-  const { client, reference } = await createSecretsManagerContext(input);
-  try {
-    return (await readAwsSecretValue(client, reference.reference)).value;
-  } finally {
-    client.destroy();
-  }
-}
-
-export async function inspectAwsSecretReferences(input: {
-  secretReferences: string[];
-  sourceId: string;
-  workspaceId: string;
-}) {
-  const credential = await getDecryptedAwsCredential(input);
-  const client = new SecretsManagerClient({
-    credentials: createAwsSdkCredentials(credential.payload),
-    region: credential.region,
-  });
-  try {
-    return await Promise.all(
-      [...new Set(input.secretReferences)]
-        .sort((left, right) => left.localeCompare(right))
-        .map(async (secretReference) => {
-          const reference = parseSecretReference(secretReference);
-          if (reference.provider !== "aws") {
-            return { available: false, reference: secretReference };
-          }
-          try {
-            await client.send(
-              new DescribeSecretCommand({ SecretId: reference.reference }),
-            );
-            return { available: true, reference: secretReference };
-          } catch {
-            return { available: false, reference: secretReference };
-          }
-        }),
-    );
-  } finally {
-    client.destroy();
-  }
-}
-
-export async function inspectAwsEnvironmentSecret(input: {
-  purpose: EnvironmentSecretPurpose;
-  secretReference: string;
-  sourceId: string;
-  workspaceId: string;
-}) {
-  const { client, reference } = await createSecretsManagerContext(input);
-  try {
-    const current = await readAwsSecretValue(client, reference.reference);
-    const value = validateSecretObject(current.value, input.purpose);
-    return {
-      changedAt: current.changedAt,
-      editable: current.storage === "string",
-      keys: Object.keys(value).sort((left, right) => left.localeCompare(right)),
-      versionId: current.versionId,
-    };
-  } finally {
-    client.destroy();
-  }
-}
-
-export async function revealAwsEnvironmentSecret(input: {
-  purpose: EnvironmentSecretPurpose;
-  secretReference: string;
-  sourceId: string;
-  workspaceId: string;
-}) {
-  const { client, reference } = await createSecretsManagerContext(input);
-  try {
-    const current = await readAwsSecretValue(client, reference.reference);
-    return {
-      changedAt: current.changedAt,
-      values: validateSecretObject(current.value, input.purpose),
-      versionId: current.versionId,
-    };
-  } finally {
-    client.destroy();
-  }
-}
-
-export async function updateAwsEnvironmentSecret(input: {
-  mutation: EnvironmentSecretMutation;
-  purpose: EnvironmentSecretPurpose;
-  secretReference: string;
-  sourceId: string;
-  workspaceId: string;
-}) {
-  const { client, reference } = await createSecretsManagerContext(input);
-  try {
-    const current = await readAwsSecretValue(client, reference.reference);
-    if (current.storage !== "string") {
-      throw unprocessable(
-        "Binary AWS secrets cannot be edited through Towbar",
-        "SECRET_NOT_EDITABLE",
-      );
-    }
-    if (current.versionId !== input.mutation.expectedVersionId) {
-      throw conflict(
-        "This secret changed after it was loaded. Refresh before saving.",
-        "SECRET_VERSION_CHANGED",
-      );
-    }
-    const next = applyEnvironmentSecretMutation(
-      validateSecretObject(current.value, input.purpose),
-      input.mutation,
-      input.purpose,
-    );
-    const secretString = stableStringify(next);
-    if (Buffer.byteLength(secretString, "utf8") > 65_536) {
-      throw unprocessable(
-        "The resulting AWS secret exceeds the 65,536-byte limit",
-        "SECRET_TOO_LARGE",
-      );
-    }
-    let response;
-    try {
-      response = await client.send(
-        new PutSecretValueCommand({
-          ClientRequestToken: randomUUID(),
-          SecretId: reference.reference,
-          SecretString: secretString,
-        }),
-      );
-    } catch (error) {
-      throw serviceUnavailable(
-        `AWS secret '${reference.reference}' could not be updated`,
-        { cause: error },
-      );
-    }
-    if (!response.VersionId) {
-      throw serviceUnavailable(
-        `AWS secret '${reference.reference}' did not return a version`,
-      );
-    }
-    return {
-      changedAt: new Date(),
-      editable: true,
-      keys: Object.keys(next).sort((left, right) => left.localeCompare(right)),
-      versionId: response.VersionId,
-    };
-  } finally {
-    client.destroy();
-  }
-}
-
-export function applyEnvironmentSecretMutation(
-  current: Record<string, string>,
-  mutation: Pick<EnvironmentSecretMutation, "delete" | "set">,
-  purpose: EnvironmentSecretPurpose,
-) {
-  const next = Object.assign(
-    Object.create(null) as Record<string, string>,
-    current,
-  );
-  for (const key of mutation.delete) delete next[key];
-  for (const [key, value] of Object.entries(mutation.set)) next[key] = value;
-  return validateSecretObject(next, purpose);
-}
-
-async function createSecretsManagerContext(input: {
-  secretReference: string;
-  sourceId: string;
-  workspaceId: string;
-}) {
-  const reference = parseSecretReference(input.secretReference);
-  if (reference.provider !== "aws") {
-    throw new Error(`Unsupported secret provider '${reference.provider}'`);
-  }
-  const credential = await getDecryptedAwsCredential(input);
-  return {
-    client: new SecretsManagerClient({
-      credentials: createAwsSdkCredentials(credential.payload),
-      region: credential.region,
-    }),
-    reference,
-  };
-}
-
-async function readAwsSecretValue(
-  client: SecretsManagerClient,
-  secretId: string,
-) {
-  let response;
-  try {
-    response = await client.send(
-      new GetSecretValueCommand({ SecretId: secretId }),
-    );
-  } catch (error) {
-    throw serviceUnavailable(`AWS secret '${secretId}' could not be resolved`, {
-      cause: error,
-    });
-  }
-  const storage = response.SecretString ? "string" : "binary";
-  const content = response.SecretString
-    ? response.SecretString
-    : response.SecretBinary
-      ? Buffer.from(response.SecretBinary).toString("utf8")
-      : null;
-  if (!content) {
-    throw unprocessable(
-      `AWS secret '${secretId}' has no value`,
-      "SECRET_VALUE_MISSING",
-    );
-  }
-  if (!response.VersionId) {
-    throw serviceUnavailable(`AWS secret '${secretId}' has no version`);
-  }
-  let value: unknown;
-  try {
-    value = JSON.parse(content) as unknown;
-  } catch {
-    throw unprocessable(
-      `AWS secret '${secretId}' is not valid JSON`,
-      "INVALID_SECRET_VALUE",
-    );
-  }
-  return {
-    changedAt: response.CreatedDate ?? null,
-    storage,
-    value,
-    versionId: response.VersionId,
-  } as const;
 }
 
 export async function getDecryptedAwsCredential(input: {

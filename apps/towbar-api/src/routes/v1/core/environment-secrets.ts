@@ -1,0 +1,62 @@
+import { Hono } from "hono";
+import {
+  secretEnvironmentSchema,
+  secretMutationSchema,
+  secretStageSchema,
+} from "@workspace/towbar-core";
+import {
+  listEnvironmentSecrets,
+  updateEnvironmentSecrets,
+} from "../../../areas/apps/secrets.js";
+import { getApp, getResource } from "../../../areas/apps/queries.js";
+import { forbidden } from "../../../http/errors.js";
+import { readJson, readUuidPathParameter } from "../../../http/requests.js";
+import type { TowbarHonoEnvironment } from "../../../http/types.js";
+
+export function environmentSecretRoutes(kind: "source" | "app" | "resource") {
+  const routes = new Hono<TowbarHonoEnvironment>();
+  routes.use("*", async (context, next) => {
+    const id = readUuidPathParameter(context.req.param("ownerId")!, "ownerId");
+    const workspaceId = context.get("user").workspaceId;
+    if (kind === "app") await getApp(id, workspaceId);
+    if (kind === "resource") await getResource(id, workspaceId);
+    context.header("Cache-Control", "no-store");
+    await next();
+  });
+  routes.get("/", async (context) => {
+    const user = context.get("user");
+    const environment = secretEnvironmentSchema.parse(
+      context.req.query("environment") ?? "production",
+    );
+    const owner = {
+      type: kind === "source" ? ("source" as const) : ("app" as const),
+      id: readUuidPathParameter(context.req.param("ownerId")!, "ownerId"),
+      workspaceId: user.workspaceId,
+    };
+    return context.json({
+      bindings: await listEnvironmentSecrets(owner, environment),
+      canManageSecrets: user.workspaceRole === "owner",
+    });
+  });
+  routes.patch("/:environment/:stage", async (context) => {
+    const user = context.get("user");
+    if (user.workspaceRole !== "owner")
+      throw forbidden("Only the owner can manage secrets");
+    return context.json({
+      secret: await updateEnvironmentSecrets({
+        owner: {
+          type: kind === "source" ? "source" : "app",
+          id: readUuidPathParameter(context.req.param("ownerId")!, "ownerId"),
+          workspaceId: user.workspaceId,
+        },
+        actorUserId: user.id,
+        environment: secretEnvironmentSchema.parse(
+          context.req.param("environment"),
+        ),
+        stage: secretStageSchema.parse(context.req.param("stage")),
+        mutation: await readJson(context, secretMutationSchema, 300 * 1024),
+      }),
+    });
+  });
+  return routes;
+}

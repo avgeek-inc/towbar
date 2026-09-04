@@ -1,3 +1,6 @@
+import { notificationSettingsRoutes } from "./notification-settings.js";
+import { environmentSecretRoutes } from "./environment-secrets.js";
+import { serverCredentialRoutes } from "./server-credentials.js";
 import { Hono } from "hono";
 
 import {
@@ -29,6 +32,17 @@ coreRoutes.route("/github", githubRoutes);
 coreRoutes.route("/sources/:sourceId/aws", awsRoutes);
 coreRoutes.route("/sources/:sourceId/notifications", notificationRoutes);
 coreRoutes.route("/notifications", notificationCenterRoutes);
+coreRoutes.route("/settings/notifications", notificationSettingsRoutes);
+coreRoutes.route(
+  "/sources/:ownerId/secrets",
+  environmentSecretRoutes("source"),
+);
+coreRoutes.route("/apps/:ownerId/secrets", environmentSecretRoutes("app"));
+coreRoutes.route(
+  "/resources/:ownerId/secrets",
+  environmentSecretRoutes("resource"),
+);
+coreRoutes.route("/servers/:serverId/credentials", serverCredentialRoutes);
 coreRoutes.route("/sources", sourceRoutes);
 coreRoutes.route("/apps", appRoutes);
 coreRoutes.route("/resources", resourceRoutes);

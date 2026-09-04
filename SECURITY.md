@@ -26,17 +26,14 @@ should pin a reviewed release and subscribe to repository security advisories.
 - The configured Git branch is trusted deployment input and is protected by the
   repository owner.
 - Any same-repository branch is trusted executable input for Apps with Preview
-  enabled. Preview references use separate, least-privilege, non-production
-  credentials; production and shared secret references are not inherited.
+  enabled. Preview environments use separate, least-privilege, non-production
+  credentials; production and shared values are not inherited.
 - Towbar's public HTTP services are deployed behind TLS.
 - PostgreSQL, Temporal, Temporal UI, and SSH are restricted by host and network
   controls rather than exposed broadly.
-- AWS identities are scoped to the Secrets Manager paths required by one Source.
-  Read access covers declared execution secrets; write access is limited to App
-  environment bundles intentionally managed through Towbar.
-- The installation owner is trusted to reveal values for attached App,
-  Resource, and shared environment bundles. Reveal responses are not cached,
-  persisted in PostgreSQL, or written to application logs.
+- Towbar stores secrets encrypted with AES-256-GCM. The installation encryption key is stored separately from database backups; losing it makes secrets unrecoverable.
+- Secret values are write-only in public APIs. Only owners can mutate them; audit events and Temporal history contain no secret values. Database access plus the installation key permits decryption, so both are trusted operational boundaries.
+- Optional Source AWS identities are scoped to the S3 backup operations they require.
 - Destination hosts use SSH keys, pinned host identity, current security
   updates, and least-privilege network rules.
 - Installation secrets are unique, randomly generated, and never committed.

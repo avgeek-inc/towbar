@@ -10,8 +10,6 @@ servers:
     buildConcurrency: 2
     ssh:
       username: deploy
-    secrets:
-      login: aws:example/production/server-login
 
 apps:
   - id: hello-towbar

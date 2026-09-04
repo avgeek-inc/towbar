@@ -63,7 +63,6 @@ export function createServerPreparationSteps(): ServerPreparationStep[] {
 export function serverPreparationInputs(server: NormalizedServer) {
   return {
     ip: server.ip,
-    secrets: server.secrets,
     ssh: server.ssh,
   };
 }

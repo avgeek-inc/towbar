@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, notInArray, sql } from "drizzle-orm";
 
 import {
   digestValue,
@@ -15,6 +15,7 @@ import {
   releases,
 } from "@workspace/towbar-database/schema";
 
+import { conflict } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import {
   isPreviewReleaseCurrent,
@@ -31,6 +32,8 @@ type Transaction = Parameters<
 >[0];
 
 export async function admitPreviewDeployment(input: {
+  force?: boolean;
+  requestedBy?: string;
   appId: string;
   branch: string;
   commitSha: string;
@@ -80,6 +83,8 @@ export async function admitPreviewDeployment(input: {
       )
       .for("update")
       .limit(1);
+    if (input.force)
+      await assertManualPreviewAdmission(transaction, existingEnvironment);
     if (
       existingEnvironment &&
       shouldDeferPreviewAdmission(existingEnvironment.status)
@@ -93,21 +98,12 @@ export async function admitPreviewDeployment(input: {
         supersededDeploymentIds: [],
       };
     }
-    const [latestDeployment] = existingEnvironment?.latestDeploymentId
-      ? await transaction
-          .select({
-            commitSha: deployments.commitSha,
-            deploymentDigest: deployments.deploymentDigest,
-            errorCode: deployments.errorCode,
-            errorMessage: deployments.errorMessage,
-            id: deployments.id,
-            state: deployments.state,
-          })
-          .from(deployments)
-          .where(eq(deployments.id, existingEnvironment.latestDeploymentId))
-          .limit(1)
-      : [];
+    const latestDeployment = await loadLatestPreviewDeployment(
+      transaction,
+      existingEnvironment?.latestDeploymentId,
+    );
     if (
+      !input.force &&
       existingEnvironment &&
       latestDeployment?.commitSha === input.commitSha &&
       latestDeployment.deploymentDigest === input.deploymentDigest
@@ -121,9 +117,9 @@ export async function admitPreviewDeployment(input: {
       });
       if (replay) return replay;
     }
-    const reopeningEnvironment =
-      existingEnvironment?.status === "deleted" ||
-      existingEnvironment?.status === "cleanup_failed";
+    const reopeningEnvironment = isReopeningPreview(
+      existingEnvironment?.status,
+    );
     const [environment] = await transaction
       .insert(previewEnvironments)
       .values({
@@ -168,9 +164,12 @@ export async function admitPreviewDeployment(input: {
       deploymentDigest: input.deploymentDigest,
       environmentId: environment.id,
     });
-    const idempotencyKey = reopeningEnvironment
-      ? `${baseIdempotencyKey}:${deploymentId}`
-      : baseIdempotencyKey;
+    const idempotencyKey = manualPreviewIdempotencyKey(
+      input.force,
+      reopeningEnvironment,
+      baseIdempotencyKey,
+      deploymentId,
+    );
     const [existingDeployment] = await transaction
       .select({
         errorCode: deployments.errorCode,
@@ -211,6 +210,7 @@ export async function admitPreviewDeployment(input: {
       )
       .limit(1);
     if (
+      !input.force &&
       !reopeningEnvironment &&
       isPreviewReleaseCurrent(current?.deploymentDigest, input.deploymentDigest)
     ) {
@@ -261,7 +261,7 @@ export async function admitPreviewDeployment(input: {
         idempotencyKey,
         manifestDigest: input.manifestDigest,
         previewEnvironmentId: environment.id,
-        requestedBy: null,
+        requestedBy: input.requestedBy ?? null,
         serverId: input.serverId,
         serverSnapshot: input.server,
         sourceId: input.sourceId,
@@ -318,6 +318,72 @@ export async function admitPreviewDeployment(input: {
       ),
     };
   });
+}
+
+function isReopeningPreview(status: string | undefined) {
+  return status === "deleted" || status === "cleanup_failed";
+}
+
+async function assertManualPreviewAdmission(
+  transaction: Transaction,
+  existingEnvironment:
+    Pick<typeof previewEnvironments.$inferSelect, "id" | "status"> | undefined,
+) {
+  if (
+    !existingEnvironment ||
+    !["healthy", "failed", "building"].includes(existingEnvironment.status)
+  )
+    throw conflict("This preview is being removed and cannot be deployed");
+  const [active] = await transaction
+    .select({ id: deployments.id })
+    .from(deployments)
+    .where(
+      and(
+        eq(deployments.previewEnvironmentId, existingEnvironment.id),
+        notInArray(deployments.state, [
+          "cancelled",
+          "failed",
+          "skipped",
+          "succeeded",
+          "succeeded_with_warnings",
+        ]),
+      ),
+    )
+    .limit(1);
+  if (active)
+    throw conflict(
+      "A preview deployment is already active. Secrets are saved; deploy again after it finishes.",
+    );
+}
+
+async function loadLatestPreviewDeployment(
+  transaction: Transaction,
+  deploymentId: string | null | undefined,
+) {
+  if (!deploymentId) return undefined;
+  const [deployment] = await transaction
+    .select({
+      commitSha: deployments.commitSha,
+      deploymentDigest: deployments.deploymentDigest,
+      errorCode: deployments.errorCode,
+      errorMessage: deployments.errorMessage,
+      id: deployments.id,
+      state: deployments.state,
+    })
+    .from(deployments)
+    .where(eq(deployments.id, deploymentId))
+    .limit(1);
+  return deployment;
+}
+
+function manualPreviewIdempotencyKey(
+  force: boolean | undefined,
+  reopening: boolean,
+  base: string,
+  deploymentId: string,
+) {
+  if (force) return `preview:manual:${deploymentId}`;
+  return reopening ? `${base}:${deploymentId}` : base;
 }
 
 async function replayPreviewDeployment(

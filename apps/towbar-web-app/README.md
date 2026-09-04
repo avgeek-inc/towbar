@@ -14,14 +14,14 @@ shows the durable setup steps, and keeps deployables visibly in `Server Setup
 Pending` until the Server is ready.
 
 App and Resource pages show observed health/drift and bounded runtime actions.
-Their settings and lifecycle are read-only projections of the Source manifest;
-removal and restoration happen through Git and Source sync. Each Settings
-section contains its deployable-owned secret bindings; Resources expose
-deployment bindings only. Root-shared build and deployment bindings are grouped
-under Secrets in the owning Source's Settings section. The owner can add,
-replace, or delete values, then optionally queue the affected deployable. Values
-are fetched only through an explicit owner-only reveal request; the UI cannot
-change a manifest reference.
+Infrastructure settings and lifecycle are projections of the Source manifest;
+removal and restoration happen through Git and Source sync. Secrets are
+editor-owned and independent of sync. Source Settings holds shared production
+values for build, runtime, pre-deploy, and post-deploy. Apps override each stage;
+resources inherit and override runtime only. Owners can start with an empty
+configuration and add, replace, or delete values, then Save or Save and deploy.
+Saved values remain write-only: only key names, origins, and revisions return.
+Server Settings holds SSH and Cloudflare credentials.
 Source, App, and Resource Settings each expose one operator control for pausing
 new automatic deployments. A Source pause applies to all of its deployables;
 manual deployment actions remain available.
@@ -51,14 +51,14 @@ repository paths without secret values.
 Deployment details show the immutable Docker image digest and platform together
 with the source commit, manifest digest, and selected source-input digest.
 Source Settings also contains a Notifications section for Slack and SMTP
-destinations. Provider credentials are configured once through the Towbar API
-environment. Owners select event categories and supply only a Slack channel ID
+destinations. Provider credentials are configured in installation Settings →
+Notifications and stored encrypted. Owners select event categories and supply only a Slack channel ID
 or email recipients; recent operational events appear in the application
 header without exposing provider secrets in the browser.
 
 ## Local UI fixture
 
-Run the app against representative, read-only data without starting the Towbar
+Run the app against representative synthetic data without starting the Towbar
 control plane:
 
 ```sh

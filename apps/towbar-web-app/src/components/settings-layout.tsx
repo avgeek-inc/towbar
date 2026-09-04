@@ -19,6 +19,7 @@ const settingsNavigation = [
   { icon: UserAccountIcon, label: "Account", value: "account" },
   { icon: GithubIcon, label: "GitHub", value: "github" },
   { icon: SecurityCheckIcon, label: "Security", value: "security" },
+  { icon: SecurityCheckIcon, label: "Notifications", value: "notifications" },
 ] as const;
 
 type SettingsSection = (typeof settingsNavigation)[number]["value"];
@@ -27,6 +28,7 @@ export function SettingsPage({
   account,
   github,
   security,
+  notifications,
 }: Record<SettingsSection, ReactNode>) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -35,7 +37,7 @@ export function SettingsPage({
   const selectedTab =
     settingsNavigation.find((item) => item.value === requestedSection)?.value ??
     "account";
-  const panels = { account, github, security } satisfies Record<
+  const panels = { account, github, security, notifications } satisfies Record<
     SettingsSection,
     ReactNode
   >;
@@ -64,13 +66,13 @@ export function SettingsPage({
   return (
     <DashboardPage title="Settings">
       <Tabs
-        className="block"
+        className="block min-w-0"
         orientation={orientation}
         selectedKey={selectedTab}
         onSelectionChange={selectTab}
       >
-        <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[14rem_minmax(0,1fr)]">
-          <Tabs.ListContainer className="w-full">
+        <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-[14rem_minmax(0,1fr)]">
+          <Tabs.ListContainer className="min-w-0 w-full overflow-x-auto">
             <Tabs.List aria-label="Settings sections" className="w-full">
               {settingsNavigation.map((item) => (
                 <Tabs.Tab id={item.value} key={item.value}>

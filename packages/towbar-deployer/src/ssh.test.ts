@@ -8,7 +8,7 @@ import type { NormalizedServer } from "@workspace/towbar-core";
 const server: NormalizedServer = {
   buildConcurrency: 1,
   ip: "203.0.113.10",
-  secrets: { login: "aws:example/server-login" },
+
   ssh: { host: "10.0.0.10", port: 22, username: "deploy" },
 };
 

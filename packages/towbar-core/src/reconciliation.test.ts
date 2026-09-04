@@ -12,7 +12,6 @@ const desired: NormalizedDeploymentManifest = {
       buildConcurrency: 1,
       ip: "203.0.113.10",
       ssh: { host: "203.0.113.10", port: 22, username: "deploy" },
-      secrets: { login: "aws:server/login" },
     },
   ],
   apps: [
@@ -29,7 +28,6 @@ const desired: NormalizedDeploymentManifest = {
       container: { port: 3000 },
       health: { path: "/api/health", timeoutSeconds: 60 },
       hooks: {},
-      secrets: {},
     },
   ],
 };
@@ -137,9 +135,9 @@ void test("reconciles Resources independently from Apps", () => {
     image: "postgres:17-alpine",
     kind: "postgres" as const,
     name: "Database",
-    secrets: {},
+
     server: "203.0.113.10",
-    sharedSecrets: { build: [], deployment: [] },
+
     sourceBranch: "main",
   };
   const result = reconcileManifest({

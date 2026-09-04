@@ -9,7 +9,7 @@ import {
   Settings01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import type { App, Deployment, Release } from "@workspace/towbar-web-client";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
@@ -284,6 +284,7 @@ export function AppDetail() {
 }
 
 function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
+  const requestedSettings = useSearchParams().get("settings");
   const tabs: Array<{ content: ReactNode; label: string; value: string }> = [
     {
       value: "build",
@@ -302,12 +303,6 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
             <TypographyCode title={item.sourceRevision}>
               {item.sourceRevision.slice(0, 12)}
             </TypographyCode>
-          </Attributes.Item>
-          <Attributes.Item label="Shared build secrets">
-            {formatCount(
-              item.config.sharedSecrets?.build.length ?? 0,
-              "secret",
-            )}
           </Attributes.Item>
         </Attributes>
       ),
@@ -357,12 +352,6 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
                 : "Every Source commit"
               : "Not used"}
           </Attributes.Item>
-          <Attributes.Item label="Shared deployment secrets">
-            {formatCount(
-              item.config.sharedSecrets?.deployment.length ?? 0,
-              "secret",
-            )}
-          </Attributes.Item>
           <Attributes.Item label="Primary domain">
             {item.config.domains?.primary ?? "Not configured"}
           </Attributes.Item>
@@ -401,26 +390,6 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
                 <Attributes.Item label="Time to live">
                   {item.config.preview.ttlHours} hours
                 </Attributes.Item>
-                <Attributes.Item label="Build secrets">
-                  {item.config.preview.secrets.build
-                    ? "Configured"
-                    : "Not configured"}
-                </Attributes.Item>
-                <Attributes.Item label="Deployment secrets">
-                  {item.config.preview.secrets.deployment
-                    ? "Configured"
-                    : "Not configured"}
-                </Attributes.Item>
-                <Attributes.Item label="Pre-deploy hook secrets">
-                  {item.config.preview.secrets.hooks?.preDeploy
-                    ? "Configured"
-                    : "Not configured"}
-                </Attributes.Item>
-                <Attributes.Item label="Post-deploy hook secrets">
-                  {item.config.preview.secrets.hooks?.postDeploy
-                    ? "Configured"
-                    : "Not configured"}
-                </Attributes.Item>
               </Attributes>
             ),
           },
@@ -447,7 +416,7 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
   return (
     <ResponsiveSubtabs
       ariaLabel="App settings"
-      defaultSelectedKey="build"
+      defaultSelectedKey={requestedSettings === "secrets" ? "secrets" : "build"}
       tabs={tabs}
     />
   );
@@ -492,8 +461,4 @@ function getAppLifecycleStatus(item: AppRecord) {
   if (item.archivedAt) return "archived";
   if (!item.serverReady) return "server_setup_pending";
   return "active";
-}
-
-function formatCount(count: number, noun: string) {
-  return `${count} ${noun}${count === 1 ? "" : "s"}`;
 }

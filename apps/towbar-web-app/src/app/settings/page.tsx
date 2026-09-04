@@ -1,3 +1,4 @@
+import { NotificationSettings } from "@/components/credential-editor";
 import { Suspense } from "react";
 
 import { QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -20,6 +21,7 @@ export default function Page() {
         account={<AccountSettings />}
         github={<GitHubSettings />}
         security={<SessionSettings />}
+        notifications={<NotificationSettings />}
       />
     </Suspense>
   );

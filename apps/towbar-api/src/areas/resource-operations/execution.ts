@@ -1,3 +1,4 @@
+import { resolveServerCredentials } from "../secrets/store.js";
 import { and, eq, isNull } from "drizzle-orm";
 
 import { backupOperationResultSchema } from "@workspace/towbar-core";
@@ -8,8 +9,11 @@ import {
 
 import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
-import { getDecryptedAwsCredential, resolveAwsSecret } from "../aws/service.js";
-import { resolveRuntimeEnvironmentSecrets } from "../deployments/deployment-secrets.js";
+import { getDecryptedAwsCredential } from "../aws/service.js";
+import {
+  requireResourcePasswords,
+  resolveRuntimeEnvironmentSecrets,
+} from "../deployments/deployment-secrets.js";
 import { sshLoginSecretSchema } from "../servers/service.js";
 import { getCleanupExpected, getRetentionBackups } from "./queries.js";
 
@@ -79,54 +83,65 @@ export async function getOperationExecutionContext(operationId: string) {
 }
 
 export async function resolveOperationSecrets(operationId: string) {
-  const [operation] = await getTowbarDatabase()
-    .select({
-      app: resourceOperations.appSnapshot,
-      request: resourceOperations.request,
-      resourceId: resourceOperations.resourceId,
-      server: resourceOperations.serverSnapshot,
-      sourceId: resourceOperations.sourceId,
-      workspaceId: resourceOperations.workspaceId,
-    })
-    .from(resourceOperations)
-    .where(eq(resourceOperations.id, operationId))
-    .limit(1);
-  if (!operation) throw notFound("Resource operation");
-  const login = sshLoginSecretSchema.parse(
-    await resolveAwsSecret({
-      secretReference: operation.server.secrets.login,
-      sourceId: operation.sourceId,
-      workspaceId: operation.workspaceId,
-    }),
-  );
-  const runtime =
-    ["capture_logs", "restore"].includes(operation.request.type) &&
-    operation.app
-      ? await resolveRuntimeEnvironmentSecrets({
-          app: operation.app,
-          sourceId: operation.sourceId,
-          workspaceId: operation.workspaceId,
+  return await getTowbarDatabase().transaction(
+    async (database) => {
+      const [operation] = await database
+        .select({
+          app: resourceOperations.appSnapshot,
+          request: resourceOperations.request,
+          resourceId: resourceOperations.resourceId,
+          server: resourceOperations.serverSnapshot,
+          serverId: resourceOperations.serverId,
+          sourceId: resourceOperations.sourceId,
+          workspaceId: resourceOperations.workspaceId,
         })
-      : {};
-  const requiresAws = ["backup", "restore"].includes(operation.request.type);
-  const awsCredential = requiresAws
-    ? await getDecryptedAwsCredential({
-        sourceId: operation.sourceId,
-        workspaceId: operation.workspaceId,
-      })
-    : null;
-  return {
-    aws: awsCredential
-      ? { ...awsCredential.payload, region: awsCredential.region }
-      : null,
-    login,
-    runtime,
-    sensitiveValues: [
-      login.privateKey,
-      ...(awsCredential ? [awsCredential.payload.secretAccessKey] : []),
-      ...Object.values(runtime),
-    ],
-  };
+        .from(resourceOperations)
+        .where(eq(resourceOperations.id, operationId))
+        .limit(1);
+      if (!operation) throw notFound("Resource operation");
+      const credentials = await resolveServerCredentials(operation, database);
+      const login = sshLoginSecretSchema.parse({
+        privateKey: credentials.values.privateKey,
+      });
+      const runtime =
+        ["capture_logs", "restore"].includes(operation.request.type) &&
+        operation.app &&
+        operation.resourceId
+          ? await resolveRuntimeEnvironmentSecrets(
+              {
+                appId: operation.resourceId,
+                sourceId: operation.sourceId,
+                workspaceId: operation.workspaceId,
+              },
+              database,
+            )
+          : {};
+      if (operation.request.type === "restore")
+        requireResourcePasswords(operation.app?.kind, runtime);
+      const requiresAws = ["backup", "restore"].includes(
+        operation.request.type,
+      );
+      const awsCredential = requiresAws
+        ? await getDecryptedAwsCredential({
+            sourceId: operation.sourceId,
+            workspaceId: operation.workspaceId,
+          })
+        : null;
+      return {
+        aws: awsCredential
+          ? { ...awsCredential.payload, region: awsCredential.region }
+          : null,
+        login,
+        runtime,
+        sensitiveValues: [
+          login.privateKey,
+          ...(awsCredential ? [awsCredential.payload.secretAccessKey] : []),
+          ...Object.values(runtime),
+        ],
+      };
+    },
+    { isolationLevel: "repeatable read" },
+  );
 }
 
 async function getRestoreBackup(input: {

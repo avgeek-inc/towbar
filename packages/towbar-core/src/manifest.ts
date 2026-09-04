@@ -7,7 +7,6 @@ import { Cron } from "croner";
 import { parseDocument } from "yaml";
 import { z } from "zod";
 
-import { secretReferenceSchema } from "./secret-reference.js";
 import {
   canonicalIp,
   digestValue,
@@ -119,20 +118,6 @@ const appAutoDeploySchema = z.union([
     .strict(),
 ]);
 
-const previewSecretsSchema = z
-  .object({
-    build: secretReferenceSchema.optional(),
-    deployment: secretReferenceSchema.optional(),
-    hooks: z
-      .object({
-        postDeploy: secretReferenceSchema.optional(),
-        preDeploy: secretReferenceSchema.optional(),
-      })
-      .strict()
-      .optional(),
-  })
-  .strict();
-
 const domainSchema = z
   .string()
   .trim()
@@ -173,16 +158,11 @@ const serverSchema = z
         port: z.number().int().min(1).max(65_535).optional(),
       })
       .strict(),
-    secrets: z
-      .object({
-        login: secretReferenceSchema,
-      })
-      .strict(),
     proxy: z
       .object({
         cloudflare: z
           .object({
-            apiToken: secretReferenceSchema,
+            enabled: z.literal(true),
           })
           .strict()
           .optional(),
@@ -195,28 +175,9 @@ const serverSchema = z
 const deploymentHookSchema = z
   .object({
     command: z.array(hookArgumentSchema).min(1).max(64),
-    secrets: secretReferenceSchema.optional(),
     timeoutSeconds: z.number().int().min(5).max(1_800).optional(),
   })
   .strict();
-
-const sharedSecretsSchema = z
-  .object({
-    build: z.array(secretReferenceSchema).max(50).optional(),
-    deployment: z.array(secretReferenceSchema).max(50).optional(),
-  })
-  .strict()
-  .superRefine((secrets, context) => {
-    for (const category of ["build", "deployment"] as const) {
-      findDuplicates(secrets[category] ?? []).forEach((reference) =>
-        context.addIssue({
-          code: "custom",
-          message: `Shared ${category} secret '${reference}' is declared more than once`,
-          path: [category],
-        }),
-      );
-    }
-  });
 
 const containerResourcesSchema = z
   .object({
@@ -390,13 +351,6 @@ const appSchema = z
         message: "At least one deployment hook is required",
       })
       .optional(),
-    secrets: z
-      .object({
-        build: secretReferenceSchema.optional(),
-        deployment: secretReferenceSchema.optional(),
-      })
-      .strict()
-      .optional(),
     domains: z
       .object({
         primary: domainSchema,
@@ -414,7 +368,6 @@ const appSchema = z
       .object({
         domain: domainSchema,
         enabled: z.literal(true),
-        secrets: previewSecretsSchema,
         ttlHours: z.number().int().min(1).max(720).optional(),
       })
       .strict()
@@ -563,10 +516,6 @@ const resourceSchema = z
       .strict()
       .optional(),
     health: resourceHealthSchema.optional(),
-    secrets: z
-      .object({ deployment: secretReferenceSchema.optional() })
-      .strict()
-      .optional(),
     domains: z
       .object({
         primary: domainSchema,
@@ -649,7 +598,6 @@ export const deploymentManifestSchema = z
       })
       .strict()
       .optional(),
-    secrets: sharedSecretsSchema.optional(),
     servers: z.array(serverSchema).min(1).max(100),
     apps: z.array(appSchema).max(500).optional(),
     resources: z.array(resourceSchema).max(500).optional(),
@@ -818,18 +766,14 @@ export type NormalizedServer = {
   ip: string;
   proxy?: {
     cloudflare: {
-      apiToken: string;
+      enabled: true;
     };
-  };
-  secrets: {
-    login: string;
   };
   ssh: { host: string; port: number; username: string };
 };
 
 export type NormalizedDeploymentHook = {
   command: string[];
-  secrets?: string;
   timeoutSeconds: number;
 };
 
@@ -860,20 +804,7 @@ export type NormalizedApp = {
   preview?: {
     domain: string;
     enabled: true;
-    secrets: {
-      build?: string;
-      deployment?: string;
-      hooks: { postDeploy?: string; preDeploy?: string };
-    };
     ttlHours: number;
-  };
-  secrets: {
-    build?: string;
-    deployment?: string;
-  };
-  sharedSecrets?: {
-    build: string[];
-    deployment: string[];
   };
   server: string;
   sourceBranch: string;
@@ -914,12 +845,7 @@ export type NormalizedResource = {
   image: string;
   kind: "image" | "postgres" | "redis";
   name: string;
-  secrets: { deployment?: string };
   server: string;
-  sharedSecrets: {
-    build: string[];
-    deployment: string[];
-  };
   sourceBranch: string;
   tls?: { mode: "direct" | "cloudflare-dns" };
 };
@@ -929,7 +855,6 @@ export type NormalizedDeployable = NormalizedApp | NormalizedResource;
 export type NormalizedDeploymentManifest = {
   apps: NormalizedApp[];
   resources?: NormalizedResource[];
-  secrets?: { build: string[]; deployment: string[] };
   servers: NormalizedServer[];
   source: { branch: string };
   version: 1;
@@ -1019,14 +944,9 @@ export function normalizeDeploymentManifest(
 ): NormalizedDeploymentManifest {
   const parsed = deploymentManifestSchema.parse(manifest);
   const sourceBranch = parsed.source?.branch ?? "main";
-  const sharedSecrets = {
-    build: [...(parsed.secrets?.build ?? [])],
-    deployment: [...(parsed.secrets?.deployment ?? [])],
-  };
   return {
     version: 1,
     source: { branch: sourceBranch },
-    secrets: sharedSecrets,
     servers: parsed.servers
       .map((server) => ({
         buildConcurrency: server.buildConcurrency ?? 1,
@@ -1040,12 +960,11 @@ export function normalizeDeploymentManifest(
           port: server.ssh.port ?? 22,
           username: server.ssh.username,
         },
-        secrets: { login: server.secrets.login },
         ...(server.proxy?.cloudflare
           ? {
               proxy: {
                 cloudflare: {
-                  apiToken: server.proxy.cloudflare.apiToken,
+                  enabled: true as const,
                 },
               },
             }
@@ -1096,13 +1015,6 @@ export function normalizeDeploymentManifest(
               ? { preDeploy: normalizeDeploymentHook(app.hooks.preDeploy) }
               : {}),
           },
-          secrets: {
-            ...(app.secrets?.build ? { build: app.secrets.build } : {}),
-            ...(app.secrets?.deployment
-              ? { deployment: app.secrets.deployment }
-              : {}),
-          },
-          sharedSecrets,
           ...normalizePreviewConfig(app.preview),
           ...(app.domains
             ? {
@@ -1122,9 +1034,7 @@ export function normalizeDeploymentManifest(
       })
       .sort((left, right) => left.id.localeCompare(right.id)),
     resources: (parsed.resources ?? [])
-      .map((resource) =>
-        normalizeResource(resource, sourceBranch, sharedSecrets),
-      )
+      .map((resource) => normalizeResource(resource, sourceBranch))
       .sort((left, right) => left.id.localeCompare(right.id)),
   };
 }
@@ -1162,7 +1072,6 @@ export function isNormalizedResource(
 function normalizeResource(
   resource: z.output<typeof resourceSchema>,
   sourceBranch: string,
-  sharedSecrets: { build: string[]; deployment: string[] },
 ): NormalizedResource {
   const kind = resource.type;
   const image = resource.image ?? defaultResourceImage(kind)!;
@@ -1202,11 +1111,7 @@ function normalizeResource(
     image,
     kind,
     name: resource.name,
-    secrets: resource.secrets?.deployment
-      ? { deployment: resource.secrets.deployment }
-      : {},
     server: canonicalIp(resource.server),
-    sharedSecrets,
     sourceBranch,
     ...(resource.tls ? { tls: resource.tls } : {}),
   };
@@ -1415,12 +1320,10 @@ function hasImmutableImageSelector(image: string) {
 
 function normalizeDeploymentHook(input: {
   command: string[];
-  secrets?: string;
   timeoutSeconds?: number;
 }): NormalizedDeploymentHook {
   return {
     command: [...input.command],
-    ...(input.secrets ? { secrets: input.secrets } : {}),
     timeoutSeconds: input.timeoutSeconds ?? 300,
   };
 }
@@ -1433,20 +1336,6 @@ function normalizePreviewConfig(
     preview: {
       domain: normalizeDomain(input.domain),
       enabled: true,
-      secrets: {
-        ...(input.secrets.build ? { build: input.secrets.build } : {}),
-        ...(input.secrets.deployment
-          ? { deployment: input.secrets.deployment }
-          : {}),
-        hooks: {
-          ...(input.secrets.hooks?.postDeploy
-            ? { postDeploy: input.secrets.hooks.postDeploy }
-            : {}),
-          ...(input.secrets.hooks?.preDeploy
-            ? { preDeploy: input.secrets.hooks.preDeploy }
-            : {}),
-        },
-      },
       ttlHours: input.ttlHours ?? 72,
     },
   };

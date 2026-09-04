@@ -77,7 +77,7 @@ bindings. Transient GitHub transport, rate-limit, and availability failures are
 retried instead of being persisted as blocked plans. GitHub Check reporting is
 tracked independently and cannot change or invalidate a persisted plan.
 
-AWS credentials and Servers are Source-scoped. Server identity is
+Optional S3 backup credentials and Servers are Source-scoped. Server identity is
 `(source_id, canonical_ip)`, allowing independent Sources to target the same IP
 without sharing configuration or trust records. Deleting a Source permanently
 removes its database-owned credential, inventory, backup metadata, runtime
@@ -86,28 +86,28 @@ external and are not deleted by Source removal.
 
 Apps and Resources share the deployment ledger but remain separate API and UI
 entities. Resources support versioned images plus PostgreSQL and Redis presets.
-Root shared build/deployment secret references are copied into immutable
-deployable snapshots and resolved only at execution time.
+Editor-owned secrets are stored separately from immutable deployable snapshots.
+Source production defaults and app overrides are resolved at execution time;
+preview stages use only app preview values.
 Successful release commits also persist the Docker image content digest and
 platform reported by the target host. Existing source, manifest, configuration,
 and selected-input digests remain the rest of the provenance record.
 
 Manual App and Resource deployments admit the latest successfully synchronized
 revision without synchronizing the Source again. This keeps redeploy admission
-fast and lets a redeploy consume newly updated AWS Secrets Manager values,
-which are resolved just in time by the worker. Use `Sync now` for repository or
+fast and lets a redeploy consume current Towbar-managed secrets, resolved
+consistently by the API over the authenticated internal execution path. Use `Sync now` for repository or
 manifest changes; signed GitHub webhooks keep the configured branch current.
 Owners can pause new automatic deployments for an entire Source or one App or
 Resource. Paused revisions remain eligible for reconciliation after the pause
 is removed; manual deployments remain available while automatic admission is
 paused.
 
-Owners can inspect key names and edit values for JSON environment bundles
-already attached to an App or Resource. Resources expose deployment bindings
-only; build bindings apply only to Apps. The API performs the read/merge/write
-operation against AWS Secrets Manager with an expected-version check; responses
-contain only key names and version metadata. References remain manifest-owned
-and secret values are never persisted in PostgreSQL.
+Owners can add, replace, and delete variables from an empty configuration.
+Resources inherit runtime defaults only; apps support build, runtime, and both
+hook stages. Values are encrypted with AES-256-GCM in PostgreSQL. Mutations
+require an expected revision, and all public responses are write-only metadata.
+See [Managed secrets](../../docs/docs/managed-secrets.md) for API, cutover, and recovery.
 
 Declared Docker networks are created as managed bridge networks on first use
 and reused by subsequent apps and Resources on that Server. Operators do not
@@ -136,12 +136,11 @@ and expired rollback-volume cleanup.
 
 Owners can configure multiple Source-scoped Slack and SMTP notification
 destinations for deployment, Preview, runtime health, backup, and restore event
-categories. Towbar stores only an AWS Secrets Manager reference, resolves the
-provider credential just in time, and records a separate durable delivery and
-bounded retry history for every matching destination. Test sends and manual
-retries use the same delivery pipeline. Slack targets are restricted to Slack
-incoming-webhook origins; SMTP targets must resolve exclusively to public
-addresses and are connected through a pinned address with TLS server-name
-verification.
+categories. Owners configure Slack and SMTP in installation Settings, with
+credentials encrypted in the database. Each attempt resolves current provider
+configuration and records a separate durable delivery and bounded retry history.
+Test sends and manual retries use the same delivery pipeline. Slack uses a bot
+token and channel IDs. SMTP targets must resolve exclusively to public addresses
+and are connected through a pinned address with TLS server-name verification.
 
 [Applications](../README.md) · [Repository](../../README.md)

@@ -16,7 +16,7 @@ truth and runs deployments through durable Temporal workflows.
 - GitHub repositories and versioned manifests define Sources, Servers, Apps,
   Resources, domains, and deployment policy.
 - Builds run on the target host, without requiring a container registry.
-- AWS Secrets Manager values are resolved just in time and stay out of Git.
+- Write-only secrets are configured in Towbar, encrypted in PostgreSQL, and resolved only for execution.
 - Immutable deployment plans compare a candidate commit with active Source
   state before any mutation, including explicit no-op rows and validation.
 - Successful releases retain their content-addressed Docker image digest and

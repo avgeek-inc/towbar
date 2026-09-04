@@ -1,5 +1,9 @@
 "use client";
 
+import { ConfigurationLinks } from "./configuration-links";
+
+import { ServerCredentials } from "./credential-editor";
+
 import {
   Activity01Icon,
   DashboardCircleIcon,
@@ -185,7 +189,12 @@ export function ServerDetail() {
       key: "result",
       header: "Result",
       cell: (check) =>
-        check.errorMessage ?? (
+        check.errorMessage ? (
+          <span>
+            {check.errorMessage}
+            <ConfigurationLinks sourceId={sourceId} serverId={serverId} />
+          </span>
+        ) : (
           <span className="whitespace-nowrap">
             {summarizeCheck(check.result)}
           </span>
@@ -341,6 +350,12 @@ export function ServerDetail() {
         <PageTabs
           defaultValue="overview"
           tabs={[
+            {
+              value: "settings",
+              label: "Settings",
+              icon: <HugeiconsIcon icon={Key01Icon} />,
+              content: <ServerCredentials serverId={serverId} />,
+            },
             {
               value: "overview",
               label: "Overview",
@@ -617,6 +632,10 @@ function ServerPreparationPanel({
             <Alert.Title>Server preparation stopped</Alert.Title>
             <Alert.Description>
               {latestPreparation.errorMessage}
+              <ConfigurationLinks
+                sourceId={item.sourceId}
+                serverId={serverId}
+              />
             </Alert.Description>
           </Alert.Content>
         </Alert>

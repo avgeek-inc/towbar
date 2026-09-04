@@ -1,6 +1,7 @@
 import {
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -332,6 +333,10 @@ export const sources = pgTable(
       .notNull(),
   },
   (table) => [
+    uniqueIndex("uq_towbar_sources_secret_owner").on(
+      table.id,
+      table.workspaceId,
+    ),
     uniqueIndex("uq_towbar_sources_repository_branch").on(
       table.workspaceId,
       table.repositoryOwner,
@@ -690,6 +695,11 @@ export const servers = pgTable(
       .notNull(),
   },
   (table) => [
+    uniqueIndex("uq_towbar_servers_secret_owner").on(
+      table.id,
+      table.workspaceId,
+      table.sourceId,
+    ),
     uniqueIndex("uq_towbar_servers_source_ip").on(
       table.sourceId,
       table.canonicalIp,
@@ -822,6 +832,11 @@ export const apps = pgTable(
       .notNull(),
   },
   (table) => [
+    uniqueIndex("uq_towbar_apps_secret_owner").on(
+      table.id,
+      table.workspaceId,
+      table.sourceId,
+    ),
     uniqueIndex("uq_towbar_apps_source_manifest_id").on(
       table.sourceId,
       table.manifestId,
@@ -984,6 +999,8 @@ export const deployments = pgTable(
       length: 255,
     }).notNull(),
     kind: deploymentKindEnum("kind").default("deploy").notNull(),
+    secretRevisions:
+      jsonb("secret_revisions").$type<Record<string, string | null>>(),
     environment: deploymentEnvironmentEnum("environment")
       .default("production")
       .notNull(),
@@ -1472,6 +1489,78 @@ export const systemHealthSignals = pgTable(
     index("idx_towbar_system_health_workspace").on(
       table.workspaceId,
       table.component,
+    ),
+  ],
+);
+
+// Secret configuration is independent of manifest snapshots. Foreign keys retain
+// credentials on archive and remove them only when their owner is deleted.
+export const managedSecrets = pgTable(
+  "towbar_managed_secrets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    sourceId: uuid("source_id").references(() => sources.id, {
+      onDelete: "cascade",
+    }),
+    appId: uuid("app_id").references(() => apps.id, { onDelete: "cascade" }),
+    serverId: uuid("server_id").references(() => servers.id, {
+      onDelete: "cascade",
+    }),
+    owner: text("owner").notNull(),
+    environment: deploymentEnvironmentEnum("environment")
+      .notNull()
+      .default("production"),
+    stage: text("stage").notNull(),
+    encryptedPayload: jsonb("encrypted_payload")
+      .$type<EncryptedCredential>()
+      .notNull(),
+    keys: jsonb("keys").$type<string[]>().notNull(),
+    revision: uuid("revision").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      name: "fk_towbar_secret_sources_owner",
+      columns: [table.sourceId, table.workspaceId],
+      foreignColumns: [sources.id, sources.workspaceId],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "fk_towbar_secret_apps_owner",
+      columns: [table.appId, table.workspaceId, table.sourceId],
+      foreignColumns: [apps.id, apps.workspaceId, apps.sourceId],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "fk_towbar_secret_servers_owner",
+      columns: [table.serverId, table.workspaceId, table.sourceId],
+      foreignColumns: [servers.id, servers.workspaceId, servers.sourceId],
+    }).onDelete("cascade"),
+    uniqueIndex("uq_towbar_managed_secret_slot").on(
+      table.workspaceId,
+      table.owner,
+      table.environment,
+      table.stage,
+    ),
+    check(
+      "towbar_managed_secret_owner",
+      sql`(
+    (${table.owner} = 'source:' || ${table.sourceId}::text AND ${table.sourceId} IS NOT NULL AND ${table.appId} IS NULL AND ${table.serverId} IS NULL)
+    OR (${table.owner} = 'app:' || ${table.appId}::text AND ${table.appId} IS NOT NULL AND ${table.sourceId} IS NOT NULL AND ${table.serverId} IS NULL)
+    OR (${table.owner} = 'server:' || ${table.serverId}::text AND ${table.serverId} IS NOT NULL AND ${table.sourceId} IS NOT NULL AND ${table.appId} IS NULL)
+    OR (${table.owner} = 'notifications' AND ${table.sourceId} IS NULL AND ${table.appId} IS NULL AND ${table.serverId} IS NULL)
+  ) IS TRUE`,
+    ),
+    check(
+      "towbar_managed_secret_stage",
+      sql`(
+    (${table.stage} IN ('build', 'deployment', 'pre_deploy', 'post_deploy') AND (${table.appId} IS NOT NULL OR (${table.sourceId} IS NOT NULL AND ${table.serverId} IS NULL AND ${table.environment} = 'production')))
+    OR (${table.stage} = 'credentials' AND ${table.serverId} IS NOT NULL AND ${table.environment} = 'production')
+    OR (${table.stage} IN ('slack', 'smtp') AND ${table.owner} = 'notifications' AND ${table.environment} = 'production')
+  )`,
     ),
   ],
 );

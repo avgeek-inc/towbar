@@ -37,7 +37,7 @@ export function SourceAwsCredentials({
     <div className="grid gap-10">
       {credential ? (
         <div className="grid gap-5">
-          <Attributes title="AWS credentials" variant="card">
+          <Attributes title="S3 backup credentials" variant="card">
             <Attributes.Item label="Access key">
               <TypographyCode>
                 ••••{credential.accessKeyIdSuffix}
@@ -68,11 +68,11 @@ export function SourceAwsCredentials({
                   confirm={{
                     actionLabel: "Delete credentials",
                     description:
-                      "Deployments from this Source cannot resolve manifest secrets until replacement AWS credentials are stored.",
-                    title: "Delete this Source's AWS credentials?",
+                      "S3 backups and restores from this Source will be unavailable until replacement credentials are stored.",
+                    title: "Delete this Source's S3 backup credentials?",
                   }}
                   pendingLabel="Deleting…"
-                  success="AWS credentials deleted"
+                  success="S3 backup credentials deleted"
                   variant="danger"
                 >
                   Delete credentials
@@ -85,11 +85,11 @@ export function SourceAwsCredentials({
       {!credential ? (
         <EmptyState>
           <EmptyState.Header>
-            <EmptyState.Title>No AWS credentials</EmptyState.Title>
+            <EmptyState.Title>No S3 backup credentials</EmptyState.Title>
             <EmptyState.Description>
               {canManage
-                ? "Add Source-scoped credentials to resolve AWS-backed manifest secrets."
-                : "An administrator can add this Source's AWS credentials."}
+                ? "Add Source-scoped AWS credentials only if you use S3 backups or restores."
+                : "An administrator can add this Source's S3 backup credentials."}
             </EmptyState.Description>
           </EmptyState.Header>
           {canManage ? (
@@ -155,8 +155,8 @@ export function SourceAwsCredentials({
                     }}
                     successMessage={
                       credential
-                        ? "AWS credentials verified and updated"
-                        : "AWS credentials verified and saved"
+                        ? "S3 backup credentials verified and updated"
+                        : "S3 backup credentials verified and saved"
                     }
                     submitLabel="Save credentials"
                   />

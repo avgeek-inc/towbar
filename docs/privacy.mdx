@@ -8,10 +8,10 @@ Towbar stores account identity, repository installation metadata, desired
 configuration snapshots, deployment history, logs, and encrypted credentials
 needed to operate the installation. It does not sell personal data.
 
-Secret values are write-only by default in the dashboard and are resolved only
-at execution boundaries. Explicit owner-only reveal requests use no-store
-responses; Towbar does not persist revealed values in PostgreSQL or application
-logs.
+Secret values are encrypted in PostgreSQL and remain write-only in the dashboard
+and public APIs. They are resolved only at execution boundaries. Public responses
+contain metadata only and disable caching; logs and audit events contain no
+plaintext secret values.
 
 The hosted documentation is published through Mintlify and links to GitHub and
 the separately operated Towbar dashboard. Those services apply their own

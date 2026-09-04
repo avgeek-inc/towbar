@@ -230,8 +230,11 @@ export function SourceNotifications({
           <Alert.Content>
             <Alert.Title>No notification providers configured</Alert.Title>
             <Alert.Description>
-              Add Slack or SMTP environment variables to the Towbar API, then
-              restart it before adding a destination.
+              Configure Slack or SMTP in{" "}
+              <a className="underline" href="/settings?section=notifications">
+                Settings → Notifications
+              </a>{" "}
+              before adding a destination.
             </Alert.Description>
           </Alert.Content>
         </Alert>

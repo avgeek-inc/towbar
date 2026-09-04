@@ -13,9 +13,9 @@ const server = {
   buildConcurrency: 2,
   ip: "203.0.113.10",
   proxy: {
-    cloudflare: { apiToken: "aws:example/cloudflare" },
+    cloudflare: { enabled: true as const },
   },
-  secrets: { login: "aws:example/server" },
+
   ssh: { host: "10.0.0.10", port: 22, username: "deploy" },
 } satisfies NormalizedServer;
 
@@ -37,7 +37,7 @@ void test("does not invalidate preparation for scheduler or routing changes", ()
     requiresServerPreparation(server, {
       ...server,
       proxy: {
-        cloudflare: { apiToken: "aws:example/new-cloudflare-token" },
+        cloudflare: { enabled: true as const },
       },
     }),
     false,
@@ -55,7 +55,7 @@ void test("invalidates preparation when SSH access changes", () => {
   assert.equal(
     requiresServerPreparation(server, {
       ...server,
-      secrets: { login: "aws:example/new-server-login" },
+      ssh: { ...server.ssh, port: 2222 },
     }),
     true,
   );
