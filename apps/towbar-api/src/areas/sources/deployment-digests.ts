@@ -116,9 +116,10 @@ export function calculateDesiredDeploymentDigests(input: {
   commitSha: string;
   manifest: NormalizedDeploymentManifest;
   repositoryTree?: RepositoryTree;
+  servers: NormalizedServer[];
 }) {
   const serverByIp = new Map(
-    input.manifest.servers.map((server) => [server.ip, server]),
+    input.servers.map((server) => [server.ip, server]),
   );
   return new Map(
     [

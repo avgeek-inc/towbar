@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  AlertCircleIcon,
-  CheckmarkCircle02Icon,
-  WebhookIcon,
-} from "@hugeicons/core-free-icons";
+import { WebhookIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
   App,
@@ -12,7 +8,6 @@ import type {
   DeploymentState,
   Resource,
   RuntimeCapacity,
-  SourceServer,
 } from "@workspace/towbar-web-client";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
@@ -28,8 +23,6 @@ import { LastSyncedTime, RelativeTimeProvider } from "./last-synced-time";
 import {
   RuntimeCpuMeter,
   RuntimeMemoryMeter,
-  ServerHostMeter,
-  ServerUptime,
   type RuntimeMetric,
 } from "./server-capacity";
 
@@ -229,130 +222,7 @@ export function SourceResources({
   );
 }
 
-export function SourceServers({
-  capacities,
-  error,
-  servers,
-  sourceId,
-}: {
-  capacities?: RuntimeCapacity[];
-  error?: string;
-  servers?: SourceServer[];
-  sourceId: string;
-}) {
-  if (error) return <QueryError message={error} />;
-  if (!servers || !capacities) return <QueryLoading variant="list" />;
-  const capacityByServerId = new Map(
-    capacities.map((capacity) => [capacity.id, capacity] as const),
-  );
-  const serverColumns: ResourceTableColumn<SourceServer>[] = [
-    {
-      cell: (server) => server.canonicalIp,
-      className: "min-w-40 tabular-nums",
-      header: "Server IP",
-      key: "ip",
-    },
-    {
-      cell: (server) => <HostKeyIndicator status={server.hostKeyStatus} />,
-      className: "min-w-36",
-      header: "Host Keys",
-      key: "host-keys",
-    },
-    {
-      cell: (server) => (
-        <ServerHostMeter
-          capacity={capacityByServerId.get(server.id)}
-          metric="cpu"
-        />
-      ),
-      className: "min-w-40",
-      header: "CPU",
-      key: "cpu",
-    },
-    {
-      cell: (server) => (
-        <ServerHostMeter
-          capacity={capacityByServerId.get(server.id)}
-          metric="memory"
-        />
-      ),
-      className: "min-w-40",
-      header: "Memory",
-      key: "memory",
-    },
-    {
-      cell: (server) => (
-        <ServerHostMeter
-          capacity={capacityByServerId.get(server.id)}
-          metric="disk"
-        />
-      ),
-      className: "min-w-40",
-      header: "Docker disk",
-      key: "disk",
-    },
-    {
-      cell: (server) => (
-        <ServerUptime capacity={capacityByServerId.get(server.id)} />
-      ),
-      className: "min-w-28",
-      header: "Uptime",
-      key: "uptime",
-    },
-    {
-      cell: (server) => (
-        <StatusBadge
-          status={server.archivedAt ? "archived" : server.setupStatus}
-        />
-      ),
-      className: "w-32",
-      header: "Status",
-      key: "status",
-    },
-    {
-      cell: (server) => <LastSyncedTime value={server.updatedAt} />,
-      className: "min-w-48 whitespace-nowrap",
-      header: "Last synced",
-      key: "last-synced",
-    },
-  ];
-  return (
-    <RelativeTimeProvider>
-      <ResourceTable
-        ariaLabel="Source servers"
-        columns={serverColumns}
-        emptyDescription="Declare a server in this Source's manifest to import it."
-        emptyTitle="No servers in this Source"
-        getRowHref={(server) => `/sources/${sourceId}/servers/${server.id}`}
-        getRowKey={(server) => server.id}
-        items={servers}
-        tableClassName="min-w-[1360px]"
-      />
-    </RelativeTimeProvider>
-  );
-}
-
-function HostKeyIndicator({
-  status,
-}: {
-  status: SourceServer["hostKeyStatus"];
-}) {
-  const trusted = status === "trusted";
-  return (
-    <span
-      className={`inline-flex items-center gap-2 ${trusted ? "text-success-soft-foreground" : "text-danger-soft-foreground"}`}
-    >
-      <HugeiconsIcon
-        aria-hidden="true"
-        className="size-4 shrink-0"
-        icon={trusted ? CheckmarkCircle02Icon : AlertCircleIcon}
-      />
-      {trusted ? "Trusted" : "Untrusted"}
-    </span>
-  );
-}
-
-function DeployableName({
+export function DeployableName({
   autoDeploy,
   name,
 }: {

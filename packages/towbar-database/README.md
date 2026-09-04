@@ -16,18 +16,12 @@ only authenticated ciphertext envelopes.
 The Apps table materializes manifest-owned deployables. `archived_at` records
 that an ID is absent from the latest successful Source sync and is cleared if
 that ID reappears; there is no separate decommission lifecycle state. Servers
-use the same reversible archive state and remain active only while at least one
-desired App or Resource references them.
+are workspace-owned and remain configured until an owner removes them.
 
 Preview environments are Source/App/Git-ref scoped. Their deployments and
 releases carry an explicit environment and never update the production runtime
 observation row. Deleted Preview records remain as operational history while
 their runtime artifacts are removed durably.
-
-Deployment plans are immutable Source-scoped records keyed by a deterministic
-identity digest. They retain current and target commit and manifest identities
-plus the serialized comparison. Mutable GitHub Check delivery state lives in a
-separate one-to-one table so retries never rewrite the plan itself.
 
 Successful deployments and releases retain the target Docker image's
 content-addressed digest and platform. Older records remain readable with

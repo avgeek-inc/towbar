@@ -11,33 +11,27 @@ import { Modal } from "@workspace/web-design-system/overlays/modal";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 
 import { ActionButton, SimpleForm } from "@/components/page-parts";
+import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 
-export function SourceAwsCredentials({
-  canManage,
-  query,
-  sourceId,
-}: {
-  canManage: boolean;
-  query: {
-    data?: { credential: AwsCredentialMetadata | null };
-    error?: string;
-    refresh: () => void;
-  };
-  sourceId: string;
-}) {
+export function AwsIntegration() {
   const [editorOpen, setEditorOpen] = useState(false);
-  const endpoint = `/v1/core/sources/${sourceId}/aws`;
+  const endpoint = "/v1/core/aws";
+  const query = useApiQuery<{
+    canManage: boolean;
+    credential: AwsCredentialMetadata | null;
+  }>(endpoint);
   if (query.error) return <QueryError message={query.error} />;
   if (!query.data) return <QueryLoading />;
   const credential = query.data.credential;
+  const canManage = query.data.canManage;
 
   return (
     <div className="grid gap-10">
       {credential ? (
         <div className="grid gap-5">
-          <Attributes title="S3 backup credentials" variant="card">
+          <Attributes title="AWS credentials" variant="card">
             <Attributes.Item label="Access key">
               <TypographyCode>
                 ••••{credential.accessKeyIdSuffix}
@@ -68,8 +62,8 @@ export function SourceAwsCredentials({
                   confirm={{
                     actionLabel: "Delete credentials",
                     description:
-                      "S3 backups and restores from this Source will be unavailable until replacement credentials are stored.",
-                    title: "Delete this Source's S3 backup credentials?",
+                      "S3 backups and restores across Towbar will pause until replacement credentials are stored.",
+                    title: "Delete the AWS integration credentials?",
                   }}
                   pendingLabel="Deleting…"
                   success="S3 backup credentials deleted"
@@ -85,11 +79,11 @@ export function SourceAwsCredentials({
       {!credential ? (
         <EmptyState>
           <EmptyState.Header>
-            <EmptyState.Title>No S3 backup credentials</EmptyState.Title>
+            <EmptyState.Title>AWS is not configured</EmptyState.Title>
             <EmptyState.Description>
               {canManage
-                ? "Add Source-scoped AWS credentials only if you use S3 backups or restores."
-                : "An administrator can add this Source's S3 backup credentials."}
+                ? "Add one AWS credential for S3 backups and restores across Towbar."
+                : "An administrator can configure the workspace AWS integration."}
             </EmptyState.Description>
           </EmptyState.Header>
           {canManage ? (
@@ -115,7 +109,7 @@ export function SourceAwsCredentials({
                 <Modal.Body className="space-y-6">
                   <p className="text-muted typography--body-sm">
                     Values are encrypted before PostgreSQL, scoped to this
-                    Source, and never returned.
+                    workspace, and never returned.
                   </p>
                   <SimpleForm
                     fields={[
@@ -151,6 +145,7 @@ export function SourceAwsCredentials({
                     onSubmit={async (values) => {
                       await api.put(endpoint, values);
                       query.refresh();
+                      refreshApiQueries();
                       setEditorOpen(false);
                     }}
                     successMessage={

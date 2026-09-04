@@ -5,21 +5,16 @@ import {
   DatabaseIcon,
   GithubIcon,
   InformationSquareIcon,
-  ServerStack01Icon,
   Settings01Icon,
-  ValidationIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { type Key, type ReactNode } from "react";
 import type {
   App,
-  AppSecretsResponse,
-  AwsCredentialMetadata,
   Deployment,
   Resource,
   RuntimeCapacity,
-  SourceServer,
   Source,
   SourceSync,
 } from "@workspace/towbar-web-client";
@@ -47,14 +42,12 @@ import {
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
-import { SourceAwsCredentials } from "./source-aws-credentials";
-import { SourceSecretStageEditor } from "./app-secrets";
+import { SourceSecrets } from "./app-secrets";
 import {
   SourceNotifications,
   type NotificationDestinationsResponse,
 } from "./source-notifications";
-import { SourceApps, SourceResources, SourceServers } from "./source-inventory";
-import { SourcePlans } from "./source-plans";
+import { SourceApps, SourceResources } from "./source-inventory";
 import { ResponsiveSubtabs } from "./responsive-subtabs";
 import { AutoDeployControlEditor } from "./auto-deploy-control";
 
@@ -92,10 +85,6 @@ export function SourceDetail() {
     `/v1/core/sources/${sourceId}/resources`,
     5_000,
   );
-  const servers = useApiQuery<{ servers: SourceServer[] }>(
-    `/v1/core/sources/${sourceId}/servers`,
-    5_000,
-  );
   const deployments = useApiQuery<{ deployments: Deployment[] }>(
     `/v1/core/sources/${sourceId}/deployments`,
     5_000,
@@ -103,9 +92,6 @@ export function SourceDetail() {
   const capacity = useApiQuery<{ capacities: RuntimeCapacity[] }>(
     `/v1/core/sources/${sourceId}/capacity`,
     5_000,
-  );
-  const aws = useApiQuery<{ credential: AwsCredentialMetadata | null }>(
-    `/v1/core/sources/${sourceId}/aws`,
   );
   const error = source.error ?? manifest.error ?? syncs.error;
   if (error)
@@ -123,10 +109,6 @@ export function SourceDetail() {
 
   const item = source.data.source;
   const latestSync = syncs.data.syncs[0];
-  const untrustedServers =
-    servers.data?.servers.filter(
-      (server) => server.hostKeyStatus === "untrusted",
-    ) ?? [];
   const syncColumns: ResourceTableColumn<SourceSync>[] = [
     {
       key: "commit",
@@ -255,34 +237,6 @@ export function SourceDetail() {
             ),
           },
           {
-            value: "servers",
-            label: "Servers",
-            icon: <HugeiconsIcon icon={ServerStack01Icon} />,
-            indicator: servers.data
-              ? {
-                  ariaLabel: untrustedServers.length
-                    ? `${servers.data.servers.length} total; ${untrustedServers.length} ${untrustedServers.length === 1 ? "server has" : "servers have"} untrusted host keys`
-                    : `${servers.data.servers.length} total`,
-                  label: String(servers.data.servers.length),
-                  variant: untrustedServers.length ? "warning" : "secondary",
-                }
-              : undefined,
-            content: (
-              <SourceServers
-                capacities={capacity.data?.capacities}
-                error={servers.error ?? capacity.error}
-                servers={servers.data?.servers}
-                sourceId={sourceId}
-              />
-            ),
-          },
-          {
-            value: "plans",
-            label: "Plans",
-            icon: <HugeiconsIcon icon={ValidationIcon} />,
-            content: <SourcePlans sourceId={sourceId} />,
-          },
-          {
             value: "info",
             label: "Info",
             icon: <HugeiconsIcon icon={InformationSquareIcon} />,
@@ -337,12 +291,9 @@ export function SourceDetail() {
             icon: <HugeiconsIcon icon={Settings01Icon} />,
             content: (
               <SourceSettings
-                awsData={aws.data}
-                awsError={aws.error}
                 canManage={source.data.canManageSource}
                 isActive={searchParams.get("section") === "settings"}
                 onDelete={() => router.push("/sources")}
-                refreshAws={aws.refresh}
                 sourceId={sourceId}
               />
             ),
@@ -354,25 +305,16 @@ export function SourceDetail() {
 }
 
 function SourceSettings({
-  awsData,
-  awsError,
   canManage,
   isActive,
   onDelete,
-  refreshAws,
   sourceId,
 }: {
-  awsData?: { credential: AwsCredentialMetadata | null };
-  awsError?: string;
   canManage: boolean;
   isActive: boolean;
   onDelete: () => void;
-  refreshAws: () => void;
   sourceId: string;
 }) {
-  const secrets = useApiQuery<AppSecretsResponse>(
-    isActive ? `/v1/core/sources/${sourceId}/secrets` : null,
-  );
   const notificationDestinations =
     useApiQuery<NotificationDestinationsResponse>(
       isActive
@@ -386,17 +328,6 @@ function SourceSettings({
       collapseOnMobile
       defaultSelectedKey="secrets"
       tabs={[
-        {
-          value: "aws",
-          label: "S3 backup credentials",
-          content: (
-            <SourceAwsCredentials
-              canManage={canManage}
-              query={{ data: awsData, error: awsError, refresh: refreshAws }}
-              sourceId={sourceId}
-            />
-          ),
-        },
         {
           value: "auto-deploy",
           label: "Auto-deploy",
@@ -416,7 +347,7 @@ function SourceSettings({
         {
           value: "secrets",
           label: "Secrets",
-          content: <SourceSecrets query={secrets} sourceId={sourceId} />,
+          content: <SourceSecrets active={isActive} sourceId={sourceId} />,
         },
         ...(canManage
           ? [
@@ -425,7 +356,7 @@ function SourceSettings({
                 label: "Danger zone",
                 content: (
                   <SectionBlock
-                    description="Deleting a Source removes its credential, imported inventory, operational history, and source-owned server records. Backup objects already in S3 follow your bucket lifecycle."
+                    description="Deleting a Source removes its imported inventory and operational history. Workspace integrations, servers, and backup objects already in S3 remain available."
                     title="Danger zone"
                   >
                     <div>
@@ -436,7 +367,7 @@ function SourceSettings({
                         confirm={{
                           actionLabel: "Delete Source permanently",
                           description:
-                            "This permanently deletes the Source credential, sync history, Apps, Resources, Deployments, Releases, backup metadata, runtime operations, Servers, checks, and trust records. This cannot be undone.",
+                            "This permanently deletes the Source, sync history, Apps, Resources, Deployments, Releases, backup metadata, and runtime operations. Workspace integrations, servers, their credentials, checks, and trust records remain available. This cannot be undone.",
                           title: "Delete this Source and all of its data?",
                         }}
                         onSuccess={onDelete}
@@ -453,45 +384,6 @@ function SourceSettings({
             ]
           : []),
       ]}
-    />
-  );
-}
-
-function SourceSecrets({
-  query,
-  sourceId,
-}: {
-  query: {
-    data?: AppSecretsResponse;
-    error?: string;
-    refresh: () => void;
-  };
-  sourceId: string;
-}) {
-  const stages = [
-    { label: "Build", value: "build" },
-    { label: "Runtime", value: "deployment" },
-    { label: "Pre-deploy", value: "pre_deploy" },
-    { label: "Post-deploy", value: "post_deploy" },
-  ] as const;
-
-  return (
-    <ResponsiveSubtabs
-      ariaLabel="Shared secret types"
-      defaultSelectedKey="build"
-      layout="inline"
-      panelClassName="md:pt-6"
-      tabs={stages.map(({ label, value: stage }) => ({
-        label,
-        value: stage,
-        content: (
-          <SourceSecretStageEditor
-            query={query}
-            sourceId={sourceId}
-            stage={stage}
-          />
-        ),
-      }))}
     />
   );
 }

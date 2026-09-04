@@ -17,18 +17,16 @@ const readRoutes = [
   "/v1/core/servers",
   "/v1/core/deployments",
   "/v1/core/system-health",
+  "/v1/core/aws",
+  "/v1/core/settings/secrets",
   `/v1/core/sources/${fixtureIds.source}`,
   `/v1/core/sources/${fixtureIds.source}/manifest`,
   `/v1/core/sources/${fixtureIds.source}/syncs`,
-  `/v1/core/sources/${fixtureIds.source}/aws`,
   `/v1/core/sources/${fixtureIds.source}/auto-deploy-control`,
   `/v1/core/sources/${fixtureIds.source}/secrets`,
   `/v1/core/sources/${fixtureIds.source}/apps`,
   `/v1/core/sources/${fixtureIds.source}/capacity`,
-  `/v1/core/sources/${fixtureIds.source}/plans`,
-  `/v1/core/sources/${fixtureIds.source}/plans/${fixtureIds.deploymentPlan}`,
   `/v1/core/sources/${fixtureIds.source}/resources`,
-  `/v1/core/sources/${fixtureIds.source}/servers`,
   `/v1/core/sources/${fixtureIds.source}/deployments`,
   `/v1/core/sources/${fixtureIds.source}/backups`,
   `/v1/core/sources/${fixtureIds.source}/syncs/${fixtureIds.sync}`,
@@ -299,11 +297,33 @@ test("the local fixture supports write-only stage edits and rejects stale revisi
     const preview = await (
       await fetch(`${endpoint}?environment=preview`)
     ).json();
-    assert(
-      preview.bindings.every(
-        (item) =>
-          item.environment === "preview" && item.inheritedKeys.length === 0,
-      ),
+    assert(preview.bindings.every((item) => item.environment === "preview"));
+    const previewBuild = preview.bindings.find(
+      (item) => item.stage === "build",
+    );
+    assert.deepEqual(previewBuild.inheritedKeys, [
+      "GLOBAL_PREVIEW_TOKEN",
+      "SOURCE_PREVIEW_TOKEN",
+    ]);
+    assert.equal(previewBuild.inheritedOrigins.GLOBAL_PREVIEW_TOKEN, "global");
+    assert.equal(previewBuild.inheritedOrigins.SOURCE_PREVIEW_TOKEN, "source");
+
+    const globalEndpoint = `${baseUrl}/v1/core/settings/secrets`;
+    const global = await (await fetch(globalEndpoint)).json();
+    const globalBuild = global.bindings.find((item) => item.stage === "build");
+    const globalUpdate = await fetch(`${globalEndpoint}/production/build`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        expectedRevision: globalBuild.revision,
+        set: { GLOBAL_WRITE_ONLY: "must-also-not-return" },
+        delete: [],
+      }),
+    });
+    assert.equal(globalUpdate.status, 200);
+    assert.equal(
+      (await globalUpdate.text()).includes("must-also-not-return"),
+      false,
     );
   } finally {
     server.close();
@@ -347,42 +367,106 @@ test("the local fixture covers source creation and the initial sync", async () =
   }
 });
 
-test("the local fixture covers pull request deployment planning", async () => {
+test("the local fixture models one write-only workspace AWS integration", async () => {
   const server = createFixtureApiServer();
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
   const address = server.address();
   assert(address && typeof address === "object");
   const baseUrl = `http://127.0.0.1:${address.port}`;
+  const endpoint = `${baseUrl}/v1/core/aws`;
 
   try {
-    const listResponse = await fetch(
-      `${baseUrl}/v1/core/sources/${fixtureIds.source}/plans`,
-    );
-    assert.equal(listResponse.status, 200);
-    const initial = await listResponse.json();
-    assert.equal(initial.plans[0].id, fixtureIds.deploymentPlan);
-    assert.equal(initial.plans[0].plan.summary.update, 1);
-    assert.equal(initial.plans[0].plan.summary.no_op, 1);
+    const empty = await (await fetch(endpoint)).json();
+    assert.equal(empty.credential, null);
 
-    const manualResponse = await fetch(
-      `${baseUrl}/v1/core/sources/${fixtureIds.source}/actions/plan`,
-      { method: "POST" },
-    );
-    assert.equal(manualResponse.status, 404);
+    const savedResponse = await fetch(endpoint, {
+      body: JSON.stringify({
+        accessKeyId: "AKIAEXAMPLE123456",
+        region: "ap-south-1",
+        secretAccessKey: "must-not-return-secret-value",
+      }),
+      headers: { "content-type": "application/json" },
+      method: "PUT",
+    });
+    assert.equal(savedResponse.status, 200);
+    const savedText = await savedResponse.text();
+    assert.equal(savedText.includes("must-not-return-secret-value"), false);
+    assert.equal(JSON.parse(savedText).credential.accessKeyIdSuffix, "3456");
 
-    const detailResponse = await fetch(
-      `${baseUrl}/v1/core/sources/${fixtureIds.source}/plans/${fixtureIds.deploymentPlan}`,
-    );
-    assert.equal(detailResponse.status, 200);
-    const detail = await detailResponse.json();
-    assert.equal(detail.plan.id, fixtureIds.deploymentPlan);
-    assert.equal(detail.plan.pullRequestNumber, 42);
-    assert.equal(detail.plan.trigger, "pull_request");
-    assert.equal("candidateManifest" in detail.plan, false);
+    const assurance = await (
+      await fetch(
+        `${baseUrl}/v1/core/resources/${fixtureIds.resource}/backup-assurance`,
+      )
+    ).json();
+    assert.equal(assurance.awsConfigured, true);
+
+    assert.equal((await fetch(endpoint, { method: "DELETE" })).status, 204);
+    assert.equal((await (await fetch(endpoint)).json()).credential, null);
   } finally {
     server.close();
     await once(server, "close");
+  }
+});
+
+test("the local fixture supports workspace server creation and editing", async () => {
+  const fixture = createFixtureApiServer();
+  fixture.listen(0, "127.0.0.1");
+  await once(fixture, "listening");
+  const baseUrl = `http://127.0.0.1:${fixture.address().port}`;
+  const config = {
+    buildConcurrency: 2,
+    previewBuildConcurrency: 1,
+    ip: "192.0.2.50",
+    ssh: { port: 22, username: "deploy" },
+  };
+
+  try {
+    const createdResponse = await fetch(`${baseUrl}/v1/core/servers`, {
+      body: JSON.stringify(config),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    });
+    assert.equal(createdResponse.status, 201);
+    const created = (await createdResponse.json()).server;
+    assert.equal(created.canonicalIp, config.ip);
+    assert.equal("sourceId" in created, false);
+
+    const duplicate = await fetch(`${baseUrl}/v1/core/servers`, {
+      body: JSON.stringify(config),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    });
+    assert.equal(duplicate.status, 409);
+
+    const updatedResponse = await fetch(
+      `${baseUrl}/v1/core/servers/${created.id}`,
+      {
+        body: JSON.stringify({
+          ...config,
+          buildConcurrency: 4,
+          proxy: { cloudflare: { enabled: true } },
+        }),
+        headers: { "content-type": "application/json" },
+        method: "PATCH",
+      },
+    );
+    assert.equal(updatedResponse.status, 200);
+    const updated = (await updatedResponse.json()).server;
+    assert.equal(updated.config.buildConcurrency, 4);
+    assert.equal(updated.config.proxy.cloudflare.enabled, true);
+
+    assert.equal(
+      (
+        await fetch(`${baseUrl}/v1/core/servers/${created.id}`, {
+          method: "DELETE",
+        })
+      ).status,
+      204,
+    );
+  } finally {
+    fixture.close();
+    await once(fixture, "close");
   }
 });
 
@@ -555,13 +639,6 @@ test("the local fixture covers first-connection host-key trust", async () => {
   const baseUrl = `http://127.0.0.1:${address.port}`;
 
   try {
-    const sourceServersResponse = await fetch(
-      `${baseUrl}/v1/core/sources/${fixtureIds.source}/servers`,
-    );
-    const sourceServersPayload = await sourceServersResponse.json();
-    assert.equal(sourceServersPayload.servers[0].hostKeyStatus, "untrusted");
-    assert.equal(sourceServersPayload.servers[1].hostKeyStatus, "trusted");
-
     const checksResponse = await fetch(
       `${baseUrl}/v1/core/servers/${fixtureIds.server}/checks`,
     );
@@ -589,16 +666,6 @@ test("the local fixture covers first-connection host-key trust", async () => {
       "SHA256:TowbarFixtureHostKey",
     );
 
-    const trustedSourceServersResponse = await fetch(
-      `${baseUrl}/v1/core/sources/${fixtureIds.source}/servers`,
-    );
-    const trustedSourceServersPayload =
-      await trustedSourceServersResponse.json();
-    assert.equal(
-      trustedSourceServersPayload.servers[0].hostKeyStatus,
-      "trusted",
-    );
-
     const revokeResponse = await fetch(
       `${baseUrl}/v1/core/servers/${fixtureIds.server}/host-keys/${keysPayload.hostKeys[0].id}`,
       { method: "DELETE" },
@@ -610,16 +677,6 @@ test("the local fixture covers first-connection host-key trust", async () => {
     );
     const revokedKeysPayload = await revokedKeysResponse.json();
     assert.deepEqual(revokedKeysPayload.hostKeys, []);
-
-    const untrustedSourceServersResponse = await fetch(
-      `${baseUrl}/v1/core/sources/${fixtureIds.source}/servers`,
-    );
-    const untrustedSourceServersPayload =
-      await untrustedSourceServersResponse.json();
-    assert.equal(
-      untrustedSourceServersPayload.servers[0].hostKeyStatus,
-      "untrusted",
-    );
   } finally {
     server.close();
     await once(server, "close");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type {
   GitHubConnection,
@@ -18,6 +18,7 @@ import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 
 export function GitHubSettings() {
+  const router = useRouter();
   const params = useSearchParams();
   const completed = useRef(false);
   const [callbackError, setCallbackError] = useState<string>();
@@ -36,7 +37,7 @@ export function GitHubSettings() {
         state,
       })
       .then(() => {
-        window.history.replaceState(null, "", "/settings?section=github");
+        router.replace("/manage/integrations?integration=github");
         refreshApiQueries();
       })
       .catch((error: unknown) =>
@@ -44,7 +45,7 @@ export function GitHubSettings() {
           error instanceof Error ? error.message : "Could not connect GitHub",
         ),
       );
-  }, [installationId, state]);
+  }, [installationId, router, state]);
   if (query.error) return <QueryError message={query.error} />;
   if (!query.data) return <QueryLoading />;
   if (callbackError) return <QueryError message={callbackError} />;
@@ -56,12 +57,7 @@ export function GitHubSettings() {
     connection !== null &&
     previewPermissionState === "available" &&
     connection.permissionReadiness.preview === "ready";
-  const planningPermissionsReady =
-    connection !== null &&
-    previewPermissionState === "available" &&
-    connection.permissionReadiness.planning === "ready";
-  const reportingPermissionsReady =
-    previewPermissionsReady && planningPermissionsReady;
+  const reportingPermissionsReady = previewPermissionsReady;
   const action = connection ? (
     connection.suspendedAt ? (
       <ActionButton
@@ -145,7 +141,7 @@ export function GitHubSettings() {
             <Alert.Description>
               {previewPermissionState === "unavailable"
                 ? "Towbar could not confirm the installation permissions. Try again before relying on Preview status reporting."
-                : "Grant Checks, Pull requests, and Deployments read and write access, plus Contents read access. Towbar uses them for deployment-plan Checks and Preview reporting."}
+                : "Grant Pull requests and Deployments read and write access, plus Contents read access. Towbar uses them for Preview reporting."}
             </Alert.Description>
           </Alert.Content>
         </Alert>
@@ -170,11 +166,6 @@ export function GitHubSettings() {
             status={previewPermissionsReady ? "ready" : "attention"}
           />
         </Attributes.Item>
-        <Attributes.Item label="Deployment plans">
-          <StatusBadge
-            status={planningPermissionsReady ? "ready" : "attention"}
-          />
-        </Attributes.Item>
       </Attributes>
       <div className="flex flex-wrap gap-3">
         {!connection.suspendedAt && !reportingPermissionsReady ? (
@@ -194,9 +185,8 @@ export function GitHubSettings() {
         <EmptyState.Title>GitHub not connected</EmptyState.Title>
         <EmptyState.Description className="max-w-md text-pretty">
           Install the GitHub App and choose only the repositories Towbar should
-          manage. Towbar writes deployment-plan Checks, Preview deployment
-          statuses, and the single status comment it maintains for each pull
-          request.
+          manage. Towbar writes Preview deployment statuses and the single
+          status comment it maintains for each pull request.
         </EmptyState.Description>
       </EmptyState.Header>
       <EmptyState.Content>{action}</EmptyState.Content>

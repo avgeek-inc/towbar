@@ -32,7 +32,6 @@ async function inspectBackupObject(input: {
 }): Promise<AssuredObject> {
   if (!input.result) return null;
   const credential = await getDecryptedAwsCredential({
-    sourceId: input.sourceId,
     workspaceId: input.workspaceId,
   });
   const client = new S3Client({

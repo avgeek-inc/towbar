@@ -55,11 +55,11 @@ void test("prototype-shaped keys cannot alter object prototypes or silently disa
 });
 void test("manifests reject secret assignments at every former scope", () => {
   const base =
-    "version: 1\nservers:\n  - ip: 192.0.2.10\n    ssh:\n      username: deploy\napps:\n  - id: demo\n    name: Demo\n    server: 192.0.2.10\n    dockerfile: Dockerfile\n    context: .\n    container:\n      port: 3000\n";
+    "version: 1\napps:\n  - id: demo\n    name: Demo\n    server: 192.0.2.10\n    dockerfile: Dockerfile\n    context: .\n    container:\n      port: 3000\n";
   assert.doesNotThrow(() => parseDeploymentManifest(base));
   for (const manifest of [
     `${base}secrets:\n  build: [aws:old]\n`,
-    base.replace("    ssh:", "    secrets:\n      login: aws:old\n    ssh:"),
+    `${base}servers:\n  - ip: 192.0.2.10\n    ssh:\n      username: deploy\n    secrets:\n      login: aws:old\n`,
     `${base}    secrets:\n      build: aws:old\n`,
     `${base}    hooks:\n      preDeploy:\n        command: [node, migrate.js]\n        secrets: aws:old\n`,
     `${base}    preview:\n      enabled: true\n      domain: preview.example.com\n      secrets: {}\n`,

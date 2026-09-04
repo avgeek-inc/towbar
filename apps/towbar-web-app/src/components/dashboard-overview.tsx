@@ -67,10 +67,10 @@ export function DashboardOverview() {
   const unhealthyServerKeys = new Set(
     [...activeApps, ...activeResources]
       .filter(isUnhealthy)
-      .map((item) => getServerKey(item.sourceId, item.serverIp)),
+      .map((item) => item.serverIp),
   );
   const unhealthyServers = activeServers.filter((server) =>
-    unhealthyServerKeys.has(getServerKey(server.sourceId, server.canonicalIp)),
+    unhealthyServerKeys.has(server.canonicalIp),
   ).length;
   const activity = buildDeploymentActivity(deploymentItems);
   const metrics = [
@@ -199,10 +199,6 @@ function HealthChip({ unhealthyCount }: { unhealthyCount: number }) {
 
 function isUnhealthy(item: App | Resource) {
   return item.runtimeState.healthStatus === "unhealthy";
-}
-
-function getServerKey(sourceId: string, serverIp: string) {
-  return `${sourceId}:${serverIp}`;
 }
 
 function buildDeploymentActivity(deployments: Deployment[]) {

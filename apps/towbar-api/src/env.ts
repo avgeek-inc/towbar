@@ -76,6 +76,31 @@ const envSchema = z
     GITHUB_APP_PRIVATE_KEY: optionalEnvironmentString(z.string().min(1)),
     GITHUB_APP_PRIVATE_KEY_BASE64: optionalEnvironmentString(z.string().min(1)),
     GITHUB_WEBHOOK_SECRET: optionalEnvironmentString(z.string().min(16)),
+    TOWBAR_SLACK_BOT_TOKEN: optionalEnvironmentString(z.string().min(1)),
+    TOWBAR_SMTP_HOST: optionalEnvironmentString(
+      z.string().trim().min(1).max(253),
+    ),
+    TOWBAR_SMTP_FROM: optionalEnvironmentString(z.string().email().max(320)),
+    TOWBAR_SMTP_PORT: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.coerce.number().int().min(1).max(65_535).optional(),
+    ),
+    TOWBAR_SMTP_SECURE: z
+      .preprocess(
+        (value) => (value === "" ? undefined : value),
+        z.enum(["true", "false"]).optional(),
+      )
+      .transform((value) => value === "true"),
+    TOWBAR_SMTP_USERNAME: optionalEnvironmentString(z.string().min(1).max(320)),
+    TOWBAR_SMTP_PASSWORD: optionalEnvironmentString(
+      z.string().min(1).max(4_096),
+    ),
+    TOWBAR_SMTP_SUBJECT_PREFIX: optionalEnvironmentString(
+      z
+        .string()
+        .max(80)
+        .refine((value) => !/[\r\n]/u.test(value)),
+    ),
     SOURCE_COMMIT: z.string().min(7).default("development"),
     TOWBAR_COMMIT_SHA: optionalEnvironmentString(
       z.string().regex(/^[a-f0-9]{40}$/u),
@@ -110,6 +135,34 @@ const envSchema = z
         code: "custom",
         message:
           "TOWBAR_OWNER_RESET_EMAIL and TOWBAR_OWNER_RESET_PASSWORD must be configured together",
+      });
+    }
+    const smtpConfigured = [
+      value.TOWBAR_SMTP_HOST,
+      value.TOWBAR_SMTP_FROM,
+      value.TOWBAR_SMTP_PORT,
+      value.TOWBAR_SMTP_USERNAME,
+      value.TOWBAR_SMTP_PASSWORD,
+      value.TOWBAR_SMTP_SUBJECT_PREFIX,
+    ].some((entry) => entry !== undefined);
+    if (
+      smtpConfigured &&
+      (!value.TOWBAR_SMTP_HOST || !value.TOWBAR_SMTP_FROM)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "TOWBAR_SMTP_HOST and TOWBAR_SMTP_FROM are required when SMTP notifications are configured",
+      });
+    }
+    if (
+      Boolean(value.TOWBAR_SMTP_USERNAME) !==
+      Boolean(value.TOWBAR_SMTP_PASSWORD)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "TOWBAR_SMTP_USERNAME and TOWBAR_SMTP_PASSWORD must be configured together",
       });
     }
   });

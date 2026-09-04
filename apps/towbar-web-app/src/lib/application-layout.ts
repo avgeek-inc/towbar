@@ -1,9 +1,15 @@
 import {
+  ComputerIcon,
+  DashboardCircleIcon,
   DashboardSquare01Icon,
+  DatabaseIcon,
   GitBranchIcon,
   HealthIcon,
+  Key01Icon,
   Logout03Icon,
-  Settings02Icon,
+  PlugSocketIcon,
+  ServerStack01Icon,
+  UserAccountIcon,
 } from "@hugeicons/core-free-icons";
 import { createElement } from "react";
 
@@ -16,11 +22,17 @@ import type {
 import { defineSidebarIcons } from "@workspace/web-design-system/layouts/sidebar-icons";
 
 const sidebarIcons = defineSidebarIcons({
+  apps: DashboardCircleIcon,
+  health: HealthIcon,
+  integrations: PlugSocketIcon,
   logout: Logout03Icon,
   overview: DashboardSquare01Icon,
-  settings: Settings02Icon,
+  profile: UserAccountIcon,
+  resources: DatabaseIcon,
+  secrets: Key01Icon,
+  servers: ServerStack01Icon,
+  sessions: ComputerIcon,
   sources: GitBranchIcon,
-  health: HealthIcon,
 });
 
 const brand = {
@@ -41,8 +53,7 @@ const sidebar = {
   homeHref: "/",
   groups: [
     {
-      id: "operate",
-      label: "Operate",
+      id: "overview",
       items: [
         {
           kind: "link",
@@ -51,6 +62,12 @@ const sidebar = {
           href: "/",
           icon: sidebarIcons.overview,
         },
+      ],
+    },
+    {
+      id: "operate",
+      label: "Operate",
+      items: [
         {
           kind: "link",
           id: "sources",
@@ -60,22 +77,71 @@ const sidebar = {
         },
         {
           kind: "link",
-          id: "health",
-          label: "System health",
-          href: "/system-health",
-          icon: sidebarIcons.health,
+          id: "apps",
+          label: "Apps",
+          href: "/apps",
+          icon: sidebarIcons.apps,
+        },
+        {
+          kind: "link",
+          id: "resources",
+          label: "Resources",
+          href: "/resources",
+          icon: sidebarIcons.resources,
+        },
+        {
+          kind: "link",
+          id: "servers",
+          label: "Servers",
+          href: "/servers",
+          icon: sidebarIcons.servers,
         },
       ],
     },
     {
-      id: "configure",
+      id: "account",
+      label: "Account",
       items: [
         {
           kind: "link",
-          id: "settings",
-          label: "Settings",
-          href: "/settings",
-          icon: sidebarIcons.settings,
+          id: "profile",
+          label: "Profile",
+          href: "/account/profile",
+          icon: sidebarIcons.profile,
+        },
+        {
+          kind: "link",
+          id: "sessions",
+          label: "Sessions",
+          href: "/account/sessions",
+          icon: sidebarIcons.sessions,
+        },
+      ],
+    },
+    {
+      id: "manage",
+      label: "Manage",
+      items: [
+        {
+          kind: "link",
+          id: "integrations",
+          label: "Integrations",
+          href: "/manage/integrations",
+          icon: sidebarIcons.integrations,
+        },
+        {
+          kind: "link",
+          id: "shared-secrets",
+          label: "Shared secrets",
+          href: "/manage/shared-secrets",
+          icon: sidebarIcons.secrets,
+        },
+        {
+          kind: "link",
+          id: "health",
+          label: "System health",
+          href: "/system-health",
+          icon: sidebarIcons.health,
         },
       ],
     },

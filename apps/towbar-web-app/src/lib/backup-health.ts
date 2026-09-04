@@ -244,7 +244,7 @@ function operationStage(
 function friendlyS3Failure(checks: BackupAssurance["checks"]) {
   const objectCheck = checks.find((check) => check.name === "object_exists");
   if (objectCheck?.message.toLowerCase().includes("cannot access")) {
-    return "Towbar cannot read the saved file. Check this Source's S3 permissions.";
+    return "Towbar cannot read the saved file. Check the workspace AWS permissions.";
   }
   if (objectCheck && !objectCheck.passed) {
     return objectCheck.message.toLowerCase().includes("unavailable")

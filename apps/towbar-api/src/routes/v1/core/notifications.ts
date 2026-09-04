@@ -25,7 +25,7 @@ notificationRoutes.get("/destinations", async (context) => {
       sourceId: context.req.param("sourceId")!,
       workspaceId: user.workspaceId,
     }),
-    providers: await notificationProviderAvailability(user.workspaceId),
+    providers: notificationProviderAvailability(),
   });
 });
 

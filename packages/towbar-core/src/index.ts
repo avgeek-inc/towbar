@@ -1,7 +1,6 @@
 export * from "./deployment-inputs.js";
 export * from "./backup-assurance.js";
 export * from "./auto-deploy-controls.js";
-export * from "./deployment-plan.js";
 export * from "./manifest.js";
 export * from "./notifications.js";
 export * from "./preview.js";

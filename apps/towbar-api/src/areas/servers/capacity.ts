@@ -75,12 +75,23 @@ async function listRuntimeCapacity({
     isNull(servers.archivedAt),
   ];
   if (serverId) serverScope.push(eq(servers.id, serverId));
-  if (sourceId) serverScope.push(eq(servers.sourceId, sourceId));
+  if (sourceId) {
+    const sourceServerIds = await getTowbarDatabase()
+      .selectDistinct({ serverId: apps.serverId })
+      .from(apps)
+      .where(and(eq(apps.sourceId, sourceId), isNull(apps.archivedAt)));
+    if (sourceServerIds.length === 0) return [];
+    serverScope.push(
+      inArray(
+        servers.id,
+        sourceServerIds.map((item) => item.serverId),
+      ),
+    );
+  }
   const serverRows = await getTowbarDatabase()
     .select({
       id: servers.id,
       ip: servers.canonicalIp,
-      sourceId: servers.sourceId,
     })
     .from(servers)
     .where(and(...serverScope));
@@ -116,9 +127,16 @@ async function listRuntimeCapacity({
           kind: apps.kind,
           name: apps.name,
           serverId: apps.serverId,
+          sourceId: apps.sourceId,
         })
         .from(apps)
-        .where(and(inArray(apps.serverId, serverIds), isNull(apps.archivedAt))),
+        .where(
+          and(
+            inArray(apps.serverId, serverIds),
+            isNull(apps.archivedAt),
+            ...(sourceId ? [eq(apps.sourceId, sourceId)] : []),
+          ),
+        ),
     ],
   );
   const latestByServer = new Map(
@@ -147,6 +165,7 @@ async function listRuntimeCapacity({
           name: deployable.name,
           observedState: runtime.observedState,
           restartCount: runtime.restartCount,
+          sourceId: deployable.sourceId,
           startedAt: runtime.startedAt,
         },
       ];
@@ -189,7 +208,6 @@ async function listRuntimeCapacity({
           }
         : null,
       runtimes,
-      sourceId: server.sourceId,
       status: classifyCapacityHealth({
         checkedAt,
         cpuUsagePercent: host?.cpuUsagePercent ?? null,

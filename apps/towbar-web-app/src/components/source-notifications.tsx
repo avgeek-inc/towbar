@@ -92,6 +92,9 @@ export function SourceNotifications({
 
   const providers = destinations.data.providers;
   const hasProvider = providers.slack || providers.smtp;
+  const availableProviderOptions = providerOptions.filter(
+    (provider) => providers[provider.value],
+  );
   const destinationColumns: ResourceTableColumn<NotificationDestination>[] = [
     {
       key: "destination",
@@ -147,7 +150,11 @@ export function SourceNotifications({
             >
               Test
             </ActionButton>
-            <Button variant="secondary" onPress={() => openEditor(destination)}>
+            <Button
+              isDisabled={!providers[destination.provider]}
+              variant="secondary"
+              onPress={() => openEditor(destination)}
+            >
               Edit
             </Button>
             <ActionButton
@@ -230,11 +237,8 @@ export function SourceNotifications({
           <Alert.Content>
             <Alert.Title>No notification providers configured</Alert.Title>
             <Alert.Description>
-              Configure Slack or SMTP in{" "}
-              <a className="underline" href="/settings?section=notifications">
-                Settings → Notifications
-              </a>{" "}
-              before adding a destination.
+              Configure Slack or SMTP environment variables when deploying
+              Towbar to make that destination type available.
             </Alert.Description>
           </Alert.Content>
         </Alert>
@@ -242,16 +246,18 @@ export function SourceNotifications({
       <ResourceTable
         ariaLabel="Notification destinations"
         columns={destinationColumns}
-        emptyDescription="Add Slack or email delivery without changing deployment workflows."
+        emptyDescription={
+          hasProvider
+            ? "Add a configured notification destination for this Source."
+            : "Notification destinations become available after a provider is configured for Towbar."
+        }
         emptyTitle="No notification destinations"
         getRowKey={(destination) => destination.id}
         items={destinations.data.destinations}
       />
-      {canManage ? (
+      {canManage && hasProvider ? (
         <div>
-          <Button isDisabled={!hasProvider} onPress={() => openEditor()}>
-            Add destination
-          </Button>
+          <Button onPress={() => openEditor()}>Add destination</Button>
         </div>
       ) : null}
 
@@ -296,10 +302,9 @@ export function SourceNotifications({
                     </Select.Trigger>
                     <Select.Popover>
                       <ListBox>
-                        {providerOptions.map((provider) => (
+                        {availableProviderOptions.map((provider) => (
                           <ListBox.Item
                             id={provider.value}
-                            isDisabled={!providers[provider.value]}
                             key={provider.value}
                             textValue={provider.label}
                           >

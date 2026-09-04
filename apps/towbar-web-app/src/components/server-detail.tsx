@@ -2,14 +2,14 @@
 
 import { ConfigurationLinks } from "./configuration-links";
 
-import { ServerCredentials } from "./credential-editor";
+import { ServerEditor, ServerRemoval } from "./server-editor";
 
 import {
   Activity01Icon,
   DashboardCircleIcon,
-  Delete02Icon,
   Key01Icon,
   ServerStack01Icon,
+  Settings01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams } from "next/navigation";
@@ -39,7 +39,13 @@ import {
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
-import { ActionButton, DashboardPage, PageTabs } from "@/components/page-parts";
+import {
+  ActionButton,
+  DashboardPage,
+  InlineLink,
+  PageTabs,
+  serversBreadcrumb,
+} from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { reconcileServerSetupStatus } from "@/lib/server-preparation-status";
@@ -48,7 +54,7 @@ import {
   ServerHostCapacity,
   ServerRuntimeCapacityTable,
 } from "./server-capacity";
-import { useSourceBreadcrumbs } from "./source-breadcrumbs";
+import { ResponsiveSubtabs } from "./responsive-subtabs";
 
 type DiscoveredKey = {
   algorithm: string;
@@ -67,18 +73,14 @@ type HostKeyRow = {
 const SERVER_CHECK_PAGE_SIZE = 10;
 
 export function ServerDetail() {
-  const { serverId, sourceId } = useParams<{
+  const { serverId } = useParams<{
     serverId: string;
-    sourceId: string;
   }>();
   const server = useApiQuery<{
     canCleanupOrphans: boolean;
+    canManageServer: boolean;
     server: Server;
   }>(`/v1/core/servers/${serverId}`);
-  const breadcrumbAncestors = useSourceBreadcrumbs(sourceId, {
-    href: `/sources/${sourceId}?section=servers`,
-    label: "Servers",
-  });
   const checks = useApiQuery<ServerChecksPage>(
     `/v1/core/servers/${serverId}/checks?page=1&limit=${SERVER_CHECK_PAGE_SIZE}`,
     5_000,
@@ -117,7 +119,7 @@ export function ServerDetail() {
     orphans.error;
   if (error)
     return (
-      <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="Server">
+      <DashboardPage breadcrumbAncestors={serversBreadcrumb} title="Server">
         <QueryError message={error} />
       </DashboardPage>
     );
@@ -130,7 +132,7 @@ export function ServerDetail() {
     !orphans.data
   )
     return (
-      <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="Server">
+      <DashboardPage breadcrumbAncestors={serversBreadcrumb} title="Server">
         <QueryLoading />
       </DashboardPage>
     );
@@ -141,16 +143,6 @@ export function ServerDetail() {
   const disposableOrphans = orphanItems.filter(
     (item) => item.kind !== "volume",
   );
-  if (item.sourceId !== sourceId) {
-    return (
-      <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="Server">
-        <QueryError
-          message="This Server does not belong to the selected Source."
-          retryable={false}
-        />
-      </DashboardPage>
-    );
-  }
   const discovered = readDiscoveredKeys(
     checks.data.latestCheck ? [checks.data.latestCheck] : [],
   );
@@ -186,14 +178,30 @@ export function ServerDetail() {
       className: "min-w-36",
     },
     {
+      key: "category",
+      header: "Category",
+      cell: (check) =>
+        check.errorCode === "HOST_KEY_NOT_TRUSTED" ? (
+          <InlineLink href={`/servers/${serverId}?section=host-keys`}>
+            Host keys
+          </InlineLink>
+        ) : check.errorCode === "TEMPORAL_UNAVAILABLE" ? (
+          "Control plane"
+        ) : check.errorMessage ? (
+          <InlineLink href={`/servers/${serverId}?section=settings`}>
+            Configuration
+          </InlineLink>
+        ) : (
+          "Environment"
+        ),
+      className: "min-w-40 whitespace-nowrap",
+    },
+    {
       key: "result",
       header: "Result",
       cell: (check) =>
         check.errorMessage ? (
-          <span>
-            {check.errorMessage}
-            <ConfigurationLinks sourceId={sourceId} serverId={serverId} />
-          </span>
+          check.errorMessage
         ) : (
           <span className="whitespace-nowrap">
             {summarizeCheck(check.result)}
@@ -316,11 +324,7 @@ export function ServerDetail() {
     <DashboardPage
       actions={
         <ActionButton
-          action={() =>
-            api.post(`/v1/core/servers/${serverId}/actions/check`, {
-              sourceId: item.sourceId,
-            })
-          }
+          action={() => api.post(`/v1/core/servers/${serverId}/actions/check`)}
           pendingLabel="Checking…"
           success="Server check queued"
           variant="primary"
@@ -331,7 +335,7 @@ export function ServerDetail() {
       badge={
         <StatusBadge status={item.archivedAt ? "archived" : setupStatus} />
       }
-      breadcrumbAncestors={breadcrumbAncestors}
+      breadcrumbAncestors={serversBreadcrumb}
       title={item.canonicalIp}
       titleContent={
         <span className="inline-flex min-w-0 items-center gap-2">
@@ -350,12 +354,6 @@ export function ServerDetail() {
         <PageTabs
           defaultValue="overview"
           tabs={[
-            {
-              value: "settings",
-              label: "Settings",
-              icon: <HugeiconsIcon icon={Key01Icon} />,
-              content: <ServerCredentials serverId={serverId} />,
-            },
             {
               value: "overview",
               label: "Overview",
@@ -384,12 +382,12 @@ export function ServerDetail() {
                       <Attributes.Item label="SSH port">
                         {item.config.ssh.port}
                       </Attributes.Item>
-                      <Attributes.Item label="Source revision">
-                        <TypographyCode title={item.sourceRevision}>
-                          {item.sourceRevision.slice(0, 12)}
-                        </TypographyCode>
+                      <Attributes.Item label="Cloudflare DNS TLS">
+                        {item.config.proxy?.cloudflare.enabled
+                          ? "Enabled"
+                          : "Disabled"}
                       </Attributes.Item>
-                      <Attributes.Item label="Last synced">
+                      <Attributes.Item label="Updated">
                         {formatDate(item.updatedAt)}
                       </Attributes.Item>
                     </Attributes>
@@ -422,6 +420,9 @@ export function ServerDetail() {
                       </Attributes.Item>
                       <Attributes.Item label="Concurrent builds">
                         {item.config.buildConcurrency ?? 1}
+                      </Attributes.Item>
+                      <Attributes.Item label="Concurrent preview builds">
+                        {item.config.previewBuildConcurrency ?? 1}
                       </Attributes.Item>
                       <Attributes.Item label="Trusted host keys">
                         {keys.data.hostKeys.length}
@@ -477,61 +478,94 @@ export function ServerDetail() {
               ),
             },
             {
-              value: "cleanup",
-              label: "Cleanup",
-              icon: <HugeiconsIcon icon={Delete02Icon} />,
+              value: "settings",
+              label: "Settings",
+              icon: <HugeiconsIcon icon={Settings01Icon} />,
               indicator: orphanItems.length
                 ? { label: String(orphanItems.length), variant: "warning" }
                 : undefined,
               content: (
-                <div className="grid gap-8">
-                  {orphanItems.length ? (
-                    <Alert status="warning">
-                      <Alert.Indicator />
-                      <Alert.Content>
-                        <Alert.Title>
-                          Cleanup is explicit and source-scoped
-                        </Alert.Title>
-                        <Alert.Description>
-                          Towbar revalidates every selected object against the
-                          latest releases and Source ownership labels
-                          immediately before removal. Volumes may contain
-                          permanent data and are never removed automatically.
-                        </Alert.Description>
-                      </Alert.Content>
-                    </Alert>
-                  ) : null}
-                  {server.data.canCleanupOrphans && orphanItems.length ? (
-                    <div className="flex flex-wrap gap-2">
-                      {disposableOrphans.length ? (
-                        <CleanupButton
-                          description={`Towbar will re-check and remove ${disposableOrphans.length} Source-owned containers or images. Objects no longer orphaned will be skipped.`}
-                          items={disposableOrphans}
-                          label="Clean containers and images"
-                          serverId={serverId}
-                          title="Clean up these containers and images?"
+                <ResponsiveSubtabs
+                  ariaLabel="Server settings"
+                  defaultSelectedKey="configuration"
+                  tabs={[
+                    {
+                      value: "configuration",
+                      label: "Configuration",
+                      content: (
+                        <ServerEditor
+                          canManage={server.data.canManageServer}
+                          server={item}
                         />
-                      ) : null}
-                      {orphanVolumes.length ? (
-                        <CleanupButton
-                          description={`This permanently deletes ${orphanVolumes.length} Source-owned Docker volumes and all data still stored in them. Towbar will re-check each volume and skip anything currently owned by a deployable.`}
-                          items={orphanVolumes}
-                          label="Delete orphan volumes"
-                          serverId={serverId}
-                          title="Permanently delete these orphan volumes?"
-                        />
-                      ) : null}
-                    </div>
-                  ) : null}
-                  <ResourceTable
-                    ariaLabel={`Orphaned Docker objects on ${item.canonicalIp}`}
-                    columns={orphanColumns}
-                    emptyDescription="The latest successful server check found no Source-owned objects safe to classify as orphaned."
-                    emptyTitle="No scoped orphans"
-                    getRowKey={(orphan) => `${orphan.kind}:${orphan.name}`}
-                    items={orphanItems}
-                  />
-                </div>
+                      ),
+                    },
+                    {
+                      value: "cleanup",
+                      label: "Cleanup",
+                      content: (
+                        <div className="grid gap-8">
+                          {orphanItems.length ? (
+                            <Alert status="warning">
+                              <Alert.Indicator />
+                              <Alert.Content>
+                                <Alert.Title>
+                                  Cleanup is explicit and workspace-scoped
+                                </Alert.Title>
+                                <Alert.Description>
+                                  Towbar revalidates every selected object
+                                  against the latest releases and Towbar
+                                  ownership labels immediately before removal.
+                                  Volumes may contain permanent data and are
+                                  never removed automatically.
+                                </Alert.Description>
+                              </Alert.Content>
+                            </Alert>
+                          ) : null}
+                          {server.data.canCleanupOrphans &&
+                          orphanItems.length ? (
+                            <div className="flex flex-wrap gap-2">
+                              {disposableOrphans.length ? (
+                                <CleanupButton
+                                  description={`Towbar will re-check and remove ${disposableOrphans.length} Towbar-owned containers or images. Objects no longer orphaned will be skipped.`}
+                                  items={disposableOrphans}
+                                  label="Clean containers and images"
+                                  serverId={serverId}
+                                  title="Clean up these containers and images?"
+                                />
+                              ) : null}
+                              {orphanVolumes.length ? (
+                                <CleanupButton
+                                  description={`This permanently deletes ${orphanVolumes.length} Towbar-owned Docker volumes and all data still stored in them. Towbar will re-check each volume and skip anything currently owned by a deployable.`}
+                                  items={orphanVolumes}
+                                  label="Delete orphan volumes"
+                                  serverId={serverId}
+                                  title="Permanently delete these orphan volumes?"
+                                />
+                              ) : null}
+                            </div>
+                          ) : null}
+                          <ResourceTable
+                            ariaLabel={`Orphaned Docker objects on ${item.canonicalIp}`}
+                            columns={orphanColumns}
+                            emptyDescription="The latest successful server check found no Towbar-owned objects safe to classify as orphaned."
+                            emptyTitle="No scoped orphans"
+                            getRowKey={(orphan) =>
+                              `${orphan.kind}:${orphan.name}`
+                            }
+                            items={orphanItems}
+                          />
+                        </div>
+                      ),
+                    },
+                    {
+                      value: "danger-zone",
+                      label: "Danger Zone",
+                      content: server.data.canManageServer ? (
+                        <ServerRemoval server={item} />
+                      ) : null,
+                    },
+                  ]}
+                />
               ),
             },
           ]}
@@ -576,7 +610,7 @@ function ServerCheckHistory({
           emptyTitle="No checks yet"
           getRowKey={(check) => check.id}
           items={page.checks}
-          tableClassName="min-w-[900px]"
+          tableClassName="min-w-[1040px]"
         />
       ) : (
         <QueryLoading />
@@ -632,10 +666,7 @@ function ServerPreparationPanel({
             <Alert.Title>Server preparation stopped</Alert.Title>
             <Alert.Description>
               {latestPreparation.errorMessage}
-              <ConfigurationLinks
-                sourceId={item.sourceId}
-                serverId={serverId}
-              />
+              <ConfigurationLinks serverId={serverId} />
             </Alert.Description>
           </Alert.Content>
         </Alert>

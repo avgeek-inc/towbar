@@ -62,8 +62,8 @@ export function SourceCreate() {
             </EmptyState.Description>
           </EmptyState.Header>
           <EmptyState.Content>
-            <ButtonLink href="/settings?section=github">
-              Open GitHub settings
+            <ButtonLink href="/manage/integrations?integration=github">
+              Open GitHub integration
             </ButtonLink>
           </EmptyState.Content>
         </EmptyState>

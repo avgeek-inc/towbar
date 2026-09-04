@@ -312,9 +312,7 @@ export function DeploymentDetail() {
                       icon={<HugeiconsIcon icon={ServerStack01Icon} />}
                       label="Server"
                     >
-                      <InlineLink
-                        href={`/sources/${item.sourceId}/servers/${item.serverId}`}
-                      >
+                      <InlineLink href={`/servers/${item.serverId}`}>
                         {serverIp ?? (
                           <TypographyCode>{item.serverId}</TypographyCode>
                         )}

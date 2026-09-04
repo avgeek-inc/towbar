@@ -186,10 +186,12 @@ export async function testManagedSecretExecution({
       const resolved = await resolveDeploymentSecrets(initial.deploymentId);
       assert.deepEqual(resolved.build, { PREVIEW_ONLY: "build-preview" });
       assert.deepEqual(resolved.runtime, {
+        GLOBAL_PREVIEW: "global-preview",
         PREVIEW_ONLY: "deployment-preview",
       });
       assert.deepEqual(resolved.hooks.preDeploy, {
         PREVIEW_ONLY: "pre_deploy-preview",
+        SOURCE_PREVIEW: "source-preview",
       });
       assert.deepEqual(resolved.hooks.postDeploy, {
         PREVIEW_ONLY: "post_deploy-preview",

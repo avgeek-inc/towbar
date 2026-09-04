@@ -1,7 +1,6 @@
-import { z } from "zod";
-import { getEnv } from "../../env.js";
-import { readSecretMetadata, readSecretValues } from "../secrets/store.js";
 import type { NotificationProvider } from "@workspace/towbar-core";
+
+import { getEnv } from "../../env.js";
 
 export type SlackProviderConfiguration = {
   appBaseUrl: string;
@@ -21,69 +20,36 @@ export type SmtpProviderConfiguration = {
 export type NotificationProviderConfiguration =
   SlackProviderConfiguration | SmtpProviderConfiguration;
 
-export const slackSettingsSchema = z
-  .object({ botToken: z.string().min(1).max(4096) })
-  .strict();
-export const smtpSettingsSchema = z
-  .object({
-    host: z.string().trim().min(1).max(253),
-    from: z.string().email().max(320),
-    port: z
-      .string()
-      .regex(/^\d+$/u)
-      .refine((value) => Number(value) > 0 && Number(value) <= 65535)
-      .optional(),
-    secure: z.enum(["true", "false"]).optional(),
-    username: z.string().min(1).max(320).optional(),
-    password: z.string().min(1).max(4096).optional(),
-    subjectPrefix: z
-      .string()
-      .max(80)
-      .refine((value) => !/[\r\n]/u.test(value))
-      .optional(),
-  })
-  .strict();
-
-export async function notificationProviderAvailability(workspaceId: string) {
-  const [slack, smtp] = await Promise.all(
-    (["slack", "smtp"] as const).map((stage) =>
-      readSecretMetadata({
-        type: "notifications",
-        workspaceId,
-        environment: "production",
-        stage,
-      }),
-    ),
-  );
+export function notificationProviderAvailability() {
+  const env = getEnv();
   return {
-    slack: slack!.keys.includes("botToken"),
-    smtp: smtp!.keys.includes("host") && smtp!.keys.includes("from"),
+    slack: Boolean(env.TOWBAR_SLACK_BOT_TOKEN),
+    smtp: Boolean(env.TOWBAR_SMTP_HOST && env.TOWBAR_SMTP_FROM),
   };
 }
 
-export async function getNotificationProviderConfiguration(
+export function getNotificationProviderConfiguration(
   provider: NotificationProvider,
-  workspaceId: string,
-): Promise<NotificationProviderConfiguration | null> {
-  const { values } = await readSecretValues({
-    type: "notifications",
-    workspaceId,
-    environment: "production",
-    stage: provider,
-  });
+): NotificationProviderConfiguration | null {
+  const env = getEnv();
   if (provider === "slack") {
-    const result = slackSettingsSchema.safeParse(values);
-    return result.success
-      ? { ...result.data, appBaseUrl: getEnv().TOWBAR_APP_BASE_URL, provider }
+    return env.TOWBAR_SLACK_BOT_TOKEN
+      ? {
+          appBaseUrl: env.TOWBAR_APP_BASE_URL,
+          botToken: env.TOWBAR_SLACK_BOT_TOKEN,
+          provider,
+        }
       : null;
   }
-  const result = smtpSettingsSchema.safeParse(values);
-  if (!result.success) return null;
+  if (!env.TOWBAR_SMTP_HOST || !env.TOWBAR_SMTP_FROM) return null;
   return {
-    ...result.data,
+    from: env.TOWBAR_SMTP_FROM,
+    host: env.TOWBAR_SMTP_HOST,
+    password: env.TOWBAR_SMTP_PASSWORD,
+    port: env.TOWBAR_SMTP_PORT ?? 587,
     provider,
-    port: Number(result.data.port ?? 587),
-    secure: result.data.secure === "true",
-    subjectPrefix: result.data.subjectPrefix ?? "Towbar",
+    secure: env.TOWBAR_SMTP_SECURE,
+    subjectPrefix: env.TOWBAR_SMTP_SUBJECT_PREFIX ?? "Towbar",
+    username: env.TOWBAR_SMTP_USERNAME,
   };
 }

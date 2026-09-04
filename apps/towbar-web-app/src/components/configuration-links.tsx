@@ -5,18 +5,16 @@ export function ConfigurationLinks({
   serverId,
   deployable,
 }: {
-  sourceId: string;
+  sourceId?: string;
   serverId: string;
   deployable?: { id: string; kind: "app" | "resource" };
 }) {
   return (
     <span className="mt-2 flex flex-wrap gap-3">
-      <InlineLink
-        href={`/sources/${sourceId}/servers/${serverId}?section=settings`}
-      >
-        Server credentials
+      <InlineLink href={`/servers/${serverId}?section=settings`}>
+        Server configuration
       </InlineLink>
-      {deployable ? (
+      {deployable && sourceId ? (
         <InlineLink
           href={`/sources/${sourceId}/${deployable.kind}s/${deployable.id}?section=settings&settings=secrets`}
         >

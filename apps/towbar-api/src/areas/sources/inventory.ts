@@ -1,16 +1,15 @@
 import { eq } from "drizzle-orm";
 
-import { apps, servers } from "@workspace/towbar-database/schema";
+import { apps } from "@workspace/towbar-database/schema";
 
 import { conflict } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 
 import type {
-  MaterializedDeploymentPlanEntity,
+  MaterializedManifestEntity,
   NormalizedApp,
   NormalizedDeploymentManifest,
   NormalizedResource,
-  NormalizedServer,
 } from "@workspace/towbar-core";
 
 export async function loadCurrentInventory(sourceId: string) {
@@ -20,32 +19,18 @@ export async function loadCurrentInventory(sourceId: string) {
       archivedAt: apps.archivedAt,
       config: apps.config,
       configDigest: apps.configDigest,
-      deploymentDigest: apps.deploymentDigest,
       id: apps.id,
       identity: apps.manifestId,
     })
     .from(apps)
     .where(eq(apps.sourceId, sourceId));
-  const currentServers = await database
-    .select({
-      archivedAt: servers.archivedAt,
-      config: servers.config,
-      configDigest: servers.configDigest,
-      id: servers.id,
-      identity: servers.canonicalIp,
-    })
-    .from(servers)
-    .where(eq(servers.sourceId, sourceId));
   return {
     apps: currentApps.filter(
       (app) => app.config.kind === "app" || !app.config.kind,
-    ) as Array<MaterializedDeploymentPlanEntity<NormalizedApp>>,
+    ) as Array<MaterializedManifestEntity<NormalizedApp>>,
     resources: currentApps.filter(
       (app) => app.config.kind && app.config.kind !== "app",
-    ) as Array<MaterializedDeploymentPlanEntity<NormalizedResource>>,
-    servers: currentServers as Array<
-      MaterializedDeploymentPlanEntity<NormalizedServer>
-    >,
+    ) as Array<MaterializedManifestEntity<NormalizedResource>>,
   };
 }
 

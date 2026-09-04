@@ -42,7 +42,6 @@ const app = {
 const manifest = {
   apps: [app],
   resources: [],
-  servers: [server],
   source: { branch: "main" },
   version: 1,
 } satisfies NormalizedDeploymentManifest;
@@ -64,11 +63,13 @@ void test("materializes stable desired digests from matched repository inputs", 
     commitSha: "1".repeat(40),
     manifest,
     repositoryTree,
+    servers: [server],
   }).get("web");
   const laterUnrelatedCommit = calculateDesiredDeploymentDigests({
     commitSha: "2".repeat(40),
     manifest,
     repositoryTree,
+    servers: [server],
   }).get("web");
   assert.ok(first);
   assert.deepEqual(first, laterUnrelatedCommit);
@@ -84,6 +85,7 @@ void test("rejects a complete tree when an app input contract matches nothing", 
           apps: [{ ...app, deploymentInputs: ["apps/missing/**"] }],
         },
         repositoryTree,
+        servers: [server],
       }),
     ManifestValidationError,
   );
@@ -94,6 +96,7 @@ void test("legacy releases can be interpreted with the newly declared input cont
     commitSha: "2".repeat(40),
     manifest,
     repositoryTree,
+    servers: [server],
   }).get("web");
   const release = calculateReleaseDeploymentDigest({
     commitSha: "1".repeat(40),

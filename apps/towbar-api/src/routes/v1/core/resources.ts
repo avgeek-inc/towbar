@@ -19,6 +19,7 @@ import {
   requestResourceRestore,
   requestRestoreCleanup,
 } from "../../../areas/resource-operations/service.js";
+import { hasAwsCredentials } from "../../../areas/aws/service.js";
 import { badRequest, forbidden } from "../../../http/errors.js";
 import { readJson } from "../../../http/requests.js";
 import { autoDeployControlPatchSchema } from "./auto-deploy-control-requests.js";
@@ -136,6 +137,7 @@ resourceRoutes.get("/:resourceId/backup-assurance", async (context) => {
       context.req.param("resourceId"),
       user.workspaceId,
     ),
+    awsConfigured: await hasAwsCredentials(user.workspaceId),
     canRestore: user.workspaceRole === "owner",
   });
 });

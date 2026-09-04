@@ -282,19 +282,12 @@ export async function requestAppRollback(input: {
   const existing = await findIdempotentDeployment(request);
   if (existing) return { deployment: existing, replayed: true };
 
-  const app =
-    (request.expectedType ?? "app") === "resource"
-      ? await getResource(request.appId, request.workspaceId)
-      : await getApp(request.appId, request.workspaceId);
+  const app = await getAppForDeployment(request.appId, request.workspaceId);
+  requireDeployableType(app.config, request.expectedType ?? "app");
   if (app.archivedAt) {
     throw conflict("Archived apps cannot be rolled back");
   }
-  if (!app.serverReady) {
-    throw conflict(
-      "Prepare this server before deploying apps or resources",
-      "SERVER_SETUP_PENDING",
-    );
-  }
+  requireServerReady(app);
   const conditions = [
     eq(releases.appId, app.id),
     eq(releases.status, "previous"),
@@ -321,15 +314,15 @@ export async function requestAppRollback(input: {
       .insert(deployments)
       .values({
         appId: app.id,
-        appSnapshot: original.appSnapshot,
-        commitSha: original.commitSha,
-        configDigest: original.configDigest,
-        deploymentDigest: original.deploymentDigest,
+        appSnapshot: app.config,
+        commitSha: app.commitSha ?? original.commitSha,
+        configDigest: app.configDigest,
+        deploymentDigest: app.deploymentDigest ?? original.deploymentDigest,
         deployableKind: original.deployableKind,
         id: deploymentId,
         idempotencyKey: request.idempotencyKey,
         kind: "rollback",
-        manifestDigest: original.manifestDigest,
+        manifestDigest: app.manifestDigest ?? original.manifestDigest,
         requestedBy: request.requestedBy,
         rollbackReleaseSnapshot: {
           commitSha: release.commitSha,
@@ -338,10 +331,10 @@ export async function requestAppRollback(input: {
           releaseId: release.id,
           sourceDeploymentId: release.deploymentId,
         },
-        serverId: original.serverId,
-        serverSnapshot: original.serverSnapshot,
-        sourceId: original.sourceId,
-        sourceInputDigest: original.sourceInputDigest,
+        serverId: app.serverId,
+        serverSnapshot: app.serverConfig,
+        sourceId: app.sourceId,
+        sourceInputDigest: app.sourceInputDigest,
         temporalWorkflowId: deploymentWorkflowId(deploymentId),
         workspaceId: request.workspaceId,
       })

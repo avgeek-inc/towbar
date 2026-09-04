@@ -23,7 +23,7 @@ export async function admitOperation(input: {
   serverId: string;
   serverIp: string;
   serverSnapshot: (typeof servers.$inferSelect)["config"];
-  sourceId: string;
+  sourceId: string | null;
   workspaceId: string;
 }) {
   const scopedKey = `${input.request.type}:${input.resourceId ?? input.serverId}:${input.idempotencyKey}`;

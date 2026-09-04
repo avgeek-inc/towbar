@@ -2,7 +2,6 @@ import {
   type NormalizedApp,
   type NormalizedDeploymentManifest,
   type NormalizedResource,
-  type NormalizedServer,
   digestValue,
 } from "./manifest.js";
 
@@ -24,14 +23,12 @@ export type ReconciliationAction<T> = {
 export type ManifestReconciliation = {
   apps: Array<ReconciliationAction<NormalizedApp>>;
   resources: Array<ReconciliationAction<NormalizedResource>>;
-  servers: Array<ReconciliationAction<NormalizedServer>>;
   summary: Record<ReconciliationAction<unknown>["action"], number>;
 };
 
 export function reconcileManifest(input: {
   currentApps: Array<MaterializedManifestEntity<NormalizedApp>>;
   currentResources?: Array<MaterializedManifestEntity<NormalizedResource>>;
-  currentServers: Array<MaterializedManifestEntity<NormalizedServer>>;
   desired: NormalizedDeploymentManifest;
 }): ManifestReconciliation {
   const apps = reconcileEntities(
@@ -44,18 +41,6 @@ export function reconcileManifest(input: {
     input.desired.resources ?? [],
     (resource) => resource.id,
   );
-  const referencedServerIps = new Set(
-    [...input.desired.apps, ...(input.desired.resources ?? [])].map(
-      (deployable) => deployable.server,
-    ),
-  );
-  const servers = reconcileEntities(
-    input.currentServers,
-    input.desired.servers.filter((server) =>
-      referencedServerIps.has(server.ip),
-    ),
-    (server) => server.ip,
-  );
   const summary: ManifestReconciliation["summary"] = {
     archive: 0,
     create: 0,
@@ -63,10 +48,10 @@ export function reconcileManifest(input: {
     unchanged: 0,
     update: 0,
   };
-  [...apps, ...resources, ...servers].forEach((entry) => {
+  [...apps, ...resources].forEach((entry) => {
     summary[entry.action] += 1;
   });
-  return { apps, resources, servers, summary };
+  return { apps, resources, summary };
 }
 
 function reconcileEntities<T>(

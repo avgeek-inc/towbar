@@ -15,7 +15,7 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 
-export function AccountSettings() {
+export function ProfileSettings() {
   const profile = useApiQuery<{ user: TowbarUser }>("/v1/core/profile");
   if (profile.error) return <QueryError message={profile.error} />;
   if (!profile.data) return <QueryLoading />;

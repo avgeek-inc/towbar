@@ -34,6 +34,10 @@ export const sourcesBreadcrumb = [
   ...appBreadcrumb,
   { href: "/sources", label: "Sources" },
 ] as BreadcrumbAncestors;
+export const serversBreadcrumb = [
+  ...appBreadcrumb,
+  { href: "/servers", label: "Servers" },
+] as BreadcrumbAncestors;
 
 export function DashboardPage({
   actions,

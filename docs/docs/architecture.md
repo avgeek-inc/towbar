@@ -24,24 +24,16 @@ Towbar has a control plane and a deployment plane.
 ## Deployment plane
 
 Each Source is a GitHub repository with a `.towbar/deployment.yml`. Successful
-syncs normalize the manifest into Source-scoped database records. Apps,
-resources, servers, AWS credentials, history, and runtime observations do not
-cross Source boundaries.
+syncs normalize Apps and Resources into Source-scoped database records. Servers
+are workspace-owned physical hosts and may run workloads from multiple Sources.
+The optional AWS credential is workspace-scoped. Deployment history and
+deployable runtime observations remain Source-scoped.
 
 When a deployment is admitted, Towbar snapshots the selected manifest state and
 resolves current encrypted Towbar secrets only when execution starts. The worker
 connects to the target Ubuntu host over SSH, builds or pulls the requested
 image, starts a replacement container, verifies health, updates the proxy, and
 retains only the configured release set.
-
-Deployment planning is an API-owned, read-only path before admission. It
-normalizes a candidate manifest, compares it with the active Source inventory,
-calculates effective deployment-input digests, and persists the deterministic
-result with both manifest identities. Plan validation reads server observations
-and credential metadata but never secret values. It cannot enqueue Temporal
-work or mutate Source inventory. Pull request reconciliation reports this same
-plan through one idempotent GitHub Check Run; the Check links back to the
-immutable plan while Preview reconciliation continues independently.
 
 For an App with Preview enabled, a relevant same-repository pull request event
 signals one durable workflow per Source and pull request. The API reads current
@@ -66,7 +58,7 @@ Preview lifecycle, while one aggregate PR comment reports every App's build
 status and Preview URL. Towbar updates that comment in place when the GitHub
 App has deployment and pull-request write permission.
 
-Secrets are editor-owned database records, separate from manifest snapshots. Owners can add, replace, and delete values; no public API can reveal saved values. Source defaults are inherited by production apps, with local overrides. Resources inherit runtime defaults only. Preview secrets never inherit production values.
+Secrets are editor-owned database records, separate from manifest snapshots. Owners can add, replace, and delete values; no public API can reveal saved values. Matching-environment values resolve from workspace Shared secrets to the Source and then the app or resource. Resources inherit Production runtime defaults only. Preview apps inherit Preview defaults and never receive Production values.
 
 The API encrypts each record with AES-256-GCM using `TOWBAR_CREDENTIALS_KEY`, binding ciphertext to workspace, owner, environment, stage, and record identity. An advisory transaction lock and expected revision protect both first writes and updates. Audit events contain metadata only. Deployment execution reads a consistent database snapshot and records only the revisions used; plaintext stays in execution memory and protected transfer files, outside Temporal history. Saving does not enqueue work. Image rollback resolves current runtime credentials.
 

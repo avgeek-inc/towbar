@@ -4,8 +4,9 @@ description: "Install, configure, deploy, and operate Towbar."
 ---
 
 Towbar is an opinionated, source-driven deployment platform for Ubuntu servers
-you own. A repository's `.towbar/deployment.yml` is infrastructure truth, while
-Towbar keeps operational state, history, and immutable deployment snapshots.
+you own. A repository's `.towbar/deployment.yml` defines deployable
+infrastructure and behavior, while Towbar owns workspace server configuration,
+operational state, history, and immutable deployment snapshots.
 
 <CardGroup cols={2}>
   <Card title="Get started" icon="rocket" href="/docs/getting-started">
@@ -17,8 +18,8 @@ Towbar keeps operational state, history, and immutable deployment snapshots.
     icon="file-code"
     href="/docs/deployment-file"
   >
-    Define Sources, Servers, Apps, Resources, domains, TLS, and deployment
-    policy.
+    Define Apps, Resources, domains, TLS, and deployment policy using server IP
+    references.
   </Card>
   <Card title="Configure Towbar" icon="settings" href="/docs/configuration">
     Set installation secrets, public origins, notifications, scanning, and

@@ -159,10 +159,6 @@
       "destination": "/docs/deployment-file"
     },
     {
-      "source": "/docs/plans",
-      "destination": "/docs/architecture"
-    },
-    {
       "source": "/getting-started",
       "destination": "/docs/getting-started"
     },

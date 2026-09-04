@@ -37,8 +37,8 @@ export async function listEnvironmentSecrets(
   environment: "production" | "preview",
 ) {
   const ownership = await getEnvironmentSecretOwner(owner);
-  if (environment === "preview" && (owner.type !== "app" || ownership.resource))
-    throw unprocessable("Only apps have preview secrets");
+  if (environment === "preview" && ownership.resource)
+    throw unprocessable("Resources only support production secrets");
   const stages = ownership.resource ? ["deployment" as const] : secretStages;
   const affected =
     owner.type === "source"
@@ -104,8 +104,17 @@ export async function listEnvironmentSecrets(
   return await Promise.all(
     stages.map(async (stage) => {
       const local = await readSecretMetadata({ ...owner, environment, stage });
+      const global =
+        owner.type !== "workspace"
+          ? await readSecretMetadata({
+              workspaceId: owner.workspaceId,
+              type: "workspace",
+              environment,
+              stage,
+            })
+          : { keys: [], revision: null, updatedAt: null };
       const shared =
-        owner.type === "app" && environment === "production"
+        owner.type === "app"
           ? await readSecretMetadata({
               workspaceId: owner.workspaceId,
               type: "source",
@@ -114,28 +123,42 @@ export async function listEnvironmentSecrets(
               stage,
             })
           : { keys: [], revision: null, updatedAt: null };
+      const inheritedKeys = [
+        ...new Set([...global.keys, ...shared.keys]),
+      ].sort();
+      const inheritedOrigins = Object.fromEntries([
+        ...global.keys.map((key) => [key, "global"] as const),
+        ...shared.keys.map((key) => [key, "source"] as const),
+      ]);
+      const revisions = successfulDeployments[0]?.revisions;
+      const hasPendingRevisions = (
+        deploymentRevisions?: Record<string, string | null> | null,
+      ) =>
+        local.revision !== (deploymentRevisions?.[`${stage}:local`] ?? null) ||
+        shared.revision !==
+          (deploymentRevisions?.[`${stage}:shared`] ?? null) ||
+        global.revision !== (deploymentRevisions?.[`${stage}:global`] ?? null);
       return {
         stage,
         environment,
         ...local,
-        inheritedKeys: shared.keys,
-        inheritedRevision: shared.revision,
+        inheritedKeys,
+        inheritedOrigins,
+        inheritedRevisions: {
+          global: global.revision,
+          source: shared.revision,
+        },
         pendingChanges:
           owner.type === "app" &&
           (environment === "preview" && previewTargets.length
-            ? previewTargets.some(
-                (preview) =>
-                  local.revision !==
-                  (successfulDeployments.find(
+            ? previewTargets.some((preview) =>
+                hasPendingRevisions(
+                  successfulDeployments.find(
                     (deployment) => deployment.previewId === preview.id,
-                  )?.revisions?.[`${stage}:local`] ?? null),
+                  )?.revisions,
+                ),
               )
-            : local.revision !==
-                (successfulDeployments[0]?.revisions?.[`${stage}:local`] ??
-                  null) ||
-              shared.revision !==
-                (successfulDeployments[0]?.revisions?.[`${stage}:shared`] ??
-                  null)),
+            : hasPendingRevisions(revisions)),
         affectedDeployables: previewTargets.length
           ? previewTargets.map((preview) => ({
               id: preview.id,
@@ -173,11 +196,8 @@ export async function updateEnvironmentSecrets(input: {
   actorUserId: string;
 }) {
   const ownership = await getEnvironmentSecretOwner(input.owner);
-  if (
-    input.environment === "preview" &&
-    (input.owner.type !== "app" || ownership.resource)
-  )
-    throw unprocessable("Only apps have preview secrets");
+  if (input.environment === "preview" && ownership.resource)
+    throw unprocessable("Resources only support production secrets");
   if (ownership.resource && input.stage !== "deployment")
     throw unprocessable("Resources only support runtime secrets");
   return await mutateSecret(
@@ -197,19 +217,25 @@ export async function resolveEnvironmentStage(
   },
   database: SecretDatabase = getTowbarDatabase(),
 ) {
-  const shared =
-    input.environment === "production"
-      ? await readSecretValues(
-          {
-            type: "source",
-            id: input.sourceId,
-            workspaceId: input.workspaceId,
-            environment: "production",
-            stage: input.stage,
-          },
-          database,
-        )
-      : { values: {}, revision: null };
+  const global = await readSecretValues(
+    {
+      type: "workspace",
+      workspaceId: input.workspaceId,
+      environment: input.environment,
+      stage: input.stage,
+    },
+    database,
+  );
+  const shared = await readSecretValues(
+    {
+      type: "source",
+      id: input.sourceId,
+      workspaceId: input.workspaceId,
+      environment: input.environment,
+      stage: input.stage,
+    },
+    database,
+  );
   const local = await readSecretValues(
     {
       type: "app",
@@ -221,10 +247,14 @@ export async function resolveEnvironmentStage(
     database,
   );
   return {
-    values: mergeSecretValues(shared.values, local.values),
+    values: mergeSecretValues(
+      mergeSecretValues(global.values, shared.values),
+      local.values,
+    ),
     revisions: {
       [`${input.stage}:local`]: local.revision,
       [`${input.stage}:shared`]: shared.revision,
+      [`${input.stage}:global`]: global.revision,
     },
   };
 }

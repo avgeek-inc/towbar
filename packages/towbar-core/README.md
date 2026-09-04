@@ -15,10 +15,11 @@ The public deployment schema is stored in
 [`schemas/deployment.v1.json`](schemas/deployment.v1.json). Keep the JSON Schema,
 Zod schema, fixtures, and parser tests in lockstep.
 
-Sources declare one authoritative `branch` (default `main`). Servers declare
-bounded `buildConcurrency` and may use a private `ssh.host` distinct from the
-public server `ip`. A successful sync archives declared Servers that are not
-referenced by an App or Resource and restores them when a reference reappears.
+Sources declare one authoritative `branch` (default `main`). Apps and Resources
+reference a workspace server by canonical IP. Server SSH, proxy, and bounded
+build-concurrency settings are configured through Towbar. A successful sync
+archives deployables missing from the manifest and restores them when their
+stable identity reappears.
 Apps may opt into `autoDeploy`, declare named root
 `deploymentInputs`, select those groups plus repository globs through
 `autoDeploy.inputs`, and run image-scoped `preDeploy`/`postDeploy` hooks. Plain
@@ -33,9 +34,9 @@ include their security-sensitive and automatic-deployment configuration.
 
 Apps may also opt into Preview deployments for same-repository pull requests
 targeting the Source branch. The normalized contract supplies an isolated
-Preview domain, TTL, and build, runtime, and hook secret references. Snapshot
-generation deliberately removes production and shared secrets. Servers bound
-lower-priority Preview work with `previewBuildConcurrency` independently of
+Preview domain and TTL. Secret assignment remains editor-owned and outside
+normalized manifest snapshots. Server settings bound lower-priority Preview
+work with `previewBuildConcurrency` independently of
 their total `buildConcurrency`.
 
 Towbar hashes the path, Git mode, object type, and object SHA of every matched
@@ -44,19 +45,6 @@ to decide whether an automatic deployment is needed. Scheduling-only fields
 such as `autoDeploy`, `deploymentInputs`, and `sourceBranch` do not change the
 runtime digest. A truncated Git tree falls back to commit-sensitive deployment
 rather than risking a false skip.
-
-Deployment planning is deterministic domain logic in this package. Given the
-same normalized candidate, materialized inventory, repository changes, target
-deployment digests, and validation checks, it emits the same ordered plan.
-Full plans include explicit no-op rows; pull-request plans omit deployables
-whose input patterns and configuration are unchanged. A pull-request plan with
-no actionable rows is `skipped`, while warnings remain non-blocking and failed
-checks produce a `blocked` plan. The plan reports field paths and reasons, never
-field values or mutable inventory objects.
-
-Root `secrets.build` and `secrets.deployment` arrays declare Source-wide JSON
-environment bundles. Apps merge those with their own bundles; app keys override
-shared keys, while duplicate keys between shared bundles fail closed.
 
 `resources` declares first-class `image`, `postgres`, and `redis` deployables.
 They share stable IDs, queueing, deployments, releases, and Source deletion

@@ -33,7 +33,7 @@ import {
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
-import { ActionButton } from "@/components/page-parts";
+import { ActionButton, InlineLink } from "@/components/page-parts";
 import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { getBackupHealth } from "@/lib/backup-health";
@@ -43,6 +43,7 @@ import { formatBytes } from "./runtime-operations";
 type AssuranceResponse = {
   assurance: BackupAssurance | null;
   assurances: BackupAssurance[];
+  awsConfigured: boolean;
   canRestore: boolean;
 };
 
@@ -159,6 +160,7 @@ export function ResourceBackupConfiguration({
           <Button
             isDisabled={
               !active ||
+              !assuranceData.awsConfigured ||
               !assuranceData.canRestore ||
               !assurance?.restoreReady ||
               restoreOperations.some((operation) =>
@@ -183,39 +185,63 @@ export function ResourceBackupConfiguration({
         <Card className="min-w-0">
           <Card.Header className="items-start gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto]">
             <div className="grid min-w-0 flex-1 gap-1">
-              <Card.Title>{backupHealth.title}</Card.Title>
+              <Card.Title>
+                {assuranceData.awsConfigured
+                  ? backupHealth.title
+                  : "Backups paused"}
+              </Card.Title>
               <p className="text-muted typography--body-sm">
-                {backupHealth.description}
+                {assuranceData.awsConfigured ? (
+                  backupHealth.description
+                ) : (
+                  <>
+                    Add AWS credentials in{" "}
+                    <InlineLink href="/manage/integrations?integration=aws">
+                      Manage → Integrations
+                    </InlineLink>{" "}
+                    before backups can run.
+                  </>
+                )}
               </p>
             </div>
-            <Chip className="shrink-0" variant={backupHealth.tone}>
-              {backupHealth.label}
+            <Chip
+              className="shrink-0"
+              variant={
+                assuranceData.awsConfigured ? backupHealth.tone : "warning"
+              }
+            >
+              {assuranceData.awsConfigured ? backupHealth.label : "Paused"}
             </Chip>
           </Card.Header>
-          <Card.Content className="grid min-w-0 gap-3">
-            <ol className="grid overflow-hidden rounded-lg border border-separator divide-y divide-separator md:grid-cols-3 md:divide-x md:divide-y-0">
-              {backupHealth.stages.map((stage) => (
-                <li className="grid content-start gap-2 p-4" key={stage.label}>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium typography--body-sm">
-                      {stage.label}
-                    </span>
-                    <Chip size="small" variant={stage.tone}>
-                      {stage.status}
-                    </Chip>
-                  </div>
-                  <p className="text-muted typography--body-sm">
-                    {stage.description}
-                  </p>
-                </li>
-              ))}
-            </ol>
-            {latestAssurance ? (
-              <p className="text-muted typography--body-xs">
-                Last checked {formatDate(latestAssurance.checkedAt)}
-              </p>
-            ) : null}
-          </Card.Content>
+          {assuranceData.awsConfigured ? (
+            <Card.Content className="grid min-w-0 gap-3">
+              <ol className="grid overflow-hidden rounded-lg border border-separator divide-y divide-separator md:grid-cols-3 md:divide-x md:divide-y-0">
+                {backupHealth.stages.map((stage) => (
+                  <li
+                    className="grid content-start gap-2 p-4"
+                    key={stage.label}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium typography--body-sm">
+                        {stage.label}
+                      </span>
+                      <Chip size="small" variant={stage.tone}>
+                        {stage.status}
+                      </Chip>
+                    </div>
+                    <p className="text-muted typography--body-sm">
+                      {stage.description}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+              {latestAssurance ? (
+                <p className="text-muted typography--body-xs">
+                  Last checked {formatDate(latestAssurance.checkedAt)}
+                </p>
+              ) : null}
+            </Card.Content>
+          ) : null}
           {active ? (
             <Card.Footer className="justify-end">
               <ActionButton
@@ -227,6 +253,7 @@ export function ResourceBackupConfiguration({
                   )
                 }
                 pendingLabel="Queueing backup…"
+                isDisabled={!assuranceData.awsConfigured}
                 success="Backup queued"
                 variant="primary"
               >
@@ -285,7 +312,9 @@ export function ResourceBackupConfiguration({
 
       {restoreOperations.length ? (
         <RestoreHistory
-          canManage={active && assuranceData.canRestore}
+          canManage={
+            active && assuranceData.awsConfigured && assuranceData.canRestore
+          }
           operations={restoreOperations}
           resourceId={resource.id}
         />

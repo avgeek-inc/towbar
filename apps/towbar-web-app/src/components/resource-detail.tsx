@@ -411,13 +411,7 @@ function ResourceSettings({
     {
       value: "secrets",
       label: "Secrets",
-      content: (
-        <ResourceSecrets
-          canDeploy={!item.archivedAt && item.serverReady}
-          resourceId={resourceId}
-          sourceId={item.sourceId}
-        />
-      ),
+      content: <ResourceSecrets resourceId={resourceId} />,
     },
   ];
 

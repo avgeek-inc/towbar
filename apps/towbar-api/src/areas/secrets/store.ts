@@ -13,6 +13,7 @@ import {
   managedSecrets,
   servers,
   sources,
+  workspaces,
 } from "@workspace/towbar-database/schema";
 import { getEnv } from "../../env.js";
 import { conflict, notFound, unprocessable } from "../../http/errors.js";
@@ -24,18 +25,18 @@ export type SecretDatabase = Pick<
   "select" | "insert" | "update" | "execute"
 >;
 export type SecretOwner = { workspaceId: string } & (
+  | { type: "workspace" }
   | { type: "source"; id: string }
   | { type: "app"; id: string }
   | { type: "server"; id: string }
-  | { type: "notifications" }
 );
 export type SecretSlot = SecretOwner & {
   environment: "production" | "preview";
   stage: string;
 };
 export const ownerKey = (owner: SecretOwner) =>
-  owner.type === "notifications"
-    ? "notifications"
+  owner.type === "workspace"
+    ? `workspace:${owner.workspaceId}`
     : `${owner.type}:${owner.id}`;
 const slotKey = (slot: SecretSlot) =>
   `${slot.workspaceId}:${ownerKey(slot)}:${slot.environment}:${slot.stage}`;
@@ -44,8 +45,15 @@ export async function requireSecretOwner(
   owner: SecretOwner,
   database: SecretDatabase = getTowbarDatabase(),
 ) {
-  if (owner.type === "notifications")
+  if (owner.type === "workspace") {
+    const [workspace] = await database
+      .select({ id: workspaces.id })
+      .from(workspaces)
+      .where(eq(workspaces.id, owner.workspaceId))
+      .limit(1);
+    if (!workspace) throw notFound("Workspace");
     return { sourceId: null, appId: null, serverId: null };
+  }
   const table =
     owner.type === "source" ? sources : owner.type === "app" ? apps : servers;
   const [row] = await database
@@ -60,7 +68,9 @@ export async function requireSecretOwner(
     sourceId:
       owner.type === "source"
         ? owner.id
-        : (row as typeof apps.$inferSelect).sourceId,
+        : owner.type === "app"
+          ? (row as typeof apps.$inferSelect).sourceId
+          : null,
     appId: owner.type === "app" ? owner.id : null,
     serverId: owner.type === "server" ? owner.id : null,
   };
@@ -217,7 +227,7 @@ export async function resolveServerCredentials(
   );
   if (!result.values.privateKey)
     throw unprocessable(
-      "Configure the SSH private key in Server → Settings → Credentials",
+      "Configure the SSH private key in Server → Settings → Configuration",
       "SERVER_CREDENTIALS_MISSING",
     );
   return result;

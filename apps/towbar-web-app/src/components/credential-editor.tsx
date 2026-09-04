@@ -28,7 +28,9 @@ export function CredentialEditor({
   if (!query.data) return <QueryLoading />;
   return (
     <CredentialForm
-      key={query.data.credential.revision ?? "empty"}
+      key={`${query.data.credential.revision ?? "empty"}:${fields
+        .map((field) => field.key)
+        .join(",")}`}
       {...{ endpoint, fields, title, description }}
       credential={query.data.credential}
       canManage={query.data.canManage}
@@ -167,7 +169,13 @@ function CredentialForm({
   );
 }
 
-export function ServerCredentials({ serverId }: { serverId: string }) {
+export function ServerCredentials({
+  cloudflareEnabled,
+  serverId,
+}: {
+  cloudflareEnabled: boolean;
+  serverId: string;
+}) {
   return (
     <CredentialEditor
       endpoint={`/v1/core/servers/${serverId}/credentials`}
@@ -180,49 +188,17 @@ export function ServerCredentials({ serverId }: { serverId: string }) {
           description:
             "Paste an unencrypted private key, including its header and footer.",
         },
-        {
-          key: "apiToken",
-          label: "Cloudflare API token",
-          description:
-            "Required when Cloudflare DNS is enabled for this server.",
-        },
+        ...(cloudflareEnabled
+          ? [
+              {
+                key: "apiToken",
+                label: "Cloudflare API token",
+                description:
+                  "Required while Cloudflare DNS TLS is enabled for this server.",
+              },
+            ]
+          : []),
       ]}
     />
-  );
-}
-
-export function NotificationSettings() {
-  return (
-    <div className="grid gap-10">
-      <CredentialEditor
-        endpoint="/v1/core/settings/notifications/slack"
-        title="Slack"
-        description="Configure the installation bot, then choose channels in Source notification settings."
-        fields={[{ key: "botToken", label: "Bot token" }]}
-      />
-      <CredentialEditor
-        endpoint="/v1/core/settings/notifications/smtp"
-        title="SMTP"
-        description="Configure the installation mail server, then choose recipients in Source notification settings."
-        fields={[
-          { key: "host", label: "SMTP host" },
-          { key: "from", label: "Sender email" },
-          { key: "port", label: "Port", description: "Defaults to 587." },
-          {
-            key: "secure",
-            label: "Implicit TLS",
-            description:
-              "Enter true for implicit TLS (usually port 465), otherwise false. Defaults to false.",
-          },
-          { key: "username", label: "Username" },
-          { key: "password", label: "Password" },
-          {
-            key: "subjectPrefix",
-            label: "Subject prefix",
-            description: "Defaults to Towbar.",
-          },
-        ]}
-      />
-    </div>
   );
 }

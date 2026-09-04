@@ -28,19 +28,17 @@ void test("limits server preparation messages to the API contract", () => {
   );
 });
 
-void test("does not invalidate preparation for scheduler or routing changes", () => {
+void test("does not invalidate preparation for scheduler changes", () => {
   assert.equal(
     requiresServerPreparation(server, { ...server, buildConcurrency: 10 }),
     false,
   );
+});
+
+void test("invalidates preparation when Cloudflare support changes", () => {
   assert.equal(
-    requiresServerPreparation(server, {
-      ...server,
-      proxy: {
-        cloudflare: { enabled: true as const },
-      },
-    }),
-    false,
+    requiresServerPreparation(server, { ...server, proxy: undefined }),
+    true,
   );
 });
 

@@ -51,7 +51,6 @@ export async function runMaintenanceSweep() {
   const activeServers = await getTowbarDatabase()
     .select({
       id: servers.id,
-      sourceId: servers.sourceId,
       workspaceId: servers.workspaceId,
     })
     .from(servers)
@@ -77,7 +76,6 @@ export async function runMaintenanceSweep() {
       const queued = await requestServerCheck({
         requestedBy: null,
         serverId: server.id,
-        sourceId: server.sourceId,
         workspaceId: server.workspaceId,
       }).catch(() => undefined);
       if (queued) checksQueued += 1;

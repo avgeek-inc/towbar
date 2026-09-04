@@ -240,8 +240,9 @@ function githubCheck(input: {
           ? `Connected to ${input.connection.accountLogin}; run checks to verify access.`
           : "Install the GitHub App before adding a Source."),
     id: "github",
-    remediationHref: status === "healthy" ? null : "/settings?section=github",
-    remediationLabel: status === "healthy" ? null : "Open GitHub settings",
+    remediationHref:
+      status === "healthy" ? null : "/manage/integrations?integration=github",
+    remediationLabel: status === "healthy" ? null : "Open GitHub integration",
     status,
     title: "GitHub App",
   };

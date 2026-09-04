@@ -3,8 +3,9 @@
 [![Towbar — Git-backed deployments to servers you own](docs/assets/towbar-open-graph.png)](https://www.towbar.dev)
 
 Towbar is an opinionated, source-driven deployment platform for Ubuntu servers
-you own. It treats a repository's `.towbar/deployment.yml` as infrastructure
-truth and runs deployments through durable Temporal workflows.
+you own. A repository's `.towbar/deployment.yml` defines deployable
+infrastructure and behavior, while Towbar manages workspace servers and runs
+deployments through durable Temporal workflows.
 
 > [!IMPORTANT]
 > Towbar is under active development. Read [SECURITY.md](SECURITY.md) and the
@@ -13,12 +14,10 @@ truth and runs deployments through durable Temporal workflows.
 
 ## Highlights
 
-- GitHub repositories and versioned manifests define Sources, Servers, Apps,
-  Resources, domains, and deployment policy.
+- GitHub repositories and versioned manifests define Apps, Resources, domains,
+  and deployment policy; workspace servers are configured in Towbar.
 - Builds run on the target host, without requiring a container registry.
 - Write-only secrets are configured in Towbar, encrypted in PostgreSQL, and resolved only for execution.
-- Immutable deployment plans compare a candidate commit with active Source
-  state before any mutation, including explicit no-op rows and validation.
 - Successful releases retain their content-addressed Docker image digest and
   platform alongside the existing source, manifest, and build-input digests.
 - SSH host-key pinning, server preparation, queued deployments, control-plane
@@ -26,11 +25,9 @@ truth and runs deployments through durable Temporal workflows.
 - Opt-in pull request Previews use stable URLs, isolated secrets, one live PR
   status comment, and automatic cleanup without changing production health or
   release history.
-- Deployment-relevant pull requests publish one idempotent GitHub Check linked
-  to the complete plan in Towbar.
 - Source-scoped Slack and SMTP destinations deliver operational events through
-  durable, independently retryable attempts without storing credentials in
-  Towbar.
+  durable, independently retryable attempts. Provider credentials come from
+  the API deployment environment, and unconfigured provider types are hidden.
 - Managed PostgreSQL and Redis backups include continuous restore-readiness
   assurance and safety-gated, auditable restores with bounded rollback.
 - PostgreSQL and Temporal provide persistent state and durable execution.

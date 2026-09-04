@@ -28,7 +28,6 @@ export function SourceIndex() {
       `/v1/core/sources/${source.id}/syncs`,
       `/v1/core/sources/${source.id}/apps`,
       `/v1/core/sources/${source.id}/resources`,
-      `/v1/core/sources/${source.id}/servers`,
     ]);
   }
   const columns: ResourceTableColumn<Source>[] = [

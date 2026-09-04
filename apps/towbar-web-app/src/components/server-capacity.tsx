@@ -123,7 +123,7 @@ export function ServerRuntimeCapacityTable({
                   <div className="grid min-w-44 gap-0.5">
                     <Link
                       className="font-medium underline-offset-4 hover:underline"
-                      href={`/sources/${capacity.sourceId}/${runtime.kind === "app" ? "apps" : "resources"}/${runtime.id}`}
+                      href={`/sources/${runtime.sourceId}/${runtime.kind === "app" ? "apps" : "resources"}/${runtime.id}`}
                     >
                       {runtime.name}
                     </Link>

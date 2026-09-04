@@ -4,7 +4,7 @@
   "title": "Towbar deployment manifest v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "servers"],
+  "required": ["version"],
   "anyOf": [
     {
       "required": ["apps"],
@@ -51,68 +51,6 @@
           "minLength": 1,
           "maxLength": 255,
           "default": "main"
-        }
-      }
-    },
-    "servers": {
-      "type": "array",
-      "minItems": 1,
-      "maxItems": 100,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["ip", "ssh"],
-        "properties": {
-          "buildConcurrency": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 16,
-            "default": 1
-          },
-          "previewBuildConcurrency": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 4,
-            "default": 1
-          },
-          "ip": {
-            "type": "string"
-          },
-          "ssh": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["username"],
-            "properties": {
-              "host": {
-                "type": "string"
-              },
-              "username": {
-                "type": "string"
-              },
-              "port": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 65535
-              }
-            }
-          },
-          "proxy": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "cloudflare": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": ["enabled"],
-                "properties": {
-                  "enabled": {
-                    "const": true,
-                    "type": "boolean"
-                  }
-                }
-              }
-            }
-          }
         }
       }
     },

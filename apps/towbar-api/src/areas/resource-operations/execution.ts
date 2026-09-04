@@ -54,13 +54,17 @@ export async function getOperationExecutionContext(operationId: string) {
     operation.request.type === "cleanup_orphans"
       ? null
       : operation.request.release;
+  const sourceId =
+    operation.request.type === "cleanup_orphans"
+      ? null
+      : requireOperationSource(operation.sourceId);
   const cleanupExpected = await getCleanupExpected(operation.serverId);
   const restoreBackup =
     operation.request.type === "restore" && operation.resourceId
       ? await getRestoreBackup({
           backupId: operation.request.backupId,
           resourceId: operation.resourceId,
-          sourceId: operation.sourceId,
+          sourceId: sourceId!,
           workspaceId: operation.workspaceId,
         })
       : null;
@@ -77,7 +81,7 @@ export async function getOperationExecutionContext(operationId: string) {
         : [],
     restoreBackup,
     server: operation.serverSnapshot,
-    sourceId: operation.sourceId,
+    sourceId,
     trustedHostKeys,
   };
 }
@@ -110,7 +114,7 @@ export async function resolveOperationSecrets(operationId: string) {
           ? await resolveRuntimeEnvironmentSecrets(
               {
                 appId: operation.resourceId,
-                sourceId: operation.sourceId,
+                sourceId: requireOperationSource(operation.sourceId),
                 workspaceId: operation.workspaceId,
               },
               database,
@@ -123,7 +127,6 @@ export async function resolveOperationSecrets(operationId: string) {
       );
       const awsCredential = requiresAws
         ? await getDecryptedAwsCredential({
-            sourceId: operation.sourceId,
             workspaceId: operation.workspaceId,
           })
         : null;
@@ -142,6 +145,16 @@ export async function resolveOperationSecrets(operationId: string) {
     },
     { isolationLevel: "repeatable read" },
   );
+}
+
+function requireOperationSource(sourceId: string | null) {
+  if (!sourceId) {
+    throw conflict(
+      "This Resource operation has no Source context",
+      "RESOURCE_OPERATION_SOURCE_MISSING",
+    );
+  }
+  return sourceId;
 }
 
 async function getRestoreBackup(input: {

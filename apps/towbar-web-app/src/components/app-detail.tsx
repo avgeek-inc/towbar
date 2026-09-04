@@ -403,13 +403,7 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
     {
       value: "secrets",
       label: "Secrets",
-      content: (
-        <AppSecrets
-          appId={appId}
-          canDeploy={!item.archivedAt && item.serverReady}
-          sourceId={item.sourceId}
-        />
-      ),
+      content: <AppSecrets appId={appId} />,
     },
   ];
 

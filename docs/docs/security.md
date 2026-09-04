@@ -36,7 +36,7 @@ should pin a reviewed release and subscribe to repository security advisories.
   Only owners may change them; audit events and Temporal history exclude values.
 - Keep the installation encryption key separate from database backups. Losing
   the key makes stored secrets unrecoverable.
-- Optional Source AWS identities are scoped only to required S3 backup operations.
+- The optional workspace AWS identity is scoped only to required S3 backup operations.
 - Destination hosts use SSH keys, pinned host identity, current security
   updates, and least-privilege network rules.
 - Installation secrets are unique, randomly generated, and never committed.
