@@ -99,26 +99,6 @@ const sidebar = {
       ],
     },
     {
-      id: "account",
-      label: "Account",
-      items: [
-        {
-          kind: "link",
-          id: "profile",
-          label: "Profile",
-          href: "/account/profile",
-          icon: sidebarIcons.profile,
-        },
-        {
-          kind: "link",
-          id: "sessions",
-          label: "Sessions",
-          href: "/account/sessions",
-          icon: sidebarIcons.sessions,
-        },
-      ],
-    },
-    {
       id: "manage",
       label: "Manage",
       items: [
@@ -142,6 +122,26 @@ const sidebar = {
           label: "System health",
           href: "/system-health",
           icon: sidebarIcons.health,
+        },
+      ],
+    },
+    {
+      id: "account",
+      label: "Account",
+      items: [
+        {
+          kind: "link",
+          id: "profile",
+          label: "Profile",
+          href: "/account/profile",
+          icon: sidebarIcons.profile,
+        },
+        {
+          kind: "link",
+          id: "sessions",
+          label: "Sessions",
+          href: "/account/sessions",
+          icon: sidebarIcons.sessions,
         },
       ],
     },
