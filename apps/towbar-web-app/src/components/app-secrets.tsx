@@ -46,40 +46,30 @@ export function AppSecrets({ appId }: { appId: string }) {
   );
   if (!active) return null;
   return (
-    <div className="grid max-w-5xl gap-6">
-      <div className="grid gap-1.5">
-        <h3 className="text-lg font-semibold">Secrets</h3>
-        <p className="text-sm text-muted">
-          Store encrypted values used by this app. Saved values are write-only
-          and apply on the next deployment.
-        </p>
-      </div>
-      <div className="grid gap-2">
-        <span className="text-sm font-medium">Environment</span>
-        <ResponsiveSubtabs
-          ariaLabel="Secret environments"
-          defaultSelectedKey="production"
-          layout="inline"
-          panelClassName="pt-0 md:pt-5"
-          selectedKey={environment}
-          onSelectionChange={(key) =>
-            setEnvironment(String(key) as "production" | "preview")
-          }
-          tabs={(["production", "preview"] as const).map((value) => ({
-            label: value === "production" ? "Production" : "Preview",
-            value,
-            content:
-              value === environment ? (
-                <EnvironmentEditors
-                  key={environment}
-                  query={query}
-                  endpoint={endpoint}
-                  scope="app"
-                />
-              ) : null,
-          }))}
-        />
-      </div>
+    <div className="max-w-5xl">
+      <ResponsiveSubtabs
+        ariaLabel="Secret environments"
+        defaultSelectedKey="production"
+        layout="inline"
+        panelClassName="pt-0 md:pt-5"
+        selectedKey={environment}
+        onSelectionChange={(key) =>
+          setEnvironment(String(key) as "production" | "preview")
+        }
+        tabs={(["production", "preview"] as const).map((value) => ({
+          label: value === "production" ? "Production" : "Preview",
+          value,
+          content:
+            value === environment ? (
+              <EnvironmentEditors
+                key={environment}
+                query={query}
+                endpoint={endpoint}
+                scope="app"
+              />
+            ) : null,
+        }))}
+      />
     </div>
   );
 }
@@ -111,10 +101,8 @@ export function GlobalSecrets() {
   return (
     <EnvironmentSecretSettings
       active
-      description="Set encrypted defaults inherited by sources, apps, and resources."
       endpoint="/v1/core/settings/secrets"
       scope="global"
-      title="Workspace defaults"
     />
   );
 }
@@ -129,26 +117,20 @@ export function SourceSecrets({
   return (
     <EnvironmentSecretSettings
       active={active}
-      description="Set encrypted production defaults inherited by apps and resources."
       endpoint={`/v1/core/sources/${sourceId}/secrets`}
       scope="source"
-      title="Shared secrets"
     />
   );
 }
 
 function EnvironmentSecretSettings({
   active,
-  description,
   endpoint,
   scope,
-  title = "Secrets",
 }: {
   active: boolean;
-  description: string;
   endpoint: string;
   scope: "global" | "source";
-  title?: string;
 }) {
   const [environment, setEnvironment] = useState<"production" | "preview">(
     "production",
@@ -158,37 +140,30 @@ function EnvironmentSecretSettings({
   );
   if (!active) return null;
   return (
-    <div className="grid max-w-5xl gap-6">
-      <div className="grid gap-1.5">
-        <h3 className="text-lg font-semibold">{title}</h3>
-        <p className="text-sm text-muted">{description}</p>
-      </div>
-      <div className="grid gap-2">
-        <span className="text-sm font-medium">Environment</span>
-        <ResponsiveSubtabs
-          ariaLabel="Secret environments"
-          defaultSelectedKey="production"
-          layout="inline"
-          panelClassName="pt-0 md:pt-5"
-          selectedKey={environment}
-          onSelectionChange={(key) =>
-            setEnvironment(String(key) as "production" | "preview")
-          }
-          tabs={(["production", "preview"] as const).map((value) => ({
-            label: value === "production" ? "Production" : "Preview",
-            value,
-            content:
-              value === environment ? (
-                <EnvironmentEditors
-                  key={environment}
-                  endpoint={endpoint}
-                  query={query}
-                  scope={scope}
-                />
-              ) : null,
-          }))}
-        />
-      </div>
+    <div className="max-w-5xl">
+      <ResponsiveSubtabs
+        ariaLabel="Secret environments"
+        defaultSelectedKey="production"
+        layout="inline"
+        panelClassName="pt-0 md:pt-5"
+        selectedKey={environment}
+        onSelectionChange={(key) =>
+          setEnvironment(String(key) as "production" | "preview")
+        }
+        tabs={(["production", "preview"] as const).map((value) => ({
+          label: value === "production" ? "Production" : "Preview",
+          value,
+          content:
+            value === environment ? (
+              <EnvironmentEditors
+                key={environment}
+                endpoint={endpoint}
+                query={query}
+                scope={scope}
+              />
+            ) : null,
+        }))}
+      />
     </div>
   );
 }
