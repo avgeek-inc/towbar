@@ -132,6 +132,7 @@ export function SourceSecrets({
       description="Set encrypted production defaults inherited by apps and resources."
       endpoint={`/v1/core/sources/${sourceId}/secrets`}
       scope="source"
+      title="Shared secrets"
     />
   );
 }

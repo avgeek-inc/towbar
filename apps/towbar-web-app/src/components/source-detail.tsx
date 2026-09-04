@@ -346,7 +346,7 @@ function SourceSettings({
         },
         {
           value: "secrets",
-          label: "Secrets",
+          label: "Shared secrets",
           content: <SourceSecrets active={isActive} sourceId={sourceId} />,
         },
         ...(canManage
