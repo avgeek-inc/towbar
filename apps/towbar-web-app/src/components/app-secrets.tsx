@@ -334,7 +334,7 @@ function SecretVariablesEditor({
                 return (
                   <div
                     key={key}
-                    className="grid items-center gap-3 md:col-span-3 md:grid-cols-subgrid"
+                    className="grid grid-cols-2 items-center gap-3 md:col-span-3 md:grid-cols-subgrid"
                   >
                     <div className="flex min-h-10 min-w-0 items-center gap-2">
                       {inherited ? (
@@ -396,6 +396,7 @@ function SecretVariablesEditor({
                     </InputGroup>
                     {canManage && local ? (
                       <Button
+                        className="col-start-2 justify-self-start md:col-start-auto"
                         variant="secondary"
                         isDisabled={busy}
                         onPress={() => {
@@ -420,7 +421,7 @@ function SecretVariablesEditor({
               {newKeys.map((row, index) => (
                 <div
                   key={row.id}
-                  className="grid items-start gap-3 md:col-span-3 md:grid-cols-subgrid"
+                  className="grid grid-cols-2 items-start gap-3 md:col-span-3 md:grid-cols-subgrid"
                 >
                   <Input
                     aria-label={`New variable ${index + 1} name`}
@@ -465,6 +466,7 @@ function SecretVariablesEditor({
                     />
                   </InputGroup>
                   <Button
+                    className="col-start-2 justify-self-start md:col-start-auto"
                     variant="secondary"
                     isDisabled={busy}
                     onPress={() =>
