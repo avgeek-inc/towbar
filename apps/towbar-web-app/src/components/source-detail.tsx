@@ -15,6 +15,7 @@ import type {
   Deployment,
   Resource,
   RuntimeCapacity,
+  Server,
   Source,
   SourceSync,
 } from "@workspace/towbar-web-client";
@@ -93,6 +94,7 @@ export function SourceDetail() {
     `/v1/core/sources/${sourceId}/capacity`,
     5_000,
   );
+  const servers = useApiQuery<{ servers: Server[] }>("/v1/core/servers", 5_000);
   const error = source.error ?? manifest.error ?? syncs.error;
   if (error)
     return (
@@ -211,7 +213,13 @@ export function SourceDetail() {
                 apps={apps.data?.apps}
                 capacities={capacity.data?.capacities}
                 deployments={deployments.data?.deployments}
-                error={apps.error ?? capacity.error ?? deployments.error}
+                error={
+                  apps.error ??
+                  capacity.error ??
+                  deployments.error ??
+                  servers.error
+                }
+                servers={servers.data?.servers}
                 sourceId={sourceId}
               />
             ),
@@ -230,8 +238,14 @@ export function SourceDetail() {
               <SourceResources
                 capacities={capacity.data?.capacities}
                 deployments={deployments.data?.deployments}
-                error={resources.error ?? capacity.error ?? deployments.error}
+                error={
+                  resources.error ??
+                  capacity.error ??
+                  deployments.error ??
+                  servers.error
+                }
                 resources={resources.data?.resources}
+                servers={servers.data?.servers}
                 sourceId={sourceId}
               />
             ),

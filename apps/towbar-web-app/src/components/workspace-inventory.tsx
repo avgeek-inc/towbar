@@ -1,6 +1,10 @@
 "use client";
 
-import { DashboardCircleIcon, DatabaseIcon } from "@hugeicons/core-free-icons";
+import {
+  DashboardCircleIcon,
+  DatabaseIcon,
+  GithubIcon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
   App,
@@ -18,14 +22,14 @@ import {
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
 
-import { DashboardPage } from "@/components/page-parts";
+import { DashboardPage, InlineLink } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import {
   getActiveDeploymentStates,
   resolveInventoryStatus,
 } from "@/lib/inventory-status";
 import { LastSyncedTime, RelativeTimeProvider } from "./last-synced-time";
-import { DeployableName } from "./source-inventory";
+import { DeployableName, ServerIpLink } from "./source-inventory";
 
 type SourcesById = Map<string, Source>;
 
@@ -36,19 +40,22 @@ export function AppsIndex() {
     5_000,
   );
   const sources = useApiQuery<{ sources: Source[] }>("/v1/core/sources");
-  const error = apps.error ?? deployments.error ?? sources.error;
+  const servers = useApiQuery<{ servers: Server[] }>("/v1/core/servers");
+  const error =
+    apps.error ?? deployments.error ?? sources.error ?? servers.error;
 
   return (
     <DashboardPage title="Apps">
       {error ? (
         <QueryError message={error} />
-      ) : !apps.data || !deployments.data || !sources.data ? (
+      ) : !apps.data || !deployments.data || !sources.data || !servers.data ? (
         <QueryLoading variant="table" />
       ) : (
         <DeployableInventory
           deployments={deployments.data.deployments}
           items={apps.data.apps}
           kind="app"
+          servers={servers.data.servers}
           sources={sources.data.sources}
         />
       )}
@@ -66,19 +73,25 @@ export function ResourcesIndex() {
     5_000,
   );
   const sources = useApiQuery<{ sources: Source[] }>("/v1/core/sources");
-  const error = deployments.error ?? resources.error ?? sources.error;
+  const servers = useApiQuery<{ servers: Server[] }>("/v1/core/servers");
+  const error =
+    deployments.error ?? resources.error ?? sources.error ?? servers.error;
 
   return (
     <DashboardPage title="Resources">
       {error ? (
         <QueryError message={error} />
-      ) : !deployments.data || !resources.data || !sources.data ? (
+      ) : !deployments.data ||
+        !resources.data ||
+        !sources.data ||
+        !servers.data ? (
         <QueryLoading variant="table" />
       ) : (
         <DeployableInventory
           deployments={deployments.data.deployments}
           items={resources.data.resources}
           kind="resource"
+          servers={servers.data.servers}
           sources={sources.data.sources}
         />
       )}
@@ -121,15 +134,20 @@ function DeployableInventory({
   deployments,
   items,
   kind,
+  servers,
   sources,
 }: {
   deployments: Deployment[];
   items: App[] | Resource[];
   kind: "app" | "resource";
+  servers: Server[];
   sources: Source[];
 }) {
   const activeDeploymentStates = getActiveDeploymentStates(deployments);
   const sourcesById = new Map(sources.map((source) => [source.id, source]));
+  const serverIdsByIp = new Map(
+    servers.map((server) => [server.canonicalIp, server.id]),
+  );
   const columns: ResourceTableColumn<App | Resource>[] = [
     {
       cell: (item) => (
@@ -154,13 +172,18 @@ function DeployableInventory({
         ]
       : []),
     {
-      cell: (item) => formatSource(sourcesById, item.sourceId),
+      cell: (item) => <SourceLink source={sourcesById.get(item.sourceId)} />,
       className: "min-w-56",
       header: "Source",
       key: "source",
     },
     {
-      cell: (item) => item.serverIp,
+      cell: (item) => (
+        <ServerIpLink
+          ip={item.serverIp}
+          serverId={serverIdsByIp.get(item.serverIp)}
+        />
+      ),
       className: "min-w-36 tabular-nums",
       header: "Server",
       key: "server",
@@ -207,6 +230,26 @@ function DeployableInventory({
         tableClassName={kind === "app" ? "min-w-[920px]" : "min-w-[1040px]"}
       />
     </RelativeTimeProvider>
+  );
+}
+
+function SourceLink({ source }: { source?: Source }) {
+  if (!source) return "Unknown Source";
+  const name = `${source.repositoryOwner}/${source.repositoryName}`;
+  return (
+    <InlineLink
+      className="inline-flex min-w-0 items-center gap-2"
+      href={`/sources/${source.id}`}
+    >
+      <HugeiconsIcon
+        aria-hidden="true"
+        className="text-muted-foreground size-4 shrink-0"
+        icon={GithubIcon}
+      />
+      <span className="truncate" title={name}>
+        {name}
+      </span>
+    </InlineLink>
   );
 }
 

@@ -8,6 +8,7 @@ import type {
   DeploymentState,
   Resource,
   RuntimeCapacity,
+  Server,
 } from "@workspace/towbar-web-client";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
@@ -15,6 +16,7 @@ import {
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
+import { InlineLink } from "@/components/page-parts";
 import {
   getActiveDeploymentStates,
   resolveInventoryStatus,
@@ -29,6 +31,7 @@ import {
 function appColumns(
   activeDeploymentStates: Map<string, DeploymentState>,
   runtimeById: Map<string, RuntimeMetric>,
+  serverIdsByIp: Map<string, string>,
 ): ResourceTableColumn<App>[] {
   return [
     {
@@ -43,7 +46,12 @@ function appColumns(
       key: "name",
     },
     {
-      cell: (app) => app.serverIp,
+      cell: (app) => (
+        <ServerIpLink
+          ip={app.serverIp}
+          serverId={serverIdsByIp.get(app.serverIp)}
+        />
+      ),
       className: "min-w-36 tabular-nums",
       header: "Server",
       key: "server",
@@ -87,6 +95,7 @@ function appColumns(
 function resourceColumns(
   activeDeploymentStates: Map<string, DeploymentState>,
   runtimeById: Map<string, RuntimeMetric>,
+  serverIdsByIp: Map<string, string>,
 ): ResourceTableColumn<Resource>[] {
   return [
     {
@@ -107,7 +116,12 @@ function resourceColumns(
       key: "type",
     },
     {
-      cell: (resource) => resource.serverIp,
+      cell: (resource) => (
+        <ServerIpLink
+          ip={resource.serverIp}
+          serverId={serverIdsByIp.get(resource.serverIp)}
+        />
+      ),
       className: "min-w-36 tabular-nums",
       header: "Server",
       key: "server",
@@ -157,24 +171,27 @@ export function SourceApps({
   capacities,
   deployments,
   error,
+  servers,
   sourceId,
 }: {
   apps?: App[];
   capacities?: RuntimeCapacity[];
   deployments?: Deployment[];
   error?: string;
+  servers?: Server[];
   sourceId: string;
 }) {
   if (error) return <QueryError message={error} />;
-  if (!apps || !capacities || !deployments)
+  if (!apps || !capacities || !deployments || !servers)
     return <QueryLoading variant="list" />;
   const activeDeploymentStates = getActiveDeploymentStates(deployments);
   const runtimeById = getRuntimeByDeployableId(capacities);
+  const serverIdsByIp = getServerIdsByIp(servers);
   return (
     <RelativeTimeProvider>
       <ResourceTable
         ariaLabel="Source apps"
-        columns={appColumns(activeDeploymentStates, runtimeById)}
+        columns={appColumns(activeDeploymentStates, runtimeById, serverIdsByIp)}
         emptyDescription="A successful manifest sync imports this Source's apps."
         emptyTitle="No apps in this Source"
         getRowHref={(app) => `/sources/${sourceId}/apps/${app.id}`}
@@ -191,24 +208,31 @@ export function SourceResources({
   deployments,
   error,
   resources,
+  servers,
   sourceId,
 }: {
   capacities?: RuntimeCapacity[];
   deployments?: Deployment[];
   error?: string;
   resources?: Resource[];
+  servers?: Server[];
   sourceId: string;
 }) {
   if (error) return <QueryError message={error} />;
-  if (!resources || !capacities || !deployments)
+  if (!resources || !capacities || !deployments || !servers)
     return <QueryLoading variant="list" />;
   const activeDeploymentStates = getActiveDeploymentStates(deployments);
   const runtimeById = getRuntimeByDeployableId(capacities);
+  const serverIdsByIp = getServerIdsByIp(servers);
   return (
     <RelativeTimeProvider>
       <ResourceTable
         ariaLabel="Source resources"
-        columns={resourceColumns(activeDeploymentStates, runtimeById)}
+        columns={resourceColumns(
+          activeDeploymentStates,
+          runtimeById,
+          serverIdsByIp,
+        )}
         emptyDescription="Declare an image, PostgreSQL, or Redis resource in this Source's manifest."
         emptyTitle="No resources in this Source"
         getRowHref={(resource) =>
@@ -252,6 +276,22 @@ export function DeployableName({
   );
 }
 
+export function ServerIpLink({
+  ip,
+  serverId,
+}: {
+  ip: string;
+  serverId?: string;
+}) {
+  return serverId ? (
+    <InlineLink className="tabular-nums" href={`/servers/${serverId}`}>
+      {ip}
+    </InlineLink>
+  ) : (
+    <span className="tabular-nums">{ip}</span>
+  );
+}
+
 function formatResourceKind(kind: Resource["kind"]) {
   if (kind === "postgres") return "PostgreSQL";
   if (kind === "redis") return "Redis";
@@ -264,4 +304,8 @@ function getRuntimeByDeployableId(capacities: RuntimeCapacity[]) {
       capacity.runtimes.map((runtime) => [runtime.id, runtime] as const),
     ),
   );
+}
+
+function getServerIdsByIp(servers: Server[]) {
+  return new Map(servers.map((server) => [server.canonicalIp, server.id]));
 }
