@@ -13,6 +13,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { createElement } from "react";
 
+import packageManifest from "../../../../package.json";
 import { TowbarBrandLogo } from "@workspace/towbar-web-ui/brand";
 import type {
   ApplicationPolicy,
@@ -50,6 +51,7 @@ export const applicationHeader = {
 const sidebar = {
   accessibleLabel: "Towbar navigation",
   brand,
+  brandVersion: packageManifest.version,
   homeHref: "/",
   groups: [
     {
