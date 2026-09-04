@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
-import type { TowbarUser } from "@workspace/towbar-web-client";
+import type {
+  App,
+  Resource,
+  Server,
+  Source,
+  TowbarUser,
+} from "@workspace/towbar-web-client";
 import { AppLayout } from "@workspace/web-design-system/navigation/app-layout";
 import {
   AppShell,
@@ -14,6 +20,7 @@ import {
 import { Spinner } from "@workspace/web-design-system/feedback/spinner";
 
 import { api } from "@/lib/api";
+import { useApiQuery } from "@/hooks/use-api-query";
 import {
   applicationHeader,
   applicationPolicy,
@@ -27,6 +34,22 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const navigate = useCallback((href: string) => router.push(href), [router]);
   const [user, setUser] = useState<TowbarUser | null>();
+  const apps = useApiQuery<{ apps: App[] }>(
+    user ? "/v1/core/apps" : null,
+    30_000,
+  );
+  const resources = useApiQuery<{ resources: Resource[] }>(
+    user ? "/v1/core/resources" : null,
+    30_000,
+  );
+  const servers = useApiQuery<{ servers: Server[] }>(
+    user ? "/v1/core/servers" : null,
+    30_000,
+  );
+  const sources = useApiQuery<{ sources: Source[] }>(
+    user ? "/v1/core/sources" : null,
+    30_000,
+  );
   const sidebarState = usePersistentAppSidebar("towbar-sidebar");
   const isLogin = pathname === "/login";
   const isSessionTransition = pathname === "/logout";
@@ -63,7 +86,12 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  const sidebar = createApplicationSidebar(() => router.push("/logout"));
+  const sidebar = createApplicationSidebar(() => router.push("/logout"), {
+    apps: apps.data?.apps.length,
+    resources: resources.data?.resources.length,
+    servers: servers.data?.servers.length,
+    sources: sources.data?.sources.length,
+  });
   return (
     <AppShell contentWidth="full" policy={applicationPolicy}>
       <AppLayout

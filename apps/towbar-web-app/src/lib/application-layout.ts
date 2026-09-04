@@ -36,6 +36,17 @@ const sidebarIcons = defineSidebarIcons({
   sources: GitBranchIcon,
 });
 
+export type ApplicationSidebarCounts = Partial<
+  Record<"apps" | "resources" | "servers" | "sources", number>
+>;
+
+const inventorySingularLabels = {
+  apps: "app",
+  resources: "resource",
+  servers: "server",
+  sources: "source",
+} as const;
+
 const brand = {
   accessibleLabel: "Towbar home",
   id: "towbar",
@@ -151,9 +162,33 @@ const sidebar = {
   persistenceKey: "towbar-sidebar",
 } satisfies SidebarConfig;
 
-export function createApplicationSidebar(onSignOut: () => void) {
+export function createApplicationSidebar(
+  onSignOut: () => void,
+  counts: ApplicationSidebarCounts = {},
+) {
   return {
     ...sidebar,
+    groups: sidebar.groups.map((group) =>
+      group.id === "operate"
+        ? {
+            ...group,
+            items: group.items.map((item) => {
+              const id = item.id as keyof ApplicationSidebarCounts;
+              const value = counts[id];
+              const singular = inventorySingularLabels[id];
+              return value === undefined || !singular
+                ? item
+                : {
+                    ...item,
+                    badge: {
+                      label: `${value} ${singular}${value === 1 ? "" : "s"}`,
+                      value,
+                    },
+                  };
+            }),
+          }
+        : group,
+    ),
     footerActions: [
       {
         kind: "action",

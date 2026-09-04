@@ -249,6 +249,14 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
                       <HugeiconsIcon icon={item.icon} size={16} />
                     ) : null}
                     {item.label}
+                    {item.badge ? (
+                      <span
+                        aria-label={item.badge.label}
+                        className="ms-auto min-w-5 text-end text-xs tabular-nums text-muted"
+                      >
+                        {item.badge.value}
+                      </span>
+                    ) : null}
                   </RoutedLink>
                 ) : (
                   <SidebarAction item={item} key={item.id} />
