@@ -5,6 +5,35 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-09-05
+
+### Added
+
+- Towbar now stores Source, App, Resource, and Preview secrets encrypted in its
+  database. Owners manage write-only values in the editor, with Source-wide
+  production defaults, local overrides, isolated Preview values, explicit
+  deployment after edits, revision conflicts, and pending-change visibility.
+- Server SSH and Cloudflare credentials, plus installation Slack and SMTP
+  credentials, now use the same encrypted, write-only settings flow.
+
+### Changed
+
+- Deployments resolve a consistent set of current values when execution starts,
+  preserve BuildKit secret mounts and runtime and hook injection, and record only
+  the encrypted-setting revisions used. Image rollbacks and server, resource,
+  and notification operations use current credentials.
+- Sources can be synchronized and inventoried before credentials are configured.
+  Plan validation reports missing Towbar-managed configuration with links to the
+  relevant editor, while optional S3 backup and restore retain Source AWS
+  credentials.
+
+### Removed
+
+- AWS Secrets Manager integration, secret-reference APIs, reveal controls, and
+  all secret fields and provider references in deployment manifests have been
+  removed. Existing values are not imported; operators must re-enter required
+  values in Towbar before resuming deployments.
+
 ## [1.3.4] - 2026-09-03
 
 ### Added
@@ -188,7 +217,8 @@ All notable changes to Towbar are documented in this file. This project follows
 - Source-scoped AWS Secrets Manager integration and environment editors.
 - A same-domain owner setup, authentication, and operations dashboard.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.3.4...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/avgeek-inc/towbar/compare/v1.3.4...v1.4.0
 [1.3.4]: https://github.com/avgeek-inc/towbar/compare/v1.3.3...v1.3.4
 [1.3.3]: https://github.com/avgeek-inc/towbar/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/avgeek-inc/towbar/compare/v1.3.1...v1.3.2
