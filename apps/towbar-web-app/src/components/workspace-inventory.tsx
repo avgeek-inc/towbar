@@ -1,5 +1,7 @@
 "use client";
 
+import { DashboardCircleIcon, DatabaseIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type {
   App,
   Deployment,
@@ -252,19 +254,39 @@ function ServerInventory({
       key: "sources",
     },
     {
-      cell: (server) =>
-        `${server.config.ssh.username}@${server.config.ssh.host ?? server.canonicalIp}:${server.config.ssh.port}`,
-      className: "min-w-64 font-mono text-sm",
-      header: "SSH",
-      key: "ssh",
-    },
-    {
       cell: (server) => {
         const appCount = appCounts.get(server.canonicalIp) ?? 0;
         const resourceCount = resourceCounts.get(server.canonicalIp) ?? 0;
-        return `${formatCount(appCount, "app")} · ${formatCount(resourceCount, "resource")}`;
+        return (
+          <span className="inline-flex items-center gap-5 whitespace-nowrap">
+            <span
+              aria-label={formatCount(appCount, "app")}
+              className="inline-flex items-center gap-1.5"
+              title={formatCount(appCount, "app")}
+            >
+              <HugeiconsIcon
+                aria-hidden="true"
+                className="text-muted-foreground size-4"
+                icon={DashboardCircleIcon}
+              />
+              <span className="tabular-nums">{appCount}</span>
+            </span>
+            <span
+              aria-label={formatCount(resourceCount, "resource")}
+              className="inline-flex items-center gap-1.5"
+              title={formatCount(resourceCount, "resource")}
+            >
+              <HugeiconsIcon
+                aria-hidden="true"
+                className="text-muted-foreground size-4"
+                icon={DatabaseIcon}
+              />
+              <span className="tabular-nums">{resourceCount}</span>
+            </span>
+          </span>
+        );
       },
-      className: "min-w-48 whitespace-nowrap",
+      className: "min-w-36",
       header: "Workloads",
       key: "workloads",
     },
@@ -296,7 +318,7 @@ function ServerInventory({
         getRowHref={(server) => `/servers/${server.id}`}
         getRowKey={(server) => server.id}
         items={servers}
-        tableClassName="min-w-[1160px]"
+        tableClassName="min-w-[900px]"
       />
     </RelativeTimeProvider>
   );
