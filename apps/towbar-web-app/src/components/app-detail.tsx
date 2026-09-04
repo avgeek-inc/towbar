@@ -287,91 +287,9 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
   const requestedSettings = useSearchParams().get("settings");
   const tabs: Array<{ content: ReactNode; label: string; value: string }> = [
     {
-      value: "build",
-      label: "Build",
-      content: (
-        <Attributes columns={2} title="Build configuration" variant="card">
-          <Attributes.Item label="Dockerfile">
-            <TypographyCode className="break-all">
-              {item.config.dockerfile}
-            </TypographyCode>
-          </Attributes.Item>
-          <Attributes.Item label="Source branch">
-            {item.config.sourceBranch ?? "main"}
-          </Attributes.Item>
-          <Attributes.Item label="Source revision">
-            <TypographyCode title={item.sourceRevision}>
-              {item.sourceRevision.slice(0, 12)}
-            </TypographyCode>
-          </Attributes.Item>
-        </Attributes>
-      ),
-    },
-    {
-      value: "runtime",
-      label: "Runtime",
-      content: (
-        <Attributes columns={2} title="Container configuration" variant="card">
-          <Attributes.Item label="Container port">
-            {item.config.container.port}
-          </Attributes.Item>
-          <Attributes.Item label="Network">
-            {item.config.container.network ? (
-              <TypographyCode>{item.config.container.network}</TypographyCode>
-            ) : (
-              "Default bridge"
-            )}
-          </Attributes.Item>
-          <Attributes.Item label="CPU limit">
-            {item.config.container.resources?.cpus ?? "Docker default"}
-          </Attributes.Item>
-          <Attributes.Item label="Memory limit">
-            {item.config.container.resources?.memory ?? "Docker default"}
-          </Attributes.Item>
-          <Attributes.Item label="Health endpoint">
-            <TypographyCode>{item.config.health.path}</TypographyCode>
-          </Attributes.Item>
-          <Attributes.Item label="Health timeout">
-            {item.config.health.timeoutSeconds} seconds
-          </Attributes.Item>
-        </Attributes>
-      ),
-    },
-    {
-      value: "delivery",
-      label: "Delivery",
-      content: (
-        <Attributes columns={2} title="Deployment configuration" variant="card">
-          <Attributes.Item label="Auto-deploy">
-            {item.config.autoDeploy ? "Enabled" : "Disabled"}
-          </Attributes.Item>
-          <Attributes.Item label="Deployment inputs">
-            {item.config.autoDeploy
-              ? item.config.deploymentInputs?.length
-                ? renderCodeList(item.config.deploymentInputs)
-                : "Every Source commit"
-              : "Not used"}
-          </Attributes.Item>
-          <Attributes.Item label="Primary domain">
-            {item.config.domains?.primary ?? "Not configured"}
-          </Attributes.Item>
-          <Attributes.Item label="Redirects">
-            {item.config.domains?.redirects.length
-              ? item.config.domains.redirects.map((redirect) => (
-                  <span className="block" key={redirect.host}>
-                    {redirect.host} · {redirect.status}
-                  </span>
-                ))
-              : "None"}
-          </Attributes.Item>
-          <Attributes.Item label="Pre-deploy hook">
-            {renderHook(item.config.hooks?.preDeploy)}
-          </Attributes.Item>
-          <Attributes.Item label="Post-deploy hook">
-            {renderHook(item.config.hooks?.postDeploy)}
-          </Attributes.Item>
-        </Attributes>
-      ),
+      value: "configuration",
+      label: "Configuration",
+      content: <AppConfiguration item={item} />,
     },
     ...(item.config.preview?.enabled
       ? [
@@ -410,9 +328,87 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
   return (
     <ResponsiveSubtabs
       ariaLabel="App settings"
-      defaultSelectedKey={requestedSettings === "secrets" ? "secrets" : "build"}
+      defaultSelectedKey={
+        requestedSettings === "secrets" ? "secrets" : "configuration"
+      }
       tabs={tabs}
     />
+  );
+}
+
+function AppConfiguration({ item }: { item: AppRecord }) {
+  return (
+    <div className="grid gap-6">
+      <Attributes columns={2} title="Build configuration" variant="card">
+        <Attributes.Item label="Dockerfile">
+          <TypographyCode className="break-all">
+            {item.config.dockerfile}
+          </TypographyCode>
+        </Attributes.Item>
+        <Attributes.Item label="Source branch">
+          {item.config.sourceBranch ?? "main"}
+        </Attributes.Item>
+        <Attributes.Item label="Source revision">
+          <TypographyCode title={item.sourceRevision}>
+            {item.sourceRevision.slice(0, 12)}
+          </TypographyCode>
+        </Attributes.Item>
+      </Attributes>
+      <Attributes columns={2} title="Container configuration" variant="card">
+        <Attributes.Item label="Container port">
+          {item.config.container.port}
+        </Attributes.Item>
+        <Attributes.Item label="Network">
+          {item.config.container.network ? (
+            <TypographyCode>{item.config.container.network}</TypographyCode>
+          ) : (
+            "Default bridge"
+          )}
+        </Attributes.Item>
+        <Attributes.Item label="CPU limit">
+          {item.config.container.resources?.cpus ?? "Docker default"}
+        </Attributes.Item>
+        <Attributes.Item label="Memory limit">
+          {item.config.container.resources?.memory ?? "Docker default"}
+        </Attributes.Item>
+        <Attributes.Item label="Health endpoint">
+          <TypographyCode>{item.config.health.path}</TypographyCode>
+        </Attributes.Item>
+        <Attributes.Item label="Health timeout">
+          {item.config.health.timeoutSeconds} seconds
+        </Attributes.Item>
+      </Attributes>
+      <Attributes columns={2} title="Deployment configuration" variant="card">
+        <Attributes.Item label="Auto-deploy">
+          {item.config.autoDeploy ? "Enabled" : "Disabled"}
+        </Attributes.Item>
+        <Attributes.Item label="Deployment inputs">
+          {item.config.autoDeploy
+            ? item.config.deploymentInputs?.length
+              ? renderCodeList(item.config.deploymentInputs)
+              : "Every Source commit"
+            : "Not used"}
+        </Attributes.Item>
+        <Attributes.Item label="Primary domain">
+          {item.config.domains?.primary ?? "Not configured"}
+        </Attributes.Item>
+        <Attributes.Item label="Redirects">
+          {item.config.domains?.redirects.length
+            ? item.config.domains.redirects.map((redirect) => (
+                <span className="block" key={redirect.host}>
+                  {redirect.host} · {redirect.status}
+                </span>
+              ))
+            : "None"}
+        </Attributes.Item>
+        <Attributes.Item label="Pre-deploy hook">
+          {renderHook(item.config.hooks?.preDeploy)}
+        </Attributes.Item>
+        <Attributes.Item label="Post-deploy hook">
+          {renderHook(item.config.hooks?.postDeploy)}
+        </Attributes.Item>
+      </Attributes>
+    </div>
   );
 }
 

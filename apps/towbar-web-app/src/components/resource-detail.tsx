@@ -287,67 +287,9 @@ function ResourceSettings({
   const requestedSettings = useSearchParams().get("settings");
   const tabs: Array<{ content: ReactNode; label: string; value: string }> = [
     {
-      value: "image",
-      label: "Image",
-      content: (
-        <Attributes columns={2} title="Image configuration" variant="card">
-          <Attributes.Item label="Image">
-            <TypographyCode className="break-all">
-              {item.config.image}
-            </TypographyCode>
-          </Attributes.Item>
-          <Attributes.Item label="Resource type">
-            {formatResourceKind(item.kind)}
-          </Attributes.Item>
-          <Attributes.Item label="Source branch">
-            {item.config.sourceBranch ?? "main"}
-          </Attributes.Item>
-          <Attributes.Item label="Source revision">
-            <TypographyCode title={item.sourceRevision}>
-              {item.sourceRevision.slice(0, 12)}
-            </TypographyCode>
-          </Attributes.Item>
-          <Attributes.Item label="Command">
-            {item.config.container.command.length ? (
-              <TypographyCode className="break-all">
-                {item.config.container.command.join(" ")}
-              </TypographyCode>
-            ) : (
-              "Image default"
-            )}
-          </Attributes.Item>
-        </Attributes>
-      ),
-    },
-    {
-      value: "runtime",
-      label: "Runtime",
-      content: (
-        <Attributes columns={2} title="Container configuration" variant="card">
-          <Attributes.Item label="Container port">
-            {item.config.container.port ?? "Not exposed"}
-          </Attributes.Item>
-          <Attributes.Item label="Network">
-            {item.config.container.network ? (
-              <TypographyCode>{item.config.container.network}</TypographyCode>
-            ) : (
-              "Default bridge"
-            )}
-          </Attributes.Item>
-          <Attributes.Item label="CPU limit">
-            {item.config.container.resources.cpus}
-          </Attributes.Item>
-          <Attributes.Item label="Memory limit">
-            {item.config.container.resources.memory}
-          </Attributes.Item>
-          <Attributes.Item label="Health check">
-            {renderHealth(item.config.health)}
-          </Attributes.Item>
-          <Attributes.Item label="Persistent volumes">
-            {renderVolumes(item.config.container.volumes)}
-          </Attributes.Item>
-        </Attributes>
-      ),
+      value: "configuration",
+      label: "Configuration",
+      content: <ResourceConfiguration item={item} />,
     },
     ...((item.config.container.networkAlias || item.config.access?.sshTunnel) &&
     item.config.container.port
@@ -374,36 +316,6 @@ function ResourceSettings({
           },
         ]),
     {
-      value: "delivery",
-      label: "Delivery",
-      content: (
-        <Attributes columns={2} title="Deployment configuration" variant="card">
-          <Attributes.Item label="Auto-deploy">
-            {item.config.autoDeploy ? "Enabled" : "Disabled"}
-          </Attributes.Item>
-          <Attributes.Item label="Primary domain">
-            {item.config.domains?.primary ?? "Not configured"}
-          </Attributes.Item>
-          <Attributes.Item label="Redirects">
-            {item.config.domains?.redirects.length
-              ? item.config.domains.redirects.map((redirect) => (
-                  <span className="block" key={redirect.host}>
-                    {redirect.host} · {redirect.status}
-                  </span>
-                ))
-              : "None"}
-          </Attributes.Item>
-          <Attributes.Item label="TLS">
-            {item.config.tls?.mode === "cloudflare-dns"
-              ? "Cloudflare DNS"
-              : item.config.tls?.mode === "direct"
-                ? "Direct"
-                : "Not configured"}
-          </Attributes.Item>
-        </Attributes>
-      ),
-    },
-    {
       value: "auto-deploy",
       label: "Auto-deploy",
       content: <AutoDeployControlEditor id={resourceId} type="resource" />,
@@ -418,9 +330,93 @@ function ResourceSettings({
   return (
     <ResponsiveSubtabs
       ariaLabel="Resource settings"
-      defaultSelectedKey={requestedSettings === "secrets" ? "secrets" : "image"}
+      defaultSelectedKey={
+        requestedSettings === "secrets" ? "secrets" : "configuration"
+      }
       tabs={tabs}
     />
+  );
+}
+
+function ResourceConfiguration({ item }: { item: ResourceRecord }) {
+  return (
+    <div className="grid gap-6">
+      <Attributes columns={2} title="Image configuration" variant="card">
+        <Attributes.Item label="Image">
+          <TypographyCode className="break-all">
+            {item.config.image}
+          </TypographyCode>
+        </Attributes.Item>
+        <Attributes.Item label="Resource type">
+          {formatResourceKind(item.kind)}
+        </Attributes.Item>
+        <Attributes.Item label="Source branch">
+          {item.config.sourceBranch ?? "main"}
+        </Attributes.Item>
+        <Attributes.Item label="Source revision">
+          <TypographyCode title={item.sourceRevision}>
+            {item.sourceRevision.slice(0, 12)}
+          </TypographyCode>
+        </Attributes.Item>
+        <Attributes.Item label="Command">
+          {item.config.container.command.length ? (
+            <TypographyCode className="break-all">
+              {item.config.container.command.join(" ")}
+            </TypographyCode>
+          ) : (
+            "Image default"
+          )}
+        </Attributes.Item>
+      </Attributes>
+      <Attributes columns={2} title="Container configuration" variant="card">
+        <Attributes.Item label="Container port">
+          {item.config.container.port ?? "Not exposed"}
+        </Attributes.Item>
+        <Attributes.Item label="Network">
+          {item.config.container.network ? (
+            <TypographyCode>{item.config.container.network}</TypographyCode>
+          ) : (
+            "Default bridge"
+          )}
+        </Attributes.Item>
+        <Attributes.Item label="CPU limit">
+          {item.config.container.resources.cpus}
+        </Attributes.Item>
+        <Attributes.Item label="Memory limit">
+          {item.config.container.resources.memory}
+        </Attributes.Item>
+        <Attributes.Item label="Health check">
+          {renderHealth(item.config.health)}
+        </Attributes.Item>
+        <Attributes.Item label="Persistent volumes">
+          {renderVolumes(item.config.container.volumes)}
+        </Attributes.Item>
+      </Attributes>
+      <Attributes columns={2} title="Deployment configuration" variant="card">
+        <Attributes.Item label="Auto-deploy">
+          {item.config.autoDeploy ? "Enabled" : "Disabled"}
+        </Attributes.Item>
+        <Attributes.Item label="Primary domain">
+          {item.config.domains?.primary ?? "Not configured"}
+        </Attributes.Item>
+        <Attributes.Item label="Redirects">
+          {item.config.domains?.redirects.length
+            ? item.config.domains.redirects.map((redirect) => (
+                <span className="block" key={redirect.host}>
+                  {redirect.host} · {redirect.status}
+                </span>
+              ))
+            : "None"}
+        </Attributes.Item>
+        <Attributes.Item label="TLS">
+          {item.config.tls?.mode === "cloudflare-dns"
+            ? "Cloudflare DNS"
+            : item.config.tls?.mode === "direct"
+              ? "Direct"
+              : "Not configured"}
+        </Attributes.Item>
+      </Attributes>
+    </div>
   );
 }
 
