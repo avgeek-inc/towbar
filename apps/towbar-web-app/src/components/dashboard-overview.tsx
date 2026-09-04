@@ -1,11 +1,19 @@
 "use client";
 
-import { Fragment } from "react";
+import {
+  DashboardCircleIcon,
+  DatabaseIcon,
+  GitBranchIcon,
+  ServerStack01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Fragment, type ComponentProps } from "react";
 import type {
   App,
   Deployment,
   Resource,
   Server,
+  Source,
 } from "@workspace/towbar-web-client";
 import { LineChart } from "@workspace/web-design-system/charts/line-chart";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
@@ -36,19 +44,30 @@ export function DashboardOverview() {
     "/v1/core/resources",
   );
   const servers = useApiQuery<{ servers: Server[] }>("/v1/core/servers");
+  const sources = useApiQuery<{ sources: Source[] }>("/v1/core/sources");
   const deployments = useApiQuery<{ deployments: Deployment[] }>(
     "/v1/core/deployments",
     5_000,
   );
   const error =
-    apps.error ?? resources.error ?? servers.error ?? deployments.error;
+    apps.error ??
+    resources.error ??
+    servers.error ??
+    sources.error ??
+    deployments.error;
   if (error)
     return (
       <DashboardPage title="Overview">
         <QueryError message={error} />
       </DashboardPage>
     );
-  if (!apps.data || !resources.data || !servers.data || !deployments.data)
+  if (
+    !apps.data ||
+    !resources.data ||
+    !servers.data ||
+    !sources.data ||
+    !deployments.data
+  )
     return (
       <DashboardPage title="Overview">
         <QueryLoading variant="dashboard" />
@@ -58,10 +77,14 @@ export function DashboardOverview() {
   const appItems = apps.data.apps;
   const resourceItems = resources.data.resources;
   const serverItems = servers.data.servers;
+  const sourceItems = sources.data.sources;
   const deploymentItems = deployments.data.deployments;
   const activeApps = appItems.filter((app) => !app.archivedAt);
   const activeResources = resourceItems.filter((item) => !item.archivedAt);
   const activeServers = serverItems.filter((server) => !server.archivedAt);
+  const activeSources = sourceItems.filter(
+    (source) => source.status === "active",
+  );
   const unhealthyApps = activeApps.filter(isUnhealthy).length;
   const unhealthyResources = activeResources.filter(isUnhealthy).length;
   const unhealthyServerKeys = new Set(
@@ -75,19 +98,28 @@ export function DashboardOverview() {
   const activity = buildDeploymentActivity(deploymentItems);
   const metrics = [
     {
-      label: "Servers",
-      unhealthyCount: unhealthyServers,
-      value: activeServers.length,
+      icon: GitBranchIcon,
+      label: "Sources",
+      unhealthyCount: null,
+      value: activeSources.length,
     },
     {
+      icon: DashboardCircleIcon,
       label: "Apps",
       unhealthyCount: unhealthyApps,
       value: activeApps.length,
     },
     {
+      icon: DatabaseIcon,
       label: "Resources",
       unhealthyCount: unhealthyResources,
       value: activeResources.length,
+    },
+    {
+      icon: ServerStack01Icon,
+      label: "Servers",
+      unhealthyCount: unhealthyServers,
+      value: activeServers.length,
     },
   ];
 
@@ -97,11 +129,14 @@ export function DashboardOverview() {
         {metrics.map((metric) => (
           <MetricCard
             className="rounded-3xl border border-separator bg-surface"
+            icon={<OverviewMetricIcon icon={metric.icon} />}
             key={metric.label}
             label={metric.label}
             value={metric.value}
           >
-            <HealthChip unhealthyCount={metric.unhealthyCount} />
+            {metric.unhealthyCount === null ? null : (
+              <HealthChip unhealthyCount={metric.unhealthyCount} />
+            )}
           </MetricCard>
         ))}
       </div>
@@ -109,8 +144,14 @@ export function DashboardOverview() {
         {metrics.map((metric, index) => (
           <Fragment key={metric.label}>
             {index ? <KPIGroup.Separator /> : null}
-            <MetricCard label={metric.label} value={metric.value}>
-              <HealthChip unhealthyCount={metric.unhealthyCount} />
+            <MetricCard
+              icon={<OverviewMetricIcon icon={metric.icon} />}
+              label={metric.label}
+              value={metric.value}
+            >
+              {metric.unhealthyCount === null ? null : (
+                <HealthChip unhealthyCount={metric.unhealthyCount} />
+              )}
             </MetricCard>
           </Fragment>
         ))}
@@ -186,6 +227,16 @@ export function DashboardOverview() {
         </Widget.Content>
       </Widget>
     </DashboardPage>
+  );
+}
+
+function OverviewMetricIcon({
+  icon,
+}: {
+  icon: ComponentProps<typeof HugeiconsIcon>["icon"];
+}) {
+  return (
+    <HugeiconsIcon aria-hidden="true" className="size-4 shrink-0" icon={icon} />
   );
 }
 
