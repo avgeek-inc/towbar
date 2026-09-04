@@ -140,7 +140,7 @@ function EnvironmentSecretSettings({
   );
   if (!active) return null;
   return (
-    <div className="max-w-5xl">
+    <div className={scope === "global" ? "w-full" : "max-w-5xl"}>
       <ResponsiveSubtabs
         ariaLabel="Secret environments"
         defaultSelectedKey="production"
