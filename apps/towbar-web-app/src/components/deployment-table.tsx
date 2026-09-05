@@ -118,7 +118,7 @@ export function formatDeploymentTrigger(trigger: Deployment["trigger"]) {
   return "Manual";
 }
 
-function formatDeploymentDuration(deployment: Deployment) {
+export function formatDeploymentDuration(deployment: Deployment) {
   if (!deployment.startedAt) return "—";
   const startedAt = new Date(deployment.startedAt).getTime();
   const finishedAt = deployment.finishedAt

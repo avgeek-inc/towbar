@@ -16,6 +16,7 @@ const readRoutes = [
   "/v1/core/resources",
   "/v1/core/servers",
   "/v1/core/deployments",
+  "/v1/core/deployments/history",
   "/v1/core/system-health",
   "/v1/core/aws",
   "/v1/core/settings/secrets",
@@ -722,5 +723,70 @@ test("the local fixture covers server preparation and deployable readiness", asy
   } finally {
     server.close();
     await once(server, "close");
+  }
+});
+
+test("deployment history paginates all apps, resources, and environments in stable newest-first order", async () => {
+  const fixture = createFixtureApiServer();
+  fixture.listen(0, "127.0.0.1");
+  await once(fixture, "listening");
+  const baseUrl = `http://127.0.0.1:${fixture.address().port}`;
+  async function readPage(page) {
+    const response = await fetch(
+      `${baseUrl}/v1/core/deployments/history?page=${page}&limit=10`,
+    );
+    assert.equal(response.status, 200);
+    return response.json();
+  }
+  try {
+    const first = await readPage(1);
+    assert.equal(first.deployments.length, 10);
+    assert.equal(first.pagination.page, 1);
+    assert.equal(first.pagination.limit, 10);
+    assert(first.pagination.totalPages > 1);
+    const items = [...first.deployments];
+    for (let page = 2; page <= first.pagination.totalPages; page++) {
+      const next = await readPage(page);
+      assert.equal(next.pagination.page, page);
+      assert(next.deployments.length <= 10);
+      items.push(...next.deployments);
+    }
+    assert.equal(items.length, first.pagination.total);
+    assert.equal(new Set(items.map((item) => item.id)).size, items.length);
+    assert(items.some((item) => item.deployableKind === "app"));
+    assert(items.some((item) => item.deployableKind !== "app"));
+    assert(items.some((item) => item.environment === "preview"));
+    assert(items.some((item) => item.environment === "production"));
+    assert(
+      items.every(
+        (item) =>
+          item.deployableName && item.deployableName !== "Unknown workload",
+      ),
+    );
+    assert.deepEqual(
+      items.map((item) => item.id),
+      [...items]
+        .sort(
+          (left, right) =>
+            right.createdAt.localeCompare(left.createdAt) ||
+            right.id.localeCompare(left.id),
+        )
+        .map((item) => item.id),
+    );
+    assert.deepEqual(
+      (await readPage(first.pagination.totalPages + 1)).deployments,
+      [],
+    );
+    const operational = await (
+      await fetch(`${baseUrl}/v1/core/deployments`)
+    ).json();
+    assert(
+      operational.deployments.every(
+        (item) => item.environment === "production",
+      ),
+    );
+  } finally {
+    fixture.close();
+    await once(fixture, "close");
   }
 });

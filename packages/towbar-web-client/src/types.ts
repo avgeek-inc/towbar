@@ -560,6 +560,13 @@ export type PaginationMetadata = {
   totalPages: number;
 };
 
+export type DeploymentHistoryItem = Deployment & { deployableName: string };
+
+export type DeploymentHistoryPage = {
+  deployments: DeploymentHistoryItem[];
+  pagination: PaginationMetadata;
+};
+
 export type ServerChecksPage = {
   checks: ServerCheck[];
   latestCheck: ServerCheck | null;

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
 
+import { listDeploymentHistory } from "../../../areas/deployments/history.js";
 import { requestDeploymentRetry } from "../../../areas/apps/service.js";
 import {
   cancelDeployment,
@@ -18,6 +19,13 @@ import { badRequest, forbidden } from "../../../http/errors.js";
 
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
+const historyQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).max(1_000_000).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(10),
+  })
+  .strict();
+
 const afterSchema = z.coerce.number().int().min(-1).optional();
 
 export const deploymentRoutes = new Hono<TowbarHonoEnvironment>();
@@ -27,6 +35,15 @@ deploymentRoutes.get("/", async (context) =>
     deployments: await listDeployments(context.get("user").workspaceId),
   }),
 );
+deploymentRoutes.get("/history", async (context) => {
+  const pagination = historyQuerySchema.parse(context.req.query());
+  return context.json(
+    await listDeploymentHistory({
+      ...pagination,
+      workspaceId: context.get("user").workspaceId,
+    }),
+  );
+});
 deploymentRoutes.get("/:deploymentId", async (context) =>
   context.json({
     deployment: await getDeployment(

@@ -1425,6 +1425,36 @@ function getFixturePayload(
   path: string,
   searchParams: URLSearchParams,
 ): unknown {
+  if (path === "/v1/core/deployments/history") {
+    const page = readPositiveInteger(searchParams.get("page"), 1);
+    const limit = Math.min(
+      100,
+      readPositiveInteger(searchParams.get("limit"), 10),
+    );
+    const ordered = [...deployments].sort(
+      (left, right) =>
+        right.createdAt.localeCompare(left.createdAt) ||
+        right.id.localeCompare(left.id),
+    );
+    const deployables = new Map(
+      [...apps, ...resources].map((item) => [item.id, item]),
+    );
+    return {
+      deployments: ordered
+        .slice((page - 1) * limit, page * limit)
+        .map((item) => ({
+          ...item,
+          deployableName:
+            deployables.get(item.appId)?.name ?? "Unknown workload",
+        })),
+      pagination: {
+        page,
+        limit,
+        total: ordered.length,
+        totalPages: Math.ceil(ordered.length / limit),
+      },
+    };
+  }
   const fixedPayloads = new Map<string, unknown>([
     ["/v1/core/session", { user }],
     ["/v1/core/profile", { user }],

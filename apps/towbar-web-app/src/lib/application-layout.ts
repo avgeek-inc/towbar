@@ -8,6 +8,7 @@ import {
   Key01Icon,
   Logout03Icon,
   PlugSocketIcon,
+  Rocket01Icon,
   ServerStack01Icon,
   UserAccountIcon,
 } from "@hugeicons/core-free-icons";
@@ -24,6 +25,7 @@ import { defineSidebarIcons } from "@workspace/web-design-system/layouts/sidebar
 
 const sidebarIcons = defineSidebarIcons({
   apps: DashboardCircleIcon,
+  deployments: Rocket01Icon,
   health: HealthIcon,
   integrations: PlugSocketIcon,
   logout: Logout03Icon,
@@ -74,6 +76,13 @@ const sidebar = {
           label: "Overview",
           href: "/",
           icon: sidebarIcons.overview,
+        },
+        {
+          kind: "link",
+          id: "deployments",
+          label: "Deployments",
+          href: "/deployments",
+          icon: sidebarIcons.deployments,
         },
       ],
     },
