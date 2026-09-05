@@ -69,6 +69,9 @@ export function AutoDeployControlEditor({
   return (
     <form onSubmit={save}>
       <Widget>
+        <Widget.Header>
+          <Widget.Title>Auto-deploy</Widget.Title>
+        </Widget.Header>
         <Widget.Content className="grid gap-5">
           <Switch
             isDisabled={!query.data.canManageAutoDeploy}
