@@ -417,7 +417,7 @@ export function DeploymentDetail() {
                   endContent={<StatusBadge status={stream.connection} />}
                 >
                   <Widget.Title icon={<HugeiconsIcon icon={Activity01Icon} />}>
-                    {formatStatus(currentStep?.state ?? displayStatus)}
+                    Progress
                   </Widget.Title>
                 </Widget.Header>
                 <Widget.Content>
