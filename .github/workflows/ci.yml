@@ -13,6 +13,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  monitoring-agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    container: golang:1.26.4-bookworm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - run: test -z "$(gofmt -l .)"
+        working-directory: apps/towbar-monitoring-agent
+      - run: go vet ./... && go test -race ./...
+        working-directory: apps/towbar-monitoring-agent
+      - run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -buildvcs=false -trimpath -o /tmp/towbar-monitoring-amd64 .
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -buildvcs=false -trimpath -o /tmp/towbar-monitoring-arm64 .
+        working-directory: apps/towbar-monitoring-agent
+
   docs:
     runs-on: ubuntu-latest
     timeout-minutes: 15

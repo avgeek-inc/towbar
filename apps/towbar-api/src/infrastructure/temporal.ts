@@ -360,3 +360,25 @@ function isWorkflowAlreadyStarted(error: unknown) {
     ].includes(error.name)
   );
 }
+
+export async function enqueueMonitoringAgent(input: {
+  serverId: string;
+  generation: string;
+}) {
+  const client = await getTemporalClient();
+  const workflowId = `towbar-monitoring/${input.serverId}/${input.generation}`;
+  try {
+    await client.workflow.start("runMonitoringAgentWorkflow", {
+      args: [input],
+      taskQueue: towbarTaskQueue,
+      workflowId,
+      workflowExecutionTimeout: "15 minutes",
+      workflowIdReusePolicy: "REJECT_DUPLICATE",
+    });
+  } catch (error) {
+    if (!isWorkflowAlreadyStarted(error)) throw error;
+    const execution = await client.workflow.getHandle(workflowId).describe();
+    return { workflowId, closed: execution.status.name !== "RUNNING" };
+  }
+  return { workflowId };
+}

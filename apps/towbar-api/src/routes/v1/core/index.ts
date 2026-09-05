@@ -1,3 +1,7 @@
+import {
+  monitoringHistoryRoutes,
+  monitoringSettingsRoutes,
+} from "./monitoring.js";
 import { apiKeyRoutes } from "./api-keys.js";
 import { environmentSecretRoutes } from "./environment-secrets.js";
 import { serverCredentialRoutes } from "./server-credentials.js";
@@ -53,6 +57,11 @@ controlPlaneRoutes.route(
   "/servers/:serverId/credentials",
   serverCredentialRoutes,
 );
+controlPlaneRoutes.route(
+  "/servers/:serverId/monitoring",
+  monitoringSettingsRoutes,
+);
+controlPlaneRoutes.route("/", monitoringHistoryRoutes);
 controlPlaneRoutes.route("/sources", sourceRoutes);
 controlPlaneRoutes.route("/apps", appRoutes);
 controlPlaneRoutes.route("/resources", resourceRoutes);

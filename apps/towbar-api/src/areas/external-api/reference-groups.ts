@@ -33,6 +33,7 @@ export const sectionOrder = [
   "Previews",
   "Inventory",
   "Capacity",
+  "Monitoring",
   "Checks & preparation",
   "Credentials & trust",
   "Maintenance",
@@ -58,6 +59,7 @@ const rules: Record<string, Array<[string, RegExp]>> = {
     ["Overview", /^\/sources(?:\/[^/]+)?$/],
   ],
   apps: [
+    ["Monitoring", /\/metrics$/],
     ["Secrets", /\/secrets(?:\/|$)/],
     ["Previews", /\/previews$/],
     [
@@ -68,6 +70,7 @@ const rules: Record<string, Array<[string, RegExp]>> = {
     ["Overview", /^\/apps(?:\/[^/]+)?$/],
   ],
   resources: [
+    ["Monitoring", /\/metrics$/],
     ["Secrets", /\/secrets(?:\/|$)/],
     [
       "Backups & restores",
@@ -81,6 +84,7 @@ const rules: Record<string, Array<[string, RegExp]>> = {
     ["Overview", /^\/resources(?:\/[^/]+)?$/],
   ],
   servers: [
+    ["Monitoring", /\/(monitoring|metrics)(?:\/|$)/],
     ["Credentials & trust", /\/(credentials|host-keys)(?:\/|$)/],
     [
       "Checks & preparation",

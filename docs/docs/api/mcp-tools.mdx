@@ -3,7 +3,7 @@ title: MCP tool catalogue
 description: Task-oriented Towbar tools for discovery, deployment, diagnostics, backups, servers, previews, and secrets.
 ---
 
-Towbar exposes 48 purpose-built tools. Names follow `towbar_<entity>_<action>`; they are independent of REST routes. Discovery filters this catalogue by your key and workspace role.
+Towbar exposes 50 purpose-built tools. Names follow `towbar_<entity>_<action>`; they are independent of REST routes. Discovery filters this catalogue by your key and workspace role.
 
 Use [MCP setup](/docs/api/mcp) for connection details and worked examples. Mutation tools carry risk annotations; client approval is still required for consequential actions. Successful calls return structured `result` data with a matching JSON text fallback. Failures set `isError`.
 
@@ -894,6 +894,116 @@ Full-access key required. Workspace owner required.
 
 </AccordionGroup>
 
+## Monitoring
+
+<AccordionGroup>
+<Accordion title="Inspect performance over time">
+
+`towbar_performance_inspect`
+
+Read server, app, or resource performance with averages, peaks, reporting freshness, and recent deployment/restart events. Production and preview measurements stay separate. Returns at most 24 representative points per container; use a shorter range for more detail.
+
+Read only. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": ["server", "app", "resource"]
+    },
+    "targetId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Server, app, or resource UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "range": {
+      "default": "1h",
+      "type": "string",
+      "enum": ["1h", "6h", "24h", "7d", "15d", "30d", "60d"]
+    },
+    "environment": {
+      "default": "production",
+      "type": "string",
+      "enum": ["production", "preview"]
+    },
+    "previewId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    }
+  },
+  "required": ["kind", "targetId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Configure enhanced monitoring">
+
+`towbar_monitoring_configure`
+
+Install/update the opt-in monitoring agent, change retention, or uninstall it. Installation requires explicit user acknowledgement. Uninstall revokes reporting immediately and removes services asynchronously. Shorter retention expires older data. Poll server_inspect for completion; queued does not mean online.
+
+Full-access key required. Workspace owner required.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "serverId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Server UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "action": {
+      "type": "string",
+      "enum": ["install", "uninstall", "retention"]
+    },
+    "retentionDays": {
+      "anyOf": [
+        {
+          "type": "number",
+          "const": 7
+        },
+        {
+          "type": "number",
+          "const": 15
+        },
+        {
+          "type": "number",
+          "const": 30
+        },
+        {
+          "type": "number",
+          "const": 60
+        }
+      ]
+    },
+    "acknowledge": {
+      "type": "boolean",
+      "const": true
+    }
+  },
+  "required": ["serverId", "action"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
 ## Servers
 
 <AccordionGroup>
@@ -1014,7 +1124,7 @@ Full-access key required. Workspace owner required.
 
 `towbar_server_remove`
 
-Stop managing a server and forget stored credentials and host trust. Does not terminate the machine or delete running services, Docker objects, or data. Assigned workloads and active operations block removal. Inspect and clean selected orphans first if desired.
+Stop managing a server and forget stored credentials and host trust. Uninstalls monitoring before forgetting SSH access; this may return pending. Does not terminate the machine or delete running services, Docker objects, or data. Assigned workloads and active operations block removal. Inspect and clean selected orphans first if desired.
 
 Full-access key required. Workspace owner required.
 

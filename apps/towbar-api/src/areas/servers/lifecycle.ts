@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { enqueueMonitoringAgent } from "../../infrastructure/temporal.js";
 import { and, eq, inArray, isNull, notInArray } from "drizzle-orm";
 
 import {
@@ -11,6 +13,7 @@ import {
   deployments,
   imageVulnerabilityScans,
   managedSecrets,
+  monitoringAgents,
   previewEnvironments,
   resourceOperations,
   serverChecks,
@@ -152,7 +155,7 @@ export async function removeServer(input: {
   workspaceId: string;
   requestedBy: string;
 }) {
-  await getTowbarDatabase().transaction(async (transaction) => {
+  const pending = await getTowbarDatabase().transaction(async (transaction) => {
     const [server] = await transaction
       .select({ id: servers.id })
       .from(servers)
@@ -234,7 +237,47 @@ export async function removeServer(input: {
         "Wait for active server operations to finish before removing this server.",
         "SERVER_BUSY",
       );
+    const [agent] = await transaction
+      .select()
+      .from(monitoringAgents)
+      .where(eq(monitoringAgents.serverId, server.id))
+      .for("update")
+      .limit(1);
+    if (agent && agent.status !== "disabled") {
+      if (["queued", "installing", "uninstalling"].includes(agent.status))
+        throw conflict(
+          "Wait for the monitoring operation to finish before removing this server.",
+          "SERVER_BUSY",
+        );
+      const generation = randomUUID();
+      await transaction
+        .update(monitoringAgents)
+        .set({
+          generation,
+          desiredState: "disabled",
+          status: "queued",
+          tokenHash: null,
+          encryptedToken: null,
+          removalRequestedBy: input.requestedBy,
+          requestedBy: input.requestedBy,
+          errorMessage: null,
+          operationStartedAt: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(monitoringAgents.serverId, server.id));
+      return { serverId: server.id, generation };
+    }
     const now = new Date();
+    if (agent)
+      await transaction
+        .update(monitoringAgents)
+        .set({
+          tokenHash: null,
+          encryptedToken: null,
+          removalRequestedBy: null,
+          desiredState: "disabled",
+        })
+        .where(eq(monitoringAgents.serverId, server.id));
     await transaction
       .delete(managedSecrets)
       .where(eq(managedSecrets.serverId, server.id));
@@ -262,6 +305,8 @@ export async function removeServer(input: {
       metadata: {},
     });
   });
+  if (pending) await enqueueMonitoringAgent(pending).catch(() => undefined);
+  return { pending: Boolean(pending) };
 }
 
 // Archived apps/resources still belong to a source and may be restored by sync.

@@ -429,6 +429,7 @@ serverRoutes.delete(
   operation({
     responseSchema: 'servers.ts:delete:"/:serverId"',
     summary: "Remove server",
+    additionalStatuses: [202],
     ownerOnly: true,
     response:
       "Stops Towbar management and removes stored server credentials and host-key trust. Does not terminate the machine or delete Docker services or data. Assigned workloads and active operations block removal.",
@@ -438,11 +439,12 @@ serverRoutes.delete(
     const user = context.get("user");
     if (user.workspaceRole !== "owner")
       throw forbidden("Only the owner can remove servers");
-    await removeServer({
+    const removal = await removeServer({
       serverId: context.req.param("serverId"),
       workspaceId: user.workspaceId,
       requestedBy: user.id,
     });
+    if (removal.pending) return context.json({ pending: true }, 202);
     return context.body(null, 204);
   },
 );

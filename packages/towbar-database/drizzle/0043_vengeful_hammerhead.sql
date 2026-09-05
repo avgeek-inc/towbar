@@ -1,0 +1,2 @@
+ALTER TABLE "towbar_monitoring_agents" ADD COLUMN "removal_requested_by" uuid;--> statement-breakpoint
+ALTER TABLE "towbar_monitoring_agents" ADD CONSTRAINT "towbar_monitoring_agents_removal_requested_by_towbar_users_id_fk" FOREIGN KEY ("removal_requested_by") REFERENCES "public"."towbar_users"("id") ON DELETE set null ON UPDATE no action;

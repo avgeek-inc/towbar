@@ -1,5 +1,5 @@
 ---
-title: "Health and capacity"
+title: "Monitoring, health, and capacity"
 description: "Read control-plane checks, runtime health, resource usage, and operation history."
 ---
 
@@ -90,3 +90,118 @@ docker compose logs --tail 200 api worker temporal
 ```
 
 Configure [notifications](/docs/integrations/notifications) for events that need attention. Use [Troubleshooting](/docs/troubleshooting) to narrow down common symptoms.
+
+## Enhanced monitoring agent
+
+Open a server, choose **Settings → Monitoring Agent**, select a retention period, and acknowledge installation. Choose **Enable monitoring**. The server must already be prepared, with its SSH credential and a trusted host key configured.
+
+Towbar installs two small systemd services: a local collector and an HTTPS sender. Both start after a reboot and restart after a crash. The collector reads host counters and Towbar-labelled Docker containers every **30 seconds**. The sender reports to your own Towbar API; it does not open an inbound port on the server.
+
+**Installing** means the worker is setting up the services. **Awaiting report** means installation completed but no sample has arrived yet. **Online** requires a received sample. **No recent report** appears when the latest collection is older than 90 seconds; old data is never presented as a fresh zero.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/guides/monitoring-agent-settings-light.webp"
+      alt="Monitoring agent settings"
+      width="1600"
+      height="670"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/guides/monitoring-agent-settings-dark.webp"
+      alt="Monitoring agent settings"
+      width="1600"
+      height="670"
+      loading="lazy"
+    />
+  </div>
+</div>
+
+### Performance history
+
+The server **Overview** shows performance charts below Host capacity. App and resource overviews show the same charts for their containers.
+
+- Server metrics include CPU usage, CPU count, load, memory, swap, root/Docker filesystem capacity, disk I/O, network traffic, and uptime.
+- Container metrics include CPU consumption and its limit, memory consumption and its limit, network and block I/O, restart count, state, and health when Docker provides it.
+- Choose a relative range from one hour through 60 days, limited by the server's retention setting. Switch between **Average** and **Peak**, and hover to read exact values at the same time across charts.
+- App and resource history survives container replacements. Each line represents an individual container. Choose **Production** or **Previews**, then an instance when you need to isolate it.
+- Gaps mean no measurement. Dashed markers and the event list help correlate deployments and restarts with changes in performance.
+
+The API preserves the sum, count, minimum, and maximum for each metric. Longer chart ranges use fewer points; averages remain sample-weighted and peaks remain the highest observed value for that container. Up to 32 recently reporting instances are shown per query. A shorter range helps when a workload has many historical replacements.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/guides/monitoring-performance-light.webp"
+      alt="Server performance history"
+      width="1600"
+      height="1515"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/guides/monitoring-performance-dark.webp"
+      alt="Server performance history"
+      width="1600"
+      height="1515"
+      loading="lazy"
+    />
+  </div>
+</div>
+
+### Retention and resource limits
+
+Retention defaults to **15 days**. Choose 7, 15, 30, or 60 days per server. Raw 30-second samples are kept for 24 hours, then compacted into one-minute summaries. The maintenance worker compacts and expires records in bounded batches. Reducing retention expires older history permanently; increasing it cannot recover expired data.
+
+Each agent service has a 64 MiB memory ceiling and a CPU quota of 5% of one CPU. The retry buffer holds at most **10 MiB or one hour**, whichever is reached first. Oldest samples are dropped when the buffer fills, and diagnostics report dropped samples. The services share a separate volatile journal capped at 8 MiB. A backend outage does not accumulate logs or metrics indefinitely.
+
+Collection is limited to 512 Towbar-labelled containers per server, four concurrent Docker reads, and a 20-second collection deadline. Unavailable measurements are omitted and reported in diagnostics. The agent does not store or transmit application environment variables, secrets, or log contents.
+
+### Credentials and connectivity
+
+The worker installs a dedicated credential scoped to one server. It only authorizes metric ingestion and cannot call the control-plane API or MCP. Updates rotate this credential. The collector and sender use separate service accounts; only the sender reads the upload configuration. Docker access is privileged, so only enable the agent on a server you trust.
+
+The configured `TOWBAR_API_BASE_URL` must be an HTTPS URL reachable from the server. The agent validates the certificate and never follows redirects with its credential. Ensure outbound DNS and HTTPS are available. Monitoring uploads have separate limits from API/MCP traffic: 120 requests per server per minute and 600 per originating IP per minute, including buffered catch-up traffic.
+
+### Update, uninstall, and remove a server
+
+Choose **Update agent** to install the version bundled with the current Towbar worker. Reporting may pause briefly while services restart.
+
+**Uninstall agent** immediately revokes the upload credential, then stops the services and removes the binary, configuration, and retry buffer. Existing history follows its retention period. A failed uninstall keeps SSH credentials available for retry.
+
+Removing an otherwise unused server first uninstalls monitoring and only then forgets SSH credentials and host-key trust. The machine, application containers, and volumes are not deleted. Workload assignments and active operations still block server removal.
+
+### Troubleshooting
+
+Check the agent status and last sample time in **Monitoring Agent**. On the server:
+
+```bash
+sudo systemctl status towbar-monitoring-collector towbar-monitoring
+sudo journalctl --namespace=towbar-monitoring --since '10 minutes ago'
+```
+
+Do not share `/etc/towbar-monitoring/config.json`; it contains the upload credential. If credentials were revoked, update or reinstall the agent from Towbar. For missing container metrics, verify Docker is running and the containers retain their Towbar ownership labels.
+
+### API and MCP
+
+Use the normal API key authentication for management and history:
+
+| Action            | Route                                                          |
+| ----------------- | -------------------------------------------------------------- |
+| Agent status      | `GET /v1/api/servers/{serverId}/monitoring`                    |
+| Retention         | `PATCH /v1/api/servers/{serverId}/monitoring`                  |
+| Install or update | `POST /v1/api/servers/{serverId}/monitoring/actions/install`   |
+| Uninstall         | `POST /v1/api/servers/{serverId}/monitoring/actions/uninstall` |
+| Host history      | `GET /v1/api/servers/{serverId}/metrics`                       |
+| App history       | `GET /v1/api/apps/{appId}/metrics`                             |
+| Resource history  | `GET /v1/api/resources/{resourceId}/metrics`                   |
+
+Installation requires `{"acknowledge": true, "retentionDays": 15}`. Retention updates require `{"retentionDays": 15}`. Management requires a full-access key owned by the workspace owner. Read-only keys can inspect monitoring within their workspace.
+
+History accepts `range=1h|6h|24h|7d|15d|30d|60d`, `environment=production|preview`, and an optional `previewId`. The agent-only ingestion endpoint is not a user API route.
+
+MCP provides `towbar_performance_inspect` for performance summaries and representative history points, and `towbar_monitoring_configure` for acknowledged installation, retention, or uninstall. `towbar_server_inspect` includes monitoring status. See the [MCP tool reference](/docs/api/mcp-tools) for arguments.

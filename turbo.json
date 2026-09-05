@@ -44,7 +44,8 @@
     "SENTRY_AUTH_TOKEN",
     "SENTRY_ORG",
     "SENTRY_RELEASE",
-    "NEXT_RUNTIME"
+    "NEXT_RUNTIME",
+    "TOWBAR_MONITORING_BINARY_DIR"
   ],
   "tasks": {
     "build": {

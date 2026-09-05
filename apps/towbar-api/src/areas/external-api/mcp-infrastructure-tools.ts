@@ -1,5 +1,7 @@
 import { z } from "zod";
 import {
+  monitoringQuerySchema,
+  monitoringSettingsSchema,
   secretEnvironmentSchema,
   secretKeySchema,
   secretMutationSchema,
@@ -38,6 +40,111 @@ function secretRoute(scope: "workspace" | "source" | "app" | "resource") {
 
 export const infrastructureTools: McpTool[] = [
   tool(
+    "performance_inspect",
+    "Inspect performance over time",
+    "Read server, app, or resource performance with averages, peaks, reporting freshness, and recent deployment/restart events. Production and preview measurements stay separate. Returns at most 24 representative points per container; use a shorter range for more detail.",
+    z
+      .object({
+        kind: z.enum(["server", "app", "resource"]),
+        targetId: id("Server, app, or resource"),
+        ...monitoringQuerySchema.shape,
+      })
+      .strict(),
+    async (a, c) => {
+      const result = await c.call({
+        method: "GET",
+        route: `/${targets[a.kind]}/:${a.kind}Id/metrics`,
+        path: { [`${a.kind}Id`]: a.targetId },
+        query: {
+          range: a.range,
+          environment: a.environment,
+          ...(a.previewId ? { previewId: a.previewId } : {}),
+        },
+      });
+      const series = records(result.series).map((instance) => {
+        const points = records(instance.points);
+        const metrics: Record<
+          string,
+          { sum: number; count: number; min: number; max: number }
+        > = {};
+        for (const point of points)
+          for (const [name, value] of Object.entries(
+            (point.metrics ?? {}) as Record<
+              string,
+              { sum: number; count: number; min: number; max: number }
+            >,
+          )) {
+            const old = metrics[name];
+            metrics[name] = old
+              ? {
+                  sum: old.sum + value.sum,
+                  count: old.count + value.count,
+                  min: Math.min(old.min, value.min),
+                  max: Math.max(old.max, value.max),
+                }
+              : value;
+          }
+        const stride = Math.max(1, Math.ceil(points.length / 24));
+        return {
+          ...instance,
+          metrics: Object.fromEntries(
+            Object.entries(metrics).map(([name, value]) => [
+              name,
+              {
+                average: value.sum / value.count,
+                minimum: value.min,
+                peak: value.max,
+                sampleCount: value.count,
+              },
+            ]),
+          ),
+          points: points.filter((_, index) => index % stride === 0),
+          pointsSampled: stride > 1,
+        };
+      });
+      return { ...result, series, events: records(result.events).slice(0, 20) };
+    },
+  ),
+  tool(
+    "monitoring_configure",
+    "Configure enhanced monitoring",
+    "Install/update the opt-in monitoring agent, change retention, or uninstall it. Installation requires explicit user acknowledgement. Uninstall revokes reporting immediately and removes services asynchronously. Shorter retention expires older data. Poll server_inspect for completion; queued does not mean online.",
+    z
+      .object({
+        ...serverId,
+        action: z.enum(["install", "uninstall", "retention"]),
+        retentionDays: monitoringSettingsSchema.shape.retentionDays.optional(),
+        acknowledge: z.literal(true).optional(),
+      })
+      .strict()
+      .refine(
+        (a) =>
+          a.action !== "install" ||
+          (a.acknowledge === true && a.retentionDays !== undefined),
+        "Installation requires acknowledge=true and retentionDays",
+      )
+      .refine(
+        (a) => a.action !== "retention" || a.retentionDays !== undefined,
+        "Retention is required",
+      ),
+    async (a, c) =>
+      c.call({
+        method: a.action === "retention" ? "PATCH" : "POST",
+        route: `/servers/:serverId/monitoring${a.action === "retention" ? "" : `/actions/${a.action}`}`,
+        path: { serverId: a.serverId },
+        ...(a.action === "uninstall"
+          ? {}
+          : {
+              body: {
+                retentionDays: a.retentionDays,
+                ...(a.action === "install" ? { acknowledge: true } : {}),
+              },
+            }),
+      }),
+    { readOnly: false, ownerOnly: true, destructive: true, idempotent: false },
+  ),
+
+  tool(
     "server_inspect",
     "Inspect server readiness and capacity",
     "Read server settings, capacity, recent checks, preparation attempts, host-key fingerprints, credential metadata, and orphan inventory together. Use before preparation or cleanup. No private credential values are returned.",
@@ -53,6 +160,7 @@ export const infrastructureTools: McpTool[] = [
       };
       for (const section of [
         "capacity",
+        "monitoring",
         "checks",
         "preparations",
         "host-keys",
@@ -96,7 +204,7 @@ export const infrastructureTools: McpTool[] = [
   action(
     "server_remove",
     "Remove server from Towbar",
-    "Stop managing a server and forget stored credentials and host trust. Does not terminate the machine or delete running services, Docker objects, or data. Assigned workloads and active operations block removal. Inspect and clean selected orphans first if desired.",
+    "Stop managing a server and forget stored credentials and host trust. Uninstalls monitoring before forgetting SSH access; this may return pending. Does not terminate the machine or delete running services, Docker objects, or data. Assigned workloads and active operations block removal. Inspect and clean selected orphans first if desired.",
     "DELETE",
     "/servers/:serverId",
     serverId,

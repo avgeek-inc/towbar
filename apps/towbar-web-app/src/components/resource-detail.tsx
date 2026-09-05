@@ -1,4 +1,5 @@
 "use client";
+import { MonitoringHistory } from "./monitoring-history";
 
 import {
   DatabaseIcon,
@@ -197,6 +198,12 @@ export function ResourceDetail() {
                 : "None"}
             </Attributes.Item>
           </Attributes>
+          <div className="min-w-0 lg:col-span-2">
+            <MonitoringHistory
+              path={`/v1/core/resources/${resourceId}/metrics`}
+              workload
+            />
+          </div>
         </div>
       ),
     },
