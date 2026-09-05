@@ -1,5 +1,9 @@
 import { HostKeyNotTrustedError, SshSession, scanHostKeys } from "./ssh.js";
 import { inspectServerRuntime } from "./runtime-inspection.js";
+import {
+  instanceMetadataScript,
+  parseInstanceMetadata,
+} from "./instance-metadata.js";
 
 import type { ServerCheckContext, ServerCheckResult } from "./types.js";
 
@@ -84,6 +88,10 @@ export async function checkServer(
     ) {
       throw new Error("Server preflight returned an incomplete result");
     }
+    const instance = await session
+      .run(instanceMetadataScript, [], { timeoutMs: 5_000 })
+      .then(({ stdout }) => parseInstanceMetadata(stdout))
+      .catch(() => null);
     const inspection = await inspectServerRuntime({
       containerNames: context.expectedContainerNames,
       deployables: context.expectedDeployables,
@@ -97,6 +105,7 @@ export async function checkServer(
       dockerVersion,
       hostKey: context.trustedHostKeys[0]!,
       host: {
+        instance,
         cpuLogicalCount: Number(cpuLogicalCount),
         cpuUsagePercent: Number(cpuUsagePercent),
         diskAvailableKb: Number(diskAvailable),

@@ -1931,6 +1931,16 @@ function createServerFixture(
   return {
     archivedAt: null,
     canonicalIp,
+    hardware:
+      id === fixtureIds.server
+        ? {
+            instance: { provider: "aws", type: "m6i.xlarge" },
+            cpuCount: 4,
+            memoryBytes: 17_179_869_184,
+          }
+        : id === fixtureIds.secondaryServer
+          ? { instance: null, cpuCount: 8, memoryBytes: 34_359_738_368 }
+          : null,
     config: {
       buildConcurrency: 2,
       previewBuildConcurrency: 1,

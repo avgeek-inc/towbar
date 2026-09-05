@@ -6,6 +6,7 @@ import type {
   RuntimeCapacity,
   SystemHealthStatus,
 } from "@workspace/towbar-core";
+import { cloudInstanceSchema } from "@workspace/towbar-core";
 
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 
@@ -32,6 +33,7 @@ const serverResultSchema = z
   .object({
     host: z
       .object({
+        instance: cloudInstanceSchema.nullish().catch(null),
         cpuLogicalCount: z.number().int().positive(),
         cpuUsagePercent: z.number().min(0).max(100),
         diskAvailableKb: z.number().nonnegative(),

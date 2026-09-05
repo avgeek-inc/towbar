@@ -19,6 +19,7 @@ import {
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { Tooltip } from "@workspace/web-design-system/overlays/tooltip";
+import { ServerHardwareDescription } from "./server-hardware";
 import { InlineLink } from "@/components/page-parts";
 import {
   getActiveDeploymentStates,
@@ -34,7 +35,7 @@ import {
 function appColumns(
   activeDeploymentStates: Map<string, DeploymentState>,
   runtimeById: Map<string, RuntimeMetric>,
-  serverIdsByIp: Map<string, string>,
+  serversByIp: Map<string, Server>,
 ): ResourceTableColumn<App>[] {
   return [
     {
@@ -48,10 +49,11 @@ function appColumns(
       cell: (app) => (
         <ServerIpLink
           ip={app.serverIp}
-          serverId={serverIdsByIp.get(app.serverIp)}
+          serverId={serversByIp.get(app.serverIp)?.id}
+          hardware={serversByIp.get(app.serverIp)?.hardware}
         />
       ),
-      className: "min-w-36 tabular-nums",
+      className: "min-w-52 tabular-nums",
       header: "Server",
       key: "server",
     },
@@ -94,7 +96,7 @@ function appColumns(
 function resourceColumns(
   activeDeploymentStates: Map<string, DeploymentState>,
   runtimeById: Map<string, RuntimeMetric>,
-  serverIdsByIp: Map<string, string>,
+  serversByIp: Map<string, Server>,
 ): ResourceTableColumn<Resource>[] {
   return [
     {
@@ -107,10 +109,11 @@ function resourceColumns(
       cell: (resource) => (
         <ServerIpLink
           ip={resource.serverIp}
-          serverId={serverIdsByIp.get(resource.serverIp)}
+          serverId={serversByIp.get(resource.serverIp)?.id}
+          hardware={serversByIp.get(resource.serverIp)?.hardware}
         />
       ),
-      className: "min-w-36 tabular-nums",
+      className: "min-w-52 tabular-nums",
       header: "Server",
       key: "server",
     },
@@ -174,12 +177,12 @@ export function SourceApps({
     return <QueryLoading variant="list" />;
   const activeDeploymentStates = getActiveDeploymentStates(deployments);
   const runtimeById = getRuntimeByDeployableId(capacities);
-  const serverIdsByIp = getServerIdsByIp(servers);
+  const serversByIp = getServersByIp(servers);
   return (
     <RelativeTimeProvider>
       <ResourceTable
         ariaLabel="Source apps"
-        columns={appColumns(activeDeploymentStates, runtimeById, serverIdsByIp)}
+        columns={appColumns(activeDeploymentStates, runtimeById, serversByIp)}
         emptyDescription="A successful manifest sync imports this Source's apps."
         emptyTitle="No apps in this Source"
         getRowHref={(app) => `/sources/${sourceId}/apps/${app.id}`}
@@ -211,7 +214,7 @@ export function SourceResources({
     return <QueryLoading variant="list" />;
   const activeDeploymentStates = getActiveDeploymentStates(deployments);
   const runtimeById = getRuntimeByDeployableId(capacities);
-  const serverIdsByIp = getServerIdsByIp(servers);
+  const serversByIp = getServersByIp(servers);
   return (
     <RelativeTimeProvider>
       <ResourceTable
@@ -219,7 +222,7 @@ export function SourceResources({
         columns={resourceColumns(
           activeDeploymentStates,
           runtimeById,
-          serverIdsByIp,
+          serversByIp,
         )}
         emptyDescription="Declare an image, PostgreSQL, or Redis resource in this Source's manifest."
         emptyTitle="No resources in this Source"
@@ -346,19 +349,26 @@ export function ResourceIdentity({ resource }: { resource: Resource }) {
 
 export function ServerIpLink({
   ip,
+  hardware,
   serverId,
 }: {
   ip: string;
+  hardware?: Server["hardware"];
   serverId?: string;
 }) {
   const label = (
-    <span className="inline-flex items-center gap-2 whitespace-nowrap tabular-nums">
-      <HugeiconsIcon
-        aria-hidden="true"
-        className="size-4 shrink-0 text-muted"
-        icon={ServerStack01Icon}
-      />
-      <span>{ip}</span>
+    <span className="grid min-w-0 gap-1">
+      <span className="inline-flex items-center gap-2 whitespace-nowrap tabular-nums">
+        <HugeiconsIcon
+          aria-hidden="true"
+          className="size-4 shrink-0 text-muted"
+          icon={ServerStack01Icon}
+        />
+        <span>{ip}</span>
+      </span>
+      <span className="text-xs font-normal text-muted">
+        <ServerHardwareDescription hardware={hardware} />
+      </span>
     </span>
   );
   return serverId ? (
@@ -376,6 +386,6 @@ function getRuntimeByDeployableId(capacities: RuntimeCapacity[]) {
   );
 }
 
-function getServerIdsByIp(servers: Server[]) {
-  return new Map(servers.map((server) => [server.canonicalIp, server.id]));
+function getServersByIp(servers: Server[]) {
+  return new Map(servers.map((server) => [server.canonicalIp, server]));
 }

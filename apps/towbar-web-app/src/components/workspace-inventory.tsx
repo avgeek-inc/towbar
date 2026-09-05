@@ -28,14 +28,13 @@ import {
   getActiveDeploymentStates,
   resolveInventoryStatus,
 } from "@/lib/inventory-status";
+import { formatBytes } from "./runtime-operations";
 import { LastSyncedTime, RelativeTimeProvider } from "./last-synced-time";
 import {
   AppIdentity,
   ResourceIdentity,
   ServerIpLink,
 } from "./source-inventory";
-
-type SourcesById = Map<string, Source>;
 
 export function AppsIndex() {
   const apps = useApiQuery<{ apps: App[] }>("/v1/core/apps", 5_000);
@@ -110,8 +109,7 @@ export function ServersIndex() {
     5_000,
   );
   const servers = useApiQuery<{ servers: Server[] }>("/v1/core/servers", 5_000);
-  const sources = useApiQuery<{ sources: Source[] }>("/v1/core/sources");
-  const error = apps.error ?? resources.error ?? servers.error ?? sources.error;
+  const error = apps.error ?? resources.error ?? servers.error;
 
   return (
     <DashboardPage
@@ -121,14 +119,13 @@ export function ServersIndex() {
     >
       {error ? (
         <QueryError message={error} />
-      ) : !apps.data || !resources.data || !servers.data || !sources.data ? (
+      ) : !apps.data || !resources.data || !servers.data ? (
         <QueryLoading variant="table" />
       ) : (
         <ServerInventory
           apps={apps.data.apps}
           resources={resources.data.resources}
           servers={servers.data.servers}
-          sources={sources.data.sources}
         />
       )}
     </DashboardPage>
@@ -150,8 +147,8 @@ function DeployableInventory({
 }) {
   const activeDeploymentStates = getActiveDeploymentStates(deployments);
   const sourcesById = new Map(sources.map((source) => [source.id, source]));
-  const serverIdsByIp = new Map(
-    servers.map((server) => [server.canonicalIp, server.id]),
+  const serversByIp = new Map(
+    servers.map((server) => [server.canonicalIp, server]),
   );
   const columns: ResourceTableColumn<App | Resource>[] = [
     {
@@ -176,10 +173,11 @@ function DeployableInventory({
       cell: (item) => (
         <ServerIpLink
           ip={item.serverIp}
-          serverId={serverIdsByIp.get(item.serverIp)}
+          serverId={serversByIp.get(item.serverIp)?.id}
+          hardware={serversByIp.get(item.serverIp)?.hardware}
         />
       ),
-      className: "min-w-36 tabular-nums",
+      className: "min-w-52 tabular-nums",
       header: "Server",
       key: "server",
     },
@@ -252,53 +250,39 @@ function ServerInventory({
   apps,
   resources,
   servers,
-  sources,
 }: {
   apps: App[];
   resources: Resource[];
   servers: Server[];
-  sources: Source[];
 }) {
-  const sourcesById = new Map(sources.map((source) => [source.id, source]));
   const appCounts = countBy(apps, (app) => app.serverIp);
   const resourceCounts = countBy(resources, (resource) => resource.serverIp);
-  const sourceIdsByServer = new Map<string, Set<string>>();
-  for (const item of [...apps, ...resources]) {
-    const sourceIds = sourceIdsByServer.get(item.serverIp) ?? new Set<string>();
-    sourceIds.add(item.sourceId);
-    sourceIdsByServer.set(item.serverIp, sourceIds);
-  }
   const columns: ResourceTableColumn<Server>[] = [
     {
-      cell: (server) => <ServerIpLink ip={server.canonicalIp} />,
+      cell: (server) => (
+        <ServerIpLink ip={server.canonicalIp} hardware={server.hardware} />
+      ),
       className: "w-full min-w-52 tabular-nums",
       header: "Server",
       key: "server",
     },
     {
-      cell: (server) => {
-        const sourceIds = [
-          ...(sourceIdsByServer.get(server.canonicalIp) ?? []),
-        ];
-        return sourceIds.length ? (
-          <div className="grid gap-2">
-            {sourceIds
-              .sort((left, right) =>
-                formatSource(sourcesById, left).localeCompare(
-                  formatSource(sourcesById, right),
-                ),
-              )
-              .map((sourceId) => (
-                <SourceLink key={sourceId} source={sourcesById.get(sourceId)} />
-              ))}
-          </div>
-        ) : (
-          "No active sources"
-        );
-      },
-      className: "min-w-56",
-      header: "Used by sources",
-      key: "sources",
+      cell: (server) =>
+        server.hardware?.cpuCount
+          ? `${server.hardware.cpuCount} vCPU`
+          : "Unknown",
+      className: "min-w-32 whitespace-nowrap tabular-nums",
+      header: "Max CPU",
+      key: "max-cpu",
+    },
+    {
+      cell: (server) =>
+        server.hardware?.memoryBytes
+          ? formatBytes(server.hardware.memoryBytes)
+          : "Unknown",
+      className: "min-w-36 whitespace-nowrap tabular-nums",
+      header: "Max Memory",
+      key: "max-memory",
     },
     {
       cell: (server) => {
@@ -369,13 +353,6 @@ function ServerInventory({
       />
     </RelativeTimeProvider>
   );
-}
-
-function formatSource(sourcesById: SourcesById, sourceId: string) {
-  const source = sourcesById.get(sourceId);
-  return source
-    ? `${source.repositoryOwner}/${source.repositoryName}`
-    : "Unknown Source";
 }
 
 function countBy<T>(items: T[], getKey: (item: T) => string) {

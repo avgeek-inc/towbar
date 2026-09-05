@@ -1,7 +1,10 @@
 import { and, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 
-import { isNormalizedResource } from "@workspace/towbar-core";
+import {
+  isNormalizedResource,
+  serverHardwareFromCheck,
+} from "@workspace/towbar-core";
 import {
   apps,
   deployableRuntimeStates,
@@ -57,12 +60,15 @@ export async function listServers(workspaceId: string) {
       and(eq(servers.workspaceId, workspaceId), isNull(servers.archivedAt)),
     )
     .orderBy(desc(servers.updatedAt));
-  const latestPreparations = await getLatestServerPreparations(
-    rows.map((server) => server.id),
-  );
-  return rows.map((server) =>
-    toPublicServer(server, latestPreparations.get(server.id)),
-  );
+  const ids = rows.map((server) => server.id);
+  const [latestPreparations, hardware] = await Promise.all([
+    getLatestServerPreparations(ids),
+    getServerHardware(ids),
+  ]);
+  return rows.map((server) => ({
+    ...toPublicServer(server, latestPreparations.get(server.id)),
+    hardware: hardware.get(server.id) ?? null,
+  }));
 }
 
 export async function getServer(serverId: string, workspaceId: string) {
@@ -79,8 +85,42 @@ export async function getServer(serverId: string, workspaceId: string) {
     )
     .limit(1);
   if (!server) throw notFound("Server");
-  const latestPreparations = await getLatestServerPreparations([server.id]);
-  return toPublicServer(server, latestPreparations.get(server.id));
+  const [latestPreparations, hardware] = await Promise.all([
+    getLatestServerPreparations([server.id]),
+    getServerHardware([server.id]),
+  ]);
+  return {
+    ...toPublicServer(server, latestPreparations.get(server.id)),
+    hardware: hardware.get(server.id) ?? null,
+  };
+}
+
+async function getServerHardware(serverIds: string[]) {
+  if (serverIds.length === 0)
+    return new Map<string, ReturnType<typeof serverHardwareFromCheck>>();
+  const checks = await getTowbarDatabase()
+    .selectDistinctOn([serverChecks.serverId], {
+      serverId: serverChecks.serverId,
+      result: serverChecks.result,
+    })
+    .from(serverChecks)
+    .where(
+      and(
+        inArray(serverChecks.serverId, serverIds),
+        eq(serverChecks.status, "succeeded"),
+      ),
+    )
+    .orderBy(
+      serverChecks.serverId,
+      desc(serverChecks.createdAt),
+      desc(serverChecks.id),
+    );
+  return new Map(
+    checks.map((check) => [
+      check.serverId,
+      serverHardwareFromCheck(check.result),
+    ]),
+  );
 }
 
 export async function listServerApps(serverId: string, workspaceId: string) {

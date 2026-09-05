@@ -142,6 +142,7 @@ export type ServerCheckResult = {
   caddyVersion: string;
   diskAvailableKb: number;
   host: {
+    instance?: import("@workspace/towbar-core").CloudInstance | null;
     cpuLogicalCount: number;
     cpuUsagePercent: number;
     diskAvailableKb: number;
