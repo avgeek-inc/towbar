@@ -6,6 +6,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 
 import type { NotificationEvent } from "@workspace/towbar-web-client";
 import { usePageVisibilityInterval } from "@workspace/web-design-system/hooks/use-page-visibility-interval";
+import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Popover } from "@workspace/web-design-system/overlays/popover";
 import { ScrollShadow } from "@workspace/web-design-system/utilities/scroll-shadow";
 
@@ -92,56 +93,67 @@ export function NotificationCenter() {
         ) : null}
       </Popover.Trigger>
       <Popover.Content
-        className="w-[min(24rem,calc(100vw-2rem))] p-0"
+        className="w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-2xl bg-transparent p-0"
         placement="bottom end"
       >
         <Popover.Dialog className="p-0 outline-none">
-          <div className="border-b border-separator px-4 py-3">
-            <Popover.Heading className="font-medium">
-              Notifications
-            </Popover.Heading>
-          </div>
-          <ScrollShadow className="max-h-[26rem]">
-            {loading && notifications.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-muted">
-                Loading notifications…
-              </p>
-            ) : notifications.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-muted">
-                No notifications yet
-              </p>
-            ) : (
-              <ul className="divide-y divide-separator">
-                {notifications.map((notification) => (
-                  <li className="flex gap-3 px-4 py-3" key={notification.id}>
-                    <span
-                      aria-hidden="true"
-                      className={`mt-1 size-2 shrink-0 rounded-full ${notificationTone(notification.type)}`}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="text-sm font-medium">
-                          {notification.payload.title}
-                        </p>
-                        <time
-                          className="shrink-0 text-xs text-muted"
-                          dateTime={notification.occurredAt}
-                        >
-                          {formatDate(notification.occurredAt)}
-                        </time>
-                      </div>
-                      <p className="mt-0.5 text-sm text-muted">
-                        {notification.payload.message}
-                      </p>
-                      <p className="mt-1 text-xs text-muted">
-                        {notification.payload.source.name}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </ScrollShadow>
+          <Widget>
+            <Widget.Header>
+              <Popover.Heading className="flex min-w-0">
+                <Widget.Title
+                  icon={<HugeiconsIcon icon={Notification02Icon} />}
+                >
+                  Notifications
+                </Widget.Title>
+              </Popover.Heading>
+            </Widget.Header>
+            <Widget.Content className="p-0">
+              <ScrollShadow className="max-h-[26rem]">
+                {loading && notifications.length === 0 ? (
+                  <p className="px-4 py-6 text-center text-sm text-muted">
+                    Loading notifications…
+                  </p>
+                ) : notifications.length === 0 ? (
+                  <p className="px-4 py-6 text-center text-sm text-muted">
+                    No notifications yet
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-separator">
+                    {notifications.map((notification) => (
+                      <li
+                        className="flex gap-3 px-4 py-3"
+                        key={notification.id}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`mt-1 size-2 shrink-0 rounded-full ${notificationTone(notification.type)}`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="text-sm font-medium">
+                              {notification.payload.title}
+                            </p>
+                            <time
+                              className="shrink-0 text-xs text-muted"
+                              dateTime={notification.occurredAt}
+                            >
+                              {formatDate(notification.occurredAt)}
+                            </time>
+                          </div>
+                          <p className="mt-0.5 text-sm text-muted">
+                            {notification.payload.message}
+                          </p>
+                          <p className="mt-1 text-xs text-muted">
+                            {notification.payload.source.name}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </ScrollShadow>
+            </Widget.Content>
+          </Widget>
         </Popover.Dialog>
       </Popover.Content>
     </Popover>

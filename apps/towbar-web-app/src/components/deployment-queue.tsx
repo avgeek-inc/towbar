@@ -1,5 +1,8 @@
 "use client";
 
+import { Rocket01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -11,6 +14,7 @@ import type {
 } from "@workspace/towbar-web-client";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { ProgressCircle } from "@workspace/web-design-system/feedback/progress-circle";
+import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Popover } from "@workspace/web-design-system/overlays/popover";
 import { ScrollShadow } from "@workspace/web-design-system/utilities/scroll-shadow";
 import { formatStatus } from "@workspace/towbar-web-ui/status-badge";
@@ -122,39 +126,47 @@ export function DeploymentQueue() {
           </span>
         </Button>
         <Popover.Content
-          className="w-[min(22rem,calc(100vw-2rem))] overflow-hidden border border-separator bg-overlay"
+          className="w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl bg-transparent p-0"
           offset={8}
           placement="top end"
         >
           <Popover.Dialog className="overflow-hidden p-0">
-            <div className="border-b border-separator px-4 py-3">
-              <Popover.Heading>Deployment queue</Popover.Heading>
-            </div>
-            <ScrollShadow className="max-h-80" hideScrollBar>
-              <div className="divide-y divide-separator">
-                {pending.map((deployment) => {
-                  const deployableName =
-                    deployableNames.get(deployment.appId) ??
-                    "Unavailable deployable";
-                  return (
-                    <Button
-                      className="h-auto min-h-14 w-full justify-between rounded-none bg-overlay px-4 py-3 text-start"
-                      key={deployment.id}
-                      variant="ghost"
-                      onPress={() => openDeployment(deployment)}
-                    >
-                      <span
-                        className="min-w-0 truncate font-medium"
-                        title={deployableName}
-                      >
-                        {deployableName}
-                      </span>
-                      <DeploymentStateIndicator deployment={deployment} />
-                    </Button>
-                  );
-                })}
-              </div>
-            </ScrollShadow>
+            <Widget>
+              <Widget.Header>
+                <Popover.Heading className="flex min-w-0">
+                  <Widget.Title icon={<HugeiconsIcon icon={Rocket01Icon} />}>
+                    Deployment queue
+                  </Widget.Title>
+                </Popover.Heading>
+              </Widget.Header>
+              <Widget.Content className="p-0">
+                <ScrollShadow className="max-h-80" hideScrollBar>
+                  <div className="divide-y divide-separator">
+                    {pending.map((deployment) => {
+                      const deployableName =
+                        deployableNames.get(deployment.appId) ??
+                        "Unavailable deployable";
+                      return (
+                        <Button
+                          className="h-auto min-h-14 w-full justify-between rounded-none px-4 py-3 text-start"
+                          key={deployment.id}
+                          variant="ghost"
+                          onPress={() => openDeployment(deployment)}
+                        >
+                          <span
+                            className="min-w-0 truncate font-medium"
+                            title={deployableName}
+                          >
+                            {deployableName}
+                          </span>
+                          <DeploymentStateIndicator deployment={deployment} />
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </ScrollShadow>
+              </Widget.Content>
+            </Widget>
           </Popover.Dialog>
         </Popover.Content>
       </Popover>
