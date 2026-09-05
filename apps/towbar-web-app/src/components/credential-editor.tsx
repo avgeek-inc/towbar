@@ -8,7 +8,10 @@ import { useState, type FormEvent } from "react";
 import type { SecretMetadata, Server } from "@workspace/towbar-web-client";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { FieldError } from "@workspace/web-design-system/forms/field";
+import {
+  FieldError,
+  FieldLabel,
+} from "@workspace/web-design-system/forms/field";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { Switch } from "@workspace/web-design-system/forms/switch";
 import { Textarea } from "@workspace/web-design-system/forms/textarea";
@@ -279,9 +282,7 @@ function CredentialField({
   return (
     <div className="grid gap-2">
       <div className="flex min-h-7 items-center gap-3">
-        <label htmlFor={id} className="font-medium">
-          {label}
-        </label>
+        <FieldLabel htmlFor={id}>{label}</FieldLabel>
         <Chip
           size="small"
           variant={deleted ? "warning" : configured ? "success" : "secondary"}
