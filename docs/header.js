@@ -1,6 +1,13 @@
 // Enhance Mintlify's header while retaining its search dialog and theme menu.
 (() => {
+  // Mintlify can re-run custom scripts during preview updates.
+  window.__towbarHeaderCleanup?.();
   let scheduled = false;
+  let frame;
+  window.__towbarHeaderCleanup = () => {
+    observer.disconnect();
+    cancelAnimationFrame(frame);
+  };
   const observer = new MutationObserver(schedule);
 
   function enhanceHeader() {
@@ -21,11 +28,17 @@
       const primary = header.querySelector("#topbar-cta-button a");
       const actions = theme?.parentElement?.parentElement;
       if (theme && primary && actions) {
-        if (!actions.querySelector("[data-towbar-primary]")) {
+        const existing = actions.querySelector("[data-towbar-primary]");
+        if (
+          !existing ||
+          existing.getAttribute("href") !== primary.getAttribute("href") ||
+          existing.textContent !== primary.textContent
+        ) {
           const cta = primary.cloneNode(true);
           cta.dataset.towbarPrimary = "";
           cta.removeAttribute("target");
-          actions.append(cta);
+          if (existing) existing.replaceWith(cta);
+          else actions.append(cta);
         }
         header.dataset.towbarEnhanced = "";
       }
@@ -36,7 +49,7 @@
   function schedule() {
     if (scheduled) return;
     scheduled = true;
-    requestAnimationFrame(() => {
+    frame = requestAnimationFrame(() => {
       scheduled = false;
       enhanceHeader();
     });

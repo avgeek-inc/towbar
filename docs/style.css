@@ -289,3 +289,7 @@ body:has(.towbar-home) {
   flex-shrink: 0;
   white-space: nowrap;
 }
+/* Hide the earlier preview's compact control if it remains during hot reload. */
+[data-towbar-search] {
+  display: none !important;
+}

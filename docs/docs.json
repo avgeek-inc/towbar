@@ -96,18 +96,14 @@
   "navbar": {
     "links": [
       {
-        "label": "Docs",
-        "href": "/docs"
-      },
-      {
         "type": "github",
         "href": "https://github.com/avgeek-inc/towbar"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Get started",
-      "href": "/docs/getting-started"
+      "label": "Docs",
+      "href": "/docs"
     }
   },
   "footer": {
