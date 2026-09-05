@@ -28,13 +28,13 @@ import { DashboardPage } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 
 const activitySeries = [
-  { color: "var(--chart-3)", key: "total", label: "Requested" },
+  { color: "var(--accent-soft-foreground)", key: "total", label: "Requested" },
   {
-    color: "var(--color-success)",
+    color: "var(--success-soft-foreground)",
     key: "succeeded",
     label: "Succeeded",
   },
-  { color: "var(--color-danger)", key: "failed", label: "Failed" },
+  { color: "var(--danger-soft-foreground)", key: "failed", label: "Failed" },
 ];
 const activityAxisTick = { fill: "var(--muted)", fontSize: 12 } as const;
 
