@@ -2,6 +2,7 @@
 
 import { forwardRef, type ComponentPropsWithRef, type ReactNode } from "react";
 import { cn } from "../lib/utils";
+import { WidgetContentContext } from "./widget-context";
 
 const Root = forwardRef<HTMLDivElement, ComponentPropsWithRef<"div">>(
   ({ className, ...props }, ref) => (
@@ -63,12 +64,14 @@ const Title = forwardRef<HTMLSpanElement, WidgetTitleProps>(
 
 const Content = forwardRef<HTMLDivElement, ComponentPropsWithRef<"div">>(
   ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn("widget__content", className)}
-      data-slot="widget-content"
-      {...props}
-    />
+    <WidgetContentContext.Provider value={true}>
+      <div
+        ref={ref}
+        className={cn("widget__content", className)}
+        data-slot="widget-content"
+        {...props}
+      />
+    </WidgetContentContext.Provider>
   ),
 );
 
