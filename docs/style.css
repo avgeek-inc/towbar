@@ -1,0 +1,246 @@
+/* Marketing layout is scoped so documentation keeps Mintlify's native styling. */
+.towbar-home {
+  --towbar-ink: #162638;
+  --towbar-muted: #526478;
+  --towbar-line: #dde5ed;
+  --towbar-panel: #f4f7fa;
+  --towbar-accent: #07518e;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px;
+  color: var(--towbar-ink);
+}
+.dark .towbar-home {
+  --towbar-ink: #ecf2f8;
+  --towbar-muted: #a7b6c7;
+  --towbar-line: #283a4c;
+  --towbar-panel: #142333;
+  --towbar-accent: #83c4ff;
+}
+.towbar-home h1,
+.towbar-home h2,
+.towbar-home h3 {
+  color: var(--towbar-ink);
+  font-weight: 600;
+  text-wrap: balance;
+}
+.towbar-home h1 {
+  font-size: clamp(38px, 4.2vw, 58px);
+  line-height: 1.09;
+  letter-spacing: -0.045em;
+  margin: 20px 0 24px;
+}
+.towbar-home h2 {
+  font-size: clamp(28px, 3vw, 38px);
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  margin: 12px 0 18px;
+}
+.towbar-home h3 {
+  font-size: 19px;
+  line-height: 1.4;
+  letter-spacing: -0.015em;
+  margin: 12px 0;
+}
+.towbar-home p {
+  color: var(--towbar-muted);
+  line-height: 1.75;
+}
+.towbar-home a {
+  text-decoration: none;
+}
+.towbar-home a:focus-visible {
+  outline: 2px solid var(--towbar-accent);
+  outline-offset: 5px;
+  border-radius: 4px;
+}
+.towbar-home .towbar-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--towbar-accent);
+  margin: 0;
+}
+.towbar-hero {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  align-items: center;
+  gap: 64px;
+  padding: 64px 0 64px;
+}
+.towbar-lead {
+  font-size: 18px;
+  max-width: 570px;
+}
+.towbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 28px;
+}
+.towbar-home .towbar-button,
+.towbar-home .towbar-button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 46px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.towbar-home .towbar-button {
+  background: #07518e;
+  color: #fff;
+  border: 1px solid #07518e;
+}
+.towbar-home .towbar-button:hover {
+  background: #063f70;
+}
+.towbar-home .towbar-button-secondary {
+  color: var(--towbar-ink);
+  border: 1px solid var(--towbar-line);
+}
+.towbar-home .towbar-button-secondary:hover {
+  background: var(--towbar-panel);
+}
+.towbar-home .towbar-caption {
+  font-size: 12px;
+  margin-top: 18px;
+}
+.towbar-manifest {
+  border: 1px solid var(--towbar-line);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--towbar-panel);
+}
+.towbar-manifest .code-block {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+.towbar-manifest > a {
+  display: block;
+  border-top: 1px solid var(--towbar-line);
+  padding: 16px 22px;
+  color: var(--towbar-accent);
+  font-size: 13px;
+}
+.towbar-section {
+  border-top: 1px solid var(--towbar-line);
+  padding: 64px 0;
+}
+.towbar-section-intro {
+  max-width: 650px;
+  margin-bottom: 36px;
+}
+.towbar-workflow {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  padding: 0;
+  margin: 0;
+}
+.towbar-step {
+  display: inline-block;
+  font: 13px monospace;
+  color: var(--towbar-accent);
+  padding-bottom: 10px;
+}
+.towbar-workflow p,
+.towbar-feature-grid p {
+  font-size: 14px;
+  margin: 0 0 20px;
+}
+.towbar-workflow a,
+.towbar-fit a,
+.towbar-text-link {
+  color: var(--towbar-accent);
+  font-size: 13px;
+  font-weight: 500;
+}
+.towbar-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.towbar-feature-grid > a {
+  padding: 26px;
+  border: 1px solid var(--towbar-line);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+}
+.towbar-feature-grid > a:hover {
+  background: var(--towbar-panel);
+}
+.towbar-feature-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--towbar-muted);
+}
+.towbar-text-link {
+  margin-top: auto;
+}
+.towbar-fit {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  padding: 48px;
+  border-radius: 16px;
+  background: var(--towbar-panel);
+}
+.towbar-fit p {
+  font-size: 15px;
+  margin: 0 0 16px;
+}
+.towbar-closing {
+  padding: 72px 0 80px;
+  max-width: 650px;
+}
+@media (max-width: 900px) {
+  .towbar-hero {
+    gap: 32px;
+    grid-template-columns: 1fr 1fr;
+  }
+  .towbar-feature-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .towbar-fit {
+    gap: 32px;
+    padding: 32px;
+  }
+}
+@media (max-width: 640px) {
+  .towbar-home {
+    padding: 0 24px;
+  }
+  .towbar-hero {
+    grid-template-columns: 1fr;
+    padding: 48px 0;
+  }
+  .towbar-workflow,
+  .towbar-feature-grid,
+  .towbar-fit {
+    grid-template-columns: 1fr;
+  }
+  .towbar-workflow {
+    gap: 28px;
+  }
+  .towbar-section {
+    padding: 40px 0;
+  }
+  .towbar-fit {
+    padding: 24px;
+    gap: 16px;
+  }
+  .towbar-closing {
+    padding: 48px 0;
+  }
+}

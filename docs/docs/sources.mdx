@@ -1,0 +1,34 @@
+---
+title: "Sources"
+description: "Connect a repository and keep its deployable inventory in sync with Git."
+---
+
+A Source connects a GitHub repository to Towbar. Its `.towbar/deployment.yml` defines the apps and resources Towbar can deploy, and `source.branch` identifies the production branch.
+
+## Add a Source
+
+1. [Connect the GitHub App](/docs/integrations/github) and grant access to the repository.
+2. Add every target IP under [Servers](/docs/servers).
+3. Commit a valid [manifest](/docs/reference/deployment-manifest) to the repository.
+4. Open **Sources → Add source** and select the repository.
+5. Open the sync result and confirm it succeeded. The imported apps and resources should now appear under the Source.
+
+Manifest validation is atomic. Invalid configuration or a reference to an unregistered server fails the sync without partially changing inventory.
+
+## Change configuration
+
+Edit the manifest in Git and merge it into the production branch. A push webhook starts reconciliation; **Sync now** lets you request it explicitly. Review the sync's commit and issues before expecting a deployment.
+
+Rename the display `name` freely, but preserve each workload's `id`. Removing an ID archives that workload. Reintroducing the same ID and kind restores its identity and history.
+
+## Control automatic deployment
+
+Automatic deployment is opt-in. Use the manifest to select which workloads deploy and, for apps, which files count as inputs. The Source's automatic-deployment controls let you pause automation while investigating an incident or coordinating a maintenance window.
+
+Manual deployment is still a separate action. See [Deployments and releases](/docs/deployments) for the distinction between sync, queueing, execution, and promotion.
+
+## Source settings
+
+Use **Settings → Secrets** for values shared by this Source's workloads, with separate production and preview environments. Use **Settings → Notifications** to choose destinations and event categories. SSH and Cloudflare credentials belong to the workspace server rather than the Source.
+
+If a repository is missing or a webhook stops arriving, start with [GitHub troubleshooting](/docs/integrations/github#maintain-the-connection).

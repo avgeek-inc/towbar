@@ -2,7 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Towbar",
-  "description": "Git-backed deployments to Ubuntu servers you own.",
+  "description": "Deploy and operate Dockerfile apps, databases, and previews on Ubuntu servers you control.",
   "logo": {
     "light": "/assets/towbar-mark.svg",
     "dark": "/assets/towbar-mark.svg",
@@ -25,31 +25,80 @@
     "codeblocks": "system"
   },
   "navigation": {
-    "groups": [
+    "tabs": [
       {
-        "group": "Start here",
-        "pages": ["docs/index", "docs/getting-started"]
-      },
-      {
-        "group": "Deploy",
-        "pages": [
-          "docs/deployment-file",
-          "docs/configuration",
-          "docs/managed-secrets"
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": ["docs/index", "docs/concepts", "docs/getting-started"]
+          },
+          {
+            "group": "Deploy",
+            "pages": [
+              "docs/sources",
+              "docs/servers",
+              "docs/apps",
+              "docs/resources",
+              "docs/deployments",
+              "docs/previews",
+              "docs/domains-tls",
+              "docs/secrets"
+            ]
+          },
+          {
+            "group": "Operate",
+            "pages": [
+              "docs/monitoring",
+              "docs/backups",
+              "docs/restores",
+              "docs/troubleshooting"
+            ]
+          },
+          {
+            "group": "Integrations",
+            "pages": [
+              "docs/integrations/github",
+              "docs/integrations/aws",
+              "docs/integrations/notifications"
+            ]
+          }
         ]
       },
       {
-        "group": "Operate",
-        "pages": ["docs/managed-restores", "docs/architecture"]
+        "tab": "Self-hosting",
+        "groups": [
+          {
+            "group": "Run Towbar",
+            "pages": [
+              "docs/self-hosting/installation",
+              "docs/self-hosting/upgrades",
+              "docs/self-hosting/architecture",
+              "docs/self-hosting/security"
+            ]
+          }
+        ]
       },
       {
-        "group": "Project",
-        "pages": ["docs/security"]
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "Configuration",
+            "pages": [
+              "docs/reference/deployment-manifest",
+              "docs/reference/environment-variables"
+            ]
+          }
+        ]
       }
     ]
   },
   "navbar": {
     "links": [
+      {
+        "label": "Documentation",
+        "href": "/docs"
+      },
       {
         "type": "github",
         "href": "https://github.com/avgeek-inc/towbar"
@@ -57,8 +106,8 @@
     ],
     "primary": {
       "type": "button",
-      "label": "Open dashboard",
-      "href": "https://app.towbar.dev"
+      "label": "Get started",
+      "href": "/docs/getting-started"
     }
   },
   "footer": {
@@ -70,16 +119,16 @@
         "header": "Documentation",
         "items": [
           {
-            "label": "Getting started",
+            "label": "Your first deployment",
             "href": "/docs/getting-started"
           },
           {
-            "label": "Deployment manifest",
-            "href": "/docs/deployment-file"
+            "label": "Install Towbar",
+            "href": "/docs/self-hosting/installation"
           },
           {
-            "label": "Configuration",
-            "href": "/docs/configuration"
+            "label": "Manifest reference",
+            "href": "/docs/reference/deployment-manifest"
           }
         ]
       },
@@ -96,7 +145,7 @@
           },
           {
             "label": "Security",
-            "href": "/docs/security"
+            "href": "/docs/self-hosting/security"
           }
         ]
       },
@@ -125,56 +174,7 @@
   "seo": {
     "indexing": "all"
   },
-  "redirects": [
-    {
-      "source": "/docs/resources",
-      "destination": "/docs/deployment-file"
-    },
-    {
-      "source": "/docs/sources",
-      "destination": "/docs/getting-started"
-    },
-    {
-      "source": "/docs/servers",
-      "destination": "/docs/getting-started"
-    },
-    {
-      "source": "/docs/secrets",
-      "destination": "/docs/configuration"
-    },
-    {
-      "source": "/docs/deployments",
-      "destination": "/docs/deployment-file"
-    },
-    {
-      "source": "/docs/operations",
-      "destination": "/docs/architecture"
-    },
-    {
-      "source": "/docs/domains-tls",
-      "destination": "/docs/deployment-file"
-    },
-    {
-      "source": "/docs/previews",
-      "destination": "/docs/deployment-file"
-    },
-    {
-      "source": "/getting-started",
-      "destination": "/docs/getting-started"
-    },
-    {
-      "source": "/configuration",
-      "destination": "/docs/configuration"
-    },
-    {
-      "source": "/architecture",
-      "destination": "/docs/architecture"
-    },
-    {
-      "source": "/managed-restores",
-      "destination": "/docs/managed-restores"
-    }
-  ],
+  "redirects": [],
   "metadata": {
     "timestamp": true
   }

@@ -1,225 +1,83 @@
 ---
-title: "Getting started"
-description: "Install Towbar, connect GitHub, prepare an Ubuntu server, and complete the first deployment."
+title: "Your first deployment"
+description: "Take a Dockerfile app from a GitHub repository to a verified deployment on your Ubuntu server."
 ---
 
-This guide follows the complete path from evaluating Towbar to completing a
-first deployment.
+This guide takes one app through Source sync, server preparation, deployment, and route verification. Start with a small service whose Dockerfile and health endpoint already work locally.
 
-```mermaid
-flowchart TD
-  evaluate[Confirm Towbar fits the environment] --> control[Install the control plane]
-  control --> github[Create and connect a GitHub App]
-  github --> target[Create a fresh Ubuntu target server]
-  target --> manifest[Commit .towbar/deployment.yml]
-  manifest --> source[Add and sync the Source]
-  source --> trust[Verify the SSH host key]
-  trust --> prepare[Prepare the server]
-  prepare --> release[Deploy the app]
+## Before you begin
+
+You need a running Towbar installation with an owner account, a connected GitHub App, and an Ubuntu target you can administer. If those are not ready, follow [Install Towbar](/docs/self-hosting/installation), [Connect GitHub](/docs/integrations/github), and [Register a server](/docs/servers) first.
+
+Use a domain you control for a public app. The examples use documentation-only IPs and hostnames; replace them with your own values.
+
+## 1. Commit a manifest
+
+Create `.towbar/deployment.yml` in the app repository:
+
+```yaml
+version: 1
+source:
+  branch: main
+apps:
+  - id: web
+    name: Web
+    server: 203.0.113.10
+    dockerfile: Dockerfile
+    context: .
+    container:
+      port: 3000
+      resources:
+        cpus: 1
+        memory: 1g
+    health:
+      path: /health
+      timeoutSeconds: 60
+    domains:
+      primary: app.example.com
+    tls:
+      mode: direct
 ```
 
-## 1. Confirm the fit
+Use the server IP registered in Towbar. Match the Dockerfile path, port, and health endpoint to your app. Point the domain at the target server and allow the traffic required by [Caddy and TLS](/docs/domains-tls).
 
-Towbar version 1 is intentionally narrow. It fits an operator who has:
+Commit this file to the branch in `source.branch`. Automatic deployment is deliberately omitted so you can verify the first release manually.
 
-- a Linux host for the Towbar control plane;
-- one or more maintained Ubuntu deployment servers;
-- GitHub repositories containing Dockerfiles;
-- authority to create and install a GitHub App.
+## 2. Add and sync the Source
 
-Towbar treats the configured Git branch as deployment truth. It does not offer
-public sign-up, build arbitrary untrusted pull requests, publish a container
-registry, or restore databases automatically. Managed PostgreSQL and Redis
-restores are explicit owner actions with confirmation, isolated validation,
-and rollback safeguards. Read
-[the architecture guide](/docs/architecture) and [security guide](/docs/security)
-before exposing an installation to the internet.
+Open **Sources → Add source** and select the repository. Wait for the initial sync, then open its result.
 
-## 2. Install the control plane
+A successful sync imports **Web** into the Source's Apps list. If it fails, correct the reported manifest field or missing server reference and sync again. A successful sync accepts configuration; it does not mean the app is running.
 
-Install Docker Engine with Compose v2, Git, and OpenSSL on the control-plane
-host. Clone Towbar and create the local environment file:
+## 3. Verify the server
 
-```bash
-git clone https://github.com/avgeek-inc/towbar.git
-cd towbar
-cp .env.example .env
-```
+Open the target under **Servers**. Save its SSH private key in **Settings → Configuration**, then run a server check. Compare the discovered SSH fingerprint with the host's console through an independent channel before trusting it.
 
-Generate each PostgreSQL password and the HMAC secret independently:
+Choose **Prepare Server** and follow the steps until the host is **Ready**. If preparation fails, inspect the reported step instead of repeatedly requesting deployment.
 
-```bash
-openssl rand -hex 32
-```
+## 4. Save application secrets
 
-Generate the credential-encryption key separately. It must decode to exactly 32
-bytes:
+Open **App → Settings → Secrets** and select Production. Add build, runtime, or hook values as needed, then save. Values inherited from workspace Shared secrets and the Source appear with their origin.
 
-```bash
-openssl rand -base64 32 | tr -d '\n'
-```
+Saved values are write-only. Leaving a replacement field untouched preserves its value. Saving does not start a deployment. See [Shared secrets](/docs/secrets) for precedence and rotation.
 
-Put those values in `.env`. For an internet reachable installation, also
-replace the three base URLs before building. The API and web app need reachable
-HTTPS origins; login stays on the web app origin. `TOWBAR_WEBSITE_BASE_URL` is
-an external link target; Towbar does not run the website in this repository.
+## 5. Deploy
 
-Start the stack:
+Open the app and choose **Deploy**. Follow the operation as Towbar fetches the commit, builds on the server, starts a candidate, checks health, and promotes the release.
 
-```bash
-docker compose up --build --detach --wait
-docker compose ps
-```
+If a stage fails, open its output and correct that failure before retrying. The [troubleshooting guide](/docs/troubleshooting) maps common symptoms to the next check.
 
-Open `TOWBAR_APP_BASE_URL`; with the default local configuration it is
-`http://localhost:4021`. Towbar sends the first visitor to `/login` and a
-one-time setup form for the owner name, email, and password. The API serializes
-that creation and locks setup permanently after the first account exists.
-Complete setup while the services are still loopback-bound, before enabling
-public ingress.
+## 6. Verify the result
 
-If the owner password is later forgotten, use the environment-and-restart
-procedure in [Configuration](/docs/configuration#forgotten-owner-password).
-Towbar has no browser-accessible password-reset flow.
+Confirm all four conditions:
 
-The loopback defaults are suitable for evaluating the UI on the host. GitHub
-webhooks require the API URL to be reachable over HTTPS, so a complete
-push-to-deploy setup also needs a maintained reverse proxy or private ingress.
+- The Source sync succeeded at the intended commit.
+- The target server is Ready.
+- The deployment reached Succeeded.
+- The configured HTTPS domain serves the expected app version.
 
-## 3. Create the GitHub App
+For an app without a public domain, verify it through its intended private client instead.
 
-Create one GitHub App for this Towbar installation:
+## Next steps
 
-- Repository contents: read-only
-- Repository metadata: read-only
-- Pull requests: read and write (required for Preview deployments and their PR status comment)
-- Deployments: read and write (required when using Preview deployments)
-- Webhook events: `push`, `pull_request`, and `installation`
-- Webhook URL: `${TOWBAR_API_BASE_URL}/v1/public/webhooks/github`
-- Setup URL with redirect enabled:
-  `${TOWBAR_APP_BASE_URL}/manage/integrations?integration=github`
-
-Generate a private key for the App and encode its PEM without line wrapping:
-
-```bash
-base64 < github-app.pem | tr -d '\n'
-```
-
-Set `GITHUB_APP_ID`, `GITHUB_APP_SLUG`,
-`GITHUB_APP_PRIVATE_KEY_BASE64`, and a random `GITHUB_WEBHOOK_SECRET` in `.env`,
-then recreate the API container:
-
-```bash
-docker compose up --detach --force-recreate api
-```
-
-In Towbar, open **Manage → Integrations → GitHub**, install the App, and grant it access only
-to repositories Towbar should deploy.
-
-## 4. Create a target server
-
-Use a fresh, dedicated Ubuntu 22.04 or 24.04 LTS server when possible. Give the
-configured SSH user either root access or passwordless `sudo`; Towbar needs
-that access to install and manage the deployment runtime. Restrict SSH at the
-network layer and do not reuse this account for untrusted interactive users.
-
-The **Prepare Server** action installs or validates:
-
-- Docker Engine 28 or newer;
-- Caddy running as a systemd service;
-- `python3` and GNU `timeout`;
-- at least 1 GiB available under Docker's data directory; and
-- an SSH user that can run Docker and the required Caddy operations with
-  non-interactive `sudo`.
-
-Towbar follows the upstream
-[Docker Engine](https://docs.docker.com/engine/install/ubuntu/) and
-[Caddy](https://caddyserver.com/docs/install) package repositories. Caddy's
-standard package is enough for `tls.mode: direct`; `tls.mode: cloudflare-dns`
-uses a pinned custom build containing the `dns.providers.cloudflare` module.
-Compatible installations are reused. Towbar does not remove conflicting
-packages or overwrite an unmanaged Caddy binary: it stops at the failing step,
-shows the reason, and asks the operator to clean the server before retrying.
-
-Treat Docker access as root-equivalent.
-
-Open **Servers → Add server** and enter its canonical IP, SSH connection,
-concurrency, and Cloudflare enablement. After adding it, paste the SSH private
-key and optional Cloudflare API token into **Server → Settings → Configuration**.
-Towbar encrypts them in its database. Add a physical server once; Apps and
-Resources from multiple Sources can share it. No AWS account is required for
-deployment.
-
-AWS credentials are optional and used only for S3 backups and restores. Configure the single workspace credential under **Manage → Integrations → AWS**, with narrowly scoped S3 permissions for every declared backup prefix. Backup schedules remain paused until it is configured. See [Managed database restores](/docs/managed-restores).
-
-## 5. Add the deployment manifest
-
-Copy [the starter manifest](/examples/deployment.yaml) into the repository to
-deploy:
-
-```bash
-mkdir -p .towbar
-cp /path/to/towbar/examples/deployment.yml .towbar/deployment.yml
-```
-
-Replace the example server IP, domain, Dockerfile,
-port, and input globs. Commit the file to the branch declared in
-`source.branch`. The starter file is parsed by Towbar's test suite so it cannot
-silently drift away from the published schema.
-
-## 6. Add, verify, and prepare the Source
-
-In the dashboard:
-
-1. Add every referenced IP under **Servers** and configure its credentials.
-2. Open **Sources → Add source** and select the installed repository.
-3. Let Towbar import `.towbar/deployment.yml`. A sync fails without changing inventory if the manifest references a server that has not been added.
-4. Open **Servers**, select the workspace server, and choose **Check server**.
-5. Compare the discovered SSH fingerprint with the server console or cloud
-   provider through an independent channel. Trust it only after it matches.
-6. Open the Server's **Overview** tab and choose **Prepare Server**.
-7. Follow the durable preparation steps until the Server is `Ready`. Apps and
-   Resources remain `Server Setup Pending` and cannot deploy before this point.
-
-Configure workspace defaults under **Manage → Shared secrets**, Source overrides under **Source → Settings → Secrets**, and local values under **App/Resource → Settings → Secrets**. Shared, Source, and app editors provide separate Production and Preview environments for build, runtime, and deployment-hook stages. Preview apps inherit only Preview defaults. Resources use Production runtime values.
-
-Saved values are write-only: the editor shows configured keys and offers replacement inputs. **Save** stores changes for the next deployment without restarting containers or queueing work. Deploy the affected app or resource separately when you are ready. See [Managed secrets](/docs/managed-secrets) for precedence, backups, and external secret managers.
-
-If preparation stops on an existing server, use the reported step and command
-failure to remove only the conflicting installation, then retry. A fresh
-server is the recommended recovery when ownership of the existing services is
-unclear.
-
-## 7. Make the first deployment
-
-Open **Source → Apps**, select the imported app, and choose **Deploy**. Towbar
-queues the operation, fetches the immutable Git commit, transfers the selected
-build context, builds on the target, checks health, configures Caddy, and
-promotes the candidate.
-
-A working installation has all of the following:
-
-- `docker compose ps` reports the Towbar services healthy;
-- the Source's latest sync is `Succeeded`;
-- the target Server is `Ready`;
-- the deployment reaches `Succeeded`; and
-- the configured domain serves the expected commit over HTTPS.
-
-After the manual deployment succeeds, push a change matching
-`autoDeploy.inputs`. The GitHub delivery, Source sync, and deployment should
-appear independently in Towbar; a successful sync alone does not imply a
-successful deployment. Pull request Preview status and URLs appear in the
-aggregate PR comment and GitHub Deployment status.
-
-## Useful diagnostics
-
-```bash
-docker compose ps
-docker compose logs --follow api worker
-docker compose logs --tail 200 temporal
-```
-
-See [configuration](/docs/configuration) for every installation variable. If an
-issue may expose credentials or cross a trust boundary, follow
-[the private reporting process](/docs/security) instead of posting logs to a
-public issue.
+Enable [automatic deployment](/docs/deployments#automatic-deployments), add [pull request previews](/docs/previews), or connect a [database resource](/docs/resources). Configure [notifications](/docs/integrations/notifications) so failed operations reach the people who need to act.

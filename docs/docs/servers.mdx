@@ -1,0 +1,46 @@
+---
+title: "Servers"
+description: "Register an Ubuntu host, verify its identity, and prepare it for deployments."
+---
+
+A server is a workspace-owned Ubuntu host. Towbar uses SSH to build and run workloads on it. Multiple Sources can share the same server without duplicating credentials or competing server configurations.
+
+## Requirements
+
+Use a dedicated Ubuntu 22.04 or 24.04 LTS host with root access or a user that has passwordless `sudo`. The worker must be able to reach its SSH port. Restrict access at the network layer and keep the operating system maintained.
+
+Preparation installs or validates Docker Engine 28 or newer, Caddy, `python3`, GNU `timeout`, and the required non-interactive permissions. It checks for at least 1 GiB of available storage under Docker's data directory. Plan additional disk and memory for builds, retained images, and database volumes.
+
+## Register and trust the host
+
+1. Open **Servers → Add server**. Enter the canonical IP, SSH connection, and concurrency settings.
+2. Open **Settings → Configuration** on the server and save its SSH private key.
+3. Choose **Check server** to discover its SSH host key.
+4. Compare the fingerprint with the server console or another independent, trusted channel.
+5. Trust the key only after it matches.
+
+<Warning>
+  Docker access is root-equivalent. Do not share the deployment account with
+  untrusted users, and do not approve a changed SSH fingerprint without
+  investigating why it changed.
+</Warning>
+
+## Prepare the runtime
+
+Choose **Prepare Server** from the server's Overview tab and follow the recorded steps until the server is **Ready**. Workloads remain **Server Setup Pending** until preparation succeeds.
+
+Towbar reuses compatible installations. It does not remove conflicting packages or overwrite an unmanaged Caddy binary. If a step fails, read its command and error before changing the host. Retry after resolving the conflict; use a fresh host when ownership of existing services is unclear.
+
+## Set concurrency
+
+`buildConcurrency` limits build work on this host. `previewBuildConcurrency` reserves a bounded share for previews, defaults to 1, cannot exceed the total, and is capped at 4. Production and maintenance work take priority over previews.
+
+Also account for the installation-wide [worker activity limit](/docs/reference/environment-variables#servers-and-worker-capacity). Increasing concurrency consumes real CPU, memory, and disk bandwidth on the target.
+
+## Read capacity and health
+
+The Servers table shows hardware capacity. A server's Apps and Resources tabs show configured allocations alongside the latest observed consumption. Known cloud instance types appear below the IP; otherwise Towbar shows detected CPU and memory capacity, or **Unknown Instance Type**.
+
+Capacity comes from server checks. A displayed value is an observation, not a guarantee that the host is reachable at that instant. Check its timestamp and the latest check result during an incident.
+
+For public routes, continue with [Domains and TLS](/docs/domains-tls). For private database access, see [Resources](/docs/resources#connect-privately).

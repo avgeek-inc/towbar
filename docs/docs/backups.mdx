@@ -1,0 +1,55 @@
+---
+title: "Database backups"
+description: "Configure S3 storage, retention, and scheduled recovery points for PostgreSQL and Redis."
+---
+
+Towbar can back up PostgreSQL and Redis resources to S3. The manifest defines storage and scheduling; the workspace AWS integration supplies credentials. Generic image resources do not support managed backups.
+
+## Prerequisites
+
+Connect [AWS](/docs/integrations/aws), deploy a healthy database resource, and choose a bucket and prefix for its backups. Keep backup permissions limited to the declared storage locations. Backup schedules remain paused while the AWS integration is unconfigured.
+
+## Define a policy
+
+This complete manifest creates a PostgreSQL resource with a daily backup at 03:00 UTC and retains the latest 14 backups:
+
+```yaml
+version: 1
+source:
+  branch: main
+resources:
+  - id: database
+    name: Primary database
+    type: postgres
+    image: postgres:17-alpine
+    server: 203.0.113.10
+    backup:
+      schedule:
+        cron: "0 3 * * *"
+        timezone: UTC
+      retention:
+        keepLast: 14
+      s3:
+        bucket: example-production-backups
+        prefix: databases
+        region: ap-south-1
+        encryption: AES256
+```
+
+Replace the host and storage values, then save `POSTGRES_PASSWORD` in the resource's runtime secrets. Sync the Source and inspect **Resource → Settings → Backups**.
+
+Schedules use five-field UTC cron expressions and cannot run more frequently than hourly. Retention accepts 1–100 backups and defaults to 7. Omitting `schedule` leaves backups manual. The default prefix is `towbar` and default encryption is `AES256`.
+
+For KMS encryption, set `encryption: aws:kms` and provide `kmsKeyId`. The AWS identity and key policy must permit the required encryption and decryption operations.
+
+## Verify a recovery point
+
+Run a manual backup and wait for completion. Check its object metadata and restore-readiness result in the Backups view. Towbar checks object existence, size, checksum metadata, encryption, engine compatibility, and backup format.
+
+Freshness and usability answer different questions. An older retained backup can miss the schedule's recovery-point objective while remaining usable for an explicit restore.
+
+## Practice recovery
+
+A completed upload is not proof that your application can recover. Follow the [restore guide](/docs/restores) in a controlled environment and verify the restored data with the application.
+
+These backups protect managed workload databases. They do not back up the Towbar control plane or its encryption key; protect those separately during [installation maintenance](/docs/self-hosting/upgrades).

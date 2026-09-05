@@ -1,0 +1,29 @@
+---
+title: "AWS"
+description: "Connect one workspace credential for managed S3 backups and restores."
+---
+
+AWS is optional. Towbar can deploy to registered Ubuntu servers without an AWS account. Connect AWS when PostgreSQL or Redis resources need managed S3 backups and restores.
+
+## Connect credentials
+
+1. Prepare an AWS identity scoped to the buckets and prefixes your resources will use.
+2. Open **Manage → Integrations → Cloud providers → AWS**.
+3. Choose **Add credentials** and enter the access key ID, secret access key, and default region.
+4. Save. Towbar verifies the identity before storing encrypted credentials.
+
+The workspace has one AWS credential shared by its resource backup policies. The UI exposes metadata and the access-key suffix, not the secret. Updating the credential affects future S3 operations across the workspace.
+
+## Grant storage access
+
+The identity needs permissions for backup writes, object inspection and reads, and retention cleanup within the declared bucket/prefix. Restores require `s3:GetObject`; versioned backups also need access to the retained object version. KMS-encrypted backups require suitable key permissions.
+
+An identity check verifies who the credential represents. It does not test all S3 or KMS permissions. Confirm those by completing a [backup](/docs/backups) and checking restore readiness.
+
+## Check and rotate
+
+Open **Manage → System health** and choose **Run checks** to revalidate connected AWS credentials. Failed checks require attention; old verification results become stale.
+
+To rotate, update the integration with the replacement credential, verify a backup, and retire the old key through AWS. Coordinate changes with running operations. Deleting the integration pauses configured backup schedules until replacement credentials are stored.
+
+Cloudflare DNS credentials are configured per [server](/docs/servers) and are separate from this AWS integration.

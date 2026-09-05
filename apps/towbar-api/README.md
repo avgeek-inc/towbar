@@ -95,7 +95,7 @@ Owners can add, replace, and delete variables from an empty configuration.
 Resources inherit runtime defaults only; apps support build, runtime, and both
 hook stages. Values are encrypted with AES-256-GCM in PostgreSQL. Mutations
 require an expected revision, and all public responses are write-only metadata.
-See [Managed secrets](../../docs/docs/managed-secrets.md) for API, cutover, and recovery.
+See [Managed secrets](../../docs/docs/secrets.md) for API behavior and credential recovery.
 
 Declared Docker networks are created as managed bridge networks on first use
 and reused by subsequent apps and Resources on that Server. Operators do not

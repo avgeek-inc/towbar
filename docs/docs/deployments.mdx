@@ -1,0 +1,75 @@
+---
+title: "Deployments and releases"
+description: "Understand triggers, deployment stages, health-based promotion, and rollback."
+---
+
+A deployment is one attempt to put an app or resource into service. Towbar records its trigger, immutable inputs, progress, duration, and final result separately from Source sync history.
+
+## Deploy manually
+
+Open an app or resource and choose **Deploy**. The server must be prepared and trusted, and required credentials must be configured. Follow the queued operation through its recorded stages; a queued request is not a completed deployment.
+
+```mermaid
+flowchart LR
+  Queue[Queue] --> Image[Build or pull image]
+  Image --> Candidate[Start candidate]
+  Candidate --> Health[Check health]
+  Health --> Promote[Promote release]
+```
+
+The details vary by workload and configured hooks. Use the operation's actual stage output when diagnosing a failure.
+
+## Automatic deployments
+
+Apps and resources are manual unless `autoDeploy` is enabled. `autoDeploy: true` treats commits as deployment inputs. Apps can narrow their inputs with named groups and repository globs:
+
+```yaml
+deploymentInputs:
+  shared:
+    - package.json
+    - pnpm-lock.yaml
+apps:
+  - id: web
+    # Add the remaining app fields from your manifest.
+    autoDeploy:
+      inputs:
+        - $shared
+        - apps/web/**
+```
+
+This is a fragment, not a complete manifest. Towbar compares selected file identities and configuration to decide whether to queue work. An incomplete Git tree is treated as changed. Include every file that can affect the built app, including shared libraries and build configuration.
+
+Use the Source's pause controls to stop automatic deployment during maintenance. Saving a secret does not enqueue a deployment; deploy explicitly when you want the new value to take effect.
+
+## Deployment hooks
+
+App hooks run commands around deployment. Add hook configuration under the app:
+
+```yaml
+hooks:
+  preDeploy:
+    command: ["node", "scripts/migrate.js"]
+    timeoutSeconds: 120
+  postDeploy:
+    command: ["node", "scripts/warm-cache.js"]
+    timeoutSeconds: 60
+```
+
+A pre-deploy failure stops deployment before promotion. A post-deploy failure is reported as a warning after promotion. Hooks receive their own stage-specific secrets. Design commands so retries are safe and schema changes remain compatible with the previous release.
+
+## Read the final result
+
+| Result                  | Meaning                                                            |
+| ----------------------- | ------------------------------------------------------------------ |
+| Succeeded               | Deployment completed successfully                                  |
+| Succeeded with warnings | The release was promoted, but a later step needs attention         |
+| Failed                  | A required stage failed; inspect the last stage and active release |
+| Cancelled               | The operation stopped through cancellation                         |
+
+Durations advance while work is ongoing and stop at the final timestamp. The latest runtime health can still change after deployment succeeds.
+
+## Roll back an image
+
+Use a retained release when you need to return to a previous image. Rollback uses current runtime secrets, so it does not restore revoked credentials. It also does not undo database writes or schema migrations. Check compatibility before rolling back an app that ran a migration.
+
+Database recovery is a separate [restore operation](/docs/restores). For build or startup failures, follow [Troubleshooting](/docs/troubleshooting).

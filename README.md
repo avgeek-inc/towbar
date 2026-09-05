@@ -2,14 +2,13 @@
 
 [![Towbar — Git-backed deployments to servers you own](docs/assets/towbar-open-graph.png)](https://www.towbar.dev)
 
-Towbar is an opinionated, source-driven deployment platform for Ubuntu servers
-you own. A repository's `.towbar/deployment.yml` defines deployable
-infrastructure and behavior, while Towbar manages workspace servers and runs
-deployments through durable Temporal workflows.
+Towbar is an open source deployment platform for Ubuntu servers you control.
+Define Dockerfile apps and database resources in Git, register your servers in
+Towbar, and follow each deployment from its source commit to the running service.
 
 > [!IMPORTANT]
 > Towbar is under active development. Read [SECURITY.md](SECURITY.md) and the
-> [architecture guide](docs/docs/architecture.md) before exposing an installation to
+> [architecture guide](docs/docs/self-hosting/architecture.md) before exposing an installation to
 > the internet.
 
 ## Highlights
@@ -54,11 +53,13 @@ Source, prepare a server, and make the first deployment.
 
 ## Documentation
 
-- [Getting started](docs/docs/getting-started.md)
-- [Configuration](docs/docs/configuration.md)
-- [Deployment manifest](https://www.towbar.dev/docs/deployment-file)
-- [Architecture](docs/docs/architecture.md)
-- [Managed database restores](docs/docs/managed-restores.md)
+- [Documentation overview](https://www.towbar.dev/docs/index)
+- [Install Towbar](docs/docs/self-hosting/installation.md)
+- [Your first deployment](docs/docs/getting-started.md)
+- [Configuration](docs/docs/reference/environment-variables.md)
+- [Deployment manifest](https://www.towbar.dev/docs/reference/deployment-manifest)
+- [Architecture](docs/docs/self-hosting/architecture.md)
+- [Managed database restores](docs/docs/restores.md)
 - [Changelog](CHANGELOG.md)
 - [Security policy](SECURITY.md)
 
@@ -80,6 +81,17 @@ in lockstep:
 pnpm docs:sync
 pnpm docs:check
 ```
+
+Documentation is organized into Guides, Self-hosting, and Reference. Write task
+pages around prerequisites, the action, and a way to verify the result. Keep
+manifest field details in the reference and link to them from guides. Examples
+use documentation-only IPs and domains and must not contain credentials.
+
+`pnpm docs:check` verifies page metadata, navigation coverage, internal links,
+and published artifacts. The core tests also parse the YAML examples against
+the deployment contract. Before publishing, run `mint validate` and
+`mint broken-links` from `docs/`, then review the homepage and changed guides
+on desktop and mobile.
 
 Install the [Mintlify CLI](https://www.mintlify.com/docs/cli/install), then run
 `mint dev` from `docs/` for a local documentation preview. Mintlify should be

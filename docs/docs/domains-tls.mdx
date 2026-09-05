@@ -1,0 +1,56 @@
+---
+title: "Domains and TLS"
+description: "Expose an HTTP service through Caddy with direct DNS or Cloudflare DNS validation."
+---
+
+Towbar uses Caddy on the target server to route public HTTP traffic. Domain settings live with the app or resource in the manifest; provider credentials live in Towbar.
+
+## Choose a TLS mode
+
+| Mode             | DNS setup                                                                         | Credentials                                              |
+| ---------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `direct`         | Point public DNS at the target and allow ACME validation to reach Caddy           | No Cloudflare token                                      |
+| `cloudflare-dns` | Use a Cloudflare zone; Towbar manages its owned records and validates through DNS | Cloudflare enabled on the server with a scoped API token |
+
+Set the primary hostname without a scheme or path. A TLS declaration requires a primary domain. A publicly routed resource also needs a container port and an HTTP health check.
+
+## Direct TLS
+
+Add the following fields to an app, replacing the example domain:
+
+```yaml
+domains:
+  primary: app.example.com
+  redirects:
+    - host: www.app.example.com
+      status: 301
+tls:
+  mode: direct
+```
+
+Point the hostname at the target server. Allow inbound HTTP and HTTPS traffic required by Caddy and certificate validation. Deploy and verify both the primary URL and each redirect.
+
+## Cloudflare DNS TLS
+
+Enable Cloudflare on **Server → Settings** and save the API token under **Settings → Configuration**. Use a token restricted to the relevant zones with the DNS access needed to manage records and complete challenges. The prepared Caddy build must contain the Cloudflare DNS module.
+
+```yaml
+domains:
+  primary: app.example.com
+tls:
+  mode: cloudflare-dns
+```
+
+Towbar manages records it owns and completes certificate validation before promotion. Keep unrelated records and services outside that ownership boundary.
+
+## Preview hostnames
+
+Previews use a generated hostname beneath `preview.domain`. Direct mode needs DNS routing for those generated names, typically a wildcard. Cloudflare DNS mode manages the exact preview records and removes them during cleanup.
+
+For proxied nested hostnames, check Cloudflare's certificate coverage as well as DNS. A resolving wildcard does not guarantee that the edge certificate covers every nested hostname.
+
+## Diagnose a failed route
+
+Check these in order: domain spelling, DNS resolution, network access to the host, Caddy preparation, TLS mode and credentials, then the workload's health endpoint. A successful Source sync or image build does not prove that the HTTPS route works.
+
+See [Troubleshooting](/docs/troubleshooting) for common failure paths.
