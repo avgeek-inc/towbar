@@ -30,7 +30,7 @@ import {
 } from "@/lib/inventory-status";
 import { LastSyncedTime, RelativeTimeProvider } from "./last-synced-time";
 import {
-  DeployableName,
+  AppIdentity,
   ResourceIdentity,
   ServerIpLink,
 } from "./source-inventory";
@@ -157,14 +157,12 @@ function DeployableInventory({
     {
       cell: (item) =>
         item.kind === "app" ? (
-          <DeployableName
-            autoDeploy={Boolean(item.config.autoDeploy)}
-            name={item.name}
-          />
+          <AppIdentity app={item} />
         ) : (
           <ResourceIdentity resource={item} />
         ),
       className: "w-full min-w-64",
+      wrapRowLink: kind !== "app",
       header: kind === "app" ? "App" : "Resource",
       key: "name",
     },

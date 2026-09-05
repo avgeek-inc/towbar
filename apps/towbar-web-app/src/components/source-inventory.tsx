@@ -18,6 +18,7 @@ import {
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
+import { Tooltip } from "@workspace/web-design-system/overlays/tooltip";
 import { InlineLink } from "@/components/page-parts";
 import {
   getActiveDeploymentStates,
@@ -37,12 +38,8 @@ function appColumns(
 ): ResourceTableColumn<App>[] {
   return [
     {
-      cell: (app) => (
-        <DeployableName
-          autoDeploy={Boolean(app.config.autoDeploy)}
-          name={app.name}
-        />
-      ),
+      cell: (app) => <AppIdentity app={app} />,
+      wrapRowLink: false,
       className: "min-w-56",
       header: "App Name",
       key: "name",
@@ -234,6 +231,58 @@ export function SourceResources({
         tableClassName="min-w-[1160px]"
       />
     </RelativeTimeProvider>
+  );
+}
+
+export function AppIdentity({ app }: { app: App }) {
+  const domains = [
+    ...new Set(
+      [
+        app.config.domains?.primary,
+        ...(app.config.domains?.redirects.map(({ host }) => host) ?? []),
+      ].filter((domain): domain is string => Boolean(domain)),
+    ),
+  ];
+
+  return (
+    <span className="grid min-w-0 justify-items-start gap-1">
+      <InlineLink href={`/sources/${app.sourceId}/apps/${app.id}`}>
+        <DeployableName
+          autoDeploy={Boolean(app.config.autoDeploy)}
+          name={app.name}
+        />
+      </InlineLink>
+      {domains.length > 0 ? (
+        <Tooltip>
+          <Tooltip.Trigger
+            render={(props) => <span {...props} />}
+            aria-label={`Domains: ${domains.join(", ")}`}
+            className="flex max-w-64 min-w-0 items-center gap-1 text-xs text-muted outline-none focus-visible:ring-2 focus-visible:ring-focus rounded-sm"
+          >
+            <span className="truncate">{domains[0]}</span>
+            {domains.length > 1 ? (
+              <span className="shrink-0 tabular-nums">
+                +{domains.length - 1}
+              </span>
+            ) : null}
+          </Tooltip.Trigger>
+          <Tooltip.Content
+            className="max-w-xs text-xs"
+            placement="top"
+            showArrow
+          >
+            <Tooltip.Arrow />
+            <span className="grid gap-1">
+              {domains.map((domain) => (
+                <span className="break-all" key={domain}>
+                  {domain}
+                </span>
+              ))}
+            </span>
+          </Tooltip.Content>
+        </Tooltip>
+      ) : null}
+    </span>
   );
 }
 

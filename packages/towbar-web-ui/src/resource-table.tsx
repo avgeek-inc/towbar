@@ -10,6 +10,7 @@ export type ResourceTableColumn<T> = {
   header: string;
   headerClassName?: string;
   key: string;
+  wrapRowLink?: boolean;
 };
 
 type LinkNavigateEvent = Parameters<
@@ -80,7 +81,7 @@ export function ResourceTable<T>({
                 <Table.Row id={key} key={key}>
                   {columns.map((column, index) => (
                     <Table.Cell className={column.className} key={column.key}>
-                      {index === 0 && href ? (
+                      {index === 0 && href && column.wrapRowLink !== false ? (
                         <Link
                           className="focus-visible:ring-focus inline-flex min-h-11 min-w-0 items-center rounded-lg outline-none underline-offset-4 pointer-fine:hover:underline focus-visible:ring-2"
                           href={href}
