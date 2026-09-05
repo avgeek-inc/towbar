@@ -331,9 +331,9 @@ export function ResourceIdentity({ resource }: { resource: Resource }) {
     <span className="inline-flex min-w-0 items-center gap-3">
       <Image
         alt=""
-        className="size-10 shrink-0 object-contain"
-        height={40}
-        width={40}
+        className="size-8 shrink-0 object-contain"
+        height={32}
+        width={32}
         src={type.logo}
       />
       <span className="grid min-w-0 gap-1">
