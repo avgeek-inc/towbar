@@ -224,28 +224,30 @@ export function ResourceBackupConfiguration({
                   </li>
                 ))}
               </ol>
-              {latestAssurance ? (
-                <p className="text-muted typography--body-xs">
-                  Last checked {formatDate(latestAssurance.checkedAt)}
-                </p>
-              ) : null}
             </Widget.Content>
-            {active ? (
+            {latestAssurance || active ? (
               <Widget.Footer className="justify-end">
-                <ActionButton
-                  action={() =>
-                    api.post(
-                      `/v1/core/resources/${resource.id}/actions/backup`,
-                      undefined,
-                      { "Idempotency-Key": crypto.randomUUID() },
-                    )
-                  }
-                  pendingLabel="Queueing backup…"
-                  success="Backup queued"
-                  variant="primary"
-                >
-                  Back up now
-                </ActionButton>
+                {latestAssurance ? (
+                  <Widget.FooterDescription>
+                    Last checked {formatDate(latestAssurance.checkedAt)}
+                  </Widget.FooterDescription>
+                ) : null}
+                {active ? (
+                  <ActionButton
+                    action={() =>
+                      api.post(
+                        `/v1/core/resources/${resource.id}/actions/backup`,
+                        undefined,
+                        { "Idempotency-Key": crypto.randomUUID() },
+                      )
+                    }
+                    pendingLabel="Queueing backup…"
+                    success="Backup queued"
+                    variant="primary"
+                  >
+                    Back up now
+                  </ActionButton>
+                ) : null}
               </Widget.Footer>
             ) : null}
           </Widget>

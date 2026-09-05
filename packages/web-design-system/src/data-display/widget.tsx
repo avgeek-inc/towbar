@@ -83,6 +83,18 @@ const Footer = forwardRef<HTMLDivElement, ComponentPropsWithRef<"div">>(
   ),
 );
 
+const FooterDescription = forwardRef<
+  HTMLParagraphElement,
+  ComponentPropsWithRef<"p">
+>(({ className, ...props }, ref) => (
+  <p
+    ref={ref}
+    className={cn("min-w-0 flex-1 text-xs text-muted", className)}
+    data-slot="widget-footer-description"
+    {...props}
+  />
+));
+
 const Legend = forwardRef<HTMLDivElement, ComponentPropsWithRef<"div">>(
   ({ className, ...props }, ref) => (
     <div
@@ -123,12 +135,14 @@ Header.displayName = "Widget.Header";
 Title.displayName = "Widget.Title";
 Content.displayName = "Widget.Content";
 Footer.displayName = "Widget.Footer";
+FooterDescription.displayName = "Widget.FooterDescription";
 Legend.displayName = "Widget.Legend";
 LegendItem.displayName = "Widget.LegendItem";
 
 export const Widget = Object.assign(Root, {
   Content,
   Footer,
+  FooterDescription,
   Header,
   Legend,
   LegendItem,

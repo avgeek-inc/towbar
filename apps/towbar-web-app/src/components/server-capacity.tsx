@@ -36,16 +36,7 @@ export function ServerHostCapacity({
     <Widget>
       <Widget.Header
         className="flex-wrap"
-        endContent={
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <CapacityStatusBadge status={capacity.status} />
-            <span className="text-xs text-muted">
-              {capacity.checkedAt
-                ? `Checked ${formatDate(capacity.checkedAt)}`
-                : "Not checked"}
-            </span>
-          </div>
-        }
+        endContent={<CapacityStatusBadge status={capacity.status} />}
       >
         <Widget.Title icon={<HugeiconsIcon icon={ServerStack01Icon} />}>
           Host capacity
@@ -89,6 +80,13 @@ export function ServerHostCapacity({
           </p>
         )}
       </Widget.Content>
+      <Widget.Footer>
+        <Widget.FooterDescription>
+          {capacity.checkedAt
+            ? `Last checked ${formatDate(capacity.checkedAt)}`
+            : "Not checked yet"}
+        </Widget.FooterDescription>
+      </Widget.Footer>
     </Widget>
   );
 }

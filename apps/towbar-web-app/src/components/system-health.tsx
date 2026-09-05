@@ -100,13 +100,7 @@ function ControlPlane({
 }) {
   return (
     <Widget>
-      <Widget.Header
-        endContent={
-          <span className="font-mono text-xs text-muted" title={version}>
-            {shortVersion(version)}
-          </span>
-        }
-      >
+      <Widget.Header>
         <Widget.Title icon={<HugeiconsIcon icon={Activity01Icon} />}>
           Control plane
         </Widget.Title>
@@ -147,6 +141,14 @@ function ControlPlane({
           );
         })}
       </Widget.Content>
+      <Widget.Footer>
+        <Widget.FooterDescription>
+          Version{" "}
+          <span className="font-mono" title={version}>
+            {shortVersion(version)}
+          </span>
+        </Widget.FooterDescription>
+      </Widget.Footer>
     </Widget>
   );
 }
