@@ -137,25 +137,21 @@
   margin: 0;
 }
 .towbar-product-frame {
-  background: oklch(0.21 0.005 85);
-  border: 1px solid oklch(0.31 0.005 85);
+  background: var(--towbar-panel);
+  border: 1px solid var(--towbar-line);
   border-radius: 12px;
   overflow: hidden;
   box-shadow:
     0 2px 4px oklch(0.2 0.01 85 / 0.03),
     0 18px 48px -20px oklch(0.2 0.01 85 / 0.2);
 }
-.towbar-product-heading {
-  display: flex;
-  justify-content: space-between;
-  padding: 13px 20px;
-  color: oklch(0.78 0.01 85);
-  font:
-    11px ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    monospace;
-  border-bottom: 1px solid oklch(0.31 0.005 85);
+
+.towbar-product-dark,
+.dark .towbar-product-light {
+  display: none;
+}
+.dark .towbar-product-dark {
+  display: block;
 }
 .towbar-product img {
   display: block;
@@ -234,10 +230,6 @@
   }
   .towbar-actions {
     gap: 8px 20px;
-  }
-  .towbar-product-heading {
-    font-size: 9px;
-    padding: 12px;
   }
 
   .towbar-highlights {

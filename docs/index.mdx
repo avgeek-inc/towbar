@@ -7,26 +7,33 @@ mode: "custom"
 <div className="towbar-home">
   <section className="towbar-hero" aria-labelledby="hero-heading">
     <h1 id="hero-heading">Open-Source<br /><span>Git-native PaaS</span></h1>
-    <p className="towbar-lead">A home for your apps, databases, and previews.<br className="towbar-desktop-break" /> Towbar handles the deployment. You own the infrastructure.</p>
+    <p className="towbar-lead">Deploy apps and databases from Git to servers you own.<br className="towbar-desktop-break" /> Previews, backups, and monitoring included.</p>
     <div className="towbar-actions">
-      <a className="towbar-button" href="/docs/getting-started">Deploy your first app <span aria-hidden="true">↗</span></a>
+      <a className="towbar-button" href="/docs/getting-started">Deploy in minutes <span aria-hidden="true">↗</span></a>
       <a className="towbar-secondary" href="https://github.com/avgeek-inc/towbar">Explore on GitHub <span aria-hidden="true">↗</span></a>
     </div>
   </section>
 
 <div className="towbar-product">
   <div className="towbar-product-frame">
-    <div className="towbar-product-heading">
-      <span>Towbar / Deployments</span>
-      <span>Example workspace</span>
+    <div className="towbar-product-light">
+      <img
+        src="/assets/deployments-light.webp"
+        alt="Example Towbar workspace in light mode, showing deployment history, apps and databases, triggers, elapsed time, and release status."
+        width="2400"
+        height="1290"
+        fetchPriority="high"
+      />
     </div>
-    <img
-      src="/assets/deployments.webp"
-      alt="Towbar deployment history showing apps and databases, deployment triggers, elapsed time, and release status."
-      width="2400"
-      height="1290"
-      fetchPriority="high"
-    />
+    <div className="towbar-product-dark">
+      <img
+        src="/assets/deployments-dark.webp"
+        alt="Example Towbar workspace in dark mode, showing deployment history, apps and databases, triggers, elapsed time, and release status."
+        width="2400"
+        height="1290"
+        fetchPriority="high"
+      />
+    </div>
   </div>
 </div>
 
