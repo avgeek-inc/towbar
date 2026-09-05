@@ -835,3 +835,52 @@ test("deployment history paginates all apps, resources, and environments in stab
     await once(fixture, "close");
   }
 });
+
+test("fixture Sources have distinct inventories and working scoped routes", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+  try {
+    const { sources } = await (
+      await fetch(`${baseUrl}/v1/core/sources`)
+    ).json();
+    assert.equal(sources.length, 4);
+    const expected = new Map([
+      [fixtureIds.source, [3, 4, 2]],
+      [fixtureIds.docsSource, [1, 0, 1]],
+      [fixtureIds.analyticsSource, [0, 1, 1]],
+      [fixtureIds.sandboxSource, [0, 0, 0]],
+    ]);
+    for (const source of sources) {
+      const path = `${baseUrl}/v1/core/sources/${source.id}`;
+      for (const child of [
+        "",
+        "/manifest",
+        "/syncs",
+        "/capacity",
+        "/deployments",
+      ]) {
+        assert.equal((await fetch(path + child)).status, 200, path + child);
+      }
+      const { apps } = await (await fetch(`${path}/apps`)).json();
+      const { resources } = await (await fetch(`${path}/resources`)).json();
+      assert(
+        [...apps, ...resources].every((item) => item.sourceId === source.id),
+      );
+      assert.deepEqual(
+        [
+          apps.length,
+          resources.length,
+          new Set([...apps, ...resources].map((item) => item.serverIp)).size,
+        ],
+        expected.get(source.id),
+      );
+    }
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
