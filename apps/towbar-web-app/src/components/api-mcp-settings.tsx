@@ -74,10 +74,10 @@ function Choice({
       }}
     >
       <Label>{label}</Label>
-      <Select.Trigger>
-        <Select.Value>
+      <Select.Trigger className="items-center">
+        <Select.Value className="flex items-center">
           {renderIcon ? (
-            <span className="inline-flex items-center gap-2">
+            <span className="flex items-center gap-2">
               {renderIcon(value)}
               {options.find(([id]) => id === value)?.[1]}
             </span>
