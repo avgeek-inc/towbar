@@ -38,6 +38,29 @@ a {
 }
 
 @layer components {
+  /* Let prefixed fields shrink with narrow form columns instead of using the
+     input element's intrinsic width. Keep text inside the editable area. */
+  .input-group {
+    @apply min-w-0 max-w-full;
+  }
+
+  .input-group__input {
+    @apply min-w-0 w-0;
+  }
+
+  .input-group__input[data-slot="input-group-input"] {
+    text-overflow: ellipsis;
+  }
+
+  .input-group__input[data-slot="input-group-input"]:focus {
+    text-overflow: clip;
+  }
+
+  .input-group__prefix,
+  .input-group__suffix {
+    @apply shrink-0;
+  }
+
   /* Keep sibling cards, sections, and form fields 16px apart on both axes. */
   .content-grid {
     @apply grid gap-4;
