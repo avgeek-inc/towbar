@@ -82,7 +82,6 @@
       },
       {
         "tab": "API & MCP",
-        "openapi": "/api-reference/openapi.json",
         "groups": [
           {
             "group": "Get started",

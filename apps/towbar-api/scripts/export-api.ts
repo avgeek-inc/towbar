@@ -42,7 +42,7 @@ const configPath = resolve(root, "docs/docs.json");
 const config = JSON.parse(await readFile(configPath, "utf8"));
 const navigation = {
   tab: "API & MCP",
-  openapi: "/api-reference/openapi.json",
+  // Each MDX page references its spec; a tab-level spec also generates duplicate groups.
   groups: [
     {
       group: "Get started",
