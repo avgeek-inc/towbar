@@ -29,7 +29,7 @@ import {
   resolveInventoryStatus,
 } from "@/lib/inventory-status";
 import { formatBytes } from "./runtime-operations";
-import { LastSyncedTime, RelativeTimeProvider } from "./last-synced-time";
+import { LastSyncedTime, RelativeTime } from "./last-synced-time";
 import {
   AppIdentity,
   ResourceIdentity,
@@ -205,24 +205,22 @@ function DeployableInventory({
   ];
 
   return (
-    <RelativeTimeProvider>
-      <ResourceTable
-        ariaLabel={kind === "app" ? "Apps" : "Resources"}
-        columns={columns}
-        emptyDescription={
-          kind === "app"
-            ? "A successful Source sync imports apps into this workspace."
-            : "A successful Source sync imports resources into this workspace."
-        }
-        emptyTitle={kind === "app" ? "No apps yet" : "No resources yet"}
-        getRowHref={(item) =>
-          `/sources/${item.sourceId}/${kind === "app" ? "apps" : "resources"}/${item.id}`
-        }
-        getRowKey={(item) => item.id}
-        items={items}
-        tableClassName={kind === "app" ? "min-w-[920px]" : "min-w-[1040px]"}
-      />
-    </RelativeTimeProvider>
+    <ResourceTable
+      ariaLabel={kind === "app" ? "Apps" : "Resources"}
+      columns={columns}
+      emptyDescription={
+        kind === "app"
+          ? "A successful Source sync imports apps into this workspace."
+          : "A successful Source sync imports resources into this workspace."
+      }
+      emptyTitle={kind === "app" ? "No apps yet" : "No resources yet"}
+      getRowHref={(item) =>
+        `/sources/${item.sourceId}/${kind === "app" ? "apps" : "resources"}/${item.id}`
+      }
+      getRowKey={(item) => item.id}
+      items={items}
+      tableClassName={kind === "app" ? "min-w-[920px]" : "min-w-[1040px]"}
+    />
   );
 }
 
@@ -332,7 +330,9 @@ function ServerInventory({
       key: "status",
     },
     {
-      cell: (server) => <LastSyncedTime value={server.updatedAt} />,
+      cell: (server) => (
+        <RelativeTime label="Updated" value={server.updatedAt} />
+      ),
       className: "min-w-48 whitespace-nowrap",
       header: "Updated",
       key: "updated",
@@ -340,18 +340,16 @@ function ServerInventory({
   ];
 
   return (
-    <RelativeTimeProvider>
-      <ResourceTable
-        ariaLabel="Servers"
-        columns={columns}
-        emptyDescription="Add a server before syncing a Source that targets its IP address."
-        emptyTitle="No servers yet"
-        getRowHref={(server) => `/servers/${server.id}`}
-        getRowKey={(server) => server.id}
-        items={servers}
-        tableClassName="min-w-[900px]"
-      />
-    </RelativeTimeProvider>
+    <ResourceTable
+      ariaLabel="Servers"
+      columns={columns}
+      emptyDescription="Add a server before syncing a Source that targets its IP address."
+      emptyTitle="No servers yet"
+      getRowHref={(server) => `/servers/${server.id}`}
+      getRowKey={(server) => server.id}
+      items={servers}
+      tableClassName="min-w-[900px]"
+    />
   );
 }
 

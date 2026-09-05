@@ -25,7 +25,7 @@ import {
   getActiveDeploymentStates,
   resolveInventoryStatus,
 } from "@/lib/inventory-status";
-import { LastSyncedTime, RelativeTimeProvider } from "./last-synced-time";
+import { LastSyncedTime } from "./last-synced-time";
 import {
   RuntimeCpuMeter,
   RuntimeMemoryMeter,
@@ -179,18 +179,16 @@ export function SourceApps({
   const runtimeById = getRuntimeByDeployableId(capacities);
   const serversByIp = getServersByIp(servers);
   return (
-    <RelativeTimeProvider>
-      <ResourceTable
-        ariaLabel="Source apps"
-        columns={appColumns(activeDeploymentStates, runtimeById, serversByIp)}
-        emptyDescription="A successful manifest sync imports this Source's apps."
-        emptyTitle="No apps in this Source"
-        getRowHref={(app) => `/sources/${sourceId}/apps/${app.id}`}
-        getRowKey={(app) => app.id}
-        items={apps}
-        tableClassName="min-w-[1040px]"
-      />
-    </RelativeTimeProvider>
+    <ResourceTable
+      ariaLabel="Source apps"
+      columns={appColumns(activeDeploymentStates, runtimeById, serversByIp)}
+      emptyDescription="A successful manifest sync imports this Source's apps."
+      emptyTitle="No apps in this Source"
+      getRowHref={(app) => `/sources/${sourceId}/apps/${app.id}`}
+      getRowKey={(app) => app.id}
+      items={apps}
+      tableClassName="min-w-[1040px]"
+    />
   );
 }
 
@@ -216,24 +214,20 @@ export function SourceResources({
   const runtimeById = getRuntimeByDeployableId(capacities);
   const serversByIp = getServersByIp(servers);
   return (
-    <RelativeTimeProvider>
-      <ResourceTable
-        ariaLabel="Source resources"
-        columns={resourceColumns(
-          activeDeploymentStates,
-          runtimeById,
-          serversByIp,
-        )}
-        emptyDescription="Declare an image, PostgreSQL, or Redis resource in this Source's manifest."
-        emptyTitle="No resources in this Source"
-        getRowHref={(resource) =>
-          `/sources/${sourceId}/resources/${resource.id}`
-        }
-        getRowKey={(resource) => resource.id}
-        items={resources}
-        tableClassName="min-w-[1160px]"
-      />
-    </RelativeTimeProvider>
+    <ResourceTable
+      ariaLabel="Source resources"
+      columns={resourceColumns(
+        activeDeploymentStates,
+        runtimeById,
+        serversByIp,
+      )}
+      emptyDescription="Declare an image, PostgreSQL, or Redis resource in this Source's manifest."
+      emptyTitle="No resources in this Source"
+      getRowHref={(resource) => `/sources/${sourceId}/resources/${resource.id}`}
+      getRowKey={(resource) => resource.id}
+      items={resources}
+      tableClassName="min-w-[1160px]"
+    />
   );
 }
 

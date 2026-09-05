@@ -29,7 +29,7 @@ import {
   formatDeploymentDuration,
   formatDeploymentTrigger,
 } from "./deployment-table";
-import { RelativeTime, RelativeTimeProvider } from "./last-synced-time";
+import { RelativeTime } from "./last-synced-time";
 
 const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
   {
@@ -115,37 +115,35 @@ export function DeploymentsIndex() {
 
   return (
     <DashboardPage icon={Rocket01Icon} title="Deployments">
-      <RelativeTimeProvider>
-        <div className="grid gap-4">
-          {query.error ? (
-            <QueryError message={query.error} />
-          ) : !query.data ? (
-            <QueryLoading variant="table" />
-          ) : (
-            <ResourceTable
-              ariaLabel="All deployments"
-              columns={columns}
-              emptyTitle="No deployments yet"
-              emptyDescription="Deploy an app or resource to see its deployment history here."
-              getRowHref={(item) =>
-                `/sources/${item.sourceId}/deployments/${item.id}`
-              }
-              getRowKey={(item) => item.id}
-              items={query.data.deployments}
-              tableClassName="min-w-[1040px]"
-            />
-          )}
-          {(pagination.totalPages ?? 0) > 1 ? (
-            <Pagination
-              aria-label="Deployment pages"
-              page={pagination.page}
-              size="sm"
-              totalPages={pagination.totalPages ?? 1}
-              onPageChange={pagination.setPage}
-            />
-          ) : null}
-        </div>
-      </RelativeTimeProvider>
+      <div className="grid gap-4">
+        {query.error ? (
+          <QueryError message={query.error} />
+        ) : !query.data ? (
+          <QueryLoading variant="table" />
+        ) : (
+          <ResourceTable
+            ariaLabel="All deployments"
+            columns={columns}
+            emptyTitle="No deployments yet"
+            emptyDescription="Deploy an app or resource to see its deployment history here."
+            getRowHref={(item) =>
+              `/sources/${item.sourceId}/deployments/${item.id}`
+            }
+            getRowKey={(item) => item.id}
+            items={query.data.deployments}
+            tableClassName="min-w-[1040px]"
+          />
+        )}
+        {(pagination.totalPages ?? 0) > 1 ? (
+          <Pagination
+            aria-label="Deployment pages"
+            page={pagination.page}
+            size="sm"
+            totalPages={pagination.totalPages ?? 1}
+            onPageChange={pagination.setPage}
+          />
+        ) : null}
+      </div>
     </DashboardPage>
   );
 }

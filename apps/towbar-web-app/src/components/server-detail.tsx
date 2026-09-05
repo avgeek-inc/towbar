@@ -50,6 +50,7 @@ import {
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { reconcileServerSetupStatus } from "@/lib/server-preparation-status";
+import { RelativeTime } from "./last-synced-time";
 import { formatDate } from "./dashboard-overview";
 import {
   ServerHostCapacity,
@@ -222,7 +223,11 @@ export function ServerDetail() {
       key: "finished",
       header: "Finished",
       cell: (check) =>
-        check.finishedAt ? formatDate(check.finishedAt) : "In progress",
+        check.finishedAt ? (
+          <RelativeTime label="Finished" value={check.finishedAt} />
+        ) : (
+          "In progress"
+        ),
       className: "whitespace-nowrap",
     },
     {

@@ -26,6 +26,7 @@ import {
   applicationPolicy,
   createApplicationSidebar,
 } from "@/lib/application-layout";
+import { RelativeTimeProvider } from "./last-synced-time";
 import { DeploymentQueue } from "@/components/deployment-queue";
 import { NotificationCenter } from "@/components/notification-center";
 
@@ -117,7 +118,7 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
           className="pt-0 pb-20 sm:pt-0 sm:pb-24"
           variant="broad"
         >
-          {children}
+          <RelativeTimeProvider>{children}</RelativeTimeProvider>
         </AppShell.Content>
         <DeploymentQueue />
       </AppLayout>

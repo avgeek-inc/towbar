@@ -11,7 +11,7 @@ import {
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
-import { RelativeTime, RelativeTimeProvider } from "./last-synced-time";
+import { RelativeTime } from "./last-synced-time";
 import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
 
 const DEPLOYMENT_PAGE_SIZE = 10;
@@ -90,30 +90,28 @@ export function DeploymentTable({
   ];
 
   return (
-    <RelativeTimeProvider>
-      <div className="grid gap-4">
-        <ResourceTable
-          ariaLabel={`${deployableName} deployments`}
-          columns={columns}
-          emptyDescription={emptyDescription}
-          emptyTitle="No deployments yet"
-          getRowHref={(deployment) =>
-            `/sources/${deployment.sourceId}/deployments/${deployment.id}`
-          }
-          getRowKey={(deployment) => deployment.id}
-          items={visibleDeployments}
+    <div className="grid gap-4">
+      <ResourceTable
+        ariaLabel={`${deployableName} deployments`}
+        columns={columns}
+        emptyDescription={emptyDescription}
+        emptyTitle="No deployments yet"
+        getRowHref={(deployment) =>
+          `/sources/${deployment.sourceId}/deployments/${deployment.id}`
+        }
+        getRowKey={(deployment) => deployment.id}
+        items={visibleDeployments}
+      />
+      {orderedDeployments.length > pagination.pageSize ? (
+        <Pagination
+          aria-label={`${deployableName} deployment pages`}
+          page={pagination.page}
+          size="sm"
+          totalPages={pagination.totalPages ?? 1}
+          onPageChange={pagination.setPage}
         />
-        {orderedDeployments.length > pagination.pageSize ? (
-          <Pagination
-            aria-label={`${deployableName} deployment pages`}
-            page={pagination.page}
-            size="sm"
-            totalPages={pagination.totalPages ?? 1}
-            onPageChange={pagination.setPage}
-          />
-        ) : null}
-      </div>
-    </RelativeTimeProvider>
+      ) : null}
+    </div>
   );
 }
 

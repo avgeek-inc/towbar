@@ -27,6 +27,7 @@
     "@workspace/towbar-web-ui": "workspace:*",
     "@workspace/web-design-system": "workspace:*",
     "@workspace/web-page-sections": "workspace:*",
+    "date-fns": "^4.4.0",
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"

@@ -12,6 +12,7 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { ActionButton, InlineLink } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
+import { RelativeTime } from "./last-synced-time";
 import { formatDate } from "./dashboard-overview";
 
 export function PreviewEnvironments({
@@ -97,7 +98,9 @@ export function PreviewEnvironments({
       key: "expires",
       header: "Expires",
       className: "min-w-48 whitespace-nowrap",
-      cell: (preview) => formatDate(preview.expiresAt),
+      cell: (preview) => (
+        <RelativeTime label="Expires" value={preview.expiresAt} />
+      ),
     },
     {
       key: "status",

@@ -43,7 +43,7 @@ import {
 } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
-import { formatDate } from "./dashboard-overview";
+import { RelativeTime } from "./last-synced-time";
 import { SourceSecrets } from "./app-secrets";
 import {
   SourceNotifications,
@@ -146,7 +146,7 @@ export function SourceDetail() {
     {
       key: "requested",
       header: "Requested",
-      cell: (sync) => formatDate(sync.createdAt),
+      cell: (sync) => <RelativeTime label="Requested" value={sync.createdAt} />,
       className: "whitespace-nowrap",
     },
     {

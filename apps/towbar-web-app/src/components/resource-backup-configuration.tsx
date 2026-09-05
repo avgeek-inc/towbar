@@ -45,6 +45,7 @@ import { ActionButton, InlineLink } from "@/components/page-parts";
 import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { getBackupHealth } from "@/lib/backup-health";
+import { RelativeTime } from "./last-synced-time";
 import { formatDate } from "./dashboard-overview";
 import { formatBytes } from "./runtime-operations";
 
@@ -127,7 +128,12 @@ export function ResourceBackupConfiguration({
     {
       key: "created",
       header: "Created",
-      cell: (item) => formatDate(item.finishedAt ?? item.createdAt),
+      cell: (item) => (
+        <RelativeTime
+          label="Created"
+          value={item.finishedAt ?? item.createdAt}
+        />
+      ),
       className: "min-w-48 whitespace-nowrap tabular-nums",
     },
     {
@@ -528,7 +534,9 @@ function RestoreHistory({
     {
       key: "created",
       header: "Created",
-      cell: (operation) => formatDate(operation.createdAt),
+      cell: (operation) => (
+        <RelativeTime label="Created" value={operation.createdAt} />
+      ),
       className: "min-w-48 whitespace-nowrap tabular-nums",
     },
     {
@@ -563,9 +571,14 @@ function RestoreHistory({
       header: "Rollback retention",
       cell: (operation) => {
         const result = readRestoreResult(operation.result);
-        return result?.rollbackAvailableUntil
-          ? formatDate(result.rollbackAvailableUntil)
-          : "—";
+        return result?.rollbackAvailableUntil ? (
+          <RelativeTime
+            label="Rollback retention"
+            value={result.rollbackAvailableUntil}
+          />
+        ) : (
+          "—"
+        );
       },
     },
     {

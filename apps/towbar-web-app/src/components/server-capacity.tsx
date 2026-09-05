@@ -14,6 +14,7 @@ import { cn } from "@workspace/web-design-system/lib/utils";
 import { TypographyHeading } from "@workspace/web-design-system/typography/typography";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
+import { RelativeTime } from "./last-synced-time";
 import { formatDate } from "./dashboard-overview";
 import { formatBytes } from "./runtime-operations";
 
@@ -153,7 +154,11 @@ export function ServerRuntimeCapacityTable({
                   {runtime.restartCount ?? "—"}
                 </Table.Cell>
                 <Table.Cell className="whitespace-nowrap">
-                  {runtime.startedAt ? formatDate(runtime.startedAt) : "—"}
+                  {runtime.startedAt ? (
+                    <RelativeTime label="Started" value={runtime.startedAt} />
+                  ) : (
+                    "—"
+                  )}
                 </Table.Cell>
               </Table.Row>
             ))}

@@ -17,7 +17,7 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { ActionButton, FormCard, SimpleForm } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
-import { formatDate } from "./dashboard-overview";
+import { RelativeTime } from "./last-synced-time";
 
 export function ProfileSettings() {
   const profile = useApiQuery<{ user: TowbarUser }>("/v1/core/profile");
@@ -139,13 +139,17 @@ export function SessionSettings() {
     {
       key: "lastActive",
       header: "Last active",
-      cell: (session) => formatDate(session.lastSeenAt),
+      cell: (session) => (
+        <RelativeTime label="Last active" value={session.lastSeenAt} />
+      ),
       className: "whitespace-nowrap",
     },
     {
       key: "expires",
       header: "Expires",
-      cell: (session) => formatDate(session.expiresAt),
+      cell: (session) => (
+        <RelativeTime label="Expires" value={session.expiresAt} />
+      ),
       className: "whitespace-nowrap",
     },
     {

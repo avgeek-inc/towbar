@@ -14,7 +14,7 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { DashboardPage } from "@/components/page-parts";
 import { prefetchApiQueries, useApiQuery } from "@/hooks/use-api-query";
-import { LastSyncedTime, RelativeTimeProvider } from "./last-synced-time";
+import { LastSyncedTime } from "./last-synced-time";
 
 export function SourceIndex() {
   const router = useRouter();
@@ -81,33 +81,29 @@ export function SourceIndex() {
       ) : !query.data ? (
         <QueryLoading variant="table" />
       ) : (
-        <RelativeTimeProvider>
-          <ResourceTable
-            ariaLabel="Sources"
-            columns={columns}
-            emptyAction={
-              <ButtonLink href="/sources/new">Add source</ButtonLink>
-            }
-            emptyDescription="Connect a GitHub repository to import its Towbar manifest."
-            emptyTitle="No sources yet"
-            getRowHref={(source) => `/sources/${source.id}`}
-            getRowKey={(source) => source.id}
-            items={query.data.sources}
-            onRowLinkIntent={(source) => {
-              void prepareSource(source).catch(() => undefined);
-            }}
-            onRowLinkNavigate={(source, event) => {
-              event.preventDefault();
-              void Promise.race([
-                prepareSource(source),
-                new Promise((resolve) => setTimeout(resolve, 150)),
-              ])
-                .catch(() => undefined)
-                .finally(() => router.push(`/sources/${source.id}`));
-            }}
-            tableClassName="min-w-[720px]"
-          />
-        </RelativeTimeProvider>
+        <ResourceTable
+          ariaLabel="Sources"
+          columns={columns}
+          emptyAction={<ButtonLink href="/sources/new">Add source</ButtonLink>}
+          emptyDescription="Connect a GitHub repository to import its Towbar manifest."
+          emptyTitle="No sources yet"
+          getRowHref={(source) => `/sources/${source.id}`}
+          getRowKey={(source) => source.id}
+          items={query.data.sources}
+          onRowLinkIntent={(source) => {
+            void prepareSource(source).catch(() => undefined);
+          }}
+          onRowLinkNavigate={(source, event) => {
+            event.preventDefault();
+            void Promise.race([
+              prepareSource(source),
+              new Promise((resolve) => setTimeout(resolve, 150)),
+            ])
+              .catch(() => undefined)
+              .finally(() => router.push(`/sources/${source.id}`));
+          }}
+          tableClassName="min-w-[720px]"
+        />
       )}
     </DashboardPage>
   );
