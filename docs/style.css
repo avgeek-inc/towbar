@@ -254,3 +254,38 @@
     font-size: 28px;
   }
 }
+
+/* Keep native documentation navigation; simplify only the marketing homepage. */
+#navbar a:has(.nav-logo) {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+[data-towbar-wordmark] {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: oklch(0.23 0.01 85);
+}
+.dark [data-towbar-wordmark] {
+  color: oklch(0.95 0.01 85);
+}
+#navbar[data-towbar-enhanced] #topbar-cta-button {
+  display: none;
+}
+[data-towbar-primary]:focus-visible {
+  outline: 2px solid var(--towbar-yellow);
+  outline-offset: 3px;
+}
+body:has(.towbar-home) #navbar .nav-tabs,
+body:has(.towbar-home) #navbar div:has(> .nav-tabs),
+body:has(.towbar-home) #navbar button:has(> div > .sr-only) {
+  display: none;
+}
+body:has(.towbar-home) {
+  --topbar-tabs-height: 0rem;
+}
+[data-towbar-primary] {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
