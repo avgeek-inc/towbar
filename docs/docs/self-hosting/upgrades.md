@@ -59,25 +59,6 @@ old credential values into the new ownership model.
    Verify its actual HTTPS route before resuming automatic deployments. If you
    use backups, verify a backup and a restore on a disposable Resource.
 
-### Original v1.5.0 tag: cleanup-history migration
-
-The original `v1.5.0` tag runs a cleanup-history update before making its Source
-reference nullable. An upgrade with existing `cleanup_orphans` operations can
-fail with PostgreSQL error `23502` on `towbar_resource_operations.source_id`.
-
-After taking the database backup described above, run this prerequisite on the
-Compose host **before** deploying the original `v1.5.0` tag:
-
-```bash
-docker compose exec -T postgres psql -U towbar -d towbar -v ON_ERROR_STOP=1 \
-  -c 'BEGIN; SET LOCAL lock_timeout = 5000; ALTER TABLE "towbar_resource_operations" ALTER COLUMN "source_id" DROP NOT NULL; COMMIT;'
-```
-
-This applies the same nullability change already intended by the migration,
-without updating or deleting operation records. Then rerun the release deployment.
-The corrected migration in the subsequent source revision performs these steps
-in the right order and includes an upgrade regression test with cleanup history.
-
 Stored deployment plans and their GitHub checks are also removed. Deployment
 history remains the place to inspect actual deployment attempts.
 
