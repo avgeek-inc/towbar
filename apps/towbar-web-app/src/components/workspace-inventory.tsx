@@ -208,7 +208,7 @@ function DeployableInventoryTable({
         />
       ),
       className: "min-w-36 whitespace-nowrap",
-      header: "Defined CPU",
+      header: "Allocated CPU",
       key: "defined-cpu",
     },
     {
@@ -219,7 +219,7 @@ function DeployableInventoryTable({
         />
       ),
       className: "min-w-40 whitespace-nowrap",
-      header: "Defined Memory",
+      header: "Allocated Memory",
       key: "defined-memory",
     },
     {

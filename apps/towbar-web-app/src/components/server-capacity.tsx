@@ -149,8 +149,8 @@ export function ServerDeployableTable({
           <Table.Header>
             <Table.Column isRowHeader>{label}</Table.Column>
             <Table.Column>Health</Table.Column>
-            <Table.Column>Defined CPU</Table.Column>
-            <Table.Column>Defined Memory</Table.Column>
+            <Table.Column>Allocated CPU</Table.Column>
+            <Table.Column>Allocated Memory</Table.Column>
             <Table.Column className="text-right">Restarts</Table.Column>
             <Table.Column>Started</Table.Column>
           </Table.Header>

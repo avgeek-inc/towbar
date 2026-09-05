@@ -63,7 +63,7 @@ function appColumns(
         />
       ),
       className: "min-w-40",
-      header: "Defined CPU",
+      header: "Allocated CPU",
       key: "cpu",
     },
     {
@@ -74,7 +74,7 @@ function appColumns(
         />
       ),
       className: "min-w-56",
-      header: "Defined Memory",
+      header: "Allocated Memory",
       key: "memory",
     },
     {
@@ -134,7 +134,7 @@ function resourceColumns(
         />
       ),
       className: "min-w-40",
-      header: "Defined CPU",
+      header: "Allocated CPU",
       key: "cpu",
     },
     {
@@ -145,7 +145,7 @@ function resourceColumns(
         />
       ),
       className: "min-w-56",
-      header: "Defined Memory",
+      header: "Allocated Memory",
       key: "memory",
     },
     {
