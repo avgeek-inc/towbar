@@ -9,21 +9,10 @@
     "href": "/"
   },
   "favicon": "/assets/towbar-favicon.png",
-  "colors": {
-    "primary": "#A16207",
-    "light": "#B08505",
-    "dark": "#A16207"
-  },
-  "appearance": {
-    "default": "system"
-  },
-  "icons": {
-    "library": "lucide"
-  },
-  "styling": {
-    "eyebrows": "breadcrumbs",
-    "codeblocks": "system"
-  },
+  "colors": { "primary": "#A16207", "light": "#B08505", "dark": "#A16207" },
+  "appearance": { "default": "system" },
+  "icons": { "library": "lucide" },
+  "styling": { "eyebrows": "breadcrumbs", "codeblocks": "system" },
   "navigation": {
     "tabs": [
       {
@@ -90,34 +79,217 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "API & MCP",
+        "openapi": "/api-reference/openapi.json",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": [
+              "docs/api/overview",
+              "docs/api/authentication",
+              "docs/api/mcp",
+              "docs/api/workflows"
+            ]
+          },
+          {
+            "group": "Settings",
+            "pages": [
+              "api-reference/get_settings_api_keys",
+              "api-reference/post_settings_api_keys",
+              "api-reference/delete_settings_api_keys_by_id",
+              "api-reference/get_settings_secrets",
+              "api-reference/patch_settings_secrets_by_environment_by_stage"
+            ]
+          },
+          {
+            "group": "GitHub",
+            "pages": [
+              "api-reference/get_github",
+              "api-reference/post_github_actions_retry_preview_reporting",
+              "api-reference/post_github_actions_installation_url",
+              "api-reference/post_github_actions_complete_installation",
+              "api-reference/get_github_repositories",
+              "api-reference/delete_github"
+            ]
+          },
+          {
+            "group": "AWS",
+            "pages": [
+              "api-reference/get_aws",
+              "api-reference/put_aws",
+              "api-reference/delete_aws"
+            ]
+          },
+          {
+            "group": "Sources",
+            "pages": [
+              "api-reference/get_sources_by_id_notifications_destinations",
+              "api-reference/post_sources_by_id_notifications_destinations",
+              "api-reference/put_sources_by_id_notifications_destinations_by_id",
+              "api-reference/delete_sources_by_id_notifications_destinations_by_id",
+              "api-reference/post_sources_by_id_notifications_destinations_by_id_actions_test",
+              "api-reference/get_sources_by_id_secrets",
+              "api-reference/patch_sources_by_id_secrets_by_environment_by_stage",
+              "api-reference/get_sources",
+              "api-reference/post_sources",
+              "api-reference/get_sources_by_id",
+              "api-reference/get_sources_by_id_auto_deploy_control",
+              "api-reference/patch_sources_by_id_auto_deploy_control",
+              "api-reference/get_sources_by_id_apps",
+              "api-reference/get_sources_by_id_resources",
+              "api-reference/get_sources_by_id_capacity",
+              "api-reference/get_sources_by_id_deployments",
+              "api-reference/get_sources_by_id_backups",
+              "api-reference/get_sources_by_id_previews",
+              "api-reference/get_sources_by_id_manifest",
+              "api-reference/post_sources_by_id_actions_preview_sync",
+              "api-reference/post_sources_by_id_actions_sync",
+              "api-reference/delete_sources_by_id",
+              "api-reference/get_sources_by_id_syncs",
+              "api-reference/get_sources_by_id_syncs_by_id"
+            ]
+          },
+          {
+            "group": "Notifications",
+            "pages": [
+              "api-reference/get_notifications_providers",
+              "api-reference/get_notifications"
+            ]
+          },
+          {
+            "group": "Apps",
+            "pages": [
+              "api-reference/get_apps_by_id_secrets",
+              "api-reference/patch_apps_by_id_secrets_by_environment_by_stage",
+              "api-reference/get_apps",
+              "api-reference/get_apps_by_id",
+              "api-reference/get_apps_by_id_auto_deploy_control",
+              "api-reference/patch_apps_by_id_auto_deploy_control",
+              "api-reference/get_apps_by_id_deployments",
+              "api-reference/get_apps_by_id_releases",
+              "api-reference/get_apps_by_id_previews",
+              "api-reference/get_apps_by_id_operations",
+              "api-reference/post_apps_by_id_actions_deploy",
+              "api-reference/post_apps_by_id_actions_rollback",
+              "api-reference/post_apps_by_id_actions_restart",
+              "api-reference/post_apps_by_id_actions_start",
+              "api-reference/post_apps_by_id_actions_stop",
+              "api-reference/post_apps_by_id_actions_logs"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "api-reference/get_resources_by_id_secrets",
+              "api-reference/patch_resources_by_id_secrets_by_environment_by_stage",
+              "api-reference/get_resources",
+              "api-reference/get_resources_by_id",
+              "api-reference/get_resources_by_id_auto_deploy_control",
+              "api-reference/patch_resources_by_id_auto_deploy_control",
+              "api-reference/get_resources_by_id_deployments",
+              "api-reference/get_resources_by_id_releases",
+              "api-reference/get_resources_by_id_operations",
+              "api-reference/get_resources_by_id_backup_assurance",
+              "api-reference/get_resources_by_id_operations_by_id_events",
+              "api-reference/post_resources_by_id_actions_deploy",
+              "api-reference/post_resources_by_id_actions_rollback",
+              "api-reference/post_resources_by_id_actions_backup",
+              "api-reference/post_resources_by_id_actions_restart",
+              "api-reference/post_resources_by_id_actions_start",
+              "api-reference/post_resources_by_id_actions_stop",
+              "api-reference/post_resources_by_id_actions_restore",
+              "api-reference/post_resources_by_id_actions_restore_cleanup",
+              "api-reference/post_resources_by_id_operations_by_id_actions_cancel",
+              "api-reference/post_resources_by_id_actions_logs"
+            ]
+          },
+          {
+            "group": "Servers",
+            "pages": [
+              "api-reference/get_servers_by_id_credentials",
+              "api-reference/patch_servers_by_id_credentials",
+              "api-reference/get_servers",
+              "api-reference/post_servers",
+              "api-reference/get_servers_by_id",
+              "api-reference/patch_servers_by_id",
+              "api-reference/get_servers_by_id_apps",
+              "api-reference/get_servers_by_id_resources",
+              "api-reference/get_servers_by_id_deployments",
+              "api-reference/get_servers_by_id_capacity",
+              "api-reference/get_servers_by_id_checks",
+              "api-reference/get_servers_by_id_preparations",
+              "api-reference/get_servers_by_id_orphans",
+              "api-reference/get_servers_by_id_host_keys",
+              "api-reference/post_servers_by_id_actions_check",
+              "api-reference/post_servers_by_id_actions_prepare",
+              "api-reference/post_servers_by_id_actions_cleanup_orphans",
+              "api-reference/post_servers_by_id_host_keys_actions_trust",
+              "api-reference/delete_servers_by_id_host_keys_by_id"
+            ]
+          },
+          {
+            "group": "Previews",
+            "pages": [
+              "api-reference/post_previews_by_id_actions_delete",
+              "api-reference/post_previews_by_id_actions_deploy"
+            ]
+          },
+          {
+            "group": "Deployments",
+            "pages": [
+              "api-reference/get_deployments",
+              "api-reference/get_deployments_history",
+              "api-reference/get_deployments_by_id",
+              "api-reference/get_deployments_by_id_steps",
+              "api-reference/get_deployments_by_id_logs",
+              "api-reference/get_deployments_by_id_vulnerability_scan_findings",
+              "api-reference/get_deployments_by_id_events",
+              "api-reference/post_deployments_by_id_actions_cancel",
+              "api-reference/post_deployments_by_id_actions_retry",
+              "api-reference/post_deployments_by_id_vulnerability_scan_actions_rescan"
+            ]
+          },
+          {
+            "group": "System health",
+            "pages": [
+              "api-reference/get_system_health",
+              "api-reference/post_system_health_actions_check"
+            ]
+          },
+          {
+            "group": "Sessions",
+            "pages": [
+              "api-reference/get_sessions",
+              "api-reference/delete_sessions_by_id"
+            ]
+          },
+          {
+            "group": "Profile",
+            "pages": [
+              "api-reference/get_profile",
+              "api-reference/patch_profile",
+              "api-reference/put_profile_password"
+            ]
+          }
+        ]
       }
     ]
   },
   "navbar": {
     "links": [
-      {
-        "type": "github",
-        "href": "https://github.com/avgeek-inc/towbar"
-      }
+      { "type": "github", "href": "https://github.com/avgeek-inc/towbar" }
     ],
-    "primary": {
-      "type": "button",
-      "label": "Docs",
-      "href": "/docs"
-    }
+    "primary": { "type": "button", "label": "Docs", "href": "/docs" }
   },
   "footer": {
-    "socials": {
-      "github": "https://github.com/avgeek-inc/towbar"
-    },
+    "socials": { "github": "https://github.com/avgeek-inc/towbar" },
     "links": [
       {
         "header": "Documentation",
         "items": [
-          {
-            "label": "Your first deployment",
-            "href": "/docs/getting-started"
-          },
+          { "label": "Your first deployment", "href": "/docs/getting-started" },
           {
             "label": "Install Towbar",
             "href": "/docs/self-hosting/installation"
@@ -131,42 +303,25 @@
       {
         "header": "Project",
         "items": [
-          {
-            "label": "GitHub",
-            "href": "https://github.com/avgeek-inc/towbar"
-          },
+          { "label": "GitHub", "href": "https://github.com/avgeek-inc/towbar" },
           {
             "label": "Changelog",
             "href": "https://github.com/avgeek-inc/towbar/blob/main/CHANGELOG.md"
           },
-          {
-            "label": "Security",
-            "href": "/docs/self-hosting/security"
-          }
+          { "label": "Security", "href": "/docs/self-hosting/security" }
         ]
       },
       {
         "header": "Legal",
         "items": [
-          {
-            "label": "Privacy",
-            "href": "/privacy"
-          },
-          {
-            "label": "Terms",
-            "href": "/terms"
-          },
-          {
-            "label": "Status",
-            "href": "/status"
-          }
+          { "label": "Privacy", "href": "/privacy" },
+          { "label": "Terms", "href": "/terms" },
+          { "label": "Status", "href": "/status" }
         ]
       }
     ]
   },
-  "contextual": {
-    "options": ["copy", "view", "chatgpt", "claude"]
-  },
+  "contextual": { "options": ["copy", "view", "chatgpt", "claude"] },
   "seo": {
     "indexing": "all",
     "metatags": {
@@ -187,7 +342,5 @@
     }
   },
   "redirects": [],
-  "metadata": {
-    "timestamp": true
-  }
+  "metadata": { "timestamp": true }
 }

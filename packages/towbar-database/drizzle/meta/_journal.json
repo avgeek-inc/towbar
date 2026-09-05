@@ -281,6 +281,13 @@
       "when": 1788557107083,
       "tag": "0039_sweet_marvel_zombies",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1788609308127,
+      "tag": "0040_cool_boomer",
+      "breakpoints": true
     }
   ]
 }

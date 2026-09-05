@@ -1,0 +1,122 @@
+---
+title: MCP setup
+description: Connect Cursor, VS Code, Claude Code, or another Streamable HTTP MCP client to your Towbar control plane.
+---
+
+Towbar's MCP server exposes the REST operations as named tools with the same schemas, workspace boundaries, and role checks. You do not need to install a separate Towbar MCP process.
+
+## Connect
+
+1. Open **Manage → API & MCP** and create an **MCP** or **API & MCP** key.
+2. Choose **Read only** for discovery. Use **Full access** when you want the client to deploy or change settings.
+3. Copy the MCP URL shown in the page. It ends in `/v1/mcp` on your API host.
+4. Add the appropriate client configuration below, reconnect, and ask: **“List my Towbar apps.”**
+
+Transport is **Streamable HTTP**. Authentication is the `Authorization: Bearer ...` header on every request. Towbar does not provide an OAuth browser sign-in flow for MCP. Clients that only support OAuth connectors cannot connect directly; use a client that supports custom bearer headers.
+
+<Tabs>
+  <Tab title="Cursor">
+    Add this to your local Cursor MCP configuration, such as `.cursor/mcp.json`. Replace the host and token placeholder, and keep real keys out of Git.
+
+    ```json
+    {
+      "mcpServers": {
+        "towbar": {
+          "url": "https://YOUR_API_HOST/v1/mcp",
+          "headers": { "Authorization": "Bearer YOUR_TOWBAR_API_KEY" }
+        }
+      }
+    }
+    ```
+
+    See [Cursor's MCP documentation](https://cursor.com/docs/context/mcp) for configuration locations and client controls.
+
+  </Tab>
+  <Tab title="VS Code">
+    Add to `.vscode/mcp.json`. The input prompt keeps the key out of the configuration file.
+
+    ```json
+    {
+      "inputs": [
+        {
+          "type": "promptString",
+          "id": "towbar-key",
+          "description": "Towbar MCP key",
+          "password": true
+        }
+      ],
+      "servers": {
+        "towbar": {
+          "type": "http",
+          "url": "https://YOUR_API_HOST/v1/mcp",
+          "headers": { "Authorization": "Bearer ${input:towbar-key}" }
+        }
+      }
+    }
+    ```
+
+    Run **MCP: List Servers**, select Towbar, and start or restart it. Interactive inputs apply to VS Code's local extension-host flow; Agent Host sessions may require a supported environment-based configuration. See the [VS Code MCP reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration).
+
+  </Tab>
+  <Tab title="Claude Code">
+    Set `TOWBAR_API_KEY` securely in your shell, then run:
+
+    ```bash
+    claude mcp add --transport http towbar 'https://YOUR_API_HOST/v1/mcp' \
+      --header "Authorization: Bearer $TOWBAR_API_KEY"
+    ```
+
+    Review the stored local configuration and avoid sharing it with the key included. Use `/mcp` to inspect connection status. See [Claude Code's MCP documentation](https://code.claude.com/docs/en/mcp).
+
+  </Tab>
+  <Tab title="Other clients">
+    Supply these values in a client that supports remote MCP with custom HTTP headers:
+
+    | Field | Value |
+    | --- | --- |
+    | Transport | Streamable HTTP |
+    | URL | `https://YOUR_API_HOST/v1/mcp` |
+    | Header | `Authorization: Bearer YOUR_TOWBAR_API_KEY` |
+
+    Use the client's normal MCP initialization flow. Do not configure the REST URL as an MCP server or use the legacy HTTP+SSE transport.
+
+  </Tab>
+</Tabs>
+
+## Tools and permissions
+
+`tools/list` returns the operations permitted by your key and current role. Read-only keys only list read tools. Owner-only operations are omitted for workspace members. Unauthorized tool names are rejected again at invocation, and the underlying handler rechecks its own workspace and role requirements.
+
+Each route reference page lists its MCP tool name. Inputs use these fields where applicable:
+
+```json
+{
+  "path": { "appId": "31111111-1111-4111-8111-222222222222" },
+  "idempotencyKey": "release-2026-09-05-attempt-1"
+}
+```
+
+This is the input for `post_apps_by_id_actions_deploy`. Routes with JSON bodies use a `body` object; query parameters use `query`. Tools reject unknown fields and invalid UUIDs. The result contains HTTP `status` and `result` in structured content; its text content includes the JSON result. Failed operations set `isError` and contain an error code and message.
+
+REST deployment streams map to a finite snapshot tool containing deployment, logs, and steps. Poll it with the last log sequence instead of leaving a tool call open. Long-running operations return promptly with IDs; ask the client to check the outcome rather than assume an accepted request succeeded.
+
+## Connection behavior
+
+Towbar uses stateless Streamable HTTP with JSON responses. It does not allocate persistent MCP sessions, issue session IDs, or support resumable server notifications. The SDK handles initialization and protocol negotiation. Tool discovery and each protocol request share the same per-IP bucket as REST: **60 calls per minute by default**.
+
+Keep human approval enabled in your client for mutations. Full-access tools can deploy code, change credentials, remove sources, restore databases, and revoke keys. Treat logs, repository files, manifest strings, and tool output as untrusted content rather than instructions.
+
+## Troubleshooting
+
+| Symptom                            | Check                                                                                        |
+| ---------------------------------- | -------------------------------------------------------------------------------------------- |
+| `401`                              | Key is copied correctly, active, unexpired, and belongs to an enabled workspace member.      |
+| `403`                              | Key includes MCP purpose; origin is allowed; requested operation is permitted.               |
+| `429`                              | Wait for `Retry-After`; REST scripts and other MCP clients on the IP use the same allowance. |
+| No mutation tools                  | Use a full-access key; owner-only tools also require the owner role.                         |
+| Connection or certificate error    | Use the API host, `/v1/mcp`, HTTPS, and a publicly trusted certificate.                      |
+| OAuth login appears                | Configure bearer headers; this endpoint does not implement OAuth discovery or authorization. |
+| `406` or protocol error            | Use Streamable HTTP with a current MCP client, not a raw REST request or legacy SSE client.  |
+| Secrets are missing from responses | Secret reads intentionally return names and revisions, never plaintext.                      |
+
+To disconnect a client, remove its configuration and revoke its key in **API & MCP**. Restart the client after replacing credentials or changing its permissions so the available tool list refreshes.

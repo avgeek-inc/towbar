@@ -1,5 +1,6 @@
 import {
   ComputerIcon,
+  SourceCodeIcon,
   DashboardCircleIcon,
   DashboardSquare01Icon,
   DatabaseIcon,
@@ -28,6 +29,7 @@ const sidebarIcons = defineSidebarIcons({
   deployments: Rocket01Icon,
   health: HealthIcon,
   integrations: PlugSocketIcon,
+  api: SourceCodeIcon,
   logout: Logout03Icon,
   overview: DashboardSquare01Icon,
   profile: UserAccountIcon,
@@ -130,6 +132,13 @@ const sidebar = {
           label: "Integrations",
           href: "/manage/integrations",
           icon: sidebarIcons.integrations,
+        },
+        {
+          kind: "link",
+          id: "api-mcp",
+          label: "API & MCP",
+          href: "/manage/api-mcp",
+          icon: sidebarIcons.api,
         },
         {
           kind: "link",

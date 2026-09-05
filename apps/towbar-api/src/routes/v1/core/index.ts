@@ -1,3 +1,4 @@
+import { apiKeyRoutes } from "./api-keys.js";
 import { environmentSecretRoutes } from "./environment-secrets.js";
 import { serverCredentialRoutes } from "./server-credentials.js";
 import { Hono } from "hono";
@@ -22,31 +23,47 @@ import { notificationCenterRoutes } from "./notification-center.js";
 
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
-export const coreRoutes = new Hono<TowbarHonoEnvironment>();
+export const controlPlaneRoutes = new Hono<TowbarHonoEnvironment>();
 
-coreRoutes.use("*", requireTrustedMutationOrigin);
-coreRoutes.use("*", requireAuthenticatedUser);
-coreRoutes.route("/session", sessionRoutes);
-coreRoutes.route("/github", githubRoutes);
-coreRoutes.route("/aws", awsRoutes);
-coreRoutes.route("/sources/:sourceId/notifications", notificationRoutes);
-coreRoutes.route("/notifications", notificationCenterRoutes);
-coreRoutes.route("/settings/secrets", environmentSecretRoutes("workspace"));
-coreRoutes.route(
+controlPlaneRoutes.route("/settings/api-keys", apiKeyRoutes);
+controlPlaneRoutes.route("/github", githubRoutes);
+controlPlaneRoutes.route("/aws", awsRoutes);
+controlPlaneRoutes.route(
+  "/sources/:sourceId/notifications",
+  notificationRoutes,
+);
+controlPlaneRoutes.route("/notifications", notificationCenterRoutes);
+controlPlaneRoutes.route(
+  "/settings/secrets",
+  environmentSecretRoutes("workspace"),
+);
+controlPlaneRoutes.route(
   "/sources/:ownerId/secrets",
   environmentSecretRoutes("source"),
 );
-coreRoutes.route("/apps/:ownerId/secrets", environmentSecretRoutes("app"));
-coreRoutes.route(
+controlPlaneRoutes.route(
+  "/apps/:ownerId/secrets",
+  environmentSecretRoutes("app"),
+);
+controlPlaneRoutes.route(
   "/resources/:ownerId/secrets",
   environmentSecretRoutes("resource"),
 );
-coreRoutes.route("/servers/:serverId/credentials", serverCredentialRoutes);
-coreRoutes.route("/sources", sourceRoutes);
-coreRoutes.route("/apps", appRoutes);
-coreRoutes.route("/resources", resourceRoutes);
-coreRoutes.route("/previews", previewRoutes);
-coreRoutes.route("/servers", serverRoutes);
-coreRoutes.route("/deployments", deploymentRoutes);
-coreRoutes.route("/system-health", systemHealthRoutes);
-coreRoutes.route("/", accountRoutes);
+controlPlaneRoutes.route(
+  "/servers/:serverId/credentials",
+  serverCredentialRoutes,
+);
+controlPlaneRoutes.route("/sources", sourceRoutes);
+controlPlaneRoutes.route("/apps", appRoutes);
+controlPlaneRoutes.route("/resources", resourceRoutes);
+controlPlaneRoutes.route("/previews", previewRoutes);
+controlPlaneRoutes.route("/servers", serverRoutes);
+controlPlaneRoutes.route("/deployments", deploymentRoutes);
+controlPlaneRoutes.route("/system-health", systemHealthRoutes);
+controlPlaneRoutes.route("/", accountRoutes);
+
+export const coreRoutes = new Hono<TowbarHonoEnvironment>();
+coreRoutes.use("*", requireTrustedMutationOrigin);
+coreRoutes.use("*", requireAuthenticatedUser);
+coreRoutes.route("/session", sessionRoutes);
+coreRoutes.route("/", controlPlaneRoutes);

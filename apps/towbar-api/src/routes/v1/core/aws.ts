@@ -1,3 +1,4 @@
+import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -21,30 +22,60 @@ const credentialSchema = z
 
 export const awsRoutes = new Hono<TowbarHonoEnvironment>();
 
-awsRoutes.get("/", async (context) => {
-  const user = context.get("user");
-  const credential = await getAwsCredentialMetadata(user.workspaceId);
-  return context.json({
-    canManage: user.workspaceRole === "owner",
-    credential,
-  });
-});
+awsRoutes.get(
+  "/",
+  operation({
+    responseSchema: 'aws.ts:get:"/"',
+    summary: "Get AWS credential metadata",
+    response: "JSON object containing canManage, credential.",
+    status: 200,
+  }),
+  async (context) => {
+    const user = context.get("user");
+    const credential = await getAwsCredentialMetadata(user.workspaceId);
+    return context.json({
+      canManage: user.workspaceRole === "owner",
+      credential,
+    });
+  },
+);
 
-awsRoutes.put("/", async (context) => {
-  requireWorkspaceOwner(context.get("user").workspaceRole);
-  const input = await readJson(context, credentialSchema);
-  const credential = await saveAwsCredentials({
-    ...input,
-    workspaceId: context.get("user").workspaceId,
-  });
-  return context.json({ credential });
-});
+awsRoutes.put(
+  "/",
+  operation({
+    responseSchema: 'aws.ts:put:"/"',
+    summary: "Save AWS credentials",
+    body: credentialSchema,
+    ownerOnly: true,
+    response: "JSON object containing credential.",
+    status: 200,
+  }),
+  async (context) => {
+    requireWorkspaceOwner(context.get("user").workspaceRole);
+    const input = await readJson(context, credentialSchema);
+    const credential = await saveAwsCredentials({
+      ...input,
+      workspaceId: context.get("user").workspaceId,
+    });
+    return context.json({ credential });
+  },
+);
 
-awsRoutes.delete("/", async (context) => {
-  requireWorkspaceOwner(context.get("user").workspaceRole);
-  await deleteAwsCredentials(context.get("user").workspaceId);
-  return context.body(null, 204);
-});
+awsRoutes.delete(
+  "/",
+  operation({
+    responseSchema: 'aws.ts:delete:"/"',
+    summary: "Delete AWS credentials",
+    ownerOnly: true,
+    response: "No response body.",
+    status: 204,
+  }),
+  async (context) => {
+    requireWorkspaceOwner(context.get("user").workspaceRole);
+    await deleteAwsCredentials(context.get("user").workspaceId);
+    return context.body(null, 204);
+  },
+);
 
 function requireWorkspaceOwner(role: "member" | "owner") {
   if (role !== "owner") {

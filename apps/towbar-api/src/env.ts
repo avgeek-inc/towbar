@@ -49,6 +49,18 @@ const envSchema = z
       .min(1)
       .max(720)
       .default(168),
+    TOWBAR_API_RATE_LIMIT_MAX: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(100000)
+      .default(60),
+    TOWBAR_API_RATE_LIMIT_WINDOW_SECONDS: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(86400)
+      .default(60),
     TOWBAR_TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).max(8).default(0),
     TOWBAR_PASSWORD_VERIFY_CONCURRENCY: z.coerce
       .number()

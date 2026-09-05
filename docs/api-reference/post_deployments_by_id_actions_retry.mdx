@@ -1,0 +1,12 @@
+---
+title: "Request deployment retry"
+description: "Request deployment retry through the Towbar API and MCP."
+playground: simple
+openapi: "/api-reference/openapi.json POST /deployments/{deploymentId}/actions/retry"
+---
+
+MCP tool: `post_deployments_by_id_actions_retry`. Uses your current workspace permissions.
+
+Supply an Idempotency-Key for this action. An accepted request may continue asynchronously; poll the returned ID.
+
+See [request conventions](/docs/api/overview) and [automation workflows](/docs/api/workflows).

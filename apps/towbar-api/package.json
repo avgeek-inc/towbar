@@ -24,6 +24,7 @@
     "@aws-sdk/client-s3": "catalog:",
     "@aws-sdk/client-sts": "catalog:",
     "@hono/node-server": "^2.0.11",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@temporalio/client": "catalog:",
     "@workspace/observability-node": "workspace:*",
     "@workspace/towbar-core": "workspace:*",

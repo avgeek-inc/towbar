@@ -5,6 +5,13 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+### Added
+
+- Bearer-key REST API and Streamable HTTP MCP with control-plane operation parity, current workspace permissions, purpose-scoped keys, read-only/full access, expiry, and revocation.
+- Persistent shared API/MCP rate limiting, defaulting to 60 requests per minute per IP and configurable through environment variables.
+- API & MCP settings with one-time key reveal, key inventory, and client setup for Cursor, VS Code, and Claude Code.
+- Mintlify API guides, OpenAPI request and response schemas, and per-route references generated from the shared control-plane handlers.
+
 ## [1.5.1] - 2026-09-05
 
 ### Fixed

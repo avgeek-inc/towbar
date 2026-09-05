@@ -1,3 +1,4 @@
+import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -33,146 +34,259 @@ const logsSchema = z
   .strict();
 export const appRoutes = new Hono<TowbarHonoEnvironment>();
 
-appRoutes.get("/", async (context) =>
-  context.json({ apps: await listApps(context.get("user").workspaceId) }),
+appRoutes.get(
+  "/",
+  operation({
+    responseSchema: 'apps.ts:get:"/"',
+    summary: "List apps",
+    response: "JSON object containing apps.",
+    status: 200,
+  }),
+  async (context) =>
+    context.json({ apps: await listApps(context.get("user").workspaceId) }),
 );
 
-appRoutes.get("/:appId", async (context) => {
-  const user = context.get("user");
-  return context.json({
-    app: await getApp(context.req.param("appId"), user.workspaceId),
-  });
-});
+appRoutes.get(
+  "/:appId",
+  operation({
+    responseSchema: 'apps.ts:get:"/:appId"',
+    summary: "Get app",
+    response: "JSON object containing app.",
+    status: 200,
+  }),
+  async (context) => {
+    const user = context.get("user");
+    return context.json({
+      app: await getApp(context.req.param("appId"), user.workspaceId),
+    });
+  },
+);
 
-appRoutes.get("/:appId/auto-deploy-control", async (context) => {
-  const user = context.get("user");
-  return context.json({
-    autoDeploy: await getDeployableAutoDeployControl({
+appRoutes.get(
+  "/:appId/auto-deploy-control",
+  operation({
+    responseSchema: 'apps.ts:get:"/:appId/auto-deploy-control"',
+    summary: "Get app auto-deploy settings",
+    response: "JSON object containing autoDeploy, canManageAutoDeploy.",
+    status: 200,
+  }),
+  async (context) => {
+    const user = context.get("user");
+    return context.json({
+      autoDeploy: await getDeployableAutoDeployControl({
+        deployableId: context.req.param("appId"),
+        expectedType: "app",
+        workspaceId: user.workspaceId,
+      }),
+      canManageAutoDeploy: user.workspaceRole === "owner",
+    });
+  },
+);
+
+appRoutes.patch(
+  "/:appId/auto-deploy-control",
+  operation({
+    responseSchema: 'apps.ts:patch:"/:appId/auto-deploy-control"',
+    summary: "Update app auto-deploy settings",
+    body: autoDeployControlPatchSchema,
+    ownerOnly: true,
+    response: "JSON object containing autoDeploy, canManageAutoDeploy.",
+    status: 200,
+  }),
+  async (context) => {
+    const user = context.get("user");
+    if (user.workspaceRole !== "owner") {
+      throw forbidden(
+        "Only the owner can manage automatic deployment controls",
+      );
+    }
+    const result = await updateDeployableAutoDeployControl({
       deployableId: context.req.param("appId"),
       expectedType: "app",
+      ...(await readJson(context, autoDeployControlPatchSchema)),
       workspaceId: user.workspaceId,
+    });
+    const { shouldReevaluate, ...autoDeploy } = result;
+    if (shouldReevaluate) {
+      void wakeMaintenanceWorkflow().catch(() => undefined);
+    }
+    return context.json({
+      autoDeploy,
+      canManageAutoDeploy: user.workspaceRole === "owner",
+    });
+  },
+);
+
+appRoutes.get(
+  "/:appId/deployments",
+  operation({
+    responseSchema: 'apps.ts:get:"/:appId/deployments"',
+    summary: "List app deployments",
+    response: "JSON object containing deployments.",
+    status: 200,
+  }),
+  async (context) =>
+    context.json({
+      deployments: await listAppDeployments(
+        context.req.param("appId"),
+        context.get("user").workspaceId,
+      ),
     }),
-    canManageAutoDeploy: user.workspaceRole === "owner",
-  });
-});
-
-appRoutes.patch("/:appId/auto-deploy-control", async (context) => {
-  const user = context.get("user");
-  if (user.workspaceRole !== "owner") {
-    throw forbidden("Only the owner can manage automatic deployment controls");
-  }
-  const result = await updateDeployableAutoDeployControl({
-    deployableId: context.req.param("appId"),
-    expectedType: "app",
-    ...(await readJson(context, autoDeployControlPatchSchema)),
-    workspaceId: user.workspaceId,
-  });
-  const { shouldReevaluate, ...autoDeploy } = result;
-  if (shouldReevaluate) {
-    void wakeMaintenanceWorkflow().catch(() => undefined);
-  }
-  return context.json({
-    autoDeploy,
-    canManageAutoDeploy: user.workspaceRole === "owner",
-  });
-});
-
-appRoutes.get("/:appId/deployments", async (context) =>
-  context.json({
-    deployments: await listAppDeployments(
-      context.req.param("appId"),
-      context.get("user").workspaceId,
-    ),
-  }),
 );
 
-appRoutes.get("/:appId/releases", async (context) =>
-  context.json({
-    releases: await listAppReleases(
-      context.req.param("appId"),
-      context.get("user").workspaceId,
-    ),
+appRoutes.get(
+  "/:appId/releases",
+  operation({
+    responseSchema: 'apps.ts:get:"/:appId/releases"',
+    summary: "List app releases",
+    response: "JSON object containing releases.",
+    status: 200,
   }),
+  async (context) =>
+    context.json({
+      releases: await listAppReleases(
+        context.req.param("appId"),
+        context.get("user").workspaceId,
+      ),
+    }),
 );
 
-appRoutes.get("/:appId/previews", async (context) =>
-  context.json({
-    previews: await listPreviewEnvironments({
+appRoutes.get(
+  "/:appId/previews",
+  operation({
+    responseSchema: 'apps.ts:get:"/:appId/previews"',
+    summary: "List preview environments",
+    response: "JSON object containing previews.",
+    status: 200,
+  }),
+  async (context) =>
+    context.json({
+      previews: await listPreviewEnvironments({
+        appId: context.req.param("appId"),
+        workspaceId: context.get("user").workspaceId,
+      }),
+    }),
+);
+
+appRoutes.get(
+  "/:appId/operations",
+  operation({
+    responseSchema: 'apps.ts:get:"/:appId/operations"',
+    summary: "List app operations",
+    response: "JSON object containing operations.",
+    status: 200,
+  }),
+  async (context) =>
+    context.json({
+      operations: await listDeployableOperations(
+        context.req.param("appId"),
+        context.get("user").workspaceId,
+      ),
+    }),
+);
+
+appRoutes.post(
+  "/:appId/actions/deploy",
+  operation({
+    responseSchema: 'apps.ts:post:"/:appId/actions/deploy"',
+    summary: "Request app deployment",
+    idempotencyKey: true,
+    response: "The deployment and whether the request was replayed.",
+    status: 202,
+  }),
+  async (context) => {
+    const idempotencyKey = requireIdempotencyKey(
+      context.req.header("idempotency-key"),
+    );
+    const user = context.get("user");
+    const result = await requestAppDeployment({
       appId: context.req.param("appId"),
-      workspaceId: context.get("user").workspaceId,
-    }),
-  }),
+      idempotencyKey,
+      requestedBy: user.id,
+      workspaceId: user.workspaceId,
+    });
+    return context.json(result, result.replayed ? 200 : 202);
+  },
 );
 
-appRoutes.get("/:appId/operations", async (context) =>
-  context.json({
-    operations: await listDeployableOperations(
-      context.req.param("appId"),
-      context.get("user").workspaceId,
-    ),
+appRoutes.post(
+  "/:appId/actions/rollback",
+  operation({
+    responseSchema: 'apps.ts:post:"/:appId/actions/rollback"',
+    summary: "Request app rollback",
+    body: rollbackSchema,
+    idempotencyKey: true,
+    response: "The rollback deployment and whether the request was replayed.",
+    status: 202,
   }),
+  async (context) => {
+    const idempotencyKey = requireIdempotencyKey(
+      context.req.header("idempotency-key"),
+    );
+    const input = await readJson(context, rollbackSchema);
+    const user = context.get("user");
+    const result = await requestAppRollback({
+      appId: context.req.param("appId"),
+      idempotencyKey,
+      releaseId: input.releaseId,
+      requestedBy: user.id,
+      workspaceId: user.workspaceId,
+    });
+    return context.json(result, result.replayed ? 200 : 202);
+  },
 );
-
-appRoutes.post("/:appId/actions/deploy", async (context) => {
-  const idempotencyKey = requireIdempotencyKey(
-    context.req.header("idempotency-key"),
-  );
-  const user = context.get("user");
-  const result = await requestAppDeployment({
-    appId: context.req.param("appId"),
-    idempotencyKey,
-    requestedBy: user.id,
-    workspaceId: user.workspaceId,
-  });
-  return context.json(result, result.replayed ? 200 : 202);
-});
-
-appRoutes.post("/:appId/actions/rollback", async (context) => {
-  const idempotencyKey = requireIdempotencyKey(
-    context.req.header("idempotency-key"),
-  );
-  const input = await readJson(context, rollbackSchema);
-  const user = context.get("user");
-  const result = await requestAppRollback({
-    appId: context.req.param("appId"),
-    idempotencyKey,
-    releaseId: input.releaseId,
-    requestedBy: user.id,
-    workspaceId: user.workspaceId,
-  });
-  return context.json(result, result.replayed ? 200 : 202);
-});
 
 for (const action of ["restart", "start", "stop"] as const) {
-  appRoutes.post(`/:appId/actions/${action}`, async (context) => {
+  appRoutes.post(
+    `/:appId/actions/${action}`,
+    operation({
+      responseSchema: "apps.ts:post:`/:appId/actions/${action}`",
+      summary: `${action.charAt(0).toUpperCase() + action.slice(1)} app`,
+      idempotencyKey: true,
+      response: "The runtime operation and whether the request was replayed.",
+      status: 202,
+    }),
+    async (context) => {
+      const user = context.get("user");
+      const result = await requestDeployableOperation({
+        deployableId: context.req.param("appId"),
+        idempotencyKey: requireIdempotencyKey(
+          context.req.header("idempotency-key"),
+        ),
+        requestedBy: user.id,
+        request: { type: action },
+        workspaceId: user.workspaceId,
+      });
+      return context.json(result, result.replayed ? 200 : 202);
+    },
+  );
+}
+
+appRoutes.post(
+  "/:appId/actions/logs",
+  operation({
+    responseSchema: 'apps.ts:post:"/:appId/actions/logs"',
+    summary: "Request app operation",
+    body: logsSchema,
+    idempotencyKey: true,
+    response: "The runtime operation and whether the request was replayed.",
+    status: 202,
+  }),
+  async (context) => {
     const user = context.get("user");
+    const input = await readJson(context, logsSchema);
     const result = await requestDeployableOperation({
       deployableId: context.req.param("appId"),
       idempotencyKey: requireIdempotencyKey(
         context.req.header("idempotency-key"),
       ),
       requestedBy: user.id,
-      request: { type: action },
+      request: { tail: input.tail, type: "capture_logs" },
       workspaceId: user.workspaceId,
     });
     return context.json(result, result.replayed ? 200 : 202);
-  });
-}
-
-appRoutes.post("/:appId/actions/logs", async (context) => {
-  const user = context.get("user");
-  const input = await readJson(context, logsSchema);
-  const result = await requestDeployableOperation({
-    deployableId: context.req.param("appId"),
-    idempotencyKey: requireIdempotencyKey(
-      context.req.header("idempotency-key"),
-    ),
-    requestedBy: user.id,
-    request: { tail: input.tail, type: "capture_logs" },
-    workspaceId: user.workspaceId,
-  });
-  return context.json(result, result.replayed ? 200 : 202);
-});
+  },
+);
 
 function requireIdempotencyKey(value: string | undefined) {
   const key = value?.trim();

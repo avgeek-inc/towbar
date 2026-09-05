@@ -139,3 +139,12 @@ Keep worker activity capacity above the largest server build-concurrency setting
 ## Release automation
 
 The optional GitHub Actions deployment environment is documented under [Upgrades and recovery](/docs/self-hosting/upgrades#automatic-release-deployment).
+
+## API and MCP rate limits
+
+`TOWBAR_API_RATE_LIMIT_MAX` defaults to `60` requests and
+`TOWBAR_API_RATE_LIMIT_WINDOW_SECONDS` defaults to `60` seconds. The API and
+MCP share one persistent per-IP bucket. Set both variables on the API process;
+restart it after changes. Configure `TOWBAR_TRUSTED_PROXY_HOPS` for your proxy
+topology so clients are counted correctly. See [API authentication and rate
+limits](/docs/api/authentication) for bounds, response headers, and examples.

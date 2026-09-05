@@ -1,0 +1,12 @@
+---
+title: "Request app deployment"
+description: "Request app deployment through the Towbar API and MCP."
+playground: simple
+openapi: "/api-reference/openapi.json POST /apps/{appId}/actions/deploy"
+---
+
+MCP tool: `post_apps_by_id_actions_deploy`. Uses your current workspace permissions.
+
+Supply an Idempotency-Key for this action. An accepted request may continue asynchronously; poll the returned ID.
+
+See [request conventions](/docs/api/overview) and [automation workflows](/docs/api/workflows).
