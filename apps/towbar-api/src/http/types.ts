@@ -8,9 +8,7 @@ export type AuthenticatedUser = {
 
 export type TowbarVariables = {
   currentSessionId: string | null;
-  apiKey:
-    | { id: string; access: "read" | "write"; purpose: "api" | "mcp" | "both" }
-    | undefined;
+  apiKey: { id: string; access: "read" | "write" } | undefined;
   requestId: string;
   user: AuthenticatedUser;
 };

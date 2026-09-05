@@ -278,9 +278,6 @@ export const apiKeys = pgTable(
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 120 }).notNull(),
-    purpose: varchar("purpose", { length: 10 })
-      .$type<"api" | "mcp" | "both">()
-      .notNull(),
     access: varchar("access", { length: 10 })
       .$type<"read" | "write">()
       .notNull(),
@@ -296,10 +293,6 @@ export const apiKeys = pgTable(
   (table) => [
     uniqueIndex("uq_towbar_api_keys_hash").on(table.tokenHash),
     index("idx_towbar_api_keys_owner").on(table.workspaceId, table.userId),
-    check(
-      "towbar_api_keys_purpose",
-      sql`${table.purpose} in ('api', 'mcp', 'both')`,
-    ),
     check("towbar_api_keys_access", sql`${table.access} in ('read', 'write')`),
   ],
 );

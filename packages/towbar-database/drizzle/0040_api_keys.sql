@@ -3,7 +3,6 @@ CREATE TABLE "towbar_api_keys" (
 	"user_id" uuid NOT NULL,
 	"workspace_id" uuid NOT NULL,
 	"name" varchar(120) NOT NULL,
-	"purpose" varchar(10) NOT NULL,
 	"access" varchar(10) NOT NULL,
 	"token_hash" varchar(64) NOT NULL,
 	"token_prefix" varchar(20) NOT NULL,
@@ -11,7 +10,6 @@ CREATE TABLE "towbar_api_keys" (
 	"revoked_at" timestamp with time zone,
 	"last_used_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "towbar_api_keys_purpose" CHECK ("towbar_api_keys"."purpose" in ('api', 'mcp', 'both')),
 	CONSTRAINT "towbar_api_keys_access" CHECK ("towbar_api_keys"."access" in ('read', 'write'))
 );
 --> statement-breakpoint

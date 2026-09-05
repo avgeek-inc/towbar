@@ -22,7 +22,6 @@ type ApiKey = {
   id: string;
   name: string;
   prefix: string;
-  purpose: "api" | "mcp" | "both";
   access: "read" | "write";
   createdAt: string;
   lastUsedAt: string | null;
@@ -36,7 +35,6 @@ type KeySettings = {
   rateLimit: { requests: number; windowSeconds: number };
 };
 const endpoint = "/v1/core/settings/api-keys";
-const purposeLabels = { api: "API", mcp: "MCP", both: "API & MCP" };
 
 function SetupCode({ title, code }: { title: string; code: string }) {
   return (
@@ -108,11 +106,6 @@ export function ApiMcpSettings() {
       ),
     },
     {
-      key: "purpose",
-      header: "Use",
-      cell: (key) => purposeLabels[key.purpose],
-    },
-    {
       key: "access",
       header: "Permissions",
       cell: (key) => (key.access === "read" ? "Read only" : "Full access"),
@@ -180,8 +173,9 @@ export function ApiMcpSettings() {
     <div className="content-grid">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <p className="text-muted max-w-2xl">
-          Connect scripts and AI tools to your control plane. Keys use your
-          current workspace permissions and can be revoked at any time.
+          Connect scripts and AI tools to your control plane. Each key works
+          with both interfaces and uses your current workspace permissions and
+          can be revoked at any time.
         </p>
         <Button onPress={() => setCreating(true)}>Create API key</Button>
       </div>
@@ -213,9 +207,8 @@ export function ApiMcpSettings() {
             content: (
               <div className="content-grid">
                 <p>
-                  Create an API or API &amp; MCP key, then set{" "}
-                  <code>TOWBAR_API_KEY</code> in your terminal or secret
-                  manager.
+                  Create an API key, then set <code>TOWBAR_API_KEY</code> in
+                  your terminal or secret manager.
                 </p>
                 <SetupCode
                   title="List your apps"
@@ -283,7 +276,6 @@ export function ApiMcpSettings() {
 
 function CreateKey({ onCreated }: { onCreated: (token: string) => void }) {
   const nameId = useId();
-  const [purpose, setPurpose] = useState("mcp");
   const [access, setAccess] = useState("read");
   const [expiry, setExpiry] = useState("90");
   const [busy, setBusy] = useState(false);
@@ -297,7 +289,6 @@ function CreateKey({ onCreated }: { onCreated: (token: string) => void }) {
     try {
       const result = await api.post<{ token: string }>(endpoint, {
         name: String(form.get("name") ?? ""),
-        purpose,
         access,
         expiresAt:
           expiry === "never"
@@ -332,16 +323,6 @@ function CreateKey({ onCreated }: { onCreated: (token: string) => void }) {
           autoComplete="off"
         />
       </div>
-      <Choice
-        label="Use this key for"
-        value={purpose}
-        onChange={setPurpose}
-        options={[
-          ["mcp", "MCP"],
-          ["api", "API"],
-          ["both", "API & MCP"],
-        ]}
-      />
       <Choice
         label="Permissions"
         value={access}
@@ -400,7 +381,7 @@ function McpSetup({ url }: { url: string }) {
             {
               type: "promptString",
               id: "towbar-key",
-              description: "Towbar MCP key",
+              description: "Towbar API key",
               password: true,
             },
           ],
@@ -431,8 +412,7 @@ function McpSetup({ url }: { url: string }) {
       <div className="content-grid">
         <ol className="list-decimal pl-5 space-y-2">
           <li>
-            Create a key with MCP access. Start with read-only permissions for
-            exploring.
+            Create an API key. Start with read-only permissions for exploring.
           </li>
           <li>
             Add the connection below to your client. Replace the placeholder

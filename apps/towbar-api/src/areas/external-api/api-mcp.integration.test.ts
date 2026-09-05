@@ -72,18 +72,11 @@ void test(
     };
     const write = await createApiKey(user, {
       name: "Automation",
-      purpose: "both",
       access: "write",
     });
     const read = await createApiKey(user, {
       name: "Read",
-      purpose: "both",
       access: "read",
-    });
-    const apiOnly = await createApiKey(user, {
-      name: "API only",
-      purpose: "api",
-      access: "write",
     });
     const request = async (
       path: string,
@@ -222,7 +215,6 @@ void test(
                 headers: { cookie, "content-type": "application/json" },
                 body: JSON.stringify({
                   name: "Browser",
-                  purpose: "mcp",
                   access: "read",
                 }),
               })
@@ -238,7 +230,6 @@ void test(
             },
             body: JSON.stringify({
               name: "Browser",
-              purpose: "mcp",
               access: "read",
             }),
           });
@@ -271,7 +262,7 @@ void test(
           );
           const otherKey = await createApiKey(
             { ...user, workspaceId: otherId },
-            { name: "Other", purpose: "api", access: "read" },
+            { name: "Other", access: "read" },
           );
           assert.equal(
             (
@@ -286,7 +277,6 @@ void test(
           assert.equal((await request("/profile", otherKey.token)).status, 401);
           const expiring = await createApiKey(user, {
             name: "Expired",
-            purpose: "both",
             access: "read",
             expiresAt: new Date(Date.now() - 1000).toISOString(),
           });
@@ -377,7 +367,6 @@ void test(
           } finally {
             await reader.close();
           }
-          await assert.rejects(() => connect(apiOnly.token));
         },
       );
       await t.test(

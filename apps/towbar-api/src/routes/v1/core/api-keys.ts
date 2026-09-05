@@ -14,7 +14,6 @@ import type { TowbarHonoEnvironment } from "../../../http/types.js";
 const createKeySchema = z
   .object({
     name: z.string().trim().min(1).max(120),
-    purpose: z.enum(["api", "mcp", "both"]),
     access: z.enum(["read", "write"]),
     expiresAt: z.iso
       .datetime()
@@ -65,14 +64,8 @@ apiKeyRoutes.post(
   async (context) => {
     const input = await readJson(context, createKeySchema);
     const parent = context.get("apiKey");
-    if (
-      parent &&
-      (parent.access !== "write" ||
-        (parent.purpose !== "both" && input.purpose !== parent.purpose))
-    )
-      throw forbidden(
-        "A key cannot grant access beyond its own purpose and permissions",
-      );
+    if (parent && parent.access !== "write")
+      throw forbidden("Read-only keys cannot create keys");
     return context.json(await createApiKey(context.get("user"), input), 201);
   },
 );

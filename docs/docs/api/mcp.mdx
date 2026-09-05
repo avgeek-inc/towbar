@@ -7,7 +7,7 @@ Towbar's MCP server exposes the REST operations as named tools with the same sch
 
 ## Connect
 
-1. Open **Manage → API & MCP** and create an **MCP** or **API & MCP** key.
+1. Open **Manage → API & MCP** and create an API key.
 2. Choose **Read only** for discovery. Use **Full access** when you want the client to deploy or change settings.
 3. Copy the MCP URL shown in the page. It ends in `/v1/mcp` on your API host.
 4. Add the appropriate client configuration below, reconnect, and ask: **“List my Towbar apps.”**
@@ -41,7 +41,7 @@ Transport is **Streamable HTTP**. Authentication is the `Authorization: Bearer .
         {
           "type": "promptString",
           "id": "towbar-key",
-          "description": "Towbar MCP key",
+          "description": "Towbar API key",
           "password": true
         }
       ],
@@ -111,7 +111,7 @@ Keep human approval enabled in your client for mutations. Full-access tools can 
 | Symptom                            | Check                                                                                        |
 | ---------------------------------- | -------------------------------------------------------------------------------------------- |
 | `401`                              | Key is copied correctly, active, unexpired, and belongs to an enabled workspace member.      |
-| `403`                              | Key includes MCP purpose; origin is allowed; requested operation is permitted.               |
+| `403`                              | Origin is allowed and the requested operation is permitted.                                  |
 | `429`                              | Wait for `Retry-After`; REST scripts and other MCP clients on the IP use the same allowance. |
 | No mutation tools                  | Use a full-access key; owner-only tools also require the owner role.                         |
 | Connection or certificate error    | Use the API host, `/v1/mcp`, HTTPS, and a publicly trusted certificate.                      |

@@ -1,5 +1,5 @@
 {
-  "id": "e0c098b0-d4d8-4060-a519-d6e83f0703da",
+  "id": "24e8d37e-8a41-470a-b2f6-46e53c4db787",
   "prevId": "52ff0876-8155-49e0-94fb-4ee8bb677310",
   "version": "7",
   "dialect": "postgresql",
@@ -30,12 +30,6 @@
         "name": {
           "name": "name",
           "type": "varchar(120)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "purpose": {
-          "name": "purpose",
-          "type": "varchar(10)",
           "primaryKey": false,
           "notNull": true
         },
@@ -145,10 +139,6 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
-        "towbar_api_keys_purpose": {
-          "name": "towbar_api_keys_purpose",
-          "value": "\"towbar_api_keys\".\"purpose\" in ('api', 'mcp', 'both')"
-        },
         "towbar_api_keys_access": {
           "name": "towbar_api_keys_access",
           "value": "\"towbar_api_keys\".\"access\" in ('read', 'write')"

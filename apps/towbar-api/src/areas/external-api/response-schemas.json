@@ -280,13 +280,6 @@
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
-        "purpose": {
-          "anyOf": [
-            { "type": "string", "const": "api" },
-            { "type": "string", "const": "mcp" },
-            { "type": "string", "const": "both" }
-          ]
-        },
         "access": {
           "anyOf": [
             { "type": "string", "const": "read" },
@@ -317,7 +310,6 @@
       "required": [
         "id",
         "name",
-        "purpose",
         "access",
         "prefix",
         "expiresAt",
@@ -352,13 +344,6 @@
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
-        "purpose": {
-          "anyOf": [
-            { "type": "string", "const": "api" },
-            { "type": "string", "const": "mcp" },
-            { "type": "string", "const": "both" }
-          ]
-        },
         "access": {
           "anyOf": [
             { "type": "string", "const": "read" },
@@ -389,7 +374,6 @@
       "required": [
         "id",
         "name",
-        "purpose",
         "access",
         "prefix",
         "expiresAt",

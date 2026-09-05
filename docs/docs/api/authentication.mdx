@@ -5,11 +5,10 @@ description: Create, scope, rotate, and revoke Towbar keys, and configure persis
 
 ## Keys and permissions
 
-Create keys in **Manage → API & MCP**. Each key belongs to its creator and workspace. The key inventory shows its name, prefix, purpose, permissions, last use, expiry, and revocation status. Each user manages their own keys.
+Create keys in **Manage → API & MCP**. Each key belongs to its creator and workspace. The key inventory shows its name, prefix, permissions, last use, expiry, and revocation status. Each user manages their own keys. Every key works with both the API and MCP.
 
 | Setting     | Options                                                                                        |
 | ----------- | ---------------------------------------------------------------------------------------------- |
-| Purpose     | API, MCP, or both                                                                              |
 | Permissions | Read only or full access                                                                       |
 | Expiry      | 30 days, 90 days, 1 year, or never in the UI; an explicit future ISO timestamp through the API |
 
@@ -31,13 +30,13 @@ API and MCP do not accept browser cookies as authentication. Browser sessions co
 
 ## Create and rotate programmatically
 
-A full-access API key can create another key through `POST /settings/api-keys`. The child cannot have a broader purpose than its parent. Permissions still use the same user and workspace. Read-only keys cannot create keys. Rotation creates an independent key: revoke the old key after updating your clients.
+A full-access API key can create another key through `POST /settings/api-keys`. Permissions still use the same user and workspace. Read-only keys cannot create keys. Rotation creates an independent key: revoke the old key after updating your clients.
 
 ```bash
 curl -X POST 'https://YOUR_API_HOST/v1/api/settings/api-keys' \
   -H "Authorization: Bearer $TOWBAR_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{"name":"CI deployments","purpose":"api","access":"write","expiresAt":null}'
+  -d '{"name":"CI deployments","access":"write","expiresAt":null}'
 ```
 
 The `201` response contains `{ "key": { ...metadata }, "token": "twb_..." }`. Store `token` immediately. Revoke with `DELETE /settings/api-keys/{keyId}`. Revocation is permanent; create a replacement if needed. No key is created during installation—sign in once to bootstrap your first key.

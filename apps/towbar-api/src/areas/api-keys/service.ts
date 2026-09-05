@@ -7,13 +7,12 @@ import {
   workspaceMembers,
 } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
-import { forbidden, notFound } from "../../http/errors.js";
+import { notFound } from "../../http/errors.js";
 import type { AuthenticatedUser } from "../../http/types.js";
 
 const publicColumns = {
   id: apiKeys.id,
   name: apiKeys.name,
-  purpose: apiKeys.purpose,
   access: apiKeys.access,
   prefix: apiKeys.tokenPrefix,
   expiresAt: apiKeys.expiresAt,
@@ -40,7 +39,6 @@ export async function createApiKey(
   user: AuthenticatedUser,
   input: {
     name: string;
-    purpose: "api" | "mcp" | "both";
     access: "read" | "write";
     expiresAt?: string | null;
   },
@@ -66,7 +64,6 @@ export async function createApiKey(
       targetType: "api-key",
       targetId: key.id,
       metadata: {
-        purpose: input.purpose,
         access: input.access,
         expiresAt: input.expiresAt ?? null,
       },
@@ -97,13 +94,12 @@ export async function revokeApiKey(user: AuthenticatedUser, id: string) {
     });
   });
 }
-export async function findApiKey(token: string, purpose: "api" | "mcp") {
+export async function findApiKey(token: string) {
   if (!/^twb_[A-Za-z0-9_-]{43}$/.test(token)) return null;
   const [identity] = await getTowbarDatabase()
     .select({
       id: apiKeys.id,
       access: apiKeys.access,
-      purpose: apiKeys.purpose,
       userId: users.id,
       email: users.email,
       name: users.displayName,
@@ -129,8 +125,6 @@ export async function findApiKey(token: string, purpose: "api" | "mcp") {
     )
     .limit(1);
   if (!identity) return null;
-  if (identity.purpose !== purpose && identity.purpose !== "both")
-    throw forbidden(`This key is not enabled for ${purpose.toUpperCase()}`);
   await getTowbarDatabase()
     .update(apiKeys)
     .set({ lastUsedAt: new Date() })
@@ -139,7 +133,6 @@ export async function findApiKey(token: string, purpose: "api" | "mcp") {
     key: {
       id: identity.id,
       access: identity.access,
-      purpose: identity.purpose,
     },
     user: {
       id: identity.userId,

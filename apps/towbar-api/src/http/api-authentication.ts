@@ -39,7 +39,7 @@ export const externalRateLimit: MiddlewareHandler<
   await next();
 };
 export function requireApiKey(
-  purpose: "api" | "mcp",
+  surface: "api" | "mcp",
 ): MiddlewareHandler<TowbarHonoEnvironment> {
   return async (context, next) => {
     // Browsers must come from the configured control plane. CLI clients have no Origin.
@@ -49,7 +49,7 @@ export function requireApiKey(
     const match = /^Bearer ([^\s]+)$/i.exec(
       context.req.header("authorization") ?? "",
     );
-    const identity = match ? await findApiKey(match[1]!, purpose) : null;
+    const identity = match ? await findApiKey(match[1]!) : null;
     if (!identity) {
       context.header("WWW-Authenticate", 'Bearer realm="Towbar"');
       throw unauthorized("Provide a valid, unexpired Towbar API key");
@@ -59,7 +59,7 @@ export function requireApiKey(
     // A bearer client has no browser session; password changes revoke all browser sessions.
     context.set("currentSessionId", null);
     if (
-      purpose === "api" &&
+      surface === "api" &&
       identity.key.access === "read" &&
       !["GET", "HEAD"].includes(context.req.method)
     )

@@ -5,17 +5,17 @@ description: Automate your Towbar control plane with a REST API or connect an AI
 
 Towbar exposes the same control-plane operations through REST and MCP. Manage sources, apps, resources, servers, deployments, previews, secrets, integration settings, notifications, and your account using your current workspace permissions.
 
-| Interface             | Endpoint                       | Authentication       |
-| --------------------- | ------------------------------ | -------------------- |
-| REST API              | `https://YOUR_API_HOST/v1/api` | API or API & MCP key |
-| MCP                   | `https://YOUR_API_HOST/v1/mcp` | MCP or API & MCP key |
-| OpenAPI specification | `GET /v1/api/openapi.json`     | API or API & MCP key |
+| Interface             | Endpoint                       | Authentication |
+| --------------------- | ------------------------------ | -------------- |
+| REST API              | `https://YOUR_API_HOST/v1/api` | API key        |
+| MCP                   | `https://YOUR_API_HOST/v1/mcp` | API key        |
+| OpenAPI specification | `GET /v1/api/openapi.json`     | API key        |
 
 Reference examples use `api.example.com`; replace it with the API host for your own Towbar installation. Your control plane shows the exact URLs in **Manage → API & MCP**, directly below Integrations.
 
 <Steps>
   <Step title="Create a key">
-    Open **Manage → API & MCP → Create API key**. Name it for its consumer, choose its purpose, permissions, and expiry, then copy it. Towbar only shows the secret once.
+    Open **Manage → API & MCP → Create API key**. Name it for its consumer, choose its permissions and expiry, then copy it. Towbar only shows the secret once.
   </Step>
   <Step title="Send a request">
     Set `TOWBAR_API_KEY` through your shell or secret manager and replace `YOUR_API_HOST` below.
@@ -68,17 +68,17 @@ Where shown in the route reference, supply `Idempotency-Key`. Use one unique val
 }
 ```
 
-| Status | Meaning                                                     | Next step                                        |
-| ------ | ----------------------------------------------------------- | ------------------------------------------------ |
-| `400`  | Malformed JSON, invalid field, or invalid UUID              | Correct the request using its route schema.      |
-| `401`  | Missing, expired, revoked, or invalid key                   | Create or supply a valid key.                    |
-| `403`  | Wrong key purpose, read-only mutation, or insufficient role | Check purpose, permissions, and workspace role.  |
-| `404`  | Missing or inaccessible record or route                     | Check the ID and your workspace.                 |
-| `409`  | Revision, state, or idempotency conflict                    | Read current state before retrying.              |
-| `413`  | Request body exceeds its bound                              | Reduce the payload.                              |
-| `422`  | Semantically invalid configuration                          | Correct the manifest or configuration.           |
-| `429`  | Shared IP rate limit exceeded                               | Wait for the `Retry-After` number of seconds.    |
-| `500`  | Unexpected server failure                                   | Preserve the request ID and inspect server logs. |
+| Status | Meaning                                        | Next step                                        |
+| ------ | ---------------------------------------------- | ------------------------------------------------ |
+| `400`  | Malformed JSON, invalid field, or invalid UUID | Correct the request using its route schema.      |
+| `401`  | Missing, expired, revoked, or invalid key      | Create or supply a valid key.                    |
+| `403`  | Read-only mutation or insufficient role        | Check permissions and workspace role.            |
+| `404`  | Missing or inaccessible record or route        | Check the ID and your workspace.                 |
+| `409`  | Revision, state, or idempotency conflict       | Read current state before retrying.              |
+| `413`  | Request body exceeds its bound                 | Reduce the payload.                              |
+| `422`  | Semantically invalid configuration             | Correct the manifest or configuration.           |
+| `429`  | Shared IP rate limit exceeded                  | Wait for the `Retry-After` number of seconds.    |
+| `500`  | Unexpected server failure                      | Preserve the request ID and inspect server logs. |
 
 The default is **60 requests per minute per IP**, shared between REST and MCP. Unauthenticated attempts count too. MCP initialization, discovery, and tool calls each count as requests. Limits are stored in PostgreSQL and remain consistent across API processes.
 

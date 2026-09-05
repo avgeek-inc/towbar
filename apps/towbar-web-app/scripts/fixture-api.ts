@@ -842,7 +842,6 @@ export function createFixtureApiServer() {
     id: string;
     name: string;
     prefix: string;
-    purpose: string;
     access: string;
     createdAt: string;
     expiresAt: string | null;
@@ -865,7 +864,6 @@ export function createFixtureApiServer() {
           .then((input) => {
             const values = input as {
               name: string;
-              purpose: string;
               access: string;
               expiresAt: string | null;
             };
