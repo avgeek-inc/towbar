@@ -3,11 +3,11 @@
 import { Mail01Icon, SlackIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
+import { ButtonLink } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 
-import { InlineLink } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 
 export function NotificationIntegration({
@@ -68,14 +68,15 @@ export function NotificationIntegration({
             </p>
           </div>
         )}
-        <InlineLink
-          className="w-fit text-sm"
+        <ButtonLink
+          className="w-fit"
+          variant="secondary"
           href={`https://www.towbar.dev/docs/configuration#${slack ? "slack" : "email-smtp"}`}
           target="_blank"
           rel="noopener noreferrer"
         >
           {name} setup documentation
-        </InlineLink>
+        </ButtonLink>
       </Widget.Content>
     </Widget>
   );
