@@ -358,6 +358,10 @@ function CreateKey({ onCreated }: { onCreated: (token: string) => void }) {
 function McpSetup({ url }: { url: string }) {
   const [client, setClient] = useState("cursor");
   const configs = {
+    codex: {
+      title: "~/.codex/config.toml",
+      code: `[mcp_servers.towbar]\nurl = ${JSON.stringify(url)}\nbearer_token_env_var = "TOWBAR_API_KEY"`,
+    },
     cursor: {
       title: ".cursor/mcp.json",
       code: JSON.stringify(
@@ -415,8 +419,8 @@ function McpSetup({ url }: { url: string }) {
             Create an API key. Start with read-only permissions for exploring.
           </li>
           <li>
-            Add the connection below to your client. Replace the placeholder
-            with your key and keep it out of Git.
+            Add the connection below to your client and configure your key as
+            shown. Keep the key out of Git.
           </li>
           <li>Reconnect the client, then ask it to “List my Towbar apps.”</li>
         </ol>
@@ -426,6 +430,7 @@ function McpSetup({ url }: { url: string }) {
             value={client}
             onChange={setClient}
             options={[
+              ["codex", "Codex"],
               ["cursor", "Cursor"],
               ["vscode", "VS Code"],
               ["claude", "Claude Code"],
@@ -434,6 +439,13 @@ function McpSetup({ url }: { url: string }) {
           />
         </div>
         <SetupCode title={config.title} code={config.code} />
+        {client === "codex" ? (
+          <p className="text-muted text-sm">
+            Set TOWBAR_API_KEY to your key in the environment that launches
+            Codex, then restart it. The configuration stores the variable name,
+            not the key. In the CLI, use /mcp to check the connection.
+          </p>
+        ) : null}
         <p className="text-muted text-sm">
           Choose a client that supports Streamable HTTP and bearer headers.
           Towbar uses API keys; browser-only OAuth connectors cannot connect

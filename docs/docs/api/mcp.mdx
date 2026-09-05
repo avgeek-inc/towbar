@@ -1,6 +1,6 @@
 ---
 title: MCP setup
-description: Connect Cursor, VS Code, Claude Code, or another Streamable HTTP MCP client to your Towbar control plane.
+description: Connect Codex, Cursor, VS Code, Claude Code, or another Streamable HTTP MCP client to your Towbar control plane.
 ---
 
 Towbar's MCP server exposes the REST operations as named tools with the same schemas, workspace boundaries, and role checks. You do not need to install a separate Towbar MCP process.
@@ -15,6 +15,29 @@ Towbar's MCP server exposes the REST operations as named tools with the same sch
 Transport is **Streamable HTTP**. Authentication is the `Authorization: Bearer ...` header on every request. Towbar does not provide an OAuth browser sign-in flow for MCP. Clients that only support OAuth connectors cannot connect directly; use a client that supports custom bearer headers.
 
 <Tabs>
+  <Tab title="Codex">
+    Add this to `~/.codex/config.toml`, replacing the API host:
+
+    ```toml
+    [mcp_servers.towbar]
+    url = "https://YOUR_API_HOST/v1/mcp"
+    bearer_token_env_var = "TOWBAR_API_KEY"
+    ```
+
+    Set `TOWBAR_API_KEY` securely in the environment that launches Codex. Its value is your Towbar key without a `Bearer` prefix; Codex adds the authorization header. The configuration stores only the variable name.
+
+    Alternatively, register the same configuration with the CLI:
+
+    ```bash
+    codex mcp add towbar --url 'https://YOUR_API_HOST/v1/mcp' \
+      --bearer-token-env-var TOWBAR_API_KEY
+    ```
+
+    Restart Codex after setting the variable. A desktop app or IDE launched separately may not inherit your terminal environment; ensure the variable is available to the process running Codex. Use `/mcp` in the CLI to check the connection, then ask **“List my Towbar apps.”**
+
+    See the [official Codex MCP documentation](https://developers.openai.com/codex/mcp/) for configuration and environment options.
+
+  </Tab>
   <Tab title="Cursor">
     Add this to your local Cursor MCP configuration, such as `.cursor/mcp.json`. Replace the host and token placeholder, and keep real keys out of Git.
 
