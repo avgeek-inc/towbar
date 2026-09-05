@@ -5,11 +5,26 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-09-05
+
 ### Fixed
 
 - Upgrades with existing orphan-cleanup history now make the Source reference
   nullable before clearing it during the workspace-owned server migration.
-- Social previews now use the custom Towbar artwork for Open Graph and Twitter.
+- Social previews now use the custom Towbar artwork for Open Graph and Twitter,
+  with a shorter homepage description, clearer title, and explicit canonical URL.
+- GitHub health explains when an access check is over 24 hours old and prioritizes
+  disconnected or suspended installations over a previous successful check.
+- Ready servers no longer show the completed server preparation panel.
+- Server SSH private-key fields fill the available width and start at three rows.
+
+### Changed
+
+- Cloudflare credentials use a masked, single-line Account API token field.
+  Saving credentials requires a newly created or rolled `cfat_` account token;
+  personal tokens and older unprefixed tokens are rejected. Setup instructions
+  include the zone permissions needed for DNS and SSL mode checks.
+- Source production branch names include a branch icon.
 
 ## [1.5.0] - 2026-09-05
 
@@ -275,7 +290,9 @@ before resuming deployments:
 - Source-scoped AWS Secrets Manager integration and environment editors.
 - A same-domain owner setup, authentication, and operations dashboard.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/avgeek-inc/towbar/compare/v1.5.0...v1.5.1
+[1.5.0]: https://github.com/avgeek-inc/towbar/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/avgeek-inc/towbar/compare/v1.3.4...v1.4.0
 [1.3.4]: https://github.com/avgeek-inc/towbar/compare/v1.3.3...v1.3.4
 [1.3.3]: https://github.com/avgeek-inc/towbar/compare/v1.3.2...v1.3.3
