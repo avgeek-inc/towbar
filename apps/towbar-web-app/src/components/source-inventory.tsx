@@ -1,6 +1,6 @@
 "use client";
 
-import { WebhookIcon } from "@hugeicons/core-free-icons";
+import { ServerStack01Icon, WebhookIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
   App,
@@ -283,12 +283,20 @@ export function ServerIpLink({
   ip: string;
   serverId?: string;
 }) {
+  const label = (
+    <span className="inline-flex items-center gap-2 whitespace-nowrap tabular-nums">
+      <HugeiconsIcon
+        aria-hidden="true"
+        className="size-4 shrink-0 text-muted"
+        icon={ServerStack01Icon}
+      />
+      <span>{ip}</span>
+    </span>
+  );
   return serverId ? (
-    <InlineLink className="tabular-nums" href={`/servers/${serverId}`}>
-      {ip}
-    </InlineLink>
+    <InlineLink href={`/servers/${serverId}`}>{label}</InlineLink>
   ) : (
-    <span className="tabular-nums">{ip}</span>
+    label
   );
 }
 

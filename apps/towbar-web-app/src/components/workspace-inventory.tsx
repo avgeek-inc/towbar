@@ -16,7 +16,6 @@ import type {
 } from "@workspace/towbar-web-client";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
-  ResourceName,
   ResourceTable,
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
@@ -277,7 +276,7 @@ function ServerInventory({
   }
   const columns: ResourceTableColumn<Server>[] = [
     {
-      cell: (server) => <ResourceName name={server.canonicalIp} />,
+      cell: (server) => <ServerIpLink ip={server.canonicalIp} />,
       className: "w-full min-w-52 tabular-nums",
       header: "Server",
       key: "server",
