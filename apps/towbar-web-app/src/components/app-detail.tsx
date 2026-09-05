@@ -156,7 +156,7 @@ export function AppDetail() {
             label: "Overview",
             icon: <HugeiconsIcon icon={DashboardCircleIcon} />,
             content: (
-              <div className="grid gap-8 lg:grid-cols-2">
+              <div className="content-grid lg:grid-cols-2">
                 <Attributes columns={2} title="App status" variant="card">
                   <Attributes.Item label="App status">
                     <StatusBadge status={lifecycleStatus} />

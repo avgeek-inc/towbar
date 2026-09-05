@@ -368,7 +368,7 @@ export function ServerDetail() {
                     setupStatus={setupStatus}
                   />
                   <ServerHostCapacity capacity={capacity.data.capacity} />
-                  <div className="grid gap-8 lg:grid-cols-2">
+                  <div className="content-grid lg:grid-cols-2">
                     <Attributes columns={2} title="Connection" variant="card">
                       <Attributes.Item label="IP address">
                         {item.canonicalIp}

@@ -105,7 +105,7 @@ export function ResourceDetail() {
       label: "Overview",
       icon: <HugeiconsIcon icon={DatabaseIcon} />,
       content: (
-        <div className="grid gap-8 lg:grid-cols-2">
+        <div className="content-grid lg:grid-cols-2">
           <Attributes columns={2} title="Resource status" variant="card">
             <Attributes.Item label="Lifecycle">
               <StatusBadge status={lifecycleStatus} />

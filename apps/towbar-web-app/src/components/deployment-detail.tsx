@@ -260,7 +260,7 @@ export function DeploymentDetail() {
             icon: <HugeiconsIcon icon={InformationSquareIcon} />,
             content: (
               <div className="grid gap-8">
-                <div className="grid gap-8 lg:grid-cols-2">
+                <div className="content-grid lg:grid-cols-2">
                   <Attributes columns={2} title="Deployment" variant="card">
                     <Attributes.Item label="Action">
                       {item.kind === "rollback" ? "Rollback" : "Deploy"}

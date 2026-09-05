@@ -81,7 +81,7 @@ export function ServerEditor({
         title={editing ? "Server configuration" : "Connection and scheduling"}
       >
         <form className="grid max-w-2xl gap-5" onSubmit={save}>
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="content-grid sm:grid-cols-2">
             {!editing ? (
               <>
                 <Field>

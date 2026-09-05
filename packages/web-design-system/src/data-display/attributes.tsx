@@ -57,8 +57,8 @@ const Root = forwardRef<HTMLDivElement, AttributesProps>(
         <Widget.Content className={variant === "list" ? "p-0" : undefined}>
           <dl
             className={cn(
-              "grid",
-              variant === "card" && ["gap-x-8 gap-y-6", columns[count]],
+              variant === "card" ? "content-grid" : "grid",
+              variant === "card" && columns[count],
             )}
           >
             {children}

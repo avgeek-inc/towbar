@@ -38,6 +38,10 @@ a {
 }
 
 @layer components {
+  .content-grid {
+    @apply grid gap-4;
+  }
+
   .widget {
     @apply bg-surface-secondary flex flex-col overflow-hidden rounded-2xl;
   }

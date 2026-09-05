@@ -49,7 +49,7 @@ export function ServerHostCapacity({
       </Widget.Header>
       <Widget.Content>
         {capacity.cpu && capacity.memory && capacity.disk ? (
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <div className="content-grid md:grid-cols-2 xl:grid-cols-4">
             <CapacityMeter
               detail={`${capacity.cpu.logicalCount} vCPU · load ${capacity.cpu.loadAverage1m.toFixed(2)}`}
               label="CPU"

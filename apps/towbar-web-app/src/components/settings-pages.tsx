@@ -21,7 +21,7 @@ export function ProfileSettings() {
   if (!profile.data) return <QueryLoading />;
 
   return (
-    <div className="grid min-w-0 gap-6 lg:grid-cols-2 lg:items-start">
+    <div className="content-grid min-w-0 lg:grid-cols-2 lg:items-start">
       <FormCard
         headerEnd={
           <span className="truncate text-xs text-muted">
