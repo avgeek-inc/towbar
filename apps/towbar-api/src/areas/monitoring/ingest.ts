@@ -58,7 +58,7 @@ export async function ingestMonitoringSample(
 ) {
   validateSampleTime(sample.collectedAt, now);
   const database = getTowbarDatabase();
-  return database.transaction(async (transaction) => {
+  return await database.transaction(async (transaction) => {
     // Server lock serializes ingestion with server removal; generation protects rotation/uninstall races.
     const [server] = await transaction
       .select({ id: servers.id })

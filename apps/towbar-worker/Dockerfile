@@ -2,8 +2,8 @@
 FROM golang:1.26.4-bookworm AS monitoring-builder
 WORKDIR /agent
 COPY apps/towbar-monitoring-agent/ ./
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/towbar-monitoring-linux-amd64 . \
-  && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o /out/towbar-monitoring-linux-arm64 .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -buildvcs=false -trimpath -ldflags="-s -w" -o /out/towbar-monitoring-linux-amd64 . \
+  && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -buildvcs=false -trimpath -ldflags="-s -w" -o /out/towbar-monitoring-linux-arm64 .
 
 FROM node:24-bookworm-slim AS base
 
