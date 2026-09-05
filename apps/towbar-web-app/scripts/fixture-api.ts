@@ -54,6 +54,9 @@ export const fixtureIds = {
   secondaryServer: "21111111-1111-4111-8111-222222222222",
   server: "21111111-1111-4111-8111-111111111111",
   source: "11111111-1111-4111-8111-111111111111",
+  docsSource: "11111111-1111-4111-8111-222222222222",
+  analyticsSource: "11111111-1111-4111-8111-333333333333",
+  sandboxSource: "11111111-1111-4111-8111-444444444444",
   sync: "91111111-1111-4111-8111-111111111111",
 } as const;
 
@@ -97,6 +100,30 @@ const source: Source = {
   status: "active",
   updatedAt: fixtureNow,
 };
+
+const sources: Source[] = [
+  source,
+  {
+    ...source,
+    id: fixtureIds.docsSource,
+    repositoryName: "documentation",
+    branch: "production",
+  },
+  {
+    ...source,
+    id: fixtureIds.analyticsSource,
+    repositoryName: "analytics",
+    branch: "main",
+  },
+  {
+    ...source,
+    id: fixtureIds.sandboxSource,
+    repositoryName: "sandbox",
+    branch: "develop",
+    latestCommitSha: null,
+    latestManifestDigest: null,
+  },
+];
 
 const sourceAutoDeployControl = createAutoDeployControlFixture("source");
 const deployableAutoDeployControls = new Map<
@@ -162,6 +189,26 @@ const resources: FixtureResource[] = [
   ),
 ];
 
+apps.push({
+  ...createAppFixture(
+    "31111111-1111-4111-8111-444444444444",
+    "Documentation",
+    "documentation",
+    servers[1]!,
+  ),
+  sourceId: fixtureIds.docsSource,
+});
+resources.push({
+  ...createResourceFixture(
+    "41111111-1111-4111-8111-555555555555",
+    "Reporting Postgres",
+    "reporting-postgres",
+    "postgres",
+    servers[1]!,
+  ),
+  sourceId: fixtureIds.analyticsSource,
+});
+
 const fixtureSecretKeys = new Map<string, string[]>();
 const fixtureSecretVersions = new Map<string, string>();
 const fixtureSecretValues = new Map<string, Record<string, string>>();
@@ -196,6 +243,8 @@ fixtureSecretVersions.set(
 fixtureSecretKeys.set(`${source.id}:preview:build`, ["SOURCE_PREVIEW_TOKEN"]);
 fixtureSecretVersions.set(`${source.id}:preview:build`, crypto.randomUUID());
 
+const platformApps = apps.filter((app) => app.sourceId === source.id);
+
 const deployments: Deployment[] = [
   createDeploymentFixture(
     fixtureIds.deployment,
@@ -216,7 +265,7 @@ const deployments: Deployment[] = [
     "queued",
   ),
   ...Array.from({ length: 14 }, (_, index) => {
-    const deployable = apps[index % apps.length]!;
+    const deployable = platformApps[index % platformApps.length]!;
     const server = servers.find(
       (item) => item.canonicalIp === deployable.serverIp,
     )!;
@@ -1478,6 +1527,47 @@ function getFixturePayload(
       },
     };
   }
+  const extraSourceMatch = path.match(
+    /^\/v1\/core\/sources\/([^/]+)(?:\/(.*))?$/,
+  );
+  const extraSource = sources.find(
+    (item) => item.id !== source.id && item.id === extraSourceMatch?.[1],
+  );
+  if (extraSource) {
+    const sourceApps = apps.filter((item) => item.sourceId === extraSource.id);
+    const sourceResources = resources.filter(
+      (item) => item.sourceId === extraSource.id,
+    );
+    const child = extraSourceMatch?.[2];
+    if (!child) return { canManageSource: true, source: extraSource };
+    if (child === "apps") return { apps: sourceApps };
+    if (child === "resources") return { resources: sourceResources };
+    if (child === "manifest") return { manifest: null };
+    if (child === "syncs") return { syncs: [] };
+    if (child === "deployments") return { deployments: [] };
+    if (child === "previews") return { previews: [] };
+    if (child === "backups") return { backups: [] };
+    if (child === "capacity")
+      return {
+        capacities: runtimeCapacity.filter((capacity) =>
+          [...sourceApps, ...sourceResources].some(
+            (item) => item.serverIp === capacity.ip,
+          ),
+        ),
+      };
+    if (child === "notifications/destinations")
+      return {
+        canManageNotifications: true,
+        destinations: [],
+        providers: { slack: false, smtp: false },
+      };
+    if (child === "secrets")
+      return getFixtureSourceSecrets(
+        searchParams.get("environment") === "preview"
+          ? "preview"
+          : "production",
+      );
+  }
   const fixedPayloads = new Map<string, unknown>([
     [
       "/v1/core/notifications/providers",
@@ -1497,7 +1587,7 @@ function getFixturePayload(
       },
     ],
     ["/v1/core/github/repositories", { repositories: githubRepositories }],
-    ["/v1/core/sources", { sources: [source] }],
+    ["/v1/core/sources", { sources }],
     ["/v1/core/apps", { apps }],
     ["/v1/core/resources", { resources }],
     ["/v1/core/servers", { servers }],
@@ -1524,10 +1614,16 @@ function getFixturePayload(
     ],
     [`/v1/core/sources/${source.id}/syncs`, { syncs: [sourceSync] }],
     ["/v1/core/aws", { canManage: true, credential: awsCredential }],
-    [`/v1/core/sources/${source.id}/apps`, { apps }],
+    [
+      `/v1/core/sources/${source.id}/apps`,
+      { apps: apps.filter((item) => item.sourceId === source.id) },
+    ],
     [`/v1/core/sources/${source.id}/capacity`, { capacities: runtimeCapacity }],
     [`/v1/core/sources/${source.id}/previews`, { previews }],
-    [`/v1/core/sources/${source.id}/resources`, { resources }],
+    [
+      `/v1/core/sources/${source.id}/resources`,
+      { resources: resources.filter((item) => item.sourceId === source.id) },
+    ],
     [
       `/v1/core/sources/${source.id}/deployments`,
       {
@@ -2318,7 +2414,7 @@ function createDeploymentFixture(
     kind: trigger === "rollback" ? "rollback" : "deploy",
     manifestDigest,
     serverId: server.id,
-    sourceId: source.id,
+    sourceId: deployable.sourceId,
     sourceInputDigest: "f".repeat(64),
     startedAt,
     state,

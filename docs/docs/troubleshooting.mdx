@@ -1,0 +1,44 @@
+---
+title: "Troubleshooting"
+description: "Find the failing stage and recover from common setup, deployment, and runtime problems."
+---
+
+Start with the last successful stage. Repository sync, deployment admission, build, promotion, and runtime health are separate operations; success in one does not prove the next completed.
+
+## Setup and connectivity
+
+| Symptom                                      | Check                                     | Next action                                                                                                                 |
+| -------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Compose does not start                       | Required `.env` values and migration logs | Run `docker compose config --quiet`, then inspect `migrate` and `api` logs                                                  |
+| Login works locally but fails behind a proxy | App/API origins and trusted proxy hops    | Check [public origins](/docs/reference/environment-variables#public-origins) and rebuild browser assets after changing URLs |
+| Repository missing                           | GitHub App installation access            | Grant access to the repository and approve required permissions                                                             |
+| Source sync fails                            | Manifest error and referenced server IPs  | Fix the reported field or register the server, then sync again                                                              |
+| Server Setup Pending                         | SSH trust and preparation result          | Verify the host fingerprint, then complete server preparation                                                               |
+
+## Deployment problems
+
+| Symptom                    | Check                                                                          | Next action                                                               |
+| -------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| Push did not deploy        | Webhook delivery, sync result, auto-deploy policy, input patterns, pause state | Fix the first failed stage; use a manual deployment to isolate automation |
+| Work remains queued        | Active server work and concurrency                                             | Inspect the current operation before increasing concurrency               |
+| Build fails                | Dockerfile, context, build-stage secrets, host disk                            | Correct the failing command and retry                                     |
+| Candidate fails health     | Port, listen address, path, startup timeout, runtime secrets                   | Make the endpoint reachable from the container network                    |
+| Domain fails after build   | DNS, inbound ports, Caddy, TLS configuration                                   | Follow [Domains and TLS](/docs/domains-tls#diagnose-a-failed-route)       |
+| Pre-deploy hook fails      | Hook logs and stage secrets                                                    | Resolve the command failure; promotion has not completed                  |
+| New secrets are not in use | Save result and subsequent deployment                                          | Deploy after saving; save does not restart the container                  |
+
+## Preview problems
+
+A preview requires a same-repository pull request targeting `source.branch`, preview enabled for the app, and matching input paths when configured. Fork pull requests are not eligible. **Sync now** can reconcile an existing eligible pull request after a missed webhook.
+
+If an older healthy preview remains online after a failed build, inspect the new deployment's failure. Towbar preserves the previous healthy preview until a replacement can be promoted. See [Preview environments](/docs/previews).
+
+## Backup and restore problems
+
+Check the AWS integration, bucket/prefix permissions, object availability, engine version, and available host disk. A stale backup can still be restore-ready; a missing or incompatible object cannot. Read the final restore phase before retrying and confirm whether promotion occurred or rollback completed.
+
+## Collect useful diagnostics
+
+Record the Towbar version, Source and workload IDs, operation ID, timestamps with timezone, and the last failing stage. Include a minimal manifest and redacted logs when opening a [GitHub issue](https://github.com/avgeek-inc/towbar/issues).
+
+Do not include secret values, private keys, or database contents. Report suspected vulnerabilities through the [private security process](/docs/self-hosting/security).

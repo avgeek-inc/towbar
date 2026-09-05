@@ -1,0 +1,390 @@
+/* Brand colors for the native Mintlify navigation and custom homepage. */
+:root {
+  --towbar-yellow: oklch(0.64 0.13 85);
+  --towbar-yellow-hover: color-mix(in oklch, var(--towbar-yellow) 90%, white);
+  --towbar-on-yellow: oklch(1 0 0);
+}
+.dark {
+  --towbar-on-yellow: oklch(0.23 0.01 85);
+}
+#navbar a:has(> .bg-primary-dark) > .bg-primary-dark {
+  background-color: var(--towbar-yellow);
+}
+#navbar a:has(> .bg-primary-dark) .text-white,
+#navbar a:has(> .bg-primary-dark) svg {
+  color: var(--towbar-on-yellow);
+}
+/* Homepage only. Documentation retains Mintlify's native layout and typography. */
+.towbar-home {
+  --towbar-ink: oklch(0.23 0.01 85);
+  --towbar-muted: oklch(0.45 0.015 85);
+  --towbar-line: oklch(0.91 0.01 85);
+  --towbar-panel: oklch(0.97 0.01 85);
+  --towbar-accent: oklch(0.53 0.11 75);
+  --towbar-heading-accent: var(--towbar-yellow);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px;
+  color: var(--towbar-ink);
+  -webkit-font-smoothing: antialiased;
+}
+.dark .towbar-home {
+  --towbar-ink: oklch(0.95 0.01 85);
+  --towbar-muted: oklch(0.74 0.015 85);
+  --towbar-line: oklch(0.3 0.01 85);
+  --towbar-panel: oklch(0.2 0.01 85);
+  --towbar-accent: var(--towbar-yellow);
+  --towbar-heading-accent: var(--towbar-yellow);
+}
+.towbar-home h1,
+.towbar-home h2,
+.towbar-home h3 {
+  color: var(--towbar-ink);
+  font-weight: 500;
+  text-wrap: balance;
+  margin: 0;
+}
+.towbar-home h1 {
+  font-size: clamp(44px, 6.2vw, 80px);
+  line-height: 1.06;
+  letter-spacing: -0.055em;
+  font-weight: 600;
+}
+.towbar-home h1 span {
+  color: var(--towbar-heading-accent);
+}
+.towbar-home h2 {
+  font-size: clamp(30px, 3.2vw, 40px);
+  line-height: 1.16;
+  letter-spacing: -0.04em;
+}
+.towbar-home h3 {
+  font-size: 19px;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+}
+.towbar-home p {
+  color: var(--towbar-muted);
+  line-height: 1.65;
+  margin: 0;
+  text-wrap: pretty;
+}
+.towbar-home a {
+  text-decoration: none;
+}
+.towbar-home a:focus-visible {
+  outline: 2px solid var(--towbar-accent);
+  outline-offset: 5px;
+  border-radius: 4px;
+}
+
+.towbar-hero {
+  text-align: center;
+  padding: 56px 0 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+}
+.towbar-home .towbar-lead {
+  font-size: 19px;
+  max-width: 630px;
+  line-height: 1.6;
+}
+.towbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+}
+.towbar-home .towbar-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  min-height: 46px;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--towbar-yellow);
+  color: var(--towbar-on-yellow);
+  border: 1px solid var(--towbar-yellow);
+}
+.towbar-home .towbar-button:hover {
+  background: var(--towbar-yellow-hover);
+}
+.towbar-home .towbar-button:active {
+  transform: translateY(1px);
+}
+.towbar-secondary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  gap: 12px;
+  color: var(--towbar-ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+.towbar-secondary:hover,
+.towbar-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+
+.towbar-product {
+  margin: 0;
+}
+.towbar-product-frame {
+  background: var(--towbar-panel);
+  border: 1px solid var(--towbar-line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow:
+    0 2px 4px oklch(0.2 0.01 85 / 0.03),
+    0 18px 48px -20px oklch(0.2 0.01 85 / 0.2);
+}
+
+.towbar-product-dark,
+.dark .towbar-product-light {
+  display: none;
+}
+.dark .towbar-product-dark {
+  display: block;
+}
+.towbar-product img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  border-radius: 0;
+}
+
+.towbar-link {
+  color: var(--towbar-accent);
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+}
+.towbar-highlights {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 48px;
+  padding: 64px 0 48px;
+}
+.towbar-highlights > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.towbar-highlights .towbar-link {
+  margin-top: auto;
+}
+.towbar-highlights h2 {
+  font-size: 19px;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+  text-wrap: pretty;
+}
+.towbar-highlights p {
+  font-size: 14px;
+  margin: 12px 0 4px;
+}
+.towbar-feature {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.25fr);
+  grid-template-areas: "copy image";
+  align-items: center;
+  gap: 64px;
+  padding: 72px 0;
+  border-top: 1px solid var(--towbar-line);
+}
+.towbar-feature:nth-child(even) {
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.85fr);
+  grid-template-areas: "image copy";
+}
+.towbar-feature-copy {
+  grid-area: copy;
+  min-width: 0;
+}
+.towbar-feature-copy .towbar-feature-label {
+  color: var(--towbar-heading-accent);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 14px;
+}
+.towbar-feature h2 {
+  font-size: clamp(26px, 2.5vw, 34px);
+  line-height: 1.18;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+.towbar-feature-copy > p:not(.towbar-feature-label) {
+  margin: 20px 0 14px;
+  font-size: 15px;
+  line-height: 1.7;
+}
+.towbar-feature-image {
+  grid-area: image;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--towbar-line);
+  border-radius: 12px;
+  background: var(--towbar-panel);
+}
+.towbar-feature-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  border-radius: 0;
+}
+@media (max-width: 900px) {
+  .towbar-feature,
+  .towbar-feature:nth-child(even) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "copy" "image";
+    gap: 28px;
+    padding: 44px 0;
+  }
+  .towbar-feature-copy {
+    max-width: 540px;
+  }
+}
+.towbar-closing {
+  border-top: 1px solid var(--towbar-line);
+  padding: 44px 0 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.towbar-closing h2 {
+  font-size: 30px;
+}
+.towbar-closing p {
+  margin-top: 10px;
+  font-size: 14px;
+}
+@media (max-width: 900px) {
+  .towbar-highlights {
+    gap: 28px;
+  }
+  .towbar-hero {
+    padding-top: 48px;
+  }
+}
+@media (max-width: 640px) {
+  .towbar-home {
+    padding: 0 20px;
+  }
+  .towbar-hero {
+    padding: 36px 0 32px;
+    gap: 22px;
+  }
+
+  .towbar-home h1 {
+    font-size: clamp(36px, 9.5vw, 60px);
+  }
+  .towbar-home .towbar-lead {
+    font-size: 16px;
+    max-width: 34ch;
+  }
+  .towbar-desktop-break {
+    display: none;
+  }
+  .towbar-actions {
+    gap: 8px 20px;
+  }
+
+  .towbar-highlights {
+    grid-template-columns: 1fr;
+    padding: 36px 0 24px;
+    gap: 24px;
+  }
+  .towbar-closing {
+    padding: 32px 0;
+    flex-direction: column;
+    text-align: center;
+  }
+  .towbar-closing h2 {
+    font-size: 28px;
+  }
+}
+
+/* Keep native documentation navigation; simplify only the marketing homepage. */
+#navbar a:has(.nav-logo) {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+[data-towbar-wordmark] {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: oklch(0.23 0.01 85);
+}
+.dark [data-towbar-wordmark] {
+  color: oklch(0.95 0.01 85);
+}
+#navbar[data-towbar-enhanced] #topbar-cta-button {
+  display: none;
+}
+[data-towbar-primary]:focus-visible {
+  outline: 2px solid var(--towbar-yellow);
+  outline-offset: 3px;
+}
+body:has(.towbar-home) #navbar .nav-tabs,
+body:has(.towbar-home) #navbar div:has(> .nav-tabs),
+body:has(.towbar-home) #navbar button:has(> div > .sr-only) {
+  display: none;
+}
+body:has(.towbar-home) {
+  --topbar-tabs-height: 0rem;
+}
+[data-towbar-primary] {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+/* Hide the earlier preview's compact control if it remains during hot reload. */
+[data-towbar-search] {
+  display: none !important;
+}
+
+/* Feature screenshots share theme behavior with the homepage. */
+.towbar-doc-screenshot {
+  margin: 28px 0 32px;
+}
+.towbar-doc-screenshot > .towbar-product-light,
+.towbar-doc-screenshot > .towbar-product-dark {
+  overflow: hidden;
+  border: 1px solid oklch(0.91 0.01 85);
+  border-radius: 12px;
+}
+.dark .towbar-doc-screenshot > .towbar-product-dark {
+  border-color: oklch(0.3 0.01 85);
+}
+.towbar-doc-screenshot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  border-radius: 0;
+}
+.towbar-doc-screenshot > p {
+  margin: 10px 0 0;
+  color: oklch(0.45 0.015 85);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.dark .towbar-doc-screenshot > p {
+  color: oklch(0.74 0.015 85);
+}
+.towbar-doc-screenshot-portrait {
+  max-width: 440px;
+  margin-inline: auto;
+}

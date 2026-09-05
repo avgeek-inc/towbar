@@ -1,0 +1,79 @@
+---
+title: "Apps"
+description: "Build a Dockerfile service on a target server and promote it after a health check."
+---
+
+An app is a service built from a Dockerfile in your Source repository. Towbar transfers the selected build context, builds on the target Ubuntu server, and checks the candidate before promotion. You do not need a container registry for this workflow.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/features/apps-light.webp"
+      alt="Example app overview. Runtime health and the latest deployment are shown separately."
+      width="1440"
+      height="930"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/features/apps-dark.webp"
+      alt="Example app overview. Runtime health and the latest deployment are shown separately."
+      width="1440"
+      height="930"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Example app overview. Runtime health and the latest deployment are shown
+    separately.
+  </p>
+</div>
+
+## Define an app
+
+This complete manifest runs a service that listens on port 3000 and responds at `/health`:
+
+```yaml
+version: 1
+source:
+  branch: main
+apps:
+  - id: web
+    name: Web
+    server: 203.0.113.10
+    dockerfile: Dockerfile
+    context: .
+    container:
+      port: 3000
+      resources:
+        cpus: 1
+        memory: 1g
+    health:
+      path: /health
+      timeoutSeconds: 60
+    domains:
+      primary: app.example.com
+    tls:
+      mode: direct
+```
+
+Replace the IP and domain, register the server, and point DNS at it before deploying. The Dockerfile must be inside the declared context. Configure the process to listen on the container's network interface, not only on its loopback address.
+
+## Choose a health endpoint
+
+Use an HTTP path that can respond without interactive authentication. The health timeout must allow the service to start. A passing build alone does not make the candidate ready for traffic.
+
+Omit `domains` and `tls` for an app that does not need public routing. The dashboard describes it as **Not publicly exposed**. Private connectivity still needs the appropriate Docker network and host network rules.
+
+## Supply configuration
+
+Set build and runtime values in the app's [Secrets settings](/docs/secrets). Production and preview values inherit independently from the workspace and Source. Use BuildKit secret mounts when a build needs credentials.
+
+CPU and memory allocations are declared under `container.resources`. The inventory shows the configured capacity and observed usage relative to it; an unavailable measurement is not zero usage.
+
+## Deploy and verify
+
+Open the app and choose **Deploy**. Follow its stages until it reaches a terminal result, then verify the actual service response. Enable [automatic deployment](/docs/deployments#automatic-deployments) after the manual path works.
+
+Use [deployment hooks](/docs/deployments#deployment-hooks) for required commands around promotion and [previews](/docs/previews) for pull request environments.

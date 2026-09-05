@@ -23,6 +23,17 @@ Towbar has a control plane and a deployment plane.
 
 ## Deployment plane
 
+```mermaid
+flowchart LR
+  GitHub[GitHub] --> API[API]
+  Browser[Dashboard] --> API
+  API --> DB[(PostgreSQL)]
+  API --> Temporal[Temporal]
+  Temporal --> Worker[Worker]
+  Worker --> SSH[SSH with pinned host key]
+  SSH --> Host[Ubuntu: Docker and Caddy]
+```
+
 Each Source is a GitHub repository with a `.towbar/deployment.yml`. Successful
 syncs normalize Apps and Resources into Source-scoped database records. Servers
 are workspace-owned physical hosts and may run workloads from multiple Sources.
@@ -34,6 +45,8 @@ resolves current encrypted Towbar secrets only when execution starts. The worker
 connects to the target Ubuntu host over SSH, builds or pulls the requested
 image, starts a replacement container, verifies health, updates the proxy, and
 retains only the configured release set.
+
+## Preview lifecycle
 
 For an App with Preview enabled, a relevant same-repository pull request event
 signals one durable workflow per Source and pull request. The API reads current
@@ -58,9 +71,13 @@ Preview lifecycle, while one aggregate PR comment reports every App's build
 status and Preview URL. Towbar updates that comment in place when the GitHub
 App has deployment and pull-request write permission.
 
+## Secret resolution
+
 Secrets are editor-owned database records, separate from manifest snapshots. Owners can add, replace, and delete values; no public API can reveal saved values. Matching-environment values resolve from workspace Shared secrets to the Source and then the app or resource. Resources inherit Production runtime defaults only. Preview apps inherit Preview defaults and never receive Production values.
 
 The API encrypts each record with AES-256-GCM using `TOWBAR_CREDENTIALS_KEY`, binding ciphertext to workspace, owner, environment, stage, and record identity. An advisory transaction lock and expected revision protect both first writes and updates. Audit events contain metadata only. Deployment execution reads a consistent database snapshot and records only the revisions used; plaintext stays in execution memory and protected transfer files, outside Temporal history. Saving does not enqueue work. Image rollback resolves current runtime credentials.
+
+## Repository trust
 
 Repository contents are trusted deployment input. Anyone who can change the
 configured production branch or an enabled Preview pull request can execute its
@@ -79,5 +96,5 @@ Protect production and restrict Preview credentials accordingly.
 6. Containers to Source-declared Docker networks and volumes on destination
    hosts.
 
-See the [security guide](/docs/security) for supported security assumptions and
+See the [security guide](/docs/self-hosting/security) for supported security assumptions and
 reporting instructions.

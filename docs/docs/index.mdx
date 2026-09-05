@@ -1,41 +1,71 @@
 ---
-title: "Documentation"
-description: "Install, configure, deploy, and operate Towbar."
+title: "Towbar documentation"
+description: "Deploy from Git, run services on your own servers, and operate them with a clear history."
 ---
 
-Towbar is an opinionated, source-driven deployment platform for Ubuntu servers
-you own. A repository's `.towbar/deployment.yml` defines deployable
-infrastructure and behavior, while Towbar owns workspace server configuration,
-operational state, history, and immutable deployment snapshots.
+Towbar is an open source deployment platform for Ubuntu servers you control.
+Define apps and resources in Git, register your servers in Towbar, and follow
+each deployment from its source commit to the running service.
+
+## Start with a working deployment
 
 <CardGroup cols={2}>
-  <Card title="Get started" icon="rocket" href="/docs/getting-started">
-    Install the control plane, connect GitHub, prepare a server, and make the
-    first deployment.
+  <Card
+    title="Your first deployment"
+    icon="rocket"
+    href="/docs/getting-started"
+  >
+    Deploy a Dockerfile app and verify its public route, one step at a time.
   </Card>
   <Card
-    title="Deployment manifest"
-    icon="file-code"
-    href="/docs/deployment-file"
+    title="Install Towbar"
+    icon="server"
+    href="/docs/self-hosting/installation"
   >
-    Define Apps, Resources, domains, TLS, and deployment policy using server IP
-    references.
-  </Card>
-  <Card title="Configure Towbar" icon="settings" href="/docs/configuration">
-    Set installation secrets, public origins, notifications, scanning, and
-    Source credentials.
-  </Card>
-  <Card
-    title="Understand the architecture"
-    icon="network"
-    href="/docs/architecture"
-  >
-    Review the control plane, deployment plane, durable workflows, and trust
-    boundaries.
+    Run the control plane with Docker Compose and create your owner account.
   </Card>
 </CardGroup>
 
-<Note>
-  Towbar is under active development. Review the [security
-  guide](/docs/security) before exposing an installation to the internet.
-</Note>
+New to the model? Read [Core concepts](/docs/concepts) for the difference between
+Sources, servers, workloads, deployments, and releases.
+
+## Build and deploy
+
+<CardGroup cols={3}>
+  <Card title="Apps" icon="boxes" href="/docs/apps">
+    Configure Dockerfile builds, health checks, and resource allocations.
+  </Card>
+  <Card title="Resources" icon="database" href="/docs/resources">
+    Run PostgreSQL, Redis, and services from container images.
+  </Card>
+  <Card
+    title="Preview environments"
+    icon="git-pull-request"
+    href="/docs/previews"
+  >
+    Review pull requests at stable URLs with separate secrets.
+  </Card>
+</CardGroup>
+
+## Operate with context
+
+| I want to…                    | Read                                                                                 |
+| ----------------------------- | ------------------------------------------------------------------------------------ |
+| Connect a repository          | [Sources](/docs/sources)                                                             |
+| Add or prepare a host         | [Servers](/docs/servers)                                                             |
+| Set environment values        | [Shared secrets](/docs/secrets)                                                      |
+| Expose a service securely     | [Domains and TLS](/docs/domains-tls)                                                 |
+| Protect database data         | [Backups](/docs/backups) and [Restores](/docs/restores)                              |
+| Understand a failed operation | [Health and capacity](/docs/monitoring) and [Troubleshooting](/docs/troubleshooting) |
+| Configure Slack or email      | [Notifications](/docs/integrations/notifications)                                    |
+| Look up a manifest field      | [Deployment manifest](/docs/reference/deployment-manifest)                           |
+
+## What Towbar expects
+
+Towbar is designed for teams that manage their own Ubuntu hosts and trust the
+repositories they deploy. Builds run on those hosts. Server maintenance, DNS,
+backup storage, and repository access remain under your control.
+
+Before exposing an installation publicly, review [installation configuration](/docs/reference/environment-variables)
+and the [security model](/docs/self-hosting/security). For implementation details, see the
+[architecture](/docs/self-hosting/architecture).

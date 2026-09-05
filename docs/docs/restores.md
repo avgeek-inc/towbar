@@ -1,9 +1,9 @@
 ---
-title: "Managed database restores"
-description: "Restore PostgreSQL and Redis backups with explicit validation, promotion, rollback, and audit gates."
+title: "Database restores"
+description: "Validate a retained database backup, restore it in isolation, and promote it with rollback protection."
 ---
 
-Towbar supports manual, safety-gated restores for manifest-managed PostgreSQL
+Towbar supports manual restores with validation and rollback protection for manifest-managed PostgreSQL
 and Redis Resources that already use managed S3 backups. Restores are never
 started automatically.
 
@@ -46,6 +46,16 @@ backup size (with a 1 GiB minimum).
    reports **Rolled back**. It never deletes that previous volume during
    promotion.
 
+<div className="towbar-doc-screenshot towbar-doc-screenshot-portrait">
+  <div className="towbar-product-light">
+    <img src="/assets/guides/restore-confirmation-light.webp" alt="Example restore confirmation. Review the selected backup, enter an operator reason, and confirm the resource name before proceeding." width="1024" height="1374" loading="lazy" />
+  </div>
+  <div className="towbar-product-dark">
+    <img src="/assets/guides/restore-confirmation-dark.webp" alt="Example restore confirmation. Review the selected backup, enter an operator reason, and confirm the resource name before proceeding." width="1024" height="1374" loading="lazy" />
+  </div>
+  <p>Example restore confirmation. Review the selected backup, enter an operator reason, and confirm the resource name before proceeding.</p>
+</div>
+
 Cancellation is available while work is queued, downloading, verifying, or
 restoring the candidate. Once promotion starts, Towbar must finish promotion or
 rollback and the operation cannot be cancelled.
@@ -70,3 +80,9 @@ If a restore fails, read the final phase and message before retrying. Correct a
 missing object, incompatible engine version, insufficient disk, credential
 scope, or runtime health problem first. A candidate failure does not change the
 active volume.
+
+## Verify recovery
+
+After the restore reaches its final state, check the resource's runtime health and connect with an application or database client to verify the expected recovery point. Review the retained previous volume and its cleanup deadline. Record the outcome in your recovery procedure before resuming normal writes or dependent operations.
+
+For storage configuration and schedules, see [Database backups](/docs/backups). For unavailable objects or credentials, see [Troubleshooting](/docs/troubleshooting#backup-and-restore-problems).

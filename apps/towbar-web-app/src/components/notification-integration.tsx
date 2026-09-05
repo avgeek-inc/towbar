@@ -71,7 +71,7 @@ export function NotificationIntegration({
         <ButtonLink
           className="w-fit"
           variant="secondary"
-          href={`https://www.towbar.dev/docs/configuration#${slack ? "slack" : "email-smtp"}`}
+          href={`https://www.towbar.dev/docs/integrations/notifications#${slack ? "configure-slack" : "configure-email"}`}
           target="_blank"
           rel="noopener noreferrer"
         >

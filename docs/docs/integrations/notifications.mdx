@@ -1,0 +1,71 @@
+---
+title: "Slack and email"
+description: "Configure notification providers and route Source events to the right destinations."
+---
+
+Towbar sends operational events to Slack channels and email recipients. Provider credentials are configured once for the installation. Each Source chooses its own destinations and event categories.
+
+## Configure Slack
+
+Create a Slack app with a bot token and the [`chat:write` permission](https://docs.slack.dev/reference/scopes/chat.write/). Install it in the workspace and invite the bot to the channels that should receive notifications.
+
+Set `TOWBAR_SLACK_BOT_TOKEN` on the Towbar API deployment. With Compose, put it in `.env` and recreate the API:
+
+```bash
+docker compose up --detach --force-recreate api
+```
+
+Open **Manage → Integrations → Notifications → Slack** and confirm the provider is configured. Use the channel ID when adding a destination, not the channel's display name.
+
+## Configure email
+
+Set `TOWBAR_SMTP_HOST` and `TOWBAR_SMTP_FROM`. When authentication is required, set both `TOWBAR_SMTP_USERNAME` and `TOWBAR_SMTP_PASSWORD`. Match `TOWBAR_SMTP_PORT` and `TOWBAR_SMTP_SECURE` to the SMTP provider, then recreate the API.
+
+The default port is 587 and implicit TLS defaults to false. See the [SMTP variable reference](/docs/reference/environment-variables#email-smtp) for all options. **Integrations → Notifications → Email** shows whether the required settings are present.
+
+## Add a destination
+
+1. Open **Source → Settings → Notifications**.
+2. Select a configured provider and enter a Slack channel ID or email recipients.
+3. Choose the event categories and enable the destination.
+4. Save and send a test notification.
+5. Check the delivery result and confirm receipt at the destination.
+
+| Category    | Events include                                         |
+| ----------- | ------------------------------------------------------ |
+| Deployments | Queued, started, succeeded, failed, and cancelled      |
+| Previews    | Ready, failed, superseded, and cleaned up              |
+| Health      | Workload unhealthy and recovered                       |
+| Backups     | Stale, failed, and not restorable                      |
+| Restores    | Started, succeeded, failed, cancelled, and rolled back |
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/guides/notifications-light.webp"
+      alt="Example Source notification destinations. Unavailable indicates the installation’s Slack or email provider is not configured."
+      width="2400"
+      height="844"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/guides/notifications-dark.webp"
+      alt="Example Source notification destinations. Unavailable indicates the installation’s Slack or email provider is not configured."
+      width="2400"
+      height="844"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Example Source notification destinations. Unavailable indicates the
+    installation’s Slack or email provider is not configured.
+  </p>
+</div>
+
+## Diagnose delivery
+
+Each delivery has its own attempts and result. A failed notification does not turn a successful deployment into a failed deployment. Check the destination's enabled state and categories first, then provider access and the recorded delivery error.
+
+For Slack, verify the bot is in the channel. For SMTP, check authentication, sender permissions, TLS settings, and recipient delivery. A **Configured** badge only confirms settings are present; a successful test and actual receipt verify the delivery path.

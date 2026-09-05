@@ -1,0 +1,216 @@
+---
+title: "Deployment manifest"
+description: "Declare Towbar Sources, Apps, Resources, and deployment policy in one strict versioned file."
+---
+
+Commit `.towbar/deployment.yml` to the Source repository. Towbar reads the file
+at an exact commit, validates the complete document against the versioned JSON
+Schema, and reconciles Source inventory atomically. A validation failure changes
+nothing.
+
+<CardGroup cols={2}>
+  <Card
+    title="Download the starter manifest"
+    icon="download"
+    href="/examples/deployment.yaml"
+  >
+    Start from the example kept in lockstep with Towbar's parser tests.
+  </Card>
+  <Card
+    title="View the JSON Schema"
+    icon="braces"
+    href="/schemas/deployment.v1.json"
+  >
+    Add the public schema to an editor or an automated validation step.
+  </Card>
+</CardGroup>
+
+## Minimal app
+
+```yaml
+version: 1
+
+source:
+  branch: main
+
+apps:
+  - id: hello-towbar
+    name: Hello Towbar
+    server: 203.0.113.10
+    dockerfile: Dockerfile
+    context: .
+    container:
+      port: 3000
+    health:
+      path: /health
+      timeoutSeconds: 60
+    domains:
+      primary: hello.example.com
+    tls:
+      mode: direct
+```
+
+Replace every example value before synchronizing the Source.
+
+## Stable identity
+
+Every App and Resource has a stable `id`, unique across the complete manifest.
+The display `name` may change without losing deployment or release history. If
+an ID disappears, Towbar archives the deployable; when the same ID and kind
+return, Towbar restores it.
+
+Servers are workspace-owned and configured under **Servers** in Towbar. An App
+or Resource selects one by its canonical IP address. Multiple Sources may use
+the same server; Towbar keeps one connection, credential, trust, preparation,
+capacity, and cleanup record for that physical host. Add the server in Towbar
+before syncing a manifest that references its IP.
+
+## Automatic deployments
+
+Apps and Resources remain manual unless `autoDeploy` is enabled. Plain
+`autoDeploy: true` is commit-sensitive for backward compatibility. Apps can
+instead select named root `deploymentInputs` groups and repository globs:
+
+```yaml
+deploymentInputs:
+  web:
+    - package.json
+    - pnpm-lock.yaml
+
+apps:
+  - id: company-website
+    # Other App fields omitted.
+    autoDeploy:
+      inputs:
+        - $web
+        - apps/company-website/**
+```
+
+Towbar hashes the matched path, Git mode, object type, and object SHA. It queues
+an automatic deployment only when selected source inputs, runtime
+configuration, or target server configuration changed. An incomplete Git tree
+fails safe by treating the commit as changed.
+
+## Managed secrets
+
+Secret values and assignments are configured through the Towbar editor and do not belong in YAML. Global and Source defaults support separate Production and Preview values for build, runtime, pre-deploy, and post-deploy stages. Apps can override each stage in the matching environment; resources inherit Production runtime values only. Saved values remain write-only.
+
+See [Managed secrets](/docs/secrets) for inheritance, explicit deployment, external managers, and recovery.
+
+## Apps and Resources
+
+Apps build a declared Dockerfile and context on the target host. Resources use
+versioned images and support `image`, `postgres`, and `redis` presets. Apps and
+Resources share stable IDs, queueing, deployments, releases, health checks,
+domains, TLS, Docker networks, resource limits, runtime secrets, and automatic
+deployment policy.
+
+PostgreSQL and Redis resources may also declare S3 backup storage,
+retention, and an optional five-field UTC cron schedule that runs no more than
+hourly. See [Managed database restores](/docs/restores) before relying
+on a backup for recovery.
+
+## Private networks and operator access
+
+Deployables on the same named `container.network` can communicate through a
+stable Resource `networkAlias`, which defaults to the Resource ID. Optional
+`access.sshTunnel.hostPort` publishes a database port only on
+`127.0.0.1` of its server for operator tools reached through SSH. Towbar never
+routes that port through Caddy or Cloudflare.
+
+## Preview deployments
+
+Preview deployments are opt-in per App. They run for relevant same-repository
+pull requests targeting `source.branch`, using Preview-only build, runtime, and
+hook values configured in the editor. Resources are not cloned. Preview apps inherit Preview shared values and never receive Production secrets.
+
+```yaml
+apps:
+  - id: company-website
+    # Production fields omitted.
+    preview:
+      enabled: true
+      domain: preview.example.com
+      ttlHours: 72
+```
+
+When `autoDeploy.inputs` is path-aware, unrelated pull requests do not create a
+Preview. Towbar maintains one aggregate PR comment per Source and pull request,
+publishes GitHub deployment status, and cleans up on merge, closure,
+retargeting, expiry, manifest disablement, or an owner action.
+
+## Domains and TLS
+
+Use `tls.mode: direct` when public DNS points to the target server and Caddy can
+complete a normal ACME challenge. Use `tls.mode: cloudflare-dns` for proxied
+Cloudflare records; Towbar uses a scoped API token, manages only records it
+owns, and completes a DNS challenge before promotion.
+
+## Field reference
+
+All objects are strict: unknown fields are rejected. Keep secrets and server configuration out of this file. Use the [JSON Schema](/schemas/deployment.v1.json) for the complete machine-readable contract.
+
+### Root fields
+
+| Field              | Required | Meaning                                                                       |
+| ------------------ | -------- | ----------------------------------------------------------------------------- |
+| `version`          | Yes      | Must be `1`                                                                   |
+| `source.branch`    | No       | Production branch; defaults to `main`                                         |
+| `deploymentInputs` | No       | Named groups of additive repository globs; reference a group as `$group-name` |
+| `apps`             | No       | Dockerfile apps, up to 500                                                    |
+| `resources`        | No       | Image, PostgreSQL, and Redis resources, up to 500                             |
+
+IDs must be unique across both apps and resources. Paths are repository-relative and cannot escape the repository. Input patterns do not support exclusions or parent traversal.
+
+### App fields
+
+| Field                                 | Required / default | Meaning                                                                                          |
+| ------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------ |
+| `id`, `name`, `server`                | Required           | Stable identity, display name, and registered IPv4 or IPv6 address                               |
+| `description`                         | Optional           | Up to 500 characters                                                                             |
+| `dockerfile`                          | Required           | Dockerfile path inside the context                                                               |
+| `context`                             | `.`                | Directory transferred for the build                                                              |
+| `container.port`                      | Required           | Application port, 1–65535                                                                        |
+| `container.network`                   | Optional           | Docker network on the target; reused or created during deployment                                |
+| `container.resources`                 | Optional           | Both `cpus` and `memory`; positive CPU value up to 128, memory with `b`, `k`, `m`, or `g` suffix |
+| `health.path`                         | `/api/health`      | HTTP readiness path                                                                              |
+| `health.timeoutSeconds`               | `60`               | 5–600 seconds                                                                                    |
+| `autoDeploy`                          | `false`            | Boolean or an object with `inputs`                                                               |
+| `vulnerabilityScanning`               | `false`            | Opt in to scanning when enabled on the installation                                              |
+| `hooks.preDeploy`, `hooks.postDeploy` | Optional           | Command array and optional timeout of 5–1800 seconds                                             |
+| `domains.primary`                     | Optional           | Public hostname                                                                                  |
+| `domains.redirects`                   | Optional           | Up to 20 `{ host, status }` entries; status 301 or 302, default 301                              |
+| `tls.mode`                            | Optional           | `direct` or `cloudflare-dns`; requires a primary domain                                          |
+| `preview`                             | Optional           | `enabled: true`, base `domain`, and `ttlHours` of 1–720; requires production domains and TLS     |
+
+### Resource fields
+
+Resources require `id`, `name`, `server`, and `type`. They share app fields for description, domains, TLS, and container allocations, with these differences:
+
+| Field                       | Meaning                                                                                         |
+| --------------------------- | ----------------------------------------------------------------------------------------------- |
+| `type`                      | `image`, `postgres`, or `redis`                                                                 |
+| `image`                     | Required for `image`; presets default to `postgres:17-alpine` and `redis:8-alpine`              |
+| `autoDeploy`                | Boolean only; defaults to `false`                                                               |
+| `container.port`            | Optional; defaults to 5432 for PostgreSQL and 6379 for Redis                                    |
+| `container.command`         | Optional command array for `image` resources only                                               |
+| `container.networkAlias`    | Defaults to the resource ID when a network is declared                                          |
+| `container.volumes`         | Up to 20 `{ name, mountPath }` entries; mount paths must be absolute                            |
+| `health`                    | `type: http` with a path, `command` with a command array, or `container`; timeout 5–600 seconds |
+| `access.sshTunnel.hostPort` | Localhost-only operator port, 1024–65535                                                        |
+| `backup`                    | PostgreSQL/Redis only: S3 settings, optional retention and schedule                             |
+
+Public resources require an HTTP health check and a port. Managed database presets supply health commands and a data volume. Hooks, Dockerfile builds, vulnerability scanning, and pull request previews are app features.
+
+For backup field defaults and a complete example, see [Database backups](/docs/backups). For private connectivity and persistent data, see [Resources](/docs/resources).
+
+## Validate locally
+
+Use the published schema with any JSON Schema-aware YAML validator. In this
+repository, the parser test keeps the starter manifest aligned with the Zod
+contract and JSON Schema:
+
+```bash
+pnpm --filter @workspace/towbar-core test
+pnpm docs:check
+```

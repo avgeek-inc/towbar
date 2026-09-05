@@ -1,13 +1,11 @@
 ---
-title: "Managed secrets"
+title: "Shared secrets"
 description: "Configure encrypted deployment secrets in Towbar."
 ---
 
-# Managed secrets
-
 Towbar manages deployment secrets without an AWS Secrets Manager account. Values and assignments live in the editor, separate from `.towbar/deployment.yml`. Owners can create, replace, and delete values. Saved values cannot be revealed or exported through the public API.
 
-## Configure values
+## Choose the right scope
 
 | Location                          | Purpose                                                                      |
 | --------------------------------- | ---------------------------------------------------------------------------- |
@@ -19,11 +17,25 @@ Towbar manages deployment secrets without an AWS Secrets Manager account. Values
 
 Secrets resolve from Shared secrets to the Source and then the app or resource. A value at a more specific level overrides the same key inherited from the level above; deleting the override restores inheritance. Production and Preview are separate at every level, so Preview apps inherit workspace and Source Preview values without receiving Production values. Resources use Production runtime values only. An explicitly empty string is a value, not a deletion. Hook values are used only when the corresponding hook is configured.
 
+## Save and deploy
+
 The editor shows configured key names, their origin, and replacement inputs. Leaving a replacement input untouched preserves the value. Replacing it with an empty string explicitly saves an empty value. Concurrent edits are rejected; refresh and reapply the intended changes.
 
 **Save** stores changes for the next execution. It does not restart containers or enqueue deployment. Deploy the affected app or resource separately when you are ready. Build changes require rebuilding the image. Runtime changes require a replacement deployment. Image rollback uses current secrets and does not restore revoked credentials.
 
 Preview defaults and app values can be saved independently and are used by later eligible Preview deployments. Towbar rechecks pull request eligibility and rejects deployment while another deployment or cleanup is active.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img src="/assets/features/secrets-light.webp" alt="Example Shared secrets editor. Configured keys are visible; stored secret values remain hidden." width="1440" height="600" loading="lazy" />
+  </div>
+  <div className="towbar-product-dark">
+    <img src="/assets/features/secrets-dark.webp" alt="Example Shared secrets editor. Configured keys are visible; stored secret values remain hidden." width="1440" height="600" loading="lazy" />
+  </div>
+  <p>Example Shared secrets editor. Configured keys are visible; stored secret values remain hidden.</p>
+</div>
+
+## Rotate credentials
 
 Changing `POSTGRES_PASSWORD` in Towbar does not change the password already stored inside an existing PostgreSQL database. Coordinate database password rotation separately. SSH and Cloudflare replacement similarly updates what Towbar uses; it does not provision those credentials at the provider or server.
 
@@ -58,13 +70,3 @@ Secret records are encrypted in PostgreSQL using the separately configured 32-by
 Back up the Towbar database and preserve its encryption key separately. Restore both to recover secret configuration. A database-only backup cannot recover secrets without the matching key. Do not replace the key on an existing installation without re-encrypting its stored credentials; there is no automatic key rotation or secret history in this release.
 
 Source syncs preserve editor configuration for existing App and Resource IDs. Archival retains values; permanent owner deletion removes its records. Shared values and servers remain attached to the workspace. A new App identity starts unconfigured, while a new server IP must be added under **Servers** before a Source can reference it. SSH and Cloudflare values stay scoped to that workspace server. Slack and SMTP are configured for the Towbar installation through deployment environment variables.
-
-## Breaking cutover
-
-1. Pause deployments and finish active operations before upgrading the API and worker together.
-2. Back up the database and encryption key, then run the database migration.
-3. Add each target server under **Servers**, including SSH connection, concurrency, and Cloudflare enablement. Remove every `servers` block and all secret fields from the manifest, including root/shared, app, resource, hook, preview, server login, and Cloudflare token references. Sync the Source.
-4. Enter credentials and environment values through the editor. Configure optional Slack and SMTP provider environment variables on the API deployment.
-5. Check and prepare servers as needed, deploy a canary, and verify its actual health and public route before resuming work.
-
-There is no AWS import, fallback resolver, or legacy manifest support. Optional S3 backup/restore credentials are a single workspace record under **Manage → Integrations → AWS**. Towbar's own database, encryption, internal authentication, GitHub bootstrap credentials, Slack token, and SMTP credentials remain installation configuration.

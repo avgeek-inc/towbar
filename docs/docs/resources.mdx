@@ -1,0 +1,82 @@
+---
+title: "Resources"
+description: "Run PostgreSQL, Redis, and image-based services with persistent storage and health checks."
+---
+
+Resources run from an existing container image. Use them for databases, caches, and supporting services that do not need a repository build.
+
+## Supported types
+
+| Type       | Use it for                   | Towbar behavior                                                                                 |
+| ---------- | ---------------------------- | ----------------------------------------------------------------------------------------------- |
+| `postgres` | PostgreSQL databases         | Managed command, database health checks, persistent data volume, optional S3 backup and restore |
+| `redis`    | Redis caches and data stores | Password-protected managed command, persistent data volume, optional S3 backup and restore      |
+| `image`    | Other containerized services | Your image and optional command, declared ports, volumes, and health checks                     |
+
+Images must have an explicit non-`latest` tag or a digest. Use a digest when you need an immutable image reference. PostgreSQL and Redis have preset images if you omit `image`; pin an explicit version when planning upgrades.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/features/resources-light.webp"
+      alt="Example resource inventory with PostgreSQL, Redis, and image-based services."
+      width="1440"
+      height="720"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/features/resources-dark.webp"
+      alt="Example resource inventory with PostgreSQL, Redis, and image-based services."
+      width="1440"
+      height="720"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Example resource inventory with PostgreSQL, Redis, and image-based services.
+  </p>
+</div>
+
+## Add a database
+
+```yaml
+version: 1
+source:
+  branch: main
+resources:
+  - id: database
+    name: Primary database
+    type: postgres
+    image: postgres:17-alpine
+    server: 203.0.113.10
+    container:
+      network: app-network
+      resources:
+        cpus: 1
+        memory: 1g
+    access:
+      sshTunnel:
+        hostPort: 15432
+```
+
+Register the server, then save `POSTGRES_PASSWORD` under **Resource → Settings → Secrets**. Redis resources use `REDIS_PASSWORD`. These values are production runtime secrets and never belong in YAML.
+
+Deploy the resource, wait for its health check to pass, and verify connectivity from the intended client.
+
+## Connect privately
+
+Apps and resources on the same host can share a named `container.network`. Towbar reuses the network when it exists and creates a bridge network when it is missing. A resource's `networkAlias` defaults to its ID, so the example database is reachable as `database` from containers on `app-network`.
+
+`access.sshTunnel.hostPort` binds only to the server's `127.0.0.1`. Forward that port over SSH for a local database client. It does not create a public Caddy route or Cloudflare record.
+
+## Persist data
+
+PostgreSQL and Redis receive a managed data volume. Generic image resources can declare named volumes and mount paths. Deployment and image rollback are not database migration tools: plan engine upgrades and schema compatibility separately.
+
+Changing `POSTGRES_PASSWORD` in Towbar does not rotate the password already stored inside an existing database. Coordinate that change with the database before replacing the running resource.
+
+## Back up and restore
+
+Only PostgreSQL and Redis presets support Towbar-managed backups. Configure [AWS](/docs/integrations/aws) and a [backup policy](/docs/backups), then verify restore readiness. Read the [restore procedure](/docs/restores) before relying on a backup for recovery.
