@@ -1,5 +1,9 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+
+import { Key01Icon } from "@hugeicons/core-free-icons";
+
 import { useState, type FormEvent } from "react";
 import type { SecretMetadata, Server } from "@workspace/towbar-web-client";
 import { Button } from "@workspace/web-design-system/buttons/button";
@@ -166,7 +170,10 @@ function ServerCredentialForm({
   }
 
   return (
-    <FormCard title="Server credentials">
+    <FormCard
+      icon={<HugeiconsIcon icon={Key01Icon} />}
+      title="Server credentials"
+    >
       <form className="grid max-w-3xl gap-5" onSubmit={submit}>
         <CredentialField
           busy={busy}

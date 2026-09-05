@@ -1,3 +1,5 @@
+import { ServerStack01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
 
 import type {
@@ -45,7 +47,9 @@ export function ServerHostCapacity({
           </div>
         }
       >
-        <Widget.Title>Host capacity</Widget.Title>
+        <Widget.Title icon={<HugeiconsIcon icon={ServerStack01Icon} />}>
+          Host capacity
+        </Widget.Title>
       </Widget.Header>
       <Widget.Content>
         {capacity.cpu && capacity.memory && capacity.disk ? (

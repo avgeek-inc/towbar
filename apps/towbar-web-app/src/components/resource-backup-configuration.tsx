@@ -1,5 +1,13 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+
+import {
+  Archive01Icon,
+  RefreshIcon,
+  Settings01Icon,
+} from "@hugeicons/core-free-icons";
+
 import { useState } from "react";
 import type { FormEvent } from "react";
 
@@ -191,7 +199,9 @@ export function ResourceBackupConfiguration({
                 </Chip>
               }
             >
-              <Widget.Title>{backupHealth.title}</Widget.Title>
+              <Widget.Title icon={<HugeiconsIcon icon={Archive01Icon} />}>
+                {backupHealth.title}
+              </Widget.Title>
             </Widget.Header>
             <Widget.Content className="grid min-w-0 gap-3">
               <ol className="grid overflow-hidden rounded-lg border border-separator divide-y divide-separator md:grid-cols-3 md:divide-x md:divide-y-0">
@@ -255,7 +265,11 @@ export function ResourceBackupConfiguration({
           </Alert>
         )}
 
-        <Attributes title="Backup settings" variant="card">
+        <Attributes
+          icon={<HugeiconsIcon icon={Settings01Icon} />}
+          title="Backup settings"
+          variant="card"
+        >
           <Attributes.Item label="Schedule">
             {backup.schedule ? (
               <span className="inline-flex items-center gap-2">
@@ -392,7 +406,11 @@ function RestoreConfirmation({
                   </Alert.Content>
                 </Alert>
                 {backup ? (
-                  <Attributes columns={2} title="Selected backup">
+                  <Attributes
+                    icon={<HugeiconsIcon icon={Archive01Icon} />}
+                    columns={2}
+                    title="Selected backup"
+                  >
                     <Attributes.Item label="Created">
                       {formatDate(backup.finishedAt ?? backup.createdAt)}
                     </Attributes.Item>
@@ -599,7 +617,9 @@ function RestoreProgress({
   return (
     <Widget>
       <Widget.Header endContent={<StatusBadge status={operation.state} />}>
-        <Widget.Title>Restore progress</Widget.Title>
+        <Widget.Title icon={<HugeiconsIcon icon={RefreshIcon} />}>
+          Restore progress
+        </Widget.Title>
       </Widget.Header>
       <Widget.Content>
         {events.error ? <QueryError message={events.error} /> : null}

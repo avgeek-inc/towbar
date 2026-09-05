@@ -260,7 +260,12 @@ export function DeploymentDetail() {
             content: (
               <div className="grid gap-8">
                 <div className="content-grid lg:grid-cols-2">
-                  <Attributes columns={2} title="Deployment" variant="card">
+                  <Attributes
+                    icon={<HugeiconsIcon icon={Rocket01Icon} />}
+                    columns={2}
+                    title="Deployment"
+                    variant="card"
+                  >
                     <Attributes.Item label="Action">
                       {item.kind === "rollback" ? "Rollback" : "Deploy"}
                     </Attributes.Item>
@@ -282,7 +287,12 @@ export function DeploymentDetail() {
                         : "Not finished"}
                     </Attributes.Item>
                   </Attributes>
-                  <Attributes columns={2} title="Target" variant="card">
+                  <Attributes
+                    icon={<HugeiconsIcon icon={ServerStack01Icon} />}
+                    columns={2}
+                    title="Target"
+                    variant="card"
+                  >
                     <Attributes.Item
                       icon={
                         <HugeiconsIcon
@@ -385,7 +395,7 @@ export function DeploymentDetail() {
                 <Widget.Header
                   endContent={<StatusBadge status={stream.connection} />}
                 >
-                  <Widget.Title>
+                  <Widget.Title icon={<HugeiconsIcon icon={Activity01Icon} />}>
                     {formatStatus(currentStep?.state ?? displayStatus)}
                   </Widget.Title>
                 </Widget.Header>

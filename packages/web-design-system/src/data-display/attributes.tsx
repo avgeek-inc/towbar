@@ -25,6 +25,7 @@ export interface AttributesProps extends Omit<
 > {
   children: ReactNode;
   columns?: AttributesColumns;
+  icon?: ReactNode;
   title: ReactNode;
   variant?: AttributesVariant;
 }
@@ -34,6 +35,7 @@ const Root = forwardRef<HTMLDivElement, AttributesProps>(
       children,
       className,
       columns: count = 2,
+      icon,
       title,
       variant = "list",
       ...props
@@ -48,6 +50,7 @@ const Root = forwardRef<HTMLDivElement, AttributesProps>(
       >
         <Widget.Header>
           <Widget.Title
+            icon={icon}
             className="min-w-0 truncate text-xs font-medium text-muted"
             title={typeof title === "string" ? title : undefined}
           >

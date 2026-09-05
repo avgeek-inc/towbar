@@ -3,8 +3,10 @@
 import {
   DashboardCircleIcon,
   DatabaseIcon,
+  GitBranchIcon,
   GitCompareIcon,
   InformationSquareIcon,
+  PackageIcon,
   RefreshIcon,
   ServerStack01Icon,
   ValidationIcon,
@@ -94,7 +96,12 @@ export function SourceSyncDetail() {
             icon: <HugeiconsIcon icon={InformationSquareIcon} />,
             content: (
               <div className="content-grid lg:grid-cols-2">
-                <Attributes columns={2} title="Sync" variant="card">
+                <Attributes
+                  icon={<HugeiconsIcon icon={RefreshIcon} />}
+                  columns={2}
+                  title="Sync"
+                  variant="card"
+                >
                   <Attributes.Item label="Requested">
                     {formatDate(sync.createdAt)}
                   </Attributes.Item>
@@ -112,7 +119,12 @@ export function SourceSyncDetail() {
                     {formatDuration(sync.startedAt, sync.finishedAt)}
                   </Attributes.Item>
                 </Attributes>
-                <Attributes columns={2} title="Revision" variant="card">
+                <Attributes
+                  icon={<HugeiconsIcon icon={GitBranchIcon} />}
+                  columns={2}
+                  title="Revision"
+                  variant="card"
+                >
                   <Attributes.Item label="Commit">
                     {sync.commitSha ? (
                       <TypographyCode title={sync.commitSha}>
@@ -218,7 +230,12 @@ function SyncChanges({
   const legacyCounts = readLegacyReconciliationCounts(value);
   if (legacyCounts) {
     return (
-      <Attributes columns={3} title="Imported inventory" variant="card">
+      <Attributes
+        icon={<HugeiconsIcon icon={PackageIcon} />}
+        columns={3}
+        title="Imported inventory"
+        variant="card"
+      >
         <Attributes.Item
           icon={<HugeiconsIcon icon={DashboardCircleIcon} />}
           label="Apps"

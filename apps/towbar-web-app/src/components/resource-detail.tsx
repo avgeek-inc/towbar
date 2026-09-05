@@ -3,6 +3,8 @@
 import {
   DatabaseIcon,
   FileViewIcon,
+  Link01Icon,
+  PackageIcon,
   Rocket01Icon,
   ServerStack01Icon,
   Settings01Icon,
@@ -118,7 +120,12 @@ export function ResourceDetail() {
       icon: <HugeiconsIcon icon={DatabaseIcon} />,
       content: (
         <div className="content-grid lg:grid-cols-2">
-          <Attributes columns={2} title="Resource status" variant="card">
+          <Attributes
+            icon={<HugeiconsIcon icon={DatabaseIcon} />}
+            columns={2}
+            title="Resource status"
+            variant="card"
+          >
             <Attributes.Item label="Lifecycle">
               <StatusBadge status={lifecycleStatus} />
             </Attributes.Item>
@@ -155,7 +162,12 @@ export function ResourceDetail() {
                 : "Not checked yet"}
             </Attributes.Item>
           </Attributes>
-          <Attributes columns={2} title="Latest deployment" variant="card">
+          <Attributes
+            icon={<HugeiconsIcon icon={Rocket01Icon} />}
+            columns={2}
+            title="Latest deployment"
+            variant="card"
+          >
             <Attributes.Item label="Status">
               {latestDeployment ? (
                 <StatusBadge
@@ -342,7 +354,12 @@ function ResourceSettings({
 function ResourceConfiguration({ item }: { item: ResourceRecord }) {
   return (
     <div className="grid gap-6">
-      <Attributes columns={2} title="Image configuration" variant="card">
+      <Attributes
+        icon={<HugeiconsIcon icon={PackageIcon} />}
+        columns={2}
+        title="Image configuration"
+        variant="card"
+      >
         <Attributes.Item label="Image">
           <TypographyCode className="break-all">
             {item.config.image}
@@ -369,7 +386,12 @@ function ResourceConfiguration({ item }: { item: ResourceRecord }) {
           )}
         </Attributes.Item>
       </Attributes>
-      <Attributes columns={2} title="Container configuration" variant="card">
+      <Attributes
+        icon={<HugeiconsIcon icon={PackageIcon} />}
+        columns={2}
+        title="Container configuration"
+        variant="card"
+      >
         <Attributes.Item label="Container port">
           {item.config.container.port ?? "Not exposed"}
         </Attributes.Item>
@@ -393,7 +415,12 @@ function ResourceConfiguration({ item }: { item: ResourceRecord }) {
           {renderVolumes(item.config.container.volumes)}
         </Attributes.Item>
       </Attributes>
-      <Attributes columns={2} title="Deployment configuration" variant="card">
+      <Attributes
+        icon={<HugeiconsIcon icon={Rocket01Icon} />}
+        columns={2}
+        title="Deployment configuration"
+        variant="card"
+      >
         <Attributes.Item label="Auto-deploy">
           {item.config.autoDeploy ? "Enabled" : "Disabled"}
         </Attributes.Item>
@@ -423,7 +450,12 @@ function ResourceConfiguration({ item }: { item: ResourceRecord }) {
 
 function ResourceConnectionDetails({ item }: { item: ResourceRecord }) {
   return (
-    <Attributes columns={2} title="Connection details" variant="card">
+    <Attributes
+      icon={<HugeiconsIcon icon={Link01Icon} />}
+      columns={2}
+      title="Connection details"
+      variant="card"
+    >
       <Attributes.Item label="Private host">
         {item.config.container.networkAlias ? (
           <TypographyCode>{item.config.container.networkAlias}</TypographyCode>

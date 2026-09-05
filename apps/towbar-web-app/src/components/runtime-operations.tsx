@@ -6,6 +6,7 @@ import {
   MoreHorizontalIcon,
   PlayIcon,
   ReloadIcon,
+  SourceCodeIcon,
   StopIcon,
   Undo02Icon,
 } from "@hugeicons/core-free-icons";
@@ -319,7 +320,11 @@ export function RuntimeLogs({
           </EmptyState>
         )
       ) : (
-        <Attributes title="Latest log capture" variant="card">
+        <Attributes
+          icon={<HugeiconsIcon icon={SourceCodeIcon} />}
+          title="Latest log capture"
+          variant="card"
+        >
           <Attributes.Item label="Status">
             <StatusBadge status={latest.state} />
           </Attributes.Item>

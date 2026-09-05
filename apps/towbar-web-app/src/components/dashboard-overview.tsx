@@ -1,11 +1,12 @@
 "use client";
 
 import {
+  Activity01Icon,
   DashboardCircleIcon,
+  DashboardSquare01Icon,
   DatabaseIcon,
   GitBranchIcon,
   ServerStack01Icon,
-  DashboardSquare01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { ComponentProps } from "react";
@@ -163,7 +164,9 @@ export function DashboardOverview() {
             ) : null
           }
         >
-          <Widget.Title>Deployment activity</Widget.Title>
+          <Widget.Title icon={<HugeiconsIcon icon={Activity01Icon} />}>
+            Deployment activity
+          </Widget.Title>
         </Widget.Header>
         <Widget.Content className="grid min-w-0 gap-3">
           {deploymentItems.length ? (

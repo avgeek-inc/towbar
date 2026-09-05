@@ -36,14 +36,28 @@ const Header = forwardRef<HTMLDivElement, WidgetHeaderProps>(
   ),
 );
 
-const Title = forwardRef<HTMLSpanElement, ComponentPropsWithRef<"span">>(
-  ({ className, ...props }, ref) => (
+interface WidgetTitleProps extends ComponentPropsWithRef<"span"> {
+  icon?: ReactNode;
+}
+
+const Title = forwardRef<HTMLSpanElement, WidgetTitleProps>(
+  ({ children, className, icon, ...props }, ref) => (
     <span
       ref={ref}
-      className={cn("widget__title font-medium text-xs", className)}
+      className={cn(
+        "widget__title inline-flex min-w-0 items-center gap-2 font-medium text-xs [&_svg]:size-4 [&_svg]:shrink-0",
+        className,
+      )}
       data-slot="widget-title"
       {...props}
-    />
+    >
+      {icon ? (
+        <span aria-hidden="true" className="inline-flex shrink-0">
+          {icon}
+        </span>
+      ) : null}
+      {children}
+    </span>
   ),
 );
 

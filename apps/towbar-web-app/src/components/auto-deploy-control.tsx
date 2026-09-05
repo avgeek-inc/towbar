@@ -1,5 +1,9 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+
+import { Rocket01Icon } from "@hugeicons/core-free-icons";
+
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 
@@ -70,7 +74,9 @@ export function AutoDeployControlEditor({
     <form onSubmit={save}>
       <Widget>
         <Widget.Header>
-          <Widget.Title>Auto-deploy</Widget.Title>
+          <Widget.Title icon={<HugeiconsIcon icon={Rocket01Icon} />}>
+            Auto-deploy
+          </Widget.Title>
         </Widget.Header>
         <Widget.Content className="grid gap-5">
           <Switch

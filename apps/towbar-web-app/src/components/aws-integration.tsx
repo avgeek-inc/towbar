@@ -1,5 +1,9 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+
+import { Key01Icon } from "@hugeicons/core-free-icons";
+
 import { useState } from "react";
 import type { AwsCredentialMetadata } from "@workspace/towbar-web-client";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -31,7 +35,11 @@ export function AwsIntegration() {
     <div className="grid gap-10">
       {credential ? (
         <div className="grid gap-5">
-          <Attributes title="AWS credentials" variant="card">
+          <Attributes
+            icon={<HugeiconsIcon icon={Key01Icon} />}
+            title="AWS credentials"
+            variant="card"
+          >
             <Attributes.Item label="Access key">
               <TypographyCode>
                 ••••{credential.accessKeyIdSuffix}

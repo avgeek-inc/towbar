@@ -1,5 +1,9 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+
+import { GithubIcon } from "@hugeicons/core-free-icons";
+
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type {
@@ -146,7 +150,12 @@ export function GitHubSettings() {
           </Alert.Content>
         </Alert>
       ) : null}
-      <Attributes columns={2} title="GitHub connection" variant="card">
+      <Attributes
+        icon={<HugeiconsIcon icon={GithubIcon} />}
+        columns={2}
+        title="GitHub connection"
+        variant="card"
+      >
         <Attributes.Item label="Account">
           {connection.accountLogin}
         </Attributes.Item>

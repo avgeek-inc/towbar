@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Activity01Icon,
   AlertCircleIcon,
   CheckmarkCircle02Icon,
   HealthIcon,
@@ -106,7 +107,9 @@ function ControlPlane({
           </span>
         }
       >
-        <Widget.Title>Control plane</Widget.Title>
+        <Widget.Title icon={<HugeiconsIcon icon={Activity01Icon} />}>
+          Control plane
+        </Widget.Title>
       </Widget.Header>
       <Widget.Content className="grid p-0">
         {checks.map((check) => {

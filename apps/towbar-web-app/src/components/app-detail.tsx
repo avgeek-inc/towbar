@@ -4,6 +4,7 @@ import {
   DashboardCircleIcon,
   FileViewIcon,
   GitBranchIcon,
+  PackageIcon,
   Rocket01Icon,
   ServerStack01Icon,
   Settings01Icon,
@@ -158,7 +159,12 @@ export function AppDetail() {
             icon: <HugeiconsIcon icon={DashboardCircleIcon} />,
             content: (
               <div className="content-grid lg:grid-cols-2">
-                <Attributes columns={2} title="App status" variant="card">
+                <Attributes
+                  icon={<HugeiconsIcon icon={DashboardCircleIcon} />}
+                  columns={2}
+                  title="App status"
+                  variant="card"
+                >
                   <Attributes.Item label="App status">
                     <StatusBadge status={lifecycleStatus} />
                   </Attributes.Item>
@@ -198,6 +204,7 @@ export function AppDetail() {
                   </Attributes.Item>
                 </Attributes>
                 <Attributes
+                  icon={<HugeiconsIcon icon={Rocket01Icon} />}
                   columns={2}
                   title="Latest deployment"
                   variant="card"
@@ -299,6 +306,7 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
             label: "Preview",
             content: (
               <Attributes
+                icon={<HugeiconsIcon icon={Settings01Icon} />}
                 columns={2}
                 title="Preview configuration"
                 variant="card"
@@ -340,7 +348,12 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
 function AppConfiguration({ item }: { item: AppRecord }) {
   return (
     <div className="grid gap-6">
-      <Attributes columns={2} title="Build configuration" variant="card">
+      <Attributes
+        icon={<HugeiconsIcon icon={PackageIcon} />}
+        columns={2}
+        title="Build configuration"
+        variant="card"
+      >
         <Attributes.Item label="Dockerfile">
           <TypographyCode className="break-all">
             {item.config.dockerfile}
@@ -355,7 +368,12 @@ function AppConfiguration({ item }: { item: AppRecord }) {
           </TypographyCode>
         </Attributes.Item>
       </Attributes>
-      <Attributes columns={2} title="Container configuration" variant="card">
+      <Attributes
+        icon={<HugeiconsIcon icon={PackageIcon} />}
+        columns={2}
+        title="Container configuration"
+        variant="card"
+      >
         <Attributes.Item label="Container port">
           {item.config.container.port}
         </Attributes.Item>
@@ -379,7 +397,12 @@ function AppConfiguration({ item }: { item: AppRecord }) {
           {item.config.health.timeoutSeconds} seconds
         </Attributes.Item>
       </Attributes>
-      <Attributes columns={2} title="Deployment configuration" variant="card">
+      <Attributes
+        icon={<HugeiconsIcon icon={Rocket01Icon} />}
+        columns={2}
+        title="Deployment configuration"
+        variant="card"
+      >
         <Attributes.Item label="Auto-deploy">
           {item.config.autoDeploy ? "Enabled" : "Disabled"}
         </Attributes.Item>

@@ -6,6 +6,7 @@ import {
   Delete02Icon,
   GitBranchIcon,
   GlobeIcon,
+  Key01Icon,
   LockIcon,
   RestoreBinIcon,
 } from "@hugeicons/core-free-icons";
@@ -262,7 +263,9 @@ function SecretVariablesEditor({
     <form onSubmit={submit}>
       <Widget className="min-w-0">
         <Widget.Header>
-          <Widget.Title>{stageLabel} secrets</Widget.Title>
+          <Widget.Title icon={<HugeiconsIcon icon={Key01Icon} />}>
+            {stageLabel} secrets
+          </Widget.Title>
         </Widget.Header>
         <Widget.Content className="grid min-w-0 gap-5">
           {!keys.length && !newKeys.length ? (

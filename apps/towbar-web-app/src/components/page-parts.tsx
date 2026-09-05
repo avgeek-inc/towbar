@@ -330,17 +330,19 @@ export function FormCard({
   children,
   className,
   headerEnd,
+  icon,
   title,
   ...props
 }: Omit<ComponentProps<typeof Widget>, "children" | "title"> & {
   children: ReactNode;
   headerEnd?: ReactNode;
+  icon?: ReactNode;
   title: string;
 }) {
   return (
     <Widget {...props} className={className}>
       <Widget.Header endContent={headerEnd}>
-        <Widget.Title>{title}</Widget.Title>
+        <Widget.Title icon={icon}>{title}</Widget.Title>
       </Widget.Header>
       <Widget.Content>{children}</Widget.Content>
     </Widget>

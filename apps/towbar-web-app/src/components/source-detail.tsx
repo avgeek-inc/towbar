@@ -3,6 +3,7 @@
 import {
   DashboardCircleIcon,
   DatabaseIcon,
+  Delete02Icon,
   GithubIcon,
   InformationSquareIcon,
   Settings01Icon,
@@ -366,7 +367,10 @@ function SourceSettings({
                 value: "danger",
                 label: "Danger zone",
                 content: (
-                  <FormCard title="Danger zone">
+                  <FormCard
+                    icon={<HugeiconsIcon icon={Delete02Icon} />}
+                    title="Danger zone"
+                  >
                     <div className="grid gap-5">
                       <p className="max-w-3xl text-sm text-muted">
                         Deleting a Source removes its imported inventory and

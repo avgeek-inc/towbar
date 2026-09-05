@@ -8,7 +8,11 @@ import {
   type ComponentPropsWithRef,
   type ReactNode,
 } from "react";
-import { Copy01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
+import {
+  Copy01Icon,
+  SourceCodeIcon,
+  Tick02Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Button, type ButtonProps } from "../buttons/button";
 import { Widget } from "../data-display/widget";
@@ -42,6 +46,7 @@ const Filename = forwardRef<HTMLSpanElement, ComponentPropsWithRef<"span">>(
   ({ className, ...props }, ref) => (
     <Widget.Title
       ref={ref}
+      icon={<HugeiconsIcon icon={SourceCodeIcon} />}
       className={cn("min-w-0 truncate text-muted", className)}
       data-slot="code-block-filename"
       {...props}

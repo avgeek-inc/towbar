@@ -1,5 +1,9 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+
+import { Key01Icon, UserAccountIcon } from "@hugeicons/core-free-icons";
+
 import type { TowbarUser, UserSession } from "@workspace/towbar-web-client";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
@@ -22,7 +26,10 @@ export function ProfileSettings() {
 
   return (
     <div className="content-grid min-w-0 lg:grid-cols-2 lg:items-start">
-      <FormCard title="Profile details">
+      <FormCard
+        icon={<HugeiconsIcon icon={UserAccountIcon} />}
+        title="Profile details"
+      >
         <SimpleForm
           fields={[
             {
@@ -49,7 +56,10 @@ export function ProfileSettings() {
           submitLabel="Update profile"
         />
       </FormCard>
-      <FormCard title="Change password">
+      <FormCard
+        icon={<HugeiconsIcon icon={Key01Icon} />}
+        title="Change password"
+      >
         <SimpleForm
           fields={[
             {

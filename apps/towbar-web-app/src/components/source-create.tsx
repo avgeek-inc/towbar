@@ -1,5 +1,7 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+
 import { GitBranchIcon } from "@hugeicons/core-free-icons";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -157,7 +159,10 @@ export function SourceCreate() {
             </Stepper>
           </div>
         </div>
-        <FormCard title="Source details">
+        <FormCard
+          icon={<HugeiconsIcon icon={GitBranchIcon} />}
+          title="Source details"
+        >
           <form
             className="grid max-w-xl gap-8 pt-2"
             onSubmit={async (event) => {

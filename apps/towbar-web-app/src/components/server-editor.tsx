@@ -1,5 +1,9 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+
+import { Settings01Icon } from "@hugeicons/core-free-icons";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { FormEvent } from "react";
@@ -73,6 +77,7 @@ export function ServerEditor({
   return (
     <div className="grid gap-8">
       <FormCard
+        icon={<HugeiconsIcon icon={Settings01Icon} />}
         title={editing ? "Server configuration" : "Connection and scheduling"}
       >
         <form className="grid gap-5" onSubmit={save}>

@@ -8,6 +8,7 @@ import {
   Activity01Icon,
   DashboardCircleIcon,
   Key01Icon,
+  Link01Icon,
   ServerStack01Icon,
   Settings01Icon,
 } from "@hugeicons/core-free-icons";
@@ -366,7 +367,12 @@ export function ServerDetail() {
                   />
                   <ServerHostCapacity capacity={capacity.data.capacity} />
                   <div className="content-grid lg:grid-cols-2">
-                    <Attributes columns={2} title="Connection" variant="card">
+                    <Attributes
+                      icon={<HugeiconsIcon icon={Link01Icon} />}
+                      columns={2}
+                      title="Connection"
+                      variant="card"
+                    >
                       <Attributes.Item label="IP address">
                         {item.canonicalIp}
                       </Attributes.Item>
@@ -388,7 +394,12 @@ export function ServerDetail() {
                         {formatDate(item.updatedAt)}
                       </Attributes.Item>
                     </Attributes>
-                    <Attributes columns={2} title="Operations" variant="card">
+                    <Attributes
+                      icon={<HugeiconsIcon icon={Activity01Icon} />}
+                      columns={2}
+                      title="Operations"
+                      variant="card"
+                    >
                       <Attributes.Item label="Server setup">
                         <StatusBadge status={setupStatus} />
                       </Attributes.Item>
@@ -663,7 +674,9 @@ function ServerPreparationPanel({
       ) : null}
       <Widget>
         <Widget.Header endContent={<StatusBadge status={setupStatus} />}>
-          <Widget.Title>Server preparation</Widget.Title>
+          <Widget.Title icon={<HugeiconsIcon icon={ServerStack01Icon} />}>
+            Server preparation
+          </Widget.Title>
         </Widget.Header>
         <Widget.Content className="grid gap-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
