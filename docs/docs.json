@@ -2,7 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Towbar",
-  "description": "Deploy and operate Dockerfile apps, databases, and previews on Ubuntu servers you control.",
+  "description": "Open-source, Git-native PaaS for apps, databases, and previews. Deploy to servers you own.",
   "logo": {
     "light": "/assets/towbar-logo.png",
     "dark": "/assets/towbar-logo.png",
