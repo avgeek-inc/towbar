@@ -40,7 +40,7 @@ export function PreviewEnvironments({
       header: "Pull request",
       className: "min-w-48",
       cell: (preview) => (
-        <div className="flex flex-col items-start gap-1">
+        <div className="flex flex-col items-start gap-0.5">
           <a
             className="focus-visible:ring-focus rounded-md underline decoration-muted underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2"
             href={preview.pullRequestUrl}
@@ -109,7 +109,7 @@ export function PreviewEnvironments({
       header: "Status",
       className: "min-w-56",
       cell: (preview) => (
-        <div className="flex flex-col items-start gap-1">
+        <div className="flex flex-col items-start gap-0.5">
           <StatusBadge status={preview.status} />
           {preview.status === "cleanup_failed" && preview.errorMessage ? (
             <span className="line-clamp-2 text-sm text-danger">

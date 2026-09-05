@@ -31,7 +31,7 @@ export function AppIdentity({
   ];
 
   return (
-    <span className="grid min-w-0 justify-items-start gap-1">
+    <span className="grid min-w-0 justify-items-start gap-0.5">
       <DeployableName
         autoDeploy={Boolean(app.config.autoDeploy)}
         name={app.name}
@@ -44,7 +44,7 @@ export function AppIdentity({
           <Tooltip.Trigger
             render={(props) => <span {...props} />}
             aria-label={`Domains: ${domains.join(", ")}`}
-            className="flex max-w-64 min-w-0 items-center gap-1 text-xs text-muted outline-none focus-visible:ring-2 focus-visible:ring-focus rounded-sm"
+            className="flex max-w-64 min-w-0 items-center gap-0.5 text-xs text-muted outline-none focus-visible:ring-2 focus-visible:ring-focus rounded-sm"
           >
             <span className="truncate">{domains[0]}</span>
             {domains.length > 1 ? (
@@ -120,7 +120,7 @@ function DeployableName({
           {name}
         </TooltipText>
       </InlineLink>
-      <span className="inline-flex shrink-0 items-center gap-1">
+      <span className="inline-flex shrink-0 items-center gap-0.5">
         {indicators.map(({ icon, positive, label }) => (
           <TooltipText
             key={label}
@@ -160,7 +160,7 @@ export function ResourceIdentity({
         width={32}
         src={type.logo}
       />
-      <span className="grid min-w-0 gap-1">
+      <span className="grid min-w-0 gap-0.5">
         <DeployableName
           autoDeploy={Boolean(resource.config.autoDeploy)}
           name={resource.name}

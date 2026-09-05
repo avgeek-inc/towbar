@@ -14,7 +14,7 @@ export function ServerHardwareDescription({
   return (
     <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
       {hardware.cpuCount ? (
-        <span className="inline-flex items-center gap-1 whitespace-nowrap">
+        <span className="inline-flex items-center gap-0.5 whitespace-nowrap">
           <HugeiconsIcon
             aria-hidden="true"
             className="size-3.5 shrink-0"
@@ -26,7 +26,7 @@ export function ServerHardwareDescription({
       {hardware.memoryBytes ? (
         <span
           aria-label={`Memory: ${formatBytes(hardware.memoryBytes)}`}
-          className="inline-flex items-center gap-1 whitespace-nowrap"
+          className="inline-flex items-center gap-0.5 whitespace-nowrap"
         >
           <HugeiconsIcon
             aria-hidden="true"

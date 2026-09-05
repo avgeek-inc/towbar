@@ -256,7 +256,7 @@ export function ServerIpLink({
   serverId?: string;
 }) {
   const label = (
-    <span className="grid min-w-0 gap-1">
+    <span className="grid min-w-0 gap-0.5">
       <span className="inline-flex items-center gap-2 whitespace-nowrap tabular-nums">
         <HugeiconsIcon
           aria-hidden="true"

@@ -34,7 +34,7 @@ export function RelativeTime({
   return (
     <time
       aria-label={`${label}: ${formatted.absolute}${formatted.relative ? `, ${formatted.relative}` : ""}`}
-      className="grid gap-1 whitespace-nowrap tabular-nums"
+      className="grid gap-0.5 whitespace-nowrap tabular-nums"
       dateTime={value}
     >
       <span>{formatted.absolute}</span>
