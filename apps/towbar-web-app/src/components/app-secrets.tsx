@@ -51,7 +51,6 @@ export function AppSecrets({ appId }: { appId: string }) {
         ariaLabel="Secret environments"
         defaultSelectedKey="production"
         layout="inline"
-        panelClassName="pt-0 md:pt-5"
         selectedKey={environment}
         onSelectionChange={(key) =>
           setEnvironment(String(key) as "production" | "preview")
@@ -135,7 +134,6 @@ function EnvironmentSecretSettings({
         ariaLabel="Secret environments"
         defaultSelectedKey="production"
         layout="inline"
-        panelClassName="pt-0 md:pt-5"
         selectedKey={environment}
         onSelectionChange={(key) =>
           setEnvironment(String(key) as "production" | "preview")
@@ -172,7 +170,6 @@ function EnvironmentEditors({
       ariaLabel="Secret stages"
       defaultSelectedKey={data.bindings[0]?.stage ?? "build"}
       layout="inline"
-      panelClassName="pt-0 md:pt-5"
       tabs={data.bindings.map((binding) => ({
         label: stageLabels[binding.stage],
         value: binding.stage,
