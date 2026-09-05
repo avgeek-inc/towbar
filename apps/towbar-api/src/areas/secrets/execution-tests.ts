@@ -52,7 +52,10 @@ export async function testManagedSecretExecution({
         .toString();
       const serverResult = await patch(`/servers/${serverId}/credentials`, {
         expectedRevision: null,
-        set: { privateKey, apiToken: "test-cloudflare-token-12345" },
+        set: {
+          privateKey,
+          apiToken: `cfat_${"test_account_token_".repeat(3)}`,
+        },
         delete: [],
       });
       assert.equal(serverResult.status, 200);
@@ -64,9 +67,24 @@ export async function testManagedSecretExecution({
         "apiToken",
         "privateKey",
       ]);
+      for (const rejectedToken of [
+        `cfut_${"personal_token_".repeat(4)}`,
+        "legacy_token_".repeat(4),
+        "cfat_too_short",
+        `cfat_${"a".repeat(257)}`,
+        `cfat_${"a".repeat(40)}\n`,
+      ]) {
+        const rejected = await patch(`/servers/${serverId}/credentials`, {
+          expectedRevision: serverMetadata.credential.revision,
+          set: { apiToken: rejectedToken },
+          delete: [],
+        });
+        assert.equal(rejected.status, 422);
+        assert(!(await rejected.text()).includes(rejectedToken));
+      }
       const replacement = await patch(`/servers/${serverId}/credentials`, {
         expectedRevision: serverMetadata.credential.revision,
-        set: { apiToken: "replacement-cloudflare-token-12345" },
+        set: { apiToken: `cfat_${"replacement_account_token_".repeat(3)}` },
         delete: [],
       });
       assert.equal(replacement.status, 200);
@@ -105,7 +123,7 @@ export async function testManagedSecretExecution({
       const resolved = await resolveDeploymentSecrets(deploymentId);
       assert.equal(
         resolved.cloudflare?.apiToken,
-        "replacement-cloudflare-token-12345",
+        `cfat_${"replacement_account_token_".repeat(3)}`,
       );
       assert.equal(resolved.runtime.TOKEN, "shared-value");
       assert.equal(resolved.hooks.preDeploy.MIGRATION, "production-only");
