@@ -13,7 +13,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
-import type { Deployment } from "@workspace/towbar-web-client";
+import type { Deployment, Source } from "@workspace/towbar-web-client";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
@@ -57,6 +57,9 @@ export function DeploymentDetail() {
   }>();
   const router = useRouter();
   const stream = useDeploymentStream(deploymentId);
+  const source = useApiQuery<{ source: Source }>(
+    `/v1/core/sources/${sourceId}`,
+  );
   const deployable = useApiQuery<{
     app?: { name: string; serverIp: string };
     resource?: { name: string; serverIp: string };
@@ -116,6 +119,11 @@ export function DeploymentDetail() {
     );
 
   const item = stream.deployment;
+  const repository = source.data?.source;
+  const commitUrl =
+    repository?.repositoryOwner && repository.repositoryName && item.commitSha
+      ? `https://github.com/${encodeURIComponent(repository.repositoryOwner)}/${encodeURIComponent(repository.repositoryName)}/commit/${encodeURIComponent(item.commitSha)}`
+      : undefined;
   const displayStatus = getDeploymentDisplayStatus(item);
   if (item.sourceId !== sourceId) {
     return (
@@ -328,9 +336,22 @@ export function DeploymentDetail() {
                       </InlineLink>
                     </Attributes.Item>
                     <Attributes.Item label="Commit">
-                      <TypographyCode title={item.commitSha}>
-                        {item.commitSha.slice(0, 12)}
-                      </TypographyCode>
+                      {commitUrl ? (
+                        <InlineLink
+                          href={commitUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`View commit ${item.commitSha} on GitHub (opens in a new tab)`}
+                        >
+                          <TypographyCode title={item.commitSha}>
+                            {item.commitSha.slice(0, 12)}
+                          </TypographyCode>
+                        </InlineLink>
+                      ) : (
+                        <TypographyCode title={item.commitSha}>
+                          {item.commitSha.slice(0, 12)}
+                        </TypographyCode>
+                      )}
                     </Attributes.Item>
                     {item.gitRef ? (
                       <Attributes.Item label="Git ref">
