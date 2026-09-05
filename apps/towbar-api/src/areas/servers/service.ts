@@ -2,6 +2,7 @@ import { and, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 
 import {
+  type RuntimeExpectation,
   isNormalizedResource,
   serverHardwareFromCheck,
 } from "@workspace/towbar-core";
@@ -313,6 +314,7 @@ export async function getServerCheckExecutionContext(checkId: string) {
     .select({
       config: apps.config,
       deployableId: apps.id,
+      sourceId: apps.sourceId,
       desiredState: deployableRuntimeStates.desiredState,
     })
     .from(apps)
@@ -350,7 +352,7 @@ export async function getServerCheckExecutionContext(checkId: string) {
   return {
     ...context,
     expectedContainerNames: selectCurrentContainerNames(retainedReleases),
-    expectedDeployables: deployables.map((deployable) => {
+    expectedDeployables: deployables.map((deployable): RuntimeExpectation => {
       const release = currentReleaseByDeployable.get(deployable.deployableId);
       const resource = isNormalizedResource(deployable.config)
         ? deployable.config
@@ -366,9 +368,10 @@ export async function getServerCheckExecutionContext(checkId: string) {
             }
           : null,
         deployableId: deployable.deployableId,
+        sourceId: deployable.sourceId,
         desiredState: deployable.desiredState ?? "running",
-        health: resource
-          ? resource.health
+        health: isNormalizedResource(deployable.config)
+          ? deployable.config.health
           : { ...deployable.config.health, type: "http" as const },
         release: release
           ? {

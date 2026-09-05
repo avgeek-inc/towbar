@@ -97,7 +97,6 @@ export async function checkServer(
       deployables: context.expectedDeployables,
       imageTags: context.expectedImageTags,
       session,
-      sourceId: context.sourceId,
     });
     return {
       caddyVersion,

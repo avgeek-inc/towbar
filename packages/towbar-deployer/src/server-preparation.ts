@@ -194,7 +194,11 @@ if test "$requires_cloudflare" = true; then
   caddy list-modules | grep -Fx dns.providers.cloudflare >/dev/null
 fi
 "${"$"}{SUDO[@]}" test -d /etc/caddy/towbar
-"${"$"}{SUDO[@]}" caddy validate --config /etc/caddy/Caddyfile >/dev/null
+validate_args=(--config /etc/caddy/Caddyfile)
+if "${"$"}{SUDO[@]}" test -s /etc/caddy/towbar/cloudflare.env; then
+  validate_args+=(--envfile /etc/caddy/towbar/cloudflare.env)
+fi
+"${"$"}{SUDO[@]}" caddy validate "${"$"}{validate_args[@]}" >/dev/null
 disk_available="$(df -Pk /var/lib/docker | awk 'NR==2 {print $4}')"
 if test "$disk_available" -le 1048576; then
   printf 'At least 1 GiB of free space is required under /var/lib/docker.\n' >&2
@@ -384,7 +388,7 @@ async function runStep(input: {
   }
 }
 
-function preparationErrorMessage(error: unknown) {
+export function preparationErrorMessage(error: unknown) {
   if (error instanceof HostKeyNotTrustedError) {
     return "The server SSH host key is not trusted";
   }
@@ -394,12 +398,31 @@ function preparationErrorMessage(error: unknown) {
       : error instanceof Error
         ? error.message
         : "Server preparation failed";
-  return [...detail]
+  // Caddy writes informational JSON before its actual validation error.
+  // Retain actionable output before applying the persisted message limit.
+  const diagnostic =
+    detail
+      .split("\n")
+      .filter((line) => {
+        try {
+          const entry = JSON.parse(line) as { level?: string };
+          return !["debug", "info", "warn"].includes(entry?.level ?? "");
+        } catch {
+          return true;
+        }
+      })
+      .join("\n")
+      .trim() || detail;
+  const safeDiagnostic = diagnostic.replace(
+    /API token '[^']*'/gi,
+    "API token '[redacted]'",
+  );
+  const message = [...safeDiagnostic]
     .map((character) => {
       const codePoint = character.codePointAt(0) ?? 0;
       return codePoint < 32 || codePoint === 127 ? " " : character;
     })
     .join("")
-    .trim()
-    .slice(0, 800);
+    .trim();
+  return message.length > 800 ? `…${message.slice(-799)}` : message;
 }

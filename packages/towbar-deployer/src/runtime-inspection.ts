@@ -4,7 +4,7 @@ import { orphanItemSchema } from "@workspace/towbar-core";
 
 import type { SshSession } from "./ssh.js";
 import type {
-  RuntimeDesiredState,
+  RuntimeExpectation,
   RuntimeInspection,
 } from "@workspace/towbar-core";
 
@@ -40,17 +40,16 @@ const inspectionSchema = z
 
 export const runtimeInspectionScript = String.raw`
 set -euo pipefail
-source_id="$1"
-expected_json="$2"
-python3 - "$source_id" "$expected_json" <<'PYTHON'
+expected_json="$1"
+python3 - "$expected_json" <<'PYTHON'
 import json
 import subprocess
 import sys
 import urllib.request
 import re
 
-source_id = sys.argv[1]
-expected = json.loads(sys.argv[2])
+expected = json.loads(sys.argv[1])
+source_ids = {item["sourceId"] for item in expected["deployables"]}
 
 def command(*args):
     return subprocess.run(args, check=False, capture_output=True, text=True)
@@ -227,7 +226,7 @@ for item in expected["deployables"]:
         reasons.append("Container is running but Towbar expects it to be stopped")
     if health == "unhealthy":
         reasons.append("Container health check is failing")
-    if labels.get("towbar.source") != source_id or labels.get("towbar.deployable") != deployable_id:
+    if labels.get("towbar.source") != item["sourceId"] or labels.get("towbar.deployable") != deployable_id:
         reasons.append("Container predates Source ownership labels; redeploy before cleanup")
     connectivity = item.get("connectivity")
     if connectivity:
@@ -268,7 +267,7 @@ for name in containers.stdout.splitlines():
         continue
     labels = container.get("Config", {}).get("Labels") or {}
     container_name = container.get("Name", "").lstrip("/")
-    if labels.get("towbar.source") == source_id and container_name not in expected_containers:
+    if labels.get("towbar.source") in source_ids and container_name not in expected_containers:
         orphans.append({
             "kind": "container",
             "name": container_name,
@@ -281,7 +280,7 @@ for name in volumes.stdout.splitlines():
     if not volume:
         continue
     labels = volume.get("Labels") or {}
-    if labels.get("towbar.source") == source_id and labels.get("towbar.deployable") not in expected_deployables:
+    if labels.get("towbar.source") in source_ids and labels.get("towbar.deployable") not in expected_deployables:
         orphans.append({
             "kind": "volume",
             "name": name,
@@ -296,7 +295,7 @@ for name in images.stdout.splitlines():
     if not image:
         continue
     labels = (image.get("Config") or {}).get("Labels") or {}
-    if labels.get("towbar.source") == source_id and name not in expected_images:
+    if labels.get("towbar.source") in source_ids and name not in expected_images:
         orphans.append({
             "kind": "image",
             "name": name,
@@ -310,29 +309,13 @@ PYTHON
 
 export async function inspectServerRuntime(input: {
   containerNames: string[];
-  deployables: Array<{
-    connectivity: {
-      containerPort: number;
-      hostPort: number | null;
-      network: string | null;
-      networkAlias: string | null;
-    } | null;
-    deployableId: string;
-    desiredState: RuntimeDesiredState;
-    health:
-      | { command: string[]; timeoutSeconds: number; type: "command" }
-      | { path: string; timeoutSeconds: number; type: "http" }
-      | { timeoutSeconds: number; type: "container" };
-    release: { containerName: string; imageTag: string } | null;
-  }>;
+  deployables: RuntimeExpectation[];
   imageTags: string[];
   session: SshSession;
-  sourceId: string;
 }) {
   const { stdout } = await input.session.run(
     runtimeInspectionScript,
     [
-      input.sourceId,
       JSON.stringify({
         containerNames: input.containerNames,
         deployables: input.deployables,

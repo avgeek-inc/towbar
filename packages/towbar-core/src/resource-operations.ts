@@ -61,6 +61,23 @@ export const orphanItemSchema = z
 
 export type OrphanItem = z.infer<typeof orphanItemSchema>;
 
+export type RuntimeExpectation = {
+  connectivity: {
+    containerPort: number;
+    hostPort: number | null;
+    network: string | null;
+    networkAlias: string | null;
+  } | null;
+  deployableId: string;
+  sourceId: string;
+  desiredState: RuntimeDesiredState;
+  health:
+    | { command: string[]; timeoutSeconds: number; type: "command" }
+    | { path: string; timeoutSeconds: number; type: "http" }
+    | { timeoutSeconds: number; type: "container" };
+  release: { containerName: string; imageTag: string } | null;
+};
+
 export type RuntimeInspection = {
   cpuPercent: number | null;
   deployableId: string;
