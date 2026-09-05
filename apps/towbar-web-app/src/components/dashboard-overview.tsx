@@ -8,7 +8,7 @@ import {
   DashboardSquare01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Fragment, type ComponentProps } from "react";
+import type { ComponentProps } from "react";
 import type {
   App,
   Deployment,
@@ -20,9 +20,7 @@ import { LineChart } from "@workspace/web-design-system/charts/line-chart";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { KPIGroup } from "@workspace/web-design-system/data-display/kpi-group";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { MetricCard } from "@workspace/towbar-web-ui/metric-card";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
 import { DashboardPage } from "@/components/page-parts";
@@ -126,37 +124,29 @@ export function DashboardOverview() {
 
   return (
     <DashboardPage icon={DashboardSquare01Icon} title="Overview">
-      <div className="content-grid grid-cols-2 sm:hidden">
+      <div className="content-grid grid-cols-2 lg:grid-cols-4">
         {metrics.map((metric) => (
-          <MetricCard
-            className="rounded-3xl border border-separator bg-surface"
-            icon={<OverviewMetricIcon icon={metric.icon} />}
-            key={metric.label}
-            label={metric.label}
-            value={metric.value}
-          >
-            {metric.unhealthyCount === null ? null : (
-              <HealthChip unhealthyCount={metric.unhealthyCount} />
-            )}
-          </MetricCard>
-        ))}
-      </div>
-      <KPIGroup className="hidden sm:flex">
-        {metrics.map((metric, index) => (
-          <Fragment key={metric.label}>
-            {index ? <KPIGroup.Separator /> : null}
-            <MetricCard
-              icon={<OverviewMetricIcon icon={metric.icon} />}
-              label={metric.label}
-              value={metric.value}
-            >
+          <Widget className="min-w-0" key={metric.label}>
+            <Widget.Header>
+              <Widget.Title className="inline-flex items-center gap-2">
+                <OverviewMetricIcon icon={metric.icon} />
+                {metric.label}
+              </Widget.Title>
+            </Widget.Header>
+            <Widget.Content className="flex flex-wrap items-end justify-between gap-3">
+              <dl>
+                <dt className="sr-only">{metric.label}</dt>
+                <dd className="text-3xl font-semibold tracking-tight tabular-nums">
+                  {metric.value.toLocaleString()}
+                </dd>
+              </dl>
               {metric.unhealthyCount === null ? null : (
                 <HealthChip unhealthyCount={metric.unhealthyCount} />
               )}
-            </MetricCard>
-          </Fragment>
+            </Widget.Content>
+          </Widget>
         ))}
-      </KPIGroup>
+      </div>
 
       <Widget className="min-w-0">
         <Widget.Header
