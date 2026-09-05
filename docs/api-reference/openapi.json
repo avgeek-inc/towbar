@@ -2747,9 +2747,15 @@
         "properties": {
           "canCleanupOrphans": { "type": "boolean" },
           "canManageServer": { "type": "boolean" },
+          "canRemoveServer": { "type": "boolean" },
           "server": { "$ref": "#/components/schemas/Response_131" }
         },
-        "required": ["canCleanupOrphans", "canManageServer", "server"]
+        "required": [
+          "canCleanupOrphans",
+          "canManageServer",
+          "canRemoveServer",
+          "server"
+        ]
       },
       "Response_132": {
         "type": "object",
@@ -8164,7 +8170,7 @@
         ],
         "responses": {
           "200": {
-            "description": "JSON object containing canCleanupOrphans, canManageServer, server.",
+            "description": "JSON object containing canCleanupOrphans, canManageServer, canRemoveServer, server.",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Response_130" }
@@ -8266,6 +8272,40 @@
                 "schema": { "$ref": "#/components/schemas/Response_132" }
               }
             }
+          },
+          "400": { "$ref": "#/components/responses/ApiError" },
+          "401": { "$ref": "#/components/responses/ApiError" },
+          "403": { "$ref": "#/components/responses/ApiError" },
+          "404": { "$ref": "#/components/responses/ApiError" },
+          "409": { "$ref": "#/components/responses/ApiError" },
+          "413": { "$ref": "#/components/responses/ApiError" },
+          "422": { "$ref": "#/components/responses/ApiError" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ApiError" }
+        }
+      },
+      "delete": {
+        "operationId": "delete_servers_by_id",
+        "summary": "Remove server",
+        "tags": ["Servers / Overview"],
+        "description": "Requires workspace owner permission. Requires a full-access key.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "serverId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Stops Towbar management and removes stored server credentials and host-key trust. Does not terminate the machine or delete Docker services or data. Assigned workloads and active operations block removal."
           },
           "400": { "$ref": "#/components/responses/ApiError" },
           "401": { "$ref": "#/components/responses/ApiError" },

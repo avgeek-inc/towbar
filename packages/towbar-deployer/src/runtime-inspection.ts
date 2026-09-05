@@ -49,7 +49,10 @@ import urllib.request
 import re
 
 expected = json.loads(sys.argv[1])
-source_ids = {item["sourceId"] for item in expected["deployables"]}
+owned_deployables = set(expected["ownedDeployableIds"])
+
+def owned(labels):
+    return labels.get("towbar.managed") == "true" and bool(labels.get("towbar.source")) and labels.get("towbar.deployable") in owned_deployables
 
 def command(*args):
     return subprocess.run(args, check=False, capture_output=True, text=True)
@@ -267,7 +270,7 @@ for name in containers.stdout.splitlines():
         continue
     labels = container.get("Config", {}).get("Labels") or {}
     container_name = container.get("Name", "").lstrip("/")
-    if labels.get("towbar.source") in source_ids and container_name not in expected_containers:
+    if owned(labels) and container_name not in expected_containers:
         orphans.append({
             "kind": "container",
             "name": container_name,
@@ -280,7 +283,7 @@ for name in volumes.stdout.splitlines():
     if not volume:
         continue
     labels = volume.get("Labels") or {}
-    if labels.get("towbar.source") in source_ids and labels.get("towbar.deployable") not in expected_deployables:
+    if owned(labels) and labels.get("towbar.deployable") not in expected_deployables:
         orphans.append({
             "kind": "volume",
             "name": name,
@@ -295,7 +298,7 @@ for name in images.stdout.splitlines():
     if not image:
         continue
     labels = (image.get("Config") or {}).get("Labels") or {}
-    if labels.get("towbar.source") in source_ids and name not in expected_images:
+    if owned(labels) and name not in expected_images:
         orphans.append({
             "kind": "image",
             "name": name,
@@ -311,6 +314,7 @@ export async function inspectServerRuntime(input: {
   containerNames: string[];
   deployables: RuntimeExpectation[];
   imageTags: string[];
+  ownedDeployableIds?: string[];
   session: SshSession;
 }) {
   const { stdout } = await input.session.run(
@@ -320,6 +324,9 @@ export async function inspectServerRuntime(input: {
         containerNames: input.containerNames,
         deployables: input.deployables,
         imageTags: input.imageTags,
+        ownedDeployableIds:
+          input.ownedDeployableIds ??
+          input.deployables.map((item) => item.deployableId),
       }),
     ],
     { timeoutMs: 60_000 },

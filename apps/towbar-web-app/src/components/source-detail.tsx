@@ -383,6 +383,9 @@ function SourceSettings({
                         Deleting a Source removes its imported inventory and
                         operational history. Workspace integrations, servers,
                         and backup objects already in S3 remain available.
+                        Running services and Docker data stay on the servers.
+                        Run a server check after deletion to find leftovers in
+                        Settings → Cleanup.
                       </p>
                       <ActionButton
                         action={() =>
@@ -391,8 +394,8 @@ function SourceSettings({
                         confirm={{
                           actionLabel: "Delete Source permanently",
                           description:
-                            "This permanently deletes the Source, sync history, Apps, Resources, Deployments, Releases, backup metadata, and runtime operations. Workspace integrations, servers, their credentials, checks, and trust records remain available. This cannot be undone.",
-                          title: "Delete this Source and all of its data?",
+                            "This permanently deletes the Source, sync history, Apps, Resources, Deployments, Releases, backup metadata, and runtime operations. Workspace integrations, servers, their credentials, checks, and trust records remain available. Running services and Docker data are not deleted. Check each server afterward to find leftovers in Cleanup. This cannot be undone.",
+                          title: "Delete this Source and its inventory?",
                         }}
                         onSuccess={onDelete}
                         pendingLabel="Deleting…"

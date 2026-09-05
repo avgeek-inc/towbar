@@ -94,6 +94,14 @@ export const infrastructureTools: McpTool[] = [
     { destructive: false },
   ),
   action(
+    "server_remove",
+    "Remove server from Towbar",
+    "Stop managing a server and forget stored credentials and host trust. Does not terminate the machine or delete running services, Docker objects, or data. Assigned workloads and active operations block removal. Inspect and clean selected orphans first if desired.",
+    "DELETE",
+    "/servers/:serverId",
+    serverId,
+  ),
+  action(
     "server_configure",
     "Configure server",
     "Update server IP, SSH settings, proxy options, and build concurrency. Inspect current settings first; changing connectivity can disrupt deployments.",

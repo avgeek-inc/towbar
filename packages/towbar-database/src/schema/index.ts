@@ -648,6 +648,18 @@ export const servers = pgTable(
   ],
 );
 
+// Ownership survives source/deployable deletion so cleanup stays server-scoped.
+export const serverDeployableOwnership = pgTable(
+  "towbar_server_deployable_ownership",
+  {
+    serverId: uuid("server_id")
+      .notNull()
+      .references(() => servers.id, { onDelete: "cascade" }),
+    deployableId: uuid("deployable_id").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.serverId, table.deployableId] })],
+);
+
 export const serverChecks = pgTable(
   "towbar_server_checks",
   {

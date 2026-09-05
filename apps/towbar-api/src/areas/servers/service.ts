@@ -12,6 +12,7 @@ import {
   deployments,
   releases,
   serverChecks,
+  serverDeployableOwnership,
   serverPreparations,
   servers,
   sshHostKeys,
@@ -290,7 +291,7 @@ export async function getServerCheckExecutionContext(checkId: string) {
     })
     .from(serverChecks)
     .innerJoin(servers, eq(servers.id, serverChecks.serverId))
-    .where(eq(serverChecks.id, checkId))
+    .where(and(eq(serverChecks.id, checkId), isNull(servers.archivedAt)))
     .limit(1);
   if (!context) throw notFound("Server check");
   const credentials = await resolveServerCredentials(context);
@@ -323,6 +324,10 @@ export async function getServerCheckExecutionContext(checkId: string) {
       eq(deployableRuntimeStates.appId, apps.id),
     )
     .where(and(eq(apps.serverId, context.serverId), isNull(apps.archivedAt)));
+  const ownership = await getTowbarDatabase()
+    .select({ id: serverDeployableOwnership.deployableId })
+    .from(serverDeployableOwnership)
+    .where(eq(serverDeployableOwnership.serverId, context.serverId));
   const deployableIds = deployables.map(
     (deployable) => deployable.deployableId,
   );
@@ -351,6 +356,7 @@ export async function getServerCheckExecutionContext(checkId: string) {
     .where(eq(serverChecks.id, checkId));
   return {
     ...context,
+    ownedDeployableIds: ownership.map((item) => item.id),
     expectedContainerNames: selectCurrentContainerNames(retainedReleases),
     expectedDeployables: deployables.map((deployable): RuntimeExpectation => {
       const release = currentReleaseByDeployable.get(deployable.deployableId);

@@ -1,11 +1,23 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, notInArray } from "drizzle-orm";
 
 import {
   digestValue,
   getDeployableDeploymentDigest,
   requiresServerPreparation,
 } from "@workspace/towbar-core";
-import { apps, servers } from "@workspace/towbar-database/schema";
+import {
+  apps,
+  auditEvents,
+  deployments,
+  imageVulnerabilityScans,
+  managedSecrets,
+  previewEnvironments,
+  resourceOperations,
+  serverChecks,
+  serverPreparations,
+  servers,
+  sshHostKeys,
+} from "@workspace/towbar-database/schema";
 
 import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
@@ -133,4 +145,150 @@ export async function updateServer(input: {
     }
     return toPublicServer(server);
   });
+}
+
+export async function removeServer(input: {
+  serverId: string;
+  workspaceId: string;
+  requestedBy: string;
+}) {
+  await getTowbarDatabase().transaction(async (transaction) => {
+    const [server] = await transaction
+      .select({ id: servers.id })
+      .from(servers)
+      .where(
+        and(
+          eq(servers.id, input.serverId),
+          eq(servers.workspaceId, input.workspaceId),
+          isNull(servers.archivedAt),
+        ),
+      )
+      .for("update")
+      .limit(1);
+    if (!server) throw notFound("Server");
+    if (await hasServerAssignments(server.id, transaction))
+      throw conflict(
+        "Move or remove the apps, resources, and previews assigned to this server first.",
+        "SERVER_IN_USE",
+      );
+    const active = await Promise.all([
+      transaction
+        .select({ id: serverChecks.id })
+        .from(serverChecks)
+        .where(
+          and(
+            eq(serverChecks.serverId, server.id),
+            inArray(serverChecks.status, ["queued", "running"]),
+          ),
+        )
+        .limit(1),
+      transaction
+        .select({ id: serverPreparations.id })
+        .from(serverPreparations)
+        .where(
+          and(
+            eq(serverPreparations.serverId, server.id),
+            inArray(serverPreparations.status, ["queued", "running"]),
+          ),
+        )
+        .limit(1),
+      transaction
+        .select({ id: deployments.id })
+        .from(deployments)
+        .where(
+          and(
+            eq(deployments.serverId, server.id),
+            notInArray(deployments.state, [
+              "cancelled",
+              "failed",
+              "skipped",
+              "succeeded",
+              "succeeded_with_warnings",
+            ]),
+          ),
+        )
+        .limit(1),
+      transaction
+        .select({ id: resourceOperations.id })
+        .from(resourceOperations)
+        .where(
+          and(
+            eq(resourceOperations.serverId, server.id),
+            inArray(resourceOperations.state, ["queued", "running"]),
+          ),
+        )
+        .limit(1),
+      transaction
+        .select({ id: imageVulnerabilityScans.id })
+        .from(imageVulnerabilityScans)
+        .where(
+          and(
+            eq(imageVulnerabilityScans.serverId, server.id),
+            inArray(imageVulnerabilityScans.state, ["pending", "running"]),
+          ),
+        )
+        .limit(1),
+    ]);
+    if (active.some((rows) => rows.length))
+      throw conflict(
+        "Wait for active server operations to finish before removing this server.",
+        "SERVER_BUSY",
+      );
+    const now = new Date();
+    await transaction
+      .delete(managedSecrets)
+      .where(eq(managedSecrets.serverId, server.id));
+    await transaction
+      .update(sshHostKeys)
+      .set({ revokedAt: now })
+      .where(
+        and(eq(sshHostKeys.serverId, server.id), isNull(sshHostKeys.revokedAt)),
+      );
+    await transaction
+      .update(servers)
+      .set({
+        archivedAt: now,
+        preparedAt: null,
+        preparedConfigDigest: null,
+        updatedAt: now,
+      })
+      .where(eq(servers.id, server.id));
+    await transaction.insert(auditEvents).values({
+      action: "server.removed",
+      actorUserId: input.requestedBy,
+      targetId: server.id,
+      targetType: "server",
+      workspaceId: input.workspaceId,
+      metadata: {},
+    });
+  });
+}
+
+// Archived apps/resources still belong to a source and may be restored by sync.
+// Retained Docker ownership alone is not an assignment and must not block removal.
+export async function hasServerAssignments(
+  serverId: string,
+  database: Pick<
+    ReturnType<typeof getTowbarDatabase>,
+    "select"
+  > = getTowbarDatabase(),
+) {
+  const [workloads, previews] = await Promise.all([
+    database
+      .select({ id: apps.id })
+      .from(apps)
+      .where(eq(apps.serverId, serverId))
+      .limit(1),
+    database
+      .select({ id: previewEnvironments.id })
+      .from(previewEnvironments)
+      .where(
+        and(
+          eq(previewEnvironments.serverId, serverId),
+          isNull(previewEnvironments.deletedAt),
+        ),
+      )
+      .limit(1),
+  ]);
+  return workloads.length > 0 || previews.length > 0;
 }

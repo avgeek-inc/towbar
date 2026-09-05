@@ -96,6 +96,7 @@ export async function checkServer(
       containerNames: context.expectedContainerNames,
       deployables: context.expectedDeployables,
       imageTags: context.expectedImageTags,
+      ownedDeployableIds: context.ownedDeployableIds,
       session,
     });
     return {

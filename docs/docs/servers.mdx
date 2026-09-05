@@ -94,3 +94,19 @@ Capacity comes from server checks. A displayed value is an observation, not a gu
 </div>
 
 For public routes, continue with [Domains and TLS](/docs/domains-tls). For private database access, see [Resources](/docs/resources#connect-privately).
+
+## Clean up leftover workloads
+
+Deleting a source removes its imported inventory and history from Towbar. It does not stop running services or delete Docker data. Choose **Check server**, wait for a successful check, then open **Settings → Cleanup** to review leftover containers, images, and volumes.
+
+Towbar retains workload ownership separately from sources. Cleanup lists only objects whose ownership is known to this server. Existing installations recover ownership from retained server-check history; objects with no surviving ownership evidence are excluded.
+
+Container and image cleanup is separate from permanent volume deletion. Towbar checks ownership and current release references again before removing each selected object. Objects that are now in use are skipped. Volumes are never deleted automatically.
+
+## Remove a server
+
+Workspace owners see **Settings → Configuration → Remove server** only when no source-backed apps, resources, or remaining previews are assigned. Archived apps and resources also prevent removal because a source sync can restore them. Orphaned Docker objects do not prevent removal. The API enforces the same assignment check and also blocks removal while operations are active.
+
+Removing a server stops Towbar management and scheduled checks, deletes its stored SSH and Cloudflare credentials, and revokes its trusted host keys. It does not terminate the cloud instance, stop services, or erase Docker data. Use **Cleanup** first if you want to remove leftovers from the host.
+
+You can register the same IP again later. Configure credentials and verify host-key trust again before preparing it. Historical records and workload ownership remain available.

@@ -455,7 +455,7 @@ test("the local fixture models one write-only workspace AWS integration", async 
   }
 });
 
-test("the local fixture supports workspace server creation and editing but not removal", async () => {
+test("the local fixture supports workspace server creation, editing, and safe removal", async () => {
   const fixture = createFixtureApiServer();
   fixture.listen(0, "127.0.0.1");
   await once(fixture, "listening");
@@ -477,6 +477,19 @@ test("the local fixture supports workspace server creation and editing but not r
     const created = (await createdResponse.json()).server;
     assert.equal(created.canonicalIp, config.ip);
     assert.equal("sourceId" in created, false);
+    assert.equal(
+      (await (await fetch(`${baseUrl}/v1/core/servers/${created.id}`)).json())
+        .canRemoveServer,
+      true,
+    );
+    assert.equal(
+      (
+        await (
+          await fetch(`${baseUrl}/v1/core/servers/${fixtureIds.server}`)
+        ).json()
+      ).canRemoveServer,
+      false,
+    );
 
     const duplicate = await fetch(`${baseUrl}/v1/core/servers`, {
       body: JSON.stringify(config),
@@ -508,11 +521,20 @@ test("the local fixture supports workspace server creation and editing but not r
           method: "DELETE",
         })
       ).status,
+      204,
+    );
+    assert.equal(
+      (await fetch(`${baseUrl}/v1/core/servers/${created.id}`)).status,
       404,
     );
-    const retained = await fetch(`${baseUrl}/v1/core/servers/${created.id}`);
-    assert.equal(retained.status, 200);
-    assert.equal((await retained.json()).server.id, created.id);
+    assert.equal(
+      (
+        await fetch(`${baseUrl}/v1/core/servers/${fixtureIds.server}`, {
+          method: "DELETE",
+        })
+      ).status,
+      409,
+    );
   } finally {
     fixture.close();
     await once(fixture, "close");

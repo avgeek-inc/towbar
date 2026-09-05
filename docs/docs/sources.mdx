@@ -57,3 +57,7 @@ Manual deployment is still a separate action. See [Deployments and releases](/do
 Use **Settings → Secrets** for values shared by this Source's workloads, with separate production and preview environments. Use **Settings → Notifications** to choose destinations and event categories. SSH and Cloudflare credentials belong to the workspace server rather than the Source.
 
 If a repository is missing or a webhook stops arriving, start with [GitHub troubleshooting](/docs/integrations/github#maintain-the-connection).
+
+## Delete a source
+
+Deleting a source removes its imported apps, resources, and operational history from Towbar. Running services and Docker data remain on their servers. After deletion, run **Check server** on each affected server and open **Settings → Cleanup** to review leftovers and remove them on demand. Volume deletion is a separate, permanent action. See [server cleanup](/docs/servers#clean-up-leftover-workloads).

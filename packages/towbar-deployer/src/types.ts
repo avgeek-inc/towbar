@@ -76,6 +76,7 @@ export type ServerCheckContext = {
   expectedContainerNames: string[];
   expectedDeployables: RuntimeExpectation[];
   expectedImageTags: string[];
+  ownedDeployableIds?: string[];
   login: SshLoginSecret;
   trustedHostKeys: TrustedHostKey[];
 };
@@ -152,6 +153,7 @@ export type WorkspaceAwsCredential = {
 
 export type ResourceOperationExecutionContext = {
   cleanupExpected: {
+    ownedDeployableIds?: string[];
     containerNames: string[];
     deployableIds: string[];
     imageTags: string[];
@@ -171,7 +173,7 @@ export type ResourceOperationExecutionContext = {
     result: import("@workspace/towbar-core").BackupOperationResult;
   } | null;
   request: ResourceOperationRequest;
-  sourceId: string;
+  sourceId: string | null;
   server: NormalizedServer;
   trustedHostKeys: TrustedHostKey[];
 };
