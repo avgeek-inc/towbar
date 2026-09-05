@@ -70,7 +70,11 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
   {
     key: "trigger",
     header: "Trigger",
-    cell: (item) => formatDeploymentTrigger(item.trigger),
+    cell: (item) => (
+      <Chip size="small" variant="secondary">
+        {formatDeploymentTrigger(item.trigger)}
+      </Chip>
+    ),
     className: "whitespace-nowrap",
   },
   {

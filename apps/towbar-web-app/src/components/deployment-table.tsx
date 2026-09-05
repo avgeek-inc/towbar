@@ -1,6 +1,7 @@
 "use client";
 
 import type { Deployment } from "@workspace/towbar-web-client";
+import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
 import { Pagination } from "@workspace/web-design-system/navigation/pagination";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
@@ -50,7 +51,11 @@ export function DeploymentTable({
     {
       key: "trigger",
       header: "Trigger",
-      cell: (deployment) => formatDeploymentTrigger(deployment.trigger),
+      cell: (deployment) => (
+        <Chip size="small" variant="secondary">
+          {formatDeploymentTrigger(deployment.trigger)}
+        </Chip>
+      ),
       className: "hidden whitespace-nowrap sm:table-cell",
       headerClassName: "hidden sm:table-cell",
     },
