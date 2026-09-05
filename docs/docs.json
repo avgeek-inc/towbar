@@ -173,9 +173,17 @@
       "og:image": "https://www.towbar.dev/assets/towbar-og.png",
       "og:image:width": "1200",
       "og:image:height": "630",
-      "og:image:alt": "Towbar \u2014 Open-Source Git-native PaaS",
+      "og:image:alt": "Towbar — Open-Source Git-native PaaS",
       "twitter:card": "summary_large_image",
-      "twitter:image": "https://www.towbar.dev/assets/towbar-og.png"
+      "twitter:image": "https://www.towbar.dev/assets/towbar-og.png",
+      "canonical": "https://www.towbar.dev",
+      "twitter:image:alt": "Towbar — Open-Source Git-native PaaS"
+    },
+    "organization": {
+      "name": "Towbar",
+      "url": "https://www.towbar.dev",
+      "logo": "https://www.towbar.dev/assets/towbar-logo.png",
+      "sameAs": ["https://github.com/avgeek-inc/towbar"]
     }
   },
   "redirects": [],
