@@ -1,180 +1,76 @@
 ---
 title: "Towbar — Deploy from Git to servers you own"
-description: "An open source deployment platform for Dockerfile apps, PostgreSQL, Redis, and pull request previews on your Ubuntu servers."
+description: "An open source deployment platform for apps, databases, and pull request previews. Self-host Towbar and deploy to your own Ubuntu servers."
 mode: "custom"
 ---
 
 <div className="towbar-home">
-  <section className="towbar-hero">
-    <div>
-      <p className="towbar-eyebrow">Open source · Self-hosted · Ubuntu</p>
-      <h1>Your code in Git.<br />Your services on your servers.</h1>
-      <p className="towbar-lead">Deploy apps and databases from one versioned manifest. Towbar builds on your Ubuntu hosts, checks each release, and gives you a clear view of what is running.</p>
-      <div className="towbar-actions">
-        <a className="towbar-button" href="/docs/getting-started">Deploy your first app <span aria-hidden="true">→</span></a>
-        <a className="towbar-button-secondary" href="/docs">Explore the docs</a>
-      </div>
-      <p className="towbar-caption">Apache 2.0. No container registry required for app builds.</p>
+  <section className="towbar-hero" aria-labelledby="hero-heading">
+    <p className="towbar-eyebrow">Towbar / Open source deployment platform</p>
+    <h1 id="hero-heading">Deploy from Git.<br /><span>Run on your servers.</span></h1>
+    <p className="towbar-lead">A home for your apps, databases, and previews.<br className="towbar-desktop-break" /> Towbar handles the deployment. You own the infrastructure.</p>
+    <div className="towbar-actions">
+      <a className="towbar-button" href="/docs/getting-started">Deploy your first app <span aria-hidden="true">↗</span></a>
+      <a className="towbar-secondary" href="https://github.com/avgeek-inc/towbar">Explore on GitHub <span aria-hidden="true">↗</span></a>
     </div>
-    <div className="towbar-manifest">
-
-```yaml .towbar/deployment.yml
-version: 1
-source:
-  branch: main
-apps:
-  - id: web
-    name: Web
-    server: 203.0.113.10
-    dockerfile: Dockerfile
-    container:
-      port: 3000
-    health:
-      path: /health
-    domains:
-      primary: app.example.com
-    tls:
-      mode: direct
-```
-
-      <a href="/docs/reference/deployment-manifest">Read the manifest reference <span aria-hidden="true">↗</span></a>
-    </div>
-
+    <p className="towbar-caption">Self-hosted · Ubuntu + Docker · Apache 2.0</p>
   </section>
 
-<section className="towbar-section" aria-labelledby="workflow-heading">
-  <div className="towbar-section-intro">
-    <p className="towbar-eyebrow">From commit to service</p>
-    <h2 id="workflow-heading">A deployment you can follow.</h2>
-    <p>
-      Keep workload configuration in Git and operational credentials in Towbar.
-      Each step has a result you can inspect.
-    </p>
+<div className="towbar-product">
+  <div className="towbar-product-frame">
+    <div className="towbar-product-heading">
+      <span>Towbar / Deployments</span>
+      <span>Example workspace</span>
+    </div>
+    <img
+      src="/assets/deployments.webp"
+      alt="Towbar deployment history showing apps and databases, deployment triggers, elapsed time, and release status."
+      width="2400"
+      height="1290"
+      fetchPriority="high"
+    />
   </div>
-  <ol className="towbar-workflow">
-    <li>
-      <span className="towbar-step">01</span>
-      <h3>Connect your repository</h3>
-      <p>
-        Install your GitHub App and commit a manifest describing the apps and
-        resources you want to run.
-      </p>
-      <a href="/docs/sources">Connect a Source →</a>
-    </li>
-    <li>
-      <span className="towbar-step">02</span>
-      <h3>Prepare your server</h3>
-      <p>
-        Register an Ubuntu host, verify its SSH identity, and let Towbar prepare
-        Docker and Caddy.
-      </p>
-      <a href="/docs/servers">Set up a server →</a>
-    </li>
-    <li>
-      <span className="towbar-step">03</span>
-      <h3>Deploy and verify</h3>
-      <p>
-        Follow the build, health check, and promotion. Inspect the release and
-        confirm the service is ready.
-      </p>
-      <a href="/docs/deployments">Understand deployments →</a>
-    </li>
-  </ol>
-</section>
+  <p className="towbar-product-caption">
+    <span>Every release, in view.</span> Follow builds, health checks, and
+    deployments from one place.
+  </p>
+</div>
 
-<section className="towbar-section" aria-labelledby="features-heading">
-  <div className="towbar-section-intro">
-    <p className="towbar-eyebrow">Deployment and day-to-day operations</p>
-    <h2 id="features-heading">The tools around the release.</h2>
-    <p>
-      Shipping a container is one step. Towbar brings previews, credentials,
-      database recovery, and runtime visibility into the same workflow.
-    </p>
-  </div>
-  <div className="towbar-feature-grid">
-    <a href="/docs/previews">
-      <span className="towbar-feature-label">Review</span>
-      <h3>A URL for each pull request</h3>
-      <p>
-        Opt eligible apps into previews with stable URLs, separate secrets,
-        GitHub status, and cleanup when the work is done.
-      </p>
-      <span className="towbar-text-link">Preview environments →</span>
-    </a>
-    <a href="/docs/resources">
-      <span className="towbar-feature-label">Run</span>
-      <h3>Apps and supporting services</h3>
-      <p>
-        Build from Dockerfiles or run versioned images. Use PostgreSQL and Redis
-        presets with private connectivity and persistent volumes.
-      </p>
-      <span className="towbar-text-link">Apps and resources →</span>
-    </a>
-    <a href="/docs/secrets">
-      <span className="towbar-feature-label">Configure</span>
-      <h3>Secrets with clear ownership</h3>
-      <p>
-        Set workspace defaults and override them by Source or workload.
-        Production and preview values stay separate and write-only.
-      </p>
-      <span className="towbar-text-link">Shared secrets →</span>
-    </a>
-    <a href="/docs/restores">
-      <span className="towbar-feature-label">Recover</span>
-      <h3>Backups with a path to restore</h3>
-      <p>
-        Schedule database backups to S3, inspect restore readiness, and validate
-        a candidate before promoting restored data.
-      </p>
-      <span className="towbar-text-link">Backups and restores →</span>
-    </a>
-    <a href="/docs/monitoring">
-      <span className="towbar-feature-label">Observe</span>
-      <h3>Know what is running</h3>
-      <p>
-        Inspect deployment history, health, host capacity, and workload
-        consumption. Keep the latest observation in context.
-      </p>
-      <span className="towbar-text-link">Health and capacity →</span>
-    </a>
-    <a href="/docs/integrations/notifications">
-      <span className="towbar-feature-label">Respond</span>
-      <h3>Events where your team works</h3>
-      <p>
-        Send deployment, preview, health, backup, and restore events to the
-        Slack channels or email recipients you choose.
-      </p>
-      <span className="towbar-text-link">Slack and email →</span>
-    </a>
-  </div>
-</section>
-
-<section className="towbar-fit" aria-labelledby="fit-heading">
+<section className="towbar-highlights" aria-label="What you can do with Towbar">
   <div>
-    <p className="towbar-eyebrow">Built for infrastructure you manage</p>
-    <h2 id="fit-heading">
-      Keep control of the host.
-      <br />
-      Make the workflow repeatable.
-    </h2>
+    <h2>Deploy from your repository</h2>
+    <p>
+      Define your apps in Git. Build on your servers, check health, and preview
+      pull requests.
+    </p>
+    <a className="towbar-link" href="/docs/deployments">
+      Deployments <span aria-hidden="true">→</span>
+    </a>
   </div>
   <div>
+    <h2>Run apps and databases</h2>
     <p>
-      Towbar fits teams deploying trusted GitHub repositories to maintained
-      Ubuntu servers. You choose the machines, domains, and backup storage.
-      Towbar coordinates the work and records the outcome.
+      Deploy Dockerfile apps, PostgreSQL, Redis, and container images with
+      persistent storage.
     </p>
+    <a className="towbar-link" href="/docs/resources">
+      Apps and resources <span aria-hidden="true">→</span>
+    </a>
+  </div>
+  <div>
+    <h2>Keep operations in view</h2>
     <p>
-      Self-host the control plane with Docker Compose. Review the architecture
-      and security model before opening an installation to the internet.
+      Check health and capacity, schedule database backups, and receive alerts
+      in Slack or email.
     </p>
-    <a href="/docs/self-hosting/architecture">Explore the architecture →</a>
+    <a className="towbar-link" href="/docs/monitoring">
+      Monitoring <span aria-hidden="true">→</span>
+    </a>
   </div>
 </section>
 
-  <section className="towbar-closing" aria-labelledby="start-heading">
-    <h2 id="start-heading">Start with one app.</h2>
-    <p>Connect a repository, prepare a server, and take the first release all the way to a verified route.</p>
-    <div className="towbar-actions"><a className="towbar-button" href="/docs/getting-started">Follow the deployment guide →</a><a className="towbar-button-secondary" href="https://github.com/avgeek-inc/towbar">View on GitHub</a></div>
-  </section>
+<section className="towbar-closing" aria-labelledby="start-heading">
+  <div><h2 id="start-heading">Start with one server.</h2><p>Install Towbar with Docker Compose.</p></div>
+  <a className="towbar-button" href="/docs/self-hosting/installation">Install Towbar <span aria-hidden="true">↗</span></a>
+</section>
 </div>
