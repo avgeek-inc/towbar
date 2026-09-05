@@ -304,7 +304,7 @@ function SecretVariablesEditor({
                 return (
                   <div
                     key={key}
-                    className="grid grid-cols-[repeat(8,minmax(0,1fr))_2.75rem] items-center gap-2 md:gap-3"
+                    className="grid grid-cols-[repeat(8,minmax(0,1fr))_2.5rem] sm:grid-cols-[repeat(8,minmax(0,1fr))_2.25rem] items-center gap-2 md:gap-3"
                   >
                     <div className="col-span-4 flex min-h-10 min-w-0 items-center gap-2">
                       {inherited ? (
@@ -369,7 +369,7 @@ function SecretVariablesEditor({
                     {canManage && local ? (
                       <Button
                         aria-label={removed ? `Keep ${key}` : `Remove ${key}`}
-                        className="col-span-1 size-11 min-w-11 justify-self-end"
+                        className="col-span-1 size-10 min-w-0 justify-self-end sm:size-9"
                         isIconOnly
                         variant="secondary"
                         isDisabled={busy}
@@ -399,7 +399,7 @@ function SecretVariablesEditor({
               {newKeys.map((row, index) => (
                 <div
                   key={row.id}
-                  className="grid grid-cols-[repeat(8,minmax(0,1fr))_2.75rem] items-center gap-2 md:gap-3"
+                  className="grid grid-cols-[repeat(8,minmax(0,1fr))_2.5rem] sm:grid-cols-[repeat(8,minmax(0,1fr))_2.25rem] items-center gap-2 md:gap-3"
                 >
                   <div className="col-span-4 min-w-0">
                     <Input
@@ -449,7 +449,7 @@ function SecretVariablesEditor({
                   </div>
                   <Button
                     aria-label={`Remove new variable ${index + 1}`}
-                    className="col-span-1 size-11 min-w-11 justify-self-end"
+                    className="col-span-1 size-10 min-w-0 justify-self-end sm:size-9"
                     isIconOnly
                     variant="secondary"
                     isDisabled={busy}
