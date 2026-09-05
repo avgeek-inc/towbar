@@ -1,8 +1,12 @@
+"use client";
+
 import { ServerStack01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
 
 import type {
+  App,
+  Resource,
   RuntimeCapacity,
   SystemHealthStatus,
 } from "@workspace/towbar-web-client";
@@ -14,6 +18,11 @@ import { cn } from "@workspace/web-design-system/lib/utils";
 import { TypographyHeading } from "@workspace/web-design-system/typography/typography";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
+import { useApiQuery } from "@/hooks/use-api-query";
+import {
+  DefinedResourceLimit,
+  type DefinedLimits,
+} from "./defined-resource-limit";
 import { RelativeTime } from "./last-synced-time";
 import { formatDate } from "./dashboard-overview";
 import { formatBytes } from "./runtime-operations";
@@ -97,6 +106,17 @@ export function ServerRuntimeCapacityTable({
 }: {
   capacity: RuntimeCapacity;
 }) {
+  const apps = useApiQuery<{ apps: App[] }>("/v1/core/apps", 5_000);
+  const resources = useApiQuery<{ resources: Resource[] }>(
+    "/v1/core/resources",
+    5_000,
+  );
+  const deployables = new Map<string, App | Resource>([
+    ...(apps.data?.apps ?? []).map((app) => [app.id, app] as const),
+    ...(resources.data?.resources ?? []).map(
+      (resource) => [resource.id, resource] as const,
+    ),
+  ]);
   if (!capacity.runtimes.length) {
     return (
       <EmptyState>
@@ -118,8 +138,8 @@ export function ServerRuntimeCapacityTable({
           <Table.Header>
             <Table.Column isRowHeader>App/Resource</Table.Column>
             <Table.Column>Health</Table.Column>
-            <Table.Column>CPU</Table.Column>
-            <Table.Column>Memory</Table.Column>
+            <Table.Column>Defined CPU</Table.Column>
+            <Table.Column>Defined Memory</Table.Column>
             <Table.Column className="text-right">Restarts</Table.Column>
             <Table.Column>Started</Table.Column>
           </Table.Header>
@@ -145,10 +165,22 @@ export function ServerRuntimeCapacityTable({
                   <StatusBadge status={runtime.healthStatus} />
                 </Table.Cell>
                 <Table.Cell>
-                  <RuntimeCpuMeter runtime={runtime} />
+                  <DefinedCpuCapacity
+                    runtime={runtime}
+                    limits={
+                      deployables.get(runtime.id)?.config.container.resources
+                    }
+                    unavailable={!deployables.has(runtime.id)}
+                  />
                 </Table.Cell>
                 <Table.Cell>
-                  <RuntimeMemoryMeter runtime={runtime} />
+                  <DefinedMemoryCapacity
+                    runtime={runtime}
+                    limits={
+                      deployables.get(runtime.id)?.config.container.resources
+                    }
+                    unavailable={!deployables.has(runtime.id)}
+                  />
                 </Table.Cell>
                 <Table.Cell className="text-right tabular-nums">
                   {runtime.restartCount ?? "—"}
@@ -166,6 +198,56 @@ export function ServerRuntimeCapacityTable({
         </Table.Content>
       </Table.ScrollContainer>
     </Table>
+  );
+}
+
+type DefinedCapacityProps = {
+  limits: DefinedLimits;
+  runtime?: RuntimeMetric;
+  unavailable?: boolean;
+};
+
+export function DefinedCpuCapacity({
+  limits,
+  runtime,
+  unavailable,
+}: DefinedCapacityProps) {
+  return (
+    <div className="grid min-w-36 gap-2">
+      <DefinedResourceLimit
+        limits={limits}
+        metric="cpu"
+        unavailable={unavailable}
+      />
+      {runtime?.cpuPercent != null ? (
+        <div className="grid gap-1">
+          <span className="text-xs text-muted">Observed usage</span>
+          <RuntimeCpuMeter runtime={runtime} />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function DefinedMemoryCapacity({
+  limits,
+  runtime,
+  unavailable,
+}: DefinedCapacityProps) {
+  return (
+    <div className="grid min-w-44 gap-2">
+      <DefinedResourceLimit
+        limits={limits}
+        metric="memory"
+        unavailable={unavailable}
+      />
+      {runtime?.memoryUsageBytes != null ? (
+        <div className="grid gap-1">
+          <span className="text-xs text-muted">Observed usage / limit</span>
+          <RuntimeMemoryMeter runtime={runtime} />
+        </div>
+      ) : null}
+    </div>
   );
 }
 

@@ -34,8 +34,8 @@ import {
 } from "@/lib/inventory-status";
 import { LastSyncedTime } from "./last-synced-time";
 import {
-  RuntimeCpuMeter,
-  RuntimeMemoryMeter,
+  DefinedCpuCapacity,
+  DefinedMemoryCapacity,
   type RuntimeMetric,
 } from "./server-capacity";
 
@@ -65,15 +65,25 @@ function appColumns(
       key: "server",
     },
     {
-      cell: (app) => <RuntimeCpuMeter runtime={runtimeById.get(app.id)} />,
+      cell: (app) => (
+        <DefinedCpuCapacity
+          limits={app.config.container.resources}
+          runtime={runtimeById.get(app.id)}
+        />
+      ),
       className: "min-w-40",
-      header: "CPU",
+      header: "Defined CPU",
       key: "cpu",
     },
     {
-      cell: (app) => <RuntimeMemoryMeter runtime={runtimeById.get(app.id)} />,
+      cell: (app) => (
+        <DefinedMemoryCapacity
+          limits={app.config.container.resources}
+          runtime={runtimeById.get(app.id)}
+        />
+      ),
       className: "min-w-56",
-      header: "Memory",
+      header: "Defined Memory",
       key: "memory",
     },
     {
@@ -127,18 +137,24 @@ function resourceColumns(
     },
     {
       cell: (resource) => (
-        <RuntimeCpuMeter runtime={runtimeById.get(resource.id)} />
+        <DefinedCpuCapacity
+          limits={resource.config.container.resources}
+          runtime={runtimeById.get(resource.id)}
+        />
       ),
       className: "min-w-40",
-      header: "CPU",
+      header: "Defined CPU",
       key: "cpu",
     },
     {
       cell: (resource) => (
-        <RuntimeMemoryMeter runtime={runtimeById.get(resource.id)} />
+        <DefinedMemoryCapacity
+          limits={resource.config.container.resources}
+          runtime={runtimeById.get(resource.id)}
+        />
       ),
       className: "min-w-56",
-      header: "Memory",
+      header: "Defined Memory",
       key: "memory",
     },
     {

@@ -30,6 +30,7 @@ import {
   getActiveDeploymentStates,
   resolveInventoryStatus,
 } from "@/lib/inventory-status";
+import { DefinedResourceLimit } from "./defined-resource-limit";
 import { formatBytes } from "./runtime-operations";
 import { LastSyncedTime, RelativeTime } from "./last-synced-time";
 import {
@@ -182,6 +183,28 @@ function DeployableInventory({
       className: "min-w-52 tabular-nums",
       header: "Server",
       key: "server",
+    },
+    {
+      cell: (item) => (
+        <DefinedResourceLimit
+          limits={item.config.container.resources}
+          metric="cpu"
+        />
+      ),
+      className: "min-w-36 whitespace-nowrap",
+      header: "Defined CPU",
+      key: "defined-cpu",
+    },
+    {
+      cell: (item) => (
+        <DefinedResourceLimit
+          limits={item.config.container.resources}
+          metric="memory"
+        />
+      ),
+      className: "min-w-40 whitespace-nowrap",
+      header: "Defined Memory",
+      key: "defined-memory",
     },
     {
       cell: (item) => (
