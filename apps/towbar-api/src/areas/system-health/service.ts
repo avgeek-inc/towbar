@@ -25,6 +25,7 @@ import {
 } from "./signals.js";
 
 import { awsHealthCheck } from "./aws-check.js";
+import { githubHealthCheck } from "./github-check.js";
 
 import type { SystemHealthSignal } from "./signals.js";
 
@@ -78,7 +79,7 @@ export async function getSystemHealth(
       title: "Worker and maintenance",
       version,
     }),
-    githubCheck({
+    githubHealthCheck({
       configured: githubConfigured(env),
       connection: githubConnection[0],
       signal: byComponent.get("github"),
@@ -227,36 +228,6 @@ function signalCheck(input: {
   };
 }
 
-function githubCheck(input: {
-  configured: boolean;
-  connection: { accountLogin: string; suspendedAt: Date | null } | undefined;
-  signal: SystemHealthSignal | undefined;
-}): SystemHealthCheck {
-  const status: SystemHealthStatus = !input.configured
-    ? "critical"
-    : input.connection?.suspendedAt
-      ? "critical"
-      : input.signal
-        ? freshSignalStatus(input.signal, 24 * 60 * 60_000)
-        : "attention";
-  return {
-    checkedAt: input.signal?.checkedAt.toISOString() ?? null,
-    description:
-      input.signal?.message ??
-      (!input.configured
-        ? "Complete the GitHub App environment before connecting repositories."
-        : input.connection
-          ? `Connected to ${input.connection.accountLogin}; run checks to verify access.`
-          : "Install the GitHub App before adding a Source."),
-    id: "github",
-    remediationHref:
-      status === "healthy" ? null : "/manage/integrations?integration=github",
-    remediationLabel: status === "healthy" ? null : "Open GitHub integration",
-    status,
-    title: "GitHub App",
-  };
-}
-
 export function highestStatus(
   statuses: SystemHealthStatus[],
 ): SystemHealthStatus {
@@ -270,16 +241,6 @@ export function highestStatus(
     (highest, status) => (rank[status] > rank[highest] ? status : highest),
     "healthy",
   );
-}
-
-function freshSignalStatus(
-  signal: SystemHealthSignal,
-  staleAfterMs: number,
-): SystemHealthStatus {
-  const current = systemHealthStatusSchema.parse(signal.status);
-  return Date.now() - signal.checkedAt.getTime() > staleAfterMs
-    ? highestStatus([current, "attention"])
-    : current;
 }
 
 function githubConfigured(env: ReturnType<typeof getEnv>) {

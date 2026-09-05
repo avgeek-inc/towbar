@@ -60,9 +60,11 @@ serverCredentialRoutes.patch("/", async (context) => {
     }
     if (
       values.apiToken !== undefined &&
-      !/^[A-Za-z0-9_-]{20,}$/u.test(values.apiToken)
+      !/^cfat_[A-Za-z0-9_-]{32,256}$/u.test(values.apiToken)
     )
-      throw unprocessable("Enter a valid Cloudflare API token");
+      throw unprocessable(
+        "Enter a Cloudflare Account API token starting with cfat_. Create or roll it under Manage Account → Account API Tokens; personal and legacy unprefixed tokens are not supported.",
+      );
   });
   context.header("Cache-Control", "no-store");
   return context.json({ credential });

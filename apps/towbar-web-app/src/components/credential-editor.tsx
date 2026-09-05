@@ -12,6 +12,7 @@ import {
   FieldError,
   FieldLabel,
 } from "@workspace/web-design-system/forms/field";
+import { Input } from "@workspace/web-design-system/forms/input";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { Switch } from "@workspace/web-design-system/forms/switch";
 import { Textarea } from "@workspace/web-design-system/forms/textarea";
@@ -117,7 +118,7 @@ function ServerCredentialForm({
         : tokenConfigured;
     if (cloudflareEnabled && !tokenWillBeConfigured) {
       setError(
-        "Enter a Cloudflare API token before enabling Cloudflare DNS TLS.",
+        "Enter a Cloudflare Account API token before enabling Cloudflare DNS TLS.",
       );
       return;
     }
@@ -177,7 +178,7 @@ function ServerCredentialForm({
       icon={<HugeiconsIcon icon={Key01Icon} />}
       title="Server credentials"
     >
-      <form className="content-grid max-w-3xl" onSubmit={submit}>
+      <form className="content-grid w-full" onSubmit={submit}>
         <CredentialField
           busy={busy}
           canManage={canManage}
@@ -223,7 +224,7 @@ function ServerCredentialForm({
             canManage={canManage}
             configured={credential.keys.includes("apiToken")}
             deleted={deleted.includes("apiToken")}
-            label="Cloudflare API token"
+            label="Cloudflare Account API token"
             name="apiToken"
             value={set.apiToken ?? ""}
             onRemoveChange={(removed) =>
@@ -294,15 +295,44 @@ function CredentialField({
               : "Not configured"}
         </Chip>
       </div>
-      <Textarea
-        id={id}
-        autoComplete="off"
-        disabled={!canManage || busy || deleted}
-        placeholder={configured ? "Enter a replacement" : "Enter a value"}
-        value={value}
-        variant="secondary"
-        onChange={(event) => onValueChange(event.currentTarget.value)}
-      />
+      {name === "privateKey" ? (
+        <Textarea
+          id={id}
+          className="w-full"
+          rows={3}
+          autoComplete="off"
+          spellCheck={false}
+          disabled={!canManage || busy || deleted}
+          placeholder={configured ? "Enter a replacement" : "Enter a value"}
+          value={value}
+          variant="secondary"
+          onChange={(event) => onValueChange(event.currentTarget.value)}
+        />
+      ) : (
+        <>
+          <Input
+            id={id}
+            className="w-full"
+            type="password"
+            autoComplete="off"
+            spellCheck={false}
+            aria-describedby={`${id}-description`}
+            disabled={!canManage || busy || deleted}
+            placeholder={
+              configured ? "Enter a replacement account token" : "cfat_…"
+            }
+            value={value}
+            variant="secondary"
+            onChange={(event) => onValueChange(event.currentTarget.value)}
+          />
+          <p id={`${id}-description`} className="text-sm text-muted">
+            Create an account token under Cloudflare → Manage Account → Account
+            API Tokens, with Zone Read, DNS Edit, and Zone Settings Read
+            permissions for your zones. Use a new token starting with cfat_. No
+            Account ID is needed.
+          </p>
+        </>
+      )}
       {canManage && configured ? (
         <Button
           className="w-fit"

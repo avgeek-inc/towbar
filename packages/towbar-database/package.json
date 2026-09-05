@@ -8,7 +8,8 @@
     "build": "tsc --project tsconfig.build.json",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx migrate.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.mjs"
   },
   "exports": {
     ".": {

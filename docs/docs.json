@@ -2,7 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Towbar",
-  "description": "Deploy and operate Dockerfile apps, databases, and previews on Ubuntu servers you control.",
+  "description": "Open-source, Git-native PaaS for apps, databases, and previews. Deploy to servers you own.",
   "logo": {
     "light": "/assets/towbar-logo.png",
     "dark": "/assets/towbar-logo.png",
@@ -168,7 +168,23 @@
     "options": ["copy", "view", "chatgpt", "claude"]
   },
   "seo": {
-    "indexing": "all"
+    "indexing": "all",
+    "metatags": {
+      "og:image": "https://www.towbar.dev/assets/towbar-og.png",
+      "og:image:width": "1200",
+      "og:image:height": "630",
+      "og:image:alt": "Towbar — Open-Source Git-native PaaS",
+      "twitter:card": "summary_large_image",
+      "twitter:image": "https://www.towbar.dev/assets/towbar-og.png",
+      "canonical": "https://www.towbar.dev",
+      "twitter:image:alt": "Towbar — Open-Source Git-native PaaS"
+    },
+    "organization": {
+      "name": "Towbar",
+      "url": "https://www.towbar.dev",
+      "logo": "https://www.towbar.dev/assets/towbar-logo.png",
+      "sameAs": ["https://github.com/avgeek-inc/towbar"]
+    }
   },
   "redirects": [],
   "metadata": {
