@@ -5,6 +5,7 @@ import { ElapsedTime } from "./elapsed-time";
 import { ConfigurationLinks } from "./configuration-links";
 
 import { ServerEditor } from "./server-editor";
+import { ServerInstanceDescription } from "./server-hardware";
 
 import {
   Activity01Icon,
@@ -392,6 +393,13 @@ export function ServerDetail() {
                       <Attributes.Item label="SSH host">
                         {item.config.ssh.host ?? item.canonicalIp}
                       </Attributes.Item>
+                      {item.hardware?.instance ? (
+                        <Attributes.Item label="Instance type">
+                          <ServerInstanceDescription
+                            instance={item.hardware.instance}
+                          />
+                        </Attributes.Item>
+                      ) : null}
                       <Attributes.Item label="SSH user">
                         {item.config.ssh.username}
                       </Attributes.Item>

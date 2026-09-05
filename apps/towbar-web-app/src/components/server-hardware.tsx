@@ -1,3 +1,5 @@
+import Image from "next/image";
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import { CpuIcon, RamMemoryIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { Server } from "@workspace/towbar-web-client";
@@ -8,7 +10,8 @@ export function ServerHardwareDescription({
 }: {
   hardware?: Server["hardware"];
 }) {
-  if (hardware?.instance) return <span>{hardware.instance.type}</span>;
+  if (hardware?.instance)
+    return <ServerInstanceDescription instance={hardware.instance} />;
   if (!hardware?.cpuCount && !hardware?.memoryBytes)
     return <span>Unknown Instance Type</span>;
   return (
@@ -36,6 +39,39 @@ export function ServerHardwareDescription({
           {formatBytes(hardware.memoryBytes)}
         </span>
       ) : null}
+    </span>
+  );
+}
+
+const providerNames = {
+  aws: "Amazon Web Services",
+  azure: "Microsoft Azure",
+  gcp: "Google Cloud",
+} as const;
+
+export function ServerInstanceDescription({
+  instance,
+}: {
+  instance: NonNullable<NonNullable<Server["hardware"]>["instance"]>;
+}) {
+  const provider = providerNames[instance.provider];
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      {provider ? (
+        <TooltipText
+          className="inline-flex shrink-0 items-center"
+          tooltip={provider}
+        >
+          <Image
+            alt={provider}
+            src={`/cloud-providers/${instance.provider}.svg`}
+            width={instance.provider === "aws" ? 24 : 16}
+            height={16}
+            className="h-[1em] w-auto object-contain"
+          />
+        </TooltipText>
+      ) : null}
+      <span>{instance.type}</span>
     </span>
   );
 }
