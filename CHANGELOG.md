@@ -5,6 +5,28 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.5.4] - 2026-09-06
+
+### Fixed
+
+- Deleting a Source preserves workload ownership for subsequent server checks,
+  allowing leftover Towbar Docker objects to appear in Cleanup for on-demand
+  removal. Existing services keep running until explicitly cleaned up.
+- GitHub preview deployments use one environment per App, named
+  `App name · Preview`, instead of creating an environment for every PR. Each
+  preview retains its own URL and status without deactivating other previews.
+
+### Added
+
+- Remove server in Settings, with matching API and MCP support. Removal is hidden
+  and rejected while source-backed Apps, Resources, or undeleted previews remain,
+  and running operations also block removal. Removing an unused server forgets
+  its credentials and trust without terminating the machine or its services.
+- Observed instance type and compact cloud-provider logos in server connection
+  details and shared server metadata.
+- Published GitHub releases sync their versions, notes, links, and associated
+  issues to the Towbar Releases pipeline in Linear.
+
 ## [1.5.3] - 2026-09-05
 
 ### Fixed

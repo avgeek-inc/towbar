@@ -1,6 +1,6 @@
 {
   "name": "towbar",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "description": "Opinionated, source-driven deployments to Ubuntu servers you own.",
   "keywords": [
     "deployment",
