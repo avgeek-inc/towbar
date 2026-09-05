@@ -8,8 +8,6 @@ import type { Server } from "@workspace/towbar-web-client";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Field, FieldLabel } from "@workspace/web-design-system/forms/field";
 import { Input } from "@workspace/web-design-system/forms/input";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { Switch } from "@workspace/web-design-system/forms/switch";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 
 import { ActionButton, FormCard } from "@/components/page-parts";
@@ -25,9 +23,6 @@ export function ServerEditor({
   server?: Server;
 }) {
   const router = useRouter();
-  const [cloudflareEnabled, setCloudflareEnabled] = useState(
-    Boolean(server?.config.proxy?.cloudflare.enabled),
-  );
   const [busy, setBusy] = useState(false);
   const editing = Boolean(server);
 
@@ -50,7 +45,7 @@ export function ServerEditor({
         port: Number(values.get("sshPort")),
         username: String(values.get("sshUsername") ?? "").trim(),
       },
-      ...(cloudflareEnabled
+      ...(server?.config.proxy?.cloudflare.enabled
         ? { proxy: { cloudflare: { enabled: true as const } } }
         : {}),
     };
@@ -80,8 +75,8 @@ export function ServerEditor({
       <FormCard
         title={editing ? "Server configuration" : "Connection and scheduling"}
       >
-        <form className="grid max-w-2xl gap-5" onSubmit={save}>
-          <div className="content-grid sm:grid-cols-2">
+        <form className="grid gap-5" onSubmit={save}>
+          <div className="content-grid grid-cols-2 lg:grid-cols-4">
             {!editing ? (
               <>
                 <Field>
@@ -170,24 +165,6 @@ export function ServerEditor({
               />
             </Field>
           </div>
-          <Switch
-            isDisabled={!canManage}
-            isSelected={cloudflareEnabled}
-            onChange={setCloudflareEnabled}
-          >
-            <Switch.Content className="min-h-11">
-              <Switch.Control>
-                <Switch.Thumb />
-              </Switch.Control>
-              <span className="grid gap-1">
-                <Label>Enable Cloudflare DNS TLS</Label>
-                <span className="text-sm text-muted">
-                  Enable this when a workload on this server uses Cloudflare DNS
-                  TLS.
-                </span>
-              </span>
-            </Switch.Content>
-          </Switch>
           <Button
             className="w-fit"
             isDisabled={busy || !canManage}
@@ -198,10 +175,7 @@ export function ServerEditor({
         </form>
       </FormCard>
       {server ? (
-        <ServerCredentials
-          cloudflareEnabled={cloudflareEnabled}
-          serverId={server.id}
-        />
+        <ServerCredentials canManage={canManage} server={server} />
       ) : null}
     </div>
   );
