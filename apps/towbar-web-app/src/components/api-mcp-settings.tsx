@@ -446,11 +446,19 @@ function McpSetup({ url }: { url: string }) {
         </div>
         <SetupCode title={config.title} code={config.code} />
         {client === "codex" ? (
-          <p className="text-muted text-sm">
-            Set TOWBAR_API_KEY to your key in the environment that launches
-            Codex, then restart it. The configuration stores the variable name,
-            not the key. In the CLI, use /mcp to check the connection.
-          </p>
+          <div className="text-muted text-sm">
+            Set{" "}
+            <pre className="inline whitespace-nowrap rounded bg-default px-1.5 py-0.5 text-foreground">
+              <code>TOWBAR_API_KEY</code>
+            </pre>{" "}
+            to your key in the environment that launches Codex, then restart it.
+            The configuration stores the variable name, not the key. In the CLI,
+            use{" "}
+            <code className="rounded bg-default px-1.5 py-0.5 text-foreground">
+              /mcp
+            </code>{" "}
+            to check the connection.
+          </div>
         ) : null}
         <p className="text-muted text-sm">
           Choose a client that supports Streamable HTTP and bearer headers.
