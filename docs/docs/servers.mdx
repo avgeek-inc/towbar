@@ -105,7 +105,7 @@ Container and image cleanup is separate from permanent volume deletion. Towbar c
 
 ## Remove a server
 
-Workspace owners can open **Settings → Configuration → Remove server**. Move or remove assigned apps, resources, and previews first, and wait for active operations to finish.
+Workspace owners see **Settings → Configuration → Remove server** only when no source-backed apps, resources, or remaining previews are assigned. Archived apps and resources also prevent removal because a source sync can restore them. Orphaned Docker objects do not prevent removal. The API enforces the same assignment check and also blocks removal while operations are active.
 
 Removing a server stops Towbar management and scheduled checks, deletes its stored SSH and Cloudflare credentials, and revokes its trusted host keys. It does not terminate the cloud instance, stop services, or erase Docker data. Use **Cleanup** first if you want to remove leftovers from the host.
 

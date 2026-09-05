@@ -82,8 +82,9 @@ export function ServerDetail() {
   const server = useApiQuery<{
     canCleanupOrphans: boolean;
     canManageServer: boolean;
+    canRemoveServer: boolean;
     server: Server;
-  }>(`/v1/core/servers/${serverId}`);
+  }>(`/v1/core/servers/${serverId}`, 5_000);
   const checks = useApiQuery<ServerChecksPage>(
     `/v1/core/servers/${serverId}/checks?page=1&limit=${SERVER_CHECK_PAGE_SIZE}`,
     5_000,
@@ -538,6 +539,7 @@ export function ServerDetail() {
                       content: (
                         <ServerEditor
                           canManage={server.data.canManageServer}
+                          canRemove={server.data.canRemoveServer}
                           server={item}
                         />
                       ),

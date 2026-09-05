@@ -2961,9 +2961,15 @@
       "properties": {
         "canCleanupOrphans": { "type": "boolean" },
         "canManageServer": { "type": "boolean" },
+        "canRemoveServer": { "type": "boolean" },
         "server": { "$ref": "#/components/schemas/Response_131" }
       },
-      "required": ["canCleanupOrphans", "canManageServer", "server"]
+      "required": [
+        "canCleanupOrphans",
+        "canManageServer",
+        "canRemoveServer",
+        "server"
+      ]
     },
     "Response_132": {
       "type": "object",

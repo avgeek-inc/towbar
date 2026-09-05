@@ -36,9 +36,6 @@ FOR EACH ROW EXECUTE FUNCTION towbar_record_deployable_ownership();
 CREATE FUNCTION towbar_require_active_server() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   IF NEW.server_id IS NULL THEN RETURN NEW; END IF;
-  IF TG_TABLE_NAME = 'towbar_apps' THEN
-    IF NEW.archived_at IS NOT NULL THEN RETURN NEW; END IF;
-  END IF;
   PERFORM id FROM towbar_servers WHERE id = NEW.server_id AND archived_at IS NULL FOR SHARE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Server is not registered' USING ERRCODE = '23514';

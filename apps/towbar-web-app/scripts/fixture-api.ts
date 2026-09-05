@@ -1895,7 +1895,14 @@ function getFixturePayload(
       return { hostKeys: hostKeysByServer.get(server.id) ?? [] };
     }
     if (child === "orphans") return { orphans: orphanItems };
-    return { canCleanupOrphans: true, canManageServer: true, server };
+    return {
+      canCleanupOrphans: true,
+      canManageServer: true,
+      canRemoveServer: ![...apps, ...resources].some(
+        (item) => item.serverId === server.id,
+      ),
+      server,
+    };
   }
 
   return undefined;

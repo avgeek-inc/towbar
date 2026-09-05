@@ -21,9 +21,11 @@ import { ServerCredentials } from "./credential-editor";
 
 export function ServerEditor({
   canManage = true,
+  canRemove = false,
   server,
 }: {
   canManage?: boolean;
+  canRemove?: boolean;
   server?: Server;
 }) {
   const router = useRouter();
@@ -182,7 +184,7 @@ export function ServerEditor({
       {server ? (
         <ServerCredentials canManage={canManage} server={server} />
       ) : null}
-      {server && canManage ? (
+      {server && canManage && canRemove ? (
         <FormCard
           icon={<HugeiconsIcon icon={Delete02Icon} />}
           title="Remove server"

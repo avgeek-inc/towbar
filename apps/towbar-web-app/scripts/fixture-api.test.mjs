@@ -477,6 +477,19 @@ test("the local fixture supports workspace server creation, editing, and safe re
     const created = (await createdResponse.json()).server;
     assert.equal(created.canonicalIp, config.ip);
     assert.equal("sourceId" in created, false);
+    assert.equal(
+      (await (await fetch(`${baseUrl}/v1/core/servers/${created.id}`)).json())
+        .canRemoveServer,
+      true,
+    );
+    assert.equal(
+      (
+        await (
+          await fetch(`${baseUrl}/v1/core/servers/${fixtureIds.server}`)
+        ).json()
+      ).canRemoveServer,
+      false,
+    );
 
     const duplicate = await fetch(`${baseUrl}/v1/core/servers`, {
       body: JSON.stringify(config),

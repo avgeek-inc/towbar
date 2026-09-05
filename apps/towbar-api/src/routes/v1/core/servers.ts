@@ -9,6 +9,7 @@ import {
 
 import {
   createServer,
+  hasServerAssignments,
   removeServer,
   updateServer,
 } from "../../../areas/servers/lifecycle.js";
@@ -117,15 +118,22 @@ serverRoutes.get(
     responseSchema: 'servers.ts:get:"/:serverId"',
     summary: "Get server",
     response:
-      "JSON object containing canCleanupOrphans, canManageServer, server.",
+      "JSON object containing canCleanupOrphans, canManageServer, canRemoveServer, server.",
     status: 200,
   }),
   async (context) => {
     const user = context.get("user");
+    const server = await getServer(
+      context.req.param("serverId"),
+      user.workspaceId,
+    );
     return context.json({
       canCleanupOrphans: user.workspaceRole === "owner",
       canManageServer: user.workspaceRole === "owner",
-      server: await getServer(context.req.param("serverId"), user.workspaceId),
+      canRemoveServer:
+        user.workspaceRole === "owner" &&
+        !(await hasServerAssignments(server.id)),
+      server,
     });
   },
 );

@@ -112,25 +112,26 @@ void test(
         sourceRevision: "1234567",
       };
       await db.insert(apps).values(values);
-      await t.test("owner and workspace boundaries", async () => {
-        const api = new Hono<TowbarHonoEnvironment>();
-        api.use("*", async (c, next) => {
-          c.set("user", {
-            id: userId,
-            workspaceId,
-            workspaceRole: "member",
-            email: "test@example.com",
-            name: "Test",
-          });
-          await next();
+      let role: "member" | "owner" = "member";
+      const api = new Hono<TowbarHonoEnvironment>();
+      api.use("*", async (c, next) => {
+        c.set("user", {
+          id: userId,
+          workspaceId,
+          workspaceRole: role,
+          email: "test@example.com",
+          name: "Test",
         });
-        api.onError((error, c) =>
-          c.json(
-            { error: error.message },
-            error instanceof HttpError ? error.status : 500,
-          ),
-        );
-        api.route("/servers", serverRoutes);
+        await next();
+      });
+      api.onError((error, c) =>
+        c.json(
+          { error: error.message },
+          error instanceof HttpError ? error.status : 500,
+        ),
+      );
+      api.route("/servers", serverRoutes);
+      await t.test("owner and workspace boundaries", async () => {
         assert.equal(
           (await api.request(`/servers/${serverId}`, { method: "DELETE" }))
             .status,
@@ -142,9 +143,60 @@ void test(
             error instanceof HttpError && error.status === 404,
         );
       });
-      await t.test("registered workloads prevent removal", async () => {
-        await assert.rejects(removeServer(removal), /Move or remove/);
-      });
+      role = "owner";
+      const canRemove = async () => {
+        const response = await api.request(`/servers/${serverId}`);
+        assert.equal(response.status, 200);
+        return ((await response.json()) as { canRemoveServer: boolean })
+          .canRemoveServer;
+      };
+      await t.test(
+        "source-backed apps and archived inventory hide and block removal",
+        async () => {
+          for (const archivedAt of [null, new Date()]) {
+            await db.update(apps).set({ archivedAt }).where(eq(apps.id, appId));
+            assert.equal(await canRemove(), false);
+            assert.equal(
+              (await api.request(`/servers/${serverId}`, { method: "DELETE" }))
+                .status,
+              409,
+            );
+          }
+        },
+      );
+      const resourceId = randomUUID();
+      await t.test(
+        "a resource without any apps also hides and blocks removal",
+        async () => {
+          await db.delete(apps).where(eq(apps.id, appId));
+          const resource = normalizeDeploymentManifest({
+            version: 1,
+            resources: [
+              { id: "db", name: "DB", type: "postgres", server: config.ip },
+            ],
+          }).resources![0]!;
+          await db.insert(apps).values({
+            ...values,
+            id: resourceId,
+            kind: "postgres",
+            config: resource,
+            manifestId: "db",
+            name: "DB",
+          });
+          for (const archivedAt of [null, new Date()]) {
+            await db
+              .update(apps)
+              .set({ archivedAt })
+              .where(eq(apps.id, resourceId));
+            assert.equal(await canRemove(), false);
+            assert.equal(
+              (await api.request(`/servers/${serverId}`, { method: "DELETE" }))
+                .status,
+              409,
+            );
+          }
+        },
+      );
       await t.test(
         "source deletion retains cleanup ownership but removes inventory",
         async () => {
@@ -155,7 +207,11 @@ void test(
           );
           const expected = await getCleanupExpected(serverId);
           assert.deepEqual(expected.deployableIds, []);
-          assert.deepEqual(expected.ownedDeployableIds, [appId]);
+          assert.deepEqual(
+            expected.ownedDeployableIds.sort(),
+            [appId, resourceId].sort(),
+          );
+          assert.equal(await canRemove(), true);
         },
       );
       await t.test(

@@ -166,24 +166,7 @@ export async function removeServer(input: {
       .for("update")
       .limit(1);
     if (!server) throw notFound("Server");
-    const [workloads, previews] = await Promise.all([
-      transaction
-        .select({ id: apps.id })
-        .from(apps)
-        .where(and(eq(apps.serverId, server.id), isNull(apps.archivedAt)))
-        .limit(1),
-      transaction
-        .select({ id: previewEnvironments.id })
-        .from(previewEnvironments)
-        .where(
-          and(
-            eq(previewEnvironments.serverId, server.id),
-            isNull(previewEnvironments.deletedAt),
-          ),
-        )
-        .limit(1),
-    ]);
-    if (workloads.length || previews.length)
+    if (await hasServerAssignments(server.id, transaction))
       throw conflict(
         "Move or remove the apps, resources, and previews assigned to this server first.",
         "SERVER_IN_USE",
@@ -279,4 +262,33 @@ export async function removeServer(input: {
       metadata: {},
     });
   });
+}
+
+// Archived apps/resources still belong to a source and may be restored by sync.
+// Retained Docker ownership alone is not an assignment and must not block removal.
+export async function hasServerAssignments(
+  serverId: string,
+  database: Pick<
+    ReturnType<typeof getTowbarDatabase>,
+    "select"
+  > = getTowbarDatabase(),
+) {
+  const [workloads, previews] = await Promise.all([
+    database
+      .select({ id: apps.id })
+      .from(apps)
+      .where(eq(apps.serverId, serverId))
+      .limit(1),
+    database
+      .select({ id: previewEnvironments.id })
+      .from(previewEnvironments)
+      .where(
+        and(
+          eq(previewEnvironments.serverId, serverId),
+          isNull(previewEnvironments.deletedAt),
+        ),
+      )
+      .limit(1),
+  ]);
+  return workloads.length > 0 || previews.length > 0;
 }
