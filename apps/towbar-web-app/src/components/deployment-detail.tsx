@@ -1,5 +1,8 @@
 "use client";
 
+import { DeploymentDuration, ElapsedTime } from "./elapsed-time";
+import { isEventRunning } from "@/lib/elapsed-time";
+
 import { ConfigurationLinks } from "./configuration-links";
 
 import {
@@ -289,6 +292,9 @@ export function DeploymentDetail() {
                     <Attributes.Item label="Started">
                       {item.startedAt ? formatDate(item.startedAt) : "Waiting"}
                     </Attributes.Item>
+                    <Attributes.Item label="Duration">
+                      <DeploymentDuration deployment={item} />
+                    </Attributes.Item>
                     <Attributes.Item label="Finished">
                       {item.finishedAt
                         ? formatDate(item.finishedAt)
@@ -453,6 +459,25 @@ export function DeploymentDetail() {
                                   >
                                     {formatTime(step.startedAt)}
                                   </time>
+                                ) : null}
+                                {step.startedAt ? (
+                                  <ElapsedTime
+                                    startedAt={step.startedAt}
+                                    finishedAt={
+                                      step.finishedAt ??
+                                      (step.status === "running"
+                                        ? item.finishedAt
+                                        : null)
+                                    }
+                                    status={
+                                      isEventRunning({
+                                        ...item,
+                                        status: item.state,
+                                      })
+                                        ? step.status
+                                        : "succeeded"
+                                    }
+                                  />
                                 ) : null}
                               </span>
                             </Stepper.Description>

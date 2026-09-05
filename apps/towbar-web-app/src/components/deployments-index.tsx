@@ -25,10 +25,8 @@ import { TypographyCode } from "@workspace/web-design-system/typography/typograp
 import { DashboardPage, InlineLink } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
-import {
-  formatDeploymentDuration,
-  formatDeploymentTrigger,
-} from "./deployment-table";
+import { formatDeploymentTrigger } from "./deployment-table";
+import { DeploymentDuration } from "./elapsed-time";
 import { RelativeTime } from "./last-synced-time";
 
 const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
@@ -86,11 +84,7 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
   {
     key: "duration",
     header: "Duration",
-    cell: (item) => (
-      <span className="whitespace-nowrap tabular-nums">
-        {formatDeploymentDuration(item)}
-      </span>
-    ),
+    cell: (item) => <DeploymentDuration deployment={item} />,
   },
   {
     key: "status",

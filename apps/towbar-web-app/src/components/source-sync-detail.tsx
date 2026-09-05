@@ -1,5 +1,7 @@
 "use client";
 
+import { ElapsedTime } from "./elapsed-time";
+
 import {
   DashboardCircleIcon,
   DatabaseIcon,
@@ -116,7 +118,7 @@ export function SourceSyncDetail() {
                       : "Not finished"}
                   </Attributes.Item>
                   <Attributes.Item label="Duration">
-                    {formatDuration(sync.startedAt, sync.finishedAt)}
+                    <ElapsedTime {...sync} />
                   </Attributes.Item>
                 </Attributes>
                 <Attributes
@@ -375,23 +377,6 @@ function formatChangeAction(action: ReconciliationAction) {
   if (action === "create") return "Created";
   if (action === "restore") return "Restored";
   return "Updated";
-}
-
-function formatDuration(startedAt: string | null, finishedAt: string | null) {
-  if (!startedAt) return "Not started";
-  if (!finishedAt) return "In progress";
-  const milliseconds = Math.max(
-    0,
-    new Date(finishedAt).getTime() - new Date(startedAt).getTime(),
-  );
-  if (milliseconds < 1_000) return "Less than a second";
-  const seconds = Math.round(milliseconds / 1_000);
-  if (seconds < 60) return `${seconds} second${seconds === 1 ? "" : "s"}`;
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return remainingSeconds
-    ? `${minutes}m ${remainingSeconds}s`
-    : `${minutes} minute${minutes === 1 ? "" : "s"}`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

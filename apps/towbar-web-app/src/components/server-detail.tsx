@@ -1,5 +1,7 @@
 "use client";
 
+import { ElapsedTime } from "./elapsed-time";
+
 import { ConfigurationLinks } from "./configuration-links";
 
 import { ServerEditor } from "./server-editor";
@@ -218,6 +220,11 @@ export function ServerDetail() {
           </span>
         ),
       className: "w-full min-w-72",
+    },
+    {
+      key: "duration",
+      header: "Duration",
+      cell: (check) => <ElapsedTime {...check} />,
     },
     {
       key: "finished",
@@ -716,6 +723,11 @@ function ServerPreparationPanel({
               server.
             </p>
           ) : null}
+          {latestPreparation?.startedAt ? (
+            <p className="text-sm text-muted">
+              Duration: <ElapsedTime {...latestPreparation} />
+            </p>
+          ) : null}
           {steps.length ? (
             <Stepper
               aria-label="Server preparation progress"
@@ -733,8 +745,28 @@ function ServerPreparationPanel({
                         <StatusBadge status={step.status} />
                       </span>
                     </Stepper.Title>
-                    {step.message ? (
-                      <Stepper.Description>{step.message}</Stepper.Description>
+                    {step.message || step.startedAt ? (
+                      <Stepper.Description>
+                        <span className="grid gap-1">
+                          {step.message}
+                          {step.startedAt ? (
+                            <ElapsedTime
+                              startedAt={step.startedAt}
+                              finishedAt={
+                                step.finishedAt ??
+                                (step.status === "running"
+                                  ? (latestPreparation?.finishedAt ?? null)
+                                  : null)
+                              }
+                              status={
+                                latestPreparation?.status === "running"
+                                  ? step.status
+                                  : "succeeded"
+                              }
+                            />
+                          ) : null}
+                        </span>
+                      </Stepper.Description>
                     ) : null}
                   </Stepper.Content>
                   <Stepper.Separator />

@@ -1,5 +1,7 @@
 "use client";
 
+import { ElapsedTime } from "./elapsed-time";
+
 import {
   DashboardCircleIcon,
   DatabaseIcon,
@@ -148,6 +150,11 @@ export function SourceDetail() {
       header: "Requested",
       cell: (sync) => <RelativeTime label="Requested" value={sync.createdAt} />,
       className: "whitespace-nowrap",
+    },
+    {
+      key: "duration",
+      header: "Duration",
+      cell: (sync) => <ElapsedTime {...sync} />,
     },
     {
       key: "status",

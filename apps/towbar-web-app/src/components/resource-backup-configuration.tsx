@@ -1,5 +1,7 @@
 "use client";
 
+import { ElapsedTime } from "./elapsed-time";
+
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import {
@@ -302,6 +304,14 @@ export function ResourceBackupConfiguration({
           <Attributes.Item label="Encryption">
             {backup.s3.encryption}
           </Attributes.Item>
+          {latestBackupOperation ? (
+            <Attributes.Item label="Latest backup duration">
+              <ElapsedTime
+                {...latestBackupOperation}
+                status={latestBackupOperation.state}
+              />
+            </Attributes.Item>
+          ) : null}
           <Attributes.Item label="Latest saved backup">
             {latestBackup ? (
               <CopyBackupKey backup={latestBackup} />
@@ -562,6 +572,13 @@ function RestoreHistory({
       cell: (operation) => formatPhase(operation.phase),
     },
     {
+      key: "duration",
+      header: "Duration",
+      cell: (operation) => (
+        <ElapsedTime {...operation} status={operation.state} />
+      ),
+    },
+    {
       key: "status",
       header: "Status",
       cell: (operation) => <StatusBadge status={operation.state} />,
@@ -637,6 +654,9 @@ function RestoreProgress({
         </Widget.Title>
       </Widget.Header>
       <Widget.Content>
+        <p className="mb-3 text-sm text-muted">
+          Duration: <ElapsedTime {...operation} status={operation.state} />
+        </p>
         {events.error ? <QueryError message={events.error} /> : null}
         {!events.data && !events.error ? <QueryLoading variant="list" /> : null}
         {events.data ? (

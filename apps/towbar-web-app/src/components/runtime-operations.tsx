@@ -1,5 +1,7 @@
 "use client";
 
+import { ElapsedTime } from "./elapsed-time";
+
 import { ConfigurationLinks } from "./configuration-links";
 
 import {
@@ -330,6 +332,9 @@ export function RuntimeLogs({
           </Attributes.Item>
           <Attributes.Item label="Requested">
             {formatDate(latest.createdAt)}
+          </Attributes.Item>
+          <Attributes.Item label="Duration">
+            <ElapsedTime {...latest} status={latest.state} />
           </Attributes.Item>
           <Attributes.Item label="Result">
             {latest.errorMessage ?? "Waiting for the worker"}

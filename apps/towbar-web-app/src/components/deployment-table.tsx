@@ -11,6 +11,7 @@ import {
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
+import { DeploymentDuration } from "./elapsed-time";
 import { RelativeTime } from "./last-synced-time";
 import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
 
@@ -71,11 +72,7 @@ export function DeploymentTable({
     {
       key: "duration",
       header: "Duration",
-      cell: (deployment) => (
-        <span className="whitespace-nowrap tabular-nums">
-          {formatDeploymentDuration(deployment)}
-        </span>
-      ),
+      cell: (deployment) => <DeploymentDuration deployment={deployment} />,
       className: "hidden md:table-cell",
       headerClassName: "hidden md:table-cell",
     },
@@ -119,30 +116,4 @@ export function formatDeploymentTrigger(trigger: Deployment["trigger"]) {
   if (trigger === "auto_deploy") return "Auto-deploy";
   if (trigger === "rollback") return "Rollback";
   return "Manual";
-}
-
-export function formatDeploymentDuration(deployment: Deployment) {
-  if (!deployment.startedAt) return "—";
-  const startedAt = new Date(deployment.startedAt).getTime();
-  const finishedAt = deployment.finishedAt
-    ? new Date(deployment.finishedAt).getTime()
-    : Date.now();
-  if (!Number.isFinite(startedAt) || !Number.isFinite(finishedAt)) return "—";
-
-  const totalSeconds = Math.max(
-    0,
-    Math.floor((finishedAt - startedAt) / 1_000),
-  );
-  if (totalSeconds < 60) return `${totalSeconds}s`;
-
-  const totalMinutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  if (totalMinutes < 60) return `${totalMinutes}m ${seconds}s`;
-
-  const totalHours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  if (totalHours < 24) return `${totalHours}h ${minutes}m`;
-
-  const days = Math.floor(totalHours / 24);
-  return `${days}d ${totalHours % 24}h`;
 }
