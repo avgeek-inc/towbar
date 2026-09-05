@@ -83,7 +83,7 @@ export function ResourceTable<T>({
                     <Table.Cell className={column.className} key={column.key}>
                       {index === 0 && href && column.wrapRowLink !== false ? (
                         <Link
-                          className="focus-visible:ring-focus inline-flex min-h-11 min-w-0 items-center rounded-lg outline-none underline-offset-4 pointer-fine:hover:underline focus-visible:ring-2"
+                          className="focus-visible:ring-focus relative inline-flex min-w-0 items-center rounded-lg outline-none underline-offset-4 before:absolute before:inset-x-0 before:-inset-y-3 before:content-[''] pointer-fine:hover:underline focus-visible:ring-2"
                           href={href}
                           onFocus={() => onRowLinkIntent?.(item)}
                           onMouseEnter={() => onRowLinkIntent?.(item)}
