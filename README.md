@@ -120,6 +120,11 @@ HTTPS ingress, then [Your first deployment](https://www.towbar.dev/docs/getting-
 to connect a GitHub App, prepare a server, and deploy an app. GitHub webhooks need
 an API origin reachable over HTTPS.
 
+For a working app to start with, [use the Hello Towbar template](https://github.com/avgeek-inc/towbar-example/generate)
+or [fork the example repository](https://github.com/avgeek-inc/towbar-example).
+It includes the Dockerfile, health endpoint, and manifest; replace the server IP
+and domain, then follow the first-deployment guide.
+
 You operate the hosts, network access, and control-plane backups. The
 [self-hosting security guide](https://www.towbar.dev/docs/self-hosting/security)
 explains the installation's trust boundaries and credential handling.

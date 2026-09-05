@@ -23,6 +23,49 @@ docker compose logs --tail 200 migrate api worker
 
 A previous image alone is not a recovery plan for a database migration. Review migration compatibility before reverting a release. Do not replace `TOWBAR_CREDENTIALS_KEY`: existing encrypted records require the matching key.
 
+## Upgrading from 1.4.0 to 1.5.0
+
+1.5.0 changes server ownership, manifest configuration, and integration storage.
+The migrations intentionally reset the settings listed below; they do not copy
+old credential values into the new ownership model.
+
+1. Pause automatic deployments and wait for active deployments, backups, and
+   restores to finish. Back up the Towbar database and preserve `.env` and the
+   matching `TOWBAR_CREDENTIALS_KEY`. Confirm you can retrieve the server SSH keys,
+   Cloudflare tokens, AWS credentials, and notification provider credentials from
+   your own secure records before starting. Towbar's secret fields are write-only.
+2. Update each repository's manifest: remove its top-level `servers` block and
+   retain the `server` IP on every App and Resource. Host SSH/proxy/concurrency
+   settings now belong in **Servers → server → Settings → Configuration**.
+3. Set notification provider configuration in the installation `.env` before
+   recreating the stack. Slack uses `TOWBAR_SLACK_BOT_TOKEN`; SMTP uses
+   `TOWBAR_SMTP_HOST`, `TOWBAR_SMTP_FROM`, and the port/TLS/authentication settings
+   your provider requires. See [environment variables](/docs/reference/environment-variables).
+4. Check out the reviewed `v1.5.0` release and recreate the stack as shown above.
+   Inspect migration and startup output before continuing.
+5. Review every server. Servers are deduplicated by workspace and IP, and existing
+   server credential records are deleted. Re-enter SSH and any Cloudflare
+   credentials, review configuration and trusted host keys, and run server checks.
+   Checks, preparation records, and host keys belonging to removed duplicates do
+   not transfer to the retained record.
+6. Open **Integrations → Cloud providers → AWS** and add the workspace credential
+   if you use S3 backups/restores. The former source AWS credential table is
+   dropped without importing its values. Verify that the workspace credential can
+   access every bucket and prefix used by your Resources.
+7. Verify GitHub, AWS, and notification provider setup and send a test notification
+   to the configured destinations. The old stored Slack/SMTP provider secrets are
+   deleted; provider setup now comes from the environment variables in step 3.
+8. Sync Sources, resolve reported configuration errors, and deploy a small app.
+   Verify its actual HTTPS route before resuming automatic deployments. If you
+   use backups, verify a backup and a restore on a disposable Resource.
+
+Stored deployment plans and their GitHub checks are also removed. Deployment
+history remains the place to inspect actual deployment attempts.
+
+If recovery is needed after migrations run, stop the upgraded services and restore
+both the pre-upgrade database backup and the matching previous release/configuration.
+The release workflow's image/checkout fallback does **not** restore the database.
+
 ## Forgotten owner password
 
 Towbar deliberately exposes no public forgot-password or reset-password route.
