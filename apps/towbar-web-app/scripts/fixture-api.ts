@@ -1012,7 +1012,26 @@ export function createFixtureApiServer() {
       return;
     }
     if (serverMutationMatch && request.method === "DELETE") {
-      return writeNotFound(response);
+      const index = servers.findIndex(
+        (item) => item.id === serverMutationMatch[1],
+      );
+      if (index < 0) return writeNotFound(response);
+      if (
+        [...apps, ...resources].some(
+          (item) => item.serverId === serverMutationMatch[1],
+        )
+      ) {
+        return writeJson(response, 409, {
+          error: {
+            message:
+              "Move or remove the apps, resources, and previews assigned to this server first.",
+          },
+        });
+      }
+      servers.splice(index, 1);
+      response.writeHead(204);
+      response.end();
+      return;
     }
     if (
       request.method === "POST" &&

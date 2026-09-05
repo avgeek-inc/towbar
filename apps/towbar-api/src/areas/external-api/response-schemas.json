@@ -151,6 +151,7 @@
       "$ref": "#/components/schemas/Response_158"
     },
     "servers.ts:delete:\"/:serverId/host-keys/:hostKeyId\"": {},
+    "servers.ts:delete:\"/:serverId\"": {},
     "resources.ts:get:\"/\"": { "$ref": "#/components/schemas/Response_160" },
     "resources.ts:get:\"/:resourceId\"": {
       "$ref": "#/components/schemas/Response_161"

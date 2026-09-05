@@ -13,6 +13,7 @@ import {
   resourceOperationEvents,
   resourceOperations,
   serverChecks,
+  serverDeployableOwnership,
   servers,
 } from "@workspace/towbar-database/schema";
 
@@ -148,6 +149,10 @@ export async function getDeployableTarget(
 }
 
 export async function getCleanupExpected(serverId: string) {
+  const ownership = await getTowbarDatabase()
+    .select({ id: serverDeployableOwnership.deployableId })
+    .from(serverDeployableOwnership)
+    .where(eq(serverDeployableOwnership.serverId, serverId));
   const deployables = await getTowbarDatabase()
     .select({ id: apps.id })
     .from(apps)
@@ -173,6 +178,7 @@ export async function getCleanupExpected(serverId: string) {
       .filter((release) => release.status === "current")
       .map((release) => release.containerName),
     deployableIds: ids,
+    ownedDeployableIds: ownership.map((item) => item.id),
     imageTags: retained.map((release) => release.imageTag),
   };
 }

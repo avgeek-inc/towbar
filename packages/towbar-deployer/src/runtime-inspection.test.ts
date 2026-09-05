@@ -7,6 +7,7 @@ import path from "node:path";
 import type { RuntimeExpectation } from "@workspace/towbar-core";
 import type { SshSession } from "./ssh.js";
 import { describe, it } from "node:test";
+import { resourceOperationScripts } from "./resource-operations.js";
 
 import {
   inspectServerRuntime,
@@ -193,6 +194,10 @@ if (args[1] === 'inspect') {
         "towbar/b:current",
         "towbar/b:previous",
       ],
+      ownedDeployableIds: [
+        ...deployables.map((item) => item.deployableId),
+        "removed",
+      ],
       session,
     };
     const result = await inspectServerRuntime(input);
@@ -215,10 +220,58 @@ if (args[1] === 'inspect') {
         "volume:b-removed",
       ],
     );
-    assert.deepEqual(
-      await inspectServerRuntime({ ...input, deployables: [] }),
-      { runtime: [], orphans: [] },
+    const disconnected = await inspectServerRuntime({
+      ...input,
+      deployables: [],
+      containerNames: [],
+      imageTags: [],
+    });
+    assert.equal(disconnected.runtime.length, 0);
+    assert.equal(disconnected.orphans.length, 16);
+    assert(!disconnected.orphans.some((item) => item.name.includes("foreign")));
+    assert(
+      disconnected.orphans.some(
+        (item) => item.kind === "container" && item.name === "a",
+      ),
     );
+    assert(
+      disconnected.orphans.some(
+        (item) => item.kind === "volume" && item.name === "a-data",
+      ),
+    );
+    // No retained ownership means no adoption, even with Towbar-like names/labels.
+    assert.deepEqual(
+      (
+        await inspectServerRuntime({
+          ...input,
+          deployables: [],
+          ownedDeployableIds: [],
+        })
+      ).orphans,
+      [],
+    );
+    const cleanup = await session.run(resourceOperationScripts.cleanupOrphans, [
+      JSON.stringify([
+        ...disconnected.orphans,
+        { kind: "container", name: "foreign", reason: "Untrusted" },
+      ]),
+      JSON.stringify({
+        ownedDeployableIds: input.ownedDeployableIds,
+        containerNames: ["a"],
+        imageTags: ["towbar/a:current"],
+        deployableIds: [deployables[0]!.deployableId],
+      }),
+    ]);
+    const cleaned = JSON.parse(cleanup.stdout) as {
+      cleaned: Array<{ name: string }>;
+      skipped: Array<{ name: string }>;
+    };
+    assert(cleaned.skipped.some((item) => item.name === "a"));
+    assert(cleaned.skipped.some((item) => item.name === "towbar/a:current"));
+    assert(cleaned.skipped.some((item) => item.name === "a-data"));
+    assert(cleaned.skipped.some((item) => item.name === "foreign"));
+    assert(cleaned.cleaned.some((item) => item.name === "b"));
+    assert(cleaned.cleaned.some((item) => item.name === "b-data"));
     objects["container:b"] = {
       Name: "/b",
       Config: { Labels: foreign, Image: "towbar/b:current" },

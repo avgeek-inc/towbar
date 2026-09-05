@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import {
   applySecretMutation,
   decryptCredential,
@@ -60,7 +60,11 @@ export async function requireSecretOwner(
     .select()
     .from(table)
     .where(
-      and(eq(table.id, owner.id), eq(table.workspaceId, owner.workspaceId)),
+      and(
+        eq(table.id, owner.id),
+        eq(table.workspaceId, owner.workspaceId),
+        owner.type === "server" ? isNull(servers.archivedAt) : undefined,
+      ),
     )
     .limit(1);
   if (!row) throw notFound(owner.type);

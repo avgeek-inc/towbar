@@ -591,7 +591,7 @@ export function ServerDetail() {
                             ariaLabel={`Orphaned Docker objects on ${item.canonicalIp}`}
                             columns={orphanColumns}
                             emptyDescription="The latest successful server check found no Towbar-owned objects safe to classify as orphaned."
-                            emptyTitle="No scoped orphans"
+                            emptyTitle="No orphaned Docker objects"
                             getRowKey={(orphan) =>
                               `${orphan.kind}:${orphan.name}`
                             }

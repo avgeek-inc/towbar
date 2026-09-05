@@ -1,3 +1,4 @@
+import { requireOperationSource } from "./operation-source.js";
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { mkdir, stat, writeFile } from "node:fs/promises";
@@ -267,7 +268,7 @@ export async function executeManagedRestore(input: ManagedRestoreInput) {
     );
     await session.run(
       prepareCandidateScript,
-      [candidateVolume, deployableId, context.sourceId],
+      [candidateVolume, deployableId, requireOperationSource(context.sourceId)],
       { signal, timeoutMs: 30_000 },
     );
     await progress(
@@ -339,7 +340,7 @@ export async function executeManagedRestore(input: ManagedRestoreInput) {
         runtimeDirectory,
         deployableId,
         resource.id,
-        context.sourceId,
+        requireOperationSource(context.sourceId),
         release.releaseId,
         "restore",
         ...resource.container.command,

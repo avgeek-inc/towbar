@@ -1,3 +1,4 @@
+import { requireOperationSource } from "./operation-source.js";
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { mkdtemp, rm, stat } from "node:fs/promises";
@@ -82,17 +83,16 @@ esac
 
 const cleanupOrphansScript = String.raw`
 set -euo pipefail
-source_id="$1"
-items_json="$2"
-expected_json="$3"
-python3 - "$source_id" "$items_json" "$expected_json" <<'PYTHON'
+items_json="$1"
+expected_json="$2"
+python3 - "$items_json" "$expected_json" <<'PYTHON'
 import json
 import subprocess
 import sys
 
-source_id = sys.argv[1]
-items = json.loads(sys.argv[2])
-expected = json.loads(sys.argv[3])
+items = json.loads(sys.argv[1])
+expected = json.loads(sys.argv[2])
+owned_deployables = set(expected.get("ownedDeployableIds", []))
 cleaned = []
 skipped = []
 
@@ -114,7 +114,7 @@ for item in items:
         skipped.append(item)
         continue
     labels = ((value.get("Config") or {}).get("Labels") or {}) if kind != "volume" else (value.get("Labels") or {})
-    if labels.get("towbar.managed") != "true" or labels.get("towbar.source") != source_id:
+    if labels.get("towbar.managed") != "true" or (not labels.get("towbar.source") or labels.get("towbar.deployable") not in owned_deployables):
         skipped.append(item)
         continue
     if kind == "container" and name in expected["containerNames"]:
@@ -163,7 +163,6 @@ export async function executeResourceOperation(input: {
       const { stdout } = await session.run(
         cleanupOrphansScript,
         [
-          context.sourceId,
           JSON.stringify(context.request.items),
           JSON.stringify(context.cleanupExpected),
         ],
@@ -287,7 +286,7 @@ async function createBackup(input: {
   const createdAt = new Date();
   const key = [
     backup.s3.prefix,
-    input.context.sourceId,
+    requireOperationSource(input.context.sourceId),
     input.context.operationId,
     `${createdAt.toISOString().replaceAll(":", "-")}.${extension}`,
   ]

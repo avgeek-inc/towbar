@@ -9,6 +9,7 @@ import {
 
 import {
   createServer,
+  removeServer,
   updateServer,
 } from "../../../areas/servers/lifecycle.js";
 import {
@@ -414,3 +415,26 @@ function requireIdempotencyKey(value: string | undefined) {
   }
   return key;
 }
+
+serverRoutes.delete(
+  "/:serverId",
+  operation({
+    responseSchema: 'servers.ts:delete:"/:serverId"',
+    summary: "Remove server",
+    ownerOnly: true,
+    response:
+      "Stops Towbar management and removes stored server credentials and host-key trust. Does not terminate the machine or delete Docker services or data. Assigned workloads and active operations block removal.",
+    status: 204,
+  }),
+  async (context) => {
+    const user = context.get("user");
+    if (user.workspaceRole !== "owner")
+      throw forbidden("Only the owner can remove servers");
+    await removeServer({
+      serverId: context.req.param("serverId"),
+      workspaceId: user.workspaceId,
+      requestedBy: user.id,
+    });
+    return context.body(null, 204);
+  },
+);
