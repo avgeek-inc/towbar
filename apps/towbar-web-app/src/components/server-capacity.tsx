@@ -2,7 +2,6 @@
 
 import { ServerStack01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import Link from "next/link";
 
 import type {
   App,
@@ -18,6 +17,8 @@ import { cn } from "@workspace/web-design-system/lib/utils";
 import { TypographyHeading } from "@workspace/web-design-system/typography/typography";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
+import { AppIdentity, ResourceIdentity } from "./deployable-identity";
+import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
 import {
   DefinedResourceLimit,
@@ -101,30 +102,40 @@ export function ServerHostCapacity({
   );
 }
 
-export function ServerRuntimeCapacityTable({
+export function ServerDeployableTable({
   capacity,
+  kind,
 }: {
   capacity: RuntimeCapacity;
+  kind: "app" | "resource";
 }) {
-  const apps = useApiQuery<{ apps: App[] }>("/v1/core/apps", 5_000);
-  const resources = useApiQuery<{ resources: Resource[] }>(
-    "/v1/core/resources",
+  const apps = useApiQuery<{ apps: App[] }>(
+    kind === "app" ? "/v1/core/apps" : null,
     5_000,
   );
-  const deployables = new Map<string, App | Resource>([
-    ...(apps.data?.apps ?? []).map((app) => [app.id, app] as const),
-    ...(resources.data?.resources ?? []).map(
-      (resource) => [resource.id, resource] as const,
-    ),
-  ]);
-  if (!capacity.runtimes.length) {
+  const resources = useApiQuery<{ resources: Resource[] }>(
+    kind === "resource" ? "/v1/core/resources" : null,
+    5_000,
+  );
+  const error = kind === "app" ? apps.error : resources.error;
+  const inventory =
+    kind === "app" ? apps.data?.apps : resources.data?.resources;
+  if (error) return <QueryError message={error} />;
+  if (!inventory) return <QueryLoading variant="table" />;
+  const items = inventory.filter(
+    (item) => item.serverIp === capacity.ip && !item.archivedAt,
+  );
+  const runtimeById = new Map(
+    capacity.runtimes.map((runtime) => [runtime.id, runtime]),
+  );
+  const label = kind === "app" ? "App" : "Resource";
+  if (!items.length) {
     return (
       <EmptyState>
         <EmptyState.Header>
-          <EmptyState.Title>No apps or resources</EmptyState.Title>
+          <EmptyState.Title>No {label.toLowerCase()}s</EmptyState.Title>
           <EmptyState.Description>
-            No active apps or resources reported capacity data in the latest
-            server check.
+            No active {label.toLowerCase()}s are assigned to this server.
           </EmptyState.Description>
         </EmptyState.Header>
       </EmptyState>
@@ -134,9 +145,9 @@ export function ServerRuntimeCapacityTable({
   return (
     <Table>
       <Table.ScrollContainer>
-        <Table.Content aria-label="App and resource capacity">
+        <Table.Content aria-label={`${label} capacity`}>
           <Table.Header>
-            <Table.Column isRowHeader>App/Resource</Table.Column>
+            <Table.Column isRowHeader>{label}</Table.Column>
             <Table.Column>Health</Table.Column>
             <Table.Column>Defined CPU</Table.Column>
             <Table.Column>Defined Memory</Table.Column>
@@ -144,56 +155,52 @@ export function ServerRuntimeCapacityTable({
             <Table.Column>Started</Table.Column>
           </Table.Header>
           <Table.Body>
-            {capacity.runtimes.map((runtime) => (
-              <Table.Row id={runtime.id} key={runtime.id}>
-                <Table.Cell>
-                  <div className="grid min-w-44 gap-0.5">
-                    <Link
-                      className="font-medium underline-offset-4 hover:underline"
-                      href={`/sources/${runtime.sourceId}/${runtime.kind === "app" ? "apps" : "resources"}/${runtime.id}`}
-                    >
-                      {runtime.name}
-                    </Link>
-                    <span className="text-xs capitalize text-muted">
-                      {runtime.kind === "app"
-                        ? "App"
-                        : formatResourceKind(runtime.kind)}
-                    </span>
-                  </div>
-                </Table.Cell>
-                <Table.Cell>
-                  <StatusBadge status={runtime.healthStatus} />
-                </Table.Cell>
-                <Table.Cell>
-                  <DefinedCpuCapacity
-                    runtime={runtime}
-                    limits={
-                      deployables.get(runtime.id)?.config.container.resources
-                    }
-                    unavailable={!deployables.has(runtime.id)}
-                  />
-                </Table.Cell>
-                <Table.Cell>
-                  <DefinedMemoryCapacity
-                    runtime={runtime}
-                    limits={
-                      deployables.get(runtime.id)?.config.container.resources
-                    }
-                    unavailable={!deployables.has(runtime.id)}
-                  />
-                </Table.Cell>
-                <Table.Cell className="text-right tabular-nums">
-                  {runtime.restartCount ?? "—"}
-                </Table.Cell>
-                <Table.Cell className="whitespace-nowrap">
-                  {runtime.startedAt ? (
-                    <RelativeTime label="Started" value={runtime.startedAt} />
-                  ) : (
-                    "—"
-                  )}
-                </Table.Cell>
-              </Table.Row>
-            ))}
+            {items.map((item) => {
+              const runtime = runtimeById.get(item.id);
+              const healthStatus =
+                runtime?.healthStatus ?? item.runtimeState.healthStatus;
+              return (
+                <Table.Row id={item.id} key={item.id}>
+                  <Table.Cell>
+                    <div className="min-w-64">
+                      {item.kind === "app" ? (
+                        <AppIdentity app={item} healthStatus={healthStatus} />
+                      ) : (
+                        <ResourceIdentity
+                          resource={item}
+                          healthStatus={healthStatus}
+                        />
+                      )}
+                    </div>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <StatusBadge status={healthStatus} />
+                  </Table.Cell>
+                  <Table.Cell>
+                    <DefinedCpuCapacity
+                      runtime={runtime}
+                      limits={item.config.container.resources}
+                    />
+                  </Table.Cell>
+                  <Table.Cell>
+                    <DefinedMemoryCapacity
+                      runtime={runtime}
+                      limits={item.config.container.resources}
+                    />
+                  </Table.Cell>
+                  <Table.Cell className="text-right tabular-nums">
+                    {runtime?.restartCount ?? "—"}
+                  </Table.Cell>
+                  <Table.Cell className="whitespace-nowrap">
+                    {runtime?.startedAt ? (
+                      <RelativeTime label="Started" value={runtime.startedAt} />
+                    ) : (
+                      "—"
+                    )}
+                  </Table.Cell>
+                </Table.Row>
+              );
+            })}
           </Table.Body>
         </Table.Content>
       </Table.ScrollContainer>
@@ -471,11 +478,4 @@ function formatDuration(seconds: number) {
   if (days) return `${days}d ${hours}h`;
   const minutes = Math.floor((seconds % 3_600) / 60);
   return hours ? `${hours}h ${minutes}m` : `${minutes}m`;
-}
-
-function formatResourceKind(kind: RuntimeCapacity["runtimes"][number]["kind"]) {
-  if (kind === "postgres") return "PostgreSQL";
-  if (kind === "redis") return "Redis";
-  if (kind === "image") return "Image";
-  return "App";
 }

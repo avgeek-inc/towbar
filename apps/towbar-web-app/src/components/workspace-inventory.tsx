@@ -33,11 +33,8 @@ import {
 import { DefinedResourceLimit } from "./defined-resource-limit";
 import { formatBytes } from "./runtime-operations";
 import { LastSyncedTime, RelativeTime } from "./last-synced-time";
-import {
-  AppIdentity,
-  ResourceIdentity,
-  ServerIpLink,
-} from "./source-inventory";
+import { ServerIpLink } from "./source-inventory";
+import { AppIdentity, ResourceIdentity } from "./deployable-identity";
 
 export function AppsIndex() {
   const apps = useApiQuery<{ apps: App[] }>("/v1/core/apps", 5_000);

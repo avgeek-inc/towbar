@@ -9,6 +9,7 @@ import { ServerEditor } from "./server-editor";
 import {
   Activity01Icon,
   DashboardCircleIcon,
+  DatabaseIcon,
   Key01Icon,
   Link01Icon,
   ServerStack01Icon,
@@ -54,10 +55,7 @@ import { api } from "@/lib/api";
 import { reconcileServerSetupStatus } from "@/lib/server-preparation-status";
 import { RelativeTime } from "./last-synced-time";
 import { formatDate } from "./dashboard-overview";
-import {
-  ServerHostCapacity,
-  ServerRuntimeCapacityTable,
-} from "./server-capacity";
+import { ServerHostCapacity, ServerDeployableTable } from "./server-capacity";
 import { ResponsiveSubtabs } from "./responsive-subtabs";
 
 type DiscoveredKey = {
@@ -362,6 +360,7 @@ export function ServerDetail() {
     >
       <div className="content-grid">
         <PageTabs
+          aliases={{ "apps-resources": "apps" }}
           defaultValue="overview"
           tabs={[
             {
@@ -453,11 +452,25 @@ export function ServerDetail() {
               ),
             },
             {
-              value: "apps-resources",
-              label: "Apps/Resources",
+              value: "apps",
+              label: "Apps",
               icon: <HugeiconsIcon icon={DashboardCircleIcon} />,
               content: (
-                <ServerRuntimeCapacityTable capacity={capacity.data.capacity} />
+                <ServerDeployableTable
+                  capacity={capacity.data.capacity}
+                  kind="app"
+                />
+              ),
+            },
+            {
+              value: "resources",
+              label: "Resources",
+              icon: <HugeiconsIcon icon={DatabaseIcon} />,
+              content: (
+                <ServerDeployableTable
+                  capacity={capacity.data.capacity}
+                  kind="resource"
+                />
               ),
             },
             {

@@ -94,9 +94,11 @@ export function DashboardPage({
 }
 
 export function PageTabs({
+  aliases,
   defaultValue,
   tabs,
 }: {
+  aliases?: Record<string, string>;
   defaultValue: string;
   tabs: Array<{
     content: ReactNode;
@@ -121,7 +123,8 @@ export function PageTabs({
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const requestedSection = searchParams.get("section");
+  const section = searchParams.get("section");
+  const requestedSection = section ? (aliases?.[section] ?? section) : null;
   const selectedKey = tabs.some((tab) => tab.value === requestedSection)
     ? requestedSection!
     : defaultValue;
@@ -163,6 +166,7 @@ export function PageTabs({
                   </span>
                 ) : null}
                 <TooltipText
+                  tabIndex={-1}
                   className="truncate"
                   tooltip={
                     typeof tab.label === "string" ? tab.label : undefined
