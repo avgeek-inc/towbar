@@ -73,11 +73,23 @@ Towbar rejects partially configured GitHub App credentials.
 
 ## Notification providers
 
-Configure Slack with `TOWBAR_SLACK_BOT_TOKEN`. Configure SMTP with
-`TOWBAR_SMTP_HOST` and `TOWBAR_SMTP_FROM`; port defaults to `587`, implicit TLS
-to `false`, and subject prefix to `Towbar`. Set `TOWBAR_SMTP_USERNAME` and
-`TOWBAR_SMTP_PASSWORD` together when authentication is required. Restart the
-API after changing these deployment environment variables. Towbar shows only
+Check provider configuration under **Manage → Integrations → Slack** or
+**Email**. These pages show whether the required environment variables are
+present; credentials are managed on the Towbar API deployment.
+
+### Slack
+
+Set `TOWBAR_SLACK_BOT_TOKEN` to your Slack bot token and restart the API.
+
+### Email (SMTP)
+
+Set `TOWBAR_SMTP_HOST` and `TOWBAR_SMTP_FROM`; port defaults to `587`, implicit TLS
+to `false`, and subject prefix to `Towbar`. Use `TOWBAR_SMTP_PORT`,
+`TOWBAR_SMTP_SECURE`, and `TOWBAR_SMTP_SUBJECT_PREFIX` to override those defaults.
+Set `TOWBAR_SMTP_USERNAME` and `TOWBAR_SMTP_PASSWORD` together when
+authentication is required. Restart the API after changing these environment variables.
+
+Towbar shows only
 configured provider types when an owner adds a destination under **Source →
 Settings → Notifications**.
 

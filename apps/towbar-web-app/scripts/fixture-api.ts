@@ -1456,6 +1456,10 @@ function getFixturePayload(
     };
   }
   const fixedPayloads = new Map<string, unknown>([
+    [
+      "/v1/core/notifications/providers",
+      { providers: { slack: false, smtp: false } },
+    ],
     ["/v1/core/session", { user }],
     ["/v1/core/profile", { user }],
     [

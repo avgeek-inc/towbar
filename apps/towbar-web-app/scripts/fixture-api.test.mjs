@@ -10,6 +10,7 @@ const readRoutes = [
   "/v1/core/profile",
   "/v1/core/sessions",
   "/v1/core/github",
+  "/v1/core/notifications/providers",
   "/v1/core/github/repositories",
   "/v1/core/sources",
   "/v1/core/apps",

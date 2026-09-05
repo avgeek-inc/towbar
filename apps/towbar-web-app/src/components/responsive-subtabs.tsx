@@ -14,6 +14,7 @@ type ResponsiveSubtab = {
   content: ReactNode;
   disabledReason?: string;
   isDisabled?: boolean;
+  icon?: ReactNode;
   label: string;
   value: string;
 };
@@ -91,7 +92,17 @@ export function ResponsiveSubtabs({
                     key={tab.value}
                     textValue={tab.label}
                   >
-                    {tab.label}
+                    <span className="inline-flex min-w-0 items-center gap-2">
+                      {tab.icon ? (
+                        <span
+                          aria-hidden="true"
+                          className="inline-flex shrink-0 [&_svg]:size-4"
+                        >
+                          {tab.icon}
+                        </span>
+                      ) : null}
+                      {tab.label}
+                    </span>
                     <ListBox.ItemIndicator />
                   </ListBox.Item>
                 ))}
@@ -127,11 +138,19 @@ export function ResponsiveSubtabs({
               >
                 <span
                   className={cn(
-                    "relative z-10",
+                    "relative z-10 inline-flex min-w-0 items-center gap-2",
                     layout === "inline" && "whitespace-nowrap",
                   )}
                   title={tab.isDisabled ? tab.disabledReason : undefined}
                 >
+                  {tab.icon ? (
+                    <span
+                      aria-hidden="true"
+                      className="inline-flex shrink-0 [&_svg]:size-4"
+                    >
+                      {tab.icon}
+                    </span>
+                  ) : null}
                   {tab.label}
                 </span>
                 <Tabs.Indicator />
