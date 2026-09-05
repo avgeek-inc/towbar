@@ -1,0 +1,55 @@
+name: Report release to Linear
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linear-release-${{ github.event.release.id }}
+  cancel-in-progress: false
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Prepare release notes and commit range
+        id: release
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib
+          event = json.loads(pathlib.Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+          notes = pathlib.Path(os.environ["RUNNER_TEMP"]) / "linear-release-notes.md"
+          notes.write_text(event["release"].get("body") or "")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"notes={notes}\n")
+          PY
+          # Bound the first sync and reruns to this release, not just its final commit.
+          previous_tag="$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD^ 2>/dev/null || true)"
+          echo "base=$previous_tag" >> "$GITHUB_OUTPUT"
+
+      # v0.17.2
+      - name: Sync published release
+        uses: linear/linear-release-action@53ad0f863963e7f8e270fba18426bbb55ef55384
+        with:
+          access_key: ${{ secrets.LINEAR_ACCESS_KEY }}
+          cli_version: v0.17.2
+          command: sync
+          name: Towbar ${{ github.event.release.tag_name }}
+          version: ${{ github.event.release.tag_name }}
+          base_ref: ${{ steps.release.outputs.base }}
+          release_notes: ${{ steps.release.outputs.notes }}
+          links: |
+            GitHub release=${{ github.event.release.html_url }}
+            Workflow run=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

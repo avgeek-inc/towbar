@@ -76,6 +76,12 @@ commit.
 
 ## GitHub status
 
+GitHub groups preview deployments under one environment per App, named
+`App name · Preview`. The PR number appears in the deployment description.
+Each preview keeps its own URL and status; deploying one PR does not deactivate
+another PR's preview. Older environments with PR numbers in their names remain
+in GitHub until you remove them there.
+
 Towbar also maintains one comment per Source and pull request with every App's
 build status, Preview URL, and deployment details link. A hidden stable marker
 lets Towbar update the same GitHub comment instead of posting a new comment for

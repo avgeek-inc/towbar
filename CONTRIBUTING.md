@@ -63,6 +63,21 @@ documentation path.
 - Explain security, migration, and rollback implications when applicable.
 - Preserve Source scoping and avoid logging secret values.
 
+## Linear release reporting
+
+Publishing a GitHub release runs `Report release to Linear`. It checks out the
+released tag and syncs its version, release notes, GitHub link, and commits since
+the previous version tag to the Linear pipeline. Include Linear issue identifiers
+such as `AVG-5` in branch names or commit messages so they can be linked to the
+release; linked GitHub pull requests are also detected.
+
+Set the repository secret `LINEAR_ACCESS_KEY` to the pipeline access key from
+Linear. A continuous pipeline creates completed releases on sync; a scheduled
+pipeline collects the release for its configured stage workflow. This reports
+GitHub publication; production deployment success is tracked separately by
+`Deploy release`. To retry reporting, rerun the failed reporting job. The release
+tag is the version identifier, so retries target the same Linear release.
+
 Project stewardship and the current code owner are recorded in
 [MAINTAINERS.md](MAINTAINERS.md).
 
