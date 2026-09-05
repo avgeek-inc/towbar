@@ -5,6 +5,8 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-09-05
+
 ### Added
 
 - Bearer-key REST API and Streamable HTTP MCP for infrastructure operations with current workspace permissions, read-only/full access, expiry, and revocation.
@@ -12,6 +14,16 @@ All notable changes to Towbar are documented in this file. This project follows
 - Persistent shared API/MCP rate limiting, defaulting to 60 requests per minute per IP and configurable through environment variables.
 - API & MCP settings with one-time key reveal, key inventory, and client setup for Codex, Cursor, VS Code, and Claude Code.
 - Mintlify API guides, OpenAPI request and response schemas, and per-route references grouped by resource and task, generated from the shared control-plane handlers. Key management, notifications, personal account changes, browser sessions, and GitHub installation handoffs remain in the browser control plane.
+
+### Fixed
+
+- Updated `fast-uri` to 3.1.6 to resolve four high-severity URL normalization and host confusion advisories.
+- Homepage screenshots now show the latest control plane in both themes without extra canvas space.
+
+### Changed
+
+- Updated compatible runtime dependencies and CI setup actions while retaining the existing TypeScript and ESLint major versions.
+- Dependabot groups minor and patch JavaScript updates separately from major upgrades.
 
 ## [1.5.1] - 2026-09-05
 
@@ -298,7 +310,8 @@ before resuming deployments:
 - Source-scoped AWS Secrets Manager integration and environment editors.
 - A same-domain owner setup, authentication, and operations dashboard.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.5.2...HEAD
+[1.5.2]: https://github.com/avgeek-inc/towbar/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/avgeek-inc/towbar/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/avgeek-inc/towbar/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/avgeek-inc/towbar/compare/v1.3.4...v1.4.0
