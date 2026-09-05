@@ -353,7 +353,7 @@ function ResourceSettings({
 
 function ResourceConfiguration({ item }: { item: ResourceRecord }) {
   return (
-    <div className="grid gap-6">
+    <div className="content-grid">
       <Attributes
         icon={<HugeiconsIcon icon={PackageIcon} />}
         columns={2}

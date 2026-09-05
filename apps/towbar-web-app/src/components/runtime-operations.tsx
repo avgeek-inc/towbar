@@ -297,7 +297,7 @@ export function RuntimeLogs({
   }
 
   return (
-    <div className="grid gap-5">
+    <div className="content-grid">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-muted typography--body-sm">
           Last requested {formatDate(latest.createdAt)}

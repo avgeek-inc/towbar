@@ -348,7 +348,7 @@ export function ServerDetail() {
       breadcrumbAncestors={serversBreadcrumb}
       title={item.canonicalIp}
     >
-      <div className="grid gap-6">
+      <div className="content-grid">
         <PageTabs
           defaultValue="overview"
           tabs={[
@@ -357,7 +357,7 @@ export function ServerDetail() {
               label: "Overview",
               icon: <HugeiconsIcon icon={ServerStack01Icon} />,
               content: (
-                <div className="grid gap-8">
+                <div className="content-grid">
                   <ServerPreparationPanel
                     hasTrustedHostKey={keys.data.hostKeys.length > 0}
                     item={item}
@@ -511,7 +511,7 @@ export function ServerDetail() {
                       value: "cleanup",
                       label: "Cleanup",
                       content: (
-                        <div className="grid gap-8">
+                        <div className="content-grid">
                           {orphanItems.length ? (
                             <Alert status="warning">
                               <Alert.Indicator />
@@ -678,7 +678,7 @@ function ServerPreparationPanel({
             Server preparation
           </Widget.Title>
         </Widget.Header>
-        <Widget.Content className="grid gap-5">
+        <Widget.Content className="content-grid">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <p className="max-w-2xl text-sm text-muted">
               Installs or validates Docker Engine, Caddy, Python, deployment

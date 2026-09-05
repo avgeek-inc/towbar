@@ -78,7 +78,7 @@ export function AutoDeployControlEditor({
             Auto-deploy
           </Widget.Title>
         </Widget.Header>
-        <Widget.Content className="grid gap-5">
+        <Widget.Content className="content-grid">
           <Switch
             isDisabled={!query.data.canManageAutoDeploy}
             isSelected={paused}

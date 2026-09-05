@@ -266,7 +266,7 @@ export function DeploymentDetail() {
             label: "Overview",
             icon: <HugeiconsIcon icon={InformationSquareIcon} />,
             content: (
-              <div className="grid gap-8">
+              <div className="content-grid">
                 <div className="content-grid lg:grid-cols-2">
                   <Attributes
                     icon={<HugeiconsIcon icon={Rocket01Icon} />}

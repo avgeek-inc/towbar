@@ -188,8 +188,8 @@ export function ResourceBackupConfiguration({
   ];
 
   return (
-    <div className="grid min-w-0 gap-8">
-      <div className="grid min-w-0 gap-6">
+    <div className="content-grid min-w-0">
+      <div className="content-grid min-w-0">
         {assuranceData.awsConfigured ? (
           <Widget className="min-w-0">
             <Widget.Header
@@ -394,7 +394,7 @@ function RestoreConfirmation({
               <Modal.Heading>Restore {resource.name}</Modal.Heading>
             </Modal.Header>
             <Modal.Body>
-              <form className="grid gap-5" onSubmit={submit}>
+              <form className="content-grid" onSubmit={submit}>
                 <Alert status="danger">
                   <Alert.Indicator />
                   <Alert.Content>
@@ -755,7 +755,7 @@ function RestoreCleanupConfirmation({
             <Modal.Header>
               <Modal.Heading>Clean up rollback volume?</Modal.Heading>
             </Modal.Header>
-            <Modal.Body className="grid gap-5">
+            <Modal.Body className="content-grid">
               <Alert status="danger">
                 <Alert.Indicator />
                 <Alert.Content>

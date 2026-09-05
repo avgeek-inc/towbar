@@ -230,7 +230,7 @@ export function SourceNotifications({
   }
 
   return (
-    <div className="grid gap-4 sm:gap-6">
+    <div className="content-grid">
       {!hasProvider ? (
         <Alert status="warning">
           <Alert.Indicator />
@@ -272,7 +272,7 @@ export function SourceNotifications({
                 </Modal.Heading>
               </Modal.Header>
               <Modal.Body>
-                <form className="grid gap-5" onSubmit={saveDestination}>
+                <form className="content-grid" onSubmit={saveDestination}>
                   {saveError ? (
                     <Alert status="danger">
                       <Alert.Indicator />

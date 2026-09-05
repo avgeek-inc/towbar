@@ -177,7 +177,7 @@ function ServerCredentialForm({
       icon={<HugeiconsIcon icon={Key01Icon} />}
       title="Server credentials"
     >
-      <form className="grid max-w-3xl gap-5" onSubmit={submit}>
+      <form className="content-grid max-w-3xl" onSubmit={submit}>
         <CredentialField
           busy={busy}
           canManage={canManage}

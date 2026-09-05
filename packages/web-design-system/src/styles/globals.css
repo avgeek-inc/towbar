@@ -38,6 +38,7 @@ a {
 }
 
 @layer components {
+  /* Keep sibling cards, sections, and form fields 16px apart on both axes. */
   .content-grid {
     @apply grid gap-4;
   }

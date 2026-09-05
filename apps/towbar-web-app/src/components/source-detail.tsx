@@ -371,7 +371,7 @@ function SourceSettings({
                     icon={<HugeiconsIcon icon={Delete02Icon} />}
                     title="Danger zone"
                   >
-                    <div className="grid gap-5">
+                    <div className="content-grid">
                       <p className="max-w-3xl text-sm text-muted">
                         Deleting a Source removes its imported inventory and
                         operational history. Workspace integrations, servers,

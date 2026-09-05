@@ -19,7 +19,7 @@ export function AuthFrame({
 }) {
   return (
     <IdentityAuthFrame>
-      <div className="grid gap-8">
+      <div className="content-grid">
         <Link aria-label="Towbar sign in" className="w-fit" href="/login">
           <TowbarLockup />
         </Link>

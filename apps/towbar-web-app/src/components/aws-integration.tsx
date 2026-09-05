@@ -32,9 +32,9 @@ export function AwsIntegration() {
   const canManage = query.data.canManage;
 
   return (
-    <div className="grid gap-10">
+    <div className="content-grid">
       {credential ? (
-        <div className="grid gap-5">
+        <div className="content-grid">
           <Attributes
             icon={<HugeiconsIcon icon={Key01Icon} />}
             title="AWS credentials"
@@ -114,7 +114,7 @@ export function AwsIntegration() {
                     {credential ? "Update credentials" : "Add credentials"}
                   </Modal.Heading>
                 </Modal.Header>
-                <Modal.Body className="space-y-6">
+                <Modal.Body className="content-grid">
                   <p className="text-muted typography--body-sm">
                     Values are encrypted before PostgreSQL, scoped to this
                     workspace, and never returned.

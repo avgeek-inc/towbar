@@ -267,7 +267,7 @@ function SecretVariablesEditor({
             {stageLabel} secrets
           </Widget.Title>
         </Widget.Header>
-        <Widget.Content className="grid min-w-0 gap-5">
+        <Widget.Content className="content-grid min-w-0">
           {!keys.length && !newKeys.length ? (
             <EmptyState>
               <EmptyState.Header>

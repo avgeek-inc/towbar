@@ -347,7 +347,7 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
 
 function AppConfiguration({ item }: { item: AppRecord }) {
   return (
-    <div className="grid gap-6">
+    <div className="content-grid">
       <Attributes
         icon={<HugeiconsIcon icon={PackageIcon} />}
         columns={2}

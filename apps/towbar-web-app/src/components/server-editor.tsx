@@ -75,12 +75,12 @@ export function ServerEditor({
   }
 
   return (
-    <div className="grid gap-8">
+    <div className="content-grid">
       <FormCard
         icon={<HugeiconsIcon icon={Settings01Icon} />}
         title={editing ? "Server configuration" : "Connection and scheduling"}
       >
-        <form className="grid gap-5" onSubmit={save}>
+        <form className="content-grid" onSubmit={save}>
           <div className="content-grid grid-cols-2 lg:grid-cols-4">
             {!editing ? (
               <>

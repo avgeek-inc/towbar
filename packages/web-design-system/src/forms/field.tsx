@@ -7,7 +7,7 @@ export function Field({ className, ...props }: ComponentProps<"div">) {
   return <div className={cn("grid w-full gap-1.5", className)} {...props} />;
 }
 export function FieldGroup({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("grid gap-5", className)} {...props} />;
+  return <div className={cn("content-grid", className)} {...props} />;
 }
 export function FieldLabel({ className, ...props }: ComponentProps<"label">) {
   return <label className={cn("text-sm font-medium", className)} {...props} />;
@@ -34,7 +34,7 @@ export function FieldSeparator({ className, ...props }: ComponentProps<"div">) {
   return <div className={cn("h-px bg-separator", className)} {...props} />;
 }
 export function FieldSet({ className, ...props }: ComponentProps<"fieldset">) {
-  return <fieldset className={cn("grid gap-5", className)} {...props} />;
+  return <fieldset className={cn("content-grid", className)} {...props} />;
 }
 export function FieldLegend({ className, ...props }: ComponentProps<"legend">) {
   return <legend className={cn("font-semibold", className)} {...props} />;

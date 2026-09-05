@@ -81,7 +81,7 @@ export function DashboardPage({
       }
     >
       <PageSection
-        className="grid gap-4 pt-0 sm:gap-6"
+        className="content-grid pt-0"
         xPadding="none"
         yPadding="compact"
       >
@@ -399,7 +399,7 @@ export function SimpleForm({
     }
   }
   return (
-    <form className="grid max-w-xl gap-5" onSubmit={submit}>
+    <form className="content-grid max-w-xl" onSubmit={submit}>
       {error ? (
         <Alert status="danger">
           <Alert.Indicator />

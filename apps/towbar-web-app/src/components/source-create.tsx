@@ -132,7 +132,7 @@ export function SourceCreate() {
       breadcrumbAncestors={sourcesBreadcrumb}
       title="Add source"
     >
-      <div className="grid gap-10">
+      <div className="content-grid">
         <div className="max-w-full overflow-x-auto pb-1">
           <div className="min-w-[44rem]">
             <Stepper currentStep={busy ? 2 : 1}>
@@ -164,7 +164,7 @@ export function SourceCreate() {
           title="Source details"
         >
           <form
-            className="grid max-w-xl gap-8 pt-2"
+            className="content-grid max-w-xl pt-2"
             onSubmit={async (event) => {
               event.preventDefault();
               if (!selected) return;
