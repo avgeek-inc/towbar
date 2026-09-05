@@ -68,7 +68,7 @@ export function ResponsiveSubtabs({
             ? sidebarWidth === "wide"
               ? "lg:grid-cols-[14rem_minmax(0,1fr)]"
               : "lg:grid-cols-[13rem_minmax(0,1fr)]"
-            : "md:gap-0",
+            : undefined,
         )}
       >
         {collapseOnMobile ? (
