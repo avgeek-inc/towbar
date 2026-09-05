@@ -59,7 +59,7 @@ export async function executeServerPreparationActivity(preparationId: string) {
       { result, status: "succeeded", steps },
     );
   } catch (error) {
-    const errorMessage = preparationFailureMessage(error);
+    const errorMessage = safeErrorMessage(error);
     await signedApiRequest(
       "POST",
       `/v1/internal/server-preparations/${preparationId}/events`,
@@ -103,14 +103,6 @@ function normalizeFailedSteps(steps: ServerPreparationStep[], error: unknown) {
     }
   }
   return steps;
-}
-
-function preparationFailureMessage(error: unknown) {
-  const detail = safeErrorMessage(error).replace(/[.\s]+$/u, "");
-  return `${detail}. Towbar stopped without removing existing services. Use a fresh Ubuntu server, or clean up the conflicting installation before trying again.`.slice(
-    0,
-    1_000,
-  );
 }
 
 function safeErrorMessage(error: unknown) {

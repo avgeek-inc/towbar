@@ -5,7 +5,7 @@ import type {
   OrphanItem,
   ResourceOperationRequest,
   ResourceOperationResult,
-  RuntimeDesiredState,
+  RuntimeExpectation,
   RuntimeInspection,
   ServerPreparationStepId,
   ServerPreparationStepStatus,
@@ -74,24 +74,9 @@ export type ServerCheckContext = {
   checkId: string;
   config: NormalizedServer;
   expectedContainerNames: string[];
-  expectedDeployables: Array<{
-    connectivity: {
-      containerPort: number;
-      hostPort: number | null;
-      network: string | null;
-      networkAlias: string | null;
-    } | null;
-    deployableId: string;
-    desiredState: RuntimeDesiredState;
-    health:
-      | { command: string[]; timeoutSeconds: number; type: "command" }
-      | { path: string; timeoutSeconds: number; type: "http" }
-      | { timeoutSeconds: number; type: "container" };
-    release: { containerName: string; imageTag: string } | null;
-  }>;
+  expectedDeployables: RuntimeExpectation[];
   expectedImageTags: string[];
   login: SshLoginSecret;
-  sourceId: string;
   trustedHostKeys: TrustedHostKey[];
 };
 

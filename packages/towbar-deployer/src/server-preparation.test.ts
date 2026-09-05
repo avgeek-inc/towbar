@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { execFileSync } from "node:child_process";
 
-import { serverPreparationScripts } from "./server-preparation.js";
+import { CommandError } from "./process.js";
+
+import {
+  preparationErrorMessage,
+  serverPreparationScripts,
+} from "./server-preparation.js";
 
 void test("uses signed upstream package repositories and pinned Caddy inputs", () => {
   assert.match(
@@ -75,4 +81,73 @@ void test("fully consumes Caddy module output under pipefail", () => {
     assert.match(script, /grep -Fx dns\.providers\.cloudflare >\/dev\/null/);
     assert.doesNotMatch(script, /grep -Fxq dns\.providers\.cloudflare/);
   }
+});
+
+void test("validates with the installed Caddy environment and supports a fresh server", () => {
+  const script = serverPreparationScripts.verifyServer;
+  const validation = script.slice(
+    script.indexOf("validate_args="),
+    script.indexOf("disk_available="),
+  );
+  for (const envExists of [true, false]) {
+    const output = execFileSync(
+      "bash",
+      [
+        "-c",
+        `
+set -euo pipefail
+SUDO=(privileged)
+privileged() {
+  if test "$1" = test; then return ${envExists ? 0 : 1}; fi
+  test "$1" = caddy
+  test "$2" = validate
+  test "$3" = --config
+  test "$4" = /etc/caddy/Caddyfile
+  test "$#" -eq ${envExists ? 6 : 4}
+  ${envExists ? 'test "$5" = --envfile; test "$6" = /etc/caddy/towbar/cloudflare.env' : ":"}
+}
+${validation}
+`,
+      ],
+      { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] },
+    );
+    assert.equal(output, "");
+  }
+});
+
+void test("preserves the Caddy failure after noisy startup output and redacts tokens", () => {
+  const noise = Array.from({ length: 30 }, () =>
+    JSON.stringify({ level: "info", msg: "starting certificate maintenance" }),
+  ).join("\n");
+  const error = new CommandError(
+    "bash exited unsuccessfully",
+    "",
+    `${noise}\nError: loading DNS provider: API token 'sensitive-token' appears invalid`,
+  );
+  assert.equal(
+    preparationErrorMessage(error),
+    "Error: loading DNS provider: API token '[redacted]' appears invalid",
+  );
+});
+
+void test("retains the end of long diagnostics and actual conflict guidance", () => {
+  const message = preparationErrorMessage(
+    new CommandError(
+      "failed",
+      "",
+      `Error: ${"nested module: ".repeat(100)}certificate could not be loaded`,
+    ),
+  );
+  assert.equal(message.length, 800);
+  assert.ok(message.endsWith("certificate could not be loaded"));
+  const conflict =
+    "An incompatible Docker installation is already present. Remove the conflicting installation before continuing.";
+  assert.equal(
+    preparationErrorMessage(new CommandError("failed", "", conflict)),
+    conflict,
+  );
+  assert.equal(
+    preparationErrorMessage(new Error("SSH connection timed out")),
+    "SSH connection timed out",
+  );
 });

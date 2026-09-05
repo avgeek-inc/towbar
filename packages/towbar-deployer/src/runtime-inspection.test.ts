@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+import type { RuntimeExpectation } from "@workspace/towbar-core";
+import type { SshSession } from "./ssh.js";
 import { describe, it } from "node:test";
 
 import {
+  inspectServerRuntime,
   parseRuntimeInspectionOutput,
   runtimeInspectionScript,
 } from "./runtime-inspection.js";
@@ -84,4 +92,147 @@ void describe("runtime inspection", () => {
     assert.match(runtimeInspectionScript, /memoryUsageBytes/);
     assert.match(runtimeInspectionScript, /cpuPercent/);
   });
+});
+
+void it("inspects multiple sources on one server without adopting foreign objects", async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), "towbar-runtime-test-"));
+  try {
+    const deployables: RuntimeExpectation[] = ["a", "b"].map((name, index) => ({
+      connectivity: null,
+      deployableId: `10000000-0000-4000-8000-00000000000${index + 1}`,
+      sourceId: `source-${name}`,
+      desiredState: "running",
+      health: { timeoutSeconds: 5, type: "container" },
+      release: { containerName: name, imageTag: `towbar/${name}:current` },
+    }));
+    const objects: Record<string, unknown> = {};
+    for (const item of deployables) {
+      const name = item.release!.containerName;
+      const labels = {
+        "towbar.managed": "true",
+        "towbar.source": item.sourceId,
+        "towbar.deployable": item.deployableId,
+      };
+      objects[`container:${name}`] = {
+        Name: `/${name}`,
+        Config: { Labels: labels, Image: item.release!.imageTag },
+        State: { Running: true, Health: { Status: "healthy" } },
+      };
+      objects[`container:${name}-previous`] = {
+        Name: `/${name}-previous`,
+        Config: { Labels: labels },
+      };
+      objects[`container:${name}-old`] = {
+        Name: `/${name}-old`,
+        Config: { Labels: labels },
+      };
+      objects[`image:towbar/${name}:current`] = { Config: { Labels: labels } };
+      objects[`image:towbar/${name}:previous`] = { Config: { Labels: labels } };
+      objects[`image:towbar/${name}:old`] = { Config: { Labels: labels } };
+      objects[`volume:${name}-data`] = { Labels: labels };
+      objects[`volume:${name}-removed`] = {
+        Labels: { ...labels, "towbar.deployable": "removed" },
+      };
+    }
+    const foreign = {
+      "towbar.managed": "true",
+      "towbar.source": "unrelated-source",
+      "towbar.deployable": "unrelated-app",
+    };
+    objects["container:foreign"] = {
+      Name: "/foreign",
+      Config: { Labels: foreign },
+    };
+    objects["image:towbar/foreign:old"] = { Config: { Labels: foreign } };
+    objects["volume:foreign"] = { Labels: foreign };
+    await writeFile(
+      path.join(directory, "objects.json"),
+      JSON.stringify(objects),
+    );
+    await writeFile(
+      path.join(directory, "docker"),
+      `#!${process.execPath}
+const objects = JSON.parse(require('node:fs').readFileSync(${JSON.stringify(path.join(directory, "objects.json"))}, 'utf8'));
+const args = process.argv.slice(2);
+if (args[1] === 'inspect') {
+  const object = objects[args[0] + ':' + args[2]];
+  if (!object) process.exit(1);
+  console.log(JSON.stringify([object]));
+} else if (args[0] !== 'stats') {
+  const kind = args[0] === 'ps' ? 'container' : args[0];
+  console.log(Object.keys(objects).filter(key => key.startsWith(kind + ':')).map(key => key.slice(kind.length + 1)).join('\\n'));
+}
+`,
+      { mode: 0o700 },
+    );
+    const session = {
+      run: (script: string, args: string[]) =>
+        Promise.resolve({
+          stderr: "",
+          stdout: execFileSync(
+            "bash",
+            [
+              "-c",
+              `export PATH="$1:$PATH"; shift\n${script}`,
+              "runtime-test",
+              directory,
+              ...args,
+            ],
+            {
+              encoding: "utf8",
+            },
+          ),
+        }),
+    } as unknown as SshSession;
+    const input = {
+      containerNames: ["a", "a-previous", "b", "b-previous"],
+      deployables,
+      imageTags: [
+        "towbar/a:current",
+        "towbar/a:previous",
+        "towbar/b:current",
+        "towbar/b:previous",
+      ],
+      session,
+    };
+    const result = await inspectServerRuntime(input);
+    assert.deepEqual(
+      result.runtime.map((item) => item.driftStatus),
+      ["in_sync", "in_sync"],
+    );
+    assert.deepEqual(
+      result.runtime.map((item) => item.healthStatus),
+      ["healthy", "healthy"],
+    );
+    assert.deepEqual(
+      result.orphans.map((item) => `${item.kind}:${item.name}`),
+      [
+        "container:a-old",
+        "container:b-old",
+        "image:towbar/a:old",
+        "image:towbar/b:old",
+        "volume:a-removed",
+        "volume:b-removed",
+      ],
+    );
+    assert.deepEqual(
+      await inspectServerRuntime({ ...input, deployables: [] }),
+      { runtime: [], orphans: [] },
+    );
+    objects["container:b"] = {
+      Name: "/b",
+      Config: { Labels: foreign, Image: "towbar/b:current" },
+      State: { Running: true },
+    };
+    await writeFile(
+      path.join(directory, "objects.json"),
+      JSON.stringify(objects),
+    );
+    assert.equal(
+      (await inspectServerRuntime(input)).runtime[1]?.driftStatus,
+      "drifted",
+    );
+  } finally {
+    await rm(directory, { force: true, recursive: true });
+  }
 });
