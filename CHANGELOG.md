@@ -5,6 +5,24 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.5.3] - 2026-09-05
+
+### Fixed
+
+- Server preparation loads the existing Cloudflare environment file when validating
+  Caddy, allowing servers already using DNS TLS to complete preparation.
+- Preparation failures preserve the useful diagnostic, redact Cloudflare token
+  values, and no longer append unrelated conflicting-installation advice.
+- Server checks support workloads from multiple Sources on workspace-owned servers,
+  fixing the missing-source `replaceAll` crash while preserving ownership checks.
+- The website uses darker gold in light mode for readable text and buttons, and
+  requests screenshots at sizes appropriate to their displayed layout.
+
+### Added
+
+- Production website analytics through DataFast, including a goal for GitHub
+  repository clicks and updated privacy disclosures.
+
 ## [1.5.2] - 2026-09-05
 
 ### Added
