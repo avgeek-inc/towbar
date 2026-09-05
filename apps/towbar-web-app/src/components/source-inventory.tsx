@@ -284,7 +284,9 @@ export function AppIdentity({ app }: { app: App }) {
             </span>
           </Tooltip.Content>
         </Tooltip>
-      ) : null}
+      ) : (
+        <span className="text-xs text-muted">Not publicly exposed</span>
+      )}
     </span>
   );
 }
