@@ -1,8 +1,15 @@
 "use client";
 
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+
 import Image from "next/image";
 
-import { ServerStack01Icon, WebhookIcon } from "@hugeicons/core-free-icons";
+import {
+  HeartPulseIcon,
+  InternetIcon,
+  ServerStack01Icon,
+  WebhookIcon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
   App,
@@ -102,6 +109,7 @@ function resourceColumns(
     {
       cell: (resource) => <ResourceIdentity resource={resource} />,
       className: "min-w-56",
+      wrapRowLink: false,
       header: "Resource Name",
       key: "name",
     },
@@ -243,12 +251,13 @@ export function AppIdentity({ app }: { app: App }) {
 
   return (
     <span className="grid min-w-0 justify-items-start gap-1">
-      <InlineLink href={`/sources/${app.sourceId}/apps/${app.id}`}>
-        <DeployableName
-          autoDeploy={Boolean(app.config.autoDeploy)}
-          name={app.name}
-        />
-      </InlineLink>
+      <DeployableName
+        autoDeploy={Boolean(app.config.autoDeploy)}
+        name={app.name}
+        href={`/sources/${app.sourceId}/apps/${app.id}`}
+        exposed={domains.length > 0}
+        health={app.runtimeState.healthStatus}
+      />
       {domains.length > 0 ? (
         <Tooltip>
           <Tooltip.Trigger
@@ -285,32 +294,64 @@ export function AppIdentity({ app }: { app: App }) {
   );
 }
 
-export function DeployableName({
+function DeployableName({
   autoDeploy,
   name,
+  href,
+  exposed,
+  health,
 }: {
   autoDeploy: boolean;
   name: string;
+  href: string;
+  exposed: boolean;
+  health: App["runtimeState"]["healthStatus"];
 }) {
+  const indicators = [
+    {
+      icon: WebhookIcon,
+      positive: autoDeploy,
+      label: autoDeploy ? "Auto-deploy enabled" : "Auto-deploy disabled",
+    },
+    {
+      icon: InternetIcon,
+      positive: exposed,
+      label: exposed
+        ? "Publicly exposed to the internet"
+        : "Not publicly exposed",
+    },
+    {
+      icon: HeartPulseIcon,
+      positive: health === "healthy",
+      label: {
+        healthy: "Healthy",
+        unhealthy: "Unhealthy",
+        starting: "Health check starting",
+        unknown: "Health unknown",
+        none: "No health status reported",
+      }[health],
+    },
+  ];
   return (
     <span className="inline-flex min-w-0 items-center gap-2">
-      <span className="truncate" title={name}>
-        {name}
+      <InlineLink className="min-w-0" href={href}>
+        <TooltipText className="block truncate" tabIndex={-1} tooltip={name}>
+          {name}
+        </TooltipText>
+      </InlineLink>
+      <span className="inline-flex shrink-0 items-center gap-1">
+        {indicators.map(({ icon, positive, label }) => (
+          <TooltipText
+            key={label}
+            aria-label={label}
+            tooltip={label}
+            className={`inline-flex size-5 shrink-0 items-center justify-center leading-none ${positive ? "text-success-soft-foreground" : "text-danger-soft-foreground"}`}
+            role="img"
+          >
+            <HugeiconsIcon aria-hidden="true" className="size-4" icon={icon} />
+          </TooltipText>
+        ))}
       </span>
-      {autoDeploy ? (
-        <span
-          aria-label="Auto-deploy enabled"
-          className="text-success-soft-foreground inline-flex size-5 shrink-0 self-center items-center justify-center leading-none"
-          role="img"
-          title="Auto-deploy enabled"
-        >
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-4"
-            icon={WebhookIcon}
-          />
-        </span>
-      ) : null}
     </span>
   );
 }
@@ -336,6 +377,9 @@ export function ResourceIdentity({ resource }: { resource: Resource }) {
         <DeployableName
           autoDeploy={Boolean(resource.config.autoDeploy)}
           name={resource.name}
+          href={`/sources/${resource.sourceId}/resources/${resource.id}`}
+          exposed={Boolean(resource.config.domains?.primary)}
+          health={resource.runtimeState.healthStatus}
         />
         <span className="text-xs text-muted">{type.label}</span>
       </span>

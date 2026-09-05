@@ -1,5 +1,7 @@
 "use client";
 
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+
 import { useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import {
@@ -308,10 +310,10 @@ function SecretVariablesEditor({
                   >
                     <div className="col-span-4 flex min-h-10 min-w-0 items-center gap-2">
                       {inherited ? (
-                        <span
+                        <TooltipText
                           aria-label={inheritedLabel}
                           className="inline-flex shrink-0 text-muted"
-                          title={inheritedLabel}
+                          tooltip={inheritedLabel}
                         >
                           <HugeiconsIcon
                             aria-hidden="true"
@@ -322,7 +324,7 @@ function SecretVariablesEditor({
                             }
                             size={16}
                           />
-                        </span>
+                        </TooltipText>
                       ) : null}
                       <span
                         className={`break-all font-mono text-sm ${

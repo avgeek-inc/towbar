@@ -1,5 +1,7 @@
 "use client";
 
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Children } from "react";
@@ -73,9 +75,9 @@ export function DashboardPage({
             icon={icon}
           />
           {titleContent ?? (
-            <span className="truncate" title={title}>
+            <TooltipText className="truncate" tooltip={title}>
               {title}
-            </span>
+            </TooltipText>
           )}
         </span>
       }
@@ -160,15 +162,17 @@ export function PageTabs({
                     {tab.icon}
                   </span>
                 ) : null}
-                <span
+                <TooltipText
                   className="truncate"
-                  title={typeof tab.label === "string" ? tab.label : undefined}
+                  tooltip={
+                    typeof tab.label === "string" ? tab.label : undefined
+                  }
                 >
                   {tab.label}
-                </span>
+                </TooltipText>
                 {tab.indicator ? (
                   typeof tab.indicator === "object" && tab.indicator.dot ? (
-                    <span
+                    <TooltipText
                       aria-label={
                         tab.indicator.ariaLabel ??
                         tab.indicator.label ??
@@ -176,7 +180,7 @@ export function PageTabs({
                       }
                       className="bg-warning size-2 shrink-0 rounded-full"
                       role="img"
-                      title={
+                      tooltip={
                         tab.indicator.ariaLabel ??
                         tab.indicator.label ??
                         "Warning"

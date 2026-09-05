@@ -1,5 +1,7 @@
 "use client";
 
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+
 import {
   Activity01Icon,
   AlertCircleIcon,
@@ -144,9 +146,9 @@ function ControlPlane({
       <Widget.Footer>
         <Widget.FooterDescription>
           Version{" "}
-          <span className="font-mono" title={version}>
+          <TooltipText className="font-mono" tooltip={version}>
             {shortVersion(version)}
-          </span>
+          </TooltipText>
         </Widget.FooterDescription>
       </Widget.Footer>
     </Widget>

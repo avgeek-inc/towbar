@@ -1,5 +1,7 @@
 "use client";
 
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+
 import { GithubIcon, GitBranchIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
@@ -41,12 +43,12 @@ export function SourceIndex() {
             className="size-5 shrink-0"
             icon={GithubIcon}
           />
-          <span
+          <TooltipText
             className="truncate"
-            title={`${source.repositoryOwner}/${source.repositoryName}`}
+            tooltip={`${source.repositoryOwner}/${source.repositoryName}`}
           >
             {source.repositoryOwner}/{source.repositoryName}
-          </span>
+          </TooltipText>
         </span>
       ),
       className: "w-full min-w-72",

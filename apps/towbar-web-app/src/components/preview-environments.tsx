@@ -1,5 +1,7 @@
 "use client";
 
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+
 import type { PreviewEnvironment } from "@workspace/towbar-web-client";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -47,12 +49,12 @@ export function PreviewEnvironments({
           >
             PR #{preview.pullRequestNumber}
           </a>
-          <span
+          <TooltipText
             className="max-w-48 truncate text-sm text-muted"
-            title={preview.branch}
+            tooltip={preview.branch}
           >
             {preview.branch}
-          </span>
+          </TooltipText>
         </div>
       ),
     },

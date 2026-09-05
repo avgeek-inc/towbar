@@ -1,5 +1,7 @@
 "use client";
 
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+
 import { Rocket01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -153,12 +155,12 @@ export function DeploymentQueue() {
                           variant="ghost"
                           onPress={() => openDeployment(deployment)}
                         >
-                          <span
+                          <TooltipText
                             className="min-w-0 truncate font-medium"
-                            title={deployableName}
+                            tooltip={deployableName}
                           >
                             {deployableName}
-                          </span>
+                          </TooltipText>
                           <DeploymentStateIndicator deployment={deployment} />
                         </Button>
                       );

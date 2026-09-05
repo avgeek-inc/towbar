@@ -1,3 +1,4 @@
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 
@@ -118,19 +119,19 @@ export function ResourceName({
 }) {
   return (
     <span className="grid min-w-0 gap-0.5">
-      <span
+      <TooltipText
         className="truncate"
-        title={typeof name === "string" ? name : undefined}
+        tooltip={typeof name === "string" ? name : undefined}
       >
         {name}
-      </span>
+      </TooltipText>
       {description ? (
-        <span
+        <TooltipText
           className="text-muted typography--body-xs truncate font-normal"
-          title={typeof description === "string" ? description : undefined}
+          tooltip={typeof description === "string" ? description : undefined}
         >
           {description}
-        </span>
+        </TooltipText>
       ) : null}
     </span>
   );

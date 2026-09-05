@@ -1,5 +1,7 @@
 "use client";
 
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+
 import {
   DashboardCircleIcon,
   DatabaseIcon,
@@ -159,7 +161,7 @@ function DeployableInventory({
           <ResourceIdentity resource={item} />
         ),
       className: "w-full min-w-64",
-      wrapRowLink: kind !== "app",
+      wrapRowLink: false,
       header: kind === "app" ? "App" : "Resource",
       key: "name",
     },
@@ -237,9 +239,9 @@ function SourceLink({ source }: { source?: Source }) {
         className="text-muted-foreground size-4 shrink-0"
         icon={GithubIcon}
       />
-      <span className="truncate" title={name}>
+      <TooltipText className="truncate" tooltip={name}>
         {name}
-      </span>
+      </TooltipText>
     </InlineLink>
   );
 }
@@ -288,10 +290,10 @@ function ServerInventory({
         const resourceCount = resourceCounts.get(server.canonicalIp) ?? 0;
         return (
           <span className="inline-flex items-center gap-5 whitespace-nowrap">
-            <span
+            <TooltipText
               aria-label={formatCount(appCount, "app")}
               className="inline-flex items-center gap-1.5"
-              title={formatCount(appCount, "app")}
+              tooltip={formatCount(appCount, "app")}
             >
               <HugeiconsIcon
                 aria-hidden="true"
@@ -299,11 +301,11 @@ function ServerInventory({
                 icon={DashboardCircleIcon}
               />
               <span className="tabular-nums">{appCount}</span>
-            </span>
-            <span
+            </TooltipText>
+            <TooltipText
               aria-label={formatCount(resourceCount, "resource")}
               className="inline-flex items-center gap-1.5"
-              title={formatCount(resourceCount, "resource")}
+              tooltip={formatCount(resourceCount, "resource")}
             >
               <HugeiconsIcon
                 aria-hidden="true"
@@ -311,7 +313,7 @@ function ServerInventory({
                 icon={DatabaseIcon}
               />
               <span className="tabular-nums">{resourceCount}</span>
-            </span>
+            </TooltipText>
           </span>
         );
       },

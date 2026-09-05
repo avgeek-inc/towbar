@@ -1,5 +1,7 @@
 "use client";
 
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+
 import { useState } from "react";
 import type { Key, ReactNode } from "react";
 
@@ -149,12 +151,12 @@ export function ResponsiveSubtabs({
                 isDisabled={tab.isDisabled}
                 key={tab.value}
               >
-                <span
+                <TooltipText
                   className={cn(
                     "relative z-10 inline-flex min-w-0 items-center gap-2",
                     layout === "inline" && "whitespace-nowrap",
                   )}
-                  title={tab.isDisabled ? tab.disabledReason : undefined}
+                  tooltip={tab.isDisabled ? tab.disabledReason : undefined}
                 >
                   {tab.icon ? (
                     <span
@@ -165,7 +167,7 @@ export function ResponsiveSubtabs({
                     </span>
                   ) : null}
                   {tab.label}
-                </span>
+                </TooltipText>
                 <Tabs.Indicator />
               </Tabs.Tab>
             ))}

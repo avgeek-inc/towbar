@@ -1,5 +1,7 @@
 "use client";
 
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+
 import { DeploymentDuration, ElapsedTime } from "./elapsed-time";
 import { isEventRunning } from "@/lib/elapsed-time";
 
@@ -452,13 +454,14 @@ export function DeploymentDetail() {
                                   <span>{step.message}</span>
                                 ) : null}
                                 {step.startedAt ? (
-                                  <time
+                                  <TooltipText
+                                    as="time"
                                     className="tabular-nums"
                                     dateTime={step.startedAt}
-                                    title={formatDate(step.startedAt)}
+                                    tooltip={formatDate(step.startedAt)}
                                   >
                                     {formatTime(step.startedAt)}
-                                  </time>
+                                  </TooltipText>
                                 ) : null}
                                 {step.startedAt ? (
                                   <ElapsedTime
