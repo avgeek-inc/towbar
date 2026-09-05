@@ -2,7 +2,13 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { GitBranchIcon, GlobeIcon, LockIcon } from "@hugeicons/core-free-icons";
+import {
+  Delete02Icon,
+  GitBranchIcon,
+  GlobeIcon,
+  LockIcon,
+  RestoreBinIcon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
   AppSecretBinding,
@@ -293,7 +299,7 @@ function SecretVariablesEditor({
             </EmptyState>
           ) : null}
           {keys.length > 0 || newKeys.length > 0 ? (
-            <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:gap-x-3">
+            <div className="grid gap-3">
               {keys.map((key) => {
                 const local = binding.keys.includes(key);
                 const removed = deleted.includes(key);
@@ -306,9 +312,9 @@ function SecretVariablesEditor({
                 return (
                   <div
                     key={key}
-                    className="grid grid-cols-2 items-center gap-3 md:col-span-3 md:grid-cols-subgrid"
+                    className="grid grid-cols-[repeat(8,minmax(0,1fr))_2.75rem] items-center gap-2 md:gap-3"
                   >
-                    <div className="flex min-h-10 min-w-0 items-center gap-2">
+                    <div className="col-span-4 flex min-h-10 min-w-0 items-center gap-2">
                       {inherited ? (
                         <span
                           aria-label={inheritedLabel}
@@ -334,41 +340,45 @@ function SecretVariablesEditor({
                         {key}
                       </span>
                     </div>
-                    <InputGroup fullWidth variant="secondary">
-                      <InputGroup.Prefix>
-                        <HugeiconsIcon
-                          aria-hidden="true"
-                          icon={LockIcon}
-                          size={16}
+                    <div className="col-span-4 min-w-0">
+                      <InputGroup fullWidth variant="secondary">
+                        <InputGroup.Prefix>
+                          <HugeiconsIcon
+                            aria-hidden="true"
+                            icon={LockIcon}
+                            size={16}
+                          />
+                        </InputGroup.Prefix>
+                        <InputGroup.Input
+                          aria-label={`Replacement value for ${key}`}
+                          autoComplete="off"
+                          spellCheck={false}
+                          placeholder={
+                            local
+                              ? "Configured — enter a replacement"
+                              : "Enter a local override"
+                          }
+                          value={
+                            Object.hasOwn(replacements, key)
+                              ? replacements[key]!
+                              : ""
+                          }
+                          disabled={!canManage || busy || removed}
+                          onChange={(event) => {
+                            const value = event.currentTarget.value;
+                            setReplacements((current) => ({
+                              ...current,
+                              [key]: value,
+                            }));
+                          }}
                         />
-                      </InputGroup.Prefix>
-                      <InputGroup.Input
-                        aria-label={`Replacement value for ${key}`}
-                        autoComplete="off"
-                        spellCheck={false}
-                        placeholder={
-                          local
-                            ? "Configured — enter a replacement"
-                            : "Enter a local override"
-                        }
-                        value={
-                          Object.hasOwn(replacements, key)
-                            ? replacements[key]!
-                            : ""
-                        }
-                        disabled={!canManage || busy || removed}
-                        onChange={(event) => {
-                          const value = event.currentTarget.value;
-                          setReplacements((current) => ({
-                            ...current,
-                            [key]: value,
-                          }));
-                        }}
-                      />
-                    </InputGroup>
+                      </InputGroup>
+                    </div>
                     {canManage && local ? (
                       <Button
-                        className="col-start-2 justify-self-start md:col-start-auto"
+                        aria-label={removed ? `Keep ${key}` : `Remove ${key}`}
+                        className="col-span-1 size-11 min-w-11 justify-self-end"
+                        isIconOnly
                         variant="secondary"
                         isDisabled={busy}
                         onPress={() => {
@@ -384,7 +394,11 @@ function SecretVariablesEditor({
                           });
                         }}
                       >
-                        {removed ? "Keep" : "Remove"}
+                        <HugeiconsIcon
+                          aria-hidden="true"
+                          icon={removed ? RestoreBinIcon : Delete02Icon}
+                          size={18}
+                        />
                       </Button>
                     ) : null}
                   </div>
@@ -393,52 +407,58 @@ function SecretVariablesEditor({
               {newKeys.map((row, index) => (
                 <div
                   key={row.id}
-                  className="grid grid-cols-2 items-start gap-3 md:col-span-3 md:grid-cols-subgrid"
+                  className="grid grid-cols-[repeat(8,minmax(0,1fr))_2.75rem] items-center gap-2 md:gap-3"
                 >
-                  <Input
-                    aria-label={`New variable ${index + 1} name`}
-                    autoComplete="off"
-                    placeholder="VARIABLE_NAME"
-                    spellCheck={false}
-                    variant="secondary"
-                    disabled={busy}
-                    value={row.key}
-                    onChange={(event) => {
-                      const value = event.currentTarget.value;
-                      setNewKeys((current) =>
-                        current.map((item) =>
-                          item.id === row.id ? { ...item, key: value } : item,
-                        ),
-                      );
-                    }}
-                  />
-                  <InputGroup fullWidth variant="secondary">
-                    <InputGroup.Prefix>
-                      <HugeiconsIcon
-                        aria-hidden="true"
-                        icon={LockIcon}
-                        size={16}
-                      />
-                    </InputGroup.Prefix>
-                    <InputGroup.Input
-                      aria-label={`New variable ${index + 1} value`}
+                  <div className="col-span-4 min-w-0">
+                    <Input
+                      aria-label={`New variable ${index + 1} name`}
                       autoComplete="off"
-                      placeholder="Value"
+                      placeholder="VARIABLE_NAME"
                       spellCheck={false}
+                      variant="secondary"
                       disabled={busy}
-                      value={row.value}
+                      value={row.key}
                       onChange={(event) => {
                         const value = event.currentTarget.value;
                         setNewKeys((current) =>
                           current.map((item) =>
-                            item.id === row.id ? { ...item, value } : item,
+                            item.id === row.id ? { ...item, key: value } : item,
                           ),
                         );
                       }}
                     />
-                  </InputGroup>
+                  </div>
+                  <div className="col-span-4 min-w-0">
+                    <InputGroup fullWidth variant="secondary">
+                      <InputGroup.Prefix>
+                        <HugeiconsIcon
+                          aria-hidden="true"
+                          icon={LockIcon}
+                          size={16}
+                        />
+                      </InputGroup.Prefix>
+                      <InputGroup.Input
+                        aria-label={`New variable ${index + 1} value`}
+                        autoComplete="off"
+                        placeholder="Value"
+                        spellCheck={false}
+                        disabled={busy}
+                        value={row.value}
+                        onChange={(event) => {
+                          const value = event.currentTarget.value;
+                          setNewKeys((current) =>
+                            current.map((item) =>
+                              item.id === row.id ? { ...item, value } : item,
+                            ),
+                          );
+                        }}
+                      />
+                    </InputGroup>
+                  </div>
                   <Button
-                    className="col-start-2 justify-self-start md:col-start-auto"
+                    aria-label={`Remove new variable ${index + 1}`}
+                    className="col-span-1 size-11 min-w-11 justify-self-end"
+                    isIconOnly
                     variant="secondary"
                     isDisabled={busy}
                     onPress={() =>
@@ -447,7 +467,11 @@ function SecretVariablesEditor({
                       )
                     }
                   >
-                    Remove
+                    <HugeiconsIcon
+                      aria-hidden="true"
+                      icon={Delete02Icon}
+                      size={18}
+                    />
                   </Button>
                 </div>
               ))}
