@@ -29,6 +29,32 @@ docker compose config --quiet
 docker compose build
 ```
 
+## Documentation
+
+The Mintlify project lives in `docs/`, organized into Guides, Self-hosting, and
+Reference. Write task pages around prerequisites, the action, and a way to verify
+the result. Keep manifest field details in the reference and link to them from guides.
+Use documentation-only IPs and domains, and never include credentials in examples
+or screenshots. Feature screenshots should include light and dark variants,
+descriptive alt text, and enough resolution for Retina displays.
+
+When the public manifest schema or starter manifest changes, update their
+published copies:
+
+```bash
+pnpm docs:sync
+pnpm docs:check
+```
+
+`pnpm docs:check` verifies page metadata, navigation, internal links, and published
+artifacts. Core tests parse the YAML examples against the deployment contract.
+
+Install the [Mintlify CLI](https://www.mintlify.com/docs/cli/install), then run
+`mint dev` from `docs/` for a local preview. Before publishing, run `mint validate`
+and `mint broken-links` from that directory. Review changed pages on desktop and
+mobile, in light and dark mode. Configure Mintlify with `/docs` as this repository's
+documentation path.
+
 ## Pull requests
 
 - Keep each change focused.
