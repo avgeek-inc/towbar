@@ -30,7 +30,11 @@ import {
   getActiveDeploymentStates,
   resolveInventoryStatus,
 } from "@/lib/inventory-status";
-import { DefinedResourceLimit } from "./defined-resource-limit";
+import { DefinedCpuCapacity, DefinedMemoryCapacity } from "./server-capacity";
+import {
+  InventoryRuntimeCapacity,
+  useInventoryRuntimeCapacity,
+} from "./inventory-runtime-capacity";
 import { formatBytes } from "./runtime-operations";
 import { LastSyncedTime, RelativeTime } from "./last-synced-time";
 import { ServerIpLink } from "./source-inventory";
@@ -132,19 +136,34 @@ export function ServersIndex() {
   );
 }
 
-function DeployableInventory({
-  deployments,
-  items,
-  kind,
-  servers,
-  sources,
-}: {
+function DeployableInventory(props: DeployableInventoryProps) {
+  const serverIps = new Set(props.items.map((item) => item.serverIp));
+  const serverIds = props.servers
+    .filter((server) => serverIps.has(server.canonicalIp))
+    .map((server) => server.id);
+  return (
+    <InventoryRuntimeCapacity serverIds={serverIds}>
+      <DeployableInventoryTable {...props} />
+    </InventoryRuntimeCapacity>
+  );
+}
+
+type DeployableInventoryProps = {
   deployments: Deployment[];
   items: App[] | Resource[];
   kind: "app" | "resource";
   servers: Server[];
   sources: Source[];
-}) {
+};
+
+function DeployableInventoryTable({
+  deployments,
+  items,
+  kind,
+  servers,
+  sources,
+}: DeployableInventoryProps) {
+  const runtimeById = useInventoryRuntimeCapacity();
   const activeDeploymentStates = getActiveDeploymentStates(deployments);
   const sourcesById = new Map(sources.map((source) => [source.id, source]));
   const serversByIp = new Map(
@@ -183,9 +202,9 @@ function DeployableInventory({
     },
     {
       cell: (item) => (
-        <DefinedResourceLimit
+        <DefinedCpuCapacity
           limits={item.config.container.resources}
-          metric="cpu"
+          runtime={runtimeById.get(item.id)}
         />
       ),
       className: "min-w-36 whitespace-nowrap",
@@ -194,9 +213,9 @@ function DeployableInventory({
     },
     {
       cell: (item) => (
-        <DefinedResourceLimit
+        <DefinedMemoryCapacity
           limits={item.config.container.resources}
-          metric="memory"
+          runtime={runtimeById.get(item.id)}
         />
       ),
       className: "min-w-40 whitespace-nowrap",

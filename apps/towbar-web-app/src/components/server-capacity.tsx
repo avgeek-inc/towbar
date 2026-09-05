@@ -231,7 +231,9 @@ export function DefinedCpuCapacity({
           <span className="text-xs text-muted">Observed usage</span>
           <RuntimeCpuMeter runtime={runtime} />
         </div>
-      ) : null}
+      ) : (
+        <span className="text-xs text-muted">Usage unavailable</span>
+      )}
     </div>
   );
 }
@@ -253,7 +255,9 @@ export function DefinedMemoryCapacity({
           <span className="text-xs text-muted">Observed usage / limit</span>
           <RuntimeMemoryMeter runtime={runtime} />
         </div>
-      ) : null}
+      ) : (
+        <span className="text-xs text-muted">Usage unavailable</span>
+      )}
     </div>
   );
 }
