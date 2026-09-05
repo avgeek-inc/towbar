@@ -125,7 +125,7 @@ export function DashboardOverview() {
 
   return (
     <DashboardPage title="Overview">
-      <div className="grid gap-3 sm:hidden">
+      <div className="grid grid-cols-2 gap-3 sm:hidden">
         {metrics.map((metric) => (
           <MetricCard
             className="rounded-3xl border border-separator bg-surface"
