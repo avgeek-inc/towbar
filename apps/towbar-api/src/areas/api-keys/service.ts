@@ -25,7 +25,7 @@ export function hashApiKey(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 export async function listApiKeys(user: AuthenticatedUser) {
-  return getTowbarDatabase()
+  return await getTowbarDatabase()
     .select(publicColumns)
     .from(apiKeys)
     .where(
@@ -46,7 +46,7 @@ export async function createApiKey(
   },
 ) {
   const token = `twb_${randomBytes(32).toString("base64url")}`;
-  return getTowbarDatabase().transaction(async (database) => {
+  return await getTowbarDatabase().transaction(async (database) => {
     const [key] = await database
       .insert(apiKeys)
       .values({
