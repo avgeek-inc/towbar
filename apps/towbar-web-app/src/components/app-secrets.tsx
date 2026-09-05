@@ -274,7 +274,7 @@ function SecretVariablesEditor({
         </Widget.Header>
         <Widget.Content className="grid min-w-0 gap-5">
           {!keys.length && !newKeys.length ? (
-            <EmptyState className="rounded-2xl border border-separator py-12">
+            <EmptyState>
               <EmptyState.Header>
                 <EmptyState.Title>
                   No {stageLabel.toLowerCase()} secrets

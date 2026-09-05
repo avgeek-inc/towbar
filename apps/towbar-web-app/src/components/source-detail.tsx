@@ -35,9 +35,9 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import {
   ActionButton,
   DashboardPage,
+  FormCard,
   InlineLink,
   PageTabs,
-  SectionBlock,
   sourcesBreadcrumb,
 } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -369,11 +369,13 @@ function SourceSettings({
                 value: "danger",
                 label: "Danger zone",
                 content: (
-                  <SectionBlock
-                    description="Deleting a Source removes its imported inventory and operational history. Workspace integrations, servers, and backup objects already in S3 remain available."
-                    title="Danger zone"
-                  >
-                    <div>
+                  <FormCard title="Danger zone">
+                    <div className="grid gap-5">
+                      <p className="max-w-3xl text-sm text-muted">
+                        Deleting a Source removes its imported inventory and
+                        operational history. Workspace integrations, servers,
+                        and backup objects already in S3 remain available.
+                      </p>
                       <ActionButton
                         action={() =>
                           api.delete(`/v1/core/sources/${sourceId}`)
@@ -392,7 +394,7 @@ function SourceSettings({
                         Delete Source
                       </ActionButton>
                     </div>
-                  </SectionBlock>
+                  </FormCard>
                 ),
               },
             ]

@@ -25,7 +25,6 @@ import { PageSection } from "@workspace/web-design-system/layouts/page";
 import { cn } from "@workspace/web-design-system/lib/utils";
 import { ApplicationPage } from "@workspace/web-page-sections/page";
 import type { BreadcrumbAncestors } from "@workspace/web-page-sections/page";
-import { TowbarSection } from "@workspace/towbar-web-ui/section";
 
 import { refreshApiQueries } from "@/hooks/use-api-query";
 
@@ -73,28 +72,6 @@ export function DashboardPage({
         {Children.toArray(children)}
       </PageSection>
     </ApplicationPage>
-  );
-}
-
-export function SectionBlock({
-  children,
-  description,
-  headingLevel,
-  title,
-}: {
-  children: ReactNode;
-  description?: string;
-  headingLevel?: 2 | 3 | 4 | 5 | 6;
-  title: string;
-}) {
-  return (
-    <TowbarSection
-      description={description}
-      headingLevel={headingLevel}
-      title={title}
-    >
-      {children}
-    </TowbarSection>
   );
 }
 

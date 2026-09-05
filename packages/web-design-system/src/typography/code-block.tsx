@@ -11,16 +11,14 @@ import {
 import { Copy01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Button, type ButtonProps } from "../buttons/button";
+import { Widget } from "../data-display/widget";
 import { cn } from "../lib/utils";
 
 const Root = forwardRef<HTMLDivElement, ComponentPropsWithRef<"div">>(
   ({ className, ...props }, ref) => (
-    <div
+    <Widget
       ref={ref}
-      className={cn(
-        "overflow-hidden rounded-3xl border border-separator bg-surface",
-        className,
-      )}
+      className={cn("min-w-0", className)}
       data-slot="code-block"
       {...props}
     />
@@ -28,24 +26,23 @@ const Root = forwardRef<HTMLDivElement, ComponentPropsWithRef<"div">>(
 );
 
 const Header = forwardRef<HTMLDivElement, ComponentPropsWithRef<"div">>(
-  ({ className, ...props }, ref) => (
-    <div
+  ({ children, className, ...props }, ref) => (
+    <Widget.Header
       ref={ref}
-      className={cn(
-        "flex min-h-12 items-center justify-between gap-3 border-b border-separator px-4 py-2",
-        className,
-      )}
+      className={className}
       data-slot="code-block-header"
       {...props}
-    />
+    >
+      {children}
+    </Widget.Header>
   ),
 );
 
 const Filename = forwardRef<HTMLSpanElement, ComponentPropsWithRef<"span">>(
   ({ className, ...props }, ref) => (
-    <span
+    <Widget.Title
       ref={ref}
-      className={cn("truncate text-xs font-medium text-muted", className)}
+      className={cn("min-w-0 truncate text-muted", className)}
       data-slot="code-block-filename"
       {...props}
     />
@@ -59,15 +56,17 @@ const Code = forwardRef<
     language?: string;
   }
 >(({ className, code, language, ...props }, ref) => (
-  <pre
-    ref={ref}
-    className={cn("m-0 overflow-x-auto p-4 text-sm", className)}
-    data-language={language}
-    data-slot="code-block-code"
-    {...props}
-  >
-    <code>{code}</code>
-  </pre>
+  <Widget.Content className="p-0">
+    <pre
+      ref={ref}
+      className={cn("m-0 overflow-x-auto p-4 text-sm", className)}
+      data-language={language}
+      data-slot="code-block-code"
+      {...props}
+    >
+      <code>{code}</code>
+    </pre>
+  </Widget.Content>
 ));
 
 type CopyButtonProps = Omit<ButtonProps, "children" | "onPress"> & {
