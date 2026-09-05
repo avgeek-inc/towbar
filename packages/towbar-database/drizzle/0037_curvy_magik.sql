@@ -44,10 +44,10 @@ WHERE "server_id" IN (SELECT "duplicate_id" FROM "towbar_server_deduplication");
 DELETE FROM "towbar_servers"
 WHERE "id" IN (SELECT "duplicate_id" FROM "towbar_server_deduplication");--> statement-breakpoint
 DROP TABLE "towbar_server_deduplication";--> statement-breakpoint
+ALTER TABLE "towbar_resource_operations" ALTER COLUMN "source_id" DROP NOT NULL;--> statement-breakpoint
 UPDATE "towbar_resource_operations"
 SET "source_id" = NULL
 WHERE "type" = 'cleanup_orphans';--> statement-breakpoint
-ALTER TABLE "towbar_resource_operations" ALTER COLUMN "source_id" DROP NOT NULL;--> statement-breakpoint
 CREATE UNIQUE INDEX "uq_towbar_servers_workspace_ip" ON "towbar_servers" USING btree ("workspace_id","canonical_ip");--> statement-breakpoint
 CREATE UNIQUE INDEX "uq_towbar_servers_secret_owner" ON "towbar_servers" USING btree ("id","workspace_id");--> statement-breakpoint
 ALTER TABLE "towbar_managed_secrets" ADD CONSTRAINT "fk_towbar_secret_servers_owner" FOREIGN KEY ("server_id","workspace_id") REFERENCES "public"."towbar_servers"("id","workspace_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

@@ -168,7 +168,15 @@
     "options": ["copy", "view", "chatgpt", "claude"]
   },
   "seo": {
-    "indexing": "all"
+    "indexing": "all",
+    "metatags": {
+      "og:image": "https://www.towbar.dev/assets/towbar-og.png",
+      "og:image:width": "1200",
+      "og:image:height": "630",
+      "og:image:alt": "Towbar \u2014 Open-Source Git-native PaaS",
+      "twitter:card": "summary_large_image",
+      "twitter:image": "https://www.towbar.dev/assets/towbar-og.png"
+    }
   },
   "redirects": [],
   "metadata": {

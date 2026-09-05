@@ -5,6 +5,12 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Upgrades with existing orphan-cleanup history now make the Source reference
+  nullable before clearing it during the workspace-owned server migration.
+- Social previews now use the custom Towbar artwork for Open Graph and Twitter.
+
 ## [1.5.0] - 2026-09-05
 
 ### Added
