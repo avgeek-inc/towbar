@@ -78,15 +78,7 @@ export function ResourceSecrets({ resourceId }: { resourceId: string }) {
   const query = useApiQuery<AppSecretsResponse>(active ? endpoint : null);
   if (!active) return null;
   return (
-    <div className="grid max-w-5xl gap-6">
-      <div className="grid gap-1.5">
-        <h3 className="text-lg font-semibold">Secrets</h3>
-        <p className="max-w-2xl text-sm text-muted">
-          Runtime values override Source defaults and apply on the next
-          deployment. Updating a stored password does not rotate the password
-          inside an existing database.
-        </p>
-      </div>
+    <div className="max-w-5xl">
       <EnvironmentEditors endpoint={endpoint} query={query} />
     </div>
   );
