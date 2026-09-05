@@ -1,4 +1,5 @@
 "use client";
+import { MonitoringHistory } from "./monitoring-history";
 
 import {
   DashboardCircleIcon,
@@ -236,6 +237,12 @@ export function AppDetail() {
                     {item.config.autoDeploy ? "Enabled" : "Disabled"}
                   </Attributes.Item>
                 </Attributes>
+                <div className="min-w-0 lg:col-span-2">
+                  <MonitoringHistory
+                    path={`/v1/core/apps/${appId}/metrics`}
+                    workload
+                  />
+                </div>
               </div>
             ),
           },

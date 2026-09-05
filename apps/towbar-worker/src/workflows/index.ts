@@ -7,3 +7,4 @@ export * from "./concurrent-server-coordinator.workflow.js";
 export * from "./server-coordinator.workflow.js";
 export * from "./source-coordinator.workflow.js";
 export * from "./vulnerability-scan.workflow.js";
+export * from "./monitoring-agent.workflow.js";

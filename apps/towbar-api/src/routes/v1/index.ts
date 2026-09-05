@@ -1,3 +1,4 @@
+import { monitoringIngestRoutes } from "./monitoring.js";
 import { externalApiRoutes } from "./external.js";
 import { mcpRoutes } from "./mcp.js";
 import { Hono } from "hono";
@@ -17,3 +18,5 @@ internalV1.route("/internal", internalRoutes);
 
 publicV1.route("/api", externalApiRoutes);
 publicV1.route("/mcp", mcpRoutes);
+
+publicV1.route("/monitoring", monitoringIngestRoutes);

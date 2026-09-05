@@ -1,4 +1,10 @@
 # syntax=docker/dockerfile:1.7
+FROM golang:1.26.4-bookworm AS monitoring-builder
+WORKDIR /agent
+COPY apps/towbar-monitoring-agent/ ./
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/towbar-monitoring-linux-amd64 . \
+  && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o /out/towbar-monitoring-linux-arm64 .
+
 FROM node:24-bookworm-slim AS base
 
 FROM base AS pruner
@@ -31,6 +37,8 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 COPY --from=builder --chown=node:node /prod/towbar-worker ./
 COPY --from=builder --chown=node:node /repo/apps/towbar-worker/dist ./dist
+COPY --from=monitoring-builder --chown=node:node /out/ /app/monitoring-agent/
+ENV TOWBAR_MONITORING_BINARY_DIR=/app/monitoring-agent
 USER node
 EXPOSE 4030
 HEALTHCHECK --interval=20s --timeout=5s --start-period=15s --retries=5 \

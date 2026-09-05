@@ -1,3 +1,7 @@
+import {
+  fixtureMonitoringAgent,
+  fixtureMonitoringHistory,
+} from "./monitoring-fixture.ts";
 import { randomUUID } from "node:crypto";
 import {
   createServer,
@@ -837,6 +841,12 @@ const workflowStates: DeploymentState[] = [
 ];
 
 export function createFixtureApiServer() {
+  const monitoring = new Map(
+    servers.map((server, index) => [
+      server.id,
+      fixtureMonitoringAgent(index === 0),
+    ]),
+  );
   awsCredential = null;
   const apiKeys: Array<{
     id: string;
@@ -858,6 +868,80 @@ export function createFixtureApiServer() {
 
     const requestUrl = new URL(request.url ?? "/", "http://localhost");
     const path = requestUrl.pathname;
+    const monitoringPath = path.match(
+      /^\/v1\/core\/servers\/([^/]+)\/monitoring(?:\/actions\/(install|uninstall))?$/,
+    );
+    if (monitoringPath) {
+      const id = monitoringPath[1]!;
+      const agent = monitoring.get(id);
+      if (!agent) {
+        writeNotFound(response);
+        return;
+      }
+      if (request.method === "GET") {
+        writeJson(response, 200, { agent });
+        return;
+      }
+      void readRequestJson(request)
+        .then((body) => {
+          const input = body as {
+            retentionDays?: number;
+            acknowledge?: boolean;
+          };
+          if (
+            input.retentionDays &&
+            ![7, 15, 30, 60].includes(input.retentionDays)
+          ) {
+            writeJson(response, 400, {
+              error: { message: "Invalid retention" },
+            });
+            return;
+          }
+          if (monitoringPath[2] === "install" && !input.acknowledge) {
+            writeJson(response, 400, {
+              error: { message: "Acknowledgement required" },
+            });
+            return;
+          }
+          if (input.retentionDays) agent.retentionDays = input.retentionDays;
+          if (monitoringPath[2] === "install")
+            Object.assign(agent, fixtureMonitoringAgent(), {
+              retentionDays: agent.retentionDays,
+            });
+          if (monitoringPath[2] === "uninstall")
+            Object.assign(agent, {
+              desiredState: "disabled",
+              status: "disabled",
+            });
+          writeJson(response, monitoringPath[2] ? 202 : 200, { agent });
+        })
+        .catch(() =>
+          writeJson(response, 400, { error: { message: "Invalid JSON" } }),
+        );
+      return;
+    }
+    const metricsPath = path.match(
+      /^\/v1\/core\/(servers|apps|resources)\/([^/]+)\/metrics$/,
+    );
+    if (metricsPath) {
+      const workload = metricsPath[1] !== "servers";
+      const id = workload
+        ? [...apps, ...resources].find((item) => item.id === metricsPath[2])
+            ?.serverId
+        : metricsPath[2];
+      const agent = id ? monitoring.get(id) : undefined;
+      if (!agent || !id) {
+        writeNotFound(response);
+        return;
+      }
+      writeJson(
+        response,
+        200,
+        fixtureMonitoringHistory(agent, id, requestUrl.searchParams, workload),
+      );
+      return;
+    }
+
     if (path === "/v1/core/settings/api-keys") {
       if (request.method === "POST") {
         void readRequestJson(request)

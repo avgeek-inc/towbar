@@ -202,11 +202,11 @@ export function ServerEditor({
                 actionLabel: "Remove server",
                 title: `Remove ${server.canonicalIp} from Towbar?`,
                 description:
-                  "Towbar will stop checking and managing this server and forget its stored credentials and trusted host keys. The machine and its services keep running. Apps, resources, and previews must be removed or moved first, and active operations must finish. You can register the server again later.",
+                  "Towbar will stop checking and managing this server and forget its stored credentials and trusted host keys. If monitoring is installed, Towbar removes the agent before forgetting SSH access. The machine and its services keep running. Apps, resources, and previews must be removed or moved first, and active operations must finish. You can register the server again later.",
               }}
               onSuccess={() => router.push("/servers")}
               pendingLabel="Removing…"
-              success="Server removed"
+              success="Server removal requested"
               variant="danger"
             >
               Remove server

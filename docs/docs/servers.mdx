@@ -110,3 +110,7 @@ Workspace owners see **Settings → Configuration → Remove server** only when 
 Removing a server stops Towbar management and scheduled checks, deletes its stored SSH and Cloudflare credentials, and revokes its trusted host keys. It does not terminate the cloud instance, stop services, or erase Docker data. Use **Cleanup** first if you want to remove leftovers from the host.
 
 You can register the same IP again later. Configure credentials and verify host-key trust again before preparing it. Historical records and workload ownership remain available.
+
+## Monitoring Agent
+
+Enable opt-in 30-second host and container reporting in **Settings → Monitoring Agent**. The agent starts after reboots, uses a bounded local buffer, and retains history for 15 days by default (up to 60). See [enhanced monitoring](/docs/monitoring#enhanced-monitoring-agent) for setup, charts, retention, and removal.

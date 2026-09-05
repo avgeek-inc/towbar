@@ -1,5 +1,7 @@
 "use client";
 
+import { MonitoringAgentSettings } from "./monitoring-agent-settings";
+import { MonitoringHistory } from "./monitoring-history";
 import { ElapsedTime } from "./elapsed-time";
 
 import { ConfigurationLinks } from "./configuration-links";
@@ -17,7 +19,7 @@ import {
   Settings01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import type {
   OrphanItem,
@@ -76,6 +78,10 @@ type HostKeyRow = {
 const SERVER_CHECK_PAGE_SIZE = 10;
 
 export function ServerDetail() {
+  const settingsTab =
+    useSearchParams().get("settings") === "monitoring"
+      ? "monitoring"
+      : "configuration";
   const { serverId } = useParams<{
     serverId: string;
   }>();
@@ -381,6 +387,10 @@ export function ServerDetail() {
                     />
                   )}
                   <ServerHostCapacity capacity={capacity.data.capacity} />
+                  <MonitoringHistory
+                    path={`/v1/core/servers/${serverId}/metrics`}
+                    serverId={serverId}
+                  />
                   <div className="content-grid lg:grid-cols-2">
                     <Attributes
                       icon={<HugeiconsIcon icon={Link01Icon} />}
@@ -531,7 +541,8 @@ export function ServerDetail() {
               content: (
                 <ResponsiveSubtabs
                   ariaLabel="Server settings"
-                  defaultSelectedKey="configuration"
+                  defaultSelectedKey={settingsTab}
+                  key={settingsTab}
                   tabs={[
                     {
                       value: "configuration",
@@ -541,6 +552,17 @@ export function ServerDetail() {
                           canManage={server.data.canManageServer}
                           canRemove={server.data.canRemoveServer}
                           server={item}
+                        />
+                      ),
+                    },
+                    {
+                      value: "monitoring",
+                      label: "Monitoring Agent",
+                      content: (
+                        <MonitoringAgentSettings
+                          serverId={serverId}
+                          canManage={server.data.canManageServer}
+                          ready={setupStatus === "ready"}
                         />
                       ),
                     },
