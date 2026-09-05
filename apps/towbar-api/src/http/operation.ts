@@ -13,6 +13,7 @@ export type OperationDescription = {
   status?: number;
   additionalStatuses?: number[];
   stream?: boolean;
+  browserOnly?: boolean;
 };
 const descriptions = new WeakMap<
   MiddlewareHandler<TowbarHonoEnvironment>,
@@ -26,6 +27,8 @@ export function operation(
     context,
     next,
   ) => {
+    if (description.browserOnly && context.get("apiKey"))
+      return context.notFound();
     for (const [name, value] of Object.entries(context.req.param())) {
       if (/Id$/.test(name)) z.uuid().parse(value);
     }

@@ -4620,132 +4620,11 @@
     }
   },
   "paths": {
-    "/settings/api-keys": {
-      "get": {
-        "operationId": "get_settings_api_keys",
-        "summary": "List API keys",
-        "tags": ["settings"],
-        "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "JSON object containing keys, apiUrl, mcpUrl, rateLimit.",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_1" }
-              }
-            }
-          },
-          "400": { "$ref": "#/components/responses/ApiError" },
-          "401": { "$ref": "#/components/responses/ApiError" },
-          "403": { "$ref": "#/components/responses/ApiError" },
-          "404": { "$ref": "#/components/responses/ApiError" },
-          "409": { "$ref": "#/components/responses/ApiError" },
-          "413": { "$ref": "#/components/responses/ApiError" },
-          "422": { "$ref": "#/components/responses/ApiError" },
-          "429": { "$ref": "#/components/responses/RateLimited" },
-          "500": { "$ref": "#/components/responses/ApiError" }
-        }
-      },
-      "post": {
-        "operationId": "post_settings_api_keys",
-        "summary": "Create API key",
-        "tags": ["settings"],
-        "description": "Available to workspace members and owners. Requires a full-access key.",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$schema": "https://json-schema.org/draft/2020-12/schema",
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 120
-                  },
-                  "access": { "type": "string", "enum": ["read", "write"] },
-                  "expiresAt": {
-                    "anyOf": [
-                      {
-                        "type": "string",
-                        "format": "date-time",
-                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
-                      },
-                      { "type": "null" }
-                    ]
-                  }
-                },
-                "required": ["name", "access"],
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Key metadata and the one-time token. Save the token now; it cannot be retrieved later.",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_4" }
-              }
-            }
-          },
-          "400": { "$ref": "#/components/responses/ApiError" },
-          "401": { "$ref": "#/components/responses/ApiError" },
-          "403": { "$ref": "#/components/responses/ApiError" },
-          "404": { "$ref": "#/components/responses/ApiError" },
-          "409": { "$ref": "#/components/responses/ApiError" },
-          "413": { "$ref": "#/components/responses/ApiError" },
-          "422": { "$ref": "#/components/responses/ApiError" },
-          "429": { "$ref": "#/components/responses/RateLimited" },
-          "500": { "$ref": "#/components/responses/ApiError" }
-        }
-      }
-    },
-    "/settings/api-keys/{keyId}": {
-      "delete": {
-        "operationId": "delete_settings_api_keys_by_id",
-        "summary": "Revoke API key",
-        "tags": ["settings"],
-        "description": "Available to workspace members and owners. Requires a full-access key.",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "name": "keyId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "$schema": "https://json-schema.org/draft/2020-12/schema",
-              "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-            }
-          }
-        ],
-        "responses": {
-          "204": { "description": "No response body." },
-          "400": { "$ref": "#/components/responses/ApiError" },
-          "401": { "$ref": "#/components/responses/ApiError" },
-          "403": { "$ref": "#/components/responses/ApiError" },
-          "404": { "$ref": "#/components/responses/ApiError" },
-          "409": { "$ref": "#/components/responses/ApiError" },
-          "413": { "$ref": "#/components/responses/ApiError" },
-          "422": { "$ref": "#/components/responses/ApiError" },
-          "429": { "$ref": "#/components/responses/RateLimited" },
-          "500": { "$ref": "#/components/responses/ApiError" }
-        }
-      }
-    },
     "/github": {
       "get": {
         "operationId": "get_github",
         "summary": "Get GitHub integration",
-        "tags": ["github"],
+        "tags": ["Integrations / GitHub"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [],
@@ -4772,7 +4651,7 @@
       "delete": {
         "operationId": "delete_github",
         "summary": "Disconnect GitHub",
-        "tags": ["github"],
+        "tags": ["Integrations / GitHub"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [],
@@ -4794,7 +4673,7 @@
       "post": {
         "operationId": "post_github_actions_retry_preview_reporting",
         "summary": "Retry failed preview reporting",
-        "tags": ["github"],
+        "tags": ["Integrations / GitHub"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [],
@@ -4819,90 +4698,11 @@
         }
       }
     },
-    "/github/actions/installation-url": {
-      "post": {
-        "operationId": "post_github_actions_installation_url",
-        "summary": "Create installation URL",
-        "tags": ["github"],
-        "description": "Available to workspace members and owners. Requires a full-access key.",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "JSON object containing url.",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_119" }
-              }
-            }
-          },
-          "400": { "$ref": "#/components/responses/ApiError" },
-          "401": { "$ref": "#/components/responses/ApiError" },
-          "403": { "$ref": "#/components/responses/ApiError" },
-          "404": { "$ref": "#/components/responses/ApiError" },
-          "409": { "$ref": "#/components/responses/ApiError" },
-          "413": { "$ref": "#/components/responses/ApiError" },
-          "422": { "$ref": "#/components/responses/ApiError" },
-          "429": { "$ref": "#/components/responses/RateLimited" },
-          "500": { "$ref": "#/components/responses/ApiError" }
-        }
-      }
-    },
-    "/github/actions/complete-installation": {
-      "post": {
-        "operationId": "post_github_actions_complete_installation",
-        "summary": "Complete installation",
-        "tags": ["github"],
-        "description": "Available to workspace members and owners. Requires a full-access key.",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$schema": "https://json-schema.org/draft/2020-12/schema",
-                "type": "object",
-                "properties": {
-                  "installationId": { "type": "string", "pattern": "^\\d+$" },
-                  "state": {
-                    "type": "string",
-                    "minLength": 20,
-                    "maxLength": 4096
-                  }
-                },
-                "required": ["installationId", "state"],
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "JSON object containing installation.",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_120" }
-              }
-            }
-          },
-          "400": { "$ref": "#/components/responses/ApiError" },
-          "401": { "$ref": "#/components/responses/ApiError" },
-          "403": { "$ref": "#/components/responses/ApiError" },
-          "404": { "$ref": "#/components/responses/ApiError" },
-          "409": { "$ref": "#/components/responses/ApiError" },
-          "413": { "$ref": "#/components/responses/ApiError" },
-          "422": { "$ref": "#/components/responses/ApiError" },
-          "429": { "$ref": "#/components/responses/RateLimited" },
-          "500": { "$ref": "#/components/responses/ApiError" }
-        }
-      }
-    },
     "/github/repositories": {
       "get": {
         "operationId": "get_github_repositories",
         "summary": "Get workspace GitHub repositories",
-        "tags": ["github"],
+        "tags": ["Integrations / GitHub"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [],
@@ -4931,7 +4731,7 @@
       "get": {
         "operationId": "get_aws",
         "summary": "Get AWS credential metadata",
-        "tags": ["aws"],
+        "tags": ["Integrations / AWS"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [],
@@ -4958,7 +4758,7 @@
       "put": {
         "operationId": "put_aws",
         "summary": "Save AWS credentials",
-        "tags": ["aws"],
+        "tags": ["Integrations / AWS"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [],
@@ -5016,482 +4816,12 @@
       "delete": {
         "operationId": "delete_aws",
         "summary": "Delete AWS credentials",
-        "tags": ["aws"],
+        "tags": ["Integrations / AWS"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [],
         "responses": {
           "204": { "description": "No response body." },
-          "400": { "$ref": "#/components/responses/ApiError" },
-          "401": { "$ref": "#/components/responses/ApiError" },
-          "403": { "$ref": "#/components/responses/ApiError" },
-          "404": { "$ref": "#/components/responses/ApiError" },
-          "409": { "$ref": "#/components/responses/ApiError" },
-          "413": { "$ref": "#/components/responses/ApiError" },
-          "422": { "$ref": "#/components/responses/ApiError" },
-          "429": { "$ref": "#/components/responses/RateLimited" },
-          "500": { "$ref": "#/components/responses/ApiError" }
-        }
-      }
-    },
-    "/sources/{sourceId}/notifications/destinations": {
-      "get": {
-        "operationId": "get_sources_by_id_notifications_destinations",
-        "summary": "List notification destinations",
-        "tags": ["sources"],
-        "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "name": "sourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "$schema": "https://json-schema.org/draft/2020-12/schema",
-              "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "JSON object containing canManageNotifications, destinations, providers.",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_214" }
-              }
-            }
-          },
-          "400": { "$ref": "#/components/responses/ApiError" },
-          "401": { "$ref": "#/components/responses/ApiError" },
-          "403": { "$ref": "#/components/responses/ApiError" },
-          "404": { "$ref": "#/components/responses/ApiError" },
-          "409": { "$ref": "#/components/responses/ApiError" },
-          "413": { "$ref": "#/components/responses/ApiError" },
-          "422": { "$ref": "#/components/responses/ApiError" },
-          "429": { "$ref": "#/components/responses/RateLimited" },
-          "500": { "$ref": "#/components/responses/ApiError" }
-        }
-      },
-      "post": {
-        "operationId": "post_sources_by_id_notifications_destinations",
-        "summary": "Create notification destination",
-        "tags": ["sources"],
-        "description": "Requires workspace owner permission. Requires a full-access key.",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "name": "sourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "$schema": "https://json-schema.org/draft/2020-12/schema",
-              "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$schema": "https://json-schema.org/draft/2020-12/schema",
-                "oneOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "categories": {
-                        "minItems": 1,
-                        "maxItems": 5,
-                        "type": "array",
-                        "items": {
-                          "type": "string",
-                          "enum": [
-                            "deployments",
-                            "previews",
-                            "health",
-                            "backups",
-                            "restores"
-                          ]
-                        }
-                      },
-                      "enabled": { "type": "boolean" },
-                      "config": {
-                        "type": "object",
-                        "properties": {
-                          "channelId": {
-                            "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9]{1,79}$"
-                          }
-                        },
-                        "required": ["channelId"],
-                        "additionalProperties": false
-                      },
-                      "provider": { "type": "string", "const": "slack" }
-                    },
-                    "required": ["categories", "enabled", "config", "provider"],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "categories": {
-                        "minItems": 1,
-                        "maxItems": 5,
-                        "type": "array",
-                        "items": {
-                          "type": "string",
-                          "enum": [
-                            "deployments",
-                            "previews",
-                            "health",
-                            "backups",
-                            "restores"
-                          ]
-                        }
-                      },
-                      "enabled": { "type": "boolean" },
-                      "config": {
-                        "type": "object",
-                        "properties": {
-                          "recipients": {
-                            "minItems": 1,
-                            "maxItems": 20,
-                            "type": "array",
-                            "items": {
-                              "type": "string",
-                              "maxLength": 320,
-                              "format": "email",
-                              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
-                            }
-                          }
-                        },
-                        "required": ["recipients"],
-                        "additionalProperties": false
-                      },
-                      "provider": { "type": "string", "const": "smtp" }
-                    },
-                    "required": ["categories", "enabled", "config", "provider"],
-                    "additionalProperties": false
-                  }
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "JSON object containing destination.",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_219" }
-              }
-            }
-          },
-          "400": { "$ref": "#/components/responses/ApiError" },
-          "401": { "$ref": "#/components/responses/ApiError" },
-          "403": { "$ref": "#/components/responses/ApiError" },
-          "404": { "$ref": "#/components/responses/ApiError" },
-          "409": { "$ref": "#/components/responses/ApiError" },
-          "413": { "$ref": "#/components/responses/ApiError" },
-          "422": { "$ref": "#/components/responses/ApiError" },
-          "429": { "$ref": "#/components/responses/RateLimited" },
-          "500": { "$ref": "#/components/responses/ApiError" }
-        }
-      }
-    },
-    "/sources/{sourceId}/notifications/destinations/{destinationId}": {
-      "put": {
-        "operationId": "put_sources_by_id_notifications_destinations_by_id",
-        "summary": "Update notification destination",
-        "tags": ["sources"],
-        "description": "Requires workspace owner permission. Requires a full-access key.",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "name": "sourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "$schema": "https://json-schema.org/draft/2020-12/schema",
-              "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-            }
-          },
-          {
-            "name": "destinationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "$schema": "https://json-schema.org/draft/2020-12/schema",
-              "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$schema": "https://json-schema.org/draft/2020-12/schema",
-                "oneOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "categories": {
-                        "minItems": 1,
-                        "maxItems": 5,
-                        "type": "array",
-                        "items": {
-                          "type": "string",
-                          "enum": [
-                            "deployments",
-                            "previews",
-                            "health",
-                            "backups",
-                            "restores"
-                          ]
-                        }
-                      },
-                      "enabled": { "type": "boolean" },
-                      "config": {
-                        "type": "object",
-                        "properties": {
-                          "channelId": {
-                            "type": "string",
-                            "pattern": "^[A-Z][A-Z0-9]{1,79}$"
-                          }
-                        },
-                        "required": ["channelId"],
-                        "additionalProperties": false
-                      },
-                      "provider": { "type": "string", "const": "slack" }
-                    },
-                    "required": ["categories", "enabled", "config", "provider"],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "categories": {
-                        "minItems": 1,
-                        "maxItems": 5,
-                        "type": "array",
-                        "items": {
-                          "type": "string",
-                          "enum": [
-                            "deployments",
-                            "previews",
-                            "health",
-                            "backups",
-                            "restores"
-                          ]
-                        }
-                      },
-                      "enabled": { "type": "boolean" },
-                      "config": {
-                        "type": "object",
-                        "properties": {
-                          "recipients": {
-                            "minItems": 1,
-                            "maxItems": 20,
-                            "type": "array",
-                            "items": {
-                              "type": "string",
-                              "maxLength": 320,
-                              "format": "email",
-                              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
-                            }
-                          }
-                        },
-                        "required": ["recipients"],
-                        "additionalProperties": false
-                      },
-                      "provider": { "type": "string", "const": "smtp" }
-                    },
-                    "required": ["categories", "enabled", "config", "provider"],
-                    "additionalProperties": false
-                  }
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "JSON object containing destination.",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_221" }
-              }
-            }
-          },
-          "400": { "$ref": "#/components/responses/ApiError" },
-          "401": { "$ref": "#/components/responses/ApiError" },
-          "403": { "$ref": "#/components/responses/ApiError" },
-          "404": { "$ref": "#/components/responses/ApiError" },
-          "409": { "$ref": "#/components/responses/ApiError" },
-          "413": { "$ref": "#/components/responses/ApiError" },
-          "422": { "$ref": "#/components/responses/ApiError" },
-          "429": { "$ref": "#/components/responses/RateLimited" },
-          "500": { "$ref": "#/components/responses/ApiError" }
-        }
-      },
-      "delete": {
-        "operationId": "delete_sources_by_id_notifications_destinations_by_id",
-        "summary": "Delete notification destination",
-        "tags": ["sources"],
-        "description": "Requires workspace owner permission. Requires a full-access key.",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "name": "sourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "$schema": "https://json-schema.org/draft/2020-12/schema",
-              "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-            }
-          },
-          {
-            "name": "destinationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "$schema": "https://json-schema.org/draft/2020-12/schema",
-              "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-            }
-          }
-        ],
-        "responses": {
-          "204": { "description": "No response body." },
-          "400": { "$ref": "#/components/responses/ApiError" },
-          "401": { "$ref": "#/components/responses/ApiError" },
-          "403": { "$ref": "#/components/responses/ApiError" },
-          "404": { "$ref": "#/components/responses/ApiError" },
-          "409": { "$ref": "#/components/responses/ApiError" },
-          "413": { "$ref": "#/components/responses/ApiError" },
-          "422": { "$ref": "#/components/responses/ApiError" },
-          "429": { "$ref": "#/components/responses/RateLimited" },
-          "500": { "$ref": "#/components/responses/ApiError" }
-        }
-      }
-    },
-    "/sources/{sourceId}/notifications/destinations/{destinationId}/actions/test": {
-      "post": {
-        "operationId": "post_sources_by_id_notifications_destinations_by_id_actions_test",
-        "summary": "Test notification destination",
-        "tags": ["sources"],
-        "description": "Requires workspace owner permission. Requires a full-access key.",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "name": "sourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "$schema": "https://json-schema.org/draft/2020-12/schema",
-              "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-            }
-          },
-          {
-            "name": "destinationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "$schema": "https://json-schema.org/draft/2020-12/schema",
-              "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-            }
-          }
-        ],
-        "responses": {
-          "202": {
-            "description": "JSON object containing delivery. Accepted work continues asynchronously; poll its ID.",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_222" }
-              }
-            }
-          },
-          "400": { "$ref": "#/components/responses/ApiError" },
-          "401": { "$ref": "#/components/responses/ApiError" },
-          "403": { "$ref": "#/components/responses/ApiError" },
-          "404": { "$ref": "#/components/responses/ApiError" },
-          "409": { "$ref": "#/components/responses/ApiError" },
-          "413": { "$ref": "#/components/responses/ApiError" },
-          "422": { "$ref": "#/components/responses/ApiError" },
-          "429": { "$ref": "#/components/responses/RateLimited" },
-          "500": { "$ref": "#/components/responses/ApiError" }
-        }
-      }
-    },
-    "/notifications/providers": {
-      "get": {
-        "operationId": "get_notifications_providers",
-        "summary": "Get notification provider availability",
-        "tags": ["notifications"],
-        "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "JSON object containing providers.",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_224" }
-              }
-            }
-          },
-          "400": { "$ref": "#/components/responses/ApiError" },
-          "401": { "$ref": "#/components/responses/ApiError" },
-          "403": { "$ref": "#/components/responses/ApiError" },
-          "404": { "$ref": "#/components/responses/ApiError" },
-          "409": { "$ref": "#/components/responses/ApiError" },
-          "413": { "$ref": "#/components/responses/ApiError" },
-          "422": { "$ref": "#/components/responses/ApiError" },
-          "429": { "$ref": "#/components/responses/RateLimited" },
-          "500": { "$ref": "#/components/responses/ApiError" }
-        }
-      }
-    },
-    "/notifications": {
-      "get": {
-        "operationId": "get_notifications",
-        "summary": "List notification events",
-        "tags": ["notifications"],
-        "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": { "type": "integer", "minimum": 1, "maximum": 100 }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "JSON object containing notifications.",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_225" }
-              }
-            }
-          },
           "400": { "$ref": "#/components/responses/ApiError" },
           "401": { "$ref": "#/components/responses/ApiError" },
           "403": { "$ref": "#/components/responses/ApiError" },
@@ -5508,7 +4838,7 @@
       "get": {
         "operationId": "get_settings_secrets",
         "summary": "List environment secrets",
-        "tags": ["settings"],
+        "tags": ["Workspace / Shared secrets"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -5544,7 +4874,7 @@
       "patch": {
         "operationId": "patch_settings_secrets_by_environment_by_stage",
         "summary": "Update environment secrets",
-        "tags": ["settings"],
+        "tags": ["Workspace / Shared secrets"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -5631,7 +4961,7 @@
       "get": {
         "operationId": "get_sources_by_id_secrets",
         "summary": "List environment secrets",
-        "tags": ["sources"],
+        "tags": ["Sources / Secrets"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -5678,7 +5008,7 @@
       "patch": {
         "operationId": "patch_sources_by_id_secrets_by_environment_by_stage",
         "summary": "Update environment secrets",
-        "tags": ["sources"],
+        "tags": ["Sources / Secrets"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -5776,7 +5106,7 @@
       "get": {
         "operationId": "get_apps_by_id_secrets",
         "summary": "List environment secrets",
-        "tags": ["apps"],
+        "tags": ["Apps / Secrets"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -5823,7 +5153,7 @@
       "patch": {
         "operationId": "patch_apps_by_id_secrets_by_environment_by_stage",
         "summary": "Update environment secrets",
-        "tags": ["apps"],
+        "tags": ["Apps / Secrets"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -5921,7 +5251,7 @@
       "get": {
         "operationId": "get_resources_by_id_secrets",
         "summary": "List environment secrets",
-        "tags": ["resources"],
+        "tags": ["Resources / Secrets"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -5968,7 +5298,7 @@
       "patch": {
         "operationId": "patch_resources_by_id_secrets_by_environment_by_stage",
         "summary": "Update environment secrets",
-        "tags": ["resources"],
+        "tags": ["Resources / Secrets"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6066,7 +5396,7 @@
       "get": {
         "operationId": "get_servers_by_id_credentials",
         "summary": "Get server credential metadata",
-        "tags": ["servers"],
+        "tags": ["Servers / Credentials & trust"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6105,7 +5435,7 @@
       "patch": {
         "operationId": "patch_servers_by_id_credentials",
         "summary": "Update server credentials",
-        "tags": ["servers"],
+        "tags": ["Servers / Credentials & trust"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6183,7 +5513,7 @@
       "get": {
         "operationId": "get_sources",
         "summary": "List sources",
-        "tags": ["sources"],
+        "tags": ["Sources / Overview"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [],
@@ -6210,7 +5540,7 @@
       "post": {
         "operationId": "post_sources",
         "summary": "Create source",
-        "tags": ["sources"],
+        "tags": ["Sources / Overview"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [],
@@ -6279,7 +5609,7 @@
       "get": {
         "operationId": "get_sources_by_id",
         "summary": "Get source",
-        "tags": ["sources"],
+        "tags": ["Sources / Overview"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6318,7 +5648,7 @@
       "delete": {
         "operationId": "delete_sources_by_id",
         "summary": "Delete source",
-        "tags": ["sources"],
+        "tags": ["Sources / Overview"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6352,7 +5682,7 @@
       "get": {
         "operationId": "get_sources_by_id_auto_deploy_control",
         "summary": "Get source auto deploy control",
-        "tags": ["sources"],
+        "tags": ["Sources / Auto-deploy"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6391,7 +5721,7 @@
       "patch": {
         "operationId": "patch_sources_by_id_auto_deploy_control",
         "summary": "Update source auto deploy control",
-        "tags": ["sources"],
+        "tags": ["Sources / Auto-deploy"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6446,7 +5776,7 @@
       "get": {
         "operationId": "get_sources_by_id_apps",
         "summary": "List source apps",
-        "tags": ["sources"],
+        "tags": ["Sources / Inventory"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6487,7 +5817,7 @@
       "get": {
         "operationId": "get_sources_by_id_resources",
         "summary": "List source resources",
-        "tags": ["sources"],
+        "tags": ["Sources / Inventory"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6528,7 +5858,7 @@
       "get": {
         "operationId": "get_sources_by_id_capacity",
         "summary": "List source capacity",
-        "tags": ["sources"],
+        "tags": ["Sources / Inventory"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6569,7 +5899,7 @@
       "get": {
         "operationId": "get_sources_by_id_deployments",
         "summary": "List source deployments",
-        "tags": ["sources"],
+        "tags": ["Sources / Inventory"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6610,7 +5940,7 @@
       "get": {
         "operationId": "get_sources_by_id_backups",
         "summary": "List source backups",
-        "tags": ["sources"],
+        "tags": ["Sources / Inventory"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6651,7 +5981,7 @@
       "get": {
         "operationId": "get_sources_by_id_previews",
         "summary": "List source previews",
-        "tags": ["sources"],
+        "tags": ["Sources / Inventory"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6692,7 +6022,7 @@
       "get": {
         "operationId": "get_sources_by_id_manifest",
         "summary": "Get source manifest",
-        "tags": ["sources"],
+        "tags": ["Sources / Sync & manifest"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6733,7 +6063,7 @@
       "post": {
         "operationId": "post_sources_by_id_actions_preview_sync",
         "summary": "Preview source sync",
-        "tags": ["sources"],
+        "tags": ["Sources / Sync & manifest"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6774,7 +6104,7 @@
       "post": {
         "operationId": "post_sources_by_id_actions_sync",
         "summary": "Request source sync",
-        "tags": ["sources"],
+        "tags": ["Sources / Sync & manifest"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6815,7 +6145,7 @@
       "get": {
         "operationId": "get_sources_by_id_syncs",
         "summary": "List source syncs",
-        "tags": ["sources"],
+        "tags": ["Sources / Sync & manifest"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6856,7 +6186,7 @@
       "get": {
         "operationId": "get_sources_by_id_syncs_by_id",
         "summary": "Get source sync",
-        "tags": ["sources"],
+        "tags": ["Sources / Sync & manifest"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6908,7 +6238,7 @@
       "get": {
         "operationId": "get_apps",
         "summary": "List apps",
-        "tags": ["apps"],
+        "tags": ["Apps / Overview"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [],
@@ -6937,7 +6267,7 @@
       "get": {
         "operationId": "get_apps_by_id",
         "summary": "Get app",
-        "tags": ["apps"],
+        "tags": ["Apps / Overview"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6978,7 +6308,7 @@
       "get": {
         "operationId": "get_apps_by_id_auto_deploy_control",
         "summary": "Get app auto-deploy settings",
-        "tags": ["apps"],
+        "tags": ["Apps / Deployments"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7017,7 +6347,7 @@
       "patch": {
         "operationId": "patch_apps_by_id_auto_deploy_control",
         "summary": "Update app auto-deploy settings",
-        "tags": ["apps"],
+        "tags": ["Apps / Deployments"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7072,7 +6402,7 @@
       "get": {
         "operationId": "get_apps_by_id_deployments",
         "summary": "List app deployments",
-        "tags": ["apps"],
+        "tags": ["Apps / Deployments"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7113,7 +6443,7 @@
       "get": {
         "operationId": "get_apps_by_id_releases",
         "summary": "List app releases",
-        "tags": ["apps"],
+        "tags": ["Apps / Deployments"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7154,7 +6484,7 @@
       "get": {
         "operationId": "get_apps_by_id_previews",
         "summary": "List preview environments",
-        "tags": ["apps"],
+        "tags": ["Apps / Previews"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7195,7 +6525,7 @@
       "get": {
         "operationId": "get_apps_by_id_operations",
         "summary": "List app operations",
-        "tags": ["apps"],
+        "tags": ["Apps / Runtime & logs"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7236,7 +6566,7 @@
       "post": {
         "operationId": "post_apps_by_id_actions_deploy",
         "summary": "Request app deployment",
-        "tags": ["apps"],
+        "tags": ["Apps / Deployments"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7291,7 +6621,7 @@
       "post": {
         "operationId": "post_apps_by_id_actions_rollback",
         "summary": "Request app rollback",
-        "tags": ["apps"],
+        "tags": ["Apps / Deployments"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7365,7 +6695,7 @@
       "post": {
         "operationId": "post_apps_by_id_actions_restart",
         "summary": "Restart app",
-        "tags": ["apps"],
+        "tags": ["Apps / Runtime & logs"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7420,7 +6750,7 @@
       "post": {
         "operationId": "post_apps_by_id_actions_start",
         "summary": "Start app",
-        "tags": ["apps"],
+        "tags": ["Apps / Runtime & logs"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7475,7 +6805,7 @@
       "post": {
         "operationId": "post_apps_by_id_actions_stop",
         "summary": "Stop app",
-        "tags": ["apps"],
+        "tags": ["Apps / Runtime & logs"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7530,7 +6860,7 @@
       "post": {
         "operationId": "post_apps_by_id_actions_logs",
         "summary": "Request app operation",
-        "tags": ["apps"],
+        "tags": ["Apps / Runtime & logs"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7601,7 +6931,7 @@
       "get": {
         "operationId": "get_resources",
         "summary": "List resources",
-        "tags": ["resources"],
+        "tags": ["Resources / Overview"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [],
@@ -7630,7 +6960,7 @@
       "get": {
         "operationId": "get_resources_by_id",
         "summary": "Get resource",
-        "tags": ["resources"],
+        "tags": ["Resources / Overview"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7671,7 +7001,7 @@
       "get": {
         "operationId": "get_resources_by_id_auto_deploy_control",
         "summary": "Get resource auto-deploy settings",
-        "tags": ["resources"],
+        "tags": ["Resources / Deployments"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7710,7 +7040,7 @@
       "patch": {
         "operationId": "patch_resources_by_id_auto_deploy_control",
         "summary": "Update resource auto-deploy settings",
-        "tags": ["resources"],
+        "tags": ["Resources / Deployments"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7765,7 +7095,7 @@
       "get": {
         "operationId": "get_resources_by_id_deployments",
         "summary": "List resource deployments",
-        "tags": ["resources"],
+        "tags": ["Resources / Deployments"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7806,7 +7136,7 @@
       "get": {
         "operationId": "get_resources_by_id_releases",
         "summary": "List resource releases",
-        "tags": ["resources"],
+        "tags": ["Resources / Deployments"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7847,7 +7177,7 @@
       "get": {
         "operationId": "get_resources_by_id_operations",
         "summary": "List resource operations",
-        "tags": ["resources"],
+        "tags": ["Resources / Runtime & logs"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7888,7 +7218,7 @@
       "get": {
         "operationId": "get_resources_by_id_backup_assurance",
         "summary": "Get resource backup assurance",
-        "tags": ["resources"],
+        "tags": ["Resources / Backups & restores"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7929,7 +7259,7 @@
       "get": {
         "operationId": "get_resources_by_id_operations_by_id_events",
         "summary": "List operation events",
-        "tags": ["resources"],
+        "tags": ["Resources / Backups & restores"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -7981,7 +7311,7 @@
       "post": {
         "operationId": "post_resources_by_id_actions_deploy",
         "summary": "Request resource deployment",
-        "tags": ["resources"],
+        "tags": ["Resources / Deployments"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -8036,7 +7366,7 @@
       "post": {
         "operationId": "post_resources_by_id_actions_rollback",
         "summary": "Request resource rollback",
-        "tags": ["resources"],
+        "tags": ["Resources / Deployments"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -8110,7 +7440,7 @@
       "post": {
         "operationId": "post_resources_by_id_actions_backup",
         "summary": "Backup resource",
-        "tags": ["resources"],
+        "tags": ["Resources / Backups & restores"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -8165,7 +7495,7 @@
       "post": {
         "operationId": "post_resources_by_id_actions_restart",
         "summary": "Restart resource",
-        "tags": ["resources"],
+        "tags": ["Resources / Runtime & logs"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -8220,7 +7550,7 @@
       "post": {
         "operationId": "post_resources_by_id_actions_start",
         "summary": "Start resource",
-        "tags": ["resources"],
+        "tags": ["Resources / Runtime & logs"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -8275,7 +7605,7 @@
       "post": {
         "operationId": "post_resources_by_id_actions_stop",
         "summary": "Stop resource",
-        "tags": ["resources"],
+        "tags": ["Resources / Runtime & logs"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -8330,7 +7660,7 @@
       "post": {
         "operationId": "post_resources_by_id_actions_restore",
         "summary": "Request resource restore",
-        "tags": ["resources"],
+        "tags": ["Resources / Backups & restores"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -8415,7 +7745,7 @@
       "post": {
         "operationId": "post_resources_by_id_actions_restore_cleanup",
         "summary": "Request restore cleanup",
-        "tags": ["resources"],
+        "tags": ["Resources / Backups & restores"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -8490,7 +7820,7 @@
       "post": {
         "operationId": "post_resources_by_id_operations_by_id_actions_cancel",
         "summary": "Cancel resource restore",
-        "tags": ["resources"],
+        "tags": ["Resources / Backups & restores"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -8542,7 +7872,7 @@
       "post": {
         "operationId": "post_resources_by_id_actions_logs",
         "summary": "Request resource operation",
-        "tags": ["resources"],
+        "tags": ["Resources / Runtime & logs"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -8613,7 +7943,7 @@
       "post": {
         "operationId": "post_previews_by_id_actions_delete",
         "summary": "Request preview environment cleanup",
-        "tags": ["previews"],
+        "tags": ["Previews / Lifecycle"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -8662,7 +7992,7 @@
       "post": {
         "operationId": "post_previews_by_id_actions_deploy",
         "summary": "Request preview deployment",
-        "tags": ["previews"],
+        "tags": ["Previews / Lifecycle"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -8703,7 +8033,7 @@
       "get": {
         "operationId": "get_servers",
         "summary": "List servers",
-        "tags": ["servers"],
+        "tags": ["Servers / Overview"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [],
@@ -8730,7 +8060,7 @@
       "post": {
         "operationId": "post_servers",
         "summary": "Create server",
-        "tags": ["servers"],
+        "tags": ["Servers / Overview"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [],
@@ -8816,7 +8146,7 @@
       "get": {
         "operationId": "get_servers_by_id",
         "summary": "Get server",
-        "tags": ["servers"],
+        "tags": ["Servers / Overview"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -8855,7 +8185,7 @@
       "patch": {
         "operationId": "patch_servers_by_id",
         "summary": "Update server",
-        "tags": ["servers"],
+        "tags": ["Servers / Overview"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -8953,7 +8283,7 @@
       "get": {
         "operationId": "get_servers_by_id_apps",
         "summary": "List server apps",
-        "tags": ["servers"],
+        "tags": ["Servers / Inventory"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -8994,7 +8324,7 @@
       "get": {
         "operationId": "get_servers_by_id_resources",
         "summary": "List server resources",
-        "tags": ["servers"],
+        "tags": ["Servers / Inventory"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -9035,7 +8365,7 @@
       "get": {
         "operationId": "get_servers_by_id_deployments",
         "summary": "List server deployments",
-        "tags": ["servers"],
+        "tags": ["Servers / Inventory"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -9076,7 +8406,7 @@
       "get": {
         "operationId": "get_servers_by_id_capacity",
         "summary": "Get server capacity",
-        "tags": ["servers"],
+        "tags": ["Servers / Capacity"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -9117,7 +8447,7 @@
       "get": {
         "operationId": "get_servers_by_id_checks",
         "summary": "List server checks",
-        "tags": ["servers"],
+        "tags": ["Servers / Checks & preparation"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -9180,7 +8510,7 @@
       "get": {
         "operationId": "get_servers_by_id_preparations",
         "summary": "List server preparations",
-        "tags": ["servers"],
+        "tags": ["Servers / Checks & preparation"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -9221,7 +8551,7 @@
       "get": {
         "operationId": "get_servers_by_id_orphans",
         "summary": "Get server orphans",
-        "tags": ["servers"],
+        "tags": ["Servers / Maintenance"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -9262,7 +8592,7 @@
       "get": {
         "operationId": "get_servers_by_id_host_keys",
         "summary": "List trusted host keys",
-        "tags": ["servers"],
+        "tags": ["Servers / Credentials & trust"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -9303,7 +8633,7 @@
       "post": {
         "operationId": "post_servers_by_id_actions_check",
         "summary": "Request server check",
-        "tags": ["servers"],
+        "tags": ["Servers / Checks & preparation"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -9344,7 +8674,7 @@
       "post": {
         "operationId": "post_servers_by_id_actions_prepare",
         "summary": "Request server preparation",
-        "tags": ["servers"],
+        "tags": ["Servers / Checks & preparation"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -9385,7 +8715,7 @@
       "post": {
         "operationId": "post_servers_by_id_actions_cleanup_orphans",
         "summary": "Request orphan cleanup",
-        "tags": ["servers"],
+        "tags": ["Servers / Maintenance"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -9476,7 +8806,7 @@
       "post": {
         "operationId": "post_servers_by_id_host_keys_actions_trust",
         "summary": "Trust server host key",
-        "tags": ["servers"],
+        "tags": ["Servers / Credentials & trust"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -9546,7 +8876,7 @@
       "delete": {
         "operationId": "delete_servers_by_id_host_keys_by_id",
         "summary": "Revoke server host key",
-        "tags": ["servers"],
+        "tags": ["Servers / Credentials & trust"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -9591,7 +8921,7 @@
       "get": {
         "operationId": "get_deployments",
         "summary": "List deployments",
-        "tags": ["deployments"],
+        "tags": ["Deployments / Overview"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [],
@@ -9620,7 +8950,7 @@
       "get": {
         "operationId": "get_deployments_history",
         "summary": "List deployment history",
-        "tags": ["deployments"],
+        "tags": ["Deployments / Overview"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -9672,7 +9002,7 @@
       "get": {
         "operationId": "get_deployments_by_id",
         "summary": "Get deployment",
-        "tags": ["deployments"],
+        "tags": ["Deployments / Overview"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -9713,7 +9043,7 @@
       "get": {
         "operationId": "get_deployments_by_id_steps",
         "summary": "List deployment steps",
-        "tags": ["deployments"],
+        "tags": ["Deployments / Progress & logs"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -9754,7 +9084,7 @@
       "get": {
         "operationId": "get_deployments_by_id_logs",
         "summary": "List deployment logs",
-        "tags": ["deployments"],
+        "tags": ["Deployments / Progress & logs"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -9805,7 +9135,7 @@
       "get": {
         "operationId": "get_deployments_by_id_vulnerability_scan_findings",
         "summary": "List deployment vulnerability findings",
-        "tags": ["deployments"],
+        "tags": ["Deployments / Security scans"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -9846,7 +9176,7 @@
       "get": {
         "operationId": "get_deployments_by_id_events",
         "summary": "Watch deployment events",
-        "tags": ["deployments"],
+        "tags": ["Deployments / Progress & logs"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted. SSE deployment events containing deployment, logs, and steps. Reconnect after the bounded stream ends using Last-Event-ID. MCP returns a finite snapshot; call again to poll.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -9904,7 +9234,7 @@
       "post": {
         "operationId": "post_deployments_by_id_actions_cancel",
         "summary": "Cancel deployment",
-        "tags": ["deployments"],
+        "tags": ["Deployments / Actions"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -9945,7 +9275,7 @@
       "post": {
         "operationId": "post_deployments_by_id_actions_retry",
         "summary": "Request deployment retry",
-        "tags": ["deployments"],
+        "tags": ["Deployments / Actions"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -10000,7 +9330,7 @@
       "post": {
         "operationId": "post_deployments_by_id_vulnerability_scan_actions_rescan",
         "summary": "Request deployment vulnerability scan",
-        "tags": ["deployments"],
+        "tags": ["Deployments / Security scans"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -10046,7 +9376,7 @@
       "get": {
         "operationId": "get_system_health",
         "summary": "Get system health",
-        "tags": ["system-health"],
+        "tags": ["Workspace / System health"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [],
@@ -10075,7 +9405,7 @@
       "post": {
         "operationId": "post_system_health_actions_check",
         "summary": "Run system health checks",
-        "tags": ["system-health"],
+        "tags": ["Workspace / System health"],
         "description": "Available to workspace members and owners. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [],
@@ -10100,74 +9430,11 @@
         }
       }
     },
-    "/sessions": {
-      "get": {
-        "operationId": "get_sessions",
-        "summary": "List user sessions",
-        "tags": ["sessions"],
-        "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "JSON object containing currentSessionId, sessions.",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_20" }
-              }
-            }
-          },
-          "400": { "$ref": "#/components/responses/ApiError" },
-          "401": { "$ref": "#/components/responses/ApiError" },
-          "403": { "$ref": "#/components/responses/ApiError" },
-          "404": { "$ref": "#/components/responses/ApiError" },
-          "409": { "$ref": "#/components/responses/ApiError" },
-          "413": { "$ref": "#/components/responses/ApiError" },
-          "422": { "$ref": "#/components/responses/ApiError" },
-          "429": { "$ref": "#/components/responses/RateLimited" },
-          "500": { "$ref": "#/components/responses/ApiError" }
-        }
-      }
-    },
-    "/sessions/{sessionId}": {
-      "delete": {
-        "operationId": "delete_sessions_by_id",
-        "summary": "Revoke user session",
-        "tags": ["sessions"],
-        "description": "Available to workspace members and owners. Requires a full-access key.",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "name": "sessionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "$schema": "https://json-schema.org/draft/2020-12/schema",
-              "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-            }
-          }
-        ],
-        "responses": {
-          "204": { "description": "No response body." },
-          "400": { "$ref": "#/components/responses/ApiError" },
-          "401": { "$ref": "#/components/responses/ApiError" },
-          "403": { "$ref": "#/components/responses/ApiError" },
-          "404": { "$ref": "#/components/responses/ApiError" },
-          "409": { "$ref": "#/components/responses/ApiError" },
-          "413": { "$ref": "#/components/responses/ApiError" },
-          "422": { "$ref": "#/components/responses/ApiError" },
-          "429": { "$ref": "#/components/responses/RateLimited" },
-          "500": { "$ref": "#/components/responses/ApiError" }
-        }
-      }
-    },
     "/profile": {
       "get": {
         "operationId": "get_profile",
         "summary": "Get current profile",
-        "tags": ["profile"],
+        "tags": ["Workspace / Identity"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [],
@@ -10180,109 +9447,6 @@
               }
             }
           },
-          "400": { "$ref": "#/components/responses/ApiError" },
-          "401": { "$ref": "#/components/responses/ApiError" },
-          "403": { "$ref": "#/components/responses/ApiError" },
-          "404": { "$ref": "#/components/responses/ApiError" },
-          "409": { "$ref": "#/components/responses/ApiError" },
-          "413": { "$ref": "#/components/responses/ApiError" },
-          "422": { "$ref": "#/components/responses/ApiError" },
-          "429": { "$ref": "#/components/responses/RateLimited" },
-          "500": { "$ref": "#/components/responses/ApiError" }
-        }
-      },
-      "patch": {
-        "operationId": "patch_profile",
-        "summary": "Update profile",
-        "tags": ["profile"],
-        "description": "Available to workspace members and owners. Requires a full-access key.",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$schema": "https://json-schema.org/draft/2020-12/schema",
-                "type": "object",
-                "properties": {
-                  "displayName": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 120
-                  }
-                },
-                "required": ["displayName"],
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "JSON object containing user.",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_24" }
-              }
-            }
-          },
-          "400": { "$ref": "#/components/responses/ApiError" },
-          "401": { "$ref": "#/components/responses/ApiError" },
-          "403": { "$ref": "#/components/responses/ApiError" },
-          "404": { "$ref": "#/components/responses/ApiError" },
-          "409": { "$ref": "#/components/responses/ApiError" },
-          "413": { "$ref": "#/components/responses/ApiError" },
-          "422": { "$ref": "#/components/responses/ApiError" },
-          "429": { "$ref": "#/components/responses/RateLimited" },
-          "500": { "$ref": "#/components/responses/ApiError" }
-        }
-      }
-    },
-    "/profile/password": {
-      "put": {
-        "operationId": "put_profile_password",
-        "summary": "Change password",
-        "tags": ["profile"],
-        "description": "Available to workspace members and owners. Requires a full-access key.",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$schema": "https://json-schema.org/draft/2020-12/schema",
-                "type": "object",
-                "properties": {
-                  "currentPassword": {
-                    "type": "string",
-                    "minLength": 12,
-                    "maxLength": 1024
-                  },
-                  "confirmPassword": {
-                    "type": "string",
-                    "minLength": 12,
-                    "maxLength": 1024
-                  },
-                  "newPassword": {
-                    "type": "string",
-                    "minLength": 12,
-                    "maxLength": 1024
-                  }
-                },
-                "required": [
-                  "currentPassword",
-                  "confirmPassword",
-                  "newPassword"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": { "description": "No response body." },
           "400": { "$ref": "#/components/responses/ApiError" },
           "401": { "$ref": "#/components/responses/ApiError" },
           "403": { "$ref": "#/components/responses/ApiError" },

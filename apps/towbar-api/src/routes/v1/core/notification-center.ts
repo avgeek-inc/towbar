@@ -12,6 +12,7 @@ export const notificationCenterRoutes = new Hono<TowbarHonoEnvironment>();
 notificationCenterRoutes.get(
   "/providers",
   operation({
+    browserOnly: true,
     responseSchema: 'notification-center.ts:get:"/providers"',
     summary: "Get notification provider availability",
     response: "JSON object containing providers.",
@@ -26,6 +27,7 @@ notificationCenterRoutes.get(
 notificationCenterRoutes.get(
   "/",
   operation({
+    browserOnly: true,
     responseSchema: 'notification-center.ts:get:"/"',
     summary: "List notification events",
     query: z

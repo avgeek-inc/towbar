@@ -33,6 +33,7 @@ accountRoutes.get(
   operation({
     responseSchema: 'account.ts:get:"/sessions"',
     summary: "List user sessions",
+    browserOnly: true,
     response: "JSON object containing currentSessionId, sessions.",
     status: 200,
   }),
@@ -47,6 +48,7 @@ accountRoutes.delete(
   operation({
     responseSchema: 'account.ts:delete:"/sessions/:sessionId"',
     summary: "Revoke user session",
+    browserOnly: true,
     response: "No response body.",
     status: 204,
   }),
@@ -75,6 +77,7 @@ accountRoutes.patch(
   operation({
     responseSchema: 'account.ts:patch:"/profile"',
     summary: "Update profile",
+    browserOnly: true,
     body: profileSchema,
     response: "JSON object containing user.",
     status: 200,
@@ -100,6 +103,7 @@ accountRoutes.put(
   operation({
     responseSchema: 'account.ts:put:"/profile/password"',
     summary: "Change password",
+    browserOnly: true,
     body: passwordSchema,
     response: "No response body.",
     status: 204,

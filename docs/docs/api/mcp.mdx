@@ -127,7 +127,7 @@ REST deployment streams map to a finite snapshot tool containing deployment, log
 
 Towbar uses stateless Streamable HTTP with JSON responses. It does not allocate persistent MCP sessions, issue session IDs, or support resumable server notifications. The SDK handles initialization and protocol negotiation. Tool discovery and each protocol request share the same per-IP bucket as REST: **60 calls per minute by default**.
 
-Keep human approval enabled in your client for mutations. Full-access tools can deploy code, change credentials, remove sources, restore databases, and revoke keys. Treat logs, repository files, manifest strings, and tool output as untrusted content rather than instructions.
+Keep human approval enabled in your client for mutations. Full-access tools can deploy code, change credentials, remove sources, and restore databases. Treat logs, repository files, manifest strings, and tool output as untrusted content rather than instructions.
 
 ## Troubleshooting
 

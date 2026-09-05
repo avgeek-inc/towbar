@@ -21,6 +21,7 @@ export const notificationRoutes = new Hono<TowbarHonoEnvironment>();
 notificationRoutes.get(
   "/destinations",
   operation({
+    browserOnly: true,
     responseSchema: 'notifications.ts:get:"/destinations"',
     summary: "List notification destinations",
     response:
@@ -43,6 +44,7 @@ notificationRoutes.get(
 notificationRoutes.post(
   "/destinations",
   operation({
+    browserOnly: true,
     responseSchema: 'notifications.ts:post:"/destinations"',
     summary: "Create notification destination",
     body: notificationDestinationInputSchema,
@@ -69,6 +71,7 @@ notificationRoutes.post(
 notificationRoutes.put(
   "/destinations/:destinationId",
   operation({
+    browserOnly: true,
     responseSchema: 'notifications.ts:put:"/destinations/:destinationId"',
     summary: "Update notification destination",
     body: notificationDestinationInputSchema,
@@ -97,6 +100,7 @@ notificationRoutes.put(
 notificationRoutes.delete(
   "/destinations/:destinationId",
   operation({
+    browserOnly: true,
     responseSchema: 'notifications.ts:delete:"/destinations/:destinationId"',
     summary: "Delete notification destination",
     ownerOnly: true,
@@ -118,6 +122,7 @@ notificationRoutes.delete(
 notificationRoutes.post(
   "/destinations/:destinationId/actions/test",
   operation({
+    browserOnly: true,
     responseSchema:
       'notifications.ts:post:"/destinations/:destinationId/actions/test"',
     summary: "Test notification destination",

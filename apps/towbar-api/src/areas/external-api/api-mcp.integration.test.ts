@@ -40,10 +40,12 @@ void test(
     });
     const { getTowbarDatabase, closeDatabase } =
       await import("../../infrastructure/database.js");
-    const { createApiKey, hashApiKey } = await import("../api-keys/service.js");
+    const { createApiKey, hashApiKey, listApiKeys, revokeApiKey } =
+      await import("../api-keys/service.js");
     const { createApp } = await import("../../app.js");
     const { operations, createOpenApiDocument } =
       await import("./catalogue.js");
+    const { operationDescription } = await import("../../http/operation.js");
     const { controlPlaneRoutes } =
       await import("../../routes/v1/core/index.js");
     const db = getTowbarDatabase(),
@@ -109,15 +111,27 @@ void test(
       await client.connect(transport);
       return client;
     }
+    t.beforeEach(async () => {
+      await db
+        .delete(authRateLimitBuckets)
+        .where(eq(authRateLimitBuckets.keyHash, bucketHash));
+    });
     try {
       await t.test(
-        "all control-plane operations have REST schemas and unique MCP tools",
+        "public operations have REST schemas and unique MCP tools; browser-only routes are excluded",
         () => {
           const routes = new Set(
             controlPlaneRoutes.routes
               .filter((r) => r.method !== "ALL")
               .map((r) => `${r.method} ${r.path}`),
           );
+          const browserOnly = new Set(
+            controlPlaneRoutes.routes
+              .filter((r) => operationDescription(r.handler)?.browserOnly)
+              .map((r) => `${r.method} ${r.path}`),
+          );
+          assert.equal(browserOnly.size, 16);
+          for (const route of browserOnly) routes.delete(route);
           assert.deepEqual(
             new Set(operations.map((op) => `${op.method} ${op.path}`)),
             routes,
@@ -126,7 +140,7 @@ void test(
             new Set(operations.map((op) => op.name)).size,
             operations.length,
           );
-          assert(operations.length >= 115);
+          assert.equal(operations.length, 99);
           assert(operations.every((op) => op.name.length <= 64));
           assert.doesNotThrow(() =>
             JSON.stringify(createOpenApiDocument("https://api.test/v1/api")),
@@ -152,9 +166,7 @@ void test(
             .where(eq(apiKeys.id, write.key!.id));
           assert.equal(stored!.tokenHash, hashApiKey(write.token));
           assert(!JSON.stringify(stored).includes(write.token));
-          const response = await request("/settings/api-keys", write.token);
-          assert.equal(response.status, 200);
-          const text = await response.text();
+          const text = JSON.stringify(await listApiKeys(user));
           assert(!text.includes(write.token));
           assert(!text.includes(stored!.tokenHash));
           const audit = await db
@@ -169,7 +181,12 @@ void test(
             ),
           );
           assert(!JSON.stringify(audit).includes(write.token));
-          assert.equal(response.headers.get("cache-control"), "no-store");
+          assert.equal(
+            (await request("/profile", write.token)).headers.get(
+              "cache-control",
+            ),
+            "no-store",
+          );
         },
       );
       await t.test(
@@ -234,6 +251,97 @@ void test(
             }),
           });
           assert.equal(created.status, 201);
+          const profile = await app.request("/v1/core/profile", {
+            method: "PATCH",
+            headers: {
+              cookie,
+              "content-type": "application/json",
+              origin: "https://app.towbar.test",
+            },
+            body: JSON.stringify({ displayName: "Browser profile" }),
+          });
+          assert.equal(profile.status, 200);
+          assert.equal(
+            (await app.request("/v1/core/sessions", { headers: { cookie } }))
+              .status,
+            200,
+          );
+        },
+      );
+      await t.test(
+        "browser-only actions are inaccessible to API keys and MCP",
+        async () => {
+          const excluded: Array<[string, string, string]> = [
+            ["GET", "/notifications", "get_notifications"],
+            ["GET", "/notifications/providers", "get_notifications_providers"],
+            [
+              "GET",
+              `/sources/${randomUUID()}/notifications/destinations`,
+              "get_sources_by_id_notifications_destinations",
+            ],
+            [
+              "POST",
+              `/sources/${randomUUID()}/notifications/destinations`,
+              "post_sources_by_id_notifications_destinations",
+            ],
+            [
+              "PUT",
+              `/sources/${randomUUID()}/notifications/destinations/${randomUUID()}`,
+              "put_sources_by_id_notifications_destinations_by_id",
+            ],
+            [
+              "DELETE",
+              `/sources/${randomUUID()}/notifications/destinations/${randomUUID()}`,
+              "delete_sources_by_id_notifications_destinations_by_id",
+            ],
+            [
+              "POST",
+              `/sources/${randomUUID()}/notifications/destinations/${randomUUID()}/actions/test`,
+              "post_sources_by_id_notifications_destinations_by_id_actions_test",
+            ],
+            ["GET", "/settings/api-keys", "get_settings_api_keys"],
+            ["POST", "/settings/api-keys", "post_settings_api_keys"],
+            [
+              "DELETE",
+              `/settings/api-keys/${write.key.id}`,
+              "delete_settings_api_keys_by_id",
+            ],
+            ["PATCH", "/profile", "patch_profile"],
+            ["PUT", "/profile/password", "put_profile_password"],
+            ["GET", "/sessions", "get_sessions"],
+            ["DELETE", `/sessions/${randomUUID()}`, "delete_sessions_by_id"],
+            [
+              "POST",
+              "/github/actions/installation-url",
+              "post_github_actions_installation_url",
+            ],
+            [
+              "POST",
+              "/github/actions/complete-installation",
+              "post_github_actions_complete_installation",
+            ],
+          ];
+          const client = await connect(write.token);
+          try {
+            const tools = await client.listTools();
+            const spec = createOpenApiDocument("https://api.test/v1/api");
+            for (const [method, path, name] of excluded) {
+              assert.equal(
+                (await request(path, write.token, method)).status,
+                404,
+              );
+              assert(!tools.tools.some((tool) => tool.name === name));
+              assert(
+                !JSON.stringify(spec.paths).includes(`"operationId":"${name}"`),
+              );
+              assert.equal(
+                (await client.callTool({ name, arguments: {} })).isError,
+                true,
+              );
+            }
+          } finally {
+            await client.close();
+          }
         },
       );
       await t.test(
@@ -242,17 +350,29 @@ void test(
           assert.equal((await request("/profile", read.token)).status, 200);
           assert.equal(
             (
-              await request("/profile", read.token, "PATCH", {
-                displayName: "Forbidden",
-              })
+              await request(
+                "/settings/secrets/preview/build",
+                read.token,
+                "PATCH",
+                {
+                  expectedRevision: null,
+                  set: { API_TEST: "Forbidden" },
+                },
+              )
             ).status,
             403,
           );
           assert.equal(
             (
-              await request("/profile", write.token, "PATCH", {
-                displayName: "Via API",
-              })
+              await request(
+                "/settings/secrets/preview/build",
+                write.token,
+                "PATCH",
+                {
+                  expectedRevision: null,
+                  set: { API_TEST: "Via API" },
+                },
+              )
             ).status,
             200,
           );
@@ -264,16 +384,7 @@ void test(
             { ...user, workspaceId: otherId },
             { name: "Other", access: "read" },
           );
-          assert.equal(
-            (
-              await request(
-                `/settings/api-keys/${otherKey.key!.id}`,
-                write.token,
-                "DELETE",
-              )
-            ).status,
-            404,
-          );
+          await assert.rejects(() => revokeApiKey(user, otherKey.key.id));
           assert.equal((await request("/profile", otherKey.token)).status, 401);
           const expiring = await createApiKey(user, {
             name: "Expired",
@@ -316,15 +427,6 @@ void test(
               arguments: {},
             });
             assert.equal(profile.isError, false);
-            const changed = await client.callTool({
-              name: "patch_profile",
-              arguments: { body: { displayName: "Via MCP" } },
-            });
-            assert.equal(changed.isError, false);
-            const readback = (await (
-              await request("/profile", write.token)
-            ).json()) as { user: { name: string } };
-            assert.equal(readback.user.name, "Via MCP");
             const invalid = await client.callTool({
               name: "get_servers_by_id",
               arguments: { path: { serverId: "../../internal" } },
@@ -342,6 +444,11 @@ void test(
             });
             assert.equal(secret.isError, false);
             assert(!JSON.stringify(secret).includes("do-not-expose"));
+            const readback = await (
+              await request("/settings/secrets", write.token)
+            ).text();
+            assert(readback.includes("TEST_VALUE"));
+            assert(!readback.includes("do-not-expose"));
           } finally {
             await client.close();
           }
@@ -352,17 +459,16 @@ void test(
             assert.equal(
               (
                 await reader.callTool({
-                  name: "patch_profile",
-                  arguments: { body: { displayName: "No" } },
+                  name: "patch_settings_secrets_by_environment_by_stage",
+                  arguments: {
+                    path: { environment: "preview", stage: "deployment" },
+                    body: { expectedRevision: null, set: { DENIED: "No" } },
+                  },
                 })
               ).isError,
               true,
             );
-            await request(
-              `/settings/api-keys/${read.key!.id}`,
-              write.token,
-              "DELETE",
-            );
+            await revokeApiKey(user, read.key.id);
             await assert.rejects(() => reader.listTools());
           } finally {
             await reader.close();

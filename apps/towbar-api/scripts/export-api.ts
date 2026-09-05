@@ -1,6 +1,11 @@
 import { format } from "prettier";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, unlink, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import {
+  referenceCategories,
+  referenceGroup,
+  sectionOrder,
+} from "../src/areas/external-api/reference-groups.js";
 // Exporting route schemas performs no database or network operations.
 process.env.DATABASE_TOWBAR_URL ??=
   "postgres://docs:docs@localhost/towbar_docs";
@@ -17,9 +22,11 @@ if (process.argv.includes("--check")) {
   if ((await readFile(target, "utf8")) !== output)
     throw new Error("OpenAPI snapshot is stale. Run pnpm docs:api.");
 } else await writeFile(target, output);
-const groups = new Map<string, string[]>();
+const groups = new Map<string, Map<string, string[]>>();
+const generatedPages = new Set<string>();
 for (const op of operations) {
   const route = `api-reference/${op.name}`;
+  generatedPages.add(`${op.name}.mdx`);
   const path = op.path.replace(/:([A-Za-z]+)/g, "{$1}");
   const description = `${op.summary} through the Towbar API and MCP.`;
   const body = await format(
@@ -34,9 +41,20 @@ for (const op of operations) {
     await mkdir(resolve(root, "docs/api-reference"), { recursive: true });
     await writeFile(target, body);
   }
-  const group = op.path.split("/")[1]!;
-  if (!groups.has(group)) groups.set(group, []);
-  groups.get(group)!.push(route);
+  const [category, group] = referenceGroup(op.path);
+  if (!groups.has(category)) groups.set(category, new Map());
+  const subgroups = groups.get(category)!;
+  if (!subgroups.has(group)) subgroups.set(group, []);
+  subgroups.get(group)!.push(route);
+}
+// Remove only endpoint pages owned by this exporter when an operation becomes browser-only.
+for (const file of await readdir(resolve(root, "docs/api-reference"))) {
+  if (!file.endsWith(".mdx") || generatedPages.has(file)) continue;
+  const path = resolve(root, "docs/api-reference", file);
+  if (!(await readFile(path, "utf8")).includes("\nMCP tool: `")) continue;
+  if (process.argv.includes("--check"))
+    throw new Error(`Obsolete API page: ${file}. Run pnpm docs:api.`);
+  await unlink(path);
 }
 const configPath = resolve(root, "docs/docs.json");
 const config = JSON.parse(await readFile(configPath, "utf8"));
@@ -53,15 +71,14 @@ const navigation = {
         "docs/api/workflows",
       ],
     },
-    ...Array.from(groups, ([group, pages]) => ({
-      group:
-        group === "aws"
-          ? "AWS"
-          : group === "github"
-            ? "GitHub"
-            : group.charAt(0).toUpperCase() +
-              group.slice(1).replaceAll("-", " "),
-      pages,
+    ...referenceCategories.map((category) => ({
+      group: category,
+      pages: Array.from(groups.get(category) ?? [], ([group, pages]) => ({
+        group,
+        pages,
+      })).sort(
+        (a, b) => sectionOrder.indexOf(a.group) - sectionOrder.indexOf(b.group),
+      ),
     })),
   ],
 };

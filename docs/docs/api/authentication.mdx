@@ -7,12 +7,12 @@ description: Create, scope, rotate, and revoke Towbar keys, and configure persis
 
 Create keys in **Manage → API & MCP**. Each key belongs to its creator and workspace. The key inventory shows its name, prefix, permissions, last use, expiry, and revocation status. Each user manages their own keys. Every key works with both the API and MCP.
 
-| Setting     | Options                                                                                        |
-| ----------- | ---------------------------------------------------------------------------------------------- |
-| Permissions | Read only or full access                                                                       |
-| Expiry      | 30 days, 90 days, 1 year, or never in the UI; an explicit future ISO timestamp through the API |
+| Setting     | Options                            |
+| ----------- | ---------------------------------- |
+| Permissions | Read only or full access           |
+| Expiry      | 30 days, 90 days, 1 year, or never |
 
-Read-only keys can call `GET` routes and the corresponding MCP tools. They cannot change profile data, deploy, sync, create keys, manage credentials, or trigger checks. Full-access keys can invoke mutations allowed by the creator's current role. Owner-only actions remain owner-only, including server management, secret changes, AWS credentials, and automatic deployment controls.
+Read-only keys can call `GET` routes and the corresponding MCP tools. They cannot deploy, sync, manage credentials, or trigger checks. Full-access keys can invoke mutations allowed by the creator's current role. Owner-only actions remain owner-only, including server management, secret changes, AWS credentials, and automatic deployment controls.
 
 Towbar checks the current user and workspace membership on every request. Disabling the user, removing membership, expiring a key, or revoking it prevents subsequent requests. Role changes apply immediately to new requests. A request already accepted may complete, and accepted background jobs continue independently of the key. Revoking a key does not cancel a deployment.
 
@@ -30,18 +30,15 @@ The verifier uses the installation's `TOWBAR_INTERNAL_HMAC_SECRET` with a separa
 
 API and MCP do not accept browser cookies as authentication. Browser sessions continue using cookie authentication and origin validation. Requests with an `Origin` header must match the configured control-plane origin; CLI and server clients normally omit it. Use HTTPS outside local development. Never put keys in URLs, logs, screenshots, or committed configuration.
 
-## Create and rotate programmatically
+## Create and rotate keys
 
-A full-access API key can create another key through `POST /settings/api-keys`. Permissions still use the same user and workspace. Read-only keys cannot create keys. Rotation creates an independent key: revoke the old key after updating your clients.
+API key management is available only in the control plane, not through REST or MCP.
 
-```bash
-curl -X POST 'https://YOUR_API_HOST/v1/api/settings/api-keys' \
-  -H "Authorization: Bearer $TOWBAR_API_KEY" \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"CI deployments","access":"write","expiresAt":null}'
-```
+1. Open **Manage → API & MCP → API Keys** and create a replacement key.
+2. Copy the key once and update your scripts or MCP client configuration.
+3. Verify the new connection, then revoke the old key from the key table.
 
-The `201` response contains `{ "key": { ...metadata }, "token": "twb_..." }`. Store `token` immediately. Revoke with `DELETE /settings/api-keys/{keyId}`. Revocation is permanent; create a replacement if needed. No key is created during installation—sign in once to bootstrap your first key.
+Revocation is permanent. No key is created during installation; sign in to create your first key.
 
 ## Configure rate limits
 

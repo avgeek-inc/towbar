@@ -3,7 +3,7 @@ title: API & MCP
 description: Automate your Towbar control plane with a REST API or connect an AI client through MCP.
 ---
 
-Towbar exposes the same control-plane operations through REST and MCP. Manage sources, apps, resources, servers, deployments, previews, secrets, integration settings, notifications, and your account using your current workspace permissions.
+Towbar exposes infrastructure operations through REST and MCP. Manage sources, apps, resources, servers, deployments, previews, secrets, integration settings, and your current identity using your current workspace permissions.
 
 | Interface             | Endpoint                       | Authentication |
 | --------------------- | ------------------------------ | -------------- |
@@ -39,7 +39,24 @@ Collections use plural nouns: `/sources`, `/apps`, `/resources`, `/servers`, and
 
 Apps and resources are defined in your Git manifest. To create or change them, update the manifest and sync its source. The API does not invent a separate configuration model. Use `/sources/{sourceId}/actions/preview-sync` to inspect reconciliation before requesting a sync.
 
-All documented paths are relative to `/v1/api`. Browser-only login, logout, initial setup, GitHub webhooks, and signed worker endpoints are separate protocols. They are not exposed as MCP tools. Key management and account/profile operations are available through both programmatic interfaces.
+All documented paths are relative to `/v1/api`. Browser-only login, logout, initial setup, GitHub webhooks, and signed worker endpoints are separate protocols. They are not exposed as MCP tools. API key management, notifications, profile editing, password changes, browser-session management, and the GitHub installation handoff are available only in the control plane. `GET /profile` remains available to identify the current user and workspace.
+
+## Find an operation
+
+The reference is grouped by the thing you manage, with smaller sections for each task:
+
+| Category     | Sections                                                                              |
+| ------------ | ------------------------------------------------------------------------------------- |
+| Sources      | Overview, Sync & manifest, Auto-deploy, Inventory, Secrets                            |
+| Apps         | Overview, Deployments, Runtime & logs, Previews, Secrets                              |
+| Resources    | Overview, Deployments, Runtime & logs, Backups & restores, Secrets                    |
+| Servers      | Overview, Inventory, Capacity, Checks & preparation, Credentials & trust, Maintenance |
+| Deployments  | Overview, Progress & logs, Actions, Security scans                                    |
+| Previews     | Lifecycle                                                                             |
+| Workspace    | Shared secrets, System health, Identity                                               |
+| Integrations | GitHub, AWS                                                                           |
+
+For common tasks, start with the [automation workflows](/docs/api/workflows). Expand only the relevant reference section when you need a schema or an individual operation.
 
 ## Requests and responses
 
@@ -47,7 +64,7 @@ All documented paths are relative to `/v1/api`. Browser-only login, logout, init
 - `200` indicates a completed request or replay. `201` indicates a newly created record. `202` accepts asynchronous work. `204` has no response body.
 - Timestamps use ISO 8601 UTC strings. IDs are UUIDs. Unknown or inaccessible workspace records return `404`.
 - Lists return named arrays; detailed records return named objects. Deployment history and server checks accept `page` and `limit` and include pagination metadata. Other inventories are not paginated.
-- Request bodies are limited to 1 MiB unless a route imposes a smaller bound. Secret and credential mutations allow 300 KiB; notification destinations allow 32 KiB.
+- Request bodies are limited to 1 MiB unless a route imposes a smaller bound. Secret and credential mutations allow 300 KiB.
 - Responses carry `X-Request-Id`; include it when reporting a failure. API/MCP responses are marked `Cache-Control: no-store`.
 
 ## Asynchronous actions and retries

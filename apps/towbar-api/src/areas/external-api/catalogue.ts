@@ -6,10 +6,11 @@ import {
 } from "@workspace/towbar-core";
 import { operationDescription } from "../../http/operation.js";
 import { controlPlaneRoutes } from "../../routes/v1/core/index.js";
+import { referenceGroup } from "./reference-groups.js";
 
 export const operations = controlPlaneRoutes.routes.flatMap((route) => {
   const description = operationDescription(route.handler);
-  if (!description) return [];
+  if (!description || description.browserOnly) return [];
   const parameters = [...route.path.matchAll(/:([A-Za-z]+)/g)].map(
     (match) => match[1]!,
   );
@@ -151,7 +152,7 @@ export function createOpenApiDocument(baseUrl: string) {
     paths[path]![op.method.toLowerCase()] = {
       operationId: op.name,
       summary: op.summary,
-      tags: [op.path.split("/")[1]],
+      tags: [referenceGroup(op.path).join(" / ")],
       description: `${op.ownerOnly ? "Requires workspace owner permission. " : "Available to workspace members and owners. "}${op.method === "GET" ? "Read-only and full-access keys are accepted." : "Requires a full-access key."}${op.stream ? " SSE deployment events containing deployment, logs, and steps. Reconnect after the bounded stream ends using Last-Event-ID. MCP returns a finite snapshot; call again to poll." : ""}`,
       security: [{ bearerAuth: [] }],
       parameters: params,

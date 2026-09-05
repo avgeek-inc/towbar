@@ -7,7 +7,6 @@ import {
   revokeApiKey,
 } from "../../../areas/api-keys/service.js";
 import { getEnv } from "../../../env.js";
-import { forbidden } from "../../../http/errors.js";
 import { readJson, readUuidPathParameter } from "../../../http/requests.js";
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
@@ -35,6 +34,7 @@ apiKeyRoutes.get(
   operation({
     responseSchema: 'api-keys.ts:get:"/"',
     summary: "List API keys",
+    browserOnly: true,
     response: "JSON object containing keys, apiUrl, mcpUrl, rateLimit.",
     status: 200,
   }),
@@ -56,6 +56,7 @@ apiKeyRoutes.post(
   operation({
     responseSchema: 'api-keys.ts:post:"/"',
     summary: "Create API key",
+    browserOnly: true,
     body: createKeySchema,
     response:
       "Key metadata and the one-time token. Save the token now; it cannot be retrieved later.",
@@ -63,9 +64,6 @@ apiKeyRoutes.post(
   }),
   async (context) => {
     const input = await readJson(context, createKeySchema);
-    const parent = context.get("apiKey");
-    if (parent && parent.access !== "write")
-      throw forbidden("Read-only keys cannot create keys");
     return context.json(await createApiKey(context.get("user"), input), 201);
   },
 );
@@ -74,6 +72,7 @@ apiKeyRoutes.delete(
   operation({
     responseSchema: 'api-keys.ts:delete:"/:keyId"',
     summary: "Revoke API key",
+    browserOnly: true,
     response: "No response body.",
     status: 204,
   }),

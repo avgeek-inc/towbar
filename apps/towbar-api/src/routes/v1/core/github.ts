@@ -63,6 +63,7 @@ githubRoutes.post(
   operation({
     responseSchema: 'github.ts:post:"/actions/installation-url"',
     summary: "Create installation URL",
+    browserOnly: true,
     response: "JSON object containing url.",
     status: 200,
   }),
@@ -81,6 +82,7 @@ githubRoutes.post(
   operation({
     responseSchema: 'github.ts:post:"/actions/complete-installation"',
     summary: "Complete installation",
+    browserOnly: true,
     body: completeSchema,
     response: "JSON object containing installation.",
     status: 201,
