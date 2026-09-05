@@ -414,16 +414,6 @@ function McpSetup({ url }: { url: string }) {
   return (
     <FormCard title="Connect your MCP client">
       <div className="content-grid">
-        <ol className="list-decimal pl-5 space-y-2">
-          <li>
-            Create an API key. Start with read-only permissions for exploring.
-          </li>
-          <li>
-            Add the connection below to your client and configure your key as
-            shown. Keep the key out of Git.
-          </li>
-          <li>Reconnect the client, then ask it to “List my Towbar apps.”</li>
-        </ol>
         <div className="max-w-sm">
           <Choice
             label="Client"
