@@ -15,6 +15,31 @@ A Source connects a GitHub repository to Towbar. Its `.towbar/deployment.yml` de
 
 Manifest validation is atomic. Invalid configuration or a reference to an unregistered server fails the sync without partially changing inventory.
 
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/features/sources-light.webp"
+      alt="Example Sources inventory. The icon counts show active apps, resources, and distinct servers for each repository."
+      width="1800"
+      height="624"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/features/sources-dark.webp"
+      alt="Example Sources inventory. The icon counts show active apps, resources, and distinct servers for each repository."
+      width="1800"
+      height="624"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Example Sources inventory. The icon counts show active apps, resources, and
+    distinct servers for each repository.
+  </p>
+</div>
+
 ## Change configuration
 
 Edit the manifest in Git and merge it into the production branch. A push webhook starts reconciliation; **Sync now** lets you request it explicitly. Review the sync's commit and issues before expecting a deployment.

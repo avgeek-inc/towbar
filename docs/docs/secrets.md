@@ -25,6 +25,16 @@ The editor shows configured key names, their origin, and replacement inputs. Lea
 
 Preview defaults and app values can be saved independently and are used by later eligible Preview deployments. Towbar rechecks pull request eligibility and rejects deployment while another deployment or cleanup is active.
 
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img src="/assets/features/secrets-light.webp" alt="Example Shared secrets editor. Configured keys are visible; stored secret values remain hidden." width="1440" height="600" loading="lazy" />
+  </div>
+  <div className="towbar-product-dark">
+    <img src="/assets/features/secrets-dark.webp" alt="Example Shared secrets editor. Configured keys are visible; stored secret values remain hidden." width="1440" height="600" loading="lazy" />
+  </div>
+  <p>Example Shared secrets editor. Configured keys are visible; stored secret values remain hidden.</p>
+</div>
+
 ## Rotate credentials
 
 Changing `POSTGRES_PASSWORD` in Towbar does not change the password already stored inside an existing PostgreSQL database. Coordinate database password rotation separately. SSH and Cloudflare replacement similarly updates what Towbar uses; it does not provision those credentials at the provider or server.

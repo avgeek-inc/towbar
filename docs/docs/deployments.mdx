@@ -5,6 +5,31 @@ description: "Understand triggers, deployment stages, health-based promotion, an
 
 A deployment is one attempt to put an app or resource into service. Towbar records its trigger, immutable inputs, progress, duration, and final result separately from Source sync history.
 
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/deployments-light.webp"
+      alt="Example deployment history. Compare the trigger, duration, and final result for each app or resource."
+      width="2400"
+      height="1290"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/deployments-dark.webp"
+      alt="Example deployment history. Compare the trigger, duration, and final result for each app or resource."
+      width="2400"
+      height="1290"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Example deployment history. Compare the trigger, duration, and final result
+    for each app or resource.
+  </p>
+</div>
+
 ## Deploy manually
 
 Open an app or resource and choose **Deploy**. The server must be prepared and trusted, and required credentials must be configured. Follow the queued operation through its recorded stages; a queued request is not a completed deployment.

@@ -48,6 +48,31 @@ Run a manual backup and wait for completion. Check its object metadata and resto
 
 Freshness and usability answer different questions. An older retained backup can miss the schedule's recovery-point objective while remaining usable for an explicit restore.
 
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/guides/backups-light.webp"
+      alt="Example backup view. Review the backup run, S3 copy, restore check, and retained recovery point."
+      width="2400"
+      height="1666"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/guides/backups-dark.webp"
+      alt="Example backup view. Review the backup run, S3 copy, restore check, and retained recovery point."
+      width="2400"
+      height="1666"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Example backup view. Review the backup run, S3 copy, restore check, and
+    retained recovery point.
+  </p>
+</div>
+
 ## Practice recovery
 
 A completed upload is not proof that your application can recover. Follow the [restore guide](/docs/restores) in a controlled environment and verify the restored data with the application.

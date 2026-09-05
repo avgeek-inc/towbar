@@ -25,6 +25,31 @@ Preparation installs or validates Docker Engine 28 or newer, Caddy, `python3`, G
   investigating why it changed.
 </Warning>
 
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/guides/server-host-keys-light.webp"
+      alt="Example Host Keys view. Compare the fingerprint independently before trusting a discovered key."
+      width="2400"
+      height="554"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/guides/server-host-keys-dark.webp"
+      alt="Example Host Keys view. Compare the fingerprint independently before trusting a discovered key."
+      width="2400"
+      height="554"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Example Host Keys view. Compare the fingerprint independently before
+    trusting a discovered key.
+  </p>
+</div>
+
 ## Prepare the runtime
 
 Choose **Prepare Server** from the server's Overview tab and follow the recorded steps until the server is **Ready**. Workloads remain **Server Setup Pending** until preparation succeeds.
@@ -42,5 +67,30 @@ Also account for the installation-wide [worker activity limit](/docs/reference/e
 The Servers table shows hardware capacity. A server's Apps and Resources tabs show configured allocations alongside the latest observed consumption. Known cloud instance types appear below the IP; otherwise Towbar shows detected CPU and memory capacity, or **Unknown Instance Type**.
 
 Capacity comes from server checks. A displayed value is an observation, not a guarantee that the host is reachable at that instant. Check its timestamp and the latest check result during an incident.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/features/servers-light.webp"
+      alt="Example host capacity. Check the observation timestamp alongside CPU, memory, and disk usage."
+      width="1344"
+      height="360"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/features/servers-dark.webp"
+      alt="Example host capacity. Check the observation timestamp alongside CPU, memory, and disk usage."
+      width="1344"
+      height="360"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Example host capacity. Check the observation timestamp alongside CPU,
+    memory, and disk usage.
+  </p>
+</div>
 
 For public routes, continue with [Domains and TLS](/docs/domains-tls). For private database access, see [Resources](/docs/resources#connect-privately).

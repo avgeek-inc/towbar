@@ -45,6 +45,16 @@ Open **Manage → System health** and choose **Run checks**. GitHub appears in t
 
 Open **Sources → Add source** and confirm the intended repository is available. If it is missing, review the GitHub App installation's repository selection and organization approval.
 
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img src="/assets/guides/github-light.webp" alt="Example GitHub connection. A preview-reporting warning can appear while the installation remains connected." width="2400" height="1136" loading="lazy" />
+  </div>
+  <div className="towbar-product-dark">
+    <img src="/assets/guides/github-dark.webp" alt="Example GitHub connection. A preview-reporting warning can appear while the installation remains connected." width="2400" height="1136" loading="lazy" />
+  </div>
+  <p>Example GitHub connection. A preview-reporting warning can appear while the installation remains connected.</p>
+</div>
+
 ## Maintain the connection
 
 After changing App permissions, approve the updated installation in GitHub. Preview comments and statuses require their respective write permissions. If a webhook does not reach Towbar, inspect its delivery in GitHub and check the API origin, webhook path, and matching webhook secret.

@@ -5,6 +5,31 @@ description: "Build a Dockerfile service on a target server and promote it after
 
 An app is a service built from a Dockerfile in your Source repository. Towbar transfers the selected build context, builds on the target Ubuntu server, and checks the candidate before promotion. You do not need a container registry for this workflow.
 
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/features/apps-light.webp"
+      alt="Example app overview. Runtime health and the latest deployment are shown separately."
+      width="1440"
+      height="930"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/features/apps-dark.webp"
+      alt="Example app overview. Runtime health and the latest deployment are shown separately."
+      width="1440"
+      height="930"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Example app overview. Runtime health and the latest deployment are shown
+    separately.
+  </p>
+</div>
+
 ## Define an app
 
 This complete manifest runs a service that listens on port 3000 and responds at `/health`:

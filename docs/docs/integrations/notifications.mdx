@@ -39,6 +39,31 @@ The default port is 587 and implicit TLS defaults to false. See the [SMTP variab
 | Backups     | Stale, failed, and not restorable                      |
 | Restores    | Started, succeeded, failed, cancelled, and rolled back |
 
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/guides/notifications-light.webp"
+      alt="Example Source notification destinations. Unavailable indicates the installation’s Slack or email provider is not configured."
+      width="2400"
+      height="844"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/guides/notifications-dark.webp"
+      alt="Example Source notification destinations. Unavailable indicates the installation’s Slack or email provider is not configured."
+      width="2400"
+      height="844"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Example Source notification destinations. Unavailable indicates the
+    installation’s Slack or email provider is not configured.
+  </p>
+</div>
+
 ## Diagnose delivery
 
 Each delivery has its own attempts and result. A failed notification does not turn a successful deployment into a failed deployment. Check the destination's enabled state and categories first, then provider access and the recorded delivery error.

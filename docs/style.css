@@ -354,3 +354,37 @@ body:has(.towbar-home) {
 [data-towbar-search] {
   display: none !important;
 }
+
+/* Feature screenshots share theme behavior with the homepage. */
+.towbar-doc-screenshot {
+  margin: 28px 0 32px;
+}
+.towbar-doc-screenshot > .towbar-product-light,
+.towbar-doc-screenshot > .towbar-product-dark {
+  overflow: hidden;
+  border: 1px solid oklch(0.91 0.01 85);
+  border-radius: 12px;
+}
+.dark .towbar-doc-screenshot > .towbar-product-dark {
+  border-color: oklch(0.3 0.01 85);
+}
+.towbar-doc-screenshot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  border-radius: 0;
+}
+.towbar-doc-screenshot > p {
+  margin: 10px 0 0;
+  color: oklch(0.45 0.015 85);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.dark .towbar-doc-screenshot > p {
+  color: oklch(0.74 0.015 85);
+}
+.towbar-doc-screenshot-portrait {
+  max-width: 440px;
+  margin-inline: auto;
+}

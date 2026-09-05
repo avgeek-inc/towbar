@@ -16,6 +16,31 @@ Open **Manage → System health** and choose **Run checks**.
 
 A provider configuration badge means required settings exist. It does not confirm delivery to a Slack channel, successful SMTP delivery, or access to every S3 bucket. Use a destination test or a real backup to verify that specific path.
 
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/guides/system-health-light.webp"
+      alt="Example System health page with separate control-plane and integration checks."
+      width="2400"
+      height="1510"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/guides/system-health-dark.webp"
+      alt="Example System health page with separate control-plane and integration checks."
+      width="2400"
+      height="1510"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Example System health page with separate control-plane and integration
+    checks.
+  </p>
+</div>
+
 ## Server and workload health
 
 The server's Checks view records connectivity and runtime observations. Its Apps and Resources tabs separate the workloads assigned to the host. Health indicators and tooltips identify healthy, unhealthy, starting, and unavailable observations.
@@ -27,6 +52,31 @@ A deployment can succeed and later become unhealthy. Check the latest runtime st
 Allocation is the limit declared for a workload. Usage is the latest observed consumption relative to that allocation. CPU percentages account for the number of allocated CPUs; memory percentages use the configured memory limit.
 
 Server capacity columns describe the host's maximum capacity. They do not represent an app's allocation. Missing measurements display as unavailable rather than zero. Review the observation timestamp if the server cannot be reached.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/guides/server-workloads-light.webp"
+      alt="Example server Apps view. Usage percentages are shown against each workload’s allocated CPU and memory."
+      width="2400"
+      height="810"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/guides/server-workloads-dark.webp"
+      alt="Example server Apps view. Usage percentages are shown against each workload’s allocated CPU and memory."
+      width="2400"
+      height="810"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Example server Apps view. Usage percentages are shown against each
+    workload’s allocated CPU and memory.
+  </p>
+</div>
 
 ## Follow an operation
 

@@ -15,6 +15,30 @@ Resources run from an existing container image. Use them for databases, caches, 
 
 Images must have an explicit non-`latest` tag or a digest. Use a digest when you need an immutable image reference. PostgreSQL and Redis have preset images if you omit `image`; pin an explicit version when planning upgrades.
 
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/features/resources-light.webp"
+      alt="Example resource inventory with PostgreSQL, Redis, and image-based services."
+      width="1440"
+      height="720"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/features/resources-dark.webp"
+      alt="Example resource inventory with PostgreSQL, Redis, and image-based services."
+      width="1440"
+      height="720"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Example resource inventory with PostgreSQL, Redis, and image-based services.
+  </p>
+</div>
+
 ## Add a database
 
 ```yaml

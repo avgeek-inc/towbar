@@ -49,6 +49,16 @@ Open **Sources → Add source** and select the repository. Wait for the initial 
 
 A successful sync imports **Web** into the Source's Apps list. If it fails, correct the reported manifest field or missing server reference and sync again. A successful sync accepts configuration; it does not mean the app is running.
 
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img src="/assets/features/sources-light.webp" alt="Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result." width="1800" height="624" loading="lazy" />
+  </div>
+  <div className="towbar-product-dark">
+    <img src="/assets/features/sources-dark.webp" alt="Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result." width="1800" height="624" loading="lazy" />
+  </div>
+  <p>Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result.</p>
+</div>
+
 ## 3. Verify the server
 
 Open the target under **Servers**. Save its SSH private key in **Settings → Configuration**, then run a server check. Compare the discovered SSH fingerprint with the host's console through an independent channel before trusting it.
@@ -66,6 +76,16 @@ Saved values are write-only. Leaving a replacement field untouched preserves its
 Open the app and choose **Deploy**. Follow the operation as Towbar fetches the commit, builds on the server, starts a candidate, checks health, and promotes the release.
 
 If a stage fails, open its output and correct that failure before retrying. The [troubleshooting guide](/docs/troubleshooting) maps common symptoms to the next check.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img src="/assets/deployments-light.webp" alt="Example deployment history showing queued, active, successful, and failed attempts." width="2400" height="1290" loading="lazy" />
+  </div>
+  <div className="towbar-product-dark">
+    <img src="/assets/deployments-dark.webp" alt="Example deployment history showing queued, active, successful, and failed attempts." width="2400" height="1290" loading="lazy" />
+  </div>
+  <p>Example deployment history showing queued, active, successful, and failed attempts.</p>
+</div>
 
 ## 6. Verify the result
 

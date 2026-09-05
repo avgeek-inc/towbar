@@ -14,6 +14,31 @@ AWS is optional. Towbar can deploy to registered Ubuntu servers without an AWS a
 
 The workspace has one AWS credential shared by its resource backup policies. The UI exposes metadata and the access-key suffix, not the secret. Updating the credential affects future S3 operations across the workspace.
 
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/guides/aws-light.webp"
+      alt="Example connected AWS integration. Only credential metadata and the access-key suffix are displayed."
+      width="2400"
+      height="704"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/guides/aws-dark.webp"
+      alt="Example connected AWS integration. Only credential metadata and the access-key suffix are displayed."
+      width="2400"
+      height="704"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Example connected AWS integration. Only credential metadata and the
+    access-key suffix are displayed.
+  </p>
+</div>
+
 ## Grant storage access
 
 The identity needs permissions for backup writes, object inspection and reads, and retention cleanup within the declared bucket/prefix. Restores require `s3:GetObject`; versioned backups also need access to the retained object version. KMS-encrypted backups require suitable key permissions.
