@@ -108,11 +108,14 @@ function ControlPlane({
 }) {
   return (
     <Widget>
-      <Widget.Header>
+      <Widget.Header
+        endContent={
+          <span className="font-mono text-xs text-muted" title={version}>
+            {shortVersion(version)}
+          </span>
+        }
+      >
         <Widget.Title>Control plane</Widget.Title>
-        <span className="font-mono text-xs text-muted" title={version}>
-          {shortVersion(version)}
-        </span>
       </Widget.Header>
       <Widget.Content className="grid p-0">
         {checks.map((check) => {

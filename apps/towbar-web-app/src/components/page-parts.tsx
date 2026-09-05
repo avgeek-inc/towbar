@@ -10,8 +10,8 @@ import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { Spinner } from "@workspace/web-design-system/feedback/spinner";
 import { AlertDialog } from "@workspace/web-design-system/overlays/alert-dialog";
 import { Button } from "@workspace/web-design-system/buttons/button";
-import { Card } from "@workspace/web-design-system/layout/card";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
+import { Widget } from "@workspace/web-design-system/data-display/widget";
 import {
   Field,
   FieldDescription,
@@ -336,22 +336,21 @@ export function ActionButton<T>({
 export function FormCard({
   children,
   className,
-  description,
+  headerEnd,
   title,
   ...props
-}: Omit<ComponentProps<typeof Card>, "children" | "title"> & {
+}: Omit<ComponentProps<typeof Widget>, "children" | "title"> & {
   children: ReactNode;
-  description: string;
+  headerEnd?: ReactNode;
   title: string;
 }) {
   return (
-    <Card {...props} className={className}>
-      <Card.Header>
-        <Card.Title>{title}</Card.Title>
-        <Card.Description>{description}</Card.Description>
-      </Card.Header>
-      <Card.Content>{children}</Card.Content>
-    </Card>
+    <Widget {...props} className={className}>
+      <Widget.Header endContent={headerEnd}>
+        <Widget.Title>{title}</Widget.Title>
+      </Widget.Header>
+      <Widget.Content>{children}</Widget.Content>
+    </Widget>
   );
 }
 

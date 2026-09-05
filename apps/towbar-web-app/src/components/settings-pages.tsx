@@ -22,7 +22,14 @@ export function ProfileSettings() {
 
   return (
     <div className="grid min-w-0 gap-6 lg:grid-cols-2 lg:items-start">
-      <FormCard description={profile.data.user.email} title="Profile details">
+      <FormCard
+        headerEnd={
+          <span className="truncate text-xs text-muted">
+            {profile.data.user.email}
+          </span>
+        }
+        title="Profile details"
+      >
         <SimpleForm
           fields={[
             {
@@ -41,10 +48,7 @@ export function ProfileSettings() {
           submitLabel="Update profile"
         />
       </FormCard>
-      <FormCard
-        description="Changing the password revokes every other active session."
-        title="Change password"
-      >
+      <FormCard title="Change password">
         <SimpleForm
           fields={[
             {

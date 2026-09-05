@@ -78,11 +78,6 @@ export function ServerEditor({
   return (
     <div className="grid gap-8">
       <FormCard
-        description={
-          editing
-            ? "Connection, build scheduling, and proxy settings apply to every Source using this server."
-            : "Add a workspace server before syncing manifests that target its IP address."
-        }
         title={editing ? "Server configuration" : "Connection and scheduling"}
       >
         <form className="grid max-w-2xl gap-5" onSubmit={save}>
@@ -215,10 +210,7 @@ export function ServerEditor({
 export function ServerRemoval({ server }: { server: Server }) {
   const router = useRouter();
   return (
-    <FormCard
-      description="A server can be removed only after every active app and resource has moved elsewhere or been archived."
-      title="Remove server"
-    >
+    <FormCard title="Remove server">
       <ActionButton
         action={() => api.delete(`/v1/core/servers/${server.id}`)}
         confirm={{

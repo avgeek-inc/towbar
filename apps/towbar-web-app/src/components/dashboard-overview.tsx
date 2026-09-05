@@ -158,17 +158,21 @@ export function DashboardOverview() {
       </KPIGroup>
 
       <Widget className="min-w-0">
-        <Widget.Header className="flex-wrap py-2">
+        <Widget.Header
+          className="flex-wrap py-2"
+          endContent={
+            deploymentItems.length ? (
+              <Widget.Legend className="flex-wrap">
+                {activitySeries.map((series) => (
+                  <Widget.LegendItem color={series.color} key={series.key}>
+                    {series.label}
+                  </Widget.LegendItem>
+                ))}
+              </Widget.Legend>
+            ) : null
+          }
+        >
           <Widget.Title>Deployment activity</Widget.Title>
-          {deploymentItems.length ? (
-            <Widget.Legend className="flex-wrap">
-              {activitySeries.map((series) => (
-                <Widget.LegendItem color={series.color} key={series.key}>
-                  {series.label}
-                </Widget.LegendItem>
-              ))}
-            </Widget.Legend>
-          ) : null}
         </Widget.Header>
         <Widget.Content className="grid min-w-0 gap-3">
           {deploymentItems.length ? (

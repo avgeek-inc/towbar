@@ -1,37 +1,38 @@
 "use client";
 
-import {
-  forwardRef,
-  type ComponentPropsWithRef,
-  type CSSProperties,
-} from "react";
+import { forwardRef, type ComponentPropsWithRef, type ReactNode } from "react";
 import { cn } from "../lib/utils";
 
-const Root = forwardRef<HTMLElement, ComponentPropsWithRef<"section">>(
+const Root = forwardRef<HTMLDivElement, ComponentPropsWithRef<"div">>(
   ({ className, ...props }, ref) => (
-    <section
+    <div
       ref={ref}
-      className={cn(
-        "overflow-hidden rounded-3xl border border-separator bg-surface",
-        className,
-      )}
+      className={cn("widget", className)}
       data-slot="widget"
       {...props}
     />
   ),
 );
 
-const Header = forwardRef<HTMLElement, ComponentPropsWithRef<"header">>(
-  ({ className, ...props }, ref) => (
-    <header
+interface WidgetHeaderProps extends Omit<
+  ComponentPropsWithRef<"div">,
+  "children"
+> {
+  children: ReactNode;
+  endContent?: ReactNode;
+}
+
+const Header = forwardRef<HTMLDivElement, WidgetHeaderProps>(
+  ({ children, className, endContent, ...props }, ref) => (
+    <div
       ref={ref}
-      className={cn(
-        "flex min-h-12 items-center justify-between gap-4 border-b border-separator px-5 py-3",
-        className,
-      )}
+      className={cn("widget__header", className)}
       data-slot="widget-header"
       {...props}
-    />
+    >
+      {children}
+      {endContent}
+    </div>
   ),
 );
 
@@ -39,7 +40,7 @@ const Title = forwardRef<HTMLSpanElement, ComponentPropsWithRef<"span">>(
   ({ className, ...props }, ref) => (
     <span
       ref={ref}
-      className={cn("text-xs font-medium text-muted", className)}
+      className={cn("widget__title font-medium text-xs", className)}
       data-slot="widget-title"
       {...props}
     />
@@ -50,8 +51,19 @@ const Content = forwardRef<HTMLDivElement, ComponentPropsWithRef<"div">>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("p-5", className)}
+      className={cn("widget__content", className)}
       data-slot="widget-content"
+      {...props}
+    />
+  ),
+);
+
+const Footer = forwardRef<HTMLDivElement, ComponentPropsWithRef<"div">>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn("widget__footer", className)}
+      data-slot="widget-footer"
       {...props}
     />
   ),
@@ -61,10 +73,7 @@ const Legend = forwardRef<HTMLDivElement, ComponentPropsWithRef<"div">>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn(
-        "flex items-center gap-2.5 text-[0.6875rem] leading-4 text-muted",
-        className,
-      )}
+      className={cn("widget__legend", className)}
       data-slot="widget-legend"
       {...props}
     />
@@ -72,33 +81,40 @@ const Legend = forwardRef<HTMLDivElement, ComponentPropsWithRef<"div">>(
 );
 
 const LegendItem = forwardRef<
-  HTMLSpanElement,
-  ComponentPropsWithRef<"span"> & { color: string }
+  HTMLDivElement,
+  ComponentPropsWithRef<"div"> & { color: string }
 >(({ color, className, children, ...props }, ref) => (
-  <span
+  <div
     ref={ref}
-    className={cn("inline-flex items-center gap-1", className)}
+    className={cn("widget__legend-item", className)}
     data-slot="widget-legend-item"
     {...props}
   >
     <span
-      aria-hidden="true"
-      className="size-1.5 rounded-full"
-      style={{ backgroundColor: color } as CSSProperties}
+      className="widget__legend-item-dot"
+      data-slot="widget-legend-item-dot"
+      style={{ backgroundColor: color }}
     />
-    {children}
-  </span>
+    <span
+      className="widget__legend-item-label"
+      data-slot="widget-legend-item-label"
+    >
+      {children}
+    </span>
+  </div>
 ));
 
 Root.displayName = "Widget.Root";
 Header.displayName = "Widget.Header";
 Title.displayName = "Widget.Title";
 Content.displayName = "Widget.Content";
+Footer.displayName = "Widget.Footer";
 Legend.displayName = "Widget.Legend";
 LegendItem.displayName = "Widget.LegendItem";
 
 export const Widget = Object.assign(Root, {
   Content,
+  Footer,
   Header,
   Legend,
   LegendItem,

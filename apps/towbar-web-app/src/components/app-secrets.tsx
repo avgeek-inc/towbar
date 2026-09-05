@@ -14,7 +14,7 @@ import { EmptyState } from "@workspace/web-design-system/data-display/empty-stat
 import { Input } from "@workspace/web-design-system/forms/input";
 import { InputGroup } from "@workspace/web-design-system/forms/input-group";
 import { FieldError } from "@workspace/web-design-system/forms/field";
-import { Card } from "@workspace/web-design-system/layout/card";
+import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -26,13 +26,6 @@ export const stageLabels: Record<AppSecretStage, string> = {
   deployment: "Runtime",
   pre_deploy: "Pre-deploy",
   post_deploy: "Post-deploy",
-};
-
-const stageDescriptions: Record<AppSecretStage, string> = {
-  build: "Available to BuildKit secret mounts while this app is built.",
-  deployment: "Injected into the app or resource container at runtime.",
-  pre_deploy: "Available only while the pre-deploy hook runs.",
-  post_deploy: "Available only while the post-deploy hook runs.",
 };
 
 export function AppSecrets({ appId }: { appId: string }) {
@@ -63,9 +56,8 @@ export function AppSecrets({ appId }: { appId: string }) {
             value === environment ? (
               <EnvironmentEditors
                 key={environment}
-                query={query}
                 endpoint={endpoint}
-                scope="app"
+                query={query}
               />
             ) : null,
         }))}
@@ -89,13 +81,12 @@ export function ResourceSecrets({ resourceId }: { resourceId: string }) {
           inside an existing database.
         </p>
       </div>
-      <EnvironmentEditors query={query} endpoint={endpoint} scope="resource" />
+      <EnvironmentEditors endpoint={endpoint} query={query} />
     </div>
   );
 }
 
 type Query = { data?: AppSecretsResponse; error?: string; refresh: () => void };
-type SecretScope = "global" | "source" | "app" | "resource";
 
 export function GlobalSecrets() {
   return (
@@ -159,7 +150,6 @@ function EnvironmentSecretSettings({
                 key={environment}
                 endpoint={endpoint}
                 query={query}
-                scope={scope}
               />
             ) : null,
         }))}
@@ -174,7 +164,6 @@ function EnvironmentEditors({
 }: {
   query: Query;
   endpoint: string;
-  scope: SecretScope;
 }) {
   if (query.error) return <QueryError message={query.error} />;
   if (!query.data) return <QueryLoading />;
@@ -206,13 +195,11 @@ function SecretVariablesEditor({
   binding,
   endpoint,
   canManage,
-  scope,
   onUpdated,
 }: {
   binding: AppSecretBinding;
   endpoint: string;
   canManage: boolean;
-  scope: SecretScope;
   onUpdated: () => void;
 }) {
   const [busy, setBusy] = useState(false);
@@ -275,26 +262,11 @@ function SecretVariablesEditor({
   const stageLabel = stageLabels[binding.stage];
   return (
     <form onSubmit={submit}>
-      <Card className="min-w-0">
-        <Card.Header>
-          <Card.Title>{stageLabel} secrets</Card.Title>
-          <Card.Description>
-            {scope === "global"
-              ? binding.environment === "preview"
-                ? `Inherited by preview apps at the ${stageLabel.toLowerCase()} stage.`
-                : binding.stage === "deployment"
-                  ? "Inherited by sources, apps, and resources at runtime."
-                  : `Inherited by sources and apps at the ${stageLabel.toLowerCase()} stage.`
-              : scope === "source"
-                ? binding.environment === "preview"
-                  ? `Inherited by preview apps at the ${stageLabel.toLowerCase()} stage.`
-                  : binding.stage === "deployment"
-                    ? "Inherited by production apps and resources at runtime."
-                    : `Inherited by production apps at the ${stageLabel.toLowerCase()} stage.`
-                : stageDescriptions[binding.stage]}
-          </Card.Description>
-        </Card.Header>
-        <Card.Content className="grid min-w-0 gap-5">
+      <Widget className="min-w-0">
+        <Widget.Header>
+          <Widget.Title>{stageLabel} secrets</Widget.Title>
+        </Widget.Header>
+        <Widget.Content className="grid min-w-0 gap-5">
           {!keys.length && !newKeys.length ? (
             <EmptyState className="rounded-2xl border border-separator py-12">
               <EmptyState.Header>
@@ -508,8 +480,8 @@ function SecretVariablesEditor({
               </Button>
             </div>
           ) : null}
-        </Card.Content>
-      </Card>
+        </Widget.Content>
+      </Widget>
     </form>
   );
 }

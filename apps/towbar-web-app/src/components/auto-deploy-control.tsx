@@ -5,9 +5,9 @@ import type { FormEvent } from "react";
 
 import type { AutoDeployControlResponse } from "@workspace/towbar-web-client";
 import { Button } from "@workspace/web-design-system/buttons/button";
+import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { Switch } from "@workspace/web-design-system/forms/switch";
-import { Card } from "@workspace/web-design-system/layout/card";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
@@ -68,8 +68,8 @@ export function AutoDeployControlEditor({
 
   return (
     <form onSubmit={save}>
-      <Card>
-        <Card.Content className="grid gap-5">
+      <Widget>
+        <Widget.Content className="grid gap-5">
           <Switch
             isDisabled={!query.data.canManageAutoDeploy}
             isSelected={paused}
@@ -100,8 +100,8 @@ export function AutoDeployControlEditor({
           >
             {saving ? "Saving…" : "Save"}
           </Button>
-        </Card.Content>
-      </Card>
+        </Widget.Content>
+      </Widget>
     </form>
   );
 }

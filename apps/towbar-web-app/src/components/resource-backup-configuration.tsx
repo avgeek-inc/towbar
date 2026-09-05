@@ -22,7 +22,7 @@ import {
   FieldLabel,
 } from "@workspace/web-design-system/forms/field";
 import { Input } from "@workspace/web-design-system/forms/input";
-import { Card } from "@workspace/web-design-system/layout/card";
+import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Modal } from "@workspace/web-design-system/overlays/modal";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
@@ -182,39 +182,27 @@ export function ResourceBackupConfiguration({
   return (
     <div className="grid min-w-0 gap-8">
       <div className="grid min-w-0 gap-6">
-        <Card className="min-w-0">
-          <Card.Header className="items-start gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="grid min-w-0 flex-1 gap-1">
-              <Card.Title>
-                {assuranceData.awsConfigured
-                  ? backupHealth.title
-                  : "Backups paused"}
-              </Card.Title>
-              <p className="text-muted typography--body-sm">
-                {assuranceData.awsConfigured ? (
-                  backupHealth.description
-                ) : (
-                  <>
-                    Add AWS credentials in{" "}
-                    <InlineLink href="/manage/integrations?integration=aws">
-                      Manage → Integrations
-                    </InlineLink>{" "}
-                    before backups can run.
-                  </>
-                )}
-              </p>
-            </div>
-            <Chip
-              className="shrink-0"
-              variant={
-                assuranceData.awsConfigured ? backupHealth.tone : "warning"
-              }
-            >
-              {assuranceData.awsConfigured ? backupHealth.label : "Paused"}
-            </Chip>
-          </Card.Header>
+        <Widget className="min-w-0">
+          <Widget.Header
+            endContent={
+              <Chip
+                className="shrink-0"
+                variant={
+                  assuranceData.awsConfigured ? backupHealth.tone : "warning"
+                }
+              >
+                {assuranceData.awsConfigured ? backupHealth.label : "Paused"}
+              </Chip>
+            }
+          >
+            <Widget.Title>
+              {assuranceData.awsConfigured
+                ? backupHealth.title
+                : "Backups paused"}
+            </Widget.Title>
+          </Widget.Header>
           {assuranceData.awsConfigured ? (
-            <Card.Content className="grid min-w-0 gap-3">
+            <Widget.Content className="grid min-w-0 gap-3">
               <ol className="grid overflow-hidden rounded-lg border border-separator divide-y divide-separator md:grid-cols-3 md:divide-x md:divide-y-0">
                 {backupHealth.stages.map((stage) => (
                   <li
@@ -240,10 +228,20 @@ export function ResourceBackupConfiguration({
                   Last checked {formatDate(latestAssurance.checkedAt)}
                 </p>
               ) : null}
-            </Card.Content>
-          ) : null}
+            </Widget.Content>
+          ) : (
+            <Widget.Content>
+              <p className="text-muted typography--body-sm">
+                Add AWS credentials in{" "}
+                <InlineLink href="/manage/integrations?integration=aws">
+                  Manage → Integrations
+                </InlineLink>{" "}
+                before backups can run.
+              </p>
+            </Widget.Content>
+          )}
           {active ? (
-            <Card.Footer className="justify-end">
+            <Widget.Footer className="justify-end">
               <ActionButton
                 action={() =>
                   api.post(
@@ -259,9 +257,9 @@ export function ResourceBackupConfiguration({
               >
                 Back up now
               </ActionButton>
-            </Card.Footer>
+            </Widget.Footer>
           ) : null}
-        </Card>
+        </Widget>
 
         <Attributes title="Backup settings" variant="card">
           <Attributes.Item label="Schedule">
@@ -605,12 +603,11 @@ function RestoreProgress({
     2_000,
   );
   return (
-    <Card>
-      <Card.Header>
-        <Card.Title>Restore progress</Card.Title>
-        <StatusBadge status={operation.state} />
-      </Card.Header>
-      <Card.Content>
+    <Widget>
+      <Widget.Header endContent={<StatusBadge status={operation.state} />}>
+        <Widget.Title>Restore progress</Widget.Title>
+      </Widget.Header>
+      <Widget.Content>
         {events.error ? <QueryError message={events.error} /> : null}
         {!events.data && !events.error ? <QueryLoading variant="list" /> : null}
         {events.data ? (
@@ -636,8 +633,8 @@ function RestoreProgress({
             ))}
           </ol>
         ) : null}
-      </Card.Content>
-    </Card>
+      </Widget.Content>
+    </Widget>
   );
 }
 

@@ -128,10 +128,7 @@ export function SourceCreate() {
             </Stepper>
           </div>
         </div>
-        <FormCard
-          description="Choose one repository from the connected GitHub installation."
-          title="Source details"
-        >
+        <FormCard title="Source details">
           <form
             className="grid max-w-xl gap-8 pt-2"
             onSubmit={async (event) => {

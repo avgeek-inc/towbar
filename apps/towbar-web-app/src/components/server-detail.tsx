@@ -672,9 +672,8 @@ function ServerPreparationPanel({
         </Alert>
       ) : null}
       <Widget>
-        <Widget.Header>
+        <Widget.Header endContent={<StatusBadge status={setupStatus} />}>
           <Widget.Title>Server preparation</Widget.Title>
-          <StatusBadge status={setupStatus} />
         </Widget.Header>
         <Widget.Content className="grid gap-5">
           <div className="flex flex-wrap items-start justify-between gap-4">

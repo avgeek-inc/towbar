@@ -383,11 +383,12 @@ export function DeploymentDetail() {
             icon: <HugeiconsIcon icon={Activity01Icon} />,
             content: (
               <Widget className="min-w-0">
-                <Widget.Header>
+                <Widget.Header
+                  endContent={<StatusBadge status={stream.connection} />}
+                >
                   <Widget.Title>
                     {formatStatus(currentStep?.state ?? displayStatus)}
                   </Widget.Title>
-                  <StatusBadge status={stream.connection} />
                 </Widget.Header>
                 <Widget.Content>
                   <Stepper

@@ -32,16 +32,20 @@ export function ServerHostCapacity({
 }) {
   return (
     <Widget>
-      <Widget.Header className="flex-wrap">
-        <div className="flex min-w-0 items-center gap-2">
-          <Widget.Title>Host capacity</Widget.Title>
-          <CapacityStatusBadge status={capacity.status} />
-        </div>
-        <span className="text-xs text-muted">
-          {capacity.checkedAt
-            ? `Checked ${formatDate(capacity.checkedAt)}`
-            : "Not checked"}
-        </span>
+      <Widget.Header
+        className="flex-wrap"
+        endContent={
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <CapacityStatusBadge status={capacity.status} />
+            <span className="text-xs text-muted">
+              {capacity.checkedAt
+                ? `Checked ${formatDate(capacity.checkedAt)}`
+                : "Not checked"}
+            </span>
+          </div>
+        }
+      >
+        <Widget.Title>Host capacity</Widget.Title>
       </Widget.Header>
       <Widget.Content>
         {capacity.cpu && capacity.memory && capacity.disk ? (
