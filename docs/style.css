@@ -74,14 +74,7 @@
   outline-offset: 5px;
   border-radius: 4px;
 }
-.towbar-home .towbar-eyebrow {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
-  line-height: 1.5;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--towbar-muted);
-}
+
 .towbar-hero {
   text-align: center;
   padding: 56px 0 40px;
@@ -136,9 +129,7 @@
   text-decoration: underline;
   text-underline-offset: 5px;
 }
-.towbar-home .towbar-caption {
-  font-size: 12px;
-}
+
 .towbar-product {
   margin: 0;
 }
@@ -170,17 +161,7 @@
   margin: 0;
   border-radius: 0;
 }
-.towbar-home .towbar-product-caption {
-  margin-top: 18px;
-  color: var(--towbar-muted);
-  font-size: 12px;
-  text-align: center;
-  line-height: 1.6;
-}
-.towbar-home .towbar-product-caption span:not([data-as]) {
-  color: var(--towbar-ink);
-  margin-right: 6px;
-}
+
 .towbar-link {
   color: var(--towbar-accent);
   font-size: 13px;
@@ -237,9 +218,7 @@
     padding: 36px 0 32px;
     gap: 22px;
   }
-  .towbar-home .towbar-eyebrow {
-    font-size: 10px;
-  }
+
   .towbar-home h1 {
     font-size: clamp(36px, 9.5vw, 60px);
   }
@@ -257,10 +236,7 @@
     font-size: 9px;
     padding: 12px;
   }
-  .towbar-home .towbar-product-caption {
-    max-width: 32ch;
-    margin: 16px auto 0;
-  }
+
   .towbar-highlights {
     grid-template-columns: 1fr;
     padding: 36px 0 24px;
