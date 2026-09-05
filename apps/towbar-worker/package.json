@@ -33,7 +33,7 @@
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "eslint": "catalog:",
-    "tsx": "^4.21.0",
+    "tsx": "^4.23.13",
     "typescript": "catalog:"
   }
 }

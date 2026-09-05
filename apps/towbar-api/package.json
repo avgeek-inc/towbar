@@ -30,9 +30,9 @@
     "@workspace/towbar-core": "workspace:*",
     "@workspace/towbar-database": "workspace:*",
     "drizzle-orm": "catalog:",
-    "hono": "^4.12.31",
-    "jose": "^6.2.9",
-    "nodemailer": "^9.0.6",
+    "hono": "^4.13.5",
+    "jose": "^6.2.10",
+    "nodemailer": "^9.1.1",
     "postgres": "catalog:",
     "zod": "catalog:"
   },
@@ -43,7 +43,7 @@
     "@workspace/typescript-config": "workspace:*",
     "eslint": "catalog:",
     "prettier": "catalog:",
-    "tsx": "^4.21.0",
+    "tsx": "^4.23.13",
     "typescript": "catalog:"
   }
 }
