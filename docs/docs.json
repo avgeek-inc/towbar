@@ -10,9 +10,9 @@
   },
   "favicon": "/assets/towbar-favicon.png",
   "colors": {
-    "primary": "#07518E",
-    "light": "#3BA0FF",
-    "dark": "#0F6EC7"
+    "primary": "#A16207",
+    "light": "#FACC15",
+    "dark": "#A16207"
   },
   "appearance": {
     "default": "system"

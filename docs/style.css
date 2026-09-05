@@ -1,10 +1,24 @@
+/* Brand colors for the native Mintlify navigation and custom homepage. */
+:root {
+  --towbar-yellow: oklch(0.852 0.18 90);
+  --towbar-yellow-hover: oklch(0.8 0.16 90);
+  --towbar-on-yellow: oklch(0.23 0.01 85);
+}
+#navbar a:has(> .bg-primary-dark) > .bg-primary-dark {
+  background-color: var(--towbar-yellow);
+}
+#navbar a:has(> .bg-primary-dark) .text-white,
+#navbar a:has(> .bg-primary-dark) svg {
+  color: var(--towbar-on-yellow);
+}
 /* Homepage only. Documentation retains Mintlify's native layout and typography. */
 .towbar-home {
-  --towbar-ink: #19232d;
-  --towbar-muted: #57636f;
-  --towbar-line: #e2e6e9;
-  --towbar-panel: #f5f7f8;
-  --towbar-accent: #07518e;
+  --towbar-ink: oklch(0.23 0.01 85);
+  --towbar-muted: oklch(0.45 0.015 85);
+  --towbar-line: oklch(0.91 0.01 85);
+  --towbar-panel: oklch(0.97 0.01 85);
+  --towbar-accent: oklch(0.53 0.11 75);
+  --towbar-heading-accent: oklch(0.64 0.13 85);
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 32px;
@@ -12,11 +26,12 @@
   -webkit-font-smoothing: antialiased;
 }
 .dark .towbar-home {
-  --towbar-ink: #edf1f5;
-  --towbar-muted: #a5afb9;
-  --towbar-line: #2c343e;
-  --towbar-panel: #161d25;
-  --towbar-accent: #84bcf0;
+  --towbar-ink: oklch(0.95 0.01 85);
+  --towbar-muted: oklch(0.74 0.015 85);
+  --towbar-line: oklch(0.3 0.01 85);
+  --towbar-panel: oklch(0.2 0.01 85);
+  --towbar-accent: var(--towbar-yellow);
+  --towbar-heading-accent: var(--towbar-yellow);
 }
 .towbar-home h1,
 .towbar-home h2,
@@ -33,7 +48,7 @@
   font-weight: 600;
 }
 .towbar-home h1 span {
-  color: var(--towbar-accent);
+  color: var(--towbar-heading-accent);
 }
 .towbar-home h2 {
   font-size: clamp(30px, 3.2vw, 40px);
@@ -97,12 +112,12 @@
   border-radius: 6px;
   font-size: 14px;
   font-weight: 600;
-  background: #07518e;
-  color: #fff;
-  border: 1px solid #07518e;
+  background: var(--towbar-yellow);
+  color: oklch(0.23 0.01 85);
+  border: 1px solid var(--towbar-yellow);
 }
 .towbar-home .towbar-button:hover {
-  background: #063f70;
+  background: var(--towbar-yellow-hover);
 }
 .towbar-home .towbar-button:active {
   transform: translateY(1px);
@@ -128,25 +143,25 @@
   margin: 0;
 }
 .towbar-product-frame {
-  background: #171a1f;
-  border: 1px solid #30343a;
+  background: oklch(0.21 0.005 85);
+  border: 1px solid oklch(0.31 0.005 85);
   border-radius: 12px;
   overflow: hidden;
   box-shadow:
-    0 2px 4px #14233308,
-    0 18px 48px -20px #14233335;
+    0 2px 4px oklch(0.2 0.01 85 / 0.03),
+    0 18px 48px -20px oklch(0.2 0.01 85 / 0.2);
 }
 .towbar-product-heading {
   display: flex;
   justify-content: space-between;
   padding: 13px 20px;
-  color: #b6bdc6;
+  color: oklch(0.78 0.01 85);
   font:
     11px ui-monospace,
     SFMono-Regular,
     Menlo,
     monospace;
-  border-bottom: 1px solid #30343a;
+  border-bottom: 1px solid oklch(0.31 0.005 85);
 }
 .towbar-product img {
   display: block;
