@@ -3,7 +3,7 @@ title: "Your first deployment"
 description: "Take a Dockerfile app from a GitHub repository to a verified deployment on your Ubuntu server."
 ---
 
-This guide takes one app through Source sync, server preparation, deployment, and route verification. Start with a small service whose Dockerfile and health endpoint already work locally.
+This guide takes one app through Source sync, server preparation, deployment, and route verification. Use the [Hello Towbar example](https://github.com/avgeek-inc/towbar-example) for a working Dockerfile app and health endpoint, or bring your own app.
 
 ## Before you begin
 
@@ -11,30 +11,37 @@ You need a running Towbar installation with an owner account, a connected GitHub
 
 Use a domain you control for a public app. The examples use documentation-only IPs and hostnames; replace them with your own values.
 
-## 1. Commit a manifest
+## 1. Create your app repository
 
-Create `.towbar/deployment.yml` in the app repository:
+[Use the Hello Towbar template](https://github.com/avgeek-inc/towbar-example/generate)
+or fork the [example repository](https://github.com/avgeek-inc/towbar-example).
+Grant the connected GitHub App access to your copy. The example needs no package
+installation or application secrets and can be checked locally with `npm test`
+and `npm start` on Node.js 24 or newer.
+
+Edit the included `.towbar/deployment.yml`, replacing the server IP and domain.
+If you are bringing your own app, create the file with this configuration:
 
 ```yaml
 version: 1
 source:
   branch: main
 apps:
-  - id: web
-    name: Web
+  - id: hello-towbar
+    name: Hello Towbar
     server: 203.0.113.10
     dockerfile: Dockerfile
     context: .
     container:
       port: 3000
       resources:
-        cpus: 1
-        memory: 1g
+        cpus: 0.5
+        memory: 256m
     health:
       path: /health
       timeoutSeconds: 60
     domains:
-      primary: app.example.com
+      primary: hello.example.com
     tls:
       mode: direct
 ```
@@ -47,7 +54,7 @@ Commit this file to the branch in `source.branch`. Automatic deployment is delib
 
 Open **Sources → Add source** and select the repository. Wait for the initial sync, then open its result.
 
-A successful sync imports **Web** into the Source's Apps list. If it fails, correct the reported manifest field or missing server reference and sync again. A successful sync accepts configuration; it does not mean the app is running.
+A successful sync imports **Hello Towbar** into the Source's Apps list. If it fails, correct the reported manifest field or missing server reference and sync again. A successful sync accepts configuration; it does not mean the app is running.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
@@ -68,6 +75,8 @@ Choose **Prepare Server** and follow the steps until the host is **Ready**. If p
 ## 4. Save application secrets
 
 Open **App → Settings → Secrets** and select Production. Add build, runtime, or hook values as needed, then save. Values inherited from workspace Shared secrets and the Source appear with their origin.
+
+The Hello Towbar example needs no secrets, so you can skip this step for your first deployment.
 
 Saved values are write-only. Leaving a replacement field untouched preserves its value. Saving does not start a deployment. See [Shared secrets](/docs/secrets) for precedence and rotation.
 
@@ -99,5 +108,9 @@ Confirm all four conditions:
 For an app without a public domain, verify it through its intended private client instead.
 
 ## Next steps
+
+For your second deployment, edit the heading in `src/index.html`, commit to
+`main`, and deploy again. Reload the public page to verify that your new code is
+running.
 
 Enable [automatic deployment](/docs/deployments#automatic-deployments), add [pull request previews](/docs/previews), or connect a [database resource](/docs/resources). Configure [notifications](/docs/integrations/notifications) so failed operations reach the people who need to act.

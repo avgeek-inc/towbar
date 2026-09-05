@@ -5,6 +5,58 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-09-05
+
+### Added
+
+- Workspace-wide server management, with one server per IP shared across Sources,
+  Apps, and Resources, plus detected instance type and capacity information.
+- Shared workspace secrets with Source defaults and App/Resource overrides,
+  separated by production/preview environment and execution stage.
+- Dedicated Apps, Resources, Deployments, and Integrations pages, source inventory
+  counts, live allocation meters, and separate server Apps and Resources tables.
+- Integration health checks for GitHub and connected AWS credentials.
+- A ready-to-fork [example app](https://github.com/avgeek-inc/towbar-example)
+  with a Dockerfile, health endpoint, and deployment manifest.
+- A new public homepage and feature guides with light/dark screenshots,
+  installation instructions, and a first-deployment walkthrough.
+
+### Changed
+
+- AWS credentials are configured once per workspace under Integrations. Slack
+  and SMTP provider credentials are configured through installation environment
+  variables; notification destinations remain managed in Towbar.
+- Tables show timezone-aware timestamps, relative times, running operation
+  durations, and consistent workload identity and status indicators.
+- Empty states, tables, tooltips, secrets editors, and navigation use consistent
+  layouts and compact spacing throughout the dashboard.
+
+### Removed
+
+- Source-owned server configuration and the top-level `servers` manifest field.
+  Manifests retain each App/Resource's `server` IP reference; configure hosts in
+  Towbar's Servers page instead.
+- Deployment plan UI, APIs, stored plans, and their GitHub checks.
+
+### Upgrade notes
+
+This release changes the manifest contract and resets some stored configuration.
+Existing 1.4.0 installations must follow the
+[1.5.0 upgrade steps](https://www.towbar.dev/docs/self-hosting/upgrades#upgrading-from-140-to-150)
+before resuming deployments:
+
+- Back up the control-plane database and preserve `.env` and
+  `TOWBAR_CREDENTIALS_KEY`. Older application images cannot undo these migrations.
+- Remove top-level `servers` from manifests while preserving deployable server IPs.
+- Re-enter server SSH/Cloudflare credentials and workspace AWS credentials.
+  Server migration deduplicates records by workspace and IP and deletes stored
+  server credential records; the previous source AWS credential table is dropped.
+- Configure Slack/SMTP provider environment variables. Previously stored
+  notification provider secrets are deleted.
+- Verify server trust/configuration, Source sync, integrations, and an actual app
+  deployment. Duplicate server check/preparation/host-key records and deployment
+  plan history are removed by the migrations.
+
 ## [1.4.0] - 2026-09-05
 
 ### Added
