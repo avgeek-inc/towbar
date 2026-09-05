@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { ServerStack01Icon, WebhookIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
@@ -99,21 +101,10 @@ function resourceColumns(
 ): ResourceTableColumn<Resource>[] {
   return [
     {
-      cell: (resource) => (
-        <DeployableName
-          autoDeploy={Boolean(resource.config.autoDeploy)}
-          name={resource.name}
-        />
-      ),
+      cell: (resource) => <ResourceIdentity resource={resource} />,
       className: "min-w-56",
       header: "Resource Name",
       key: "name",
-    },
-    {
-      cell: (resource) => formatResourceKind(resource.kind),
-      className: "min-w-28",
-      header: "Type",
-      key: "type",
     },
     {
       cell: (resource) => (
@@ -276,6 +267,34 @@ export function DeployableName({
   );
 }
 
+const resourceTypes = {
+  postgres: { label: "PostgreSQL", logo: "/resource-types/postgres.png" },
+  redis: { label: "Redis", logo: "/resource-types/redis.png" },
+  image: { label: "Image", logo: "/resource-types/image.png" },
+} satisfies Record<Resource["kind"], { label: string; logo: string }>;
+
+export function ResourceIdentity({ resource }: { resource: Resource }) {
+  const type = resourceTypes[resource.kind];
+  return (
+    <span className="inline-flex min-w-0 items-center gap-3">
+      <Image
+        alt=""
+        className="size-10 shrink-0 object-contain"
+        height={40}
+        width={40}
+        src={type.logo}
+      />
+      <span className="grid min-w-0 gap-1">
+        <DeployableName
+          autoDeploy={Boolean(resource.config.autoDeploy)}
+          name={resource.name}
+        />
+        <span className="text-xs text-muted">{type.label}</span>
+      </span>
+    </span>
+  );
+}
+
 export function ServerIpLink({
   ip,
   serverId,
@@ -298,12 +317,6 @@ export function ServerIpLink({
   ) : (
     label
   );
-}
-
-function formatResourceKind(kind: Resource["kind"]) {
-  if (kind === "postgres") return "PostgreSQL";
-  if (kind === "redis") return "Redis";
-  return "Image";
 }
 
 function getRuntimeByDeployableId(capacities: RuntimeCapacity[]) {

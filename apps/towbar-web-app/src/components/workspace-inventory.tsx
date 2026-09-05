@@ -29,7 +29,11 @@ import {
   resolveInventoryStatus,
 } from "@/lib/inventory-status";
 import { LastSyncedTime, RelativeTimeProvider } from "./last-synced-time";
-import { DeployableName, ServerIpLink } from "./source-inventory";
+import {
+  DeployableName,
+  ResourceIdentity,
+  ServerIpLink,
+} from "./source-inventory";
 
 type SourcesById = Map<string, Source>;
 
@@ -151,27 +155,19 @@ function DeployableInventory({
   );
   const columns: ResourceTableColumn<App | Resource>[] = [
     {
-      cell: (item) => (
-        <DeployableName
-          autoDeploy={Boolean(item.config.autoDeploy)}
-          name={item.name}
-        />
-      ),
+      cell: (item) =>
+        item.kind === "app" ? (
+          <DeployableName
+            autoDeploy={Boolean(item.config.autoDeploy)}
+            name={item.name}
+          />
+        ) : (
+          <ResourceIdentity resource={item} />
+        ),
       className: "w-full min-w-64",
       header: kind === "app" ? "App" : "Resource",
       key: "name",
     },
-    ...(kind === "resource"
-      ? [
-          {
-            cell: (item: App | Resource) =>
-              item.kind === "app" ? "App" : formatResourceKind(item.kind),
-            className: "min-w-28",
-            header: "Type",
-            key: "type",
-          } satisfies ResourceTableColumn<App | Resource>,
-        ]
-      : []),
     {
       cell: (item) => <SourceLink source={sourcesById.get(item.sourceId)} />,
       className: "min-w-56",
@@ -382,12 +378,6 @@ function formatSource(sourcesById: SourcesById, sourceId: string) {
   return source
     ? `${source.repositoryOwner}/${source.repositoryName}`
     : "Unknown Source";
-}
-
-function formatResourceKind(kind: Resource["kind"]) {
-  if (kind === "postgres") return "PostgreSQL";
-  if (kind === "redis") return "Redis";
-  return "Image";
 }
 
 function countBy<T>(items: T[], getKey: (item: T) => string) {
