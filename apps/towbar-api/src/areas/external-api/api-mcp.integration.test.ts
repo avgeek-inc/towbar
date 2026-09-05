@@ -7,6 +7,7 @@ import {
   apiKeys,
   auditEvents,
   authRateLimitBuckets,
+  servers,
   sessions,
   users,
   workspaceMembers,
@@ -45,6 +46,7 @@ void test(
     const { createApp } = await import("../../app.js");
     const { operations, createOpenApiDocument } =
       await import("./catalogue.js");
+    const { mcpTools } = await import("./mcp-tools.js");
     const { operationDescription } = await import("../../http/operation.js");
     const { controlPlaneRoutes } =
       await import("../../routes/v1/core/index.js");
@@ -72,6 +74,24 @@ void test(
       workspaceId,
       workspaceRole: "owner" as const,
     };
+    const ownedServerId = randomUUID(),
+      foreignServerId = randomUUID();
+    await db.insert(servers).values(
+      [
+        { id: ownedServerId, workspaceId, ip: "192.0.2.10" },
+        { id: foreignServerId, workspaceId: otherId, ip: "192.0.2.11" },
+      ].map(({ id, workspaceId, ip }) => ({
+        id,
+        workspaceId,
+        canonicalIp: ip,
+        configDigest: "test-digest",
+        config: {
+          ip,
+          ssh: { host: ip, port: 22, username: "ubuntu" },
+          buildConcurrency: 1,
+        },
+      })),
+    );
     const write = await createApiKey(user, {
       name: "Automation",
       access: "write",
@@ -118,7 +138,7 @@ void test(
     });
     try {
       await t.test(
-        "public operations have REST schemas and unique MCP tools; browser-only routes are excluded",
+        "public operations have REST schemas and unique operation IDs; browser-only routes are excluded",
         () => {
           const routes = new Set(
             controlPlaneRoutes.routes
@@ -400,6 +420,32 @@ void test(
             (await request("/aws", write.token, "DELETE")).status,
             403,
           );
+          const memberClient = await connect(write.token);
+          try {
+            const available = await memberClient.listTools();
+            assert(
+              !available.tools.some(
+                (tool) => tool.name === "towbar_secrets_update",
+              ),
+            );
+            assert.equal(
+              (
+                await memberClient.callTool({
+                  name: "towbar_secrets_update",
+                  arguments: {
+                    scope: "workspace",
+                    environment: "preview",
+                    stage: "build",
+                    expectedRevision: null,
+                    set: { DENIED: "No" },
+                  },
+                })
+              ).isError,
+              true,
+            );
+          } finally {
+            await memberClient.close();
+          }
           await db
             .update(workspaceMembers)
             .set({ role: "owner" })
@@ -421,25 +467,49 @@ void test(
           const client = await connect(write.token);
           try {
             const list = await client.listTools();
-            assert.equal(list.tools.length, operations.length);
+            assert.equal(list.tools.length, mcpTools.length);
+            assert.equal(
+              (await client.callTool({ name: "get_apps", arguments: {} }))
+                .isError,
+              true,
+            );
             const profile = await client.callTool({
-              name: "get_profile",
-              arguments: {},
+              name: "towbar_inventory_search",
+              arguments: { kind: "app" },
             });
             assert.equal(profile.isError, false);
+            const foundServer = await client.callTool({
+              name: "towbar_inventory_search",
+              arguments: { kind: "server", search: "192.0.2." },
+            });
+            const { result: searchResult } = foundServer.structuredContent as {
+              result: { items: Array<{ id: string; canonicalIp: string }> };
+            };
+            assert.deepEqual(
+              searchResult.items.map((item) => item.id),
+              [ownedServerId],
+            );
+            assert.equal(searchResult.items[0]!.canonicalIp, "192.0.2.10");
+            const foreign = await client.callTool({
+              name: "towbar_server_inspect",
+              arguments: { serverId: foreignServerId },
+            });
+            assert.equal(foreign.isError, true);
+            assert(!JSON.stringify(foreign).includes("192.0.2.11"));
+
             const invalid = await client.callTool({
-              name: "get_servers_by_id",
-              arguments: { path: { serverId: "../../internal" } },
+              name: "towbar_server_inspect",
+              arguments: { serverId: "../../internal" },
             });
             assert.equal(invalid.isError, true);
             const secret = await client.callTool({
-              name: "patch_settings_secrets_by_environment_by_stage",
+              name: "towbar_secrets_update",
               arguments: {
-                path: { environment: "production", stage: "deployment" },
-                body: {
-                  expectedRevision: null,
-                  set: { TEST_VALUE: "do-not-expose" },
-                },
+                scope: "workspace",
+                environment: "production",
+                stage: "deployment",
+                expectedRevision: null,
+                set: { TEST_VALUE: "do-not-expose" },
               },
             });
             assert.equal(secret.isError, false);
@@ -459,10 +529,13 @@ void test(
             assert.equal(
               (
                 await reader.callTool({
-                  name: "patch_settings_secrets_by_environment_by_stage",
+                  name: "towbar_secrets_update",
                   arguments: {
-                    path: { environment: "preview", stage: "deployment" },
-                    body: { expectedRevision: null, set: { DENIED: "No" } },
+                    scope: "workspace",
+                    environment: "preview",
+                    stage: "deployment",
+                    expectedRevision: null,
+                    set: { DENIED: "No" },
                   },
                 })
               ).isError,

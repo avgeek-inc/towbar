@@ -41,6 +41,8 @@ Apps and resources are defined in your Git manifest. To create or change them, u
 
 All documented paths are relative to `/v1/api`. Browser-only login, logout, initial setup, GitHub webhooks, and signed worker endpoints are separate protocols. They are not exposed as MCP tools. API key management, notifications, profile editing, password changes, browser-session management, and the GitHub installation handoff are available only in the control plane. `GET /profile` remains available to identify the current user and workspace.
 
+REST provides individual routes; MCP offers a separate [task-oriented tool catalogue](/docs/api/mcp-tools), including combined inspections and shared app/resource actions.
+
 ## Find an operation
 
 The reference is grouped by the thing you manage, with smaller sections for each task:

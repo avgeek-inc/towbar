@@ -10,6 +10,11 @@ import {
   externalRateLimit,
   requireApiKey,
 } from "../../http/api-authentication.js";
+import {
+  type OperationCall,
+  mcpTools,
+} from "../../areas/external-api/mcp-tools.js";
+import { forbidden } from "../../http/errors.js";
 import { operations } from "../../areas/external-api/catalogue.js";
 import { controlPlaneRoutes } from "./core/index.js";
 import { readJson } from "../../http/requests.js";
@@ -22,10 +27,10 @@ mcpRoutes.use("*", requireApiKey("mcp"));
 mcpRoutes.all("/", async (context) => {
   const identity = context.get("user");
   const key = context.get("apiKey")!;
-  const allowed = operations.filter(
+  const allowed = mcpTools.filter(
     (op) =>
       (!op.ownerOnly || identity.workspaceRole === "owner") &&
-      (key.access === "write" || op.method === "GET"),
+      (key.access === "write" || op.readOnly),
   );
   const server = new Server(
     { name: "towbar", version: "1.5.2" },
@@ -38,15 +43,21 @@ mcpRoutes.all("/", async (context) => {
   server.setRequestHandler(ListToolsRequestSchema, () => ({
     tools: allowed.map((op) => ({
       name: op.name,
-      description: `${op.summary}. ${op.response}${op.stream ? " Returns a finite deployment/log snapshot. Call again to poll." : ""}`,
+      title: op.title,
+      description: op.description,
       inputSchema: z.toJSONSchema(op.input, {
         io: "input",
         unrepresentable: "any",
       }) as { type: "object" },
+      outputSchema: {
+        type: "object" as const,
+        properties: { result: { type: "object" as const } },
+        required: ["result"],
+      },
       annotations: {
-        readOnlyHint: op.method === "GET",
-        destructiveHint: op.method !== "GET",
-        idempotentHint: op.method === "GET" || Boolean(op.idempotencyKey),
+        readOnlyHint: op.readOnly,
+        destructiveHint: op.destructive,
+        idempotentHint: op.idempotent,
         openWorldHint: true,
       },
     })),
@@ -64,19 +75,6 @@ mcpRoutes.all("/", async (context) => {
         ],
       };
     try {
-      const args = op.input.parse(request.params.arguments ?? {}) as {
-        path?: Record<string, string>;
-        query?: Record<string, unknown>;
-        body?: unknown;
-        idempotencyKey?: string;
-      };
-      const path = op.path.replace(/:([A-Za-z]+)/g, (_, name: string) =>
-        encodeURIComponent(args.path![name]!),
-      );
-      const url = new URL(path, "http://towbar.internal");
-      for (const [name, value] of Object.entries(args.query ?? {}))
-        if (value !== undefined) url.searchParams.set(name, String(value));
-      if (op.stream) url.searchParams.set("snapshot", "true");
       // Dispatch in process with only the authenticated identity, never a caller-controlled URL or cookies.
       const dispatch = new Hono<TowbarHonoEnvironment>();
       dispatch.use("*", async (inner, next) => {
@@ -100,26 +98,72 @@ mcpRoutes.all("/", async (context) => {
           result.status,
         );
       });
-      const headers = new Headers({ "Content-Type": "application/json" });
-      if (args.idempotencyKey)
-        headers.set("Idempotency-Key", args.idempotencyKey);
-      const response = await dispatch.fetch(
-        new Request(url, {
-          method: op.method,
-          headers,
-          ...(args.body !== undefined
-            ? { body: JSON.stringify(args.body) }
-            : {}),
-        }),
-      );
-      const result =
-        response.status === 204 ? { status: 204 } : await response.json();
+      const call = async (
+        request: OperationCall,
+      ): Promise<Record<string, unknown>> => {
+        const operation = operations.find(
+          (item) =>
+            item.method === request.method && item.path === request.route,
+        );
+        if (!operation) throw new Error("Unknown MCP operation dependency");
+        if (
+          (operation.ownerOnly && identity.workspaceRole !== "owner") ||
+          (key.access !== "write" && operation.method !== "GET")
+        )
+          throw forbidden(
+            "This operation is unavailable with your key and workspace role",
+          );
+        const { route: _route, method: _method, ...input } = request;
+        if (input.path && Object.keys(input.path).length === 0)
+          delete input.path;
+        const args = operation.input.parse(input) as {
+          path?: Record<string, string>;
+          query?: Record<string, unknown>;
+          body?: unknown;
+          idempotencyKey?: string;
+        };
+        const path = operation.path.replace(
+          /:([A-Za-z]+)/g,
+          (_, name: string) => encodeURIComponent(args.path![name]!),
+        );
+        const url = new URL(path, "http://towbar.internal");
+        for (const [name, value] of Object.entries(args.query ?? {}))
+          if (value !== undefined) url.searchParams.set(name, String(value));
+        if (operation.stream) url.searchParams.set("snapshot", "true");
+        const headers = new Headers({ "Content-Type": "application/json" });
+        if (args.idempotencyKey)
+          headers.set("Idempotency-Key", args.idempotencyKey);
+        const response = await dispatch.fetch(
+          new Request(url, {
+            method: operation.method,
+            headers,
+            ...(args.body !== undefined
+              ? { body: JSON.stringify(args.body) }
+              : {}),
+          }),
+        );
+        const result =
+          response.status === 204
+            ? { completed: true }
+            : ((await response.json()) as Record<string, unknown>);
+        if (!response.ok) throw new ToolOperationError(result);
+        return {
+          ...result,
+          ...(response.status === 202 ? { accepted: true } : {}),
+        };
+      };
+      const result = await op.run(request.params.arguments ?? {}, { call });
       return {
-        isError: !response.ok,
-        content: [{ type: "text", text: JSON.stringify(result) }],
-        structuredContent: { status: response.status, result },
+        content: [{ type: "text", text: JSON.stringify({ result }) }],
+        structuredContent: { result },
+        isError: false,
       };
     } catch (error) {
+      if (error instanceof ToolOperationError)
+        return {
+          isError: true,
+          content: [{ type: "text", text: JSON.stringify(error.result) }],
+        };
       const normalized = normalizeError(
         error instanceof Error ? error : new Error("MCP tool failed"),
       );
@@ -132,6 +176,14 @@ mcpRoutes.all("/", async (context) => {
               error: {
                 code: normalized.code,
                 message: normalized.message,
+                ...(error instanceof z.ZodError
+                  ? {
+                      fields: error.issues.map((issue) => ({
+                        path: issue.path.join("."),
+                        message: issue.message,
+                      })),
+                    }
+                  : {}),
                 requestId: context.get("requestId"),
               },
             }),
@@ -155,3 +207,9 @@ mcpRoutes.all("/", async (context) => {
     await server.close();
   }
 });
+
+class ToolOperationError extends Error {
+  constructor(readonly result: Record<string, unknown>) {
+    super("MCP operation failed");
+  }
+}

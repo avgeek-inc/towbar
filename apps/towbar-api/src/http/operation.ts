@@ -19,7 +19,7 @@ const descriptions = new WeakMap<
   MiddlewareHandler<TowbarHonoEnvironment>,
   OperationDescription
 >();
-/** Describe a route beside its handler; REST docs and MCP use the same input schema. */
+/** Describe a route beside its handler; REST docs and internal MCP dispatch validate these inputs. */
 export function operation(
   description: OperationDescription,
 ): MiddlewareHandler<TowbarHonoEnvironment> {

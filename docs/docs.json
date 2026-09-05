@@ -89,6 +89,7 @@
               "docs/api/overview",
               "docs/api/authentication",
               "docs/api/mcp",
+              "docs/api/mcp-tools",
               "docs/api/workflows"
             ]
           },
