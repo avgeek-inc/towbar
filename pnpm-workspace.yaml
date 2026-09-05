@@ -30,37 +30,37 @@ allowBuilds:
   sharp: true
 
 catalog:
-  "@aws-sdk/client-s3": ^3.1093.0
-  "@aws-sdk/client-sts": ^3.1093.0
-  "@eslint/js": ^9.39.4
+  "@aws-sdk/client-s3": ^3.1124.0
+  "@aws-sdk/client-sts": ^3.1124.0
+  "@eslint/js": ^10.0.1
   "@fontsource-variable/inter": ^5.3.0
   "@heroui/react": 3.2.4
   "@heroui/styles": 3.2.4
   "@hookform/resolvers": ^5.2.2
   "@hugeicons/core-free-icons": ^4.3.0
   "@hugeicons/react": ^1.1.10
-  "@sentry/nextjs": ^10.67.0
+  "@sentry/nextjs": ^10.73.0
   "@tailwindcss/postcss": ^4.2.4
-  "@temporalio/activity": ^1.16.1
-  "@temporalio/client": ^1.16.1
-  "@temporalio/worker": ^1.16.1
-  "@temporalio/workflow": ^1.16.1
-  "@types/node": ^26.2.0
+  "@temporalio/activity": ^1.23.0
+  "@temporalio/client": ^1.23.0
+  "@temporalio/worker": ^1.23.0
+  "@temporalio/workflow": ^1.23.0
+  "@types/node": ^26.4.1
   "@types/react": ^19.2.14
-  "@types/react-dom": ^19.2.3
+  "@types/react-dom": ^19.2.5
   clsx: ^2.1.1
   drizzle-orm: ^0.45.2
-  eslint: ^9.39.4
-  next: ^16.2.11
+  eslint: ^10.9.1
+  next: ^16.3.4
   postgres: ^3.4.9
   prettier: ^3.8.3
   react: ^19.2.5
-  react-aria-components: ^1.20.0
+  react-aria-components: ^1.21.0
   react-dom: ^19.2.5
-  react-hook-form: ^7.73.1
+  react-hook-form: ^7.87.0
   recharts: ^3.10.1
   tailwind-merge: ^3.6.0
   tailwindcss: ^4.2.4
-  typescript: ^5.9.3
+  typescript: ^7.0.2
   yaml: ^2.8.3
-  zod: ^4.3.6
+  zod: ^4.5.4
