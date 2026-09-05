@@ -116,7 +116,16 @@ export function SourceIndex() {
     {
       key: "branch",
       header: "Prod Branch",
-      cell: (source) => source.branch,
+      cell: (source) => (
+        <span className="inline-flex items-center gap-2">
+          <HugeiconsIcon
+            aria-hidden="true"
+            className="size-4 shrink-0 text-muted-foreground"
+            icon={GitBranchIcon}
+          />
+          {source.branch}
+        </span>
+      ),
       className: "min-w-32 whitespace-nowrap",
     },
     {
