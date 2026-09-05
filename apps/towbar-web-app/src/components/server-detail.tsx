@@ -369,13 +369,15 @@ export function ServerDetail() {
               icon: <HugeiconsIcon icon={ServerStack01Icon} />,
               content: (
                 <div className="content-grid">
-                  <ServerPreparationPanel
-                    hasTrustedHostKey={keys.data.hostKeys.length > 0}
-                    item={item}
-                    latestPreparation={latestPreparation}
-                    serverId={serverId}
-                    setupStatus={setupStatus}
-                  />
+                  {setupStatus !== "ready" && (
+                    <ServerPreparationPanel
+                      hasTrustedHostKey={keys.data.hostKeys.length > 0}
+                      item={item}
+                      latestPreparation={latestPreparation}
+                      serverId={serverId}
+                      setupStatus={setupStatus}
+                    />
+                  )}
                   <ServerHostCapacity capacity={capacity.data.capacity} />
                   <div className="content-grid lg:grid-cols-2">
                     <Attributes
