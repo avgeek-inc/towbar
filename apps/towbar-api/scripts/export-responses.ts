@@ -10,6 +10,18 @@ const parsed = ts.parseJsonConfigFileContent(
   resolve(import.meta.dirname, ".."),
 );
 const program = ts.createProgram(parsed.fileNames, parsed.options);
+const diagnostics = ts
+  .getPreEmitDiagnostics(program)
+  .filter((diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error);
+if (diagnostics.length) {
+  throw new Error(
+    ts.formatDiagnosticsWithColorAndContext(diagnostics, {
+      getCanonicalFileName: (file) => file,
+      getCurrentDirectory: () => process.cwd(),
+      getNewLine: () => "\n",
+    }),
+  );
+}
 const checker = program.getTypeChecker();
 type Schema = Record<string, unknown>;
 const definitions: Record<string, Schema> = {};

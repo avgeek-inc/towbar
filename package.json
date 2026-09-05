@@ -43,7 +43,7 @@
     "compose:up": "docker compose up --build --detach --wait",
     "compose:down": "docker compose down",
     "compose:logs": "docker compose logs --follow",
-    "docs:api:check": "pnpm --filter towbar-api exec tsx scripts/export-responses.ts --check && pnpm --filter towbar-api exec tsx scripts/export-api.ts --check"
+    "docs:api:check": "pnpm --filter towbar-api prebuild && pnpm --filter towbar-api exec tsx scripts/export-responses.ts --check && pnpm --filter towbar-api exec tsx scripts/export-api.ts --check"
   },
   "devDependencies": {
     "@types/node": "catalog:",
