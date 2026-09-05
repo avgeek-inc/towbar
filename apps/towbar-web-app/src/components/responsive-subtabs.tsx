@@ -46,6 +46,7 @@ export function ResponsiveSubtabs({
   const [internalSelectedKey, setInternalSelectedKey] =
     useState(defaultSelectedKey);
   const activeKey = selectedKey ?? internalSelectedKey;
+  const activeTab = tabs.find((tab) => tab.value === activeKey);
 
   function selectTab(key: Key | null) {
     if (key === null) return;
@@ -80,7 +81,19 @@ export function ResponsiveSubtabs({
           >
             <Label className="sr-only">{ariaLabel}</Label>
             <Select.Trigger>
-              <Select.Value />
+              <Select.Value>
+                <span className="inline-flex min-w-0 items-center gap-2">
+                  {activeTab?.icon ? (
+                    <span
+                      aria-hidden="true"
+                      className="inline-flex shrink-0 [&_svg]:size-4"
+                    >
+                      {activeTab.icon}
+                    </span>
+                  ) : null}
+                  <span className="truncate">{activeTab?.label}</span>
+                </span>
+              </Select.Value>
               <Select.Indicator />
             </Select.Trigger>
             <Select.Popover>
