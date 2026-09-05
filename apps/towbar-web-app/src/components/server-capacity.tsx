@@ -162,7 +162,7 @@ export function ServerDeployableTable({
               return (
                 <Table.Row id={item.id} key={item.id}>
                   <Table.Cell>
-                    <div className="min-w-64">
+                    <div className="min-w-80">
                       {item.kind === "app" ? (
                         <AppIdentity app={item} healthStatus={healthStatus} />
                       ) : (

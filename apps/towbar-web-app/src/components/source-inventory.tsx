@@ -39,7 +39,7 @@ function appColumns(
     {
       cell: (app) => <AppIdentity app={app} />,
       wrapRowLink: false,
-      className: "min-w-56",
+      className: "min-w-88",
       header: "App Name",
       key: "name",
     },
@@ -109,7 +109,7 @@ function resourceColumns(
   return [
     {
       cell: (resource) => <ResourceIdentity resource={resource} />,
-      className: "min-w-56",
+      className: "min-w-88",
       wrapRowLink: false,
       header: "Resource Name",
       key: "name",

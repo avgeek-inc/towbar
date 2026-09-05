@@ -177,14 +177,14 @@ function DeployableInventoryTable({
         ) : (
           <ResourceIdentity resource={item} />
         ),
-      className: "w-full min-w-64",
+      className: "w-full min-w-88",
       wrapRowLink: false,
       header: kind === "app" ? "App" : "Resource",
       key: "name",
     },
     {
       cell: (item) => <SourceLink source={sourcesById.get(item.sourceId)} />,
-      className: "min-w-56",
+      className: "min-w-40",
       header: "Source",
       key: "source",
     },
@@ -279,7 +279,7 @@ function SourceLink({ source }: { source?: Source }) {
         icon={GithubIcon}
       />
       <TooltipText className="truncate" tooltip={name}>
-        {name}
+        {source.repositoryName}
       </TooltipText>
     </InlineLink>
   );
