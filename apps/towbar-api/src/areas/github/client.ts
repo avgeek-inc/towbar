@@ -69,15 +69,6 @@ const gitTreeSchema = z.object({
 });
 
 const githubDeploymentSchema = z.object({ id: z.number().int().positive() });
-const githubCheckRunSchema = z.object({
-  external_id: z.string().nullable(),
-  id: z.number().int().positive(),
-  name: z.string(),
-});
-const githubCheckRunListSchema = z.object({
-  check_runs: z.array(githubCheckRunSchema),
-});
-
 const issueCommentSchema = z.object({
   body: z.string().nullable(),
   id: z.number().int().positive(),
@@ -89,7 +80,6 @@ const issueCommentSchema = z.object({
 const issueCommentListSchema = z.array(issueCommentSchema);
 
 type GitHubIssueComment = z.infer<typeof issueCommentSchema>;
-type GitHubCheckRun = z.infer<typeof githubCheckRunSchema>;
 
 const pullRequestFileListSchema = z.array(
   z.object({
@@ -435,66 +425,6 @@ export async function updateGitHubPreviewDeployment(input: {
       token,
     },
   );
-}
-
-export async function upsertGitHubCheckRun(input: {
-  conclusion: "failure" | "neutral" | "success";
-  detailsUrl: string;
-  externalId: string;
-  headSha: string;
-  installationId: string;
-  name: string;
-  output: { summary: string; text?: string; title: string };
-  repositoryName: string;
-  repositoryOwner: string;
-}) {
-  const token = await createInstallationToken(input.installationId);
-  const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
-  const checks = githubCheckRunListSchema.parse(
-    await githubRequest(
-      `/repos/${repository}/commits/${encodeURIComponent(input.headSha)}/check-runs?check_name=${encodeURIComponent(input.name)}&filter=all&per_page=100`,
-      { token },
-    ),
-  ).check_runs;
-  const canonical = classifyGitHubCheckRuns({
-    checkRuns: checks,
-    externalId: input.externalId,
-  }).canonical;
-  const body = {
-    conclusion: input.conclusion,
-    details_url: input.detailsUrl,
-    external_id: input.externalId,
-    name: input.name,
-    output: input.output,
-    status: "completed",
-  };
-  const check = githubCheckRunSchema.parse(
-    await githubRequest(
-      canonical
-        ? `/repos/${repository}/check-runs/${canonical.id}`
-        : `/repos/${repository}/check-runs`,
-      {
-        body: canonical ? body : { ...body, head_sha: input.headSha },
-        method: canonical ? "PATCH" : "POST",
-        token,
-      },
-    ),
-  );
-  return String(check.id);
-}
-
-export function classifyGitHubCheckRuns(input: {
-  checkRuns: GitHubCheckRun[];
-  externalId: string;
-}) {
-  const ordered = [...input.checkRuns].sort(
-    (left, right) => left.id - right.id,
-  );
-  return {
-    canonical:
-      ordered.find((check) => check.external_id === input.externalId) ??
-      ordered[0],
-  };
 }
 
 export async function upsertGitHubPullRequestComment(input: {

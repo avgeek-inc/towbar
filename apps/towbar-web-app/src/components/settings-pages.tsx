@@ -1,5 +1,9 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+
+import { Key01Icon, UserAccountIcon } from "@hugeicons/core-free-icons";
+
 import type { TowbarUser, UserSession } from "@workspace/towbar-web-client";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
@@ -13,18 +17,29 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { ActionButton, FormCard, SimpleForm } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
-import { formatDate } from "./dashboard-overview";
+import { RelativeTime } from "./last-synced-time";
 
-export function AccountSettings() {
+export function ProfileSettings() {
   const profile = useApiQuery<{ user: TowbarUser }>("/v1/core/profile");
   if (profile.error) return <QueryError message={profile.error} />;
   if (!profile.data) return <QueryLoading />;
 
   return (
-    <div className="grid max-w-4xl min-w-0 gap-6">
-      <FormCard description={profile.data.user.email} title="Profile details">
+    <div className="content-grid min-w-0 lg:grid-cols-2 lg:items-start">
+      <FormCard
+        icon={<HugeiconsIcon icon={UserAccountIcon} />}
+        title="Profile details"
+      >
         <SimpleForm
           fields={[
+            {
+              label: "Email",
+              name: "email",
+              defaultValue: profile.data.user.email,
+              disabled: true,
+              type: "email",
+              variant: "secondary",
+            },
             {
               label: "Display name",
               maxLength: 120,
@@ -42,7 +57,7 @@ export function AccountSettings() {
         />
       </FormCard>
       <FormCard
-        description="Changing the password revokes every other active session."
+        icon={<HugeiconsIcon icon={Key01Icon} />}
         title="Change password"
       >
         <SimpleForm
@@ -124,13 +139,17 @@ export function SessionSettings() {
     {
       key: "lastActive",
       header: "Last active",
-      cell: (session) => formatDate(session.lastSeenAt),
+      cell: (session) => (
+        <RelativeTime label="Last active" value={session.lastSeenAt} />
+      ),
       className: "whitespace-nowrap",
     },
     {
       key: "expires",
       header: "Expires",
-      cell: (session) => formatDate(session.expiresAt),
+      cell: (session) => (
+        <RelativeTime label="Expires" value={session.expiresAt} />
+      ),
       className: "whitespace-nowrap",
     },
     {

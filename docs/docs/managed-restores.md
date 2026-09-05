@@ -24,7 +24,7 @@ it does not invalidate an older retained backup whose object and compatibility
 checks still pass. The UI can therefore show an older point as **Stale** while
 still allowing an explicit, safety-gated restore.
 
-The Source AWS identity needs the existing backup write and retention
+The workspace AWS identity needs the existing backup write and retention
 permissions plus `s3:GetObject` for the declared bucket/prefix. Versioned
 objects also require access to the retained object version. The target Server
 must be prepared, have a healthy current Resource release, use one Towbar-owned

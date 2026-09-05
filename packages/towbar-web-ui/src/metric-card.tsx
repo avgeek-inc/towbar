@@ -6,18 +6,23 @@ import { cn } from "@workspace/web-design-system/lib/utils";
 export function MetricCard({
   children,
   className,
+  icon,
   label,
   value,
 }: {
   children?: ReactNode;
   className?: ComponentProps<typeof KPI>["className"];
+  icon?: ReactNode;
   label: string;
   value: number | string;
 }) {
   return (
     <KPI className={cn("min-w-0", className)}>
       <KPI.Header>
-        <KPI.Title>{label}</KPI.Title>
+        <KPI.Title className="inline-flex items-center gap-2">
+          {icon}
+          {label}
+        </KPI.Title>
       </KPI.Header>
       <KPI.Content className="grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
         {typeof value === "number" ? (

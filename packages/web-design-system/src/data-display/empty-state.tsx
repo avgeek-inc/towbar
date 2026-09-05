@@ -1,10 +1,13 @@
 "use client";
 
-import type { ComponentProps } from "react";
+import { useContext, type ComponentProps } from "react";
 import { cn } from "../lib/utils";
+import { Widget } from "./widget";
+import { WidgetContentContext } from "./widget-context";
 
 function Root({ className, ...props }: ComponentProps<"div">) {
-  return (
+  const isInsideWidget = useContext(WidgetContentContext);
+  const content = (
     <div
       className={cn(
         "flex flex-col items-center justify-center gap-5 px-6 py-10 text-center",
@@ -12,6 +15,12 @@ function Root({ className, ...props }: ComponentProps<"div">) {
       )}
       {...props}
     />
+  );
+  if (isInsideWidget) return content;
+  return (
+    <Widget className="min-w-0">
+      <Widget.Content className="p-0">{content}</Widget.Content>
+    </Widget>
   );
 }
 function Header({ className, ...props }: ComponentProps<"div">) {

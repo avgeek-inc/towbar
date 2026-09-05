@@ -158,7 +158,6 @@ export async function getServerPreparationExecutionContext(
       preparationConfigDigest: serverPreparations.configDigest,
       preparationId: serverPreparations.id,
       serverId: servers.id,
-      sourceId: servers.sourceId,
       workspaceId: servers.workspaceId,
     })
     .from(serverPreparations)

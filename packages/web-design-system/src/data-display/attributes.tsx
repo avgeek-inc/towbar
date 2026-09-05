@@ -15,8 +15,8 @@ export type AttributesColumns = 1 | 2 | 3;
 const VariantContext = createContext<AttributesVariant>("list");
 const columns = {
   1: "grid-cols-1",
-  2: "grid-cols-1 sm:grid-cols-2",
-  3: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+  2: "grid-cols-2",
+  3: "grid-cols-2 lg:grid-cols-3",
 } as const;
 
 export interface AttributesProps extends Omit<
@@ -25,6 +25,7 @@ export interface AttributesProps extends Omit<
 > {
   children: ReactNode;
   columns?: AttributesColumns;
+  icon?: ReactNode;
   title: ReactNode;
   variant?: AttributesVariant;
 }
@@ -34,6 +35,7 @@ const Root = forwardRef<HTMLDivElement, AttributesProps>(
       children,
       className,
       columns: count = 2,
+      icon,
       title,
       variant = "list",
       ...props
@@ -48,6 +50,7 @@ const Root = forwardRef<HTMLDivElement, AttributesProps>(
       >
         <Widget.Header>
           <Widget.Title
+            icon={icon}
             className="min-w-0 truncate text-xs font-medium text-muted"
             title={typeof title === "string" ? title : undefined}
           >
@@ -57,8 +60,8 @@ const Root = forwardRef<HTMLDivElement, AttributesProps>(
         <Widget.Content className={variant === "list" ? "p-0" : undefined}>
           <dl
             className={cn(
-              "grid",
-              variant === "card" && ["gap-x-8 gap-y-6", columns[count]],
+              variant === "card" ? "content-grid" : "grid",
+              variant === "card" && columns[count],
             )}
           >
             {children}

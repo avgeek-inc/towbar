@@ -1,17 +1,20 @@
 "use client";
 
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+
 import Link from "next/link";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { Children } from "react";
 import type { ComponentProps, FormEvent, Key, ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { Spinner } from "@workspace/web-design-system/feedback/spinner";
 import { AlertDialog } from "@workspace/web-design-system/overlays/alert-dialog";
 import { Button } from "@workspace/web-design-system/buttons/button";
-import { Card } from "@workspace/web-design-system/layout/card";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
+import { Widget } from "@workspace/web-design-system/data-display/widget";
 import {
   Field,
   FieldDescription,
@@ -25,7 +28,6 @@ import { PageSection } from "@workspace/web-design-system/layouts/page";
 import { cn } from "@workspace/web-design-system/lib/utils";
 import { ApplicationPage } from "@workspace/web-page-sections/page";
 import type { BreadcrumbAncestors } from "@workspace/web-page-sections/page";
-import { TowbarSection } from "@workspace/towbar-web-ui/section";
 
 import { refreshApiQueries } from "@/hooks/use-api-query";
 
@@ -34,6 +36,10 @@ export const sourcesBreadcrumb = [
   ...appBreadcrumb,
   { href: "/sources", label: "Sources" },
 ] as BreadcrumbAncestors;
+export const serversBreadcrumb = [
+  ...appBreadcrumb,
+  { href: "/servers", label: "Servers" },
+] as BreadcrumbAncestors;
 
 export function DashboardPage({
   actions,
@@ -41,6 +47,7 @@ export function DashboardPage({
   breadcrumbAncestors = appBreadcrumb,
   breadcrumbLabel,
   children,
+  icon,
   title,
   titleContent,
 }: {
@@ -49,6 +56,7 @@ export function DashboardPage({
   breadcrumbAncestors?: BreadcrumbAncestors;
   breadcrumbLabel?: string;
   children: ReactNode;
+  icon: ComponentProps<typeof HugeiconsIcon>["icon"];
   title: string;
   titleContent?: ReactNode;
 }) {
@@ -59,10 +67,23 @@ export function DashboardPage({
       breadcrumbAncestors={breadcrumbAncestors}
       breadcrumbLabel={breadcrumbLabel}
       title={title}
-      titleContent={titleContent}
+      titleContent={
+        <span className="inline-flex min-w-0 items-center gap-2">
+          <HugeiconsIcon
+            aria-hidden="true"
+            className="size-6 shrink-0"
+            icon={icon}
+          />
+          {titleContent ?? (
+            <TooltipText className="truncate" tooltip={title}>
+              {title}
+            </TooltipText>
+          )}
+        </span>
+      }
     >
       <PageSection
-        className="grid gap-4 pt-0 sm:gap-6"
+        className="content-grid pt-0"
         xPadding="none"
         yPadding="compact"
       >
@@ -72,32 +93,12 @@ export function DashboardPage({
   );
 }
 
-export function SectionBlock({
-  children,
-  description,
-  headingLevel,
-  title,
-}: {
-  children: ReactNode;
-  description?: string;
-  headingLevel?: 2 | 3 | 4 | 5 | 6;
-  title: string;
-}) {
-  return (
-    <TowbarSection
-      description={description}
-      headingLevel={headingLevel}
-      title={title}
-    >
-      {children}
-    </TowbarSection>
-  );
-}
-
 export function PageTabs({
+  aliases,
   defaultValue,
   tabs,
 }: {
+  aliases?: Record<string, string>;
   defaultValue: string;
   tabs: Array<{
     content: ReactNode;
@@ -122,7 +123,8 @@ export function PageTabs({
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const requestedSection = searchParams.get("section");
+  const section = searchParams.get("section");
+  const requestedSection = section ? (aliases?.[section] ?? section) : null;
   const selectedKey = tabs.some((tab) => tab.value === requestedSection)
     ? requestedSection!
     : defaultValue;
@@ -163,15 +165,18 @@ export function PageTabs({
                     {tab.icon}
                   </span>
                 ) : null}
-                <span
+                <TooltipText
+                  tabIndex={-1}
                   className="truncate"
-                  title={typeof tab.label === "string" ? tab.label : undefined}
+                  tooltip={
+                    typeof tab.label === "string" ? tab.label : undefined
+                  }
                 >
                   {tab.label}
-                </span>
+                </TooltipText>
                 {tab.indicator ? (
                   typeof tab.indicator === "object" && tab.indicator.dot ? (
-                    <span
+                    <TooltipText
                       aria-label={
                         tab.indicator.ariaLabel ??
                         tab.indicator.label ??
@@ -179,7 +184,7 @@ export function PageTabs({
                       }
                       className="bg-warning size-2 shrink-0 rounded-full"
                       role="img"
-                      title={
+                      tooltip={
                         tab.indicator.ariaLabel ??
                         tab.indicator.label ??
                         "Warning"
@@ -332,22 +337,23 @@ export function ActionButton<T>({
 export function FormCard({
   children,
   className,
-  description,
+  headerEnd,
+  icon,
   title,
   ...props
-}: Omit<ComponentProps<typeof Card>, "children" | "title"> & {
+}: Omit<ComponentProps<typeof Widget>, "children" | "title"> & {
   children: ReactNode;
-  description: string;
+  headerEnd?: ReactNode;
+  icon?: ReactNode;
   title: string;
 }) {
   return (
-    <Card {...props} className={className}>
-      <Card.Header>
-        <Card.Title>{title}</Card.Title>
-        <Card.Description>{description}</Card.Description>
-      </Card.Header>
-      <Card.Content>{children}</Card.Content>
-    </Card>
+    <Widget {...props} className={className}>
+      <Widget.Header endContent={headerEnd}>
+        <Widget.Title icon={icon}>{title}</Widget.Title>
+      </Widget.Header>
+      <Widget.Content>{children}</Widget.Content>
+    </Widget>
   );
 }
 
@@ -361,6 +367,7 @@ export function SimpleForm({
     autoComplete?: string;
     defaultValue?: string;
     description?: string;
+    disabled?: boolean;
     label: string;
     maxLength?: number;
     minLength?: number;
@@ -374,6 +381,7 @@ export function SimpleForm({
   successMessage?: string;
   submitLabel: string;
 }) {
+  const formId = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -382,10 +390,12 @@ export function SimpleForm({
     setError(undefined);
     const formData = new FormData(event.currentTarget);
     const values = Object.fromEntries(
-      fields.map(({ name }) => {
-        const value = formData.get(name);
-        return [name, typeof value === "string" ? value : ""];
-      }),
+      fields
+        .filter((field) => !field.disabled)
+        .map(({ name }) => {
+          const value = formData.get(name);
+          return [name, typeof value === "string" ? value : ""];
+        }),
     );
     try {
       await onSubmit(values);
@@ -397,7 +407,7 @@ export function SimpleForm({
     }
   }
   return (
-    <form className="grid max-w-xl gap-5" onSubmit={submit}>
+    <form className="content-grid max-w-xl" onSubmit={submit}>
       {error ? (
         <Alert status="danger">
           <Alert.Indicator />
@@ -409,10 +419,14 @@ export function SimpleForm({
       ) : null}
       {fields.map((field) => (
         <Field key={field.name}>
-          <FieldLabel>{field.label}</FieldLabel>
+          <FieldLabel htmlFor={`${formId}-${field.name}`}>
+            {field.label}
+          </FieldLabel>
           <Input
+            id={`${formId}-${field.name}`}
             autoComplete={field.autoComplete}
             defaultValue={field.defaultValue}
+            disabled={field.disabled}
             maxLength={field.maxLength}
             minLength={field.minLength}
             name={field.name}

@@ -1,10 +1,14 @@
 "use client";
 
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+
 import {
+  Activity01Icon,
   AlertCircleIcon,
   CheckmarkCircle02Icon,
   HealthIcon,
   InformationCircleIcon,
+  PlugSocketIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -55,14 +59,14 @@ export function SystemHealthPage() {
   const query = useApiQuery<SystemHealth>("/v1/core/system-health", 15_000);
   if (query.error) {
     return (
-      <DashboardPage title="System health">
+      <DashboardPage icon={HealthIcon} title="System health">
         <QueryError message={query.error} />
       </DashboardPage>
     );
   }
   if (!query.data) {
     return (
-      <DashboardPage title="System health">
+      <DashboardPage icon={HealthIcon} title="System health">
         <QueryLoading variant="dashboard" />
       </DashboardPage>
     );
@@ -70,6 +74,7 @@ export function SystemHealthPage() {
   const health = query.data;
   return (
     <DashboardPage
+      icon={HealthIcon}
       actions={
         <ActionButton<SystemHealth>
           action={() => api.post("/v1/core/system-health/actions/check")}
@@ -83,36 +88,43 @@ export function SystemHealthPage() {
       }
       badge={<HealthStatusChip status={health.status} />}
       title="System health"
-      titleContent={
-        <span className="inline-flex min-w-0 items-center gap-2">
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-6 shrink-0"
-            icon={HealthIcon}
-          />
-          <span>System health</span>
-        </span>
-      }
     >
-      <ControlPlane checks={health.checks} version={health.version} />
+      <HealthChecks
+        checks={health.checks.filter(
+          (check) => check.id !== "github" && check.id !== "aws",
+        )}
+        title="Control plane"
+        icon={Activity01Icon}
+        version={health.version}
+      />
+      <HealthChecks
+        checks={health.checks.filter(
+          (check) => check.id === "github" || check.id === "aws",
+        )}
+        title="Integrations"
+        icon={PlugSocketIcon}
+      />
     </DashboardPage>
   );
 }
 
-function ControlPlane({
+function HealthChecks({
   checks,
   version,
+  title,
+  icon,
 }: {
   checks: SystemHealthCheck[];
-  version: string;
+  version?: string;
+  title: string;
+  icon: typeof Activity01Icon;
 }) {
   return (
     <Widget>
       <Widget.Header>
-        <Widget.Title>Control plane</Widget.Title>
-        <span className="font-mono text-xs text-muted" title={version}>
-          {shortVersion(version)}
-        </span>
+        <Widget.Title icon={<HugeiconsIcon icon={icon} />}>
+          {title}
+        </Widget.Title>
       </Widget.Header>
       <Widget.Content className="grid p-0">
         {checks.map((check) => {
@@ -150,6 +162,16 @@ function ControlPlane({
           );
         })}
       </Widget.Content>
+      {version ? (
+        <Widget.Footer>
+          <Widget.FooterDescription>
+            Version{" "}
+            <TooltipText className="font-mono" tooltip={version}>
+              {shortVersion(version)}
+            </TooltipText>
+          </Widget.FooterDescription>
+        </Widget.Footer>
+      ) : null}
     </Widget>
   );
 }

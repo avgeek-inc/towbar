@@ -140,7 +140,7 @@ function InitialOwnerSetup() {
       description="Create the first owner account. Setup locks after this step."
       title="Set up Towbar"
     >
-      <form className="grid gap-5" method="post" onSubmit={submit}>
+      <form className="content-grid" method="post" onSubmit={submit}>
         <FieldGroup>
           <Field>
             <Label htmlFor={nameId}>Name</Label>

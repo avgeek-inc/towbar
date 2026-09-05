@@ -13,12 +13,18 @@ import {
   pingDatabase,
 } from "../../infrastructure/database.js";
 import { wakeMaintenanceWorkflow } from "../../infrastructure/temporal.js";
+import {
+  getAwsCredentialMetadata,
+  reverifyAwsCredentials,
+} from "../aws/service.js";
 import { getGitHubInstallation } from "../github/client.js";
 import {
   listSystemHealthSignals,
   recordSystemHealthSignal,
   systemHealthStatusSchema,
 } from "./signals.js";
+
+import { awsHealthCheck } from "./aws-check.js";
 
 import type { SystemHealthSignal } from "./signals.js";
 
@@ -28,7 +34,7 @@ export async function getSystemHealth(
   workspaceId: string,
 ): Promise<SystemHealth> {
   await pingDatabase();
-  const [signals, githubConnection] = await Promise.all([
+  const [signals, githubConnection, awsCredential] = await Promise.all([
     listSystemHealthSignals(workspaceId),
     getTowbarDatabase()
       .select({
@@ -38,6 +44,7 @@ export async function getSystemHealth(
       .from(githubInstallations)
       .where(eq(githubInstallations.workspaceId, workspaceId))
       .limit(1),
+    getAwsCredentialMetadata(workspaceId),
   ]);
   const byComponent = new Map(
     signals.map((signal) => [signal.component, signal]),
@@ -76,6 +83,7 @@ export async function getSystemHealth(
       connection: githubConnection[0],
       signal: byComponent.get("github"),
     }),
+    ...(awsCredential ? [awsHealthCheck(awsCredential)] : []),
   ];
   return {
     checkedAt: new Date().toISOString(),
@@ -91,6 +99,7 @@ export async function runSystemHealthChecks(workspaceId: string) {
   await Promise.all([
     checkTemporal(workspaceId, version),
     checkGitHub(workspaceId),
+    reverifyAwsCredentials(workspaceId),
   ]);
   return await getSystemHealth(workspaceId);
 }
@@ -240,8 +249,9 @@ function githubCheck(input: {
           ? `Connected to ${input.connection.accountLogin}; run checks to verify access.`
           : "Install the GitHub App before adding a Source."),
     id: "github",
-    remediationHref: status === "healthy" ? null : "/settings?section=github",
-    remediationLabel: status === "healthy" ? null : "Open GitHub settings",
+    remediationHref:
+      status === "healthy" ? null : "/manage/integrations?integration=github",
+    remediationLabel: status === "healthy" ? null : "Open GitHub integration",
     status,
     title: "GitHub App",
   };

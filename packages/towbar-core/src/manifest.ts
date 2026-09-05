@@ -146,7 +146,7 @@ const redirectSchema = z
   })
   .strict();
 
-const serverSchema = z
+export const serverConfigurationSchema = z
   .object({
     buildConcurrency: z.number().int().min(1).max(16).optional(),
     previewBuildConcurrency: z.number().int().min(1).max(4).optional(),
@@ -598,7 +598,6 @@ export const deploymentManifestSchema = z
       })
       .strict()
       .optional(),
-    servers: z.array(serverSchema).min(1).max(100),
     apps: z.array(appSchema).max(500).optional(),
     resources: z.array(resourceSchema).max(500).optional(),
   })
@@ -611,16 +610,6 @@ export const deploymentManifestSchema = z
         path: [],
       });
     }
-    findDuplicates(
-      manifest.servers.map((server) => canonicalIp(server.ip)),
-    ).forEach((ip) =>
-      context.addIssue({
-        code: "custom",
-        message: `Server IP '${ip}' is declared more than once`,
-        path: ["servers"],
-      }),
-    );
-
     const deployables = [
       ...(manifest.apps ?? []),
       ...(manifest.resources ?? []),
@@ -634,9 +623,6 @@ export const deploymentManifestSchema = z
         }),
     );
 
-    const serverByIp = new Map(
-      manifest.servers.map((server) => [canonicalIp(server.ip), server]),
-    );
     const claimedDomains = new Map<string, string>();
     const claimedNetworkAliases = new Map<string, string>();
     const claimedSshTunnelPorts = new Map<string, string>();
@@ -718,25 +704,6 @@ export const deploymentManifestSchema = z
 
     deployables.forEach((app, appIndex) => {
       const collection = "type" in app ? "resources" : "apps";
-      const serverIp = canonicalIp(app.server);
-      const server = serverByIp.get(serverIp);
-      if (!server) {
-        context.addIssue({
-          code: "custom",
-          message: `App references undeclared server '${serverIp}'`,
-          path: [collection, appIndex, "server"],
-        });
-      }
-
-      if (app.tls?.mode === "cloudflare-dns" && !server?.proxy?.cloudflare) {
-        context.addIssue({
-          code: "custom",
-          message:
-            "Cloudflare DNS TLS requires proxy.cloudflare.apiToken on the target server",
-          path: [collection, appIndex, "tls", "mode"],
-        });
-      }
-
       if (!app.domains) return;
       const domains = [
         app.domains.primary,
@@ -855,7 +822,6 @@ export type NormalizedDeployable = NormalizedApp | NormalizedResource;
 export type NormalizedDeploymentManifest = {
   apps: NormalizedApp[];
   resources?: NormalizedResource[];
-  servers: NormalizedServer[];
   source: { branch: string };
   version: 1;
 };
@@ -947,30 +913,6 @@ export function normalizeDeploymentManifest(
   return {
     version: 1,
     source: { branch: sourceBranch },
-    servers: parsed.servers
-      .map((server) => ({
-        buildConcurrency: server.buildConcurrency ?? 1,
-        previewBuildConcurrency: Math.min(
-          server.previewBuildConcurrency ?? 1,
-          server.buildConcurrency ?? 1,
-        ),
-        ip: canonicalIp(server.ip),
-        ssh: {
-          host: canonicalIp(server.ssh.host ?? server.ip),
-          port: server.ssh.port ?? 22,
-          username: server.ssh.username,
-        },
-        ...(server.proxy?.cloudflare
-          ? {
-              proxy: {
-                cloudflare: {
-                  enabled: true as const,
-                },
-              },
-            }
-          : {}),
-      }))
-      .sort((left, right) => left.ip.localeCompare(right.ip)),
     apps: (parsed.apps ?? [])
       .map((app) => {
         const automaticDeployment = normalizeAutomaticDeployment(
@@ -1036,6 +978,35 @@ export function normalizeDeploymentManifest(
     resources: (parsed.resources ?? [])
       .map((resource) => normalizeResource(resource, sourceBranch))
       .sort((left, right) => left.id.localeCompare(right.id)),
+  };
+}
+
+export function normalizeServerConfiguration(
+  input: z.input<typeof serverConfigurationSchema>,
+): NormalizedServer {
+  const server = serverConfigurationSchema.parse(input);
+  const buildConcurrency = server.buildConcurrency ?? 1;
+  return {
+    buildConcurrency,
+    previewBuildConcurrency: Math.min(
+      server.previewBuildConcurrency ?? 1,
+      buildConcurrency,
+    ),
+    ip: canonicalIp(server.ip),
+    ssh: {
+      host: canonicalIp(server.ssh.host ?? server.ip),
+      port: server.ssh.port ?? 22,
+      username: server.ssh.username,
+    },
+    ...(server.proxy?.cloudflare
+      ? {
+          proxy: {
+            cloudflare: {
+              enabled: true as const,
+            },
+          },
+        }
+      : {}),
   };
 }
 

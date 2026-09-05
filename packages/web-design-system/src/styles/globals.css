@@ -37,6 +37,79 @@ a {
   text-decoration: none;
 }
 
+@layer components {
+  /* Let prefixed fields shrink with narrow form columns instead of using the
+     input element's intrinsic width. Keep text inside the editable area. */
+  .input-group {
+    @apply min-w-0 max-w-full;
+  }
+
+  .input-group__input {
+    @apply min-w-0 w-0;
+  }
+
+  .input-group__input[data-slot="input-group-input"] {
+    text-overflow: ellipsis;
+  }
+
+  .input-group__input[data-slot="input-group-input"]:focus {
+    text-overflow: clip;
+  }
+
+  .input-group__prefix,
+  .input-group__suffix {
+    @apply shrink-0;
+  }
+
+  /* Keep sibling cards, sections, and form fields 16px apart on both axes. */
+  .content-grid {
+    @apply grid gap-4;
+  }
+
+  .widget {
+    @apply bg-surface-secondary flex flex-col overflow-hidden rounded-2xl;
+  }
+
+  .widget__header {
+    @apply mt-0.5 flex min-h-8 items-center justify-between gap-3 px-4;
+  }
+
+  .widget__title {
+    @apply text-muted text-sm font-semibold;
+  }
+
+  .widget__content {
+    @apply bg-surface mx-1.5 mb-1.5 flex-1 overflow-hidden rounded-xl p-4;
+    box-shadow:
+      0 0 0 1px oklch(0 0 0 / 0.03),
+      0 1px 2px oklch(0 0 0 / 0.04);
+  }
+
+  .widget__content:first-child {
+    @apply mt-1.5;
+  }
+
+  .widget__footer {
+    @apply flex min-h-8 flex-wrap items-center gap-3 px-4 pt-1 pb-2;
+  }
+
+  .widget__legend {
+    @apply flex items-center gap-3;
+  }
+
+  .widget__legend-item {
+    @apply flex items-center gap-1.5;
+  }
+
+  .widget__legend-item-dot {
+    @apply size-2.5 shrink-0 rounded-full;
+  }
+
+  .widget__legend-item-label {
+    @apply text-muted text-xs;
+  }
+}
+
 code,
 pre {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;

@@ -1,5 +1,8 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+
+import { GitBranchIcon } from "@hugeicons/core-free-icons";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type {
@@ -41,19 +44,31 @@ export function SourceCreate() {
   const [busy, setBusy] = useState(false);
   if (connection.error && !connection.data)
     return (
-      <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Add source">
+      <DashboardPage
+        icon={GitBranchIcon}
+        breadcrumbAncestors={sourcesBreadcrumb}
+        title="Add source"
+      >
         <QueryError message={connection.error} />
       </DashboardPage>
     );
   if (!connection.data)
     return (
-      <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Add source">
+      <DashboardPage
+        icon={GitBranchIcon}
+        breadcrumbAncestors={sourcesBreadcrumb}
+        title="Add source"
+      >
         <QueryLoading />
       </DashboardPage>
     );
   if (!connection.data.connection)
     return (
-      <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Add source">
+      <DashboardPage
+        icon={GitBranchIcon}
+        breadcrumbAncestors={sourcesBreadcrumb}
+        title="Add source"
+      >
         <EmptyState>
           <EmptyState.Header>
             <EmptyState.Title>GitHub not connected</EmptyState.Title>
@@ -62,8 +77,8 @@ export function SourceCreate() {
             </EmptyState.Description>
           </EmptyState.Header>
           <EmptyState.Content>
-            <ButtonLink href="/settings?section=github">
-              Open GitHub settings
+            <ButtonLink href="/manage/integrations?integration=github">
+              Open GitHub integration
             </ButtonLink>
           </EmptyState.Content>
         </EmptyState>
@@ -71,19 +86,31 @@ export function SourceCreate() {
     );
   if (repositories.error)
     return (
-      <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Add source">
+      <DashboardPage
+        icon={GitBranchIcon}
+        breadcrumbAncestors={sourcesBreadcrumb}
+        title="Add source"
+      >
         <QueryError message={repositories.error} />
       </DashboardPage>
     );
   if (!repositories.data)
     return (
-      <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Add source">
+      <DashboardPage
+        icon={GitBranchIcon}
+        breadcrumbAncestors={sourcesBreadcrumb}
+        title="Add source"
+      >
         <QueryLoading />
       </DashboardPage>
     );
   if (repositories.data.repositories.length === 0)
     return (
-      <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Add source">
+      <DashboardPage
+        icon={GitBranchIcon}
+        breadcrumbAncestors={sourcesBreadcrumb}
+        title="Add source"
+      >
         <EmptyState>
           <EmptyState.Header>
             <EmptyState.Title>No repositories available</EmptyState.Title>
@@ -100,8 +127,12 @@ export function SourceCreate() {
     (repo) => repo.fullName === fullName,
   );
   return (
-    <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Add source">
-      <div className="grid gap-10">
+    <DashboardPage
+      icon={GitBranchIcon}
+      breadcrumbAncestors={sourcesBreadcrumb}
+      title="Add source"
+    >
+      <div className="content-grid">
         <div className="max-w-full overflow-x-auto pb-1">
           <div className="min-w-[44rem]">
             <Stepper currentStep={busy ? 2 : 1}>
@@ -129,11 +160,11 @@ export function SourceCreate() {
           </div>
         </div>
         <FormCard
-          description="Choose one repository from the connected GitHub installation."
+          icon={<HugeiconsIcon icon={GitBranchIcon} />}
           title="Source details"
         >
           <form
-            className="grid max-w-xl gap-8 pt-2"
+            className="content-grid max-w-xl pt-2"
             onSubmit={async (event) => {
               event.preventDefault();
               if (!selected) return;

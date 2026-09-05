@@ -187,7 +187,6 @@ async function runTerminalSideEffects(
     await requestServerCheck({
       requestedBy: null,
       serverId: operation.serverId,
-      sourceId: operation.sourceId,
       workspaceId: operation.workspaceId,
     }).catch(() => undefined);
   }

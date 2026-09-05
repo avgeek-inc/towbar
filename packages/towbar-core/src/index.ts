@@ -1,7 +1,6 @@
 export * from "./deployment-inputs.js";
 export * from "./backup-assurance.js";
 export * from "./auto-deploy-controls.js";
-export * from "./deployment-plan.js";
 export * from "./manifest.js";
 export * from "./notifications.js";
 export * from "./preview.js";
@@ -10,6 +9,7 @@ export * from "./request-signing.js";
 export * from "./resource-operations.js";
 export * from "./security.js";
 export * from "./server-capacity.js";
+export * from "./server-hardware.js";
 export * from "./server-preparation.js";
 export * from "./system-health.js";
 export * from "./temporal.js";

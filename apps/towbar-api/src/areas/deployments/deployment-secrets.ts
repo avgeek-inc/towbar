@@ -104,7 +104,7 @@ function cloudflareCredential(
   if (!server.proxy?.cloudflare.enabled) return null;
   if (!values.apiToken)
     throw unprocessable(
-      "Configure the Cloudflare API token in Server → Settings → Credentials",
+      "Configure the Cloudflare API token in Server → Settings → Configuration",
       "CLOUDFLARE_CREDENTIALS_MISSING",
     );
   return { apiToken: values.apiToken };

@@ -5,12 +5,6 @@ version: 1
 source:
   branch: main
 
-servers:
-  - ip: 203.0.113.10
-    buildConcurrency: 2
-    ssh:
-      username: deploy
-
 apps:
   - id: hello-towbar
     name: Hello Towbar

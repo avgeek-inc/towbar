@@ -1,7 +1,10 @@
 import { and, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 
-import { isNormalizedResource } from "@workspace/towbar-core";
+import {
+  isNormalizedResource,
+  serverHardwareFromCheck,
+} from "@workspace/towbar-core";
 import {
   apps,
   deployableRuntimeStates,
@@ -35,7 +38,7 @@ export const sshLoginSecretSchema = z
   })
   .strict();
 
-const serverSelection = {
+export const serverSelection = {
   archivedAt: servers.archivedAt,
   canonicalIp: servers.canonicalIp,
   config: servers.config,
@@ -44,8 +47,6 @@ const serverSelection = {
   id: servers.id,
   preparedAt: servers.preparedAt,
   preparedConfigDigest: servers.preparedConfigDigest,
-  sourceId: servers.sourceId,
-  sourceRevision: servers.sourceRevision,
   updatedAt: servers.updatedAt,
   workspaceId: servers.workspaceId,
 } as const;
@@ -59,63 +60,14 @@ export async function listServers(workspaceId: string) {
       and(eq(servers.workspaceId, workspaceId), isNull(servers.archivedAt)),
     )
     .orderBy(desc(servers.updatedAt));
-  const latestPreparations = await getLatestServerPreparations(
-    rows.map((server) => server.id),
-  );
-  return rows.map((server) =>
-    toPublicServer(server, latestPreparations.get(server.id)),
-  );
-}
-
-export async function listSourceServers(sourceId: string, workspaceId: string) {
-  const database = getTowbarDatabase();
-  const sourceServers = await database
-    .select(serverSelection)
-    .from(servers)
-    .where(
-      and(
-        eq(servers.sourceId, sourceId),
-        eq(servers.workspaceId, workspaceId),
-        isNull(servers.archivedAt),
-      ),
-    )
-    .orderBy(desc(servers.updatedAt));
-
-  if (sourceServers.length === 0) return [];
-
-  const serverIds = sourceServers.map((server) => server.id);
-  const [checks, trustedKeys, latestPreparations] = await Promise.all([
-    database
-      .selectDistinctOn([serverChecks.serverId], {
-        errorCode: serverChecks.errorCode,
-        serverId: serverChecks.serverId,
-      })
-      .from(serverChecks)
-      .where(inArray(serverChecks.serverId, serverIds))
-      .orderBy(serverChecks.serverId, desc(serverChecks.createdAt)),
-    database
-      .selectDistinct({ serverId: sshHostKeys.serverId })
-      .from(sshHostKeys)
-      .where(
-        and(
-          inArray(sshHostKeys.serverId, serverIds),
-          isNull(sshHostKeys.revokedAt),
-        ),
-      ),
-    getLatestServerPreparations(serverIds),
+  const ids = rows.map((server) => server.id);
+  const [latestPreparations, hardware] = await Promise.all([
+    getLatestServerPreparations(ids),
+    getServerHardware(ids),
   ]);
-  const latestErrorByServer = new Map(
-    checks.map((check) => [check.serverId, check.errorCode] as const),
-  );
-  const trustedServerIds = new Set(trustedKeys.map((key) => key.serverId));
-
-  return sourceServers.map((server) => ({
+  return rows.map((server) => ({
     ...toPublicServer(server, latestPreparations.get(server.id)),
-    hostKeyStatus:
-      trustedServerIds.has(server.id) &&
-      latestErrorByServer.get(server.id) !== "HOST_KEY_NOT_TRUSTED"
-        ? ("trusted" as const)
-        : ("untrusted" as const),
+    hardware: hardware.get(server.id) ?? null,
   }));
 }
 
@@ -133,8 +85,42 @@ export async function getServer(serverId: string, workspaceId: string) {
     )
     .limit(1);
   if (!server) throw notFound("Server");
-  const latestPreparations = await getLatestServerPreparations([server.id]);
-  return toPublicServer(server, latestPreparations.get(server.id));
+  const [latestPreparations, hardware] = await Promise.all([
+    getLatestServerPreparations([server.id]),
+    getServerHardware([server.id]),
+  ]);
+  return {
+    ...toPublicServer(server, latestPreparations.get(server.id)),
+    hardware: hardware.get(server.id) ?? null,
+  };
+}
+
+async function getServerHardware(serverIds: string[]) {
+  if (serverIds.length === 0)
+    return new Map<string, ReturnType<typeof serverHardwareFromCheck>>();
+  const checks = await getTowbarDatabase()
+    .selectDistinctOn([serverChecks.serverId], {
+      serverId: serverChecks.serverId,
+      result: serverChecks.result,
+    })
+    .from(serverChecks)
+    .where(
+      and(
+        inArray(serverChecks.serverId, serverIds),
+        eq(serverChecks.status, "succeeded"),
+      ),
+    )
+    .orderBy(
+      serverChecks.serverId,
+      desc(serverChecks.createdAt),
+      desc(serverChecks.id),
+    );
+  return new Map(
+    checks.map((check) => [
+      check.serverId,
+      serverHardwareFromCheck(check.result),
+    ]),
+  );
 }
 
 export async function listServerApps(serverId: string, workspaceId: string) {
@@ -246,11 +232,9 @@ export async function listServerDeployments(
 export async function requestServerCheck(input: {
   requestedBy: string | null;
   serverId: string;
-  sourceId: string;
   workspaceId: string;
 }) {
   const server = await getServer(input.serverId, input.workspaceId);
-  if (server.sourceId !== input.sourceId) throw notFound("Source server");
   const [check] = await getTowbarDatabase()
     .insert(serverChecks)
     .values({
@@ -301,7 +285,6 @@ export async function getServerCheckExecutionContext(checkId: string) {
       checkId: serverChecks.id,
       config: servers.config,
       serverId: servers.id,
-      sourceId: servers.sourceId,
       workspaceId: servers.workspaceId,
     })
     .from(serverChecks)
@@ -563,7 +546,7 @@ async function getLatestServerPreparations(serverIds: string[]) {
   );
 }
 
-function toPublicServer(
+export function toPublicServer(
   server: typeof servers.$inferSelect,
   latestPreparation?: {
     configDigest: string;

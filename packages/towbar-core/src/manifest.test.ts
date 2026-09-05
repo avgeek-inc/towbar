@@ -18,16 +18,6 @@ source:
 deploymentInputs:
   shared-web:
     - packages/web-design-system/**
-servers:
-  - ip: 203.0.113.10
-    buildConcurrency: 3
-    previewBuildConcurrency: 2
-    ssh:
-      host: 10.0.0.10
-      username: deploy
-    proxy:
-      cloudflare:
-        enabled: true
 apps:
   - id: towbar-web-app
     autoDeploy:
@@ -73,10 +63,6 @@ const deploymentJsonSchema = JSON.parse(
 void test("parses and canonicalizes a version 1 manifest", () => {
   const result = parseDeploymentManifest(manifest);
   assert.match(result.digest, /^[a-f0-9]{64}$/);
-  assert.equal(result.manifest.servers[0]?.ssh.port, 22);
-  assert.equal(result.manifest.servers[0]?.ssh.host, "10.0.0.10");
-  assert.equal(result.manifest.servers[0]?.buildConcurrency, 3);
-  assert.equal(result.manifest.servers[0]?.previewBuildConcurrency, 2);
   assert.deepEqual(result.manifest.source, { branch: "release" });
   assert.equal("secrets" in result.manifest, false);
   assert.equal(result.manifest.apps[0]?.autoDeploy, true);
@@ -151,15 +137,6 @@ void test("rejects unknown deployment input groups and unsafe globs", () => {
 });
 
 void test("publishes container resource limits in the JSON schema", () => {
-  const sshProperties = schemaObject(
-    deploymentJsonSchema,
-    "properties",
-    "servers",
-    "items",
-    "properties",
-    "ssh",
-    "properties",
-  );
   const containerProperties = schemaObject(
     deploymentJsonSchema,
     "properties",
@@ -169,8 +146,6 @@ void test("publishes container resource limits in the JSON schema", () => {
     "container",
     "properties",
   );
-  assert.equal(sshProperties.resources, undefined);
-  assert.deepEqual(sshProperties.host, { type: "string" });
   assert.deepEqual(
     schemaObject(containerProperties.resources, "properties").memory,
     {
@@ -180,15 +155,8 @@ void test("publishes container resource limits in the JSON schema", () => {
   );
 });
 
-void test("publishes server concurrency and hooks in the JSON schema", () => {
+void test("publishes app hooks without server configuration in the JSON schema", () => {
   const rootProperties = schemaObject(deploymentJsonSchema, "properties");
-  const serverProperties = schemaObject(
-    deploymentJsonSchema,
-    "properties",
-    "servers",
-    "items",
-    "properties",
-  );
   const appProperties = schemaObject(
     deploymentJsonSchema,
     "properties",
@@ -196,18 +164,7 @@ void test("publishes server concurrency and hooks in the JSON schema", () => {
     "items",
     "properties",
   );
-  assert.deepEqual(serverProperties.buildConcurrency, {
-    default: 1,
-    maximum: 16,
-    minimum: 1,
-    type: "integer",
-  });
-  assert.deepEqual(serverProperties.previewBuildConcurrency, {
-    default: 1,
-    maximum: 4,
-    minimum: 1,
-    type: "integer",
-  });
+  assert.equal(rootProperties.servers, undefined);
   assert.deepEqual(schemaObject(appProperties.preview).required, [
     "enabled",
     "domain",
@@ -451,17 +408,19 @@ void test("defaults to main and rejects unsafe branch names", () => {
   );
 });
 
-void test("defaults the SSH host to the server IP", () => {
-  const defaulted = parseDeploymentManifest(
-    manifest.replace("      host: 10.0.0.10\n", ""),
+void test("rejects server configuration in the manifest", () => {
+  assert.throws(
+    () =>
+      parseDeploymentManifest(
+        `${manifest}\nservers:\n  - ip: 203.0.113.10\n    ssh:\n      username: deploy\n`,
+      ),
+    ManifestValidationError,
   );
-  assert.equal(defaulted.manifest.servers[0]?.ssh.host, "203.0.113.10");
 });
 
 void test("rejects duplicate YAML keys before reconciliation", () => {
   assert.throws(
-    () =>
-      parseDeploymentManifest("version: 1\nversion: 1\nservers: []\napps: []"),
+    () => parseDeploymentManifest("version: 1\nversion: 1\napps: []"),
     ManifestValidationError,
   );
 });
@@ -529,25 +488,6 @@ void test("rejects the removed dependsOn manifest field", () => {
       assert.ok(error instanceof ManifestValidationError);
       assert.ok(
         error.issues.some((issue) => issue.message.includes("dependsOn")),
-      );
-      return true;
-    },
-  );
-});
-
-void test("rejects Cloudflare TLS without a server token reference", () => {
-  const invalid = manifest.replace(
-    "    proxy:\n      cloudflare:\n        enabled: true\n",
-    "",
-  );
-  assert.throws(
-    () => parseDeploymentManifest(invalid),
-    (error) => {
-      assert.ok(error instanceof ManifestValidationError);
-      assert.ok(
-        error.issues.some((issue) =>
-          issue.message.includes("Cloudflare DNS TLS"),
-        ),
       );
       return true;
     },

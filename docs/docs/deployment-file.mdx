@@ -1,6 +1,6 @@
 ---
 title: "Deployment manifest"
-description: "Declare Towbar Sources, Servers, Apps, Resources, and deployment policy in one strict versioned file."
+description: "Declare Towbar Sources, Apps, Resources, and deployment policy in one strict versioned file."
 ---
 
 Commit `.towbar/deployment.yml` to the Source repository. Towbar reads the file
@@ -33,11 +33,6 @@ version: 1
 source:
   branch: main
 
-servers:
-  - ip: 203.0.113.10
-    ssh:
-      username: deploy
-
 apps:
   - id: hello-towbar
     name: Hello Towbar
@@ -64,9 +59,11 @@ The display `name` may change without losing deployment or release history. If
 an ID disappears, Towbar archives the deployable; when the same ID and kind
 return, Towbar restores it.
 
-Servers are Source-scoped. The canonical `ip` identifies the server for
-inventory and routing, while optional `ssh.host` may point at a different
-private address used only for SSH.
+Servers are workspace-owned and configured under **Servers** in Towbar. An App
+or Resource selects one by its canonical IP address. Multiple Sources may use
+the same server; Towbar keeps one connection, credential, trust, preparation,
+capacity, and cleanup record for that physical host. Add the server in Towbar
+before syncing a manifest that references its IP.
 
 ## Automatic deployments
 
@@ -96,7 +93,7 @@ fails safe by treating the commit as changed.
 
 ## Managed secrets
 
-Secret values and assignments are configured through the Towbar editor and do not belong in YAML. Source production defaults support build, runtime, pre-deploy, and post-deploy stages. Apps can override each stage; resources inherit runtime only. Saved values remain write-only.
+Secret values and assignments are configured through the Towbar editor and do not belong in YAML. Global and Source defaults support separate Production and Preview values for build, runtime, pre-deploy, and post-deploy stages. Apps can override each stage in the matching environment; resources inherit Production runtime values only. Saved values remain write-only.
 
 See [Managed secrets](/docs/managed-secrets) for inheritance, explicit deployment, external managers, and recovery.
 

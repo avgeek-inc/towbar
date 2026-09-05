@@ -51,17 +51,15 @@ a Source. Configure a GitHub App with:
 
 - Repository contents: read-only
 - Repository metadata: read-only
-- Checks: read and write (required for deployment-plan reporting)
 - Pull requests: read and write (required for Preview deployments and their PR status comment)
 - Deployments: read and write (required for Preview deployment statuses)
 - Webhook events: push, pull request, and installation
 - Webhook URL: `${TOWBAR_API_BASE_URL}/v1/public/webhooks/github`
 - Setup URL with redirect enabled:
-  `${TOWBAR_APP_BASE_URL}/settings?section=github`
+  `${TOWBAR_APP_BASE_URL}/manage/integrations?integration=github`
 
-Existing installations must approve the Checks and Pull requests permission
-upgrades before Towbar can publish deployment-plan Checks or update the Preview
-status comment.
+Existing installations must approve the Pull requests permission upgrade before
+Towbar can update the Preview status comment.
 
 Encode the downloaded PEM without line wrapping:
 
@@ -75,9 +73,25 @@ Towbar rejects partially configured GitHub App credentials.
 
 ## Notification providers
 
-Configure providers under **Settings → Notifications** as the installation owner. Credentials are encrypted and write-only. Each Source opts in through **Source → Settings → Notifications**, supplying channel IDs or email recipients and using the existing test-delivery action.
+Check provider configuration under **Manage → Integrations → Slack** or
+**Email**. These pages show whether the required environment variables are
+present; credentials are managed on the Towbar API deployment.
 
-For Slack, enter the installed bot token and invite the bot to the target channels. For SMTP, enter host and sender email; port defaults to `587`, implicit TLS to `false`, and subject prefix to `Towbar`. If authentication is required, configure username and password. Changes apply to the next delivery attempt without restarting Towbar. Provider environment variables are no longer supported.
+### Slack
+
+Set `TOWBAR_SLACK_BOT_TOKEN` to your Slack bot token and restart the API.
+
+### Email (SMTP)
+
+Set `TOWBAR_SMTP_HOST` and `TOWBAR_SMTP_FROM`; port defaults to `587`, implicit TLS
+to `false`, and subject prefix to `Towbar`. Use `TOWBAR_SMTP_PORT`,
+`TOWBAR_SMTP_SECURE`, and `TOWBAR_SMTP_SUBJECT_PREFIX` to override those defaults.
+Set `TOWBAR_SMTP_USERNAME` and `TOWBAR_SMTP_PASSWORD` together when
+authentication is required. Restart the API after changing these environment variables.
+
+Towbar shows only
+configured provider types when an owner adds a destination under **Source →
+Settings → Notifications**.
 
 ## Image vulnerability scanning
 
@@ -140,38 +154,15 @@ while configured, which is why it must be random, short-lived, and removed.
 
 ## Deployment targets and Source credentials
 
-Declare servers and deployables in `.towbar/deployment.yml`, then configure their secrets in Towbar. The manifest accepts no secret references or values. First Source sync does not require credentials; execution reports missing SSH, Cloudflare, or managed-resource passwords.
+Add workspace servers under **Servers**, then declare Apps and Resources in `.towbar/deployment.yml` using the configured server IPs. Server connection, concurrency, Cloudflare enablement, and credentials live only in Towbar. The manifest accepts no server configuration, secret references, or secret values. Source sync does not require credentials, but it reports an unconfigured server IP before changing inventory. Execution reports missing SSH, Cloudflare, or managed-resource passwords.
 
 `TOWBAR_WORKER_MAX_CONCURRENT_ACTIVITIES` defaults to `4` and limits activity execution across every Source. Keep it above the largest server `buildConcurrency` value with capacity left for Source sync and maintenance.
 
-The App, Resource, and Source **Secrets** editors provide write-only stage-specific values. Local keys override Source defaults; deleting a local key restores inheritance. Preview values are isolated. Save explicitly, then deploy when ready. Source AWS credentials are only needed for optional S3 operations. See [Managed secrets](/docs/managed-secrets).
+The Shared, Source, App, and Resource **Secrets** editors provide write-only stage-specific values. Values resolve from **Manage → Shared secrets** to the Source and then the app or resource; deleting an override restores inheritance. Production and Preview defaults remain isolated from each other. Save explicitly, then deploy when ready. Configure the single workspace AWS credential under **Manage → Integrations** only when S3 operations are needed; configured backup schedules remain paused until it exists. See [Managed secrets](/docs/managed-secrets).
 
 The current deployment schema is served by the configured website at
 `${TOWBAR_WEBSITE_BASE_URL}/schemas/deployment.v1.json` and documented under
 `${TOWBAR_WEBSITE_BASE_URL}/docs/deployment-file`.
-
-## Deployment plans
-
-Source **Plans** are side-effect-free comparisons between an immutable
-candidate commit and the Source's currently materialized inventory. Generating
-a manual plan fetches the configured branch but does not sync, archive, deploy,
-resolve secret values, or change a server. The plan stores the current and
-target manifest digests, then classifies every App, Resource, and Server as
-create, update, archive, restore, or no-op.
-
-Validation covers manifest schema, domain ownership, Source branch alignment,
-server preparation and observed capacity, configured credential key names,
-and conflicting active operations. Secret values are never fetched for a plan.
-A failed validation marks the plan **Blocked** and includes an actionable
-message; warnings remain visible without blocking the comparison.
-
-For a same-repository pull request targeting the Source branch, Towbar creates
-the same comparison against the PR head commit and publishes one completed
-`Towbar deployment plan` Check Run for that commit. App rows respect
-`autoDeploy.inputs`; unrelated paths do not create irrelevant plan rows. The
-Check links to the immutable plan detail page. Repeated webhook deliveries
-update the existing Check instead of creating another one. Plan generation is
-observational and never gates or orders Preview or production deployments.
 
 ## Preview deployments
 
@@ -181,13 +172,6 @@ to one stable PR URL. Draft pull requests are supported. Resources are not
 cloned, and production shared or App secrets are never inherited.
 
 ```yaml
-servers:
-  - ip: 203.0.113.10
-    buildConcurrency: 4
-    previewBuildConcurrency: 1
-    ssh:
-      username: deploy
-
 apps:
   - id: hello-towbar
     # Existing production configuration omitted.
@@ -207,9 +191,10 @@ Preview wildcard, confirm that the zone's certificate covers that hostname;
 DNS wildcard support does not by itself extend Universal SSL certificate
 coverage to every nested level.
 
-`previewBuildConcurrency` defaults to `1`, cannot exceed `buildConcurrency`,
-and is capped at `4`. Preview builds have lower queue priority than production,
-Resource, cleanup, and server operations. A newer PR commit supersedes only
+Configure `buildConcurrency` and `previewBuildConcurrency` under **Server →
+Settings**. Preview concurrency defaults to `1`, cannot exceed total build
+concurrency, and is capped at `4`. Preview builds have lower queue priority
+than production, Resource, cleanup, and server operations. A newer PR commit supersedes only
 queued work for that App and PR. A failed build leaves the last healthy Preview
 live. Merging or closing the pull request, retargeting it away from
 `source.branch`, disabling Preview in the next successful Source sync,

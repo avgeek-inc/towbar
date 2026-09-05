@@ -21,7 +21,6 @@ import { deploymentEnvironments } from "@workspace/towbar-core/preview";
 
 import type {
   DeferredAutomaticDeployment,
-  DeploymentPlan,
   NotificationCategory,
   NotificationDestinationInput,
   NotificationEventPayload,
@@ -99,18 +98,6 @@ export const previewEnvironmentStatusEnum = pgEnum(
 );
 export const previewReportDeliveryStatusEnum = pgEnum(
   "towbar_preview_report_delivery_status",
-  ["pending", "published", "failed"],
-);
-export const deploymentPlanTriggerEnum = pgEnum(
-  "towbar_deployment_plan_trigger",
-  ["manual", "pull_request"],
-);
-export const deploymentPlanStatusEnum = pgEnum(
-  "towbar_deployment_plan_status",
-  ["ready", "blocked", "skipped"],
-);
-export const deploymentPlanDeliveryStatusEnum = pgEnum(
-  "towbar_deployment_plan_delivery_status",
   ["pending", "published", "failed"],
 );
 export const resourceOperationTypeEnum = pgEnum(
@@ -347,16 +334,13 @@ export const sources = pgTable(
   ],
 );
 
-export const sourceAwsCredentials = pgTable(
-  "towbar_source_aws_credentials",
+export const workspaceAwsCredentials = pgTable(
+  "towbar_workspace_aws_credentials",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
-    sourceId: uuid("source_id")
-      .notNull()
-      .references(() => sources.id, { onDelete: "cascade" }),
     encryptedPayload: jsonb("encrypted_payload")
       .$type<EncryptedCredential>()
       .notNull(),
@@ -375,8 +359,7 @@ export const sourceAwsCredentials = pgTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex("uq_towbar_aws_credentials_source").on(table.sourceId),
-    index("idx_towbar_aws_credentials_workspace").on(table.workspaceId),
+    uniqueIndex("uq_towbar_aws_credentials_workspace").on(table.workspaceId),
   ],
 );
 
@@ -583,75 +566,6 @@ export const sourceSyncs = pgTable(
   ],
 );
 
-export const deploymentPlans = pgTable(
-  "towbar_deployment_plans",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    workspaceId: uuid("workspace_id")
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
-    sourceId: uuid("source_id")
-      .notNull()
-      .references(() => sources.id, { onDelete: "cascade" }),
-    requestedBy: uuid("requested_by").references(() => users.id, {
-      onDelete: "set null",
-    }),
-    identityDigest: varchar("identity_digest", { length: 64 }).notNull(),
-    trigger: deploymentPlanTriggerEnum("trigger").notNull(),
-    status: deploymentPlanStatusEnum("status").notNull(),
-    pullRequestNumber: integer("pull_request_number"),
-    branch: varchar("branch", { length: 255 }).notNull(),
-    currentCommitSha: varchar("current_commit_sha", { length: 64 }),
-    targetCommitSha: varchar("target_commit_sha", { length: 64 }).notNull(),
-    currentManifestDigest: varchar("current_manifest_digest", { length: 64 }),
-    targetManifestDigest: varchar("target_manifest_digest", { length: 64 }),
-    candidateDigest: varchar("candidate_digest", { length: 64 }).notNull(),
-    plan: jsonb("plan").$type<DeploymentPlan>().notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    check(
-      "chk_towbar_deployment_plans_trigger",
-      sql`(${table.trigger} = 'manual' AND ${table.pullRequestNumber} IS NULL) OR (${table.trigger} = 'pull_request' AND ${table.pullRequestNumber} IS NOT NULL)`,
-    ),
-    uniqueIndex("uq_towbar_deployment_plans_identity").on(
-      table.sourceId,
-      table.identityDigest,
-    ),
-    uniqueIndex("uq_towbar_deployment_plans_pull_request_head")
-      .on(table.sourceId, table.pullRequestNumber, table.targetCommitSha)
-      .where(sql`${table.trigger} = 'pull_request'`),
-    index("idx_towbar_deployment_plans_source_created").on(
-      table.sourceId,
-      table.createdAt,
-    ),
-  ],
-);
-
-export const deploymentPlanGithubChecks = pgTable(
-  "towbar_deployment_plan_github_checks",
-  {
-    planId: uuid("plan_id")
-      .primaryKey()
-      .references(() => deploymentPlans.id, { onDelete: "cascade" }),
-    checkRunId: varchar("check_run_id", { length: 40 }),
-    status: deploymentPlanDeliveryStatusEnum("status")
-      .default("pending")
-      .notNull(),
-    errorMessage: varchar("error_message", { length: 1_000 }),
-    lastAttemptedAt: timestamp("last_attempted_at", { withTimezone: true }),
-    publishedAt: timestamp("published_at", { withTimezone: true }),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    index("idx_towbar_deployment_plan_checks_status").on(table.status),
-  ],
-);
-
 export const githubWebhookDeliveries = pgTable(
   "towbar_github_webhook_deliveries",
   {
@@ -674,9 +588,6 @@ export const servers = pgTable(
   "towbar_servers",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    sourceId: uuid("source_id")
-      .notNull()
-      .references(() => sources.id, { onDelete: "cascade" }),
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
@@ -685,7 +596,6 @@ export const servers = pgTable(
     configDigest: varchar("config_digest", { length: 64 }).notNull(),
     preparedAt: timestamp("prepared_at", { withTimezone: true }),
     preparedConfigDigest: varchar("prepared_config_digest", { length: 64 }),
-    sourceRevision: varchar("source_revision", { length: 64 }).notNull(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -698,10 +608,9 @@ export const servers = pgTable(
     uniqueIndex("uq_towbar_servers_secret_owner").on(
       table.id,
       table.workspaceId,
-      table.sourceId,
     ),
-    uniqueIndex("uq_towbar_servers_source_ip").on(
-      table.sourceId,
+    uniqueIndex("uq_towbar_servers_workspace_ip").on(
+      table.workspaceId,
       table.canonicalIp,
     ),
     index("idx_towbar_servers_workspace").on(table.workspaceId),
@@ -1260,9 +1169,9 @@ export const resourceOperations = pgTable(
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
-    sourceId: uuid("source_id")
-      .notNull()
-      .references(() => sources.id, { onDelete: "cascade" }),
+    sourceId: uuid("source_id").references(() => sources.id, {
+      onDelete: "cascade",
+    }),
     resourceId: uuid("resource_id").references(() => apps.id, {
       onDelete: "cascade",
     }),
@@ -1315,6 +1224,10 @@ export const resourceOperations = pgTable(
     index("idx_towbar_resource_operations_server_state").on(
       table.serverId,
       table.state,
+    ),
+    check(
+      "chk_towbar_resource_operations_owner",
+      sql`(${table.type} = 'cleanup_orphans' AND ${table.sourceId} IS NULL AND ${table.resourceId} IS NULL) OR (${table.type} <> 'cleanup_orphans' AND ${table.sourceId} IS NOT NULL AND ${table.resourceId} IS NOT NULL)`,
     ),
   ],
 );
@@ -1536,8 +1449,8 @@ export const managedSecrets = pgTable(
     }).onDelete("cascade"),
     foreignKey({
       name: "fk_towbar_secret_servers_owner",
-      columns: [table.serverId, table.workspaceId, table.sourceId],
-      foreignColumns: [servers.id, servers.workspaceId, servers.sourceId],
+      columns: [table.serverId, table.workspaceId],
+      foreignColumns: [servers.id, servers.workspaceId],
     }).onDelete("cascade"),
     uniqueIndex("uq_towbar_managed_secret_slot").on(
       table.workspaceId,
@@ -1548,18 +1461,17 @@ export const managedSecrets = pgTable(
     check(
       "towbar_managed_secret_owner",
       sql`(
-    (${table.owner} = 'source:' || ${table.sourceId}::text AND ${table.sourceId} IS NOT NULL AND ${table.appId} IS NULL AND ${table.serverId} IS NULL)
+    (${table.owner} = 'workspace:' || ${table.workspaceId}::text AND ${table.sourceId} IS NULL AND ${table.appId} IS NULL AND ${table.serverId} IS NULL)
+    OR (${table.owner} = 'source:' || ${table.sourceId}::text AND ${table.sourceId} IS NOT NULL AND ${table.appId} IS NULL AND ${table.serverId} IS NULL)
     OR (${table.owner} = 'app:' || ${table.appId}::text AND ${table.appId} IS NOT NULL AND ${table.sourceId} IS NOT NULL AND ${table.serverId} IS NULL)
-    OR (${table.owner} = 'server:' || ${table.serverId}::text AND ${table.serverId} IS NOT NULL AND ${table.sourceId} IS NOT NULL AND ${table.appId} IS NULL)
-    OR (${table.owner} = 'notifications' AND ${table.sourceId} IS NULL AND ${table.appId} IS NULL AND ${table.serverId} IS NULL)
+    OR (${table.owner} = 'server:' || ${table.serverId}::text AND ${table.serverId} IS NOT NULL AND ${table.sourceId} IS NULL AND ${table.appId} IS NULL)
   ) IS TRUE`,
     ),
     check(
       "towbar_managed_secret_stage",
       sql`(
-    (${table.stage} IN ('build', 'deployment', 'pre_deploy', 'post_deploy') AND (${table.appId} IS NOT NULL OR (${table.sourceId} IS NOT NULL AND ${table.serverId} IS NULL AND ${table.environment} = 'production')))
+    (${table.stage} IN ('build', 'deployment', 'pre_deploy', 'post_deploy') AND (${table.owner} = 'workspace:' || ${table.workspaceId}::text OR ${table.appId} IS NOT NULL OR (${table.sourceId} IS NOT NULL AND ${table.serverId} IS NULL)))
     OR (${table.stage} = 'credentials' AND ${table.serverId} IS NOT NULL AND ${table.environment} = 'production')
-    OR (${table.stage} IN ('slack', 'smtp') AND ${table.owner} = 'notifications' AND ${table.environment} = 'production')
   )`,
     ),
   ],

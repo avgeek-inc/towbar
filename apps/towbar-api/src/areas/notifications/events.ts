@@ -1,4 +1,4 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 
 import {
   apps,
@@ -156,7 +156,7 @@ export async function emitResourceOperationNotification(
     .leftJoin(apps, eq(apps.id, resourceOperations.resourceId))
     .where(eq(resourceOperations.id, operationId))
     .limit(1);
-  if (!operation) return;
+  if (!operation?.sourceId) return;
   const status = type.replace(".", " ").replaceAll("_", " ");
   const backupCopy =
     type === "backup.failed"
@@ -195,51 +195,94 @@ export async function emitRuntimeHealthNotification(input: {
   entityKind: "resource" | "server";
   recovered: boolean;
 }) {
-  const [target] =
-    input.entityKind === "server"
-      ? await getTowbarDatabase()
-          .select({
-            entityName: servers.canonicalIp,
-            repositoryName: sources.repositoryName,
-            sourceId: servers.sourceId,
-            workspaceId: servers.workspaceId,
-          })
-          .from(servers)
-          .innerJoin(sources, eq(sources.id, servers.sourceId))
-          .where(eq(servers.id, input.entityId))
-          .limit(1)
-      : await getTowbarDatabase()
-          .select({
-            entityName: apps.name,
-            repositoryName: sources.repositoryName,
-            sourceId: apps.sourceId,
-            workspaceId: apps.workspaceId,
-          })
-          .from(apps)
-          .innerJoin(sources, eq(sources.id, apps.sourceId))
-          .where(and(eq(apps.id, input.entityId), ne(apps.kind, "app")))
-          .limit(1);
-  if (!target) return;
   const type = input.recovered
     ? ("runtime.recovered" as const)
     : ("runtime.unhealthy" as const);
+  if (input.entityKind === "server") {
+    const [server] = await getTowbarDatabase()
+      .select({
+        entityName: servers.canonicalIp,
+        workspaceId: servers.workspaceId,
+      })
+      .from(servers)
+      .where(eq(servers.id, input.entityId))
+      .limit(1);
+    if (!server) return;
+    const sourceTargets = await getTowbarDatabase()
+      .selectDistinct({
+        repositoryName: sources.repositoryName,
+        sourceId: sources.id,
+      })
+      .from(apps)
+      .innerJoin(sources, eq(sources.id, apps.sourceId))
+      .where(
+        and(
+          eq(apps.serverId, input.entityId),
+          isNull(apps.archivedAt),
+          isNull(sources.archivedAt),
+        ),
+      );
+    await Promise.all(
+      sourceTargets.map((target) =>
+        emitRuntimeHealthEvent({
+          ...input,
+          entityName: server.entityName,
+          repositoryName: target.repositoryName,
+          sourceId: target.sourceId,
+          type,
+          workspaceId: server.workspaceId,
+        }),
+      ),
+    );
+    return;
+  }
+  const [resource] = await getTowbarDatabase()
+    .select({
+      entityName: apps.name,
+      repositoryName: sources.repositoryName,
+      sourceId: apps.sourceId,
+      workspaceId: apps.workspaceId,
+    })
+    .from(apps)
+    .innerJoin(sources, eq(sources.id, apps.sourceId))
+    .where(and(eq(apps.id, input.entityId), ne(apps.kind, "app")))
+    .limit(1);
+  if (!resource) return;
+  await emitRuntimeHealthEvent({
+    ...input,
+    ...resource,
+    type,
+  });
+}
+
+async function emitRuntimeHealthEvent(input: {
+  checkId: string;
+  entityId: string;
+  entityKind: "resource" | "server";
+  entityName: string;
+  recovered: boolean;
+  repositoryName: string;
+  sourceId: string;
+  type: "runtime.recovered" | "runtime.unhealthy";
+  workspaceId: string;
+}) {
   await emitNotificationEvent({
-    dedupeKey: `${type}:${input.entityKind}:${input.entityId}:${input.checkId}`,
+    dedupeKey: `${input.type}:${input.entityKind}:${input.entityId}:${input.sourceId}:${input.checkId}`,
     payload: notificationEventPayload({
       entity: {
         id: input.entityId,
         kind: input.entityKind,
-        name: target.entityName,
+        name: input.entityName,
       },
       message: input.recovered
-        ? `${target.entityName} recovered and is healthy again.`
-        : `${target.entityName} is unhealthy and needs attention.`,
-      source: { id: target.sourceId, name: target.repositoryName },
+        ? `${input.entityName} recovered and is healthy again.`
+        : `${input.entityName} is unhealthy and needs attention.`,
+      source: { id: input.sourceId, name: input.repositoryName },
       title: input.recovered ? "Runtime recovered" : "Runtime unhealthy",
     }),
-    sourceId: target.sourceId,
-    type,
-    workspaceId: target.workspaceId,
+    sourceId: input.sourceId,
+    type: input.type,
+    workspaceId: input.workspaceId,
   });
 }
 

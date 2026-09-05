@@ -253,6 +253,34 @@
       "when": 1788544399451,
       "tag": "0035_lean_grey_gargoyle",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1788551541343,
+      "tag": "0036_cheerful_mimic",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1788553578407,
+      "tag": "0037_curvy_magik",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1788555094346,
+      "tag": "0038_curved_slapstick",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1788557107083,
+      "tag": "0039_sweet_marvel_zombies",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,10 @@
 "use client";
 
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+
+import { DeploymentDuration, ElapsedTime } from "./elapsed-time";
+import { isEventRunning } from "@/lib/elapsed-time";
+
 import { ConfigurationLinks } from "./configuration-links";
 
 import {
@@ -13,7 +18,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
-import type { Deployment } from "@workspace/towbar-web-client";
+import type { Deployment, Source } from "@workspace/towbar-web-client";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
@@ -57,6 +62,9 @@ export function DeploymentDetail() {
   }>();
   const router = useRouter();
   const stream = useDeploymentStream(deploymentId);
+  const source = useApiQuery<{ source: Source }>(
+    `/v1/core/sources/${sourceId}`,
+  );
   const deployable = useApiQuery<{
     app?: { name: string; serverIp: string };
     resource?: { name: string; serverIp: string };
@@ -97,6 +105,7 @@ export function DeploymentDetail() {
   if (stream.error && !stream.deployment)
     return (
       <DashboardPage
+        icon={Rocket01Icon}
         breadcrumbAncestors={sourceBreadcrumbAncestors}
         title="Deployment"
       >
@@ -106,6 +115,7 @@ export function DeploymentDetail() {
   if (!stream.deployment || !stream.steps || !stream.logs)
     return (
       <DashboardPage
+        icon={Rocket01Icon}
         breadcrumbAncestors={sourceBreadcrumbAncestors}
         title="Deployment"
       >
@@ -114,10 +124,16 @@ export function DeploymentDetail() {
     );
 
   const item = stream.deployment;
+  const repository = source.data?.source;
+  const commitUrl =
+    repository?.repositoryOwner && repository.repositoryName && item.commitSha
+      ? `https://github.com/${encodeURIComponent(repository.repositoryOwner)}/${encodeURIComponent(repository.repositoryName)}/commit/${encodeURIComponent(item.commitSha)}`
+      : undefined;
   const displayStatus = getDeploymentDisplayStatus(item);
   if (item.sourceId !== sourceId) {
     return (
       <DashboardPage
+        icon={Rocket01Icon}
         breadcrumbAncestors={sourceBreadcrumbAncestors}
         title="Deployment"
       >
@@ -186,6 +202,7 @@ export function DeploymentDetail() {
 
   return (
     <DashboardPage
+      icon={Rocket01Icon}
       actions={actions}
       badge={<StatusBadge status={displayStatus} />}
       breadcrumbAncestors={breadcrumbAncestors}
@@ -193,11 +210,6 @@ export function DeploymentDetail() {
       title={`Deployment ${item.id.slice(0, 8)}`}
       titleContent={
         <span className="inline-flex min-w-0 items-center gap-2">
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-6 shrink-0"
-            icon={Rocket01Icon}
-          />
           <span>Deployment</span>
           <TypographyCode title={item.id}>{item.id.slice(0, 8)}</TypographyCode>
         </span>
@@ -259,9 +271,14 @@ export function DeploymentDetail() {
             label: "Overview",
             icon: <HugeiconsIcon icon={InformationSquareIcon} />,
             content: (
-              <div className="grid gap-8">
-                <div className="grid gap-8 lg:grid-cols-2">
-                  <Attributes columns={2} title="Deployment" variant="card">
+              <div className="content-grid">
+                <div className="content-grid lg:grid-cols-2">
+                  <Attributes
+                    icon={<HugeiconsIcon icon={Rocket01Icon} />}
+                    columns={2}
+                    title="Deployment"
+                    variant="card"
+                  >
                     <Attributes.Item label="Action">
                       {item.kind === "rollback" ? "Rollback" : "Deploy"}
                     </Attributes.Item>
@@ -277,13 +294,21 @@ export function DeploymentDetail() {
                     <Attributes.Item label="Started">
                       {item.startedAt ? formatDate(item.startedAt) : "Waiting"}
                     </Attributes.Item>
+                    <Attributes.Item label="Duration">
+                      <DeploymentDuration deployment={item} />
+                    </Attributes.Item>
                     <Attributes.Item label="Finished">
                       {item.finishedAt
                         ? formatDate(item.finishedAt)
                         : "Not finished"}
                     </Attributes.Item>
                   </Attributes>
-                  <Attributes columns={2} title="Target" variant="card">
+                  <Attributes
+                    icon={<HugeiconsIcon icon={ServerStack01Icon} />}
+                    columns={2}
+                    title="Target"
+                    variant="card"
+                  >
                     <Attributes.Item
                       icon={
                         <HugeiconsIcon
@@ -312,18 +337,29 @@ export function DeploymentDetail() {
                       icon={<HugeiconsIcon icon={ServerStack01Icon} />}
                       label="Server"
                     >
-                      <InlineLink
-                        href={`/sources/${item.sourceId}/servers/${item.serverId}`}
-                      >
+                      <InlineLink href={`/servers/${item.serverId}`}>
                         {serverIp ?? (
                           <TypographyCode>{item.serverId}</TypographyCode>
                         )}
                       </InlineLink>
                     </Attributes.Item>
                     <Attributes.Item label="Commit">
-                      <TypographyCode title={item.commitSha}>
-                        {item.commitSha.slice(0, 12)}
-                      </TypographyCode>
+                      {commitUrl ? (
+                        <InlineLink
+                          href={commitUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`View commit ${item.commitSha} on GitHub (opens in a new tab)`}
+                        >
+                          <TypographyCode title={item.commitSha}>
+                            {item.commitSha.slice(0, 12)}
+                          </TypographyCode>
+                        </InlineLink>
+                      ) : (
+                        <TypographyCode title={item.commitSha}>
+                          {item.commitSha.slice(0, 12)}
+                        </TypographyCode>
+                      )}
                     </Attributes.Item>
                     {item.gitRef ? (
                       <Attributes.Item label="Git ref">
@@ -385,11 +421,12 @@ export function DeploymentDetail() {
             icon: <HugeiconsIcon icon={Activity01Icon} />,
             content: (
               <Widget className="min-w-0">
-                <Widget.Header>
-                  <Widget.Title>
-                    {formatStatus(currentStep?.state ?? displayStatus)}
+                <Widget.Header
+                  endContent={<StatusBadge status={stream.connection} />}
+                >
+                  <Widget.Title icon={<HugeiconsIcon icon={Activity01Icon} />}>
+                    Progress
                   </Widget.Title>
-                  <StatusBadge status={stream.connection} />
                 </Widget.Header>
                 <Widget.Content>
                   <Stepper
@@ -417,13 +454,33 @@ export function DeploymentDetail() {
                                   <span>{step.message}</span>
                                 ) : null}
                                 {step.startedAt ? (
-                                  <time
+                                  <TooltipText
+                                    as="time"
                                     className="tabular-nums"
                                     dateTime={step.startedAt}
-                                    title={formatDate(step.startedAt)}
+                                    tooltip={formatDate(step.startedAt)}
                                   >
                                     {formatTime(step.startedAt)}
-                                  </time>
+                                  </TooltipText>
+                                ) : null}
+                                {step.startedAt ? (
+                                  <ElapsedTime
+                                    startedAt={step.startedAt}
+                                    finishedAt={
+                                      step.finishedAt ??
+                                      (step.status === "running"
+                                        ? item.finishedAt
+                                        : null)
+                                    }
+                                    status={
+                                      isEventRunning({
+                                        ...item,
+                                        status: item.state,
+                                      })
+                                        ? step.status
+                                        : "succeeded"
+                                    }
+                                  />
                                 ) : null}
                               </span>
                             </Stepper.Description>

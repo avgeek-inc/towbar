@@ -3,6 +3,8 @@
 import {
   DatabaseIcon,
   FileViewIcon,
+  Link01Icon,
+  PackageIcon,
   Rocket01Icon,
   ServerStack01Icon,
   Settings01Icon,
@@ -65,14 +67,22 @@ export function ResourceDetail() {
 
   if (error) {
     return (
-      <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="Resource">
+      <DashboardPage
+        icon={DatabaseIcon}
+        breadcrumbAncestors={breadcrumbAncestors}
+        title="Resource"
+      >
         <QueryError message={error} />
       </DashboardPage>
     );
   }
   if (!resource.data || !deployments.data || !releases.data) {
     return (
-      <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="Resource">
+      <DashboardPage
+        icon={DatabaseIcon}
+        breadcrumbAncestors={breadcrumbAncestors}
+        title="Resource"
+      >
         <QueryLoading />
       </DashboardPage>
     );
@@ -81,7 +91,11 @@ export function ResourceDetail() {
   const item = resource.data.resource;
   if (item.sourceId !== sourceId) {
     return (
-      <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="Resource">
+      <DashboardPage
+        icon={DatabaseIcon}
+        breadcrumbAncestors={breadcrumbAncestors}
+        title="Resource"
+      >
         <QueryError
           message="This Resource does not belong to the selected Source."
           retryable={false}
@@ -105,8 +119,13 @@ export function ResourceDetail() {
       label: "Overview",
       icon: <HugeiconsIcon icon={DatabaseIcon} />,
       content: (
-        <div className="grid gap-8 lg:grid-cols-2">
-          <Attributes columns={2} title="Resource status" variant="card">
+        <div className="content-grid lg:grid-cols-2">
+          <Attributes
+            icon={<HugeiconsIcon icon={DatabaseIcon} />}
+            columns={2}
+            title="Resource status"
+            variant="card"
+          >
             <Attributes.Item label="Lifecycle">
               <StatusBadge status={lifecycleStatus} />
             </Attributes.Item>
@@ -143,7 +162,12 @@ export function ResourceDetail() {
                 : "Not checked yet"}
             </Attributes.Item>
           </Attributes>
-          <Attributes columns={2} title="Latest deployment" variant="card">
+          <Attributes
+            icon={<HugeiconsIcon icon={Rocket01Icon} />}
+            columns={2}
+            title="Latest deployment"
+            variant="card"
+          >
             <Attributes.Item label="Status">
               {latestDeployment ? (
                 <StatusBadge
@@ -214,6 +238,7 @@ export function ResourceDetail() {
 
   return (
     <DashboardPage
+      icon={DatabaseIcon}
       actions={
         !item.archivedAt ? (
           <div className="flex flex-wrap justify-end gap-2">
@@ -259,18 +284,6 @@ export function ResourceDetail() {
       }
       breadcrumbAncestors={breadcrumbAncestors}
       title={item.name}
-      titleContent={
-        <span className="inline-flex min-w-0 items-center gap-2">
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-6 shrink-0"
-            icon={DatabaseIcon}
-          />
-          <span className="truncate" title={item.name}>
-            {item.name}
-          </span>
-        </span>
-      }
     >
       <PageTabs defaultValue="overview" tabs={tabs} />
     </DashboardPage>
@@ -287,67 +300,9 @@ function ResourceSettings({
   const requestedSettings = useSearchParams().get("settings");
   const tabs: Array<{ content: ReactNode; label: string; value: string }> = [
     {
-      value: "image",
-      label: "Image",
-      content: (
-        <Attributes columns={2} title="Image configuration" variant="card">
-          <Attributes.Item label="Image">
-            <TypographyCode className="break-all">
-              {item.config.image}
-            </TypographyCode>
-          </Attributes.Item>
-          <Attributes.Item label="Resource type">
-            {formatResourceKind(item.kind)}
-          </Attributes.Item>
-          <Attributes.Item label="Source branch">
-            {item.config.sourceBranch ?? "main"}
-          </Attributes.Item>
-          <Attributes.Item label="Source revision">
-            <TypographyCode title={item.sourceRevision}>
-              {item.sourceRevision.slice(0, 12)}
-            </TypographyCode>
-          </Attributes.Item>
-          <Attributes.Item label="Command">
-            {item.config.container.command.length ? (
-              <TypographyCode className="break-all">
-                {item.config.container.command.join(" ")}
-              </TypographyCode>
-            ) : (
-              "Image default"
-            )}
-          </Attributes.Item>
-        </Attributes>
-      ),
-    },
-    {
-      value: "runtime",
-      label: "Runtime",
-      content: (
-        <Attributes columns={2} title="Container configuration" variant="card">
-          <Attributes.Item label="Container port">
-            {item.config.container.port ?? "Not exposed"}
-          </Attributes.Item>
-          <Attributes.Item label="Network">
-            {item.config.container.network ? (
-              <TypographyCode>{item.config.container.network}</TypographyCode>
-            ) : (
-              "Default bridge"
-            )}
-          </Attributes.Item>
-          <Attributes.Item label="CPU limit">
-            {item.config.container.resources.cpus}
-          </Attributes.Item>
-          <Attributes.Item label="Memory limit">
-            {item.config.container.resources.memory}
-          </Attributes.Item>
-          <Attributes.Item label="Health check">
-            {renderHealth(item.config.health)}
-          </Attributes.Item>
-          <Attributes.Item label="Persistent volumes">
-            {renderVolumes(item.config.container.volumes)}
-          </Attributes.Item>
-        </Attributes>
-      ),
+      value: "configuration",
+      label: "Configuration",
+      content: <ResourceConfiguration item={item} />,
     },
     ...((item.config.container.networkAlias || item.config.access?.sshTunnel) &&
     item.config.container.port
@@ -374,36 +329,6 @@ function ResourceSettings({
           },
         ]),
     {
-      value: "delivery",
-      label: "Delivery",
-      content: (
-        <Attributes columns={2} title="Deployment configuration" variant="card">
-          <Attributes.Item label="Auto-deploy">
-            {item.config.autoDeploy ? "Enabled" : "Disabled"}
-          </Attributes.Item>
-          <Attributes.Item label="Primary domain">
-            {item.config.domains?.primary ?? "Not configured"}
-          </Attributes.Item>
-          <Attributes.Item label="Redirects">
-            {item.config.domains?.redirects.length
-              ? item.config.domains.redirects.map((redirect) => (
-                  <span className="block" key={redirect.host}>
-                    {redirect.host} · {redirect.status}
-                  </span>
-                ))
-              : "None"}
-          </Attributes.Item>
-          <Attributes.Item label="TLS">
-            {item.config.tls?.mode === "cloudflare-dns"
-              ? "Cloudflare DNS"
-              : item.config.tls?.mode === "direct"
-                ? "Direct"
-                : "Not configured"}
-          </Attributes.Item>
-        </Attributes>
-      ),
-    },
-    {
       value: "auto-deploy",
       label: "Auto-deploy",
       content: <AutoDeployControlEditor id={resourceId} type="resource" />,
@@ -411,28 +336,126 @@ function ResourceSettings({
     {
       value: "secrets",
       label: "Secrets",
-      content: (
-        <ResourceSecrets
-          canDeploy={!item.archivedAt && item.serverReady}
-          resourceId={resourceId}
-          sourceId={item.sourceId}
-        />
-      ),
+      content: <ResourceSecrets resourceId={resourceId} />,
     },
   ];
 
   return (
     <ResponsiveSubtabs
       ariaLabel="Resource settings"
-      defaultSelectedKey={requestedSettings === "secrets" ? "secrets" : "image"}
+      defaultSelectedKey={
+        requestedSettings === "secrets" ? "secrets" : "configuration"
+      }
       tabs={tabs}
     />
   );
 }
 
+function ResourceConfiguration({ item }: { item: ResourceRecord }) {
+  return (
+    <div className="content-grid">
+      <Attributes
+        icon={<HugeiconsIcon icon={PackageIcon} />}
+        columns={2}
+        title="Image configuration"
+        variant="card"
+      >
+        <Attributes.Item label="Image">
+          <TypographyCode className="break-all">
+            {item.config.image}
+          </TypographyCode>
+        </Attributes.Item>
+        <Attributes.Item label="Resource type">
+          {formatResourceKind(item.kind)}
+        </Attributes.Item>
+        <Attributes.Item label="Source branch">
+          {item.config.sourceBranch ?? "main"}
+        </Attributes.Item>
+        <Attributes.Item label="Source revision">
+          <TypographyCode title={item.sourceRevision}>
+            {item.sourceRevision.slice(0, 12)}
+          </TypographyCode>
+        </Attributes.Item>
+        <Attributes.Item label="Command">
+          {item.config.container.command.length ? (
+            <TypographyCode className="break-all">
+              {item.config.container.command.join(" ")}
+            </TypographyCode>
+          ) : (
+            "Image default"
+          )}
+        </Attributes.Item>
+      </Attributes>
+      <Attributes
+        icon={<HugeiconsIcon icon={PackageIcon} />}
+        columns={2}
+        title="Container configuration"
+        variant="card"
+      >
+        <Attributes.Item label="Container port">
+          {item.config.container.port ?? "Not exposed"}
+        </Attributes.Item>
+        <Attributes.Item label="Network">
+          {item.config.container.network ? (
+            <TypographyCode>{item.config.container.network}</TypographyCode>
+          ) : (
+            "Default bridge"
+          )}
+        </Attributes.Item>
+        <Attributes.Item label="CPU limit">
+          {item.config.container.resources.cpus}
+        </Attributes.Item>
+        <Attributes.Item label="Memory limit">
+          {item.config.container.resources.memory}
+        </Attributes.Item>
+        <Attributes.Item label="Health check">
+          {renderHealth(item.config.health)}
+        </Attributes.Item>
+        <Attributes.Item label="Persistent volumes">
+          {renderVolumes(item.config.container.volumes)}
+        </Attributes.Item>
+      </Attributes>
+      <Attributes
+        icon={<HugeiconsIcon icon={Rocket01Icon} />}
+        columns={2}
+        title="Deployment configuration"
+        variant="card"
+      >
+        <Attributes.Item label="Auto-deploy">
+          {item.config.autoDeploy ? "Enabled" : "Disabled"}
+        </Attributes.Item>
+        <Attributes.Item label="Primary domain">
+          {item.config.domains?.primary ?? "Not configured"}
+        </Attributes.Item>
+        <Attributes.Item label="Redirects">
+          {item.config.domains?.redirects.length
+            ? item.config.domains.redirects.map((redirect) => (
+                <span className="block" key={redirect.host}>
+                  {redirect.host} · {redirect.status}
+                </span>
+              ))
+            : "None"}
+        </Attributes.Item>
+        <Attributes.Item label="TLS">
+          {item.config.tls?.mode === "cloudflare-dns"
+            ? "Cloudflare DNS"
+            : item.config.tls?.mode === "direct"
+              ? "Direct"
+              : "Not configured"}
+        </Attributes.Item>
+      </Attributes>
+    </div>
+  );
+}
+
 function ResourceConnectionDetails({ item }: { item: ResourceRecord }) {
   return (
-    <Attributes columns={2} title="Connection details" variant="card">
+    <Attributes
+      icon={<HugeiconsIcon icon={Link01Icon} />}
+      columns={2}
+      title="Connection details"
+      variant="card"
+    >
       <Attributes.Item label="Private host">
         {item.config.container.networkAlias ? (
           <TypographyCode>{item.config.container.networkAlias}</TypographyCode>

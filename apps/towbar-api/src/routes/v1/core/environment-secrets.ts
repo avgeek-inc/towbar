@@ -13,13 +13,18 @@ import { forbidden } from "../../../http/errors.js";
 import { readJson, readUuidPathParameter } from "../../../http/requests.js";
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
-export function environmentSecretRoutes(kind: "source" | "app" | "resource") {
+export function environmentSecretRoutes(
+  kind: "workspace" | "source" | "app" | "resource",
+) {
   const routes = new Hono<TowbarHonoEnvironment>();
   routes.use("*", async (context, next) => {
-    const id = readUuidPathParameter(context.req.param("ownerId")!, "ownerId");
+    const id =
+      kind === "workspace"
+        ? null
+        : readUuidPathParameter(context.req.param("ownerId")!, "ownerId");
     const workspaceId = context.get("user").workspaceId;
-    if (kind === "app") await getApp(id, workspaceId);
-    if (kind === "resource") await getResource(id, workspaceId);
+    if (kind === "app") await getApp(id!, workspaceId);
+    if (kind === "resource") await getResource(id!, workspaceId);
     context.header("Cache-Control", "no-store");
     await next();
   });
@@ -28,11 +33,14 @@ export function environmentSecretRoutes(kind: "source" | "app" | "resource") {
     const environment = secretEnvironmentSchema.parse(
       context.req.query("environment") ?? "production",
     );
-    const owner = {
-      type: kind === "source" ? ("source" as const) : ("app" as const),
-      id: readUuidPathParameter(context.req.param("ownerId")!, "ownerId"),
-      workspaceId: user.workspaceId,
-    };
+    const owner =
+      kind === "workspace"
+        ? ({ type: "workspace", workspaceId: user.workspaceId } as const)
+        : ({
+            type: kind === "source" ? ("source" as const) : ("app" as const),
+            id: readUuidPathParameter(context.req.param("ownerId")!, "ownerId"),
+            workspaceId: user.workspaceId,
+          } as const);
     return context.json({
       bindings: await listEnvironmentSecrets(owner, environment),
       canManageSecrets: user.workspaceRole === "owner",
@@ -44,11 +52,17 @@ export function environmentSecretRoutes(kind: "source" | "app" | "resource") {
       throw forbidden("Only the owner can manage secrets");
     return context.json({
       secret: await updateEnvironmentSecrets({
-        owner: {
-          type: kind === "source" ? "source" : "app",
-          id: readUuidPathParameter(context.req.param("ownerId")!, "ownerId"),
-          workspaceId: user.workspaceId,
-        },
+        owner:
+          kind === "workspace"
+            ? { type: "workspace", workspaceId: user.workspaceId }
+            : {
+                type: kind === "source" ? "source" : "app",
+                id: readUuidPathParameter(
+                  context.req.param("ownerId")!,
+                  "ownerId",
+                ),
+                workspaceId: user.workspaceId,
+              },
         actorUserId: user.id,
         environment: secretEnvironmentSchema.parse(
           context.req.param("environment"),

@@ -1,6 +1,8 @@
 "use client";
 
-import { GithubIcon } from "@hugeicons/core-free-icons";
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+
+import { GithubIcon, GitBranchIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
 import type { Source } from "@workspace/towbar-web-client";
@@ -14,7 +16,7 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { DashboardPage } from "@/components/page-parts";
 import { prefetchApiQueries, useApiQuery } from "@/hooks/use-api-query";
-import { LastSyncedTime, RelativeTimeProvider } from "./last-synced-time";
+import { LastSyncedTime } from "./last-synced-time";
 
 export function SourceIndex() {
   const router = useRouter();
@@ -28,7 +30,6 @@ export function SourceIndex() {
       `/v1/core/sources/${source.id}/syncs`,
       `/v1/core/sources/${source.id}/apps`,
       `/v1/core/sources/${source.id}/resources`,
-      `/v1/core/sources/${source.id}/servers`,
     ]);
   }
   const columns: ResourceTableColumn<Source>[] = [
@@ -42,19 +43,19 @@ export function SourceIndex() {
             className="size-5 shrink-0"
             icon={GithubIcon}
           />
-          <span
+          <TooltipText
             className="truncate"
-            title={`${source.repositoryOwner}/${source.repositoryName}`}
+            tooltip={`${source.repositoryOwner}/${source.repositoryName}`}
           >
             {source.repositoryOwner}/{source.repositoryName}
-          </span>
+          </TooltipText>
         </span>
       ),
       className: "w-full min-w-72",
     },
     {
       key: "branch",
-      header: "Branch",
+      header: "Prod Branch",
       cell: (source) => source.branch,
       className: "min-w-32 whitespace-nowrap",
     },
@@ -73,6 +74,7 @@ export function SourceIndex() {
 
   return (
     <DashboardPage
+      icon={GitBranchIcon}
       actions={<ButtonLink href="/sources/new">Add source</ButtonLink>}
       title="Sources"
     >
@@ -81,33 +83,29 @@ export function SourceIndex() {
       ) : !query.data ? (
         <QueryLoading variant="table" />
       ) : (
-        <RelativeTimeProvider>
-          <ResourceTable
-            ariaLabel="Sources"
-            columns={columns}
-            emptyAction={
-              <ButtonLink href="/sources/new">Add source</ButtonLink>
-            }
-            emptyDescription="Connect a GitHub repository to import its Towbar manifest."
-            emptyTitle="No sources yet"
-            getRowHref={(source) => `/sources/${source.id}`}
-            getRowKey={(source) => source.id}
-            items={query.data.sources}
-            onRowLinkIntent={(source) => {
-              void prepareSource(source).catch(() => undefined);
-            }}
-            onRowLinkNavigate={(source, event) => {
-              event.preventDefault();
-              void Promise.race([
-                prepareSource(source),
-                new Promise((resolve) => setTimeout(resolve, 150)),
-              ])
-                .catch(() => undefined)
-                .finally(() => router.push(`/sources/${source.id}`));
-            }}
-            tableClassName="min-w-[720px]"
-          />
-        </RelativeTimeProvider>
+        <ResourceTable
+          ariaLabel="Sources"
+          columns={columns}
+          emptyAction={<ButtonLink href="/sources/new">Add source</ButtonLink>}
+          emptyDescription="Connect a GitHub repository to import its Towbar manifest."
+          emptyTitle="No sources yet"
+          getRowHref={(source) => `/sources/${source.id}`}
+          getRowKey={(source) => source.id}
+          items={query.data.sources}
+          onRowLinkIntent={(source) => {
+            void prepareSource(source).catch(() => undefined);
+          }}
+          onRowLinkNavigate={(source, event) => {
+            event.preventDefault();
+            void Promise.race([
+              prepareSource(source),
+              new Promise((resolve) => setTimeout(resolve, 150)),
+            ])
+              .catch(() => undefined)
+              .finally(() => router.push(`/sources/${source.id}`));
+          }}
+          tableClassName="min-w-[720px]"
+        />
       )}
     </DashboardPage>
   );

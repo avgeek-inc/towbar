@@ -2,6 +2,15 @@ import { Hono } from "hono";
 import { z } from "zod";
 
 import {
+  normalizeServerConfiguration,
+  serverConfigurationSchema,
+} from "@workspace/towbar-core";
+
+import {
+  createServer,
+  updateServer,
+} from "../../../areas/servers/lifecycle.js";
+import {
   getServer,
   listServerApps,
   listServerDeployments,
@@ -39,7 +48,6 @@ const hostKeySchema = z
     publicKey: z.string().trim().min(32).max(16_384),
   })
   .strict();
-const sourceRequestSchema = z.object({ sourceId: z.string().uuid() }).strict();
 const serverChecksQuerySchema = z
   .object({
     limit: z.coerce.number().int().min(1).max(100).default(10),
@@ -67,11 +75,41 @@ export const serverRoutes = new Hono<TowbarHonoEnvironment>();
 serverRoutes.get("/", async (context) =>
   context.json({ servers: await listServers(context.get("user").workspaceId) }),
 );
+serverRoutes.post("/", async (context) => {
+  const user = context.get("user");
+  if (user.workspaceRole !== "owner") {
+    throw forbidden("Only the owner can add servers");
+  }
+  const config = normalizeServerConfiguration(
+    await readJson(context, serverConfigurationSchema),
+  );
+  return context.json(
+    { server: await createServer({ config, workspaceId: user.workspaceId }) },
+    201,
+  );
+});
 serverRoutes.get("/:serverId", async (context) => {
   const user = context.get("user");
   return context.json({
     canCleanupOrphans: user.workspaceRole === "owner",
+    canManageServer: user.workspaceRole === "owner",
     server: await getServer(context.req.param("serverId"), user.workspaceId),
+  });
+});
+serverRoutes.patch("/:serverId", async (context) => {
+  const user = context.get("user");
+  if (user.workspaceRole !== "owner") {
+    throw forbidden("Only the owner can update servers");
+  }
+  const config = normalizeServerConfiguration(
+    await readJson(context, serverConfigurationSchema),
+  );
+  return context.json({
+    server: await updateServer({
+      config,
+      serverId: context.req.param("serverId"),
+      workspaceId: user.workspaceId,
+    }),
   });
 });
 serverRoutes.get("/:serverId/apps", async (context) =>
@@ -141,14 +179,12 @@ serverRoutes.get("/:serverId/host-keys", async (context) =>
   }),
 );
 serverRoutes.post("/:serverId/actions/check", async (context) => {
-  const body = await readJson(context, sourceRequestSchema);
   const user = context.get("user");
   return context.json(
     {
       check: await requestServerCheck({
         requestedBy: user.id,
         serverId: context.req.param("serverId"),
-        sourceId: body.sourceId,
         workspaceId: user.workspaceId,
       }),
     },
@@ -173,18 +209,13 @@ serverRoutes.post("/:serverId/actions/cleanup-orphans", async (context) => {
   if (user.workspaceRole !== "owner") {
     throw forbidden("Only administrators can remove orphaned Docker objects");
   }
-  const server = await getServer(
-    context.req.param("serverId"),
-    user.workspaceId,
-  );
   const result = await requestOrphanCleanup({
     idempotencyKey: requireIdempotencyKey(
       context.req.header("idempotency-key"),
     ),
     items: (await readJson(context, cleanupSchema)).items,
     requestedBy: user.id,
-    serverId: server.id,
-    sourceId: server.sourceId,
+    serverId: context.req.param("serverId"),
     workspaceId: user.workspaceId,
   });
   return context.json(result, result.replayed ? 200 : 202);

@@ -201,7 +201,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
       className="flex min-h-dvh flex-col"
     >
       <RoutedLink
-        className="inline-flex min-h-16 min-w-0 items-center border-b border-separator px-4"
+        className="inline-flex min-h-16 min-w-0 items-center gap-2.5 border-b border-separator px-4"
         item={homeItem}
       >
         <BrandLockup
@@ -214,6 +214,14 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
         >
           {config.brand.title}
         </BrandLockup>
+        {config.brandVersion ? (
+          <span
+            aria-label={`Version ${config.brandVersion}`}
+            className="shrink-0 font-mono text-xs text-muted"
+          >
+            v{config.brandVersion}
+          </span>
+        ) : null}
       </RoutedLink>
       <div className="grid flex-1 content-start gap-1 overflow-y-auto px-3 pt-2">
         {config.groups.map((group) => (
@@ -241,6 +249,14 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
                       <HugeiconsIcon icon={item.icon} size={16} />
                     ) : null}
                     {item.label}
+                    {item.badge ? (
+                      <span
+                        aria-label={item.badge.label}
+                        className="ms-auto min-w-5 text-end text-xs tabular-nums text-muted"
+                      >
+                        {item.badge.value}
+                      </span>
+                    ) : null}
                   </RoutedLink>
                 ) : (
                   <SidebarAction item={item} key={item.id} />

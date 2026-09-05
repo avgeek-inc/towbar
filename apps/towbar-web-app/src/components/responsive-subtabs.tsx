@@ -1,5 +1,7 @@
 "use client";
 
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+
 import { useState } from "react";
 import type { Key, ReactNode } from "react";
 
@@ -14,6 +16,7 @@ type ResponsiveSubtab = {
   content: ReactNode;
   disabledReason?: string;
   isDisabled?: boolean;
+  icon?: ReactNode;
   label: string;
   value: string;
 };
@@ -45,6 +48,7 @@ export function ResponsiveSubtabs({
   const [internalSelectedKey, setInternalSelectedKey] =
     useState(defaultSelectedKey);
   const activeKey = selectedKey ?? internalSelectedKey;
+  const activeTab = tabs.find((tab) => tab.value === activeKey);
 
   function selectTab(key: Key | null) {
     if (key === null) return;
@@ -66,7 +70,7 @@ export function ResponsiveSubtabs({
             ? sidebarWidth === "wide"
               ? "lg:grid-cols-[14rem_minmax(0,1fr)]"
               : "lg:grid-cols-[13rem_minmax(0,1fr)]"
-            : "md:gap-0",
+            : undefined,
         )}
       >
         {collapseOnMobile ? (
@@ -79,7 +83,19 @@ export function ResponsiveSubtabs({
           >
             <Label className="sr-only">{ariaLabel}</Label>
             <Select.Trigger>
-              <Select.Value />
+              <Select.Value>
+                <span className="inline-flex min-w-0 items-center gap-2">
+                  {activeTab?.icon ? (
+                    <span
+                      aria-hidden="true"
+                      className="inline-flex shrink-0 [&_svg]:size-4"
+                    >
+                      {activeTab.icon}
+                    </span>
+                  ) : null}
+                  <span className="truncate">{activeTab?.label}</span>
+                </span>
+              </Select.Value>
               <Select.Indicator />
             </Select.Trigger>
             <Select.Popover>
@@ -91,7 +107,17 @@ export function ResponsiveSubtabs({
                     key={tab.value}
                     textValue={tab.label}
                   >
-                    {tab.label}
+                    <span className="inline-flex min-w-0 items-center gap-2">
+                      {tab.icon ? (
+                        <span
+                          aria-hidden="true"
+                          className="inline-flex shrink-0 [&_svg]:size-4"
+                        >
+                          {tab.icon}
+                        </span>
+                      ) : null}
+                      {tab.label}
+                    </span>
                     <ListBox.ItemIndicator />
                   </ListBox.Item>
                 ))}
@@ -125,15 +151,23 @@ export function ResponsiveSubtabs({
                 isDisabled={tab.isDisabled}
                 key={tab.value}
               >
-                <span
+                <TooltipText
                   className={cn(
-                    "relative z-10",
+                    "relative z-10 inline-flex min-w-0 items-center gap-2",
                     layout === "inline" && "whitespace-nowrap",
                   )}
-                  title={tab.isDisabled ? tab.disabledReason : undefined}
+                  tooltip={tab.isDisabled ? tab.disabledReason : undefined}
                 >
+                  {tab.icon ? (
+                    <span
+                      aria-hidden="true"
+                      className="inline-flex shrink-0 [&_svg]:size-4"
+                    >
+                      {tab.icon}
+                    </span>
+                  ) : null}
                   {tab.label}
-                </span>
+                </TooltipText>
                 <Tabs.Indicator />
               </Tabs.Tab>
             ))}

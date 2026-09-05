@@ -19,7 +19,7 @@ export function TowbarSection({
   title: string;
 }) {
   return (
-    <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
+    <section className="content-grid min-w-0 grid-cols-[minmax(0,1fr)]">
       <div className="flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 max-w-3xl">
           <SectionHeading level={headingLevel}>{title}</SectionHeading>

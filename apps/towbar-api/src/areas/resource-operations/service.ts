@@ -16,6 +16,7 @@ import { conflict, notFound, unprocessable } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { cancelResourceOperationWorkflow } from "../../infrastructure/temporal.js";
 import { emitResourceOperationNotification } from "../notifications/events.js";
+import { hasAwsCredentials } from "../aws/service.js";
 import { admitOperation } from "./admission.js";
 import { assureResourceBackup } from "./backup-assurance.js";
 import {
@@ -105,6 +106,7 @@ export async function requestDeployableOperation(input: {
   const release = target.currentRelease;
   if (input.request.type === "backup") {
     requireBackupResource(target.config);
+    await requireAwsCredentials(input.workspaceId);
   }
   return await admitOperation({
     appSnapshot: target.config,
@@ -142,6 +144,7 @@ export async function requestResourceRestore(input: {
     );
   }
   const resource = requireBackupResource(target.config);
+  await requireAwsCredentials(input.workspaceId);
   if (!target.currentRelease) {
     throw unprocessable("Deploy this Resource before restoring a backup");
   }
@@ -216,6 +219,15 @@ export async function requestResourceRestore(input: {
     ).catch(() => undefined);
   }
   return admitted;
+}
+
+async function requireAwsCredentials(workspaceId: string) {
+  if (!(await hasAwsCredentials(workspaceId))) {
+    throw conflict(
+      "Configure AWS in Manage → Integrations before running S3 backups or restores",
+      "AWS_NOT_CONFIGURED",
+    );
+  }
 }
 
 export async function requestRestoreCleanup(input: {
@@ -430,7 +442,6 @@ export async function requestOrphanCleanup(input: {
   items: Array<{ kind: "container" | "image" | "volume"; name: string }>;
   requestedBy: string;
   serverId: string;
-  sourceId: string;
   workspaceId: string;
 }) {
   const [server] = await getTowbarDatabase()
@@ -438,18 +449,17 @@ export async function requestOrphanCleanup(input: {
       config: servers.config,
       id: servers.id,
       ip: servers.canonicalIp,
-      sourceId: servers.sourceId,
     })
     .from(servers)
     .where(
       and(
         eq(servers.id, input.serverId),
         eq(servers.workspaceId, input.workspaceId),
-        eq(servers.sourceId, input.sourceId),
+        isNull(servers.archivedAt),
       ),
     )
     .limit(1);
-  if (!server) throw notFound("Source server");
+  if (!server) throw notFound("Server");
   const latestOrphans = await getServerOrphans(server.id, input.workspaceId);
   const requested = new Map(
     input.items.map((item) => [`${item.kind}:${item.name}`, item]),
@@ -473,7 +483,7 @@ export async function requestOrphanCleanup(input: {
     serverId: server.id,
     serverIp: server.ip,
     serverSnapshot: server.config,
-    sourceId: server.sourceId,
+    sourceId: null,
     workspaceId: input.workspaceId,
   });
 }

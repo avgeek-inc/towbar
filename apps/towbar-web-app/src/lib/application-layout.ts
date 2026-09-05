@@ -1,12 +1,20 @@
 import {
+  ComputerIcon,
+  DashboardCircleIcon,
   DashboardSquare01Icon,
+  DatabaseIcon,
   GitBranchIcon,
   HealthIcon,
+  Key01Icon,
   Logout03Icon,
-  Settings02Icon,
+  PlugSocketIcon,
+  Rocket01Icon,
+  ServerStack01Icon,
+  UserAccountIcon,
 } from "@hugeicons/core-free-icons";
 import { createElement } from "react";
 
+import packageManifest from "../../../../package.json";
 import { TowbarBrandLogo } from "@workspace/towbar-web-ui/brand";
 import type {
   ApplicationPolicy,
@@ -16,12 +24,30 @@ import type {
 import { defineSidebarIcons } from "@workspace/web-design-system/layouts/sidebar-icons";
 
 const sidebarIcons = defineSidebarIcons({
+  apps: DashboardCircleIcon,
+  deployments: Rocket01Icon,
+  health: HealthIcon,
+  integrations: PlugSocketIcon,
   logout: Logout03Icon,
   overview: DashboardSquare01Icon,
-  settings: Settings02Icon,
+  profile: UserAccountIcon,
+  resources: DatabaseIcon,
+  secrets: Key01Icon,
+  servers: ServerStack01Icon,
+  sessions: ComputerIcon,
   sources: GitBranchIcon,
-  health: HealthIcon,
 });
+
+export type ApplicationSidebarCounts = Partial<
+  Record<"apps" | "resources" | "servers" | "sources", number>
+>;
+
+const inventorySingularLabels = {
+  apps: "app",
+  resources: "resource",
+  servers: "server",
+  sources: "source",
+} as const;
 
 const brand = {
   accessibleLabel: "Towbar home",
@@ -38,11 +64,11 @@ export const applicationHeader = {
 const sidebar = {
   accessibleLabel: "Towbar navigation",
   brand,
+  brandVersion: packageManifest.version,
   homeHref: "/",
   groups: [
     {
-      id: "operate",
-      label: "Operate",
+      id: "overview",
       items: [
         {
           kind: "link",
@@ -53,10 +79,64 @@ const sidebar = {
         },
         {
           kind: "link",
+          id: "deployments",
+          label: "Deployments",
+          href: "/deployments",
+          icon: sidebarIcons.deployments,
+        },
+      ],
+    },
+    {
+      id: "operate",
+      label: "Operate",
+      items: [
+        {
+          kind: "link",
           id: "sources",
           label: "Sources",
           href: "/sources",
           icon: sidebarIcons.sources,
+        },
+        {
+          kind: "link",
+          id: "apps",
+          label: "Apps",
+          href: "/apps",
+          icon: sidebarIcons.apps,
+        },
+        {
+          kind: "link",
+          id: "resources",
+          label: "Resources",
+          href: "/resources",
+          icon: sidebarIcons.resources,
+        },
+        {
+          kind: "link",
+          id: "servers",
+          label: "Servers",
+          href: "/servers",
+          icon: sidebarIcons.servers,
+        },
+      ],
+    },
+    {
+      id: "manage",
+      label: "Manage",
+      items: [
+        {
+          kind: "link",
+          id: "integrations",
+          label: "Integrations",
+          href: "/manage/integrations",
+          icon: sidebarIcons.integrations,
+        },
+        {
+          kind: "link",
+          id: "shared-secrets",
+          label: "Shared secrets",
+          href: "/manage/shared-secrets",
+          icon: sidebarIcons.secrets,
         },
         {
           kind: "link",
@@ -68,14 +148,22 @@ const sidebar = {
       ],
     },
     {
-      id: "configure",
+      id: "account",
+      label: "Account",
       items: [
         {
           kind: "link",
-          id: "settings",
-          label: "Settings",
-          href: "/settings",
-          icon: sidebarIcons.settings,
+          id: "profile",
+          label: "Profile",
+          href: "/account/profile",
+          icon: sidebarIcons.profile,
+        },
+        {
+          kind: "link",
+          id: "sessions",
+          label: "Sessions",
+          href: "/account/sessions",
+          icon: sidebarIcons.sessions,
         },
       ],
     },
@@ -83,9 +171,33 @@ const sidebar = {
   persistenceKey: "towbar-sidebar",
 } satisfies SidebarConfig;
 
-export function createApplicationSidebar(onSignOut: () => void) {
+export function createApplicationSidebar(
+  onSignOut: () => void,
+  counts: ApplicationSidebarCounts = {},
+) {
   return {
     ...sidebar,
+    groups: sidebar.groups.map((group) =>
+      group.id === "operate"
+        ? {
+            ...group,
+            items: group.items.map((item) => {
+              const id = item.id as keyof ApplicationSidebarCounts;
+              const value = counts[id];
+              const singular = inventorySingularLabels[id];
+              return value === undefined || !singular
+                ? item
+                : {
+                    ...item,
+                    badge: {
+                      label: `${value} ${singular}${value === 1 ? "" : "s"}`,
+                      value,
+                    },
+                  };
+            }),
+          }
+        : group,
+    ),
     footerActions: [
       {
         kind: "action",

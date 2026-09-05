@@ -1,6 +1,16 @@
-import Link from "next/link";
+"use client";
+
+import type { ReactNode } from "react";
+import {
+  allocatedCpuPercent,
+  allocatedMemoryPercent,
+} from "@/lib/allocated-capacity";
+import { ServerStack01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import type {
+  App,
+  Resource,
   RuntimeCapacity,
   SystemHealthStatus,
 } from "@workspace/towbar-web-client";
@@ -12,6 +22,14 @@ import { cn } from "@workspace/web-design-system/lib/utils";
 import { TypographyHeading } from "@workspace/web-design-system/typography/typography";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
+import { AppIdentity, ResourceIdentity } from "./deployable-identity";
+import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
+import { useApiQuery } from "@/hooks/use-api-query";
+import {
+  DefinedResourceLimit,
+  type DefinedLimits,
+} from "./defined-resource-limit";
+import { RelativeTime } from "./last-synced-time";
 import { formatDate } from "./dashboard-overview";
 import { formatBytes } from "./runtime-operations";
 
@@ -32,20 +50,17 @@ export function ServerHostCapacity({
 }) {
   return (
     <Widget>
-      <Widget.Header className="flex-wrap">
-        <div className="flex min-w-0 items-center gap-2">
-          <Widget.Title>Host capacity</Widget.Title>
-          <CapacityStatusBadge status={capacity.status} />
-        </div>
-        <span className="text-xs text-muted">
-          {capacity.checkedAt
-            ? `Checked ${formatDate(capacity.checkedAt)}`
-            : "Not checked"}
-        </span>
+      <Widget.Header
+        className="flex-wrap"
+        endContent={<CapacityStatusBadge status={capacity.status} />}
+      >
+        <Widget.Title icon={<HugeiconsIcon icon={ServerStack01Icon} />}>
+          Host capacity
+        </Widget.Title>
       </Widget.Header>
       <Widget.Content>
         {capacity.cpu && capacity.memory && capacity.disk ? (
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <div className="content-grid md:grid-cols-2 xl:grid-cols-4">
             <CapacityMeter
               detail={`${capacity.cpu.logicalCount} vCPU · load ${capacity.cpu.loadAverage1m.toFixed(2)}`}
               label="CPU"
@@ -81,23 +96,51 @@ export function ServerHostCapacity({
           </p>
         )}
       </Widget.Content>
+      <Widget.Footer>
+        <Widget.FooterDescription>
+          {capacity.checkedAt
+            ? `Last checked ${formatDate(capacity.checkedAt)}`
+            : "Not checked yet"}
+        </Widget.FooterDescription>
+      </Widget.Footer>
     </Widget>
   );
 }
 
-export function ServerRuntimeCapacityTable({
+export function ServerDeployableTable({
   capacity,
+  kind,
 }: {
   capacity: RuntimeCapacity;
+  kind: "app" | "resource";
 }) {
-  if (!capacity.runtimes.length) {
+  const apps = useApiQuery<{ apps: App[] }>(
+    kind === "app" ? "/v1/core/apps" : null,
+    5_000,
+  );
+  const resources = useApiQuery<{ resources: Resource[] }>(
+    kind === "resource" ? "/v1/core/resources" : null,
+    5_000,
+  );
+  const error = kind === "app" ? apps.error : resources.error;
+  const inventory =
+    kind === "app" ? apps.data?.apps : resources.data?.resources;
+  if (error) return <QueryError message={error} />;
+  if (!inventory) return <QueryLoading variant="table" />;
+  const items = inventory.filter(
+    (item) => item.serverIp === capacity.ip && !item.archivedAt,
+  );
+  const runtimeById = new Map(
+    capacity.runtimes.map((runtime) => [runtime.id, runtime]),
+  );
+  const label = kind === "app" ? "App" : "Resource";
+  if (!items.length) {
     return (
       <EmptyState>
         <EmptyState.Header>
-          <EmptyState.Title>No apps or resources</EmptyState.Title>
+          <EmptyState.Title>No {label.toLowerCase()}s</EmptyState.Title>
           <EmptyState.Description>
-            No active apps or resources reported capacity data in the latest
-            server check.
+            No active {label.toLowerCase()}s are assigned to this server.
           </EmptyState.Description>
         </EmptyState.Header>
       </EmptyState>
@@ -107,50 +150,62 @@ export function ServerRuntimeCapacityTable({
   return (
     <Table>
       <Table.ScrollContainer>
-        <Table.Content aria-label="App and resource capacity">
+        <Table.Content aria-label={`${label} capacity`}>
           <Table.Header>
-            <Table.Column isRowHeader>App/Resource</Table.Column>
+            <Table.Column isRowHeader>{label}</Table.Column>
             <Table.Column>Health</Table.Column>
-            <Table.Column>CPU</Table.Column>
-            <Table.Column>Memory</Table.Column>
+            <Table.Column>Allocated CPU</Table.Column>
+            <Table.Column>Allocated Memory</Table.Column>
             <Table.Column className="text-right">Restarts</Table.Column>
             <Table.Column>Started</Table.Column>
           </Table.Header>
           <Table.Body>
-            {capacity.runtimes.map((runtime) => (
-              <Table.Row id={runtime.id} key={runtime.id}>
-                <Table.Cell>
-                  <div className="grid min-w-44 gap-0.5">
-                    <Link
-                      className="font-medium underline-offset-4 hover:underline"
-                      href={`/sources/${capacity.sourceId}/${runtime.kind === "app" ? "apps" : "resources"}/${runtime.id}`}
-                    >
-                      {runtime.name}
-                    </Link>
-                    <span className="text-xs capitalize text-muted">
-                      {runtime.kind === "app"
-                        ? "App"
-                        : formatResourceKind(runtime.kind)}
-                    </span>
-                  </div>
-                </Table.Cell>
-                <Table.Cell>
-                  <StatusBadge status={runtime.healthStatus} />
-                </Table.Cell>
-                <Table.Cell>
-                  <RuntimeCpuMeter runtime={runtime} />
-                </Table.Cell>
-                <Table.Cell>
-                  <RuntimeMemoryMeter runtime={runtime} />
-                </Table.Cell>
-                <Table.Cell className="text-right tabular-nums">
-                  {runtime.restartCount ?? "—"}
-                </Table.Cell>
-                <Table.Cell className="whitespace-nowrap">
-                  {runtime.startedAt ? formatDate(runtime.startedAt) : "—"}
-                </Table.Cell>
-              </Table.Row>
-            ))}
+            {items.map((item) => {
+              const runtime = runtimeById.get(item.id);
+              const healthStatus =
+                runtime?.healthStatus ?? item.runtimeState.healthStatus;
+              return (
+                <Table.Row id={item.id} key={item.id}>
+                  <Table.Cell>
+                    <div className="min-w-80">
+                      {item.kind === "app" ? (
+                        <AppIdentity app={item} healthStatus={healthStatus} />
+                      ) : (
+                        <ResourceIdentity
+                          resource={item}
+                          healthStatus={healthStatus}
+                        />
+                      )}
+                    </div>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <StatusBadge status={healthStatus} />
+                  </Table.Cell>
+                  <Table.Cell>
+                    <DefinedCpuCapacity
+                      runtime={runtime}
+                      limits={item.config.container.resources}
+                    />
+                  </Table.Cell>
+                  <Table.Cell>
+                    <DefinedMemoryCapacity
+                      runtime={runtime}
+                      limits={item.config.container.resources}
+                    />
+                  </Table.Cell>
+                  <Table.Cell className="text-right tabular-nums">
+                    {runtime?.restartCount ?? "—"}
+                  </Table.Cell>
+                  <Table.Cell className="whitespace-nowrap">
+                    {runtime?.startedAt ? (
+                      <RelativeTime label="Started" value={runtime.startedAt} />
+                    ) : (
+                      "—"
+                    )}
+                  </Table.Cell>
+                </Table.Row>
+              );
+            })}
           </Table.Body>
         </Table.Content>
       </Table.ScrollContainer>
@@ -158,40 +213,65 @@ export function ServerRuntimeCapacityTable({
   );
 }
 
-export function RuntimeCpuMeter({ runtime }: { runtime?: RuntimeMetric }) {
-  if (!runtime || runtime.cpuPercent === null) {
-    return <span className="text-muted">—</span>;
-  }
+type DefinedCapacityProps = {
+  limits: DefinedLimits;
+  runtime?: RuntimeMetric;
+  unavailable?: boolean;
+};
+
+export function DefinedCpuCapacity(props: DefinedCapacityProps) {
   return (
-    <CompactMeter
-      label={`${runtime.name} CPU used`}
-      status={meterStatus(runtime.cpuPercent, 75, 90)}
-      value={runtime.cpuPercent}
-      valueLabel={`${runtime.cpuPercent.toFixed(1)}%`}
+    <AllocatedCapacityMeter
+      {...props}
+      metric="cpu"
+      percent={allocatedCpuPercent(
+        props.runtime?.cpuPercent,
+        props.limits?.cpus,
+      )}
     />
   );
 }
 
-export function RuntimeMemoryMeter({ runtime }: { runtime?: RuntimeMetric }) {
-  if (!runtime || runtime.memoryUsageBytes === null) {
-    return <span className="text-muted">—</span>;
-  }
-  const memoryPercent = runtime.memoryLimitBytes
-    ? percentage(runtime.memoryUsageBytes, runtime.memoryLimitBytes)
-    : null;
-  if (memoryPercent === null) {
-    return (
-      <span className="whitespace-nowrap tabular-nums">
-        {formatBytes(runtime.memoryUsageBytes)}
-      </span>
-    );
-  }
+export function DefinedMemoryCapacity(props: DefinedCapacityProps) {
+  return (
+    <AllocatedCapacityMeter
+      {...props}
+      metric="memory"
+      percent={allocatedMemoryPercent(
+        props.runtime?.memoryUsageBytes,
+        props.limits?.memory,
+      )}
+    />
+  );
+}
+
+function AllocatedCapacityMeter({
+  limits,
+  runtime,
+  unavailable,
+  metric,
+  percent,
+}: DefinedCapacityProps & {
+  metric: "cpu" | "memory";
+  percent: number | null;
+}) {
   return (
     <CompactMeter
-      label={`${runtime.name} memory used`}
-      status={meterStatus(memoryPercent, 85, 95)}
-      value={memoryPercent}
-      valueLabel={`${formatBytes(runtime.memoryUsageBytes)} / ${formatBytes(runtime.memoryLimitBytes!)}`}
+      label={`${runtime?.name ?? "Workload"} allocated ${metric === "cpu" ? "CPU" : "memory"} used`}
+      value={percent}
+      valueLabel={percent === null ? "—" : `${percent.toFixed(1)}%`}
+      endLabel={
+        <DefinedResourceLimit
+          limits={limits}
+          metric={metric}
+          unavailable={unavailable}
+        />
+      }
+      status={
+        metric === "cpu"
+          ? meterStatus(percent ?? 0, 75, 90)
+          : meterStatus(percent ?? 0, 85, 95)
+      }
     />
   );
 }
@@ -297,16 +377,19 @@ function CompactMeter({
   status,
   value,
   valueLabel,
+  endLabel,
 }: {
   label: string;
   status: MeterStatus;
-  value: number;
+  value: number | null;
   valueLabel: string;
+  endLabel?: ReactNode;
 }) {
   return (
     <div className="grid min-w-36 gap-1.5">
-      <span className="whitespace-nowrap text-xs tabular-nums">
-        {valueLabel}
+      <span className="flex items-center justify-between gap-3 whitespace-nowrap text-xs tabular-nums">
+        <span>{valueLabel}</span>
+        {endLabel}
       </span>
       <MeterBar label={label} size="compact" status={status} value={value} />
     </div>
@@ -322,7 +405,7 @@ function MeterBar({
   label: string;
   size?: "compact" | "default";
   status: MeterStatus;
-  value: number;
+  value: number | null;
 }) {
   const color =
     status === "critical"
@@ -330,13 +413,16 @@ function MeterBar({
       : status === "attention"
         ? "bg-warning"
         : "bg-success";
-  const clamped = Math.max(0, Math.min(100, value));
+  const clamped = Math.max(0, Math.min(100, value ?? 0));
   return (
     <div
       aria-label={label}
       aria-valuemax={100}
       aria-valuemin={0}
-      aria-valuenow={Math.round(clamped)}
+      aria-valuenow={value === null ? undefined : Math.round(clamped)}
+      aria-valuetext={
+        value === null ? "Usage unavailable" : `${value.toFixed(1)}%`
+      }
       className={cn(
         "overflow-hidden rounded-full bg-separator",
         size === "compact" ? "h-1.5" : "h-2",
@@ -368,21 +454,10 @@ function meterStatus(
       : "healthy";
 }
 
-function percentage(used: number, total: number) {
-  return Math.round((used / total) * 1_000) / 10;
-}
-
 function formatDuration(seconds: number) {
   const days = Math.floor(seconds / 86_400);
   const hours = Math.floor((seconds % 86_400) / 3_600);
   if (days) return `${days}d ${hours}h`;
   const minutes = Math.floor((seconds % 3_600) / 60);
   return hours ? `${hours}h ${minutes}m` : `${minutes}m`;
-}
-
-function formatResourceKind(kind: RuntimeCapacity["runtimes"][number]["kind"]) {
-  if (kind === "postgres") return "PostgreSQL";
-  if (kind === "redis") return "Redis";
-  if (kind === "image") return "Image";
-  return "App";
 }

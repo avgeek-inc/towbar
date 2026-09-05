@@ -61,6 +61,7 @@ export interface SidebarGroupConfig {
 export interface SidebarConfig {
   accessibleLabel: string;
   brand: HeaderBrandConfig;
+  brandVersion?: string;
   footerActions?: readonly SidebarActionConfig[];
   groups: readonly SidebarGroupConfig[];
   homeHref: string;

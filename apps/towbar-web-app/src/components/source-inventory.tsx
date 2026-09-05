@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  AlertCircleIcon,
-  CheckmarkCircle02Icon,
-  WebhookIcon,
-} from "@hugeicons/core-free-icons";
+import { ServerStack01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
   App,
@@ -12,7 +8,7 @@ import type {
   DeploymentState,
   Resource,
   RuntimeCapacity,
-  SourceServer,
+  Server,
 } from "@workspace/towbar-web-client";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
@@ -20,51 +16,65 @@ import {
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
+import { AppIdentity, ResourceIdentity } from "./deployable-identity";
+import { ServerHardwareDescription } from "./server-hardware";
+import { InlineLink } from "@/components/page-parts";
 import {
   getActiveDeploymentStates,
   resolveInventoryStatus,
 } from "@/lib/inventory-status";
-import { LastSyncedTime, RelativeTimeProvider } from "./last-synced-time";
+import { LastSyncedTime } from "./last-synced-time";
 import {
-  RuntimeCpuMeter,
-  RuntimeMemoryMeter,
-  ServerHostMeter,
-  ServerUptime,
+  DefinedCpuCapacity,
+  DefinedMemoryCapacity,
   type RuntimeMetric,
 } from "./server-capacity";
 
 function appColumns(
   activeDeploymentStates: Map<string, DeploymentState>,
   runtimeById: Map<string, RuntimeMetric>,
+  serversByIp: Map<string, Server>,
 ): ResourceTableColumn<App>[] {
   return [
     {
-      cell: (app) => (
-        <DeployableName
-          autoDeploy={Boolean(app.config.autoDeploy)}
-          name={app.name}
-        />
-      ),
-      className: "min-w-56",
+      cell: (app) => <AppIdentity app={app} />,
+      wrapRowLink: false,
+      className: "min-w-88",
       header: "App Name",
       key: "name",
     },
     {
-      cell: (app) => app.serverIp,
-      className: "min-w-36 tabular-nums",
+      cell: (app) => (
+        <ServerIpLink
+          ip={app.serverIp}
+          serverId={serversByIp.get(app.serverIp)?.id}
+          hardware={serversByIp.get(app.serverIp)?.hardware}
+        />
+      ),
+      className: "min-w-52 tabular-nums",
       header: "Server",
       key: "server",
     },
     {
-      cell: (app) => <RuntimeCpuMeter runtime={runtimeById.get(app.id)} />,
+      cell: (app) => (
+        <DefinedCpuCapacity
+          limits={app.config.container.resources}
+          runtime={runtimeById.get(app.id)}
+        />
+      ),
       className: "min-w-40",
-      header: "CPU",
+      header: "Allocated CPU",
       key: "cpu",
     },
     {
-      cell: (app) => <RuntimeMemoryMeter runtime={runtimeById.get(app.id)} />,
+      cell: (app) => (
+        <DefinedMemoryCapacity
+          limits={app.config.container.resources}
+          runtime={runtimeById.get(app.id)}
+        />
+      ),
       className: "min-w-56",
-      header: "Memory",
+      header: "Allocated Memory",
       key: "memory",
     },
     {
@@ -94,45 +104,48 @@ function appColumns(
 function resourceColumns(
   activeDeploymentStates: Map<string, DeploymentState>,
   runtimeById: Map<string, RuntimeMetric>,
+  serversByIp: Map<string, Server>,
 ): ResourceTableColumn<Resource>[] {
   return [
     {
-      cell: (resource) => (
-        <DeployableName
-          autoDeploy={Boolean(resource.config.autoDeploy)}
-          name={resource.name}
-        />
-      ),
-      className: "min-w-56",
+      cell: (resource) => <ResourceIdentity resource={resource} />,
+      className: "min-w-88",
+      wrapRowLink: false,
       header: "Resource Name",
       key: "name",
     },
     {
-      cell: (resource) => formatResourceKind(resource.kind),
-      className: "min-w-28",
-      header: "Type",
-      key: "type",
-    },
-    {
-      cell: (resource) => resource.serverIp,
-      className: "min-w-36 tabular-nums",
+      cell: (resource) => (
+        <ServerIpLink
+          ip={resource.serverIp}
+          serverId={serversByIp.get(resource.serverIp)?.id}
+          hardware={serversByIp.get(resource.serverIp)?.hardware}
+        />
+      ),
+      className: "min-w-52 tabular-nums",
       header: "Server",
       key: "server",
     },
     {
       cell: (resource) => (
-        <RuntimeCpuMeter runtime={runtimeById.get(resource.id)} />
+        <DefinedCpuCapacity
+          limits={resource.config.container.resources}
+          runtime={runtimeById.get(resource.id)}
+        />
       ),
       className: "min-w-40",
-      header: "CPU",
+      header: "Allocated CPU",
       key: "cpu",
     },
     {
       cell: (resource) => (
-        <RuntimeMemoryMeter runtime={runtimeById.get(resource.id)} />
+        <DefinedMemoryCapacity
+          limits={resource.config.container.resources}
+          runtime={runtimeById.get(resource.id)}
+        />
       ),
       className: "min-w-56",
-      header: "Memory",
+      header: "Allocated Memory",
       key: "memory",
     },
     {
@@ -164,32 +177,33 @@ export function SourceApps({
   capacities,
   deployments,
   error,
+  servers,
   sourceId,
 }: {
   apps?: App[];
   capacities?: RuntimeCapacity[];
   deployments?: Deployment[];
   error?: string;
+  servers?: Server[];
   sourceId: string;
 }) {
   if (error) return <QueryError message={error} />;
-  if (!apps || !capacities || !deployments)
+  if (!apps || !capacities || !deployments || !servers)
     return <QueryLoading variant="list" />;
   const activeDeploymentStates = getActiveDeploymentStates(deployments);
   const runtimeById = getRuntimeByDeployableId(capacities);
+  const serversByIp = getServersByIp(servers);
   return (
-    <RelativeTimeProvider>
-      <ResourceTable
-        ariaLabel="Source apps"
-        columns={appColumns(activeDeploymentStates, runtimeById)}
-        emptyDescription="A successful manifest sync imports this Source's apps."
-        emptyTitle="No apps in this Source"
-        getRowHref={(app) => `/sources/${sourceId}/apps/${app.id}`}
-        getRowKey={(app) => app.id}
-        items={apps}
-        tableClassName="min-w-[1040px]"
-      />
-    </RelativeTimeProvider>
+    <ResourceTable
+      ariaLabel="Source apps"
+      columns={appColumns(activeDeploymentStates, runtimeById, serversByIp)}
+      emptyDescription="A successful manifest sync imports this Source's apps."
+      emptyTitle="No apps in this Source"
+      getRowHref={(app) => `/sources/${sourceId}/apps/${app.id}`}
+      getRowKey={(app) => app.id}
+      items={apps}
+      tableClassName="min-w-[1040px]"
+    />
   );
 }
 
@@ -198,194 +212,69 @@ export function SourceResources({
   deployments,
   error,
   resources,
+  servers,
   sourceId,
 }: {
   capacities?: RuntimeCapacity[];
   deployments?: Deployment[];
   error?: string;
   resources?: Resource[];
+  servers?: Server[];
   sourceId: string;
 }) {
   if (error) return <QueryError message={error} />;
-  if (!resources || !capacities || !deployments)
+  if (!resources || !capacities || !deployments || !servers)
     return <QueryLoading variant="list" />;
   const activeDeploymentStates = getActiveDeploymentStates(deployments);
   const runtimeById = getRuntimeByDeployableId(capacities);
+  const serversByIp = getServersByIp(servers);
   return (
-    <RelativeTimeProvider>
-      <ResourceTable
-        ariaLabel="Source resources"
-        columns={resourceColumns(activeDeploymentStates, runtimeById)}
-        emptyDescription="Declare an image, PostgreSQL, or Redis resource in this Source's manifest."
-        emptyTitle="No resources in this Source"
-        getRowHref={(resource) =>
-          `/sources/${sourceId}/resources/${resource.id}`
-        }
-        getRowKey={(resource) => resource.id}
-        items={resources}
-        tableClassName="min-w-[1160px]"
-      />
-    </RelativeTimeProvider>
+    <ResourceTable
+      ariaLabel="Source resources"
+      columns={resourceColumns(
+        activeDeploymentStates,
+        runtimeById,
+        serversByIp,
+      )}
+      emptyDescription="Declare an image, PostgreSQL, or Redis resource in this Source's manifest."
+      emptyTitle="No resources in this Source"
+      getRowHref={(resource) => `/sources/${sourceId}/resources/${resource.id}`}
+      getRowKey={(resource) => resource.id}
+      items={resources}
+      tableClassName="min-w-[1160px]"
+    />
   );
 }
 
-export function SourceServers({
-  capacities,
-  error,
-  servers,
-  sourceId,
+export function ServerIpLink({
+  ip,
+  hardware,
+  serverId,
 }: {
-  capacities?: RuntimeCapacity[];
-  error?: string;
-  servers?: SourceServer[];
-  sourceId: string;
+  ip: string;
+  hardware?: Server["hardware"];
+  serverId?: string;
 }) {
-  if (error) return <QueryError message={error} />;
-  if (!servers || !capacities) return <QueryLoading variant="list" />;
-  const capacityByServerId = new Map(
-    capacities.map((capacity) => [capacity.id, capacity] as const),
-  );
-  const serverColumns: ResourceTableColumn<SourceServer>[] = [
-    {
-      cell: (server) => server.canonicalIp,
-      className: "min-w-40 tabular-nums",
-      header: "Server IP",
-      key: "ip",
-    },
-    {
-      cell: (server) => <HostKeyIndicator status={server.hostKeyStatus} />,
-      className: "min-w-36",
-      header: "Host Keys",
-      key: "host-keys",
-    },
-    {
-      cell: (server) => (
-        <ServerHostMeter
-          capacity={capacityByServerId.get(server.id)}
-          metric="cpu"
+  const label = (
+    <span className="grid min-w-0 gap-0.5">
+      <span className="inline-flex items-center gap-2 whitespace-nowrap tabular-nums">
+        <HugeiconsIcon
+          aria-hidden="true"
+          className="size-4 shrink-0 text-muted"
+          icon={ServerStack01Icon}
         />
-      ),
-      className: "min-w-40",
-      header: "CPU",
-      key: "cpu",
-    },
-    {
-      cell: (server) => (
-        <ServerHostMeter
-          capacity={capacityByServerId.get(server.id)}
-          metric="memory"
-        />
-      ),
-      className: "min-w-40",
-      header: "Memory",
-      key: "memory",
-    },
-    {
-      cell: (server) => (
-        <ServerHostMeter
-          capacity={capacityByServerId.get(server.id)}
-          metric="disk"
-        />
-      ),
-      className: "min-w-40",
-      header: "Docker disk",
-      key: "disk",
-    },
-    {
-      cell: (server) => (
-        <ServerUptime capacity={capacityByServerId.get(server.id)} />
-      ),
-      className: "min-w-28",
-      header: "Uptime",
-      key: "uptime",
-    },
-    {
-      cell: (server) => (
-        <StatusBadge
-          status={server.archivedAt ? "archived" : server.setupStatus}
-        />
-      ),
-      className: "w-32",
-      header: "Status",
-      key: "status",
-    },
-    {
-      cell: (server) => <LastSyncedTime value={server.updatedAt} />,
-      className: "min-w-48 whitespace-nowrap",
-      header: "Last synced",
-      key: "last-synced",
-    },
-  ];
-  return (
-    <RelativeTimeProvider>
-      <ResourceTable
-        ariaLabel="Source servers"
-        columns={serverColumns}
-        emptyDescription="Declare a server in this Source's manifest to import it."
-        emptyTitle="No servers in this Source"
-        getRowHref={(server) => `/sources/${sourceId}/servers/${server.id}`}
-        getRowKey={(server) => server.id}
-        items={servers}
-        tableClassName="min-w-[1360px]"
-      />
-    </RelativeTimeProvider>
-  );
-}
-
-function HostKeyIndicator({
-  status,
-}: {
-  status: SourceServer["hostKeyStatus"];
-}) {
-  const trusted = status === "trusted";
-  return (
-    <span
-      className={`inline-flex items-center gap-2 ${trusted ? "text-success-soft-foreground" : "text-danger-soft-foreground"}`}
-    >
-      <HugeiconsIcon
-        aria-hidden="true"
-        className="size-4 shrink-0"
-        icon={trusted ? CheckmarkCircle02Icon : AlertCircleIcon}
-      />
-      {trusted ? "Trusted" : "Untrusted"}
-    </span>
-  );
-}
-
-function DeployableName({
-  autoDeploy,
-  name,
-}: {
-  autoDeploy: boolean;
-  name: string;
-}) {
-  return (
-    <span className="inline-flex min-w-0 items-center gap-2">
-      <span className="truncate" title={name}>
-        {name}
+        <span>{ip}</span>
       </span>
-      {autoDeploy ? (
-        <span
-          aria-label="Auto-deploy enabled"
-          className="text-success-soft-foreground inline-flex size-5 shrink-0 self-center items-center justify-center leading-none"
-          role="img"
-          title="Auto-deploy enabled"
-        >
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-4"
-            icon={WebhookIcon}
-          />
-        </span>
-      ) : null}
+      <span className="text-xs font-normal text-muted">
+        <ServerHardwareDescription hardware={hardware} />
+      </span>
     </span>
   );
-}
-
-function formatResourceKind(kind: Resource["kind"]) {
-  if (kind === "postgres") return "PostgreSQL";
-  if (kind === "redis") return "Redis";
-  return "Image";
+  return serverId ? (
+    <InlineLink href={`/servers/${serverId}`}>{label}</InlineLink>
+  ) : (
+    label
+  );
 }
 
 function getRuntimeByDeployableId(capacities: RuntimeCapacity[]) {
@@ -394,4 +283,8 @@ function getRuntimeByDeployableId(capacities: RuntimeCapacity[]) {
       capacity.runtimes.map((runtime) => [runtime.id, runtime] as const),
     ),
   );
+}
+
+function getServersByIp(servers: Server[]) {
+  return new Map(servers.map((server) => [server.canonicalIp, server]));
 }

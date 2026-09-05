@@ -7,13 +7,6 @@ import { reconcileManifest } from "./reconciliation.js";
 const desired: NormalizedDeploymentManifest = {
   version: 1,
   source: { branch: "main" },
-  servers: [
-    {
-      buildConcurrency: 1,
-      ip: "203.0.113.10",
-      ssh: { host: "203.0.113.10", port: 22, username: "deploy" },
-    },
-  ],
   apps: [
     {
       autoDeploy: false,
@@ -34,7 +27,6 @@ const desired: NormalizedDeploymentManifest = {
 
 void test("uses stable app ids for rename, archive, and restore decisions", () => {
   const currentApp = { ...desired.apps[0]!, name: "Old app name" };
-  const currentServer = desired.servers[0]!;
   const result = reconcileManifest({
     currentApps: [
       {
@@ -52,15 +44,6 @@ void test("uses stable app ids for rename, archive, and restore decisions", () =
         configDigest: digestValue({ ...currentApp, id: "removed" }),
       },
     ],
-    currentServers: [
-      {
-        archivedAt: null,
-        config: currentServer,
-        configDigest: digestValue(currentServer),
-        id: "database-server-id",
-        identity: currentServer.ip,
-      },
-    ],
     desired,
   });
   assert.equal(
@@ -75,8 +58,6 @@ void test("uses stable app ids for rename, archive, and restore decisions", () =
     result.apps.find((entry) => entry.id === "removed")?.action,
     "archive",
   );
-  assert.equal(result.servers[0]?.action, "unchanged");
-  assert.equal(result.servers[0]?.current?.id, "database-server-id");
 });
 
 void test("restores an archived record when its identity reappears", () => {
@@ -91,31 +72,9 @@ void test("restores an archived record when its identity reappears", () => {
         configDigest: digestValue(app),
       },
     ],
-    currentServers: [],
     desired,
   });
   assert.equal(result.apps[0]?.action, "restore");
-});
-
-void test("archives a declared server when no deployable references it", () => {
-  const currentServer = desired.servers[0]!;
-  const result = reconcileManifest({
-    currentApps: [],
-    currentResources: [],
-    currentServers: [
-      {
-        archivedAt: null,
-        config: currentServer,
-        configDigest: digestValue(currentServer),
-        id: "database-server-id",
-        identity: currentServer.ip,
-      },
-    ],
-    desired: { ...desired, apps: [], resources: [] },
-  });
-
-  assert.equal(result.servers[0]?.action, "archive");
-  assert.equal(result.servers[0]?.current?.id, "database-server-id");
 });
 
 void test("reconciles Resources independently from Apps", () => {
@@ -143,10 +102,8 @@ void test("reconciles Resources independently from Apps", () => {
   const result = reconcileManifest({
     currentApps: [],
     currentResources: [],
-    currentServers: [],
     desired: { ...desired, apps: [], resources: [resource] },
   });
   assert.equal(result.resources[0]?.action, "create");
   assert.equal(result.resources[0]?.desired?.id, "database");
-  assert.equal(result.servers[0]?.action, "create");
 });

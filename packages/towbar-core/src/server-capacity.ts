@@ -34,9 +34,9 @@ export type RuntimeCapacity = {
     name: string;
     observedState: RuntimeObservedState;
     restartCount: number | null;
+    sourceId: string;
     startedAt: string | null;
   }>;
-  sourceId: string;
   status: SystemHealthStatus;
   uptimeSeconds: number | null;
 };

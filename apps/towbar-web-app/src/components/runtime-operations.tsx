@@ -1,11 +1,14 @@
 "use client";
 
+import { ElapsedTime } from "./elapsed-time";
+
 import { ConfigurationLinks } from "./configuration-links";
 
 import {
   MoreHorizontalIcon,
   PlayIcon,
   ReloadIcon,
+  SourceCodeIcon,
   StopIcon,
   Undo02Icon,
 } from "@hugeicons/core-free-icons";
@@ -296,7 +299,7 @@ export function RuntimeLogs({
   }
 
   return (
-    <div className="grid gap-5">
+    <div className="content-grid">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-muted typography--body-sm">
           Last requested {formatDate(latest.createdAt)}
@@ -319,12 +322,19 @@ export function RuntimeLogs({
           </EmptyState>
         )
       ) : (
-        <Attributes title="Latest log capture" variant="card">
+        <Attributes
+          icon={<HugeiconsIcon icon={SourceCodeIcon} />}
+          title="Latest log capture"
+          variant="card"
+        >
           <Attributes.Item label="Status">
             <StatusBadge status={latest.state} />
           </Attributes.Item>
           <Attributes.Item label="Requested">
             {formatDate(latest.createdAt)}
+          </Attributes.Item>
+          <Attributes.Item label="Duration">
+            <ElapsedTime {...latest} status={latest.state} />
           </Attributes.Item>
           <Attributes.Item label="Result">
             {latest.errorMessage ?? "Waiting for the worker"}

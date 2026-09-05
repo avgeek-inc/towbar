@@ -9,12 +9,11 @@ import {
   encryptCredential,
   parseCredentialsMasterKey,
 } from "@workspace/towbar-core";
-import { sourceAwsCredentials } from "@workspace/towbar-database/schema";
+import { workspaceAwsCredentials } from "@workspace/towbar-database/schema";
 
 import { getEnv } from "../../env.js";
 import { notFound, serviceUnavailable } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
-import { getSource } from "../sources/service.js";
 
 const awsCredentialPayloadSchema = z
   .object({
@@ -23,45 +22,40 @@ const awsCredentialPayloadSchema = z
   })
   .strict();
 
-const storedAwsCredentialPayloadSchema = awsCredentialPayloadSchema
-  .extend({ $source: z.unknown().optional() })
-  .strict();
-
 type AwsCredentialPayload = z.infer<typeof awsCredentialPayloadSchema>;
-export async function getAwsCredentialMetadata(input: {
-  sourceId: string;
-  workspaceId: string;
-}) {
-  await getSource(input.sourceId, input.workspaceId);
+
+export async function getAwsCredentialMetadata(workspaceId: string) {
   const [credential] = await getTowbarDatabase()
     .select({
-      accessKeyIdSuffix: sourceAwsCredentials.accessKeySuffix,
-      createdAt: sourceAwsCredentials.createdAt,
-      lastVerifiedAt: sourceAwsCredentials.verifiedAt,
-      region: sourceAwsCredentials.region,
-      status: sourceAwsCredentials.verificationStatus,
-      updatedAt: sourceAwsCredentials.updatedAt,
-      verificationMessage: sourceAwsCredentials.verificationMessage,
+      accessKeyIdSuffix: workspaceAwsCredentials.accessKeySuffix,
+      createdAt: workspaceAwsCredentials.createdAt,
+      lastVerifiedAt: workspaceAwsCredentials.verifiedAt,
+      region: workspaceAwsCredentials.region,
+      status: workspaceAwsCredentials.verificationStatus,
+      updatedAt: workspaceAwsCredentials.updatedAt,
+      verificationMessage: workspaceAwsCredentials.verificationMessage,
     })
-    .from(sourceAwsCredentials)
-    .where(
-      and(
-        eq(sourceAwsCredentials.sourceId, input.sourceId),
-        eq(sourceAwsCredentials.workspaceId, input.workspaceId),
-      ),
-    )
+    .from(workspaceAwsCredentials)
+    .where(eq(workspaceAwsCredentials.workspaceId, workspaceId))
     .limit(1);
   return credential ?? null;
+}
+
+export async function hasAwsCredentials(workspaceId: string) {
+  const [credential] = await getTowbarDatabase()
+    .select({ id: workspaceAwsCredentials.id })
+    .from(workspaceAwsCredentials)
+    .where(eq(workspaceAwsCredentials.workspaceId, workspaceId))
+    .limit(1);
+  return Boolean(credential);
 }
 
 export async function saveAwsCredentials(input: {
   accessKeyId: string;
   region: string;
   secretAccessKey: string;
-  sourceId: string;
   workspaceId: string;
 }) {
-  await getSource(input.sourceId, input.workspaceId);
   const payload = awsCredentialPayloadSchema.parse({
     accessKeyId: input.accessKeyId,
     secretAccessKey: input.secretAccessKey,
@@ -73,17 +67,13 @@ export async function saveAwsCredentials(input: {
   const verifiedAt = new Date();
   const database = getTowbarDatabase();
   const [existing] = await database
-    .select({ id: sourceAwsCredentials.id })
-    .from(sourceAwsCredentials)
-    .where(eq(sourceAwsCredentials.sourceId, input.sourceId))
+    .select({ id: workspaceAwsCredentials.id })
+    .from(workspaceAwsCredentials)
+    .where(eq(workspaceAwsCredentials.workspaceId, input.workspaceId))
     .limit(1);
   const id = existing?.id ?? randomUUID();
   const encryptedPayload = encryptCredential({
-    associatedData: awsCredentialAssociatedData(
-      input.workspaceId,
-      input.sourceId,
-      id,
-    ),
+    associatedData: awsCredentialAssociatedData(input.workspaceId, id),
     masterKey: parseCredentialsMasterKey(getEnv().TOWBAR_CREDENTIALS_KEY),
     value: payload,
   });
@@ -92,7 +82,6 @@ export async function saveAwsCredentials(input: {
     encryptedPayload,
     id,
     region: input.region,
-    sourceId: input.sourceId,
     updatedAt: new Date(),
     verificationMessage: identity.Account
       ? `AWS account ${identity.Account}`
@@ -103,13 +92,42 @@ export async function saveAwsCredentials(input: {
   };
   if (existing) {
     await database
-      .update(sourceAwsCredentials)
+      .update(workspaceAwsCredentials)
       .set(values)
-      .where(eq(sourceAwsCredentials.id, existing.id));
+      .where(eq(workspaceAwsCredentials.id, existing.id));
   } else {
-    await database.insert(sourceAwsCredentials).values(values);
+    await database.insert(workspaceAwsCredentials).values(values);
   }
-  return await getAwsCredentialMetadata(input);
+  return await getAwsCredentialMetadata(input.workspaceId);
+}
+
+// Verify the stored integration without changing its credentials.
+export async function reverifyAwsCredentials(workspaceId: string) {
+  const metadata = await getAwsCredentialMetadata(workspaceId);
+  if (!metadata) return;
+  let verificationStatus: "verified" | "failed" = "verified";
+  let verificationMessage: string;
+  try {
+    const credential = await getDecryptedAwsCredential({ workspaceId });
+    const identity = await validateAwsCredentials(credential);
+    verificationMessage = identity.Account
+      ? `AWS account ${identity.Account}`
+      : "AWS identity verified";
+  } catch {
+    verificationStatus = "failed";
+    verificationMessage =
+      "AWS could not verify the connected credentials. Check the credentials and AWS connectivity.";
+  }
+  await getTowbarDatabase()
+    .update(workspaceAwsCredentials)
+    .set({ verificationStatus, verificationMessage, verifiedAt: new Date() })
+    .where(
+      and(
+        eq(workspaceAwsCredentials.workspaceId, workspaceId),
+        // Ignore a result if credentials were replaced while the check ran.
+        eq(workspaceAwsCredentials.updatedAt, metadata.updatedAt),
+      ),
+    );
 }
 
 async function validateAwsCredentials(input: {
@@ -131,78 +149,31 @@ async function validateAwsCredentials(input: {
   }
 }
 
-export async function deleteAwsCredentials(input: {
-  sourceId: string;
-  workspaceId: string;
-}) {
+export async function deleteAwsCredentials(workspaceId: string) {
   await getTowbarDatabase()
-    .delete(sourceAwsCredentials)
-    .where(
-      and(
-        eq(sourceAwsCredentials.sourceId, input.sourceId),
-        eq(sourceAwsCredentials.workspaceId, input.workspaceId),
-      ),
-    );
+    .delete(workspaceAwsCredentials)
+    .where(eq(workspaceAwsCredentials.workspaceId, workspaceId));
 }
 
 export async function getDecryptedAwsCredential(input: {
-  sourceId: string;
   workspaceId: string;
 }) {
   const [credential] = await getTowbarDatabase()
     .select()
-    .from(sourceAwsCredentials)
-    .where(
-      and(
-        eq(sourceAwsCredentials.sourceId, input.sourceId),
-        eq(sourceAwsCredentials.workspaceId, input.workspaceId),
-      ),
-    )
+    .from(workspaceAwsCredentials)
+    .where(eq(workspaceAwsCredentials.workspaceId, input.workspaceId))
     .limit(1);
   if (!credential) throw notFound("AWS credentials");
-  const masterKey = parseCredentialsMasterKey(getEnv().TOWBAR_CREDENTIALS_KEY);
-  const associatedData = awsCredentialAssociatedData(
-    input.workspaceId,
-    input.sourceId,
-    credential.id,
-  );
-  let decrypted: unknown;
-  let usedLegacyAssociatedData = false;
-  try {
-    decrypted = decryptCredential({
-      associatedData,
-      envelope: credential.encryptedPayload,
-      masterKey,
-    });
-  } catch {
-    usedLegacyAssociatedData = true;
-    decrypted = decryptCredential({
-      associatedData: legacyAwsCredentialAssociatedData(
+  const payload = awsCredentialPayloadSchema.parse(
+    decryptCredential({
+      associatedData: awsCredentialAssociatedData(
         input.workspaceId,
         credential.id,
       ),
       envelope: credential.encryptedPayload,
-      masterKey,
-    });
-  }
-  const hasAwsSdkMetadata =
-    typeof decrypted === "object" &&
-    decrypted !== null &&
-    Object.hasOwn(decrypted, "$source");
-  const payload = parseStoredAwsCredentialPayload(decrypted);
-  if (usedLegacyAssociatedData || hasAwsSdkMetadata) {
-    await getTowbarDatabase()
-      .update(sourceAwsCredentials)
-      .set({
-        encryptedPayload: encryptCredential({
-          associatedData,
-          masterKey,
-          value: payload,
-        }),
-        updatedAt: new Date(),
-      })
-      .where(eq(sourceAwsCredentials.id, credential.id));
-  }
+      masterKey: parseCredentialsMasterKey(getEnv().TOWBAR_CREDENTIALS_KEY),
+    }),
+  );
   return {
     id: credential.id,
     payload,
@@ -217,25 +188,6 @@ export function createAwsSdkCredentials(payload: AwsCredentialPayload) {
   };
 }
 
-export function parseStoredAwsCredentialPayload(value: unknown) {
-  const stored = storedAwsCredentialPayloadSchema.parse(value);
-  return awsCredentialPayloadSchema.parse({
-    accessKeyId: stored.accessKeyId,
-    secretAccessKey: stored.secretAccessKey,
-  });
-}
-
-function awsCredentialAssociatedData(
-  workspaceId: string,
-  sourceId: string,
-  recordId: string,
-) {
-  return `${workspaceId}:source:${sourceId}:aws-credentials:${recordId}`;
-}
-
-function legacyAwsCredentialAssociatedData(
-  workspaceId: string,
-  recordId: string,
-) {
-  return `${workspaceId}:aws-credentials:${recordId}`;
+function awsCredentialAssociatedData(workspaceId: string, recordId: string) {
+  return `${workspaceId}:workspace:aws-credentials:${recordId}`;
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { TooltipText } from "../overlays/tooltip";
+
 import type { MouseEvent } from "react";
 
 import { cn } from "../lib/utils";
@@ -46,23 +48,24 @@ export function BreadcrumbTrail({
                 <a
                   className="block min-w-0 max-w-40 truncate text-muted hover:text-foreground sm:max-w-64"
                   href={item.href}
-                  title={item.label}
                   onClick={(event: MouseEvent<HTMLAnchorElement>) => {
                     if (!navigate) return;
                     event.preventDefault();
                     navigate(item.href!);
                   }}
                 >
-                  {item.label}
+                  <TooltipText tooltip={item.label} tabIndex={-1}>
+                    {item.label}
+                  </TooltipText>
                 </a>
               ) : (
-                <span
+                <TooltipText
                   aria-current={isLast ? "page" : undefined}
                   className="block min-w-0 truncate font-medium text-foreground"
-                  title={item.label}
+                  tooltip={item.label}
                 >
                   {item.label}
-                </span>
+                </TooltipText>
               )}
             </li>
           );

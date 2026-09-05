@@ -31,8 +31,6 @@ import {
   emitPreviewNotification,
 } from "../notifications/events.js";
 import { calculateReleaseDeploymentDigest } from "../sources/deployment-digests.js";
-import { publishDeploymentPlanGitHubCheck } from "../plans/github-check.js";
-import { createPullRequestDeploymentPlan } from "../plans/service.js";
 import { admitPreviewDeployment } from "./admission.js";
 import {
   requestPreviewInputMismatchCleanups,
@@ -154,16 +152,6 @@ export async function processPreviewPullRequestEvent(
     pullRequestNumber: pullRequest.number,
     repositoryName: source.repositoryName,
     repositoryOwner: source.repositoryOwner,
-  });
-  const plan = await createPullRequestDeploymentPlan({
-    pullRequest,
-    repositoryChanges: changedPaths,
-    sourceId: event.sourceId,
-    workspaceId: source.workspaceId,
-  });
-  await publishDeploymentPlanGitHubCheck(plan.id).catch(() => {
-    // The persisted plan remains valid when GitHub Check delivery needs its
-    // independent reporting retry.
   });
   if (!source.latestManifestDigest) {
     return { cleanupIds: [], deploymentIds: [], retry: false };

@@ -1,10 +1,14 @@
 "use client";
 
+import { ElapsedTime } from "./elapsed-time";
+
 import {
   DashboardCircleIcon,
   DatabaseIcon,
+  GitBranchIcon,
   GitCompareIcon,
   InformationSquareIcon,
+  PackageIcon,
   RefreshIcon,
   ServerStack01Icon,
   ValidationIcon,
@@ -46,6 +50,7 @@ export function SourceSyncDetail() {
   if (query.error) {
     return (
       <DashboardPage
+        icon={RefreshIcon}
         breadcrumbAncestors={breadcrumbAncestors}
         title="Source sync"
       >
@@ -57,6 +62,7 @@ export function SourceSyncDetail() {
   if (!query.data) {
     return (
       <DashboardPage
+        icon={RefreshIcon}
         breadcrumbAncestors={breadcrumbAncestors}
         title="Source sync"
       >
@@ -70,16 +76,12 @@ export function SourceSyncDetail() {
   const changes = readReconciliationChanges(sync.reconciliation);
   return (
     <DashboardPage
+      icon={RefreshIcon}
       badge={<StatusBadge status={sync.status} />}
       breadcrumbAncestors={breadcrumbAncestors}
       title={`Sync ${sync.id.slice(0, 8)}`}
       titleContent={
         <span className="inline-flex min-w-0 items-center gap-2">
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-6 shrink-0"
-            icon={RefreshIcon}
-          />
           <span>Sync</span>
           <TypographyCode title={sync.id}>{sync.id.slice(0, 8)}</TypographyCode>
         </span>
@@ -95,8 +97,13 @@ export function SourceSyncDetail() {
             label: "Overview",
             icon: <HugeiconsIcon icon={InformationSquareIcon} />,
             content: (
-              <div className="grid gap-8 lg:grid-cols-2">
-                <Attributes columns={2} title="Sync" variant="card">
+              <div className="content-grid lg:grid-cols-2">
+                <Attributes
+                  icon={<HugeiconsIcon icon={RefreshIcon} />}
+                  columns={2}
+                  title="Sync"
+                  variant="card"
+                >
                   <Attributes.Item label="Requested">
                     {formatDate(sync.createdAt)}
                   </Attributes.Item>
@@ -111,10 +118,15 @@ export function SourceSyncDetail() {
                       : "Not finished"}
                   </Attributes.Item>
                   <Attributes.Item label="Duration">
-                    {formatDuration(sync.startedAt, sync.finishedAt)}
+                    <ElapsedTime {...sync} />
                   </Attributes.Item>
                 </Attributes>
-                <Attributes columns={2} title="Revision" variant="card">
+                <Attributes
+                  icon={<HugeiconsIcon icon={GitBranchIcon} />}
+                  columns={2}
+                  title="Revision"
+                  variant="card"
+                >
                   <Attributes.Item label="Commit">
                     {sync.commitSha ? (
                       <TypographyCode title={sync.commitSha}>
@@ -220,7 +232,12 @@ function SyncChanges({
   const legacyCounts = readLegacyReconciliationCounts(value);
   if (legacyCounts) {
     return (
-      <Attributes columns={3} title="Imported inventory" variant="card">
+      <Attributes
+        icon={<HugeiconsIcon icon={PackageIcon} />}
+        columns={3}
+        title="Imported inventory"
+        variant="card"
+      >
         <Attributes.Item
           icon={<HugeiconsIcon icon={DashboardCircleIcon} />}
           label="Apps"
@@ -360,23 +377,6 @@ function formatChangeAction(action: ReconciliationAction) {
   if (action === "create") return "Created";
   if (action === "restore") return "Restored";
   return "Updated";
-}
-
-function formatDuration(startedAt: string | null, finishedAt: string | null) {
-  if (!startedAt) return "Not started";
-  if (!finishedAt) return "In progress";
-  const milliseconds = Math.max(
-    0,
-    new Date(finishedAt).getTime() - new Date(startedAt).getTime(),
-  );
-  if (milliseconds < 1_000) return "Less than a second";
-  const seconds = Math.round(milliseconds / 1_000);
-  if (seconds < 60) return `${seconds} second${seconds === 1 ? "" : "s"}`;
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return remainingSeconds
-    ? `${minutes}m ${remainingSeconds}s`
-    : `${minutes} minute${minutes === 1 ? "" : "s"}`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

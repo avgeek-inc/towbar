@@ -1,3 +1,4 @@
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 
@@ -10,6 +11,7 @@ export type ResourceTableColumn<T> = {
   header: string;
   headerClassName?: string;
   key: string;
+  wrapRowLink?: boolean;
 };
 
 type LinkNavigateEvent = Parameters<
@@ -80,9 +82,9 @@ export function ResourceTable<T>({
                 <Table.Row id={key} key={key}>
                   {columns.map((column, index) => (
                     <Table.Cell className={column.className} key={column.key}>
-                      {index === 0 && href ? (
+                      {index === 0 && href && column.wrapRowLink !== false ? (
                         <Link
-                          className="focus-visible:ring-focus inline-flex min-h-11 min-w-0 items-center rounded-lg outline-none underline-offset-4 pointer-fine:hover:underline focus-visible:ring-2"
+                          className="focus-visible:ring-focus relative inline-flex min-w-0 items-center rounded-lg outline-none underline-offset-4 before:absolute before:inset-x-0 before:-inset-y-3 before:content-[''] pointer-fine:hover:underline focus-visible:ring-2"
                           href={href}
                           onFocus={() => onRowLinkIntent?.(item)}
                           onMouseEnter={() => onRowLinkIntent?.(item)}
@@ -117,19 +119,19 @@ export function ResourceName({
 }) {
   return (
     <span className="grid min-w-0 gap-0.5">
-      <span
+      <TooltipText
         className="truncate"
-        title={typeof name === "string" ? name : undefined}
+        tooltip={typeof name === "string" ? name : undefined}
       >
         {name}
-      </span>
+      </TooltipText>
       {description ? (
-        <span
+        <TooltipText
           className="text-muted typography--body-xs truncate font-normal"
-          title={typeof description === "string" ? description : undefined}
+          tooltip={typeof description === "string" ? description : undefined}
         >
           {description}
-        </span>
+        </TooltipText>
       ) : null}
     </span>
   );

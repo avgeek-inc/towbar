@@ -42,6 +42,7 @@ void test("capacity health tolerates an isolated restart but surfaces repeated r
     name: "Example API",
     observedState: "running" as const,
     restartCount: 1,
+    sourceId: "11111111-1111-4111-8111-111111111111",
     startedAt: new Date().toISOString(),
   };
 

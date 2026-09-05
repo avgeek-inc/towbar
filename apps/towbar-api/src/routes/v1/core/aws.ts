@@ -6,7 +6,7 @@ import {
   getAwsCredentialMetadata,
   saveAwsCredentials,
 } from "../../../areas/aws/service.js";
-import { badRequest, forbidden } from "../../../http/errors.js";
+import { forbidden } from "../../../http/errors.js";
 import { readJson } from "../../../http/requests.js";
 
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
@@ -22,40 +22,32 @@ const credentialSchema = z
 export const awsRoutes = new Hono<TowbarHonoEnvironment>();
 
 awsRoutes.get("/", async (context) => {
-  const credential = await getAwsCredentialMetadata({
-    sourceId: requireSourceId(context.req.param("sourceId")),
-    workspaceId: context.get("user").workspaceId,
+  const user = context.get("user");
+  const credential = await getAwsCredentialMetadata(user.workspaceId);
+  return context.json({
+    canManage: user.workspaceRole === "owner",
+    credential,
   });
-  return context.json({ credential });
 });
 
 awsRoutes.put("/", async (context) => {
-  requireSourceOwner(context.get("user").workspaceRole);
+  requireWorkspaceOwner(context.get("user").workspaceRole);
   const input = await readJson(context, credentialSchema);
   const credential = await saveAwsCredentials({
     ...input,
-    sourceId: requireSourceId(context.req.param("sourceId")),
     workspaceId: context.get("user").workspaceId,
   });
   return context.json({ credential });
 });
 
 awsRoutes.delete("/", async (context) => {
-  requireSourceOwner(context.get("user").workspaceRole);
-  await deleteAwsCredentials({
-    sourceId: requireSourceId(context.req.param("sourceId")),
-    workspaceId: context.get("user").workspaceId,
-  });
+  requireWorkspaceOwner(context.get("user").workspaceRole);
+  await deleteAwsCredentials(context.get("user").workspaceId);
   return context.body(null, 204);
 });
 
-function requireSourceOwner(role: "member" | "owner") {
+function requireWorkspaceOwner(role: "member" | "owner") {
   if (role !== "owner") {
-    throw forbidden("Only administrators can manage Source credentials");
+    throw forbidden("Only administrators can manage AWS credentials");
   }
-}
-
-function requireSourceId(sourceId: string | undefined) {
-  if (!sourceId) throw badRequest("A Source ID is required");
-  return sourceId;
 }

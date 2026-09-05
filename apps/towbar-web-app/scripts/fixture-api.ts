@@ -15,7 +15,6 @@ import type {
   Deployment,
   DeploymentEvent,
   DeploymentLog,
-  DeploymentPlan,
   DeploymentState,
   DeploymentStep,
   GitHubConnection,
@@ -47,7 +46,6 @@ import type {
 export const fixtureIds = {
   app: "31111111-1111-4111-8111-222222222222",
   deployment: "61111111-1111-4111-8111-111111111111",
-  deploymentPlan: "71111111-1111-4111-8111-111111111112",
   preview: "b1111111-1111-4111-8111-111111111111",
   previewDeployment: "61111111-1111-4111-8111-444444444444",
   imageResource: "41111111-1111-4111-8111-444444444444",
@@ -181,6 +179,22 @@ fixtureSecretKeys.set(`${source.id}:production:build`, [
   "PACKAGE_REGISTRY_TOKEN",
 ]);
 fixtureSecretVersions.set(`${source.id}:production:build`, crypto.randomUUID());
+fixtureSecretKeys.set(`${user.workspaceId}:production:build`, [
+  "GLOBAL_PACKAGE_TOKEN",
+]);
+fixtureSecretVersions.set(
+  `${user.workspaceId}:production:build`,
+  crypto.randomUUID(),
+);
+fixtureSecretKeys.set(`${user.workspaceId}:preview:build`, [
+  "GLOBAL_PREVIEW_TOKEN",
+]);
+fixtureSecretVersions.set(
+  `${user.workspaceId}:preview:build`,
+  crypto.randomUUID(),
+);
+fixtureSecretKeys.set(`${source.id}:preview:build`, ["SOURCE_PREVIEW_TOKEN"]);
+fixtureSecretVersions.set(`${source.id}:preview:build`, crypto.randomUUID());
 
 const deployments: Deployment[] = [
   createDeploymentFixture(
@@ -339,81 +353,12 @@ const sourceSync: SourceSync = {
   id: fixtureIds.sync,
   issues: [],
   manifestDigest,
-  reconciliation: { apps: 3, resources: 2, servers: 2 },
+  reconciliation: { apps: 3, resources: 2 },
   startedAt: fixtureNow,
   status: "succeeded",
 };
 
-const deploymentPlans: DeploymentPlan[] = [
-  {
-    branch: "feature/deployment-plan-fixture",
-    createdAt: fixtureNow,
-    currentCommitSha: commitSha,
-    currentManifestDigest: manifestDigest,
-    githubCheckError: null,
-    githubCheckRunId: "1234567890",
-    githubCheckStatus: "published",
-    id: fixtureIds.deploymentPlan,
-    plan: {
-      checks: [
-        {
-          code: "manifest_schema",
-          message: "The candidate deployment manifest is valid.",
-          status: "passed",
-        },
-        {
-          code: "server_capacity",
-          entityId: fixtureIds.server,
-          entityKind: "server",
-          message:
-            "192.0.2.10 has limited Docker disk capacity. Review the server before deployment.",
-          references: ["192.0.2.10"],
-          status: "warning",
-        },
-      ],
-      items: [
-        {
-          action: "update",
-          automaticDeployment: true,
-          changedFields: ["dockerfile", "health.path"],
-          entityId: apps[1]!.manifestId,
-          entityKind: "app",
-          matchedPaths: ["apps/example-website/src/page.tsx"],
-          name: apps[1]!.name,
-          reasons: ["Deployment inputs changed in this pull request"],
-        },
-        {
-          action: "no_op",
-          automaticDeployment: false,
-          changedFields: [],
-          entityId: resources[0]!.manifestId,
-          entityKind: "resource",
-          matchedPaths: [],
-          name: resources[0]!.name,
-          reasons: ["No material configuration change"],
-        },
-      ],
-      status: "ready",
-      summary: { archive: 0, create: 0, no_op: 1, restore: 0, update: 1 },
-    },
-    pullRequestNumber: 42,
-    sourceId: source.id,
-    status: "ready",
-    targetCommitSha: "e".repeat(40),
-    targetManifestDigest: "f".repeat(64),
-    trigger: "pull_request",
-  },
-];
-
-const awsCredential: AwsCredentialMetadata = {
-  accessKeyIdSuffix: "ABCD",
-  createdAt: fixtureNow,
-  lastVerifiedAt: fixtureNow,
-  region: "ap-south-1",
-  status: "verified",
-  updatedAt: fixtureNow,
-  verificationMessage: null,
-};
+let awsCredential: AwsCredentialMetadata | null = null;
 
 const githubConnection: GitHubConnection = {
   accountLogin: "example-inc",
@@ -421,10 +366,8 @@ const githubConnection: GitHubConnection = {
   id: "b1111111-1111-4111-8111-111111111111",
   installationId: "12345678",
   permissionReadiness: {
-    checks: "write",
     contents: "read",
     deployments: "write",
-    planning: "ready",
     preview: "ready",
     pullRequests: "write",
     status: "available",
@@ -570,6 +513,28 @@ let systemHealth: SystemHealth = {
   version: "1.0.2-fixture",
 };
 
+function fixtureSystemHealth(): SystemHealth {
+  return {
+    ...systemHealth,
+    checks: [
+      ...systemHealth.checks,
+      ...(awsCredential
+        ? [
+            {
+              id: "aws" as const,
+              title: "AWS",
+              checkedAt: awsCredential.lastVerifiedAt,
+              description: `AWS identity verified. Region: ${awsCredential.region}.`,
+              status: "healthy" as const,
+              remediationHref: null,
+              remediationLabel: null,
+            },
+          ]
+        : []),
+    ],
+  };
+}
+
 const runtimeCapacity: RuntimeCapacity[] = [
   {
     checkedAt: systemHealthFixtureNow,
@@ -598,6 +563,7 @@ const runtimeCapacity: RuntimeCapacity[] = [
         name: apps[0]!.name,
         observedState: "running",
         restartCount: 2,
+        sourceId: source.id,
         startedAt: "2026-08-21T09:00:00.000Z",
       },
       {
@@ -610,10 +576,10 @@ const runtimeCapacity: RuntimeCapacity[] = [
         name: resources[0]!.name,
         observedState: "running",
         restartCount: 0,
+        sourceId: source.id,
         startedAt: "2026-08-20T09:00:00.000Z",
       },
     ],
-    sourceId: source.id,
     status: "attention",
     uptimeSeconds: 1_236_420,
   },
@@ -644,6 +610,7 @@ const runtimeCapacity: RuntimeCapacity[] = [
         name: app.name,
         observedState: "running" as const,
         restartCount: 0,
+        sourceId: app.sourceId,
         startedAt: "2026-08-22T07:00:00.000Z",
       })),
       ...resources.slice(1).map((resource, index) => ({
@@ -656,10 +623,10 @@ const runtimeCapacity: RuntimeCapacity[] = [
         name: resource.name,
         observedState: "running" as const,
         restartCount: 0,
+        sourceId: resource.sourceId,
         startedAt: "2026-08-22T07:00:00.000Z",
       })),
     ],
-    sourceId: source.id,
     status: "healthy",
     uptimeSeconds: 923_580,
   },
@@ -751,7 +718,7 @@ const backupAssurances: BackupAssurance[] = sourceBackups.map((backup) => {
     ].map((name) => ({
       message:
         s3AccessDenied && name === "object_exists"
-          ? "Source AWS credentials cannot access the S3 object"
+          ? "Workspace AWS credentials cannot access the S3 object"
           : `${name.replaceAll("_", " ")} verified`,
       name,
       passed: !(s3AccessDenied && name === "object_exists"),
@@ -821,6 +788,7 @@ const workflowStates: DeploymentState[] = [
 ];
 
 export function createFixtureApiServer() {
+  awsCredential = null;
   return createServer((request, response) => {
     if (!authorizeFixtureCorsRequest(response, request.headers.origin)) return;
     if (request.method === "OPTIONS") {
@@ -831,6 +799,31 @@ export function createFixtureApiServer() {
 
     const requestUrl = new URL(request.url ?? "/", "http://localhost");
     const path = requestUrl.pathname;
+    if (path === "/v1/core/aws" && request.method === "PUT") {
+      void readRequestJson(request)
+        .then((input) => {
+          const values = input as { accessKeyId?: string; region?: string };
+          const now = new Date().toISOString();
+          awsCredential = {
+            accessKeyIdSuffix: values.accessKeyId?.slice(-4) ?? "ABCD",
+            createdAt: now,
+            lastVerifiedAt: now,
+            region: values.region ?? "ap-south-1",
+            status: "verified",
+            updatedAt: now,
+            verificationMessage: "AWS identity verified",
+          };
+          return writeJson(response, 200, { credential: awsCredential });
+        })
+        .catch(() => writeJson(response, 400, { error: "Invalid JSON" }));
+      return;
+    }
+    if (path === "/v1/core/aws" && request.method === "DELETE") {
+      awsCredential = null;
+      response.writeHead(204);
+      response.end();
+      return;
+    }
     if (
       request.method === "POST" &&
       path === "/v1/core/system-health/actions/check"
@@ -846,10 +839,78 @@ export function createFixtureApiServer() {
         })),
         status: "healthy",
       };
-      return writeJson(response, 200, systemHealth);
+      if (awsCredential) awsCredential.lastVerifiedAt = checkedAt;
+      return writeJson(response, 200, fixtureSystemHealth());
     }
     if (request.method === "POST" && path === "/v1/core/sources") {
       return writeJson(response, 201, { source });
+    }
+    if (request.method === "POST" && path === "/v1/core/servers") {
+      void readRequestJson(request)
+        .then((input) => {
+          const config = input as Server["config"];
+          if (servers.some((item) => item.canonicalIp === config.ip)) {
+            return writeJson(response, 409, {
+              error: { message: `Server '${config.ip}' is already configured` },
+            });
+          }
+          const server = createServerFixture(
+            randomUUID(),
+            config.ip,
+            config.ssh.username,
+            false,
+          );
+          server.config = {
+            ...config,
+            buildConcurrency: config.buildConcurrency ?? 1,
+            previewBuildConcurrency: config.previewBuildConcurrency ?? 1,
+            ssh: {
+              host: config.ssh.host ?? config.ip,
+              port: config.ssh.port ?? 22,
+              username: config.ssh.username,
+            },
+          };
+          servers.push(server);
+          hostKeysByServer.set(server.id, []);
+          serverPreparationsByServer.set(server.id, []);
+          runtimeCapacity.push(emptyRuntimeCapacity(server));
+          return writeJson(response, 201, { server });
+        })
+        .catch(() =>
+          writeJson(response, 400, {
+            error: { message: "Invalid server configuration" },
+          }),
+        );
+      return;
+    }
+    const serverMutationMatch = path.match(/^\/v1\/core\/servers\/([^/]+)$/);
+    if (serverMutationMatch && request.method === "PATCH") {
+      const server = servers.find((item) => item.id === serverMutationMatch[1]);
+      if (!server) return writeNotFound(response);
+      void readRequestJson(request)
+        .then((input) => {
+          const config = input as Server["config"];
+          if (config.ip !== server.canonicalIp) {
+            return writeJson(response, 409, {
+              error: {
+                message: "Add a new server to use a different IP address",
+              },
+            });
+          }
+          server.config = config;
+          server.setupStatus = "pending";
+          server.updatedAt = new Date().toISOString();
+          return writeJson(response, 200, { server });
+        })
+        .catch(() =>
+          writeJson(response, 400, {
+            error: { message: "Invalid server configuration" },
+          }),
+        );
+      return;
+    }
+    if (serverMutationMatch && request.method === "DELETE") {
+      return writeNotFound(response);
     }
     if (
       request.method === "POST" &&
@@ -962,13 +1023,21 @@ export function createFixtureApiServer() {
     const mutationMatch = path.match(
       /^\/v1\/core\/(sources|apps|resources)\/([^/]+)\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)$/,
     );
-    const credentialMatch =
-      path.match(/^\/v1\/core\/servers\/([^/]+)\/credentials$/) ??
-      path.match(/^\/v1\/core\/settings\/notifications\/(slack|smtp)$/);
-    if (request.method === "PATCH" && (mutationMatch || credentialMatch)) {
+    const globalSecretMutationMatch = path.match(
+      /^\/v1\/core\/settings\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)$/,
+    );
+    const credentialMatch = path.match(
+      /^\/v1\/core\/servers\/([^/]+)\/credentials$/,
+    );
+    if (
+      request.method === "PATCH" &&
+      (mutationMatch || globalSecretMutationMatch || credentialMatch)
+    ) {
       const key = mutationMatch
         ? `${mutationMatch[2]}:${mutationMatch[3]}:${mutationMatch[4]}`
-        : `credentials:${credentialMatch![1]}`;
+        : globalSecretMutationMatch
+          ? `${user.workspaceId}:${globalSecretMutationMatch[1]}:${globalSecretMutationMatch[2]}`
+          : `credentials:${credentialMatch![1]}`;
       void readRequestJson(request)
         .then((input) => {
           const payload = input as {
@@ -1071,6 +1140,25 @@ export function createFixtureApiServer() {
     const prepareServerMatch = path.match(
       /^\/v1\/core\/servers\/([^/]+)\/actions\/prepare$/,
     );
+    const checkServerMatch = path.match(
+      /^\/v1\/core\/servers\/([^/]+)\/actions\/check$/,
+    );
+    if (request.method === "POST" && checkServerMatch) {
+      const server = servers.find((item) => item.id === checkServerMatch[1]);
+      if (!server) return writeNotFound(response);
+      return writeJson(response, 202, {
+        check: {
+          createdAt: new Date().toISOString(),
+          errorCode: null,
+          errorMessage: null,
+          finishedAt: null,
+          id: randomUUID(),
+          result: null,
+          startedAt: null,
+          status: "queued",
+        } satisfies ServerCheck,
+      });
+    }
     if (request.method === "POST" && prepareServerMatch) {
       const server = servers.find((item) => item.id === prepareServerMatch[1]);
       if (!server) return writeNotFound(response);
@@ -1360,7 +1448,41 @@ function getFixturePayload(
   path: string,
   searchParams: URLSearchParams,
 ): unknown {
+  if (path === "/v1/core/deployments/history") {
+    const page = readPositiveInteger(searchParams.get("page"), 1);
+    const limit = Math.min(
+      100,
+      readPositiveInteger(searchParams.get("limit"), 10),
+    );
+    const ordered = [...deployments].sort(
+      (left, right) =>
+        right.createdAt.localeCompare(left.createdAt) ||
+        right.id.localeCompare(left.id),
+    );
+    const deployables = new Map(
+      [...apps, ...resources].map((item) => [item.id, item]),
+    );
+    return {
+      deployments: ordered
+        .slice((page - 1) * limit, page * limit)
+        .map((item) => ({
+          ...item,
+          deployableName:
+            deployables.get(item.appId)?.name ?? "Unknown workload",
+        })),
+      pagination: {
+        page,
+        limit,
+        total: ordered.length,
+        totalPages: Math.ceil(ordered.length / limit),
+      },
+    };
+  }
   const fixedPayloads = new Map<string, unknown>([
+    [
+      "/v1/core/notifications/providers",
+      { providers: { slack: false, smtp: false } },
+    ],
     ["/v1/core/session", { user }],
     ["/v1/core/profile", { user }],
     [
@@ -1379,7 +1501,7 @@ function getFixturePayload(
     ["/v1/core/apps", { apps }],
     ["/v1/core/resources", { resources }],
     ["/v1/core/servers", { servers }],
-    ["/v1/core/system-health", systemHealth],
+    ["/v1/core/system-health", fixtureSystemHealth()],
     [
       "/v1/core/deployments",
       {
@@ -1394,35 +1516,18 @@ function getFixturePayload(
       {
         manifest: {
           commitSha,
-          manifest: { apps: [], resources: [], servers: [], version: 1 },
+          manifest: { apps: [], resources: [], version: 1 },
           manifestDigest,
-          rawManifest: "version: 1\nservers: []\napps: []\nresources: []\n",
+          rawManifest: "version: 1\napps: []\nresources: []\n",
         },
       },
     ],
     [`/v1/core/sources/${source.id}/syncs`, { syncs: [sourceSync] }],
-    [`/v1/core/sources/${source.id}/aws`, { credential: awsCredential }],
+    ["/v1/core/aws", { canManage: true, credential: awsCredential }],
     [`/v1/core/sources/${source.id}/apps`, { apps }],
     [`/v1/core/sources/${source.id}/capacity`, { capacities: runtimeCapacity }],
     [`/v1/core/sources/${source.id}/previews`, { previews }],
-    [`/v1/core/sources/${source.id}/plans`, { plans: deploymentPlans }],
     [`/v1/core/sources/${source.id}/resources`, { resources }],
-    [
-      `/v1/core/sources/${source.id}/servers`,
-      {
-        servers: servers.map((server) => ({
-          ...server,
-          hostKeyStatus:
-            (hostKeysByServer.get(server.id)?.length ?? 0) > 0 &&
-            !(
-              server.id === fixtureIds.server &&
-              serverChecks[0]?.errorCode === "HOST_KEY_NOT_TRUSTED"
-            )
-              ? "trusted"
-              : "untrusted",
-        })),
-      },
-    ],
     [
       `/v1/core/sources/${source.id}/deployments`,
       {
@@ -1437,7 +1542,7 @@ function getFixturePayload(
       {
         canManageNotifications: true,
         destinations: notificationDestinations,
-        providers: { slack: true, smtp: true },
+        providers: { slack: false, smtp: false },
       },
     ],
     [`/v1/core/notifications`, { notifications: notificationEvents }],
@@ -1448,16 +1553,6 @@ function getFixturePayload(
   ]);
   const fixed = fixedPayloads.get(path);
   if (fixed !== undefined) return fixed;
-
-  const deploymentPlanMatch = path.match(
-    new RegExp(`^/v1/core/sources/${source.id}/plans/([^/]+)$`),
-  );
-  if (deploymentPlanMatch) {
-    const plan = deploymentPlans.find(
-      (item) => item.id === deploymentPlanMatch[1],
-    );
-    return plan ? { plan } : undefined;
-  }
 
   const deploymentMatch = path.match(
     /^\/v1\/core\/deployments\/([^/]+)(?:\/(steps|logs))?$/,
@@ -1487,8 +1582,16 @@ function getFixturePayload(
     return { deployment };
   }
 
+  if (path === "/v1/core/settings/secrets") {
+    return getFixtureGlobalSecrets(
+      searchParams.get("environment") === "preview" ? "preview" : "production",
+    );
+  }
+
   if (path === `/v1/core/sources/${source.id}/secrets`) {
-    return getFixtureSourceSecrets();
+    return getFixtureSourceSecrets(
+      searchParams.get("environment") === "preview" ? "preview" : "production",
+    );
   }
 
   const deployableSecretsMatch = path.match(
@@ -1520,6 +1623,7 @@ function getFixturePayload(
     return {
       assurance: assurances[0] ?? null,
       assurances,
+      awsConfigured: Boolean(awsCredential),
       canRestore: true,
     };
   }
@@ -1623,7 +1727,7 @@ function getFixturePayload(
       return { hostKeys: hostKeysByServer.get(server.id) ?? [] };
     }
     if (child === "orphans") return { orphans: orphanItems };
-    return { canCleanupOrphans: true, server };
+    return { canCleanupOrphans: true, canManageServer: true, server };
   }
 
   return undefined;
@@ -1726,13 +1830,26 @@ function getFixtureDeployableSecrets(
     deployable.kind !== "app",
   );
 }
-function getFixtureSourceSecrets(): AppSecretsResponse {
-  return getFixtureSecretsResponse(source.id, "production", false);
+function getFixtureGlobalSecrets(
+  environment: "production" | "preview",
+): AppSecretsResponse {
+  return getFixtureSecretsResponse(
+    user.workspaceId,
+    environment,
+    false,
+    "global",
+  );
+}
+function getFixtureSourceSecrets(
+  environment: "production" | "preview",
+): AppSecretsResponse {
+  return getFixtureSecretsResponse(source.id, environment, false, "source");
 }
 function getFixtureSecretsResponse(
   id: string,
   environment: "production" | "preview",
   resource: boolean,
+  scope: "global" | "source" | "deployable" = "deployable",
 ): AppSecretsResponse {
   const stages = resource
     ? ["deployment" as const]
@@ -1741,17 +1858,34 @@ function getFixtureSecretsResponse(
     canManageSecrets: true,
     bindings: stages.map((stage) => {
       const local = fixtureMetadata(`${id}:${environment}:${stage}`);
+      const global =
+        scope !== "global"
+          ? fixtureMetadata(`${user.workspaceId}:${environment}:${stage}`)
+          : { keys: [], revision: null };
       const shared =
-        id !== source.id && environment === "production"
+        scope === "deployable"
           ? fixtureMetadata(`${source.id}:production:${stage}`)
           : { keys: [], revision: null };
+      if (scope === "deployable" && environment === "preview") {
+        Object.assign(shared, fixtureMetadata(`${source.id}:preview:${stage}`));
+      }
+      const inheritedKeys = [
+        ...new Set([...global.keys, ...shared.keys]),
+      ].sort();
       return {
         ...local,
         environment,
         stage,
-        inheritedKeys: shared.keys,
-        inheritedRevision: shared.revision,
-        pendingChanges: id !== source.id && Boolean(local.revision),
+        inheritedKeys,
+        inheritedOrigins: Object.fromEntries([
+          ...global.keys.map((key) => [key, "global"] as const),
+          ...shared.keys.map((key) => [key, "source"] as const),
+        ]),
+        inheritedRevisions: {
+          global: global.revision,
+          source: shared.revision,
+        },
+        pendingChanges: scope === "deployable" && Boolean(local.revision),
         affectedDeployables:
           environment === "preview"
             ? previews
@@ -1765,7 +1899,7 @@ function getFixtureSecretsResponse(
                   name: `PR #${preview.pullRequestNumber}`,
                   kind: "preview" as const,
                 }))
-            : id === source.id
+            : scope === "source"
               ? [...apps, ...resources]
                   .filter(
                     (item) => stage === "deployment" || item.kind === "app",
@@ -1820,6 +1954,16 @@ function createServerFixture(
   return {
     archivedAt: null,
     canonicalIp,
+    hardware:
+      id === fixtureIds.server
+        ? {
+            instance: { provider: "aws", type: "m6i.xlarge" },
+            cpuCount: 4,
+            memoryBytes: 17_179_869_184,
+          }
+        : id === fixtureIds.secondaryServer
+          ? { instance: null, cpuCount: 8, memoryBytes: 34_359_738_368 }
+          : null,
     config: {
       buildConcurrency: 2,
       previewBuildConcurrency: 1,
@@ -1830,9 +1974,22 @@ function createServerFixture(
     id,
     preparedAt: ready ? fixtureNow : null,
     setupStatus: ready ? "ready" : "pending",
-    sourceId: source.id,
-    sourceRevision: commitSha,
     updatedAt: fixtureNow,
+  };
+}
+
+function emptyRuntimeCapacity(server: Server): RuntimeCapacity {
+  return {
+    checkedAt: null,
+    cpu: null,
+    disk: null,
+    id: server.id,
+    ip: server.canonicalIp,
+    latestCheckStatus: null,
+    memory: null,
+    runtimes: [],
+    status: "unknown",
+    uptimeSeconds: null,
   };
 }
 

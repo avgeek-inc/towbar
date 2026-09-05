@@ -142,6 +142,7 @@ export type ServerCheckResult = {
   caddyVersion: string;
   diskAvailableKb: number;
   host: {
+    instance?: import("@workspace/towbar-core").CloudInstance | null;
     cpuLogicalCount: number;
     cpuUsagePercent: number;
     diskAvailableKb: number;
@@ -158,7 +159,7 @@ export type ServerCheckResult = {
   runtime: RuntimeInspection[];
 };
 
-export type SourceAwsCredential = {
+export type WorkspaceAwsCredential = {
   accessKeyId: string;
   region: string;
   secretAccessKey: string;
@@ -191,7 +192,7 @@ export type ResourceOperationExecutionContext = {
 };
 
 export type ResourceOperationSecrets = {
-  aws: SourceAwsCredential | null;
+  aws: WorkspaceAwsCredential | null;
   login: SshLoginSecret;
   runtime: Record<string, string>;
   sensitiveValues: string[];

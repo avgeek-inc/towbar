@@ -1,5 +1,7 @@
 "use client";
 
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+
 import type { PreviewEnvironment } from "@workspace/towbar-web-client";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -12,6 +14,7 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { ActionButton, InlineLink } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
+import { RelativeTime } from "./last-synced-time";
 import { formatDate } from "./dashboard-overview";
 
 export function PreviewEnvironments({
@@ -37,7 +40,7 @@ export function PreviewEnvironments({
       header: "Pull request",
       className: "min-w-48",
       cell: (preview) => (
-        <div className="flex flex-col items-start gap-1">
+        <div className="flex flex-col items-start gap-0.5">
           <a
             className="focus-visible:ring-focus rounded-md underline decoration-muted underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2"
             href={preview.pullRequestUrl}
@@ -46,12 +49,12 @@ export function PreviewEnvironments({
           >
             PR #{preview.pullRequestNumber}
           </a>
-          <span
+          <TooltipText
             className="max-w-48 truncate text-sm text-muted"
-            title={preview.branch}
+            tooltip={preview.branch}
           >
             {preview.branch}
-          </span>
+          </TooltipText>
         </div>
       ),
     },
@@ -97,14 +100,16 @@ export function PreviewEnvironments({
       key: "expires",
       header: "Expires",
       className: "min-w-48 whitespace-nowrap",
-      cell: (preview) => formatDate(preview.expiresAt),
+      cell: (preview) => (
+        <RelativeTime label="Expires" value={preview.expiresAt} />
+      ),
     },
     {
       key: "status",
       header: "Status",
       className: "min-w-56",
       cell: (preview) => (
-        <div className="flex flex-col items-start gap-1">
+        <div className="flex flex-col items-start gap-0.5">
           <StatusBadge status={preview.status} />
           {preview.status === "cleanup_failed" && preview.errorMessage ? (
             <span className="line-clamp-2 text-sm text-danger">

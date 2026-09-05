@@ -38,48 +38,6 @@ export type AutoDeployControlResponse = {
   canManageAutoDeploy: boolean;
 };
 
-export type DeploymentPlanAction =
-  "archive" | "create" | "no_op" | "restore" | "update";
-
-export type DeploymentPlan = {
-  branch: string;
-  createdAt: string;
-  currentCommitSha: string | null;
-  currentManifestDigest: string | null;
-  githubCheckError?: string | null;
-  githubCheckRunId?: string | null;
-  githubCheckStatus: "failed" | "pending" | "published" | null;
-  id: string;
-  plan: {
-    checks: Array<{
-      code: string;
-      entityId?: string;
-      entityKind?: "app" | "resource" | "server" | "source";
-      message: string;
-      references?: string[];
-      status: "failed" | "passed" | "warning";
-    }>;
-    items: Array<{
-      action: DeploymentPlanAction;
-      automaticDeployment: boolean;
-      changedFields: string[];
-      entityId: string;
-      entityKind: "app" | "resource" | "server";
-      matchedPaths: string[];
-      name: string;
-      reasons: string[];
-    }>;
-    status: "blocked" | "ready" | "skipped";
-    summary: Record<DeploymentPlanAction, number>;
-  };
-  pullRequestNumber: number | null;
-  sourceId: string;
-  status: "blocked" | "ready" | "skipped";
-  targetCommitSha: string;
-  targetManifestDigest: string | null;
-  trigger: "manual" | "pull_request";
-};
-
 export type App = {
   archivedAt: string | null;
   config: {
@@ -139,8 +97,12 @@ export type AppSecretBinding = {
   stage: AppSecretStage;
   keys: string[];
   inheritedKeys: string[];
+  inheritedOrigins: Record<string, "global" | "source">;
   revision: string | null;
-  inheritedRevision: string | null;
+  inheritedRevisions: {
+    global: string | null;
+    source: string | null;
+  };
   updatedAt: string | null;
   pendingChanges: boolean;
   affectedDeployables: Array<{
@@ -248,20 +210,20 @@ export type Resource = {
 };
 
 export type Server = {
+  hardware?: import("@workspace/towbar-core").ServerHardware | null;
   archivedAt: string | null;
   canonicalIp: string;
   config: {
     buildConcurrency?: number;
     previewBuildConcurrency?: number;
     ip: string;
+    proxy?: { cloudflare: { enabled: true } };
     ssh: { host?: string; port: number; username: string };
   };
   createdAt: string;
   id: string;
   preparedAt: string | null;
   setupStatus: "pending" | "preparing" | "ready" | "failed";
-  sourceId: string;
-  sourceRevision: string;
   updatedAt: string;
 };
 
@@ -533,10 +495,8 @@ export type GitHubConnection = {
   installationId: string;
   permissionReadiness:
     | {
-        checks: "none" | "read" | "write";
         contents: "none" | "read" | "write";
         deployments: "none" | "read" | "write";
-        planning: "missing" | "ready";
         preview: "missing" | "ready";
         pullRequests: "none" | "read" | "write";
         status: "available";
@@ -601,6 +561,13 @@ export type PaginationMetadata = {
   totalPages: number;
 };
 
+export type DeploymentHistoryItem = Deployment & { deployableName: string };
+
+export type DeploymentHistoryPage = {
+  deployments: DeploymentHistoryItem[];
+  pagination: PaginationMetadata;
+};
+
 export type ServerChecksPage = {
   checks: ServerCheck[];
   latestCheck: ServerCheck | null;
@@ -633,10 +600,6 @@ export type ServerPreparation = {
   startedAt: string | null;
   status: "queued" | "running" | "succeeded" | "failed";
   steps: ServerPreparationStep[];
-};
-
-export type SourceServer = Server & {
-  hostKeyStatus: "trusted" | "untrusted";
 };
 
 export type TrustedHostKey = {

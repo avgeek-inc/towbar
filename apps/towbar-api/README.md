@@ -34,8 +34,8 @@ no authorization-code exchange or separate authentication origin.
 Forgotten-owner recovery is an operator-only startup operation. Configure
 `TOWBAR_OWNER_RESET_EMAIL` and a high-entropy temporary
 `TOWBAR_OWNER_RESET_PASSWORD`, restart the API, sign in normally, and change the
-password in Settings. The API stores the login credential only as an Argon2id
-password hash. A separate keyed marker records only whether that operator reset
+password under Account → Profile. The API stores the login credential only as
+an Argon2id password hash. A separate keyed marker records only whether that operator reset
 value has already run; it is never accepted by login. Existing sessions are
 revoked, and the same reset value is not reapplied on a later restart. Towbar
 exposes no unauthenticated password-reset route.
@@ -63,32 +63,20 @@ the pull request, and keeps production runtime health unchanged. Pull request
 merge or closure, retargeting, TTL expiry, manifest disablement, and owner
 deletion converge on the same cleanup admission path.
 
-The same eligible pull request reconciliation creates an immutable deployment
-plan before Preview admission. Planning reads the PR head manifest, current
-Source inventory, repository input digests, server observations, credential
-metadata, and active operation state without resolving secret values or
-enqueueing work. The API publishes one completed GitHub Check per Source and
-head commit and links it to the full plan. Repeated deliveries update the
-existing Check and reuse the same plan record and Preview deployment work for
-that Source, pull request, and head commit.
-Pull requests with no matching deployable changes produce a neutral `skipped`
-plan without evaluating unrelated server capacity, readiness, or secret
-bindings. Transient GitHub transport, rate-limit, and availability failures are
-retried instead of being persisted as blocked plans. GitHub Check reporting is
-tracked independently and cannot change or invalidate a persisted plan.
-
-Optional S3 backup credentials and Servers are Source-scoped. Server identity is
-`(source_id, canonical_ip)`, allowing independent Sources to target the same IP
-without sharing configuration or trust records. Deleting a Source permanently
-removes its database-owned credential, inventory, backup metadata, runtime
+Optional S3 backup credentials are workspace-scoped. Servers are
+workspace-owned; server identity is `(workspace_id, canonical_ip)`, so independent Sources that
+target the same IP share configuration, credentials, trust, and preparation.
+Deleting a Source permanently
+removes its inventory, backup metadata, runtime
 state, and operational history. Backup objects already uploaded to S3 remain
 external and are not deleted by Source removal.
 
 Apps and Resources share the deployment ledger but remain separate API and UI
 entities. Resources support versioned images plus PostgreSQL and Redis presets.
 Editor-owned secrets are stored separately from immutable deployable snapshots.
-Source production defaults and app overrides are resolved at execution time;
-preview stages use only app preview values.
+Matching-environment defaults resolve from Shared secrets to the Source and
+then the app or resource at execution time. Preview stages never use Production
+values.
 Successful release commits also persist the Docker image content digest and
 platform reported by the target host. Existing source, manifest, configuration,
 and selected-input digests remain the rest of the provenance record.
@@ -113,8 +101,8 @@ Declared Docker networks are created as managed bridge networks on first use
 and reused by subsequent apps and Resources on that Server. Operators do not
 need to pre-create manifest-owned networks.
 
-Server preparation is a durable, Source-scoped operation. Readiness is bound
-to the exact normalized Server configuration digest; a manifest change makes
+Server preparation is a durable workspace operation. Readiness is bound to the
+exact normalized Server configuration digest; a Towbar settings change makes
 the Server pending again. Deployment admission and automatic-deployment
 selection both require a current successful preparation.
 
@@ -136,9 +124,10 @@ and expired rollback-volume cleanup.
 
 Owners can configure multiple Source-scoped Slack and SMTP notification
 destinations for deployment, Preview, runtime health, backup, and restore event
-categories. Owners configure Slack and SMTP in installation Settings, with
-credentials encrypted in the database. Each attempt resolves current provider
-configuration and records a separate durable delivery and bounded retry history.
+categories. Slack and SMTP provider credentials come from the API deployment
+environment, and unavailable provider types are omitted from the destination
+editor. Each attempt resolves current provider configuration and records a
+separate durable delivery and bounded retry history.
 Test sends and manual retries use the same delivery pipeline. Slack uses a bot
 token and channel IDs. SMTP targets must resolve exclusively to public addresses
 and are connected through a pinned address with TLS server-name verification.

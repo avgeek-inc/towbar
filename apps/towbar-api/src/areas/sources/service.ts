@@ -13,8 +13,6 @@ import {
   imageVulnerabilityScans,
   releases,
   resourceOperations,
-  serverChecks,
-  servers,
   sourceSyncs,
   sources,
 } from "@workspace/towbar-database/schema";
@@ -40,7 +38,8 @@ import {
   calculateLegacyReleaseDigests,
   fetchRepositoryTreeForDeploymentInputs,
 } from "./deployment-digests.js";
-import { applyDeployableAction, upsertServer } from "./materialization.js";
+import { applyDeployableAction } from "./materialization.js";
+import { resolveWorkspaceServers } from "../servers/references.js";
 
 import type { ManifestIssue } from "@workspace/towbar-core";
 
@@ -92,15 +91,8 @@ export async function deleteSource(sourceId: string, workspaceId: string) {
       .for("update")
       .limit(1);
     if (!source) throw notFound("Source");
-    await transaction
-      .select({ id: servers.id })
-      .from(servers)
-      .where(eq(servers.sourceId, sourceId))
-      .for("update");
-
     const [
       activeDeployment,
-      activeCheck,
       activeSync,
       activeOperation,
       activeVulnerabilityScan,
@@ -118,17 +110,6 @@ export async function deleteSource(sourceId: string, workspaceId: string) {
               "succeeded",
               "succeeded_with_warnings",
             ]),
-          ),
-        )
-        .limit(1),
-      transaction
-        .select({ id: serverChecks.id })
-        .from(serverChecks)
-        .innerJoin(servers, eq(servers.id, serverChecks.serverId))
-        .where(
-          and(
-            eq(servers.sourceId, sourceId),
-            inArray(serverChecks.status, ["queued", "running"]),
           ),
         )
         .limit(1),
@@ -165,7 +146,6 @@ export async function deleteSource(sourceId: string, workspaceId: string) {
     ]);
     if (
       activeDeployment.length ||
-      activeCheck.length ||
       activeSync.length ||
       activeOperation.length ||
       activeVulnerabilityScan.length
@@ -191,7 +171,6 @@ export async function deleteSource(sourceId: string, workspaceId: string) {
       .delete(deployments)
       .where(eq(deployments.sourceId, sourceId));
     await transaction.delete(apps).where(eq(apps.sourceId, sourceId));
-    await transaction.delete(servers).where(eq(servers.sourceId, sourceId));
     await transaction
       .delete(githubWebhookDeliveries)
       .where(eq(githubWebhookDeliveries.sourceId, sourceId));
@@ -205,10 +184,15 @@ export async function previewSourceSync(sourceId: string, workspaceId: string) {
   const source = await getSourceWithInstallation(sourceId, workspaceId);
   const { parsed, repositoryTree, snapshot } =
     await fetchConfiguredSourceSnapshot(source);
+  const workspaceServers = await resolveWorkspaceServers(
+    workspaceId,
+    parsed.manifest,
+  );
   calculateDesiredDeploymentDigests({
     commitSha: snapshot.commitSha,
     manifest: parsed.manifest,
     repositoryTree,
+    servers: workspaceServers.map((server) => server.config),
   });
   const current = await loadCurrentInventory(sourceId);
   assertStableDeployableKinds(current, parsed.manifest);
@@ -219,7 +203,6 @@ export async function previewSourceSync(sourceId: string, workspaceId: string) {
     reconciliation: reconcileManifest({
       currentApps: current.apps,
       currentResources: current.resources,
-      currentServers: current.servers,
       desired: parsed.manifest,
     }),
   };
@@ -337,17 +320,21 @@ async function applySourceSync(input: {
     const { parsed, repositoryTree, snapshot } =
       await fetchConfiguredSourceSnapshot(source);
     const current = await loadCurrentInventory(input.sourceId);
+    const workspaceServers = await resolveWorkspaceServers(
+      input.workspaceId,
+      parsed.manifest,
+    );
     assertStableDeployableKinds(current, parsed.manifest);
     const reconciliation = reconcileManifest({
       currentApps: current.apps,
       currentResources: current.resources,
-      currentServers: current.servers,
       desired: parsed.manifest,
     });
     const desiredDeploymentDigests = calculateDesiredDeploymentDigests({
       commitSha: snapshot.commitSha,
       manifest: parsed.manifest,
       repositoryTree,
+      servers: workspaceServers.map((server) => server.config),
     });
     const legacyReleaseDigests = await calculateLegacyReleaseDigests({
       commitSha: snapshot.commitSha,
@@ -402,37 +389,15 @@ async function applySourceSync(input: {
         }
       }
 
-      const serverIds = new Map<string, string>();
+      const serverIds = new Map(
+        workspaceServers.map((server) => [server.ip, server.id] as const),
+      );
       for (const [releaseId, digest] of legacyReleaseDigests) {
         await transaction
           .update(releases)
           .set(digest)
           .where(eq(releases.id, releaseId));
       }
-      for (const action of reconciliation.servers) {
-        if (action.action === "archive") {
-          if (!action.current) continue;
-          await transaction
-            .update(servers)
-            .set({ archivedAt: new Date(), updatedAt: new Date() })
-            .where(
-              and(
-                eq(servers.id, action.current.id),
-                eq(servers.sourceId, input.sourceId),
-              ),
-            );
-          continue;
-        }
-        if (!action.desired) continue;
-        const serverId = await upsertServer(transaction, {
-          action,
-          commitSha: snapshot.commitSha,
-          sourceId: input.sourceId,
-          workspaceId: input.workspaceId,
-        });
-        serverIds.set(action.desired.ip, serverId);
-      }
-
       for (const action of reconciliation.apps) {
         await applyDeployableAction(transaction, {
           action,

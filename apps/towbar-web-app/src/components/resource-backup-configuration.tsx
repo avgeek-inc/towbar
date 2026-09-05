@@ -1,5 +1,15 @@
 "use client";
 
+import { ElapsedTime } from "./elapsed-time";
+
+import { HugeiconsIcon } from "@hugeicons/react";
+
+import {
+  Archive01Icon,
+  RefreshIcon,
+  Settings01Icon,
+} from "@hugeicons/core-free-icons";
+
 import { useState } from "react";
 import type { FormEvent } from "react";
 
@@ -22,7 +32,7 @@ import {
   FieldLabel,
 } from "@workspace/web-design-system/forms/field";
 import { Input } from "@workspace/web-design-system/forms/input";
-import { Card } from "@workspace/web-design-system/layout/card";
+import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Modal } from "@workspace/web-design-system/overlays/modal";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
@@ -33,16 +43,18 @@ import {
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
-import { ActionButton } from "@/components/page-parts";
+import { ActionButton, InlineLink } from "@/components/page-parts";
 import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { getBackupHealth } from "@/lib/backup-health";
+import { RelativeTime } from "./last-synced-time";
 import { formatDate } from "./dashboard-overview";
 import { formatBytes } from "./runtime-operations";
 
 type AssuranceResponse = {
   assurance: BackupAssurance | null;
   assurances: BackupAssurance[];
+  awsConfigured: boolean;
   canRestore: boolean;
 };
 
@@ -118,7 +130,12 @@ export function ResourceBackupConfiguration({
     {
       key: "created",
       header: "Created",
-      cell: (item) => formatDate(item.finishedAt ?? item.createdAt),
+      cell: (item) => (
+        <RelativeTime
+          label="Created"
+          value={item.finishedAt ?? item.createdAt}
+        />
+      ),
       className: "min-w-48 whitespace-nowrap tabular-nums",
     },
     {
@@ -159,6 +176,7 @@ export function ResourceBackupConfiguration({
           <Button
             isDisabled={
               !active ||
+              !assuranceData.awsConfigured ||
               !assuranceData.canRestore ||
               !assurance?.restoreReady ||
               restoreOperations.some((operation) =>
@@ -178,65 +196,90 @@ export function ResourceBackupConfiguration({
   ];
 
   return (
-    <div className="grid min-w-0 gap-8">
-      <div className="grid min-w-0 gap-6">
-        <Card className="min-w-0">
-          <Card.Header className="items-start gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="grid min-w-0 flex-1 gap-1">
-              <Card.Title>{backupHealth.title}</Card.Title>
-              <p className="text-muted typography--body-sm">
-                {backupHealth.description}
-              </p>
-            </div>
-            <Chip className="shrink-0" variant={backupHealth.tone}>
-              {backupHealth.label}
-            </Chip>
-          </Card.Header>
-          <Card.Content className="grid min-w-0 gap-3">
-            <ol className="grid overflow-hidden rounded-lg border border-separator divide-y divide-separator md:grid-cols-3 md:divide-x md:divide-y-0">
-              {backupHealth.stages.map((stage) => (
-                <li className="grid content-start gap-2 p-4" key={stage.label}>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium typography--body-sm">
-                      {stage.label}
-                    </span>
-                    <Chip size="small" variant={stage.tone}>
-                      {stage.status}
-                    </Chip>
-                  </div>
-                  <p className="text-muted typography--body-sm">
-                    {stage.description}
-                  </p>
-                </li>
-              ))}
-            </ol>
-            {latestAssurance ? (
-              <p className="text-muted typography--body-xs">
-                Last checked {formatDate(latestAssurance.checkedAt)}
-              </p>
+    <div className="content-grid min-w-0">
+      <div className="content-grid min-w-0">
+        {assuranceData.awsConfigured ? (
+          <Widget className="min-w-0">
+            <Widget.Header
+              endContent={
+                <Chip className="shrink-0" variant={backupHealth.tone}>
+                  {backupHealth.label}
+                </Chip>
+              }
+            >
+              <Widget.Title icon={<HugeiconsIcon icon={Archive01Icon} />}>
+                {backupHealth.title}
+              </Widget.Title>
+            </Widget.Header>
+            <Widget.Content className="grid min-w-0 gap-3">
+              <ol className="grid overflow-hidden rounded-lg border border-separator divide-y divide-separator md:grid-cols-3 md:divide-x md:divide-y-0">
+                {backupHealth.stages.map((stage) => (
+                  <li
+                    className="grid content-start gap-2 p-4"
+                    key={stage.label}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium typography--body-sm">
+                        {stage.label}
+                      </span>
+                      <Chip size="small" variant={stage.tone}>
+                        {stage.status}
+                      </Chip>
+                    </div>
+                    <p className="text-muted typography--body-sm">
+                      {stage.description}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            </Widget.Content>
+            {latestAssurance || active ? (
+              <Widget.Footer className="justify-end">
+                {latestAssurance ? (
+                  <Widget.FooterDescription>
+                    Last checked {formatDate(latestAssurance.checkedAt)}
+                  </Widget.FooterDescription>
+                ) : null}
+                {active ? (
+                  <ActionButton
+                    action={() =>
+                      api.post(
+                        `/v1/core/resources/${resource.id}/actions/backup`,
+                        undefined,
+                        { "Idempotency-Key": crypto.randomUUID() },
+                      )
+                    }
+                    pendingLabel="Queueing backup…"
+                    success="Backup queued"
+                    variant="primary"
+                  >
+                    Back up now
+                  </ActionButton>
+                ) : null}
+              </Widget.Footer>
             ) : null}
-          </Card.Content>
-          {active ? (
-            <Card.Footer className="justify-end">
-              <ActionButton
-                action={() =>
-                  api.post(
-                    `/v1/core/resources/${resource.id}/actions/backup`,
-                    undefined,
-                    { "Idempotency-Key": crypto.randomUUID() },
-                  )
-                }
-                pendingLabel="Queueing backup…"
-                success="Backup queued"
-                variant="primary"
-              >
-                Back up now
-              </ActionButton>
-            </Card.Footer>
-          ) : null}
-        </Card>
+          </Widget>
+        ) : (
+          <Alert status="warning">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>Backups paused</Alert.Title>
+              <Alert.Description>
+                Add AWS credentials in{" "}
+                <InlineLink href="/manage/integrations?integration=aws">
+                  Manage → Integrations
+                </InlineLink>{" "}
+                before backups can run.
+              </Alert.Description>
+            </Alert.Content>
+          </Alert>
+        )}
 
-        <Attributes title="Backup settings" variant="card">
+        <Attributes
+          icon={<HugeiconsIcon icon={Settings01Icon} />}
+          title="Backup settings"
+          variant="card"
+        >
           <Attributes.Item label="Schedule">
             {backup.schedule ? (
               <span className="inline-flex items-center gap-2">
@@ -261,6 +304,14 @@ export function ResourceBackupConfiguration({
           <Attributes.Item label="Encryption">
             {backup.s3.encryption}
           </Attributes.Item>
+          {latestBackupOperation ? (
+            <Attributes.Item label="Latest backup duration">
+              <ElapsedTime
+                {...latestBackupOperation}
+                status={latestBackupOperation.state}
+              />
+            </Attributes.Item>
+          ) : null}
           <Attributes.Item label="Latest saved backup">
             {latestBackup ? (
               <CopyBackupKey backup={latestBackup} />
@@ -285,7 +336,9 @@ export function ResourceBackupConfiguration({
 
       {restoreOperations.length ? (
         <RestoreHistory
-          canManage={active && assuranceData.canRestore}
+          canManage={
+            active && assuranceData.awsConfigured && assuranceData.canRestore
+          }
           operations={restoreOperations}
           resourceId={resource.id}
         />
@@ -357,7 +410,7 @@ function RestoreConfirmation({
               <Modal.Heading>Restore {resource.name}</Modal.Heading>
             </Modal.Header>
             <Modal.Body>
-              <form className="grid gap-5" onSubmit={submit}>
+              <form className="content-grid" onSubmit={submit}>
                 <Alert status="danger">
                   <Alert.Indicator />
                   <Alert.Content>
@@ -371,7 +424,11 @@ function RestoreConfirmation({
                   </Alert.Content>
                 </Alert>
                 {backup ? (
-                  <Attributes columns={2} title="Selected backup">
+                  <Attributes
+                    icon={<HugeiconsIcon icon={Archive01Icon} />}
+                    columns={2}
+                    title="Selected backup"
+                  >
                     <Attributes.Item label="Created">
                       {formatDate(backup.finishedAt ?? backup.createdAt)}
                     </Attributes.Item>
@@ -487,7 +544,9 @@ function RestoreHistory({
     {
       key: "created",
       header: "Created",
-      cell: (operation) => formatDate(operation.createdAt),
+      cell: (operation) => (
+        <RelativeTime label="Created" value={operation.createdAt} />
+      ),
       className: "min-w-48 whitespace-nowrap tabular-nums",
     },
     {
@@ -513,6 +572,13 @@ function RestoreHistory({
       cell: (operation) => formatPhase(operation.phase),
     },
     {
+      key: "duration",
+      header: "Duration",
+      cell: (operation) => (
+        <ElapsedTime {...operation} status={operation.state} />
+      ),
+    },
+    {
       key: "status",
       header: "Status",
       cell: (operation) => <StatusBadge status={operation.state} />,
@@ -522,9 +588,14 @@ function RestoreHistory({
       header: "Rollback retention",
       cell: (operation) => {
         const result = readRestoreResult(operation.result);
-        return result?.rollbackAvailableUntil
-          ? formatDate(result.rollbackAvailableUntil)
-          : "—";
+        return result?.rollbackAvailableUntil ? (
+          <RelativeTime
+            label="Rollback retention"
+            value={result.rollbackAvailableUntil}
+          />
+        ) : (
+          "—"
+        );
       },
     },
     {
@@ -576,12 +647,16 @@ function RestoreProgress({
     2_000,
   );
   return (
-    <Card>
-      <Card.Header>
-        <Card.Title>Restore progress</Card.Title>
-        <StatusBadge status={operation.state} />
-      </Card.Header>
-      <Card.Content>
+    <Widget>
+      <Widget.Header endContent={<StatusBadge status={operation.state} />}>
+        <Widget.Title icon={<HugeiconsIcon icon={RefreshIcon} />}>
+          Restore progress
+        </Widget.Title>
+      </Widget.Header>
+      <Widget.Content>
+        <p className="mb-3 text-sm text-muted">
+          Duration: <ElapsedTime {...operation} status={operation.state} />
+        </p>
         {events.error ? <QueryError message={events.error} /> : null}
         {!events.data && !events.error ? <QueryLoading variant="list" /> : null}
         {events.data ? (
@@ -607,8 +682,8 @@ function RestoreProgress({
             ))}
           </ol>
         ) : null}
-      </Card.Content>
-    </Card>
+      </Widget.Content>
+    </Widget>
   );
 }
 
@@ -713,7 +788,7 @@ function RestoreCleanupConfirmation({
             <Modal.Header>
               <Modal.Heading>Clean up rollback volume?</Modal.Heading>
             </Modal.Header>
-            <Modal.Body className="grid gap-5">
+            <Modal.Body className="content-grid">
               <Alert status="danger">
                 <Alert.Indicator />
                 <Alert.Content>

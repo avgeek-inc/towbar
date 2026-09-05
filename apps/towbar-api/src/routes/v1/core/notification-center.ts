@@ -1,10 +1,16 @@
 import { Hono } from "hono";
 
+import { notificationProviderAvailability } from "../../../areas/notifications/configuration.js";
 import { listNotificationEvents } from "../../../areas/notifications/service.js";
 
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
 export const notificationCenterRoutes = new Hono<TowbarHonoEnvironment>();
+
+notificationCenterRoutes.get("/providers", (context) => {
+  context.header("Cache-Control", "no-store");
+  return context.json({ providers: notificationProviderAvailability() });
+});
 
 notificationCenterRoutes.get("/", async (context) => {
   const requestedLimit = Number(context.req.query("limit") ?? 20);

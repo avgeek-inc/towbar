@@ -1,6 +1,7 @@
 "use client";
 
 import { createElement, type ComponentProps, type ElementType } from "react";
+import { TooltipText } from "../overlays/tooltip";
 import { cn } from "../lib/utils";
 
 type Align = "start" | "center" | "end";
@@ -121,9 +122,15 @@ export function TypographyText({
   );
 }
 export type TypographyCodeProps = ComponentProps<"code">;
-export function TypographyCode({ className, ...props }: TypographyCodeProps) {
+export function TypographyCode({
+  className,
+  title,
+  ...props
+}: TypographyCodeProps) {
   return (
-    <code
+    <TooltipText
+      as="code"
+      tooltip={title}
       className={cn("rounded-md bg-default px-1.5 py-0.5 text-sm", className)}
       {...props}
     />

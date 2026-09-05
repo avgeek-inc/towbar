@@ -1,25 +1,24 @@
 "use client";
 
+import { ElapsedTime } from "./elapsed-time";
+
 import {
   DashboardCircleIcon,
   DatabaseIcon,
+  Delete02Icon,
   GithubIcon,
   InformationSquareIcon,
-  ServerStack01Icon,
   Settings01Icon,
-  ValidationIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { type Key, type ReactNode } from "react";
 import type {
   App,
-  AppSecretsResponse,
-  AwsCredentialMetadata,
   Deployment,
   Resource,
   RuntimeCapacity,
-  SourceServer,
+  Server,
   Source,
   SourceSync,
 } from "@workspace/towbar-web-client";
@@ -39,22 +38,20 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import {
   ActionButton,
   DashboardPage,
+  FormCard,
   InlineLink,
   PageTabs,
-  SectionBlock,
   sourcesBreadcrumb,
 } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
-import { formatDate } from "./dashboard-overview";
-import { SourceAwsCredentials } from "./source-aws-credentials";
-import { SourceSecretStageEditor } from "./app-secrets";
+import { RelativeTime } from "./last-synced-time";
+import { SourceSecrets } from "./app-secrets";
 import {
   SourceNotifications,
   type NotificationDestinationsResponse,
 } from "./source-notifications";
-import { SourceApps, SourceResources, SourceServers } from "./source-inventory";
-import { SourcePlans } from "./source-plans";
+import { SourceApps, SourceResources } from "./source-inventory";
 import { ResponsiveSubtabs } from "./responsive-subtabs";
 import { AutoDeployControlEditor } from "./auto-deploy-control";
 
@@ -92,10 +89,6 @@ export function SourceDetail() {
     `/v1/core/sources/${sourceId}/resources`,
     5_000,
   );
-  const servers = useApiQuery<{ servers: SourceServer[] }>(
-    `/v1/core/sources/${sourceId}/servers`,
-    5_000,
-  );
   const deployments = useApiQuery<{ deployments: Deployment[] }>(
     `/v1/core/sources/${sourceId}/deployments`,
     5_000,
@@ -104,29 +97,31 @@ export function SourceDetail() {
     `/v1/core/sources/${sourceId}/capacity`,
     5_000,
   );
-  const aws = useApiQuery<{ credential: AwsCredentialMetadata | null }>(
-    `/v1/core/sources/${sourceId}/aws`,
-  );
+  const servers = useApiQuery<{ servers: Server[] }>("/v1/core/servers", 5_000);
   const error = source.error ?? manifest.error ?? syncs.error;
   if (error)
     return (
-      <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Source">
+      <DashboardPage
+        icon={GithubIcon}
+        breadcrumbAncestors={sourcesBreadcrumb}
+        title="Source"
+      >
         <QueryError message={error} />
       </DashboardPage>
     );
   if (!source.data || !manifest.data || !syncs.data)
     return (
-      <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Source">
+      <DashboardPage
+        icon={GithubIcon}
+        breadcrumbAncestors={sourcesBreadcrumb}
+        title="Source"
+      >
         <QueryLoading />
       </DashboardPage>
     );
 
   const item = source.data.source;
   const latestSync = syncs.data.syncs[0];
-  const untrustedServers =
-    servers.data?.servers.filter(
-      (server) => server.hostKeyStatus === "untrusted",
-    ) ?? [];
   const syncColumns: ResourceTableColumn<SourceSync>[] = [
     {
       key: "commit",
@@ -153,8 +148,13 @@ export function SourceDetail() {
     {
       key: "requested",
       header: "Requested",
-      cell: (sync) => formatDate(sync.createdAt),
+      cell: (sync) => <RelativeTime label="Requested" value={sync.createdAt} />,
       className: "whitespace-nowrap",
+    },
+    {
+      key: "duration",
+      header: "Duration",
+      cell: (sync) => <ElapsedTime {...sync} />,
     },
     {
       key: "status",
@@ -165,6 +165,7 @@ export function SourceDetail() {
 
   return (
     <DashboardPage
+      icon={GithubIcon}
       actions={
         <div className="flex flex-wrap justify-end gap-2">
           {item.status === "active" ? (
@@ -201,18 +202,6 @@ export function SourceDetail() {
         )
       }
       title={item.repositoryName}
-      titleContent={
-        <span className="inline-flex min-w-0 items-center gap-2">
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-6 shrink-0"
-            icon={GithubIcon}
-          />
-          <span className="truncate" title={item.repositoryName}>
-            {item.repositoryName}
-          </span>
-        </span>
-      }
     >
       <PageTabs
         defaultValue="apps"
@@ -229,7 +218,13 @@ export function SourceDetail() {
                 apps={apps.data?.apps}
                 capacities={capacity.data?.capacities}
                 deployments={deployments.data?.deployments}
-                error={apps.error ?? capacity.error ?? deployments.error}
+                error={
+                  apps.error ??
+                  capacity.error ??
+                  deployments.error ??
+                  servers.error
+                }
+                servers={servers.data?.servers}
                 sourceId={sourceId}
               />
             ),
@@ -248,39 +243,17 @@ export function SourceDetail() {
               <SourceResources
                 capacities={capacity.data?.capacities}
                 deployments={deployments.data?.deployments}
-                error={resources.error ?? capacity.error ?? deployments.error}
-                resources={resources.data?.resources}
-                sourceId={sourceId}
-              />
-            ),
-          },
-          {
-            value: "servers",
-            label: "Servers",
-            icon: <HugeiconsIcon icon={ServerStack01Icon} />,
-            indicator: servers.data
-              ? {
-                  ariaLabel: untrustedServers.length
-                    ? `${servers.data.servers.length} total; ${untrustedServers.length} ${untrustedServers.length === 1 ? "server has" : "servers have"} untrusted host keys`
-                    : `${servers.data.servers.length} total`,
-                  label: String(servers.data.servers.length),
-                  variant: untrustedServers.length ? "warning" : "secondary",
+                error={
+                  resources.error ??
+                  capacity.error ??
+                  deployments.error ??
+                  servers.error
                 }
-              : undefined,
-            content: (
-              <SourceServers
-                capacities={capacity.data?.capacities}
-                error={servers.error ?? capacity.error}
+                resources={resources.data?.resources}
                 servers={servers.data?.servers}
                 sourceId={sourceId}
               />
             ),
-          },
-          {
-            value: "plans",
-            label: "Plans",
-            icon: <HugeiconsIcon icon={ValidationIcon} />,
-            content: <SourcePlans sourceId={sourceId} />,
           },
           {
             value: "info",
@@ -337,12 +310,9 @@ export function SourceDetail() {
             icon: <HugeiconsIcon icon={Settings01Icon} />,
             content: (
               <SourceSettings
-                awsData={aws.data}
-                awsError={aws.error}
                 canManage={source.data.canManageSource}
                 isActive={searchParams.get("section") === "settings"}
                 onDelete={() => router.push("/sources")}
-                refreshAws={aws.refresh}
                 sourceId={sourceId}
               />
             ),
@@ -354,25 +324,16 @@ export function SourceDetail() {
 }
 
 function SourceSettings({
-  awsData,
-  awsError,
   canManage,
   isActive,
   onDelete,
-  refreshAws,
   sourceId,
 }: {
-  awsData?: { credential: AwsCredentialMetadata | null };
-  awsError?: string;
   canManage: boolean;
   isActive: boolean;
   onDelete: () => void;
-  refreshAws: () => void;
   sourceId: string;
 }) {
-  const secrets = useApiQuery<AppSecretsResponse>(
-    isActive ? `/v1/core/sources/${sourceId}/secrets` : null,
-  );
   const notificationDestinations =
     useApiQuery<NotificationDestinationsResponse>(
       isActive
@@ -386,17 +347,6 @@ function SourceSettings({
       collapseOnMobile
       defaultSelectedKey="secrets"
       tabs={[
-        {
-          value: "aws",
-          label: "S3 backup credentials",
-          content: (
-            <SourceAwsCredentials
-              canManage={canManage}
-              query={{ data: awsData, error: awsError, refresh: refreshAws }}
-              sourceId={sourceId}
-            />
-          ),
-        },
         {
           value: "auto-deploy",
           label: "Auto-deploy",
@@ -415,8 +365,8 @@ function SourceSettings({
         },
         {
           value: "secrets",
-          label: "Secrets",
-          content: <SourceSecrets query={secrets} sourceId={sourceId} />,
+          label: "Shared secrets",
+          content: <SourceSecrets active={isActive} sourceId={sourceId} />,
         },
         ...(canManage
           ? [
@@ -424,11 +374,16 @@ function SourceSettings({
                 value: "danger",
                 label: "Danger zone",
                 content: (
-                  <SectionBlock
-                    description="Deleting a Source removes its credential, imported inventory, operational history, and source-owned server records. Backup objects already in S3 follow your bucket lifecycle."
+                  <FormCard
+                    icon={<HugeiconsIcon icon={Delete02Icon} />}
                     title="Danger zone"
                   >
-                    <div>
+                    <div className="content-grid">
+                      <p className="max-w-3xl text-sm text-muted">
+                        Deleting a Source removes its imported inventory and
+                        operational history. Workspace integrations, servers,
+                        and backup objects already in S3 remain available.
+                      </p>
                       <ActionButton
                         action={() =>
                           api.delete(`/v1/core/sources/${sourceId}`)
@@ -436,7 +391,7 @@ function SourceSettings({
                         confirm={{
                           actionLabel: "Delete Source permanently",
                           description:
-                            "This permanently deletes the Source credential, sync history, Apps, Resources, Deployments, Releases, backup metadata, runtime operations, Servers, checks, and trust records. This cannot be undone.",
+                            "This permanently deletes the Source, sync history, Apps, Resources, Deployments, Releases, backup metadata, and runtime operations. Workspace integrations, servers, their credentials, checks, and trust records remain available. This cannot be undone.",
                           title: "Delete this Source and all of its data?",
                         }}
                         onSuccess={onDelete}
@@ -447,51 +402,12 @@ function SourceSettings({
                         Delete Source
                       </ActionButton>
                     </div>
-                  </SectionBlock>
+                  </FormCard>
                 ),
               },
             ]
           : []),
       ]}
-    />
-  );
-}
-
-function SourceSecrets({
-  query,
-  sourceId,
-}: {
-  query: {
-    data?: AppSecretsResponse;
-    error?: string;
-    refresh: () => void;
-  };
-  sourceId: string;
-}) {
-  const stages = [
-    { label: "Build", value: "build" },
-    { label: "Runtime", value: "deployment" },
-    { label: "Pre-deploy", value: "pre_deploy" },
-    { label: "Post-deploy", value: "post_deploy" },
-  ] as const;
-
-  return (
-    <ResponsiveSubtabs
-      ariaLabel="Shared secret types"
-      defaultSelectedKey="build"
-      layout="inline"
-      panelClassName="md:pt-6"
-      tabs={stages.map(({ label, value: stage }) => ({
-        label,
-        value: stage,
-        content: (
-          <SourceSecretStageEditor
-            query={query}
-            sourceId={sourceId}
-            stage={stage}
-          />
-        ),
-      }))}
     />
   );
 }

@@ -47,9 +47,8 @@ export async function executeNotificationDeliveryAttempt(input: {
   if (claimed.outcome) return claimed.outcome;
   const { delivery } = claimed;
   try {
-    const providerConfiguration = await getNotificationProviderConfiguration(
+    const providerConfiguration = getNotificationProviderConfiguration(
       delivery.provider,
-      delivery.workspaceId,
     );
     if (!providerConfiguration) {
       throw new NotificationProviderError(

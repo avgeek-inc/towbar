@@ -51,7 +51,11 @@ export function QueryLoading({
 
   if (variant === "dashboard") {
     return (
-      <div aria-label="Loading dashboard" className="grid gap-8" role="status">
+      <div
+        aria-label="Loading dashboard"
+        className="content-grid"
+        role="status"
+      >
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }, (_, index) => (
             <Skeleton

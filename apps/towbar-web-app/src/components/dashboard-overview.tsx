@@ -1,32 +1,40 @@
 "use client";
 
-import { Fragment } from "react";
+import {
+  Activity01Icon,
+  DashboardCircleIcon,
+  DashboardSquare01Icon,
+  DatabaseIcon,
+  GitBranchIcon,
+  ServerStack01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import type { ComponentProps } from "react";
 import type {
   App,
   Deployment,
   Resource,
   Server,
+  Source,
 } from "@workspace/towbar-web-client";
 import { LineChart } from "@workspace/web-design-system/charts/line-chart";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { KPIGroup } from "@workspace/web-design-system/data-display/kpi-group";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { MetricCard } from "@workspace/towbar-web-ui/metric-card";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
 import { DashboardPage } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 
 const activitySeries = [
-  { color: "var(--chart-3)", key: "total", label: "Requested" },
+  { color: "var(--accent-soft-foreground)", key: "total", label: "Requested" },
   {
-    color: "var(--color-success)",
+    color: "var(--success-soft-foreground)",
     key: "succeeded",
     label: "Succeeded",
   },
-  { color: "var(--color-danger)", key: "failed", label: "Failed" },
+  { color: "var(--danger-soft-foreground)", key: "failed", label: "Failed" },
 ];
 const activityAxisTick = { fill: "var(--muted)", fontSize: 12 } as const;
 
@@ -36,21 +44,32 @@ export function DashboardOverview() {
     "/v1/core/resources",
   );
   const servers = useApiQuery<{ servers: Server[] }>("/v1/core/servers");
+  const sources = useApiQuery<{ sources: Source[] }>("/v1/core/sources");
   const deployments = useApiQuery<{ deployments: Deployment[] }>(
     "/v1/core/deployments",
     5_000,
   );
   const error =
-    apps.error ?? resources.error ?? servers.error ?? deployments.error;
+    apps.error ??
+    resources.error ??
+    servers.error ??
+    sources.error ??
+    deployments.error;
   if (error)
     return (
-      <DashboardPage title="Overview">
+      <DashboardPage icon={DashboardSquare01Icon} title="Overview">
         <QueryError message={error} />
       </DashboardPage>
     );
-  if (!apps.data || !resources.data || !servers.data || !deployments.data)
+  if (
+    !apps.data ||
+    !resources.data ||
+    !servers.data ||
+    !sources.data ||
+    !deployments.data
+  )
     return (
-      <DashboardPage title="Overview">
+      <DashboardPage icon={DashboardSquare01Icon} title="Overview">
         <QueryLoading variant="dashboard" />
       </DashboardPage>
     );
@@ -58,76 +77,96 @@ export function DashboardOverview() {
   const appItems = apps.data.apps;
   const resourceItems = resources.data.resources;
   const serverItems = servers.data.servers;
+  const sourceItems = sources.data.sources;
   const deploymentItems = deployments.data.deployments;
   const activeApps = appItems.filter((app) => !app.archivedAt);
   const activeResources = resourceItems.filter((item) => !item.archivedAt);
   const activeServers = serverItems.filter((server) => !server.archivedAt);
+  const activeSources = sourceItems.filter(
+    (source) => source.status === "active",
+  );
   const unhealthyApps = activeApps.filter(isUnhealthy).length;
   const unhealthyResources = activeResources.filter(isUnhealthy).length;
   const unhealthyServerKeys = new Set(
     [...activeApps, ...activeResources]
       .filter(isUnhealthy)
-      .map((item) => getServerKey(item.sourceId, item.serverIp)),
+      .map((item) => item.serverIp),
   );
   const unhealthyServers = activeServers.filter((server) =>
-    unhealthyServerKeys.has(getServerKey(server.sourceId, server.canonicalIp)),
+    unhealthyServerKeys.has(server.canonicalIp),
   ).length;
   const activity = buildDeploymentActivity(deploymentItems);
   const metrics = [
     {
-      label: "Servers",
-      unhealthyCount: unhealthyServers,
-      value: activeServers.length,
+      icon: GitBranchIcon,
+      label: "Sources",
+      unhealthyCount: null,
+      value: activeSources.length,
     },
     {
+      icon: DashboardCircleIcon,
       label: "Apps",
       unhealthyCount: unhealthyApps,
       value: activeApps.length,
     },
     {
+      icon: DatabaseIcon,
       label: "Resources",
       unhealthyCount: unhealthyResources,
       value: activeResources.length,
     },
+    {
+      icon: ServerStack01Icon,
+      label: "Servers",
+      unhealthyCount: unhealthyServers,
+      value: activeServers.length,
+    },
   ];
 
   return (
-    <DashboardPage title="Overview">
-      <div className="grid gap-3 sm:hidden">
+    <DashboardPage icon={DashboardSquare01Icon} title="Overview">
+      <div className="content-grid grid-cols-2 lg:grid-cols-4">
         {metrics.map((metric) => (
-          <MetricCard
-            className="rounded-3xl border border-separator bg-surface"
-            key={metric.label}
-            label={metric.label}
-            value={metric.value}
-          >
-            <HealthChip unhealthyCount={metric.unhealthyCount} />
-          </MetricCard>
+          <Widget className="min-w-0" key={metric.label}>
+            <Widget.Header>
+              <Widget.Title className="inline-flex items-center gap-2">
+                <OverviewMetricIcon icon={metric.icon} />
+                {metric.label}
+              </Widget.Title>
+            </Widget.Header>
+            <Widget.Content className="flex flex-wrap items-end justify-between gap-3">
+              <dl>
+                <dt className="sr-only">{metric.label}</dt>
+                <dd className="text-3xl font-semibold tracking-tight tabular-nums">
+                  {metric.value.toLocaleString()}
+                </dd>
+              </dl>
+              {metric.unhealthyCount === null ? null : (
+                <HealthChip unhealthyCount={metric.unhealthyCount} />
+              )}
+            </Widget.Content>
+          </Widget>
         ))}
       </div>
-      <KPIGroup className="hidden sm:flex">
-        {metrics.map((metric, index) => (
-          <Fragment key={metric.label}>
-            {index ? <KPIGroup.Separator /> : null}
-            <MetricCard label={metric.label} value={metric.value}>
-              <HealthChip unhealthyCount={metric.unhealthyCount} />
-            </MetricCard>
-          </Fragment>
-        ))}
-      </KPIGroup>
 
       <Widget className="min-w-0">
-        <Widget.Header className="flex-wrap py-2">
-          <Widget.Title>Deployment activity</Widget.Title>
-          {deploymentItems.length ? (
-            <Widget.Legend className="flex-wrap">
-              {activitySeries.map((series) => (
-                <Widget.LegendItem color={series.color} key={series.key}>
-                  {series.label}
-                </Widget.LegendItem>
-              ))}
-            </Widget.Legend>
-          ) : null}
+        <Widget.Header
+          className="flex-wrap py-2"
+          endContent={
+            deploymentItems.length ? (
+              <Widget.Legend className="flex-wrap">
+                {activitySeries.map((series) => (
+                  <Widget.LegendItem color={series.color} key={series.key}>
+                    {series.label}
+                  </Widget.LegendItem>
+                ))}
+              </Widget.Legend>
+            ) : null
+          }
+        >
+          <Widget.Title icon={<HugeiconsIcon icon={Activity01Icon} />}>
+            Deployment activity
+          </Widget.Title>
         </Widget.Header>
         <Widget.Content className="grid min-w-0 gap-3">
           {deploymentItems.length ? (
@@ -189,6 +228,16 @@ export function DashboardOverview() {
   );
 }
 
+function OverviewMetricIcon({
+  icon,
+}: {
+  icon: ComponentProps<typeof HugeiconsIcon>["icon"];
+}) {
+  return (
+    <HugeiconsIcon aria-hidden="true" className="size-4 shrink-0" icon={icon} />
+  );
+}
+
 function HealthChip({ unhealthyCount }: { unhealthyCount: number }) {
   return (
     <Chip variant={unhealthyCount ? "destructive" : "success"}>
@@ -199,10 +248,6 @@ function HealthChip({ unhealthyCount }: { unhealthyCount: number }) {
 
 function isUnhealthy(item: App | Resource) {
   return item.runtimeState.healthStatus === "unhealthy";
-}
-
-function getServerKey(sourceId: string, serverIp: string) {
-  return `${sourceId}:${serverIp}`;
 }
 
 function buildDeploymentActivity(deployments: Deployment[]) {
