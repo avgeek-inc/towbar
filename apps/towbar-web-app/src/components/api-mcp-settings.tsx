@@ -209,10 +209,6 @@ export function ApiMcpSettings() {
             label: "API quickstart",
             content: (
               <div className="content-grid">
-                <p>
-                  Create an API key, then set <code>TOWBAR_API_KEY</code> in
-                  your terminal or secret manager.
-                </p>
                 <SetupCode
                   title="List your apps"
                   code={`curl '${data.apiUrl}/apps' \\\n  -H "Authorization: Bearer $TOWBAR_API_KEY"`}
