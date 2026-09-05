@@ -1,5 +1,10 @@
 "use client";
 
+import type { ReactNode } from "react";
+import {
+  allocatedCpuPercent,
+  allocatedMemoryPercent,
+} from "@/lib/allocated-capacity";
 import { ServerStack01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -214,88 +219,59 @@ type DefinedCapacityProps = {
   unavailable?: boolean;
 };
 
-export function DefinedCpuCapacity({
-  limits,
-  runtime,
-  unavailable,
-}: DefinedCapacityProps) {
+export function DefinedCpuCapacity(props: DefinedCapacityProps) {
   return (
-    <div className="grid min-w-36 gap-2">
-      <DefinedResourceLimit
-        limits={limits}
-        metric="cpu"
-        unavailable={unavailable}
-      />
-      {runtime?.cpuPercent != null ? (
-        <div className="grid gap-1">
-          <span className="text-xs text-muted">Observed usage</span>
-          <RuntimeCpuMeter runtime={runtime} />
-        </div>
-      ) : (
-        <span className="text-xs text-muted">Usage unavailable</span>
+    <AllocatedCapacityMeter
+      {...props}
+      metric="cpu"
+      percent={allocatedCpuPercent(
+        props.runtime?.cpuPercent,
+        props.limits?.cpus,
       )}
-    </div>
-  );
-}
-
-export function DefinedMemoryCapacity({
-  limits,
-  runtime,
-  unavailable,
-}: DefinedCapacityProps) {
-  return (
-    <div className="grid min-w-44 gap-2">
-      <DefinedResourceLimit
-        limits={limits}
-        metric="memory"
-        unavailable={unavailable}
-      />
-      {runtime?.memoryUsageBytes != null ? (
-        <div className="grid gap-1">
-          <span className="text-xs text-muted">Observed usage / limit</span>
-          <RuntimeMemoryMeter runtime={runtime} />
-        </div>
-      ) : (
-        <span className="text-xs text-muted">Usage unavailable</span>
-      )}
-    </div>
-  );
-}
-
-export function RuntimeCpuMeter({ runtime }: { runtime?: RuntimeMetric }) {
-  if (!runtime || runtime.cpuPercent === null) {
-    return <span className="text-muted">—</span>;
-  }
-  return (
-    <CompactMeter
-      label={`${runtime.name} CPU used`}
-      status={meterStatus(runtime.cpuPercent, 75, 90)}
-      value={runtime.cpuPercent}
-      valueLabel={`${runtime.cpuPercent.toFixed(1)}%`}
     />
   );
 }
 
-export function RuntimeMemoryMeter({ runtime }: { runtime?: RuntimeMetric }) {
-  if (!runtime || runtime.memoryUsageBytes === null) {
-    return <span className="text-muted">—</span>;
-  }
-  const memoryPercent = runtime.memoryLimitBytes
-    ? percentage(runtime.memoryUsageBytes, runtime.memoryLimitBytes)
-    : null;
-  if (memoryPercent === null) {
-    return (
-      <span className="whitespace-nowrap tabular-nums">
-        {formatBytes(runtime.memoryUsageBytes)}
-      </span>
-    );
-  }
+export function DefinedMemoryCapacity(props: DefinedCapacityProps) {
+  return (
+    <AllocatedCapacityMeter
+      {...props}
+      metric="memory"
+      percent={allocatedMemoryPercent(
+        props.runtime?.memoryUsageBytes,
+        props.limits?.memory,
+      )}
+    />
+  );
+}
+
+function AllocatedCapacityMeter({
+  limits,
+  runtime,
+  unavailable,
+  metric,
+  percent,
+}: DefinedCapacityProps & {
+  metric: "cpu" | "memory";
+  percent: number | null;
+}) {
   return (
     <CompactMeter
-      label={`${runtime.name} memory used`}
-      status={meterStatus(memoryPercent, 85, 95)}
-      value={memoryPercent}
-      valueLabel={`${formatBytes(runtime.memoryUsageBytes)} / ${formatBytes(runtime.memoryLimitBytes!)}`}
+      label={`${runtime?.name ?? "Workload"} allocated ${metric === "cpu" ? "CPU" : "memory"} used`}
+      value={percent}
+      valueLabel={percent === null ? "—" : `${percent.toFixed(1)}%`}
+      endLabel={
+        <DefinedResourceLimit
+          limits={limits}
+          metric={metric}
+          unavailable={unavailable}
+        />
+      }
+      status={
+        metric === "cpu"
+          ? meterStatus(percent ?? 0, 75, 90)
+          : meterStatus(percent ?? 0, 85, 95)
+      }
     />
   );
 }
@@ -401,16 +377,19 @@ function CompactMeter({
   status,
   value,
   valueLabel,
+  endLabel,
 }: {
   label: string;
   status: MeterStatus;
-  value: number;
+  value: number | null;
   valueLabel: string;
+  endLabel?: ReactNode;
 }) {
   return (
     <div className="grid min-w-36 gap-1.5">
-      <span className="whitespace-nowrap text-xs tabular-nums">
-        {valueLabel}
+      <span className="flex items-center justify-between gap-3 whitespace-nowrap text-xs tabular-nums">
+        <span>{valueLabel}</span>
+        {endLabel}
       </span>
       <MeterBar label={label} size="compact" status={status} value={value} />
     </div>
@@ -426,7 +405,7 @@ function MeterBar({
   label: string;
   size?: "compact" | "default";
   status: MeterStatus;
-  value: number;
+  value: number | null;
 }) {
   const color =
     status === "critical"
@@ -434,13 +413,16 @@ function MeterBar({
       : status === "attention"
         ? "bg-warning"
         : "bg-success";
-  const clamped = Math.max(0, Math.min(100, value));
+  const clamped = Math.max(0, Math.min(100, value ?? 0));
   return (
     <div
       aria-label={label}
       aria-valuemax={100}
       aria-valuemin={0}
-      aria-valuenow={Math.round(clamped)}
+      aria-valuenow={value === null ? undefined : Math.round(clamped)}
+      aria-valuetext={
+        value === null ? "Usage unavailable" : `${value.toFixed(1)}%`
+      }
       className={cn(
         "overflow-hidden rounded-full bg-separator",
         size === "compact" ? "h-1.5" : "h-2",
@@ -470,10 +452,6 @@ function meterStatus(
     : value >= attention
       ? "attention"
       : "healthy";
-}
-
-function percentage(used: number, total: number) {
-  return Math.round((used / total) * 1_000) / 10;
 }
 
 function formatDuration(seconds: number) {
