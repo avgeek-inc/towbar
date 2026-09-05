@@ -177,7 +177,7 @@ function ServerCredentialForm({
       icon={<HugeiconsIcon icon={Key01Icon} />}
       title="Server credentials"
     >
-      <form className="content-grid max-w-3xl" onSubmit={submit}>
+      <form className="content-grid w-full" onSubmit={submit}>
         <CredentialField
           busy={busy}
           canManage={canManage}
@@ -296,6 +296,8 @@ function CredentialField({
       </div>
       <Textarea
         id={id}
+        className="w-full"
+        rows={name === "privateKey" ? 3 : 2}
         autoComplete="off"
         disabled={!canManage || busy || deleted}
         placeholder={configured ? "Enter a replacement" : "Enter a value"}
