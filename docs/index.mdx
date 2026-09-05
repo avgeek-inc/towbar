@@ -14,6 +14,8 @@ mode: "custom"
     </div>
   </section>
 
+{/* Image sizes mirror the homepage width, padding, borders, and feature grid in style.css. */}
+
 <div className="towbar-product">
   <div className="towbar-product-frame">
     <div className="towbar-product-light">
@@ -22,6 +24,7 @@ mode: "custom"
         alt="Towbar deployment dashboard"
         width="1600"
         height="860"
+        sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 1200px) calc(100vw - 66px), 1134px"
         fetchPriority="high"
       />
     </div>
@@ -31,6 +34,7 @@ mode: "custom"
         alt="Towbar deployment dashboard"
         width="1600"
         height="860"
+        sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 1200px) calc(100vw - 66px), 1134px"
         fetchPriority="high"
       />
     </div>
@@ -80,10 +84,10 @@ mode: "custom"
     </div>
     <div className="towbar-feature-image">
       <div className="towbar-product-light">
-        <img src="/assets/features/sources-light.webp" alt="Four example GitHub sources showing app, resource, and distinct server counts alongside production branches and sync status." width="1800" height="624" loading="lazy" />
+        <img src="/assets/features/sources-light.webp" alt="Four example GitHub sources showing app, resource, and distinct server counts alongside production branches and sync status." width="1800" height="624" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
       </div>
       <div className="towbar-product-dark">
-        <img src="/assets/features/sources-dark.webp" alt="Four example GitHub sources showing app, resource, and distinct server counts alongside production branches and sync status." width="1800" height="624" loading="lazy" />
+        <img src="/assets/features/sources-dark.webp" alt="Four example GitHub sources showing app, resource, and distinct server counts alongside production branches and sync status." width="1800" height="624" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
       </div>
     </div>
   </section>
@@ -108,6 +112,7 @@ mode: "custom"
         alt="An example Towbar app showing its health, running state, server, and latest deployment."
         width="1440"
         height="930"
+        sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
     </div>
@@ -117,6 +122,7 @@ mode: "custom"
         alt="An example Towbar app showing its health, running state, server, and latest deployment."
         width="1440"
         height="930"
+        sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
     </div>
@@ -143,6 +149,7 @@ mode: "custom"
         alt="Example PostgreSQL, Redis, and container image resources in the Towbar inventory."
         width="1440"
         height="720"
+        sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
     </div>
@@ -152,6 +159,7 @@ mode: "custom"
         alt="Example PostgreSQL, Redis, and container image resources in the Towbar inventory."
         width="1440"
         height="720"
+        sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
     </div>
@@ -178,6 +186,7 @@ mode: "custom"
         alt="An example server’s host capacity panel showing CPU, memory, disk usage, and uptime."
         width="1344"
         height="360"
+        sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
     </div>
@@ -187,6 +196,7 @@ mode: "custom"
         alt="An example server’s host capacity panel showing CPU, memory, disk usage, and uptime."
         width="1344"
         height="360"
+        sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
     </div>
@@ -213,6 +223,7 @@ mode: "custom"
         alt="Example Towbar pull request previews showing URLs, commits, expiry times, health status, and cleanup retry details."
         width="2120"
         height="508"
+        sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
     </div>
@@ -222,6 +233,7 @@ mode: "custom"
         alt="Example Towbar pull request previews showing URLs, commits, expiry times, health status, and cleanup retry details."
         width="2120"
         height="508"
+        sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
     </div>
@@ -237,10 +249,10 @@ mode: "custom"
     </div>
     <div className="towbar-feature-image">
       <div className="towbar-product-light">
-        <img src="/assets/features/secrets-light.webp" alt="Shared secret settings in an example Towbar workspace. Stored values are hidden, with separate production, preview, and deployment stages." width="1440" height="600" loading="lazy" />
+        <img src="/assets/features/secrets-light.webp" alt="Shared secret settings in an example Towbar workspace. Stored values are hidden, with separate production, preview, and deployment stages." width="1440" height="600" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
       </div>
       <div className="towbar-product-dark">
-        <img src="/assets/features/secrets-dark.webp" alt="Shared secret settings in an example Towbar workspace. Stored values are hidden, with separate production, preview, and deployment stages." width="1440" height="600" loading="lazy" />
+        <img src="/assets/features/secrets-dark.webp" alt="Shared secret settings in an example Towbar workspace. Stored values are hidden, with separate production, preview, and deployment stages." width="1440" height="600" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
       </div>
     </div>
   </section>
