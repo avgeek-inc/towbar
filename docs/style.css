@@ -1,8 +1,11 @@
 /* Brand colors for the native Mintlify navigation and custom homepage. */
 :root {
-  --towbar-yellow: oklch(0.852 0.18 90);
-  --towbar-yellow-hover: oklch(0.8 0.16 90);
+  --towbar-yellow: oklch(0.64 0.13 85);
+  --towbar-yellow-hover: color-mix(in oklch, var(--towbar-yellow) 90%, white);
   --towbar-on-yellow: oklch(0.23 0.01 85);
+}
+.dark {
+  --towbar-yellow: oklch(0.852 0.18 90);
 }
 #navbar a:has(> .bg-primary-dark) > .bg-primary-dark {
   background-color: var(--towbar-yellow);
@@ -18,7 +21,7 @@
   --towbar-line: oklch(0.91 0.01 85);
   --towbar-panel: oklch(0.97 0.01 85);
   --towbar-accent: oklch(0.53 0.11 75);
-  --towbar-heading-accent: oklch(0.64 0.13 85);
+  --towbar-heading-accent: var(--towbar-yellow);
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 32px;
@@ -106,7 +109,7 @@
   font-size: 14px;
   font-weight: 600;
   background: var(--towbar-yellow);
-  color: oklch(0.23 0.01 85);
+  color: var(--towbar-on-yellow);
   border: 1px solid var(--towbar-yellow);
 }
 .towbar-home .towbar-button:hover {
