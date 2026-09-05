@@ -1,5 +1,5 @@
 "use client";
-import { useId, useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent, type ReactNode } from "react";
 import {
   Button,
   ButtonLink,
@@ -20,6 +20,7 @@ import { api } from "@/lib/api";
 import { ActionButton, FormCard } from "./page-parts";
 import { RelativeTime } from "./last-synced-time";
 import { ResponsiveSubtabs } from "./responsive-subtabs";
+import { McpClientLogo } from "./mcp-client-logo";
 
 type ApiKey = {
   id: string;
@@ -55,11 +56,13 @@ function Choice({
   value,
   onChange,
   options,
+  renderIcon,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   options: Array<[string, string]>;
+  renderIcon?: (id: string) => ReactNode;
 }) {
   return (
     <Select
@@ -72,14 +75,24 @@ function Choice({
     >
       <Label>{label}</Label>
       <Select.Trigger>
-        <Select.Value />
+        <Select.Value>
+          {renderIcon ? (
+            <span className="inline-flex items-center gap-2">
+              {renderIcon(value)}
+              {options.find(([id]) => id === value)?.[1]}
+            </span>
+          ) : undefined}
+        </Select.Value>
         <Select.Indicator />
       </Select.Trigger>
       <Select.Popover>
         <ListBox>
           {options.map(([id, name]) => (
             <ListBox.Item key={id} id={id} textValue={name}>
-              {name}
+              <span className="inline-flex items-center gap-2">
+                {renderIcon?.(id)}
+                {name}
+              </span>
               <ListBox.ItemIndicator />
             </ListBox.Item>
           ))}
@@ -421,6 +434,7 @@ function McpSetup({ url }: { url: string }) {
             label="Client"
             value={client}
             onChange={setClient}
+            renderIcon={(id) => <McpClientLogo client={id} />}
             options={[
               ["codex", "Codex"],
               ["cursor", "Cursor"],
