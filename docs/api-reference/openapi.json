@@ -203,8 +203,8 @@
           "updatedAt": { "type": "string", "format": "date-time" },
           "stage": {
             "anyOf": [
-              { "type": "string", "const": "deployment" },
               { "type": "string", "const": "build" },
+              { "type": "string", "const": "deployment" },
               { "type": "string", "const": "pre_deploy" },
               { "type": "string", "const": "post_deploy" }
             ]
@@ -261,8 +261,8 @@
           "updatedAt": { "type": "null" },
           "stage": {
             "anyOf": [
-              { "type": "string", "const": "deployment" },
               { "type": "string", "const": "build" },
+              { "type": "string", "const": "deployment" },
               { "type": "string", "const": "pre_deploy" },
               { "type": "string", "const": "post_deploy" }
             ]
@@ -395,8 +395,8 @@
           "workspaceId": { "type": "string" },
           "workspaceRole": {
             "anyOf": [
-              { "type": "string", "const": "owner" },
-              { "type": "string", "const": "member" }
+              { "type": "string", "const": "member" },
+              { "type": "string", "const": "owner" }
             ]
           }
         },
@@ -415,8 +415,8 @@
           "workspaceId": { "type": "string" },
           "workspaceRole": {
             "anyOf": [
-              { "type": "string", "const": "owner" },
-              { "type": "string", "const": "member" }
+              { "type": "string", "const": "member" },
+              { "type": "string", "const": "owner" }
             ]
           },
           "email": { "type": "string" },
@@ -1659,11 +1659,11 @@
           },
           "type": {
             "anyOf": [
+              { "type": "string", "const": "restore" },
               { "type": "string", "const": "backup" },
               { "type": "string", "const": "capture_logs" },
               { "type": "string", "const": "cleanup_orphans" },
               { "type": "string", "const": "restart" },
-              { "type": "string", "const": "restore" },
               { "type": "string", "const": "restore_cleanup" },
               { "type": "string", "const": "start" },
               { "type": "string", "const": "stop" }
@@ -2068,10 +2068,10 @@
             "anyOf": [
               { "type": "string", "const": "failed" },
               { "type": "string", "const": "running" },
+              { "type": "string", "const": "stale" },
               { "type": "string", "const": "pending" },
               { "type": "string", "const": "clean" },
-              { "type": "string", "const": "findings" },
-              { "type": "string", "const": "stale" }
+              { "type": "string", "const": "findings" }
             ]
           },
           "vulnerabilityDatabaseUpdatedAt": {
@@ -2356,10 +2356,10 @@
           "severity": {
             "anyOf": [
               { "type": "string", "const": "unknown" },
-              { "type": "string", "const": "critical" },
               { "type": "string", "const": "high" },
-              { "type": "string", "const": "medium" },
-              { "type": "string", "const": "low" }
+              { "type": "string", "const": "low" },
+              { "type": "string", "const": "critical" },
+              { "type": "string", "const": "medium" }
             ]
           },
           "target": { "type": "string" }
@@ -2700,8 +2700,8 @@
             "anyOf": [
               { "type": "string", "const": "failed" },
               { "type": "string", "const": "preparing" },
-              { "type": "string", "const": "pending" },
-              { "type": "string", "const": "ready" }
+              { "type": "string", "const": "ready" },
+              { "type": "string", "const": "pending" }
             ]
           }
         },
@@ -2724,8 +2724,8 @@
             "anyOf": [
               { "type": "string", "const": "failed" },
               { "type": "string", "const": "preparing" },
-              { "type": "string", "const": "pending" },
-              { "type": "string", "const": "ready" }
+              { "type": "string", "const": "ready" },
+              { "type": "string", "const": "pending" }
             ]
           }
         },
@@ -2751,8 +2751,8 @@
             "anyOf": [
               { "type": "string", "const": "failed" },
               { "type": "string", "const": "preparing" },
-              { "type": "string", "const": "pending" },
-              { "type": "string", "const": "ready" }
+              { "type": "string", "const": "ready" },
+              { "type": "string", "const": "pending" }
             ]
           }
         },
@@ -3489,12 +3489,12 @@
           "name": {
             "anyOf": [
               { "type": "string", "const": "format" },
-              { "type": "string", "const": "engine" },
-              { "type": "string", "const": "freshness" },
-              { "type": "string", "const": "object_exists" },
               { "type": "string", "const": "size" },
+              { "type": "string", "const": "engine" },
               { "type": "string", "const": "checksum" },
-              { "type": "string", "const": "encryption" }
+              { "type": "string", "const": "encryption" },
+              { "type": "string", "const": "freshness" },
+              { "type": "string", "const": "object_exists" }
             ]
           },
           "passed": { "type": "boolean" }
@@ -3569,8 +3569,8 @@
           "id": { "type": "string" },
           "level": {
             "anyOf": [
-              { "type": "string", "const": "error" },
               { "type": "string", "const": "success" },
+              { "type": "string", "const": "error" },
               { "type": "string", "const": "info" }
             ]
           },
@@ -3937,11 +3937,11 @@
           },
           "type": {
             "anyOf": [
+              { "type": "string", "const": "restore" },
               { "type": "string", "const": "backup" },
               { "type": "string", "const": "capture_logs" },
               { "type": "string", "const": "cleanup_orphans" },
               { "type": "string", "const": "restart" },
-              { "type": "string", "const": "restore" },
               { "type": "string", "const": "restore_cleanup" },
               { "type": "string", "const": "start" },
               { "type": "string", "const": "stop" }
@@ -4067,9 +4067,9 @@
           "action": {
             "anyOf": [
               { "type": "string", "const": "update" },
-              { "type": "string", "const": "restore" },
               { "type": "string", "const": "archive" },
               { "type": "string", "const": "create" },
+              { "type": "string", "const": "restore" },
               { "type": "string", "const": "unchanged" }
             ]
           },
@@ -4103,9 +4103,9 @@
           "action": {
             "anyOf": [
               { "type": "string", "const": "update" },
-              { "type": "string", "const": "restore" },
               { "type": "string", "const": "archive" },
               { "type": "string", "const": "create" },
+              { "type": "string", "const": "restore" },
               { "type": "string", "const": "unchanged" }
             ]
           },
@@ -4259,10 +4259,10 @@
           "id": {
             "anyOf": [
               { "type": "string", "const": "aws" },
+              { "type": "string", "const": "worker" },
               { "type": "string", "const": "api-database" },
               { "type": "string", "const": "github" },
-              { "type": "string", "const": "temporal" },
-              { "type": "string", "const": "worker" }
+              { "type": "string", "const": "temporal" }
             ]
           },
           "remediationHref": {
@@ -4331,9 +4331,9 @@
             "items": {
               "anyOf": [
                 { "type": "string", "const": "deployments" },
+                { "type": "string", "const": "health" },
                 { "type": "string", "const": "previews" },
                 { "type": "string", "const": "backups" },
-                { "type": "string", "const": "health" },
                 { "type": "string", "const": "restores" }
               ]
             }
@@ -4395,9 +4395,9 @@
             "items": {
               "anyOf": [
                 { "type": "string", "const": "deployments" },
+                { "type": "string", "const": "health" },
                 { "type": "string", "const": "previews" },
                 { "type": "string", "const": "backups" },
-                { "type": "string", "const": "health" },
                 { "type": "string", "const": "restores" }
               ]
             }
@@ -4473,14 +4473,14 @@
           "id": { "type": "string" },
           "kind": {
             "anyOf": [
-              { "type": "string", "const": "preview" },
               { "type": "string", "const": "source" },
               { "type": "string", "const": "app" },
-              { "type": "string", "const": "resource" },
               { "type": "string", "const": "server" },
+              { "type": "string", "const": "preview" },
               { "type": "string", "const": "deployment" },
-              { "type": "string", "const": "backup" },
+              { "type": "string", "const": "resource" },
               { "type": "string", "const": "restore" },
+              { "type": "string", "const": "backup" },
               { "type": "string", "const": "notification" }
             ]
           },
@@ -4522,9 +4522,9 @@
             "anyOf": [
               { "type": "string", "const": "test" },
               { "type": "string", "const": "deployments" },
+              { "type": "string", "const": "health" },
               { "type": "string", "const": "previews" },
               { "type": "string", "const": "backups" },
-              { "type": "string", "const": "health" },
               { "type": "string", "const": "restores" }
             ]
           },
