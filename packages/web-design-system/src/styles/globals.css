@@ -51,7 +51,7 @@ a {
   }
 
   .widget__title {
-    @apply text-foreground text-sm font-semibold;
+    @apply text-muted text-sm font-semibold;
   }
 
   .widget__content {
