@@ -22,16 +22,17 @@ export function ProfileSettings() {
 
   return (
     <div className="content-grid min-w-0 lg:grid-cols-2 lg:items-start">
-      <FormCard
-        headerEnd={
-          <span className="truncate text-xs text-muted">
-            {profile.data.user.email}
-          </span>
-        }
-        title="Profile details"
-      >
+      <FormCard title="Profile details">
         <SimpleForm
           fields={[
+            {
+              label: "Email",
+              name: "email",
+              defaultValue: profile.data.user.email,
+              disabled: true,
+              type: "email",
+              variant: "secondary",
+            },
             {
               label: "Display name",
               maxLength: 120,

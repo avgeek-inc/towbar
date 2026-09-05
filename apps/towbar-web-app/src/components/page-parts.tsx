@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Children } from "react";
 import type { ComponentProps, FormEvent, Key, ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { Spinner } from "@workspace/web-design-system/feedback/spinner";
@@ -341,6 +341,7 @@ export function SimpleForm({
     autoComplete?: string;
     defaultValue?: string;
     description?: string;
+    disabled?: boolean;
     label: string;
     maxLength?: number;
     minLength?: number;
@@ -354,6 +355,7 @@ export function SimpleForm({
   successMessage?: string;
   submitLabel: string;
 }) {
+  const formId = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -362,10 +364,12 @@ export function SimpleForm({
     setError(undefined);
     const formData = new FormData(event.currentTarget);
     const values = Object.fromEntries(
-      fields.map(({ name }) => {
-        const value = formData.get(name);
-        return [name, typeof value === "string" ? value : ""];
-      }),
+      fields
+        .filter((field) => !field.disabled)
+        .map(({ name }) => {
+          const value = formData.get(name);
+          return [name, typeof value === "string" ? value : ""];
+        }),
     );
     try {
       await onSubmit(values);
@@ -389,10 +393,14 @@ export function SimpleForm({
       ) : null}
       {fields.map((field) => (
         <Field key={field.name}>
-          <FieldLabel>{field.label}</FieldLabel>
+          <FieldLabel htmlFor={`${formId}-${field.name}`}>
+            {field.label}
+          </FieldLabel>
           <Input
+            id={`${formId}-${field.name}`}
             autoComplete={field.autoComplete}
             defaultValue={field.defaultValue}
+            disabled={field.disabled}
             maxLength={field.maxLength}
             minLength={field.minLength}
             name={field.name}
