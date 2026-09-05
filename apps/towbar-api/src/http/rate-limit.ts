@@ -125,7 +125,7 @@ async function enforceSingleSubjectLimit(subject: string, limit: number) {
   }
 }
 
-async function incrementPersistentBucket(
+export async function incrementPersistentBucket(
   subject: string,
   now: Date,
   windowMs: number,

@@ -1,3 +1,5 @@
+import { externalApiRoutes } from "./external.js";
+import { mcpRoutes } from "./mcp.js";
 import { Hono } from "hono";
 
 import { coreRoutes } from "./core/index.js";
@@ -12,3 +14,6 @@ export const internalV1 = new Hono<TowbarHonoEnvironment>();
 publicV1.route("/public", publicRoutes);
 publicV1.route("/core", coreRoutes);
 internalV1.route("/internal", internalRoutes);
+
+publicV1.route("/api", externalApiRoutes);
+publicV1.route("/mcp", mcpRoutes);

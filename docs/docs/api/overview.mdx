@@ -1,0 +1,104 @@
+---
+title: API & MCP
+description: Automate your Towbar control plane with a REST API or connect an AI client through MCP.
+---
+
+Towbar exposes infrastructure operations through REST and MCP. Manage sources, apps, resources, servers, deployments, previews, secrets, integration settings, and your current identity using your current workspace permissions.
+
+| Interface             | Endpoint                       | Authentication |
+| --------------------- | ------------------------------ | -------------- |
+| REST API              | `https://YOUR_API_HOST/v1/api` | API key        |
+| MCP                   | `https://YOUR_API_HOST/v1/mcp` | API key        |
+| OpenAPI specification | `GET /v1/api/openapi.json`     | API key        |
+
+Reference examples use `api.example.com`; replace it with the API host for your own Towbar installation. Your control plane shows the exact URLs in **Manage → API & MCP**, directly below Integrations.
+
+<Steps>
+  <Step title="Create a key">
+    Open **Manage → API & MCP → Create API key**. Name it for its consumer, choose its permissions and expiry, then copy it. Towbar only shows the secret once.
+  </Step>
+  <Step title="Send a request">
+    Set `TOWBAR_API_KEY` through your shell or secret manager and replace `YOUR_API_HOST` below.
+
+    ```bash
+    curl 'https://YOUR_API_HOST/v1/api/apps' \
+      -H "Authorization: Bearer $TOWBAR_API_KEY"
+    ```
+
+    A successful list request returns `{"apps": [...]}`. An empty inventory returns `{"apps": []}`.
+
+  </Step>
+  <Step title="Connect your automation">
+    Use the route reference in this section for REST, or follow [MCP setup](/docs/api/mcp) for an AI client.
+  </Step>
+</Steps>
+
+## Route design
+
+Collections use plural nouns: `/sources`, `/apps`, `/resources`, `/servers`, and `/deployments`. Item routes use UUIDs. Related records live under their parent, such as `/apps/{appId}/releases`. Commands use `POST` on an `/actions/` route, such as `/apps/{appId}/actions/deploy`.
+
+Apps and resources are defined in your Git manifest. To create or change them, update the manifest and sync its source. The API does not invent a separate configuration model. Use `/sources/{sourceId}/actions/preview-sync` to inspect reconciliation before requesting a sync.
+
+All documented paths are relative to `/v1/api`. Browser-only login, logout, initial setup, GitHub webhooks, and signed worker endpoints are separate protocols. They are not exposed as MCP tools. API key management, notifications, profile editing, password changes, browser-session management, and the GitHub installation handoff are available only in the control plane. `GET /profile` remains available to identify the current user and workspace.
+
+REST provides individual routes; MCP offers a separate [task-oriented tool catalogue](/docs/api/mcp-tools), including combined inspections and shared app/resource actions.
+
+## Find an operation
+
+The reference is grouped by the thing you manage, with smaller sections for each task:
+
+| Category     | Sections                                                                              |
+| ------------ | ------------------------------------------------------------------------------------- |
+| Sources      | Overview, Sync & manifest, Auto-deploy, Inventory, Secrets                            |
+| Apps         | Overview, Deployments, Runtime & logs, Previews, Secrets                              |
+| Resources    | Overview, Deployments, Runtime & logs, Backups & restores, Secrets                    |
+| Servers      | Overview, Inventory, Capacity, Checks & preparation, Credentials & trust, Maintenance |
+| Deployments  | Overview, Progress & logs, Actions, Security scans                                    |
+| Previews     | Lifecycle                                                                             |
+| Workspace    | Shared secrets, System health, Identity                                               |
+| Integrations | GitHub, AWS                                                                           |
+
+For common tasks, start with the [automation workflows](/docs/api/workflows). Expand only the relevant reference section when you need a schema or an individual operation.
+
+## Requests and responses
+
+- Send JSON with `Content-Type: application/json` where a request body is documented. Empty-body actions do not need `{}`.
+- `200` indicates a completed request or replay. `201` indicates a newly created record. `202` accepts asynchronous work. `204` has no response body.
+- Timestamps use ISO 8601 UTC strings. IDs are UUIDs. Unknown or inaccessible workspace records return `404`.
+- Lists return named arrays; detailed records return named objects. Deployment history and server checks accept `page` and `limit` and include pagination metadata. Other inventories are not paginated.
+- Request bodies are limited to 1 MiB unless a route imposes a smaller bound. Secret and credential mutations allow 300 KiB.
+- Responses carry `X-Request-Id`; include it when reporting a failure. API/MCP responses are marked `Cache-Control: no-store`.
+
+## Asynchronous actions and retries
+
+Deployment, rollback, runtime operations, preparation, checks, and sync actions may queue background work. Acceptance is not completion. Poll the returned deployment, operation, check, or sync ID until its state becomes terminal. The [workflows guide](/docs/api/workflows) includes examples.
+
+Where shown in the route reference, supply `Idempotency-Key`. Use one unique value per intended action and reuse it only when retrying that same action. Replays return the existing result; a conflicting payload can return `409`. Do not automatically retry a mutation with a new key after an ambiguous timeout.
+
+## Errors and limits
+
+```json
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Provide a valid, unexpired Towbar API key",
+    "requestId": "e3dd2776-e07d-486c-9d9f-e3708be31274"
+  }
+}
+```
+
+| Status | Meaning                                        | Next step                                        |
+| ------ | ---------------------------------------------- | ------------------------------------------------ |
+| `400`  | Malformed JSON, invalid field, or invalid UUID | Correct the request using its route schema.      |
+| `401`  | Missing, expired, revoked, or invalid key      | Create or supply a valid key.                    |
+| `403`  | Read-only mutation or insufficient role        | Check permissions and workspace role.            |
+| `404`  | Missing or inaccessible record or route        | Check the ID and your workspace.                 |
+| `409`  | Revision, state, or idempotency conflict       | Read current state before retrying.              |
+| `413`  | Request body exceeds its bound                 | Reduce the payload.                              |
+| `422`  | Semantically invalid configuration             | Correct the manifest or configuration.           |
+| `429`  | Shared IP rate limit exceeded                  | Wait for the `Retry-After` number of seconds.    |
+| `500`  | Unexpected server failure                      | Preserve the request ID and inspect server logs. |
+
+The default is **60 requests per minute per IP**, shared between REST and MCP. Unauthenticated attempts count too. MCP initialization, discovery, and tool calls each count as requests. Limits are stored in PostgreSQL and remain consistent across API processes.
+
+Responses expose `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` (Unix seconds). A blocked request adds `Retry-After` in seconds. See [authentication and rate limits](/docs/api/authentication) for operator settings.

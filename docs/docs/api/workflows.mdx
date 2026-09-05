@@ -1,0 +1,75 @@
+---
+title: Automation workflows
+description: Deploy and roll back apps, reconcile Git sources, manage secrets, and follow asynchronous Towbar operations.
+---
+
+All examples use your own API host and an bearer API key. Use a full-access key for mutations. Owner-only operations require the creator to remain a workspace owner.
+
+## Deploy an app
+
+List `/apps` to find an app UUID, then request a deployment:
+
+```bash
+curl -X POST "https://YOUR_API_HOST/v1/api/apps/$APP_ID/actions/deploy" \
+  -H "Authorization: Bearer $TOWBAR_API_KEY" \
+  -H "Idempotency-Key: $ACTION_ID"
+```
+
+Set `ACTION_ID` to a unique value for this intended deployment. The response includes a deployment and whether the request was replayed. Poll `GET /deployments/{deploymentId}` and `GET /deployments/{deploymentId}/steps`. Fetch incremental logs with `GET /deployments/{deploymentId}/logs?after=42`; use the last returned sequence in the next call.
+
+Terminal deployment states are `succeeded`, `succeeded_with_warnings`, `failed`, `cancelled`, and `skipped`. Do not treat `202`, a queued state, or an HTTP success as a successful deployment.
+
+To stream deployment updates:
+
+```bash
+curl -N "https://YOUR_API_HOST/v1/api/deployments/$DEPLOYMENT_ID/events" \
+  -H "Authorization: Bearer $TOWBAR_API_KEY" \
+  -H 'Accept: text/event-stream'
+```
+
+Each `deployment` event contains the deployment, logs, and steps. Streams end after a terminal state or a bounded polling period. Reconnect with `Last-Event-ID` from the last event, or `after` containing the last log sequence. Use `?snapshot=true` for one finite snapshot; MCP always uses this mode.
+
+## Roll back or cancel
+
+Read `/apps/{appId}/releases`, then `POST /apps/{appId}/actions/rollback` with an `Idempotency-Key` and body `{"releaseId":"RELEASE_UUID"}`. An empty object selects the previous release when available. Resource rollback follows the corresponding `/resources` route.
+
+`POST /deployments/{deploymentId}/actions/cancel` requests cancellation. Poll the deployment to see the final result. A retry uses `/deployments/{deploymentId}/actions/retry` and a fresh idempotency key for the new attempt.
+
+## Reconcile a source
+
+Create a source with `POST /sources` using the connected GitHub installation and repository details from `/github/repositories`. After committing your manifest, call `POST /sources/{sourceId}/actions/preview-sync` to inspect changes, then `/actions/sync` to request reconciliation. Read `/sources/{sourceId}/syncs` and the returned sync ID for progress and manifest validation errors.
+
+Automatic deployment controls can be read or changed at `/sources/{sourceId}/auto-deploy-control`, `/apps/{appId}/auto-deploy-control`, and `/resources/{resourceId}/auto-deploy-control`. Source-level and workload-level controls combine as they do in the UI.
+
+## Update secrets safely
+
+Read `/settings/secrets?environment=production` for workspace bindings and their revisions. Source, app, and resource secret routes use the same model. Reads expose names and revision metadata, never plaintext values.
+
+```bash
+curl -X PATCH 'https://YOUR_API_HOST/v1/api/settings/secrets/production/deployment' \
+  -H "Authorization: Bearer $TOWBAR_API_KEY" \
+  -H 'Content-Type: application/json' \
+  --data-binary @secret-change.json
+```
+
+The local `secret-change.json` contains:
+
+```json
+{
+  "expectedRevision": null,
+  "set": { "EXAMPLE_VARIABLE": "example-value" },
+  "delete": []
+}
+```
+
+Use `null` only when creating a previously empty secret slot. For an existing slot, send its current revision UUID. A stale revision returns `409`; read the latest metadata and reconcile changes. A request changes 1–200 keys, and cannot set and delete the same key. Keep real secret files outside source control.
+
+Valid environments are `production` and `preview`. Stages are `build`, `deployment`, `pre_deploy`, and `post_deploy`. Server credentials use `/servers/{serverId}/credentials` and accept `privateKey` and Cloudflare `apiToken` in the `set` map.
+
+## Servers, backups, and previews
+
+Create a server with `POST /servers`, configure credentials, and trust its SSH host key after verifying the fingerprint. Use `/servers/{serverId}/actions/prepare` and follow `/preparations` until ready. `/actions/check` refreshes runtime health and capacity; inspect `/checks` for the outcome.
+
+For resource backups, use `/resources/{resourceId}/actions/backup`. Read `/operations` and `/backup-assurance`. Restore and cleanup operations have explicit request schemas and state constraints in the reference. Restores can overwrite database contents; inspect the backup, target, and required confirmation fields before invoking them.
+
+Preview deployment and cleanup use `/previews/{previewEnvironmentId}/actions/deploy` and `/actions/delete`. Preview inventories are available under the parent app or source. Cleanup is asynchronous and must be checked for failures.

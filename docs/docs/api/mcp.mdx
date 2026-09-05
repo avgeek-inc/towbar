@@ -1,0 +1,177 @@
+---
+title: MCP setup
+description: Connect Codex, Cursor, VS Code, Claude Code, or another Streamable HTTP MCP client to your Towbar control plane.
+---
+
+Towbar's MCP server provides task-oriented tools for discovering infrastructure, deploying workloads, diagnosing failures, and managing secrets. Tools combine related reads and use direct inputs while preserving the API's workspace boundaries and role checks. You do not need to install a separate Towbar MCP process.
+
+## Connect
+
+1. Open **Manage → API & MCP** and create an API key.
+2. Choose **Read only** for discovery. Use **Full access** when you want the client to deploy or change settings.
+3. Copy the MCP URL shown in the page. It ends in `/v1/mcp` on your API host.
+4. Add the appropriate client configuration below, reconnect, and ask: **“List my Towbar apps.”**
+
+Transport is **Streamable HTTP**. Authentication is the `Authorization: Bearer ...` header on every request. Towbar does not provide an OAuth browser sign-in flow for MCP. Clients that only support OAuth connectors cannot connect directly; use a client that supports custom bearer headers.
+
+<Tabs>
+  <Tab title="Codex">
+    Add this to `~/.codex/config.toml`, replacing the API host:
+
+    ```toml
+    [mcp_servers.towbar]
+    url = "https://YOUR_API_HOST/v1/mcp"
+    bearer_token_env_var = "TOWBAR_API_KEY"
+    ```
+
+    Set `TOWBAR_API_KEY` securely in the environment that launches Codex. Its value is your Towbar key without a `Bearer` prefix; Codex adds the authorization header. The configuration stores only the variable name.
+
+    Alternatively, register the same configuration with the CLI:
+
+    ```bash
+    codex mcp add towbar --url 'https://YOUR_API_HOST/v1/mcp' \
+      --bearer-token-env-var TOWBAR_API_KEY
+    ```
+
+    Restart Codex after setting the variable. A desktop app or IDE launched separately may not inherit your terminal environment; ensure the variable is available to the process running Codex. Use `/mcp` in the CLI to check the connection, then ask **“List my Towbar apps.”**
+
+    See the [official Codex MCP documentation](https://developers.openai.com/codex/mcp/) for configuration and environment options.
+
+  </Tab>
+  <Tab title="Cursor">
+    Add this to your local Cursor MCP configuration, such as `.cursor/mcp.json`. Replace the host and token placeholder, and keep real keys out of Git.
+
+    ```json
+    {
+      "mcpServers": {
+        "towbar": {
+          "url": "https://YOUR_API_HOST/v1/mcp",
+          "headers": { "Authorization": "Bearer YOUR_TOWBAR_API_KEY" }
+        }
+      }
+    }
+    ```
+
+    See [Cursor's MCP documentation](https://cursor.com/docs/context/mcp) for configuration locations and client controls.
+
+  </Tab>
+  <Tab title="VS Code">
+    Add to `.vscode/mcp.json`. The input prompt keeps the key out of the configuration file.
+
+    ```json
+    {
+      "inputs": [
+        {
+          "type": "promptString",
+          "id": "towbar-key",
+          "description": "Towbar API key",
+          "password": true
+        }
+      ],
+      "servers": {
+        "towbar": {
+          "type": "http",
+          "url": "https://YOUR_API_HOST/v1/mcp",
+          "headers": { "Authorization": "Bearer ${input:towbar-key}" }
+        }
+      }
+    }
+    ```
+
+    Run **MCP: List Servers**, select Towbar, and start or restart it. Interactive inputs apply to VS Code's local extension-host flow; Agent Host sessions may require a supported environment-based configuration. See the [VS Code MCP reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration).
+
+  </Tab>
+  <Tab title="Claude Code">
+    Set `TOWBAR_API_KEY` securely in your shell, then run:
+
+    ```bash
+    claude mcp add --transport http towbar 'https://YOUR_API_HOST/v1/mcp' \
+      --header "Authorization: Bearer $TOWBAR_API_KEY"
+    ```
+
+    Review the stored local configuration and avoid sharing it with the key included. Use `/mcp` to inspect connection status. See [Claude Code's MCP documentation](https://code.claude.com/docs/en/mcp).
+
+  </Tab>
+  <Tab title="Other clients">
+    Supply these values in a client that supports remote MCP with custom HTTP headers:
+
+    | Field | Value |
+    | --- | --- |
+    | Transport | Streamable HTTP |
+    | URL | `https://YOUR_API_HOST/v1/mcp` |
+    | Header | `Authorization: Bearer YOUR_TOWBAR_API_KEY` |
+
+    Use the client's normal MCP initialization flow. Do not configure the REST URL as an MCP server or use the legacy HTTP+SSE transport.
+
+  </Tab>
+</Tabs>
+
+## Tools and permissions
+
+`tools/list` returns the operations permitted by your key and current role. Read-only keys only list read tools. Owner-only operations are omitted for workspace members. Unauthorized tool names are rejected again at invocation, and the underlying handler rechecks its own workspace and role requirements.
+
+The [tool catalogue](/docs/api/mcp-tools) documents every tool and its input schema. Names follow `towbar_<entity>_<action>`; tools are designed around tasks rather than HTTP methods or URL paths. App and resource actions share `kind` and `workloadId` inputs.
+
+### Find, deploy, and verify
+
+Find an app by name:
+
+```json
+{
+  "name": "towbar_inventory_search",
+  "arguments": { "kind": "app", "search": "website", "limit": 10 }
+}
+```
+
+Read the returned UUID and deploy that workload:
+
+```json
+{
+  "name": "towbar_workload_deploy",
+  "arguments": {
+    "kind": "app",
+    "workloadId": "31111111-1111-4111-8111-222222222222",
+    "idempotencyKey": "release-2026-09-05-attempt-1"
+  }
+}
+```
+
+Keep the same idempotency key if retrying an uncertain response. The tool returns the deployment ID promptly. Pass that ID to `towbar_deployment_inspect`, which combines deployment state, build steps, and logs. Continue with its `nextAfter` value; `hasMoreLogs` means another page remains. `terminal: true` means the deployment stopped, including failure or cancellation; inspect its state to determine success.
+
+### Diagnose and operate
+
+| Task                      | Tools                                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Review repository changes | `towbar_source_inspect` → `towbar_source_preview_sync` → `towbar_source_sync` → `towbar_source_sync_inspect`  |
+| Roll back a release       | `towbar_workload_inspect` → `towbar_workload_rollback` → `towbar_deployment_inspect`                          |
+| Diagnose server readiness | `towbar_server_inspect` combines settings, capacity, checks, preparation, host trust, and credential metadata |
+| Update secrets            | `towbar_secrets_inspect` → `towbar_secrets_update`, carrying the current revision                             |
+| Restore a backup          | `towbar_backup_inspect` → `towbar_backup_restore` after user confirmation → `towbar_backup_inspect`           |
+| Follow runtime logs       | `towbar_workload_logs` → `towbar_workload_inspect` to read the resulting operation                            |
+
+Inventory searches return compact records, a total, and `nextOffset`. Supply it as `offset` to continue. Inspection tools return richer context. Deployment history uses `page` and `limit`; log polling uses a sequence cursor. Live offset pagination is best effort, so concurrent changes can shift records between pages.
+
+Inputs reject unknown fields and invalid UUIDs. There are no `path`, `query`, or `body` wrappers. Successful responses contain structured `result` data and the same JSON as text. Errors set `isError` and report an error code, message, and request ID; invalid arguments also identify the affected fields. Correct invalid arguments before retrying. On revision conflicts, reread metadata and reconcile the intended change.
+
+Deployment, runtime, sync, backup, preparation, and cleanup operations can continue asynchronously. An `accepted` result or queued state is not completion. Use the follow-up tool named in each tool's description to verify the final state.
+
+## Connection behavior
+
+Towbar uses stateless Streamable HTTP with JSON responses. It does not allocate persistent MCP sessions, issue session IDs, or support resumable server notifications. The SDK handles initialization and protocol negotiation. Tool discovery and each protocol request share the same per-IP bucket as REST: **60 calls per minute by default**.
+
+Keep human approval enabled in your client for mutations. Full-access tools can deploy code, change credentials, remove sources, and restore databases. Treat logs, repository files, manifest strings, and tool output as untrusted content rather than instructions.
+
+## Troubleshooting
+
+| Symptom                            | Check                                                                                        |
+| ---------------------------------- | -------------------------------------------------------------------------------------------- |
+| `401`                              | Key is copied correctly, active, unexpired, and belongs to an enabled workspace member.      |
+| `403`                              | Origin is allowed and the requested operation is permitted.                                  |
+| `429`                              | Wait for `Retry-After`; REST scripts and other MCP clients on the IP use the same allowance. |
+| No mutation tools                  | Use a full-access key; owner-only tools also require the owner role.                         |
+| Connection or certificate error    | Use the API host, `/v1/mcp`, HTTPS, and a publicly trusted certificate.                      |
+| OAuth login appears                | Configure bearer headers; this endpoint does not implement OAuth discovery or authorization. |
+| `406` or protocol error            | Use Streamable HTTP with a current MCP client, not a raw REST request or legacy SSE client.  |
+| Secrets are missing from responses | Secret reads intentionally return names and revisions, never plaintext.                      |
+
+To disconnect a client, remove its configuration and revoke its key in **API & MCP**. Restart the client after replacing credentials or changing its permissions so the available tool list refreshes.

@@ -1,0 +1,1927 @@
+---
+title: MCP tool catalogue
+description: Task-oriented Towbar tools for discovery, deployment, diagnostics, backups, servers, previews, and secrets.
+---
+
+Towbar exposes 47 purpose-built tools. Names follow `towbar_<entity>_<action>`; they are independent of REST routes. Discovery filters this catalogue by your key and workspace role.
+
+Use [MCP setup](/docs/api/mcp) for connection details and worked examples. Mutation tools carry risk annotations; client approval is still required for consequential actions. Successful calls return structured `result` data with a matching JSON text fallback. Failures set `isError`.
+
+Inventory and history tools return bounded pages with continuation fields. Histories backed by live inventories are best-effort pages, not snapshot cursors; concurrent changes can shift offsets.
+
+## Workspace
+
+<AccordionGroup>
+<Accordion title="Inspect workspace">
+
+`towbar_workspace_inspect`
+
+Identify the current workspace and inspect control-plane health. Use first to understand the authenticated context; does not trigger health checks.
+
+Read only. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Refresh control-plane health">
+
+`towbar_workspace_check`
+
+Run system health checks, then use towbar_workspace_inspect to review the latest results.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## Discovery
+
+<AccordionGroup>
+<Accordion title="Find apps, resources, sources, or servers">
+
+`towbar_inventory_search`
+
+Find entity UUIDs by name, repository, or IP before taking action. Returns a compact page and nextOffset. An optional sourceId or serverId limits app/resource discovery; do not supply both. Use the matching inspect tool for details.
+
+Read only. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": ["app", "resource", "source", "server"]
+    },
+    "search": {
+      "default": "",
+      "type": "string",
+      "maxLength": 255
+    },
+    "sourceId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Source UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "serverId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Server UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "offset": {
+      "default": 0,
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "limit": {
+      "default": 20,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    }
+  },
+  "required": ["kind"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Find connected GitHub repositories">
+
+`towbar_repository_search`
+
+Find a repository and installation UUID for towbar_source_connect. Returns a bounded page; GitHub installation setup happens in the control plane.
+
+Read only. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "search": {
+      "default": "",
+      "type": "string",
+      "maxLength": 255
+    },
+    "offset": {
+      "default": 0,
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "limit": {
+      "default": 20,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## Sources
+
+<AccordionGroup>
+<Accordion title="Inspect source and manifest">
+
+`towbar_source_inspect`
+
+Inspect a connected repository, its manifest, auto-deploy control, and server capacity together. Find the sourceId with towbar_inventory_search. Use towbar_source_preview_sync before reconciling changes.
+
+Read only. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "sourceId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Source UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    }
+  },
+  "required": ["sourceId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Connect repository">
+
+`towbar_source_connect`
+
+Connect a repository from towbar_repository_search using its installation ID and production branch. Then preview and sync its manifest; connecting does not prove deployment success.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "branch": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "githubInstallationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "repositoryName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "repositoryOwner": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    }
+  },
+  "required": [
+    "branch",
+    "githubInstallationId",
+    "repositoryName",
+    "repositoryOwner"
+  ],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Disconnect source">
+
+`towbar_source_disconnect`
+
+Remove a source from Towbar. Inspect the source and confirm the target with the user first; this changes which repository Towbar manages.
+
+Full-access key required. Workspace owner required.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "sourceId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Source UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    }
+  },
+  "required": ["sourceId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Preview manifest changes">
+
+`towbar_source_preview_sync`
+
+Compare a repository manifest with current inventory before requesting reconciliation. Returns proposed changes and validation errors; does not deploy the proposed changes.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "sourceId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Source UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    }
+  },
+  "required": ["sourceId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Sync repository manifest">
+
+`towbar_source_sync`
+
+Reconcile a source with its production branch after reviewing towbar_source_preview_sync. May update inventory and trigger deployments. Returns a sync ID; use towbar_source_sync_inspect to check the outcome.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "sourceId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Source UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    }
+  },
+  "required": ["sourceId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Inspect source sync progress">
+
+`towbar_source_sync_inspect`
+
+Check a specific syncId returned by towbar_source_sync, or list a bounded page of sync attempts when no syncId is supplied. Inspect errors before retrying; acceptance is not completion.
+
+Read only. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "sourceId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Source UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "syncId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Sync UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "offset": {
+      "default": 0,
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "limit": {
+      "default": 20,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    }
+  },
+  "required": ["sourceId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## Apps and resources
+
+<AccordionGroup>
+<Accordion title="Inspect app or resource">
+
+`towbar_workload_inspect`
+
+Read an app/resource configuration, effective auto-deploy controls, releases, deployments, and runtime operations together. Use operation IDs to follow start/stop/restart/log requests. Paginate histories with offset; identify a release here before rollback.
+
+Read only. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": ["app", "resource"]
+    },
+    "workloadId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "App or resource UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "offset": {
+      "default": 0,
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "limit": {
+      "default": 20,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    }
+  },
+  "required": ["kind", "workloadId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Deploy app or resource">
+
+`towbar_workload_deploy`
+
+Deploy an app or resource from its current source configuration. Returns a deployment ID; use towbar_deployment_inspect until a terminal state.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": ["app", "resource"]
+    },
+    "workloadId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "App or resource UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Unique identifier for this intended action. Reuse exactly this value when retrying an uncertain response; use a new value for a new action."
+    }
+  },
+  "required": ["kind", "workloadId", "idempotencyKey"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Rollback app or resource">
+
+`towbar_workload_rollback`
+
+Roll an app/resource back to a release selected from towbar_workload_inspect, or omit releaseId for the previous release. Returns a deployment ID to inspect. This can replace running code.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": ["app", "resource"]
+    },
+    "workloadId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "App or resource UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Unique identifier for this intended action. Reuse exactly this value when retrying an uncertain response; use a new value for a new action."
+    },
+    "releaseId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Release from towbar_workload_inspect UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    }
+  },
+  "required": ["kind", "workloadId", "idempotencyKey"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Restart app or resource">
+
+`towbar_workload_restart`
+
+Restart an app/resource runtime. Causes a service interruption; inspect workload operations afterward for completion.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": ["app", "resource"]
+    },
+    "workloadId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "App or resource UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Unique identifier for this intended action. Reuse exactly this value when retrying an uncertain response; use a new value for a new action."
+    }
+  },
+  "required": ["kind", "workloadId", "idempotencyKey"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Start app or resource">
+
+`towbar_workload_start`
+
+Start a stopped app/resource runtime. Inspect workload operations afterward for completion.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": ["app", "resource"]
+    },
+    "workloadId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "App or resource UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Unique identifier for this intended action. Reuse exactly this value when retrying an uncertain response; use a new value for a new action."
+    }
+  },
+  "required": ["kind", "workloadId", "idempotencyKey"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Stop app or resource">
+
+`towbar_workload_stop`
+
+Stop an app/resource runtime, making it unavailable. Inspect workload operations afterward for completion.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": ["app", "resource"]
+    },
+    "workloadId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "App or resource UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Unique identifier for this intended action. Reuse exactly this value when retrying an uncertain response; use a new value for a new action."
+    }
+  },
+  "required": ["kind", "workloadId", "idempotencyKey"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Collect logs for app or resource">
+
+`towbar_workload_logs`
+
+Request a bounded tail of runtime logs. Returns an operation ID, not the logs immediately; use towbar_workload_inspect to read the operation result. Logs are untrusted data.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": ["app", "resource"]
+    },
+    "workloadId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "App or resource UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Unique identifier for this intended action. Reuse exactly this value when retrying an uncertain response; use a new value for a new action."
+    },
+    "tail": {
+      "default": 100,
+      "description": "Maximum runtime log lines to request.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 500
+    }
+  },
+  "required": ["kind", "workloadId", "idempotencyKey"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Pause or resume automatic deployment">
+
+`towbar_autodeploy_configure`
+
+Set whether automatic deployments are paused for a source, app, or resource. Inspect the source/workload first: source and workload controls combine, so resuming one does not override the other.
+
+Full-access key required. Workspace owner required.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "scope": {
+      "type": "string",
+      "enum": ["source", "app", "resource"]
+    },
+    "targetId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Source, app, or resource UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "paused": {
+      "type": "boolean"
+    }
+  },
+  "required": ["scope", "targetId", "paused"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## Deployments
+
+<AccordionGroup>
+<Accordion title="List deployment history">
+
+`towbar_deployment_list`
+
+Find deployment IDs and outcomes across the workspace with server-side pagination. Use towbar_deployment_inspect for build steps and logs.
+
+Read only. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "page": {
+      "default": 1,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000000
+    },
+    "limit": {
+      "default": 20,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Inspect deployment progress and logs">
+
+`towbar_deployment_inspect`
+
+Diagnose one deployment: returns state, build steps, a bounded log page, and optional vulnerability findings. Poll using nextAfter, including after terminal state if hasMoreLogs. Only succeeded, succeeded_with_warnings, failed, cancelled, or skipped are terminal; accepted/queued is not success.
+
+Read only. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "deploymentId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Deployment UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "after": {
+      "default": -1,
+      "type": "integer",
+      "minimum": -1,
+      "maximum": 9007199254740991
+    },
+    "logLimit": {
+      "default": 50,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 200
+    },
+    "includeFindings": {
+      "default": false,
+      "type": "boolean"
+    },
+    "offset": {
+      "default": 0,
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "limit": {
+      "default": 20,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    }
+  },
+  "required": ["deploymentId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Cancel deployment">
+
+`towbar_deployment_cancel`
+
+Request cancellation of a running deployment. Poll towbar_deployment_inspect until terminal; a cancellation request can race completion.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "deploymentId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Deployment UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    }
+  },
+  "required": ["deploymentId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Retry deployment">
+
+`towbar_deployment_retry`
+
+Create a new attempt for an eligible failed deployment. Use a fresh idempotencyKey for this retry, then inspect the returned deployment ID.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "deploymentId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Deployment UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Unique identifier for this intended action. Reuse exactly this value when retrying an uncertain response; use a new value for a new action."
+    }
+  },
+  "required": ["deploymentId", "idempotencyKey"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Rescan deployed image">
+
+`towbar_deployment_rescan`
+
+Request a vulnerability scan for a deployment image. Read findings and scan state using towbar_deployment_inspect with includeFindings afterward.
+
+Full-access key required. Workspace owner required.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "deploymentId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Deployment UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    }
+  },
+  "required": ["deploymentId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## Servers
+
+<AccordionGroup>
+<Accordion title="Inspect server readiness and capacity">
+
+`towbar_server_inspect`
+
+Read server settings, capacity, recent checks, preparation attempts, host-key fingerprints, credential metadata, and orphan inventory together. Use before preparation or cleanup. No private credential values are returned.
+
+Read only. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "serverId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Server UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "offset": {
+      "default": 0,
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "limit": {
+      "default": 20,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    }
+  },
+  "required": ["serverId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Register server">
+
+`towbar_server_register`
+
+Register a workspace server by IP and SSH configuration. Then configure credentials, independently verify/trust its SSH host key, and prepare it. Registration alone does not make the server ready.
+
+Full-access key required. Workspace owner required.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "buildConcurrency": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16
+    },
+    "previewBuildConcurrency": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4
+    },
+    "ip": {
+      "type": "string"
+    },
+    "ssh": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_-]{0,31}$"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        }
+      },
+      "required": ["username"],
+      "additionalProperties": false
+    },
+    "proxy": {
+      "type": "object",
+      "properties": {
+        "cloudflare": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "const": true
+            }
+          },
+          "required": ["enabled"],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["ip", "ssh"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Configure server">
+
+`towbar_server_configure`
+
+Update server IP, SSH settings, proxy options, and build concurrency. Inspect current settings first; changing connectivity can disrupt deployments.
+
+Full-access key required. Workspace owner required.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "serverId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Server UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "buildConcurrency": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16
+    },
+    "previewBuildConcurrency": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4
+    },
+    "ip": {
+      "type": "string"
+    },
+    "ssh": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_-]{0,31}$"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        }
+      },
+      "required": ["username"],
+      "additionalProperties": false
+    },
+    "proxy": {
+      "type": "object",
+      "properties": {
+        "cloudflare": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "const": true
+            }
+          },
+          "required": ["enabled"],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["serverId", "ip", "ssh"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Update server credentials">
+
+`towbar_server_credentials_update`
+
+Set or delete SSH/Cloudflare credentials with the revision from towbar_server_inspect. Values are never returned. Preserve expectedRevision to avoid overwriting concurrent changes.
+
+Full-access key required. Workspace owner required.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "serverId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Server UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "expectedRevision": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "set": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024,
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 65536
+      }
+    },
+    "delete": {
+      "default": [],
+      "maxItems": 200,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024,
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+      }
+    }
+  },
+  "required": ["serverId", "expectedRevision"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Trust SSH host key">
+
+`towbar_server_trust_host`
+
+Trust a server host key only after the user independently verifies its fingerprint. Never auto-trust a fingerprint simply because the server reported it.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "serverId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Server UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "algorithm": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9@._+-]{0,79}$"
+    },
+    "fingerprint": {
+      "type": "string",
+      "maxLength": 255,
+      "pattern": "^SHA256:.*"
+    },
+    "publicKey": {
+      "type": "string",
+      "minLength": 32,
+      "maxLength": 16384
+    }
+  },
+  "required": ["serverId", "algorithm", "fingerprint", "publicKey"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Revoke trusted SSH key">
+
+`towbar_server_revoke_host`
+
+Remove a previously trusted server host key. This can prevent subsequent SSH connections; identify hostKeyId in towbar_server_inspect first.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "serverId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Server UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "hostKeyId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Trusted host key UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    }
+  },
+  "required": ["serverId", "hostKeyId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Prepare server for workloads">
+
+`towbar_server_prepare`
+
+Install or validate server prerequisites after credentials and host trust are configured. Follow preparation attempts in towbar_server_inspect until ready or failed.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "serverId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Server UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    }
+  },
+  "required": ["serverId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Refresh server health">
+
+`towbar_server_check`
+
+Request a new health/capacity check. Inspect server checks afterward to distinguish a queued request from a completed check.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "serverId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Server UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    }
+  },
+  "required": ["serverId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Clean selected orphaned objects">
+
+`towbar_server_cleanup`
+
+Delete only explicitly selected orphan containers, images, or volumes from towbar_server_inspect. Volumes may contain data; confirm the exact inventory with the user before cleanup.
+
+Full-access key required. Workspace owner required.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "serverId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Server UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "items": {
+      "minItems": 1,
+      "maxItems": 100,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["container", "image", "volume"]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "required": ["kind", "name"],
+        "additionalProperties": false
+      }
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Unique identifier for this intended action. Reuse exactly this value when retrying an uncertain response; use a new value for a new action."
+    }
+  },
+  "required": ["serverId", "items", "idempotencyKey"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## Secrets
+
+<AccordionGroup>
+<Accordion title="Inspect secret names and revisions">
+
+`towbar_secrets_inspect`
+
+Read secret bindings, inheritance, and revision metadata for a workspace, source, app, or resource. Never returns plaintext values. Read before towbar_secrets_update; use the correct environment and slot revision.
+
+Read only. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "scope": {
+      "type": "string",
+      "enum": ["workspace", "source", "app", "resource"]
+    },
+    "targetId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Secret owner; omit for workspace scope UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "environment": {
+      "type": "string",
+      "enum": ["production", "preview"]
+    }
+  },
+  "required": ["scope"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Update environment secrets">
+
+`towbar_secrets_update`
+
+Set/delete named secrets in one environment and lifecycle stage. Use expectedRevision from towbar_secrets_inspect (null only for an empty slot). A conflict requires rereading and reconciling changes. Never returns plaintext values.
+
+Full-access key required. Workspace owner required.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "scope": {
+      "type": "string",
+      "enum": ["workspace", "source", "app", "resource"]
+    },
+    "targetId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Secret owner; omit for workspace scope UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "environment": {
+      "type": "string",
+      "enum": ["production", "preview"]
+    },
+    "stage": {
+      "type": "string",
+      "enum": ["build", "deployment", "pre_deploy", "post_deploy"]
+    },
+    "expectedRevision": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "set": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024,
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 65536
+      }
+    },
+    "delete": {
+      "default": [],
+      "maxItems": 200,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024,
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+      }
+    }
+  },
+  "required": ["scope", "environment", "stage", "expectedRevision"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## Backups and restores
+
+<AccordionGroup>
+<Accordion title="Inspect backups and restore progress">
+
+`towbar_backup_inspect`
+
+For a source, page through available backups. For a resource, inspect backup assurance and operations; supply operationId to include its restore events. Use before restore and to check backup/restore completion.
+
+Read only. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "scope": {
+      "type": "string",
+      "enum": ["source", "resource"]
+    },
+    "targetId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Source or resource UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "operationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Resource operation UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "offset": {
+      "default": 0,
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "limit": {
+      "default": 20,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    }
+  },
+  "required": ["scope", "targetId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Back up resource">
+
+`towbar_backup_create`
+
+Request a database/resource backup. Follow the operation in towbar_backup_inspect; acceptance does not mean a recoverable backup exists.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "resourceId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Resource UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Unique identifier for this intended action. Reuse exactly this value when retrying an uncertain response; use a new value for a new action."
+    }
+  },
+  "required": ["resourceId", "idempotencyKey"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Restore resource backup">
+
+`towbar_backup_restore`
+
+Restore a selected backup to a resource. This can overwrite database contents. Inspect backup assurance and the target first; obtain the exact confirmation and a reason from the user. Follow progress with towbar_backup_inspect.
+
+Full-access key required. Workspace owner required.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "resourceId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Resource UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "backupId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "confirmation": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 1000
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Unique identifier for this intended action. Reuse exactly this value when retrying an uncertain response; use a new value for a new action."
+    }
+  },
+  "required": [
+    "resourceId",
+    "backupId",
+    "confirmation",
+    "reason",
+    "idempotencyKey"
+  ],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Clean up completed restore">
+
+`towbar_restore_cleanup`
+
+Request cleanup for a specific restore after reviewing its outcome. This removes retained restore artifacts; use towbar_backup_inspect to verify completion.
+
+Full-access key required. Workspace owner required.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "resourceId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Resource UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "restoreId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Unique identifier for this intended action. Reuse exactly this value when retrying an uncertain response; use a new value for a new action."
+    }
+  },
+  "required": ["resourceId", "restoreId", "idempotencyKey"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Cancel restore">
+
+`towbar_restore_cancel`
+
+Request cancellation of an eligible resource restore. Inspect the operation with towbar_backup_inspect afterward; acceptance is not proof that the restore stopped.
+
+Full-access key required. Workspace owner required.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "resourceId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Resource UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "operationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Restore operation UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    }
+  },
+  "required": ["resourceId", "operationId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## Preview environments
+
+<AccordionGroup>
+<Accordion title="Find pull request previews">
+
+`towbar_preview_list`
+
+List preview environments for an app or source, including IDs, URLs, and lifecycle state. Use IDs from this list for deploy/cleanup, and poll it afterward to verify the outcome.
+
+Read only. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "scope": {
+      "type": "string",
+      "enum": ["app", "source"]
+    },
+    "targetId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "App or source UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "offset": {
+      "default": 0,
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "limit": {
+      "default": 20,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    }
+  },
+  "required": ["scope", "targetId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Deploy pull request preview">
+
+`towbar_preview_deploy`
+
+Request a deployment for a preview environment found by towbar_preview_list. Inspect the returned deployment ID and preview lifecycle afterward.
+
+Full-access key required. Workspace owner required.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "previewEnvironmentId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Preview environment UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    }
+  },
+  "required": ["previewEnvironmentId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Remove pull request preview">
+
+`towbar_preview_cleanup`
+
+Request removal of a preview environment and its runtime. Confirm the selected preview; poll towbar_preview_list afterward until cleanup completes or fails.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "previewEnvironmentId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Preview environment UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    }
+  },
+  "required": ["previewEnvironmentId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## Integrations
+
+<AccordionGroup>
+<Accordion title="Inspect GitHub and AWS connections">
+
+`towbar_integration_inspect`
+
+Read GitHub installation state and AWS credential metadata together. Never returns secret values. Use towbar_repository_search to find repositories available for towbar_source_connect.
+
+Read only. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Disconnect GitHub integration">
+
+`towbar_github_disconnect`
+
+Disconnect the workspace GitHub integration, affecting repository sync and deployments. Confirm this workspace-wide change with the user.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Retry preview reporting">
+
+`towbar_github_retry_reporting`
+
+Retry failed GitHub preview status/comment reporting. This retries reporting, not deployment; inspect preview/deployment state separately.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Configure AWS credentials">
+
+`towbar_aws_configure`
+
+Save AWS access credentials and region for the workspace. Use towbar_integration_inspect for metadata afterward; credential values are never returned.
+
+Full-access key required. Workspace owner required.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "accessKeyId": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 128
+    },
+    "region": {
+      "default": "ap-south-1",
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 64
+    },
+    "secretAccessKey": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 256
+    }
+  },
+  "required": ["accessKeyId", "secretAccessKey"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Remove AWS credentials">
+
+`towbar_aws_disconnect`
+
+Remove workspace AWS credentials. This can affect backup and infrastructure operations; confirm the workspace-wide impact first.
+
+Full-access key required. Workspace owner required.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+</AccordionGroup>

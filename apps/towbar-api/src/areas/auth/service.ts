@@ -213,7 +213,7 @@ export async function listUserSessions(userId: string) {
 }
 
 export async function revokeUserSession(input: {
-  currentSessionId: string;
+  currentSessionId: string | null;
   sessionId: string;
   userId: string;
 }) {
@@ -246,7 +246,7 @@ export async function updateProfile(input: {
 
 export async function changePassword(input: {
   currentPassword: string;
-  currentSessionId: string;
+  currentSessionId: string | null;
   newPassword: string;
   userId: string;
 }) {
@@ -278,7 +278,9 @@ export async function changePassword(input: {
       .where(
         and(
           eq(sessions.userId, input.userId),
-          ne(sessions.id, input.currentSessionId),
+          input.currentSessionId
+            ? ne(sessions.id, input.currentSessionId)
+            : undefined,
           isNull(sessions.revokedAt),
         ),
       );

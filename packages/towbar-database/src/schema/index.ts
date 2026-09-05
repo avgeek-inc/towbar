@@ -267,6 +267,36 @@ export const workspaceMembers = pgTable(
   ],
 );
 
+export const apiKeys = pgTable(
+  "towbar_api_keys",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 120 }).notNull(),
+    access: varchar("access", { length: 10 })
+      .$type<"read" | "write">()
+      .notNull(),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+    tokenPrefix: varchar("token_prefix", { length: 20 }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_api_keys_hash").on(table.tokenHash),
+    index("idx_towbar_api_keys_owner").on(table.workspaceId, table.userId),
+    check("towbar_api_keys_access", sql`${table.access} in ('read', 'write')`),
+  ],
+);
+
 export const githubInstallations = pgTable(
   "towbar_github_installations",
   {

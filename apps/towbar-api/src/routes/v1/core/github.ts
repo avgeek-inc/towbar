@@ -1,3 +1,4 @@
+import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -23,50 +24,107 @@ const completeSchema = z
 
 export const githubRoutes = new Hono<TowbarHonoEnvironment>();
 
-githubRoutes.get("/", async (context) => {
-  const workspaceId = context.get("user").workspaceId;
-  const [connection, previewReporting] = await Promise.all([
-    getGitHubConnectionStatus(workspaceId),
-    getPreviewReportingHealth(workspaceId),
-  ]);
-  return context.json({ connection, previewReporting });
-});
+githubRoutes.get(
+  "/",
+  operation({
+    responseSchema: 'github.ts:get:"/"',
+    summary: "Get GitHub integration",
+    response: "JSON object containing connection, previewReporting.",
+    status: 200,
+  }),
+  async (context) => {
+    const workspaceId = context.get("user").workspaceId;
+    const [connection, previewReporting] = await Promise.all([
+      getGitHubConnectionStatus(workspaceId),
+      getPreviewReportingHealth(workspaceId),
+    ]);
+    return context.json({ connection, previewReporting });
+  },
+);
 
-githubRoutes.post("/actions/retry-preview-reporting", async (context) => {
-  const result = await retryFailedPreviewReporting(
-    context.get("user").workspaceId,
-  );
-  return context.json(result);
-});
+githubRoutes.post(
+  "/actions/retry-preview-reporting",
+  operation({
+    responseSchema: 'github.ts:post:"/actions/retry-preview-reporting"',
+    summary: "Retry failed preview reporting",
+    response: "The number of preview reports queued for retry.",
+    status: 200,
+  }),
+  async (context) => {
+    const result = await retryFailedPreviewReporting(
+      context.get("user").workspaceId,
+    );
+    return context.json(result);
+  },
+);
 
-githubRoutes.post("/actions/installation-url", async (context) => {
-  const user = context.get("user");
-  const url = await createInstallationUrl({
-    userId: user.id,
-    workspaceId: user.workspaceId,
-  });
-  return context.json({ url });
-});
+githubRoutes.post(
+  "/actions/installation-url",
+  operation({
+    responseSchema: 'github.ts:post:"/actions/installation-url"',
+    summary: "Create installation URL",
+    browserOnly: true,
+    response: "JSON object containing url.",
+    status: 200,
+  }),
+  async (context) => {
+    const user = context.get("user");
+    const url = await createInstallationUrl({
+      userId: user.id,
+      workspaceId: user.workspaceId,
+    });
+    return context.json({ url });
+  },
+);
 
-githubRoutes.post("/actions/complete-installation", async (context) => {
-  const input = await readJson(context, completeSchema);
-  const user = context.get("user");
-  const installation = await completeInstallation({
-    ...input,
-    userId: user.id,
-    workspaceId: user.workspaceId,
-  });
-  return context.json({ installation }, 201);
-});
+githubRoutes.post(
+  "/actions/complete-installation",
+  operation({
+    responseSchema: 'github.ts:post:"/actions/complete-installation"',
+    summary: "Complete installation",
+    browserOnly: true,
+    body: completeSchema,
+    response: "JSON object containing installation.",
+    status: 201,
+  }),
+  async (context) => {
+    const input = await readJson(context, completeSchema);
+    const user = context.get("user");
+    const installation = await completeInstallation({
+      ...input,
+      userId: user.id,
+      workspaceId: user.workspaceId,
+    });
+    return context.json({ installation }, 201);
+  },
+);
 
-githubRoutes.get("/repositories", async (context) => {
-  const repositories = await getWorkspaceGitHubRepositories(
-    context.get("user").workspaceId,
-  );
-  return context.json({ repositories });
-});
+githubRoutes.get(
+  "/repositories",
+  operation({
+    responseSchema: 'github.ts:get:"/repositories"',
+    summary: "Get workspace GitHub repositories",
+    response: "JSON object containing repositories.",
+    status: 200,
+  }),
+  async (context) => {
+    const repositories = await getWorkspaceGitHubRepositories(
+      context.get("user").workspaceId,
+    );
+    return context.json({ repositories });
+  },
+);
 
-githubRoutes.delete("/", async (context) => {
-  await disconnectGitHub(context.get("user").workspaceId);
-  return context.body(null, 204);
-});
+githubRoutes.delete(
+  "/",
+  operation({
+    responseSchema: 'github.ts:delete:"/"',
+    summary: "Disconnect GitHub",
+    response: "No response body.",
+    status: 204,
+  }),
+  async (context) => {
+    await disconnectGitHub(context.get("user").workspaceId);
+    return context.body(null, 204);
+  },
+);

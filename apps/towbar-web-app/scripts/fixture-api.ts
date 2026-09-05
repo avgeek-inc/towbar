@@ -838,6 +838,16 @@ const workflowStates: DeploymentState[] = [
 
 export function createFixtureApiServer() {
   awsCredential = null;
+  const apiKeys: Array<{
+    id: string;
+    name: string;
+    prefix: string;
+    access: string;
+    createdAt: string;
+    expiresAt: string | null;
+    lastUsedAt: string | null;
+    revokedAt: string | null;
+  }> = [];
   return createServer((request, response) => {
     if (!authorizeFixtureCorsRequest(response, request.headers.origin)) return;
     if (request.method === "OPTIONS") {
@@ -848,6 +858,49 @@ export function createFixtureApiServer() {
 
     const requestUrl = new URL(request.url ?? "/", "http://localhost");
     const path = requestUrl.pathname;
+    if (path === "/v1/core/settings/api-keys") {
+      if (request.method === "POST") {
+        void readRequestJson(request)
+          .then((input) => {
+            const values = input as {
+              name: string;
+              access: string;
+              expiresAt: string | null;
+            };
+            const key = {
+              ...values,
+              id: randomUUID(),
+              prefix: "twb_fixture",
+              createdAt: new Date().toISOString(),
+              lastUsedAt: null,
+              revokedAt: null,
+            };
+            apiKeys.push(key);
+            writeJson(response, 201, {
+              key,
+              token: "twb_fixture_only_not_a_real_credential",
+            });
+          })
+          .catch(() => writeJson(response, 400, { error: "Invalid JSON" }));
+      } else
+        writeJson(response, 200, {
+          keys: apiKeys,
+          apiUrl: "https://api.example.com/v1/api",
+          mcpUrl: "https://api.example.com/v1/mcp",
+          rateLimit: { requests: 60, windowSeconds: 60 },
+        });
+      return;
+    }
+    if (
+      path.startsWith("/v1/core/settings/api-keys/") &&
+      request.method === "DELETE"
+    ) {
+      const key = apiKeys.find((key) => key.id === path.split("/").at(-1));
+      if (key) key.revokedAt = new Date().toISOString();
+      response.writeHead(204);
+      response.end();
+      return;
+    }
     if (path === "/v1/core/aws" && request.method === "PUT") {
       void readRequestJson(request)
         .then((input) => {

@@ -34,6 +34,7 @@
     "test": "turbo test",
     "format": "prettier --write \"**/*.{css,json,md,mdx,mjs,ts,tsx,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{css,json,md,mdx,mjs,ts,tsx,yml,yaml}\"",
+    "docs:api": "pnpm --filter towbar-api prebuild && pnpm --filter towbar-api exec tsx scripts/export-responses.ts && pnpm --filter towbar-api exec tsx scripts/export-api.ts",
     "docs:sync": "node tools/sync-docs.mjs",
     "docs:check": "node tools/sync-docs.mjs --check && node tools/check-docs.mjs",
     "verify": "pnpm docs:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
@@ -41,7 +42,8 @@
     "compose:build": "docker compose build",
     "compose:up": "docker compose up --build --detach --wait",
     "compose:down": "docker compose down",
-    "compose:logs": "docker compose logs --follow"
+    "compose:logs": "docker compose logs --follow",
+    "docs:api:check": "pnpm --filter towbar-api prebuild && pnpm --filter towbar-api exec tsx scripts/export-responses.ts --check && pnpm --filter towbar-api exec tsx scripts/export-api.ts --check"
   },
   "devDependencies": {
     "@types/node": "catalog:",

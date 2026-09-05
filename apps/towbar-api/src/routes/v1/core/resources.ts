@@ -1,3 +1,4 @@
+import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -50,100 +51,180 @@ const restoreCleanupSchema = z
 
 export const resourceRoutes = new Hono<TowbarHonoEnvironment>();
 
-resourceRoutes.get("/", async (context) =>
-  context.json({
-    resources: await listResources(context.get("user").workspaceId),
+resourceRoutes.get(
+  "/",
+  operation({
+    responseSchema: 'resources.ts:get:"/"',
+    summary: "List resources",
+    response: "JSON object containing resources.",
+    status: 200,
   }),
+  async (context) =>
+    context.json({
+      resources: await listResources(context.get("user").workspaceId),
+    }),
 );
 
-resourceRoutes.get("/:resourceId", async (context) => {
-  const user = context.get("user");
-  return context.json({
-    resource: await getResource(
-      context.req.param("resourceId"),
-      user.workspaceId,
-    ),
-  });
-});
+resourceRoutes.get(
+  "/:resourceId",
+  operation({
+    responseSchema: 'resources.ts:get:"/:resourceId"',
+    summary: "Get resource",
+    response: "JSON object containing resource.",
+    status: 200,
+  }),
+  async (context) => {
+    const user = context.get("user");
+    return context.json({
+      resource: await getResource(
+        context.req.param("resourceId"),
+        user.workspaceId,
+      ),
+    });
+  },
+);
 
-resourceRoutes.get("/:resourceId/auto-deploy-control", async (context) => {
-  const user = context.get("user");
-  return context.json({
-    autoDeploy: await getDeployableAutoDeployControl({
+resourceRoutes.get(
+  "/:resourceId/auto-deploy-control",
+  operation({
+    responseSchema: 'resources.ts:get:"/:resourceId/auto-deploy-control"',
+    summary: "Get resource auto-deploy settings",
+    response: "JSON object containing autoDeploy, canManageAutoDeploy.",
+    status: 200,
+  }),
+  async (context) => {
+    const user = context.get("user");
+    return context.json({
+      autoDeploy: await getDeployableAutoDeployControl({
+        deployableId: context.req.param("resourceId"),
+        expectedType: "resource",
+        workspaceId: user.workspaceId,
+      }),
+      canManageAutoDeploy: user.workspaceRole === "owner",
+    });
+  },
+);
+
+resourceRoutes.patch(
+  "/:resourceId/auto-deploy-control",
+  operation({
+    responseSchema: 'resources.ts:patch:"/:resourceId/auto-deploy-control"',
+    summary: "Update resource auto-deploy settings",
+    body: autoDeployControlPatchSchema,
+    ownerOnly: true,
+    response: "JSON object containing autoDeploy, canManageAutoDeploy.",
+    status: 200,
+  }),
+  async (context) => {
+    const user = context.get("user");
+    if (user.workspaceRole !== "owner") {
+      throw forbidden(
+        "Only the owner can manage automatic deployment controls",
+      );
+    }
+    const result = await updateDeployableAutoDeployControl({
       deployableId: context.req.param("resourceId"),
       expectedType: "resource",
+      ...(await readJson(context, autoDeployControlPatchSchema)),
       workspaceId: user.workspaceId,
+    });
+    const { shouldReevaluate, ...autoDeploy } = result;
+    if (shouldReevaluate) {
+      void wakeMaintenanceWorkflow().catch(() => undefined);
+    }
+    return context.json({
+      autoDeploy,
+      canManageAutoDeploy: user.workspaceRole === "owner",
+    });
+  },
+);
+
+resourceRoutes.get(
+  "/:resourceId/deployments",
+  operation({
+    responseSchema: 'resources.ts:get:"/:resourceId/deployments"',
+    summary: "List resource deployments",
+    response: "JSON object containing deployments.",
+    status: 200,
+  }),
+  async (context) =>
+    context.json({
+      deployments: await listResourceDeployments(
+        context.req.param("resourceId"),
+        context.get("user").workspaceId,
+      ),
     }),
-    canManageAutoDeploy: user.workspaceRole === "owner",
-  });
-});
-
-resourceRoutes.patch("/:resourceId/auto-deploy-control", async (context) => {
-  const user = context.get("user");
-  if (user.workspaceRole !== "owner") {
-    throw forbidden("Only the owner can manage automatic deployment controls");
-  }
-  const result = await updateDeployableAutoDeployControl({
-    deployableId: context.req.param("resourceId"),
-    expectedType: "resource",
-    ...(await readJson(context, autoDeployControlPatchSchema)),
-    workspaceId: user.workspaceId,
-  });
-  const { shouldReevaluate, ...autoDeploy } = result;
-  if (shouldReevaluate) {
-    void wakeMaintenanceWorkflow().catch(() => undefined);
-  }
-  return context.json({
-    autoDeploy,
-    canManageAutoDeploy: user.workspaceRole === "owner",
-  });
-});
-
-resourceRoutes.get("/:resourceId/deployments", async (context) =>
-  context.json({
-    deployments: await listResourceDeployments(
-      context.req.param("resourceId"),
-      context.get("user").workspaceId,
-    ),
-  }),
 );
 
-resourceRoutes.get("/:resourceId/releases", async (context) =>
-  context.json({
-    releases: await listResourceReleases(
-      context.req.param("resourceId"),
-      context.get("user").workspaceId,
-    ),
+resourceRoutes.get(
+  "/:resourceId/releases",
+  operation({
+    responseSchema: 'resources.ts:get:"/:resourceId/releases"',
+    summary: "List resource releases",
+    response: "JSON object containing releases.",
+    status: 200,
   }),
+  async (context) =>
+    context.json({
+      releases: await listResourceReleases(
+        context.req.param("resourceId"),
+        context.get("user").workspaceId,
+      ),
+    }),
 );
 
-resourceRoutes.get("/:resourceId/operations", async (context) =>
-  context.json({
-    operations: await listDeployableOperations(
-      context.req.param("resourceId"),
-      context.get("user").workspaceId,
-    ),
+resourceRoutes.get(
+  "/:resourceId/operations",
+  operation({
+    responseSchema: 'resources.ts:get:"/:resourceId/operations"',
+    summary: "List resource operations",
+    response: "JSON object containing operations.",
+    status: 200,
   }),
+  async (context) =>
+    context.json({
+      operations: await listDeployableOperations(
+        context.req.param("resourceId"),
+        context.get("user").workspaceId,
+      ),
+    }),
 );
 
-resourceRoutes.get("/:resourceId/backup-assurance", async (context) => {
-  const user = context.get("user");
-  return context.json({
-    assurance: await getResourceBackupAssurance(
-      context.req.param("resourceId"),
-      user.workspaceId,
-    ),
-    assurances: await listResourceBackupAssurances(
-      context.req.param("resourceId"),
-      user.workspaceId,
-    ),
-    awsConfigured: await hasAwsCredentials(user.workspaceId),
-    canRestore: user.workspaceRole === "owner",
-  });
-});
+resourceRoutes.get(
+  "/:resourceId/backup-assurance",
+  operation({
+    responseSchema: 'resources.ts:get:"/:resourceId/backup-assurance"',
+    summary: "Get resource backup assurance",
+    response:
+      "JSON object containing assurance, assurances, awsConfigured, canRestore.",
+    status: 200,
+  }),
+  async (context) => {
+    const user = context.get("user");
+    return context.json({
+      assurance: await getResourceBackupAssurance(
+        context.req.param("resourceId"),
+        user.workspaceId,
+      ),
+      assurances: await listResourceBackupAssurances(
+        context.req.param("resourceId"),
+        user.workspaceId,
+      ),
+      awsConfigured: await hasAwsCredentials(user.workspaceId),
+      canRestore: user.workspaceRole === "owner",
+    });
+  },
+);
 
 resourceRoutes.get(
   "/:resourceId/operations/:operationId/events",
+  operation({
+    responseSchema:
+      'resources.ts:get:"/:resourceId/operations/:operationId/events"',
+    summary: "List operation events",
+    response: "JSON object containing events.",
+    status: 200,
+  }),
   async (context) =>
     context.json({
       events: await listOperationEvents(
@@ -153,92 +234,156 @@ resourceRoutes.get(
     }),
 );
 
-resourceRoutes.post("/:resourceId/actions/deploy", async (context) => {
-  const idempotencyKey = requireIdempotencyKey(
-    context.req.header("idempotency-key"),
-  );
-  const user = context.get("user");
-  const result = await requestAppDeployment({
-    appId: context.req.param("resourceId"),
-    expectedType: "resource",
-    idempotencyKey,
-    requestedBy: user.id,
-    workspaceId: user.workspaceId,
-  });
-  return context.json(result, result.replayed ? 200 : 202);
-});
+resourceRoutes.post(
+  "/:resourceId/actions/deploy",
+  operation({
+    responseSchema: 'resources.ts:post:"/:resourceId/actions/deploy"',
+    summary: "Request resource deployment",
+    idempotencyKey: true,
+    response: "The deployment and whether the request was replayed.",
+    status: 202,
+  }),
+  async (context) => {
+    const idempotencyKey = requireIdempotencyKey(
+      context.req.header("idempotency-key"),
+    );
+    const user = context.get("user");
+    const result = await requestAppDeployment({
+      appId: context.req.param("resourceId"),
+      expectedType: "resource",
+      idempotencyKey,
+      requestedBy: user.id,
+      workspaceId: user.workspaceId,
+    });
+    return context.json(result, result.replayed ? 200 : 202);
+  },
+);
 
-resourceRoutes.post("/:resourceId/actions/rollback", async (context) => {
-  const idempotencyKey = requireIdempotencyKey(
-    context.req.header("idempotency-key"),
-  );
-  const input = await readJson(context, rollbackSchema);
-  const user = context.get("user");
-  const result = await requestAppRollback({
-    appId: context.req.param("resourceId"),
-    expectedType: "resource",
-    idempotencyKey,
-    releaseId: input.releaseId,
-    requestedBy: user.id,
-    workspaceId: user.workspaceId,
-  });
-  return context.json(result, result.replayed ? 200 : 202);
-});
+resourceRoutes.post(
+  "/:resourceId/actions/rollback",
+  operation({
+    responseSchema: 'resources.ts:post:"/:resourceId/actions/rollback"',
+    summary: "Request resource rollback",
+    body: rollbackSchema,
+    idempotencyKey: true,
+    response: "The rollback deployment and whether the request was replayed.",
+    status: 202,
+  }),
+  async (context) => {
+    const idempotencyKey = requireIdempotencyKey(
+      context.req.header("idempotency-key"),
+    );
+    const input = await readJson(context, rollbackSchema);
+    const user = context.get("user");
+    const result = await requestAppRollback({
+      appId: context.req.param("resourceId"),
+      expectedType: "resource",
+      idempotencyKey,
+      releaseId: input.releaseId,
+      requestedBy: user.id,
+      workspaceId: user.workspaceId,
+    });
+    return context.json(result, result.replayed ? 200 : 202);
+  },
+);
 
 for (const action of ["backup", "restart", "start", "stop"] as const) {
-  resourceRoutes.post(`/:resourceId/actions/${action}`, async (context) => {
+  resourceRoutes.post(
+    `/:resourceId/actions/${action}`,
+    operation({
+      responseSchema: "resources.ts:post:`/:resourceId/actions/${action}`",
+      summary: `${action.charAt(0).toUpperCase() + action.slice(1)} resource`,
+      idempotencyKey: true,
+      response: "The runtime operation and whether the request was replayed.",
+      status: 202,
+    }),
+    async (context) => {
+      const user = context.get("user");
+      const result = await requestDeployableOperation({
+        deployableId: context.req.param("resourceId"),
+        idempotencyKey: requireIdempotencyKey(
+          context.req.header("idempotency-key"),
+        ),
+        requestedBy: user.id,
+        request: { type: action },
+        workspaceId: user.workspaceId,
+      });
+      return context.json(result, result.replayed ? 200 : 202);
+    },
+  );
+}
+
+resourceRoutes.post(
+  "/:resourceId/actions/restore",
+  operation({
+    responseSchema: 'resources.ts:post:"/:resourceId/actions/restore"',
+    summary: "Request resource restore",
+    body: restoreSchema,
+    ownerOnly: true,
+    idempotencyKey: true,
+    response: "The restore operation and whether the request was replayed.",
+    status: 202,
+  }),
+  async (context) => {
     const user = context.get("user");
-    const result = await requestDeployableOperation({
-      deployableId: context.req.param("resourceId"),
+    if (user.workspaceRole !== "owner") {
+      throw forbidden("Only the owner can restore database Resources");
+    }
+    const input = await readJson(context, restoreSchema);
+    const result = await requestResourceRestore({
+      ...input,
       idempotencyKey: requireIdempotencyKey(
         context.req.header("idempotency-key"),
       ),
       requestedBy: user.id,
-      request: { type: action },
+      resourceId: context.req.param("resourceId"),
       workspaceId: user.workspaceId,
     });
     return context.json(result, result.replayed ? 200 : 202);
-  });
-}
+  },
+);
 
-resourceRoutes.post("/:resourceId/actions/restore", async (context) => {
-  const user = context.get("user");
-  if (user.workspaceRole !== "owner") {
-    throw forbidden("Only the owner can restore database Resources");
-  }
-  const input = await readJson(context, restoreSchema);
-  const result = await requestResourceRestore({
-    ...input,
-    idempotencyKey: requireIdempotencyKey(
-      context.req.header("idempotency-key"),
-    ),
-    requestedBy: user.id,
-    resourceId: context.req.param("resourceId"),
-    workspaceId: user.workspaceId,
-  });
-  return context.json(result, result.replayed ? 200 : 202);
-});
-
-resourceRoutes.post("/:resourceId/actions/restore-cleanup", async (context) => {
-  const user = context.get("user");
-  if (user.workspaceRole !== "owner") {
-    throw forbidden("Only the owner can clean up rollback volumes");
-  }
-  const input = await readJson(context, restoreCleanupSchema);
-  const result = await requestRestoreCleanup({
-    ...input,
-    idempotencyKey: requireIdempotencyKey(
-      context.req.header("idempotency-key"),
-    ),
-    requestedBy: user.id,
-    resourceId: context.req.param("resourceId"),
-    workspaceId: user.workspaceId,
-  });
-  return context.json(result, result.replayed ? 200 : 202);
-});
+resourceRoutes.post(
+  "/:resourceId/actions/restore-cleanup",
+  operation({
+    responseSchema: 'resources.ts:post:"/:resourceId/actions/restore-cleanup"',
+    summary: "Request restore cleanup",
+    body: restoreCleanupSchema,
+    ownerOnly: true,
+    idempotencyKey: true,
+    response:
+      "The restore cleanup operation and whether the request was replayed.",
+    status: 202,
+  }),
+  async (context) => {
+    const user = context.get("user");
+    if (user.workspaceRole !== "owner") {
+      throw forbidden("Only the owner can clean up rollback volumes");
+    }
+    const input = await readJson(context, restoreCleanupSchema);
+    const result = await requestRestoreCleanup({
+      ...input,
+      idempotencyKey: requireIdempotencyKey(
+        context.req.header("idempotency-key"),
+      ),
+      requestedBy: user.id,
+      resourceId: context.req.param("resourceId"),
+      workspaceId: user.workspaceId,
+    });
+    return context.json(result, result.replayed ? 200 : 202);
+  },
+);
 
 resourceRoutes.post(
   "/:resourceId/operations/:operationId/actions/cancel",
+  operation({
+    responseSchema:
+      'resources.ts:post:"/:resourceId/operations/:operationId/actions/cancel"',
+    summary: "Cancel resource restore",
+    ownerOnly: true,
+    response: "JSON object containing operation.",
+    status: 200,
+  }),
   async (context) => {
     const user = context.get("user");
     if (user.workspaceRole !== "owner") {
@@ -255,20 +400,31 @@ resourceRoutes.post(
   },
 );
 
-resourceRoutes.post("/:resourceId/actions/logs", async (context) => {
-  const user = context.get("user");
-  const input = await readJson(context, logsSchema);
-  const result = await requestDeployableOperation({
-    deployableId: context.req.param("resourceId"),
-    idempotencyKey: requireIdempotencyKey(
-      context.req.header("idempotency-key"),
-    ),
-    requestedBy: user.id,
-    request: { tail: input.tail, type: "capture_logs" },
-    workspaceId: user.workspaceId,
-  });
-  return context.json(result, result.replayed ? 200 : 202);
-});
+resourceRoutes.post(
+  "/:resourceId/actions/logs",
+  operation({
+    responseSchema: 'resources.ts:post:"/:resourceId/actions/logs"',
+    summary: "Request resource operation",
+    body: logsSchema,
+    idempotencyKey: true,
+    response: "The runtime operation and whether the request was replayed.",
+    status: 202,
+  }),
+  async (context) => {
+    const user = context.get("user");
+    const input = await readJson(context, logsSchema);
+    const result = await requestDeployableOperation({
+      deployableId: context.req.param("resourceId"),
+      idempotencyKey: requireIdempotencyKey(
+        context.req.header("idempotency-key"),
+      ),
+      requestedBy: user.id,
+      request: { tail: input.tail, type: "capture_logs" },
+      workspaceId: user.workspaceId,
+    });
+    return context.json(result, result.replayed ? 200 : 202);
+  },
+);
 
 function requireIdempotencyKey(value: string | undefined) {
   const key = value?.trim();

@@ -1,4 +1,4 @@
-type AuthenticatedUser = {
+export type AuthenticatedUser = {
   email: string;
   id: string;
   name: string;
@@ -7,7 +7,8 @@ type AuthenticatedUser = {
 };
 
 export type TowbarVariables = {
-  currentSessionId: string;
+  currentSessionId: string | null;
+  apiKey: { id: string; access: "read" | "write" } | undefined;
   requestId: string;
   user: AuthenticatedUser;
 };
