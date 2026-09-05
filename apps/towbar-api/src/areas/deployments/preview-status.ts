@@ -124,14 +124,11 @@ export async function publishPreviewDeploymentStatus(
     if (state !== "inactive" || githubDeploymentId) {
       if (!githubDeploymentId) {
         githubDeploymentId = await createGitHubPreviewDeployment({
+          appName: deployment.app.name,
           commitSha: deployment.commitSha,
-          environment:
-            `Preview · ${deployment.app.name} · PR #${deployment.pullRequestNumber}`.slice(
-              0,
-              255,
-            ),
           environmentUrl: `https://${deployment.hostname}`,
           installationId: deployment.installationId,
+          pullRequestNumber: deployment.pullRequestNumber,
           repositoryName: deployment.repositoryName,
           repositoryOwner: deployment.repositoryOwner,
         });

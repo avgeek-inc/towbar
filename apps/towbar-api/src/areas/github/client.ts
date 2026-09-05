@@ -375,10 +375,11 @@ export async function createInstallationToken(installationId: string) {
 }
 
 export async function createGitHubPreviewDeployment(input: {
+  appName: string;
   commitSha: string;
-  environment: string;
   environmentUrl: string;
   installationId: string;
+  pullRequestNumber: number;
   repositoryName: string;
   repositoryOwner: string;
 }) {
@@ -388,8 +389,8 @@ export async function createGitHubPreviewDeployment(input: {
     await githubRequest(`/repos/${repository}/deployments`, {
       body: {
         auto_merge: false,
-        description: "Towbar Preview deployment",
-        environment: input.environment,
+        description: `Towbar Preview deployment for PR #${input.pullRequestNumber}`,
+        environment: `${input.appName.slice(0, 245)} · Preview`,
         payload: { environmentUrl: input.environmentUrl, managedBy: "towbar" },
         production_environment: false,
         ref: input.commitSha,
@@ -418,6 +419,8 @@ export async function updateGitHubPreviewDeployment(input: {
     `/repos/${repository}/deployments/${encodeURIComponent(input.deploymentId)}/statuses`,
     {
       body: {
+        // Each PR has its own lifecycle even when previews share an environment.
+        auto_inactive: false,
         environment_url: input.environmentUrl,
         state: input.state,
       },
