@@ -70,6 +70,182 @@ mode: "custom"
   </div>
 </section>
 
+<div className="towbar-features">
+  <section className="towbar-feature" aria-labelledby="sources-heading">
+    <div className="towbar-feature-copy">
+      <p className="towbar-feature-label">Sources</p>
+      <h2 id="sources-heading">Your repository is the starting point.</h2>
+      <p>Connect a GitHub repository and define its apps and resources in a deployment manifest. Keep configuration in review, sync changes from your production branch, and choose which workloads deploy automatically.</p>
+      <a className="towbar-link" href="/docs/sources">Explore sources <span aria-hidden="true">→</span></a>
+    </div>
+    <div className="towbar-feature-image">
+      <div className="towbar-product-light">
+        <img src="/assets/features/sources-light.webp" alt="A connected GitHub repository in an example Towbar workspace, showing its production branch and sync status." width="1440" height="375" loading="lazy" />
+      </div>
+      <div className="towbar-product-dark">
+        <img src="/assets/features/sources-dark.webp" alt="A connected GitHub repository in an example Towbar workspace, showing its production branch and sync status." width="1440" height="375" loading="lazy" />
+      </div>
+    </div>
+  </section>
+
+<section className="towbar-feature" aria-labelledby="apps-heading">
+  <div className="towbar-feature-copy">
+    <p className="towbar-feature-label">Apps</p>
+    <h2 id="apps-heading">From Dockerfile to running service.</h2>
+    <p>
+      Build on your own server and check each release before it takes traffic.
+      Set domains and resource limits, inspect logs, and follow deployment
+      health from the app’s page.
+    </p>
+    <a className="towbar-link" href="/docs/apps">
+      Explore apps <span aria-hidden="true">→</span>
+    </a>
+  </div>
+  <div className="towbar-feature-image">
+    <div className="towbar-product-light">
+      <img
+        src="/assets/features/apps-light.webp"
+        alt="An example Towbar app showing its health, running state, server, and latest deployment."
+        width="1440"
+        height="930"
+        loading="lazy"
+      />
+    </div>
+    <div className="towbar-product-dark">
+      <img
+        src="/assets/features/apps-dark.webp"
+        alt="An example Towbar app showing its health, running state, server, and latest deployment."
+        width="1440"
+        height="930"
+        loading="lazy"
+      />
+    </div>
+  </div>
+</section>
+
+<section className="towbar-feature" aria-labelledby="resources-heading">
+  <div className="towbar-feature-copy">
+    <p className="towbar-feature-label">Resources</p>
+    <h2 id="resources-heading">A place for your databases, too.</h2>
+    <p>
+      Run PostgreSQL, Redis, and container images alongside your apps. Keep data
+      in persistent volumes, connect services privately, and schedule database
+      backups to S3.
+    </p>
+    <a className="towbar-link" href="/docs/resources">
+      Explore resources <span aria-hidden="true">→</span>
+    </a>
+  </div>
+  <div className="towbar-feature-image">
+    <div className="towbar-product-light">
+      <img
+        src="/assets/features/resources-light.webp"
+        alt="Example PostgreSQL, Redis, and container image resources in the Towbar inventory."
+        width="1440"
+        height="720"
+        loading="lazy"
+      />
+    </div>
+    <div className="towbar-product-dark">
+      <img
+        src="/assets/features/resources-dark.webp"
+        alt="Example PostgreSQL, Redis, and container image resources in the Towbar inventory."
+        width="1440"
+        height="720"
+        loading="lazy"
+      />
+    </div>
+  </div>
+</section>
+
+<section className="towbar-feature" aria-labelledby="servers-heading">
+  <div className="towbar-feature-copy">
+    <p className="towbar-feature-label">Servers</p>
+    <h2 id="servers-heading">Your servers. A clear view of capacity.</h2>
+    <p>
+      Bring your Ubuntu hosts and prepare them for deployments through Towbar.
+      See CPU, memory, and disk usage, review host health, and control how many
+      builds run at once.
+    </p>
+    <a className="towbar-link" href="/docs/servers">
+      Explore servers <span aria-hidden="true">→</span>
+    </a>
+  </div>
+  <div className="towbar-feature-image">
+    <div className="towbar-product-light">
+      <img
+        src="/assets/features/servers-light.webp"
+        alt="An example server’s host capacity panel showing CPU, memory, disk usage, and uptime."
+        width="1344"
+        height="360"
+        loading="lazy"
+      />
+    </div>
+    <div className="towbar-product-dark">
+      <img
+        src="/assets/features/servers-dark.webp"
+        alt="An example server’s host capacity panel showing CPU, memory, disk usage, and uptime."
+        width="1344"
+        height="360"
+        loading="lazy"
+      />
+    </div>
+  </div>
+</section>
+
+<section className="towbar-feature" aria-labelledby="previews-heading">
+  <div className="towbar-feature-copy">
+    <p className="towbar-feature-label">Preview Deployments</p>
+    <h2 id="previews-heading">See the change before you merge.</h2>
+    <p>
+      Give pull requests their own app environment and a stable URL to share.
+      Use separate preview secrets, follow each deployment, and let Towbar clean
+      up environments when pull requests close or merge.
+    </p>
+    <a className="towbar-link" href="/docs/previews">
+      Explore previews <span aria-hidden="true">→</span>
+    </a>
+  </div>
+  <div className="towbar-feature-image">
+    <div className="towbar-product-light">
+      <img
+        src="/assets/features/previews-light.webp"
+        alt="Pull request preview environments and their individual URLs in an example Towbar app."
+        width="672"
+        height="381"
+        loading="lazy"
+      />
+    </div>
+    <div className="towbar-product-dark">
+      <img
+        src="/assets/features/previews-dark.webp"
+        alt="Pull request preview environments and their individual URLs in an example Towbar app."
+        width="672"
+        height="381"
+        loading="lazy"
+      />
+    </div>
+  </div>
+</section>
+
+  <section className="towbar-feature" aria-labelledby="secrets-heading">
+    <div className="towbar-feature-copy">
+      <p className="towbar-feature-label">Secret Management</p>
+      <h2 id="secrets-heading">Keep credentials out of Git.</h2>
+      <p>Store encrypted secrets once and share them across a workspace or Source. Override values for individual apps and resources, with separate production and preview settings for each deployment stage.</p>
+      <a className="towbar-link" href="/docs/secrets">Explore secrets <span aria-hidden="true">→</span></a>
+    </div>
+    <div className="towbar-feature-image">
+      <div className="towbar-product-light">
+        <img src="/assets/features/secrets-light.webp" alt="Shared secret settings in an example Towbar workspace. Stored values are hidden, with separate production, preview, and deployment stages." width="1440" height="600" loading="lazy" />
+      </div>
+      <div className="towbar-product-dark">
+        <img src="/assets/features/secrets-dark.webp" alt="Shared secret settings in an example Towbar workspace. Stored values are hidden, with separate production, preview, and deployment stages." width="1440" height="600" loading="lazy" />
+      </div>
+    </div>
+  </section>
+</div>
+
 <section className="towbar-closing" aria-labelledby="start-heading">
   <div><h2 id="start-heading">Start with one server.</h2><p>Install Towbar with Docker Compose.</p></div>
   <a className="towbar-button" href="/docs/self-hosting/installation">Install Towbar <span aria-hidden="true">↗</span></a>
