@@ -409,7 +409,7 @@ test("the local fixture models one write-only workspace AWS integration", async 
   }
 });
 
-test("the local fixture supports workspace server creation and editing", async () => {
+test("the local fixture supports workspace server creation and editing but not removal", async () => {
   const fixture = createFixtureApiServer();
   fixture.listen(0, "127.0.0.1");
   await once(fixture, "listening");
@@ -462,8 +462,11 @@ test("the local fixture supports workspace server creation and editing", async (
           method: "DELETE",
         })
       ).status,
-      204,
+      404,
     );
+    const retained = await fetch(`${baseUrl}/v1/core/servers/${created.id}`);
+    assert.equal(retained.status, 200);
+    assert.equal((await retained.json()).server.id, created.id);
   } finally {
     fixture.close();
     await once(fixture, "close");

@@ -1,17 +1,11 @@
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import {
   digestValue,
   getDeployableDeploymentDigest,
   requiresServerPreparation,
 } from "@workspace/towbar-core";
-import {
-  apps,
-  resourceOperations,
-  serverChecks,
-  serverPreparations,
-  servers,
-} from "@workspace/towbar-database/schema";
+import { apps, servers } from "@workspace/towbar-database/schema";
 
 import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
@@ -138,79 +132,5 @@ export async function updateServer(input: {
         .where(eq(apps.id, deployable.id));
     }
     return toPublicServer(server);
-  });
-}
-
-export async function archiveServer(serverId: string, workspaceId: string) {
-  return await getTowbarDatabase().transaction(async (transaction) => {
-    const [server] = await transaction
-      .select({ id: servers.id })
-      .from(servers)
-      .where(
-        and(
-          eq(servers.id, serverId),
-          eq(servers.workspaceId, workspaceId),
-          isNull(servers.archivedAt),
-        ),
-      )
-      .for("update")
-      .limit(1);
-    if (!server) throw notFound("Server");
-    const [deployable] = await transaction
-      .select({ id: apps.id })
-      .from(apps)
-      .where(and(eq(apps.serverId, serverId), isNull(apps.archivedAt)))
-      .limit(1);
-    if (deployable) {
-      throw conflict(
-        "Move or archive every app and resource using this server first",
-        "SERVER_IN_USE",
-      );
-    }
-    const [activeOperation] = await transaction
-      .select({ id: serverChecks.id })
-      .from(serverChecks)
-      .where(
-        and(
-          eq(serverChecks.serverId, serverId),
-          inArray(serverChecks.status, ["queued", "running"]),
-        ),
-      )
-      .union(
-        transaction
-          .select({ id: serverPreparations.id })
-          .from(serverPreparations)
-          .where(
-            and(
-              eq(serverPreparations.serverId, serverId),
-              inArray(serverPreparations.status, ["queued", "running"]),
-            ),
-          ),
-      )
-      .union(
-        transaction
-          .select({ id: resourceOperations.id })
-          .from(resourceOperations)
-          .where(
-            and(
-              eq(resourceOperations.serverId, serverId),
-              inArray(resourceOperations.state, ["queued", "running"]),
-            ),
-          ),
-      )
-      .limit(1);
-    if (activeOperation) {
-      throw conflict(
-        "Wait for active server operations to finish before removing this server",
-        "SERVER_BUSY",
-      );
-    }
-    const [archived] = await transaction
-      .update(servers)
-      .set({ archivedAt: new Date(), updatedAt: new Date() })
-      .where(eq(servers.id, serverId))
-      .returning({ id: servers.id });
-    if (!archived) throw notFound("Server");
-    return archived;
   });
 }

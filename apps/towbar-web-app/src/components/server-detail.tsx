@@ -2,7 +2,7 @@
 
 import { ConfigurationLinks } from "./configuration-links";
 
-import { ServerEditor, ServerRemoval } from "./server-editor";
+import { ServerEditor } from "./server-editor";
 
 import {
   Activity01Icon,
@@ -556,13 +556,6 @@ export function ServerDetail() {
                           />
                         </div>
                       ),
-                    },
-                    {
-                      value: "danger-zone",
-                      label: "Danger Zone",
-                      content: server.data.canManageServer ? (
-                        <ServerRemoval server={item} />
-                      ) : null,
                     },
                   ]}
                 />

@@ -285,15 +285,24 @@ function ServerInventory({
         const sourceIds = [
           ...(sourceIdsByServer.get(server.canonicalIp) ?? []),
         ];
-        return sourceIds.length
-          ? sourceIds
-              .map((sourceId) => formatSource(sourcesById, sourceId))
-              .sort((left, right) => left.localeCompare(right))
-              .join(", ")
-          : "No active Sources";
+        return sourceIds.length ? (
+          <div className="grid gap-2">
+            {sourceIds
+              .sort((left, right) =>
+                formatSource(sourcesById, left).localeCompare(
+                  formatSource(sourcesById, right),
+                ),
+              )
+              .map((sourceId) => (
+                <SourceLink key={sourceId} source={sourcesById.get(sourceId)} />
+              ))}
+          </div>
+        ) : (
+          "No active sources"
+        );
       },
       className: "min-w-56",
-      header: "Sources",
+      header: "Used by sources",
       key: "sources",
     },
     {

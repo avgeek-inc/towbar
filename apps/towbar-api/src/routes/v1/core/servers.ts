@@ -7,7 +7,6 @@ import {
 } from "@workspace/towbar-core";
 
 import {
-  archiveServer,
   createServer,
   updateServer,
 } from "../../../areas/servers/lifecycle.js";
@@ -112,14 +111,6 @@ serverRoutes.patch("/:serverId", async (context) => {
       workspaceId: user.workspaceId,
     }),
   });
-});
-serverRoutes.delete("/:serverId", async (context) => {
-  const user = context.get("user");
-  if (user.workspaceRole !== "owner") {
-    throw forbidden("Only the owner can remove servers");
-  }
-  await archiveServer(context.req.param("serverId"), user.workspaceId);
-  return context.body(null, 204);
 });
 serverRoutes.get("/:serverId/apps", async (context) =>
   context.json({

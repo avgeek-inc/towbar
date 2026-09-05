@@ -887,27 +887,7 @@ export function createFixtureApiServer() {
       return;
     }
     if (serverMutationMatch && request.method === "DELETE") {
-      const index = servers.findIndex(
-        (item) => item.id === serverMutationMatch[1],
-      );
-      if (index < 0) return writeNotFound(response);
-      const server = servers[index]!;
-      if (
-        [...apps, ...resources].some(
-          (item) => item.serverIp === server.canonicalIp,
-        )
-      ) {
-        return writeJson(response, 409, {
-          error: {
-            message:
-              "Move or archive every app and resource using this server first",
-          },
-        });
-      }
-      servers.splice(index, 1);
-      response.writeHead(204);
-      response.end();
-      return;
+      return writeNotFound(response);
     }
     if (
       request.method === "POST" &&

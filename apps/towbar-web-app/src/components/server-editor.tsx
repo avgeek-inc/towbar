@@ -10,7 +10,7 @@ import { Field, FieldLabel } from "@workspace/web-design-system/forms/field";
 import { Input } from "@workspace/web-design-system/forms/input";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 
-import { ActionButton, FormCard } from "@/components/page-parts";
+import { FormCard } from "@/components/page-parts";
 import { refreshApiQueries } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { ServerCredentials } from "./credential-editor";
@@ -178,28 +178,5 @@ export function ServerEditor({
         <ServerCredentials canManage={canManage} server={server} />
       ) : null}
     </div>
-  );
-}
-
-export function ServerRemoval({ server }: { server: Server }) {
-  const router = useRouter();
-  return (
-    <FormCard title="Remove server">
-      <ActionButton
-        action={() => api.delete(`/v1/core/servers/${server.id}`)}
-        confirm={{
-          actionLabel: "Remove server",
-          description:
-            "Towbar will archive this server and retain its saved credentials. Add the same IP again to restore its configuration.",
-          title: `Remove ${server.canonicalIp}?`,
-        }}
-        onSuccess={() => router.push("/servers")}
-        pendingLabel="Removing…"
-        success="Server removed"
-        variant="danger"
-      >
-        Remove server
-      </ActionButton>
-    </FormCard>
   );
 }
