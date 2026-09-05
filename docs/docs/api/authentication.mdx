@@ -24,7 +24,9 @@ Send the key in an HTTP header:
 Authorization: Bearer twb_YOUR_KEY
 ```
 
-Towbar generates keys from 32 cryptographically random bytes and stores only a SHA-256 hash and short identifying prefix. The raw secret appears once in the creation response. Key lists never return hashes or complete secrets. The token is not a JWT and does not contain credentials or workspace details.
+Towbar generates keys from 32 cryptographically random bytes and stores only an HMAC-SHA256 verifier and short identifying prefix. The raw secret appears once in the creation response. Key lists never return hashes or complete secrets. The token is not a JWT and does not contain credentials or workspace details.
+
+The verifier uses the installation's `TOWBAR_INTERNAL_HMAC_SECRET` with a separate API-key domain. Keep this value consistent across API replicas. Rotating it invalidates all existing API keys; sign in to the control plane to create replacements.
 
 API and MCP do not accept browser cookies as authentication. Browser sessions continue using cookie authentication and origin validation. Requests with an `Origin` header must match the configured control-plane origin; CLI and server clients normally omit it. Use HTTPS outside local development. Never put keys in URLs, logs, screenshots, or committed configuration.
 

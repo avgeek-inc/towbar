@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 import { and, desc, eq, gt, isNull, or } from "drizzle-orm";
 import {
   apiKeys,
@@ -7,6 +7,7 @@ import {
   workspaceMembers,
 } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
+import { getEnv } from "../../env.js";
 import { notFound } from "../../http/errors.js";
 import type { AuthenticatedUser } from "../../http/types.js";
 
@@ -21,7 +22,11 @@ const publicColumns = {
   createdAt: apiKeys.createdAt,
 };
 export function hashApiKey(token: string) {
-  return createHash("sha256").update(token).digest("hex");
+  // Keys contain 256 random bits. A domain-separated server-keyed verifier also binds them to this installation.
+  return createHmac("sha256", getEnv().TOWBAR_INTERNAL_HMAC_SECRET)
+    .update("towbar-api-key:v1:")
+    .update(token)
+    .digest("hex");
 }
 export async function listApiKeys(user: AuthenticatedUser) {
   return await getTowbarDatabase()
