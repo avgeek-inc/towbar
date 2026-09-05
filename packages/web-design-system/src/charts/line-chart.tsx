@@ -61,7 +61,7 @@ function TooltipContent({
   return (
     <div
       className={cn(
-        "grid gap-2 rounded-xl border border-separator bg-surface p-3 text-sm shadow-lg",
+        "grid gap-1 rounded-xl border border-separator bg-surface p-3 text-xs shadow-lg",
         className,
       )}
     >
