@@ -15,8 +15,8 @@ export type AttributesColumns = 1 | 2 | 3;
 const VariantContext = createContext<AttributesVariant>("list");
 const columns = {
   1: "grid-cols-1",
-  2: "grid-cols-1 sm:grid-cols-2",
-  3: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+  2: "grid-cols-2",
+  3: "grid-cols-2 lg:grid-cols-3",
 } as const;
 
 export interface AttributesProps extends Omit<
