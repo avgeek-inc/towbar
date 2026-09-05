@@ -1,6 +1,9 @@
 "use client";
 import { useId, useState, type FormEvent } from "react";
-import { Button } from "@workspace/web-design-system/buttons/button";
+import {
+  Button,
+  ButtonLink,
+} from "@workspace/web-design-system/buttons/button";
 import { Input } from "@workspace/web-design-system/forms/input";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { Select, ListBox } from "@workspace/web-design-system/forms/select";
@@ -14,7 +17,7 @@ import {
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
-import { ActionButton, FormCard, InlineLink } from "./page-parts";
+import { ActionButton, FormCard } from "./page-parts";
 import { RelativeTime } from "./last-synced-time";
 import { ResponsiveSubtabs } from "./responsive-subtabs";
 
@@ -214,9 +217,13 @@ export function ApiMcpSettings() {
                   title="List your apps"
                   code={`curl '${data.apiUrl}/apps' \\\n  -H "Authorization: Bearer $TOWBAR_API_KEY"`}
                 />
-                <InlineLink href="https://www.towbar.dev/docs/api/overview">
+                <ButtonLink
+                  href="https://www.towbar.dev/docs/api/overview"
+                  variant="secondary"
+                  className="w-fit"
+                >
                   API documentation and route reference →
-                </InlineLink>
+                </ButtonLink>
               </div>
             ),
           },
@@ -441,9 +448,13 @@ function McpSetup({ url }: { url: string }) {
           Towbar uses API keys; browser-only OAuth connectors cannot connect
           directly.
         </p>
-        <InlineLink href="https://www.towbar.dev/docs/api/mcp">
+        <ButtonLink
+          href="https://www.towbar.dev/docs/api/mcp"
+          variant="secondary"
+          className="w-fit"
+        >
           MCP setup and troubleshooting →
-        </InlineLink>
+        </ButtonLink>
       </div>
     </FormCard>
   );
