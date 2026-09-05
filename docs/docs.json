@@ -4,11 +4,11 @@
   "name": "Towbar",
   "description": "Deploy and operate Dockerfile apps, databases, and previews on Ubuntu servers you control.",
   "logo": {
-    "light": "/assets/towbar-mark.svg",
-    "dark": "/assets/towbar-mark.svg",
+    "light": "/assets/towbar-logo.png",
+    "dark": "/assets/towbar-logo.png",
     "href": "/"
   },
-  "favicon": "/assets/towbar-mark.svg",
+  "favicon": "/assets/towbar-favicon.png",
   "colors": {
     "primary": "#07518E",
     "light": "#3BA0FF",
