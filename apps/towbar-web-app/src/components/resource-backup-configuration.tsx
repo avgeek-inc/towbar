@@ -182,26 +182,17 @@ export function ResourceBackupConfiguration({
   return (
     <div className="grid min-w-0 gap-8">
       <div className="grid min-w-0 gap-6">
-        <Widget className="min-w-0">
-          <Widget.Header
-            endContent={
-              <Chip
-                className="shrink-0"
-                variant={
-                  assuranceData.awsConfigured ? backupHealth.tone : "warning"
-                }
-              >
-                {assuranceData.awsConfigured ? backupHealth.label : "Paused"}
-              </Chip>
-            }
-          >
-            <Widget.Title>
-              {assuranceData.awsConfigured
-                ? backupHealth.title
-                : "Backups paused"}
-            </Widget.Title>
-          </Widget.Header>
-          {assuranceData.awsConfigured ? (
+        {assuranceData.awsConfigured ? (
+          <Widget className="min-w-0">
+            <Widget.Header
+              endContent={
+                <Chip className="shrink-0" variant={backupHealth.tone}>
+                  {backupHealth.label}
+                </Chip>
+              }
+            >
+              <Widget.Title>{backupHealth.title}</Widget.Title>
+            </Widget.Header>
             <Widget.Content className="grid min-w-0 gap-3">
               <ol className="grid overflow-hidden rounded-lg border border-separator divide-y divide-separator md:grid-cols-3 md:divide-x md:divide-y-0">
                 {backupHealth.stages.map((stage) => (
@@ -229,37 +220,40 @@ export function ResourceBackupConfiguration({
                 </p>
               ) : null}
             </Widget.Content>
-          ) : (
-            <Widget.Content>
-              <p className="text-muted typography--body-sm">
+            {active ? (
+              <Widget.Footer className="justify-end">
+                <ActionButton
+                  action={() =>
+                    api.post(
+                      `/v1/core/resources/${resource.id}/actions/backup`,
+                      undefined,
+                      { "Idempotency-Key": crypto.randomUUID() },
+                    )
+                  }
+                  pendingLabel="Queueing backup…"
+                  success="Backup queued"
+                  variant="primary"
+                >
+                  Back up now
+                </ActionButton>
+              </Widget.Footer>
+            ) : null}
+          </Widget>
+        ) : (
+          <Alert status="warning">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>Backups paused</Alert.Title>
+              <Alert.Description>
                 Add AWS credentials in{" "}
                 <InlineLink href="/manage/integrations?integration=aws">
                   Manage → Integrations
                 </InlineLink>{" "}
                 before backups can run.
-              </p>
-            </Widget.Content>
-          )}
-          {active ? (
-            <Widget.Footer className="justify-end">
-              <ActionButton
-                action={() =>
-                  api.post(
-                    `/v1/core/resources/${resource.id}/actions/backup`,
-                    undefined,
-                    { "Idempotency-Key": crypto.randomUUID() },
-                  )
-                }
-                pendingLabel="Queueing backup…"
-                isDisabled={!assuranceData.awsConfigured}
-                success="Backup queued"
-                variant="primary"
-              >
-                Back up now
-              </ActionButton>
-            </Widget.Footer>
-          ) : null}
-        </Widget>
+              </Alert.Description>
+            </Alert.Content>
+          </Alert>
+        )}
 
         <Attributes title="Backup settings" variant="card">
           <Attributes.Item label="Schedule">
