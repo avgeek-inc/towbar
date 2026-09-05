@@ -513,6 +513,28 @@ let systemHealth: SystemHealth = {
   version: "1.0.2-fixture",
 };
 
+function fixtureSystemHealth(): SystemHealth {
+  return {
+    ...systemHealth,
+    checks: [
+      ...systemHealth.checks,
+      ...(awsCredential
+        ? [
+            {
+              id: "aws" as const,
+              title: "AWS",
+              checkedAt: awsCredential.lastVerifiedAt,
+              description: `AWS identity verified. Region: ${awsCredential.region}.`,
+              status: "healthy" as const,
+              remediationHref: null,
+              remediationLabel: null,
+            },
+          ]
+        : []),
+    ],
+  };
+}
+
 const runtimeCapacity: RuntimeCapacity[] = [
   {
     checkedAt: systemHealthFixtureNow,
@@ -817,7 +839,8 @@ export function createFixtureApiServer() {
         })),
         status: "healthy",
       };
-      return writeJson(response, 200, systemHealth);
+      if (awsCredential) awsCredential.lastVerifiedAt = checkedAt;
+      return writeJson(response, 200, fixtureSystemHealth());
     }
     if (request.method === "POST" && path === "/v1/core/sources") {
       return writeJson(response, 201, { source });
@@ -1478,7 +1501,7 @@ function getFixturePayload(
     ["/v1/core/apps", { apps }],
     ["/v1/core/resources", { resources }],
     ["/v1/core/servers", { servers }],
-    ["/v1/core/system-health", systemHealth],
+    ["/v1/core/system-health", fixtureSystemHealth()],
     [
       "/v1/core/deployments",
       {

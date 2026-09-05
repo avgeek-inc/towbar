@@ -8,6 +8,7 @@ import {
   CheckmarkCircle02Icon,
   HealthIcon,
   InformationCircleIcon,
+  PlugSocketIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -88,23 +89,41 @@ export function SystemHealthPage() {
       badge={<HealthStatusChip status={health.status} />}
       title="System health"
     >
-      <ControlPlane checks={health.checks} version={health.version} />
+      <HealthChecks
+        checks={health.checks.filter(
+          (check) => check.id !== "github" && check.id !== "aws",
+        )}
+        title="Control plane"
+        icon={Activity01Icon}
+        version={health.version}
+      />
+      <HealthChecks
+        checks={health.checks.filter(
+          (check) => check.id === "github" || check.id === "aws",
+        )}
+        title="Integrations"
+        icon={PlugSocketIcon}
+      />
     </DashboardPage>
   );
 }
 
-function ControlPlane({
+function HealthChecks({
   checks,
   version,
+  title,
+  icon,
 }: {
   checks: SystemHealthCheck[];
-  version: string;
+  version?: string;
+  title: string;
+  icon: typeof Activity01Icon;
 }) {
   return (
     <Widget>
       <Widget.Header>
-        <Widget.Title icon={<HugeiconsIcon icon={Activity01Icon} />}>
-          Control plane
+        <Widget.Title icon={<HugeiconsIcon icon={icon} />}>
+          {title}
         </Widget.Title>
       </Widget.Header>
       <Widget.Content className="grid p-0">
@@ -143,14 +162,16 @@ function ControlPlane({
           );
         })}
       </Widget.Content>
-      <Widget.Footer>
-        <Widget.FooterDescription>
-          Version{" "}
-          <TooltipText className="font-mono" tooltip={version}>
-            {shortVersion(version)}
-          </TooltipText>
-        </Widget.FooterDescription>
-      </Widget.Footer>
+      {version ? (
+        <Widget.Footer>
+          <Widget.FooterDescription>
+            Version{" "}
+            <TooltipText className="font-mono" tooltip={version}>
+              {shortVersion(version)}
+            </TooltipText>
+          </Widget.FooterDescription>
+        </Widget.Footer>
+      ) : null}
     </Widget>
   );
 }

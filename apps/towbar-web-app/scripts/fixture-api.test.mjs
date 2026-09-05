@@ -169,6 +169,50 @@ test("the local fixture rejects disallowed origins before state changes", async 
   }
 });
 
+test("health checks include AWS only while the integration is connected", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const base = `http://127.0.0.1:${server.address().port}/v1/core`;
+  try {
+    const read = async () => (await fetch(`${base}/system-health`)).json();
+    assert.equal(
+      (await read()).checks.some((check) => check.id === "aws"),
+      false,
+    );
+    const saved = await fetch(`${base}/aws`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        accessKeyId: "fixture-key",
+        region: "ap-south-1",
+      }),
+    });
+    assert.equal(saved.status, 200);
+    const connected = (await read()).checks.find((check) => check.id === "aws");
+    assert.equal(connected.status, "healthy");
+    const checked = await (
+      await fetch(`${base}/system-health/actions/check`, { method: "POST" })
+    ).json();
+    assert.equal(
+      checked.checks.filter((check) => check.id === "aws").length,
+      1,
+    );
+    assert.equal(
+      checked.checks.find((check) => check.id === "aws").checkedAt,
+      checked.checkedAt,
+    );
+    await fetch(`${base}/aws`, { method: "DELETE" });
+    assert.equal(
+      (await read()).checks.some((check) => check.id === "aws"),
+      false,
+    );
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
 test("the local fixture separates control-plane checks from server capacity", async () => {
   const server = createFixtureApiServer();
   server.listen(0, "127.0.0.1");

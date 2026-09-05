@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { GetCallerIdentityCommand, STSClient } from "@aws-sdk/client-sts";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -99,6 +99,35 @@ export async function saveAwsCredentials(input: {
     await database.insert(workspaceAwsCredentials).values(values);
   }
   return await getAwsCredentialMetadata(input.workspaceId);
+}
+
+// Verify the stored integration without changing its credentials.
+export async function reverifyAwsCredentials(workspaceId: string) {
+  const metadata = await getAwsCredentialMetadata(workspaceId);
+  if (!metadata) return;
+  let verificationStatus: "verified" | "failed" = "verified";
+  let verificationMessage: string;
+  try {
+    const credential = await getDecryptedAwsCredential({ workspaceId });
+    const identity = await validateAwsCredentials(credential);
+    verificationMessage = identity.Account
+      ? `AWS account ${identity.Account}`
+      : "AWS identity verified";
+  } catch {
+    verificationStatus = "failed";
+    verificationMessage =
+      "AWS could not verify the connected credentials. Check the credentials and AWS connectivity.";
+  }
+  await getTowbarDatabase()
+    .update(workspaceAwsCredentials)
+    .set({ verificationStatus, verificationMessage, verifiedAt: new Date() })
+    .where(
+      and(
+        eq(workspaceAwsCredentials.workspaceId, workspaceId),
+        // Ignore a result if credentials were replaced while the check ran.
+        eq(workspaceAwsCredentials.updatedAt, metadata.updatedAt),
+      ),
+    );
 }
 
 async function validateAwsCredentials(input: {
