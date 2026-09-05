@@ -55,7 +55,7 @@ export function SourceIndex() {
     },
     {
       key: "branch",
-      header: "Branch",
+      header: "Prod Branch",
       cell: (source) => source.branch,
       className: "min-w-32 whitespace-nowrap",
     },
