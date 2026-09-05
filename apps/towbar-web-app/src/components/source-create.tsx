@@ -1,5 +1,6 @@
 "use client";
 
+import { GitBranchIcon } from "@hugeicons/core-free-icons";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type {
@@ -41,19 +42,31 @@ export function SourceCreate() {
   const [busy, setBusy] = useState(false);
   if (connection.error && !connection.data)
     return (
-      <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Add source">
+      <DashboardPage
+        icon={GitBranchIcon}
+        breadcrumbAncestors={sourcesBreadcrumb}
+        title="Add source"
+      >
         <QueryError message={connection.error} />
       </DashboardPage>
     );
   if (!connection.data)
     return (
-      <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Add source">
+      <DashboardPage
+        icon={GitBranchIcon}
+        breadcrumbAncestors={sourcesBreadcrumb}
+        title="Add source"
+      >
         <QueryLoading />
       </DashboardPage>
     );
   if (!connection.data.connection)
     return (
-      <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Add source">
+      <DashboardPage
+        icon={GitBranchIcon}
+        breadcrumbAncestors={sourcesBreadcrumb}
+        title="Add source"
+      >
         <EmptyState>
           <EmptyState.Header>
             <EmptyState.Title>GitHub not connected</EmptyState.Title>
@@ -71,19 +84,31 @@ export function SourceCreate() {
     );
   if (repositories.error)
     return (
-      <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Add source">
+      <DashboardPage
+        icon={GitBranchIcon}
+        breadcrumbAncestors={sourcesBreadcrumb}
+        title="Add source"
+      >
         <QueryError message={repositories.error} />
       </DashboardPage>
     );
   if (!repositories.data)
     return (
-      <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Add source">
+      <DashboardPage
+        icon={GitBranchIcon}
+        breadcrumbAncestors={sourcesBreadcrumb}
+        title="Add source"
+      >
         <QueryLoading />
       </DashboardPage>
     );
   if (repositories.data.repositories.length === 0)
     return (
-      <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Add source">
+      <DashboardPage
+        icon={GitBranchIcon}
+        breadcrumbAncestors={sourcesBreadcrumb}
+        title="Add source"
+      >
         <EmptyState>
           <EmptyState.Header>
             <EmptyState.Title>No repositories available</EmptyState.Title>
@@ -100,7 +125,11 @@ export function SourceCreate() {
     (repo) => repo.fullName === fullName,
   );
   return (
-    <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Add source">
+    <DashboardPage
+      icon={GitBranchIcon}
+      breadcrumbAncestors={sourcesBreadcrumb}
+      title="Add source"
+    >
       <div className="grid gap-10">
         <div className="max-w-full overflow-x-auto pb-1">
           <div className="min-w-[44rem]">

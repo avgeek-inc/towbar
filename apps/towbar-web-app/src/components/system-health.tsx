@@ -55,14 +55,14 @@ export function SystemHealthPage() {
   const query = useApiQuery<SystemHealth>("/v1/core/system-health", 15_000);
   if (query.error) {
     return (
-      <DashboardPage title="System health">
+      <DashboardPage icon={HealthIcon} title="System health">
         <QueryError message={query.error} />
       </DashboardPage>
     );
   }
   if (!query.data) {
     return (
-      <DashboardPage title="System health">
+      <DashboardPage icon={HealthIcon} title="System health">
         <QueryLoading variant="dashboard" />
       </DashboardPage>
     );
@@ -70,6 +70,7 @@ export function SystemHealthPage() {
   const health = query.data;
   return (
     <DashboardPage
+      icon={HealthIcon}
       actions={
         <ActionButton<SystemHealth>
           action={() => api.post("/v1/core/system-health/actions/check")}
@@ -83,16 +84,6 @@ export function SystemHealthPage() {
       }
       badge={<HealthStatusChip status={health.status} />}
       title="System health"
-      titleContent={
-        <span className="inline-flex min-w-0 items-center gap-2">
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-6 shrink-0"
-            icon={HealthIcon}
-          />
-          <span>System health</span>
-        </span>
-      }
     >
       <ControlPlane checks={health.checks} version={health.version} />
     </DashboardPage>

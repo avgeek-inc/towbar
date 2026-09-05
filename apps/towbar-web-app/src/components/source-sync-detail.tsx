@@ -46,6 +46,7 @@ export function SourceSyncDetail() {
   if (query.error) {
     return (
       <DashboardPage
+        icon={RefreshIcon}
         breadcrumbAncestors={breadcrumbAncestors}
         title="Source sync"
       >
@@ -57,6 +58,7 @@ export function SourceSyncDetail() {
   if (!query.data) {
     return (
       <DashboardPage
+        icon={RefreshIcon}
         breadcrumbAncestors={breadcrumbAncestors}
         title="Source sync"
       >
@@ -70,16 +72,12 @@ export function SourceSyncDetail() {
   const changes = readReconciliationChanges(sync.reconciliation);
   return (
     <DashboardPage
+      icon={RefreshIcon}
       badge={<StatusBadge status={sync.status} />}
       breadcrumbAncestors={breadcrumbAncestors}
       title={`Sync ${sync.id.slice(0, 8)}`}
       titleContent={
         <span className="inline-flex min-w-0 items-center gap-2">
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-6 shrink-0"
-            icon={RefreshIcon}
-          />
           <span>Sync</span>
           <TypographyCode title={sync.id}>{sync.id.slice(0, 8)}</TypographyCode>
         </span>

@@ -97,6 +97,7 @@ export function DeploymentDetail() {
   if (stream.error && !stream.deployment)
     return (
       <DashboardPage
+        icon={Rocket01Icon}
         breadcrumbAncestors={sourceBreadcrumbAncestors}
         title="Deployment"
       >
@@ -106,6 +107,7 @@ export function DeploymentDetail() {
   if (!stream.deployment || !stream.steps || !stream.logs)
     return (
       <DashboardPage
+        icon={Rocket01Icon}
         breadcrumbAncestors={sourceBreadcrumbAncestors}
         title="Deployment"
       >
@@ -118,6 +120,7 @@ export function DeploymentDetail() {
   if (item.sourceId !== sourceId) {
     return (
       <DashboardPage
+        icon={Rocket01Icon}
         breadcrumbAncestors={sourceBreadcrumbAncestors}
         title="Deployment"
       >
@@ -186,6 +189,7 @@ export function DeploymentDetail() {
 
   return (
     <DashboardPage
+      icon={Rocket01Icon}
       actions={actions}
       badge={<StatusBadge status={displayStatus} />}
       breadcrumbAncestors={breadcrumbAncestors}
@@ -193,11 +197,6 @@ export function DeploymentDetail() {
       title={`Deployment ${item.id.slice(0, 8)}`}
       titleContent={
         <span className="inline-flex min-w-0 items-center gap-2">
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-6 shrink-0"
-            icon={Rocket01Icon}
-          />
           <span>Deployment</span>
           <TypographyCode title={item.id}>{item.id.slice(0, 8)}</TypographyCode>
         </span>

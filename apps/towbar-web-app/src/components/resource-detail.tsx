@@ -65,14 +65,22 @@ export function ResourceDetail() {
 
   if (error) {
     return (
-      <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="Resource">
+      <DashboardPage
+        icon={DatabaseIcon}
+        breadcrumbAncestors={breadcrumbAncestors}
+        title="Resource"
+      >
         <QueryError message={error} />
       </DashboardPage>
     );
   }
   if (!resource.data || !deployments.data || !releases.data) {
     return (
-      <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="Resource">
+      <DashboardPage
+        icon={DatabaseIcon}
+        breadcrumbAncestors={breadcrumbAncestors}
+        title="Resource"
+      >
         <QueryLoading />
       </DashboardPage>
     );
@@ -81,7 +89,11 @@ export function ResourceDetail() {
   const item = resource.data.resource;
   if (item.sourceId !== sourceId) {
     return (
-      <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="Resource">
+      <DashboardPage
+        icon={DatabaseIcon}
+        breadcrumbAncestors={breadcrumbAncestors}
+        title="Resource"
+      >
         <QueryError
           message="This Resource does not belong to the selected Source."
           retryable={false}
@@ -214,6 +226,7 @@ export function ResourceDetail() {
 
   return (
     <DashboardPage
+      icon={DatabaseIcon}
       actions={
         !item.archivedAt ? (
           <div className="flex flex-wrap justify-end gap-2">
@@ -259,18 +272,6 @@ export function ResourceDetail() {
       }
       breadcrumbAncestors={breadcrumbAncestors}
       title={item.name}
-      titleContent={
-        <span className="inline-flex min-w-0 items-center gap-2">
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-6 shrink-0"
-            icon={DatabaseIcon}
-          />
-          <span className="truncate" title={item.name}>
-            {item.name}
-          </span>
-        </span>
-      }
     >
       <PageTabs defaultValue="overview" tabs={tabs} />
     </DashboardPage>

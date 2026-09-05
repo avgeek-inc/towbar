@@ -57,13 +57,21 @@ export function AppDetail() {
   const error = app.error ?? deployments.error ?? releases.error;
   if (error)
     return (
-      <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="App">
+      <DashboardPage
+        icon={DashboardCircleIcon}
+        breadcrumbAncestors={breadcrumbAncestors}
+        title="App"
+      >
         <QueryError message={error} />
       </DashboardPage>
     );
   if (!app.data || !deployments.data || !releases.data)
     return (
-      <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="App">
+      <DashboardPage
+        icon={DashboardCircleIcon}
+        breadcrumbAncestors={breadcrumbAncestors}
+        title="App"
+      >
         <QueryLoading />
       </DashboardPage>
     );
@@ -71,7 +79,11 @@ export function AppDetail() {
   const item = app.data.app;
   if (item.sourceId !== sourceId) {
     return (
-      <DashboardPage breadcrumbAncestors={breadcrumbAncestors} title="App">
+      <DashboardPage
+        icon={DashboardCircleIcon}
+        breadcrumbAncestors={breadcrumbAncestors}
+        title="App"
+      >
         <QueryError
           message="This App does not belong to the selected Source."
           retryable={false}
@@ -90,6 +102,7 @@ export function AppDetail() {
   const lifecycleStatus = getAppLifecycleStatus(item);
   return (
     <DashboardPage
+      icon={DashboardCircleIcon}
       actions={
         !item.archivedAt ? (
           <div className="flex flex-wrap justify-end gap-2">
@@ -135,18 +148,6 @@ export function AppDetail() {
       }
       breadcrumbAncestors={breadcrumbAncestors}
       title={item.name}
-      titleContent={
-        <span className="inline-flex min-w-0 items-center gap-2">
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-6 shrink-0"
-            icon={DashboardCircleIcon}
-          />
-          <span className="truncate" title={item.name}>
-            {item.name}
-          </span>
-        </span>
-      }
     >
       <PageTabs
         defaultValue="overview"

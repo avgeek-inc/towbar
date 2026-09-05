@@ -4,6 +4,7 @@ import {
   DashboardCircleIcon,
   DatabaseIcon,
   GithubIcon,
+  ServerStack01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
@@ -45,7 +46,7 @@ export function AppsIndex() {
     apps.error ?? deployments.error ?? sources.error ?? servers.error;
 
   return (
-    <DashboardPage title="Apps">
+    <DashboardPage icon={DashboardCircleIcon} title="Apps">
       {error ? (
         <QueryError message={error} />
       ) : !apps.data || !deployments.data || !sources.data || !servers.data ? (
@@ -78,7 +79,7 @@ export function ResourcesIndex() {
     deployments.error ?? resources.error ?? sources.error ?? servers.error;
 
   return (
-    <DashboardPage title="Resources">
+    <DashboardPage icon={DatabaseIcon} title="Resources">
       {error ? (
         <QueryError message={error} />
       ) : !deployments.data ||
@@ -111,6 +112,7 @@ export function ServersIndex() {
 
   return (
     <DashboardPage
+      icon={ServerStack01Icon}
       actions={<ButtonLink href="/servers/new">Add server</ButtonLink>}
       title="Servers"
     >

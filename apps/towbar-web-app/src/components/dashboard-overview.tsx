@@ -5,6 +5,7 @@ import {
   DatabaseIcon,
   GitBranchIcon,
   ServerStack01Icon,
+  DashboardSquare01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Fragment, type ComponentProps } from "react";
@@ -57,7 +58,7 @@ export function DashboardOverview() {
     deployments.error;
   if (error)
     return (
-      <DashboardPage title="Overview">
+      <DashboardPage icon={DashboardSquare01Icon} title="Overview">
         <QueryError message={error} />
       </DashboardPage>
     );
@@ -69,7 +70,7 @@ export function DashboardOverview() {
     !deployments.data
   )
     return (
-      <DashboardPage title="Overview">
+      <DashboardPage icon={DashboardSquare01Icon} title="Overview">
         <QueryLoading variant="dashboard" />
       </DashboardPage>
     );
@@ -124,7 +125,7 @@ export function DashboardOverview() {
   ];
 
   return (
-    <DashboardPage title="Overview">
+    <DashboardPage icon={DashboardSquare01Icon} title="Overview">
       <div className="content-grid grid-cols-2 sm:hidden">
         {metrics.map((metric) => (
           <MetricCard

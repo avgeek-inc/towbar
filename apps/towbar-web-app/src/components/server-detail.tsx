@@ -119,7 +119,11 @@ export function ServerDetail() {
     orphans.error;
   if (error)
     return (
-      <DashboardPage breadcrumbAncestors={serversBreadcrumb} title="Server">
+      <DashboardPage
+        icon={ServerStack01Icon}
+        breadcrumbAncestors={serversBreadcrumb}
+        title="Server"
+      >
         <QueryError message={error} />
       </DashboardPage>
     );
@@ -132,7 +136,11 @@ export function ServerDetail() {
     !orphans.data
   )
     return (
-      <DashboardPage breadcrumbAncestors={serversBreadcrumb} title="Server">
+      <DashboardPage
+        icon={ServerStack01Icon}
+        breadcrumbAncestors={serversBreadcrumb}
+        title="Server"
+      >
         <QueryLoading />
       </DashboardPage>
     );
@@ -322,6 +330,7 @@ export function ServerDetail() {
 
   return (
     <DashboardPage
+      icon={ServerStack01Icon}
       actions={
         <ActionButton
           action={() => api.post(`/v1/core/servers/${serverId}/actions/check`)}
@@ -337,18 +346,6 @@ export function ServerDetail() {
       }
       breadcrumbAncestors={serversBreadcrumb}
       title={item.canonicalIp}
-      titleContent={
-        <span className="inline-flex min-w-0 items-center gap-2">
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-6 shrink-0"
-            icon={ServerStack01Icon}
-          />
-          <span className="truncate" title={item.canonicalIp}>
-            {item.canonicalIp}
-          </span>
-        </span>
-      }
     >
       <div className="grid gap-6">
         <PageTabs

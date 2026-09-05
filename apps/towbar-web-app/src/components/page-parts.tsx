@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { Children } from "react";
 import type { ComponentProps, FormEvent, Key, ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -44,6 +45,7 @@ export function DashboardPage({
   breadcrumbAncestors = appBreadcrumb,
   breadcrumbLabel,
   children,
+  icon,
   title,
   titleContent,
 }: {
@@ -52,6 +54,7 @@ export function DashboardPage({
   breadcrumbAncestors?: BreadcrumbAncestors;
   breadcrumbLabel?: string;
   children: ReactNode;
+  icon: ComponentProps<typeof HugeiconsIcon>["icon"];
   title: string;
   titleContent?: ReactNode;
 }) {
@@ -62,7 +65,20 @@ export function DashboardPage({
       breadcrumbAncestors={breadcrumbAncestors}
       breadcrumbLabel={breadcrumbLabel}
       title={title}
-      titleContent={titleContent}
+      titleContent={
+        <span className="inline-flex min-w-0 items-center gap-2">
+          <HugeiconsIcon
+            aria-hidden="true"
+            className="size-6 shrink-0"
+            icon={icon}
+          />
+          {titleContent ?? (
+            <span className="truncate" title={title}>
+              {title}
+            </span>
+          )}
+        </span>
+      }
     >
       <PageSection
         className="grid gap-4 pt-0 sm:gap-6"

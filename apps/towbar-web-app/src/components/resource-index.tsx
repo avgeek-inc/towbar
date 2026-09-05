@@ -1,6 +1,6 @@
 "use client";
 
-import { GithubIcon } from "@hugeicons/core-free-icons";
+import { GithubIcon, GitBranchIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
 import type { Source } from "@workspace/towbar-web-client";
@@ -72,6 +72,7 @@ export function SourceIndex() {
 
   return (
     <DashboardPage
+      icon={GitBranchIcon}
       actions={<ButtonLink href="/sources/new">Add source</ButtonLink>}
       title="Sources"
     >

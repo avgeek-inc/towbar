@@ -98,13 +98,21 @@ export function SourceDetail() {
   const error = source.error ?? manifest.error ?? syncs.error;
   if (error)
     return (
-      <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Source">
+      <DashboardPage
+        icon={GithubIcon}
+        breadcrumbAncestors={sourcesBreadcrumb}
+        title="Source"
+      >
         <QueryError message={error} />
       </DashboardPage>
     );
   if (!source.data || !manifest.data || !syncs.data)
     return (
-      <DashboardPage breadcrumbAncestors={sourcesBreadcrumb} title="Source">
+      <DashboardPage
+        icon={GithubIcon}
+        breadcrumbAncestors={sourcesBreadcrumb}
+        title="Source"
+      >
         <QueryLoading />
       </DashboardPage>
     );
@@ -149,6 +157,7 @@ export function SourceDetail() {
 
   return (
     <DashboardPage
+      icon={GithubIcon}
       actions={
         <div className="flex flex-wrap justify-end gap-2">
           {item.status === "active" ? (
@@ -185,18 +194,6 @@ export function SourceDetail() {
         )
       }
       title={item.repositoryName}
-      titleContent={
-        <span className="inline-flex min-w-0 items-center gap-2">
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-6 shrink-0"
-            icon={GithubIcon}
-          />
-          <span className="truncate" title={item.repositoryName}>
-            {item.repositoryName}
-          </span>
-        </span>
-      }
     >
       <PageTabs
         defaultValue="apps"

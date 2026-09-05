@@ -1,3 +1,4 @@
+import { PlugSocketIcon } from "@hugeicons/core-free-icons";
 import { Suspense } from "react";
 
 import { QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -7,7 +8,7 @@ import { DashboardPage } from "@/components/page-parts";
 
 export default function Page() {
   return (
-    <DashboardPage title="Integrations">
+    <DashboardPage icon={PlugSocketIcon} title="Integrations">
       <Suspense fallback={<QueryLoading />}>
         <Integrations />
       </Suspense>
