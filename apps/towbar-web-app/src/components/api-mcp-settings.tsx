@@ -184,16 +184,6 @@ export function ApiMcpSettings() {
             label: "API Keys",
             content: (
               <div className="content-grid">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <p className="text-muted max-w-2xl">
-                    Connect scripts and AI tools to your control plane. Each key
-                    works with both interfaces and uses your current workspace
-                    permissions and can be revoked at any time.
-                  </p>
-                  <Button onPress={() => setCreating(true)}>
-                    Create API key
-                  </Button>
-                </div>
                 <ResourceTable
                   ariaLabel="API keys"
                   columns={columns}
@@ -202,11 +192,9 @@ export function ApiMcpSettings() {
                   emptyTitle="No API keys yet"
                   emptyDescription="Create a key for your scripts or MCP client. The secret is only shown once."
                 />
-                <p className="text-muted text-sm">
-                  API and MCP share a limit of {data.rateLimit.requests}{" "}
-                  requests per {data.rateLimit.windowSeconds} seconds from each
-                  IP address.
-                </p>
+                <Button className="w-fit" onPress={() => setCreating(true)}>
+                  Create API key
+                </Button>
               </div>
             ),
           },
