@@ -45,7 +45,7 @@ A server without notification destinations still creates incidents in Towbar. Ad
 | Container restart loop  | At least 3 restarts within 5 minutes | Fewer than 3 restarts in the window |
 | Scout stopped reporting | No report collected for 3 minutes    | Reports resume                      |
 
-The examples above are starting points for your own thresholds. Configure restart counting windows from 1 to 60 minutes. Alerts fire on the first fresh qualifying reading, with no additional waiting period. An incident recovers on the first fresh measurement that no longer meets the trigger condition. Each incident sends one firing notification, with no repeats while active. A server supports up to 100 rules, including at most 10 public HTTP checks.
+The examples above are starting points for your own thresholds. Configure restart counting windows from 1 to 60 minutes. Alerts fire on the first fresh qualifying reading, with no additional waiting period. An incident recovers on the first fresh measurement that no longer meets the trigger condition. Each incident sends one firing notification, with no repeats while active. Each server, app, or resource supports up to 10 alert rules, including disabled rules. Delete a rule to free a slot. Production and preview rules share the same entity limit. A server supports up to 100 rules across all its entities, including at most 10 public HTTP checks.
 
 ## Workspace monitoring
 

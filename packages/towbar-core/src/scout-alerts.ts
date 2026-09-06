@@ -4,6 +4,8 @@ import {
   monitoringMetricNames,
 } from "./monitoring.js";
 
+export const SCOUT_ALERT_RULE_LIMIT_PER_ENTITY = 10;
+
 export const scoutAlertMetrics = [
   ...monitoringMetricNames.filter((name) => name !== "restartCount"),
   "restarts",

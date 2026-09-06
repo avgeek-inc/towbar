@@ -1,5 +1,6 @@
 import { and, desc, eq, isNull, lt, or, sql } from "drizzle-orm";
 import {
+  SCOUT_ALERT_RULE_LIMIT_PER_ENTITY,
   type ScoutAlertRuleInput,
   scoutAlertRuleSchema,
   scoutMuteSchema,
@@ -157,6 +158,8 @@ export async function saveScoutAlertRule(
         .for("update")
         .limit(1);
       if (!old) throw notFound("Scout alert rule");
+      if (old.deployableId !== rule.deployableId)
+        await assertEntityRuleCapacity(tx, input, rule.deployableId);
       const conditionChanged =
         JSON.stringify(old.condition) !== JSON.stringify(rule.condition) ||
         old.deployableId !== rule.deployableId ||
@@ -183,6 +186,7 @@ export async function saveScoutAlertRule(
         .where(eq(scoutAlertRules.id, input.ruleId))
         .returning();
     } else {
+      await assertEntityRuleCapacity(tx, input, rule.deployableId);
       const existing = await tx
         .select({ id: scoutAlertRules.id })
         .from(scoutAlertRules)
@@ -215,6 +219,32 @@ export async function saveScoutAlertRule(
     });
     return result;
   });
+}
+
+async function assertEntityRuleCapacity(
+  tx: ScoutTransaction,
+  scope: ScoutScope,
+  deployableId: string | null,
+) {
+  const rules = await tx
+    .select({ id: scoutAlertRules.id })
+    .from(scoutAlertRules)
+    .where(
+      and(
+        eq(scoutAlertRules.workspaceId, scope.workspaceId),
+        eq(scoutAlertRules.serverId, scope.serverId),
+        deployableId
+          ? eq(scoutAlertRules.deployableId, deployableId)
+          : isNull(scoutAlertRules.deployableId),
+        isNull(scoutAlertRules.deletedAt),
+      ),
+    )
+    .limit(SCOUT_ALERT_RULE_LIMIT_PER_ENTITY);
+  if (rules.length >= SCOUT_ALERT_RULE_LIMIT_PER_ENTITY)
+    throw conflict(
+      `Each server, app, or resource supports up to ${SCOUT_ALERT_RULE_LIMIT_PER_ENTITY} Scout alert rules. Delete a rule before adding another.`,
+      "SCOUT_ALERT_RULE_LIMIT_REACHED",
+    );
 }
 
 export async function deleteScoutAlertRule(

@@ -1,4 +1,5 @@
 "use client";
+import { SCOUT_ALERT_RULE_LIMIT_PER_ENTITY } from "@workspace/towbar-core/scout-alerts";
 import { ScoutIcon } from "./scout-icons";
 import { useState } from "react";
 import { Button } from "@workspace/web-design-system/buttons/button";
@@ -77,6 +78,13 @@ export function ScoutAlerts({
   const rules = data.rules.filter(
     (r) => r.deployableId === (deployableId ?? null),
   );
+  const entityLabel = deployableId
+    ? data.workloads.find((workload) => workload.id === deployableId)?.kind ===
+      "app"
+      ? "app"
+      : "resource"
+    : "server";
+  const ruleLimitReached = rules.length >= SCOUT_ALERT_RULE_LIMIT_PER_ENTITY;
   const columns: ResourceTableColumn<ScoutRule>[] = [
     {
       key: "name",
@@ -280,7 +288,13 @@ export function ScoutAlerts({
                   {muted ? "Manage mute" : "Mute for maintenance"}
                 </Button>
               ) : null}
-              <Button onPress={() => setEditing("new")}>
+              <Button
+                isDisabled={ruleLimitReached}
+                aria-describedby={
+                  ruleLimitReached ? "scout-rule-limit" : undefined
+                }
+                onPress={() => setEditing("new")}
+              >
                 <ScoutIcon name="add" />
                 Create rule
               </Button>
@@ -288,6 +302,13 @@ export function ScoutAlerts({
           ) : null}
         </div>
       </div>
+      {data.canManage && ruleLimitReached ? (
+        <p id="scout-rule-limit" role="status" className="text-sm text-muted">
+          This {entityLabel} has reached the limit of{" "}
+          {SCOUT_ALERT_RULE_LIMIT_PER_ENTITY} alert rules. Delete a rule to
+          create another.
+        </p>
+      ) : null}
       {query.error ? <QueryError message={query.error} /> : null}
       {muted ? (
         <div role="status" className="rounded-xl bg-default p-4 text-sm">
