@@ -24,7 +24,7 @@ import { EmptyState } from "@workspace/web-design-system/data-display/empty-stat
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
-import { DashboardPage } from "@/components/page-parts";
+import { DashboardPage, InlineLink } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 
 const activitySeries = [
@@ -99,24 +99,28 @@ export function DashboardOverview() {
   const metrics = [
     {
       icon: GitBranchIcon,
+      href: "/sources",
       label: "Sources",
       unhealthyCount: null,
       value: activeSources.length,
     },
     {
       icon: DashboardCircleIcon,
+      href: "/apps",
       label: "Apps",
       unhealthyCount: unhealthyApps,
       value: activeApps.length,
     },
     {
       icon: DatabaseIcon,
+      href: "/resources",
       label: "Resources",
       unhealthyCount: unhealthyResources,
       value: activeResources.length,
     },
     {
       icon: ServerStack01Icon,
+      href: "/servers",
       label: "Servers",
       unhealthyCount: unhealthyServers,
       value: activeServers.length,
@@ -138,7 +142,13 @@ export function DashboardOverview() {
               <dl>
                 <dt className="sr-only">{metric.label}</dt>
                 <dd className="text-3xl font-semibold tracking-tight tabular-nums">
-                  {metric.value.toLocaleString()}
+                  <InlineLink
+                    aria-label={`${metric.value.toLocaleString()} ${metric.label.toLowerCase()} — view all`}
+                    className="inline-flex min-h-11 min-w-11 items-center"
+                    href={metric.href}
+                  >
+                    {metric.value.toLocaleString()}
+                  </InlineLink>
                 </dd>
               </dl>
               {metric.unhealthyCount === null ? null : (
