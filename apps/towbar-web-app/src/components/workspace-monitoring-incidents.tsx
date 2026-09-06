@@ -1,4 +1,5 @@
 "use client";
+import { ScoutIcon } from "./scout-icons";
 import { useState } from "react";
 import { AlertCircleIcon } from "@hugeicons/core-free-icons";
 import { Button } from "@workspace/web-design-system/buttons/button";
@@ -99,6 +100,7 @@ export function WorkspaceIncidents() {
       header: "",
       cell: (row) => (
         <Button size="sm" variant="secondary" onPress={() => setSelected(row)}>
+          <ScoutIcon name="view" />
           View Incident
         </Button>
       ),

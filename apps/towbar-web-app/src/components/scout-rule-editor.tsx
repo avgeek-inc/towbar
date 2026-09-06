@@ -1,4 +1,5 @@
 "use client";
+import { ScoutIcon } from "./scout-icons";
 import { ScoutHttpEditor } from "./scout-http-editor";
 import { useId, useState, type FormEvent } from "react";
 import {
@@ -338,9 +339,11 @@ export function ScoutRuleEditor({
                     isDisabled={saving}
                     onPress={onClose}
                   >
+                    <ScoutIcon name="close" />
                     Cancel
                   </Button>
                   <Button type="submit" isDisabled={saving}>
+                    <ScoutIcon name={initial ? "save" : "add"} />
                     {saving
                       ? "Saving…"
                       : initial

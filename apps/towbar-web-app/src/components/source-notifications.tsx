@@ -1,4 +1,5 @@
 "use client";
+import { ScoutIcon, ScoutOptionIcon } from "./scout-icons";
 
 import { useState } from "react";
 import type { FormEvent } from "react";
@@ -158,6 +159,7 @@ export function SourceNotifications({
               pendingLabel="Sending…"
               success="Test notification queued"
             >
+              <ScoutIcon name="test" />
               Test
             </ActionButton>
             <Button
@@ -165,6 +167,7 @@ export function SourceNotifications({
               variant="secondary"
               onPress={() => openEditor(destination)}
             >
+              <ScoutIcon name="edit" />
               Edit
             </Button>
             <ActionButton
@@ -182,6 +185,7 @@ export function SourceNotifications({
               success="Notification destination deleted"
               variant="danger"
             >
+              <ScoutIcon name="delete" />
               Delete
             </ActionButton>
           </div>
@@ -267,7 +271,10 @@ export function SourceNotifications({
       />
       {canManage && hasProvider ? (
         <div>
-          <Button onPress={() => openEditor()}>Add destination</Button>
+          <Button onPress={() => openEditor()}>
+            <ScoutIcon name="add" />
+            Add destination
+          </Button>
         </div>
       ) : null}
 
@@ -318,7 +325,13 @@ export function SourceNotifications({
                             key={provider.value}
                             textValue={provider.label}
                           >
-                            {provider.label}
+                            <span className="inline-flex items-center gap-2">
+                              <ScoutOptionIcon
+                                label="Provider"
+                                value={provider.value}
+                              />
+                              {provider.label}
+                            </span>
                             <ListBox.ItemIndicator />
                           </ListBox.Item>
                         ))}
@@ -426,9 +439,11 @@ export function SourceNotifications({
                       variant="secondary"
                       onPress={() => setEditorOpen(false)}
                     >
+                      <ScoutIcon name="close" />
                       Cancel
                     </Button>
                     <Button isDisabled={saving} type="submit">
+                      <ScoutIcon name="save" />
                       {saving ? "Saving…" : "Save destination"}
                     </Button>
                   </div>

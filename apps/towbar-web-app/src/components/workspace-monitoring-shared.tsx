@@ -1,4 +1,5 @@
 "use client";
+import { ScoutIcon } from "./scout-icons";
 import { useState } from "react";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -71,6 +72,7 @@ export function useMonitoringOverview<T>(
           isDisabled={cursors.length === 1 || query.isPreviousData}
           onPress={() => setCursors((old) => old.slice(0, -1))}
         >
+          <ScoutIcon name="previous" />
           Previous
         </Button>
         <Button
@@ -84,6 +86,7 @@ export function useMonitoringOverview<T>(
             ])
           }
         >
+          <ScoutIcon name="next" />
           Next
         </Button>
       </div>

@@ -1,5 +1,7 @@
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
 
+import { ScoutIcon } from "./scout-icons";
+
 export function MonitoringDocumentation() {
   return (
     <ButtonLink
@@ -8,6 +10,7 @@ export function MonitoringDocumentation() {
       target="_blank"
       rel="noreferrer"
     >
+      <ScoutIcon name="docs" />
       Scout Agent documentation →
     </ButtonLink>
   );

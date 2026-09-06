@@ -1,4 +1,5 @@
 "use client";
+import { ScoutIcon } from "./scout-icons";
 
 import {
   memo,
@@ -256,6 +257,7 @@ export function ScoutComparison({ deployableId }: { deployableId: string }) {
               type="submit"
               isDisabled={!selectedBaseline || comparison.isRefreshing}
             >
+              <ScoutIcon name="compare" />
               Compare deployments
             </Button>
             <span

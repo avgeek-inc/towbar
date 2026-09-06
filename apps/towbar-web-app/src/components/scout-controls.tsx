@@ -1,4 +1,5 @@
 "use client";
+import { ScoutOptionIcon } from "./scout-icons";
 import { useId } from "react";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { Input } from "@workspace/web-design-system/forms/input";
@@ -169,7 +170,10 @@ export function ScoutSelect({
               key={option.id}
               textValue={option.label}
             >
-              {option.label}
+              <span className="inline-flex items-center gap-2">
+                <ScoutOptionIcon value={option.id} label={label} />
+                {option.label}
+              </span>
               <ListBox.ItemIndicator />
             </ListBox.Item>
           ))}

@@ -8,6 +8,7 @@ import { Checkbox } from "@workspace/web-design-system/forms/checkbox";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { ListBox, Select } from "@workspace/web-design-system/forms/select";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
+import { ScoutIcon } from "./scout-icons";
 import { ScoutMascot } from "./scout-mascot";
 import { MonitoringDocumentation } from "./monitoring-documentation";
 import { ActionButton } from "./page-parts";
@@ -150,7 +151,10 @@ function MonitoringAgentForm({
                       key={value}
                       textValue={`${value} days`}
                     >
-                      {value} days{value === 15 ? " (default)" : ""}
+                      <span className="inline-flex items-center gap-2">
+                        <ScoutIcon name="date" />
+                        {value} days{value === 15 ? " (default)" : ""}
+                      </span>
                       <ListBox.ItemIndicator />
                     </ListBox.Item>
                   ))}
@@ -170,6 +174,7 @@ function MonitoringAgentForm({
                 isDisabled={busy}
                 success="Retention updated"
               >
+                <ScoutIcon name="save" />
                 Save retention
               </ActionButton>
             </div>
@@ -215,6 +220,7 @@ function MonitoringAgentForm({
                 pendingLabel="Queuing…"
                 variant="primary"
               >
+                <ScoutIcon name={installed ? "refresh" : "install"} />
                 {installed ? "Update Scout Agent" : "Install Scout Agent"}
               </ActionButton>
               {installed || agent.status === "failed" ? (
@@ -230,6 +236,7 @@ function MonitoringAgentForm({
                   success="Scout Agent removal queued"
                   pendingLabel="Queuing…"
                 >
+                  <ScoutIcon name="delete" />
                   Uninstall Scout Agent
                 </ActionButton>
               ) : null}

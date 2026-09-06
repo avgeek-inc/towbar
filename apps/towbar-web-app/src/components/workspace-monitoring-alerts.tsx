@@ -1,4 +1,5 @@
 "use client";
+import { ScoutIcon } from "./scout-icons";
 import { Notification01Icon } from "@hugeicons/core-free-icons";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
@@ -96,6 +97,7 @@ export function WorkspaceAlerts() {
         const href = scoutHome(row, row.rule);
         return href ? (
           <ButtonLink href={href} size="sm" variant="secondary">
+            <ScoutIcon name="view" />
             View alert
           </ButtonLink>
         ) : (

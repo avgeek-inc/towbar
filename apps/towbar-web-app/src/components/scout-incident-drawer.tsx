@@ -1,4 +1,5 @@
 "use client";
+import { ScoutIcon } from "./scout-icons";
 import { useMemo } from "react";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
@@ -63,6 +64,7 @@ export function ScoutIncidentDrawer({
             </Drawer.Body>
             <Drawer.Footer>
               <Button slot="close" variant="secondary">
+                <ScoutIcon name="close" />
                 Close
               </Button>
             </Drawer.Footer>
@@ -160,6 +162,7 @@ function IncidentBody({
           <div className="grid gap-2">
             <QueryError message={query.error} />
             <Button size="sm" variant="secondary" onPress={query.refresh}>
+              <ScoutIcon name="refresh" />
               Retry
             </Button>
           </div>

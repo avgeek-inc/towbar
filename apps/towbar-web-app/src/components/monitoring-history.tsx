@@ -1,4 +1,5 @@
 "use client";
+import { ScoutOptionIcon } from "./scout-icons";
 
 import { useDeferredValue, useId, useMemo, useState } from "react";
 import type { MonitoringHistory as History } from "@workspace/towbar-web-client";
@@ -261,7 +262,7 @@ function HistorySelect({
         if (key) onChange(String(key));
       }}
       variant="secondary"
-      className="w-40 max-w-full shrink-0"
+      className="w-44 max-w-full shrink-0"
     >
       <Label className="sr-only">{label}</Label>
       <Select.Trigger>
@@ -276,7 +277,10 @@ function HistorySelect({
               id={option.id}
               textValue={option.label}
             >
-              {option.label}
+              <span className="inline-flex items-center gap-2">
+                <ScoutOptionIcon value={option.id} label={label} />
+                {option.label}
+              </span>
               <ListBox.ItemIndicator />
             </ListBox.Item>
           ))}

@@ -1,4 +1,5 @@
 "use client";
+import { ScoutIcon } from "./scout-icons";
 import { useEffect, useState } from "react";
 import { Analytics01Icon } from "@hugeicons/core-free-icons";
 import { Input } from "@workspace/web-design-system/forms/input";
@@ -96,6 +97,7 @@ export function WorkspacePerformance() {
               isDisabled={cursors.length === 1}
               onPress={() => setCursors((old) => old.slice(0, -1))}
             >
+              <ScoutIcon name="previous" />
               Previous entities
             </Button>
             <Button
@@ -106,6 +108,7 @@ export function WorkspacePerformance() {
                 setCursors((old) => [...old, query.data!.nextAfter!])
               }
             >
+              <ScoutIcon name="next" />
               More entities
             </Button>
           </div>

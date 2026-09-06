@@ -1,4 +1,5 @@
 "use client";
+import { ScoutIcon } from "./scout-icons";
 
 import dynamic from "next/dynamic";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -56,8 +57,14 @@ export function ScoutPanel({
             <Tabs.Tab
               id={tab.id}
               key={tab.id}
-              className="min-w-max whitespace-nowrap"
+              className="min-w-max gap-2 whitespace-nowrap"
             >
+              <ScoutIcon
+                name={
+                  tab.id as
+                    "performance" | "alerts" | "compare" | "notifications"
+                }
+              />
               {tab.label}
               <Tabs.Indicator />
             </Tabs.Tab>

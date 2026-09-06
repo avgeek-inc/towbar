@@ -1,4 +1,5 @@
 "use client";
+import { ScoutIcon } from "./scout-icons";
 import { useState } from "react";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
@@ -160,9 +161,11 @@ export function ScoutAlerts({
         data.canManage ? (
           <div className="flex justify-end gap-2">
             <Button variant="secondary" size="sm" onPress={() => setEditing(r)}>
+              <ScoutIcon name="edit" />
               Edit
             </Button>
             <Button variant="secondary" size="sm" onPress={() => setMute(r)}>
+              <ScoutIcon name="mute" />
               Mute
             </Button>
             <ActionButton
@@ -177,6 +180,7 @@ export function ScoutAlerts({
               }}
               success="Rule deleted"
             >
+              <ScoutIcon name="delete" />
               Delete
             </ActionButton>
           </div>
@@ -251,6 +255,7 @@ export function ScoutAlerts({
           size="sm"
           onPress={() => setSelectedIncident(incident)}
         >
+          <ScoutIcon name="view" />
           View Incident
         </Button>
       ),
@@ -271,10 +276,14 @@ export function ScoutAlerts({
             <>
               {!deployableId ? (
                 <Button variant="secondary" onPress={() => setMute("server")}>
+                  <ScoutIcon name="mute" />
                   {muted ? "Manage mute" : "Mute for maintenance"}
                 </Button>
               ) : null}
-              <Button onPress={() => setEditing("new")}>Create rule</Button>
+              <Button onPress={() => setEditing("new")}>
+                <ScoutIcon name="add" />
+                Create rule
+              </Button>
             </>
           ) : null}
         </div>
@@ -343,6 +352,7 @@ export function ScoutAlerts({
             isDisabled={cursors.length === 1 || incidents.isPreviousData}
             onPress={() => setCursors((old) => old.slice(0, -1))}
           >
+            <ScoutIcon name="previous" />
             Previous
           </Button>
           <Button
@@ -356,6 +366,7 @@ export function ScoutAlerts({
               ])
             }
           >
+            <ScoutIcon name="next" />
             Next
           </Button>
         </div>

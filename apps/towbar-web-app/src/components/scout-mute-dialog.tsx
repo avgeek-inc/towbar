@@ -1,4 +1,5 @@
 "use client";
+import { ScoutIcon } from "./scout-icons";
 import { useId, useState, type FormEvent } from "react";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Input } from "@workspace/web-design-system/forms/input";
@@ -119,9 +120,13 @@ export function ScoutMuteDialog({
                     isDisabled={busy}
                     onPress={onClose}
                   >
+                    <ScoutIcon name="close" />
                     Cancel
                   </Button>
                   <Button type="submit" isDisabled={busy}>
+                    <ScoutIcon
+                      name={duration === "0" ? "notifications" : "mute"}
+                    />
                     {busy
                       ? "Saving…"
                       : duration === "0"
