@@ -42,7 +42,6 @@ export function createScoutFixture(serverIds: string[], workloads: Workload[]) {
           name: preset.name,
           severity: preset.severity,
           condition: preset.condition,
-          destinationIds: [destinations[serverIndex]!.id],
         }),
         id: randomUUID(),
         serverId,
@@ -84,7 +83,7 @@ export function createScoutFixture(serverIds: string[], workloads: Workload[]) {
           index === 0 && item === 0 ? null : iso(8 + item * 90 + index * 30),
         resolutionReason: index === 0 && item === 0 ? null : "recovered",
         lastValue:
-          index === 0 && item === 0 ? 93.4 : rule.condition.recoveryThreshold,
+          index === 0 && item === 0 ? 93.4 : rule.condition.threshold - 5,
         lastNotifiedAt: iso(12 + item * 90 + index * 30),
       })),
     );

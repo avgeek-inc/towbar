@@ -33,26 +33,25 @@ No rules are enabled automatically. The dotted 80% line in performance charts is
 1. Choose **Create rule**, then start with a preset or configure a metric.
 2. Select this server or a workload on it. Workload rules select **Production** or **Previews**; preview rules consider the selected workload's preview instances together.
 3. Set the threshold, direction, and how long the condition must persist. **At least** and **At most** include the threshold itself.
-4. Under **Recovery and reminders**, set a separate recovery threshold and duration. This prevents notifications from cycling when a reading moves around the trigger threshold.
-5. Select notification destinations, choose whether to send recovery notifications, then save.
+4. Choose whether to send a recovery notification, then save. All destinations added under the server’s **Notifications** tab receive alerts automatically.
 
-A rule without destinations still creates incidents in Towbar. Adding a destination does not send an immediate test; a firing incident becomes eligible on the next evaluation. Only workspace owners can create, change, delete, or mute rules. Members can inspect them.
+A server without notification destinations still creates incidents in Towbar. Adding a destination does not send an immediate test; a firing incident becomes eligible on the next evaluation. Only workspace owners can create, change, delete, or mute rules. Members can inspect them.
 
-| Preset                    | Trigger                              | Recovery                                  |
-| ------------------------- | ------------------------------------ | ----------------------------------------- |
-| Disk nearly full          | Root disk at least 90% for 5 minutes | At most 85% for 2 minutes                 |
-| Sustained memory pressure | Memory at least 90% for 5 minutes    | At most 85% for 2 minutes                 |
-| Sustained CPU usage       | CPU at least 90% for 10 minutes      | At most 80% for 2 minutes                 |
-| Container restart loop    | At least 3 restarts within 5 minutes | Zero restarts in the window for 2 minutes |
-| Scout stopped reporting   | No report collected for 3 minutes    | Reports resume for 1 minute               |
+| Preset                    | Trigger                              | Recovery                            |
+| ------------------------- | ------------------------------------ | ----------------------------------- |
+| Disk nearly full          | Root disk at least 90% for 5 minutes | Disk falls below 90%                |
+| Sustained memory pressure | Memory at least 90% for 5 minutes    | Memory falls below 90%              |
+| Sustained CPU usage       | CPU at least 90% for 10 minutes      | CPU falls below 90%                 |
+| Container restart loop    | At least 3 restarts within 5 minutes | Fewer than 3 restarts in the window |
+| Scout stopped reporting   | No report collected for 3 minutes    | Reports resume                      |
 
-Presets are starting points. Configure sustained and recovery periods from zero to 60 minutes, and restart windows from 1 to 60 minutes. Reminders are off by default; the API accepts intervals from 15 minutes to 24 hours. A server supports up to 100 rules, including at most 10 public HTTP checks.
+Presets are starting points. Configure sustained trigger periods from zero to 60 minutes and restart windows from 1 to 60 minutes. An incident recovers on the first fresh measurement that no longer meets the trigger condition. Each incident sends one firing notification, with no repeats while active. A server supports up to 100 rules, including at most 10 public HTTP checks.
 
 ## Measurements and incident states
 
 Host and workload gauges use the reported metric units. The editor presents bytes as GiB and throughput as MiB/s; REST thresholds use bytes and bytes per second. For multiple instances, a gauge rule evaluates the worst instance reading rather than adding utilization percentages. Restart rules count increments within each container identity, not a new container's initial counter or a counter reset.
 
-**Healthy** means the latest evaluation does not meet the trigger condition, or an active incident has satisfied its recovery condition. **Evaluating** means the sustained trigger or recovery period is still being established. **Alerting** means the condition is active. **No recent data** cannot prove recovery: missing measurements are not treated as zero. **Scout inactive** means collection is intentionally disabled or the workload is no longer assigned to the server.
+**Healthy** means the latest evaluation does not meet the trigger condition, or an active incident has cleared. **Evaluating** means the sustained trigger period is still being established. **Alerting** means the condition is active. **No recent data** cannot prove recovery: missing measurements are not treated as zero. **Scout inactive** means collection is intentionally disabled or the workload is no longer assigned to the server.
 
 Metric rules require Scout Agent to be enabled. Missing-report rules include an installation grace period and do not alert on intentional uninstall. Public HTTP checks are performed by the control plane and do not require an installed agent.
 
@@ -66,7 +65,7 @@ Choose **Public HTTP endpoint** as a server rule's metric. Set a public HTTP or 
 - A total timeout from 1 to 10 seconds, including DNS resolution and redirects.
 - A healthy HTTP status range, defaulting to 200–299.
 - Zero to three redirects; redirects are not followed by default.
-- A sustained unavailable period and a sustained recovery period, using the same incident controls as metric alerts.
+- A configurable sustained unavailable period. Recovery follows the first successful check.
 
 An unexpected status, timeout, DNS/connection failure, or invalid TLS certificate counts as unavailable. A blocked destination is shown as a check error and cannot establish recovery. Each redirect is resolved and validated separately. Private, loopback, link-local, reserved, and metadata-service addresses are blocked, including mixed public/private DNS answers. Connections are pinned to the validated address. Only ports 80 and 443 are accepted; custom headers, credentials, cookies, and request bodies are not supported. Response bodies are not buffered or retained.
 
@@ -74,17 +73,17 @@ These checks measure availability **from your Towbar control plane**. They are n
 
 ## Notification destinations
 
-Open **Server → Scout Agent → Notifications** to add Slack or email destinations. Configure the Slack or SMTP provider for your Towbar instance first. See [notifications](/docs/integrations/notifications) for setup. Workload rules may also use their source's destinations when the **Scout alerts** category is enabled.
+Open **Server → Scout Agent → Notifications** to add Slack or email destinations. Configure the Slack or SMTP provider for your Towbar instance first. See [notifications](/docs/integrations/notifications) for setup. Server and workload alerts use the destinations configured on their server.
 
-Rules select their own destinations. Test a destination in Notifications when you want to verify delivery. Incidents and notification delivery are separate: an active incident does not prove that Slack or email received the message. Inspect delivery outcomes in the notification center.
+Every added destination is active until deleted; there are no per-rule channel selections or Scout event category filters. Test a destination in Notifications when you want to verify delivery. Incidents and notification delivery are separate: an active incident does not prove that Slack or email received the message. Inspect delivery outcomes in the notification center.
 
-Firing and recovery transitions are saved with durable notification intents. Concurrent evaluations do not create duplicate active incidents. Reminders are bounded and optional. Recovery messages are sent only to destinations that successfully received an earlier alert for that incident. Changing configuration, disabling a rule, or muting it suppresses queued messages that no longer apply. A message already being sent may still arrive.
+Firing and recovery transitions are saved with durable notification intents. Concurrent evaluations do not create duplicate active incidents. An active incident does not send repeat alerts. Recovery messages are sent only to destinations that successfully received an earlier alert for that incident. Changing configuration, disabling a rule, or muting it suppresses queued messages that no longer apply. A message already being sent may still arrive.
 
 ## Maintenance mutes
 
 **Mute for maintenance** pauses all Scout notifications on the server. A rule's **Mute** control affects only that rule. Metrics, public checks, and incident tracking continue during a mute. Choose a preset or custom duration from one minute to seven days, add an optional reason, or resume early.
 
-A rule-level resume does not override a server-level mute. When a mute expires, a still-active incident can notify; an incident that recovered entirely while muted does not send a standalone recovery message.
+A rule-level resume does not override a server-level mute. When a mute expires, a still-active incident that has not sent its alert can notify; an incident that recovered entirely while muted does not send a standalone recovery message.
 
 ## API and MCP
 

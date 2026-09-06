@@ -50,9 +50,7 @@ export function ScoutRuleEditor({
             deployableId: initial.deployableId,
             environment: initial.environment,
             condition: initial.condition,
-            destinationIds: initial.destinationIds,
             notifyRecovery: initial.notifyRecovery,
-            repeatSeconds: initial.repeatSeconds,
           }
         : {
             name: "Sustained memory pressure",
@@ -67,20 +65,11 @@ export function ScoutRuleEditor({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const nameId = useId();
   const [presetId, setPresetId] = useState(initial ? "custom" : "memory");
-  const [customRepeat, setCustomRepeat] = useState(
-    ![0, 900, 3600, 21600, 86400].includes(initial?.repeatSeconds ?? 0),
-  );
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const definition = metricDefinition(draft.condition.metric);
   const condition = (values: Partial<ScoutAlertRuleInput["condition"]>) => {
     setPresetId("custom");
     setDraft((old) => ({ ...old, condition: { ...old.condition, ...values } }));
   };
-  const workload = data.workloads.find((w) => w.id === draft.deployableId);
-  const destinations = data.destinations.filter(
-    (d) =>
-      d.serverId === serverId || (workload && d.sourceId === workload.sourceId),
-  );
   const isCounter = ["missingReports", "restarts", "httpAvailability"].includes(
     draft.condition.metric,
   );
@@ -97,7 +86,6 @@ export function ScoutRuleEditor({
           ]),
         ),
       );
-      setAdvancedOpen(true);
       setError(result.error.issues.map((issue) => issue.message).join(". "));
       return;
     }
@@ -197,7 +185,7 @@ export function ScoutRuleEditor({
                       setDraft({
                         ...draft,
                         deployableId: id === "host" ? null : id,
-                        destinationIds: [],
+
                         condition:
                           id !== "host" &&
                           [
@@ -272,7 +260,7 @@ export function ScoutRuleEditor({
                         condition({
                           metric,
                           threshold: 1,
-                          recoveryThreshold: 0,
+
                           operator: "above",
                           http: {
                             url: "",
@@ -297,8 +285,7 @@ export function ScoutRuleEditor({
                               metric:
                                 metric as ScoutAlertRuleInput["condition"]["metric"],
                               threshold: metricDefinition(metric).factor,
-                              recoveryThreshold:
-                                metricDefinition(metric).factor * 0.8,
+
                               operator: "above",
                             }),
                       });
@@ -323,7 +310,6 @@ export function ScoutRuleEditor({
                         onChange={(operator) =>
                           condition({
                             operator: operator as "above" | "below",
-                            recoveryThreshold: draft.condition.threshold,
                           })
                         }
                       />
@@ -381,149 +367,33 @@ export function ScoutRuleEditor({
                     ) : null}
                   </div>
                 </fieldset>
-                <details
-                  open={advancedOpen}
-                  onToggle={(event) =>
-                    setAdvancedOpen(event.currentTarget.open)
-                  }
-                  className="rounded-xl bg-default p-4"
-                >
-                  <summary className="cursor-pointer font-medium">
-                    Recovery and reminders
-                  </summary>
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    {!draft.condition.http ? (
-                      <ScoutNumber
-                        label={`Recover at${definition.unit ? ` (${definition.unit})` : ""}`}
-                        value={
-                          draft.condition.recoveryThreshold / definition.factor
-                        }
-                        step={0.01}
-                        onChange={(value) =>
-                          condition({
-                            recoveryThreshold: value * definition.factor,
-                          })
-                        }
-                      />
-                    ) : null}
-                    <ScoutNumber
-                      label="Recovery must last (minutes)"
-                      value={draft.condition.recoverySeconds / 60}
-                      min={0}
-                      max={60}
-                      step={0.5}
-                      onChange={(value) =>
-                        condition({ recoverySeconds: value * 60 })
-                      }
-                    />
-                    {fieldErrors["condition.recoveryThreshold"] ? (
-                      <p className="text-sm text-danger sm:col-span-2">
-                        {fieldErrors["condition.recoveryThreshold"]}
-                      </p>
-                    ) : null}
-                    <ScoutSelect
-                      label="Repeat while active"
-                      value={
-                        customRepeat ? "custom" : String(draft.repeatSeconds)
-                      }
-                      options={[
-                        { id: "0", label: "Do not repeat" },
-                        { id: "900", label: "Every 15 minutes" },
-                        { id: "3600", label: "Every hour" },
-                        { id: "21600", label: "Every 6 hours" },
-                        { id: "86400", label: "Every day" },
-                        { id: "custom", label: "Custom interval" },
-                      ]}
-                      onChange={(value) => {
-                        setCustomRepeat(value === "custom");
-                        setDraft({
-                          ...draft,
-                          repeatSeconds:
-                            value === "custom" ? 1800 : Number(value),
-                        });
-                      }}
-                    />
-                    {customRepeat ? (
-                      <ScoutNumber
-                        label="Repeat every (minutes)"
-                        min={15}
-                        max={1440}
-                        step={1}
-                        value={draft.repeatSeconds / 60}
-                        onChange={(value) =>
-                          setDraft({ ...draft, repeatSeconds: value * 60 })
-                        }
-                      />
-                    ) : null}
-                  </div>
-                </details>
                 <fieldset className="grid gap-3">
-                  <legend className="mb-3 font-medium">Notify</legend>
-                  {destinations.length ? (
-                    destinations.map((destination) => (
-                      <Checkbox
-                        key={destination.id}
-                        isSelected={draft.destinationIds.includes(
-                          destination.id,
-                        )}
-                        isDisabled={
-                          !destination.enabled ||
-                          !destination.categories.includes("scout") ||
-                          !data.providers[destination.provider]
-                        }
-                        onChange={(selected) =>
-                          setDraft({
-                            ...draft,
-                            destinationIds: selected
-                              ? [...draft.destinationIds, destination.id]
-                              : draft.destinationIds.filter(
-                                  (id) => id !== destination.id,
-                                ),
-                          })
-                        }
-                      >
-                        <Checkbox.Content>
-                          <Checkbox.Control>
-                            <Checkbox.Indicator />
-                          </Checkbox.Control>
-                          <Label>
-                            {destination.provider === "slack"
-                              ? `Slack · ${"channelId" in destination.config ? destination.config.channelId : ""}`
-                              : `Email · ${"recipients" in destination.config ? destination.config.recipients.join(", ") : ""}`}
-                            {!destination.enabled ||
-                            !destination.categories.includes("scout") ||
-                            !data.providers[destination.provider]
-                              ? " (disabled for Scout)"
-                              : ""}
-                          </Label>
-                        </Checkbox.Content>
-                      </Checkbox>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted">
-                      No destinations yet. You can save this rule for in-app
-                      alerts, then add a destination in Notifications.
-                    </p>
-                  )}
+                  <legend className="mb-3 font-medium">Notifications</legend>
+                  <p className="text-sm text-muted">
+                    Alerts are sent once to all notification destinations. An
+                    alert recovers when its condition clears.
+                  </p>
                   <Checkbox
+                    variant="secondary"
                     isSelected={draft.notifyRecovery}
                     onChange={(notifyRecovery) =>
                       setDraft({ ...draft, notifyRecovery })
                     }
                   >
                     <Checkbox.Content>
-                      <Checkbox.Control>
+                      <Checkbox.Control className="border border-muted">
                         <Checkbox.Indicator />
                       </Checkbox.Control>
                       <Label>Send a recovery notification</Label>
                     </Checkbox.Content>
                   </Checkbox>
                   <Checkbox
+                    variant="secondary"
                     isSelected={draft.enabled}
                     onChange={(enabled) => setDraft({ ...draft, enabled })}
                   >
                     <Checkbox.Content>
-                      <Checkbox.Control>
+                      <Checkbox.Control className="border border-muted">
                         <Checkbox.Indicator />
                       </Checkbox.Control>
                       <Label>Enable this rule</Label>

@@ -86,7 +86,9 @@ export async function createNotificationDestination(input: {
 }) {
   await requireNotificationScope(input);
   const destination = notificationDestinationInputSchema.parse(
-    input.destination,
+    input.serverId
+      ? { ...input.destination, enabled: true, categories: ["scout"] }
+      : input.destination,
   );
   requireAvailableProvider(destination);
   const [created] = await getTowbarDatabase()
@@ -111,7 +113,9 @@ export async function updateNotificationDestination(input: {
 }) {
   await requireNotificationScope(input);
   const destination = notificationDestinationInputSchema.parse(
-    input.destination,
+    input.serverId
+      ? { ...input.destination, enabled: true, categories: ["scout"] }
+      : input.destination,
   );
   requireAvailableProvider(destination);
   const [updated] = await getTowbarDatabase().transaction(
@@ -212,7 +216,9 @@ export async function emitNotificationEvent(input: {
         and(
           destinationScope(input),
           eq(notificationDestinations.workspaceId, input.workspaceId),
-          eq(notificationDestinations.enabled, true),
+          input.serverId
+            ? undefined
+            : eq(notificationDestinations.enabled, true),
           isNull(notificationDestinations.deletedAt),
           input.targetDestinationId
             ? eq(notificationDestinations.id, input.targetDestinationId)
@@ -221,7 +227,9 @@ export async function emitNotificationEvent(input: {
       );
     const matching = destinations.filter(
       (destination) =>
-        category === "test" || destination.categories.includes(category),
+        Boolean(input.serverId) ||
+        category === "test" ||
+        destination.categories.includes(category),
     );
     if (matching.length === 0) {
       return { deliveries: [], eventId: createdEvent.id };

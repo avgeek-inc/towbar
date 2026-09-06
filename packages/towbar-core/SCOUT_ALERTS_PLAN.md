@@ -8,15 +8,14 @@ tracking, not a substitute for working behaviour or published documentation.
 - [x] Configurable host and workload alerts: CPU, memory, root/Docker disk,
       container restart loops, and missing Scout reports. Additional reported
       gauges should use the same rule model. Opt-in presets, threshold direction,
-      sustained duration/window, recovery threshold/duration, severity, enabled
-      state, repeat interval (off by default), and notification destinations.
-- [x] Persistent incidents, deduplicated firing/recovery, bounded reminders,
+      sustained duration/window, severity and enabled state. Recovery follows the
+      first healthy reading; all server destinations receive one alert per incident.
+- [x] Persistent incidents, deduplicated firing/recovery, no active repeats,
       rule and server maintenance mutes, and readable active/resolved history.
       Missing measurements must not count as zero or prove recovery. Backfilled
       samples must not generate stale alerts. Installation grace and intentional
       uninstall must not generate offline notifications.
-- [x] Reuse Slack/SMTP delivery with server destinations plus source destinations
-      for workloads. Durable outbox and retry behaviour; test delivery and visible
+- [x] Reuse Slack/SMTP delivery with all server destinations for server and workload rules. Durable outbox and retry behaviour; test delivery and visible
       errors. Muted incidents must not send stale notifications on recovery.
 - [x] Bounded durable evaluator independent of ingestion and UI. Safe concurrency,
       rule edits, deletion, scope/archive changes, retention, and worker restarts.
@@ -78,7 +77,7 @@ Verified locally:
 - `pnpm docs:api:check`: 121 response handlers, 116 public operations, 55 curated
   MCP tools. Notification destination management remains browser-only.
 - Alert tests cover concurrent claims/evaluation, deduplicated delivery intents,
-  sustained recovery, missing data, maintenance mutes, config changes, destination
+  immediate recovery, missing data, maintenance mutes, config changes, destination
   category changes, server archival, suppressed retries, restart-window boundaries,
   HTTP config revisions, and active-incident retention. Provider acknowledgement
   is simulated; no real Slack/email message was sent.

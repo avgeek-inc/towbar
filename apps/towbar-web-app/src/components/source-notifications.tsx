@@ -62,7 +62,6 @@ const categoryOptions = [
   { label: "Health", value: "health" },
   { label: "Backups", value: "backups" },
   { label: "Restores", value: "restores" },
-  { label: "Scout alerts", value: "scout" },
 ] satisfies Array<{ label: string; value: NotificationCategory }>;
 
 const providerOptions = [
@@ -114,12 +113,17 @@ export function SourceNotifications({
       header: "Provider",
       cell: (destination) => providerLabel(destination.provider),
     },
-    {
-      key: "categories",
-      header: "Events",
-      cell: (destination) => destination.categories.map(titleCase).join(", "),
-      className: "min-w-64",
-    },
+    ...(!serverId
+      ? [
+          {
+            key: "categories",
+            header: "Events",
+            cell: (destination: NotificationDestination) =>
+              destination.categories.map(titleCase).join(", "),
+            className: "min-w-64",
+          },
+        ]
+      : []),
     {
       key: "status",
       header: "Status",
@@ -128,7 +132,7 @@ export function SourceNotifications({
           status={
             !providers[destination.provider]
               ? "unavailable"
-              : destination.enabled
+              : serverId || destination.enabled
                 ? "active"
                 : "disabled"
           }
@@ -148,7 +152,8 @@ export function SourceNotifications({
                 )
               }
               isDisabled={
-                !destination.enabled || !providers[destination.provider]
+                (!serverId && !destination.enabled) ||
+                !providers[destination.provider]
               }
               pendingLabel="Sending…"
               success="Test notification queued"
@@ -201,7 +206,7 @@ export function SourceNotifications({
 
   async function saveDestination(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (draft.categories.length === 0) {
+    if (!serverId && draft.categories.length === 0) {
       setSaveError("Select at least one event category");
       return;
     }
@@ -214,7 +219,7 @@ export function SourceNotifications({
     setSaving(true);
     setSaveError(undefined);
     try {
-      const payload = destinationPayload(draft);
+      const payload = destinationPayload(draft, Boolean(serverId));
       if (editingId) {
         await api.put(`${endpoint}/destinations/${editingId}`, payload);
       } else {
@@ -367,52 +372,53 @@ export function SourceNotifications({
                     </Field>
                   )}
 
-                  <FieldSet>
-                    <FieldLegend>Event categories</FieldLegend>
-                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      {categoryOptions
-                        .filter(
-                          (category) => !serverId || category.value === "scout",
-                        )
-                        .map((category) => (
-                          <Checkbox
-                            isSelected={draft.categories.includes(
-                              category.value,
-                            )}
-                            key={category.value}
-                            onChange={(selected) =>
-                              setDraft({
-                                ...draft,
-                                categories: selected
-                                  ? [...draft.categories, category.value]
-                                  : draft.categories.filter(
-                                      (value) => value !== category.value,
-                                    ),
-                              })
-                            }
-                          >
-                            <Checkbox.Content className="min-h-8 w-fit">
-                              <Checkbox.Control>
-                                <Checkbox.Indicator />
-                              </Checkbox.Control>
-                              <Label>{category.label}</Label>
-                            </Checkbox.Content>
-                          </Checkbox>
-                        ))}
-                    </div>
-                  </FieldSet>
+                  {!serverId ? (
+                    <>
+                      <FieldSet>
+                        <FieldLegend>Event categories</FieldLegend>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          {categoryOptions.map((category) => (
+                            <Checkbox
+                              variant="secondary"
+                              isSelected={draft.categories.includes(
+                                category.value,
+                              )}
+                              key={category.value}
+                              onChange={(selected) =>
+                                setDraft({
+                                  ...draft,
+                                  categories: selected
+                                    ? [...draft.categories, category.value]
+                                    : draft.categories.filter(
+                                        (value) => value !== category.value,
+                                      ),
+                                })
+                              }
+                            >
+                              <Checkbox.Content className="min-h-8 w-fit">
+                                <Checkbox.Control className="border border-muted">
+                                  <Checkbox.Indicator />
+                                </Checkbox.Control>
+                                <Label>{category.label}</Label>
+                              </Checkbox.Content>
+                            </Checkbox>
+                          ))}
+                        </div>
+                      </FieldSet>
 
-                  <Switch
-                    isSelected={draft.enabled}
-                    onChange={(enabled) => setDraft({ ...draft, enabled })}
-                  >
-                    <Switch.Content className="min-h-8 w-fit">
-                      <Switch.Control>
-                        <Switch.Thumb />
-                      </Switch.Control>
-                      <Label>Enable this destination</Label>
-                    </Switch.Content>
-                  </Switch>
+                      <Switch
+                        isSelected={draft.enabled}
+                        onChange={(enabled) => setDraft({ ...draft, enabled })}
+                      >
+                        <Switch.Content className="min-h-8 w-fit">
+                          <Switch.Control>
+                            <Switch.Thumb />
+                          </Switch.Control>
+                          <Label>Enable this destination</Label>
+                        </Switch.Content>
+                      </Switch>
+                    </>
+                  ) : null}
 
                   <div className="flex justify-end gap-3">
                     <Button
@@ -469,10 +475,10 @@ function draftFromDestination(
   };
 }
 
-function destinationPayload(draft: DestinationDraft) {
+function destinationPayload(draft: DestinationDraft, server: boolean) {
   const base = {
-    categories: draft.categories,
-    enabled: draft.enabled,
+    categories: server ? ["scout" as const] : draft.categories,
+    enabled: server || draft.enabled,
   };
   if (draft.provider === "slack") {
     return {

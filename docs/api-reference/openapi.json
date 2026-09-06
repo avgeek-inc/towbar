@@ -381,9 +381,7 @@
             ]
           },
           "threshold": { "type": "number" },
-          "recoveryThreshold": { "type": "number" },
           "durationSeconds": { "type": "number" },
-          "recoverySeconds": { "type": "number" },
           "windowSeconds": { "type": "number" },
           "aggregation": {
             "anyOf": [
@@ -397,9 +395,7 @@
           "metric",
           "operator",
           "threshold",
-          "recoveryThreshold",
           "durationSeconds",
-          "recoverySeconds",
           "windowSeconds",
           "aggregation"
         ]
@@ -424,9 +420,7 @@
           "severity": { "type": "string" },
           "environment": { "type": "string" },
           "condition": { "$ref": "#/components/schemas/Response_21" },
-          "destinationIds": { "type": "array", "items": { "type": "string" } },
           "notifyRecovery": { "type": "boolean" },
-          "repeatSeconds": { "type": "number" },
           "mutedUntil": {
             "anyOf": [
               { "type": "null" },
@@ -464,9 +458,7 @@
           "severity",
           "environment",
           "condition",
-          "destinationIds",
           "notifyRecovery",
-          "repeatSeconds",
           "mutedUntil",
           "muteReason",
           "evaluationState",
@@ -708,9 +700,7 @@
             ]
           },
           "threshold": { "type": "number" },
-          "recoveryThreshold": { "type": "number" },
           "durationSeconds": { "type": "number" },
-          "recoverySeconds": { "type": "number" },
           "windowSeconds": { "type": "number" },
           "aggregation": {
             "anyOf": [
@@ -724,9 +714,7 @@
           "metric",
           "operator",
           "threshold",
-          "recoveryThreshold",
           "durationSeconds",
-          "recoverySeconds",
           "windowSeconds",
           "aggregation"
         ]
@@ -7113,19 +7101,8 @@
                         "minimum": 0,
                         "maximum": 1000000000000000000
                       },
-                      "recoveryThreshold": {
-                        "type": "number",
-                        "minimum": 0,
-                        "maximum": 1000000000000000000
-                      },
                       "durationSeconds": {
                         "default": 300,
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600
-                      },
-                      "recoverySeconds": {
-                        "default": 120,
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 3600
@@ -7142,27 +7119,10 @@
                         "enum": ["average", "peak"]
                       }
                     },
-                    "required": ["metric", "threshold", "recoveryThreshold"],
+                    "required": ["metric", "threshold"],
                     "additionalProperties": false
                   },
-                  "destinationIds": {
-                    "default": [],
-                    "maxItems": 10,
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "format": "uuid",
-                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                    }
-                  },
-                  "notifyRecovery": { "default": true, "type": "boolean" },
-                  "repeatSeconds": {
-                    "default": 0,
-                    "anyOf": [
-                      { "type": "number", "const": 0 },
-                      { "type": "integer", "minimum": 900, "maximum": 86400 }
-                    ]
-                  }
+                  "notifyRecovery": { "default": true, "type": "boolean" }
                 },
                 "required": ["name", "condition"],
                 "additionalProperties": false
@@ -7349,19 +7309,8 @@
                         "minimum": 0,
                         "maximum": 1000000000000000000
                       },
-                      "recoveryThreshold": {
-                        "type": "number",
-                        "minimum": 0,
-                        "maximum": 1000000000000000000
-                      },
                       "durationSeconds": {
                         "default": 300,
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600
-                      },
-                      "recoverySeconds": {
-                        "default": 120,
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 3600
@@ -7378,27 +7327,10 @@
                         "enum": ["average", "peak"]
                       }
                     },
-                    "required": ["metric", "threshold", "recoveryThreshold"],
+                    "required": ["metric", "threshold"],
                     "additionalProperties": false
                   },
-                  "destinationIds": {
-                    "default": [],
-                    "maxItems": 10,
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "format": "uuid",
-                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                    }
-                  },
-                  "notifyRecovery": { "default": true, "type": "boolean" },
-                  "repeatSeconds": {
-                    "default": 0,
-                    "anyOf": [
-                      { "type": "number", "const": 0 },
-                      { "type": "integer", "minimum": 900, "maximum": 86400 }
-                    ]
-                  }
+                  "notifyRecovery": { "default": true, "type": "boolean" }
                 },
                 "required": ["name", "condition"],
                 "additionalProperties": false

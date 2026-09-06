@@ -1683,12 +1683,7 @@ export const scoutAlertRules = pgTable(
       .notNull()
       .default("production"),
     condition: jsonb("condition").$type<ScoutAlertCondition>().notNull(),
-    destinationIds: jsonb("destination_ids")
-      .$type<string[]>()
-      .notNull()
-      .default([]),
     notifyRecovery: boolean("notify_recovery").notNull().default(true),
-    repeatSeconds: integer("repeat_seconds").notNull().default(0),
     mutedUntil: timestamp("muted_until", { withTimezone: true }),
     muteReason: varchar("mute_reason", { length: 240 }).notNull().default(""),
     evaluationState: varchar("evaluation_state", { length: 20 })
@@ -1716,10 +1711,6 @@ export const scoutAlertRules = pgTable(
     check(
       "towbar_scout_rule_severity",
       sql`${table.severity} in ('warning','critical')`,
-    ),
-    check(
-      "towbar_scout_rule_repeat",
-      sql`${table.repeatSeconds}=0 or ${table.repeatSeconds} between 900 and 86400`,
     ),
   ],
 );

@@ -30,7 +30,6 @@ export async function assertScoutApiAccess({
     condition: {
       metric: "cpuPercent",
       threshold: 80,
-      recoveryThreshold: 70,
     },
   };
   assert.equal((await request(path, read.token)).status, 200);

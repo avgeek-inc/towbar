@@ -29,9 +29,9 @@ export async function assertScoutHttpChecks(
     condition: {
       metric: "httpAvailability",
       threshold: 1,
-      recoveryThreshold: 0,
+
       durationSeconds: 0,
-      recoverySeconds: 0,
+
       http: { url: "https://public.example/health" },
     },
   });

@@ -1,3 +1,4 @@
+import { assertScoutDestinations } from "./scout-destinations-test-helper.js";
 import { assertScoutHttpChecks } from "./scout-http-test-helper.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -131,7 +132,6 @@ void test(
       const rule = scoutAlertRuleSchema.parse({
         name: "Memory pressure",
         condition: scoutAlertPresets.find((p) => p.id === "memory")!.condition,
-        destinationIds: [destinationId],
       });
       await t.test(
         "owner service validates tenant, workload, and destination boundaries",
@@ -143,12 +143,6 @@ void test(
             saveScoutAlertRule({
               ...scope,
               rule: { ...rule, deployableId: randomUUID() },
-            }),
-          );
-          await assert.rejects(
-            saveScoutAlertRule({
-              ...scope,
-              rule: { ...rule, destinationIds: [randomUUID()] },
             }),
           );
           await assert.rejects(
@@ -166,6 +160,18 @@ void test(
           assert.equal((await pending()).length, 1);
           await sweep(new Date(now.getTime() + 30_000));
           assert.equal((await pending()).length, 1);
+          const later = new Date(now.getTime() + 86400_000);
+          await samples(later, 95);
+          await sweep(later);
+          assert.equal(
+            (await pending()).length,
+            1,
+            "active alerts never repeat",
+          );
+          await db
+            .update(scoutAlertRules)
+            .set({ evaluatedAt: now })
+            .where(eq(scoutAlertRules.id, ruleId));
         },
       );
       await t.test(
@@ -181,7 +187,7 @@ void test(
         },
       );
       await t.test(
-        "sustained recovery creates exactly one recovery notification",
+        "the first healthy reading creates exactly one recovery notification",
         async () => {
           // Simulate a provider acknowledgement without contacting an external service.
           const first = (await pending())[0]!;
@@ -195,7 +201,7 @@ void test(
               ),
             );
           const recoveredAt = new Date(now.getTime() + 360_000);
-          await samples(recoveredAt, 70, 5);
+          await samples(recoveredAt, 89, 1);
           await sweep(recoveredAt);
           assert.equal((await active()).length, 0);
           assert.equal((await pending()).length, 2);
@@ -210,7 +216,7 @@ void test(
           assert.equal(
             events.find((e) => e.type === "scout.recovered")?.payload.details
               .value,
-            70,
+            89,
           );
         },
       );
@@ -282,7 +288,7 @@ void test(
               .update(monitoringAgents)
               .set({ desiredState: "enabled" })
               .where(eq(monitoringAgents.serverId, serverId));
-            for (const mode of ["mute", "category", "archived"] as const) {
+            for (const mode of ["mute", "deleted", "archived"] as const) {
               const at = new Date(Date.now() + 600_000);
               const saved = await saveScoutAlertRule({
                 ...scope,
@@ -317,10 +323,10 @@ void test(
                   durationSeconds: 3600,
                   reason: "Deployment maintenance",
                 });
-              if (mode === "category")
+              if (mode === "deleted")
                 await db
                   .update(notificationDestinations)
-                  .set({ categories: [] })
+                  .set({ deletedAt: new Date() })
                   .where(eq(notificationDestinations.id, destinationId));
               if (mode === "archived")
                 await db
@@ -350,7 +356,7 @@ void test(
                 .where(eq(servers.id, serverId));
               await db
                 .update(notificationDestinations)
-                .set({ categories: ["scout"] })
+                .set({ deletedAt: null })
                 .where(eq(notificationDestinations.id, destinationId));
               if (mode === "mute")
                 await muteScoutAlerts({
@@ -383,7 +389,6 @@ void test(
                 ...scoutAlertPresets.find((p) => p.id === "restarts")!
                   .condition,
                 windowSeconds: 60,
-                recoverySeconds: 0,
               },
             }),
           });
@@ -515,6 +520,10 @@ void test(
           );
           await deleteScoutAlertRule({ ...scope, ruleId: saved.id });
         },
+      );
+      await t.test(
+        "automatically notifies every server destination with tenant isolation",
+        () => assertScoutDestinations(scope, otherWorkspace, samples, sweep),
       );
     } finally {
       await db.delete(workspaces).where(eq(workspaces.id, workspaceId));

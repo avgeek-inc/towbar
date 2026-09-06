@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, lt, or, sql } from "drizzle-orm";
 import {
   type ScoutAlertRuleInput,
   scoutAlertRuleSchema,
@@ -60,10 +60,7 @@ export async function listScoutAlertRules(scope: ScoutScope) {
         and(
           eq(notificationDestinations.workspaceId, scope.workspaceId),
           isNull(notificationDestinations.deletedAt),
-          or(
-            eq(notificationDestinations.serverId, scope.serverId),
-            sql`${notificationDestinations.sourceId} in (select source_id from towbar_apps where server_id=${scope.serverId}::uuid and workspace_id=${scope.workspaceId}::uuid and archived_at is null)`,
-          ),
+          eq(notificationDestinations.serverId, scope.serverId),
         ),
       )
       .limit(200),
@@ -121,7 +118,7 @@ export async function saveScoutAlertRule(
   return await database.transaction(async (tx) => {
     // Serialize admission with removal, other rule creates, and workload moves.
     await lockScoutServer(tx, input);
-    const sourceId = await validateWorkload(tx, input, rule.deployableId);
+    await validateWorkload(tx, input, rule.deployableId);
     if (rule.condition.metric === "httpAvailability") {
       const existingHttp = await tx
         .select({ id: scoutAlertRules.id })
@@ -136,41 +133,6 @@ export async function saveScoutAlertRule(
         .limit(11);
       if (existingHttp.filter((item) => item.id !== input.ruleId).length >= 10)
         throw conflict("A server supports up to 10 public HTTP checks");
-    }
-    if (rule.destinationIds.length) {
-      const destinations = await tx
-        .select()
-        .from(notificationDestinations)
-        .where(
-          and(
-            inArray(notificationDestinations.id, rule.destinationIds),
-            eq(notificationDestinations.workspaceId, input.workspaceId),
-            isNull(notificationDestinations.deletedAt),
-            or(
-              eq(notificationDestinations.serverId, input.serverId),
-              sourceId
-                ? eq(notificationDestinations.sourceId, sourceId)
-                : undefined,
-            ),
-          ),
-        )
-        .for("share");
-      if (destinations.length !== rule.destinationIds.length)
-        throw badRequest(
-          "Choose destinations belonging to this server or the workload’s source",
-        );
-      if (destinations.some((d) => !d.categories.includes("scout")))
-        throw badRequest(
-          "Enable the Scout category on each selected destination",
-        );
-      const providers = notificationProviderAvailability();
-      if (
-        rule.enabled &&
-        destinations.some((d) => !d.enabled || !providers[d.provider])
-      )
-        throw conflict(
-          "Enable the selected destinations and configure their providers first",
-        );
     }
     let result;
     if (input.ruleId) {

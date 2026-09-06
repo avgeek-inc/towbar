@@ -76,7 +76,7 @@ Read only. Available to workspace members and owners.
 
 `towbar_alerts_configure`
 
-Configure a sustained host/workload metric alert or a public HTTP uptime check. Omit ruleId to create; supply an inspected ruleId to replace its settings. Read current settings before updating and preserve settings the user did not request changing. HTTP checks send recurring public requests. Selecting destinations enables external notifications once the condition fires; it does not send an immediate test.
+Configure a sustained host/workload metric alert or a public HTTP uptime check. Omit ruleId to create; supply an inspected ruleId to replace its settings. Read current settings before updating and preserve settings the user did not request changing. HTTP checks send recurring public requests. Alerts notify all destinations configured on the server once per incident and recover when the condition clears. Creating a rule does not send an immediate test.
 
 Full-access key required. Workspace owner required.
 
@@ -211,19 +211,8 @@ Full-access key required. Workspace owner required.
           "minimum": 0,
           "maximum": 1000000000000000000
         },
-        "recoveryThreshold": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1000000000000000000
-        },
         "durationSeconds": {
           "default": 300,
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 3600
-        },
-        "recoverySeconds": {
-          "default": 120,
           "type": "integer",
           "minimum": 0,
           "maximum": 3600
@@ -240,36 +229,12 @@ Full-access key required. Workspace owner required.
           "enum": ["average", "peak"]
         }
       },
-      "required": ["metric", "threshold", "recoveryThreshold"],
+      "required": ["metric", "threshold"],
       "additionalProperties": false
-    },
-    "destinationIds": {
-      "default": [],
-      "maxItems": 10,
-      "type": "array",
-      "items": {
-        "type": "string",
-        "format": "uuid",
-        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-      }
     },
     "notifyRecovery": {
       "default": true,
       "type": "boolean"
-    },
-    "repeatSeconds": {
-      "default": 0,
-      "anyOf": [
-        {
-          "type": "number",
-          "const": 0
-        },
-        {
-          "type": "integer",
-          "minimum": 900,
-          "maximum": 86400
-        }
-      ]
     },
     "serverId": {
       "type": "string",

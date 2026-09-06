@@ -671,9 +671,7 @@
           ]
         },
         "threshold": { "type": "number" },
-        "recoveryThreshold": { "type": "number" },
         "durationSeconds": { "type": "number" },
-        "recoverySeconds": { "type": "number" },
         "windowSeconds": { "type": "number" },
         "aggregation": {
           "anyOf": [
@@ -687,9 +685,7 @@
         "metric",
         "operator",
         "threshold",
-        "recoveryThreshold",
         "durationSeconds",
-        "recoverySeconds",
         "windowSeconds",
         "aggregation"
       ]
@@ -712,9 +708,7 @@
         "severity": { "type": "string" },
         "environment": { "type": "string" },
         "condition": { "$ref": "#/components/schemas/Response_21" },
-        "destinationIds": { "type": "array", "items": { "type": "string" } },
         "notifyRecovery": { "type": "boolean" },
-        "repeatSeconds": { "type": "number" },
         "mutedUntil": {
           "anyOf": [
             { "type": "null" },
@@ -752,9 +746,7 @@
         "severity",
         "environment",
         "condition",
-        "destinationIds",
         "notifyRecovery",
-        "repeatSeconds",
         "mutedUntil",
         "muteReason",
         "evaluationState",
@@ -992,9 +984,7 @@
           ]
         },
         "threshold": { "type": "number" },
-        "recoveryThreshold": { "type": "number" },
         "durationSeconds": { "type": "number" },
-        "recoverySeconds": { "type": "number" },
         "windowSeconds": { "type": "number" },
         "aggregation": {
           "anyOf": [
@@ -1008,9 +998,7 @@
         "metric",
         "operator",
         "threshold",
-        "recoveryThreshold",
         "durationSeconds",
-        "recoverySeconds",
         "windowSeconds",
         "aggregation"
       ]

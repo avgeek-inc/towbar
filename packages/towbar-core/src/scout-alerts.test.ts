@@ -62,21 +62,33 @@ void test("missing or stale measurements never resolve an active incident", () =
     "unknown",
   );
 });
-void test("uses recovery hysteresis and waits for sustained recovery", () => {
-  assert.equal(
-    evaluateScoutCondition(condition, observations(88), now, true).state,
-    "firing",
-  );
-  assert.equal(
-    evaluateScoutCondition(condition, observations(85).slice(-4), now, true)
-      .state,
-    "pending",
-  );
-  assert.equal(
-    evaluateScoutCondition(condition, observations(85).slice(-5), now, true)
-      .state,
-    "healthy",
-  );
+void test("recovers on the first healthy reading, with strict threshold boundaries", () => {
+  for (const operator of ["above", "below"] as const) {
+    const rule = { ...condition, operator };
+    const reading = (value: number) => [{ at: now, value }];
+    assert.equal(
+      evaluateScoutCondition(rule, reading(90), now, true).state,
+      "firing",
+    );
+    assert.equal(
+      evaluateScoutCondition(
+        rule,
+        reading(operator === "above" ? 89 : 91),
+        now,
+        true,
+      ).state,
+      "healthy",
+    );
+    assert.equal(
+      evaluateScoutCondition(
+        rule,
+        reading(operator === "above" ? 91 : 89),
+        now,
+        true,
+      ).state,
+      "firing",
+    );
+  }
 });
 void test("a blackout or healthy sample breaks the pending duration", () => {
   const gap = observations(99).filter((_, i) => i < 3 || i > 6);
@@ -173,7 +185,7 @@ void test("gauge observations preserve absent metrics and worst-instance semanti
     { at: now + 30_000, value: null },
   ]);
 });
-void test("rejects contradictory recovery and unsafe or redundant configuration", () => {
+void test("rejects removed recovery, repeat, and destination controls and unsafe configuration", () => {
   const rule = { name: "Memory", condition };
   assert(scoutAlertRuleSchema.safeParse(rule).success);
   assert(

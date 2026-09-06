@@ -133,6 +133,7 @@ async function claimAttempt(input: {
         cycle: notificationDeliveries.cycle,
         destinationCategories: notificationDestinations.categories,
         destinationEnabled: notificationDestinations.enabled,
+        destinationServerId: notificationDestinations.serverId,
         destinationDeletedAt: notificationDestinations.deletedAt,
         destinationId: notificationDestinations.id,
         deliveryId: notificationDeliveries.id,
@@ -170,7 +171,10 @@ async function claimAttempt(input: {
       (await suppressScoutDelivery(transaction, delivery))
     )
       return { outcome: { outcome: "terminal" as const } };
-    if (!delivery.destinationEnabled || delivery.destinationDeletedAt) {
+    if (
+      (!delivery.destinationServerId && !delivery.destinationEnabled) ||
+      delivery.destinationDeletedAt
+    ) {
       await transaction
         .update(notificationDeliveries)
         .set({
@@ -473,6 +477,7 @@ async function suppressScoutDelivery(
     eventType: string;
     destinationCategories: string[];
     destinationEnabled: boolean;
+    destinationServerId: string | null;
     destinationDeletedAt: Date | null;
     destinationId: string;
     deliveryId: string;
@@ -537,16 +542,15 @@ async function suppressScoutDelivery(
     (scout.rule.condition.metric !== "httpAvailability" &&
       scope.desiredState !== "enabled") ||
     (scout.rule.deployableId && !workload) ||
-    !delivery.destinationEnabled ||
     delivery.destinationDeletedAt ||
-    !delivery.destinationCategories.includes("scout") ||
+    delivery.destinationServerId !== scout.rule.serverId ||
+    delivery.eventType === "scout.reminder" ||
     scoutNotificationsPaused(scout.rule, scout.settings, now) ||
     scoutIncidentChanged(
       scout.rule,
       scout.incident,
       delivery.payload.details.environment,
     ) ||
-    !scout.rule.destinationIds.includes(delivery.destinationId) ||
     (delivery.eventType !== "scout.recovered" && scout.incident.resolvedAt) ||
     (delivery.eventType === "scout.recovered" &&
       (!scout.rule.notifyRecovery ||

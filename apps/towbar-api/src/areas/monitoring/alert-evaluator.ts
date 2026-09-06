@@ -204,30 +204,17 @@ async function queueScoutNotification(
     workload:
       { id: string; name: string; kind: string; sourceId: string } | undefined;
   },
-  type: "scout.firing" | "scout.recovered" | "scout.reminder",
+  type: "scout.firing" | "scout.recovered",
   now: Date,
 ) {
-  if (!rule.destinationIds.length) return [];
-  const ids = sql.join(
-    rule.destinationIds.map((id) => sql`${id}::uuid`),
-    sql`, `,
-  );
   const destinations = await tx
     .select({ id: notificationDestinations.id })
     .from(notificationDestinations)
     .where(
       and(
-        sql`${notificationDestinations.id} in (${ids})`,
         eq(notificationDestinations.workspaceId, rule.workspaceId),
-        eq(notificationDestinations.enabled, true),
         isNull(notificationDestinations.deletedAt),
-        sql`${notificationDestinations.categories} @> '["scout"]'::jsonb`,
-        or(
-          eq(notificationDestinations.serverId, rule.serverId),
-          context.workload
-            ? eq(notificationDestinations.sourceId, context.workload.sourceId)
-            : undefined,
-        ),
+        eq(notificationDestinations.serverId, rule.serverId),
       ),
     );
   if (!destinations.length) return [];
@@ -252,12 +239,7 @@ async function queueScoutNotification(
     ? `${context.workload.kind === "app" ? "apps" : "resources"}/${context.workload.id}`
     : `servers/${rule.serverId}`;
   const sequence = incident.notificationSequence + 1;
-  const status =
-    type === "scout.recovered"
-      ? "Recovered"
-      : type === "scout.reminder"
-        ? "Still active"
-        : "Alert";
+  const status = type === "scout.recovered" ? "Recovered" : "Alert";
   const [event] = await tx
     .insert(notificationEvents)
     .values({
@@ -337,7 +319,7 @@ async function getRuleObservations(
         and(
           eq(scoutHttpChecks.ruleId, rule.id),
           sql`date_trunc('milliseconds',${scoutHttpChecks.ruleRevision})=${rule.updatedAt.toISOString()}::timestamptz`,
-          sql`${scoutHttpChecks.scheduledAt} >= ${new Date(now.getTime() - (Math.max(condition.durationSeconds, condition.recoverySeconds) + 2 * condition.http!.intervalSeconds) * 1000).toISOString()}::timestamptz`,
+          sql`${scoutHttpChecks.scheduledAt} >= ${new Date(now.getTime() - (condition.durationSeconds + 2 * condition.http!.intervalSeconds) * 1000).toISOString()}::timestamptz`,
           lte(scoutHttpChecks.scheduledAt, now),
         ),
       )
@@ -357,10 +339,7 @@ async function getRuleObservations(
         agent.operationStartedAt?.getTime() ?? 0,
       ) + 300_000;
     if (["online", "waiting"].includes(agent.status)) {
-      const duration = Math.max(
-        condition.durationSeconds,
-        condition.recoverySeconds,
-      );
+      const duration = condition.durationSeconds;
       observations = Array.from(
         { length: Math.ceil(duration / 30) + 1 },
         (_, i) => {
@@ -384,7 +363,7 @@ async function getRuleObservations(
             and(
               eq(monitoringSamples.serverId, rule.serverId),
               eq(monitoringSamples.entityId, "host"),
-              sql`${monitoringSamples.bucketAt} >= ${new Date(now.getTime() - (condition.recoverySeconds + 120) * 1000).toISOString()}::timestamptz`,
+              sql`${monitoringSamples.bucketAt} >= ${new Date(now.getTime() - 120 * 1000).toISOString()}::timestamptz`,
               lte(monitoringSamples.bucketAt, now),
             ),
           )
@@ -398,7 +377,7 @@ async function getRuleObservations(
     }
   } else if (condition.metric !== "missingReports") {
     const historySeconds =
-      Math.max(condition.durationSeconds, condition.recoverySeconds) +
+      condition.durationSeconds +
       (condition.metric === "restarts" ? condition.windowSeconds : 0) +
       120;
     const scope = rule.deployableId
@@ -478,20 +457,13 @@ async function applyRuleResult(
           "scout.recovered",
           now,
         );
-    } else if (
-      result.state === "firing" &&
-      !muted &&
-      (!active.lastNotifiedAt ||
-        (rule.repeatSeconds > 0 &&
-          now.getTime() - active.lastNotifiedAt.getTime() >=
-            rule.repeatSeconds * 1000))
-    ) {
+    } else if (result.state === "firing" && !muted && !active.lastNotifiedAt) {
       return queueScoutNotification(
         tx,
         rule,
         { ...active, lastValue: result.value },
         context,
-        active.lastNotifiedAt ? "scout.reminder" : "scout.firing",
+        "scout.firing",
         now,
       );
     }

@@ -59,9 +59,7 @@ export const scoutAlertConditionSchema = z
     http: scoutHttpCheckSchema.optional(),
     operator: z.enum(["above", "below"]).default("above"),
     threshold: z.number().finite().nonnegative().max(1e18),
-    recoveryThreshold: z.number().finite().nonnegative().max(1e18),
     durationSeconds: z.number().int().min(0).max(3600).default(300),
-    recoverySeconds: z.number().int().min(0).max(3600).default(120),
     windowSeconds: z.number().int().min(60).max(3600).default(300),
     aggregation: z.enum(["average", "peak"]).default("average"),
   })
@@ -69,29 +67,18 @@ export const scoutAlertConditionSchema = z
   .superRefine((value, ctx) => {
     if (
       value.metric === "httpAvailability" &&
-      (!value.http || value.threshold !== 1 || value.recoveryThreshold !== 0)
+      (!value.http || value.threshold !== 1)
     )
       ctx.addIssue({
         code: "custom",
         path: ["http"],
-        message:
-          "HTTP checks require a URL, a failure threshold of 1, and a recovery threshold of 0",
+        message: "HTTP checks require a URL, a failure threshold of 1",
       });
     if (value.metric !== "httpAvailability" && value.http)
       ctx.addIssue({
         code: "custom",
         path: ["http"],
         message: "HTTP settings apply only to an HTTP check",
-      });
-    if (
-      value.operator === "above"
-        ? value.recoveryThreshold > value.threshold
-        : value.recoveryThreshold < value.threshold
-    )
-      ctx.addIssue({
-        code: "custom",
-        path: ["recoveryThreshold"],
-        message: "Recovery must be on the healthy side of the alert threshold",
       });
     if (
       ["restarts", "missingReports", "httpAvailability"].includes(
@@ -134,20 +121,10 @@ export const scoutAlertRuleSchema = z
     deployableId: z.string().uuid().nullable().default(null),
     environment: z.enum(["production", "preview"]).default("production"),
     condition: scoutAlertConditionSchema,
-    destinationIds: z.array(z.string().uuid()).max(10).default([]),
     notifyRecovery: z.boolean().default(true),
-    repeatSeconds: z
-      .union([z.literal(0), z.number().int().min(900).max(86400)])
-      .default(0),
   })
   .strict()
   .superRefine((value, ctx) => {
-    if (new Set(value.destinationIds).size !== value.destinationIds.length)
-      ctx.addIssue({
-        code: "custom",
-        path: ["destinationIds"],
-        message: "Select each destination once",
-      });
     if (
       value.deployableId &&
       [
@@ -203,9 +180,7 @@ export const scoutAlertPresets: Array<{
       metric: "diskPercent",
       operator: "above",
       threshold: 90,
-      recoveryThreshold: 85,
       durationSeconds: 300,
-      recoverySeconds: 120,
       windowSeconds: 300,
       aggregation: "average",
     },
@@ -218,9 +193,7 @@ export const scoutAlertPresets: Array<{
       metric: "memoryPercent",
       operator: "above",
       threshold: 90,
-      recoveryThreshold: 85,
       durationSeconds: 300,
-      recoverySeconds: 120,
       windowSeconds: 300,
       aggregation: "average",
     },
@@ -233,9 +206,7 @@ export const scoutAlertPresets: Array<{
       metric: "cpuPercent",
       operator: "above",
       threshold: 90,
-      recoveryThreshold: 80,
       durationSeconds: 600,
-      recoverySeconds: 120,
       windowSeconds: 300,
       aggregation: "average",
     },
@@ -248,9 +219,7 @@ export const scoutAlertPresets: Array<{
       metric: "restarts",
       operator: "above",
       threshold: 3,
-      recoveryThreshold: 0,
       durationSeconds: 0,
-      recoverySeconds: 120,
       windowSeconds: 300,
       aggregation: "peak",
     },
@@ -263,9 +232,7 @@ export const scoutAlertPresets: Array<{
       metric: "missingReports",
       operator: "above",
       threshold: 180,
-      recoveryThreshold: 60,
       durationSeconds: 0,
-      recoverySeconds: 60,
       windowSeconds: 300,
       aggregation: "peak",
     },
@@ -286,9 +253,8 @@ export function evaluateScoutCondition(
   now: number,
   active: boolean,
 ): ScoutConditionResult {
-  const duration =
-    (active ? condition.recoverySeconds : condition.durationSeconds) * 1000;
-  const threshold = active ? condition.recoveryThreshold : condition.threshold;
+  const duration = (active ? 0 : condition.durationSeconds) * 1000;
+  const threshold = condition.threshold;
   const points = [
     ...new Map(
       observations
@@ -310,8 +276,8 @@ export function evaluateScoutCondition(
   const matches = (value: number) =>
     active
       ? condition.operator === "above"
-        ? value <= threshold
-        : value >= threshold
+        ? value < threshold
+        : value > threshold
       : condition.operator === "above"
         ? value >= threshold
         : value <= threshold;
