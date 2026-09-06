@@ -43,7 +43,7 @@ export function normalizeImageRepository(image: string): string | undefined {
   ) {
     registry = segments.shift()!.toLowerCase();
   }
-  if (["index.docker.io", "registry-1.docker.io"].includes(registry))
+  if (registry === "index.docker.io" || registry === "registry-1.docker.io")
     registry = "docker.io";
   if (
     !segments.every((segment) =>

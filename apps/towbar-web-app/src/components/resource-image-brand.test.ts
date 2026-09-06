@@ -43,6 +43,11 @@ void test("recognizes tagged, digested, and fully qualified Docker Hub identitie
 void test("does not guess product identity from a private registry, suffix, tag, or lookalike", () => {
   for (const image of [
     "private.example/temporalio/server",
+    "index.docker.io.evil.example/temporalio/server",
+    "evil-index.docker.io/temporalio/server",
+    "registry-1.docker.io.evil.example/axllent/mailpit",
+    "evil-registry-1.docker.io/axllent/mailpit",
+    "evil.example/docker.io/library/redis",
     "localhost:5000/axllent/mailpit",
     "company/postgres",
     "eviltemporalio/server",
