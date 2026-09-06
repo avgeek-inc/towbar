@@ -1,0 +1,407 @@
+[
+  {
+    "repository": "supabase/postgres",
+    "source": "https://hub.docker.com/v2/repositories/supabase/postgres/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "supabase/gotrue",
+    "source": "https://hub.docker.com/v2/repositories/supabase/gotrue/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "supabase/realtime",
+    "source": "https://hub.docker.com/v2/repositories/supabase/realtime/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "supabase/storage-api",
+    "source": "https://hub.docker.com/v2/repositories/supabase/storage-api/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "supabase/studio",
+    "source": "https://hub.docker.com/v2/repositories/supabase/studio/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "supabase/postgres-meta",
+    "source": "https://hub.docker.com/v2/repositories/supabase/postgres-meta/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "surrealdb/surrealdb",
+    "source": "https://hub.docker.com/v2/repositories/surrealdb/surrealdb/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "scylladb/scylla",
+    "source": "https://hub.docker.com/v2/repositories/scylladb/scylla/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "arangodb",
+    "source": "https://hub.docker.com/v2/repositories/library/arangodb/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "ferretdb/ferretdb",
+    "source": "https://hub.docker.com/v2/repositories/ferretdb/ferretdb/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "flink",
+    "source": "https://hub.docker.com/v2/repositories/library/flink/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "spark",
+    "source": "https://hub.docker.com/v2/repositories/library/spark/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "apache/spark",
+    "source": "https://hub.docker.com/v2/repositories/apache/spark/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "trinodb/trino",
+    "source": "https://hub.docker.com/v2/repositories/trinodb/trino/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "otel/opentelemetry-collector",
+    "source": "https://hub.docker.com/v2/repositories/otel/opentelemetry-collector/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "otel/opentelemetry-collector-contrib",
+    "source": "https://hub.docker.com/v2/repositories/otel/opentelemetry-collector-contrib/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "grafana/tempo",
+    "source": "https://hub.docker.com/v2/repositories/grafana/tempo/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "grafana/tempo-query",
+    "source": "https://hub.docker.com/v2/repositories/grafana/tempo-query/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "grafana/mimir",
+    "source": "https://hub.docker.com/v2/repositories/grafana/mimir/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "grafana/pyroscope",
+    "source": "https://hub.docker.com/v2/repositories/grafana/pyroscope/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "grafana/alloy",
+    "source": "https://hub.docker.com/v2/repositories/grafana/alloy/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "timberio/vector",
+    "source": "https://hub.docker.com/v2/repositories/timberio/vector/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "kibana",
+    "source": "https://hub.docker.com/v2/repositories/library/kibana/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "google/cadvisor",
+    "source": "https://hub.docker.com/v2/repositories/google/cadvisor/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "infisical/infisical",
+    "source": "https://hub.docker.com/v2/repositories/infisical/infisical/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "appwrite/appwrite",
+    "source": "https://hub.docker.com/v2/repositories/appwrite/appwrite/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "directus/directus",
+    "source": "https://hub.docker.com/v2/repositories/directus/directus/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "nocodb/nocodb",
+    "source": "https://hub.docker.com/v2/repositories/nocodb/nocodb/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "baserow/baserow",
+    "source": "https://hub.docker.com/v2/repositories/baserow/baserow/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "budibase/budibase",
+    "source": "https://hub.docker.com/v2/repositories/budibase/budibase/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "appsmith/appsmith-ce",
+    "source": "https://hub.docker.com/v2/repositories/appsmith/appsmith-ce/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "appsmith/appsmith-ee",
+    "source": "https://hub.docker.com/v2/repositories/appsmith/appsmith-ee/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "tooljet/tooljet",
+    "source": "https://hub.docker.com/v2/repositories/tooljet/tooljet/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "tooljet/tooljet-ce",
+    "source": "https://hub.docker.com/v2/repositories/tooljet/tooljet-ce/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "flowiseai/flowise",
+    "source": "https://hub.docker.com/v2/repositories/flowiseai/flowise/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "langflowai/langflow",
+    "source": "https://hub.docker.com/v2/repositories/langflowai/langflow/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "vllm/vllm-openai",
+    "source": "https://hub.docker.com/v2/repositories/vllm/vllm-openai/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "rayproject/ray",
+    "source": "https://hub.docker.com/v2/repositories/rayproject/ray/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "rayproject/ray-ml",
+    "source": "https://hub.docker.com/v2/repositories/rayproject/ray-ml/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "jupyter/base-notebook",
+    "source": "https://hub.docker.com/v2/repositories/jupyter/base-notebook/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "jupyter/minimal-notebook",
+    "source": "https://hub.docker.com/v2/repositories/jupyter/minimal-notebook/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "jupyter/scipy-notebook",
+    "source": "https://hub.docker.com/v2/repositories/jupyter/scipy-notebook/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "jupyter/datascience-notebook",
+    "source": "https://hub.docker.com/v2/repositories/jupyter/datascience-notebook/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "jupyter/pyspark-notebook",
+    "source": "https://hub.docker.com/v2/repositories/jupyter/pyspark-notebook/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "twinproduction/gatus",
+    "source": "https://hub.docker.com/v2/repositories/twinproduction/gatus/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "gotify/server",
+    "source": "https://hub.docker.com/v2/repositories/gotify/server/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "binwiederhier/ntfy",
+    "source": "https://hub.docker.com/v2/repositories/binwiederhier/ntfy/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "restic/restic",
+    "source": "https://hub.docker.com/v2/repositories/restic/restic/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "duplicati/duplicati",
+    "source": "https://hub.docker.com/v2/repositories/duplicati/duplicati/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "vaultwarden/server",
+    "source": "https://hub.docker.com/v2/repositories/vaultwarden/server/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "selenium/standalone-chrome",
+    "source": "https://hub.docker.com/v2/repositories/selenium/standalone-chrome/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "selenium/standalone-firefox",
+    "source": "https://hub.docker.com/v2/repositories/selenium/standalone-firefox/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "selenium/hub",
+    "source": "https://hub.docker.com/v2/repositories/selenium/hub/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "selenium/node-chrome",
+    "source": "https://hub.docker.com/v2/repositories/selenium/node-chrome/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "selenium/node-firefox",
+    "source": "https://hub.docker.com/v2/repositories/selenium/node-firefox/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "node",
+    "source": "https://hub.docker.com/v2/repositories/library/node/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "python",
+    "source": "https://hub.docker.com/v2/repositories/library/python/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "golang",
+    "source": "https://hub.docker.com/v2/repositories/library/golang/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "rust",
+    "source": "https://hub.docker.com/v2/repositories/library/rust/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "php",
+    "source": "https://hub.docker.com/v2/repositories/library/php/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "denoland/deno",
+    "source": "https://hub.docker.com/v2/repositories/denoland/deno/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "oven/bun",
+    "source": "https://hub.docker.com/v2/repositories/oven/bun/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "wordpress",
+    "source": "https://hub.docker.com/v2/repositories/library/wordpress/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "ghost",
+    "source": "https://hub.docker.com/v2/repositories/library/ghost/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "drupal",
+    "source": "https://hub.docker.com/v2/repositories/library/drupal/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "phpmyadmin",
+    "source": "https://hub.docker.com/v2/repositories/library/phpmyadmin/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "phpmyadmin/phpmyadmin",
+    "source": "https://hub.docker.com/v2/repositories/phpmyadmin/phpmyadmin/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "codercom/code-server",
+    "source": "https://hub.docker.com/v2/repositories/codercom/code-server/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "graylog/graylog",
+    "source": "https://hub.docker.com/v2/repositories/graylog/graylog/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "graylog/graylog-enterprise",
+    "source": "https://hub.docker.com/v2/repositories/graylog/graylog-enterprise/",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "quay.io/jupyter/base-notebook",
+    "source": "https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "quay.io/jupyter/minimal-notebook",
+    "source": "https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "quay.io/jupyter/scipy-notebook",
+    "source": "https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "quay.io/jupyter/datascience-notebook",
+    "source": "https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "quay.io/jupyter/pyspark-notebook",
+    "source": "https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "quay.io/jupyter/all-spark-notebook",
+    "source": "https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "quay.io/jupyter/r-notebook",
+    "source": "https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "quay.io/jupyter/julia-notebook",
+    "source": "https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "quay.io/jupyter/tensorflow-notebook",
+    "source": "https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "quay.io/jupyter/pytorch-notebook",
+    "source": "https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html",
+    "verifiedOn": "2026-09-07"
+  },
+  {
+    "repository": "docker.elastic.co/kibana/kibana",
+    "source": "https://www.elastic.co/guide/en/elasticsearch/reference/8.19/docker.html",
+    "verifiedOn": "2026-09-07"
+  }
+]

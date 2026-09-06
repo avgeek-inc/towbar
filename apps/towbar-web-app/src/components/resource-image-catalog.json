@@ -669,5 +669,343 @@
     "label": "Matomo",
     "repositories": ["matomo"],
     "logo": "/resource-logos/matomo.webp"
+  },
+  {
+    "id": "supabase",
+    "label": "Supabase",
+    "repositories": [
+      "supabase/postgres",
+      "supabase/gotrue",
+      "supabase/realtime",
+      "supabase/storage-api",
+      "supabase/studio",
+      "supabase/postgres-meta"
+    ],
+    "logo": "/resource-logos/supabase.webp"
+  },
+  {
+    "id": "surrealdb",
+    "label": "SurrealDB",
+    "repositories": ["surrealdb/surrealdb"],
+    "logo": "/resource-logos/surrealdb.svg"
+  },
+  {
+    "id": "scylladb",
+    "label": "ScyllaDB",
+    "repositories": ["scylladb/scylla"],
+    "logo": "/resource-logos/scylladb.svg"
+  },
+  {
+    "id": "arangodb",
+    "label": "ArangoDB",
+    "repositories": ["arangodb"],
+    "logo": "/resource-logos/arangodb.svg"
+  },
+  {
+    "id": "ferretdb",
+    "label": "FerretDB",
+    "repositories": ["ferretdb/ferretdb"],
+    "logo": "/resource-logos/ferretdb.webp",
+    "darkPlate": true
+  },
+  {
+    "id": "flink",
+    "label": "Apache Flink",
+    "repositories": ["flink"],
+    "logo": "/resource-logos/flink.svg"
+  },
+  {
+    "id": "spark",
+    "label": "Apache Spark",
+    "repositories": ["spark", "apache/spark"],
+    "logo": "/resource-logos/spark.webp"
+  },
+  {
+    "id": "trino",
+    "label": "Trino",
+    "repositories": ["trinodb/trino"],
+    "logo": "/resource-logos/trino.svg"
+  },
+  {
+    "id": "opentelemetry",
+    "label": "OpenTelemetry",
+    "repositories": [
+      "otel/opentelemetry-collector",
+      "otel/opentelemetry-collector-contrib"
+    ],
+    "logo": "/resource-logos/opentelemetry.svg",
+    "logoDark": "/resource-logos/opentelemetry-light.svg"
+  },
+  {
+    "id": "tempo",
+    "label": "Grafana Tempo",
+    "repositories": ["grafana/tempo", "grafana/tempo-query"],
+    "logo": "/resource-logos/tempo.webp"
+  },
+  {
+    "id": "mimir",
+    "label": "Grafana Mimir",
+    "repositories": ["grafana/mimir"],
+    "logo": "/resource-logos/mimir.webp"
+  },
+  {
+    "id": "pyroscope",
+    "label": "Grafana Pyroscope",
+    "repositories": ["grafana/pyroscope"],
+    "logo": "/resource-logos/pyroscope.webp"
+  },
+  {
+    "id": "alloy",
+    "label": "Grafana Alloy",
+    "repositories": ["grafana/alloy"],
+    "logo": "/resource-logos/alloy.webp"
+  },
+  {
+    "id": "vector",
+    "label": "Vector",
+    "repositories": ["timberio/vector"],
+    "logo": "/resource-logos/vector.webp"
+  },
+  {
+    "id": "kibana",
+    "label": "Kibana",
+    "repositories": ["kibana", "docker.elastic.co/kibana/kibana"],
+    "logo": "/resource-logos/kibana.webp"
+  },
+  {
+    "id": "cadvisor",
+    "label": "cAdvisor",
+    "repositories": ["google/cadvisor"],
+    "logo": "/resource-logos/cadvisor.webp"
+  },
+  {
+    "id": "infisical",
+    "label": "Infisical",
+    "repositories": ["infisical/infisical"],
+    "logo": "/resource-logos/infisical.webp"
+  },
+  {
+    "id": "appwrite",
+    "label": "Appwrite",
+    "repositories": ["appwrite/appwrite"],
+    "logo": "/resource-logos/appwrite.webp"
+  },
+  {
+    "id": "directus",
+    "label": "Directus",
+    "repositories": ["directus/directus"],
+    "logo": "/resource-logos/directus.webp"
+  },
+  {
+    "id": "nocodb",
+    "label": "NocoDB",
+    "repositories": ["nocodb/nocodb"],
+    "logo": "/resource-logos/nocodb.webp",
+    "darkPlate": true
+  },
+  {
+    "id": "baserow",
+    "label": "Baserow",
+    "repositories": ["baserow/baserow"],
+    "logo": "/resource-logos/baserow.webp"
+  },
+  {
+    "id": "budibase",
+    "label": "Budibase",
+    "repositories": ["budibase/budibase"],
+    "logo": "/resource-logos/budibase.webp"
+  },
+  {
+    "id": "appsmith",
+    "label": "Appsmith",
+    "repositories": ["appsmith/appsmith-ce", "appsmith/appsmith-ee"],
+    "logo": "/resource-logos/appsmith.svg",
+    "logoDark": "/resource-logos/appsmith-light.svg"
+  },
+  {
+    "id": "tooljet",
+    "label": "ToolJet",
+    "repositories": ["tooljet/tooljet", "tooljet/tooljet-ce"],
+    "logo": "/resource-logos/tooljet.webp"
+  },
+  {
+    "id": "flowise",
+    "label": "Flowise",
+    "repositories": ["flowiseai/flowise"],
+    "logo": "/resource-logos/flowise.webp"
+  },
+  {
+    "id": "langflow",
+    "label": "Langflow",
+    "repositories": ["langflowai/langflow"],
+    "logo": "/resource-logos/langflow.svg",
+    "logoDark": "/resource-logos/langflow-light.svg"
+  },
+  {
+    "id": "vllm",
+    "label": "vLLM",
+    "repositories": ["vllm/vllm-openai"],
+    "logo": "/resource-logos/vllm.svg"
+  },
+  {
+    "id": "ray",
+    "label": "Ray",
+    "repositories": ["rayproject/ray", "rayproject/ray-ml"],
+    "logo": "/resource-logos/ray.svg"
+  },
+  {
+    "id": "jupyter",
+    "label": "Jupyter",
+    "repositories": [
+      "jupyter/base-notebook",
+      "jupyter/minimal-notebook",
+      "jupyter/scipy-notebook",
+      "jupyter/datascience-notebook",
+      "jupyter/pyspark-notebook",
+      "quay.io/jupyter/base-notebook",
+      "quay.io/jupyter/minimal-notebook",
+      "quay.io/jupyter/scipy-notebook",
+      "quay.io/jupyter/datascience-notebook",
+      "quay.io/jupyter/pyspark-notebook",
+      "quay.io/jupyter/all-spark-notebook",
+      "quay.io/jupyter/r-notebook",
+      "quay.io/jupyter/julia-notebook",
+      "quay.io/jupyter/tensorflow-notebook",
+      "quay.io/jupyter/pytorch-notebook"
+    ],
+    "logo": "/resource-logos/jupyter.webp"
+  },
+  {
+    "id": "gatus",
+    "label": "Gatus",
+    "repositories": ["twinproduction/gatus"],
+    "logo": "/resource-logos/gatus.webp"
+  },
+  {
+    "id": "gotify",
+    "label": "Gotify",
+    "repositories": ["gotify/server"],
+    "logo": "/resource-logos/gotify.webp"
+  },
+  {
+    "id": "ntfy",
+    "label": "ntfy",
+    "repositories": ["binwiederhier/ntfy"],
+    "logo": "/resource-logos/ntfy.webp"
+  },
+  {
+    "id": "restic",
+    "label": "Restic",
+    "repositories": ["restic/restic"],
+    "logo": "/resource-logos/restic.webp"
+  },
+  {
+    "id": "duplicati",
+    "label": "Duplicati",
+    "repositories": ["duplicati/duplicati"],
+    "logo": "/resource-logos/duplicati.webp"
+  },
+  {
+    "id": "vaultwarden",
+    "label": "Vaultwarden",
+    "repositories": ["vaultwarden/server"],
+    "logo": "/resource-logos/vaultwarden.webp",
+    "logoDark": "/resource-logos/vaultwarden-light.webp"
+  },
+  {
+    "id": "selenium",
+    "label": "Selenium",
+    "repositories": [
+      "selenium/standalone-chrome",
+      "selenium/standalone-firefox",
+      "selenium/hub",
+      "selenium/node-chrome",
+      "selenium/node-firefox"
+    ],
+    "logo": "/resource-logos/selenium.webp"
+  },
+  {
+    "id": "nodejs",
+    "label": "Node.js",
+    "repositories": ["node"],
+    "logo": "/resource-logos/nodejs.webp"
+  },
+  {
+    "id": "python",
+    "label": "Python",
+    "repositories": ["python"],
+    "logo": "/resource-logos/python.webp"
+  },
+  {
+    "id": "golang",
+    "label": "Go",
+    "repositories": ["golang"],
+    "logo": "/resource-logos/golang.svg"
+  },
+  {
+    "id": "rust",
+    "label": "Rust",
+    "repositories": ["rust"],
+    "logo": "/resource-logos/rust.webp",
+    "darkPlate": true
+  },
+  {
+    "id": "php",
+    "label": "PHP",
+    "repositories": ["php"],
+    "logo": "/resource-logos/php.webp",
+    "logoDark": "/resource-logos/php-light.webp"
+  },
+  {
+    "id": "deno",
+    "label": "Deno",
+    "repositories": ["denoland/deno"],
+    "logo": "/resource-logos/deno.webp",
+    "logoDark": "/resource-logos/deno-light.webp"
+  },
+  {
+    "id": "bun",
+    "label": "Bun",
+    "repositories": ["oven/bun"],
+    "logo": "/resource-logos/bun.svg",
+    "logoDark": "/resource-logos/bun-light.svg"
+  },
+  {
+    "id": "wordpress",
+    "label": "WordPress",
+    "repositories": ["wordpress"],
+    "logo": "/resource-logos/wordpress.webp",
+    "darkPlate": true
+  },
+  {
+    "id": "ghost",
+    "label": "Ghost",
+    "repositories": ["ghost"],
+    "logo": "/resource-logos/ghost.webp",
+    "logoDark": "/resource-logos/ghost-light.webp"
+  },
+  {
+    "id": "drupal",
+    "label": "Drupal",
+    "repositories": ["drupal"],
+    "logo": "/resource-logos/drupal.svg"
+  },
+  {
+    "id": "phpmyadmin",
+    "label": "phpMyAdmin",
+    "repositories": ["phpmyadmin", "phpmyadmin/phpmyadmin"],
+    "logo": "/resource-logos/phpmyadmin.webp"
+  },
+  {
+    "id": "code-server",
+    "label": "code-server",
+    "repositories": ["codercom/code-server"],
+    "logo": "/resource-logos/code-server.webp"
+  },
+  {
+    "id": "graylog",
+    "label": "Graylog",
+    "repositories": ["graylog/graylog", "graylog/graylog-enterprise"],
+    "logo": "/resource-logos/graylog.webp"
   }
 ]

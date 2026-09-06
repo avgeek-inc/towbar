@@ -680,5 +680,343 @@
     "file": "matomo.webp",
     "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/matomo.webp",
     "repositories": ["matomo"]
+  },
+  {
+    "product": "Supabase",
+    "repositories": [
+      "supabase/postgres",
+      "supabase/gotrue",
+      "supabase/realtime",
+      "supabase/storage-api",
+      "supabase/studio",
+      "supabase/postgres-meta"
+    ],
+    "file": "supabase.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/supabase.webp"
+  },
+  {
+    "product": "SurrealDB",
+    "repositories": ["surrealdb/surrealdb"],
+    "file": "surrealdb.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/surrealdb.svg"
+  },
+  {
+    "product": "ScyllaDB",
+    "repositories": ["scylladb/scylla"],
+    "file": "scylladb.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/scylladb.svg"
+  },
+  {
+    "product": "ArangoDB",
+    "repositories": ["arangodb"],
+    "file": "arangodb.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/arangodb.svg"
+  },
+  {
+    "product": "FerretDB",
+    "repositories": ["ferretdb/ferretdb"],
+    "file": "ferretdb.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/ferretdb.webp"
+  },
+  {
+    "product": "Apache Flink",
+    "repositories": ["flink"],
+    "file": "flink.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/apacheflink.svg"
+  },
+  {
+    "product": "Apache Spark",
+    "repositories": ["spark", "apache/spark"],
+    "file": "spark.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/spark.webp"
+  },
+  {
+    "product": "Trino",
+    "repositories": ["trinodb/trino"],
+    "file": "trino.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/trino.svg"
+  },
+  {
+    "product": "OpenTelemetry",
+    "repositories": [
+      "otel/opentelemetry-collector",
+      "otel/opentelemetry-collector-contrib"
+    ],
+    "file": "opentelemetry.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/opentelemetry.svg",
+    "darkFile": "opentelemetry-light.svg"
+  },
+  {
+    "product": "Grafana Tempo",
+    "repositories": ["grafana/tempo", "grafana/tempo-query"],
+    "file": "tempo.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/grafana.webp"
+  },
+  {
+    "product": "Grafana Mimir",
+    "repositories": ["grafana/mimir"],
+    "file": "mimir.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/grafana.webp"
+  },
+  {
+    "product": "Grafana Pyroscope",
+    "repositories": ["grafana/pyroscope"],
+    "file": "pyroscope.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/grafana.webp"
+  },
+  {
+    "product": "Grafana Alloy",
+    "repositories": ["grafana/alloy"],
+    "file": "alloy.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/alloy.webp"
+  },
+  {
+    "product": "Vector",
+    "repositories": ["timberio/vector"],
+    "file": "vector.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/vector.webp"
+  },
+  {
+    "product": "Kibana",
+    "repositories": ["kibana", "docker.elastic.co/kibana/kibana"],
+    "file": "kibana.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/elastic-kibana.webp"
+  },
+  {
+    "product": "cAdvisor",
+    "repositories": ["google/cadvisor"],
+    "file": "cadvisor.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/cadvisor.webp"
+  },
+  {
+    "product": "Infisical",
+    "repositories": ["infisical/infisical"],
+    "file": "infisical.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/infisical.webp"
+  },
+  {
+    "product": "Appwrite",
+    "repositories": ["appwrite/appwrite"],
+    "file": "appwrite.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/appwrite.webp"
+  },
+  {
+    "product": "Directus",
+    "repositories": ["directus/directus"],
+    "file": "directus.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/directus.webp"
+  },
+  {
+    "product": "NocoDB",
+    "repositories": ["nocodb/nocodb"],
+    "file": "nocodb.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/nocodb.webp"
+  },
+  {
+    "product": "Baserow",
+    "repositories": ["baserow/baserow"],
+    "file": "baserow.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/baserow.webp"
+  },
+  {
+    "product": "Budibase",
+    "repositories": ["budibase/budibase"],
+    "file": "budibase.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/budibase.webp"
+  },
+  {
+    "product": "Appsmith",
+    "repositories": ["appsmith/appsmith-ce", "appsmith/appsmith-ee"],
+    "file": "appsmith.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/appsmith.svg",
+    "darkFile": "appsmith-light.svg"
+  },
+  {
+    "product": "ToolJet",
+    "repositories": ["tooljet/tooljet", "tooljet/tooljet-ce"],
+    "file": "tooljet.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/tooljet.webp"
+  },
+  {
+    "product": "Flowise",
+    "repositories": ["flowiseai/flowise"],
+    "file": "flowise.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/flowise.webp"
+  },
+  {
+    "product": "Langflow",
+    "repositories": ["langflowai/langflow"],
+    "file": "langflow.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/langflow.svg",
+    "darkFile": "langflow-light.svg"
+  },
+  {
+    "product": "vLLM",
+    "repositories": ["vllm/vllm-openai"],
+    "file": "vllm.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/vllm.svg"
+  },
+  {
+    "product": "Ray",
+    "repositories": ["rayproject/ray", "rayproject/ray-ml"],
+    "file": "ray.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/ray.svg"
+  },
+  {
+    "product": "Jupyter",
+    "repositories": [
+      "jupyter/base-notebook",
+      "jupyter/minimal-notebook",
+      "jupyter/scipy-notebook",
+      "jupyter/datascience-notebook",
+      "jupyter/pyspark-notebook",
+      "quay.io/jupyter/base-notebook",
+      "quay.io/jupyter/minimal-notebook",
+      "quay.io/jupyter/scipy-notebook",
+      "quay.io/jupyter/datascience-notebook",
+      "quay.io/jupyter/pyspark-notebook",
+      "quay.io/jupyter/all-spark-notebook",
+      "quay.io/jupyter/r-notebook",
+      "quay.io/jupyter/julia-notebook",
+      "quay.io/jupyter/tensorflow-notebook",
+      "quay.io/jupyter/pytorch-notebook"
+    ],
+    "file": "jupyter.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/jupyter.webp"
+  },
+  {
+    "product": "Gatus",
+    "repositories": ["twinproduction/gatus"],
+    "file": "gatus.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/gatus.webp"
+  },
+  {
+    "product": "Gotify",
+    "repositories": ["gotify/server"],
+    "file": "gotify.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/gotify.webp"
+  },
+  {
+    "product": "ntfy",
+    "repositories": ["binwiederhier/ntfy"],
+    "file": "ntfy.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/ntfy.webp"
+  },
+  {
+    "product": "Restic",
+    "repositories": ["restic/restic"],
+    "file": "restic.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/restic.webp"
+  },
+  {
+    "product": "Duplicati",
+    "repositories": ["duplicati/duplicati"],
+    "file": "duplicati.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/duplicati.webp"
+  },
+  {
+    "product": "Vaultwarden",
+    "repositories": ["vaultwarden/server"],
+    "file": "vaultwarden.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/vaultwarden.webp",
+    "darkFile": "vaultwarden-light.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/vaultwarden-light.webp"
+  },
+  {
+    "product": "Selenium",
+    "repositories": [
+      "selenium/standalone-chrome",
+      "selenium/standalone-firefox",
+      "selenium/hub",
+      "selenium/node-chrome",
+      "selenium/node-firefox"
+    ],
+    "file": "selenium.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/selenium.webp"
+  },
+  {
+    "product": "Node.js",
+    "repositories": ["node"],
+    "file": "nodejs.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/nodejs.webp"
+  },
+  {
+    "product": "Python",
+    "repositories": ["python"],
+    "file": "python.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/python.webp"
+  },
+  {
+    "product": "Go",
+    "repositories": ["golang"],
+    "file": "golang.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/go.svg"
+  },
+  {
+    "product": "Rust",
+    "repositories": ["rust"],
+    "file": "rust.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/rust.webp"
+  },
+  {
+    "product": "PHP",
+    "repositories": ["php"],
+    "file": "php.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/php.webp",
+    "darkFile": "php-light.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/php-light.webp"
+  },
+  {
+    "product": "Deno",
+    "repositories": ["denoland/deno"],
+    "file": "deno.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/deno.webp",
+    "darkFile": "deno-light.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/deno-light.webp"
+  },
+  {
+    "product": "Bun",
+    "repositories": ["oven/bun"],
+    "file": "bun.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/bun.svg",
+    "darkFile": "bun-light.svg"
+  },
+  {
+    "product": "WordPress",
+    "repositories": ["wordpress"],
+    "file": "wordpress.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/wordpress.webp"
+  },
+  {
+    "product": "Ghost",
+    "repositories": ["ghost"],
+    "file": "ghost.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/ghost.webp",
+    "darkFile": "ghost-light.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/ghost-light.webp"
+  },
+  {
+    "product": "Drupal",
+    "repositories": ["drupal"],
+    "file": "drupal.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/drupal.svg"
+  },
+  {
+    "product": "phpMyAdmin",
+    "repositories": ["phpmyadmin", "phpmyadmin/phpmyadmin"],
+    "file": "phpmyadmin.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/phpmyadmin.webp"
+  },
+  {
+    "product": "code-server",
+    "repositories": ["codercom/code-server"],
+    "file": "code-server.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/code-server.webp"
+  },
+  {
+    "product": "Graylog",
+    "repositories": ["graylog/graylog", "graylog/graylog-enterprise"],
+    "file": "graylog.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/graylog.webp"
   }
 ]

@@ -15,6 +15,9 @@ image authenticity, maintenance status, or safety.
 ## Artwork and attribution
 
 Per-file upstream URLs are recorded in `sources.json`.
+Registry or publisher references for the catalog expansion are recorded in
+`repository-verification.json`. These establish repository identity at the recorded
+date, not a guarantee of continued maintenance or image safety.
 
 - Dashboard Icons by Homarr Labs and contributors, Apache-2.0, revision
   `f651f5798c7d58bff3cff4d3a9c4645d87657bbd`. WebP assets are copied unchanged.
