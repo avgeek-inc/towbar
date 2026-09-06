@@ -46,6 +46,7 @@ void test(
       muteScoutAlerts,
       deleteScoutAlertRule,
       listScoutAlertRules,
+      listScoutIncidents,
     } = await import("./alert-rules.js");
     const { evaluateScoutAlerts } = await import("./alert-evaluator.js");
     const db = getTowbarDatabase();
@@ -149,6 +150,20 @@ void test(
             listScoutAlertRules({ serverId, workspaceId: otherWorkspace }),
           );
           ruleId = (await saveScoutAlertRule({ ...scope, rule })).id;
+          assert.equal(
+            (await listScoutAlertRules({ ...scope, deployableId: "server" }))
+              .rules.length,
+            1,
+          );
+          assert.equal(
+            (
+              await listScoutAlertRules({
+                ...scope,
+                deployableId: randomUUID(),
+              })
+            ).rules.length,
+            0,
+          );
         },
       );
       await t.test(
@@ -157,6 +172,28 @@ void test(
           await samples(now, 95);
           await Promise.all([sweep(now), sweep(now)]);
           assert.equal((await active()).length, 1);
+          assert.equal(
+            (
+              await listScoutIncidents({
+                ...scope,
+                deployableId: "server",
+                state: "active",
+                limit: 1,
+              })
+            ).incidents.length,
+            1,
+          );
+          assert.equal(
+            (
+              await listScoutIncidents({
+                ...scope,
+                deployableId: randomUUID(),
+                state: "active",
+                limit: 1,
+              })
+            ).incidents.length,
+            0,
+          );
           assert.equal((await pending()).length, 1);
           await sweep(new Date(now.getTime() + 30_000));
           assert.equal((await pending()).length, 1);

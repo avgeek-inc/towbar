@@ -33,7 +33,11 @@ export function ScoutAlerts({
   onViewGraph: () => void;
 }) {
   const endpoint = `/v1/core/servers/${serverId}/scout-alerts`;
-  const query = useApiQuery<ScoutRulesResponse>(endpoint, 30_000);
+  const entity = deployableId ?? "server";
+  const query = useApiQuery<ScoutRulesResponse>(
+    `${endpoint}?deployableId=${entity}`,
+    30_000,
+  );
   const [editing, setEditing] = useState<ScoutRule | "new" | null>(null);
   const [mute, setMute] = useState<ScoutRule | "server" | null>(null);
   const [state, setState] = useState("active");
@@ -44,7 +48,7 @@ export function ScoutAlerts({
     nextBefore: string | null;
     nextBeforeId: string | null;
   }>(
-    `${endpoint}/incidents?state=${state}&limit=10${deployableId ? `&deployableId=${deployableId}` : ""}${cursor}`,
+    `${endpoint}/incidents?state=${state}&limit=10&deployableId=${entity}${cursor}`,
     30_000,
     { keepPreviousData: true },
   );
@@ -69,7 +73,7 @@ export function ScoutAlerts({
     data.settings.mutedUntil &&
     new Date(data.settings.mutedUntil).getTime() > Date.now();
   const rules = data.rules.filter(
-    (r) => !deployableId || r.deployableId === deployableId,
+    (r) => r.deployableId === (deployableId ?? null),
   );
   const columns: ResourceTableColumn<ScoutRule>[] = [
     {
@@ -261,9 +265,11 @@ export function ScoutAlerts({
         <div className="flex flex-wrap gap-2">
           {data.canManage ? (
             <>
-              <Button variant="secondary" onPress={() => setMute("server")}>
-                {muted ? "Manage mute" : "Mute for maintenance"}
-              </Button>
+              {!deployableId ? (
+                <Button variant="secondary" onPress={() => setMute("server")}>
+                  {muted ? "Manage mute" : "Mute for maintenance"}
+                </Button>
+              ) : null}
               <Button onPress={() => setEditing("new")}>Create rule</Button>
             </>
           ) : null}
@@ -353,7 +359,6 @@ export function ScoutAlerts({
       {editing ? (
         <ScoutRuleEditor
           serverId={serverId}
-          data={data}
           initial={editing === "new" ? undefined : editing}
           deployableId={deployableId}
           onClose={() => setEditing(null)}

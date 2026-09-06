@@ -22,20 +22,17 @@ import {
   metricDefinition,
   scoutMetrics,
   type ScoutRule,
-  type ScoutRulesResponse,
 } from "./scout-controls";
 
 export function ScoutRuleEditor({
   serverId,
   initial,
-  data,
   deployableId,
   onClose,
   onSaved,
 }: {
   serverId: string;
   initial?: ScoutRule;
-  data: ScoutRulesResponse;
   deployableId?: string;
   onClose: () => void;
   onSaved: () => void;
@@ -47,7 +44,7 @@ export function ScoutRuleEditor({
             name: initial.name,
             enabled: initial.enabled,
             severity: initial.severity,
-            deployableId: initial.deployableId,
+            deployableId: deployableId ?? null,
             environment: initial.environment,
             condition: initial.condition,
             notifyRecovery: initial.notifyRecovery,
@@ -170,39 +167,7 @@ export function ScoutRuleEditor({
                     <p className="text-sm text-danger">{fieldErrors.name}</p>
                   ) : null}
                 </Field>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <ScoutSelect
-                    label="Monitor"
-                    value={draft.deployableId ?? "host"}
-                    options={[
-                      { id: "host", label: "This server" },
-                      ...data.workloads.map((w) => ({
-                        id: w.id,
-                        label: w.name,
-                      })),
-                    ]}
-                    onChange={(id) =>
-                      setDraft({
-                        ...draft,
-                        deployableId: id === "host" ? null : id,
-
-                        condition:
-                          id !== "host" &&
-                          [
-                            "diskPercent",
-                            "dockerDiskPercent",
-                            "missingReports",
-                            "load1",
-                            "load5",
-                            "load15",
-                            "swapUsedBytes",
-                            "httpAvailability",
-                          ].includes(draft.condition.metric)
-                            ? { ...scoutAlertPresets[1]!.condition }
-                            : draft.condition,
-                      })
-                    }
-                  />
+                <div>
                   <ScoutSelect
                     label="Severity"
                     value={draft.severity}

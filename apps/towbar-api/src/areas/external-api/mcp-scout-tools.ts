@@ -21,6 +21,7 @@ export const scoutTools: McpTool[] = [
           method: "GET",
           route: "/servers/:serverId/scout-alerts",
           path,
+          query: { deployableId: query.deployableId },
         }),
         c.call({
           method: "GET",

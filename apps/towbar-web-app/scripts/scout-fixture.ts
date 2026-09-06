@@ -274,7 +274,15 @@ export function createScoutFixture(serverIds: string[], workloads: Workload[]) {
       else if (rest === "" || rest === "/")
         send(200, {
           canManage: true,
-          rules: rules.filter((r) => r.serverId === serverId),
+          rules: rules.filter(
+            (r) =>
+              r.serverId === serverId &&
+              (!url.searchParams.has("deployableId") ||
+                r.deployableId ===
+                  (url.searchParams.get("deployableId") === "server"
+                    ? null
+                    : url.searchParams.get("deployableId"))),
+          ),
           workloads: workloads
             .filter((w) => w.serverId === serverId)
             .map((w) => ({ ...w, kind: w.kind ?? "app" })),
@@ -291,7 +299,10 @@ export function createScoutFixture(serverIds: string[], workloads: Workload[]) {
             (i) =>
               i.serverId === serverId &&
               (!url.searchParams.has("deployableId") ||
-                i.deployableId === url.searchParams.get("deployableId")) &&
+                i.deployableId ===
+                  (url.searchParams.get("deployableId") === "server"
+                    ? null
+                    : url.searchParams.get("deployableId"))) &&
               (state === "all" ||
                 (state === "active" ? !i.resolvedAt : i.resolvedAt)) &&
               (!before || i.openedAt < before),

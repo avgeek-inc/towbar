@@ -73,6 +73,7 @@ export function ScoutPanel({
       </Tabs.Panel>
       <Tabs.Panel id="alerts" className="m-0 min-w-0 p-0 outline-none">
         <ScoutAlerts
+          key={deployableId ?? serverId}
           serverId={serverId}
           deployableId={deployableId}
           onViewGraph={() => select("performance")}
@@ -101,8 +102,8 @@ function ScoutNotifications({ serverId }: { serverId: string }) {
       <div className="grid gap-1">
         <h2 className="text-lg font-medium">Notification destinations</h2>
         <p className="text-sm text-muted">
-          Connect Slack or email, then choose where each Scout rule sends its
-          alerts.
+          Add Slack or email destinations to receive Scout alerts for this
+          server and its workloads.
         </p>
       </div>
       <SourceNotifications

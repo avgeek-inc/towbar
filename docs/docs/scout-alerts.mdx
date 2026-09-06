@@ -3,7 +3,7 @@ title: Scout Alerts
 description: Configure metric alerts, public HTTP checks, maintenance mutes, and Slack or email notifications in Towbar.
 ---
 
-Scout Alerts turns performance measurements into incidents you can act on. Open **Server → Scout Agent → Alerts** to create rules and inspect active or resolved incidents. Apps and resources show the rules for that workload in their own **Scout Agent → Alerts** tab.
+Scout Alerts turns performance measurements into incidents you can act on. Open **Server → Scout Agent → Alerts** to create rules and inspect active or resolved incidents. Each server, app, or resource page shows only its own rules and incidents in **Scout Agent → Alerts**. New rules automatically monitor the entity whose page you are viewing.
 
 No rules are enabled automatically. The dotted 80% line in performance charts is a visual reference, not a notification threshold.
 
@@ -31,7 +31,7 @@ No rules are enabled automatically. The dotted 80% line in performance charts is
 ## Create a rule
 
 1. Choose **Create rule**, then start with a preset or configure a metric.
-2. Select this server or a workload on it. Workload rules select **Production** or **Previews**; preview rules consider the selected workload's preview instances together.
+2. The current server, app, or resource is selected automatically. Workload rules select **Production** or **Previews**; preview rules consider the selected workload's preview instances together.
 3. Set the threshold, direction, and how long the condition must persist. **At least** and **At most** include the threshold itself.
 4. Choose whether to send a recovery notification, then save. All destinations added under the server’s **Notifications** tab receive alerts automatically.
 
@@ -99,6 +99,8 @@ All routes below are relative to `/v1/api` and use [API key authentication](/doc
 | Mute rule                                    | `POST /servers/{serverId}/scout-alerts/rules/{ruleId}/mute` |
 | Incident history                             | `GET /servers/{serverId}/scout-alerts/incidents`            |
 
-Incident history accepts `state=active|resolved|all`, an optional `deployableId`, and `limit` up to 50. Pass both `nextBefore` and `nextBeforeId` as `before` and `beforeId` for the next page. Mutes use `{ "durationSeconds": 1800, "reason": "Maintenance" }`; zero resumes, and the maximum is seven days.
+Rule inspection also accepts `deployableId` to filter before the result limit: use a workload UUID or `server`. Omitting it returns rules across the server and its workloads for API discovery.
+
+Incident history accepts `state=active|resolved|all`, an optional `deployableId` (a workload UUID, or `server` for server-only incidents), and `limit` up to 50. Pass both `nextBefore` and `nextBeforeId` as `before` and `beforeId` for the next page. Mutes use `{ "durationSeconds": 1800, "reason": "Maintenance" }`; zero resumes, and the maximum is seven days.
 
 MCP provides `towbar_alerts_inspect`, `towbar_alerts_configure`, `towbar_alerts_mute`, and `towbar_alerts_remove`. Discover IDs before mutation, inspect the current rule before replacing it, and preserve settings the user did not request changing. See the [tool reference](/docs/api/mcp-tools) and the Scout Alerts API section for full schemas.

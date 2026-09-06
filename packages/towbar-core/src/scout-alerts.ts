@@ -162,7 +162,7 @@ export const scoutIncidentQuerySchema = z
     before: z.string().datetime().optional(),
     beforeId: z.string().uuid().optional(),
     ruleId: z.string().uuid().optional(),
-    deployableId: z.string().uuid().optional(),
+    deployableId: z.union([z.string().uuid(), z.literal("server")]).optional(),
   })
   .strict();
 

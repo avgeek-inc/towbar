@@ -27,6 +27,7 @@ scoutAlertRoutes.get(
   operation({
     responseSchema: 'scout-alerts.ts:get:"/"',
     summary: "Inspect Scout alert rules",
+    query: scoutIncidentQuerySchema.pick({ deployableId: true }),
     response:
       "Rules, evaluation status, maintenance mute, and available destinations.",
     status: 200,
@@ -35,6 +36,9 @@ scoutAlertRoutes.get(
     return context.json({
       canManage: context.get("user").workspaceRole === "owner",
       ...(await listScoutAlertRules({
+        ...scoutIncidentQuerySchema
+          .pick({ deployableId: true })
+          .parse(context.req.query()),
         serverId: context.req.param("serverId")!,
         workspaceId: context.get("user").workspaceId,
       })),

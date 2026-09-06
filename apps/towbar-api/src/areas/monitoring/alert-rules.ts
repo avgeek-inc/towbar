@@ -24,7 +24,9 @@ export type ScoutTransaction = Parameters<
   Parameters<Database["transaction"]>[0]
 >[0];
 
-export async function listScoutAlertRules(scope: ScoutScope) {
+export async function listScoutAlertRules(
+  scope: ScoutScope & { deployableId?: string },
+) {
   await getServer(scope.serverId, scope.workspaceId);
   const database = getTowbarDatabase();
   const [rules, settings, destinations, workloads] = await Promise.all([
@@ -36,6 +38,11 @@ export async function listScoutAlertRules(scope: ScoutScope) {
           eq(scoutAlertRules.serverId, scope.serverId),
           eq(scoutAlertRules.workspaceId, scope.workspaceId),
           isNull(scoutAlertRules.deletedAt),
+          scope.deployableId === "server"
+            ? isNull(scoutAlertRules.deployableId)
+            : scope.deployableId
+              ? eq(scoutAlertRules.deployableId, scope.deployableId)
+              : undefined,
         ),
       )
       .orderBy(desc(scoutAlertRules.createdAt))
@@ -336,9 +343,11 @@ export async function listScoutIncidents(
             )
           : undefined,
         input.ruleId ? eq(scoutAlertIncidents.ruleId, input.ruleId) : undefined,
-        input.deployableId
-          ? eq(scoutAlertIncidents.deployableId, input.deployableId)
-          : undefined,
+        input.deployableId === "server"
+          ? isNull(scoutAlertIncidents.deployableId)
+          : input.deployableId
+            ? eq(scoutAlertIncidents.deployableId, input.deployableId)
+            : undefined,
       ),
     )
     .orderBy(desc(scoutAlertIncidents.openedAt), desc(scoutAlertIncidents.id))
