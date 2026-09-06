@@ -115,7 +115,7 @@ export function WorkspaceAlerts() {
             href={href}
             size="sm"
             variant="secondary"
-            className="gap-2 whitespace-nowrap"
+            className="whitespace-nowrap"
           >
             <ScoutIcon name="view" />
             View alert
