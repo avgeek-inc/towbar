@@ -27,7 +27,7 @@ export type ScoutTransaction = Parameters<
 export async function listScoutAlertRules(scope: ScoutScope) {
   await getServer(scope.serverId, scope.workspaceId);
   const database = getTowbarDatabase();
-  const [rules, settings, destinations] = await Promise.all([
+  const [rules, settings, destinations, workloads] = await Promise.all([
     database
       .select()
       .from(scoutAlertRules)
@@ -67,9 +67,42 @@ export async function listScoutAlertRules(scope: ScoutScope) {
         ),
       )
       .limit(200),
+    database
+      .select({
+        id: apps.id,
+        name: apps.name,
+        sourceId: apps.sourceId,
+        kind: apps.kind,
+      })
+      .from(apps)
+      .where(
+        and(
+          eq(apps.workspaceId, scope.workspaceId),
+          eq(apps.serverId, scope.serverId),
+          isNull(apps.archivedAt),
+        ),
+      )
+      .orderBy(apps.name)
+      .limit(512),
   ]);
+  const checks = await database.execute<{
+    rule_id: string;
+    checked_at: string | null;
+    state: string;
+    status_code: number | null;
+    latency_ms: number | null;
+    reason: string | null;
+  }>(sql`
+    select distinct on(c.rule_id) c.rule_id,c.checked_at::text,c.state,c.status_code,c.latency_ms,c.reason
+    from towbar_scout_http_checks c join towbar_scout_alert_rules r on r.id=c.rule_id
+    where r.server_id=${scope.serverId}::uuid and r.workspace_id=${scope.workspaceId}::uuid and r.deleted_at is null and date_trunc('milliseconds',r.updated_at)=c.rule_revision
+    order by c.rule_id,c.scheduled_at desc limit 100`);
   return {
-    rules,
+    rules: rules.map((rule) => ({
+      ...rule,
+      httpCheck: checks.find((check) => check.rule_id === rule.id) ?? null,
+    })),
+    workloads,
     settings: settings[0] ?? { mutedUntil: null, muteReason: "" },
     destinations,
     providers: notificationProviderAvailability(),
@@ -89,6 +122,21 @@ export async function saveScoutAlertRule(
     // Serialize admission with removal, other rule creates, and workload moves.
     await lockScoutServer(tx, input);
     const sourceId = await validateWorkload(tx, input, rule.deployableId);
+    if (rule.condition.metric === "httpAvailability") {
+      const existingHttp = await tx
+        .select({ id: scoutAlertRules.id })
+        .from(scoutAlertRules)
+        .where(
+          and(
+            eq(scoutAlertRules.serverId, input.serverId),
+            isNull(scoutAlertRules.deletedAt),
+            sql`${scoutAlertRules.condition}->>'metric'='httpAvailability'`,
+          ),
+        )
+        .limit(11);
+      if (existingHttp.filter((item) => item.id !== input.ruleId).length >= 10)
+        throw conflict("A server supports up to 10 public HTTP checks");
+    }
     if (rule.destinationIds.length) {
       const destinations = await tx
         .select()
@@ -188,16 +236,14 @@ export async function saveScoutAlertRule(
         .returning();
     }
     if (!result) throw new Error("Scout rule was not saved");
-    await tx
-      .insert(auditEvents)
-      .values({
-        workspaceId: input.workspaceId,
-        actorUserId: input.requestedBy,
-        action: input.ruleId ? "scout.rule_updated" : "scout.rule_created",
-        targetType: "server",
-        targetId: input.serverId,
-        metadata: { ruleId: result.id },
-      });
+    await tx.insert(auditEvents).values({
+      workspaceId: input.workspaceId,
+      actorUserId: input.requestedBy,
+      action: input.ruleId ? "scout.rule_updated" : "scout.rule_created",
+      targetType: "server",
+      targetId: input.serverId,
+      metadata: { ruleId: result.id },
+    });
     return result;
   });
 }
@@ -221,16 +267,14 @@ export async function deleteScoutAlertRule(
       .returning({ id: scoutAlertRules.id });
     if (!row) throw notFound("Scout alert rule");
     await resolveRuleIncidents(tx, row.id, "rule_deleted");
-    await tx
-      .insert(auditEvents)
-      .values({
-        workspaceId: input.workspaceId,
-        actorUserId: input.requestedBy,
-        action: "scout.rule_deleted",
-        targetType: "server",
-        targetId: input.serverId,
-        metadata: { ruleId: row.id },
-      });
+    await tx.insert(auditEvents).values({
+      workspaceId: input.workspaceId,
+      actorUserId: input.requestedBy,
+      action: "scout.rule_deleted",
+      targetType: "server",
+      targetId: input.serverId,
+      metadata: { ruleId: row.id },
+    });
   });
 }
 
@@ -259,7 +303,7 @@ export async function muteScoutAlerts(
     if (input.ruleId) {
       const [row] = await tx
         .update(scoutAlertRules)
-        .set(values)
+        .set({ mutedUntil: values.mutedUntil, muteReason: values.muteReason })
         .where(
           and(
             eq(scoutAlertRules.id, input.ruleId),
@@ -278,20 +322,18 @@ export async function muteScoutAlerts(
           target: scoutAlertSettings.serverId,
           set: values,
         });
-    await tx
-      .insert(auditEvents)
-      .values({
-        workspaceId: input.workspaceId,
-        actorUserId: input.requestedBy,
-        action: mute.durationSeconds ? "scout.muted" : "scout.unmuted",
-        targetType: "server",
-        targetId: input.serverId,
-        metadata: {
-          ruleId: input.ruleId ?? null,
-          mutedUntil: values.mutedUntil?.toISOString() ?? null,
-          reason: values.muteReason,
-        },
-      });
+    await tx.insert(auditEvents).values({
+      workspaceId: input.workspaceId,
+      actorUserId: input.requestedBy,
+      action: mute.durationSeconds ? "scout.muted" : "scout.unmuted",
+      targetType: "server",
+      targetId: input.serverId,
+      metadata: {
+        ruleId: input.ruleId ?? null,
+        mutedUntil: values.mutedUntil?.toISOString() ?? null,
+        reason: values.muteReason,
+      },
+    });
     return values;
   });
 }

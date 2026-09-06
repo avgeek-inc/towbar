@@ -1,3 +1,4 @@
+import { assertScoutHttpChecks } from "./scout-http-test-helper.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -97,44 +98,36 @@ void test(
         { id: workspaceId, slug: workspaceId, name: "Scout test" },
         { id: otherWorkspace, slug: otherWorkspace, name: "Other tenant" },
       ]);
-      await db
-        .insert(users)
-        .values({
-          id: userId,
-          email: `${userId}@example.com`,
-          displayName: "Scout tester",
-        });
-      await db
-        .insert(servers)
-        .values({
-          id: serverId,
-          workspaceId,
-          canonicalIp: "192.0.2.201",
-          config: normalizeServerConfiguration({
-            ip: "192.0.2.201",
-            ssh: { username: "deploy" },
-          }),
-          configDigest: "fixture",
-        });
-      await db
-        .insert(monitoringAgents)
-        .values({
-          serverId,
-          desiredState: "enabled",
-          status: "online",
-          lastCollectedAt: now,
-        });
-      await db
-        .insert(notificationDestinations)
-        .values({
-          id: destinationId,
-          workspaceId,
-          serverId,
-          provider: "slack",
-          config: { channelId: "CFIXTURE" },
-          categories: ["scout"],
-          enabled: true,
-        });
+      await db.insert(users).values({
+        id: userId,
+        email: `${userId}@example.com`,
+        displayName: "Scout tester",
+      });
+      await db.insert(servers).values({
+        id: serverId,
+        workspaceId,
+        canonicalIp: "192.0.2.201",
+        config: normalizeServerConfiguration({
+          ip: "192.0.2.201",
+          ssh: { username: "deploy" },
+        }),
+        configDigest: "fixture",
+      });
+      await db.insert(monitoringAgents).values({
+        serverId,
+        desiredState: "enabled",
+        status: "online",
+        lastCollectedAt: now,
+      });
+      await db.insert(notificationDestinations).values({
+        id: destinationId,
+        workspaceId,
+        serverId,
+        provider: "slack",
+        config: { channelId: "CFIXTURE" },
+        categories: ["scout"],
+        enabled: true,
+      });
       const rule = scoutAlertRuleSchema.parse({
         name: "Memory pressure",
         condition: scoutAlertPresets.find((p) => p.id === "memory")!.condition,
@@ -265,6 +258,262 @@ void test(
           assert(incidents.some((i) => i.resolutionReason === "rule_changed"));
           await deleteScoutAlertRule({ ...scope, ruleId });
           assert.equal((await listScoutAlertRules(scope)).rules.length, 0);
+        },
+      );
+      await t.test(
+        "HTTP checks have durable claims, work without an agent, and ignore changed configuration",
+        () => assertScoutHttpChecks(scope, sweep),
+      );
+      await t.test(
+        "queued deliveries respect maintenance, destination changes and archived servers without sending",
+        async () => {
+          const { executeNotificationDeliveryAttempt } =
+            await import("../notifications/delivery-service.js");
+          const originalFetch = globalThis.fetch;
+          let outbound = 0;
+          globalThis.fetch = () => {
+            outbound++;
+            return Promise.reject(
+              new Error("External delivery forbidden in this test"),
+            );
+          };
+          try {
+            await db
+              .update(monitoringAgents)
+              .set({ desiredState: "enabled" })
+              .where(eq(monitoringAgents.serverId, serverId));
+            for (const mode of ["mute", "category", "archived"] as const) {
+              const at = new Date(Date.now() + 600_000);
+              const saved = await saveScoutAlertRule({
+                ...scope,
+                rule: {
+                  ...rule,
+                  name: `Suppression ${mode}`,
+                  condition: { ...rule.condition, durationSeconds: 0 },
+                },
+              });
+              await samples(at, 99, 1);
+              await sweep(at);
+              const [incident] = await db
+                .select()
+                .from(scoutAlertIncidents)
+                .where(
+                  and(
+                    eq(scoutAlertIncidents.ruleId, saved.id),
+                    isNull(scoutAlertIncidents.resolvedAt),
+                  ),
+                );
+              assert(incident);
+              const item = (await pending()).find(
+                (row) =>
+                  row.towbar_notification_events.payload.details.incidentId ===
+                  incident.id,
+              )!;
+              assert(item);
+              if (mode === "mute")
+                await muteScoutAlerts({
+                  ...scope,
+                  ruleId: saved.id,
+                  durationSeconds: 3600,
+                  reason: "Deployment maintenance",
+                });
+              if (mode === "category")
+                await db
+                  .update(notificationDestinations)
+                  .set({ categories: [] })
+                  .where(eq(notificationDestinations.id, destinationId));
+              if (mode === "archived")
+                await db
+                  .update(servers)
+                  .set({ archivedAt: new Date() })
+                  .where(eq(servers.id, serverId));
+              const input = {
+                deliveryId: item.towbar_notification_deliveries.id,
+                cycle: item.towbar_notification_deliveries.cycle,
+                attempt: 1,
+              };
+              assert.equal(
+                (await executeNotificationDeliveryAttempt(input)).outcome,
+                "terminal",
+              );
+              const [delivery] = await db
+                .select()
+                .from(notificationDeliveries)
+                .where(eq(notificationDeliveries.id, input.deliveryId));
+              assert.equal(
+                delivery?.lastErrorCode,
+                "SCOUT_NOTIFICATION_SUPPRESSED",
+              );
+              await db
+                .update(servers)
+                .set({ archivedAt: null })
+                .where(eq(servers.id, serverId));
+              await db
+                .update(notificationDestinations)
+                .set({ categories: ["scout"] })
+                .where(eq(notificationDestinations.id, destinationId));
+              if (mode === "mute")
+                await muteScoutAlerts({
+                  ...scope,
+                  ruleId: saved.id,
+                  durationSeconds: 0,
+                  reason: "",
+                });
+              assert.equal(
+                (await executeNotificationDeliveryAttempt(input)).outcome,
+                "terminal",
+                "A delayed retry must not revive a suppressed delivery",
+              );
+              await deleteScoutAlertRule({ ...scope, ruleId: saved.id });
+            }
+            assert.equal(outbound, 0);
+          } finally {
+            globalThis.fetch = originalFetch;
+          }
+        },
+      );
+      await t.test(
+        "restart windows exclude the left boundary and do not recover across blackouts",
+        async () => {
+          const saved = await saveScoutAlertRule({
+            ...scope,
+            rule: scoutAlertRuleSchema.parse({
+              name: "Restart loop",
+              condition: {
+                ...scoutAlertPresets.find((p) => p.id === "restarts")!
+                  .condition,
+                windowSeconds: 60,
+                recoverySeconds: 0,
+              },
+            }),
+          });
+          const at = new Date(Date.now() + 1200_000);
+          const entityId = "a".repeat(64);
+          const add = (offset: number, restartCount: number | null) =>
+            db.insert(monitoringSamples).values({
+              serverId,
+              entityId,
+              bucketAt: new Date(at.getTime() + offset),
+              metrics:
+                restartCount === null
+                  ? {}
+                  : aggregateMonitoringValues({ restartCount }),
+            });
+          await add(-90_000, 0);
+          await add(-60_000, 9);
+          await add(-30_000, 10);
+          await add(0, 11);
+          await sweep(at);
+          let [state] = await db
+            .select()
+            .from(scoutAlertRules)
+            .where(eq(scoutAlertRules.id, saved.id));
+          assert.equal(
+            state?.observedValue,
+            2,
+            "Exclude nine restarts at the exact left boundary",
+          );
+          assert.equal(state?.evaluationState, "healthy");
+          await add(30_000, 15);
+          await sweep(new Date(at.getTime() + 30_000));
+          [state] = await db
+            .select()
+            .from(scoutAlertRules)
+            .where(eq(scoutAlertRules.id, saved.id));
+          assert.equal(state?.evaluationState, "firing");
+          await add(300_000, 15);
+          await sweep(new Date(at.getTime() + 300_000));
+          [state] = await db
+            .select()
+            .from(scoutAlertRules)
+            .where(eq(scoutAlertRules.id, saved.id));
+          assert.equal(state?.evaluationState, "unknown");
+          assert.equal(
+            (
+              await db
+                .select()
+                .from(scoutAlertIncidents)
+                .where(
+                  and(
+                    eq(scoutAlertIncidents.ruleId, saved.id),
+                    isNull(scoutAlertIncidents.resolvedAt),
+                  ),
+                )
+            ).length,
+            1,
+          );
+          await deleteScoutAlertRule({ ...scope, ruleId: saved.id });
+        },
+      );
+      await t.test(
+        "retention preserves active delivery proof and removes expired resolved history",
+        async () => {
+          const { maintainScoutAlertHistory } =
+            await import("./alert-retention.js");
+          const saved = await saveScoutAlertRule({ ...scope, rule });
+          const at = new Date(Date.now() + 1800_000);
+          await samples(at, 99);
+          await sweep(at);
+          const [incident] = await db
+            .select()
+            .from(scoutAlertIncidents)
+            .where(
+              and(
+                eq(scoutAlertIncidents.ruleId, saved.id),
+                isNull(scoutAlertIncidents.resolvedAt),
+              ),
+            );
+          assert(incident);
+          const item = (await pending()).find(
+            (row) =>
+              row.towbar_notification_events.payload.details.incidentId ===
+              incident.id,
+          )!;
+          const old = new Date(at.getTime() - 16 * 86400_000);
+          await db
+            .update(notificationEvents)
+            .set({ occurredAt: old })
+            .where(
+              eq(notificationEvents.id, item.towbar_notification_events.id),
+            );
+          await maintainScoutAlertHistory(at);
+          assert.equal(
+            (
+              await db
+                .select()
+                .from(notificationEvents)
+                .where(
+                  eq(notificationEvents.id, item.towbar_notification_events.id),
+                )
+            ).length,
+            1,
+          );
+          await db
+            .update(scoutAlertIncidents)
+            .set({ resolvedAt: old, resolutionReason: "recovered" })
+            .where(eq(scoutAlertIncidents.id, incident.id));
+          await maintainScoutAlertHistory(at);
+          assert.equal(
+            (
+              await db
+                .select()
+                .from(notificationEvents)
+                .where(
+                  eq(notificationEvents.id, item.towbar_notification_events.id),
+                )
+            ).length,
+            0,
+          );
+          assert.equal(
+            (
+              await db
+                .select()
+                .from(scoutAlertIncidents)
+                .where(eq(scoutAlertIncidents.id, incident.id))
+            ).length,
+            0,
+          );
+          await deleteScoutAlertRule({ ...scope, ruleId: saved.id });
         },
       );
     } finally {

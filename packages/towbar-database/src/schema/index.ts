@@ -1765,3 +1765,27 @@ export const scoutAlertIncidents = pgTable(
     ),
   ],
 );
+
+export const scoutHttpChecks = pgTable(
+  "towbar_scout_http_checks",
+  {
+    ruleId: uuid("rule_id")
+      .notNull()
+      .references(() => scoutAlertRules.id, { onDelete: "cascade" }),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+    checkedAt: timestamp("checked_at", { withTimezone: true }),
+    ruleRevision: timestamp("rule_revision", { withTimezone: true }).notNull(),
+    state: varchar("state", { length: 20 }).notNull().default("pending"),
+    statusCode: integer("status_code"),
+    latencyMs: integer("latency_ms"),
+    reason: varchar("reason", { length: 240 }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.ruleId, table.scheduledAt] }),
+    index("towbar_scout_http_retention").on(table.scheduledAt),
+    check(
+      "towbar_scout_http_state",
+      sql`${table.state} in ('pending','healthy','failed','blocked')`,
+    ),
+  ],
+);

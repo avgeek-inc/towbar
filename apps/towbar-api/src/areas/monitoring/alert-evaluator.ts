@@ -2,6 +2,7 @@ import { and, asc, eq, isNull, lte, or, sql } from "drizzle-orm";
 import {
   type ScoutObservation,
   evaluateScoutCondition,
+  scoutAlertConditionSchema,
 } from "@workspace/towbar-core";
 import {
   apps,
@@ -13,6 +14,7 @@ import {
   scoutAlertIncidents,
   scoutAlertRules,
   scoutAlertSettings,
+  scoutHttpChecks,
   servers,
   sources,
 } from "@workspace/towbar-database/schema";
@@ -46,112 +48,151 @@ export async function evaluateScoutAlerts(
       asc(scoutAlertRules.id),
     )
     .limit(100);
-  let evaluated = 0;
+  let evaluated = 0,
+    errors = 0,
+    visited = 0;
+  const deadline = Date.now() + 40_000;
   for (const candidate of candidates) {
-    const deliveries = await db.transaction(async (tx) => {
-      const [server] = await tx
-        .select()
-        .from(servers)
-        .where(eq(servers.id, candidate.serverId))
-        .for("share")
-        .limit(1);
-      const [rule] = await tx
-        .select()
-        .from(scoutAlertRules)
-        .where(
-          and(
-            eq(scoutAlertRules.id, candidate.id),
-            eq(scoutAlertRules.enabled, true),
-            isNull(scoutAlertRules.deletedAt),
-            or(
-              isNull(scoutAlertRules.evaluatedAt),
-              lte(scoutAlertRules.evaluatedAt, due),
+    if (Date.now() >= deadline) break;
+    visited++;
+    try {
+      const deliveries = await db.transaction(async (tx) => {
+        await tx.execute(sql`set local statement_timeout = '4000ms'`);
+        await tx.execute(sql`set local lock_timeout = '1000ms'`);
+        const [server] = await tx
+          .select()
+          .from(servers)
+          .where(eq(servers.id, candidate.serverId))
+          .for("share")
+          .limit(1);
+        const [rule] = await tx
+          .select()
+          .from(scoutAlertRules)
+          .where(
+            and(
+              eq(scoutAlertRules.id, candidate.id),
+              eq(scoutAlertRules.enabled, true),
+              isNull(scoutAlertRules.deletedAt),
+              or(
+                isNull(scoutAlertRules.evaluatedAt),
+                lte(scoutAlertRules.evaluatedAt, due),
+              ),
             ),
-          ),
-        )
-        .for("update", { skipLocked: true })
-        .limit(1);
-      if (!rule) return [];
-      evaluated++;
-      const [agent] = await tx
-        .select()
-        .from(monitoringAgents)
-        .where(eq(monitoringAgents.serverId, rule.serverId))
-        .limit(1);
-      const [workload] = rule.deployableId
-        ? await tx
-            .select({
-              id: apps.id,
-              name: apps.name,
-              kind: apps.kind,
-              sourceId: apps.sourceId,
-              serverId: apps.serverId,
-              archivedAt: apps.archivedAt,
+          )
+          .for("update", { skipLocked: true })
+          .limit(1);
+        if (!rule) return [];
+        scoutAlertConditionSchema.parse(rule.condition);
+        evaluated++;
+        const [agent] = await tx
+          .select()
+          .from(monitoringAgents)
+          .where(eq(monitoringAgents.serverId, rule.serverId))
+          .limit(1);
+        const [workload] = rule.deployableId
+          ? await tx
+              .select({
+                id: apps.id,
+                name: apps.name,
+                kind: apps.kind,
+                sourceId: apps.sourceId,
+                serverId: apps.serverId,
+                archivedAt: apps.archivedAt,
+              })
+              .from(apps)
+              .where(
+                and(
+                  eq(apps.id, rule.deployableId),
+                  eq(apps.workspaceId, rule.workspaceId),
+                ),
+              )
+              .limit(1)
+          : [];
+        if (
+          !server ||
+          server.archivedAt ||
+          server.workspaceId !== rule.workspaceId ||
+          (rule.condition.metric !== "httpAvailability" &&
+            (!agent || agent.desiredState !== "enabled")) ||
+          (rule.deployableId &&
+            (!workload ||
+              workload.archivedAt ||
+              workload.serverId !== server.id))
+        ) {
+          await resolveRuleIncidents(tx, rule.id, "monitoring_inactive", now);
+          await tx
+            .update(scoutAlertRules)
+            .set({
+              evaluatedAt: now,
+              evaluationState: "inactive",
+              observedValue: null,
             })
-            .from(apps)
+            .where(eq(scoutAlertRules.id, rule.id));
+          return [];
+        }
+        const [active] = await tx
+          .select()
+          .from(scoutAlertIncidents)
+          .where(
+            and(
+              eq(scoutAlertIncidents.ruleId, rule.id),
+              isNull(scoutAlertIncidents.resolvedAt),
+            ),
+          )
+          .limit(1);
+        const observations = await getRuleObservations(
+          tx,
+          rule,
+          agent,
+          Boolean(active),
+          now,
+        );
+        const result = evaluateScoutCondition(
+          rule.condition,
+          observations,
+          now.getTime(),
+          Boolean(active),
+        );
+        return applyRuleResult(
+          tx,
+          rule,
+          active,
+          { server, workload },
+          result,
+          now,
+        );
+      });
+      await enqueue(deliveries);
+    } catch {
+      errors++;
+      // Skip one bad rule without starving later rules. Delivery intents remain in the durable outbox.
+      await db
+        .transaction(async (tx) => {
+          await tx.execute(sql`set local statement_timeout = '1500ms'`);
+          await tx.execute(sql`set local lock_timeout = '500ms'`);
+          await tx
+            .update(scoutAlertRules)
+            .set({
+              evaluatedAt: now,
+              evaluationState: "error",
+              observedValue: null,
+            })
             .where(
               and(
-                eq(apps.id, rule.deployableId),
-                eq(apps.workspaceId, rule.workspaceId),
+                eq(scoutAlertRules.id, candidate.id),
+                isNull(scoutAlertRules.deletedAt),
+                eq(scoutAlertRules.enabled, true),
               ),
-            )
-            .limit(1)
-        : [];
-      if (
-        !server ||
-        server.archivedAt ||
-        server.workspaceId !== rule.workspaceId ||
-        !agent ||
-        agent.desiredState !== "enabled" ||
-        (rule.deployableId &&
-          (!workload || workload.archivedAt || workload.serverId !== server.id))
-      ) {
-        await resolveRuleIncidents(tx, rule.id, "monitoring_inactive", now);
-        await tx
-          .update(scoutAlertRules)
-          .set({
-            evaluatedAt: now,
-            evaluationState: "inactive",
-            observedValue: null,
-          })
-          .where(eq(scoutAlertRules.id, rule.id));
-        return [];
-      }
-      const [active] = await tx
-        .select()
-        .from(scoutAlertIncidents)
-        .where(
-          and(
-            eq(scoutAlertIncidents.ruleId, rule.id),
-            isNull(scoutAlertIncidents.resolvedAt),
-          ),
-        )
-        .limit(1);
-      const observations = await getRuleObservations(
-        tx,
-        rule,
-        agent,
-        Boolean(active),
-        now,
-      );
-      const result = evaluateScoutCondition(
-        rule.condition,
-        observations,
-        now.getTime(),
-        Boolean(active),
-      );
-      return applyRuleResult(
-        tx,
-        rule,
-        active,
-        { server, workload },
-        result,
-        now,
-      );
-    });
-    await enqueue(deliveries);
+            );
+        })
+        .catch(() => undefined);
+    }
   }
-  return { evaluated, more: candidates.length === 100 };
+  return {
+    evaluated,
+    errors,
+    more: candidates.length === 100 || visited < candidates.length,
+  };
 }
 
 async function queueScoutNotification(
@@ -245,6 +286,7 @@ async function queueScoutNotification(
           incidentId: incident.id,
           ruleId: rule.id,
           severity: rule.severity,
+          environment: rule.environment,
           metric: rule.condition.metric,
           threshold: rule.condition.threshold,
           value: incident.lastValue,
@@ -281,13 +323,32 @@ async function queueScoutNotification(
 async function getRuleObservations(
   tx: ScoutTransaction,
   rule: typeof scoutAlertRules.$inferSelect,
-  agent: typeof monitoringAgents.$inferSelect,
+  agent: typeof monitoringAgents.$inferSelect | undefined,
   active: boolean,
   now: Date,
 ): Promise<ScoutObservation[]> {
   const condition = rule.condition;
   let observations: ScoutObservation[] = [];
-  if (condition.metric === "missingReports") {
+  if (condition.metric === "httpAvailability") {
+    const checks = await tx
+      .select()
+      .from(scoutHttpChecks)
+      .where(
+        and(
+          eq(scoutHttpChecks.ruleId, rule.id),
+          sql`date_trunc('milliseconds',${scoutHttpChecks.ruleRevision})=${rule.updatedAt.toISOString()}::timestamptz`,
+          sql`${scoutHttpChecks.scheduledAt} >= ${new Date(now.getTime() - (Math.max(condition.durationSeconds, condition.recoverySeconds) + 2 * condition.http!.intervalSeconds) * 1000).toISOString()}::timestamptz`,
+          lte(scoutHttpChecks.scheduledAt, now),
+        ),
+      )
+      .orderBy(asc(scoutHttpChecks.scheduledAt))
+      .limit(245);
+    return checks.map((check) => ({
+      at: (check.checkedAt ?? check.scheduledAt).getTime(),
+      value:
+        check.state === "healthy" ? 0 : check.state === "failed" ? 1 : null,
+    }));
+  } else if (condition.metric === "missingReports" && agent) {
     // Installation is given time to produce its first valid report.
     const last =
       agent.lastCollectedAt?.getTime() ??
@@ -335,7 +396,7 @@ async function getRuleObservations(
         }));
       }
     }
-  } else if (condition.metric !== "httpAvailability") {
+  } else if (condition.metric !== "missingReports") {
     const historySeconds =
       Math.max(condition.durationSeconds, condition.recoverySeconds) +
       (condition.metric === "restarts" ? condition.windowSeconds : 0) +
@@ -356,17 +417,17 @@ async function getRuleObservations(
                 from towbar_monitoring_samples where ${filter}
               ), deltas as (
                 select bucket_at,sum(case when bucket_at-previous_at<=interval '90 seconds' then greatest(0,value-previous) else 0 end) value,
-                  bool_and(value is not null) complete
+                  bool_and(value is not null and previous is not null and bucket_at-previous_at<=interval '90 seconds') complete
                 from counters group by bucket_at
               ), windows as (
                 select bucket_at,sum(value) over w value,count(*) over w samples,bool_and(complete) over w complete
-                from deltas window w as(order by bucket_at range between ${condition.windowSeconds}*interval '1 second' preceding and current row)
+                from deltas window w as(order by bucket_at range between (${condition.windowSeconds}*interval '1 second'-interval '1 millisecond') preceding and current row)
               ) select bucket_at::text at,case when complete and samples*30>=${condition.windowSeconds} then value else null end value
               from windows order by bucket_at limit 245`)
         : await tx.execute<{ at: string; value: number | null }>(sql`
-              select bucket_at::text at,${condition.operator === "above" ? sql`max` : sql`min`}(
+              select bucket_at::text at,case when bool_and(coalesce((metrics->${condition.metric}->>'count')::integer,0)>0) then ${condition.operator === "above" ? sql`max` : sql`min`}(
                 ${condition.aggregation === "peak" ? sql`(metrics->${condition.metric}->>'max')::double precision` : sql`(metrics->${condition.metric}->>'sum')::double precision/nullif((metrics->${condition.metric}->>'count')::integer,0)`}
-              ) value from towbar_monitoring_samples where ${filter} group by bucket_at order by bucket_at limit 245`);
+              ) else null end value from towbar_monitoring_samples where ${filter} group by bucket_at order by bucket_at limit 245`);
     observations = rows.map((row) => ({
       at: new Date(row.at).getTime(),
       value: row.value === null ? null : Number(row.value),

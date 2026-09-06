@@ -24,8 +24,12 @@ export async function runScoutAlertsWorkflow() {
   });
   for (let run = 0; run < 720; run++) {
     wake = false;
+    const started = Date.now();
     const result = await evaluateScoutAlertsActivity().catch(() => null);
-    await condition(() => wake, result?.more ? "1 second" : "30 seconds");
+    await condition(
+      () => wake,
+      result?.more ? 1000 : Math.max(1000, 30_000 - (Date.now() - started)),
+    );
   }
   await continueAsNew<typeof runScoutAlertsWorkflow>();
 }

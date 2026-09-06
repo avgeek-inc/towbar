@@ -16,10 +16,12 @@ import {
   workloadPath,
   workloadRoute,
 } from "./mcp-toolkit.js";
+import { scoutTools } from "./mcp-scout-tools.js";
 import { infrastructureTools } from "./mcp-infrastructure-tools.js";
 export type { OperationCall } from "./mcp-toolkit.js";
 
 export const mcpTools: McpTool[] = [
+  ...scoutTools,
   tool(
     "workspace_inspect",
     "Inspect workspace",

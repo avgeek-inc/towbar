@@ -2,6 +2,8 @@ import { and, asc, eq, lte, or, sql } from "drizzle-orm";
 import { ZodError } from "zod";
 
 import {
+  apps,
+  monitoringAgents,
   notificationDeliveries,
   notificationDeliveryAttempts,
   notificationDestinations,
@@ -10,6 +12,7 @@ import {
   scoutAlertIncidents,
   scoutAlertRules,
   scoutAlertSettings,
+  servers,
 } from "@workspace/towbar-database/schema";
 
 import { getTowbarDatabase } from "../../infrastructure/database.js";
@@ -128,6 +131,7 @@ async function claimAttempt(input: {
       .select({
         config: notificationDestinations.config,
         cycle: notificationDeliveries.cycle,
+        destinationCategories: notificationDestinations.categories,
         destinationEnabled: notificationDestinations.enabled,
         destinationDeletedAt: notificationDestinations.deletedAt,
         destinationId: notificationDestinations.id,
@@ -138,6 +142,7 @@ async function claimAttempt(input: {
         payload: notificationEvents.payload,
         provider: notificationDestinations.provider,
         state: notificationDeliveries.state,
+        lastErrorCode: notificationDeliveries.lastErrorCode,
       })
       .from(notificationDeliveries)
       .innerJoin(
@@ -149,9 +154,14 @@ async function claimAttempt(input: {
         eq(notificationDestinations.id, notificationDeliveries.destinationId),
       )
       .where(eq(notificationDeliveries.id, input.deliveryId))
-      .for("update")
+      .for("update", { of: notificationDeliveries })
       .limit(1);
     if (!delivery) return { outcome: { outcome: "terminal" as const } };
+    if (
+      delivery.lastErrorCode === "SCOUT_NOTIFICATION_SUPPRESSED" &&
+      delivery.state === "failed"
+    )
+      return { outcome: { outcome: "terminal" as const } };
     if (delivery.cycle !== input.cycle || delivery.state === "succeeded") {
       return { outcome: { outcome: "stale" as const } };
     }
@@ -461,6 +471,9 @@ async function suppressScoutDelivery(
   delivery: {
     payload: import("@workspace/towbar-core").NotificationEventPayload;
     eventType: string;
+    destinationCategories: string[];
+    destinationEnabled: boolean;
+    destinationDeletedAt: Date | null;
     destinationId: string;
     deliveryId: string;
   },
@@ -486,13 +499,53 @@ async function suppressScoutDelivery(
           .where(eq(scoutAlertIncidents.id, incidentId))
           .limit(1)
       : [];
+  const [scope] = scout
+    ? await transaction
+        .select({
+          archivedAt: servers.archivedAt,
+          desiredState: monitoringAgents.desiredState,
+        })
+        .from(servers)
+        .leftJoin(monitoringAgents, eq(monitoringAgents.serverId, servers.id))
+        .where(
+          and(
+            eq(servers.id, scout.rule.serverId),
+            eq(servers.workspaceId, scout.rule.workspaceId),
+          ),
+        )
+        .limit(1)
+    : [];
+  const [workload] = scout?.rule.deployableId
+    ? await transaction
+        .select({ id: apps.id })
+        .from(apps)
+        .where(
+          and(
+            eq(apps.id, scout.rule.deployableId),
+            eq(apps.serverId, scout.rule.serverId),
+            eq(apps.workspaceId, scout.rule.workspaceId),
+            sql`${apps.archivedAt} is null`,
+          ),
+        )
+        .limit(1)
+    : [];
   const now = new Date();
   const suppressed =
     !scout ||
-    !scout.rule.enabled ||
-    scout.rule.deletedAt ||
-    (scout.rule.mutedUntil && scout.rule.mutedUntil > now) ||
-    (scout.settings?.mutedUntil && scout.settings.mutedUntil > now) ||
+    !scope ||
+    scope.archivedAt ||
+    (scout.rule.condition.metric !== "httpAvailability" &&
+      scope.desiredState !== "enabled") ||
+    (scout.rule.deployableId && !workload) ||
+    !delivery.destinationEnabled ||
+    delivery.destinationDeletedAt ||
+    !delivery.destinationCategories.includes("scout") ||
+    scoutNotificationsPaused(scout.rule, scout.settings, now) ||
+    scoutIncidentChanged(
+      scout.rule,
+      scout.incident,
+      delivery.payload.details.environment,
+    ) ||
     !scout.rule.destinationIds.includes(delivery.destinationId) ||
     (delivery.eventType !== "scout.recovered" && scout.incident.resolvedAt) ||
     (delivery.eventType === "scout.recovered" &&
@@ -528,4 +581,29 @@ async function suppressScoutDelivery(
   }
 
   return false;
+}
+
+function scoutNotificationsPaused(
+  rule: typeof scoutAlertRules.$inferSelect,
+  settings: typeof scoutAlertSettings.$inferSelect | null,
+  now: Date,
+) {
+  return (
+    !rule.enabled ||
+    rule.deletedAt !== null ||
+    Boolean(rule.mutedUntil && rule.mutedUntil > now) ||
+    Boolean(settings?.mutedUntil && settings.mutedUntil > now)
+  );
+}
+
+function scoutIncidentChanged(
+  rule: typeof scoutAlertRules.$inferSelect,
+  incident: typeof scoutAlertIncidents.$inferSelect,
+  environment: unknown,
+) {
+  return (
+    JSON.stringify(rule.condition) !== JSON.stringify(incident.condition) ||
+    rule.deployableId !== incident.deployableId ||
+    (typeof environment === "string" && rule.environment !== environment)
+  );
 }

@@ -11,9 +11,52 @@ export const scoutAlertMetrics = [
   "httpAvailability",
 ] as const;
 
+export const scoutHttpCheckSchema = z
+  .object({
+    url: z
+      .string()
+      .trim()
+      .url()
+      .max(2048)
+      .refine((value) => {
+        let url: URL;
+        try {
+          url = new URL(value);
+        } catch {
+          return false;
+        }
+        return (
+          ["http:", "https:"].includes(url.protocol) &&
+          !url.username &&
+          !url.password &&
+          !url.hash &&
+          (!url.port || url.port === "80" || url.port === "443")
+        );
+      }, "Use a public HTTP or HTTPS URL on port 80 or 443, without credentials or a fragment"),
+    method: z.enum(["GET", "HEAD"]).default("GET"),
+    intervalSeconds: z
+      .number()
+      .int()
+      .min(30)
+      .max(300)
+      .multipleOf(30)
+      .default(60),
+    timeoutSeconds: z.number().int().min(1).max(10).default(5),
+    expectedStatusMin: z.number().int().min(100).max(599).default(200),
+    expectedStatusMax: z.number().int().min(100).max(599).default(299),
+    maxRedirects: z.number().int().min(0).max(3).default(0),
+  })
+  .strict()
+  .refine((value) => value.expectedStatusMin <= value.expectedStatusMax, {
+    path: ["expectedStatusMax"],
+    message: "Status range must be in increasing order",
+  });
+export type ScoutHttpCheck = z.infer<typeof scoutHttpCheckSchema>;
+
 export const scoutAlertConditionSchema = z
   .object({
     metric: z.enum(scoutAlertMetrics),
+    http: scoutHttpCheckSchema.optional(),
     operator: z.enum(["above", "below"]).default("above"),
     threshold: z.number().finite().nonnegative().max(1e18),
     recoveryThreshold: z.number().finite().nonnegative().max(1e18),
@@ -24,6 +67,22 @@ export const scoutAlertConditionSchema = z
   })
   .strict()
   .superRefine((value, ctx) => {
+    if (
+      value.metric === "httpAvailability" &&
+      (!value.http || value.threshold !== 1 || value.recoveryThreshold !== 0)
+    )
+      ctx.addIssue({
+        code: "custom",
+        path: ["http"],
+        message:
+          "HTTP checks require a URL, a failure threshold of 1, and a recovery threshold of 0",
+      });
+    if (value.metric !== "httpAvailability" && value.http)
+      ctx.addIssue({
+        code: "custom",
+        path: ["http"],
+        message: "HTTP settings apply only to an HTTP check",
+      });
     if (
       value.operator === "above"
         ? value.recoveryThreshold > value.threshold
@@ -238,11 +297,14 @@ export function evaluateScoutCondition(
     ).values(),
   ].sort((a, b) => a.at - b.at);
   const latest = points.at(-1);
+  const maxGapMs = condition.http
+    ? (condition.http.intervalSeconds + 30) * 1000
+    : 90_000;
   if (
     !latest ||
     latest.value === null ||
     !Number.isFinite(latest.value) ||
-    now - latest.at > 90_000
+    now - latest.at > maxGapMs
   )
     return { state: "unknown", value: null, since: null };
   const matches = (value: number) =>
@@ -263,7 +325,7 @@ export function evaluateScoutCondition(
   for (let i = points.length - 2; i >= 0; i--) {
     const point = points[i]!;
     if (
-      since - point.at > 90_000 ||
+      since - point.at > maxGapMs ||
       point.value === null ||
       !Number.isFinite(point.value) ||
       !matches(point.value)
@@ -297,6 +359,7 @@ export function scoutGaugeObservations(
   condition: ScoutAlertCondition,
 ): ScoutObservation[] {
   const values = new Map<number, number[]>();
+  const missing = new Set<number>();
   for (const sample of samples) {
     const metric =
       sample.metrics[condition.metric as keyof MonitoringAggregates];
@@ -307,16 +370,18 @@ export function scoutGaugeObservations(
           ? metric.max
           : metric.sum / metric.count,
       );
+    else missing.add(sample.at);
     values.set(sample.at, group);
   }
   return [...values]
     .map(([at, group]) => ({
       at,
-      value: group.length
-        ? condition.operator === "above"
-          ? Math.max(...group)
-          : Math.min(...group)
-        : null,
+      value:
+        group.length && !missing.has(at)
+          ? condition.operator === "above"
+            ? Math.max(...group)
+            : Math.min(...group)
+          : null,
     }))
     .sort((a, b) => a.at - b.at);
 }
@@ -327,30 +392,43 @@ export function scoutRestartObservations(
   windowSeconds: number,
 ): ScoutObservation[] {
   const ordered = [...samples].sort((a, b) => a.at - b.at);
-  const previous = new Map<string, { at: number; count: number }>();
-  const deltas: Array<{ at: number; count: number }> = [];
-  const observed = new Set<number>();
+  const previous = new Map<string, { at: number; count: number | null }>();
+  const buckets = new Map<number, { count: number; complete: boolean }>();
   for (const sample of ordered) {
     const metric = sample.metrics.restartCount;
-    if (!metric || metric.count < 1) continue;
+    const count = metric && metric.count > 0 ? metric.max : null;
     const old = previous.get(sample.entityId);
-    if (old && sample.at > old.at && sample.at - old.at <= 90_000) {
-      observed.add(sample.at);
-      if (metric.max > old.count)
-        deltas.push({ at: sample.at, count: metric.max - old.count });
-    }
-    previous.set(sample.entityId, { at: sample.at, count: metric.max });
+    const bucket = buckets.get(sample.at) ?? { count: 0, complete: true };
+    if (
+      count !== null &&
+      old?.count !== null &&
+      old?.count !== undefined &&
+      sample.at > old.at &&
+      sample.at - old.at <= 90_000
+    )
+      bucket.count += Math.max(0, count - old.count);
+    else bucket.complete = false;
+    buckets.set(sample.at, bucket);
+    previous.set(sample.entityId, { at: sample.at, count });
   }
+  const points = [...buckets];
   let start = 0,
-    end = 0,
-    total = 0;
-  return [...observed]
-    .sort((a, b) => a - b)
-    .map((at) => {
-      while (end < deltas.length && deltas[end]!.at <= at)
-        total += deltas[end++]!.count;
-      while (start < end && deltas[start]!.at <= at - windowSeconds * 1000)
-        total -= deltas[start++]!.count;
-      return { at, value: total };
-    });
+    total = 0,
+    incomplete = 0;
+  return points.map(([at, bucket], end) => {
+    total += bucket.count;
+    incomplete += Number(!bucket.complete);
+    while (start < end && points[start]![0] <= at - windowSeconds * 1000) {
+      const old = points[start++]![1];
+      total -= old.count;
+      incomplete -= Number(!old.complete);
+    }
+    return {
+      at,
+      value:
+        incomplete === 0 && (end - start + 1) * 30 >= windowSeconds
+          ? total
+          : null,
+    };
+  });
 }

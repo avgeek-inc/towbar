@@ -5,40 +5,40 @@ tracking, not a substitute for working behaviour or published documentation.
 
 ## Scope
 
-- [ ] Configurable host and workload alerts: CPU, memory, root/Docker disk,
+- [x] Configurable host and workload alerts: CPU, memory, root/Docker disk,
       container restart loops, and missing Scout reports. Additional reported
       gauges should use the same rule model. Opt-in presets, threshold direction,
       sustained duration/window, recovery threshold/duration, severity, enabled
       state, repeat interval (off by default), and notification destinations.
-- [ ] Persistent incidents, deduplicated firing/recovery, bounded reminders,
+- [x] Persistent incidents, deduplicated firing/recovery, bounded reminders,
       rule and server maintenance mutes, and readable active/resolved history.
       Missing measurements must not count as zero or prove recovery. Backfilled
       samples must not generate stale alerts. Installation grace and intentional
       uninstall must not generate offline notifications.
-- [ ] Reuse Slack/SMTP delivery with server destinations plus source destinations
+- [x] Reuse Slack/SMTP delivery with server destinations plus source destinations
       for workloads. Durable outbox and retry behaviour; test delivery and visible
       errors. Muted incidents must not send stale notifications on recovery.
-- [ ] Bounded durable evaluator independent of ingestion and UI. Safe concurrency,
+- [x] Bounded durable evaluator independent of ingestion and UI. Safe concurrency,
       rule edits, deletion, scope/archive changes, retention, and worker restarts.
-- [ ] Public HTTP uptime checks (recommended follow-on included for completeness):
+- [x] Public HTTP uptime checks (recommended follow-on included for completeness):
       configurable interval/timeout/status expectations, bounded response handling,
       public-address-only DNS pinning and redirect checks, no arbitrary headers or
       credentials, and shared incident/delivery lifecycle.
-- [ ] Compare any two successful deployments of the same workload/environment.
+- [x] Compare any two successful deployments of the same workload/environment.
       Equal relative windows after readiness, configurable warm-up/window and
       regression sensitivity, deployment identity/commit/config context, bounded
       aligned graphs, summaries/deltas, sample coverage and incomplete/expired
       history warnings. CPU, memory, restarts and available I/O; do not imply
       performance causation or measure latency/error rate without instrumentation.
-- [ ] Polished Scout Alerts and Compare UI using existing components. Accessible
+- [x] Polished Scout Alerts and Compare UI using existing components. Accessible
       keyboard/empty/error/loading states, light/dark/mobile checks, no whole-tab
       reload or large synchronous chart work. Fixture covers meaningful states.
-- [ ] Workspace isolation and owner-only mutations. REST contracts and meaningful
+- [x] Workspace isolation and owner-only mutations. REST contracts and meaningful
       MCP tools for inspection/configuration/comparison; notification destination
       management stays browser-only per existing user preference.
-- [ ] Comprehensive Mintlify guidance/routes, README feature update, focused
+- [x] Comprehensive Mintlify guidance/routes, README feature update, focused
       evaluator/integration/authorization/comparison tests and actual browser QA.
-- [ ] Complete repository gates and open a focused PR with verified evidence.
+- [ ] Open the focused PR and verify its CI.
 
 ## Design decisions
 
@@ -58,50 +58,58 @@ use sustained conditions and are only enabled by the user. No automatic restarts
 rollbacks, server cleanup, external notifications, or live installation changes
 are part of local feature validation.
 
-## Implementation checkpoint
+## Implementation and verification
 
 Branch: `feat/scout-alerts-comparisons`, based on merged provider work on main.
-The first implementation stage adds validated shared contracts, a deterministic
-condition evaluator, database rules/settings/incidents, scoped REST handlers,
-server notification destinations, an atomic incident/delivery outbox, and a
-dedicated Temporal evaluation loop. The comparison query uses deployment labels,
-equal post-completion windows, bounded aligned points and coverage-aware summaries.
 
-Verified locally at this checkpoint:
+Implemented shared schemas, persistent rules/incidents/HTTP claims, additive
+migrations, owner-scoped REST mutations, curated MCP tools, server notification
+destinations, and a durable Temporal evaluation loop. The Scout web surfaces have
+Performance, Alerts, Notifications (server), and Compare deployments (workload)
+panels. Mintlify includes reference routes, detailed guides, and light/dark
+screenshots; README points readers to the new capabilities.
 
-- 13 shared evaluator/comparison unit tests.
-- 13 PostgreSQL alert/comparison tests, including suite-level tests. These cover
-  concurrent sweeps, workspace isolation, delivery deduplication, recovery,
-  maintenance mute, condition edits, replacements, missing/expired history.
-- API, worker and web typechecks before the final helper extraction; API typecheck
-  and both PostgreSQL suites repeated successfully after that extraction.
-- Changed evaluator and notification helpers pass ESLint after decomposition.
+Verified locally:
 
-No UI screens, fixture proof, full repository gates, generated API docs, MCP
-tools, public uptime probes, or PR handoff are complete yet. Do not infer those
-from the backend tests. Notifications were verified through stored delivery
-records and a simulated provider acknowledgement; no external message was sent.
+- Full `pnpm verify` with the isolated PostgreSQL test database: formatting,
+  lint, typechecks, unit/integration tests, migration rehearsal, and production
+  build. API tests include REST/MCP owner, read-key, and workspace boundaries.
+- `pnpm docs:api:check`: 121 response handlers, 116 public operations, 55 curated
+  MCP tools. Notification destination management remains browser-only.
+- Alert tests cover concurrent claims/evaluation, deduplicated delivery intents,
+  sustained recovery, missing data, maintenance mutes, config changes, destination
+  category changes, server archival, suppressed retries, restart-window boundaries,
+  HTTP config revisions, and active-incident retention. Provider acknowledgement
+  is simulated; no real Slack/email message was sent.
+- HTTP probe tests cover non-public addresses, mixed DNS answers, address pinning,
+  redirect targets/limits, expected statuses, credentials/protocol rejection, and
+  a shared request deadline. These use an injected transport, not live websites.
+- Deployment tests cover identical/wrong-workload/cross-tenant IDs, successful
+  deployment requirements, weighted coverage, replacement containers, missing or
+  expired history, and relative/absolute sensitivity with average/peak selection.
+- A real isolated local Temporal server ran the Scout loop, retained a wake signal
+  across worker restart, and replayed persisted history successfully. Activity
+  execution was mocked; this does not claim live infrastructure verification.
+- Chromium fixture QA covers rule creation, HTTP configuration, maintenance mute,
+  notification destinations, incomplete and complete comparisons, dark/light mode,
+  and 390px layouts. Comparison changes retain heading/results DOM nodes. After
+  applying the existing staged chart scheduler, repeated comparison changes
+  produced no browser long tasks over 50 ms in the tested desktop fixture.
 
-Next implementation/verification work:
+## Operational limits
 
-1. Complete the rule editor, incident history, server destinations, maintenance
-   controls and comparison screens. Reuse current design system controls and keep
-   chart changes local. Include readable units and severity/status text.
-2. Add browser fixtures, permission tests, missing-report/restart rule integration
-   tests, mute-before-delivery suppression tests and retention tests. Test the
-   dedicated Temporal workflow rather than treating its source as runtime proof.
-3. Audit evaluator robustness: statement/transaction time bounds, per-rule failure
-   isolation, fair scheduling, exact restart-window boundaries and blackout
-   coverage, invalid stored configs, cross-container missing measurements, and
-   rule edits versus queued notifications. The raw-sample helper and SQL restart
-   implementation currently have separate paths and need consistency review.
-4. Complete comparison settings and evidence: configurable absolute sensitivity,
-   average/peak selection, restart coverage/assessment, partial rollup boundaries,
-   environment isolation and concurrent-container peak semantics. Test these
-   cases before describing the comparison as comprehensive.
-5. Add public HTTP probes with SSRF-safe address pinning and bounded execution;
-   `httpAvailability` is currently a reserved condition, not a working check.
-6. Generate REST schemas/docs and add meaningful MCP tools. Review new endpoint
-   categorization; current comparison routes use `/workloads/:deployableId`.
-7. Update Mintlify/README, run repository gates, inspect all screens in light/dark
-   and narrow layouts, and open the PR only when the whole scope is verified.
+The existing agent binary and reporting contract are unchanged. Rules are opt-in.
+The evaluator considers at most 100 oldest-due rules per sweep with bounded
+transactions and per-rule failure isolation. HTTP checks claim at most 20 attempts
+per sweep with four concurrent probes and at most ten seconds per probe. A server
+admits at most 100 rules, including ten HTTP checks. Under load, checks may run
+later than their requested interval; missing observations never establish health.
+
+Public HTTP checks originate from the control plane, cannot detect that plane's
+own outage, and do not replace an independent external uptime service. Comparison
+results describe resource usage, not causation, latency, or application error
+rates. Peak totals may combine container maxima that did not occur simultaneously.
+
+The fixture exercises presentation and state transitions; actual provider delivery
+and live server behavior remain distinct. This PR does not install or configure
+rules on production servers, cut a release, or enable external notifications.

@@ -32,12 +32,13 @@ scoutAlertRoutes.get(
     status: 200,
   }),
   async (context) => {
-    return context.json(
-      await listScoutAlertRules({
+    return context.json({
+      canManage: context.get("user").workspaceRole === "owner",
+      ...(await listScoutAlertRules({
         serverId: context.req.param("serverId")!,
         workspaceId: context.get("user").workspaceId,
-      }),
-    );
+      })),
+    });
   },
 );
 scoutAlertRoutes.post(

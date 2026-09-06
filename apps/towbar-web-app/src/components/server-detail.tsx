@@ -1,7 +1,7 @@
 "use client";
 
 import { MonitoringAgentSettings } from "./monitoring-agent-settings";
-import { MonitoringHistory } from "./monitoring-history";
+import { ScoutPanel } from "./scout-panel";
 import { ElapsedTime } from "./elapsed-time";
 
 import { ConfigurationLinks } from "./configuration-links";
@@ -480,7 +480,7 @@ export function ServerDetail() {
               label: "Scout Agent",
               icon: <HugeiconsIcon icon={Activity01Icon} />,
               content: (
-                <MonitoringHistory
+                <ScoutPanel
                   path={`/v1/core/servers/${serverId}/metrics`}
                   serverId={serverId}
                 />

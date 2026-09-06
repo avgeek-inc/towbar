@@ -12,6 +12,9 @@ export const deploymentComparisonQuerySchema = z
     warmupMinutes: z.coerce.number().int().min(0).max(60).default(2),
     regressionPercent: z.coerce.number().min(1).max(500).default(20),
     minimumCoveragePercent: z.coerce.number().min(50).max(100).default(80),
+    statistic: z.enum(["average", "peak"]).default("average"),
+    cpuFloorCores: z.coerce.number().min(0).max(1024).default(0.05),
+    memoryFloorMiB: z.coerce.number().min(0).max(1048576).default(16),
   })
   .strict()
   .refine((value) => value.baselineId !== value.candidateId, {
@@ -114,19 +117,20 @@ export function compareMetricSummaries(
     minimumCoveragePercent: number;
     absoluteFloor: number;
     regression: boolean;
+    statistic?: "average" | "peak";
   },
 ) {
-  const delta =
-    baseline.average !== null && candidate.average !== null
-      ? candidate.average - baseline.average
-      : null;
+  const statistic = input.statistic ?? "average";
+  const before = baseline[statistic],
+    after = candidate[statistic];
+  const delta = before !== null && after !== null ? after - before : null;
   const deltaPercent =
-    delta !== null && baseline.average !== null && baseline.average !== 0
-      ? (delta / baseline.average) * 100
+    delta !== null && before !== null && before !== 0
+      ? (delta / before) * 100
       : null;
   const enoughData =
-    baseline.average !== null &&
-    candidate.average !== null &&
+    before !== null &&
+    after !== null &&
     baseline.coveragePercent >= input.minimumCoveragePercent &&
     candidate.coveragePercent >= input.minimumCoveragePercent;
   const material =

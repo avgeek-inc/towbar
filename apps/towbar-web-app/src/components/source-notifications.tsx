@@ -82,7 +82,7 @@ export function SourceNotifications({
   serverId?: string;
 }) {
   const [draft, setDraft] = useState<DestinationDraft>(() =>
-    emptyDraft("slack"),
+    emptyDraft("slack", Boolean(serverId)),
   );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -193,7 +193,7 @@ export function SourceNotifications({
     setDraft(
       destination
         ? draftFromDestination(destination)
-        : emptyDraft(defaultProvider),
+        : emptyDraft(defaultProvider, Boolean(serverId)),
     );
     setSaveError(undefined);
     setEditorOpen(true);
@@ -253,7 +253,7 @@ export function SourceNotifications({
         columns={destinationColumns}
         emptyDescription={
           hasProvider
-            ? "Add a configured notification destination for this Source."
+            ? `Add a notification destination for this ${serverId ? "server" : "source"}.`
             : "Notification destinations become available after a provider is configured for Towbar."
         }
         emptyTitle="No notification destinations"
@@ -370,29 +370,35 @@ export function SourceNotifications({
                   <FieldSet>
                     <FieldLegend>Event categories</FieldLegend>
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      {categoryOptions.map((category) => (
-                        <Checkbox
-                          isSelected={draft.categories.includes(category.value)}
-                          key={category.value}
-                          onChange={(selected) =>
-                            setDraft({
-                              ...draft,
-                              categories: selected
-                                ? [...draft.categories, category.value]
-                                : draft.categories.filter(
-                                    (value) => value !== category.value,
-                                  ),
-                            })
-                          }
-                        >
-                          <Checkbox.Content className="min-h-8 w-fit">
-                            <Checkbox.Control>
-                              <Checkbox.Indicator />
-                            </Checkbox.Control>
-                            <Label>{category.label}</Label>
-                          </Checkbox.Content>
-                        </Checkbox>
-                      ))}
+                      {categoryOptions
+                        .filter(
+                          (category) => !serverId || category.value === "scout",
+                        )
+                        .map((category) => (
+                          <Checkbox
+                            isSelected={draft.categories.includes(
+                              category.value,
+                            )}
+                            key={category.value}
+                            onChange={(selected) =>
+                              setDraft({
+                                ...draft,
+                                categories: selected
+                                  ? [...draft.categories, category.value]
+                                  : draft.categories.filter(
+                                      (value) => value !== category.value,
+                                    ),
+                              })
+                            }
+                          >
+                            <Checkbox.Content className="min-h-8 w-fit">
+                              <Checkbox.Control>
+                                <Checkbox.Indicator />
+                              </Checkbox.Control>
+                              <Label>{category.label}</Label>
+                            </Checkbox.Content>
+                          </Checkbox>
+                        ))}
                     </div>
                   </FieldSet>
 
@@ -430,9 +436,14 @@ export function SourceNotifications({
   );
 }
 
-function emptyDraft(provider: "slack" | "smtp"): DestinationDraft {
+function emptyDraft(
+  provider: "slack" | "smtp",
+  server = false,
+): DestinationDraft {
   return {
-    categories: categoryOptions.map((category) => category.value),
+    categories: server
+      ? ["scout"]
+      : categoryOptions.map((category) => category.value),
     channelId: "",
     enabled: true,
     provider,

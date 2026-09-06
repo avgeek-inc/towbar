@@ -39,7 +39,7 @@ Collections use plural nouns: `/sources`, `/apps`, `/resources`, `/servers`, and
 
 Apps and resources are defined in your Git manifest. To create or change them, update the manifest and sync its source. The API does not invent a separate configuration model. Use `/sources/{sourceId}/actions/preview-sync` to inspect reconciliation before requesting a sync.
 
-All documented paths are relative to `/v1/api`. Browser-only login, logout, initial setup, GitHub webhooks, and signed worker endpoints are separate protocols. They are not exposed as MCP tools. API key management, notifications, profile editing, password changes, browser-session management, and the GitHub installation handoff are available only in the control plane. `GET /profile` remains available to identify the current user and workspace.
+All documented paths are relative to `/v1/api`. Browser-only login, logout, initial setup, GitHub webhooks, and signed worker endpoints are separate protocols. They are not exposed as MCP tools. API key management, notification destination management, profile editing, password changes, browser-session management, and the GitHub installation handoff are available only in the control plane. `GET /profile` remains available to identify the current user and workspace.
 
 REST provides individual routes; MCP offers a separate [task-oriented tool catalogue](/docs/api/mcp-tools), including combined inspections and shared app/resource actions.
 
@@ -47,16 +47,16 @@ REST provides individual routes; MCP offers a separate [task-oriented tool catal
 
 The reference is grouped by the thing you manage, with smaller sections for each task:
 
-| Category     | Sections                                                                              |
-| ------------ | ------------------------------------------------------------------------------------- |
-| Sources      | Overview, Sync & manifest, Auto-deploy, Inventory, Secrets                            |
-| Apps         | Overview, Deployments, Runtime & logs, Previews, Secrets                              |
-| Resources    | Overview, Deployments, Runtime & logs, Backups & restores, Secrets                    |
-| Servers      | Overview, Inventory, Capacity, Checks & preparation, Credentials & trust, Maintenance |
-| Deployments  | Overview, Progress & logs, Actions, Security scans                                    |
-| Previews     | Lifecycle                                                                             |
-| Workspace    | Shared secrets, System health, Identity                                               |
-| Integrations | GitHub, AWS                                                                           |
+| Category     | Sections                                                                                                         |
+| ------------ | ---------------------------------------------------------------------------------------------------------------- |
+| Sources      | Overview, Sync & manifest, Auto-deploy, Inventory, Secrets                                                       |
+| Apps         | Overview, Deployments, Runtime & logs, Previews, Secrets                                                         |
+| Resources    | Overview, Deployments, Runtime & logs, Backups & restores, Secrets                                               |
+| Servers      | Overview, Inventory, Capacity, Checks & preparation, Credentials & trust, Maintenance, Scout Agent, Scout Alerts |
+| Deployments  | Overview, Progress & logs, Actions, Security scans, Performance comparisons                                      |
+| Previews     | Lifecycle                                                                                                        |
+| Workspace    | Shared secrets, System health, Identity                                                                          |
+| Integrations | GitHub, AWS                                                                                                      |
 
 For common tasks, start with the [automation workflows](/docs/api/workflows). Expand only the relevant reference section when you need a schema or an individual operation.
 

@@ -125,7 +125,7 @@ void test("counts restarts within the window but not counter resets or replaceme
   });
   assert.deepEqual(
     scoutRestartObservations(samples, 60).map((v) => v.value),
-    [1, 3, 2, 1],
+    [null, null, 3, 2, null],
   );
 });
 void test("does not turn restart counter changes across a blackout into current events", () => {
@@ -145,7 +145,10 @@ void test("does not turn restart counter changes across a blackout into current 
       ],
       300,
     ),
-    [],
+    [
+      { at: now - 600_000, value: null },
+      { at: now, value: null },
+    ],
   );
 });
 void test("gauge observations preserve absent metrics and worst-instance semantics", () => {
@@ -199,5 +202,22 @@ void test("rejects contradictory recovery and unsafe or redundant configuration"
       ...rule,
       destinationIds: Array(2).fill("11111111-1111-4111-8111-111111111111"),
     }).success,
+  );
+});
+
+void test("a missing gauge in a reported container cannot prove recovery for the group", () => {
+  assert.equal(
+    scoutGaugeObservations(
+      [
+        {
+          entityId: "a",
+          at: now,
+          metrics: aggregateMonitoringValues({ memoryPercent: 1 }),
+        },
+        { entityId: "b", at: now, metrics: {} },
+      ],
+      condition,
+    )[0]?.value,
+    null,
   );
 });

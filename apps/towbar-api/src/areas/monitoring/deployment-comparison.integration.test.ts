@@ -74,22 +74,18 @@ void test(
       minimumCoveragePercent: 80,
     };
     try {
-      await db
-        .insert(workspaces)
-        .values({
-          id: workspaceId,
-          slug: workspaceId,
-          name: "Comparison fixture",
-        });
-      await db
-        .insert(servers)
-        .values({
-          id: serverId,
-          workspaceId,
-          canonicalIp: "192.0.2.202",
-          config: serverConfig,
-          configDigest: "fixture",
-        });
+      await db.insert(workspaces).values({
+        id: workspaceId,
+        slug: workspaceId,
+        name: "Comparison fixture",
+      });
+      await db.insert(servers).values({
+        id: serverId,
+        workspaceId,
+        canonicalIp: "192.0.2.202",
+        config: serverConfig,
+        configDigest: "fixture",
+      });
       await db
         .insert(monitoringAgents)
         .values({ serverId, desiredState: "enabled", status: "online" });
@@ -102,48 +98,42 @@ void test(
           accountType: "Organization",
         })
         .returning();
-      await db
-        .insert(sources)
-        .values({
-          id: sourceId,
-          workspaceId,
-          githubInstallationId: installation!.id,
-          repositoryOwner: "example",
-          repositoryName: "comparison",
-          branch: "main",
-        });
-      await db
-        .insert(apps)
-        .values({
-          id: appId,
-          workspaceId,
-          sourceId,
-          serverId,
-          manifestId: "app",
-          name: "App",
-          config: appConfig,
-          configDigest: "fixture",
-          sourceRevision: "abcdef0",
-        });
+      await db.insert(sources).values({
+        id: sourceId,
+        workspaceId,
+        githubInstallationId: installation!.id,
+        repositoryOwner: "example",
+        repositoryName: "comparison",
+        branch: "main",
+      });
+      await db.insert(apps).values({
+        id: appId,
+        workspaceId,
+        sourceId,
+        serverId,
+        manifestId: "app",
+        name: "App",
+        config: appConfig,
+        configDigest: "fixture",
+        sourceRevision: "abcdef0",
+      });
       for (const [i, id] of [baselineId, candidateId].entries()) {
         const finishedAt = new Date(now.getTime() - (2 - i) * 3600_000);
-        await db
-          .insert(deployments)
-          .values({
-            id,
-            workspaceId,
-            sourceId,
-            appId,
-            serverId,
-            state: "succeeded",
-            finishedAt,
-            idempotencyKey: id,
-            temporalWorkflowId: id,
-            commitSha: `abcdef${i}`,
-            manifestDigest: "fixture",
-            appSnapshot: appConfig,
-            serverSnapshot: serverConfig,
-          });
+        await db.insert(deployments).values({
+          id,
+          workspaceId,
+          sourceId,
+          appId,
+          serverId,
+          state: "succeeded",
+          finishedAt,
+          idempotencyKey: id,
+          temporalWorkflowId: id,
+          commitSha: `abcdef${i}`,
+          manifestDigest: "fixture",
+          appSnapshot: appConfig,
+          serverSnapshot: serverConfig,
+        });
         await db.insert(monitoringSamples).values(
           Array.from({ length: 60 }, (_, n) => ({
             serverId,
@@ -174,6 +164,32 @@ void test(
           assert.equal(result.baseline.points[0]?.offsetSeconds, 0);
           assert.equal(result.candidate.points[0]?.offsetSeconds, 0);
           assert(result.baseline.points.length <= 240);
+        },
+      );
+      await t.test(
+        "absolute and relative sensitivity can suppress immaterial increases",
+        async () => {
+          const result = await getDeploymentComparison(
+            { ...query, cpuFloorCores: 0.4, statistic: "peak" },
+            now,
+          );
+          assert.equal(
+            result.metrics.find((metric) => metric.metric === "cpuCores")
+              ?.assessment,
+            "stable",
+          );
+          const lessSensitive = await getDeploymentComparison(
+            { ...query, regressionPercent: 80 },
+            now,
+          );
+          assert.equal(
+            lessSensitive.metrics.find((metric) => metric.metric === "cpuCores")
+              ?.assessment,
+            "stable",
+          );
+          assert(
+            result.warnings.some((warning) => warning.includes("same instant")),
+          );
         },
       );
       await t.test(

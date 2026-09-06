@@ -15,6 +15,7 @@ const categoryByRoot: Record<string, string> = {
   resources: "Resources",
   servers: "Servers",
   deployments: "Deployments",
+  workloads: "Deployments",
   previews: "Previews",
   settings: "Workspace",
   profile: "Workspace",
@@ -34,6 +35,8 @@ export const sectionOrder = [
   "Inventory",
   "Capacity",
   "Scout Agent",
+  "Scout Alerts",
+  "Performance comparisons",
   "Checks & preparation",
   "Credentials & trust",
   "Maintenance",
@@ -83,7 +86,14 @@ const rules: Record<string, Array<[string, RegExp]>> = {
     ["Runtime & logs", /\/(operations|actions)(?:\/|$)/],
     ["Overview", /^\/resources(?:\/[^/]+)?$/],
   ],
+  workloads: [
+    [
+      "Performance comparisons",
+      /\/(comparison-deployments|deployment-comparison)$/,
+    ],
+  ],
   servers: [
+    ["Scout Alerts", /\/scout-alerts(?:\/|$)/],
     ["Scout Agent", /\/(monitoring|metrics)(?:\/|$)/],
     ["Credentials & trust", /\/(credentials|host-keys)(?:\/|$)/],
     [

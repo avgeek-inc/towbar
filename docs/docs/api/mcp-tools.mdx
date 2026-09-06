@@ -3,11 +3,658 @@ title: MCP tool catalogue
 description: Task-oriented Towbar tools for discovery, deployment, diagnostics, backups, servers, previews, and secrets.
 ---
 
-Towbar exposes 50 purpose-built tools. Names follow `towbar_<entity>_<action>`; they are independent of REST routes. Discovery filters this catalogue by your key and workspace role.
+Towbar exposes 55 purpose-built tools. Names follow `towbar_<entity>_<action>`; they are independent of REST routes. Discovery filters this catalogue by your key and workspace role.
 
 Use [MCP setup](/docs/api/mcp) for connection details and worked examples. Mutation tools carry risk annotations; client approval is still required for consequential actions. Successful calls return structured `result` data with a matching JSON text fallback. Failures set `isError`.
 
 Inventory and history tools return bounded pages with continuation fields. Histories backed by live inventories are best-effort pages, not snapshot cursors; concurrent changes can shift offsets.
+
+## Scout Alerts
+
+<AccordionGroup>
+<Accordion title="Inspect Scout alerts and incidents">
+
+`towbar_alerts_inspect`
+
+Inspect configured rules, latest evaluations and HTTP check results, maintenance mute, destination IDs, and a page of incidents. An active incident is not proof that its notification was delivered. Use returned rule IDs before configuration or muting; use the incident cursor to read older history.
+
+Read only. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "serverId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Server UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "state": {
+      "default": "active",
+      "type": "string",
+      "enum": ["active", "resolved", "all"]
+    },
+    "limit": {
+      "default": 20,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 50
+    },
+    "before": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "beforeId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "ruleId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "deployableId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    }
+  },
+  "required": ["serverId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Create or update a Scout alert">
+
+`towbar_alerts_configure`
+
+Configure a sustained host/workload metric alert or a public HTTP uptime check. Omit ruleId to create; supply an inspected ruleId to replace its settings. Read current settings before updating and preserve settings the user did not request changing. HTTP checks send recurring public requests. Selecting destinations enables external notifications once the condition fires; it does not send an immediate test.
+
+Full-access key required. Workspace owner required.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "enabled": {
+      "default": true,
+      "type": "boolean"
+    },
+    "severity": {
+      "default": "warning",
+      "type": "string",
+      "enum": ["warning", "critical"]
+    },
+    "deployableId": {
+      "default": null,
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "environment": {
+      "default": "production",
+      "type": "string",
+      "enum": ["production", "preview"]
+    },
+    "condition": {
+      "type": "object",
+      "properties": {
+        "metric": {
+          "type": "string",
+          "enum": [
+            "cpuPercent",
+            "cpuCores",
+            "cpuLimitCores",
+            "memoryUsedBytes",
+            "memoryTotalBytes",
+            "memoryLimitBytes",
+            "memoryPercent",
+            "swapUsedBytes",
+            "swapTotalBytes",
+            "diskTotalBytes",
+            "diskUsedBytes",
+            "diskPercent",
+            "dockerDiskTotalBytes",
+            "dockerDiskUsedBytes",
+            "dockerDiskPercent",
+            "diskReadBytesPerSecond",
+            "diskWriteBytesPerSecond",
+            "networkRxBytesPerSecond",
+            "networkTxBytesPerSecond",
+            "uptimeSeconds",
+            "load1",
+            "load5",
+            "load15",
+            "restarts",
+            "missingReports",
+            "httpAvailability"
+          ]
+        },
+        "http": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "maxLength": 2048,
+              "format": "uri"
+            },
+            "method": {
+              "default": "GET",
+              "type": "string",
+              "enum": ["GET", "HEAD"]
+            },
+            "intervalSeconds": {
+              "default": 60,
+              "type": "integer",
+              "minimum": 30,
+              "maximum": 300,
+              "multipleOf": 30
+            },
+            "timeoutSeconds": {
+              "default": 5,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
+            },
+            "expectedStatusMin": {
+              "default": 200,
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 599
+            },
+            "expectedStatusMax": {
+              "default": 299,
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 599
+            },
+            "maxRedirects": {
+              "default": 0,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            }
+          },
+          "required": ["url"],
+          "additionalProperties": false
+        },
+        "operator": {
+          "default": "above",
+          "type": "string",
+          "enum": ["above", "below"]
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000000
+        },
+        "recoveryThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000000
+        },
+        "durationSeconds": {
+          "default": 300,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600
+        },
+        "recoverySeconds": {
+          "default": 120,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600
+        },
+        "windowSeconds": {
+          "default": 300,
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 3600
+        },
+        "aggregation": {
+          "default": "average",
+          "type": "string",
+          "enum": ["average", "peak"]
+        }
+      },
+      "required": ["metric", "threshold", "recoveryThreshold"],
+      "additionalProperties": false
+    },
+    "destinationIds": {
+      "default": [],
+      "maxItems": 10,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+      }
+    },
+    "notifyRecovery": {
+      "default": true,
+      "type": "boolean"
+    },
+    "repeatSeconds": {
+      "default": 0,
+      "anyOf": [
+        {
+          "type": "number",
+          "const": 0
+        },
+        {
+          "type": "integer",
+          "minimum": 900,
+          "maximum": 86400
+        }
+      ]
+    },
+    "serverId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Server UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "ruleId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Scout alert rule UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    }
+  },
+  "required": ["name", "condition", "serverId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Mute Scout notifications for maintenance">
+
+`towbar_alerts_mute`
+
+Temporarily mute notifications from one Scout rule or every rule on a server while continuing measurements and incident tracking. Omit ruleId for server scope. Set durationSeconds to zero to resume notifications. A rule mute cannot override a server mute.
+
+Full-access key required. Workspace owner required.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "durationSeconds": {
+      "anyOf": [
+        {
+          "type": "number",
+          "const": 0
+        },
+        {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 604800
+        }
+      ]
+    },
+    "reason": {
+      "default": "",
+      "type": "string",
+      "maxLength": 240
+    },
+    "serverId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Server UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "ruleId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Scout alert rule UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    }
+  },
+  "required": ["durationSeconds", "serverId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Remove a Scout alert rule">
+
+`towbar_alerts_remove`
+
+Delete an inspected Scout rule, stop its checks/evaluation and close active incidents without claiming recovery. Resolved incident history remains until retention expires. Confirm the user's intended rule before removal.
+
+Full-access key required. Workspace owner required.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "serverId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Server UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "ruleId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Scout alert rule UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    }
+  },
+  "required": ["serverId", "ruleId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## Deployments
+
+<AccordionGroup>
+<Accordion title="Compare performance between deployments">
+
+`towbar_deployment_compare`
+
+First call with workloadId only to discover successful deployment IDs. Then supply baselineId and candidateId from the same workload and production/preview environment to compare equal post-readiness windows. Reports coverage, usage deltas, restarts and caveats; insufficient data cannot establish a regression and traffic may differ. Defaults to summaries; includePoints returns at most 24 representative points per side.
+
+Read only. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "workloadId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "App or resource UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "baselineId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Baseline deployment UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "candidateId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Compared deployment UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "windowMinutes": {
+      "default": 30,
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 1440
+    },
+    "warmupMinutes": {
+      "default": 2,
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 60
+    },
+    "regressionPercent": {
+      "default": 20,
+      "type": "number",
+      "minimum": 1,
+      "maximum": 500
+    },
+    "minimumCoveragePercent": {
+      "default": 80,
+      "type": "number",
+      "minimum": 50,
+      "maximum": 100
+    },
+    "statistic": {
+      "default": "average",
+      "type": "string",
+      "enum": ["average", "peak"]
+    },
+    "cpuFloorCores": {
+      "default": 0.05,
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1024
+    },
+    "memoryFloorMiB": {
+      "default": 16,
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1048576
+    },
+    "includePoints": {
+      "default": false,
+      "type": "boolean"
+    }
+  },
+  "required": ["workloadId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="List deployment history">
+
+`towbar_deployment_list`
+
+Find deployment IDs and outcomes across the workspace with server-side pagination. Use towbar_deployment_inspect for build steps and logs.
+
+Read only. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "page": {
+      "default": 1,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000000
+    },
+    "limit": {
+      "default": 20,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Inspect deployment progress and logs">
+
+`towbar_deployment_inspect`
+
+Diagnose one deployment: returns state, build steps, a bounded log page, and optional vulnerability findings. Poll using nextAfter, including after terminal state if hasMoreLogs. Only succeeded, succeeded_with_warnings, failed, cancelled, or skipped are terminal; accepted/queued is not success.
+
+Read only. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "deploymentId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Deployment UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "after": {
+      "default": -1,
+      "type": "integer",
+      "minimum": -1,
+      "maximum": 9007199254740991
+    },
+    "logLimit": {
+      "default": 50,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 200
+    },
+    "includeFindings": {
+      "default": false,
+      "type": "boolean"
+    },
+    "offset": {
+      "default": 0,
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "limit": {
+      "default": 20,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    }
+  },
+  "required": ["deploymentId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Cancel deployment">
+
+`towbar_deployment_cancel`
+
+Request cancellation of a running deployment. Poll towbar_deployment_inspect until terminal; a cancellation request can race completion.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "deploymentId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Deployment UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    }
+  },
+  "required": ["deploymentId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Retry deployment">
+
+`towbar_deployment_retry`
+
+Create a new attempt for an eligible failed deployment. Use a fresh idempotencyKey for this retry, then inspect the returned deployment ID.
+
+Full-access key required. Available to workspace members and owners.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "deploymentId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Deployment UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Unique identifier for this intended action. Reuse exactly this value when retrying an uncertain response; use a new value for a new action."
+    }
+  },
+  "required": ["deploymentId", "idempotencyKey"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Rescan deployed image">
+
+`towbar_deployment_rescan`
+
+Request a vulnerability scan for a deployment image. Read findings and scan state using towbar_deployment_inspect with includeFindings afterward.
+
+Full-access key required. Workspace owner required.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "deploymentId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Deployment UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    }
+  },
+  "required": ["deploymentId"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+</AccordionGroup>
 
 ## Workspace
 
@@ -697,195 +1344,6 @@ Full-access key required. Workspace owner required.
     }
   },
   "required": ["scope", "targetId", "paused"],
-  "additionalProperties": false
-}
-```
-
-</Accordion>
-
-</AccordionGroup>
-
-## Deployments
-
-<AccordionGroup>
-<Accordion title="List deployment history">
-
-`towbar_deployment_list`
-
-Find deployment IDs and outcomes across the workspace with server-side pagination. Use towbar_deployment_inspect for build steps and logs.
-
-Read only. Available to workspace members and owners.
-
-**Arguments**
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "page": {
-      "default": 1,
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 1000000
-    },
-    "limit": {
-      "default": 20,
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 100
-    }
-  },
-  "additionalProperties": false
-}
-```
-
-</Accordion>
-
-<Accordion title="Inspect deployment progress and logs">
-
-`towbar_deployment_inspect`
-
-Diagnose one deployment: returns state, build steps, a bounded log page, and optional vulnerability findings. Poll using nextAfter, including after terminal state if hasMoreLogs. Only succeeded, succeeded_with_warnings, failed, cancelled, or skipped are terminal; accepted/queued is not success.
-
-Read only. Available to workspace members and owners.
-
-**Arguments**
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "deploymentId": {
-      "type": "string",
-      "format": "uuid",
-      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-      "description": "Deployment UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
-    },
-    "after": {
-      "default": -1,
-      "type": "integer",
-      "minimum": -1,
-      "maximum": 9007199254740991
-    },
-    "logLimit": {
-      "default": 50,
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 200
-    },
-    "includeFindings": {
-      "default": false,
-      "type": "boolean"
-    },
-    "offset": {
-      "default": 0,
-      "type": "integer",
-      "minimum": 0,
-      "maximum": 9007199254740991
-    },
-    "limit": {
-      "default": 20,
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 100
-    }
-  },
-  "required": ["deploymentId"],
-  "additionalProperties": false
-}
-```
-
-</Accordion>
-
-<Accordion title="Cancel deployment">
-
-`towbar_deployment_cancel`
-
-Request cancellation of a running deployment. Poll towbar_deployment_inspect until terminal; a cancellation request can race completion.
-
-Full-access key required. Available to workspace members and owners.
-
-**Arguments**
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "deploymentId": {
-      "type": "string",
-      "format": "uuid",
-      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-      "description": "Deployment UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
-    }
-  },
-  "required": ["deploymentId"],
-  "additionalProperties": false
-}
-```
-
-</Accordion>
-
-<Accordion title="Retry deployment">
-
-`towbar_deployment_retry`
-
-Create a new attempt for an eligible failed deployment. Use a fresh idempotencyKey for this retry, then inspect the returned deployment ID.
-
-Full-access key required. Available to workspace members and owners.
-
-**Arguments**
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "deploymentId": {
-      "type": "string",
-      "format": "uuid",
-      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-      "description": "Deployment UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
-    },
-    "idempotencyKey": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 255,
-      "description": "Unique identifier for this intended action. Reuse exactly this value when retrying an uncertain response; use a new value for a new action."
-    }
-  },
-  "required": ["deploymentId", "idempotencyKey"],
-  "additionalProperties": false
-}
-```
-
-</Accordion>
-
-<Accordion title="Rescan deployed image">
-
-`towbar_deployment_rescan`
-
-Request a vulnerability scan for a deployment image. Read findings and scan state using towbar_deployment_inspect with includeFindings afterward.
-
-Full-access key required. Workspace owner required.
-
-**Arguments**
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "deploymentId": {
-      "type": "string",
-      "format": "uuid",
-      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-      "description": "Deployment UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
-    }
-  },
-  "required": ["deploymentId"],
   "additionalProperties": false
 }
 ```
