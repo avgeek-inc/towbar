@@ -9,11 +9,13 @@ import {
   notificationDeliveries,
   notificationDestinations,
   notificationEvents,
+  scoutAlertIncidents,
 } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import {
   type ScoutScope,
   deleteScoutAlertRule,
+  muteScoutAlerts,
   saveScoutAlertRule,
 } from "./alert-rules.js";
 
@@ -142,6 +144,88 @@ export async function assertScoutDestinations(
   assert.notEqual(
     triggered[0]!.payload.details.incidentId,
     triggered[1]!.payload.details.incidentId,
+  );
+  await deleteScoutAlertRule({ ...scope, ruleId: rule.id });
+}
+
+export async function assertConcurrentScoutSuppression(
+  scope: ScoutScope & { requestedBy: string },
+  samples: (at: Date, value: number, count?: number) => Promise<void>,
+  sweep: (at: Date) => Promise<unknown>,
+) {
+  const db = getTowbarDatabase();
+  await db.insert(notificationDestinations).values({
+    workspaceId: scope.workspaceId,
+    serverId: scope.serverId,
+    provider: "slack",
+    config: { channelId: "CCONCURRENT" },
+    categories: ["scout"],
+  });
+  const rule = await saveScoutAlertRule({
+    ...scope,
+    rule: scoutAlertRuleSchema.parse({
+      name: "Concurrent suppression",
+      condition: { metric: "memoryPercent", threshold: 80 },
+    }),
+  });
+  const now = new Date(Date.now() + 7200_000);
+  await samples(now, 99, 1);
+  await sweep(now);
+  const events = await db
+    .select()
+    .from(notificationEvents)
+    .where(eq(notificationEvents.workspaceId, scope.workspaceId));
+  const event = events.find((row) => row.payload.details.ruleId === rule.id)!;
+  assert(event);
+  const deliveries = await db
+    .select()
+    .from(notificationDeliveries)
+    .where(eq(notificationDeliveries.eventId, event.id));
+  assert.equal(deliveries.length, 2);
+  await muteScoutAlerts({
+    ...scope,
+    ruleId: rule.id,
+    durationSeconds: 3600,
+    reason: "Maintenance",
+  });
+  const { executeNotificationDeliveryAttempt } =
+    await import("../notifications/delivery-service.js");
+  const results = await Promise.all(
+    deliveries.map((delivery) =>
+      executeNotificationDeliveryAttempt({
+        deliveryId: delivery.id,
+        cycle: delivery.cycle,
+        attempt: 1,
+      }),
+    ),
+  );
+  assert(results.every((result) => result.outcome === "terminal"));
+  const [incident] = await db
+    .select()
+    .from(scoutAlertIncidents)
+    .where(eq(scoutAlertIncidents.ruleId, rule.id));
+  assert(
+    incident && incident.lastNotifiedAt === null,
+    "A fully suppressed batch must re-arm even when deliveries are claimed concurrently",
+  );
+  await muteScoutAlerts({
+    ...scope,
+    ruleId: rule.id,
+    durationSeconds: 0,
+    reason: "",
+  });
+  await samples(new Date(now.getTime() + 30_000), 99, 1);
+  await sweep(new Date(now.getTime() + 30_000));
+  const after = await db
+    .select()
+    .from(notificationEvents)
+    .where(eq(notificationEvents.workspaceId, scope.workspaceId));
+  assert.equal(
+    after.filter(
+      (row) =>
+        row.payload.details.ruleId === rule.id && row.type === "scout.firing",
+    ).length,
+    2,
   );
   await deleteScoutAlertRule({ ...scope, ruleId: rule.id });
 }

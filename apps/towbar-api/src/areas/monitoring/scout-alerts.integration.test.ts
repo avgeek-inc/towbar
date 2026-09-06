@@ -1,5 +1,8 @@
 import { assertScoutWorkloadLinks } from "./scout-workload-links-test-helper.js";
-import { assertScoutDestinations } from "./scout-destinations-test-helper.js";
+import {
+  assertConcurrentScoutSuppression,
+  assertScoutDestinations,
+} from "./scout-destinations-test-helper.js";
 import { assertScoutHttpChecks } from "./scout-http-test-helper.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -562,6 +565,10 @@ void test(
       await t.test(
         "automatically notifies every server destination with tenant isolation",
         () => assertScoutDestinations(scope, otherWorkspace, samples, sweep),
+      );
+      await t.test(
+        "concurrent suppressions re-arm an active incident after maintenance",
+        () => assertConcurrentScoutSuppression(scope, samples, sweep),
       );
       await t.test(
         "workload notifications link to their source-scoped Scout pages",

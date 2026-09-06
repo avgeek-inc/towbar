@@ -1,3 +1,7 @@
+import {
+  scoutIncidentChanged,
+  scoutNotificationsPaused,
+} from "./scout-delivery-state.js";
 import { and, asc, eq, lte, or, sql } from "drizzle-orm";
 import { ZodError } from "zod";
 
@@ -556,6 +560,13 @@ async function suppressScoutDelivery(
       (!scout.rule.notifyRecovery ||
         scout.incident.resolutionReason !== "recovered"));
   if (suppressed) {
+    // Serialize sibling suppressions so the last one reliably re-arms the batch.
+    if (scout)
+      await transaction
+        .select({ id: scoutAlertIncidents.id })
+        .from(scoutAlertIncidents)
+        .where(eq(scoutAlertIncidents.id, scout.incident.id))
+        .for("update");
     await transaction
       .update(notificationDeliveries)
       .set({
@@ -588,29 +599,4 @@ async function suppressScoutDelivery(
   }
 
   return false;
-}
-
-function scoutNotificationsPaused(
-  rule: typeof scoutAlertRules.$inferSelect,
-  settings: typeof scoutAlertSettings.$inferSelect | null,
-  now: Date,
-) {
-  return (
-    !rule.enabled ||
-    rule.deletedAt !== null ||
-    Boolean(rule.mutedUntil && rule.mutedUntil > now) ||
-    Boolean(settings?.mutedUntil && settings.mutedUntil > now)
-  );
-}
-
-function scoutIncidentChanged(
-  rule: typeof scoutAlertRules.$inferSelect,
-  incident: typeof scoutAlertIncidents.$inferSelect,
-  environment: unknown,
-) {
-  return (
-    JSON.stringify(rule.condition) !== JSON.stringify(incident.condition) ||
-    rule.deployableId !== incident.deployableId ||
-    (typeof environment === "string" && rule.environment !== environment)
-  );
 }
