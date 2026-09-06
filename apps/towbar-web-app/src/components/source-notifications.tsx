@@ -143,9 +143,10 @@ export function SourceNotifications({
     {
       key: "actions",
       header: "Actions",
+      headerClassName: "text-end",
       cell: (destination) =>
         canManage ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <ActionButton
               action={() =>
                 api.post(
@@ -192,7 +193,7 @@ export function SourceNotifications({
         ) : (
           <span className="text-muted">—</span>
         ),
-      className: "min-w-72",
+      className: "min-w-72 text-end",
     },
   ];
 
