@@ -5,6 +5,36 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.6.2] - 2026-09-07
+
+### Added
+
+- Scout performance history supports Last 15 minutes, Last 30 minutes, and custom
+  date/time windows, with Last 15 minutes as the default. Drag across a chart to
+  zoom all charts and deployment/restart events to the selected range. Reopen
+  Custom range to adjust it, or choose a relative preset to reset the zoom.
+- REST and MCP monitoring queries support the same custom windows, with retention
+  validation and bounded chart/event results.
+
+### Fixed
+
+- Vulnerability scans now work with non-root SSH users such as `deploy`. Trivy
+  reads a dedicated archive mount while the host temporary directory stays
+  private and scanner capability, network, and resource restrictions remain intact.
+- Failed scans show bounded, sanitized SSH diagnostics instead of only a generic
+  command failure, making permission and scanner errors actionable.
+- Overview counts link to their Sources, Apps, Resources, and Servers lists.
+- Clicking performance charts no longer draws a focus border; keyboard focus
+  styling remains available.
+
+### Upgrade notes
+
+- No new database migration or Scout Agent reinstall is required. Deploy matching
+  API, web, and worker builds to use the new monitoring query options.
+- After upgrading, rescan deployments whose vulnerability scans failed with
+  archive permission errors. Workload redeployment is not required. A completed
+  scan may report vulnerabilities; it does not imply that the image is clean.
+
 ## [1.6.1] - 2026-09-07
 
 ### Added
@@ -431,7 +461,8 @@ before resuming deployments:
 - Source-scoped AWS Secrets Manager integration and environment editors.
 - A same-domain owner setup, authentication, and operations dashboard.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.6.1...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.6.2...HEAD
+[1.6.2]: https://github.com/avgeek-inc/towbar/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/avgeek-inc/towbar/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/avgeek-inc/towbar/compare/v1.5.4...v1.6.0
 [1.5.4]: https://github.com/avgeek-inc/towbar/compare/v1.5.3...v1.5.4
