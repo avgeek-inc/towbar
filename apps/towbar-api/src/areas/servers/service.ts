@@ -1,3 +1,4 @@
+import { getServerMonitoringSummaries } from "../monitoring/server-summaries.js";
 import { and, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 
@@ -63,13 +64,15 @@ export async function listServers(workspaceId: string) {
     )
     .orderBy(desc(servers.updatedAt));
   const ids = rows.map((server) => server.id);
-  const [latestPreparations, hardware] = await Promise.all([
+  const [latestPreparations, hardware, scout] = await Promise.all([
     getLatestServerPreparations(ids),
     getServerHardware(ids),
+    getServerMonitoringSummaries(workspaceId),
   ]);
   return rows.map((server) => ({
     ...toPublicServer(server, latestPreparations.get(server.id)),
     hardware: hardware.get(server.id) ?? null,
+    scout: scout.get(server.id),
   }));
 }
 

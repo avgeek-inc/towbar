@@ -210,6 +210,7 @@ export type Resource = {
 };
 
 export type Server = {
+  scout?: import("@workspace/towbar-core").ServerMonitoringSummary;
   hardware?: import("@workspace/towbar-core").ServerHardware | null;
   archivedAt: string | null;
   canonicalIp: string;

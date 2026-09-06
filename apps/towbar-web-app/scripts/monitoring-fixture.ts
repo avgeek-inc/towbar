@@ -136,3 +136,40 @@ export function fixtureMonitoringHistory(
       : [],
   };
 }
+
+export function fixtureServerMonitoringSummary(
+  agent: MonitoringAgentStatus,
+  serverId: string,
+) {
+  const end = new Date().toISOString();
+  const start = new Date(Date.parse(end) - 30 * 60_000).toISOString();
+  const history = fixtureMonitoringHistory(
+    agent,
+    serverId,
+    new URLSearchParams("range=1h"),
+    false,
+  );
+  return {
+    enabled: agent.desiredState === "enabled",
+    status: agent.status,
+    lastCollectedAt: agent.lastCollectedAt,
+    start,
+    end,
+    points:
+      agent.desiredState !== "enabled" || agent.status !== "online"
+        ? []
+        : (history.series[0]?.points ?? [])
+            .filter((point) => point.at > start && point.at <= end)
+            .slice(-60)
+            .map((point) => ({
+              at: point.at,
+              cpuPercent: point.metrics.cpuPercent
+                ? point.metrics.cpuPercent.sum / point.metrics.cpuPercent.count
+                : null,
+              memoryPercent: point.metrics.memoryPercent
+                ? point.metrics.memoryPercent.sum /
+                  point.metrics.memoryPercent.count
+                : null,
+            })),
+  };
+}

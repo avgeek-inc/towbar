@@ -37,6 +37,7 @@ import {
 } from "./inventory-runtime-capacity";
 import { formatBytes } from "./runtime-operations";
 import { LastSyncedTime, RelativeTime } from "./last-synced-time";
+import { ScoutServerSummary } from "./scout-server-summary";
 import { ServerIpLink } from "./source-inventory";
 import { AppIdentity, ResourceIdentity } from "./deployable-identity";
 
@@ -112,7 +113,10 @@ export function ServersIndex() {
     "/v1/core/resources",
     5_000,
   );
-  const servers = useApiQuery<{ servers: Server[] }>("/v1/core/servers", 5_000);
+  const servers = useApiQuery<{ servers: Server[] }>(
+    "/v1/core/servers",
+    30_000,
+  );
   const error = apps.error ?? resources.error ?? servers.error;
 
   return (
@@ -304,6 +308,12 @@ function ServerInventory({
       className: "w-full min-w-52 tabular-nums",
       header: "Server",
       key: "server",
+    },
+    {
+      cell: (server) => <ScoutServerSummary server={server} />,
+      className: "min-w-40",
+      header: "Scout Agent",
+      key: "scout",
     },
     {
       cell: (server) =>

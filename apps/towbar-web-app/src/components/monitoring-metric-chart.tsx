@@ -7,6 +7,7 @@ import type {
   MonitoringSeries,
 } from "@workspace/towbar-web-client";
 import { LineChart } from "@workspace/web-design-system/charts/line-chart";
+import { MonitoringMetricIcon } from "./monitoring-metric-icon";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { monitoringChartGaps } from "./monitoring-chart-gaps";
 import {
@@ -169,7 +170,9 @@ export const MetricChart = memo(function MetricChart({
           ) : null
         }
       >
-        <Widget.Title>{title}</Widget.Title>
+        <Widget.Title icon={<MonitoringMetricIcon metric={metrics[0]!.key} />}>
+          {title}
+        </Widget.Title>
       </Widget.Header>
       <Widget.Content className="min-w-0">
         <LineChart
@@ -200,6 +203,18 @@ export const MetricChart = memo(function MetricChart({
                 : automaticDomain
             }
           />
+          {metrics[0]!.unit === "percent" ? (
+            <LineChart.ReferenceLine
+              y={80}
+              className="monitoring-usage-threshold"
+              aria-label="80% usage threshold"
+              stroke="var(--danger)"
+              strokeWidth={1.5}
+              strokeDasharray="1 5"
+              strokeLinecap="round"
+              zIndex={400}
+            />
+          ) : null}
           {gaps.map(({ line, segment }) => (
             <LineChart.ReferenceLine
               key={`gap:${line.key}:${segment[0].x}`}

@@ -48,10 +48,13 @@ Scout Agent runs as two small systemd services: a local collector and an HTTPS s
 
 ### Performance history
 
+The **Scout Agent** column on the Servers list shows CPU (top) and memory (bottom) trends for the last 30 minutes while the agent is online. Graphs are green, with readings above 80% in red, and refresh every 30 seconds. Hover a graph to identify the metric, or select the cell to open performance history. Missing measurements leave gaps. Agents that are disabled or not online show **Inactive** without charts.
+
 Open the **Scout Agent** tab on a server, app, or resource to view performance history. The tab stays available when monitoring is off, with links to the server's Scout Agent settings and this guide.
 
 - Server metrics include CPU usage, CPU count, load, memory, swap, root/Docker filesystem capacity, disk I/O, network traffic, and uptime.
 - Container metrics include CPU consumption and its limit, memory consumption and its limit, network and block I/O, restart count, state, and health when Docker provides it.
+- Percentage charts include a red dotted reference line at 80% usage.
 - Choose a relative range from one hour through 60 days, limited by the server's retention setting. Switch between **Average** and **Peak**, and hover to read exact values at the same time across charts.
 - App and resource history survives container replacements. Each line represents an individual container. Choose **Production** or **Previews**, then an instance when you need to isolate it.
 - Dotted connectors bridge periods with no measurements; they do not represent recorded values. Graph markers identify deployments (D) and container restarts (R). Hover or focus a marker for its status and time. The deployment and restart events table follows the selected duration and shows 10 events per page, newest first. Each query is capped at the latest 200 events; a notice appears if older events were omitted. Choose a shorter duration to inspect those periods. Tooltip timestamps include your local time zone.
