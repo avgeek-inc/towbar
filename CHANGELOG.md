@@ -5,6 +5,24 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.6.3] - 2026-09-07
+
+### Added
+
+- Resource lists recognize known container image repositories and show the product
+  logo and name, including Temporal, Mailpit, Supabase, OpenTelemetry, developer
+  runtimes, AI tooling, and self-hosted applications.
+- Bundled product artwork includes light/dark presentation and an extensible
+  catalog of explicit repository aliases. Tags and digests do not affect matching;
+  unknown images and private mirrors retain the Docker fallback.
+- Resource documentation explains logo recognition, with artwork attribution and
+  registry verification references included alongside the catalog.
+
+### Upgrade notes
+
+- No database migration, Scout Agent reinstall, or workload redeployment is
+  required. Update Towbar to display the new resource identities.
+
 ## [1.6.2] - 2026-09-07
 
 ### Added
@@ -461,7 +479,8 @@ before resuming deployments:
 - Source-scoped AWS Secrets Manager integration and environment editors.
 - A same-domain owner setup, authentication, and operations dashboard.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.6.2...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.6.3...HEAD
+[1.6.3]: https://github.com/avgeek-inc/towbar/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/avgeek-inc/towbar/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/avgeek-inc/towbar/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/avgeek-inc/towbar/compare/v1.5.4...v1.6.0
