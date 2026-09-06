@@ -18,3 +18,4 @@ export * from "./source-fetch.js";
 export * from "./ssh.js";
 export * from "./types.js";
 export * from "./monitoring-agent.js";
+export { CommandError } from "./process.js";
