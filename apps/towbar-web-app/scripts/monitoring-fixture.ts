@@ -156,7 +156,7 @@ export function fixtureServerMonitoringSummary(
     start,
     end,
     points:
-      agent.desiredState !== "enabled"
+      agent.desiredState !== "enabled" || agent.status !== "online"
         ? []
         : (history.series[0]?.points ?? [])
             .filter((point) => point.at > start && point.at <= end)

@@ -131,6 +131,7 @@ void test(
         ),
       );
       assert.equal(summaries.get(offline)?.status, "offline");
+      assert.deepEqual(summaries.get(offline)?.points, []);
       assert.equal(summaries.get(disabled)?.enabled, false);
       assert.deepEqual(summaries.get(disabled)?.points, []);
       assert.equal(

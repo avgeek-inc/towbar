@@ -8,6 +8,7 @@ export async function getServerMonitoringSummaries(
   now = new Date(),
 ): Promise<Map<string, ServerMonitoringSummary>> {
   const end = now.toISOString();
+  const freshSince = new Date(now.getTime() - 90_000).toISOString();
   const start = new Date(now.getTime() - 30 * 60_000).toISOString();
   const rows = await getTowbarDatabase().execute<{
     id: string;
@@ -34,7 +35,8 @@ export async function getServerMonitoringSummaries(
         SELECT bucket_at, metrics FROM towbar_monitoring_samples
         WHERE server_id = s.id AND entity_id = 'host' AND resolution = 30
           AND bucket_at > ${start}::timestamptz AND bucket_at <= ${end}::timestamptz
-          AND a.desired_state = 'enabled'
+          AND a.desired_state = 'enabled' AND a.status = 'online'
+          AND a.last_collected_at >= ${freshSince}::timestamptz
         ORDER BY bucket_at DESC LIMIT 60
       ) samples
     ) history ON true

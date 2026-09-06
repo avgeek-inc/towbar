@@ -48,7 +48,7 @@ Scout Agent runs as two small systemd services: a local collector and an HTTPS s
 
 ### Performance history
 
-The **Scout Agent** column on the Servers list shows CPU and memory trends for the last 30 minutes, alongside the agent status. These compact graphs refresh every 30 seconds. Select the cell to open that server's performance history. Disabled agents show **Not enabled**; missing measurements leave gaps, and stale agents show **Offline**.
+The **Scout Agent** column on the Servers list shows CPU (top) and memory (bottom) trends for the last 30 minutes while the agent is online. Graphs are green, with readings above 80% in red, and refresh every 30 seconds. Hover a graph to identify the metric, or select the cell to open performance history. Missing measurements leave gaps. Agents that are disabled or not online show **Inactive** without charts.
 
 Open the **Scout Agent** tab on a server, app, or resource to view performance history. The tab stays available when monitoring is off, with links to the server's Scout Agent settings and this guide.
 

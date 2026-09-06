@@ -311,7 +311,7 @@ function ServerInventory({
     },
     {
       cell: (server) => <ScoutServerSummary server={server} />,
-      className: "min-w-60",
+      className: "min-w-40",
       header: "Scout Agent",
       key: "scout",
     },
