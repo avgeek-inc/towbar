@@ -59,7 +59,6 @@ export const scoutAlertConditionSchema = z
     http: scoutHttpCheckSchema.optional(),
     operator: z.enum(["above", "below"]).default("above"),
     threshold: z.number().finite().nonnegative().max(1e18),
-    durationSeconds: z.number().int().min(0).max(3600).default(300),
     windowSeconds: z.number().int().min(60).max(3600).default(300),
     aggregation: z.enum(["average", "peak"]).default("average"),
   })
@@ -180,33 +179,30 @@ export const scoutAlertPresets: Array<{
       metric: "diskPercent",
       operator: "above",
       threshold: 90,
-      durationSeconds: 300,
       windowSeconds: 300,
       aggregation: "average",
     },
   },
   {
     id: "memory",
-    name: "Sustained memory pressure",
+    name: "High memory usage",
     severity: "warning",
     condition: {
       metric: "memoryPercent",
       operator: "above",
       threshold: 90,
-      durationSeconds: 300,
       windowSeconds: 300,
       aggregation: "average",
     },
   },
   {
     id: "cpu",
-    name: "Sustained CPU usage",
+    name: "High CPU usage",
     severity: "warning",
     condition: {
       metric: "cpuPercent",
       operator: "above",
       threshold: 90,
-      durationSeconds: 600,
       windowSeconds: 300,
       aggregation: "average",
     },
@@ -219,7 +215,6 @@ export const scoutAlertPresets: Array<{
       metric: "restarts",
       operator: "above",
       threshold: 3,
-      durationSeconds: 0,
       windowSeconds: 300,
       aggregation: "peak",
     },
@@ -232,7 +227,6 @@ export const scoutAlertPresets: Array<{
       metric: "missingReports",
       operator: "above",
       threshold: 180,
-      durationSeconds: 0,
       windowSeconds: 300,
       aggregation: "peak",
     },
@@ -246,23 +240,21 @@ export type ScoutConditionResult = {
   since: number | null;
 };
 
-/** Evaluate fresh, continuous observations. Missing or delayed data cannot prove health. */
+/** Evaluate the latest fresh reading. Missing data cannot trigger or prove recovery. */
 export function evaluateScoutCondition(
   condition: ScoutAlertCondition,
   observations: ScoutObservation[],
   now: number,
-  active: boolean,
 ): ScoutConditionResult {
-  const duration = (active ? 0 : condition.durationSeconds) * 1000;
-  const threshold = condition.threshold;
-  const points = [
-    ...new Map(
-      observations
-        .filter((p) => p.at <= now && Number.isFinite(p.at))
-        .map((p) => [p.at, p]),
-    ).values(),
-  ].sort((a, b) => a.at - b.at);
-  const latest = points.at(-1);
+  const latest = observations.reduce<ScoutObservation | undefined>(
+    (last, point) =>
+      Number.isFinite(point.at) &&
+      point.at <= now &&
+      (!last || point.at >= last.at)
+        ? point
+        : last,
+    undefined,
+  );
   const maxGapMs = condition.http
     ? (condition.http.intervalSeconds + 30) * 1000
     : 90_000;
@@ -273,43 +265,14 @@ export function evaluateScoutCondition(
     now - latest.at > maxGapMs
   )
     return { state: "unknown", value: null, since: null };
-  const matches = (value: number) =>
-    active
-      ? condition.operator === "above"
-        ? value < threshold
-        : value > threshold
-      : condition.operator === "above"
-        ? value >= threshold
-        : value <= threshold;
-  if (!matches(latest.value))
-    return {
-      state: active ? "firing" : "healthy",
-      value: latest.value,
-      since: latest.at,
-    };
-  let since = latest.at;
-  for (let i = points.length - 2; i >= 0; i--) {
-    const point = points[i]!;
-    if (
-      since - point.at > maxGapMs ||
-      point.value === null ||
-      !Number.isFinite(point.value) ||
-      !matches(point.value)
-    )
-      break;
-    since = point.at;
-    if (latest.at - since >= duration) break;
-  }
-  // Age of the newest sample is never added to a sustained condition.
+  const firing =
+    condition.operator === "above"
+      ? latest.value >= condition.threshold
+      : latest.value <= condition.threshold;
   return {
-    state:
-      latest.at - since >= duration
-        ? active
-          ? "healthy"
-          : "firing"
-        : "pending",
+    state: firing ? "firing" : "healthy",
     value: latest.value,
-    since,
+    since: latest.at,
   };
 }
 

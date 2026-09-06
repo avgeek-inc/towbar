@@ -8,7 +8,7 @@ tracking, not a substitute for working behaviour or published documentation.
 - [x] Configurable host and workload alerts: CPU, memory, root/Docker disk,
       container restart loops, and missing Scout reports. Additional reported
       gauges should use the same rule model. Opt-in presets, threshold direction,
-      sustained duration/window, severity and enabled state. Recovery follows the
+      threshold, restart counting window, severity and enabled state. Recovery follows the
       first healthy reading; all server destinations receive one alert per incident.
 - [x] Persistent incidents, deduplicated firing/recovery, no active repeats,
       rule and server maintenance mutes, and readable active/resolved history.

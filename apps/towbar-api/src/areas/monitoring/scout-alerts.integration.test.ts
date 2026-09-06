@@ -332,7 +332,7 @@ void test(
                 rule: {
                   ...rule,
                   name: `Suppression ${mode}`,
-                  condition: { ...rule.condition, durationSeconds: 0 },
+                  condition: { ...rule.condition },
                 },
               });
               await samples(at, 99, 1);

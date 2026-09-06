@@ -36,7 +36,7 @@ export const scoutTools: McpTool[] = [
   tool(
     "alerts_configure",
     "Create or update a Scout alert",
-    "Configure a sustained host/workload metric alert or a public HTTP uptime check. Omit ruleId to create; supply an inspected ruleId to replace its settings. Read current settings before updating and preserve settings the user did not request changing. HTTP checks send recurring public requests. Alerts notify all destinations configured on the server once per incident and recover when the condition clears. Creating a rule does not send an immediate test.",
+    "Configure a host/workload metric alert or a public HTTP uptime check. Omit ruleId to create; supply an inspected ruleId to replace its settings. Read current settings before updating and preserve settings the user did not request changing. HTTP checks send recurring public requests. Alerts notify all destinations configured on the server on the first qualifying reading, once per incident, and recover when the condition clears. Creating a rule does not send an immediate test.",
     scoutAlertRuleSchema
       .safeExtend({ ...serverId, ruleId: id("Scout alert rule").optional() })
       .strict(),

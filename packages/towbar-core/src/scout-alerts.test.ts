@@ -17,111 +17,56 @@ const observations = (value: number) =>
     value,
   }));
 
-void test("fires only after sustained observations, not elapsed wall time", () => {
-  assert.equal(
-    evaluateScoutCondition(condition, observations(91), now, false).state,
-    "firing",
-  );
-  assert.equal(
-    evaluateScoutCondition(
-      condition,
-      observations(91).slice(1),
-      now + 30_000,
-      false,
-    ).state,
-    "pending",
-  );
-  assert.equal(
-    evaluateScoutCondition(condition, [{ at: now, value: 99 }], now, false)
-      .state,
-    "pending",
-  );
-  assert.equal(
-    evaluateScoutCondition(condition, observations(89), now, false).state,
-    "healthy",
-  );
-});
-void test("missing or stale measurements never resolve an active incident", () => {
-  assert.equal(
-    evaluateScoutCondition(condition, observations(0), now + 91_000, true)
-      .state,
-    "unknown",
-  );
-  assert.equal(
-    evaluateScoutCondition(condition, [{ at: now, value: null }], now, true)
-      .state,
-    "unknown",
-  );
-  assert.equal(
-    evaluateScoutCondition(
-      condition,
-      [{ at: now + 30_000, value: 0 }],
-      now,
-      true,
-    ).state,
-    "unknown",
-  );
-});
-void test("recovers on the first healthy reading, with strict threshold boundaries", () => {
+void test("fires on the first qualifying reading and recovers at the opposite side of the threshold", () => {
   for (const operator of ["above", "below"] as const) {
     const rule = { ...condition, operator };
     const reading = (value: number) => [{ at: now, value }];
     assert.equal(
-      evaluateScoutCondition(rule, reading(90), now, true).state,
+      evaluateScoutCondition(rule, reading(90), now).state,
       "firing",
     );
     assert.equal(
-      evaluateScoutCondition(
-        rule,
-        reading(operator === "above" ? 89 : 91),
-        now,
-        true,
-      ).state,
+      evaluateScoutCondition(rule, reading(operator === "above" ? 89 : 91), now)
+        .state,
       "healthy",
     );
     assert.equal(
-      evaluateScoutCondition(
-        rule,
-        reading(operator === "above" ? 91 : 89),
-        now,
-        true,
-      ).state,
+      evaluateScoutCondition(rule, reading(operator === "above" ? 91 : 89), now)
+        .state,
       "firing",
     );
   }
 });
-void test("a blackout or healthy sample breaks the pending duration", () => {
-  const gap = observations(99).filter((_, i) => i < 3 || i > 6);
-  assert.equal(
-    evaluateScoutCondition(condition, gap, now, false).state,
-    "pending",
-  );
-  const healthy = observations(99);
-  healthy[5]!.value = 20;
-  assert.equal(
-    evaluateScoutCondition(condition, healthy, now, false).state,
-    "pending",
-  );
+void test("missing, stale, and future measurements cannot trigger or prove recovery", () => {
+  for (const points of [
+    [],
+    [{ at: now, value: null }],
+    [{ at: now - 91_000, value: 0 }],
+    [{ at: now + 30_000, value: 0 }],
+  ]) {
+    assert.equal(
+      evaluateScoutCondition(condition, points, now).state,
+      "unknown",
+    );
+  }
 });
-void test("sorts and deduplicates samples without counting retries toward duration", () => {
-  const points = observations(99);
+void test("uses the latest reading across blackouts, unordered history, and retries", () => {
+  const points = [
+    { at: now - 600_000, value: 1 },
+    { at: now, value: 99 },
+  ];
   assert.equal(
-    evaluateScoutCondition(
-      condition,
-      [...points, ...points].reverse(),
-      now,
-      false,
-    ).state,
+    evaluateScoutCondition(condition, [...points, ...points].reverse(), now)
+      .state,
     "firing",
   );
   assert.equal(
     evaluateScoutCondition(
       condition,
-      Array(20).fill({ at: now, value: 99 }),
+      [...observations(99), { at: now, value: 89 }],
       now,
-      false,
     ).state,
-    "pending",
+    "healthy",
   );
 });
 void test("counts restarts within the window but not counter resets or replacement identities", () => {

@@ -671,7 +671,6 @@
           ]
         },
         "threshold": { "type": "number" },
-        "durationSeconds": { "type": "number" },
         "windowSeconds": { "type": "number" },
         "aggregation": {
           "anyOf": [
@@ -685,7 +684,6 @@
         "metric",
         "operator",
         "threshold",
-        "durationSeconds",
         "windowSeconds",
         "aggregation"
       ]
@@ -984,7 +982,6 @@
           ]
         },
         "threshold": { "type": "number" },
-        "durationSeconds": { "type": "number" },
         "windowSeconds": { "type": "number" },
         "aggregation": {
           "anyOf": [
@@ -998,7 +995,6 @@
         "metric",
         "operator",
         "threshold",
-        "durationSeconds",
         "windowSeconds",
         "aggregation"
       ]

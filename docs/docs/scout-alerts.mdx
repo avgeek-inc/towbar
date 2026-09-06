@@ -32,26 +32,26 @@ No rules are enabled automatically. The dotted 80% line in performance charts is
 
 1. Choose **Create rule**, enter a rule name, then choose a metric.
 2. The current server, app, or resource is selected automatically. Workload rules select **Production** or **Previews**; preview rules consider the selected workload's preview instances together.
-3. Set the threshold, direction, and how long the condition must persist. **At least** and **At most** include the threshold itself.
+3. Set the threshold and direction. **At least** and **At most** include the threshold itself.
 4. Choose whether to send a recovery notification, then save. All destinations added under the server’s **Notifications** tab receive alerts automatically.
 
 A server without notification destinations still creates incidents in Towbar. Adding a destination does not send an immediate test; a firing incident becomes eligible on the next evaluation. Only workspace owners can create, change, delete, or mute rules. Members can inspect them.
 
-| Example rule              | Trigger                              | Recovery                            |
-| ------------------------- | ------------------------------------ | ----------------------------------- |
-| Disk nearly full          | Root disk at least 90% for 5 minutes | Disk falls below 90%                |
-| Sustained memory pressure | Memory at least 90% for 5 minutes    | Memory falls below 90%              |
-| Sustained CPU usage       | CPU at least 90% for 10 minutes      | CPU falls below 90%                 |
-| Container restart loop    | At least 3 restarts within 5 minutes | Fewer than 3 restarts in the window |
-| Scout stopped reporting   | No report collected for 3 minutes    | Reports resume                      |
+| Example rule            | Trigger                              | Recovery                            |
+| ----------------------- | ------------------------------------ | ----------------------------------- |
+| Disk nearly full        | Root disk at least 90%               | Disk falls below 90%                |
+| High memory usage       | Memory at least 90%                  | Memory falls below 90%              |
+| High CPU usage          | CPU at least 90%                     | CPU falls below 90%                 |
+| Container restart loop  | At least 3 restarts within 5 minutes | Fewer than 3 restarts in the window |
+| Scout stopped reporting | No report collected for 3 minutes    | Reports resume                      |
 
-The examples above are starting points for your own thresholds. Configure sustained trigger periods from zero to 60 minutes and restart windows from 1 to 60 minutes. An incident recovers on the first fresh measurement that no longer meets the trigger condition. Each incident sends one firing notification, with no repeats while active. A server supports up to 100 rules, including at most 10 public HTTP checks.
+The examples above are starting points for your own thresholds. Configure restart counting windows from 1 to 60 minutes. Alerts fire on the first fresh qualifying reading, with no additional waiting period. An incident recovers on the first fresh measurement that no longer meets the trigger condition. Each incident sends one firing notification, with no repeats while active. A server supports up to 100 rules, including at most 10 public HTTP checks.
 
 ## Measurements and incident states
 
 Host and workload gauges use the reported metric units. The editor presents bytes as GiB and throughput as MiB/s; REST thresholds use bytes and bytes per second. For multiple instances, a gauge rule evaluates the worst instance reading rather than adding utilization percentages. Restart rules count increments within each container identity, not a new container's initial counter or a counter reset.
 
-**Healthy** means the latest evaluation does not meet the trigger condition, or an active incident has cleared. **Evaluating** means the sustained trigger period is still being established. **Alerting** means the condition is active. **No recent data** cannot prove recovery: missing measurements are not treated as zero. **Scout inactive** means collection is intentionally disabled or the workload is no longer assigned to the server.
+**Healthy** means the latest evaluation does not meet the trigger condition, or an active incident has cleared. **Alerting** means the condition is active. **No recent data** cannot prove recovery: missing measurements are not treated as zero. **Scout inactive** means collection is intentionally disabled or the workload is no longer assigned to the server.
 
 Metric rules require Scout Agent to be enabled. Missing-report rules include an installation grace period and do not alert on intentional uninstall. Public HTTP checks are performed by the control plane and do not require an installed agent.
 
@@ -65,7 +65,7 @@ Choose **Public HTTP endpoint** as a server rule's metric. Set a public HTTP or 
 - A total timeout from 1 to 10 seconds, including DNS resolution and redirects.
 - A healthy HTTP status range, defaulting to 200–299.
 - Zero to three redirects; redirects are not followed by default.
-- A configurable sustained unavailable period. Recovery follows the first successful check.
+- An unavailable result triggers an alert immediately. Recovery follows the first successful check.
 
 An unexpected status, timeout, DNS/connection failure, or invalid TLS certificate counts as unavailable. A blocked destination is shown as a check error and cannot establish recovery. Each redirect is resolved and validated separately. Private, loopback, link-local, reserved, and metadata-service addresses are blocked, including mixed public/private DNS answers. Connections are pinned to the validated address. Only ports 80 and 443 are accepted; custom headers, credentials, cookies, and request bodies are not supported. Response bodies are not buffered or retained.
 

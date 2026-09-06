@@ -131,9 +131,8 @@ export function scoutValue(value: number | null, metric: string) {
     : `${(value / definition.factor).toLocaleString(undefined, { maximumFractionDigits: 2 })}${definition.unit === "%" ? "" : " "}${definition.unit}`.trim();
 }
 export function conditionDescription(condition: ScoutAlertCondition) {
-  if (condition.metric === "httpAvailability")
-    return `Endpoint unavailable${condition.durationSeconds ? ` for ${condition.durationSeconds / 60} minutes` : ""}`;
-  return `${metricDefinition(condition.metric).label} ${condition.operator === "above" ? "at least" : "at most"} ${scoutValue(condition.threshold, condition.metric)}${condition.metric === "restarts" ? ` in ${condition.windowSeconds / 60} minutes` : ""}${condition.durationSeconds ? ` for ${condition.durationSeconds / 60} minutes` : ""}`;
+  if (condition.metric === "httpAvailability") return `Endpoint unavailable`;
+  return `${metricDefinition(condition.metric).label} ${condition.operator === "above" ? "at least" : "at most"} ${scoutValue(condition.threshold, condition.metric)}${condition.metric === "restarts" ? ` in ${condition.windowSeconds / 60} minutes` : ""}`;
 }
 export function ScoutSelect({
   label,

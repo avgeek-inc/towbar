@@ -381,7 +381,6 @@
             ]
           },
           "threshold": { "type": "number" },
-          "durationSeconds": { "type": "number" },
           "windowSeconds": { "type": "number" },
           "aggregation": {
             "anyOf": [
@@ -395,7 +394,6 @@
           "metric",
           "operator",
           "threshold",
-          "durationSeconds",
           "windowSeconds",
           "aggregation"
         ]
@@ -700,7 +698,6 @@
             ]
           },
           "threshold": { "type": "number" },
-          "durationSeconds": { "type": "number" },
           "windowSeconds": { "type": "number" },
           "aggregation": {
             "anyOf": [
@@ -714,7 +711,6 @@
           "metric",
           "operator",
           "threshold",
-          "durationSeconds",
           "windowSeconds",
           "aggregation"
         ]
@@ -7116,12 +7112,6 @@
                         "minimum": 0,
                         "maximum": 1000000000000000000
                       },
-                      "durationSeconds": {
-                        "default": 300,
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600
-                      },
                       "windowSeconds": {
                         "default": 300,
                         "type": "integer",
@@ -7323,12 +7313,6 @@
                         "type": "number",
                         "minimum": 0,
                         "maximum": 1000000000000000000
-                      },
-                      "durationSeconds": {
-                        "default": 300,
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600
                       },
                       "windowSeconds": {
                         "default": 300,

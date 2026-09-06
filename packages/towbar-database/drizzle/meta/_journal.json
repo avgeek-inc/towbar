@@ -337,6 +337,13 @@
       "when": 1788706246045,
       "tag": "0047_calm_phantom_reporter",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1788707341139,
+      "tag": "0048_scout_immediate_alerts",
+      "breakpoints": true
     }
   ]
 }

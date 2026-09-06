@@ -268,17 +268,6 @@ export function ScoutRuleEditor({
                     </p>
                   ) : null}
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <ScoutNumber
-                      label="Must last (minutes)"
-                      min={0}
-                      max={60}
-                      step={0.5}
-                      value={draft.condition.durationSeconds / 60}
-                      onChange={(value) =>
-                        condition({ durationSeconds: value * 60 })
-                      }
-                      description="Zero alerts on the next qualifying measurement."
-                    />
                     {draft.condition.metric === "restarts" ? (
                       <ScoutNumber
                         label="Count within (minutes)"

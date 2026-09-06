@@ -50,7 +50,7 @@ export async function assertScoutDestinations(
     ...scope,
     rule: scoutAlertRuleSchema.parse({
       name: "Automatic destinations",
-      condition: { ...scoutAlertPresets[1]!.condition, durationSeconds: 0 },
+      condition: { ...scoutAlertPresets[1]!.condition },
     }),
   });
   const now = new Date(Date.now() + 3600_000);
@@ -81,6 +81,43 @@ export async function assertScoutDestinations(
   assert(
     !destinations.includes(foreignId),
     "destinations remain workspace scoped",
+  );
+  const firingEvents = async () =>
+    (
+      await db
+        .select()
+        .from(notificationEvents)
+        .where(eq(notificationEvents.workspaceId, scope.workspaceId))
+    ).filter(
+      (event) =>
+        event.type === "scout.firing" &&
+        event.payload.details.ruleId === rule.id,
+    );
+  await samples(new Date(now.getTime() + 30_000), 99, 1);
+  await sweep(new Date(now.getTime() + 30_000));
+  assert.equal(
+    (await firingEvents()).length,
+    1,
+    "a qualifying active incident stays silent",
+  );
+  await samples(new Date(now.getTime() + 60_000), 89, 1);
+  await sweep(new Date(now.getTime() + 60_000));
+  assert.equal(
+    (await firingEvents()).length,
+    1,
+    "recovery does not send a new firing notification",
+  );
+  await samples(new Date(now.getTime() + 90_000), 99, 1);
+  await sweep(new Date(now.getTime() + 90_000));
+  const triggered = await firingEvents();
+  assert.equal(
+    triggered.length,
+    2,
+    "a fresh qualifying reading after recovery fires immediately",
+  );
+  assert.notEqual(
+    triggered[0]!.payload.details.incidentId,
+    triggered[1]!.payload.details.incidentId,
   );
   await deleteScoutAlertRule({ ...scope, ruleId: rule.id });
 }

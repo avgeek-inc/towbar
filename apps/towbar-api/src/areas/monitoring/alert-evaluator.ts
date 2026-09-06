@@ -151,7 +151,6 @@ export async function evaluateScoutAlerts(
           rule.condition,
           observations,
           now.getTime(),
-          Boolean(active),
         );
         return applyRuleResult(
           tx,
@@ -319,7 +318,7 @@ async function getRuleObservations(
         and(
           eq(scoutHttpChecks.ruleId, rule.id),
           sql`date_trunc('milliseconds',${scoutHttpChecks.ruleRevision})=${rule.updatedAt.toISOString()}::timestamptz`,
-          sql`${scoutHttpChecks.scheduledAt} >= ${new Date(now.getTime() - (condition.durationSeconds + 2 * condition.http!.intervalSeconds) * 1000).toISOString()}::timestamptz`,
+          sql`${scoutHttpChecks.scheduledAt} >= ${new Date(now.getTime() - 2 * condition.http!.intervalSeconds * 1000).toISOString()}::timestamptz`,
           lte(scoutHttpChecks.scheduledAt, now),
         ),
       )
@@ -339,18 +338,12 @@ async function getRuleObservations(
         agent.operationStartedAt?.getTime() ?? 0,
       ) + 300_000;
     if (["online", "waiting"].includes(agent.status)) {
-      const duration = condition.durationSeconds;
-      observations = Array.from(
-        { length: Math.ceil(duration / 30) + 1 },
-        (_, i) => {
-          const at = now.getTime() - (Math.ceil(duration / 30) - i) * 30_000;
-          // Only a report actually collected by this time can establish recovery.
-          return {
-            at,
-            value: at < last ? null : Math.max(0, (at - last) / 1000),
-          };
+      observations = [
+        {
+          at: now.getTime(),
+          value: now.getTime() < last ? null : (now.getTime() - last) / 1000,
         },
-      );
+      ];
       if (
         active &&
         agent.lastCollectedAt &&
@@ -377,9 +370,7 @@ async function getRuleObservations(
     }
   } else if (condition.metric !== "missingReports") {
     const historySeconds =
-      condition.durationSeconds +
-      (condition.metric === "restarts" ? condition.windowSeconds : 0) +
-      120;
+      (condition.metric === "restarts" ? condition.windowSeconds : 0) + 120;
     const scope = rule.deployableId
       ? sql`${monitoringSamples.deployableId}=${rule.deployableId}::uuid and ${rule.environment === "production" ? sql`${monitoringSamples.previewId} is null` : sql`${monitoringSamples.previewId} is not null`}`
       : condition.metric === "restarts"
