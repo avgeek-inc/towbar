@@ -16,7 +16,6 @@ import {
 } from "./monitoring-events";
 
 const axisTick = { fill: "var(--muted)", fontSize: 11 };
-const timeDomain = ["dataMin", "dataMax"] as const;
 const percentageDomain = [0, 100] as const;
 const automaticDomain = [0, "auto"] as const;
 const palette = [
@@ -60,6 +59,7 @@ export type MetricChartProps = {
   history: History;
   view: string;
   syncId: string;
+  onRangeSelect?: (start: number, end: number) => void;
 };
 export const MetricChart = memo(function MetricChart({
   metrics,
@@ -67,7 +67,12 @@ export const MetricChart = memo(function MetricChart({
   history,
   view,
   syncId,
+  onRangeSelect,
 }: MetricChartProps) {
+  const timeDomain = useMemo(
+    () => [Date.parse(history.startAt), Date.parse(history.endAt)] as const,
+    [history.startAt, history.endAt],
+  );
   const [eventActive, setEventActive] = useState(false);
   const data = useMemo(() => {
     const start =
@@ -121,12 +126,12 @@ export const MetricChart = memo(function MetricChart({
   const tickFormatter = useMemo(() => {
     const formatter = new Intl.DateTimeFormat(
       undefined,
-      history.range.endsWith("h")
+      Date.parse(history.endAt) - Date.parse(history.startAt) <= 86400_000
         ? { hour: "2-digit", minute: "2-digit" }
         : { month: "short", day: "numeric" },
     );
     return (value: number) => formatter.format(value);
-  }, [history.range]);
+  }, [history.startAt, history.endAt]);
   const yTickFormatter = useMemo(
     () => (value: number) => formatMetric(value, metrics[0]!.unit),
     [metrics],
@@ -176,6 +181,12 @@ export const MetricChart = memo(function MetricChart({
       </Widget.Header>
       <Widget.Content className="min-w-0">
         <LineChart
+          data-range-chart={onRangeSelect ? "" : undefined}
+          className={
+            onRangeSelect
+              ? "select-none touch-pan-y cursor-crosshair"
+              : undefined
+          }
           data={data}
           height={220}
           syncId={syncId}
@@ -187,6 +198,7 @@ export const MetricChart = memo(function MetricChart({
             type="number"
             scale="time"
             domain={timeDomain}
+            allowDataOverflow
             tickFormatter={tickFormatter}
             minTickGap={45}
             tick={axisTick}
@@ -266,6 +278,9 @@ export const MetricChart = memo(function MetricChart({
               isAnimationActive={false}
             />
           ))}
+          {onRangeSelect ? (
+            <LineChart.Selection domain={timeDomain} onSelect={onRangeSelect} />
+          ) : null}
           <LineChart.Tooltip
             active={eventActive ? false : undefined}
             content={

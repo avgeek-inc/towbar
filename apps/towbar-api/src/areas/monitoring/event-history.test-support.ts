@@ -60,6 +60,36 @@ export async function verifyEventHistoryBounds(
       .sort()
       .reverse(),
   );
+  const custom = await getMonitoringHistory(
+    {
+      ...query,
+      range: "custom",
+      startAt: new Date(now.getTime() - 3 * 3600000).toISOString(),
+      endAt: new Date(now.getTime() - 3600000).toISOString(),
+    },
+    now,
+  );
+  assert(custom.events.some((event) => event.id === old.id));
+  assert(
+    custom.events.every(
+      (event) => event.at >= custom.startAt && event.at < custom.endAt,
+    ),
+  );
+  assert.equal(custom.eventsLimited, false);
+  await assert.rejects(
+    getMonitoringHistory(
+      {
+        ...query,
+        range: "custom",
+        startAt: now.toISOString(),
+        endAt: future.createdAt.toISOString(),
+      },
+      now,
+    ),
+    /future/,
+  );
+  const short = await getMonitoringHistory({ ...query, range: "15m" }, now);
+  assert(!short.events.some((event) => event.id === old.id));
   const repeated = await getMonitoringHistory({ ...query, range: "1h" }, now);
   assert.deepEqual(repeated.events, capped.events);
 }

@@ -852,6 +852,9 @@
         "serverId": { "type": "string" },
         "range": {
           "anyOf": [
+            { "type": "string", "const": "custom" },
+            { "type": "string", "const": "15m" },
+            { "type": "string", "const": "30m" },
             { "type": "string", "const": "1h" },
             { "type": "string", "const": "6h" },
             { "type": "string", "const": "24h" },

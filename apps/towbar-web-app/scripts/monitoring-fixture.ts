@@ -1,3 +1,7 @@
+import {
+  monitoringQuerySchema,
+  resolveMonitoringWindow,
+} from "@workspace/towbar-core";
 import type {
   MonitoringAgentStatus,
   MonitoringHistory,
@@ -26,27 +30,15 @@ export function fixtureMonitoringHistory(
   query: URLSearchParams,
   workload: boolean,
 ): MonitoringHistory {
-  const range = query.get("range") ?? "1h";
-  const seconds =
-    (
-      {
-        "1h": 3600,
-        "6h": 21600,
-        "24h": 86400,
-        "7d": 604800,
-        "15d": 1296000,
-        "30d": 2592000,
-        "60d": 5184000,
-      } as Record<string, number>
-    )[range] ?? 3600;
-  const step = Math.max(
-    30,
-    Math.ceil(Math.min(seconds, agent.retentionDays * 86400) / 180 / 30) * 30,
-  );
-  const duration = Math.min(seconds, agent.retentionDays * 86400);
+  const input = monitoringQuerySchema.parse(Object.fromEntries(query));
+  const range = input.range;
+  const window = resolveMonitoringWindow(input, agent.retentionDays);
+  const step = window.step;
+  const end = window.end.getTime();
+  const start = window.start.getTime();
+  const bucketStart = Math.floor(start / step / 1000) * step * 1000;
+  const duration = (end - bucketStart) / 1000;
   const intervals = Math.ceil(duration / step);
-  const end = Math.floor(Date.now() / step / 1000) * step * 1000;
-  const start = end - duration * 1000;
   const preview = query.get("environment") === "preview";
   const id = "a".repeat(64);
   const points = Array.from({ length: intervals }, (_, bucket) => {
@@ -73,7 +65,7 @@ export function fixtureMonitoringHistory(
       restartCount: index < 120 ? 0 : 1,
     };
     return {
-      at: new Date(start + bucket * step * 1000).toISOString(),
+      at: new Date(bucketStart + bucket * step * 1000).toISOString(),
       metrics: Object.fromEntries(
         Object.entries(values).map(([key, value]) => [
           key,

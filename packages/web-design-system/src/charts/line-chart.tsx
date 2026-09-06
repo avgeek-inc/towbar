@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { ChartRangeSelection } from "./chart-range-selection";
 import { cn } from "../lib/utils";
 
 type Datum = Record<string, unknown>;
@@ -29,7 +30,14 @@ function Root({
   ...props
 }: RootProps) {
   return (
-    <div className={cn("w-full", className)} style={{ height }} {...props}>
+    <div
+      className={cn(
+        "w-full [&_.recharts-surface:focus:not(:focus-visible)]:outline-none",
+        className,
+      )}
+      style={{ height }}
+      {...props}
+    >
       <ResponsiveContainer height="100%" width="100%">
         <RechartsLineChart data={data} syncId={syncId} syncMethod="value">
           {children}
@@ -101,6 +109,7 @@ function TooltipContent({
   );
 }
 export const LineChart = Object.assign(Root, {
+  Selection: ChartRangeSelection,
   Grid,
   Line,
   Root,

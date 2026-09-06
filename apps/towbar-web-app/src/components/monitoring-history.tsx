@@ -1,7 +1,7 @@
 "use client";
 import { ScoutOptionIcon } from "./scout-icons";
 
-import { useDeferredValue, useId, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useId, useMemo, useState } from "react";
 import type { MonitoringHistory as History } from "@workspace/towbar-web-client";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Label } from "@workspace/web-design-system/forms/label";
@@ -16,15 +16,12 @@ import { type ChartMetric } from "./monitoring-metric-chart";
 import { MonitoringChartSlot } from "./monitoring-chart-slot";
 import { MonitoringStatus } from "./monitoring-agent-settings";
 
-const ranges = [
-  { id: "1h", label: "Last hour", days: 1 },
-  { id: "6h", label: "Last 6 hours", days: 1 },
-  { id: "24h", label: "Last 24 hours", days: 1 },
-  { id: "7d", label: "Last 7 days", days: 7 },
-  { id: "15d", label: "Last 15 days", days: 15 },
-  { id: "30d", label: "Last 30 days", days: 30 },
-  { id: "60d", label: "Last 60 days", days: 60 },
-];
+import { MonitoringRangePicker } from "./monitoring-range-picker";
+import {
+  monitoringRanges,
+  type CustomMonitoringRange,
+} from "./monitoring-range";
+
 const hostMetrics: ChartMetric[][] = [
   [{ key: "cpuPercent", label: "CPU usage", unit: "percent" }],
   [{ key: "memoryPercent", label: "Memory usage", unit: "percent" }],
@@ -61,13 +58,27 @@ export function MonitoringHistory({
   serverId?: string;
   workload?: boolean;
 }) {
-  const [range, setRange] = useState("1h");
+  const [range, setRange] = useState("15m");
+  const [custom, setCustom] = useState<CustomMonitoringRange>();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const applyCustom = useCallback(
+    (value: CustomMonitoringRange) => setCustom(value),
+    [],
+  );
+  const selectRange = useCallback((start: number, end: number) => {
+    const to = Math.min(end, Date.now());
+    if (to - start < 30_000) return;
+    setCustom({
+      startAt: new Date(Math.ceil(start)).toISOString(),
+      endAt: new Date(Math.floor(to)).toISOString(),
+    });
+  }, []);
   const [environment, setEnvironment] = useState("production");
   const [view, setView] = useState("average");
   const [instance, setInstance] = useState("all");
   const syncId = useId();
   const query = useApiQuery<History>(
-    `${path}?range=${range}&environment=${environment}`,
+    `${path}?${new URLSearchParams({ range: custom ? "custom" : range, environment, ...custom })}`,
     30_000,
     { keepPreviousData: true },
   );
@@ -154,15 +165,32 @@ export function MonitoringHistory({
           />
           <HistorySelect
             label="Time range"
-            value={range}
+            value={custom ? "custom" : range}
             onChange={(value) => {
+              if (value === "custom") {
+                setPickerOpen(true);
+                return;
+              }
               setRange(value);
-              setInstance("all");
+              setCustom(undefined);
             }}
-            options={ranges.filter((row) => row.days <= agent.retentionDays)}
+            onReselect={(value) => {
+              if (value === "custom") setPickerOpen(true);
+            }}
+            options={monitoringRanges.filter(
+              (row) => row.days <= agent.retentionDays,
+            )}
           />
         </div>
       </div>
+      {pickerOpen ? (
+        <MonitoringRangePicker
+          initial={custom ?? { startAt: history.startAt, endAt: history.endAt }}
+          retentionDays={agent.retentionDays}
+          onApply={applyCustom}
+          onClose={() => setPickerOpen(false)}
+        />
+      ) : null}
       {query.error ? <QueryError message={query.error} /> : null}
       {agent.desiredState !== "enabled" && hasPoints ? (
         <MonitoringEmptyState serverId={selectedServer} disabled historical />
@@ -186,6 +214,7 @@ export function MonitoringHistory({
                 history={history}
                 view={chartView}
                 syncId={syncId}
+                onRangeSelect={selectRange}
               />
             ))}
           </div>
@@ -196,7 +225,7 @@ export function MonitoringHistory({
             </p>
           ) : null}
           <MonitoringEvents
-            key={`${path}:${history.range}:${environment}:${instance}`}
+            key={`${path}:${custom ? `${custom.startAt}:${custom.endAt}` : range}:${environment}:${instance}`}
             events={history.events}
             limited={history.eventsLimited}
           />
@@ -248,11 +277,13 @@ function HistorySelect({
   label,
   value,
   onChange,
+  onReselect,
   options,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onReselect?: (value: string) => void;
   options: Array<{ id: string; label: string }>;
 }) {
   return (
@@ -262,7 +293,7 @@ function HistorySelect({
         if (key) onChange(String(key));
       }}
       variant="secondary"
-      className="w-44 max-w-full shrink-0"
+      className={`${label === "Time range" ? "w-56" : "w-44"} max-w-full shrink-0`}
     >
       <Label className="sr-only">{label}</Label>
       <Select.Trigger>
@@ -276,6 +307,9 @@ function HistorySelect({
               key={option.id}
               id={option.id}
               textValue={option.label}
+              onPress={() => {
+                if (option.id === value) onReselect?.(value);
+              }}
             >
               <span className="flex min-w-0 items-center gap-2">
                 <ScoutOptionIcon value={option.id} label={label} />
