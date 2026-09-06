@@ -295,6 +295,20 @@
       "when": 1788633451255,
       "tag": "0041_strong_gwen_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1788638936885,
+      "tag": "0042_romantic_infant_terrible",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1788640002310,
+      "tag": "0043_vengeful_hammerhead",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,8 @@
 "use client";
+import { MonitoringHistory } from "./monitoring-history";
 
 import {
+  Activity01Icon,
   DashboardCircleIcon,
   FileViewIcon,
   GitBranchIcon,
@@ -237,6 +239,17 @@ export function AppDetail() {
                   </Attributes.Item>
                 </Attributes>
               </div>
+            ),
+          },
+          {
+            value: "monitoring",
+            label: "Scout Agent",
+            icon: <HugeiconsIcon icon={Activity01Icon} />,
+            content: (
+              <MonitoringHistory
+                path={`/v1/core/apps/${appId}/metrics`}
+                workload
+              />
             ),
           },
           {

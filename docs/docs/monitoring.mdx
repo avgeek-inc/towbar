@@ -1,5 +1,5 @@
 ---
-title: "Health and capacity"
+title: "Monitoring, health, and capacity"
 description: "Read control-plane checks, runtime health, resource usage, and operation history."
 ---
 
@@ -90,3 +90,7 @@ docker compose logs --tail 200 api worker temporal
 ```
 
 Configure [notifications](/docs/integrations/notifications) for events that need attention. Use [Troubleshooting](/docs/troubleshooting) to narrow down common symptoms.
+
+## Scout Agent monitoring agent
+
+[Scout Agent](/docs/scout) adds continuous performance history for servers, apps, and resources. Install it from **Server → Settings → Scout Agent** to receive updates every 30 seconds and keep up to 60 days of history. Read the [Scout Agent guide](/docs/scout) for installation, charts, retention, and troubleshooting.

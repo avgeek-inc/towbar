@@ -1,3 +1,5 @@
+import { recoverMonitoringOperations } from "../monitoring/lifecycle.js";
+import { maintainMonitoringMetrics } from "../monitoring/retention.js";
 import {
   and,
   desc,
@@ -82,7 +84,13 @@ export async function runMaintenanceSweep() {
     }
   }
 
+  const monitoring = await maintainMonitoringMetrics();
+  const monitoringOperations = await recoverMonitoringOperations().catch(
+    () => 0,
+  );
   return {
+    monitoring,
+    monitoringOperations,
     automaticDeploymentsQueued,
     backupsAssured,
     backupsQueued,

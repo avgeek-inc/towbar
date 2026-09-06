@@ -6,6 +6,7 @@ import {
   Line,
   LineChart as RechartsLineChart,
   ResponsiveContainer,
+  ReferenceLine,
   Tooltip,
   XAxis,
   YAxis,
@@ -17,18 +18,22 @@ type RootProps = Omit<ComponentProps<"div">, "children"> & {
   children: ReactNode;
   data: Datum[];
   height?: number;
+  syncId?: string;
 };
 function Root({
   children,
   className,
   data,
   height = 240,
+  syncId,
   ...props
 }: RootProps) {
   return (
     <div className={cn("w-full", className)} style={{ height }} {...props}>
       <ResponsiveContainer height="100%" width="100%">
-        <RechartsLineChart data={data}>{children}</RechartsLineChart>
+        <RechartsLineChart data={data} syncId={syncId} syncMethod="value">
+          {children}
+        </RechartsLineChart>
       </ResponsiveContainer>
     </div>
   );
@@ -50,12 +55,17 @@ function TooltipContent({
   label,
   labelFormatter,
   payload,
+  valueFormatter,
 }: {
   active?: boolean;
   className?: string;
   label?: unknown;
   labelFormatter?: (value: unknown) => ReactNode;
   payload?: TooltipEntry[];
+  valueFormatter?: (
+    value: string | number | undefined,
+    key: string | number | undefined,
+  ) => ReactNode;
 }) {
   if (!active || !payload?.length) return null;
   return (
@@ -80,7 +90,11 @@ function TooltipContent({
             />
             {item.name}
           </span>
-          <span className="font-medium tabular-nums">{item.value}</span>
+          <span className="font-medium tabular-nums">
+            {valueFormatter
+              ? valueFormatter(item.value, item.dataKey)
+              : item.value}
+          </span>
         </div>
       ))}
     </div>
@@ -90,6 +104,7 @@ export const LineChart = Object.assign(Root, {
   Grid,
   Line,
   Root,
+  ReferenceLine,
   Tooltip,
   TooltipContent,
   XAxis,

@@ -6,3 +6,10 @@ export type {
   SystemHealthCheck,
   SystemHealthStatus,
 } from "@workspace/towbar-core";
+export type {
+  MonitoringAgentStatus,
+  MonitoringHistory,
+  MonitoringPoint,
+  MonitoringSeries,
+  MonitoringAggregates,
+} from "@workspace/towbar-core";

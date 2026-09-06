@@ -1518,3 +1518,115 @@ export const managedSecrets = pgTable(
     ),
   ],
 );
+
+export const monitoringAgents = pgTable(
+  "towbar_monitoring_agents",
+  {
+    serverId: uuid("server_id")
+      .primaryKey()
+      .references(() => servers.id, { onDelete: "cascade" }),
+    retentionDays: integer("retention_days").notNull().default(15),
+    desiredState: varchar("desired_state", { length: 20 })
+      .notNull()
+      .default("disabled"),
+    status: varchar("status", { length: 20 }).notNull().default("disabled"),
+    generation: uuid("generation").notNull().defaultRandom(),
+    tokenHash: varchar("token_hash", { length: 64 }),
+    encryptedToken: jsonb("encrypted_token").$type<EncryptedCredential>(),
+    removalRequestedBy: uuid("removal_requested_by").references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    installedVersion: varchar("installed_version", { length: 64 }),
+    lastReportAt: timestamp("last_report_at", { withTimezone: true }),
+    lastCollectedAt: timestamp("last_collected_at", { withTimezone: true }),
+    diagnostics: jsonb("diagnostics").$type<{
+      collectionDurationMs: number;
+      collectionErrors: number;
+      droppedSamples: number;
+    }>(),
+    errorMessage: text("error_message"),
+    operationStartedAt: timestamp("operation_started_at", {
+      withTimezone: true,
+    }),
+    requestedBy: uuid("requested_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    ingestWindow: timestamp("ingest_window", { withTimezone: true }),
+    ingestCount: integer("ingest_count").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    check(
+      "towbar_monitoring_retention",
+      sql`${table.retentionDays} in (7,15,30,60)`,
+    ),
+    check(
+      "towbar_monitoring_desired_state",
+      sql`${table.desiredState} in ('enabled','disabled')`,
+    ),
+    check(
+      "towbar_monitoring_status",
+      sql`${table.status} in ('disabled','queued','installing','waiting','online','uninstalling','failed')`,
+    ),
+  ],
+);
+
+export const monitoringBatches = pgTable(
+  "towbar_monitoring_batches",
+  {
+    serverId: uuid("server_id")
+      .notNull()
+      .references(() => servers.id, { onDelete: "cascade" }),
+    sampleId: varchar("sample_id", { length: 32 }).notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.serverId, table.sampleId] }),
+    index("towbar_monitoring_batch_age").on(table.receivedAt),
+  ],
+);
+
+export const monitoringSamples = pgTable(
+  "towbar_monitoring_samples",
+  {
+    serverId: uuid("server_id")
+      .notNull()
+      .references(() => servers.id, { onDelete: "cascade" }),
+    entityId: varchar("entity_id", { length: 64 }).notNull(),
+    bucketAt: timestamp("bucket_at", { withTimezone: true }).notNull(),
+    resolution: integer("resolution").notNull().default(30),
+    deployableId: uuid("deployable_id"),
+    deploymentId: uuid("deployment_id"),
+    previewId: uuid("preview_id"),
+    state: varchar("state", { length: 20 }),
+    health: varchar("health", { length: 20 }),
+    metrics: jsonb("metrics")
+      .$type<import("@workspace/towbar-core").MonitoringAggregates>()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [
+        table.serverId,
+        table.entityId,
+        table.bucketAt,
+        table.resolution,
+      ],
+    }),
+    index("towbar_monitoring_server_time").on(table.serverId, table.bucketAt),
+    index("towbar_monitoring_workload_time").on(
+      table.deployableId,
+      table.bucketAt,
+    ),
+    index("towbar_monitoring_rollup").on(table.resolution, table.bucketAt),
+    check("towbar_monitoring_resolution", sql`${table.resolution} in (30,60)`),
+  ],
+);

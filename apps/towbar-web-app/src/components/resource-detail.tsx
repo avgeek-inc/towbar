@@ -1,6 +1,8 @@
 "use client";
+import { MonitoringHistory } from "./monitoring-history";
 
 import {
+  Activity01Icon,
   DatabaseIcon,
   FileViewIcon,
   Link01Icon,
@@ -198,6 +200,17 @@ export function ResourceDetail() {
             </Attributes.Item>
           </Attributes>
         </div>
+      ),
+    },
+    {
+      value: "monitoring",
+      label: "Scout Agent",
+      icon: <HugeiconsIcon icon={Activity01Icon} />,
+      content: (
+        <MonitoringHistory
+          path={`/v1/core/resources/${resourceId}/metrics`}
+          workload
+        />
       ),
     },
     {

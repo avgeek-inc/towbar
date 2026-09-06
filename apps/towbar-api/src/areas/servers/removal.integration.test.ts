@@ -12,6 +12,7 @@ import {
   apps,
   githubInstallations,
   managedSecrets,
+  monitoringAgents,
   serverChecks,
   serverDeployableOwnership,
   serverPreparations,
@@ -349,6 +350,80 @@ void test(
           const revived = await createServer({ config, workspaceId });
           assert.equal(revived.id, serverId);
           assert.equal(revived.setupStatus, "pending");
+        },
+      );
+      await t.test(
+        "monitoring uninstall must complete before SSH credentials are forgotten",
+        async () => {
+          const { finishMonitoringOperation } =
+            await import("../monitoring/lifecycle.js");
+          await mutateSecret(
+            {
+              type: "server",
+              id: serverId,
+              workspaceId,
+              environment: "production",
+              stage: "credentials",
+            },
+            {
+              expectedRevision: null,
+              set: { privateKey: "test-private-key" },
+              delete: [],
+            },
+            userId,
+          );
+          await db.insert(monitoringAgents).values({
+            serverId,
+            status: "online",
+            desiredState: "enabled",
+            tokenHash: "a".repeat(64),
+          });
+          assert.deepEqual(await removeServer(removal), { pending: true });
+          let [agent] = await db
+            .select()
+            .from(monitoringAgents)
+            .where(eq(monitoringAgents.serverId, serverId));
+          assert.equal(agent?.tokenHash, null);
+          assert.equal(agent?.removalRequestedBy, userId);
+          assert.equal(
+            (
+              await db
+                .select()
+                .from(managedSecrets)
+                .where(eq(managedSecrets.serverId, serverId))
+            ).length,
+            1,
+          );
+          await assert.rejects(removeServer(removal), /monitoring operation/);
+          await finishMonitoringOperation(serverId, agent!.generation, false);
+          assert.equal(
+            (
+              await db
+                .select()
+                .from(managedSecrets)
+                .where(eq(managedSecrets.serverId, serverId))
+            ).length,
+            1,
+          );
+          assert.deepEqual(await removeServer(removal), { pending: true });
+          [agent] = await db
+            .select()
+            .from(monitoringAgents)
+            .where(eq(monitoringAgents.serverId, serverId));
+          await finishMonitoringOperation(serverId, agent!.generation, true);
+          assert(
+            (await db.select().from(servers).where(eq(servers.id, serverId)))[0]
+              ?.archivedAt,
+          );
+          assert.equal(
+            (
+              await db
+                .select()
+                .from(managedSecrets)
+                .where(eq(managedSecrets.serverId, serverId))
+            ).length,
+            0,
+          );
         },
       );
     } finally {

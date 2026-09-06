@@ -1,3 +1,4 @@
+import { internalMonitoringRoutes } from "./monitoring.js";
 import { Hono } from "hono";
 
 import { requireSignedInternalRequest } from "../../../http/internal-authentication.js";
@@ -24,3 +25,5 @@ internalRoutes.route("/vulnerability-scans", internalVulnerabilityScanRoutes);
 internalRoutes.route("/maintenance", internalMaintenanceRoutes);
 internalRoutes.route("/notifications", internalNotificationRoutes);
 internalRoutes.route("/previews", internalPreviewRoutes);
+
+internalRoutes.route("/monitoring", internalMonitoringRoutes);

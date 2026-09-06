@@ -39,7 +39,7 @@ function harness(responses: Record<string, Record<string, unknown>> = {}) {
   };
 }
 void test("MCP catalogue is curated, namespaced, directly typed, and independent of REST IDs", () => {
-  assert(mcpTools.length < 50);
+  assert(mcpTools.length <= 55);
   assert(mcpTools.length < operations.length);
   assert.equal(new Set(mcpTools.map((t) => t.name)).size, mcpTools.length);
   for (const tool of mcpTools) {
@@ -209,7 +209,7 @@ void test("secret scopes are explicit and revision/conflicting-key checks are pr
 void test("server inspection, scoped inventories and previews use valid bounded read recipes", async () => {
   const h = harness();
   await get("server_inspect").run({ serverId: uuid }, h.context);
-  assert.equal(h.calls.length, 7);
+  assert.equal(h.calls.length, 8);
   for (const kind of ["app", "resource"]) {
     await get("inventory_search").run({ kind, sourceId: uuid }, h.context);
     await get("inventory_search").run({ kind, serverId: uuid }, h.context);
@@ -239,4 +239,32 @@ void test("server inspection, scoped inventories and previews use valid bounded 
       ),
     z.ZodError,
   );
+});
+
+void test("monitoring requires installation acknowledgement and preserves preview scoping", async () => {
+  const h = harness();
+  await assert.rejects(
+    get("monitoring_configure").run(
+      { serverId: uuid, action: "install", retentionDays: 15 },
+      h.context,
+    ),
+  );
+  await get("monitoring_configure").run(
+    { serverId: uuid, action: "install", retentionDays: 15, acknowledge: true },
+    h.context,
+  );
+  assert.deepEqual(h.calls[0]?.body, { retentionDays: 15, acknowledge: true });
+  await get("performance_inspect").run(
+    {
+      kind: "app",
+      targetId: uuid,
+      range: "7d",
+      environment: "preview",
+      previewId: otherUuid,
+    },
+    h.context,
+  );
+  assert.equal(h.calls[1]?.route, "/apps/:appId/metrics");
+  assert.equal(h.calls[1]?.query?.previewId, otherUuid);
+  assert(get("monitoring_configure").ownerOnly);
 });
