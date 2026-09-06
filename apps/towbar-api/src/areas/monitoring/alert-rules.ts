@@ -118,7 +118,7 @@ export async function saveScoutAlertRule(
 ) {
   const rule = scoutAlertRuleSchema.parse(input.rule);
   const database = getTowbarDatabase();
-  return database.transaction(async (tx) => {
+  return await database.transaction(async (tx) => {
     // Serialize admission with removal, other rule creates, and workload moves.
     await lockScoutServer(tx, input);
     const sourceId = await validateWorkload(tx, input, rule.deployableId);
@@ -298,7 +298,7 @@ export async function muteScoutAlerts(
     muteReason: mute.durationSeconds ? mute.reason : "",
     updatedAt: now,
   };
-  return getTowbarDatabase().transaction(async (tx) => {
+  return await getTowbarDatabase().transaction(async (tx) => {
     await lockScoutServer(tx, input);
     if (input.ruleId) {
       const [row] = await tx

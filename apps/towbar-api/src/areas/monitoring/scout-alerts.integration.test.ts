@@ -57,7 +57,7 @@ void test(
     const now = new Date("2026-09-06T12:00:00Z");
     let ruleId: string;
     const pending = async () =>
-      db
+      await db
         .select()
         .from(notificationDeliveries)
         .innerJoin(
@@ -66,7 +66,7 @@ void test(
         )
         .where(eq(notificationEvents.workspaceId, workspaceId));
     const active = async () =>
-      db
+      await db
         .select()
         .from(scoutAlertIncidents)
         .where(

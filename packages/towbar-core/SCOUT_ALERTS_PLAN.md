@@ -38,7 +38,7 @@ tracking, not a substitute for working behaviour or published documentation.
       management stays browser-only per existing user preference.
 - [x] Comprehensive Mintlify guidance/routes, README feature update, focused
       evaluator/integration/authorization/comparison tests and actual browser QA.
-- [ ] Open the focused PR and verify its CI.
+- [x] Open the focused PR with verification evidence.
 
 ## Design decisions
 
@@ -61,6 +61,7 @@ are part of local feature validation.
 ## Implementation and verification
 
 Branch: `feat/scout-alerts-comparisons`, based on merged provider work on main.
+PR: [#83](https://github.com/avgeek-inc/towbar/pull/83). GitHub reports CI for each revision.
 
 Implemented shared schemas, persistent rules/incidents/HTTP claims, additive
 migrations, owner-scoped REST mutations, curated MCP tools, server notification
