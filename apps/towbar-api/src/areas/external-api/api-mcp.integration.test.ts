@@ -149,7 +149,7 @@ void test(
             new Set(operations.map((op) => op.name)).size,
             operations.length,
           );
-          assert.equal(operations.length, 117);
+          assert.equal(operations.length, 120);
           assert(operations.every((op) => op.name.length <= 64));
           assert.doesNotThrow(() =>
             JSON.stringify(createOpenApiDocument("https://api.test/v1/api")),

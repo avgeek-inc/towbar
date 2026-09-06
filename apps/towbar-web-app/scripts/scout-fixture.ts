@@ -45,6 +45,7 @@ export function createScoutFixture(serverIds: string[], workloads: Workload[]) {
         }),
         id: randomUUID(),
         serverId,
+        createdAt: iso(index + serverIndex * 10),
         mutedUntil: null as string | null,
         muteReason: "",
         evaluationState: serverIndex
@@ -121,13 +122,109 @@ export function createScoutFixture(serverIds: string[], workloads: Workload[]) {
     const compareMatch = url.pathname.match(
       /^\/v1\/core\/workloads\/([^/]+)\/(comparison-deployments|deployment-comparison)$/,
     );
-    if (!serverMatch && !compareMatch) return false;
+    const globalMatch = url.pathname.match(
+      /^\/v1\/core\/monitoring\/(entities|alerts|incidents)$/,
+    );
+    if (!serverMatch && !compareMatch && !globalMatch) return false;
     const send = (status: number, data?: unknown) => {
       response.writeHead(status, { "content-type": "application/json" });
       response.end(data === undefined ? undefined : JSON.stringify(data));
     };
     const fail = () =>
       send(404, { error: { message: "Fixture record not found" } });
+    if (globalMatch && request.method === "GET") {
+      const limit = Math.min(100, Number(url.searchParams.get("limit") ?? 20));
+      const serverName = (id: string) =>
+        `192.0.2.${10 + serverIds.indexOf(id)}`;
+      if (globalMatch[1] === "entities") {
+        const search = (url.searchParams.get("search") ?? "").toLowerCase(),
+          kind = url.searchParams.get("kind") ?? "all",
+          after = url.searchParams.get("after") ?? "";
+        const entities = [
+          ...serverIds.map((id) => ({
+            id,
+            key: `server:${id}`,
+            name: serverName(id),
+            kind: "server",
+            serverId: id,
+            serverName: serverName(id),
+            sourceId: null,
+          })),
+          ...workloads.map((w) => ({
+            id: w.id,
+            key: `${!w.kind || w.kind === "app" ? "app" : "resource"}:${w.id}`,
+            name: w.name,
+            kind: !w.kind || w.kind === "app" ? "app" : "resource",
+            serverId: w.serverId,
+            serverName: serverName(w.serverId),
+            sourceId: w.sourceId,
+          })),
+        ]
+          .filter(
+            (e) =>
+              (kind === "all" || kind === e.kind) &&
+              (e.name.toLowerCase().includes(search) ||
+                e.serverName.includes(search)) &&
+              e.key > after,
+          )
+          .sort((a, b) => a.key.localeCompare(b.key));
+        send(200, {
+          entities: entities.slice(0, limit),
+          nextAfter: entities.length > limit ? entities[limit - 1]!.key : null,
+        });
+      } else {
+        const state = url.searchParams.get("state") ?? "all",
+          before = url.searchParams.get("before"),
+          beforeId = url.searchParams.get("beforeId") ?? "";
+        const identity = (owner: {
+          serverId: string;
+          deployableId: string | null;
+        }) => ({
+          serverName: serverName(owner.serverId),
+          workload: owner.deployableId
+            ? {
+                ...workloads.find((w) => w.id === owner.deployableId),
+                archivedAt: null,
+              }
+            : null,
+        });
+        const items =
+          globalMatch[1] === "alerts"
+            ? rules.map((rule) => ({
+                ...identity(rule),
+                rule,
+                at: rule.createdAt,
+                id: rule.id,
+              }))
+            : incidents
+                .filter(
+                  (i) =>
+                    state === "all" ||
+                    (state === "active"
+                      ? !i.resolvedAt
+                      : Boolean(i.resolvedAt)),
+                )
+                .map((incident) => ({
+                  ...identity(incident),
+                  incident,
+                  at: incident.openedAt,
+                  id: incident.id,
+                }));
+        const filtered = items
+          .filter(
+            (i) =>
+              !before || i.at < before || (i.at === before && i.id < beforeId),
+          )
+          .sort((a, b) => b.at.localeCompare(a.at) || b.id.localeCompare(a.id));
+        send(200, {
+          items: filtered.slice(0, limit),
+          nextBefore: filtered.length > limit ? filtered[limit - 1]!.at : null,
+          nextBeforeId:
+            filtered.length > limit ? filtered[limit - 1]!.id : null,
+        });
+      }
+      return true;
+    }
     if (compareMatch) {
       const workload = workloads.find((w) => w.id === compareMatch[1]);
       if (!workload) {
@@ -426,6 +523,7 @@ export function createScoutFixture(serverIds: string[], workloads: Workload[]) {
       else if (rest === "/rules")
         rules.push({
           ...draft,
+          createdAt: new Date().toISOString(),
           id: randomUUID(),
           serverId: serverId!,
           mutedUntil: null,

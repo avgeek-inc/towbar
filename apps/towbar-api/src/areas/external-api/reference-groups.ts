@@ -10,6 +10,7 @@ export const referenceCategories = [
 ] as const;
 
 const categoryByRoot: Record<string, string> = {
+  monitoring: "Workspace",
   sources: "Sources",
   apps: "Apps",
   resources: "Resources",
@@ -34,6 +35,7 @@ export const sectionOrder = [
   "Previews",
   "Inventory",
   "Capacity",
+  "Monitoring",
   "Scout Agent",
   "Scout Alerts",
   "Performance comparisons",
@@ -54,6 +56,7 @@ export const sectionOrder = [
 
 // Match the most specific task before a broader collection or runtime route.
 const rules: Record<string, Array<[string, RegExp]>> = {
+  monitoring: [["Monitoring", /^\/monitoring\/(entities|alerts|incidents)$/]],
   sources: [
     ["Secrets", /\/secrets(?:\/|$)/],
     ["Auto-deploy", /\/auto-deploy-control$/],

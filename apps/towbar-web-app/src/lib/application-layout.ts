@@ -1,5 +1,8 @@
 import {
   ComputerIcon,
+  AlertCircleIcon,
+  Notification01Icon,
+  Analytics01Icon,
   SourceCodeIcon,
   DashboardCircleIcon,
   DashboardSquare01Icon,
@@ -25,6 +28,9 @@ import type {
 import { defineSidebarIcons } from "@workspace/web-design-system/layouts/sidebar-icons";
 
 const sidebarIcons = defineSidebarIcons({
+  performance: Analytics01Icon,
+  alerts: Notification01Icon,
+  incidents: AlertCircleIcon,
   apps: DashboardCircleIcon,
   deployments: Rocket01Icon,
   health: HealthIcon,
@@ -119,6 +125,33 @@ const sidebar = {
           label: "Servers",
           href: "/servers",
           icon: sidebarIcons.servers,
+        },
+      ],
+    },
+    {
+      id: "monitoring",
+      label: "Monitoring",
+      items: [
+        {
+          kind: "link",
+          id: "performance",
+          label: "Performance",
+          href: "/monitoring/performance",
+          icon: sidebarIcons.performance,
+        },
+        {
+          kind: "link",
+          id: "alerts",
+          label: "Alerts",
+          href: "/monitoring/alerts",
+          icon: sidebarIcons.alerts,
+        },
+        {
+          kind: "link",
+          id: "incidents",
+          label: "Incidents",
+          href: "/monitoring/incidents",
+          icon: sidebarIcons.incidents,
         },
       ],
     },

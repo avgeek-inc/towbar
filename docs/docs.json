@@ -382,6 +382,14 @@
             "group": "Workspace",
             "pages": [
               {
+                "group": "Monitoring",
+                "pages": [
+                  "api-reference/get_monitoring_entities",
+                  "api-reference/get_monitoring_alerts",
+                  "api-reference/get_monitoring_incidents"
+                ]
+              },
+              {
                 "group": "Shared secrets",
                 "pages": [
                   "api-reference/get_settings_secrets",

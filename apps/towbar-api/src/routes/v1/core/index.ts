@@ -1,3 +1,4 @@
+import { monitoringOverviewRoutes } from "./monitoring-overview.js";
 import {
   monitoringHistoryRoutes,
   monitoringSettingsRoutes,
@@ -66,6 +67,7 @@ controlPlaneRoutes.route(
   "/servers/:serverId/monitoring",
   monitoringSettingsRoutes,
 );
+controlPlaneRoutes.route("/monitoring", monitoringOverviewRoutes);
 controlPlaneRoutes.route("/", monitoringHistoryRoutes);
 controlPlaneRoutes.route("/servers/:serverId/scout-alerts", scoutAlertRoutes);
 controlPlaneRoutes.route("/", scoutComparisonRoutes);
