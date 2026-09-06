@@ -29,22 +29,24 @@ workloads in a manifest. Towbar builds and runs them on your infrastructure.
 
 ## What you can do
 
-- **Deploy from Git.** Keep configuration alongside your code. Deploy manually,
-  enable automatic deployments, or limit rebuilds to changes in selected files.
-- **Run apps and databases.** Build Dockerfile apps directly on your servers,
-  without a container registry. Run PostgreSQL, Redis, and container images with
-  persistent storage.
-- **Preview pull requests.** Give eligible pull requests a stable URL and
-  separate secrets. Towbar cleans up preview environments when they close or merge.
-- **Manage secrets.** Store encrypted, write-only values at workspace, Source,
-  or workload scope. Keep production and preview configuration separate.
-- **See health and capacity.** Follow deployment stages, inspect logs, and compare
-  observed CPU and memory usage with workload allocations. Check host capacity
-  and control-plane health from the same dashboard.
-- **Back up and restore databases.** Schedule PostgreSQL and Redis backups to S3,
-  check restore readiness, and restore through an isolated candidate before promotion.
-- **Stay informed.** Route deployment, preview, health, backup, and restore events
-  to Slack channels or email recipients.
+| Feature                | What it gives you                                                                                                                 |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Deploy from Git        | Keep configuration with your code. Deploy manually, automatically, or only when selected files change.                            |
+| Run apps and databases | Build Dockerfile apps on your servers. Run PostgreSQL, Redis, and container images with persistent storage.                       |
+| Preview pull requests  | Share a stable preview URL with separate secrets. Environments are cleaned up when pull requests close or merge.                  |
+| Manage secrets         | Store encrypted, write-only values for a workspace, Source, or workload, with separate production and preview configuration.      |
+| Monitor performance    | Use Scout Agent for server, app, and resource history. Inspect logs, deployment stages, health, and capacity from the dashboard.  |
+| Back up and restore    | Schedule PostgreSQL and Redis backups to S3, check restore readiness, and restore through an isolated candidate before promotion. |
+| Stay informed          | Send deployment, preview, health, backup, and restore events to Slack or email.                                                   |
+
+## Meet Scout Agent
+
+<img src="docs/assets/scout/mascot.webp" alt="Scout Agent, Towbar’s monitoring mascot" width="96" height="96" />
+
+[Scout Agent](https://www.towbar.dev/docs/scout) is Towbar’s opt-in monitoring agent.
+Follow server, app, and resource performance with updates every 30 seconds,
+deployment and restart markers, and up to 60 days of history. Install it from
+**Server → Settings → Scout Agent**.
 
 ## How it works
 
@@ -58,94 +60,15 @@ The control plane runs with Docker Compose. PostgreSQL stores state and Temporal
 coordinates durable workflows. Deployment targets are the Ubuntu hosts you
 register; you choose their provider and capacity.
 
-### Configuration lives with your code
+## Documentation
 
-This manifest defines a Dockerfile app with a domain, health check, and resource limits:
+Installation and configuration live in the [Towbar documentation](https://www.towbar.dev/docs).
 
-```yaml
-version: 1
-source:
-  branch: main
-apps:
-  - id: web
-    name: Web
-    server: 203.0.113.10
-    dockerfile: Dockerfile
-    context: .
-    container:
-      port: 3000
-      resources:
-        cpus: 1
-        memory: 1g
-    health:
-      path: /health
-      timeoutSeconds: 60
-    domains:
-      primary: app.example.com
-    tls:
-      mode: direct
-```
+- **[Install Towbar](https://www.towbar.dev/docs/self-hosting/installation)** — set up your control plane.
+- **[Deploy your first app](https://www.towbar.dev/docs/getting-started)** — connect GitHub, prepare a server, and deploy.
+- **[Browse the guides and reference](https://www.towbar.dev/docs)** — apps, databases, previews, Scout Agent, API, MCP, and operations.
 
-Save it as `.towbar/deployment.yml` in the repository you want to deploy. Replace
-the IP and domain, register the server, and point DNS at it. Your app must listen
-on port 3000 and respond at `/health`. Add secrets through Towbar's editor.
-
-See the [manifest reference](https://www.towbar.dev/docs/reference/deployment-manifest)
-for databases, previews, deployment hooks, and automatic deployment rules.
-
-## Get started
-
-Use a Linux host with Docker Engine, Compose v2, Git, and OpenSSL for the control
-plane. Deployment targets must run Ubuntu 22.04 or 24.04 LTS with SSH access.
-
-```bash
-git clone https://github.com/avgeek-inc/towbar.git
-cd towbar
-cp .env.example .env
-```
-
-Set the four required secrets in `.env`: `TOWBAR_POSTGRES_PASSWORD`,
-`TOWBAR_DATABASE_RUNTIME_PASSWORD`, `TOWBAR_INTERNAL_HMAC_SECRET`, and
-`TOWBAR_CREDENTIALS_KEY`. Generate each of the first three independently with
-`openssl rand -hex 32`; generate the encryption key with `openssl rand -base64 32`.
-Keep the default loopback binding during initial setup.
-
-```bash
-docker compose up --build --detach --wait
-```
-
-Open [localhost:4021](http://localhost:4021) and create the owner account. Follow
-[Install Towbar](https://www.towbar.dev/docs/self-hosting/installation) to configure
-HTTPS ingress, then [Your first deployment](https://www.towbar.dev/docs/getting-started)
-to connect a GitHub App, prepare a server, and deploy an app. GitHub webhooks need
-an API origin reachable over HTTPS.
-
-For a working app to start with, [use the Hello Towbar template](https://github.com/avgeek-inc/towbar-example/generate)
-or [fork the example repository](https://github.com/avgeek-inc/towbar-example).
-It includes the Dockerfile, health endpoint, and manifest; replace the server IP
-and domain, then follow the first-deployment guide.
-
-You operate the hosts, network access, and control-plane backups. The
-[self-hosting security guide](https://www.towbar.dev/docs/self-hosting/security)
-explains the installation's trust boundaries and credential handling.
-
-## Meet Scout Agent
-
-<img src="docs/assets/scout/mascot.webp" alt="Scout Agent, Towbar’s monitoring mascot" width="96" height="96" />
-
-[Scout Agent](https://www.towbar.dev/docs/scout) is Towbar’s opt-in monitoring agent.
-Follow server, app, and resource performance with updates every 30 seconds,
-deployment and restart markers, and up to 60 days of history. Enable it in
-**Server → Settings → Scout Agent**.
-
-## Explore the docs
-
-| Deploy                                                       | Operate                                                       | Self-host                                                                    |
-| ------------------------------------------------------------ | ------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| [Apps](https://www.towbar.dev/docs/apps)                     | [Health and capacity](https://www.towbar.dev/docs/monitoring) | [Installation](https://www.towbar.dev/docs/self-hosting/installation)        |
-| [Resources](https://www.towbar.dev/docs/resources)           | [Backups](https://www.towbar.dev/docs/backups)                | [Architecture](https://www.towbar.dev/docs/self-hosting/architecture)        |
-| [Preview environments](https://www.towbar.dev/docs/previews) | [Restores](https://www.towbar.dev/docs/restores)              | [Upgrades](https://www.towbar.dev/docs/self-hosting/upgrades)                |
-| [Domains and TLS](https://www.towbar.dev/docs/domains-tls)   | [Shared secrets](https://www.towbar.dev/docs/secrets)         | [Configuration](https://www.towbar.dev/docs/reference/environment-variables) |
+For a working app to start with, [use the Hello Towbar template](https://github.com/avgeek-inc/towbar-example/generate).
 
 ## Contribute
 
