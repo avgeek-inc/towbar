@@ -3,6 +3,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
 import { eq } from "drizzle-orm";
 import {
+  aggregateMonitoringValues,
   normalizeDeploymentManifest,
   normalizeServerConfiguration,
   scoutAlertRuleSchema,
@@ -10,6 +11,8 @@ import {
 import {
   apps,
   githubInstallations,
+  monitoringAgents,
+  monitoringSamples,
   servers,
   sources,
   users,
@@ -126,6 +129,110 @@ void test(
           sourceRevision: "abcdef0",
         });
       }
+      const { getWorkspaceMonitoringSummary } =
+        await import("./workspace-summary.js");
+      const summaryNow = new Date();
+      await db.insert(monitoringAgents).values({
+        serverId,
+        desiredState: "enabled",
+        status: "online",
+        lastCollectedAt: summaryNow,
+      });
+      await db.insert(monitoringSamples).values([
+        {
+          serverId,
+          entityId: "host",
+          bucketAt: summaryNow,
+          metrics: aggregateMonitoringValues({
+            cpuPercent: 81,
+            memoryPercent: 95,
+          }),
+        },
+        ...["app-one", "app-two"].map((entityId) => ({
+          serverId,
+          entityId,
+          deployableId: appId,
+          state: "running",
+          bucketAt: summaryNow,
+          metrics: aggregateMonitoringValues({ cpuPercent: 90 }),
+        })),
+        {
+          serverId,
+          entityId: "resource",
+          deployableId: resourceId,
+          state: "running",
+          bucketAt: summaryNow,
+          metrics: aggregateMonitoringValues({ memoryPercent: 80 }),
+        },
+        {
+          serverId,
+          entityId: "stopped",
+          deployableId: resourceId,
+          state: "exited",
+          bucketAt: summaryNow,
+          metrics: aggregateMonitoringValues({ memoryPercent: 99 }),
+        },
+        {
+          serverId,
+          entityId: "stale",
+          deployableId: resourceId,
+          state: "running",
+          bucketAt: new Date(summaryNow.getTime() - 120000),
+          metrics: aggregateMonitoringValues({ memoryPercent: 99 }),
+        },
+        {
+          serverId,
+          entityId: "orphan",
+          deployableId: randomUUID(),
+          state: "running",
+          bucketAt: summaryNow,
+          metrics: aggregateMonitoringValues({ memoryPercent: 99 }),
+        },
+      ]);
+      // No rules exist: count entities once, even across metrics and replicas. Exactly 80 is healthy.
+      assert.deepEqual(
+        await getWorkspaceMonitoringSummary(workspaceId, summaryNow),
+        { activeIncidents: 0, pressuredEntities: 2 },
+      );
+      await db.insert(monitoringSamples).values({
+        serverId,
+        entityId: "resource",
+        deployableId: resourceId,
+        state: "running",
+        bucketAt: new Date(summaryNow.getTime() + 1000),
+        metrics: aggregateMonitoringValues({ memoryPercent: 81 }),
+      });
+      assert.equal(
+        (
+          await getWorkspaceMonitoringSummary(
+            workspaceId,
+            new Date(summaryNow.getTime() + 1000),
+          )
+        ).pressuredEntities,
+        3,
+      );
+      await db
+        .update(apps)
+        .set({ archivedAt: summaryNow })
+        .where(eq(apps.id, appId));
+      assert.equal(
+        (await getWorkspaceMonitoringSummary(workspaceId, summaryNow))
+          .pressuredEntities,
+        1,
+      );
+      await db.update(apps).set({ archivedAt: null }).where(eq(apps.id, appId));
+      assert.equal(
+        (
+          await getWorkspaceMonitoringSummary(
+            workspaceId,
+            new Date(summaryNow.getTime() + 120000),
+          )
+        ).pressuredEntities,
+        0,
+      );
+      await db
+        .delete(monitoringSamples)
+        .where(eq(monitoringSamples.serverId, serverId));
       for (const entity of [null, appId, resourceId]) {
         // Disabled rules also occupy slots; concurrent requests contend for the tenth.
         for (let i = 0; i < 9; i++)

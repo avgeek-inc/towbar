@@ -55,6 +55,8 @@ The **Monitoring** sidebar section brings your workspace together:
 - **Alerts** lists configured rules across the workspace, with type and searchable entity filters. This page is read-only; **View alert** opens the entity’s **Scout Agent → Alerts** page to manage the rule.
 - **Incidents** lists active and resolved incidents across the workspace, with pagination and a status filter. **View Incident** opens the details drawer on this page.
 
+The sidebar shows active incidents in a red count. An orange count beside **Performance** shows servers, apps, and resources with fresh CPU, memory, or disk usage above 80%, even without configured alerts. Each entity counts once across its metrics and containers. Inactive agents, stale readings, and removed entities are excluded. Both counts refresh every 30 seconds and disappear at zero.
+
 ## Inspect an incident
 
 Select **View Incident** to open its details in a drawer without leaving the alert list. The **Overview** tab shows the original trigger condition, entity, status, severity, start and end times, latest or final reading, and when a notification was last queued. Dates include relative times.

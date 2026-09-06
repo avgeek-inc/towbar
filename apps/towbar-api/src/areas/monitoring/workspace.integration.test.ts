@@ -101,6 +101,12 @@ void test(
           resolvedAt: i === 1 ? now : null,
         })),
       );
+      const { getWorkspaceMonitoringSummary } =
+        await import("./workspace-summary.js");
+      assert.deepEqual(await getWorkspaceMonitoringSummary(workspaceId), {
+        activeIncidents: 1,
+        pressuredEntities: 0,
+      });
       const query = monitoringOverviewQuery.parse({ limit: 1 });
       for (const incidents of [false, true]) {
         const first = await listWorkspaceScout(workspaceId, query, incidents);
@@ -193,6 +199,10 @@ void test(
         .update(servers)
         .set({ archivedAt: now })
         .where(eq(servers.id, serverId));
+      assert.equal(
+        (await getWorkspaceMonitoringSummary(workspaceId)).activeIncidents,
+        0,
+      );
       assert.equal(
         (
           await listWorkspaceScout(

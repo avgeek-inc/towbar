@@ -123,7 +123,7 @@ export function createScoutFixture(serverIds: string[], workloads: Workload[]) {
       /^\/v1\/core\/workloads\/([^/]+)\/(comparison-deployments|deployment-comparison)$/,
     );
     const globalMatch = url.pathname.match(
-      /^\/v1\/core\/monitoring\/(entities|alerts|incidents)$/,
+      /^\/v1\/core\/monitoring\/(entities|alerts|incidents|summary)$/,
     );
     if (!serverMatch && !compareMatch && !globalMatch) return false;
     const send = (status: number, data?: unknown) => {
@@ -133,6 +133,13 @@ export function createScoutFixture(serverIds: string[], workloads: Workload[]) {
     const fail = () =>
       send(404, { error: { message: "Fixture record not found" } });
     if (globalMatch && request.method === "GET") {
+      if (url.pathname.endsWith("/summary")) {
+        send(200, {
+          activeIncidents: incidents.filter((i) => !i.resolvedAt).length,
+          pressuredEntities: 2,
+        });
+        return true;
+      }
       const limit = Math.min(100, Number(url.searchParams.get("limit") ?? 20));
       const serverName = (id: string) =>
         `192.0.2.${10 + serverIds.indexOf(id)}`;

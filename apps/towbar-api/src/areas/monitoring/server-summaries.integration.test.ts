@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import {
   aggregateMonitoringValues,
   normalizeServerConfiguration,
@@ -134,6 +134,52 @@ void test(
       assert.deepEqual(summaries.get(offline)?.points, []);
       assert.equal(summaries.get(disabled)?.enabled, false);
       assert.deepEqual(summaries.get(disabled)?.points, []);
+      const { getWorkspaceMonitoringSummary } =
+        await import("./workspace-summary.js");
+      await db
+        .update(monitoringSamples)
+        .set({
+          metrics: aggregateMonitoringValues({
+            cpuPercent: 99,
+            diskPercent: 99,
+          }),
+        })
+        .where(
+          inArray(monitoringSamples.serverId, [
+            online,
+            offline,
+            disabled,
+            archived,
+            foreign,
+          ]),
+        );
+      assert.deepEqual(await getWorkspaceMonitoringSummary(workspaceId, now), {
+        activeIncidents: 0,
+        pressuredEntities: 1,
+      });
+      assert.deepEqual(await getWorkspaceMonitoringSummary(randomUUID(), now), {
+        activeIncidents: 0,
+        pressuredEntities: 0,
+      });
+      await db
+        .update(monitoringSamples)
+        .set({
+          metrics: aggregateMonitoringValues({
+            cpuPercent: 80,
+            diskPercent: 80,
+          }),
+        })
+        .where(
+          and(
+            eq(monitoringSamples.serverId, online),
+            eq(monitoringSamples.bucketAt, now),
+          ),
+        );
+      assert.equal(
+        (await getWorkspaceMonitoringSummary(workspaceId, now))
+          .pressuredEntities,
+        0,
+      );
       assert.equal(
         (await getServerMonitoringSummaries(randomUUID(), now)).size,
         0,

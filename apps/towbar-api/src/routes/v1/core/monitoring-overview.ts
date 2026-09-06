@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { getWorkspaceMonitoringSummary } from "../../../areas/monitoring/workspace-summary.js";
 import {
   listMonitoringEntities,
   listWorkspaceAlerts,
@@ -62,5 +63,21 @@ monitoringOverviewRoutes.get(
         context.get("user").workspaceId,
         monitoringOverviewQuery.parse(context.req.query()),
       ),
+    ),
+);
+
+monitoringOverviewRoutes.get(
+  "/summary",
+  operation({
+    responseSchema: 'monitoring-overview.ts:get:"/summary"',
+    summary: "Read workspace monitoring counts",
+    browserOnly: true,
+    response:
+      "Active incidents and distinct entities with fresh resource usage above 80%, independent of alert rules.",
+    status: 200,
+  }),
+  async (context) =>
+    context.json(
+      await getWorkspaceMonitoringSummary(context.get("user").workspaceId),
     ),
 );

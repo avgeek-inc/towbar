@@ -216,6 +216,7 @@ const sidebar = {
 export function createApplicationSidebar(
   onSignOut: () => void,
   counts: ApplicationSidebarCounts = {},
+  monitoring?: { activeIncidents: number; pressuredEntities: number },
 ) {
   return {
     ...sidebar,
@@ -238,7 +239,35 @@ export function createApplicationSidebar(
                   };
             }),
           }
-        : group,
+        : group.id === "monitoring"
+          ? {
+              ...group,
+              items: group.items.map((item) => {
+                const value =
+                  item.id === "incidents"
+                    ? monitoring?.activeIncidents
+                    : item.id === "performance"
+                      ? monitoring?.pressuredEntities
+                      : undefined;
+                return !value
+                  ? item
+                  : {
+                      ...item,
+                      badge: {
+                        value,
+                        tone:
+                          item.id === "incidents"
+                            ? ("danger" as const)
+                            : ("warning" as const),
+                        label:
+                          item.id === "incidents"
+                            ? `${value} active incident${value === 1 ? "" : "s"}`
+                            : `${value} entit${value === 1 ? "y" : "ies"} with resource usage above 80%`,
+                      },
+                    };
+              }),
+            }
+          : group,
     ),
     footerActions: [
       {
