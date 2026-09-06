@@ -47,6 +47,14 @@ A server without notification destinations still creates incidents in Towbar. Ad
 
 The examples above are starting points for your own thresholds. Configure restart counting windows from 1 to 60 minutes. Alerts fire on the first fresh qualifying reading, with no additional waiting period. An incident recovers on the first fresh measurement that no longer meets the trigger condition. Each incident sends one firing notification, with no repeats while active. A server supports up to 100 rules, including at most 10 public HTTP checks.
 
+## Inspect an incident
+
+Select **View Incident** to open its details in a drawer without leaving the alert list. The drawer shows the original trigger condition, entity, status, severity, start and end times, latest or final reading, and when a notification was last queued. Queued notifications do not confirm delivery.
+
+The chart covers the incident start through now, including after recovery, and refreshes every 30 seconds while open. It shows the relevant metric, the rule’s threshold, and a recovery or closure marker. Tooltip timestamps include the time zone. Longer periods use at most 361 points, preserving the highest reading for upper thresholds or the lowest for lower thresholds. Dotted bridges mark gaps between measurements; they are not measured values.
+
+History follows the server’s retention setting. Restart windows use individual counter measurements available for the last 24 hours; report-age history is estimated from retained report timestamps. The drawer explains when older measurements or an older incident’s original configuration are unavailable.
+
 ## Measurements and incident states
 
 Host and workload gauges use the reported metric units. The editor presents bytes as GiB and throughput as MiB/s; REST thresholds use bytes and bytes per second. For multiple instances, a gauge rule evaluates the worst instance reading rather than adding utilization percentages. Restart rules count increments within each container identity, not a new container's initial counter or a counter reset.

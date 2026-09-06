@@ -292,7 +292,8 @@
                   "api-reference/delete_servers_by_id_scout_alerts_rules_by_id",
                   "api-reference/post_servers_by_id_scout_alerts_mute",
                   "api-reference/post_servers_by_id_scout_alerts_rules_by_id_mute",
-                  "api-reference/get_servers_by_id_scout_alerts_incidents"
+                  "api-reference/get_servers_by_id_scout_alerts_incidents",
+                  "api-reference/get_servers_by_id_scout_alerts_incidents_by_id"
                 ]
               },
               {

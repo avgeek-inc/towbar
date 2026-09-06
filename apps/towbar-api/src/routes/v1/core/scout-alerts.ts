@@ -16,6 +16,7 @@ import {
   getDeploymentComparison,
   listComparisonDeployments,
 } from "../../../areas/monitoring/deployment-comparison.js";
+import { getScoutIncident } from "../../../areas/monitoring/incident-history.js";
 import { operation } from "../../../http/operation.js";
 import { readJson } from "../../../http/requests.js";
 import { forbidden } from "../../../http/errors.js";
@@ -185,6 +186,25 @@ scoutAlertRoutes.get(
       }),
     );
   },
+);
+
+scoutAlertRoutes.get(
+  "/incidents/:incidentId",
+  operation({
+    responseSchema: 'scout-alerts.ts:get:"/incidents/:incidentId"',
+    summary: "Inspect Scout incident",
+    response:
+      "Incident details and up to 361 metric points from the incident start through now, within retention. Includes chart limitations and the original alert condition.",
+    status: 200,
+  }),
+  async (context) =>
+    context.json(
+      await getScoutIncident({
+        serverId: context.req.param("serverId")!,
+        incidentId: context.req.param("incidentId"),
+        workspaceId: context.get("user").workspaceId,
+      }),
+    ),
 );
 
 export const scoutComparisonRoutes = new Hono<TowbarHonoEnvironment>();

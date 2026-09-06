@@ -76,7 +76,6 @@ export function ScoutPanel({
           key={deployableId ?? serverId}
           serverId={serverId}
           deployableId={deployableId}
-          onViewGraph={() => select("performance")}
         />
       </Tabs.Panel>
       {deployableId ? (

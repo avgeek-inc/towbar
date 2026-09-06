@@ -77,6 +77,7 @@ export function createScoutFixture(serverIds: string[], workloads: Workload[]) {
         ruleName: rule.name,
         severity: rule.severity,
         condition: rule.condition,
+        environment: rule.environment,
         deployableId: rule.deployableId,
         openedAt: iso(12 + item * 90 + index * 30),
         resolvedAt:
@@ -290,7 +291,59 @@ export function createScoutFixture(serverIds: string[], workloads: Workload[]) {
           destinations: destinations.filter((d) => d.serverId === serverId),
           providers: { slack: true, smtp: true },
         });
-      else if (rest === "/incidents") {
+      else if (rest?.startsWith("/incidents/")) {
+        const incident = incidents.find(
+          (i) => i.id === rest.slice(11) && i.serverId === serverId,
+        );
+        if (!incident) fail();
+        else {
+          const end = Date.now(),
+            start = new Date(incident.openedAt).getTime();
+          const stepSeconds = Math.max(
+            30,
+            Math.ceil((end - start) / 360 / 30_000) * 30,
+          );
+          const workload = workloads.find(
+            (w) => w.id === incident.deployableId,
+          );
+          send(200, {
+            incident,
+            entity: {
+              id: incident.deployableId ?? serverId,
+              name:
+                workload?.name ??
+                `192.0.2.${10 + serverIds.indexOf(serverId!)}`,
+              kind: workload?.kind ?? "server",
+            },
+            history: {
+              startAt: incident.openedAt,
+              endAt: new Date(end).toISOString(),
+              stepSeconds,
+              aggregation: "maximum",
+              notes: [],
+              points: Array.from(
+                { length: Math.floor((end - start) / stepSeconds / 1000) + 1 },
+                (_, index) => {
+                  const at = start + index * stepSeconds * 1000;
+                  return {
+                    at: new Date(at).toISOString(),
+                    value:
+                      index === 5 || index === 6
+                        ? null
+                        : incident.resolvedAt &&
+                            at >= new Date(incident.resolvedAt).getTime()
+                          ? incident.condition.threshold * 0.55 +
+                            Math.sin(index) * 2
+                          : incident.condition.threshold +
+                            3 +
+                            Math.sin(index) * 1.2,
+                  };
+                },
+              ),
+            },
+          });
+        }
+      } else if (rest === "/incidents") {
         const state = url.searchParams.get("state") ?? "active",
           before = url.searchParams.get("before"),
           limit = Math.min(50, Number(url.searchParams.get("limit") ?? 10));

@@ -1729,6 +1729,8 @@ export const scoutAlertIncidents = pgTable(
       .notNull()
       .references(() => servers.id, { onDelete: "cascade" }),
     deployableId: uuid("deployable_id"),
+    environment: varchar("environment", { length: 20 }),
+    ruleRevision: timestamp("rule_revision", { withTimezone: true }),
     ruleName: varchar("rule_name", { length: 100 }).notNull(),
     severity: varchar("severity", { length: 20 }).notNull(),
     condition: jsonb("condition").$type<ScoutAlertCondition>().notNull(),

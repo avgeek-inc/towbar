@@ -464,6 +464,8 @@ async function applyRuleResult(
       .values({
         ruleId: rule.id,
         ruleName: rule.name,
+        environment: rule.environment,
+        ruleRevision: rule.updatedAt,
         workspaceId: rule.workspaceId,
         serverId: rule.serverId,
         deployableId: rule.deployableId,

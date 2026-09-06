@@ -21,16 +21,15 @@ import {
   type ScoutIncident,
   type ScoutRulesResponse,
 } from "./scout-controls";
+import { ScoutIncidentDrawer } from "./scout-incident-drawer";
 import { ScoutMuteDialog } from "./scout-mute-dialog";
 
 export function ScoutAlerts({
   serverId,
   deployableId,
-  onViewGraph,
 }: {
   serverId: string;
   deployableId?: string;
-  onViewGraph: () => void;
 }) {
   const endpoint = `/v1/core/servers/${serverId}/scout-alerts`;
   const entity = deployableId ?? "server";
@@ -38,6 +37,8 @@ export function ScoutAlerts({
     `${endpoint}?deployableId=${entity}`,
     30_000,
   );
+  const [selectedIncident, setSelectedIncident] =
+    useState<ScoutIncident | null>(null);
   const [editing, setEditing] = useState<ScoutRule | "new" | null>(null);
   const [mute, setMute] = useState<ScoutRule | "server" | null>(null);
   const [state, setState] = useState("active");
@@ -244,12 +245,15 @@ export function ScoutAlerts({
     {
       key: "graph",
       header: "",
-      cell: (incident) =>
-        incident.condition.metric === "httpAvailability" ? null : (
-          <Button variant="secondary" size="sm" onPress={onViewGraph}>
-            View graph
-          </Button>
-        ),
+      cell: (incident) => (
+        <Button
+          variant="secondary"
+          size="sm"
+          onPress={() => setSelectedIncident(incident)}
+        >
+          View Incident
+        </Button>
+      ),
     },
   ];
   return (
@@ -356,6 +360,13 @@ export function ScoutAlerts({
           </Button>
         </div>
       </section>
+      {selectedIncident ? (
+        <ScoutIncidentDrawer
+          serverId={serverId}
+          incident={selectedIncident}
+          onClose={() => setSelectedIncident(null)}
+        />
+      ) : null}
       {editing ? (
         <ScoutRuleEditor
           serverId={serverId}
