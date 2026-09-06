@@ -5,6 +5,53 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-09-07
+
+### Added
+
+- Scout alerts for servers, apps, and resources, including metric thresholds,
+  missing reports, container restarts, and public HTTP checks. Rules trigger on
+  the first qualifying reading, recover when conditions clear, and notify once
+  per active incident, with optional recovery notifications and maintenance mutes.
+- Slack and email notification destinations, with incident details, performance
+  history, and delivery history in a side drawer. Alert rules are scoped to each
+  entity and capped at ten per entity.
+- Workspace Monitoring pages for Performance, Alerts, and Incidents, with searchable
+  entity selection, read-only alert links, and active-incident and resource-pressure
+  sidebar counts. Resource-pressure counts use fresh readings above 80% without
+  requiring configured alerts.
+- Deployment performance comparisons with baseline selection, observation windows,
+  and data-coverage checks, plus REST, MCP, and Mintlify documentation updates.
+- Compact 30-minute Scout CPU and memory graphs in the server list, performance
+  widget icons, and dotted 80% thresholds. Inactive agents show no graphs.
+- Cloud-provider metadata support for Hetzner Cloud, Oracle Cloud, DigitalOcean,
+  Akamai/Linode, and Alibaba Cloud ECS, alongside AWS, Azure, and GCP. Providers
+  without an observed plan name display CPU and memory capacity instead.
+- Optional `container.networkAlias` for stable private app hostnames on the Docker
+  network, with conflict validation, runtime drift detection, and rollback support.
+
+### Fixed
+
+- Prevent HTTP checks that are not due from blocking other scheduled checks.
+- Prevent duplicate alert notifications when a destination is removed or muted,
+  and preserve notification eligibility after concurrent maintenance suppression.
+- Open app and resource notification links at their source-scoped monitoring pages.
+- Preserve icon spacing in shared button links and refine Scout filters, severity
+  indicators, incident timestamps, and notification table actions.
+- Validate the exact browser-only API route inventory as new monitoring routes are
+  added, resolving the CI verification failure without changing the public API boundary.
+
+### Upgrade notes
+
+- Includes database migrations 0044–0049 for Scout alerts and incident context.
+  Deploy matching API and worker builds. The Scout binary and reporting contract
+  are unchanged; alert rules remain opt-in.
+- HTTP checks run from the control plane and do not replace independent external
+  uptime monitoring. Run **Check server** after upgrading to refresh provider metadata.
+- Apps using `container.networkAlias` use stop/start replacement, with a brief
+  interruption during startup and health checks. Preview deployments and
+  self-managed worker deployments do not support this mode.
+
 ## [1.6.0] - 2026-09-06
 
 ### Added
@@ -384,7 +431,8 @@ before resuming deployments:
 - Source-scoped AWS Secrets Manager integration and environment editors.
 - A same-domain owner setup, authentication, and operations dashboard.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.6.1...HEAD
+[1.6.1]: https://github.com/avgeek-inc/towbar/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/avgeek-inc/towbar/compare/v1.5.4...v1.6.0
 [1.5.4]: https://github.com/avgeek-inc/towbar/compare/v1.5.3...v1.5.4
 [1.5.3]: https://github.com/avgeek-inc/towbar/compare/v1.5.2...v1.5.3
