@@ -203,6 +203,18 @@ export const MetricChart = memo(function MetricChart({
                 : automaticDomain
             }
           />
+          {metrics[0]!.unit === "percent" ? (
+            <LineChart.ReferenceLine
+              y={80}
+              className="monitoring-usage-threshold"
+              aria-label="80% usage threshold"
+              stroke="var(--danger)"
+              strokeWidth={1.5}
+              strokeDasharray="1 5"
+              strokeLinecap="round"
+              zIndex={400}
+            />
+          ) : null}
           {gaps.map(({ line, segment }) => (
             <LineChart.ReferenceLine
               key={`gap:${line.key}:${segment[0].x}`}
