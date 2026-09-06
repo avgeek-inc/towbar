@@ -16,3 +16,5 @@ export * from "./temporal.js";
 export * from "./vulnerability-scanning.js";
 export * from "./managed-secrets.js";
 export * from "./monitoring.js";
+export * from "./scout-alerts.js";
+export * from "./deployment-comparison.js";

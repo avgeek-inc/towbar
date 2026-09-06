@@ -163,7 +163,7 @@ function renderSlackGenericMessage(input: {
       {
         elements: [
           {
-            text: `${escapeSlack(input.payload.source.name)} · ${formatSlackTimestamp(input.payload.occurredAt)}`,
+            text: `${escapeSlack(input.payload.source?.name ?? input.payload.entity.name)} · ${formatSlackTimestamp(input.payload.occurredAt)}`,
             type: "mrkdwn",
           },
         ],
@@ -182,7 +182,7 @@ export function renderSlackDeploymentMessage(input: {
 }) {
   const details = compactSlackDetails(input.payload.details);
   const deploymentUrl = new URL(
-    `/sources/${input.payload.source.id}/deployments/${input.payload.entity.id}`,
+    `/sources/${input.payload.source?.id ?? ""}/deployments/${input.payload.entity.id}`,
     input.providerConfiguration.appBaseUrl,
   ).toString();
   return {
@@ -201,7 +201,7 @@ export function renderSlackDeploymentMessage(input: {
             type: "mrkdwn",
           },
           {
-            text: `*Source*\n${escapeSlack(input.payload.source.name)}`,
+            text: `*Source*\n${escapeSlack(input.payload.source?.name ?? input.payload.entity.name)}`,
             type: "mrkdwn",
           },
           ...details,
@@ -508,7 +508,7 @@ function renderPlainText(payload: NotificationEventPayload, eventId: string) {
     "",
     payload.message,
     "",
-    `Source: ${payload.source.name}`,
+    ...(payload.source ? [`Source: ${payload.source.name}`] : []),
     `${capitalize(payload.entity.kind)}: ${payload.entity.name}`,
     ...(details ? [details] : []),
     "",

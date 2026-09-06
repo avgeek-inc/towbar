@@ -5,7 +5,10 @@ import { app, internalApp } from "./app.js";
 import { getEnv } from "./env.js";
 import { clearPasswordLoginAccountRateLimit } from "./http/rate-limit.js";
 import { closeDatabase } from "./infrastructure/database.js";
-import { wakeMaintenanceWorkflow } from "./infrastructure/temporal.js";
+import {
+  wakeMaintenanceWorkflow,
+  wakeScoutAlertsWorkflow,
+} from "./infrastructure/temporal.js";
 
 const env = getEnv();
 const ownerReset = await applyOwnerPasswordResetFromEnvironment();
@@ -46,6 +49,9 @@ const internalServer = serve(
 
 void wakeMaintenanceWorkflow().catch((error: unknown) => {
   console.error("Towbar maintenance workflow could not be started", error);
+});
+void wakeScoutAlertsWorkflow().catch((error: unknown) => {
+  console.error("Scout alert workflow could not be started", error);
 });
 
 async function shutdown() {

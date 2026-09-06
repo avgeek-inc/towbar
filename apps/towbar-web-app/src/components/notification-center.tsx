@@ -144,7 +144,8 @@ export function NotificationCenter() {
                             {notification.payload.message}
                           </p>
                           <p className="mt-1 text-xs text-muted">
-                            {notification.payload.source.name}
+                            {notification.payload.source?.name ??
+                              notification.payload.entity.name}
                           </p>
                         </div>
                       </li>

@@ -3,12 +3,16 @@ import { z } from "zod";
 
 import { runMaintenanceSweep } from "../../../areas/resource-operations/maintenance.js";
 import { recordMaintenanceHeartbeat } from "../../../areas/system-health/service.js";
+import { evaluateScoutAlerts } from "../../../areas/monitoring/alert-evaluator.js";
 
 const heartbeatSchema = z
   .object({ version: z.string().min(1).max(64) })
   .strict();
 
 export const internalMaintenanceRoutes = new Hono();
+internalMaintenanceRoutes.post("/scout-alerts", async (context) =>
+  context.json(await evaluateScoutAlerts()),
+);
 
 internalMaintenanceRoutes.post("/sweep", async (context) => {
   const body = heartbeatSchema.parse(await context.req.json());

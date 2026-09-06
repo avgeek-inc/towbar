@@ -1,4 +1,4 @@
-import { and, asc, eq, lte, or } from "drizzle-orm";
+import { and, asc, eq, lte, or, sql } from "drizzle-orm";
 import { ZodError } from "zod";
 
 import {
@@ -7,6 +7,9 @@ import {
   notificationDestinations,
   notificationEvents,
   notificationThreads,
+  scoutAlertIncidents,
+  scoutAlertRules,
+  scoutAlertSettings,
 } from "@workspace/towbar-database/schema";
 
 import { getTowbarDatabase } from "../../infrastructure/database.js";
@@ -152,6 +155,11 @@ async function claimAttempt(input: {
     if (delivery.cycle !== input.cycle || delivery.state === "succeeded") {
       return { outcome: { outcome: "stale" as const } };
     }
+    if (
+      delivery.eventType.startsWith("scout.") &&
+      (await suppressScoutDelivery(transaction, delivery))
+    )
+      return { outcome: { outcome: "terminal" as const } };
     if (!delivery.destinationEnabled || delivery.destinationDeletedAt) {
       await transaction
         .update(notificationDeliveries)
@@ -446,4 +454,78 @@ function classifyDeliveryError(error: unknown) {
     "The notification could not be delivered",
     true,
   );
+}
+
+async function suppressScoutDelivery(
+  transaction: import("../monitoring/alert-rules.js").ScoutTransaction,
+  delivery: {
+    payload: import("@workspace/towbar-core").NotificationEventPayload;
+    eventType: string;
+    destinationId: string;
+    deliveryId: string;
+  },
+) {
+  const incidentId = delivery.payload.details.incidentId;
+  const [scout] =
+    typeof incidentId === "string"
+      ? await transaction
+          .select({
+            incident: scoutAlertIncidents,
+            rule: scoutAlertRules,
+            settings: scoutAlertSettings,
+          })
+          .from(scoutAlertIncidents)
+          .innerJoin(
+            scoutAlertRules,
+            eq(scoutAlertRules.id, scoutAlertIncidents.ruleId),
+          )
+          .leftJoin(
+            scoutAlertSettings,
+            eq(scoutAlertSettings.serverId, scoutAlertIncidents.serverId),
+          )
+          .where(eq(scoutAlertIncidents.id, incidentId))
+          .limit(1)
+      : [];
+  const now = new Date();
+  const suppressed =
+    !scout ||
+    !scout.rule.enabled ||
+    scout.rule.deletedAt ||
+    (scout.rule.mutedUntil && scout.rule.mutedUntil > now) ||
+    (scout.settings?.mutedUntil && scout.settings.mutedUntil > now) ||
+    !scout.rule.destinationIds.includes(delivery.destinationId) ||
+    (delivery.eventType !== "scout.recovered" && scout.incident.resolvedAt) ||
+    (delivery.eventType === "scout.recovered" &&
+      (!scout.rule.notifyRecovery ||
+        scout.incident.resolutionReason !== "recovered"));
+  if (suppressed) {
+    await transaction
+      .update(notificationDeliveries)
+      .set({
+        state: "failed",
+        lastErrorCode: "SCOUT_NOTIFICATION_SUPPRESSED",
+        lastErrorMessage:
+          "Scout notifications were muted, the rule changed, or the incident no longer needs attention",
+        updatedAt: now,
+      })
+      .where(eq(notificationDeliveries.id, delivery.deliveryId));
+    // If the first alert never left the outbox, unmuting may notify an incident
+    // that is still active. Already delivered alerts remain deduplicated.
+    if (scout && !scout.incident.resolvedAt)
+      await transaction
+        .update(scoutAlertIncidents)
+        .set({ lastNotifiedAt: null })
+        .where(
+          and(
+            eq(scoutAlertIncidents.id, scout.incident.id),
+            sql`not exists (
+          select 1 from towbar_notification_deliveries d join towbar_notification_events e on e.id=d.event_id
+          where e.payload->'details'->>'incidentId'=${scout.incident.id} and d.state='succeeded'
+        )`,
+          ),
+        );
+    return true;
+  }
+
+  return false;
 }

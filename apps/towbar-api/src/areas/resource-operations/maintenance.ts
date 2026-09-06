@@ -1,5 +1,7 @@
 import { recoverMonitoringOperations } from "../monitoring/lifecycle.js";
 import { maintainMonitoringMetrics } from "../monitoring/retention.js";
+import { maintainScoutAlertHistory } from "../monitoring/alert-retention.js";
+import { wakeScoutAlertsWorkflow } from "../../infrastructure/temporal.js";
 import {
   and,
   desc,
@@ -41,6 +43,8 @@ import { admitResumedAutomaticDeployments } from "../apps/automatic-deployments.
 import { enqueueDueVulnerabilityScans } from "../vulnerability-scans/service.js";
 
 export async function runMaintenanceSweep() {
+  // Retry startup after a Temporal outage; the dedicated Scout loop has its own cadence.
+  await wakeScoutAlertsWorkflow().catch(() => undefined);
   // Scheduled deployable work has priority; health checks are maintenance and
   // should enter a server coordinator only after its queue becomes idle.
   const automaticDeploymentsQueued = await admitResumedAutomaticDeployments();
@@ -85,11 +89,13 @@ export async function runMaintenanceSweep() {
   }
 
   const monitoring = await maintainMonitoringMetrics();
+  const scoutAlerts = await maintainScoutAlertHistory();
   const monitoringOperations = await recoverMonitoringOperations().catch(
     () => 0,
   );
   return {
     monitoring,
+    scoutAlerts,
     monitoringOperations,
     automaticDeploymentsQueued,
     backupsAssured,

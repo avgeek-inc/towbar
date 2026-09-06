@@ -62,6 +62,7 @@ const categoryOptions = [
   { label: "Health", value: "health" },
   { label: "Backups", value: "backups" },
   { label: "Restores", value: "restores" },
+  { label: "Scout alerts", value: "scout" },
 ] satisfies Array<{ label: string; value: NotificationCategory }>;
 
 const providerOptions = [
@@ -73,10 +74,12 @@ export function SourceNotifications({
   canManage,
   destinations,
   sourceId,
+  serverId,
 }: {
   canManage: boolean;
   destinations: Query<NotificationDestinationsResponse>;
-  sourceId: string;
+  sourceId?: string;
+  serverId?: string;
 }) {
   const [draft, setDraft] = useState<DestinationDraft>(() =>
     emptyDraft("slack"),
@@ -85,7 +88,9 @@ export function SourceNotifications({
   const [editorOpen, setEditorOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>();
-  const endpoint = `/v1/core/sources/${sourceId}/notifications`;
+  const endpoint = serverId
+    ? `/v1/core/servers/${serverId}/notifications`
+    : `/v1/core/sources/${sourceId}/notifications`;
 
   if (destinations.error) return <QueryError message={destinations.error} />;
   if (!destinations.data) return <QueryLoading />;
