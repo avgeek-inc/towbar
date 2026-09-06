@@ -13,6 +13,7 @@ import { ListBox, Select } from "@workspace/web-design-system/forms/select";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
+import { monitoringChartGaps } from "./monitoring-chart-gaps";
 import { MonitoringDocumentation } from "./monitoring-documentation";
 import {
   MonitoringEvents,
@@ -199,19 +200,12 @@ export function MonitoringHistory({
               Graph markers: D — deployment · R — container restart
             </p>
           ) : null}
-          <p className="text-xs text-muted">
-            {history.stepSeconds < 60
-              ? `${history.stepSeconds}-second`
-              : `${history.stepSeconds / 60}-minute`}{" "}
-            chart intervals · Gaps mean no measurement.{" "}
-            {workload
-              ? "Each line follows one container; replacements retain their history. "
-              : ""}
-            {history.seriesLimited
-              ? "Showing the 32 most recent instances. Choose a shorter range to inspect more detail. "
-              : ""}
-            Retained for {agent.retentionDays} days.
-          </p>
+          {history.seriesLimited ? (
+            <p className="text-xs text-muted">
+              Showing the 32 most recent instances. Choose a shorter range to
+              inspect more detail.
+            </p>
+          ) : null}
           <MonitoringEvents events={history.events} />
         </>
       )}
@@ -332,6 +326,7 @@ function MetricChart({
   view: string;
   syncId: string;
 }) {
+  const [eventActive, setEventActive] = useState(false);
   const data = useMemo(() => {
     const start =
       Math.floor(
@@ -434,6 +429,21 @@ function MetricChart({
             }
             domain={[0, metrics[0]!.unit === "percent" ? 100 : "auto"]}
           />
+          {lines.flatMap((line) =>
+            monitoringChartGaps(data, line.key).map((segment) => (
+              <LineChart.ReferenceLine
+                key={`gap:${line.key}:${segment[0].x}`}
+                className="monitoring-gap-connector"
+                segment={segment}
+                stroke={line.color}
+                strokeWidth={1.8}
+                strokeDasharray="2 4"
+                strokeLinecap="round"
+                strokeOpacity={0.65}
+                zIndex={350}
+              />
+            )),
+          )}
           {history.events.slice(0, 20).map((event) => (
             <LineChart.ReferenceLine
               key={`${event.type}:${event.id}:${event.at}`}
@@ -444,10 +454,16 @@ function MetricChart({
                 history.stepSeconds *
                 1000
               }
+              zIndex={600}
               stroke={monitoringEventColor(event.type)}
               strokeDasharray="4 4"
               strokeOpacity={0.6}
-              label={<MonitoringEventMarker event={event} />}
+              label={
+                <MonitoringEventMarker
+                  event={event}
+                  onActiveChange={setEventActive}
+                />
+              }
             />
           ))}
           {lines.map((line) => (
@@ -467,6 +483,7 @@ function MetricChart({
             />
           ))}
           <LineChart.Tooltip
+            active={eventActive ? false : undefined}
             content={
               <LineChart.TooltipContent
                 labelFormatter={(value) =>
