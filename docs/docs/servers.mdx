@@ -64,7 +64,26 @@ Also account for the installation-wide [worker activity limit](/docs/reference/e
 
 ## Read capacity and health
 
-The Servers table shows hardware capacity. A server's Apps and Resources tabs show configured allocations alongside the latest observed consumption. Known cloud instance types appear below the IP; otherwise Towbar shows detected CPU and memory capacity, or **Unknown Instance Type**.
+The Servers table shows hardware capacity. A server's Apps and Resources tabs show configured allocations alongside the latest observed consumption. Known cloud instance types appear below the IP. When only the provider is known, its logo appears beside observed CPU and memory capacity. If metadata is unavailable, Towbar shows hardware capacity or **Unknown Instance Type**.
+
+### Automatic cloud detection
+
+Server checks read the provider's local metadata service. No cloud account API key is required.
+
+| Provider          | Displayed information                      |
+| ----------------- | ------------------------------------------ |
+| AWS               | Instance type                              |
+| Google Cloud      | Machine type                               |
+| Azure             | VM size                                    |
+| Oracle Cloud      | Shape, including flexible shapes           |
+| Akamai / Linode   | Instance type                              |
+| Alibaba Cloud ECS | Instance type                              |
+| Hetzner Cloud     | Provider logo with observed CPU and memory |
+| DigitalOcean      | Provider logo with observed CPU and memory |
+
+Hetzner and DigitalOcean do not expose an exact plan name through the metadata endpoints Towbar uses. Towbar does not guess one from CPU or RAM. Other providers and dedicated servers still show observed hardware capacity.
+
+Detection is best effort: blocked, unsupported, or slow metadata does not fail a server check. Run **Check server** after upgrading to refresh the provider information.
 
 Capacity comes from server checks. A displayed value is an observation, not a guarantee that the host is reachable at that instant. Check its timestamp and the latest check result during an incident.
 

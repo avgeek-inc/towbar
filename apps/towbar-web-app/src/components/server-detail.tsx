@@ -7,7 +7,7 @@ import { ElapsedTime } from "./elapsed-time";
 import { ConfigurationLinks } from "./configuration-links";
 
 import { ServerEditor } from "./server-editor";
-import { ServerInstanceDescription } from "./server-hardware";
+import { ServerHardwareDescription } from "./server-hardware";
 
 import {
   Activity01Icon,
@@ -404,10 +404,14 @@ export function ServerDetail() {
                         {item.config.ssh.host ?? item.canonicalIp}
                       </Attributes.Item>
                       {item.hardware?.instance ? (
-                        <Attributes.Item label="Instance type">
-                          <ServerInstanceDescription
-                            instance={item.hardware.instance}
-                          />
+                        <Attributes.Item
+                          label={
+                            item.hardware.instance.type
+                              ? "Instance type"
+                              : "Cloud provider"
+                          }
+                        >
+                          <ServerHardwareDescription hardware={item.hardware} />
                         </Attributes.Item>
                       ) : null}
                       <Attributes.Item label="SSH user">

@@ -10,12 +10,19 @@ export function ServerHardwareDescription({
 }: {
   hardware?: Server["hardware"];
 }) {
-  if (hardware?.instance)
+  if (hardware?.instance?.type)
     return <ServerInstanceDescription instance={hardware.instance} />;
   if (!hardware?.cpuCount && !hardware?.memoryBytes)
-    return <span>Unknown Instance Type</span>;
+    return hardware?.instance ? (
+      <ServerInstanceDescription instance={hardware.instance} />
+    ) : (
+      <span>Unknown Instance Type</span>
+    );
   return (
     <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+      {hardware.instance ? (
+        <ProviderLogo provider={hardware.instance.provider} />
+      ) : null}
       {hardware.cpuCount ? (
         <span className="inline-flex items-center gap-0.5 whitespace-nowrap">
           <HugeiconsIcon
@@ -47,6 +54,11 @@ const providerNames = {
   aws: "Amazon Web Services",
   azure: "Microsoft Azure",
   gcp: "Google Cloud",
+  oracle: "Oracle Cloud",
+  hetzner: "Hetzner",
+  digitalocean: "DigitalOcean",
+  linode: "Akamai / Linode",
+  alibaba: "Alibaba Cloud",
 } as const;
 
 export function ServerInstanceDescription({
@@ -54,24 +66,27 @@ export function ServerInstanceDescription({
 }: {
   instance: NonNullable<NonNullable<Server["hardware"]>["instance"]>;
 }) {
-  const provider = providerNames[instance.provider];
   return (
     <span className="inline-flex items-center gap-1.5">
-      {provider ? (
-        <TooltipText
-          className="inline-flex shrink-0 items-center"
-          tooltip={provider}
-        >
-          <Image
-            alt={provider}
-            src={`/cloud-providers/${instance.provider}.svg`}
-            width={instance.provider === "aws" ? 24 : 16}
-            height={16}
-            className="h-[1em] w-auto object-contain"
-          />
-        </TooltipText>
-      ) : null}
-      <span>{instance.type}</span>
+      <ProviderLogo provider={instance.provider} />
+      <span>{instance.type ?? providerNames[instance.provider]}</span>
     </span>
+  );
+}
+
+function ProviderLogo({ provider }: { provider: keyof typeof providerNames }) {
+  return (
+    <TooltipText
+      className="inline-flex shrink-0 items-center"
+      tooltip={providerNames[provider]}
+    >
+      <Image
+        alt={providerNames[provider]}
+        src={`/cloud-providers/${provider}.svg`}
+        width={provider === "aws" ? 24 : 16}
+        height={16}
+        className="h-[1em] w-auto object-contain"
+      />
+    </TooltipText>
   );
 }

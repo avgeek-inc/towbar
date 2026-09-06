@@ -2821,10 +2821,15 @@
             "anyOf": [
               { "type": "string", "const": "aws" },
               { "type": "string", "const": "gcp" },
-              { "type": "string", "const": "azure" }
+              { "type": "string", "const": "azure" },
+              { "type": "string", "const": "oracle" },
+              { "type": "string", "const": "hetzner" },
+              { "type": "string", "const": "digitalocean" },
+              { "type": "string", "const": "linode" },
+              { "type": "string", "const": "alibaba" }
             ]
           },
-          "type": { "type": "string" }
+          "type": { "anyOf": [{ "type": "null" }, { "type": "string" }] }
         },
         "required": ["provider", "type"]
       },
