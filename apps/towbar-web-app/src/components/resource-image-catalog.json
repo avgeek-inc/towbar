@@ -1,0 +1,673 @@
+[
+  {
+    "id": "temporal",
+    "label": "Temporal",
+    "repositories": [
+      "temporalio/server",
+      "temporalio/auto-setup",
+      "temporalio/ui",
+      "temporalio/admin-tools",
+      "temporalio/temporal"
+    ],
+    "logo": "/resource-logos/temporal.svg",
+    "logoDark": "/resource-logos/temporal-light.svg"
+  },
+  {
+    "id": "mailpit",
+    "label": "Mailpit",
+    "repositories": ["axllent/mailpit"],
+    "logo": "/resource-logos/mailpit.webp",
+    "darkBackground": true
+  },
+  {
+    "id": "postgresql",
+    "label": "PostgreSQL",
+    "repositories": ["postgres", "bitnami/postgresql"],
+    "logo": "/resource-logos/postgresql.webp"
+  },
+  {
+    "id": "redis",
+    "label": "Redis",
+    "repositories": [
+      "redis",
+      "redis/redis-stack",
+      "redis/redis-stack-server",
+      "bitnami/redis"
+    ],
+    "logo": "/resource-logos/redis.webp"
+  },
+  {
+    "id": "valkey",
+    "label": "Valkey",
+    "repositories": ["valkey/valkey"],
+    "logo": "/resource-logos/valkey.webp",
+    "darkPlate": true
+  },
+  {
+    "id": "mysql",
+    "label": "MySQL",
+    "repositories": ["mysql", "mysql/mysql-server"],
+    "logo": "/resource-logos/mysql.webp"
+  },
+  {
+    "id": "mariadb",
+    "label": "MariaDB",
+    "repositories": ["mariadb", "bitnami/mariadb"],
+    "logo": "/resource-logos/mariadb.webp"
+  },
+  {
+    "id": "mongodb",
+    "label": "MongoDB",
+    "repositories": ["mongo", "mongodb/mongodb-community-server"],
+    "logo": "/resource-logos/mongodb.webp"
+  },
+  {
+    "id": "cassandra",
+    "label": "Apache Cassandra",
+    "repositories": ["cassandra"],
+    "logo": "/resource-logos/cassandra.webp"
+  },
+  {
+    "id": "couchdb",
+    "label": "Apache CouchDB",
+    "repositories": ["couchdb"],
+    "logo": "/resource-logos/couchdb.webp"
+  },
+  {
+    "id": "clickhouse",
+    "label": "ClickHouse",
+    "repositories": ["clickhouse/clickhouse-server"],
+    "logo": "/resource-logos/clickhouse.webp"
+  },
+  {
+    "id": "cockroachdb",
+    "label": "CockroachDB",
+    "repositories": ["cockroachdb/cockroach"],
+    "logo": "/resource-logos/cockroachdb.svg"
+  },
+  {
+    "id": "neo4j",
+    "label": "Neo4j",
+    "repositories": ["neo4j"],
+    "logo": "/resource-logos/neo4j.webp"
+  },
+  {
+    "id": "influxdb",
+    "label": "InfluxDB",
+    "repositories": ["influxdb"],
+    "logo": "/resource-logos/influxdb.webp"
+  },
+  {
+    "id": "timescaledb",
+    "label": "TimescaleDB",
+    "repositories": ["timescale/timescaledb", "timescale/timescaledb-ha"],
+    "logo": "/resource-logos/timescaledb.svg"
+  },
+  {
+    "id": "questdb",
+    "label": "QuestDB",
+    "repositories": ["questdb/questdb"],
+    "logo": "/resource-logos/questdb.webp"
+  },
+  {
+    "id": "memcached",
+    "label": "Memcached",
+    "repositories": ["memcached"],
+    "logo": "/resource-logos/memcached.svg"
+  },
+  {
+    "id": "keydb",
+    "label": "KeyDB",
+    "repositories": ["eqalpha/keydb"],
+    "logo": "/resource-logos/keydb.svg"
+  },
+  {
+    "id": "nextcloud",
+    "label": "Nextcloud",
+    "repositories": ["nextcloud"],
+    "logo": "/resource-logos/nextcloud.webp"
+  },
+  {
+    "id": "rabbitmq",
+    "label": "RabbitMQ",
+    "repositories": ["rabbitmq", "bitnami/rabbitmq"],
+    "logo": "/resource-logos/rabbitmq.webp"
+  },
+  {
+    "id": "nats",
+    "label": "NATS",
+    "repositories": ["nats"],
+    "logo": "/resource-logos/nats.svg"
+  },
+  {
+    "id": "kafka",
+    "label": "Apache Kafka",
+    "repositories": [
+      "apache/kafka",
+      "apache/kafka-native",
+      "confluentinc/cp-kafka",
+      "bitnami/kafka"
+    ],
+    "logo": "/resource-logos/kafka.svg",
+    "darkPlate": true
+  },
+  {
+    "id": "paperless-ngx",
+    "label": "Paperless-ngx",
+    "repositories": ["ghcr.io/paperless-ngx/paperless-ngx"],
+    "logo": "/resource-logos/paperless-ngx.webp",
+    "darkPlate": true
+  },
+  {
+    "id": "immich",
+    "label": "Immich",
+    "repositories": [
+      "ghcr.io/immich-app/immich-server",
+      "ghcr.io/immich-app/immich-machine-learning"
+    ],
+    "logo": "/resource-logos/immich.webp"
+  },
+  {
+    "id": "apache-pulsar",
+    "label": "Apache Pulsar",
+    "repositories": ["apachepulsar/pulsar"],
+    "logo": "/resource-logos/apache-pulsar.svg"
+  },
+  {
+    "id": "home-assistant",
+    "label": "Home Assistant",
+    "repositories": [
+      "homeassistant/home-assistant",
+      "ghcr.io/home-assistant/home-assistant"
+    ],
+    "logo": "/resource-logos/home-assistant.webp"
+  },
+  {
+    "id": "elasticsearch",
+    "label": "Elasticsearch",
+    "repositories": [
+      "elasticsearch",
+      "docker.elastic.co/elasticsearch/elasticsearch"
+    ],
+    "logo": "/resource-logos/elasticsearch.webp"
+  },
+  {
+    "id": "opensearch",
+    "label": "OpenSearch",
+    "repositories": ["opensearchproject/opensearch"],
+    "logo": "/resource-logos/opensearch.webp",
+    "darkPlate": true
+  },
+  {
+    "id": "solr",
+    "label": "Apache Solr",
+    "repositories": ["solr"],
+    "logo": "/resource-logos/solr.webp"
+  },
+  {
+    "id": "meilisearch",
+    "label": "Meilisearch",
+    "repositories": ["getmeili/meilisearch"],
+    "logo": "/resource-logos/meilisearch.webp"
+  },
+  {
+    "id": "typesense",
+    "label": "Typesense",
+    "repositories": ["typesense/typesense"],
+    "logo": "/resource-logos/typesense.webp"
+  },
+  {
+    "id": "qdrant",
+    "label": "Qdrant",
+    "repositories": ["qdrant/qdrant"],
+    "logo": "/resource-logos/qdrant.webp"
+  },
+  {
+    "id": "ollama",
+    "label": "Ollama",
+    "repositories": ["ollama/ollama"],
+    "logo": "/resource-logos/ollama.webp",
+    "logoDark": "/resource-logos/ollama-dark.webp"
+  },
+  {
+    "id": "milvus",
+    "label": "Milvus",
+    "repositories": ["milvusdb/milvus"],
+    "logo": "/resource-logos/milvus.svg"
+  },
+  {
+    "id": "chroma",
+    "label": "Chroma",
+    "repositories": ["chromadb/chroma"],
+    "logo": "/resource-logos/chroma.webp"
+  },
+  {
+    "id": "minio",
+    "label": "MinIO",
+    "repositories": ["minio/minio", "quay.io/minio/minio"],
+    "logo": "/resource-logos/minio.webp",
+    "logoDark": "/resource-logos/minio-light.webp"
+  },
+  {
+    "id": "open-webui",
+    "label": "Open WebUI",
+    "repositories": ["ghcr.io/open-webui/open-webui"],
+    "logo": "/resource-logos/open-webui.webp",
+    "logoDark": "/resource-logos/open-webui-light.webp"
+  },
+  {
+    "id": "nginx",
+    "label": "NGINX",
+    "repositories": ["nginx", "nginxinc/nginx-unprivileged"],
+    "logo": "/resource-logos/nginx.webp"
+  },
+  {
+    "id": "caddy",
+    "label": "Caddy",
+    "repositories": ["caddy"],
+    "logo": "/resource-logos/caddy.webp"
+  },
+  {
+    "id": "traefik",
+    "label": "Traefik",
+    "repositories": ["traefik"],
+    "logo": "/resource-logos/traefik.webp"
+  },
+  {
+    "id": "haproxy",
+    "label": "HAProxy",
+    "repositories": ["haproxy", "haproxytech/haproxy-alpine"],
+    "logo": "/resource-logos/haproxy.webp"
+  },
+  {
+    "id": "envoy",
+    "label": "Envoy",
+    "repositories": ["envoyproxy/envoy", "envoyproxy/envoy-distroless"],
+    "logo": "/resource-logos/envoy.svg"
+  },
+  {
+    "id": "apache",
+    "label": "Apache HTTP Server",
+    "repositories": ["httpd"],
+    "logo": "/resource-logos/apache.webp"
+  },
+  {
+    "id": "outline",
+    "label": "Outline",
+    "repositories": [
+      "outlinewiki/outline",
+      "docker.getoutline.com/outlinewiki/outline"
+    ],
+    "logo": "/resource-logos/outline.webp"
+  },
+  {
+    "id": "airflow",
+    "label": "Apache Airflow",
+    "repositories": ["apache/airflow"],
+    "logo": "/resource-logos/airflow.webp"
+  },
+  {
+    "id": "prefect",
+    "label": "Prefect",
+    "repositories": ["prefecthq/prefect"],
+    "logo": "/resource-logos/prefect.svg",
+    "logoDark": "/resource-logos/prefect-light.svg"
+  },
+  {
+    "id": "dagster",
+    "label": "Dagster",
+    "repositories": ["dagster/dagster-celery-k8s"],
+    "logo": "/resource-logos/dagster.webp",
+    "logoDark": "/resource-logos/dagster-light.webp"
+  },
+  {
+    "id": "n8n",
+    "label": "n8n",
+    "repositories": ["n8nio/n8n", "docker.n8n.io/n8nio/n8n"],
+    "logo": "/resource-logos/n8n.webp"
+  },
+  {
+    "id": "node-red",
+    "label": "Node-RED",
+    "repositories": ["nodered/node-red"],
+    "logo": "/resource-logos/node-red.webp"
+  },
+  {
+    "id": "windmill",
+    "label": "Windmill",
+    "repositories": ["ghcr.io/windmill-labs/windmill"],
+    "logo": "/resource-logos/windmill.webp"
+  },
+  {
+    "id": "kestra",
+    "label": "Kestra",
+    "repositories": ["kestra/kestra"],
+    "logo": "/resource-logos/kestra.webp"
+  },
+  {
+    "id": "grafana",
+    "label": "Grafana",
+    "repositories": [
+      "grafana/grafana",
+      "grafana/grafana-oss",
+      "grafana/grafana-enterprise"
+    ],
+    "logo": "/resource-logos/grafana.webp"
+  },
+  {
+    "id": "prometheus",
+    "label": "Prometheus",
+    "repositories": ["prom/prometheus", "quay.io/prometheus/prometheus"],
+    "logo": "/resource-logos/prometheus.webp"
+  },
+  {
+    "id": "alertmanager",
+    "label": "Alertmanager",
+    "repositories": ["prom/alertmanager", "quay.io/prometheus/alertmanager"],
+    "logo": "/resource-logos/alertmanager.webp"
+  },
+  {
+    "id": "loki",
+    "label": "Grafana Loki",
+    "repositories": ["grafana/loki"],
+    "logo": "/resource-logos/loki.webp"
+  },
+  {
+    "id": "bookstack",
+    "label": "BookStack",
+    "repositories": [
+      "solidnerd/bookstack",
+      "lscr.io/linuxserver/bookstack",
+      "linuxserver/bookstack"
+    ],
+    "logo": "/resource-logos/bookstack.webp"
+  },
+  {
+    "id": "victoriametrics",
+    "label": "VictoriaMetrics",
+    "repositories": ["victoriametrics/victoria-metrics"],
+    "logo": "/resource-logos/victoriametrics.webp",
+    "logoDark": "/resource-logos/victoriametrics-light.webp"
+  },
+  {
+    "id": "netdata",
+    "label": "Netdata",
+    "repositories": ["netdata/netdata"],
+    "logo": "/resource-logos/netdata.webp"
+  },
+  {
+    "id": "glances",
+    "label": "Glances",
+    "repositories": ["nicolargo/glances"],
+    "logo": "/resource-logos/glances.webp",
+    "logoDark": "/resource-logos/glances-light.webp"
+  },
+  {
+    "id": "uptime-kuma",
+    "label": "Uptime Kuma",
+    "repositories": ["louislam/uptime-kuma"],
+    "logo": "/resource-logos/uptime-kuma.webp"
+  },
+  {
+    "id": "healthchecks",
+    "label": "Healthchecks",
+    "repositories": ["healthchecks/healthchecks"],
+    "logo": "/resource-logos/healthchecks.webp"
+  },
+  {
+    "id": "signoz",
+    "label": "SigNoz",
+    "repositories": ["signoz/signoz", "signoz/query-service"],
+    "logo": "/resource-logos/signoz.webp"
+  },
+  {
+    "id": "jaeger",
+    "label": "Jaeger",
+    "repositories": ["jaegertracing/jaeger", "jaegertracing/all-in-one"],
+    "logo": "/resource-logos/jaeger.webp"
+  },
+  {
+    "id": "plausible",
+    "label": "Plausible",
+    "repositories": [
+      "ghcr.io/plausible/community-edition",
+      "plausible/analytics"
+    ],
+    "logo": "/resource-logos/plausible.webp"
+  },
+  {
+    "id": "sentry",
+    "label": "Sentry",
+    "repositories": ["getsentry/sentry", "ghcr.io/getsentry/sentry"],
+    "logo": "/resource-logos/sentry.webp",
+    "logoDark": "/resource-logos/sentry-light.webp"
+  },
+  {
+    "id": "glitchtip",
+    "label": "GlitchTip",
+    "repositories": ["glitchtip/glitchtip"],
+    "logo": "/resource-logos/glitchtip.webp"
+  },
+  {
+    "id": "dozzle",
+    "label": "Dozzle",
+    "repositories": ["amir20/dozzle"],
+    "logo": "/resource-logos/dozzle.webp"
+  },
+  {
+    "id": "fluent-bit",
+    "label": "Fluent Bit",
+    "repositories": ["fluent/fluent-bit", "cr.fluentbit.io/fluent/fluent-bit"],
+    "logo": "/resource-logos/fluent-bit.svg"
+  },
+  {
+    "id": "fluentd",
+    "label": "Fluentd",
+    "repositories": ["fluent/fluentd"],
+    "logo": "/resource-logos/fluentd.svg"
+  },
+  {
+    "id": "logstash",
+    "label": "Logstash",
+    "repositories": ["logstash", "docker.elastic.co/logstash/logstash"],
+    "logo": "/resource-logos/logstash.webp"
+  },
+  {
+    "id": "mailhog",
+    "label": "MailHog",
+    "repositories": ["mailhog/mailhog"],
+    "logo": "/resource-logos/mailhog.webp"
+  },
+  {
+    "id": "docker-mailserver",
+    "label": "Docker Mailserver",
+    "repositories": ["ghcr.io/docker-mailserver/docker-mailserver"],
+    "logo": "/resource-logos/docker-mailserver.webp",
+    "logoDark": "/resource-logos/docker-mailserver-light.webp"
+  },
+  {
+    "id": "umami",
+    "label": "Umami",
+    "repositories": ["ghcr.io/umami-software/umami"],
+    "logo": "/resource-logos/umami.webp",
+    "logoDark": "/resource-logos/umami-light.webp"
+  },
+  {
+    "id": "keycloak",
+    "label": "Keycloak",
+    "repositories": ["quay.io/keycloak/keycloak", "keycloak/keycloak"],
+    "logo": "/resource-logos/keycloak.webp"
+  },
+  {
+    "id": "authentik",
+    "label": "Authentik",
+    "repositories": ["ghcr.io/goauthentik/server"],
+    "logo": "/resource-logos/authentik.webp"
+  },
+  {
+    "id": "authelia",
+    "label": "Authelia",
+    "repositories": ["authelia/authelia"],
+    "logo": "/resource-logos/authelia.webp"
+  },
+  {
+    "id": "actual-budget",
+    "label": "Actual Budget",
+    "repositories": [
+      "actualbudget/actual-server",
+      "ghcr.io/actualbudget/actual-server"
+    ],
+    "logo": "/resource-logos/actual-budget.webp"
+  },
+  {
+    "id": "vault",
+    "label": "Vault",
+    "repositories": ["hashicorp/vault"],
+    "logo": "/resource-logos/vault.webp",
+    "logoDark": "/resource-logos/vault-light.webp"
+  },
+  {
+    "id": "openbao",
+    "label": "OpenBao",
+    "repositories": ["openbao/openbao", "quay.io/openbao/openbao"],
+    "logo": "/resource-logos/openbao.svg"
+  },
+  {
+    "id": "oauth2-proxy",
+    "label": "OAuth2 Proxy",
+    "repositories": ["quay.io/oauth2-proxy/oauth2-proxy"],
+    "logo": "/resource-logos/oauth2-proxy.webp"
+  },
+  {
+    "id": "zitadel",
+    "label": "ZITADEL",
+    "repositories": ["ghcr.io/zitadel/zitadel"],
+    "logo": "/resource-logos/zitadel.webp",
+    "logoDark": "/resource-logos/zitadel-light.webp"
+  },
+  {
+    "id": "portainer",
+    "label": "Portainer",
+    "repositories": ["portainer/portainer-ce", "portainer/portainer-ee"],
+    "logo": "/resource-logos/portainer.webp",
+    "logoDark": "/resource-logos/portainer-dark.webp"
+  },
+  {
+    "id": "watchtower",
+    "label": "Watchtower",
+    "repositories": ["containrrr/watchtower"],
+    "logo": "/resource-logos/watchtower.webp"
+  },
+  {
+    "id": "docker",
+    "label": "Docker Registry",
+    "repositories": ["registry"],
+    "logo": "/resource-logos/docker.webp"
+  },
+  {
+    "id": "harbor",
+    "label": "Harbor",
+    "repositories": [
+      "goharbor/harbor-core",
+      "goharbor/harbor-portal",
+      "goharbor/registry-photon"
+    ],
+    "logo": "/resource-logos/harbor.webp"
+  },
+  {
+    "id": "gitea",
+    "label": "Gitea",
+    "repositories": ["gitea/gitea", "docker.gitea.com/gitea"],
+    "logo": "/resource-logos/gitea.webp"
+  },
+  {
+    "id": "forgejo",
+    "label": "Forgejo",
+    "repositories": ["codeberg.org/forgejo/forgejo"],
+    "logo": "/resource-logos/forgejo.webp"
+  },
+  {
+    "id": "gitlab",
+    "label": "GitLab",
+    "repositories": ["gitlab/gitlab-ce", "gitlab/gitlab-ee"],
+    "logo": "/resource-logos/gitlab.webp"
+  },
+  {
+    "id": "jenkins",
+    "label": "Jenkins",
+    "repositories": ["jenkins/jenkins"],
+    "logo": "/resource-logos/jenkins.webp"
+  },
+  {
+    "id": "woodpecker-ci",
+    "label": "Woodpecker CI",
+    "repositories": [
+      "woodpeckerci/woodpecker-server",
+      "woodpeckerci/woodpecker-agent"
+    ],
+    "logo": "/resource-logos/woodpecker-ci.webp",
+    "darkPlate": true
+  },
+  {
+    "id": "drone",
+    "label": "Drone",
+    "repositories": ["drone/drone"],
+    "logo": "/resource-logos/drone.webp",
+    "darkPlate": true
+  },
+  {
+    "id": "sonarqube",
+    "label": "SonarQube",
+    "repositories": ["sonarqube"],
+    "logo": "/resource-logos/sonarqube.webp"
+  },
+  {
+    "id": "nexus",
+    "label": "Nexus Repository",
+    "repositories": ["sonatype/nexus3"],
+    "logo": "/resource-logos/nexus.webp"
+  },
+  {
+    "id": "verdaccio",
+    "label": "Verdaccio",
+    "repositories": ["verdaccio/verdaccio"],
+    "logo": "/resource-logos/verdaccio.webp"
+  },
+  {
+    "id": "adminer",
+    "label": "Adminer",
+    "repositories": ["adminer"],
+    "logo": "/resource-logos/adminer.webp",
+    "darkPlate": true
+  },
+  {
+    "id": "pgadmin",
+    "label": "pgAdmin",
+    "repositories": ["dpage/pgadmin4"],
+    "logo": "/resource-logos/pgadmin.webp"
+  },
+  {
+    "id": "redis-insight",
+    "label": "RedisInsight",
+    "repositories": ["redis/redisinsight"],
+    "logo": "/resource-logos/redis-insight.webp"
+  },
+  {
+    "id": "metabase",
+    "label": "Metabase",
+    "repositories": ["metabase/metabase"],
+    "logo": "/resource-logos/metabase.webp"
+  },
+  {
+    "id": "superset",
+    "label": "Apache Superset",
+    "repositories": ["apache/superset"],
+    "logo": "/resource-logos/superset.svg"
+  },
+  {
+    "id": "matomo",
+    "label": "Matomo",
+    "repositories": ["matomo"],
+    "logo": "/resource-logos/matomo.webp"
+  }
+]

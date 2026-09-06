@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
+import { resourceImageBrand, type ResourceBrand } from "./resource-image-brand";
 import {
   HeartPulseIcon,
   InternetIcon,
@@ -137,12 +139,6 @@ function DeployableName({
   );
 }
 
-const resourceTypes = {
-  postgres: { label: "PostgreSQL", logo: "/resource-types/postgres.png" },
-  redis: { label: "Redis", logo: "/resource-types/redis.png" },
-  image: { label: "Image", logo: "/resource-types/image.png" },
-} satisfies Record<Resource["kind"], { label: string; logo: string }>;
-
 export function ResourceIdentity({
   resource,
   healthStatus = resource.runtimeState.healthStatus,
@@ -150,16 +146,10 @@ export function ResourceIdentity({
   resource: Resource;
   healthStatus?: Resource["runtimeState"]["healthStatus"];
 }) {
-  const type = resourceTypes[resource.kind];
+  const type = resourceImageBrand(resource.kind, resource.config.image);
   return (
     <span className="inline-flex min-w-0 items-center gap-3">
-      <Image
-        alt=""
-        className="size-8 shrink-0 object-contain"
-        height={32}
-        width={32}
-        src={type.logo}
-      />
+      <ResourceLogo key={type.logo} brand={type} />
       <span className="grid min-w-0 gap-0.5">
         <DeployableName
           autoDeploy={Boolean(resource.config.autoDeploy)}
@@ -170,6 +160,37 @@ export function ResourceIdentity({
         />
         <span className="text-xs text-muted">{type.label}</span>
       </span>
+    </span>
+  );
+}
+
+function ResourceLogo({ brand }: { brand: ResourceBrand }) {
+  const [failed, setFailed] = useState(false);
+  const fallback = "/resource-types/image.png";
+  const logo = failed ? fallback : brand.logo;
+  const dark = failed ? undefined : brand.logoDark;
+  return (
+    <span
+      className={`inline-flex size-8 shrink-0 items-center justify-center ${brand.darkBackground && !failed ? "rounded-sm bg-zinc-800 p-0.5" : ""} ${brand.darkPlate && !failed ? "rounded-sm dark:bg-white dark:p-0.5" : ""}`}
+    >
+      <Image
+        alt=""
+        className={`max-h-full max-w-full size-8 object-contain ${dark ? "dark:hidden" : ""}`}
+        height={32}
+        width={32}
+        src={logo}
+        onError={() => setFailed(true)}
+      />
+      {dark ? (
+        <Image
+          alt=""
+          className="hidden size-8 object-contain dark:block"
+          height={32}
+          width={32}
+          src={dark}
+          onError={() => setFailed(true)}
+        />
+      ) : null}
     </span>
   );
 }
