@@ -177,6 +177,8 @@ export async function startAndVerifyCandidate(input: DeploymentPhaseInput) {
             ? String(input.context.app.container.resources.cpus)
             : "",
           input.context.app.container.resources?.memory ?? "",
+          input.context.app.container.networkAlias ?? "",
+          input.context.currentRelease?.containerName ?? "",
         ],
         { signal: input.signal, timeoutMs: 120_000 },
       );

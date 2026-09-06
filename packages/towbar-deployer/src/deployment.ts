@@ -43,6 +43,11 @@ export async function executeDeployment(input: {
   signal?: AbortSignal;
 }): Promise<DeploymentResult> {
   const { context, deferCleanup = false, hooks = {}, secrets, signal } = input;
+  if (deferCleanup && context.app.container.networkAlias) {
+    throw new Error(
+      "The self-managed Towbar worker cannot use a stop/start network alias",
+    );
+  }
   const sensitiveValues = collectSensitiveValues(secrets);
   const localDirectory = await mkdtemp(path.join(tmpdir(), "towbar-deploy-"));
   const { containerName, imageTag, remoteDirectory } =

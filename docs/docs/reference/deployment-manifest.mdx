@@ -113,7 +113,11 @@ on a backup for recovery.
 ## Private networks and operator access
 
 Deployables on the same named `container.network` can communicate through a
-stable Resource `networkAlias`, which defaults to the Resource ID. Optional
+stable `networkAlias`. Resources default to their ID; Apps declare an alias explicitly.
+An App alias requires a network and cannot be combined with Preview. Deployments
+stop the previous container before starting its replacement, so the alias has one
+live owner. A failed deployment restarts the previous container. Plan for a brief
+interruption while the replacement starts and passes its health check. Optional
 `access.sshTunnel.hostPort` publishes a database port only on
 `127.0.0.1` of its server for operator tools reached through SSH. Towbar never
 routes that port through Caddy or Cloudflare.
@@ -172,6 +176,7 @@ IDs must be unique across both apps and resources. Paths are repository-relative
 | `context`                             | `.`                | Directory transferred for the build                                                              |
 | `container.port`                      | Required           | Application port, 1–65535                                                                        |
 | `container.network`                   | Optional           | Docker network on the target; reused or created during deployment                                |
+| `container.networkAlias`              | Optional           | Stable private hostname; requires a network, disables Preview, and uses stop/start deployment    |
 | `container.resources`                 | Optional           | Both `cpus` and `memory`; positive CPU value up to 128, memory with `b`, `k`, `m`, or `g` suffix |
 | `health.path`                         | `/api/health`      | HTTP readiness path                                                                              |
 | `health.timeoutSeconds`               | `60`               | 5–600 seconds                                                                                    |
