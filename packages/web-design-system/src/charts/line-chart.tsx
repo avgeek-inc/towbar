@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { ChartRangeSelection } from "./chart-range-selection";
 import { cn } from "../lib/utils";
 
 type Datum = Record<string, unknown>;
@@ -101,6 +102,7 @@ function TooltipContent({
   );
 }
 export const LineChart = Object.assign(Root, {
+  Selection: ChartRangeSelection,
   Grid,
   Line,
   Root,

@@ -445,6 +445,44 @@ void test(
             { ...query, environment: "production" },
             now,
           );
+          const customNow = new Date(now.getTime() + 60000);
+          const customQuery = {
+            ...query,
+            range: "custom" as const,
+            startAt: new Date(now.getTime() - 900000).toISOString(),
+            endAt: new Date(now.getTime() + 30000).toISOString(),
+          };
+          const customProduction = await getMonitoringHistory(
+            { ...customQuery, environment: "production" },
+            customNow,
+          );
+          const customPreview = await getMonitoringHistory(
+            { ...customQuery, environment: "preview", previewId: previews[0]! },
+            customNow,
+          );
+          assert(
+            customProduction.series.every((row) => row.previewId === null),
+          );
+          assert(
+            customPreview.series.every((row) => row.previewId === previews[0]),
+          );
+          assert.equal(customProduction.endAt, customQuery.endAt);
+          assert.equal(customProduction.series.length, 2);
+          assert.equal(customPreview.series.length, 1);
+          assert.equal(
+            customPreview.series[0]?.points[0]?.metrics.cpuPercent?.max,
+            20,
+          );
+          await assert.rejects(
+            getMonitoringHistory(
+              {
+                ...customQuery,
+                environment: "production",
+                workspaceId: randomUUID(),
+              },
+              customNow,
+            ),
+          );
           assert.equal(production.series.length, 2);
           assert(production.series.every((row) => row.previewId === null));
           const preview = await getMonitoringHistory(

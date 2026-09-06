@@ -129,6 +129,8 @@ export const monitoringInstallSchema = monitoringSettingsSchema.extend({
   acknowledge: z.literal(true),
 });
 export const monitoringRangeSeconds = {
+  "15m": 900,
+  "30m": 1800,
   "1h": 3600,
   "6h": 21600,
   "24h": 86400,
@@ -139,11 +141,82 @@ export const monitoringRangeSeconds = {
 } as const;
 export const monitoringQuerySchema = z
   .object({
-    range: z.enum(["1h", "6h", "24h", "7d", "15d", "30d", "60d"]).default("1h"),
+    range: z
+      .enum([
+        "15m",
+        "30m",
+        "1h",
+        "6h",
+        "24h",
+        "7d",
+        "15d",
+        "30d",
+        "60d",
+        "custom",
+      ])
+      .default("1h"),
+    startAt: z
+      .string()
+      .datetime({ offset: true })
+      .optional()
+      .describe(
+        "Inclusive ISO 8601 start with time-zone offset; required for range=custom and within server retention.",
+      ),
+    endAt: z
+      .string()
+      .datetime({ offset: true })
+      .optional()
+      .describe(
+        "Exclusive ISO 8601 end with time-zone offset; required for range=custom, at least 30 seconds after start and not in the future.",
+      ),
     environment: z.enum(["production", "preview"]).default("production"),
     previewId: z.string().uuid().optional(),
   })
   .strict();
+export type MonitoringQuery = z.infer<typeof monitoringQuerySchema>;
+
+/** Resolve a bounded query window once for samples and events alike. */
+export function resolveMonitoringWindow(
+  input: Pick<MonitoringQuery, "range" | "startAt" | "endAt">,
+  retentionDays: number,
+  now = new Date(),
+) {
+  const current = now.getTime();
+  let start: number, end: number;
+  if (input.range === "custom") {
+    start = Date.parse(input.startAt ?? "");
+    end = Date.parse(input.endAt ?? "");
+    if (!Number.isFinite(start) || !Number.isFinite(end))
+      throw new Error("Choose both a valid start and end date/time.");
+    if (end - start < 30_000)
+      throw new Error(
+        "Choose a range of at least 30 seconds, with the end after the start.",
+      );
+    if (end > current)
+      throw new Error("The end date/time cannot be in the future.");
+    if (start < current - retentionDays * 86400_000)
+      throw new Error(
+        `Choose a start within the retained ${retentionDays} days.`,
+      );
+  } else {
+    if (input.startAt || input.endAt)
+      throw new Error("Start and end date/time require a custom range.");
+    end = current;
+    start =
+      current -
+      Math.min(monitoringRangeSeconds[input.range], retentionDays * 86400) *
+        1000;
+  }
+  const seconds = (end - start) / 1000;
+  const step = Math.max(
+    seconds > 86400 || start < current - 86400_000 ? 60 : 30,
+    Math.ceil(seconds / 360 / 30) * 30,
+  );
+  if (input.range !== "custom")
+    end = Math.floor(end / step / 1000) * step * 1000 + step * 1000;
+  return { start: new Date(start), end: new Date(end), step };
+}
+
 export function aggregateMonitoringValues(
   values: MonitoringValues,
 ): MonitoringAggregates {

@@ -1,23 +1,18 @@
 import { and, eq, isNull, sql } from "drizzle-orm";
 import {
   type MonitoringAggregates,
+  type MonitoringQuery,
   type MonitoringSeries,
-  monitoringRangeSeconds,
+  resolveMonitoringWindow,
 } from "@workspace/towbar-core";
 import { apps } from "@workspace/towbar-database/schema";
-import { notFound } from "../../http/errors.js";
+import { badRequest, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { getServer } from "../servers/service.js";
 import { getMonitoringAgent } from "./lifecycle.js";
 
-type MetricsQuery = {
-  range: keyof typeof monitoringRangeSeconds;
-  environment: "production" | "preview";
-  previewId?: string;
-};
-
 export async function getMonitoringHistory(
-  input: MetricsQuery & {
+  input: MonitoringQuery & {
     workspaceId: string;
     serverId?: string;
     deployableId?: string;
@@ -49,25 +44,15 @@ export async function getMonitoringHistory(
   if (!serverId) throw notFound("Server");
   await getServer(serverId, input.workspaceId);
   const agent = await getMonitoringAgent(serverId, input.workspaceId);
-  const seconds = Math.min(
-    monitoringRangeSeconds[input.range],
-    agent.retentionDays * 86400,
-  );
-  // At most 360 points per instance; preserve separate instances so peaks are never
-  // incorrectly summed across rolling releases or independent preview environments.
-  const step = Math.max(
-    seconds > 86400 ? 60 : 30,
-    Math.ceil(seconds / 360 / 30) * 30,
-  );
-  const end = new Date(
-    Math.floor(now.getTime() / step / 1000) * step * 1000 + step * 1000,
-  );
-  const start = new Date(
-    Math.max(
-      now.getTime() - seconds * 1000,
-      now.getTime() - agent.retentionDays * 86400_000,
-    ),
-  );
+  let window;
+  try {
+    window = resolveMonitoringWindow(input, agent.retentionDays, now);
+  } catch (error) {
+    throw badRequest(
+      error instanceof Error ? error.message : "Invalid time range",
+    );
+  }
+  const { start, end, step } = window;
   const scope = input.deployableId
     ? sql`deployable_id=${input.deployableId}::uuid and ${input.environment === "production" ? sql`preview_id is null` : input.previewId ? sql`preview_id=${input.previewId}::uuid` : sql`preview_id is not null`}`
     : sql`entity_id='host'`;
