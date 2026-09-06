@@ -373,7 +373,7 @@ export async function getServerCheckExecutionContext(checkId: string) {
               containerPort,
               hostPort: resource?.access?.sshTunnel.hostPort ?? null,
               network: deployable.config.container.network ?? null,
-              networkAlias: resource?.container.networkAlias ?? null,
+              networkAlias: deployable.config.container.networkAlias ?? null,
             }
           : null,
         deployableId: deployable.deployableId,

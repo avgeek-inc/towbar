@@ -19,6 +19,12 @@ network on first deployment, then attaches the candidate and any declared
 deployment hooks to it. Concurrent first deployments converge on the same
 network without requiring an operator bootstrap step.
 
+An explicit App `container.networkAlias` uses stop/start replacement to keep one
+live DNS owner. Failed deployment restarts the previous container. Preview Apps
+and the self-managed Towbar worker cannot use this mode. Run the Docker
+integration test with `TOWBAR_DOCKER_TESTS=true pnpm --filter
+@workspace/towbar-deployer test`.
+
 Pre- and post-deploy hooks execute in disposable containers from the selected
 image, with the app's network and resource limits, an explicit hook-only secret
 bundle, a timeout, and redacted output. Pre-deploy failure aborts promotion;
