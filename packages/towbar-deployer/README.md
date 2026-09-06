@@ -19,6 +19,12 @@ network on first deployment, then attaches the candidate and any declared
 deployment hooks to it. Concurrent first deployments converge on the same
 network without requiring an operator bootstrap step.
 
+An explicit App `container.networkAlias` uses stop/start replacement to keep one
+live DNS owner. Failed deployment restarts the previous container. Preview Apps
+and the self-managed Towbar worker cannot use this mode. Run the Docker
+integration test with `TOWBAR_DOCKER_TESTS=true pnpm --filter
+@workspace/towbar-deployer test`.
+
 Pre- and post-deploy hooks execute in disposable containers from the selected
 image, with the app's network and resource limits, an explicit hook-only secret
 bundle, a timeout, and redacted output. Pre-deploy failure aborts promotion;
@@ -53,6 +59,8 @@ When `access.sshTunnel.hostPort` is present, Towbar publishes the Resource port
 as `127.0.0.1:hostPort` only. Before stopping the current container it rejects
 alias conflicts, Docker port conflicts, and non-Docker loopback listeners.
 Loopback publication requires Docker Engine 28 or newer.
+
+Stable App and Resource aliases share a bounded host lock while checking ownership and attaching a candidate. Stopped obsolete containers are reclaimed only when both their Source and deployable labels match; current releases, images, volumes, and other workloads are preserved.
 
 Runtime operations target only the current retained container and re-check its
 Towbar ownership labels. PostgreSQL backups use validated `pg_dump` archives;

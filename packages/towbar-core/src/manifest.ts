@@ -330,6 +330,7 @@ const appSchema = z
     container: z
       .object({
         network: z.string().trim().regex(dockerNetworkPattern).optional(),
+        networkAlias: z.string().trim().regex(appIdPattern).optional(),
         port: z.number().int().min(1).max(65_535),
         resources: containerResourcesSchema.optional(),
       })
@@ -400,6 +401,21 @@ const appSchema = z
       });
     }
 
+    if (app.container.networkAlias && !app.container.network) {
+      context.addIssue({
+        code: "custom",
+        message: "A network alias requires a Docker network",
+        path: ["container", "networkAlias"],
+      });
+    }
+    if (app.container.networkAlias && app.preview) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Apps with a stable network alias cannot enable Preview deployments",
+        path: ["preview"],
+      });
+    }
     if (app.tls && !app.domains) {
       context.addIssue({
         code: "custom",
@@ -627,6 +643,22 @@ export const deploymentManifestSchema = z
     const claimedNetworkAliases = new Map<string, string>();
     const claimedSshTunnelPorts = new Map<string, string>();
 
+    (manifest.apps ?? []).forEach((app, appIndex) => {
+      const { network, networkAlias } = app.container;
+      if (!network || !networkAlias) return;
+      const key = `${canonicalIp(app.server)}\u0000${network}\u0000${networkAlias}`;
+      const owner = claimedNetworkAliases.get(key);
+      if (owner) {
+        context.addIssue({
+          code: "custom",
+          message: `Network alias '${networkAlias}' is already claimed by deployable '${owner}' on this server and network`,
+          path: ["apps", appIndex, "container", "networkAlias"],
+        });
+      } else {
+        claimedNetworkAliases.set(key, app.id);
+      }
+    });
+
     (manifest.resources ?? []).forEach((resource, resourceIndex) => {
       const serverIp = canonicalIp(resource.server);
       const network = resource.container?.network;
@@ -637,7 +669,7 @@ export const deploymentManifestSchema = z
         if (owner) {
           context.addIssue({
             code: "custom",
-            message: `Network alias '${alias}' is already claimed by resource '${owner}' on this server and network`,
+            message: `Network alias '${alias}' is already claimed by deployable '${owner}' on this server and network`,
             path: ["resources", resourceIndex, "container", "networkAlias"],
           });
         } else {
@@ -750,6 +782,7 @@ export type NormalizedApp = {
   vulnerabilityScanning: boolean;
   container: {
     network?: string;
+    networkAlias?: string;
     port: number;
     resources?: { cpus: number; memory: string };
   };
@@ -934,6 +967,9 @@ export function normalizeDeploymentManifest(
           container: {
             ...(app.container.network
               ? { network: app.container.network.trim() }
+              : {}),
+            ...(app.container.networkAlias
+              ? { networkAlias: app.container.networkAlias.trim() }
               : {}),
             port: app.container.port,
             ...(app.container.resources

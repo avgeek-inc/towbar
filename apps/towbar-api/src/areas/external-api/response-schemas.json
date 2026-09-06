@@ -922,6 +922,7 @@
       "type": "object",
       "properties": {
         "network": { "type": "string" },
+        "networkAlias": { "type": "string" },
         "port": { "type": "number" },
         "resources": { "$ref": "#/components/schemas/Response_43" }
       },

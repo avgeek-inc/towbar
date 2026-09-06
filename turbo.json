@@ -53,10 +53,23 @@
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
-    "lint": { "dependsOn": ["^lint"] },
-    "typecheck": { "dependsOn": ["^build"] },
-    "test": { "dependsOn": ["^build"] },
-    "dev": { "cache": false, "persistent": true },
-    "dev:worker": { "cache": false, "persistent": true }
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "env": ["TOWBAR_DOCKER_TESTS"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "dev:worker": {
+      "cache": false,
+      "persistent": true
+    }
   }
 }

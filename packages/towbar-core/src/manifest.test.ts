@@ -523,3 +523,66 @@ function schemaObject(value: unknown, ...path: string[]) {
   assert.ok(current && typeof current === "object" && !Array.isArray(current));
   return current as Record<string, unknown>;
 }
+
+void test("normalizes an explicit App alias and rejects unsafe sharing", () => {
+  const base = `version: 1
+apps:
+  - id: api
+    name: API
+    server: 203.0.113.10
+    dockerfile: Dockerfile
+    container:
+      network: private-app
+      networkAlias: api
+      port: 4013
+`;
+  assert.equal(
+    parseDeploymentManifest(base).manifest.apps[0]?.container.networkAlias,
+    "api",
+  );
+  assert.throws(
+    () =>
+      parseDeploymentManifest(base.replace("      network: private-app\n", "")),
+    (error: unknown) =>
+      error instanceof ManifestValidationError &&
+      error.issues.some((issue) =>
+        /requires a Docker network/u.test(issue.message),
+      ),
+  );
+  assert.throws(
+    () =>
+      parseDeploymentManifest(
+        base.replace("networkAlias: api", "networkAlias: --invalid"),
+      ),
+    ManifestValidationError,
+  );
+  assert.throws(
+    () =>
+      parseDeploymentManifest(
+        `${base}    domains:\n      primary: api.example.com\n    tls:\n      mode: direct\n    preview:\n      enabled: true\n      domain: preview.example.com\n`,
+      ),
+    (error: unknown) =>
+      error instanceof ManifestValidationError &&
+      error.issues.some((issue) =>
+        /cannot enable Preview/u.test(issue.message),
+      ),
+  );
+  assert.throws(
+    () =>
+      parseDeploymentManifest(
+        `${base}resources:\n  - id: database\n    name: Database\n    server: 203.0.113.10\n    type: postgres\n    container:\n      network: private-app\n      networkAlias: api\n`,
+      ),
+    (error: unknown) =>
+      error instanceof ManifestValidationError &&
+      error.issues.some((issue) => /already claimed/u.test(issue.message)),
+  );
+  assert.throws(
+    () =>
+      parseDeploymentManifest(
+        `${base}  - id: other\n    name: Other API\n    server: 203.0.113.10\n    dockerfile: Dockerfile\n    container:\n      network: private-app\n      networkAlias: api\n      port: 4013\n`,
+      ),
+    (error: unknown) =>
+      error instanceof ManifestValidationError &&
+      error.issues.some((issue) => /already claimed/u.test(issue.message)),
+  );
+});
