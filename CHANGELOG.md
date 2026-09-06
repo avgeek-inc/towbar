@@ -5,6 +5,40 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-09-06
+
+### Added
+
+- Scout Agent: opt-in server, app, and resource monitoring with observations every
+  30 seconds. Install, update, and uninstall it from Server → Settings → Scout Agent.
+  Linux AMD64 and ARM64 binaries are bundled with the Towbar worker and run as
+  separate collector and sender systemd services with bounded resource use.
+- Dedicated Scout Agent tabs with CPU, memory, disk, network, and workload
+  performance history; relative time ranges, average/peak views, instance and
+  preview filters, and deployment/restart markers with time-zone-aware tooltips.
+- Deployment and restart events scoped to the selected duration, shown 10 per page
+  and capped at the latest 200 events. Missing measurements use dotted connectors.
+- Per-server history retention of 7, 15, 30, or 60 days, defaulting to 15 days,
+  with backend aggregation and expiry. Online status requires a received report.
+- API and MCP support for Scout Agent configuration and performance history,
+  plus a dedicated Mintlify guide and the Scout Agent mascot in setup and empty states.
+
+### Changed
+
+- Chart filters retain previous data while updates load, with deferred rendering
+  for off-screen charts and stable layouts during duration changes.
+- Server Host Keys now lives under Settings. Removing an unused server uninstalls
+  Scout Agent before forgetting SSH credentials, with retries for interrupted operations.
+- Simplified the README with a feature table, Scout Agent introduction, and links
+  to Mintlify as the source for installation and configuration instructions.
+
+### Upgrade notes
+
+- Includes database migrations 0042 and 0043 for monitoring storage and durable
+  agent operations. Deploy the matching API and worker builds before installing
+  Scout Agent on servers. Existing servers remain opted out until installation
+  is acknowledged. Uninstalling retains collected history until its expiry.
+
 ## [1.5.4] - 2026-09-06
 
 ### Fixed
@@ -350,7 +384,10 @@ before resuming deployments:
 - Source-scoped AWS Secrets Manager integration and environment editors.
 - A same-domain owner setup, authentication, and operations dashboard.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.5.2...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/avgeek-inc/towbar/compare/v1.5.4...v1.6.0
+[1.5.4]: https://github.com/avgeek-inc/towbar/compare/v1.5.3...v1.5.4
+[1.5.3]: https://github.com/avgeek-inc/towbar/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/avgeek-inc/towbar/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/avgeek-inc/towbar/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/avgeek-inc/towbar/compare/v1.4.0...v1.5.0
