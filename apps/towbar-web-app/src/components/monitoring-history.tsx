@@ -6,10 +6,7 @@ import type { MonitoringHistory as History } from "@workspace/towbar-web-client"
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { ListBox, Select } from "@workspace/web-design-system/forms/select";
-import {
-  Button,
-  ButtonLink,
-} from "@workspace/web-design-system/buttons/button";
+import { ButtonLink } from "@workspace/web-design-system/buttons/button";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { ScoutMascot } from "./scout-mascot";
@@ -19,7 +16,6 @@ import { type ChartMetric } from "./monitoring-metric-chart";
 import { MonitoringChartSlot } from "./monitoring-chart-slot";
 import { MonitoringStatus } from "./monitoring-agent-settings";
 
-import { ScoutIcon } from "./scout-icons";
 import { MonitoringRangePicker } from "./monitoring-range-picker";
 import {
   monitoringRanges,
@@ -62,7 +58,7 @@ export function MonitoringHistory({
   serverId?: string;
   workload?: boolean;
 }) {
-  const [range, setRange] = useState("1h");
+  const [range, setRange] = useState("15m");
   const [custom, setCustom] = useState<CustomMonitoringRange>();
   const [pickerOpen, setPickerOpen] = useState(false);
   const applyCustom = useCallback(
@@ -178,35 +174,19 @@ export function MonitoringHistory({
               setRange(value);
               setCustom(undefined);
             }}
-            options={monitoringRanges.filter(
-              (row) => row.days <= agent.retentionDays,
-            )}
+            onReselect={(value) => {
+              if (value === "custom") setPickerOpen(true);
+            }}
+            options={monitoringRanges
+              .filter((row) => row.days <= agent.retentionDays)
+              .map((row) =>
+                row.id === "custom" && custom
+                  ? { ...row, label: "Edit range" }
+                  : row,
+              )}
           />
         </div>
       </div>
-      {custom ? (
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <Button variant="secondary" onPress={() => setPickerOpen(true)}>
-            <ScoutIcon name="date" />
-            Edit range
-          </Button>
-          <span className="text-muted">
-            {new Intl.DateTimeFormat(undefined, {
-              dateStyle: "medium",
-              timeStyle: "long",
-            }).format(new Date(custom.startAt))}{" "}
-            →{" "}
-            {new Intl.DateTimeFormat(undefined, {
-              dateStyle: "medium",
-              timeStyle: "long",
-            }).format(new Date(custom.endAt))}
-          </span>
-          <Button variant="secondary" onPress={() => setCustom(undefined)}>
-            <ScoutIcon name="refresh" />
-            Reset zoom
-          </Button>
-        </div>
-      ) : null}
       {pickerOpen ? (
         <MonitoringRangePicker
           initial={custom ?? { startAt: history.startAt, endAt: history.endAt }}
@@ -214,11 +194,6 @@ export function MonitoringHistory({
           onApply={applyCustom}
           onClose={() => setPickerOpen(false)}
         />
-      ) : null}
-      {hasPoints ? (
-        <p className="text-xs text-muted">
-          Drag across a chart to zoom, or choose Custom range.
-        </p>
       ) : null}
       {query.error ? <QueryError message={query.error} /> : null}
       {agent.desiredState !== "enabled" && hasPoints ? (
@@ -306,11 +281,13 @@ function HistorySelect({
   label,
   value,
   onChange,
+  onReselect,
   options,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onReselect?: (value: string) => void;
   options: Array<{ id: string; label: string }>;
 }) {
   return (
@@ -334,6 +311,9 @@ function HistorySelect({
               key={option.id}
               id={option.id}
               textValue={option.label}
+              onPress={() => {
+                if (option.id === value) onReselect?.(value);
+              }}
             >
               <span className="flex min-w-0 items-center gap-2">
                 <ScoutOptionIcon value={option.id} label={label} />
