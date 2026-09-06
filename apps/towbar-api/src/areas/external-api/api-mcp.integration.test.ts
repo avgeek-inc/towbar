@@ -1,4 +1,8 @@
 import {
+  assertPublicOperationNames,
+  expectedBrowserOnlyRoutes,
+} from "./browser-only-routes.test-helper.js";
+import {
   assertScoutApiAccess,
   connectTestMcpClient,
 } from "./scout-access-test-helper.js";
@@ -139,18 +143,13 @@ void test(
               .filter((r) => operationDescription(r.handler)?.browserOnly)
               .map((r) => `${r.method} ${r.path}`),
           );
-          assert.equal(browserOnly.size, 21);
+          assert.deepEqual(browserOnly, expectedBrowserOnlyRoutes);
           for (const route of browserOnly) routes.delete(route);
           assert.deepEqual(
             new Set(operations.map((op) => `${op.method} ${op.path}`)),
             routes,
           );
-          assert.equal(
-            new Set(operations.map((op) => op.name)).size,
-            operations.length,
-          );
-          assert.equal(operations.length, 120);
-          assert(operations.every((op) => op.name.length <= 64));
+          assertPublicOperationNames(operations);
           assert.doesNotThrow(() =>
             JSON.stringify(createOpenApiDocument("https://api.test/v1/api")),
           );
@@ -502,7 +501,6 @@ void test(
             });
             assert.equal(foreign.isError, true);
             assert(!JSON.stringify(foreign).includes("192.0.2.11"));
-
             const invalid = await client.callTool({
               name: "towbar_server_inspect",
               arguments: { serverId: "../../internal" },

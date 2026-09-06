@@ -31,6 +31,16 @@ export async function collectScoutHttpChecks(
         eq(scoutAlertRules.enabled, true),
         isNull(scoutAlertRules.deletedAt),
         sql`${scoutAlertRules.condition}->>'metric'='httpAvailability'`,
+        // Skip already-claimed slots before limiting the batch. Otherwise old
+        // five-minute checks can starve newer thirty-second checks.
+        sql`not exists (
+          select 1 from towbar_scout_http_checks c
+          where c.rule_id=${scoutAlertRules.id} and c.scheduled_at=to_timestamp(
+            floor(extract(epoch from ${now.toISOString()}::timestamptz) /
+              nullif((${scoutAlertRules.condition}->'http'->>'intervalSeconds')::integer,0)) *
+              (${scoutAlertRules.condition}->'http'->>'intervalSeconds')::integer
+          )
+        )`,
       ),
     )
     .orderBy(

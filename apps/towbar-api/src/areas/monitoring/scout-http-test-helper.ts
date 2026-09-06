@@ -1,3 +1,4 @@
+import { assertDueHttpChecksAreNotStarved } from "./scout-http-scheduling-test-helper.js";
 import assert from "node:assert/strict";
 import { and, eq, isNull } from "drizzle-orm";
 import { scoutAlertRuleSchema } from "@workspace/towbar-core";
@@ -127,4 +128,5 @@ export async function assertScoutHttpChecks(
     "healthy",
     "Muting must not discard valid HTTP history",
   );
+  await assertDueHttpChecksAreNotStarved(scope.workspaceId);
 }

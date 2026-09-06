@@ -58,6 +58,8 @@ export async function assertScoutDestinations(
   await sweep(now);
   const sent = await db
     .select({
+      id: notificationDeliveries.id,
+      cycle: notificationDeliveries.cycle,
       destinationId: notificationDeliveries.destinationId,
       payload: notificationEvents.payload,
     })
@@ -93,6 +95,28 @@ export async function assertScoutDestinations(
         event.type === "scout.firing" &&
         event.payload.details.ruleId === rule.id,
     );
+  // Removing one destination must not reopen notification eligibility while
+  // another destination still has the original firing delivery queued.
+  const removed = sent.find(
+    (row) =>
+      row.destinationId === extraId && row.payload.details.ruleId === rule.id,
+  )!;
+  await db
+    .update(notificationDestinations)
+    .set({ deletedAt: new Date() })
+    .where(eq(notificationDestinations.id, extraId));
+  const { executeNotificationDeliveryAttempt } =
+    await import("../notifications/delivery-service.js");
+  assert.equal(
+    (
+      await executeNotificationDeliveryAttempt({
+        deliveryId: removed.id,
+        cycle: removed.cycle,
+        attempt: 1,
+      })
+    ).outcome,
+    "terminal",
+  );
   await samples(new Date(now.getTime() + 30_000), 99, 1);
   await sweep(new Date(now.getTime() + 30_000));
   assert.equal(

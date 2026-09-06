@@ -235,7 +235,7 @@ async function queueScoutNotification(
         .limit(1)
     : [];
   const target = context.workload
-    ? `${context.workload.kind === "app" ? "apps" : "resources"}/${context.workload.id}`
+    ? `sources/${context.workload.sourceId}/${context.workload.kind === "app" ? "apps" : "resources"}/${context.workload.id}`
     : `servers/${rule.serverId}`;
   const sequence = incident.notificationSequence + 1;
   const status = type === "scout.recovered" ? "Recovered" : "Alert";

@@ -566,8 +566,9 @@ async function suppressScoutDelivery(
         updatedAt: now,
       })
       .where(eq(notificationDeliveries.id, delivery.deliveryId));
-    // If the first alert never left the outbox, unmuting may notify an incident
-    // that is still active. Already delivered alerts remain deduplicated.
+    // Re-arm only after every firing delivery was suppressed. A pending,
+    // in-flight, retrying, or delivered sibling must not be duplicated when
+    // just one destination is removed. Provider failures keep their retry policy.
     if (scout && !scout.incident.resolvedAt)
       await transaction
         .update(scoutAlertIncidents)
@@ -577,7 +578,9 @@ async function suppressScoutDelivery(
             eq(scoutAlertIncidents.id, scout.incident.id),
             sql`not exists (
           select 1 from towbar_notification_deliveries d join towbar_notification_events e on e.id=d.event_id
-          where e.payload->'details'->>'incidentId'=${scout.incident.id} and d.state='succeeded'
+          where e.payload->'details'->>'incidentId'=${scout.incident.id}
+            and e.type in ('scout.firing','scout.reminder')
+            and (d.state <> 'failed' or d.last_error_code is distinct from 'SCOUT_NOTIFICATION_SUPPRESSED')
         )`,
           ),
         );
