@@ -1,3 +1,8 @@
+import {
+  dockerNetworkLockScript,
+  validateNetworkAliasScript,
+} from "./network-alias-scripts.js";
+
 export const startRemoteScript = String.raw`
 set -euo pipefail
 remote_dir="$1"
@@ -9,27 +14,10 @@ resource_cpus="$6"
 resource_memory="$7"
 network_alias="${"$"}{8:-}"
 previous_container="${"$"}{9:-}"
+${dockerNetworkLockScript}
 docker rm -f "$container_name" >/dev/null 2>&1 || true
+${validateNetworkAliasScript}
 if test -n "$network_alias"; then
-  test -n "$network_name"
-  python3 - "$network_name" "$network_alias" "$previous_container" <<'PYTHON'
-import json
-import subprocess
-import sys
-
-network_name, network_alias, previous_container = sys.argv[1:]
-containers = subprocess.run(["docker", "ps", "-aq"], check=True, capture_output=True, text=True).stdout.splitlines()
-for container_id in containers:
-    result = subprocess.run(["docker", "container", "inspect", container_id], check=False, capture_output=True, text=True)
-    if result.returncode != 0:
-        continue
-    container = json.loads(result.stdout)[0]
-    name = container.get("Name", "").lstrip("/")
-    network = (container.get("NetworkSettings", {}).get("Networks") or {}).get(network_name) or {}
-    aliases = network.get("Aliases") or []
-    if network_alias in aliases and name != previous_container:
-        raise SystemExit(f"Docker network alias '{network_alias}' is already used by container '{name}'")
-PYTHON
   # An alias has one live owner. Stop the prior release before attaching the
   # candidate; rollback restarts it if startup or health validation fails.
   if test -n "$previous_container" && docker container inspect "$previous_container" >/dev/null 2>&1; then

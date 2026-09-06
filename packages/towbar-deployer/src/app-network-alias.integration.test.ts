@@ -20,7 +20,7 @@ void test(
   async () => {
     const id = `towbar-alias-${process.pid}-${Date.now()}`;
     const directory = mkdtempSync(path.join(tmpdir(), "towbar-alias-"));
-    const names = [`${id}-old`, `${id}-new`, `${id}-collision`];
+    const names = [`${id}-old`, `${id}-new`, `${id}-collision`, `${id}-third`];
     const docker = (args: string[]) =>
       execFileSync("docker", args, {
         encoding: "utf8",
@@ -38,6 +38,8 @@ void test(
     writeFileSync(
       startScript,
       startRemoteScript
+        .replaceAll("/var/lib/towbar/locks", path.join(directory, "locks"))
+        .replaceAll("sudo install", "install")
         .replaceAll("/usr/bin/docker", dockerPath)
         .replaceAll("/usr/bin/python3", pythonPath),
     );
@@ -149,6 +151,12 @@ void test(
       );
       assert.equal(running(names[0]!), true);
       await expectResponse("old");
+      // Simulate a successful promotion whose old-container cleanup was deferred.
+      start(names[1]!, names[0]!, "new");
+      start(names[3]!, names[1]!, "third");
+      assert.throws(() => docker(["inspect", names[0]!]));
+      assert.equal(running(names[1]!), false);
+      await expectResponse("third");
     } finally {
       for (const name of names) {
         try {

@@ -1,3 +1,8 @@
+import {
+  dockerNetworkLockScript,
+  validateNetworkAliasScript,
+} from "./network-alias-scripts.js";
+
 export { startRemoteScript } from "./app-runtime-scripts.js";
 
 export const prepareRemoteScript = String.raw`
@@ -58,7 +63,9 @@ previous_container="${"$"}{10}"
 deployable_id="${"$"}{11}"
 volume_count="${"$"}{12}"
 shift 12
+${dockerNetworkLockScript}
 docker rm -f "$container_name" >/dev/null 2>&1 || true
+${validateNetworkAliasScript}
 python3 - "$network_name" "$network_alias" "$host_port" "$previous_container" <<'PYTHON'
 import json
 import re
@@ -105,15 +112,6 @@ for container_id in running:
     if not container:
         continue
     name = container.get("Name", "").lstrip("/")
-    if network_name and network_alias:
-        network = (container.get("NetworkSettings", {}).get("Networks") or {}).get(
-            network_name
-        )
-        aliases = (network or {}).get("Aliases") or []
-        if network_alias in aliases and name != previous_container:
-            raise SystemExit(
-                f"Docker network alias '{network_alias}' is already used by container '{name}'"
-            )
     if host_port:
         bindings = container.get("NetworkSettings", {}).get("Ports") or {}
         for values in bindings.values():

@@ -60,6 +60,8 @@ as `127.0.0.1:hostPort` only. Before stopping the current container it rejects
 alias conflicts, Docker port conflicts, and non-Docker loopback listeners.
 Loopback publication requires Docker Engine 28 or newer.
 
+Stable App and Resource aliases share a bounded host lock while checking ownership and attaching a candidate. Stopped obsolete containers are reclaimed only when both their Source and deployable labels match; current releases, images, volumes, and other workloads are preserved.
+
 Runtime operations target only the current retained container and re-check its
 Towbar ownership labels. PostgreSQL backups use validated `pg_dump` archives;
 Redis backups use validated RDB snapshots. Towbar does not execute database
