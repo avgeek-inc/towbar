@@ -65,7 +65,9 @@ function MonitoringAgentForm({
         </Widget.Header>
         <Widget.Content className="grid gap-5">
           <div className="grid gap-2">
-            <p>Install a monitoring agent for advanced monitoring.</p>
+            <p className="font-medium">
+              Install a monitoring agent for advanced monitoring.
+            </p>
             <p className="max-w-3xl text-sm text-muted">
               See how this server and its apps and resources perform over time,
               with updates every 30 seconds.
