@@ -8,3 +8,4 @@ export * from "./server-coordinator.workflow.js";
 export * from "./source-coordinator.workflow.js";
 export * from "./vulnerability-scan.workflow.js";
 export * from "./monitoring-agent.workflow.js";
+export * from "./scout-alerts.workflow.js";

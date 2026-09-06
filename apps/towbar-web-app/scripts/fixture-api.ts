@@ -1,3 +1,4 @@
+import { createScoutFixture } from "./scout-fixture.ts";
 import {
   fixtureServerMonitoringSummary,
   fixtureMonitoringAgent,
@@ -842,6 +843,10 @@ const workflowStates: DeploymentState[] = [
 ];
 
 export function createFixtureApiServer() {
+  const scoutFixture = createScoutFixture(
+    servers.map((s) => s.id),
+    [...apps, ...resources],
+  );
   const monitoring = new Map(
     servers.map((server, index) => [
       server.id,
@@ -869,6 +874,7 @@ export function createFixtureApiServer() {
 
     const requestUrl = new URL(request.url ?? "/", "http://localhost");
     const path = requestUrl.pathname;
+    if (scoutFixture(request, response, requestUrl)) return;
     if (request.method === "GET" && path === "/v1/core/servers") {
       response.writeHead(200, { "content-type": "application/json" });
       response.end(

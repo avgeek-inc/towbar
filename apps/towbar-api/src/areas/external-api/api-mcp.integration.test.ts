@@ -1,3 +1,11 @@
+import {
+  assertPublicOperationNames,
+  expectedBrowserOnlyRoutes,
+} from "./browser-only-routes.test-helper.js";
+import {
+  assertScoutApiAccess,
+  connectTestMcpClient,
+} from "./scout-access-test-helper.js";
 import { hashOpaqueToken } from "@workspace/towbar-core/security";
 import assert from "node:assert/strict";
 import { createHmac, randomBytes, randomUUID } from "node:crypto";
@@ -13,8 +21,6 @@ import {
   workspaceMembers,
   workspaces,
 } from "@workspace/towbar-database/schema";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 const url = process.env.TOWBAR_TEST_DATABASE_URL;
 void test(
   "API and MCP enforce persistent key, permission, and rate boundaries",
@@ -116,21 +122,8 @@ void test(
         },
         ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
       });
-    async function connect(token: string) {
-      const client = new Client({
-        name: "towbar-integration-test",
-        version: "1",
-      });
-      const transport = new StreamableHTTPClientTransport(
-        new URL("http://localhost/v1/mcp"),
-        {
-          requestInit: { headers: { Authorization: `Bearer ${token}` } },
-          fetch: async (input, init) => app.fetch(new Request(input, init)),
-        },
-      );
-      await client.connect(transport);
-      return client;
-    }
+    const connect = (token: string) =>
+      connectTestMcpClient(token, (request) => app.fetch(request));
     t.beforeEach(async () => {
       await db
         .delete(authRateLimitBuckets)
@@ -150,18 +143,13 @@ void test(
               .filter((r) => operationDescription(r.handler)?.browserOnly)
               .map((r) => `${r.method} ${r.path}`),
           );
-          assert.equal(browserOnly.size, 16);
+          assert.deepEqual(browserOnly, expectedBrowserOnlyRoutes);
           for (const route of browserOnly) routes.delete(route);
           assert.deepEqual(
             new Set(operations.map((op) => `${op.method} ${op.path}`)),
             routes,
           );
-          assert.equal(
-            new Set(operations.map((op) => op.name)).size,
-            operations.length,
-          );
-          assert.equal(operations.length, 107);
-          assert(operations.every((op) => op.name.length <= 64));
+          assertPublicOperationNames(operations);
           assert.doesNotThrow(() =>
             JSON.stringify(createOpenApiDocument("https://api.test/v1/api")),
           );
@@ -462,6 +450,23 @@ void test(
         },
       );
       await t.test(
+        "Scout rules enforce owner writes, read-only keys, and tenant boundaries through REST and MCP",
+        () =>
+          assertScoutApiAccess({
+            request,
+            connect,
+            read,
+            write,
+            ownedServerId,
+            foreignServerId,
+            setRole: (role) =>
+              db
+                .update(workspaceMembers)
+                .set({ role })
+                .where(eq(workspaceMembers.userId, userId)),
+          }),
+      );
+      await t.test(
         "official MCP client initializes, lists tools, reads and mutates through shared handlers",
         async () => {
           const client = await connect(write.token);
@@ -496,7 +501,6 @@ void test(
             });
             assert.equal(foreign.isError, true);
             assert(!JSON.stringify(foreign).includes("192.0.2.11"));
-
             const invalid = await client.callTool({
               name: "towbar_server_inspect",
               arguments: { serverId: "../../internal" },

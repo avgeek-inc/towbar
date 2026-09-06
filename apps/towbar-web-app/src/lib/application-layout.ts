@@ -1,5 +1,8 @@
 import {
   ComputerIcon,
+  AlertCircleIcon,
+  Notification01Icon,
+  Analytics01Icon,
   SourceCodeIcon,
   DashboardCircleIcon,
   DashboardSquare01Icon,
@@ -25,6 +28,9 @@ import type {
 import { defineSidebarIcons } from "@workspace/web-design-system/layouts/sidebar-icons";
 
 const sidebarIcons = defineSidebarIcons({
+  performance: Analytics01Icon,
+  alerts: Notification01Icon,
+  incidents: AlertCircleIcon,
   apps: DashboardCircleIcon,
   deployments: Rocket01Icon,
   health: HealthIcon,
@@ -123,6 +129,33 @@ const sidebar = {
       ],
     },
     {
+      id: "monitoring",
+      label: "Monitoring",
+      items: [
+        {
+          kind: "link",
+          id: "performance",
+          label: "Performance",
+          href: "/monitoring/performance",
+          icon: sidebarIcons.performance,
+        },
+        {
+          kind: "link",
+          id: "alerts",
+          label: "Alerts",
+          href: "/monitoring/alerts",
+          icon: sidebarIcons.alerts,
+        },
+        {
+          kind: "link",
+          id: "incidents",
+          label: "Incidents",
+          href: "/monitoring/incidents",
+          icon: sidebarIcons.incidents,
+        },
+      ],
+    },
+    {
       id: "manage",
       label: "Manage",
       items: [
@@ -183,6 +216,7 @@ const sidebar = {
 export function createApplicationSidebar(
   onSignOut: () => void,
   counts: ApplicationSidebarCounts = {},
+  monitoring?: { activeIncidents: number; pressuredEntities: number },
 ) {
   return {
     ...sidebar,
@@ -205,7 +239,35 @@ export function createApplicationSidebar(
                   };
             }),
           }
-        : group,
+        : group.id === "monitoring"
+          ? {
+              ...group,
+              items: group.items.map((item) => {
+                const value =
+                  item.id === "incidents"
+                    ? monitoring?.activeIncidents
+                    : item.id === "performance"
+                      ? monitoring?.pressuredEntities
+                      : undefined;
+                return !value
+                  ? item
+                  : {
+                      ...item,
+                      badge: {
+                        value,
+                        tone:
+                          item.id === "incidents"
+                            ? ("danger" as const)
+                            : ("warning" as const),
+                        label:
+                          item.id === "incidents"
+                            ? `${value} active incident${value === 1 ? "" : "s"}`
+                            : `${value} entit${value === 1 ? "y" : "ies"} with resource usage above 80%`,
+                      },
+                    };
+              }),
+            }
+          : group,
     ),
     footerActions: [
       {

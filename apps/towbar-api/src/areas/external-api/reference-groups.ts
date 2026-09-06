@@ -10,11 +10,13 @@ export const referenceCategories = [
 ] as const;
 
 const categoryByRoot: Record<string, string> = {
+  monitoring: "Workspace",
   sources: "Sources",
   apps: "Apps",
   resources: "Resources",
   servers: "Servers",
   deployments: "Deployments",
+  workloads: "Deployments",
   previews: "Previews",
   settings: "Workspace",
   profile: "Workspace",
@@ -33,7 +35,10 @@ export const sectionOrder = [
   "Previews",
   "Inventory",
   "Capacity",
+  "Monitoring",
   "Scout Agent",
+  "Scout Alerts",
+  "Performance comparisons",
   "Checks & preparation",
   "Credentials & trust",
   "Maintenance",
@@ -51,6 +56,7 @@ export const sectionOrder = [
 
 // Match the most specific task before a broader collection or runtime route.
 const rules: Record<string, Array<[string, RegExp]>> = {
+  monitoring: [["Monitoring", /^\/monitoring\/(entities|alerts|incidents)$/]],
   sources: [
     ["Secrets", /\/secrets(?:\/|$)/],
     ["Auto-deploy", /\/auto-deploy-control$/],
@@ -83,7 +89,14 @@ const rules: Record<string, Array<[string, RegExp]>> = {
     ["Runtime & logs", /\/(operations|actions)(?:\/|$)/],
     ["Overview", /^\/resources(?:\/[^/]+)?$/],
   ],
+  workloads: [
+    [
+      "Performance comparisons",
+      /\/(comparison-deployments|deployment-comparison)$/,
+    ],
+  ],
   servers: [
+    ["Scout Alerts", /\/scout-alerts(?:\/|$)/],
     ["Scout Agent", /\/(monitoring|metrics)(?:\/|$)/],
     ["Credentials & trust", /\/(credentials|host-keys)(?:\/|$)/],
     [

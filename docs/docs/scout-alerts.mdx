@@ -1,0 +1,126 @@
+---
+title: Scout Alerts
+description: Configure metric alerts, public HTTP checks, maintenance mutes, and Slack or email notifications in Towbar.
+---
+
+Scout Alerts turns performance measurements into incidents you can act on. Open **Server → Scout Agent → Alerts** to create rules and inspect active or resolved incidents. Each server, app, or resource page shows only its own rules and incidents in **Scout Agent → Alerts**. New rules automatically monitor the entity whose page you are viewing.
+
+No rules are enabled automatically. The dotted 80% line in performance charts is a visual reference, not a notification threshold.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/guides/scout-alerts-light.png"
+      alt="Scout alert rules and incidents"
+      width="1160"
+      height="800"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/guides/scout-alerts-dark.png"
+      alt="Scout alert rules and incidents"
+      width="1160"
+      height="800"
+      loading="lazy"
+    />
+  </div>
+</div>
+
+## Create a rule
+
+1. Choose **Create rule**, enter a rule name, then choose a metric.
+2. The current server, app, or resource is selected automatically. Workload rules select **Production** or **Previews**; preview rules consider the selected workload's preview instances together.
+3. Set the threshold and direction. **At least** and **At most** include the threshold itself.
+4. Choose whether to send a recovery notification, then save. All destinations added under the server’s **Notifications** tab receive alerts automatically.
+
+A server without notification destinations still creates incidents in Towbar. Adding a destination does not send an immediate test; a firing incident becomes eligible on the next evaluation. Only workspace owners can create, change, delete, or mute rules. Members can inspect them.
+
+| Example rule            | Trigger                              | Recovery                            |
+| ----------------------- | ------------------------------------ | ----------------------------------- |
+| Disk nearly full        | Root disk at least 90%               | Disk falls below 90%                |
+| High memory usage       | Memory at least 90%                  | Memory falls below 90%              |
+| High CPU usage          | CPU at least 90%                     | CPU falls below 90%                 |
+| Container restart loop  | At least 3 restarts within 5 minutes | Fewer than 3 restarts in the window |
+| Scout stopped reporting | No report collected for 3 minutes    | Reports resume                      |
+
+The examples above are starting points for your own thresholds. Configure restart counting windows from 1 to 60 minutes. Alerts fire on the first fresh qualifying reading, with no additional waiting period. An incident recovers on the first fresh measurement that no longer meets the trigger condition. Each incident sends one firing notification, with no repeats while active. Each server, app, or resource supports up to 10 alert rules, including disabled rules. Delete a rule to free a slot. Production and preview rules share the same entity limit. A server supports up to 100 rules across all its entities, including at most 10 public HTTP checks.
+
+## Workspace monitoring
+
+The **Monitoring** sidebar section brings your workspace together:
+
+- **Performance** lets you find a server, app, or resource by name or server IP. Search inside the entity dropdown and use the type filter to narrow the list. Switching to a different type selects its first entity automatically. Select an entity to use the same metrics, time ranges, average/peak controls, environment and container filters, and event history as its entity page. Scout installation stays on the server settings page.
+- **Alerts** lists configured rules across the workspace, with type and searchable entity filters. This page is read-only; **View alert** opens the entity’s **Scout Agent → Alerts** page to manage the rule.
+- **Incidents** lists active and resolved incidents across the workspace, with pagination and a status filter. **View Incident** opens the details drawer on this page.
+
+The sidebar shows active incidents in a red count. An orange count beside **Performance** shows servers, apps, and resources with fresh CPU, memory, or disk usage above 80%, even without configured alerts. Each entity counts once across its metrics and containers. Inactive agents, stale readings, and removed entities are excluded. Both counts refresh every 30 seconds and disappear at zero.
+
+## Inspect an incident
+
+Select **View Incident** to open its details in a drawer without leaving the alert list. The **Overview** tab shows the original trigger condition, entity, status, severity, start and end times, latest or final reading, and when a notification was last queued. Dates include relative times.
+
+The **Monitoring** tab shows the relevant graph. The **Notifications** tab lists the incident’s notification deliveries, including destination, alert or recovery event, delivery status, attempt count, and queued and sent times. Delivery history is paginated. Queued or retrying notifications are distinct from successfully sent notifications; failures show an error code.
+
+The monitoring chart covers the incident start through now, including after recovery, and refreshes every 30 seconds while open. It shows the relevant metric, the rule’s threshold, and a recovery or closure marker. Tooltip timestamps include the time zone. Longer periods use at most 361 points, preserving the highest reading for upper thresholds or the lowest for lower thresholds. Dotted bridges mark gaps between measurements; they are not measured values.
+
+History follows the server’s retention setting. Restart windows use individual counter measurements available for the last 24 hours; report-age history is estimated from retained report timestamps. The drawer explains when older measurements or an older incident’s original configuration are unavailable.
+
+## Measurements and incident states
+
+Host and workload gauges use the reported metric units. The editor presents bytes as GiB and throughput as MiB/s; REST thresholds use bytes and bytes per second. For multiple instances, a gauge rule evaluates the worst instance reading rather than adding utilization percentages. Restart rules count increments within each container identity, not a new container's initial counter or a counter reset.
+
+**Healthy** means the latest evaluation does not meet the trigger condition, or an active incident has cleared. **Alerting** means the condition is active. **No recent data** cannot prove recovery: missing measurements are not treated as zero. **Scout inactive** means collection is intentionally disabled or the workload is no longer assigned to the server.
+
+Metric rules require Scout Agent to be enabled. Missing-report rules include an installation grace period and do not alert on intentional uninstall. Public HTTP checks are performed by the control plane and do not require an installed agent.
+
+Deleting or disabling a rule, changing its condition, or removing its monitored workload closes its incident with an explicit reason. That is different from recovery and does not send a recovery notification. Active incidents remain visible; resolved incidents follow the server's Scout retention setting, defaulting to 15 days when no agent is installed.
+
+## Public HTTP checks
+
+Choose **Public HTTP endpoint** as a server rule's metric. Set a public HTTP or HTTPS URL, request method, expected status range, interval, and timeout. Only use endpoints that are safe to request repeatedly.
+
+- **GET** or **HEAD**, every 30 to 300 seconds in 30-second increments.
+- A total timeout from 1 to 10 seconds, including DNS resolution and redirects.
+- A healthy HTTP status range, defaulting to 200–299.
+- Zero to three redirects; redirects are not followed by default.
+- An unavailable result triggers an alert immediately. Recovery follows the first successful check.
+
+An unexpected status, timeout, DNS/connection failure, or invalid TLS certificate counts as unavailable. A blocked destination is shown as a check error and cannot establish recovery. Each redirect is resolved and validated separately. Private, loopback, link-local, reserved, and metadata-service addresses are blocked, including mixed public/private DNS answers. Connections are pinned to the validated address. Only ports 80 and 443 are accepted; custom headers, credentials, cookies, and request bodies are not supported. Response bodies are not buffered or retained.
+
+These checks measure availability **from your Towbar control plane**. They are not a geographically distributed uptime service and cannot detect an outage of the control plane itself. Keep an independent external check for Towbar if you need that coverage.
+
+## Notification destinations
+
+Open **Server → Scout Agent → Notifications** to add Slack or email destinations. Configure the Slack or SMTP provider for your Towbar instance first. See [notifications](/docs/integrations/notifications) for setup. Server and workload alerts use the destinations configured on their server.
+
+Every added destination is active until deleted; there are no per-rule channel selections or Scout event category filters. Test a destination in Notifications when you want to verify delivery. Incidents and notification delivery are separate: an active incident does not prove that Slack or email received the message. Inspect delivery outcomes in the notification center.
+
+Firing and recovery transitions are saved with durable notification intents. Concurrent evaluations do not create duplicate active incidents. An active incident does not send repeat alerts. Recovery messages are sent only to destinations that successfully received an earlier alert for that incident. Changing configuration, disabling a rule, or muting it suppresses queued messages that no longer apply. A message already being sent may still arrive.
+
+## Maintenance mutes
+
+**Mute for maintenance** pauses all Scout notifications on the server. A rule's **Mute** control affects only that rule. Metrics, public checks, and incident tracking continue during a mute. Choose a preset or custom duration from one minute to seven days, add an optional reason, or resume early.
+
+A rule-level resume does not override a server-level mute. When a mute expires, a still-active incident that has not sent its alert can notify; an incident that recovered entirely while muted does not send a standalone recovery message.
+
+## API and MCP
+
+All routes below are relative to `/v1/api` and use [API key authentication](/docs/api/authentication). Reads accept read-only or full-access keys. Mutations require a full-access key belonging to a workspace owner. Notification destination management remains in the control plane.
+
+| Task                                         | Route                                                       |
+| -------------------------------------------- | ----------------------------------------------------------- |
+| Rules, evaluations, mute and destination IDs | `GET /servers/{serverId}/scout-alerts`                      |
+| Create rule                                  | `POST /servers/{serverId}/scout-alerts/rules`               |
+| Replace rule settings                        | `PUT /servers/{serverId}/scout-alerts/rules/{ruleId}`       |
+| Delete rule                                  | `DELETE /servers/{serverId}/scout-alerts/rules/{ruleId}`    |
+| Mute server                                  | `POST /servers/{serverId}/scout-alerts/mute`                |
+| Mute rule                                    | `POST /servers/{serverId}/scout-alerts/rules/{ruleId}/mute` |
+| Incident history                             | `GET /servers/{serverId}/scout-alerts/incidents`            |
+
+Rule inspection also accepts `deployableId` to filter before the result limit: use a workload UUID or `server`. Omitting it returns rules across the server and its workloads for API discovery.
+
+Incident history accepts `state=active|resolved|all`, an optional `deployableId` (a workload UUID, or `server` for server-only incidents), and `limit` up to 50. Pass both `nextBefore` and `nextBeforeId` as `before` and `beforeId` for the next page. Mutes use `{ "durationSeconds": 1800, "reason": "Maintenance" }`; zero resumes, and the maximum is seven days.
+
+MCP provides `towbar_alerts_inspect`, `towbar_alerts_configure`, `towbar_alerts_mute`, and `towbar_alerts_remove`. Discover IDs before mutation, inspect the current rule before replacing it, and preserve settings the user did not request changing. See the [tool reference](/docs/api/mcp-tools) and the Scout Alerts API section for full schemas.

@@ -1,12 +1,22 @@
-import { and, asc, eq, lte, or } from "drizzle-orm";
+import {
+  scoutIncidentChanged,
+  scoutNotificationsPaused,
+} from "./scout-delivery-state.js";
+import { and, asc, eq, lte, or, sql } from "drizzle-orm";
 import { ZodError } from "zod";
 
 import {
+  apps,
+  monitoringAgents,
   notificationDeliveries,
   notificationDeliveryAttempts,
   notificationDestinations,
   notificationEvents,
   notificationThreads,
+  scoutAlertIncidents,
+  scoutAlertRules,
+  scoutAlertSettings,
+  servers,
 } from "@workspace/towbar-database/schema";
 
 import { getTowbarDatabase } from "../../infrastructure/database.js";
@@ -125,7 +135,9 @@ async function claimAttempt(input: {
       .select({
         config: notificationDestinations.config,
         cycle: notificationDeliveries.cycle,
+        destinationCategories: notificationDestinations.categories,
         destinationEnabled: notificationDestinations.enabled,
+        destinationServerId: notificationDestinations.serverId,
         destinationDeletedAt: notificationDestinations.deletedAt,
         destinationId: notificationDestinations.id,
         deliveryId: notificationDeliveries.id,
@@ -135,6 +147,7 @@ async function claimAttempt(input: {
         payload: notificationEvents.payload,
         provider: notificationDestinations.provider,
         state: notificationDeliveries.state,
+        lastErrorCode: notificationDeliveries.lastErrorCode,
       })
       .from(notificationDeliveries)
       .innerJoin(
@@ -146,13 +159,26 @@ async function claimAttempt(input: {
         eq(notificationDestinations.id, notificationDeliveries.destinationId),
       )
       .where(eq(notificationDeliveries.id, input.deliveryId))
-      .for("update")
+      .for("update", { of: notificationDeliveries })
       .limit(1);
     if (!delivery) return { outcome: { outcome: "terminal" as const } };
+    if (
+      delivery.lastErrorCode === "SCOUT_NOTIFICATION_SUPPRESSED" &&
+      delivery.state === "failed"
+    )
+      return { outcome: { outcome: "terminal" as const } };
     if (delivery.cycle !== input.cycle || delivery.state === "succeeded") {
       return { outcome: { outcome: "stale" as const } };
     }
-    if (!delivery.destinationEnabled || delivery.destinationDeletedAt) {
+    if (
+      delivery.eventType.startsWith("scout.") &&
+      (await suppressScoutDelivery(transaction, delivery))
+    )
+      return { outcome: { outcome: "terminal" as const } };
+    if (
+      (!delivery.destinationServerId && !delivery.destinationEnabled) ||
+      delivery.destinationDeletedAt
+    ) {
       await transaction
         .update(notificationDeliveries)
         .set({
@@ -446,4 +472,131 @@ function classifyDeliveryError(error: unknown) {
     "The notification could not be delivered",
     true,
   );
+}
+
+async function suppressScoutDelivery(
+  transaction: import("../monitoring/alert-rules.js").ScoutTransaction,
+  delivery: {
+    payload: import("@workspace/towbar-core").NotificationEventPayload;
+    eventType: string;
+    destinationCategories: string[];
+    destinationEnabled: boolean;
+    destinationServerId: string | null;
+    destinationDeletedAt: Date | null;
+    destinationId: string;
+    deliveryId: string;
+  },
+) {
+  const incidentId = delivery.payload.details.incidentId;
+  const [scout] =
+    typeof incidentId === "string"
+      ? await transaction
+          .select({
+            incident: scoutAlertIncidents,
+            rule: scoutAlertRules,
+            settings: scoutAlertSettings,
+          })
+          .from(scoutAlertIncidents)
+          .innerJoin(
+            scoutAlertRules,
+            eq(scoutAlertRules.id, scoutAlertIncidents.ruleId),
+          )
+          .leftJoin(
+            scoutAlertSettings,
+            eq(scoutAlertSettings.serverId, scoutAlertIncidents.serverId),
+          )
+          .where(eq(scoutAlertIncidents.id, incidentId))
+          .limit(1)
+      : [];
+  const [scope] = scout
+    ? await transaction
+        .select({
+          archivedAt: servers.archivedAt,
+          desiredState: monitoringAgents.desiredState,
+        })
+        .from(servers)
+        .leftJoin(monitoringAgents, eq(monitoringAgents.serverId, servers.id))
+        .where(
+          and(
+            eq(servers.id, scout.rule.serverId),
+            eq(servers.workspaceId, scout.rule.workspaceId),
+          ),
+        )
+        .limit(1)
+    : [];
+  const [workload] = scout?.rule.deployableId
+    ? await transaction
+        .select({ id: apps.id })
+        .from(apps)
+        .where(
+          and(
+            eq(apps.id, scout.rule.deployableId),
+            eq(apps.serverId, scout.rule.serverId),
+            eq(apps.workspaceId, scout.rule.workspaceId),
+            sql`${apps.archivedAt} is null`,
+          ),
+        )
+        .limit(1)
+    : [];
+  const now = new Date();
+  const suppressed =
+    !scout ||
+    !scope ||
+    scope.archivedAt ||
+    (scout.rule.condition.metric !== "httpAvailability" &&
+      scope.desiredState !== "enabled") ||
+    (scout.rule.deployableId && !workload) ||
+    delivery.destinationDeletedAt ||
+    delivery.destinationServerId !== scout.rule.serverId ||
+    delivery.eventType === "scout.reminder" ||
+    scoutNotificationsPaused(scout.rule, scout.settings, now) ||
+    scoutIncidentChanged(
+      scout.rule,
+      scout.incident,
+      delivery.payload.details.environment,
+    ) ||
+    (delivery.eventType !== "scout.recovered" && scout.incident.resolvedAt) ||
+    (delivery.eventType === "scout.recovered" &&
+      (!scout.rule.notifyRecovery ||
+        scout.incident.resolutionReason !== "recovered"));
+  if (suppressed) {
+    // Serialize sibling suppressions so the last one reliably re-arms the batch.
+    if (scout)
+      await transaction
+        .select({ id: scoutAlertIncidents.id })
+        .from(scoutAlertIncidents)
+        .where(eq(scoutAlertIncidents.id, scout.incident.id))
+        .for("update");
+    await transaction
+      .update(notificationDeliveries)
+      .set({
+        state: "failed",
+        lastErrorCode: "SCOUT_NOTIFICATION_SUPPRESSED",
+        lastErrorMessage:
+          "Scout notifications were muted, the rule changed, or the incident no longer needs attention",
+        updatedAt: now,
+      })
+      .where(eq(notificationDeliveries.id, delivery.deliveryId));
+    // Re-arm only after every firing delivery was suppressed. A pending,
+    // in-flight, retrying, or delivered sibling must not be duplicated when
+    // just one destination is removed. Provider failures keep their retry policy.
+    if (scout && !scout.incident.resolvedAt)
+      await transaction
+        .update(scoutAlertIncidents)
+        .set({ lastNotifiedAt: null })
+        .where(
+          and(
+            eq(scoutAlertIncidents.id, scout.incident.id),
+            sql`not exists (
+          select 1 from towbar_notification_deliveries d join towbar_notification_events e on e.id=d.event_id
+          where e.payload->'details'->>'incidentId'=${scout.incident.id}
+            and e.type in ('scout.firing','scout.reminder')
+            and (d.state <> 'failed' or d.last_error_code is distinct from 'SCOUT_NOTIFICATION_SUPPRESSED')
+        )`,
+          ),
+        );
+    return true;
+  }
+
+  return false;
 }

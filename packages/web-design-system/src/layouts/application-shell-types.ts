@@ -33,7 +33,11 @@ export interface HeaderConfig {
   navigation?: readonly ShellLinkConfig[];
 }
 export interface SidebarLinkConfig extends ShellLinkConfig {
-  badge?: { label: string; value: number | string };
+  badge?: {
+    label: string;
+    value: number | string;
+    tone?: "danger" | "warning";
+  };
   icon?: SidebarIcon;
 }
 export interface SidebarActionConfig {

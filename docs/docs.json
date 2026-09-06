@@ -40,6 +40,8 @@
             "pages": [
               "docs/monitoring",
               "docs/scout",
+              "docs/scout-alerts",
+              "docs/deployment-comparisons",
               "docs/backups",
               "docs/restores",
               "docs/troubleshooting"
@@ -282,6 +284,19 @@
                 ]
               },
               {
+                "group": "Scout Alerts",
+                "pages": [
+                  "api-reference/get_servers_by_id_scout_alerts",
+                  "api-reference/post_servers_by_id_scout_alerts_rules",
+                  "api-reference/put_servers_by_id_scout_alerts_rules_by_id",
+                  "api-reference/delete_servers_by_id_scout_alerts_rules_by_id",
+                  "api-reference/post_servers_by_id_scout_alerts_mute",
+                  "api-reference/post_servers_by_id_scout_alerts_rules_by_id_mute",
+                  "api-reference/get_servers_by_id_scout_alerts_incidents",
+                  "api-reference/get_servers_by_id_scout_alerts_incidents_by_id"
+                ]
+              },
+              {
                 "group": "Checks & preparation",
                 "pages": [
                   "api-reference/get_servers_by_id_checks",
@@ -318,6 +333,13 @@
                   "api-reference/get_deployments",
                   "api-reference/get_deployments_history",
                   "api-reference/get_deployments_by_id"
+                ]
+              },
+              {
+                "group": "Performance comparisons",
+                "pages": [
+                  "api-reference/get_workloads_by_id_comparison_deployments",
+                  "api-reference/get_workloads_by_id_deployment_comparison"
                 ]
               },
               {
@@ -359,6 +381,14 @@
           {
             "group": "Workspace",
             "pages": [
+              {
+                "group": "Monitoring",
+                "pages": [
+                  "api-reference/get_monitoring_entities",
+                  "api-reference/get_monitoring_alerts",
+                  "api-reference/get_monitoring_incidents"
+                ]
+              },
               {
                 "group": "Shared secrets",
                 "pages": [

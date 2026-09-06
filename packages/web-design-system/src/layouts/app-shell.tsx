@@ -252,7 +252,17 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
                     {item.badge ? (
                       <span
                         aria-label={item.badge.label}
-                        className="ms-auto min-w-5 text-end text-xs tabular-nums text-muted"
+                        title={item.badge.label}
+                        className={cn(
+                          "ms-auto min-w-5 text-xs tabular-nums",
+                          item.badge.tone
+                            ? "rounded-full px-1.5 py-0.5 text-center font-medium"
+                            : "text-end text-muted",
+                          item.badge.tone === "danger" &&
+                            "bg-danger/15 text-danger",
+                          item.badge.tone === "warning" &&
+                            "bg-warning/15 text-warning",
+                        )}
                       >
                         {item.badge.value}
                       </span>

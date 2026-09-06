@@ -1,8 +1,10 @@
+import { monitoringOverviewRoutes } from "./monitoring-overview.js";
 import {
   monitoringHistoryRoutes,
   monitoringSettingsRoutes,
 } from "./monitoring.js";
 import { apiKeyRoutes } from "./api-keys.js";
+import { scoutAlertRoutes, scoutComparisonRoutes } from "./scout-alerts.js";
 import { environmentSecretRoutes } from "./environment-secrets.js";
 import { serverCredentialRoutes } from "./server-credentials.js";
 import { Hono } from "hono";
@@ -38,6 +40,10 @@ controlPlaneRoutes.route(
 );
 controlPlaneRoutes.route("/notifications", notificationCenterRoutes);
 controlPlaneRoutes.route(
+  "/servers/:serverId/notifications",
+  notificationRoutes,
+);
+controlPlaneRoutes.route(
   "/settings/secrets",
   environmentSecretRoutes("workspace"),
 );
@@ -61,7 +67,10 @@ controlPlaneRoutes.route(
   "/servers/:serverId/monitoring",
   monitoringSettingsRoutes,
 );
+controlPlaneRoutes.route("/monitoring", monitoringOverviewRoutes);
 controlPlaneRoutes.route("/", monitoringHistoryRoutes);
+controlPlaneRoutes.route("/servers/:serverId/scout-alerts", scoutAlertRoutes);
+controlPlaneRoutes.route("/", scoutComparisonRoutes);
 controlPlaneRoutes.route("/sources", sourceRoutes);
 controlPlaneRoutes.route("/apps", appRoutes);
 controlPlaneRoutes.route("/resources", resourceRoutes);

@@ -13,7 +13,9 @@
     "./resource-operations": "./dist/resource-operations.js",
     "./security": "./dist/security.js",
     "./temporal": "./dist/temporal.js",
-    "./schema": "./schemas/deployment.v1.json"
+    "./schema": "./schemas/deployment.v1.json",
+    "./scout-alerts": "./dist/scout-alerts.js",
+    "./deployment-comparison": "./dist/deployment-comparison.js"
   },
   "scripts": {
     "build": "tsc --project tsconfig.build.json",

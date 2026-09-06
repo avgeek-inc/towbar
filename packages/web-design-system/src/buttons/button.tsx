@@ -3,6 +3,7 @@
 import { Button as HeroButton, Link as HeroLink } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
 import type { ComponentProps } from "react";
+import { cn } from "../lib/utils";
 
 export type ButtonProps = ComponentProps<typeof HeroButton>;
 export type ButtonVariant = NonNullable<ButtonProps["variant"]>;
@@ -30,7 +31,12 @@ export function ButtonLink({
 }: ButtonLinkProps) {
   return (
     <HeroLink
-      className={buttonVariants({ className, size, variant })}
+      className={buttonVariants({
+        // HeroUI resets .link.button to gap-0; restore the normal button spacing.
+        className: cn("gap-2", className),
+        size,
+        variant,
+      })}
       style={{ color: "var(--button-fg)", ...style }}
       {...props}
     />

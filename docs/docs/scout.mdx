@@ -82,6 +82,12 @@ The API preserves the sum, count, minimum, and maximum for each metric. Longer c
   </div>
 </div>
 
+### Alerts and deployment comparisons
+
+Use **Scout Agent → Alerts** to configure metric rules, public HTTP checks, and notification destinations. [Scout Alerts](/docs/scout-alerts) covers thresholds, recovery, maintenance mutes, and incident history.
+
+On an app or resource, **Compare deployments** aligns equal periods after two releases became ready. [Deployment comparisons](/docs/deployment-comparisons) explains sensitivity, sample coverage, and the limits of inferring a regression.
+
 ### Retention and resource limits
 
 Retention defaults to **15 days**. Choose 7, 15, 30, or 60 days per server. Raw 30-second samples are kept for 24 hours, then compacted into one-minute summaries. The maintenance worker compacts and expires records in bounded batches. Reducing retention expires older history permanently; increasing it cannot recover expired data.

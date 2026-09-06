@@ -119,6 +119,7 @@ const toolGroups: Record<string, string> = {
   deployment: "Deployments",
   server: "Servers",
   monitoring: "Scout Agent",
+  alerts: "Scout Alerts",
   performance: "Scout Agent",
   secrets: "Secrets",
   backup: "Backups and restores",

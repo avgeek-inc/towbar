@@ -122,7 +122,7 @@ export type SecretMetadata = {
 };
 
 export type NotificationCategory =
-  "deployments" | "previews" | "health" | "backups" | "restores";
+  "deployments" | "previews" | "health" | "backups" | "restores" | "scout";
 
 export type NotificationDestination = {
   categories: NotificationCategory[];
@@ -135,7 +135,8 @@ export type NotificationDestination = {
   enabled: boolean;
   id: string;
   provider: "slack" | "smtp";
-  sourceId: string;
+  sourceId: string | null;
+  serverId?: string | null;
   updatedAt: string;
 };
 
@@ -149,7 +150,7 @@ export type NotificationEvent = {
     entity: { id: string; kind: string; name: string };
     message: string;
     occurredAt: string;
-    source: { id: string; name: string };
+    source: { id: string; name: string } | null;
     title: string;
   };
   type: string;

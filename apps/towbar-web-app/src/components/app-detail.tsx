@@ -1,5 +1,5 @@
 "use client";
-import { MonitoringHistory } from "./monitoring-history";
+import { ScoutPanel } from "./scout-panel";
 
 import {
   Activity01Icon,
@@ -246,9 +246,10 @@ export function AppDetail() {
             label: "Scout Agent",
             icon: <HugeiconsIcon icon={Activity01Icon} />,
             content: (
-              <MonitoringHistory
+              <ScoutPanel
                 path={`/v1/core/apps/${appId}/metrics`}
-                workload
+                serverId={item.serverId}
+                deployableId={appId}
               />
             ),
           },

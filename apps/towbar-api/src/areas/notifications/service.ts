@@ -15,8 +15,9 @@ import {
   sources,
 } from "@workspace/towbar-database/schema";
 
-import { conflict, notFound } from "../../http/errors.js";
+import { badRequest, conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
+import { getServer } from "../servers/service.js";
 import { getSource } from "../sources/service.js";
 import { notificationProviderAvailability } from "./configuration.js";
 import { enqueueDeliveries } from "./delivery-service.js";
@@ -35,20 +36,22 @@ const publicDestinationSelection = {
   id: notificationDestinations.id,
   provider: notificationDestinations.provider,
   sourceId: notificationDestinations.sourceId,
+  serverId: notificationDestinations.serverId,
   updatedAt: notificationDestinations.updatedAt,
 };
 
 export async function listNotificationDestinations(input: {
-  sourceId: string;
+  sourceId?: string;
+  serverId?: string;
   workspaceId: string;
 }) {
-  await getSource(input.sourceId, input.workspaceId);
+  await requireNotificationScope(input);
   return await getTowbarDatabase()
     .select(publicDestinationSelection)
     .from(notificationDestinations)
     .where(
       and(
-        eq(notificationDestinations.sourceId, input.sourceId),
+        destinationScope(input),
         eq(notificationDestinations.workspaceId, input.workspaceId),
         isNull(notificationDestinations.deletedAt),
       ),
@@ -77,19 +80,23 @@ export async function listNotificationEvents(input: {
 
 export async function createNotificationDestination(input: {
   destination: NotificationDestinationInput;
-  sourceId: string;
+  sourceId?: string;
+  serverId?: string;
   workspaceId: string;
 }) {
-  await getSource(input.sourceId, input.workspaceId);
+  await requireNotificationScope(input);
   const destination = notificationDestinationInputSchema.parse(
-    input.destination,
+    input.serverId
+      ? { ...input.destination, enabled: true, categories: ["scout"] }
+      : input.destination,
   );
   requireAvailableProvider(destination);
   const [created] = await getTowbarDatabase()
     .insert(notificationDestinations)
     .values({
       ...destination,
-      sourceId: input.sourceId,
+      sourceId: input.sourceId ?? null,
+      serverId: input.serverId ?? null,
       workspaceId: input.workspaceId,
     })
     .returning(publicDestinationSelection);
@@ -100,11 +107,15 @@ export async function createNotificationDestination(input: {
 export async function updateNotificationDestination(input: {
   destination: NotificationDestinationInput;
   destinationId: string;
-  sourceId: string;
+  sourceId?: string;
+  serverId?: string;
   workspaceId: string;
 }) {
+  await requireNotificationScope(input);
   const destination = notificationDestinationInputSchema.parse(
-    input.destination,
+    input.serverId
+      ? { ...input.destination, enabled: true, categories: ["scout"] }
+      : input.destination,
   );
   requireAvailableProvider(destination);
   const [updated] = await getTowbarDatabase().transaction(
@@ -115,7 +126,7 @@ export async function updateNotificationDestination(input: {
         .where(
           and(
             eq(notificationDestinations.id, input.destinationId),
-            eq(notificationDestinations.sourceId, input.sourceId),
+            destinationScope(input),
             eq(notificationDestinations.workspaceId, input.workspaceId),
             isNull(notificationDestinations.deletedAt),
           ),
@@ -137,9 +148,11 @@ export async function updateNotificationDestination(input: {
 
 export async function deleteNotificationDestination(input: {
   destinationId: string;
-  sourceId: string;
+  sourceId?: string;
+  serverId?: string;
   workspaceId: string;
 }) {
+  await requireNotificationScope(input);
   const now = new Date();
   const [deleted] = await getTowbarDatabase()
     .update(notificationDestinations)
@@ -147,7 +160,7 @@ export async function deleteNotificationDestination(input: {
     .where(
       and(
         eq(notificationDestinations.id, input.destinationId),
-        eq(notificationDestinations.sourceId, input.sourceId),
+        destinationScope(input),
         eq(notificationDestinations.workspaceId, input.workspaceId),
         isNull(notificationDestinations.deletedAt),
       ),
@@ -159,11 +172,13 @@ export async function deleteNotificationDestination(input: {
 export async function emitNotificationEvent(input: {
   dedupeKey: string;
   payload: NotificationEventPayload;
-  sourceId: string;
+  sourceId?: string;
+  serverId?: string;
   targetDestinationId?: string;
   type: NotificationEventType;
   workspaceId: string;
 }) {
+  await requireNotificationScope(input);
   const payload = notificationEventPayloadSchema.parse(input.payload);
   const category = notificationCategoryForEvent(input.type);
   const database = getTowbarDatabase();
@@ -175,12 +190,18 @@ export async function emitNotificationEvent(input: {
         dedupeKey: input.dedupeKey,
         occurredAt: new Date(payload.occurredAt),
         payload,
-        sourceId: input.sourceId,
+        sourceId: input.sourceId ?? null,
+        serverId: input.serverId ?? null,
         type: input.type,
         workspaceId: input.workspaceId,
       })
       .onConflictDoNothing({
-        target: [notificationEvents.sourceId, notificationEvents.dedupeKey],
+        target: [
+          input.serverId
+            ? notificationEvents.serverId
+            : notificationEvents.sourceId,
+          notificationEvents.dedupeKey,
+        ],
       })
       .returning({ id: notificationEvents.id });
     if (!createdEvent) return { deliveries: [], eventId: null };
@@ -193,9 +214,11 @@ export async function emitNotificationEvent(input: {
       .from(notificationDestinations)
       .where(
         and(
-          eq(notificationDestinations.sourceId, input.sourceId),
+          destinationScope(input),
           eq(notificationDestinations.workspaceId, input.workspaceId),
-          eq(notificationDestinations.enabled, true),
+          input.serverId
+            ? undefined
+            : eq(notificationDestinations.enabled, true),
           isNull(notificationDestinations.deletedAt),
           input.targetDestinationId
             ? eq(notificationDestinations.id, input.targetDestinationId)
@@ -204,7 +227,9 @@ export async function emitNotificationEvent(input: {
       );
     const matching = destinations.filter(
       (destination) =>
-        category === "test" || destination.categories.includes(category),
+        Boolean(input.serverId) ||
+        category === "test" ||
+        destination.categories.includes(category),
     );
     if (matching.length === 0) {
       return { deliveries: [], eventId: createdEvent.id };
@@ -230,29 +255,31 @@ export async function emitNotificationEvent(input: {
 
 export async function testNotificationDestination(input: {
   destinationId: string;
-  sourceId: string;
+  sourceId?: string;
+  serverId?: string;
   workspaceId: string;
 }) {
-  const [source] = await getTowbarDatabase()
-    .select({
-      id: sources.id,
-      repositoryName: sources.repositoryName,
-    })
-    .from(sources)
-    .innerJoin(
-      notificationDestinations,
-      eq(notificationDestinations.sourceId, sources.id),
-    )
+  await requireNotificationScope(input);
+  const [destination] = await getTowbarDatabase()
+    .select({ id: notificationDestinations.id })
+    .from(notificationDestinations)
     .where(
       and(
-        eq(sources.id, input.sourceId),
-        eq(sources.workspaceId, input.workspaceId),
         eq(notificationDestinations.id, input.destinationId),
+        eq(notificationDestinations.workspaceId, input.workspaceId),
+        destinationScope(input),
         isNull(notificationDestinations.deletedAt),
       ),
     )
     .limit(1);
-  if (!source) throw notFound("Notification destination");
+  if (!destination) throw notFound("Notification destination");
+  const [source] = input.sourceId
+    ? await getTowbarDatabase()
+        .select({ id: sources.id, repositoryName: sources.repositoryName })
+        .from(sources)
+        .where(eq(sources.id, input.sourceId))
+        .limit(1)
+    : [];
   const eventId = randomUUID();
   const result = await emitNotificationEvent({
     dedupeKey: `notification-test:${eventId}`,
@@ -265,10 +292,11 @@ export async function testNotificationDestination(input: {
       },
       message: "Towbar successfully reached this notification destination.",
       occurredAt: new Date().toISOString(),
-      source: { id: source.id, name: source.repositoryName },
+      source: source ? { id: source.id, name: source.repositoryName } : null,
       title: "Test notification",
     },
     sourceId: input.sourceId,
+    serverId: input.serverId,
     targetDestinationId: input.destinationId,
     type: "notification.test",
     workspaceId: input.workspaceId,
@@ -307,4 +335,20 @@ function requireAvailableProvider(destination: NotificationDestinationInput) {
       `${destination.provider === "slack" ? "Slack" : "SMTP"} notifications are not configured for this Towbar instance`,
     );
   }
+}
+
+function destinationScope(input: { sourceId?: string; serverId?: string }) {
+  return input.serverId
+    ? eq(notificationDestinations.serverId, input.serverId)
+    : eq(notificationDestinations.sourceId, input.sourceId!);
+}
+async function requireNotificationScope(input: {
+  sourceId?: string;
+  serverId?: string;
+  workspaceId: string;
+}) {
+  if (Boolean(input.sourceId) === Boolean(input.serverId))
+    throw badRequest("Choose one notification scope");
+  if (input.serverId) await getServer(input.serverId, input.workspaceId);
+  else await getSource(input.sourceId!, input.workspaceId);
 }

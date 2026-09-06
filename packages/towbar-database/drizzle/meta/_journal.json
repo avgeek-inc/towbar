@@ -309,6 +309,48 @@
       "when": 1788640002310,
       "tag": "0043_vengeful_hammerhead",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1788690720863,
+      "tag": "0044_charming_salo",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1788691358419,
+      "tag": "0045_overrated_hedge_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1788694182598,
+      "tag": "0046_tiny_mephisto",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1788706246045,
+      "tag": "0047_calm_phantom_reporter",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1788707341139,
+      "tag": "0048_scout_immediate_alerts",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1788707880736,
+      "tag": "0049_scout_incident_context",
+      "breakpoints": true
     }
   ]
 }

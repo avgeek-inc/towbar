@@ -29,15 +29,15 @@ workloads in a manifest. Towbar builds and runs them on your infrastructure.
 
 ## What you can do
 
-| Feature                | What it gives you                                                                                                                 |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Deploy from Git        | Keep configuration with your code. Deploy manually, automatically, or only when selected files change.                            |
-| Run apps and databases | Build Dockerfile apps on your servers. Run PostgreSQL, Redis, and container images with persistent storage.                       |
-| Preview pull requests  | Share a stable preview URL with separate secrets. Environments are cleaned up when pull requests close or merge.                  |
-| Manage secrets         | Store encrypted, write-only values for a workspace, Source, or workload, with separate production and preview configuration.      |
-| Monitor performance    | Use Scout Agent for server, app, and resource history. Inspect logs, deployment stages, health, and capacity from the dashboard.  |
-| Back up and restore    | Schedule PostgreSQL and Redis backups to S3, check restore readiness, and restore through an isolated candidate before promotion. |
-| Stay informed          | Send deployment, preview, health, backup, and restore events to Slack or email.                                                   |
+| Feature                | What it gives you                                                                                                                                     |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Deploy from Git        | Keep configuration with your code. Deploy manually, automatically, or only when selected files change.                                                |
+| Run apps and databases | Build Dockerfile apps on your servers. Run PostgreSQL, Redis, and container images with persistent storage.                                           |
+| Preview pull requests  | Share a stable preview URL with separate secrets. Environments are cleaned up when pull requests close or merge.                                      |
+| Manage secrets         | Store encrypted, write-only values for a workspace, Source, or workload, with separate production and preview configuration.                          |
+| Monitor performance    | Track server and workload history with Scout Agent, configure alerts and public uptime checks, and compare deployments for changes in resource usage. |
+| Back up and restore    | Schedule PostgreSQL and Redis backups to S3, check restore readiness, and restore through an isolated candidate before promotion.                     |
+| Stay informed          | Send deployment, preview, health, backup, and restore events to Slack or email.                                                                       |
 
 ## Meet Scout Agent
 

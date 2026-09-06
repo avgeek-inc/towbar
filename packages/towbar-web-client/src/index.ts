@@ -13,3 +13,14 @@ export type {
   MonitoringSeries,
   MonitoringAggregates,
 } from "@workspace/towbar-core";
+
+export {
+  scoutAlertPresets,
+  scoutAlertRuleSchema,
+} from "@workspace/towbar-core/scout-alerts";
+export type {
+  ScoutAlertRuleInput,
+  ScoutAlertCondition,
+  ComparisonPoint,
+  ComparisonMetricSummary,
+} from "@workspace/towbar-core";

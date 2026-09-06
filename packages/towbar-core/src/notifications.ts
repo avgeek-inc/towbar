@@ -10,6 +10,7 @@ export const notificationCategories = [
   "health",
   "backups",
   "restores",
+  "scout",
 ] as const;
 export const notificationCategorySchema = z.enum(notificationCategories);
 export type NotificationCategory = z.infer<typeof notificationCategorySchema>;
@@ -34,6 +35,9 @@ export const notificationEventTypes = [
   "restore.cancelled",
   "restore.failed",
   "restore.rolled_back",
+  "scout.firing",
+  "scout.recovered",
+  "scout.reminder",
   "notification.test",
 ] as const;
 export const notificationEventTypeSchema = z.enum(notificationEventTypes);
@@ -95,7 +99,8 @@ export const notificationEventPayloadSchema = z
         id: z.string().uuid(),
         name: z.string().max(255),
       })
-      .strict(),
+      .strict()
+      .nullable(),
     title: z.string().max(255),
   })
   .strict();
@@ -104,7 +109,7 @@ export type NotificationEventPayload = z.infer<
 >;
 
 const notificationDestinationBaseSchema = z.object({
-  categories: z.array(notificationCategorySchema).min(1).max(5),
+  categories: z.array(notificationCategorySchema).min(1).max(6),
   enabled: z.boolean(),
 });
 
@@ -151,6 +156,7 @@ export function notificationCategoryForEvent(
   if (type.startsWith("preview.")) return "previews";
   if (type.startsWith("runtime.")) return "health";
   if (type.startsWith("backup.")) return "backups";
+  if (type.startsWith("scout.")) return "scout";
   if (type.startsWith("restore.")) return "restores";
   return "test";
 }

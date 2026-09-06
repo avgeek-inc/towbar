@@ -51,6 +51,10 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
     user ? "/v1/core/sources" : null,
     30_000,
   );
+  const monitoring = useApiQuery<{
+    activeIncidents: number;
+    pressuredEntities: number;
+  }>(user ? "/v1/core/monitoring/summary" : null, 30_000);
   const sidebarState = usePersistentAppSidebar("towbar-sidebar");
   const isLogin = pathname === "/login";
   const isSessionTransition = pathname === "/logout";
@@ -87,12 +91,16 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  const sidebar = createApplicationSidebar(() => router.push("/logout"), {
-    apps: apps.data?.apps.length,
-    resources: resources.data?.resources.length,
-    servers: servers.data?.servers.length,
-    sources: sources.data?.sources.length,
-  });
+  const sidebar = createApplicationSidebar(
+    () => router.push("/logout"),
+    {
+      apps: apps.data?.apps.length,
+      resources: resources.data?.resources.length,
+      servers: servers.data?.servers.length,
+      sources: sources.data?.sources.length,
+    },
+    monitoring.error ? undefined : monitoring.data,
+  );
   return (
     <AppShell contentWidth="full" policy={applicationPolicy}>
       <AppLayout

@@ -1,4 +1,5 @@
 "use client";
+import { ScoutIcon, ScoutOptionIcon } from "./scout-icons";
 
 import { useState } from "react";
 import type { FormEvent } from "react";
@@ -73,19 +74,23 @@ export function SourceNotifications({
   canManage,
   destinations,
   sourceId,
+  serverId,
 }: {
   canManage: boolean;
   destinations: Query<NotificationDestinationsResponse>;
-  sourceId: string;
+  sourceId?: string;
+  serverId?: string;
 }) {
   const [draft, setDraft] = useState<DestinationDraft>(() =>
-    emptyDraft("slack"),
+    emptyDraft("slack", Boolean(serverId)),
   );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>();
-  const endpoint = `/v1/core/sources/${sourceId}/notifications`;
+  const endpoint = serverId
+    ? `/v1/core/servers/${serverId}/notifications`
+    : `/v1/core/sources/${sourceId}/notifications`;
 
   if (destinations.error) return <QueryError message={destinations.error} />;
   if (!destinations.data) return <QueryLoading />;
@@ -109,12 +114,17 @@ export function SourceNotifications({
       header: "Provider",
       cell: (destination) => providerLabel(destination.provider),
     },
-    {
-      key: "categories",
-      header: "Events",
-      cell: (destination) => destination.categories.map(titleCase).join(", "),
-      className: "min-w-64",
-    },
+    ...(!serverId
+      ? [
+          {
+            key: "categories",
+            header: "Events",
+            cell: (destination: NotificationDestination) =>
+              destination.categories.map(titleCase).join(", "),
+            className: "min-w-64",
+          },
+        ]
+      : []),
     {
       key: "status",
       header: "Status",
@@ -123,7 +133,7 @@ export function SourceNotifications({
           status={
             !providers[destination.provider]
               ? "unavailable"
-              : destination.enabled
+              : serverId || destination.enabled
                 ? "active"
                 : "disabled"
           }
@@ -133,9 +143,10 @@ export function SourceNotifications({
     {
       key: "actions",
       header: "Actions",
+      headerClassName: "text-end",
       cell: (destination) =>
         canManage ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <ActionButton
               action={() =>
                 api.post(
@@ -143,11 +154,13 @@ export function SourceNotifications({
                 )
               }
               isDisabled={
-                !destination.enabled || !providers[destination.provider]
+                (!serverId && !destination.enabled) ||
+                !providers[destination.provider]
               }
               pendingLabel="Sending…"
               success="Test notification queued"
             >
+              <ScoutIcon name="test" />
               Test
             </ActionButton>
             <Button
@@ -155,6 +168,7 @@ export function SourceNotifications({
               variant="secondary"
               onPress={() => openEditor(destination)}
             >
+              <ScoutIcon name="edit" />
               Edit
             </Button>
             <ActionButton
@@ -172,13 +186,14 @@ export function SourceNotifications({
               success="Notification destination deleted"
               variant="danger"
             >
+              <ScoutIcon name="delete" />
               Delete
             </ActionButton>
           </div>
         ) : (
           <span className="text-muted">—</span>
         ),
-      className: "min-w-72",
+      className: "min-w-72 text-end",
     },
   ];
 
@@ -188,7 +203,7 @@ export function SourceNotifications({
     setDraft(
       destination
         ? draftFromDestination(destination)
-        : emptyDraft(defaultProvider),
+        : emptyDraft(defaultProvider, Boolean(serverId)),
     );
     setSaveError(undefined);
     setEditorOpen(true);
@@ -196,7 +211,7 @@ export function SourceNotifications({
 
   async function saveDestination(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (draft.categories.length === 0) {
+    if (!serverId && draft.categories.length === 0) {
       setSaveError("Select at least one event category");
       return;
     }
@@ -209,7 +224,7 @@ export function SourceNotifications({
     setSaving(true);
     setSaveError(undefined);
     try {
-      const payload = destinationPayload(draft);
+      const payload = destinationPayload(draft, Boolean(serverId));
       if (editingId) {
         await api.put(`${endpoint}/destinations/${editingId}`, payload);
       } else {
@@ -248,7 +263,7 @@ export function SourceNotifications({
         columns={destinationColumns}
         emptyDescription={
           hasProvider
-            ? "Add a configured notification destination for this Source."
+            ? `Add a notification destination for this ${serverId ? "server" : "source"}.`
             : "Notification destinations become available after a provider is configured for Towbar."
         }
         emptyTitle="No notification destinations"
@@ -257,7 +272,10 @@ export function SourceNotifications({
       />
       {canManage && hasProvider ? (
         <div>
-          <Button onPress={() => openEditor()}>Add destination</Button>
+          <Button onPress={() => openEditor()}>
+            <ScoutIcon name="add" />
+            Add destination
+          </Button>
         </div>
       ) : null}
 
@@ -297,7 +315,7 @@ export function SourceNotifications({
                   >
                     <Label>Provider</Label>
                     <Select.Trigger>
-                      <Select.Value />
+                      <Select.Value className="flex min-w-0 items-center" />
                       <Select.Indicator />
                     </Select.Trigger>
                     <Select.Popover>
@@ -308,7 +326,13 @@ export function SourceNotifications({
                             key={provider.value}
                             textValue={provider.label}
                           >
-                            {provider.label}
+                            <span className="flex min-w-0 items-center gap-2">
+                              <ScoutOptionIcon
+                                label="Provider"
+                                value={provider.value}
+                              />
+                              {provider.label}
+                            </span>
                             <ListBox.ItemIndicator />
                           </ListBox.Item>
                         ))}
@@ -362,46 +386,53 @@ export function SourceNotifications({
                     </Field>
                   )}
 
-                  <FieldSet>
-                    <FieldLegend>Event categories</FieldLegend>
-                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      {categoryOptions.map((category) => (
-                        <Checkbox
-                          isSelected={draft.categories.includes(category.value)}
-                          key={category.value}
-                          onChange={(selected) =>
-                            setDraft({
-                              ...draft,
-                              categories: selected
-                                ? [...draft.categories, category.value]
-                                : draft.categories.filter(
-                                    (value) => value !== category.value,
-                                  ),
-                            })
-                          }
-                        >
-                          <Checkbox.Content className="min-h-8 w-fit">
-                            <Checkbox.Control>
-                              <Checkbox.Indicator />
-                            </Checkbox.Control>
-                            <Label>{category.label}</Label>
-                          </Checkbox.Content>
-                        </Checkbox>
-                      ))}
-                    </div>
-                  </FieldSet>
+                  {!serverId ? (
+                    <>
+                      <FieldSet>
+                        <FieldLegend>Event categories</FieldLegend>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          {categoryOptions.map((category) => (
+                            <Checkbox
+                              variant="secondary"
+                              isSelected={draft.categories.includes(
+                                category.value,
+                              )}
+                              key={category.value}
+                              onChange={(selected) =>
+                                setDraft({
+                                  ...draft,
+                                  categories: selected
+                                    ? [...draft.categories, category.value]
+                                    : draft.categories.filter(
+                                        (value) => value !== category.value,
+                                      ),
+                                })
+                              }
+                            >
+                              <Checkbox.Content className="min-h-8 w-fit">
+                                <Checkbox.Control className="border border-muted">
+                                  <Checkbox.Indicator />
+                                </Checkbox.Control>
+                                <Label>{category.label}</Label>
+                              </Checkbox.Content>
+                            </Checkbox>
+                          ))}
+                        </div>
+                      </FieldSet>
 
-                  <Switch
-                    isSelected={draft.enabled}
-                    onChange={(enabled) => setDraft({ ...draft, enabled })}
-                  >
-                    <Switch.Content className="min-h-8 w-fit">
-                      <Switch.Control>
-                        <Switch.Thumb />
-                      </Switch.Control>
-                      <Label>Enable this destination</Label>
-                    </Switch.Content>
-                  </Switch>
+                      <Switch
+                        isSelected={draft.enabled}
+                        onChange={(enabled) => setDraft({ ...draft, enabled })}
+                      >
+                        <Switch.Content className="min-h-8 w-fit">
+                          <Switch.Control>
+                            <Switch.Thumb />
+                          </Switch.Control>
+                          <Label>Enable this destination</Label>
+                        </Switch.Content>
+                      </Switch>
+                    </>
+                  ) : null}
 
                   <div className="flex justify-end gap-3">
                     <Button
@@ -409,9 +440,11 @@ export function SourceNotifications({
                       variant="secondary"
                       onPress={() => setEditorOpen(false)}
                     >
+                      <ScoutIcon name="close" />
                       Cancel
                     </Button>
                     <Button isDisabled={saving} type="submit">
+                      <ScoutIcon name="save" />
                       {saving ? "Saving…" : "Save destination"}
                     </Button>
                   </div>
@@ -425,9 +458,14 @@ export function SourceNotifications({
   );
 }
 
-function emptyDraft(provider: "slack" | "smtp"): DestinationDraft {
+function emptyDraft(
+  provider: "slack" | "smtp",
+  server = false,
+): DestinationDraft {
   return {
-    categories: categoryOptions.map((category) => category.value),
+    categories: server
+      ? ["scout"]
+      : categoryOptions.map((category) => category.value),
     channelId: "",
     enabled: true,
     provider,
@@ -453,10 +491,10 @@ function draftFromDestination(
   };
 }
 
-function destinationPayload(draft: DestinationDraft) {
+function destinationPayload(draft: DestinationDraft, server: boolean) {
   const base = {
-    categories: draft.categories,
-    enabled: draft.enabled,
+    categories: server ? ["scout" as const] : draft.categories,
+    enabled: server || draft.enabled,
   };
   if (draft.provider === "slack") {
     return {

@@ -33,7 +33,8 @@ notificationRoutes.get(
     return context.json({
       canManageNotifications: user.workspaceRole === "owner",
       destinations: await listNotificationDestinations({
-        sourceId: context.req.param("sourceId")!,
+        sourceId: context.req.param("sourceId"),
+        serverId: context.req.param("serverId"),
         workspaceId: user.workspaceId,
       }),
       providers: notificationProviderAvailability(),
@@ -61,7 +62,8 @@ notificationRoutes.post(
         notificationDestinationInputSchema,
         32 * 1_024,
       ),
-      sourceId: context.req.param("sourceId")!,
+      sourceId: context.req.param("sourceId"),
+      serverId: context.req.param("serverId"),
       workspaceId: user.workspaceId,
     });
     return context.json({ destination }, 201);
@@ -90,7 +92,8 @@ notificationRoutes.put(
           32 * 1_024,
         ),
         destinationId: context.req.param("destinationId"),
-        sourceId: context.req.param("sourceId")!,
+        sourceId: context.req.param("sourceId"),
+        serverId: context.req.param("serverId"),
         workspaceId: user.workspaceId,
       }),
     });
@@ -112,7 +115,8 @@ notificationRoutes.delete(
     const user = context.get("user");
     await deleteNotificationDestination({
       destinationId: context.req.param("destinationId"),
-      sourceId: context.req.param("sourceId")!,
+      sourceId: context.req.param("sourceId"),
+      serverId: context.req.param("serverId"),
       workspaceId: user.workspaceId,
     });
     return context.body(null, 204);
@@ -135,7 +139,8 @@ notificationRoutes.post(
     const user = context.get("user");
     const delivery = await testNotificationDestination({
       destinationId: context.req.param("destinationId"),
-      sourceId: context.req.param("sourceId")!,
+      sourceId: context.req.param("sourceId"),
+      serverId: context.req.param("serverId"),
       workspaceId: user.workspaceId,
     });
     return context.json({ delivery }, 202);

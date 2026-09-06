@@ -268,3 +268,59 @@ void test("monitoring requires installation acknowledgement and preserves previe
   assert.equal(h.calls[1]?.query?.previewId, otherUuid);
   assert(get("monitoring_configure").ownerOnly);
 });
+
+void test("Scout tools inspect before mutation and keep comparison output bounded", async () => {
+  const h = harness({
+    "GET /servers/:serverId/scout-alerts": { rules: [{ id: otherUuid }] },
+    "GET /servers/:serverId/scout-alerts/incidents": { incidents: [] },
+  });
+  const result = await get("alerts_inspect").run({ serverId: uuid }, h.context);
+  assert.deepEqual(result.rules, [{ id: otherUuid }]);
+  await get("alerts_mute").run(
+    {
+      serverId: uuid,
+      ruleId: otherUuid,
+      durationSeconds: 1800,
+      reason: "Maintenance",
+    },
+    h.context,
+  );
+  assert.equal(
+    h.calls.at(-1)?.route,
+    "/servers/:serverId/scout-alerts/rules/:ruleId/mute",
+  );
+  await get("deployment_compare").run({ workloadId: uuid }, h.context);
+  assert.equal(
+    h.calls.at(-1)?.route,
+    "/workloads/:deployableId/comparison-deployments",
+  );
+  const points = Array.from({ length: 240 }, (_, offsetSeconds) => ({
+    offsetSeconds,
+    metrics: {},
+  }));
+  const compare = harness({
+    "GET /workloads/:deployableId/deployment-comparison": {
+      baseline: { points },
+      candidate: { points },
+      metrics: [],
+    },
+  });
+  const summary = await get("deployment_compare").run(
+    { workloadId: uuid, baselineId: uuid, candidateId: otherUuid },
+    compare.context,
+  );
+  assert(!Object.hasOwn(summary.baseline as object, "points"));
+  const detailed = await get("deployment_compare").run(
+    {
+      workloadId: uuid,
+      baselineId: uuid,
+      candidateId: otherUuid,
+      includePoints: true,
+    },
+    compare.context,
+  );
+  assert((detailed.baseline as { points: unknown[] }).points.length <= 24);
+  assert(
+    get("alerts_configure").ownerOnly && !get("alerts_configure").readOnly,
+  );
+});

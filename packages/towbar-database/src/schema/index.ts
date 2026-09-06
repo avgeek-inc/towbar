@@ -38,6 +38,7 @@ import type {
   RestoreOperationPhase,
   ServerPreparationStep,
   VulnerabilitySeverityTotals,
+  ScoutAlertCondition,
 } from "@workspace/towbar-core";
 
 export const workspaceRoleEnum = pgEnum("towbar_workspace_role", [
@@ -400,9 +401,12 @@ export const notificationDestinations = pgTable(
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
-    sourceId: uuid("source_id")
-      .notNull()
-      .references(() => sources.id, { onDelete: "cascade" }),
+    sourceId: uuid("source_id").references(() => sources.id, {
+      onDelete: "cascade",
+    }),
+    serverId: uuid("server_id").references(() => servers.id, {
+      onDelete: "cascade",
+    }),
     provider: notificationProviderEnum("provider").notNull(),
     enabled: boolean("enabled").default(true).notNull(),
     categories: jsonb("categories").$type<NotificationCategory[]>().notNull(),
@@ -418,6 +422,11 @@ export const notificationDestinations = pgTable(
       .notNull(),
   },
   (table) => [
+    check(
+      "notificationDestinations_scope",
+      sql`num_nonnulls(${table.sourceId}, ${table.serverId}) = 1`,
+    ),
+    index("notificationDestinations_server").on(table.serverId),
     index("idx_towbar_notification_destinations_source").on(table.sourceId),
   ],
 );
@@ -429,9 +438,12 @@ export const notificationEvents = pgTable(
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
-    sourceId: uuid("source_id")
-      .notNull()
-      .references(() => sources.id, { onDelete: "cascade" }),
+    sourceId: uuid("source_id").references(() => sources.id, {
+      onDelete: "cascade",
+    }),
+    serverId: uuid("server_id").references(() => servers.id, {
+      onDelete: "cascade",
+    }),
     dedupeKey: varchar("dedupe_key", { length: 512 }).notNull(),
     type: varchar("type", { length: 80 })
       .$type<NotificationEventType>()
@@ -446,6 +458,15 @@ export const notificationEvents = pgTable(
       .notNull(),
   },
   (table) => [
+    check(
+      "notificationEvents_scope",
+      sql`num_nonnulls(${table.sourceId}, ${table.serverId}) = 1`,
+    ),
+    index("notificationEvents_server").on(table.serverId),
+    uniqueIndex("uq_towbar_notification_events_server_dedupe").on(
+      table.serverId,
+      table.dedupeKey,
+    ),
     uniqueIndex("uq_towbar_notification_events_dedupe").on(
       table.sourceId,
       table.dedupeKey,
@@ -1628,5 +1649,136 @@ export const monitoringSamples = pgTable(
     ),
     index("towbar_monitoring_rollup").on(table.resolution, table.bucketAt),
     check("towbar_monitoring_resolution", sql`${table.resolution} in (30,60)`),
+  ],
+);
+
+export const scoutAlertSettings = pgTable("towbar_scout_alert_settings", {
+  serverId: uuid("server_id")
+    .primaryKey()
+    .references(() => servers.id, { onDelete: "cascade" }),
+  mutedUntil: timestamp("muted_until", { withTimezone: true }),
+  muteReason: varchar("mute_reason", { length: 240 }).notNull().default(""),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const scoutAlertRules = pgTable(
+  "towbar_scout_alert_rules",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    serverId: uuid("server_id")
+      .notNull()
+      .references(() => servers.id, { onDelete: "cascade" }),
+    deployableId: uuid("deployable_id").references(() => apps.id, {
+      onDelete: "cascade",
+    }),
+    name: varchar("name", { length: 100 }).notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    severity: varchar("severity", { length: 20 }).notNull().default("warning"),
+    environment: varchar("environment", { length: 20 })
+      .notNull()
+      .default("production"),
+    condition: jsonb("condition").$type<ScoutAlertCondition>().notNull(),
+    notifyRecovery: boolean("notify_recovery").notNull().default(true),
+    mutedUntil: timestamp("muted_until", { withTimezone: true }),
+    muteReason: varchar("mute_reason", { length: 240 }).notNull().default(""),
+    evaluationState: varchar("evaluation_state", { length: 20 })
+      .notNull()
+      .default("unknown"),
+    evaluatedAt: timestamp("evaluated_at", { withTimezone: true }),
+    observedValue: jsonb("observed_value").$type<number | null>(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("towbar_scout_rules_due")
+      .on(table.evaluatedAt)
+      .where(sql`${table.enabled} and ${table.deletedAt} is null`),
+    index("towbar_scout_rules_server").on(table.workspaceId, table.serverId),
+    check(
+      "towbar_scout_rule_environment",
+      sql`${table.environment} in ('production','preview')`,
+    ),
+    check(
+      "towbar_scout_rule_severity",
+      sql`${table.severity} in ('warning','critical')`,
+    ),
+  ],
+);
+
+export const scoutAlertIncidents = pgTable(
+  "towbar_scout_alert_incidents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ruleId: uuid("rule_id")
+      .notNull()
+      .references(() => scoutAlertRules.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    serverId: uuid("server_id")
+      .notNull()
+      .references(() => servers.id, { onDelete: "cascade" }),
+    deployableId: uuid("deployable_id"),
+    environment: varchar("environment", { length: 20 }),
+    ruleRevision: timestamp("rule_revision", { withTimezone: true }),
+    ruleName: varchar("rule_name", { length: 100 }).notNull(),
+    severity: varchar("severity", { length: 20 }).notNull(),
+    condition: jsonb("condition").$type<ScoutAlertCondition>().notNull(),
+    openedAt: timestamp("opened_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    conditionStartedAt: timestamp("condition_started_at", {
+      withTimezone: true,
+    }).notNull(),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    resolutionReason: varchar("resolution_reason", { length: 80 }),
+    lastValue: jsonb("last_value").$type<number | null>(),
+    lastNotifiedAt: timestamp("last_notified_at", { withTimezone: true }),
+    notificationSequence: integer("notification_sequence").notNull().default(0),
+  },
+  (table) => [
+    uniqueIndex("towbar_scout_one_active_incident")
+      .on(table.ruleId)
+      .where(sql`${table.resolvedAt} is null`),
+    index("towbar_scout_incidents_history").on(
+      table.workspaceId,
+      table.serverId,
+      table.openedAt,
+      table.id,
+    ),
+  ],
+);
+
+export const scoutHttpChecks = pgTable(
+  "towbar_scout_http_checks",
+  {
+    ruleId: uuid("rule_id")
+      .notNull()
+      .references(() => scoutAlertRules.id, { onDelete: "cascade" }),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+    checkedAt: timestamp("checked_at", { withTimezone: true }),
+    ruleRevision: timestamp("rule_revision", { withTimezone: true }).notNull(),
+    state: varchar("state", { length: 20 }).notNull().default("pending"),
+    statusCode: integer("status_code"),
+    latencyMs: integer("latency_ms"),
+    reason: varchar("reason", { length: 240 }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.ruleId, table.scheduledAt] }),
+    index("towbar_scout_http_retention").on(table.scheduledAt),
+    check(
+      "towbar_scout_http_state",
+      sql`${table.state} in ('pending','healthy','failed','blocked')`,
+    ),
   ],
 );

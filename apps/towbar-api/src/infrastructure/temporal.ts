@@ -298,6 +298,20 @@ export async function wakeMaintenanceWorkflow() {
   return { workflowId };
 }
 
+export async function wakeScoutAlertsWorkflow() {
+  const client = await getTemporalClient();
+  const workflowId = "towbar-scout-alerts";
+  await client.workflow.signalWithStart("runScoutAlertsWorkflow", {
+    args: [],
+    signal: "wakeScoutAlerts",
+    signalArgs: [],
+    taskQueue: towbarTaskQueue,
+    workflowId,
+    workflowIdReusePolicy: "ALLOW_DUPLICATE",
+  });
+  return { workflowId };
+}
+
 export async function enqueueNotificationDelivery(input: {
   cycle: number;
   deliveryId: string;

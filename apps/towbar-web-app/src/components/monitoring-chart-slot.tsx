@@ -24,7 +24,7 @@ function drainUpdates() {
     }, 0);
   });
 }
-function scheduleUpdate(update: () => void) {
+export function scheduleChartUpdate(update: () => void) {
   updates.add(update);
   drainUpdates();
   return () => {
@@ -48,7 +48,7 @@ export const MonitoringChartSlot = memo(function MonitoringChartSlot(
   }, []);
   useEffect(() => {
     if (!visible) return;
-    return scheduleUpdate(() => setSnapshot(props));
+    return scheduleChartUpdate(() => setSnapshot(props));
   }, [props, visible]);
   return (
     <div ref={element} className="min-w-0" aria-busy={snapshot !== props}>
