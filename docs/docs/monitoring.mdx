@@ -105,7 +105,7 @@ Towbar installs two small systemd services: a local collector and an HTTPS sende
       src="/assets/guides/monitoring-agent-settings-light.webp"
       alt="Monitoring agent settings"
       width="1600"
-      height="670"
+      height="733"
       loading="lazy"
     />
   </div>
@@ -114,7 +114,7 @@ Towbar installs two small systemd services: a local collector and an HTTPS sende
       src="/assets/guides/monitoring-agent-settings-dark.webp"
       alt="Monitoring agent settings"
       width="1600"
-      height="670"
+      height="733"
       loading="lazy"
     />
   </div>
@@ -122,13 +122,13 @@ Towbar installs two small systemd services: a local collector and an HTTPS sende
 
 ### Performance history
 
-The server **Overview** shows performance charts below Host capacity. App and resource overviews show the same charts for their containers.
+Open the **Monitoring** tab on a server, app, or resource to view performance history. The tab stays available when monitoring is off, with links to the server's Monitoring Agent settings and this guide.
 
 - Server metrics include CPU usage, CPU count, load, memory, swap, root/Docker filesystem capacity, disk I/O, network traffic, and uptime.
 - Container metrics include CPU consumption and its limit, memory consumption and its limit, network and block I/O, restart count, state, and health when Docker provides it.
 - Choose a relative range from one hour through 60 days, limited by the server's retention setting. Switch between **Average** and **Peak**, and hover to read exact values at the same time across charts.
 - App and resource history survives container replacements. Each line represents an individual container. Choose **Production** or **Previews**, then an instance when you need to isolate it.
-- Gaps mean no measurement. Dashed markers and the event list help correlate deployments and restarts with changes in performance.
+- Gaps mean no measurement. Dashed graph markers identify deployments (D) and container restarts (R). The deployment and restart events table shows their references, statuses, and times.
 
 The API preserves the sum, count, minimum, and maximum for each metric. Longer chart ranges use fewer points; averages remain sample-weighted and peaks remain the highest observed value for that container. Up to 32 recently reporting instances are shown per query. A shorter range helps when a workload has many historical replacements.
 
@@ -138,7 +138,7 @@ The API preserves the sum, count, minimum, and maximum for each metric. Longer c
       src="/assets/guides/monitoring-performance-light.webp"
       alt="Server performance history"
       width="1600"
-      height="1515"
+      height="1772"
       loading="lazy"
     />
   </div>
@@ -147,7 +147,7 @@ The API preserves the sum, count, minimum, and maximum for each metric. Longer c
       src="/assets/guides/monitoring-performance-dark.webp"
       alt="Server performance history"
       width="1600"
-      height="1515"
+      height="1772"
       loading="lazy"
     />
   </div>

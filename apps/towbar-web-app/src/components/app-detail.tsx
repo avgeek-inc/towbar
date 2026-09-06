@@ -2,6 +2,7 @@
 import { MonitoringHistory } from "./monitoring-history";
 
 import {
+  Activity01Icon,
   DashboardCircleIcon,
   FileViewIcon,
   GitBranchIcon,
@@ -237,13 +238,18 @@ export function AppDetail() {
                     {item.config.autoDeploy ? "Enabled" : "Disabled"}
                   </Attributes.Item>
                 </Attributes>
-                <div className="min-w-0 lg:col-span-2">
-                  <MonitoringHistory
-                    path={`/v1/core/apps/${appId}/metrics`}
-                    workload
-                  />
-                </div>
               </div>
+            ),
+          },
+          {
+            value: "monitoring",
+            label: "Monitoring",
+            icon: <HugeiconsIcon icon={Activity01Icon} />,
+            content: (
+              <MonitoringHistory
+                path={`/v1/core/apps/${appId}/metrics`}
+                workload
+              />
             ),
           },
           {

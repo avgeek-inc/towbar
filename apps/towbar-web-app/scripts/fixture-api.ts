@@ -882,7 +882,11 @@ export function createFixtureApiServer() {
         writeJson(response, 200, { agent });
         return;
       }
-      void readRequestJson(request)
+      void (
+        monitoringPath[2] === "uninstall"
+          ? Promise.resolve({})
+          : readRequestJson(request)
+      )
         .then((body) => {
           const input = body as {
             retentionDays?: number;

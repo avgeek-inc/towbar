@@ -8,6 +8,7 @@ import { Checkbox } from "@workspace/web-design-system/forms/checkbox";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { ListBox, Select } from "@workspace/web-design-system/forms/select";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
+import { MonitoringDocumentation } from "./monitoring-documentation";
 import { ActionButton } from "./page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
@@ -64,14 +65,10 @@ function MonitoringAgentForm({
         </Widget.Header>
         <Widget.Content className="grid gap-5">
           <div className="grid gap-2">
-            <p>
-              Collect CPU, memory, disk, and network metrics for this server and
-              its apps and resources every 30 seconds.
-            </p>
+            <p>Install a monitoring agent for advanced monitoring.</p>
             <p className="max-w-3xl text-sm text-muted">
-              Towbar installs a small service that starts automatically after a
-              reboot. It sends metrics over HTTPS, uses a bounded retry buffer
-              during outages, and requires no inbound port.
+              See how this server and its apps and resources perform over time,
+              with updates every 30 seconds.
             </p>
           </div>
           <dl className="grid grid-cols-2 gap-4 text-sm lg:grid-cols-3">
@@ -154,8 +151,8 @@ function MonitoringAgentForm({
               </Select.Popover>
             </Select>
             <p className="text-xs text-muted">
-              30-second samples for 24 hours, then one-minute summaries.
-              Shortening retention permanently expires older history.
+              Choose how long to keep performance history. Reducing this period
+              removes older data.
             </p>
           </div>
           {canManage && days !== agent.retentionDays ? (
@@ -177,8 +174,8 @@ function MonitoringAgentForm({
                   <Checkbox.Indicator />
                 </Checkbox.Control>
                 <Label>
-                  I acknowledge installing the agent with access to host and
-                  Docker metrics.
+                  Allow Towbar to install the agent and collect performance
+                  data.
                 </Label>
               </Checkbox.Content>
             </Checkbox>
@@ -198,7 +195,7 @@ function MonitoringAgentForm({
                     ? {
                         title: "Update monitoring agent?",
                         description:
-                          "Install the bundled agent version and rotate its upload credential. Reporting may pause briefly.",
+                          "Install the latest agent version. Reporting may pause briefly.",
                         actionLabel: "Update agent",
                       }
                     : undefined
@@ -220,7 +217,7 @@ function MonitoringAgentForm({
                   confirm={{
                     title: "Uninstall monitoring agent?",
                     description:
-                      "Stop collection and remove the services and local buffer. Existing history stays available until its retention period expires.",
+                      "Stop monitoring and remove the agent. Existing history is kept for your selected retention period.",
                     actionLabel: "Uninstall agent",
                   }}
                   success="Agent removal queued"
@@ -231,6 +228,9 @@ function MonitoringAgentForm({
               ) : null}
             </div>
           ) : null}
+          <div>
+            <MonitoringDocumentation />
+          </div>
           {!ready && !installed ? (
             <p className="text-sm text-muted">
               Prepare this server before enabling monitoring.

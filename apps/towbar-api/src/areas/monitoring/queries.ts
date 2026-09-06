@@ -121,11 +121,14 @@ export async function getMonitoringHistory(
     state: string;
   }>(sql`
     select id,created_at::text at,state from towbar_deployments where server_id=${serverId}::uuid and created_at>=${start.toISOString()}::timestamptz and created_at<${end.toISOString()}::timestamptz and ${eventScope} order by created_at desc limit 200`);
+  const restartFilter = input.deployableId
+    ? filter
+    : sql`server_id=${serverId}::uuid and bucket_at>=${start.toISOString()}::timestamptz and bucket_at<${end.toISOString()}::timestamptz and entity_id<>'host'`;
   const restarts = await database.execute<{ id: string; at: string }>(sql`
     with changes as (select entity_id,bucket_at,
       (metrics->'restartCount'->>'max')::double precision restarts,
       lag((metrics->'restartCount'->>'max')::double precision) over(partition by entity_id order by bucket_at) previous
-      from towbar_monitoring_samples where ${filter})
+      from towbar_monitoring_samples where ${restartFilter})
     select entity_id id,bucket_at::text at from changes where restarts>previous order by bucket_at desc limit 200`);
   return {
     agent,

@@ -13,6 +13,12 @@ import { ListBox, Select } from "@workspace/web-design-system/forms/select";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
+import { MonitoringDocumentation } from "./monitoring-documentation";
+import {
+  MonitoringEvents,
+  MonitoringEventMarker,
+  monitoringEventColor,
+} from "./monitoring-events";
 import { MonitoringStatus } from "./monitoring-agent-settings";
 
 const ranges = [
@@ -166,27 +172,14 @@ export function MonitoringHistory({
         </div>
       </div>
       {query.error ? <QueryError message={query.error} /> : null}
+      {agent.desiredState !== "enabled" && hasPoints ? (
+        <MonitoringEmptyState serverId={selectedServer} disabled historical />
+      ) : null}
       {!hasPoints ? (
-        <Widget>
-          <Widget.Content className="grid min-h-64 place-content-center justify-items-center gap-3 text-center">
-            <h3 className="font-medium">
-              {agent.status === "disabled"
-                ? "Enable enhanced monitoring"
-                : "No measurements in this range"}
-            </h3>
-            <p className="max-w-lg text-sm text-muted">
-              {agent.status === "disabled"
-                ? "Install the monitoring agent to see server, app, and resource performance over time."
-                : "Metrics appear after the agent reports. Try another time range or check the agent's connection."}
-            </p>
-            <ButtonLink
-              href={`/servers/${selectedServer}?section=settings&settings=monitoring`}
-              variant="secondary"
-            >
-              Monitoring settings
-            </ButtonLink>
-          </Widget.Content>
-        </Widget>
+        <MonitoringEmptyState
+          serverId={selectedServer}
+          disabled={agent.desiredState !== "enabled"}
+        />
       ) : (
         <>
           <div className="grid min-w-0 gap-4 xl:grid-cols-2">
@@ -201,6 +194,11 @@ export function MonitoringHistory({
               />
             ))}
           </div>
+          {history.events.length ? (
+            <p className="text-xs text-muted">
+              Graph markers: D — deployment · R — container restart
+            </p>
+          ) : null}
           <p className="text-xs text-muted">
             {history.stepSeconds < 60
               ? `${history.stepSeconds}-second`
@@ -214,33 +212,48 @@ export function MonitoringHistory({
               : ""}
             Retained for {agent.retentionDays} days.
           </p>
-          {history.events.length ? (
-            <details className="text-sm">
-              <summary className="w-fit cursor-pointer text-muted">
-                Deployment and restart events ({history.events.length})
-              </summary>
-              <ul className="mt-3 grid max-h-48 gap-2 overflow-y-auto">
-                {history.events.map((event) => (
-                  <li
-                    key={`${event.type}:${event.id}:${event.at}`}
-                    className="flex flex-wrap justify-between gap-2"
-                  >
-                    <span>
-                      {event.type === "deployment"
-                        ? `Deployment ${event.id.slice(0, 8)} · ${event.state}`
-                        : "Container restarted"}
-                    </span>
-                    <time className="text-muted" dateTime={event.at}>
-                      {new Date(event.at).toLocaleString()}
-                    </time>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          ) : null}
+          <MonitoringEvents events={history.events} />
         </>
       )}
     </section>
+  );
+}
+function MonitoringEmptyState({
+  serverId,
+  disabled,
+  historical = false,
+}: {
+  serverId: string;
+  disabled: boolean;
+  historical?: boolean;
+}) {
+  return (
+    <Widget>
+      <Widget.Content
+        className={`grid place-content-center justify-items-center gap-3 text-center ${historical ? "" : "min-h-64"}`}
+      >
+        <h3 className="font-medium">
+          {disabled
+            ? "Advanced monitoring is not enabled"
+            : "No measurements in this range"}
+        </h3>
+        <p className="max-w-lg text-sm text-muted">
+          {disabled
+            ? "Turn on advanced monitoring in this server's settings to see performance over time."
+            : "Metrics appear after the agent reports. Try another time range or check the agent's connection."}
+          {historical ? " Previously collected history is shown below." : ""}
+        </p>
+        <div className="flex flex-wrap justify-center gap-2">
+          <ButtonLink
+            href={`/servers/${serverId}?section=settings&settings=monitoring`}
+            variant="secondary"
+          >
+            Server monitoring settings
+          </ButtonLink>
+          <MonitoringDocumentation />
+        </div>
+      </Widget.Content>
+    </Widget>
   );
 }
 function HistorySelect({
@@ -413,7 +426,8 @@ function MetricChart({
             tickMargin={8}
           />
           <LineChart.YAxis
-            width={90}
+            width="auto"
+            tickMargin={4}
             tick={{ fill: "var(--muted)", fontSize: 11 }}
             tickFormatter={(value) =>
               formatMetric(Number(value), metrics[0]!.unit)
@@ -430,9 +444,10 @@ function MetricChart({
                 history.stepSeconds *
                 1000
               }
-              stroke="var(--muted)"
-              strokeDasharray="2 5"
-              strokeOpacity={0.35}
+              stroke={monitoringEventColor(event.type)}
+              strokeDasharray="4 4"
+              strokeOpacity={0.6}
+              label={<MonitoringEventMarker event={event} />}
             />
           ))}
           {lines.map((line) => (

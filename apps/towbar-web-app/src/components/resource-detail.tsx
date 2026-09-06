@@ -2,6 +2,7 @@
 import { MonitoringHistory } from "./monitoring-history";
 
 import {
+  Activity01Icon,
   DatabaseIcon,
   FileViewIcon,
   Link01Icon,
@@ -198,13 +199,18 @@ export function ResourceDetail() {
                 : "None"}
             </Attributes.Item>
           </Attributes>
-          <div className="min-w-0 lg:col-span-2">
-            <MonitoringHistory
-              path={`/v1/core/resources/${resourceId}/metrics`}
-              workload
-            />
-          </div>
         </div>
+      ),
+    },
+    {
+      value: "monitoring",
+      label: "Monitoring",
+      icon: <HugeiconsIcon icon={Activity01Icon} />,
+      content: (
+        <MonitoringHistory
+          path={`/v1/core/resources/${resourceId}/metrics`}
+          workload
+        />
       ),
     },
     {

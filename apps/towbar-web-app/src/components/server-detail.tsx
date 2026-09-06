@@ -13,7 +13,6 @@ import {
   Activity01Icon,
   DashboardCircleIcon,
   DatabaseIcon,
-  Key01Icon,
   Link01Icon,
   ServerStack01Icon,
   Settings01Icon,
@@ -78,10 +77,12 @@ type HostKeyRow = {
 const SERVER_CHECK_PAGE_SIZE = 10;
 
 export function ServerDetail() {
-  const settingsTab =
-    useSearchParams().get("settings") === "monitoring"
-      ? "monitoring"
-      : "configuration";
+  const requestedSettings = useSearchParams().get("settings");
+  const settingsTab = ["monitoring", "host-keys", "cleanup"].includes(
+    requestedSettings ?? "",
+  )
+    ? requestedSettings!
+    : "configuration";
   const { serverId } = useParams<{
     serverId: string;
   }>();
@@ -200,7 +201,9 @@ export function ServerDetail() {
       header: "Category",
       cell: (check) =>
         check.errorCode === "HOST_KEY_NOT_TRUSTED" ? (
-          <InlineLink href={`/servers/${serverId}?section=host-keys`}>
+          <InlineLink
+            href={`/servers/${serverId}?section=settings&settings=host-keys`}
+          >
             Host keys
           </InlineLink>
         ) : check.errorCode === "TEMPORAL_UNAVAILABLE" ? (
@@ -387,10 +390,6 @@ export function ServerDetail() {
                     />
                   )}
                   <ServerHostCapacity capacity={capacity.data.capacity} />
-                  <MonitoringHistory
-                    path={`/v1/core/servers/${serverId}/metrics`}
-                    serverId={serverId}
-                  />
                   <div className="content-grid lg:grid-cols-2">
                     <Attributes
                       icon={<HugeiconsIcon icon={Link01Icon} />}
@@ -473,6 +472,17 @@ export function ServerDetail() {
               ),
             },
             {
+              value: "monitoring",
+              label: "Monitoring",
+              icon: <HugeiconsIcon icon={Activity01Icon} />,
+              content: (
+                <MonitoringHistory
+                  path={`/v1/core/servers/${serverId}/metrics`}
+                  serverId={serverId}
+                />
+              ),
+            },
+            {
               value: "apps",
               label: "Apps",
               icon: <HugeiconsIcon icon={DashboardCircleIcon} />,
@@ -491,26 +501,6 @@ export function ServerDetail() {
                 <ServerDeployableTable
                   capacity={capacity.data.capacity}
                   kind="resource"
-                />
-              ),
-            },
-            {
-              value: "host-keys",
-              label: "Host Keys",
-              icon: <HugeiconsIcon icon={Key01Icon} />,
-              indicator: {
-                label: String(hostKeyRows.length),
-                variant: discovered.length ? "warning" : "secondary",
-              },
-              content: (
-                <ResourceTable
-                  ariaLabel={`Host keys for ${item.canonicalIp}`}
-                  columns={hostKeyColumns}
-                  emptyDescription="Run a server check to discover the SSH host keys presented by this server."
-                  emptyTitle="No SSH host keys"
-                  getRowKey={(key) => key.fingerprint}
-                  items={hostKeyRows}
-                  tableClassName="min-w-[760px]"
                 />
               ),
             },
@@ -543,6 +533,15 @@ export function ServerDetail() {
                   ariaLabel="Server settings"
                   defaultSelectedKey={settingsTab}
                   key={settingsTab}
+                  onSelectionChange={(key) => {
+                    const params = new URLSearchParams(window.location.search);
+                    params.set("settings", String(key));
+                    window.history.pushState(
+                      null,
+                      "",
+                      `/servers/${serverId}?${params.toString()}`,
+                    );
+                  }}
                   tabs={[
                     {
                       value: "configuration",
@@ -552,6 +551,21 @@ export function ServerDetail() {
                           canManage={server.data.canManageServer}
                           canRemove={server.data.canRemoveServer}
                           server={item}
+                        />
+                      ),
+                    },
+                    {
+                      value: "host-keys",
+                      label: "Host Keys",
+                      content: (
+                        <ResourceTable
+                          ariaLabel={`Host keys for ${item.canonicalIp}`}
+                          columns={hostKeyColumns}
+                          emptyDescription="Run a server check to discover the SSH host keys presented by this server."
+                          emptyTitle="No SSH host keys"
+                          getRowKey={(key) => key.fingerprint}
+                          items={hostKeyRows}
+                          tableClassName="min-w-[760px]"
                         />
                       ),
                     },

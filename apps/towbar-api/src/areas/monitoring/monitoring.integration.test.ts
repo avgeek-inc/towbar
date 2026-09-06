@@ -464,6 +464,44 @@ void test(
             isolated.series[0]?.points[0]?.metrics.cpuPercent?.max,
             20,
           );
+          const previous = new Date(now.getTime() - 60_000);
+          await db.insert(monitoringSamples).values(
+            [0, 1].map((restartCount, index) => ({
+              serverId,
+              entityId: "1".repeat(64),
+              deployableId: appId,
+              deploymentId: deploymentIds[0]!,
+              bucketAt: new Date(previous.getTime() + index * 30_000),
+              metrics: aggregateMonitoringValues({ restartCount }),
+            })),
+          );
+          const serverHistory = await getMonitoringHistory(
+            { serverId, workspaceId, range: "1h", environment: "production" },
+            now,
+          );
+          assert.equal(
+            serverHistory.events.filter((event) => event.type === "restart")
+              .length,
+            1,
+          );
+          const appHistory = await getMonitoringHistory(
+            { ...query, environment: "production" },
+            now,
+          );
+          assert.equal(
+            appHistory.events.filter((event) => event.type === "restart")
+              .length,
+            1,
+          );
+          const previewHistory = await getMonitoringHistory(
+            { ...query, environment: "preview" },
+            now,
+          );
+          assert.equal(
+            previewHistory.events.filter((event) => event.type === "restart")
+              .length,
+            0,
+          );
           await db
             .delete(deployments)
             .where(eq(deployments.sourceId, sourceId));
