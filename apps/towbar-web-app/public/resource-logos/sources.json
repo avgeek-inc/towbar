@@ -1,0 +1,1022 @@
+[
+  {
+    "product": "Temporal",
+    "file": "temporal.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/temporal.svg",
+    "repositories": [
+      "temporalio/server",
+      "temporalio/auto-setup",
+      "temporalio/ui",
+      "temporalio/admin-tools",
+      "temporalio/temporal"
+    ],
+    "darkFile": "temporal-light.svg"
+  },
+  {
+    "product": "Mailpit",
+    "file": "mailpit.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/mailpit.webp",
+    "repositories": ["axllent/mailpit"]
+  },
+  {
+    "product": "PostgreSQL",
+    "file": "postgresql.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/postgresql.webp",
+    "repositories": ["postgres", "bitnami/postgresql"]
+  },
+  {
+    "product": "Redis",
+    "file": "redis.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/redis.webp",
+    "repositories": [
+      "redis",
+      "redis/redis-stack",
+      "redis/redis-stack-server",
+      "bitnami/redis"
+    ]
+  },
+  {
+    "product": "Valkey",
+    "file": "valkey.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/valkey.webp",
+    "repositories": ["valkey/valkey"]
+  },
+  {
+    "product": "MySQL",
+    "file": "mysql.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/mysql.webp",
+    "repositories": ["mysql", "mysql/mysql-server"]
+  },
+  {
+    "product": "MariaDB",
+    "file": "mariadb.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/mariadb.webp",
+    "repositories": ["mariadb", "bitnami/mariadb"]
+  },
+  {
+    "product": "MongoDB",
+    "file": "mongodb.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/mongodb.webp",
+    "repositories": ["mongo", "mongodb/mongodb-community-server"]
+  },
+  {
+    "product": "Apache Cassandra",
+    "file": "cassandra.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/apache-cassandra.webp",
+    "repositories": ["cassandra"]
+  },
+  {
+    "product": "Apache CouchDB",
+    "file": "couchdb.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/couchdb.webp",
+    "repositories": ["couchdb"]
+  },
+  {
+    "product": "ClickHouse",
+    "file": "clickhouse.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/clickhouse.webp",
+    "repositories": ["clickhouse/clickhouse-server"]
+  },
+  {
+    "product": "CockroachDB",
+    "file": "cockroachdb.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/cockroachlabs.svg",
+    "repositories": ["cockroachdb/cockroach"]
+  },
+  {
+    "product": "Neo4j",
+    "file": "neo4j.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/neo4j.webp",
+    "repositories": ["neo4j"]
+  },
+  {
+    "product": "InfluxDB",
+    "file": "influxdb.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/influxdb.webp",
+    "repositories": ["influxdb"]
+  },
+  {
+    "product": "TimescaleDB",
+    "file": "timescaledb.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/timescale.svg",
+    "repositories": ["timescale/timescaledb", "timescale/timescaledb-ha"]
+  },
+  {
+    "product": "QuestDB",
+    "file": "questdb.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/questdb.webp",
+    "repositories": ["questdb/questdb"]
+  },
+  {
+    "product": "Memcached",
+    "file": "memcached.svg",
+    "source": "https://github.com/iconify/icon-sets/blob/ad784891fdb45ab99c31908c58c759333acb6571/json/logos.json",
+    "repositories": ["memcached"],
+    "upstreamIcon": "memcached"
+  },
+  {
+    "product": "KeyDB",
+    "file": "keydb.svg",
+    "source": "https://github.com/iconify/icon-sets/blob/ad784891fdb45ab99c31908c58c759333acb6571/json/logos.json",
+    "repositories": ["eqalpha/keydb"],
+    "upstreamIcon": "keydb-icon"
+  },
+  {
+    "product": "Nextcloud",
+    "file": "nextcloud.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/nextcloud.webp",
+    "repositories": ["nextcloud"]
+  },
+  {
+    "product": "RabbitMQ",
+    "file": "rabbitmq.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/rabbitmq.webp",
+    "repositories": ["rabbitmq", "bitnami/rabbitmq"]
+  },
+  {
+    "product": "NATS",
+    "file": "nats.svg",
+    "source": "https://github.com/iconify/icon-sets/blob/ad784891fdb45ab99c31908c58c759333acb6571/json/logos.json",
+    "repositories": ["nats"],
+    "upstreamIcon": "nats-icon"
+  },
+  {
+    "product": "Apache Kafka",
+    "file": "kafka.svg",
+    "source": "https://github.com/iconify/icon-sets/blob/ad784891fdb45ab99c31908c58c759333acb6571/json/logos.json",
+    "repositories": [
+      "apache/kafka",
+      "apache/kafka-native",
+      "confluentinc/cp-kafka",
+      "bitnami/kafka"
+    ],
+    "upstreamIcon": "kafka-icon"
+  },
+  {
+    "product": "Paperless-ngx",
+    "file": "paperless-ngx.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/paperless-ngx.webp",
+    "repositories": ["ghcr.io/paperless-ngx/paperless-ngx"]
+  },
+  {
+    "product": "Immich",
+    "file": "immich.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/immich.webp",
+    "repositories": [
+      "ghcr.io/immich-app/immich-server",
+      "ghcr.io/immich-app/immich-machine-learning"
+    ]
+  },
+  {
+    "product": "Apache Pulsar",
+    "file": "apache-pulsar.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/apachepulsar.svg",
+    "repositories": ["apachepulsar/pulsar"]
+  },
+  {
+    "product": "Home Assistant",
+    "file": "home-assistant.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/home-assistant.webp",
+    "repositories": [
+      "homeassistant/home-assistant",
+      "ghcr.io/home-assistant/home-assistant"
+    ]
+  },
+  {
+    "product": "Elasticsearch",
+    "file": "elasticsearch.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/elasticsearch.webp",
+    "repositories": [
+      "elasticsearch",
+      "docker.elastic.co/elasticsearch/elasticsearch"
+    ]
+  },
+  {
+    "product": "OpenSearch",
+    "file": "opensearch.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/opensearch.webp",
+    "repositories": ["opensearchproject/opensearch"]
+  },
+  {
+    "product": "Apache Solr",
+    "file": "solr.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/apache-solr.webp",
+    "repositories": ["solr"]
+  },
+  {
+    "product": "Meilisearch",
+    "file": "meilisearch.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/meilisearch.webp",
+    "repositories": ["getmeili/meilisearch"]
+  },
+  {
+    "product": "Typesense",
+    "file": "typesense.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/typesense.webp",
+    "repositories": ["typesense/typesense"]
+  },
+  {
+    "product": "Qdrant",
+    "file": "qdrant.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/qdrant.webp",
+    "repositories": ["qdrant/qdrant"]
+  },
+  {
+    "product": "Ollama",
+    "file": "ollama.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/ollama.webp",
+    "repositories": ["ollama/ollama"],
+    "darkFile": "ollama-dark.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/ollama-dark.webp"
+  },
+  {
+    "product": "Milvus",
+    "file": "milvus.svg",
+    "source": "https://github.com/iconify/icon-sets/blob/ad784891fdb45ab99c31908c58c759333acb6571/json/logos.json",
+    "repositories": ["milvusdb/milvus"],
+    "upstreamIcon": "milvus-icon"
+  },
+  {
+    "product": "Chroma",
+    "file": "chroma.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/chroma.webp",
+    "repositories": ["chromadb/chroma"]
+  },
+  {
+    "product": "MinIO",
+    "file": "minio.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/minio.webp",
+    "repositories": ["minio/minio", "quay.io/minio/minio"],
+    "darkFile": "minio-light.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/minio-light.webp"
+  },
+  {
+    "product": "Open WebUI",
+    "file": "open-webui.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/open-webui.webp",
+    "repositories": ["ghcr.io/open-webui/open-webui"],
+    "darkFile": "open-webui-light.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/open-webui-light.webp"
+  },
+  {
+    "product": "NGINX",
+    "file": "nginx.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/nginx.webp",
+    "repositories": ["nginx", "nginxinc/nginx-unprivileged"]
+  },
+  {
+    "product": "Caddy",
+    "file": "caddy.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/caddy.webp",
+    "repositories": ["caddy"]
+  },
+  {
+    "product": "Traefik",
+    "file": "traefik.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/traefik.webp",
+    "repositories": ["traefik"]
+  },
+  {
+    "product": "HAProxy",
+    "file": "haproxy.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/haproxy.webp",
+    "repositories": ["haproxy", "haproxytech/haproxy-alpine"]
+  },
+  {
+    "product": "Envoy",
+    "file": "envoy.svg",
+    "source": "https://github.com/iconify/icon-sets/blob/ad784891fdb45ab99c31908c58c759333acb6571/json/logos.json",
+    "repositories": ["envoyproxy/envoy", "envoyproxy/envoy-distroless"],
+    "upstreamIcon": "envoy-icon"
+  },
+  {
+    "product": "Apache HTTP Server",
+    "file": "apache.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/apache.webp",
+    "repositories": ["httpd"]
+  },
+  {
+    "product": "Outline",
+    "file": "outline.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/outline.webp",
+    "repositories": [
+      "outlinewiki/outline",
+      "docker.getoutline.com/outlinewiki/outline"
+    ]
+  },
+  {
+    "product": "Apache Airflow",
+    "file": "airflow.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/apache-airflow.webp",
+    "repositories": ["apache/airflow"]
+  },
+  {
+    "product": "Prefect",
+    "file": "prefect.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/prefect.svg",
+    "repositories": ["prefecthq/prefect"],
+    "darkFile": "prefect-light.svg"
+  },
+  {
+    "product": "Dagster",
+    "file": "dagster.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/dagster-dark.webp",
+    "repositories": ["dagster/dagster-celery-k8s"],
+    "darkFile": "dagster-light.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/dagster-light.webp"
+  },
+  {
+    "product": "n8n",
+    "file": "n8n.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/n8n.webp",
+    "repositories": ["n8nio/n8n", "docker.n8n.io/n8nio/n8n"]
+  },
+  {
+    "product": "Node-RED",
+    "file": "node-red.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/node-red.webp",
+    "repositories": ["nodered/node-red"]
+  },
+  {
+    "product": "Windmill",
+    "file": "windmill.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/windmill.webp",
+    "repositories": ["ghcr.io/windmill-labs/windmill"]
+  },
+  {
+    "product": "Kestra",
+    "file": "kestra.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/kestra.webp",
+    "repositories": ["kestra/kestra"]
+  },
+  {
+    "product": "Grafana",
+    "file": "grafana.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/grafana.webp",
+    "repositories": [
+      "grafana/grafana",
+      "grafana/grafana-oss",
+      "grafana/grafana-enterprise"
+    ]
+  },
+  {
+    "product": "Prometheus",
+    "file": "prometheus.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/prometheus.webp",
+    "repositories": ["prom/prometheus", "quay.io/prometheus/prometheus"]
+  },
+  {
+    "product": "Alertmanager",
+    "file": "alertmanager.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/alertmanager.webp",
+    "repositories": ["prom/alertmanager", "quay.io/prometheus/alertmanager"]
+  },
+  {
+    "product": "Grafana Loki",
+    "file": "loki.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/loki.webp",
+    "repositories": ["grafana/loki"]
+  },
+  {
+    "product": "BookStack",
+    "file": "bookstack.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/bookstack.webp",
+    "repositories": [
+      "solidnerd/bookstack",
+      "lscr.io/linuxserver/bookstack",
+      "linuxserver/bookstack"
+    ]
+  },
+  {
+    "product": "VictoriaMetrics",
+    "file": "victoriametrics.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/victoriametrics.webp",
+    "repositories": ["victoriametrics/victoria-metrics"],
+    "darkFile": "victoriametrics-light.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/victoriametrics-light.webp"
+  },
+  {
+    "product": "Netdata",
+    "file": "netdata.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/netdata.webp",
+    "repositories": ["netdata/netdata"]
+  },
+  {
+    "product": "Glances",
+    "file": "glances.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/glances.webp",
+    "repositories": ["nicolargo/glances"],
+    "darkFile": "glances-light.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/glances-light.webp"
+  },
+  {
+    "product": "Uptime Kuma",
+    "file": "uptime-kuma.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/uptime-kuma.webp",
+    "repositories": ["louislam/uptime-kuma"]
+  },
+  {
+    "product": "Healthchecks",
+    "file": "healthchecks.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/healthchecks.webp",
+    "repositories": ["healthchecks/healthchecks"]
+  },
+  {
+    "product": "SigNoz",
+    "file": "signoz.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/signoz.webp",
+    "repositories": ["signoz/signoz", "signoz/query-service"]
+  },
+  {
+    "product": "Jaeger",
+    "file": "jaeger.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/jaeger.webp",
+    "repositories": ["jaegertracing/jaeger", "jaegertracing/all-in-one"]
+  },
+  {
+    "product": "Plausible",
+    "file": "plausible.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/plausible.webp",
+    "repositories": [
+      "ghcr.io/plausible/community-edition",
+      "plausible/analytics"
+    ]
+  },
+  {
+    "product": "Sentry",
+    "file": "sentry.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/sentry.webp",
+    "repositories": ["getsentry/sentry", "ghcr.io/getsentry/sentry"],
+    "darkFile": "sentry-light.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/sentry-light.webp"
+  },
+  {
+    "product": "GlitchTip",
+    "file": "glitchtip.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/glitchtip.webp",
+    "repositories": ["glitchtip/glitchtip"]
+  },
+  {
+    "product": "Dozzle",
+    "file": "dozzle.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/dozzle.webp",
+    "repositories": ["amir20/dozzle"]
+  },
+  {
+    "product": "Fluent Bit",
+    "file": "fluent-bit.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/fluentbit.svg",
+    "repositories": ["fluent/fluent-bit", "cr.fluentbit.io/fluent/fluent-bit"]
+  },
+  {
+    "product": "Fluentd",
+    "file": "fluentd.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/fluentd.svg",
+    "repositories": ["fluent/fluentd"]
+  },
+  {
+    "product": "Logstash",
+    "file": "logstash.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/logstash.webp",
+    "repositories": ["logstash", "docker.elastic.co/logstash/logstash"]
+  },
+  {
+    "product": "MailHog",
+    "file": "mailhog.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/mailhog.webp",
+    "repositories": ["mailhog/mailhog"]
+  },
+  {
+    "product": "Docker Mailserver",
+    "file": "docker-mailserver.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/docker-mailserver.webp",
+    "repositories": ["ghcr.io/docker-mailserver/docker-mailserver"],
+    "darkFile": "docker-mailserver-light.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/docker-mailserver-light.webp"
+  },
+  {
+    "product": "Umami",
+    "file": "umami.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/umami.webp",
+    "repositories": ["ghcr.io/umami-software/umami"],
+    "darkFile": "umami-light.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/umami-light.webp"
+  },
+  {
+    "product": "Keycloak",
+    "file": "keycloak.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/keycloak.webp",
+    "repositories": ["quay.io/keycloak/keycloak", "keycloak/keycloak"]
+  },
+  {
+    "product": "Authentik",
+    "file": "authentik.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/authentik.webp",
+    "repositories": ["ghcr.io/goauthentik/server"]
+  },
+  {
+    "product": "Authelia",
+    "file": "authelia.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/authelia.webp",
+    "repositories": ["authelia/authelia"]
+  },
+  {
+    "product": "Actual Budget",
+    "file": "actual-budget.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/actual-budget.webp",
+    "repositories": [
+      "actualbudget/actual-server",
+      "ghcr.io/actualbudget/actual-server"
+    ]
+  },
+  {
+    "product": "Vault",
+    "file": "vault.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/vault.webp",
+    "repositories": ["hashicorp/vault"],
+    "darkFile": "vault-light.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/vault-light.webp"
+  },
+  {
+    "product": "OpenBao",
+    "file": "openbao.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/openbao.svg",
+    "repositories": ["openbao/openbao", "quay.io/openbao/openbao"]
+  },
+  {
+    "product": "OAuth2 Proxy",
+    "file": "oauth2-proxy.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/oauth2-proxy.webp",
+    "repositories": ["quay.io/oauth2-proxy/oauth2-proxy"]
+  },
+  {
+    "product": "ZITADEL",
+    "file": "zitadel.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/zitadel.webp",
+    "repositories": ["ghcr.io/zitadel/zitadel"],
+    "darkFile": "zitadel-light.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/zitadel-light.webp"
+  },
+  {
+    "product": "Portainer",
+    "file": "portainer.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/portainer.webp",
+    "repositories": ["portainer/portainer-ce", "portainer/portainer-ee"],
+    "darkFile": "portainer-dark.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/portainer-dark.webp"
+  },
+  {
+    "product": "Watchtower",
+    "file": "watchtower.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/watchtower.webp",
+    "repositories": ["containrrr/watchtower"]
+  },
+  {
+    "product": "Docker Registry",
+    "file": "docker.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/docker.webp",
+    "repositories": ["registry"]
+  },
+  {
+    "product": "Harbor",
+    "file": "harbor.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/harbor.webp",
+    "repositories": [
+      "goharbor/harbor-core",
+      "goharbor/harbor-portal",
+      "goharbor/registry-photon"
+    ]
+  },
+  {
+    "product": "Gitea",
+    "file": "gitea.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/gitea.webp",
+    "repositories": ["gitea/gitea", "docker.gitea.com/gitea"]
+  },
+  {
+    "product": "Forgejo",
+    "file": "forgejo.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/forgejo.webp",
+    "repositories": ["codeberg.org/forgejo/forgejo"]
+  },
+  {
+    "product": "GitLab",
+    "file": "gitlab.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/gitlab.webp",
+    "repositories": ["gitlab/gitlab-ce", "gitlab/gitlab-ee"]
+  },
+  {
+    "product": "Jenkins",
+    "file": "jenkins.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/jenkins.webp",
+    "repositories": ["jenkins/jenkins"]
+  },
+  {
+    "product": "Woodpecker CI",
+    "file": "woodpecker-ci.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/woodpecker-ci.webp",
+    "repositories": [
+      "woodpeckerci/woodpecker-server",
+      "woodpeckerci/woodpecker-agent"
+    ]
+  },
+  {
+    "product": "Drone",
+    "file": "drone.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/drone.webp",
+    "repositories": ["drone/drone"]
+  },
+  {
+    "product": "SonarQube",
+    "file": "sonarqube.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/sonarqube.webp",
+    "repositories": ["sonarqube"]
+  },
+  {
+    "product": "Nexus Repository",
+    "file": "nexus.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/nexus.webp",
+    "repositories": ["sonatype/nexus3"]
+  },
+  {
+    "product": "Verdaccio",
+    "file": "verdaccio.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/verdaccio.webp",
+    "repositories": ["verdaccio/verdaccio"]
+  },
+  {
+    "product": "Adminer",
+    "file": "adminer.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/adminer.webp",
+    "repositories": ["adminer"]
+  },
+  {
+    "product": "pgAdmin",
+    "file": "pgadmin.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/pgadmin.webp",
+    "repositories": ["dpage/pgadmin4"]
+  },
+  {
+    "product": "RedisInsight",
+    "file": "redis-insight.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/redis.webp",
+    "repositories": ["redis/redisinsight"]
+  },
+  {
+    "product": "Metabase",
+    "file": "metabase.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/metabase.webp",
+    "repositories": ["metabase/metabase"]
+  },
+  {
+    "product": "Apache Superset",
+    "file": "superset.svg",
+    "source": "https://github.com/iconify/icon-sets/blob/ad784891fdb45ab99c31908c58c759333acb6571/json/logos.json",
+    "repositories": ["apache/superset"],
+    "upstreamIcon": "apache-superset-icon"
+  },
+  {
+    "product": "Matomo",
+    "file": "matomo.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/matomo.webp",
+    "repositories": ["matomo"]
+  },
+  {
+    "product": "Supabase",
+    "repositories": [
+      "supabase/postgres",
+      "supabase/gotrue",
+      "supabase/realtime",
+      "supabase/storage-api",
+      "supabase/studio",
+      "supabase/postgres-meta"
+    ],
+    "file": "supabase.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/supabase.webp"
+  },
+  {
+    "product": "SurrealDB",
+    "repositories": ["surrealdb/surrealdb"],
+    "file": "surrealdb.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/surrealdb.svg"
+  },
+  {
+    "product": "ScyllaDB",
+    "repositories": ["scylladb/scylla"],
+    "file": "scylladb.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/scylladb.svg"
+  },
+  {
+    "product": "ArangoDB",
+    "repositories": ["arangodb"],
+    "file": "arangodb.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/arangodb.svg"
+  },
+  {
+    "product": "FerretDB",
+    "repositories": ["ferretdb/ferretdb"],
+    "file": "ferretdb.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/ferretdb.webp"
+  },
+  {
+    "product": "Apache Flink",
+    "repositories": ["flink"],
+    "file": "flink.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/apacheflink.svg"
+  },
+  {
+    "product": "Apache Spark",
+    "repositories": ["spark", "apache/spark"],
+    "file": "spark.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/spark.webp"
+  },
+  {
+    "product": "Trino",
+    "repositories": ["trinodb/trino"],
+    "file": "trino.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/trino.svg"
+  },
+  {
+    "product": "OpenTelemetry",
+    "repositories": [
+      "otel/opentelemetry-collector",
+      "otel/opentelemetry-collector-contrib"
+    ],
+    "file": "opentelemetry.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/opentelemetry.svg",
+    "darkFile": "opentelemetry-light.svg"
+  },
+  {
+    "product": "Grafana Tempo",
+    "repositories": ["grafana/tempo", "grafana/tempo-query"],
+    "file": "tempo.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/grafana.webp"
+  },
+  {
+    "product": "Grafana Mimir",
+    "repositories": ["grafana/mimir"],
+    "file": "mimir.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/grafana.webp"
+  },
+  {
+    "product": "Grafana Pyroscope",
+    "repositories": ["grafana/pyroscope"],
+    "file": "pyroscope.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/grafana.webp"
+  },
+  {
+    "product": "Grafana Alloy",
+    "repositories": ["grafana/alloy"],
+    "file": "alloy.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/alloy.webp"
+  },
+  {
+    "product": "Vector",
+    "repositories": ["timberio/vector"],
+    "file": "vector.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/vector.webp"
+  },
+  {
+    "product": "Kibana",
+    "repositories": ["kibana", "docker.elastic.co/kibana/kibana"],
+    "file": "kibana.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/elastic-kibana.webp"
+  },
+  {
+    "product": "cAdvisor",
+    "repositories": ["google/cadvisor"],
+    "file": "cadvisor.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/cadvisor.webp"
+  },
+  {
+    "product": "Infisical",
+    "repositories": ["infisical/infisical"],
+    "file": "infisical.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/infisical.webp"
+  },
+  {
+    "product": "Appwrite",
+    "repositories": ["appwrite/appwrite"],
+    "file": "appwrite.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/appwrite.webp"
+  },
+  {
+    "product": "Directus",
+    "repositories": ["directus/directus"],
+    "file": "directus.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/directus.webp"
+  },
+  {
+    "product": "NocoDB",
+    "repositories": ["nocodb/nocodb"],
+    "file": "nocodb.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/nocodb.webp"
+  },
+  {
+    "product": "Baserow",
+    "repositories": ["baserow/baserow"],
+    "file": "baserow.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/baserow.webp"
+  },
+  {
+    "product": "Budibase",
+    "repositories": ["budibase/budibase"],
+    "file": "budibase.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/budibase.webp"
+  },
+  {
+    "product": "Appsmith",
+    "repositories": ["appsmith/appsmith-ce", "appsmith/appsmith-ee"],
+    "file": "appsmith.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/appsmith.svg",
+    "darkFile": "appsmith-light.svg"
+  },
+  {
+    "product": "ToolJet",
+    "repositories": ["tooljet/tooljet", "tooljet/tooljet-ce"],
+    "file": "tooljet.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/tooljet.webp"
+  },
+  {
+    "product": "Flowise",
+    "repositories": ["flowiseai/flowise"],
+    "file": "flowise.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/flowise.webp"
+  },
+  {
+    "product": "Langflow",
+    "repositories": ["langflowai/langflow"],
+    "file": "langflow.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/langflow.svg",
+    "darkFile": "langflow-light.svg"
+  },
+  {
+    "product": "vLLM",
+    "repositories": ["vllm/vllm-openai"],
+    "file": "vllm.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/vllm.svg"
+  },
+  {
+    "product": "Ray",
+    "repositories": ["rayproject/ray", "rayproject/ray-ml"],
+    "file": "ray.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/ray.svg"
+  },
+  {
+    "product": "Jupyter",
+    "repositories": [
+      "jupyter/base-notebook",
+      "jupyter/minimal-notebook",
+      "jupyter/scipy-notebook",
+      "jupyter/datascience-notebook",
+      "jupyter/pyspark-notebook",
+      "quay.io/jupyter/base-notebook",
+      "quay.io/jupyter/minimal-notebook",
+      "quay.io/jupyter/scipy-notebook",
+      "quay.io/jupyter/datascience-notebook",
+      "quay.io/jupyter/pyspark-notebook",
+      "quay.io/jupyter/all-spark-notebook",
+      "quay.io/jupyter/r-notebook",
+      "quay.io/jupyter/julia-notebook",
+      "quay.io/jupyter/tensorflow-notebook",
+      "quay.io/jupyter/pytorch-notebook"
+    ],
+    "file": "jupyter.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/jupyter.webp"
+  },
+  {
+    "product": "Gatus",
+    "repositories": ["twinproduction/gatus"],
+    "file": "gatus.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/gatus.webp"
+  },
+  {
+    "product": "Gotify",
+    "repositories": ["gotify/server"],
+    "file": "gotify.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/gotify.webp"
+  },
+  {
+    "product": "ntfy",
+    "repositories": ["binwiederhier/ntfy"],
+    "file": "ntfy.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/ntfy.webp"
+  },
+  {
+    "product": "Restic",
+    "repositories": ["restic/restic"],
+    "file": "restic.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/restic.webp"
+  },
+  {
+    "product": "Duplicati",
+    "repositories": ["duplicati/duplicati"],
+    "file": "duplicati.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/duplicati.webp"
+  },
+  {
+    "product": "Vaultwarden",
+    "repositories": ["vaultwarden/server"],
+    "file": "vaultwarden.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/vaultwarden.webp",
+    "darkFile": "vaultwarden-light.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/vaultwarden-light.webp"
+  },
+  {
+    "product": "Selenium",
+    "repositories": [
+      "selenium/standalone-chrome",
+      "selenium/standalone-firefox",
+      "selenium/hub",
+      "selenium/node-chrome",
+      "selenium/node-firefox"
+    ],
+    "file": "selenium.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/selenium.webp"
+  },
+  {
+    "product": "Node.js",
+    "repositories": ["node"],
+    "file": "nodejs.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/nodejs.webp"
+  },
+  {
+    "product": "Python",
+    "repositories": ["python"],
+    "file": "python.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/python.webp"
+  },
+  {
+    "product": "Go",
+    "repositories": ["golang"],
+    "file": "golang.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/go.svg"
+  },
+  {
+    "product": "Rust",
+    "repositories": ["rust"],
+    "file": "rust.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/rust.webp"
+  },
+  {
+    "product": "PHP",
+    "repositories": ["php"],
+    "file": "php.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/php.webp",
+    "darkFile": "php-light.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/php-light.webp"
+  },
+  {
+    "product": "Deno",
+    "repositories": ["denoland/deno"],
+    "file": "deno.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/deno.webp",
+    "darkFile": "deno-light.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/deno-light.webp"
+  },
+  {
+    "product": "Bun",
+    "repositories": ["oven/bun"],
+    "file": "bun.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/bun.svg",
+    "darkFile": "bun-light.svg"
+  },
+  {
+    "product": "WordPress",
+    "repositories": ["wordpress"],
+    "file": "wordpress.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/wordpress.webp"
+  },
+  {
+    "product": "Ghost",
+    "repositories": ["ghost"],
+    "file": "ghost.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/ghost.webp",
+    "darkFile": "ghost-light.webp",
+    "darkSource": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/ghost-light.webp"
+  },
+  {
+    "product": "Drupal",
+    "repositories": ["drupal"],
+    "file": "drupal.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/drupal.svg"
+  },
+  {
+    "product": "phpMyAdmin",
+    "repositories": ["phpmyadmin", "phpmyadmin/phpmyadmin"],
+    "file": "phpmyadmin.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/phpmyadmin.webp"
+  },
+  {
+    "product": "code-server",
+    "repositories": ["codercom/code-server"],
+    "file": "code-server.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/code-server.webp"
+  },
+  {
+    "product": "Graylog",
+    "repositories": ["graylog/graylog", "graylog/graylog-enterprise"],
+    "file": "graylog.webp",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/graylog.webp"
+  }
+]

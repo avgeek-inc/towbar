@@ -39,6 +39,18 @@ Images must have an explicit non-`latest` tag or a digest. Use a digest when you
   </p>
 </div>
 
+## Resource logos
+
+Towbar recognizes products such as Temporal, Mailpit, Grafana, RabbitMQ, Keycloak,
+MinIO, and common databases from their configured container image.
+Recognized image resources show the product logo and name in resource lists.
+
+Tags and digests do not change the logo. Docker Hub shorthand and fully qualified
+names are recognized, while other registries require an explicit supported alias.
+Unknown images and private mirrors keep the Docker logo. Logos are bundled with
+Towbar and do not require an external lookup. This is a visual identifier, not a
+verification of image provenance or security.
+
 ## Add a database
 
 ```yaml
