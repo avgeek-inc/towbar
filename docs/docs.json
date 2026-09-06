@@ -39,6 +39,7 @@
             "group": "Operate",
             "pages": [
               "docs/monitoring",
+              "docs/scout",
               "docs/backups",
               "docs/restores",
               "docs/troubleshooting"
@@ -178,7 +179,7 @@
                 "pages": ["api-reference/get_apps_by_id_previews"]
               },
               {
-                "group": "Monitoring",
+                "group": "Scout Agent",
                 "pages": ["api-reference/get_apps_by_id_metrics"]
               },
               {
@@ -233,7 +234,7 @@
                 ]
               },
               {
-                "group": "Monitoring",
+                "group": "Scout Agent",
                 "pages": ["api-reference/get_resources_by_id_metrics"]
               },
               {
@@ -271,7 +272,7 @@
                 "pages": ["api-reference/get_servers_by_id_capacity"]
               },
               {
-                "group": "Monitoring",
+                "group": "Scout Agent",
                 "pages": [
                   "api-reference/get_servers_by_id_monitoring",
                   "api-reference/patch_servers_by_id_monitoring",

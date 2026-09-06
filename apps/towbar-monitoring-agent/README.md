@@ -1,8 +1,8 @@
-# Towbar monitoring agent
+# Scout Agent — Towbar’s monitoring agent
 
 A dependency-free Go collector and HTTPS sender for Linux servers. The worker installs the binary and hardened systemd units through the existing trusted SSH connection. Agent credentials never enter Temporal workflow arguments or history.
 
-See [monitoring documentation](../../docs/docs/monitoring.mdx) for operator setup, metrics, limits, and retention.
+See [monitoring documentation](../../docs/docs/scout.mdx) for operator setup, metrics, limits, and retention.
 
 ## Build and test
 

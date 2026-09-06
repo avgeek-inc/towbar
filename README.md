@@ -129,6 +129,15 @@ You operate the hosts, network access, and control-plane backups. The
 [self-hosting security guide](https://www.towbar.dev/docs/self-hosting/security)
 explains the installation's trust boundaries and credential handling.
 
+## Meet Scout Agent
+
+<img src="docs/assets/scout/mascot.webp" alt="Scout Agent, Towbar’s monitoring mascot" width="96" height="96" />
+
+[Scout Agent](https://www.towbar.dev/docs/scout) is Towbar’s opt-in monitoring agent.
+Follow server, app, and resource performance with updates every 30 seconds,
+deployment and restart markers, and up to 60 days of history. Enable it in
+**Server → Settings → Scout Agent**.
+
 ## Explore the docs
 
 | Deploy                                                       | Operate                                                       | Self-host                                                                    |

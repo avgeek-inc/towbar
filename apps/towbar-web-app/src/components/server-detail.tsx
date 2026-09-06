@@ -473,7 +473,7 @@ export function ServerDetail() {
             },
             {
               value: "monitoring",
-              label: "Monitoring",
+              label: "Scout Agent",
               icon: <HugeiconsIcon icon={Activity01Icon} />,
               content: (
                 <MonitoringHistory
@@ -571,7 +571,7 @@ export function ServerDetail() {
                     },
                     {
                       value: "monitoring",
-                      label: "Monitoring Agent",
+                      label: "Scout Agent",
                       content: (
                         <MonitoringAgentSettings
                           serverId={serverId}

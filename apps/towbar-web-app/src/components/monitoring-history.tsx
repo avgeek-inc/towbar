@@ -8,6 +8,7 @@ import { ListBox, Select } from "@workspace/web-design-system/forms/select";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
+import { ScoutMascot } from "./scout-mascot";
 import { MonitoringDocumentation } from "./monitoring-documentation";
 import { MonitoringEvents } from "./monitoring-events";
 import { type ChartMetric } from "./monitoring-metric-chart";
@@ -217,15 +218,16 @@ function MonitoringEmptyState({
       <Widget.Content
         className={`grid place-content-center justify-items-center gap-3 text-center ${historical ? "" : "min-h-64"}`}
       >
+        <ScoutMascot size={64} />
         <h3 className="font-medium">
           {disabled
-            ? "Advanced monitoring is not enabled"
+            ? "Scout Agent is not enabled"
             : "No measurements in this range"}
         </h3>
         <p className="max-w-lg text-sm text-muted">
           {disabled
-            ? "Turn on advanced monitoring in this server's settings to see performance over time."
-            : "Metrics appear after the agent reports. Try another time range or check the agent's connection."}
+            ? "Install Scout Agent on this server to see how your apps and resources perform over time."
+            : "Metrics appear after Scout Agent reports. Try another time range or check Scout Agent’s connection."}
           {historical ? " Previously collected history is shown below." : ""}
         </p>
         <div className="flex flex-wrap justify-center gap-2">
@@ -233,7 +235,7 @@ function MonitoringEmptyState({
             href={`/servers/${serverId}?section=settings&settings=monitoring`}
             variant="secondary"
           >
-            Server monitoring settings
+            Scout Agent settings
           </ButtonLink>
           <MonitoringDocumentation />
         </div>

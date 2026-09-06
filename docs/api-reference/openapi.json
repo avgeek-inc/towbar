@@ -5694,8 +5694,8 @@
     "/servers/{serverId}/monitoring": {
       "get": {
         "operationId": "get_servers_by_id_monitoring",
-        "summary": "Get monitoring agent",
-        "tags": ["Servers / Monitoring"],
+        "summary": "Get Scout Agent status",
+        "tags": ["Servers / Scout Agent"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -5713,7 +5713,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Agent status, reporting diagnostics, and retention settings.",
+            "description": "Scout Agent status, reporting diagnostics, and retention settings.",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Response_1" }
@@ -5734,7 +5734,7 @@
       "patch": {
         "operationId": "patch_servers_by_id_monitoring",
         "summary": "Set monitoring retention",
-        "tags": ["Servers / Monitoring"],
+        "tags": ["Servers / Scout Agent"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -5797,8 +5797,8 @@
     "/servers/{serverId}/monitoring/actions/install": {
       "post": {
         "operationId": "post_servers_by_id_monitoring_actions_install",
-        "summary": "Install or update monitoring agent",
-        "tags": ["Servers / Monitoring"],
+        "summary": "Install or update Scout Agent",
+        "tags": ["Servers / Scout Agent"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -5862,8 +5862,8 @@
     "/servers/{serverId}/monitoring/actions/uninstall": {
       "post": {
         "operationId": "post_servers_by_id_monitoring_actions_uninstall",
-        "summary": "Uninstall monitoring agent",
-        "tags": ["Servers / Monitoring"],
+        "summary": "Uninstall Scout Agent",
+        "tags": ["Servers / Scout Agent"],
         "description": "Requires workspace owner permission. Requires a full-access key.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -5904,7 +5904,7 @@
       "get": {
         "operationId": "get_servers_by_id_metrics",
         "summary": "Read server metrics history",
-        "tags": ["Servers / Monitoring"],
+        "tags": ["Servers / Scout Agent"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -5975,7 +5975,7 @@
       "get": {
         "operationId": "get_apps_by_id_metrics",
         "summary": "Read app metrics history",
-        "tags": ["Apps / Monitoring"],
+        "tags": ["Apps / Scout Agent"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -6046,7 +6046,7 @@
       "get": {
         "operationId": "get_resources_by_id_metrics",
         "summary": "Read resource metrics history",
-        "tags": ["Resources / Monitoring"],
+        "tags": ["Resources / Scout Agent"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [

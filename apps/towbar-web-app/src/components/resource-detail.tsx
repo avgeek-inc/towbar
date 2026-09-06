@@ -204,7 +204,7 @@ export function ResourceDetail() {
     },
     {
       value: "monitoring",
-      label: "Monitoring",
+      label: "Scout Agent",
       icon: <HugeiconsIcon icon={Activity01Icon} />,
       content: (
         <MonitoringHistory

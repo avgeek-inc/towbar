@@ -3,12 +3,12 @@ import { ButtonLink } from "@workspace/web-design-system/buttons/button";
 export function MonitoringDocumentation() {
   return (
     <ButtonLink
-      href="https://www.towbar.dev/docs/monitoring#enhanced-monitoring-agent"
+      href="https://www.towbar.dev/docs/scout"
       variant="secondary"
       target="_blank"
       rel="noreferrer"
     >
-      Monitoring documentation →
+      Scout Agent documentation →
     </ButtonLink>
   );
 }

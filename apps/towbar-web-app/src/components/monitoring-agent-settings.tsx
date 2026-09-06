@@ -8,6 +8,7 @@ import { Checkbox } from "@workspace/web-design-system/forms/checkbox";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { ListBox, Select } from "@workspace/web-design-system/forms/select";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
+import { ScoutMascot } from "./scout-mascot";
 import { MonitoringDocumentation } from "./monitoring-documentation";
 import { ActionButton } from "./page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -61,21 +62,26 @@ function MonitoringAgentForm({
     <div className="content-grid">
       <Widget>
         <Widget.Header endContent={<MonitoringStatus agent={agent} />}>
-          <Widget.Title>Monitoring Agent</Widget.Title>
+          <Widget.Title>Scout Agent</Widget.Title>
         </Widget.Header>
         <Widget.Content className="grid gap-5">
-          <div className="grid gap-2">
-            <p className="font-medium">
-              Install a monitoring agent for advanced monitoring.
-            </p>
-            <p className="max-w-3xl text-sm text-muted">
-              See how this server and its apps and resources perform over time,
-              with updates every 30 seconds.
-            </p>
+          <div className="flex items-center gap-4">
+            <ScoutMascot />
+            <div className="grid min-w-0 gap-2">
+              <p className="font-medium">
+                {installed
+                  ? "Scout Agent, your monitoring agent."
+                  : "Install Scout Agent for advanced monitoring."}
+              </p>
+              <p className="max-w-3xl text-sm text-muted">
+                See how this server and its apps and resources perform over
+                time, with updates every 30 seconds.
+              </p>
+            </div>
           </div>
           <dl className="grid grid-cols-2 gap-4 text-sm lg:grid-cols-3">
             <div>
-              <dt className="text-muted">Agent version</dt>
+              <dt className="text-muted">Scout Agent version</dt>
               <dd className="mt-0.5 tabular-nums">
                 {agent.version ?? "Not installed"}
               </dd>
@@ -96,9 +102,9 @@ function MonitoringAgentForm({
           {busy ? (
             <p role="status" className="text-sm text-muted">
               {agent.removingServer
-                ? "Removing the agent before removing this server…"
+                ? "Removing Scout Agent before removing this server…"
                 : agent.status === "uninstalling"
-                  ? "Stopping and removing the agent…"
+                  ? "Stopping and removing Scout Agent…"
                   : agent.status === "installing"
                     ? "Installing services and checking startup…"
                     : "Waiting for the worker…"}
@@ -106,8 +112,7 @@ function MonitoringAgentForm({
           ) : null}
           {agent.status === "waiting" ? (
             <p role="status" className="text-sm text-muted">
-              Installation completed. Waiting for the first report from this
-              agent.
+              Scout Agent is installed. Waiting for the first report.
             </p>
           ) : null}
           {agent.errorMessage ? (
@@ -176,7 +181,7 @@ function MonitoringAgentForm({
                   <Checkbox.Indicator />
                 </Checkbox.Control>
                 <Label>
-                  Allow Towbar to install the agent and collect performance
+                  Allow Towbar to install Scout Agent and collect performance
                   data.
                 </Label>
               </Checkbox.Content>
@@ -195,10 +200,10 @@ function MonitoringAgentForm({
                 confirm={
                   installed
                     ? {
-                        title: "Update monitoring agent?",
+                        title: "Update Scout Agent?",
                         description:
-                          "Install the latest agent version. Reporting may pause briefly.",
-                        actionLabel: "Update agent",
+                          "Install the latest version of Scout Agent. Reporting may pause briefly.",
+                        actionLabel: "Update Scout Agent",
                       }
                     : undefined
                 }
@@ -206,26 +211,26 @@ function MonitoringAgentForm({
                   setAcknowledged(false);
                   setRetention(null);
                 }}
-                success="Monitoring installation queued"
+                success="Scout Agent installation queued"
                 pendingLabel="Queuing…"
                 variant="primary"
               >
-                {installed ? "Update agent" : "Enable monitoring"}
+                {installed ? "Update Scout Agent" : "Install Scout Agent"}
               </ActionButton>
               {installed || agent.status === "failed" ? (
                 <ActionButton
                   action={() => api.post(`${endpoint}/actions/uninstall`)}
                   isDisabled={busy}
                   confirm={{
-                    title: "Uninstall monitoring agent?",
+                    title: "Uninstall Scout Agent?",
                     description:
-                      "Stop monitoring and remove the agent. Existing history is kept for your selected retention period.",
-                    actionLabel: "Uninstall agent",
+                      "Stop monitoring and remove Scout Agent. Existing history is kept for your selected retention period.",
+                    actionLabel: "Uninstall Scout Agent",
                   }}
-                  success="Agent removal queued"
+                  success="Scout Agent removal queued"
                   pendingLabel="Queuing…"
                 >
-                  Uninstall agent
+                  Uninstall Scout Agent
                 </ActionButton>
               ) : null}
             </div>
@@ -235,7 +240,7 @@ function MonitoringAgentForm({
           </div>
           {!ready && !installed ? (
             <p className="text-sm text-muted">
-              Prepare this server before enabling monitoring.
+              Prepare this server before installing Scout Agent.
             </p>
           ) : null}
         </Widget.Content>

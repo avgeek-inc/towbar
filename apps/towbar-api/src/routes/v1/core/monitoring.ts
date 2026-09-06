@@ -20,8 +20,9 @@ monitoringSettingsRoutes.get(
   "/",
   operation({
     responseSchema: 'monitoring.ts:get:"/"',
-    summary: "Get monitoring agent",
-    response: "Agent status, reporting diagnostics, and retention settings.",
+    summary: "Get Scout Agent status",
+    response:
+      "Scout Agent status, reporting diagnostics, and retention settings.",
     status: 200,
   }),
   async (context) =>
@@ -62,7 +63,7 @@ monitoringSettingsRoutes.post(
   "/actions/install",
   operation({
     responseSchema: 'monitoring.ts:post:"/actions/install"',
-    summary: "Install or update monitoring agent",
+    summary: "Install or update Scout Agent",
     body: monitoringInstallSchema,
     ownerOnly: true,
     response:
@@ -92,7 +93,7 @@ monitoringSettingsRoutes.post(
   "/actions/uninstall",
   operation({
     responseSchema: 'monitoring.ts:post:"/actions/uninstall"',
-    summary: "Uninstall monitoring agent",
+    summary: "Uninstall Scout Agent",
     ownerOnly: true,
     response:
       "Revokes the upload credential immediately and queues removal of the agent services and local buffer. Stored history follows the retention policy.",
