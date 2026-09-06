@@ -46,7 +46,7 @@ Choose **Average usage** for sustained resource demand or **Peak usage** for spi
 | Activity comparison | Network or block I/O changed; more activity is not inherently a regression |
 | Insufficient data   | One or both windows lack the required sample coverage                      |
 
-The default sensitivity requires at least **20%** change and an absolute change of **0.05 CPU cores** or **16 MiB memory**. Configure these under **Comparison sensitivity**. The minimum required coverage defaults to 80% and can be set from 50% to 100%. Relative change from a zero baseline is undefined; the absolute threshold still applies.
+The default sensitivity requires at least **20%** change and an absolute change of **0.05 CPU cores** or **16 MiB memory**. Configure these under **Advanced comparison settings**. The minimum required coverage defaults to 80% and can be set from 50% to 100%. Relative change from a zero baseline is undefined; the absolute threshold still applies.
 
 CPU is compared in consumed cores and memory in bytes, so changing a container's configured limit does not make an identical workload appear cheaper merely by changing the denominator. Network received/sent and block read/write are available as context. Restarts count observed counter increments within the deployment's container identities; missing counter data is not reported as zero.
 

@@ -49,6 +49,7 @@ export function entityLabel(
 export function useMonitoringOverview<T>(
   area: "alerts" | "incidents",
   state = "all",
+  filter = "",
 ) {
   const [cursors, setCursors] = useState<string[]>([""]);
   const query = useApiQuery<{
@@ -56,7 +57,7 @@ export function useMonitoringOverview<T>(
     nextBefore: string | null;
     nextBeforeId: string | null;
   }>(
-    `/v1/core/monitoring/${area}?state=${state}&limit=20${cursors.at(-1)}`,
+    `/v1/core/monitoring/${area}?state=${state}&limit=20${filter}${cursors.at(-1)}`,
     30_000,
     { keepPreviousData: true },
   );

@@ -16,6 +16,10 @@ import {
   getDeploymentComparison,
   listComparisonDeployments,
 } from "../../../areas/monitoring/deployment-comparison.js";
+import {
+  incidentNotificationsQuery,
+  listIncidentNotifications,
+} from "../../../areas/monitoring/incident-notifications.js";
 import { getScoutIncident } from "../../../areas/monitoring/incident-history.js";
 import { operation } from "../../../http/operation.js";
 import { readJson } from "../../../http/requests.js";
@@ -203,6 +207,29 @@ scoutAlertRoutes.get(
         serverId: context.req.param("serverId")!,
         incidentId: context.req.param("incidentId"),
         workspaceId: context.get("user").workspaceId,
+      }),
+    ),
+);
+
+scoutAlertRoutes.get(
+  "/incidents/:incidentId/notifications",
+  operation({
+    responseSchema:
+      'scout-alerts.ts:get:"/incidents/:incidentId/notifications"',
+    summary: "List incident notification deliveries",
+    browserOnly: true,
+    query: incidentNotificationsQuery,
+    response:
+      "Paginated delivery status for this incident, including destination, queued and delivered times, and attempt counts.",
+    status: 200,
+  }),
+  async (context) =>
+    context.json(
+      await listIncidentNotifications({
+        serverId: context.req.param("serverId")!,
+        incidentId: context.req.param("incidentId"),
+        workspaceId: context.get("user").workspaceId,
+        ...incidentNotificationsQuery.parse(context.req.query()),
       }),
     ),
 );

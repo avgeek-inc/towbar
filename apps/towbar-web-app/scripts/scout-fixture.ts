@@ -211,6 +211,20 @@ export function createScoutFixture(serverIds: string[], workloads: Workload[]) {
                   id: incident.id,
                 }));
         const filtered = items
+          .filter((item) => {
+            const owner = "rule" in item ? item.rule : item.incident;
+            const kind = !owner.deployableId
+              ? "server"
+              : item.workload?.kind === "app" || !item.workload?.kind
+                ? "app"
+                : "resource";
+            const requestedKind = url.searchParams.get("kind") ?? "all",
+              entityId = url.searchParams.get("entityId");
+            return (
+              (requestedKind === "all" || requestedKind === kind) &&
+              (!entityId || (owner.deployableId ?? owner.serverId) === entityId)
+            );
+          })
           .filter(
             (i) =>
               !before || i.at < before || (i.at === before && i.id < beforeId),
@@ -388,7 +402,54 @@ export function createScoutFixture(serverIds: string[], workloads: Workload[]) {
           destinations: destinations.filter((d) => d.serverId === serverId),
           providers: { slack: true, smtp: true },
         });
-      else if (rest?.startsWith("/incidents/")) {
+      else if (
+        rest?.endsWith("/notifications") &&
+        rest.startsWith("/incidents/")
+      ) {
+        const incident = incidents.find(
+          (i) => i.id === rest.split("/")[2] && i.serverId === serverId,
+        );
+        if (!incident) fail();
+        else
+          send(200, {
+            items: destinations
+              .filter((d) => d.serverId === serverId)
+              .flatMap((d) => [
+                {
+                  id: `${incident.id}-${d.id}-alert`,
+                  provider: d.provider,
+                  destination: d.config.recipients.join(", "),
+                  type: "scout.firing",
+                  state: "succeeded",
+                  createdAt: incident.openedAt,
+                  deliveredAt: new Date(
+                    new Date(incident.openedAt).getTime() + 1000,
+                  ).toISOString(),
+                  attemptCount: 1,
+                  errorCode: null,
+                },
+                ...(incident.resolvedAt
+                  ? [
+                      {
+                        id: `${incident.id}-${d.id}-recovery`,
+                        provider: d.provider,
+                        destination: d.config.recipients.join(", "),
+                        type: "scout.recovered",
+                        state: "succeeded",
+                        createdAt: incident.resolvedAt,
+                        deliveredAt: new Date(
+                          new Date(incident.resolvedAt).getTime() + 1000,
+                        ).toISOString(),
+                        attemptCount: 1,
+                        errorCode: null,
+                      },
+                    ]
+                  : []),
+              ]),
+            nextBefore: null,
+            nextBeforeId: null,
+          });
+      } else if (rest?.startsWith("/incidents/")) {
         const incident = incidents.find(
           (i) => i.id === rest.slice(11) && i.serverId === serverId,
         );

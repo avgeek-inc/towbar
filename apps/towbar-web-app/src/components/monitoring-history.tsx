@@ -266,7 +266,7 @@ function HistorySelect({
     >
       <Label className="sr-only">{label}</Label>
       <Select.Trigger>
-        <Select.Value />
+        <Select.Value className="flex min-w-0 items-center" />
         <Select.Indicator />
       </Select.Trigger>
       <Select.Popover>
@@ -277,7 +277,7 @@ function HistorySelect({
               id={option.id}
               textValue={option.label}
             >
-              <span className="inline-flex items-center gap-2">
+              <span className="flex min-w-0 items-center gap-2">
                 <ScoutOptionIcon value={option.id} label={label} />
                 {option.label}
               </span>

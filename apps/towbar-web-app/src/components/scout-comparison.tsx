@@ -187,7 +187,8 @@ export function ScoutComparison({ deployableId }: { deployableId: string }) {
           ) : null}
           <div className="grid gap-4 sm:grid-cols-3">
             <ScoutNumber
-              label="Observation window (minutes)"
+              label="Compare for (minutes)"
+              description="Use the same length of time for both deployments."
               value={windowMinutes}
               onChange={setWindow}
               min={5}
@@ -195,7 +196,8 @@ export function ScoutComparison({ deployableId }: { deployableId: string }) {
               step={1}
             />
             <ScoutNumber
-              label="Skip after readiness (minutes)"
+              label="Ignore startup (minutes)"
+              description="Skip initial activity after each deployment is ready."
               value={warmupMinutes}
               onChange={setWarmup}
               min={0}
@@ -212,27 +214,29 @@ export function ScoutComparison({ deployableId }: { deployableId: string }) {
               ]}
             />
           </div>
-          <details className="rounded-xl bg-default p-4">
+          <details className="rounded-xl border border-border p-4">
             <summary className="cursor-pointer text-sm font-medium">
-              Comparison sensitivity
+              Advanced comparison settings
             </summary>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-4 grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <ScoutNumber
-                label="Minimum change (%)"
+                label="Flag changes above (%)"
+                description="Ignore smaller changes in CPU or memory usage."
                 value={regressionPercent}
                 onChange={setRegression}
                 min={1}
                 max={500}
               />
               <ScoutNumber
-                label="Minimum data coverage (%)"
+                label="Required measurements (%)"
+                description="Show a result only when this much of the period has data."
                 value={minimumCoveragePercent}
                 onChange={setCoverage}
                 min={50}
                 max={100}
               />
               <ScoutNumber
-                label="Minimum CPU change (cores)"
+                label="Ignore CPU changes below (cores)"
                 value={cpuFloorCores}
                 onChange={setCpuFloor}
                 min={0}
@@ -240,7 +244,7 @@ export function ScoutComparison({ deployableId }: { deployableId: string }) {
                 step={0.01}
               />
               <ScoutNumber
-                label="Minimum memory change (MiB)"
+                label="Ignore memory changes below (MiB)"
                 value={memoryFloorMiB}
                 onChange={setMemoryFloor}
                 min={0}

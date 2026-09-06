@@ -141,12 +141,14 @@ export function ScoutSelect({
   options,
   onChange,
   disabled = false,
+  hideLabel = false,
 }: {
   label: string;
   value: string;
   options: Array<{ id: string; label: string }>;
   onChange: (value: string) => void;
   disabled?: boolean;
+  hideLabel?: boolean;
 }) {
   return (
     <Select
@@ -157,9 +159,9 @@ export function ScoutSelect({
       isDisabled={disabled}
       className="min-w-0"
     >
-      <Label>{label}</Label>
+      <Label className={hideLabel ? "sr-only" : undefined}>{label}</Label>
       <Select.Trigger>
-        <Select.Value />
+        <Select.Value className="flex min-w-0 items-center" />
         <Select.Indicator />
       </Select.Trigger>
       <Select.Popover>
@@ -170,7 +172,7 @@ export function ScoutSelect({
               key={option.id}
               textValue={option.label}
             >
-              <span className="inline-flex items-center gap-2">
+              <span className="flex min-w-0 items-center gap-2">
                 <ScoutOptionIcon value={option.id} label={label} />
                 {option.label}
               </span>

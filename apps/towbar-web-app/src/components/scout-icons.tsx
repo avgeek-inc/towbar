@@ -80,7 +80,7 @@ export function ScoutIcon({ name }: { name: keyof typeof icons }) {
     <HugeiconsIcon
       icon={icons[name]}
       aria-hidden="true"
-      className="size-4 shrink-0"
+      className={`size-4 shrink-0 ${name === "warning" ? "text-warning" : name === "critical" ? "text-danger" : ""}`}
     />
   );
 }

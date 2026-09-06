@@ -185,6 +185,35 @@ void test(
           .length,
         10,
       );
+      const { listWorkspaceAlerts, monitoringOverviewQuery } =
+        await import("./workspace.js");
+      for (const [kind, id] of [
+        ["server", serverId],
+        ["app", appId],
+        ["resource", resourceId],
+      ]) {
+        const result = await listWorkspaceAlerts(
+          workspaceId,
+          monitoringOverviewQuery.parse({ kind, limit: 50 }),
+        );
+        assert.equal(result.items.length, 10);
+        for (const row of result.items)
+          assert.equal(row.rule.deployableId ?? row.rule.serverId, id);
+        const specific = await listWorkspaceAlerts(
+          workspaceId,
+          monitoringOverviewQuery.parse({ entityId: id, limit: 50 }),
+        );
+        assert.equal(specific.items.length, 10);
+      }
+      assert.equal(
+        (
+          await listWorkspaceAlerts(
+            workspaceId,
+            monitoringOverviewQuery.parse({ kind: "server", entityId: appId }),
+          )
+        ).items.length,
+        0,
+      );
     } finally {
       await db.delete(workspaces).where(eq(workspaces.id, workspaceId));
       await db.delete(users).where(eq(users.id, userId));

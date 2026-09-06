@@ -142,7 +142,7 @@ export function ScoutRuleEditor({
                     <p className="text-sm text-danger">{fieldErrors.name}</p>
                   ) : null}
                 </Field>
-                <div>
+                <div className="grid gap-4 sm:grid-cols-2">
                   <ScoutSelect
                     label="Severity"
                     value={draft.severity}
@@ -157,80 +157,97 @@ export function ScoutRuleEditor({
                       })
                     }
                   />
+                  {draft.deployableId ? (
+                    <ScoutSelect
+                      label="Environment"
+                      value={draft.environment}
+                      options={[
+                        { id: "production", label: "Production" },
+                        { id: "preview", label: "Previews" },
+                      ]}
+                      onChange={(environment) =>
+                        setDraft({
+                          ...draft,
+                          environment: environment as "production" | "preview",
+                        })
+                      }
+                    />
+                  ) : null}
                 </div>
-                {draft.deployableId ? (
-                  <ScoutSelect
-                    label="Environment"
-                    value={draft.environment}
-                    options={[
-                      { id: "production", label: "Production" },
-                      { id: "preview", label: "Previews" },
-                    ]}
-                    onChange={(environment) =>
-                      setDraft({
-                        ...draft,
-                        environment: environment as "production" | "preview",
-                      })
-                    }
-                  />
-                ) : null}
                 <fieldset className="grid gap-4">
                   <legend className="mb-4 font-medium">Alert condition</legend>
-                  <ScoutSelect
-                    label="Metric"
-                    value={draft.condition.metric}
-                    options={scoutMetrics
-                      .filter(
-                        (m) =>
-                          !draft.deployableId ||
-                          ![
-                            "diskPercent",
-                            "dockerDiskPercent",
-                            "missingReports",
-                            "load1",
-                            "load5",
-                            "load15",
-                            "swapUsedBytes",
-                            "httpAvailability",
-                          ].includes(m.id),
-                      )
-                      .map((m) => ({ id: m.id, label: m.label }))}
-                    onChange={(metric) => {
-                      if (metric === "httpAvailability") {
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <ScoutSelect
+                      label="Metric"
+                      value={draft.condition.metric}
+                      options={scoutMetrics
+                        .filter(
+                          (m) =>
+                            !draft.deployableId ||
+                            ![
+                              "diskPercent",
+                              "dockerDiskPercent",
+                              "missingReports",
+                              "load1",
+                              "load5",
+                              "load15",
+                              "swapUsedBytes",
+                              "httpAvailability",
+                            ].includes(m.id),
+                        )
+                        .map((m) => ({ id: m.id, label: m.label }))}
+                      onChange={(metric) => {
+                        if (metric === "httpAvailability") {
+                          condition({
+                            metric,
+                            threshold: 1,
+
+                            operator: "above",
+                            http: {
+                              url: "",
+                              method: "GET",
+                              intervalSeconds: 60,
+                              timeoutSeconds: 5,
+                              expectedStatusMin: 200,
+                              expectedStatusMax: 299,
+                              maxRedirects: 0,
+                            },
+                          });
+                          return;
+                        }
+                        const preset = scoutAlertPresets.find(
+                          (p) => p.condition.metric === metric,
+                        );
                         condition({
-                          metric,
-                          threshold: 1,
+                          http: undefined,
+                          ...(preset
+                            ? preset.condition
+                            : {
+                                metric:
+                                  metric as ScoutAlertRuleInput["condition"]["metric"],
+                                threshold: metricDefinition(metric).factor,
 
-                          operator: "above",
-                          http: {
-                            url: "",
-                            method: "GET",
-                            intervalSeconds: 60,
-                            timeoutSeconds: 5,
-                            expectedStatusMin: 200,
-                            expectedStatusMax: 299,
-                            maxRedirects: 0,
-                          },
+                                operator: "above",
+                              }),
                         });
-                        return;
-                      }
-                      const preset = scoutAlertPresets.find(
-                        (p) => p.condition.metric === metric,
-                      );
-                      condition({
-                        http: undefined,
-                        ...(preset
-                          ? preset.condition
-                          : {
-                              metric:
-                                metric as ScoutAlertRuleInput["condition"]["metric"],
-                              threshold: metricDefinition(metric).factor,
-
-                              operator: "above",
-                            }),
-                      });
-                    }}
-                  />
+                      }}
+                    />
+                    {!isCounter && !draft.condition.http ? (
+                      <ScoutSelect
+                        label="Use readings"
+                        value={draft.condition.aggregation}
+                        options={[
+                          { id: "average", label: "Average" },
+                          { id: "peak", label: "Peak" },
+                        ]}
+                        onChange={(aggregation) =>
+                          condition({
+                            aggregation: aggregation as "average" | "peak",
+                          })
+                        }
+                      />
+                    ) : null}
+                  </div>
                   {draft.condition.http ? (
                     <ScoutHttpEditor
                       value={draft.condition.http}
@@ -277,20 +294,6 @@ export function ScoutRuleEditor({
                         max={60}
                         onChange={(value) =>
                           condition({ windowSeconds: value * 60 })
-                        }
-                      />
-                    ) : !isCounter ? (
-                      <ScoutSelect
-                        label="Use readings"
-                        value={draft.condition.aggregation}
-                        options={[
-                          { id: "average", label: "Average" },
-                          { id: "peak", label: "Peak" },
-                        ]}
-                        onChange={(aggregation) =>
-                          condition({
-                            aggregation: aggregation as "average" | "peak",
-                          })
                         }
                       />
                     ) : null}

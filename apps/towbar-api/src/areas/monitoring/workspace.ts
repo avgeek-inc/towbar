@@ -16,6 +16,8 @@ export const monitoringEntitiesQuery = z.object({
 });
 export const monitoringOverviewQuery = z
   .object({
+    kind: z.enum(["all", "server", "app", "resource"]).default("all"),
+    entityId: z.uuid().optional(),
     state: z.enum(["all", "active", "resolved"]).default("all"),
     before: z.iso.datetime({ offset: true }).optional(),
     beforeId: z.uuid().optional(),
@@ -83,6 +85,19 @@ function workspaceFilter(
   return and(
     eq(table.workspaceId, workspaceId),
     isNull(servers.archivedAt),
+    input.kind === "server"
+      ? isNull(table.deployableId)
+      : input.kind === "app"
+        ? eq(apps.kind, "app")
+        : input.kind === "resource"
+          ? sql`${apps.kind} <> 'app'`
+          : undefined,
+    input.entityId
+      ? or(
+          eq(table.deployableId, input.entityId),
+          and(isNull(table.deployableId), eq(table.serverId, input.entityId)),
+        )
+      : undefined,
     cursor,
   );
 }

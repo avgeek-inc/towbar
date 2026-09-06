@@ -330,7 +330,8 @@ export function ScoutAlerts({
           <h2 className="text-lg font-medium">Incidents</h2>
           <div className="w-44">
             <ScoutSelect
-              label="Show incidents"
+              label="Incident status"
+              hideLabel
               value={state}
               onChange={(value) => {
                 setState(value);

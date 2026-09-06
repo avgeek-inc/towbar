@@ -140,7 +140,7 @@ function MonitoringAgentForm({
             >
               <Label>Data retention</Label>
               <Select.Trigger>
-                <Select.Value />
+                <Select.Value className="flex min-w-0 items-center" />
                 <Select.Indicator />
               </Select.Trigger>
               <Select.Popover>
@@ -151,7 +151,7 @@ function MonitoringAgentForm({
                       key={value}
                       textValue={`${value} days`}
                     >
-                      <span className="inline-flex items-center gap-2">
+                      <span className="flex min-w-0 items-center gap-2">
                         <ScoutIcon name="date" />
                         {value} days{value === 15 ? " (default)" : ""}
                       </span>

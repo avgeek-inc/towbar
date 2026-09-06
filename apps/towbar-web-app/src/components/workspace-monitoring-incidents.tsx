@@ -15,7 +15,8 @@ import {
   conditionDescription,
   scoutValue,
 } from "./scout-controls";
-import { ScoutIncidentDrawer, incidentTime } from "./scout-incident-drawer";
+import { RelativeTime } from "./last-synced-time";
+import { ScoutIncidentDrawer } from "./scout-incident-drawer";
 import {
   entityLabel,
   useMonitoringOverview,
@@ -33,6 +34,7 @@ export function WorkspaceIncidents() {
     {
       key: "incident",
       header: "Incident",
+      className: "min-w-72",
       cell: ({ incident }) => (
         <div className="grid gap-1">
           <span className="font-medium">{incident.ruleName}</span>
@@ -46,10 +48,16 @@ export function WorkspaceIncidents() {
       key: "entity",
       header: "Entity",
       cell: (row) => (
-        <div className="grid gap-1">
-          <span>{entityLabel(row, row.incident)}</span>
+        <div className="grid min-w-40 gap-1">
+          <span className="whitespace-nowrap">
+            {entityLabel(row, row.incident)}
+          </span>
           <span className="text-xs text-muted">
-            {row.incident.deployableId ? row.serverName : "Server"}
+            {row.incident.deployableId
+              ? row.workload?.kind === "app"
+                ? "App"
+                : "Resource"
+              : "Server"}
           </span>
         </div>
       ),
@@ -81,13 +89,19 @@ export function WorkspaceIncidents() {
     {
       key: "started",
       header: "Started",
-      cell: ({ incident }) => incidentTime(incident.openedAt),
+      cell: ({ incident }) => (
+        <RelativeTime label="Started" value={incident.openedAt} />
+      ),
     },
     {
       key: "ended",
       header: "Ended",
       cell: ({ incident }) =>
-        incident.resolvedAt ? incidentTime(incident.resolvedAt) : "Ongoing",
+        incident.resolvedAt ? (
+          <RelativeTime label="Ended" value={incident.resolvedAt} />
+        ) : (
+          "Ongoing"
+        ),
     },
     {
       key: "reading",
@@ -107,12 +121,15 @@ export function WorkspaceIncidents() {
     },
   ];
   return (
-    <DashboardPage title="Incidents" icon={AlertCircleIcon}>
-      <div className="grid gap-5">
+    <DashboardPage
+      title="Incidents"
+      icon={AlertCircleIcon}
+      actions={
         <div className="flex justify-end">
           <div className="w-48">
             <ScoutSelect
-              label="Show incidents"
+              label="Incident status"
+              hideLabel
               value={state}
               onChange={(value) => {
                 setState(value);
@@ -126,6 +143,9 @@ export function WorkspaceIncidents() {
             />
           </div>
         </div>
+      }
+    >
+      <div className="grid gap-5">
         {query.error ? <QueryError message={query.error} /> : null}
         {query.data ? (
           <ResourceTable

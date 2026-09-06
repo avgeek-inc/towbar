@@ -51,15 +51,17 @@ The examples above are starting points for your own thresholds. Configure restar
 
 The **Monitoring** sidebar section brings your workspace together:
 
-- **Performance** lets you find a server, app, or resource by name or server IP. Select it to use the same metrics, time ranges, average/peak controls, environment and container filters, and event history as its entity page. Scout installation stays on the server settings page.
-- **Alerts** lists configured rules across the workspace. This page is read-only; **View alert** opens the entity’s **Scout Agent → Alerts** page to manage the rule.
+- **Performance** lets you find a server, app, or resource by name or server IP. Search inside the entity dropdown and use the type filter to narrow the list. Switching to a different type selects its first entity automatically. Select an entity to use the same metrics, time ranges, average/peak controls, environment and container filters, and event history as its entity page. Scout installation stays on the server settings page.
+- **Alerts** lists configured rules across the workspace, with type and searchable entity filters. This page is read-only; **View alert** opens the entity’s **Scout Agent → Alerts** page to manage the rule.
 - **Incidents** lists active and resolved incidents across the workspace, with pagination and a status filter. **View Incident** opens the details drawer on this page.
 
 ## Inspect an incident
 
-Select **View Incident** to open its details in a drawer without leaving the alert list. The drawer shows the original trigger condition, entity, status, severity, start and end times, latest or final reading, and when a notification was last queued. Queued notifications do not confirm delivery.
+Select **View Incident** to open its details in a drawer without leaving the alert list. The **Overview** tab shows the original trigger condition, entity, status, severity, start and end times, latest or final reading, and when a notification was last queued. Dates include relative times.
 
-The chart covers the incident start through now, including after recovery, and refreshes every 30 seconds while open. It shows the relevant metric, the rule’s threshold, and a recovery or closure marker. Tooltip timestamps include the time zone. Longer periods use at most 361 points, preserving the highest reading for upper thresholds or the lowest for lower thresholds. Dotted bridges mark gaps between measurements; they are not measured values.
+The **Monitoring** tab shows the relevant graph. The **Notifications** tab lists the incident’s notification deliveries, including destination, alert or recovery event, delivery status, attempt count, and queued and sent times. Delivery history is paginated. Queued or retrying notifications are distinct from successfully sent notifications; failures show an error code.
+
+The monitoring chart covers the incident start through now, including after recovery, and refreshes every 30 seconds while open. It shows the relevant metric, the rule’s threshold, and a recovery or closure marker. Tooltip timestamps include the time zone. Longer periods use at most 361 points, preserving the highest reading for upper thresholds or the lowest for lower thresholds. Dotted bridges mark gaps between measurements; they are not measured values.
 
 History follows the server’s retention setting. Restart windows use individual counter measurements available for the last 24 hours; report-age history is estimated from retained report timestamps. The drawer explains when older measurements or an older incident’s original configuration are unavailable.
 

@@ -315,7 +315,7 @@ export function SourceNotifications({
                   >
                     <Label>Provider</Label>
                     <Select.Trigger>
-                      <Select.Value />
+                      <Select.Value className="flex min-w-0 items-center" />
                       <Select.Indicator />
                     </Select.Trigger>
                     <Select.Popover>
@@ -326,7 +326,7 @@ export function SourceNotifications({
                             key={provider.value}
                             textValue={provider.label}
                           >
-                            <span className="inline-flex items-center gap-2">
+                            <span className="flex min-w-0 items-center gap-2">
                               <ScoutOptionIcon
                                 label="Provider"
                                 value={provider.value}

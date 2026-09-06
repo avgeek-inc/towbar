@@ -1,4 +1,7 @@
 "use client";
+import { useState } from "react";
+import { MonitoringEntityPicker } from "./monitoring-entity-picker";
+import type { MonitoringEntity } from "./workspace-monitoring-shared";
 import { ScoutIcon } from "./scout-icons";
 import { Notification01Icon } from "@hugeicons/core-free-icons";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
@@ -18,7 +21,13 @@ import {
 } from "./workspace-monitoring-shared";
 
 export function WorkspaceAlerts() {
-  const { query, pagination } = useMonitoringOverview<OverviewRule>("alerts");
+  const [kind, setKind] = useState("all");
+  const [selected, setSelected] = useState<MonitoringEntity | null>(null);
+  const { query, pagination, reset } = useMonitoringOverview<OverviewRule>(
+    "alerts",
+    "all",
+    `&kind=${kind}${selected ? `&entityId=${selected.id}` : ""}`,
+  );
   const columns: ResourceTableColumn<OverviewRule>[] = [
     {
       key: "rule",
@@ -82,8 +91,14 @@ export function WorkspaceAlerts() {
     {
       key: "severity",
       header: "Severity",
-      cell: ({ rule }) =>
-        rule.severity === "critical" ? "Critical" : "Warning",
+      cell: ({ rule }) => (
+        <Chip
+          size="small"
+          variant={rule.severity === "critical" ? "destructive" : "warning"}
+        >
+          {rule.severity === "critical" ? "Critical" : "Warning"}
+        </Chip>
+      ),
     },
     {
       key: "reading",
@@ -96,7 +111,12 @@ export function WorkspaceAlerts() {
       cell: (row) => {
         const href = scoutHome(row, row.rule);
         return href ? (
-          <ButtonLink href={href} size="sm" variant="secondary">
+          <ButtonLink
+            href={href}
+            size="sm"
+            variant="secondary"
+            className="gap-2 whitespace-nowrap"
+          >
             <ScoutIcon name="view" />
             View alert
           </ButtonLink>
@@ -112,6 +132,19 @@ export function WorkspaceAlerts() {
         <p className="text-sm text-muted">
           All configured alerts. Open an alert’s entity to manage its rules.
         </p>
+        <MonitoringEntityPicker
+          allowAll
+          kind={kind}
+          onKindChange={(value) => {
+            setKind(value);
+            reset();
+          }}
+          selected={selected}
+          onSelect={(entity) => {
+            setSelected(entity);
+            reset();
+          }}
+        />
         {query.error ? <QueryError message={query.error} /> : null}
         {query.data ? (
           <ResourceTable

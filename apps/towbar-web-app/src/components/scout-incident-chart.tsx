@@ -27,7 +27,7 @@ export const ScoutIncidentChart = memo(function ScoutIncidentChart({
     scoutValue(value * metric.factor, metric.id);
   return (
     <>
-      <div className="rounded-xl bg-default p-3 sm:p-4">
+      <div className="min-w-0">
         <div className="mb-4 text-sm font-medium">{metric.label}</div>
         {data.some((point) => point.value !== null) ? (
           <LineChart data={data} height={280}>

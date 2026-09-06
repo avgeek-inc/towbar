@@ -10,6 +10,9 @@ import {
 import {
   monitoringAgents,
   monitoringSamples,
+  notificationDeliveries,
+  notificationDestinations,
+  notificationEvents,
   scoutAlertIncidents,
   scoutAlertRules,
   scoutHttpChecks,
@@ -295,6 +298,99 @@ void test(
           );
           const result = await getScoutIncident(input, now);
           assert.equal(result.history.points[1]?.value, 2);
+        },
+      );
+      await t.test(
+        "incident delivery history is scoped, paginated, and exposes no destination configuration",
+        async () => {
+          const { listIncidentNotifications, incidentNotificationsQuery } =
+            await import("./incident-notifications.js");
+          const [destination] = await db
+            .insert(notificationDestinations)
+            .values({
+              workspaceId,
+              serverId,
+              provider: "smtp",
+              config: { recipients: ["ops@example.com"] },
+              categories: ["scout"],
+            })
+            .returning();
+          const events = await db
+            .insert(notificationEvents)
+            .values(
+              [0, 1, 2].map((i) => ({
+                workspaceId,
+                serverId,
+                dedupeKey: randomUUID(),
+                type: "scout.firing" as const,
+                category: "scout" as const,
+                occurredAt: now,
+                payload: {
+                  title: "Alert",
+                  message: "Fixture",
+                  occurredAt: now.toISOString(),
+                  source: null,
+                  entity: {
+                    kind: "server" as const,
+                    id: serverId,
+                    name: "Server",
+                  },
+                  details: { incidentId: i === 2 ? randomUUID() : incidentId },
+                },
+              })),
+            )
+            .returning();
+          await db.insert(notificationDeliveries).values(
+            events.map((e, i) => ({
+              eventId: e.id,
+              destinationId: destination!.id,
+              state: i === 0 ? ("succeeded" as const) : ("pending" as const),
+              attemptCount: i === 0 ? 1 : 0,
+              createdAt: now,
+              deliveredAt: i === 0 ? now : null,
+            })),
+          );
+          const query = incidentNotificationsQuery.parse({ limit: 1 });
+          const first = await listIncidentNotifications({ ...input, ...query });
+          assert.equal(first.items.length, 1);
+          assert(first.nextBefore && first.nextBeforeId);
+          const second = await listIncidentNotifications({
+            ...input,
+            ...query,
+            before: first.nextBefore,
+            beforeId: first.nextBeforeId,
+          });
+          assert.equal(second.items.length, 1);
+          assert.equal(second.nextBefore, null);
+          assert.notEqual(first.items[0]!.id, second.items[0]!.id);
+          for (const row of [...first.items, ...second.items]) {
+            assert.equal(row.destination, "ops@example.com");
+            assert.equal("config" in row, false);
+          }
+          await assert.rejects(
+            listIncidentNotifications({
+              ...input,
+              ...query,
+              workspaceId: randomUUID(),
+            }),
+          );
+          await assert.rejects(
+            listIncidentNotifications({
+              ...input,
+              ...query,
+              serverId: randomUUID(),
+            }),
+          );
+          await assert.rejects(
+            listIncidentNotifications({
+              ...input,
+              ...query,
+              incidentId: randomUUID(),
+            }),
+          );
+          assert.throws(() =>
+            incidentNotificationsQuery.parse({ beforeId: randomUUID() }),
+          );
         },
       );
     } finally {
