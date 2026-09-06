@@ -2236,12 +2236,16 @@ function createServerFixture(
     hardware:
       id === fixtureIds.server
         ? {
-            instance: { provider: "aws", type: "m6i.xlarge" },
+            instance: { provider: "oracle", type: "VM.Standard.A1.Flex" },
             cpuCount: 4,
             memoryBytes: 17_179_869_184,
           }
         : id === fixtureIds.secondaryServer
-          ? { instance: null, cpuCount: 8, memoryBytes: 34_359_738_368 }
+          ? {
+              instance: { provider: "hetzner", type: null },
+              cpuCount: 8,
+              memoryBytes: 34_359_738_368,
+            }
           : null,
     config: {
       buildConcurrency: 2,

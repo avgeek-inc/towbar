@@ -47,3 +47,20 @@ void test("bad or absent metadata does not discard usable capacity", () => {
     },
   );
 });
+
+void test("provider-only metadata preserves observed CPU and RAM", () => {
+  assert.deepEqual(
+    serverHardwareFromCheck({
+      host: {
+        instance: { provider: "hetzner" },
+        cpuLogicalCount: 4,
+        memoryTotalKb: 8388608,
+      },
+    }),
+    {
+      instance: { provider: "hetzner", type: null },
+      cpuCount: 4,
+      memoryBytes: 8589934592,
+    },
+  );
+});

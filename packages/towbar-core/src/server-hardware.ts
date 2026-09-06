@@ -1,12 +1,23 @@
 import { z } from "zod";
 
 export const cloudInstanceSchema = z.object({
-  provider: z.enum(["aws", "gcp", "azure"]),
+  provider: z.enum([
+    "aws",
+    "gcp",
+    "azure",
+    "oracle",
+    "hetzner",
+    "digitalocean",
+    "linode",
+    "alibaba",
+  ]),
   type: z
     .string()
     .min(1)
     .max(128)
-    .regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/),
+    .regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/)
+    .nullable()
+    .default(null),
 });
 export type CloudInstance = z.infer<typeof cloudInstanceSchema>;
 export type ServerHardware = {
