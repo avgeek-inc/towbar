@@ -177,13 +177,9 @@ export function MonitoringHistory({
             onReselect={(value) => {
               if (value === "custom") setPickerOpen(true);
             }}
-            options={monitoringRanges
-              .filter((row) => row.days <= agent.retentionDays)
-              .map((row) =>
-                row.id === "custom" && custom
-                  ? { ...row, label: "Edit range" }
-                  : row,
-              )}
+            options={monitoringRanges.filter(
+              (row) => row.days <= agent.retentionDays,
+            )}
           />
         </div>
       </div>
