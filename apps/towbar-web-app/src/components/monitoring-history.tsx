@@ -1,25 +1,17 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
-import type {
-  MonitoringAggregates,
-  MonitoringHistory as History,
-  MonitoringSeries,
-} from "@workspace/towbar-web-client";
-import { LineChart } from "@workspace/web-design-system/charts/line-chart";
+import { useDeferredValue, useId, useMemo, useState } from "react";
+import type { MonitoringHistory as History } from "@workspace/towbar-web-client";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { ListBox, Select } from "@workspace/web-design-system/forms/select";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
-import { monitoringChartGaps } from "./monitoring-chart-gaps";
 import { MonitoringDocumentation } from "./monitoring-documentation";
-import {
-  MonitoringEvents,
-  MonitoringEventMarker,
-  monitoringEventColor,
-} from "./monitoring-events";
+import { MonitoringEvents } from "./monitoring-events";
+import { type ChartMetric } from "./monitoring-metric-chart";
+import { MonitoringChartSlot } from "./monitoring-chart-slot";
 import { MonitoringStatus } from "./monitoring-agent-settings";
 
 const ranges = [
@@ -31,20 +23,6 @@ const ranges = [
   { id: "30d", label: "Last 30 days", days: 30 },
   { id: "60d", label: "Last 60 days", days: 60 },
 ];
-const palette = [
-  "var(--accent)",
-  "#a67c00",
-  "#16a34a",
-  "#a855f7",
-  "#e06c36",
-  "#0d9488",
-];
-type MetricKey = keyof MonitoringAggregates;
-type ChartMetric = {
-  key: MetricKey;
-  label: string;
-  unit: "percent" | "bytes" | "rate" | "number";
-};
 const hostMetrics: ChartMetric[][] = [
   [{ key: "cpuPercent", label: "CPU usage", unit: "percent" }],
   [{ key: "memoryPercent", label: "Memory usage", unit: "percent" }],
@@ -89,14 +67,22 @@ export function MonitoringHistory({
   const query = useApiQuery<History>(
     `${path}?range=${range}&environment=${environment}`,
     30_000,
+    { keepPreviousData: true },
   );
-  const history = query.data;
+  const history = useDeferredValue(query.data);
+  const chartView = useDeferredValue(view);
+  const chartInstance = useDeferredValue(instance);
+  const updating =
+    (!query.error && query.isPreviousData) ||
+    history !== query.data ||
+    chartView !== view ||
+    chartInstance !== instance;
   const series = useMemo(
     () =>
       history?.series.filter(
-        (row) => instance === "all" || row.id === instance,
+        (row) => chartInstance === "all" || row.id === chartInstance,
       ) ?? [],
-    [history, instance],
+    [history, chartInstance],
   );
   if (!history)
     return (
@@ -122,6 +108,11 @@ export function MonitoringHistory({
         <div className="flex items-center gap-3">
           <h2 className="font-medium">Performance</h2>
           <MonitoringStatus agent={agent} />
+          {updating ? (
+            <span role="status" className="text-xs text-muted">
+              Updating charts…
+            </span>
+          ) : null}
         </div>
         <div className="flex max-w-full flex-wrap items-center gap-2">
           {workload ? (
@@ -183,14 +174,17 @@ export function MonitoringHistory({
         />
       ) : (
         <>
-          <div className="grid min-w-0 gap-4 xl:grid-cols-2">
+          <div
+            className="grid min-w-0 gap-4 xl:grid-cols-2"
+            aria-busy={updating}
+          >
             {(workload ? workloadMetrics : hostMetrics).map((metrics) => (
-              <MetricChart
+              <MonitoringChartSlot
                 key={metrics[0]!.key}
                 metrics={metrics}
                 series={series}
                 history={history}
-                view={view}
+                view={chartView}
                 syncId={syncId}
               />
             ))}
@@ -290,225 +284,5 @@ function HistorySelect({
         </ListBox>
       </Select.Popover>
     </Select>
-  );
-}
-export function formatMetric(value: number, unit: ChartMetric["unit"]) {
-  if (unit === "percent") return `${value.toFixed(1)}%`;
-  if (unit === "number") return value.toFixed(2);
-  const scale =
-    value >= 1024 ** 3
-      ? 1024 ** 3
-      : value >= 1024 ** 2
-        ? 1024 ** 2
-        : value >= 1024
-          ? 1024
-          : 1;
-  const suffix =
-    scale === 1024 ** 3
-      ? "GiB"
-      : scale === 1024 ** 2
-        ? "MiB"
-        : scale === 1024
-          ? "KiB"
-          : "B";
-  return `${(value / scale).toFixed(scale === 1 ? 0 : 1)} ${suffix}${unit === "rate" ? "/s" : ""}`;
-}
-function MetricChart({
-  metrics,
-  series,
-  history,
-  view,
-  syncId,
-}: {
-  metrics: ChartMetric[];
-  series: MonitoringSeries[];
-  history: History;
-  view: string;
-  syncId: string;
-}) {
-  const [eventActive, setEventActive] = useState(false);
-  const data = useMemo(() => {
-    const start =
-      Math.floor(
-        new Date(history.startAt).getTime() / 1000 / history.stepSeconds,
-      ) *
-      history.stepSeconds *
-      1000;
-    const end = new Date(history.endAt).getTime();
-    const rows = new Map<number, Record<string, number | null>>();
-    for (let at = start; at < end; at += history.stepSeconds * 1000)
-      rows.set(at, { at });
-    for (const [index, instance] of series.entries())
-      for (const point of instance.points) {
-        const row = rows.get(new Date(point.at).getTime());
-        if (!row) continue;
-        for (const metric of metrics) {
-          const value = point.metrics[metric.key];
-          row[`${index}-${metric.key}`] = value
-            ? view === "peak"
-              ? value.max
-              : value.sum / value.count
-            : null;
-        }
-      }
-    return [...rows.values()];
-  }, [history, series, metrics, view]);
-  const lines = series.flatMap((instance, index) =>
-    metrics.map((metric, metricIndex) => ({
-      key: `${index}-${metric.key}`,
-      label: `${metric.label}${series.length > 1 ? ` · ${instance.id.slice(0, 8)}` : ""}`,
-      color: palette[(index * metrics.length + metricIndex) % palette.length]!,
-      unit: metric.unit,
-    })),
-  );
-  const title =
-    metrics.length > 1
-      ? metrics[0]!.key.startsWith("network")
-        ? "Network traffic"
-        : "Disk I/O"
-      : metrics[0]!.label;
-  const summary =
-    metrics.length === 1
-      ? series.flatMap((row) =>
-          row.points.flatMap((point) =>
-            point.metrics[metrics[0]!.key]
-              ? [point.metrics[metrics[0]!.key]!]
-              : [],
-          ),
-        )
-      : [];
-  const sum = summary.reduce((value, point) => value + point.sum, 0),
-    count = summary.reduce((value, point) => value + point.count, 0),
-    peak = summary.reduce((value, point) => Math.max(value, point.max), 0);
-  return (
-    <Widget className="min-w-0">
-      <Widget.Header
-        endContent={
-          count > 0 ? (
-            <span className="text-xs tabular-nums text-muted">
-              {series.length > 1 ? "Instance avg" : "Avg"}{" "}
-              {formatMetric(sum / count, metrics[0]!.unit)} · Peak{" "}
-              {formatMetric(peak, metrics[0]!.unit)}
-            </span>
-          ) : null
-        }
-      >
-        <Widget.Title>{title}</Widget.Title>
-      </Widget.Header>
-      <Widget.Content className="min-w-0">
-        <LineChart
-          data={data}
-          height={220}
-          syncId={syncId}
-          aria-label={`${title} over ${history.range}`}
-        >
-          <LineChart.Grid vertical={false} />
-          <LineChart.XAxis
-            dataKey="at"
-            type="number"
-            scale="time"
-            domain={["dataMin", "dataMax"]}
-            tickFormatter={(value) =>
-              new Date(Number(value)).toLocaleString(
-                undefined,
-                history.range.endsWith("h")
-                  ? { hour: "2-digit", minute: "2-digit" }
-                  : { month: "short", day: "numeric" },
-              )
-            }
-            minTickGap={45}
-            tick={{ fill: "var(--muted)", fontSize: 11 }}
-            tickMargin={8}
-          />
-          <LineChart.YAxis
-            width="auto"
-            tickMargin={4}
-            tick={{ fill: "var(--muted)", fontSize: 11 }}
-            tickFormatter={(value) =>
-              formatMetric(Number(value), metrics[0]!.unit)
-            }
-            domain={[0, metrics[0]!.unit === "percent" ? 100 : "auto"]}
-          />
-          {lines.flatMap((line) =>
-            monitoringChartGaps(data, line.key).map((segment) => (
-              <LineChart.ReferenceLine
-                key={`gap:${line.key}:${segment[0].x}`}
-                className="monitoring-gap-connector"
-                segment={segment}
-                stroke={line.color}
-                strokeWidth={1.8}
-                strokeDasharray="2 4"
-                strokeLinecap="round"
-                strokeOpacity={0.65}
-                zIndex={350}
-              />
-            )),
-          )}
-          {history.events.slice(0, 20).map((event) => (
-            <LineChart.ReferenceLine
-              key={`${event.type}:${event.id}:${event.at}`}
-              x={
-                Math.floor(
-                  new Date(event.at).getTime() / 1000 / history.stepSeconds,
-                ) *
-                history.stepSeconds *
-                1000
-              }
-              zIndex={600}
-              stroke={monitoringEventColor(event.type)}
-              strokeDasharray="4 4"
-              strokeOpacity={0.6}
-              label={
-                <MonitoringEventMarker
-                  event={event}
-                  onActiveChange={setEventActive}
-                />
-              }
-            />
-          ))}
-          {lines.map((line) => (
-            <LineChart.Line
-              key={line.key}
-              dataKey={line.key}
-              name={line.label}
-              type="linear"
-              stroke={line.color}
-              strokeWidth={1.8}
-              strokeDasharray={
-                line.key.endsWith("TxBytesPerSecond") ? "5 3" : undefined
-              }
-              dot={false}
-              connectNulls={false}
-              isAnimationActive={false}
-            />
-          ))}
-          <LineChart.Tooltip
-            active={eventActive ? false : undefined}
-            content={
-              <LineChart.TooltipContent
-                labelFormatter={(value) =>
-                  new Date(Number(value)).toLocaleString()
-                }
-                valueFormatter={(value, key) =>
-                  formatMetric(
-                    Number(value),
-                    lines.find((line) => line.key === key)?.unit ?? "number",
-                  )
-                }
-              />
-            }
-          />
-        </LineChart>
-        {metrics.length > 1 ? (
-          <Widget.Legend className="mt-2 flex-wrap">
-            {metrics.map((metric, index) => (
-              <Widget.LegendItem key={metric.key} color={palette[index]!}>
-                {metric.label}
-              </Widget.LegendItem>
-            ))}
-          </Widget.Legend>
-        ) : null}
-      </Widget.Content>
-    </Widget>
   );
 }

@@ -53,7 +53,11 @@ export function refreshApiQueries() {
   window.dispatchEvent(new Event("towbar:refresh"));
 }
 
-export function useApiQuery<T>(path: string | null, refreshMs?: number) {
+export function useApiQuery<T>(
+  path: string | null,
+  refreshMs?: number,
+  { keepPreviousData = false }: { keepPreviousData?: boolean } = {},
+) {
   const [result, setResult] = useState<{ data: T; path: string } | undefined>(
     () => {
       const data = getCachedApiQuery<T>(path);
@@ -113,8 +117,12 @@ export function useApiQuery<T>(path: string | null, refreshMs?: number) {
         );
     };
   }, [path, refreshMs, revision]);
+  const currentData =
+    result?.path === path ? result.data : getCachedApiQuery<T>(path);
   return {
-    data: result?.path === path ? result.data : getCachedApiQuery<T>(path),
+    data: currentData ?? (keepPreviousData ? result?.data : undefined),
+    isPreviousData:
+      keepPreviousData && currentData === undefined && result !== undefined,
     error: failure?.path === path ? failure.message : undefined,
     isRefreshing,
     refresh,

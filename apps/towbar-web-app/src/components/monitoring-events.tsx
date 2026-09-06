@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { Tooltip } from "@workspace/web-design-system/overlays/tooltip";
 import type { MonitoringHistory } from "@workspace/towbar-web-client";
 import {
@@ -7,7 +7,11 @@ import {
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
-import { formatDate } from "./dashboard-overview";
+const eventDateFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+const formatDate = (at: string) => eventDateFormatter.format(new Date(at));
 
 type Event = MonitoringHistory["events"][number];
 const columns: ResourceTableColumn<Event>[] = [
@@ -39,7 +43,11 @@ const columns: ResourceTableColumn<Event>[] = [
   },
 ];
 
-export function MonitoringEvents({ events }: { events: Event[] }) {
+export const MonitoringEvents = memo(function MonitoringEvents({
+  events,
+}: {
+  events: Event[];
+}) {
   return (
     <section
       className="grid min-w-0 gap-3"
@@ -59,7 +67,7 @@ export function MonitoringEvents({ events }: { events: Event[] }) {
       </div>
     </section>
   );
-}
+});
 
 export const monitoringEventColor = (type: Event["type"]) =>
   type === "deployment" ? "var(--accent)" : "var(--warning)";
@@ -74,6 +82,7 @@ export function MonitoringEventMarker({
   viewBox?: { x?: number; y?: number };
 }) {
   const [open, setOpen] = useState(false);
+  const date = useMemo(() => formatDate(event.at), [event.at]);
   useEffect(() => () => onActiveChange?.(false), [onActiveChange]);
   const changeOpen = (active: boolean) => {
     setOpen(active);
@@ -83,7 +92,7 @@ export function MonitoringEventMarker({
   const offset = event.type === "deployment" ? 9 : 25;
   const title =
     event.type === "deployment" ? "Deployment" : "Container restart";
-  const label = `${title} ${event.id.slice(0, 8)} at ${formatDate(event.at)}`;
+  const label = `${title} ${event.id.slice(0, 8)} at ${date}`;
   return (
     <foreignObject
       x={viewBox.x - 10}
@@ -116,8 +125,7 @@ export function MonitoringEventMarker({
               {title} · {event.id.slice(0, 8)}
             </span>
             <span>
-              {event.type === "deployment" ? event.state : "Restarted"} ·{" "}
-              {formatDate(event.at)}
+              {event.type === "deployment" ? event.state : "Restarted"} · {date}
             </span>
           </span>
         </Tooltip.Content>
