@@ -108,11 +108,9 @@ export function MonitoringHistory({
         <div className="flex items-center gap-3">
           <h2 className="font-medium">Performance</h2>
           <MonitoringStatus agent={agent} />
-          {updating ? (
-            <span role="status" className="text-xs text-muted">
-              Updating charts…
-            </span>
-          ) : null}
+          <span role="status" className="sr-only">
+            {updating ? "Updating charts…" : ""}
+          </span>
         </div>
         <div className="flex max-w-full flex-wrap items-center gap-2">
           {workload ? (
@@ -189,18 +187,17 @@ export function MonitoringHistory({
               />
             ))}
           </div>
-          {history.events.length ? (
-            <p className="text-xs text-muted">
-              Graph markers: D — deployment · R — container restart
-            </p>
-          ) : null}
           {history.seriesLimited ? (
             <p className="text-xs text-muted">
               Showing the 32 most recent instances. Choose a shorter range to
               inspect more detail.
             </p>
           ) : null}
-          <MonitoringEvents events={history.events} />
+          <MonitoringEvents
+            key={`${path}:${history.range}:${environment}:${instance}`}
+            events={history.events}
+            limited={history.eventsLimited}
+          />
         </>
       )}
     </section>
@@ -262,7 +259,7 @@ function HistorySelect({
         if (key) onChange(String(key));
       }}
       variant="secondary"
-      className="min-w-32 max-w-64"
+      className="w-40 max-w-full shrink-0"
     >
       <Label className="sr-only">{label}</Label>
       <Select.Trigger>

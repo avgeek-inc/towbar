@@ -133,7 +133,7 @@ export const MetricChart = memo(function MetricChart({
   const tooltipDateFormatter = useMemo(() => {
     const formatter = new Intl.DateTimeFormat(undefined, {
       dateStyle: "medium",
-      timeStyle: "medium",
+      timeStyle: "long",
     });
     return (value: unknown) => formatter.format(Number(value));
   }, []);

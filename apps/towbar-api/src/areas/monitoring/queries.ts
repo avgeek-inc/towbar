@@ -120,7 +120,7 @@ export async function getMonitoringHistory(
     at: string;
     state: string;
   }>(sql`
-    select id,created_at::text at,state from towbar_deployments where server_id=${serverId}::uuid and created_at>=${start.toISOString()}::timestamptz and created_at<${end.toISOString()}::timestamptz and ${eventScope} order by created_at desc limit 200`);
+    select id,created_at::text at,state from towbar_deployments where server_id=${serverId}::uuid and created_at>=${start.toISOString()}::timestamptz and created_at<${end.toISOString()}::timestamptz and ${eventScope} order by created_at desc,id desc limit 201`);
   const restartFilter = input.deployableId
     ? filter
     : sql`server_id=${serverId}::uuid and bucket_at>=${start.toISOString()}::timestamptz and bucket_at<${end.toISOString()}::timestamptz and entity_id<>'host'`;
@@ -129,7 +129,25 @@ export async function getMonitoringHistory(
       (metrics->'restartCount'->>'max')::double precision restarts,
       lag((metrics->'restartCount'->>'max')::double precision) over(partition by entity_id order by bucket_at) previous
       from towbar_monitoring_samples where ${restartFilter})
-    select entity_id id,bucket_at::text at from changes where restarts>previous order by bucket_at desc limit 200`);
+    select entity_id id,bucket_at::text at from changes where restarts>previous order by bucket_at desc,id desc limit 201`);
+  const combinedEvents = [
+    ...events.map((row) => ({
+      ...row,
+      at: new Date(row.at).toISOString(),
+      type: "deployment" as const,
+    })),
+    ...restarts.map((row) => ({
+      ...row,
+      at: new Date(row.at).toISOString(),
+      type: "restart" as const,
+      state: "restarted",
+    })),
+  ].sort(
+    (a, b) =>
+      b.at.localeCompare(a.at) ||
+      b.type.localeCompare(a.type) ||
+      b.id.localeCompare(a.id),
+  );
   return {
     agent,
     serverId,
@@ -139,18 +157,7 @@ export async function getMonitoringHistory(
     stepSeconds: step,
     series,
     seriesLimited: instances.length > 32,
-    events: [
-      ...events.map((row) => ({
-        ...row,
-        at: new Date(row.at).toISOString(),
-        type: "deployment" as const,
-      })),
-      ...restarts.map((row) => ({
-        ...row,
-        at: new Date(row.at).toISOString(),
-        type: "restart" as const,
-        state: "restarted",
-      })),
-    ].sort((a, b) => b.at.localeCompare(a.at)),
+    events: combinedEvents.slice(0, 200),
+    eventsLimited: combinedEvents.length > 200,
   };
 }

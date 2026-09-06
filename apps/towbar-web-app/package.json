@@ -16,7 +16,7 @@
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint --fix . --max-warnings 0",
     "test": "tsx --test \"src/**/*.test.ts\" && pnpm test:fixture-api",
-    "test:fixture-api": "node --test ./scripts/fixture-api.test.mjs",
+    "test:fixture-api": "node --test ./scripts/fixture-api.test.mjs ./scripts/monitoring-fixture.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

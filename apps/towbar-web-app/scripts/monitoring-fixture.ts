@@ -43,11 +43,14 @@ export function fixtureMonitoringHistory(
     30,
     Math.ceil(Math.min(seconds, agent.retentionDays * 86400) / 180 / 30) * 30,
   );
+  const duration = Math.min(seconds, agent.retentionDays * 86400);
+  const intervals = Math.ceil(duration / step);
   const end = Math.floor(Date.now() / step / 1000) * step * 1000;
-  const start = end - 180 * step * 1000;
+  const start = end - duration * 1000;
   const preview = query.get("environment") === "preview";
   const id = "a".repeat(64);
-  const points = Array.from({ length: 181 }, (_, index) => {
+  const points = Array.from({ length: intervals }, (_, bucket) => {
+    const index = (bucket / intervals) * 180;
     const pulse = Math.exp(-((index - 118) ** 2) / 80) * 47;
     const cpu = Math.max(
       0,
@@ -70,7 +73,7 @@ export function fixtureMonitoringHistory(
       restartCount: index < 120 ? 0 : 1,
     };
     return {
-      at: new Date(start + index * step * 1000).toISOString(),
+      at: new Date(start + bucket * step * 1000).toISOString(),
       metrics: Object.fromEntries(
         Object.entries(values).map(([key, value]) => [
           key,
@@ -78,7 +81,10 @@ export function fixtureMonitoringHistory(
         ]),
       ) as MonitoringAggregates,
     };
-  }).filter((_, index) => index < 65 || index > 74);
+  }).filter((_, bucket) => {
+    const index = (bucket / intervals) * 180;
+    return index < 65 || index > 74;
+  });
   return {
     agent: {
       ...agent,
@@ -92,7 +98,7 @@ export function fixtureMonitoringHistory(
     serverId,
     range,
     startAt: new Date(start).toISOString(),
-    endAt: new Date(end + step * 1000).toISOString(),
+    endAt: new Date(end).toISOString(),
     stepSeconds: step,
     series: agent.version
       ? [
@@ -107,17 +113,22 @@ export function fixtureMonitoringHistory(
         ]
       : [],
     seriesLimited: false,
+    eventsLimited: false,
     events: agent.version
       ? [
           {
             id: "61111111-1111-4111-8111-111111111111",
-            at: new Date(start + 116 * step * 1000).toISOString(),
+            at: new Date(
+              start + Math.floor((intervals * 116) / 180) * step * 1000,
+            ).toISOString(),
             type: "deployment",
             state: "succeeded",
           },
           {
             id,
-            at: new Date(start + 120 * step * 1000).toISOString(),
+            at: new Date(
+              start + Math.floor((intervals * 120) / 180) * step * 1000,
+            ).toISOString(),
             type: "restart",
             state: "restarted",
           },

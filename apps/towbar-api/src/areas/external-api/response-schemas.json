@@ -432,7 +432,8 @@
               { "$ref": "#/components/schemas/Response_12" }
             ]
           }
-        }
+        },
+        "eventsLimited": { "type": "boolean" }
       },
       "required": [
         "agent",
@@ -443,7 +444,8 @@
         "stepSeconds",
         "series",
         "seriesLimited",
-        "events"
+        "events",
+        "eventsLimited"
       ]
     },
     "Response_14": {

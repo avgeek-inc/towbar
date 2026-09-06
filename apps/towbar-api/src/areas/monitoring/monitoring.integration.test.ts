@@ -502,6 +502,9 @@ void test(
               .length,
             0,
           );
+          const { verifyEventHistoryBounds } =
+            await import("./event-history.test-support.js");
+          await verifyEventHistoryBounds(serverId, workspaceId, now);
           await db
             .delete(deployments)
             .where(eq(deployments.sourceId, sourceId));

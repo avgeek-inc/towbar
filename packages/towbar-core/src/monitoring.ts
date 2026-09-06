@@ -187,6 +187,7 @@ export type MonitoringHistory = {
   stepSeconds: number;
   series: MonitoringSeries[];
   seriesLimited: boolean;
+  eventsLimited: boolean;
   events: Array<{
     id: string;
     at: string;
