@@ -195,3 +195,17 @@ export type MonitoringHistory = {
     type: "deployment" | "restart";
   }>;
 };
+
+/** Compact host CPU and memory averages for the last 30 minutes. */
+export type ServerMonitoringSummary = {
+  enabled: boolean;
+  status: string;
+  lastCollectedAt: string | null;
+  start: string;
+  end: string;
+  points: Array<{
+    at: string;
+    cpuPercent: number | null;
+    memoryPercent: number | null;
+  }>;
+};

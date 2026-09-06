@@ -1,4 +1,5 @@
 import {
+  fixtureServerMonitoringSummary,
   fixtureMonitoringAgent,
   fixtureMonitoringHistory,
 } from "./monitoring-fixture.ts";
@@ -868,6 +869,21 @@ export function createFixtureApiServer() {
 
     const requestUrl = new URL(request.url ?? "/", "http://localhost");
     const path = requestUrl.pathname;
+    if (request.method === "GET" && path === "/v1/core/servers") {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(
+        JSON.stringify({
+          servers: servers.map((server) => ({
+            ...server,
+            scout: fixtureServerMonitoringSummary(
+              monitoring.get(server.id)!,
+              server.id,
+            ),
+          })),
+        }),
+      );
+      return;
+    }
     const monitoringPath = path.match(
       /^\/v1\/core\/servers\/([^/]+)\/monitoring(?:\/actions\/(install|uninstall))?$/,
     );
