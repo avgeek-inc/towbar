@@ -289,7 +289,7 @@ export function ScoutAlerts({
         getRowKey={(r) => r.id}
         items={rules}
         emptyTitle="No alert rules yet"
-        emptyDescription="Start with a CPU, memory, disk, restart, or missing-report preset. Rules are enabled only when you create them."
+        emptyDescription="Create a rule with a metric, threshold, and duration. Rules are enabled only when you create them."
       />
       <section className="grid min-w-0 gap-4" aria-label="Scout incidents">
         <div className="flex flex-wrap items-end justify-between gap-4">

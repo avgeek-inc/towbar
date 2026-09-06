@@ -38,33 +38,34 @@ export function ScoutRuleEditor({
   onSaved: () => void;
 }) {
   const [draft, setDraft] = useState<ScoutAlertRuleInput>(() =>
-    scoutAlertRuleSchema.parse(
-      initial
-        ? {
-            name: initial.name,
-            enabled: initial.enabled,
-            severity: initial.severity,
-            deployableId: deployableId ?? null,
-            environment: initial.environment,
-            condition: initial.condition,
-            notifyRecovery: initial.notifyRecovery,
-          }
-        : {
-            name: "Sustained memory pressure",
-            condition: scoutAlertPresets.find((p) => p.id === "memory")!
-              .condition,
-            deployableId: deployableId ?? null,
+    initial
+      ? scoutAlertRuleSchema.parse({
+          name: initial.name,
+          enabled: initial.enabled,
+          severity: initial.severity,
+          deployableId: deployableId ?? null,
+          environment: initial.environment,
+          condition: initial.condition,
+          notifyRecovery: initial.notifyRecovery,
+        })
+      : {
+          name: "",
+          enabled: true,
+          severity: "warning",
+          environment: "production",
+          notifyRecovery: true,
+          condition: {
+            ...scoutAlertPresets.find((p) => p.id === "memory")!.condition,
           },
-    ),
+          deployableId: deployableId ?? null,
+        },
   );
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const nameId = useId();
-  const [presetId, setPresetId] = useState(initial ? "custom" : "memory");
   const definition = metricDefinition(draft.condition.metric);
   const condition = (values: Partial<ScoutAlertRuleInput["condition"]>) => {
-    setPresetId("custom");
     setDraft((old) => ({ ...old, condition: { ...old.condition, ...values } }));
   };
   const isCounter = ["missingReports", "restarts", "httpAvailability"].includes(
@@ -123,33 +124,6 @@ export function ScoutRuleEditor({
             <Modal.Body>
               <form onSubmit={save} className="grid gap-6">
                 {error ? <QueryError message={error} /> : null}
-                {!initial ? (
-                  <ScoutSelect
-                    label="Start with a preset"
-                    value={presetId}
-                    options={[
-                      { id: "custom", label: "Customise this rule" },
-                      ...scoutAlertPresets
-                        .filter(
-                          (p) =>
-                            !draft.deployableId ||
-                            !["disk", "offline"].includes(p.id),
-                        )
-                        .map((p) => ({ id: p.id, label: p.name })),
-                    ]}
-                    onChange={(id) => {
-                      setPresetId(id);
-                      const preset = scoutAlertPresets.find((p) => p.id === id);
-                      if (preset)
-                        setDraft({
-                          ...draft,
-                          name: preset.name,
-                          severity: preset.severity,
-                          condition: { ...preset.condition },
-                        });
-                    }}
-                  />
-                ) : null}
                 <Field>
                   <FieldLabel htmlFor={nameId}>Rule name</FieldLabel>
                   <Input

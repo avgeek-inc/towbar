@@ -30,14 +30,14 @@ No rules are enabled automatically. The dotted 80% line in performance charts is
 
 ## Create a rule
 
-1. Choose **Create rule**, then start with a preset or configure a metric.
+1. Choose **Create rule**, enter a rule name, then choose a metric.
 2. The current server, app, or resource is selected automatically. Workload rules select **Production** or **Previews**; preview rules consider the selected workload's preview instances together.
 3. Set the threshold, direction, and how long the condition must persist. **At least** and **At most** include the threshold itself.
 4. Choose whether to send a recovery notification, then save. All destinations added under the server’s **Notifications** tab receive alerts automatically.
 
 A server without notification destinations still creates incidents in Towbar. Adding a destination does not send an immediate test; a firing incident becomes eligible on the next evaluation. Only workspace owners can create, change, delete, or mute rules. Members can inspect them.
 
-| Preset                    | Trigger                              | Recovery                            |
+| Example rule              | Trigger                              | Recovery                            |
 | ------------------------- | ------------------------------------ | ----------------------------------- |
 | Disk nearly full          | Root disk at least 90% for 5 minutes | Disk falls below 90%                |
 | Sustained memory pressure | Memory at least 90% for 5 minutes    | Memory falls below 90%              |
@@ -45,7 +45,7 @@ A server without notification destinations still creates incidents in Towbar. Ad
 | Container restart loop    | At least 3 restarts within 5 minutes | Fewer than 3 restarts in the window |
 | Scout stopped reporting   | No report collected for 3 minutes    | Reports resume                      |
 
-Presets are starting points. Configure sustained trigger periods from zero to 60 minutes and restart windows from 1 to 60 minutes. An incident recovers on the first fresh measurement that no longer meets the trigger condition. Each incident sends one firing notification, with no repeats while active. A server supports up to 100 rules, including at most 10 public HTTP checks.
+The examples above are starting points for your own thresholds. Configure sustained trigger periods from zero to 60 minutes and restart windows from 1 to 60 minutes. An incident recovers on the first fresh measurement that no longer meets the trigger condition. Each incident sends one firing notification, with no repeats while active. A server supports up to 100 rules, including at most 10 public HTTP checks.
 
 ## Measurements and incident states
 
