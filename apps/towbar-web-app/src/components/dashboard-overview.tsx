@@ -19,7 +19,7 @@ import type {
 } from "@workspace/towbar-web-client";
 import { LineChart } from "@workspace/web-design-system/charts/line-chart";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
+import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -250,9 +250,10 @@ function OverviewMetricIcon({
 
 function HealthChip({ unhealthyCount }: { unhealthyCount: number }) {
   return (
-    <Chip variant={unhealthyCount ? "destructive" : "success"}>
-      {unhealthyCount ? `${unhealthyCount} unhealthy` : "All healthy"}
-    </Chip>
+    <StatusBadge
+      status={unhealthyCount ? "unhealthy" : "healthy"}
+      label={unhealthyCount ? `${unhealthyCount} unhealthy` : "All healthy"}
+    />
   );
 }
 

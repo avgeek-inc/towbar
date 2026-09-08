@@ -70,11 +70,13 @@ const warning = new Set([
   "delivering",
   "findings",
   "warning",
+  "attention",
   "offline",
   "retrying",
 ]);
 const destructive = new Set([
   "blocked",
+  "critical",
   "decommissioned",
   "error",
   "failed",
@@ -112,9 +114,11 @@ const progress = new Set([
 export function StatusBadge({
   status,
   context,
+  label,
 }: {
   status: string;
   context?: "runtime";
+  label?: string;
 }) {
   const variant =
     success.has(status) || (context === "runtime" && status === "running")
@@ -125,26 +129,28 @@ export function StatusBadge({
           ? "destructive"
           : "secondary";
   const icon =
-    status === "running" && context === "runtime"
-      ? PlayIcon
-      : status === "stopped" || status === "cancelled"
-        ? StopIcon
-        : variant === "success"
-          ? CheckmarkCircle01Icon
-          : variant === "destructive"
-            ? AlertCircleIcon
-            : status === "queued" ||
-                status === "pending" ||
-                status.startsWith("waiting")
-              ? Clock01Icon
-              : variant === "warning"
-                ? progress.has(status)
-                  ? RefreshIcon
-                  : Alert02Icon
-                : InformationCircleIcon;
+    status === "restarted"
+      ? RefreshIcon
+      : status === "running" && context === "runtime"
+        ? PlayIcon
+        : status === "stopped" || status === "cancelled"
+          ? StopIcon
+          : variant === "success"
+            ? CheckmarkCircle01Icon
+            : variant === "destructive"
+              ? AlertCircleIcon
+              : status === "queued" ||
+                  status === "pending" ||
+                  status.startsWith("waiting")
+                ? Clock01Icon
+                : variant === "warning"
+                  ? progress.has(status)
+                    ? RefreshIcon
+                    : Alert02Icon
+                  : InformationCircleIcon;
   return (
     <Chip variant={variant} icon={<HugeiconsIcon icon={icon} />}>
-      {formatStatus(status)}
+      {label ?? formatStatus(status)}
     </Chip>
   );
 }

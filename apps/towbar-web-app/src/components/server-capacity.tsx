@@ -14,7 +14,6 @@ import type {
   RuntimeCapacity,
   SystemHealthStatus,
 } from "@workspace/towbar-web-client";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Table } from "@workspace/web-design-system/data-display/table";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
@@ -439,7 +438,7 @@ function MeterBar({
 
 function CapacityStatusBadge({ status }: { status: SystemHealthStatus }) {
   const presentation = capacityStatusPresentation[status];
-  return <Chip variant={presentation.variant}>{presentation.label}</Chip>;
+  return <StatusBadge status={status} label={presentation.label} />;
 }
 
 function meterStatus(

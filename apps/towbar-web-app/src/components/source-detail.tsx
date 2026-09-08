@@ -22,7 +22,6 @@ import type {
   Source,
   SourceSync,
 } from "@workspace/towbar-web-client";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
 import { Pagination } from "@workspace/web-design-system/navigation/pagination";
@@ -494,15 +493,12 @@ function SourceSubtabs({
 }
 
 function SyncStatusChip({ sync }: { sync?: SourceSync }) {
-  const variant = !sync
-    ? "secondary"
-    : sync.status === "succeeded"
-      ? "success"
-      : sync.status === "failed"
-        ? "destructive"
-        : "warning";
-
-  return <Chip variant={variant}>{getSyncStatusLabel(sync)}</Chip>;
+  return (
+    <StatusBadge
+      status={sync?.status ?? "unknown"}
+      label={getSyncStatusLabel(sync)}
+    />
+  );
 }
 
 function getSyncStatusLabel(sync?: SourceSync) {
