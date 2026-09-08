@@ -2,7 +2,12 @@
 
 import { HugeiconsIcon } from "@hugeicons/react";
 
-import { Key01Icon } from "@hugeicons/core-free-icons";
+import {
+  Key01Icon,
+  CheckmarkCircle01Icon,
+  InformationCircleIcon,
+  Delete02Icon,
+} from "@hugeicons/core-free-icons";
 
 import { useState, type FormEvent } from "react";
 import type { SecretMetadata, Server } from "@workspace/towbar-web-client";
@@ -286,6 +291,17 @@ function CredentialField({
         <FieldLabel htmlFor={id}>{label}</FieldLabel>
         <Chip
           size="small"
+          icon={
+            <HugeiconsIcon
+              icon={
+                deleted
+                  ? Delete02Icon
+                  : configured
+                    ? CheckmarkCircle01Icon
+                    : InformationCircleIcon
+              }
+            />
+          }
           variant={deleted ? "warning" : configured ? "success" : "secondary"}
         >
           {deleted
