@@ -68,9 +68,24 @@ export function WorkspaceIncidents() {
       cell: ({ incident }) => (
         <Chip
           size="small"
+          icon={
+            <ScoutIcon
+              name={
+                incident.resolvedAt
+                  ? incident.resolutionReason === "recovered"
+                    ? "resolved"
+                    : "close"
+                  : incident.severity === "critical"
+                    ? "critical"
+                    : "warning"
+              }
+            />
+          }
           variant={
             incident.resolvedAt
-              ? "secondary"
+              ? incident.resolutionReason === "recovered"
+                ? "success"
+                : "secondary"
               : incident.severity === "critical"
                 ? "destructive"
                 : "warning"

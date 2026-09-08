@@ -39,7 +39,7 @@ const columns: ResourceTableColumn<Event>[] = [
       event.type === "deployment" ? (
         <StatusBadge status={event.state} />
       ) : (
-        "Restarted"
+        <StatusBadge status="restarted" />
       ),
   },
   {

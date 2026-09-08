@@ -178,7 +178,14 @@ function HealthChecks({
 
 function HealthStatusChip({ status }: { status: SystemHealthStatus }) {
   const presentation = statusPresentation[status];
-  return <Chip variant={presentation.variant}>{presentation.label}</Chip>;
+  return (
+    <Chip
+      variant={presentation.variant}
+      icon={<HugeiconsIcon icon={presentation.icon} />}
+    >
+      {presentation.label}
+    </Chip>
+  );
 }
 
 function shortVersion(version: string) {

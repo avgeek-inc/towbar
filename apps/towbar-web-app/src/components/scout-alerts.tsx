@@ -115,15 +115,40 @@ export function ScoutAlerts({
         <div className="grid justify-items-start gap-1">
           <Chip
             size="small"
+            icon={
+              <ScoutIcon
+                name={
+                  !r.enabled ||
+                  (r.mutedUntil &&
+                    new Date(r.mutedUntil).getTime() > Date.now())
+                    ? "mute"
+                    : r.evaluationState === "healthy"
+                      ? "resolved"
+                      : r.evaluationState === "firing"
+                        ? r.severity === "critical"
+                          ? "critical"
+                          : "warning"
+                        : r.evaluationState === "error"
+                          ? "critical"
+                          : "time"
+                }
+              />
+            }
             variant={
               !r.enabled ||
               (r.mutedUntil && new Date(r.mutedUntil).getTime() > Date.now())
                 ? "secondary"
                 : r.evaluationState === "firing"
-                  ? "destructive"
+                  ? r.severity === "critical"
+                    ? "destructive"
+                    : "warning"
                   : r.evaluationState === "healthy"
                     ? "success"
-                    : "secondary"
+                    : r.evaluationState === "error"
+                      ? "destructive"
+                      : r.evaluationState === "pending"
+                        ? "warning"
+                        : "secondary"
             }
           >
             {!r.enabled
@@ -215,9 +240,24 @@ export function ScoutAlerts({
       cell: (i) => (
         <Chip
           size="small"
+          icon={
+            <ScoutIcon
+              name={
+                i.resolvedAt
+                  ? i.resolutionReason === "recovered"
+                    ? "resolved"
+                    : "close"
+                  : i.severity === "critical"
+                    ? "critical"
+                    : "warning"
+              }
+            />
+          }
           variant={
             i.resolvedAt
-              ? "secondary"
+              ? i.resolutionReason === "recovered"
+                ? "success"
+                : "secondary"
               : i.severity === "critical"
                 ? "destructive"
                 : "warning"

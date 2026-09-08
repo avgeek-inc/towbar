@@ -139,7 +139,28 @@ function IncidentBody({
       <div className="flex items-center gap-2">
         <Chip
           size="small"
-          variant={incident.resolvedAt ? "secondary" : "destructive"}
+          icon={
+            <ScoutIcon
+              name={
+                incident.resolvedAt
+                  ? incident.resolutionReason === "recovered"
+                    ? "resolved"
+                    : "close"
+                  : incident.severity === "critical"
+                    ? "critical"
+                    : "warning"
+              }
+            />
+          }
+          variant={
+            incident.resolvedAt
+              ? incident.resolutionReason === "recovered"
+                ? "success"
+                : "secondary"
+              : incident.severity === "critical"
+                ? "destructive"
+                : "warning"
+          }
         >
           {incident.resolvedAt
             ? incident.resolutionReason === "recovered"
@@ -149,6 +170,11 @@ function IncidentBody({
         </Chip>
         <Chip
           size="small"
+          icon={
+            <ScoutIcon
+              name={incident.severity === "critical" ? "critical" : "warning"}
+            />
+          }
           variant={incident.severity === "critical" ? "destructive" : "warning"}
         >
           {incident.severity === "critical" ? "Critical" : "Warning"}

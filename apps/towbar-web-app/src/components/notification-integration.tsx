@@ -1,6 +1,11 @@
 "use client";
 
-import { Mail01Icon, SlackIcon } from "@hugeicons/core-free-icons";
+import {
+  Alert02Icon,
+  CheckmarkCircle01Icon,
+  Mail01Icon,
+  SlackIcon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
@@ -29,7 +34,15 @@ export function NotificationIntegration({
     <Widget>
       <Widget.Header
         endContent={
-          <Chip size="small" variant={configured ? "success" : "warning"}>
+          <Chip
+            size="small"
+            variant={configured ? "success" : "warning"}
+            icon={
+              <HugeiconsIcon
+                icon={configured ? CheckmarkCircle01Icon : Alert02Icon}
+              />
+            }
+          >
             {configured ? "Configured" : "Not configured"}
           </Chip>
         }

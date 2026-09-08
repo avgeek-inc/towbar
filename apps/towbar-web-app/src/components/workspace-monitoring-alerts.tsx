@@ -64,12 +64,37 @@ export function WorkspaceAlerts() {
         return (
           <Chip
             size="small"
+            icon={
+              <ScoutIcon
+                name={
+                  !rule.enabled || muted
+                    ? "mute"
+                    : rule.evaluationState === "healthy"
+                      ? "resolved"
+                      : rule.evaluationState === "firing"
+                        ? rule.severity === "critical"
+                          ? "critical"
+                          : "warning"
+                        : rule.evaluationState === "error"
+                          ? "critical"
+                          : "time"
+                }
+              />
+            }
             variant={
-              rule.enabled && !muted && rule.evaluationState === "firing"
-                ? "destructive"
-                : rule.enabled && !muted && rule.evaluationState === "healthy"
-                  ? "success"
-                  : "secondary"
+              !rule.enabled || muted
+                ? "secondary"
+                : rule.evaluationState === "firing"
+                  ? rule.severity === "critical"
+                    ? "destructive"
+                    : "warning"
+                  : rule.evaluationState === "healthy"
+                    ? "success"
+                    : rule.evaluationState === "error"
+                      ? "destructive"
+                      : rule.evaluationState === "pending"
+                        ? "warning"
+                        : "secondary"
             }
           >
             {!rule.enabled
@@ -94,6 +119,11 @@ export function WorkspaceAlerts() {
       cell: ({ rule }) => (
         <Chip
           size="small"
+          icon={
+            <ScoutIcon
+              name={rule.severity === "critical" ? "critical" : "warning"}
+            />
+          }
           variant={rule.severity === "critical" ? "destructive" : "warning"}
         >
           {rule.severity === "critical" ? "Critical" : "Warning"}

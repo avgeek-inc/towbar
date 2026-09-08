@@ -60,6 +60,17 @@ export function ScoutIncidentNotifications({
         <div className="grid min-w-20 gap-1">
           <Chip
             size="small"
+            icon={
+              <ScoutIcon
+                name={
+                  d.state === "succeeded"
+                    ? "resolved"
+                    : d.state === "failed"
+                      ? "critical"
+                      : "time"
+                }
+              />
+            }
             variant={
               d.state === "succeeded"
                 ? "success"

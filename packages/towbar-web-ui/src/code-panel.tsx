@@ -10,15 +10,18 @@ export function CodePanel({
   language?: string;
 }) {
   return (
-    <CodeBlock
-      aria-label={ariaLabel}
-      className="max-h-[34rem] w-full min-w-0 overflow-auto"
-    >
+    <CodeBlock aria-label={ariaLabel} className="w-full min-w-0">
       <CodeBlock.Header>
         <CodeBlock.Filename>{ariaLabel}</CodeBlock.Filename>
         <CodeBlock.CopyButton code={children} />
       </CodeBlock.Header>
-      <CodeBlock.Code code={children} language={language} />
+      <CodeBlock.Code
+        aria-label={`${ariaLabel} code`}
+        className="max-h-[30rem] overflow-auto"
+        tabIndex={0}
+        code={children}
+        language={language}
+      />
     </CodeBlock>
   );
 }

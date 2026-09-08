@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  GitBranchIcon,
+  PlayIcon,
+  RefreshIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type { Deployment } from "@workspace/towbar-web-client";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
@@ -53,9 +59,7 @@ export function DeploymentTable({
       key: "trigger",
       header: "Trigger",
       cell: (deployment) => (
-        <Chip size="small" variant="secondary">
-          {formatDeploymentTrigger(deployment.trigger)}
-        </Chip>
+        <DeploymentTriggerChip trigger={deployment.trigger} />
       ),
       className: "hidden whitespace-nowrap sm:table-cell",
       headerClassName: "hidden sm:table-cell",
@@ -116,4 +120,30 @@ export function formatDeploymentTrigger(trigger: Deployment["trigger"]) {
   if (trigger === "auto_deploy") return "Auto-deploy";
   if (trigger === "rollback") return "Rollback";
   return "Manual";
+}
+
+export function DeploymentTriggerChip({
+  trigger,
+}: {
+  trigger: Deployment["trigger"];
+}) {
+  return (
+    <Chip
+      size="small"
+      variant="secondary"
+      icon={
+        <HugeiconsIcon
+          icon={
+            trigger === "auto_deploy"
+              ? GitBranchIcon
+              : trigger === "rollback"
+                ? RefreshIcon
+                : PlayIcon
+          }
+        />
+      }
+    >
+      {formatDeploymentTrigger(trigger)}
+    </Chip>
+  );
 }

@@ -533,6 +533,12 @@ importers:
 
   packages/towbar-web-ui:
     dependencies:
+      "@hugeicons/core-free-icons":
+        specifier: "catalog:"
+        version: 4.3.0
+      "@hugeicons/react":
+        specifier: "catalog:"
+        version: 1.1.10(react@19.2.8)
       "@workspace/web-design-system":
         specifier: workspace:*
         version: link:../web-design-system
