@@ -19,12 +19,17 @@ import type {
 } from "@workspace/towbar-web-client";
 import { LineChart } from "@workspace/web-design-system/charts/line-chart";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
-import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
 import { DashboardPage, InlineLink } from "@/components/page-parts";
+import {
+  OverviewMonitoring,
+  OverviewAttention,
+  OverviewDeployments,
+  OverviewServers,
+} from "./overview-operations";
 import { useApiQuery } from "@/hooks/use-api-query";
 
 const activitySeries = [
@@ -39,35 +44,27 @@ const activitySeries = [
 const activityAxisTick = { fill: "var(--muted)", fontSize: 12 } as const;
 
 export function DashboardOverview() {
-  const apps = useApiQuery<{ apps: App[] }>("/v1/core/apps");
+  const apps = useApiQuery<{ apps: App[] }>("/v1/core/apps", 30_000);
   const resources = useApiQuery<{ resources: Resource[] }>(
     "/v1/core/resources",
+    30_000,
   );
-  const servers = useApiQuery<{ servers: Server[] }>("/v1/core/servers");
-  const sources = useApiQuery<{ sources: Source[] }>("/v1/core/sources");
-  const deployments = useApiQuery<{ deployments: Deployment[] }>(
-    "/v1/core/deployments",
-    5_000,
+  const servers = useApiQuery<{ servers: Server[] }>(
+    "/v1/core/servers",
+    30_000,
   );
-  const error =
-    apps.error ??
-    resources.error ??
-    servers.error ??
-    sources.error ??
-    deployments.error;
+  const sources = useApiQuery<{ sources: Source[] }>(
+    "/v1/core/sources",
+    30_000,
+  );
+  const error = apps.error ?? resources.error ?? servers.error ?? sources.error;
   if (error)
     return (
       <DashboardPage icon={DashboardSquare01Icon} title="Overview">
         <QueryError message={error} />
       </DashboardPage>
     );
-  if (
-    !apps.data ||
-    !resources.data ||
-    !servers.data ||
-    !sources.data ||
-    !deployments.data
-  )
+  if (!apps.data || !resources.data || !servers.data || !sources.data)
     return (
       <DashboardPage icon={DashboardSquare01Icon} title="Overview">
         <QueryLoading variant="dashboard" />
@@ -78,57 +75,58 @@ export function DashboardOverview() {
   const resourceItems = resources.data.resources;
   const serverItems = servers.data.servers;
   const sourceItems = sources.data.sources;
-  const deploymentItems = deployments.data.deployments;
   const activeApps = appItems.filter((app) => !app.archivedAt);
   const activeResources = resourceItems.filter((item) => !item.archivedAt);
   const activeServers = serverItems.filter((server) => !server.archivedAt);
   const activeSources = sourceItems.filter(
     (source) => source.status === "active",
   );
-  const unhealthyApps = activeApps.filter(isUnhealthy).length;
-  const unhealthyResources = activeResources.filter(isUnhealthy).length;
-  const unhealthyServerKeys = new Set(
-    [...activeApps, ...activeResources]
-      .filter(isUnhealthy)
-      .map((item) => item.serverIp),
-  );
-  const unhealthyServers = activeServers.filter((server) =>
-    unhealthyServerKeys.has(server.canonicalIp),
-  ).length;
-  const activity = buildDeploymentActivity(deploymentItems);
   const metrics = [
     {
       icon: GitBranchIcon,
       href: "/sources",
       label: "Sources",
-      unhealthyCount: null,
+      detail: `${activeSources.filter((source) => source.latestCommitSha).length} imported`,
       value: activeSources.length,
     },
     {
       icon: DashboardCircleIcon,
       href: "/apps",
       label: "Apps",
-      unhealthyCount: unhealthyApps,
+      detail: `${activeApps.filter((item) => item.runtimeState.observedState === "running").length} running`,
       value: activeApps.length,
     },
     {
       icon: DatabaseIcon,
       href: "/resources",
       label: "Resources",
-      unhealthyCount: unhealthyResources,
+      detail: `${activeResources.filter((item) => item.runtimeState.observedState === "running").length} running`,
       value: activeResources.length,
     },
     {
       icon: ServerStack01Icon,
       href: "/servers",
       label: "Servers",
-      unhealthyCount: unhealthyServers,
+      detail: `${activeServers.filter((server) => server.setupStatus === "ready").length} ready`,
       value: activeServers.length,
     },
   ];
 
   return (
-    <DashboardPage icon={DashboardSquare01Icon} title="Overview">
+    <DashboardPage
+      icon={DashboardSquare01Icon}
+      title="Overview"
+      actions={
+        <ButtonLink href="/sources" variant="secondary">
+          <HugeiconsIcon
+            icon={GitBranchIcon}
+            className="size-4"
+            aria-hidden="true"
+          />
+          Open Sources
+        </ButtonLink>
+      }
+    >
       <div className="content-grid grid-cols-2 lg:grid-cols-4">
         {metrics.map((metric) => (
           <Widget className="min-w-0" key={metric.label}>
@@ -151,90 +149,113 @@ export function DashboardOverview() {
                   </InlineLink>
                 </dd>
               </dl>
-              {metric.unhealthyCount === null ? null : (
-                <HealthChip unhealthyCount={metric.unhealthyCount} />
-              )}
+              <span className="text-xs text-muted">{metric.detail}</span>
             </Widget.Content>
           </Widget>
         ))}
       </div>
 
-      <Widget className="min-w-0">
-        <Widget.Header
-          className="flex-wrap py-2"
-          endContent={
-            deploymentItems.length ? (
-              <Widget.Legend className="flex-wrap">
-                {activitySeries.map((series) => (
-                  <Widget.LegendItem color={series.color} key={series.key}>
-                    {series.label}
-                  </Widget.LegendItem>
-                ))}
-              </Widget.Legend>
-            ) : null
-          }
-        >
-          <Widget.Title icon={<HugeiconsIcon icon={Activity01Icon} />}>
-            Deployment activity
-          </Widget.Title>
-        </Widget.Header>
-        <Widget.Content className="grid min-w-0 gap-3">
-          {deploymentItems.length ? (
-            <LineChart
-              aria-label="Deployment activity over the last 14 days"
-              className="min-w-0"
-              data={activity}
-              height={236}
-            >
-              <LineChart.Grid vertical={false} />
-              <LineChart.XAxis
-                dataKey="date"
-                tick={activityAxisTick}
-                tickFormatter={(value) => formatActivityDate(String(value))}
-                tickMargin={8}
-              />
-              <LineChart.YAxis tick={activityAxisTick} width={32} />
-              {activitySeries.map((series) => (
-                <LineChart.Line
-                  dataKey={series.key}
-                  dot={false}
-                  isAnimationActive={false}
-                  key={series.key}
-                  name={series.label}
-                  stroke={series.color}
-                  strokeWidth={2}
-                  type="monotone"
-                />
-              ))}
-              <LineChart.Tooltip
-                content={
-                  <LineChart.TooltipContent
-                    labelFormatter={(value) =>
-                      formatActivityDate(String(value))
-                    }
-                  />
-                }
-              />
-            </LineChart>
-          ) : (
-            <EmptyState>
-              <EmptyState.Header>
-                <EmptyState.Title>No deployment activity yet</EmptyState.Title>
-                <EmptyState.Description className="max-w-sm text-pretty">
-                  Add or open a Source, then deploy an imported app or resource
-                  when it is ready.
-                </EmptyState.Description>
-              </EmptyState.Header>
-              <EmptyState.Content>
-                <ButtonLink href="/sources" variant="secondary">
-                  Open Sources
-                </ButtonLink>
-              </EmptyState.Content>
-            </EmptyState>
-          )}
-        </Widget.Content>
-      </Widget>
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+        <div className="grid min-w-0 gap-4">
+          <OverviewMonitoring />
+          <OverviewAttention workloads={[...activeApps, ...activeResources]} />
+          <OverviewServers
+            servers={activeServers}
+            workloads={[...activeApps, ...activeResources]}
+          />
+        </div>
+        <OverviewDeployments />
+      </div>
+      <OverviewActivity />
     </DashboardPage>
+  );
+}
+
+function OverviewActivity() {
+  const query = useApiQuery<{ deployments: Deployment[] }>(
+    "/v1/core/deployments",
+    30_000,
+  );
+  const deploymentItems = query.data?.deployments ?? [];
+  const activity = buildDeploymentActivity(deploymentItems);
+  return (
+    <Widget className="min-w-0">
+      <Widget.Header
+        className="flex-wrap py-2"
+        endContent={
+          deploymentItems.length ? (
+            <Widget.Legend className="flex-wrap">
+              {activitySeries.map((series) => (
+                <Widget.LegendItem color={series.color} key={series.key}>
+                  {series.label}
+                </Widget.LegendItem>
+              ))}
+            </Widget.Legend>
+          ) : null
+        }
+      >
+        <Widget.Title icon={<HugeiconsIcon icon={Activity01Icon} />}>
+          Production deployments · last 14 days
+        </Widget.Title>
+      </Widget.Header>
+      <Widget.Content className="grid min-w-0 gap-3">
+        {query.error ? (
+          <QueryError message={query.error} />
+        ) : !query.data ? (
+          <QueryLoading />
+        ) : deploymentItems.length ? (
+          <LineChart
+            aria-label="Deployment activity over the last 14 days"
+            className="min-w-0"
+            data={activity}
+            height={236}
+          >
+            <LineChart.Grid vertical={false} />
+            <LineChart.XAxis
+              dataKey="date"
+              tick={activityAxisTick}
+              tickFormatter={(value) => formatActivityDate(String(value))}
+              tickMargin={8}
+            />
+            <LineChart.YAxis tick={activityAxisTick} width={32} />
+            {activitySeries.map((series) => (
+              <LineChart.Line
+                dataKey={series.key}
+                dot={false}
+                isAnimationActive={false}
+                key={series.key}
+                name={series.label}
+                stroke={series.color}
+                strokeWidth={2}
+                type="monotone"
+              />
+            ))}
+            <LineChart.Tooltip
+              content={
+                <LineChart.TooltipContent
+                  labelFormatter={(value) => formatActivityDate(String(value))}
+                />
+              }
+            />
+          </LineChart>
+        ) : (
+          <EmptyState>
+            <EmptyState.Header>
+              <EmptyState.Title>No deployment activity yet</EmptyState.Title>
+              <EmptyState.Description className="max-w-sm text-pretty">
+                Add or open a Source, then deploy an imported app or resource
+                when it is ready.
+              </EmptyState.Description>
+            </EmptyState.Header>
+            <EmptyState.Content>
+              <ButtonLink href="/sources" variant="secondary">
+                Open Sources
+              </ButtonLink>
+            </EmptyState.Content>
+          </EmptyState>
+        )}
+      </Widget.Content>
+    </Widget>
   );
 }
 
@@ -246,19 +267,6 @@ function OverviewMetricIcon({
   return (
     <HugeiconsIcon aria-hidden="true" className="size-4 shrink-0" icon={icon} />
   );
-}
-
-function HealthChip({ unhealthyCount }: { unhealthyCount: number }) {
-  return (
-    <StatusBadge
-      status={unhealthyCount ? "unhealthy" : "healthy"}
-      label={unhealthyCount ? `${unhealthyCount} unhealthy` : "All healthy"}
-    />
-  );
-}
-
-function isUnhealthy(item: App | Resource) {
-  return item.runtimeState.healthStatus === "unhealthy";
 }
 
 function buildDeploymentActivity(deployments: Deployment[]) {
