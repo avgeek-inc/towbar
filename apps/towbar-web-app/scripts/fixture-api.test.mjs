@@ -347,12 +347,19 @@ test("the local fixture supports write-only stage edits and rejects stale revisi
     const previewBuild = preview.bindings.find(
       (item) => item.stage === "build",
     );
-    assert.deepEqual(previewBuild.inheritedKeys, [
-      "GLOBAL_PREVIEW_TOKEN",
-      "SOURCE_PREVIEW_TOKEN",
-    ]);
-    assert.equal(previewBuild.inheritedOrigins.GLOBAL_PREVIEW_TOKEN, "global");
-    assert.equal(previewBuild.inheritedOrigins.SOURCE_PREVIEW_TOKEN, "source");
+    assert.deepEqual(previewBuild.inheritedKeys, []);
+    assert.deepEqual(previewBuild.availableReferences, {
+      globals: ["GLOBAL_PREVIEW_TOKEN"],
+      source: ["SOURCE_PREVIEW_TOKEN"],
+    });
+    const revealed = await fetch(`${endpoint}/production/deployment/reveal`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ key: "TEST_TOKEN" }),
+    });
+    assert.equal(revealed.status, 200);
+    assert.equal(revealed.headers.get("cache-control"), "no-store");
+    assert.equal((await revealed.json()).value, "must-not-return");
 
     const globalEndpoint = `${baseUrl}/v1/core/settings/secrets`;
     const global = await (await fetch(globalEndpoint)).json();

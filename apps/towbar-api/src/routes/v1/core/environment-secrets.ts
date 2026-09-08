@@ -3,15 +3,18 @@ import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
 import {
   secretEnvironmentSchema,
+  secretKeySchema,
   secretMutationSchema,
   secretStageSchema,
 } from "@workspace/towbar-core";
 import {
+  getEnvironmentSecretOwner,
   listEnvironmentSecrets,
   updateEnvironmentSecrets,
 } from "../../../areas/apps/secrets.js";
 import { getApp, getResource } from "../../../areas/apps/queries.js";
-import { forbidden } from "../../../http/errors.js";
+import { revealSecretValue } from "../../../areas/secrets/store.js";
+import { forbidden, unprocessable } from "../../../http/errors.js";
 import { readJson, readUuidPathParameter } from "../../../http/requests.js";
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
@@ -98,6 +101,54 @@ export function environmentSecretRoutes(
           mutation: await readJson(context, secretMutationSchema, 300 * 1024),
         }),
       });
+    },
+  );
+  routes.post(
+    "/:environment/:stage/reveal",
+    operation({
+      responseSchema:
+        'environment-secrets.ts:post:"/:environment/:stage/reveal"',
+      summary: "Reveal an environment secret",
+      body: z.object({ key: secretKeySchema }).strict(),
+      ownerOnly: true,
+      response: "JSON object containing the stored value and revision.",
+      status: 200,
+    }),
+    async (context) => {
+      const user = context.get("user");
+      if (user.workspaceRole !== "owner")
+        throw forbidden("Only the owner can reveal secrets");
+      const owner =
+        kind === "workspace"
+          ? { type: "workspace" as const, workspaceId: user.workspaceId }
+          : {
+              type: kind === "source" ? ("source" as const) : ("app" as const),
+              id: readUuidPathParameter(
+                context.req.param("ownerId")!,
+                "ownerId",
+              ),
+              workspaceId: user.workspaceId,
+            };
+      const ownership = await getEnvironmentSecretOwner(owner);
+      const environment = secretEnvironmentSchema.parse(
+        context.req.param("environment"),
+      );
+      const stage = secretStageSchema.parse(context.req.param("stage"));
+      if (
+        ownership.resource &&
+        (environment !== "production" || stage !== "deployment")
+      )
+        throw unprocessable(
+          "Resources only support production runtime secrets",
+        );
+      const { key } = await readJson(
+        context,
+        z.object({ key: secretKeySchema }).strict(),
+        2048,
+      );
+      return context.json(
+        await revealSecretValue({ ...owner, environment, stage }, key, user.id),
+      );
     },
   );
   return routes;

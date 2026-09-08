@@ -102,4 +102,4 @@ configuration remain controlled by the production manifest. Secret assignments a
 4. Open its URL and verify the expected change.
 5. Close the pull request and confirm cleanup completes.
 
-If the preview is skipped, check branch eligibility and input patterns. If it builds but the URL fails, check [DNS and TLS](/docs/domains-tls). See [Shared secrets](/docs/secrets) for environment inheritance.
+If the preview is skipped, check branch eligibility and input patterns. If it builds but the URL fails, check [DNS and TLS](/docs/domains-tls). See [Shared secrets](/docs/secrets) for environment references.

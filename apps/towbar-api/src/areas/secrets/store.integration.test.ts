@@ -290,7 +290,7 @@ void test(
         },
       );
       await t.test(
-        "member, foreign workspace, and reveal requests cannot mutate or retrieve values",
+        "reveal requires an owner in the same workspace and does not leak through metadata",
         async () => {
           const path = `/apps/${appId}/secrets/production/deployment`;
           const current = await readSecretMetadata(slot);
@@ -299,7 +299,14 @@ void test(
             set: { TOKEN: "forbidden" },
             delete: [],
           };
+          const reveal = () =>
+            api.request(`${path}/reveal`, {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ key: "MULTILINE" }),
+            });
           workspaceRole = "member";
+          assert.equal((await reveal()).status, 403);
           assert.equal((await patch(path, change)).status, 403);
           assert.equal(
             (
@@ -314,6 +321,7 @@ void test(
           );
           workspaceRole = "owner";
           requestWorkspace = otherWorkspaceId;
+          assert.equal((await reveal()).status, 404);
           assert.equal((await patch(path, change)).status, 404);
           requestWorkspace = workspaceId;
           assert.equal(
@@ -324,6 +332,22 @@ void test(
             ).status,
             404,
           );
+          const revealed = await reveal();
+          assert.equal(revealed.status, 200);
+          assert.match(
+            revealed.headers.get("cache-control") ?? "",
+            /no-store/u,
+          );
+          assert.equal(
+            ((await revealed.json()) as { value: string }).value,
+            "line one\nline two",
+          );
+          const [event] = await db
+            .select()
+            .from(auditEvents)
+            .where(eq(auditEvents.action, "secrets.revealed"));
+          assert(event);
+          assert(!JSON.stringify(event).includes("line one"));
           const response = await api.request(`/apps/${appId}/secrets`);
           assert.match(
             response.headers.get("cache-control") ?? "",

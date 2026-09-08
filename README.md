@@ -34,7 +34,7 @@ workloads in a manifest. Towbar builds and runs them on your infrastructure.
 | Deploy from Git        | Keep configuration with your code. Deploy manually, automatically, or only when selected files change.                                                |
 | Run apps and databases | Build Dockerfile apps on your servers. Run PostgreSQL, Redis, and container images with persistent storage.                                           |
 | Preview pull requests  | Share a stable preview URL with separate secrets. Environments are cleaned up when pull requests close or merge.                                      |
-| Manage secrets         | Store encrypted, write-only values for a workspace, Source, or workload, with separate production and preview configuration.                          |
+| Manage secrets         | Store encrypted values with owner-only reveal and explicit references across workspace, Source, and workload scopes.                                  |
 | Monitor performance    | Track server and workload history with Scout Agent, configure alerts and public uptime checks, and compare deployments for changes in resource usage. |
 | Back up and restore    | Schedule PostgreSQL and Redis backups to S3, check restore readiness, and restore through an isolated candidate before promotion.                     |
 | Stay informed          | Send deployment, preview, health, backup, and restore events to Slack or email.                                                                       |

@@ -38,7 +38,7 @@ export async function testManagedSecretInheritance({
   slot: SecretSlot;
 }) {
   await t.test(
-    "encrypted storage, write-only metadata, inheritance, and versioned writes",
+    "encrypted storage, write-only metadata, explicit references, and versioned writes",
     async () => {
       await mutateSecret(
         globalSlot,
@@ -80,26 +80,26 @@ export async function testManagedSecretInheritance({
         stage: "deployment",
       });
       assert.equal(result.values.TOKEN, "local-value");
-      assert.equal(result.values.COMMON, "common-value");
-      assert.equal(result.values.GLOBAL_ONLY, "global-only");
+      assert.equal(result.values.COMMON, undefined);
+      assert.equal(result.values.GLOBAL_ONLY, undefined);
       const appBinding = (
         await listEnvironmentSecrets(appOwner, "production")
       ).find((binding) => binding.stage === "deployment");
       assert(appBinding);
-      assert.deepEqual(appBinding.inheritedKeys, [
-        "COMMON",
-        "GLOBAL_ONLY",
-        "TOKEN",
-      ]);
-      assert.equal(appBinding.inheritedOrigins.GLOBAL_ONLY, "global");
-      assert.equal(appBinding.inheritedOrigins.COMMON, "source");
-      assert.equal(appBinding.inheritedOrigins.TOKEN, "source");
+      assert.deepEqual(appBinding.inheritedKeys, []);
+      assert.deepEqual(appBinding.availableReferences, {
+        globals: ["GLOBAL_ONLY", "TOKEN"],
+        source: ["COMMON", "TOKEN"],
+      });
       const sourceBinding = (
         await listEnvironmentSecrets(sourceOwner, "production")
       ).find((binding) => binding.stage === "deployment");
       assert(sourceBinding);
-      assert.deepEqual(sourceBinding.inheritedKeys, ["GLOBAL_ONLY", "TOKEN"]);
-      assert.equal(sourceBinding.inheritedOrigins.TOKEN, "global");
+      assert.deepEqual(sourceBinding.inheritedKeys, []);
+      assert.deepEqual(sourceBinding.availableReferences.globals, [
+        "GLOBAL_ONLY",
+        "TOKEN",
+      ]);
       const [stored] = await db
         .select()
         .from(managedSecrets)
@@ -122,7 +122,7 @@ export async function testManagedSecretInheritance({
             stage: "deployment",
           })
         ).values.TOKEN,
-        "shared-value",
+        undefined,
       );
       const shared = await readSecretMetadata(sharedSlot);
       await mutateSecret(
@@ -144,7 +144,7 @@ export async function testManagedSecretInheritance({
             stage: "deployment",
           })
         ).values.TOKEN,
-        "global-value",
+        undefined,
       );
       await mutateSecret(
         sharedSlot,
@@ -155,6 +155,28 @@ export async function testManagedSecretInheritance({
         },
         actorUserId,
       );
+      await mutateSecret(
+        slot,
+        {
+          expectedRevision: deleted.revision,
+          set: {
+            TOKEN: "{{source.TOKEN}}",
+            COMMON: "{{source.COMMON}}",
+            GLOBAL_ONLY: "{{globals.GLOBAL_ONLY}}",
+          },
+          delete: [],
+        },
+        actorUserId,
+      );
+      const explicit = await resolveEnvironmentStage({
+        workspaceId,
+        sourceId,
+        appId,
+        environment: "production",
+        stage: "deployment",
+      });
+      assert.equal(explicit.values.TOKEN, "shared-value");
+      assert.equal(explicit.values.GLOBAL_ONLY, "global-only");
       await assert.rejects(
         mutateSecret(
           slot,
@@ -215,7 +237,7 @@ export async function testManagedSecretInheritance({
         environment: "preview",
         stage: "deployment",
       });
-      assert.deepEqual(preview.values, { GLOBAL_PREVIEW: "global-preview" });
+      assert.deepEqual(preview.values, {});
       assert.deepEqual(
         (
           await resolveEnvironmentStage({
@@ -226,7 +248,7 @@ export async function testManagedSecretInheritance({
             stage: "pre_deploy",
           })
         ).values,
-        { SOURCE_PREVIEW: "source-preview" },
+        {},
       );
       assert.equal(
         (
