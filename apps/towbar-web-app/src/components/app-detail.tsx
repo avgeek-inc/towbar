@@ -180,7 +180,10 @@ export function AppDetail() {
                     />
                   </Attributes.Item>
                   <Attributes.Item label="Running state">
-                    <StatusBadge status={item.runtimeState.observedState} />
+                    <StatusBadge
+                      context="runtime"
+                      status={item.runtimeState.observedState}
+                    />
                   </Attributes.Item>
                   <Attributes.Item label="Configuration">
                     <StatusBadge status={item.runtimeState.driftStatus} />

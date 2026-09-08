@@ -65,11 +65,19 @@ export function WorkspaceAlerts() {
           <Chip
             size="small"
             variant={
-              rule.enabled && !muted && rule.evaluationState === "firing"
-                ? "destructive"
-                : rule.enabled && !muted && rule.evaluationState === "healthy"
-                  ? "success"
-                  : "secondary"
+              !rule.enabled || muted
+                ? "secondary"
+                : rule.evaluationState === "firing"
+                  ? rule.severity === "critical"
+                    ? "destructive"
+                    : "warning"
+                  : rule.evaluationState === "healthy"
+                    ? "success"
+                    : rule.evaluationState === "error"
+                      ? "destructive"
+                      : rule.evaluationState === "pending"
+                        ? "warning"
+                        : "secondary"
             }
           >
             {!rule.enabled

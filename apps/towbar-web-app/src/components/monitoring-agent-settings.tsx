@@ -272,9 +272,11 @@ export function MonitoringStatus({ agent }: { agent: MonitoringAgentStatus }) {
       variant={
         agent.status === "online"
           ? "success"
-          : ["offline", "failed"].includes(agent.status)
-            ? "warning"
-            : "secondary"
+          : agent.status === "failed"
+            ? "destructive"
+            : agent.status === "offline"
+              ? "warning"
+              : "secondary"
       }
     >
       {labels[agent.status] ?? agent.status}

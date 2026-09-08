@@ -8,6 +8,9 @@ const success = new Set([
   "current",
   "success",
   "healthy",
+  "in_sync",
+  "online",
+  "recovered",
   "live",
   "passed",
   "published",
@@ -55,6 +58,8 @@ const warning = new Set([
   "stale",
   "delivering",
   "findings",
+  "warning",
+  "offline",
   "retrying",
 ]);
 const destructive = new Set([
@@ -68,14 +73,21 @@ const destructive = new Set([
   "not_restore_ready",
 ]);
 
-export function StatusBadge({ status }: { status: string }) {
-  const variant = success.has(status)
-    ? "success"
-    : warning.has(status)
-      ? "warning"
-      : destructive.has(status)
-        ? "destructive"
-        : "secondary";
+export function StatusBadge({
+  status,
+  context,
+}: {
+  status: string;
+  context?: "runtime";
+}) {
+  const variant =
+    success.has(status) || (context === "runtime" && status === "running")
+      ? "success"
+      : warning.has(status)
+        ? "warning"
+        : destructive.has(status)
+          ? "destructive"
+          : "secondary";
   return <Chip variant={variant}>{formatStatus(status)}</Chip>;
 }
 

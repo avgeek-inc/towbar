@@ -120,10 +120,16 @@ export function ScoutAlerts({
               (r.mutedUntil && new Date(r.mutedUntil).getTime() > Date.now())
                 ? "secondary"
                 : r.evaluationState === "firing"
-                  ? "destructive"
+                  ? r.severity === "critical"
+                    ? "destructive"
+                    : "warning"
                   : r.evaluationState === "healthy"
                     ? "success"
-                    : "secondary"
+                    : r.evaluationState === "error"
+                      ? "destructive"
+                      : r.evaluationState === "pending"
+                        ? "warning"
+                        : "secondary"
             }
           >
             {!r.enabled
@@ -217,7 +223,9 @@ export function ScoutAlerts({
           size="small"
           variant={
             i.resolvedAt
-              ? "secondary"
+              ? i.resolutionReason === "recovered"
+                ? "success"
+                : "secondary"
               : i.severity === "critical"
                 ? "destructive"
                 : "warning"

@@ -70,7 +70,9 @@ export function WorkspaceIncidents() {
           size="small"
           variant={
             incident.resolvedAt
-              ? "secondary"
+              ? incident.resolutionReason === "recovered"
+                ? "success"
+                : "secondary"
               : incident.severity === "critical"
                 ? "destructive"
                 : "warning"

@@ -139,7 +139,15 @@ function IncidentBody({
       <div className="flex items-center gap-2">
         <Chip
           size="small"
-          variant={incident.resolvedAt ? "secondary" : "destructive"}
+          variant={
+            incident.resolvedAt
+              ? incident.resolutionReason === "recovered"
+                ? "success"
+                : "secondary"
+              : incident.severity === "critical"
+                ? "destructive"
+                : "warning"
+          }
         >
           {incident.resolvedAt
             ? incident.resolutionReason === "recovered"
