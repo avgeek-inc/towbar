@@ -533,7 +533,7 @@ function SecretValueInput({
         data-1p-ignore
         spellCheck={false}
         placeholder={
-          configured ? "Configured — enter a replacement" : "Value or reference"
+          configured ? (visible ? "" : "********") : "Value or reference"
         }
         value={configured ? (visible ? (stored ?? "") : "") : value}
         disabled={disabled || loading}
