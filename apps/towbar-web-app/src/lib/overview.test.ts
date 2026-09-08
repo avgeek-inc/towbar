@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildDeploymentActivity, scoutCoverage } from "./overview";
+import { buildDeploymentActivity } from "./overview";
 
 void test("activity includes exactly seven UTC dates across month boundaries", () => {
   const days = buildDeploymentActivity(
@@ -21,29 +21,4 @@ void test("activity includes exactly seven UTC dates across month boundaries", (
   );
   assert.equal(days.find((day) => day.date === "2026-08-31")?.succeeded, 1);
   assert.equal(days.find((day) => day.date === "2026-09-01")?.failed, 1);
-});
-void test("Scout counts inactive separately from enabled agents that are not reporting", () => {
-  const scout = {
-    enabled: true,
-    status: "online",
-    lastCollectedAt: null,
-    start: "",
-    end: "",
-    points: [],
-  };
-  assert.deepEqual(
-    scoutCoverage([
-      { scout },
-      { scout: { ...scout, status: "offline" } },
-      { scout: { ...scout, status: "installing" } },
-      { scout: { ...scout, enabled: false } },
-      {},
-    ]),
-    { online: 1, notReporting: 2, inactive: 2 },
-  );
-  assert.deepEqual(scoutCoverage([]), {
-    online: 0,
-    notReporting: 0,
-    inactive: 0,
-  });
 });

@@ -1,4 +1,4 @@
-import type { Deployment, Server } from "@workspace/towbar-web-client";
+import type { Deployment } from "@workspace/towbar-web-client";
 
 export function buildDeploymentActivity(
   deployments: Pick<Deployment, "createdAt" | "state">[],
@@ -25,12 +25,4 @@ export function buildDeploymentActivity(
     if (deployment.state === "failed") day.failed += 1;
   }
   return days;
-}
-
-export function scoutCoverage(servers: Pick<Server, "scout">[]) {
-  const online = servers.filter(
-    (server) => server.scout?.enabled && server.scout.status === "online",
-  ).length;
-  const inactive = servers.filter((server) => !server.scout?.enabled).length;
-  return { online, inactive, notReporting: servers.length - online - inactive };
 }

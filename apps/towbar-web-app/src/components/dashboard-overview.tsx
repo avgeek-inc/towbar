@@ -25,11 +25,7 @@ import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
 import { DashboardPage, InlineLink } from "@/components/page-parts";
-import {
-  OverviewIncidents,
-  OverviewScout,
-  OverviewDeployments,
-} from "./overview-operations";
+import { OverviewIncidents, OverviewDeployments } from "./overview-operations";
 import { useApiQuery } from "@/hooks/use-api-query";
 
 import { buildDeploymentActivity } from "@/lib/overview";
@@ -170,11 +166,10 @@ export function DashboardOverview() {
         ))}
       </div>
       <div className="grid items-stretch gap-4 xl:grid-cols-2">
-        <OverviewIncidents />
-        <OverviewScout servers={activeServers} />
-      </div>
-      <div className="grid items-stretch gap-4 xl:grid-cols-2">
-        <OverviewActivity />
+        <div className="grid min-w-0 content-start gap-4">
+          <OverviewIncidents />
+          <OverviewActivity />
+        </div>
         <OverviewDeployments />
       </div>
     </DashboardPage>
