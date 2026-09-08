@@ -25,7 +25,7 @@ import { TypographyCode } from "@workspace/web-design-system/typography/typograp
 import { DashboardPage, InlineLink } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
-import { formatDeploymentTrigger } from "./deployment-table";
+import { DeploymentTriggerChip } from "./deployment-table";
 import { DeploymentDuration } from "./elapsed-time";
 import { RelativeTime } from "./last-synced-time";
 
@@ -57,7 +57,11 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
           {item.deployableName}
         </InlineLink>
         {item.environment === "preview" ? (
-          <Chip size="small" variant="secondary">
+          <Chip
+            size="small"
+            variant="secondary"
+            icon={<HugeiconsIcon icon={Rocket01Icon} />}
+          >
             Preview
           </Chip>
         ) : null}
@@ -68,11 +72,7 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
   {
     key: "trigger",
     header: "Trigger",
-    cell: (item) => (
-      <Chip size="small" variant="secondary">
-        {formatDeploymentTrigger(item.trigger)}
-      </Chip>
-    ),
+    cell: (item) => <DeploymentTriggerChip trigger={item.trigger} />,
     className: "whitespace-nowrap",
   },
   {

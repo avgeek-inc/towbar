@@ -5,6 +5,8 @@ import {
   Clock01Icon,
   InformationCircleIcon,
   PlayIcon,
+  Rocket01Icon,
+  ServerStack01Icon,
   StopIcon,
   RefreshIcon,
 } from "@hugeicons/core-free-icons";
@@ -129,25 +131,29 @@ export function StatusBadge({
           ? "destructive"
           : "secondary";
   const icon =
-    status === "restarted"
-      ? RefreshIcon
-      : status === "running" && context === "runtime"
-        ? PlayIcon
-        : status === "stopped" || status === "cancelled"
-          ? StopIcon
-          : variant === "success"
-            ? CheckmarkCircle01Icon
-            : variant === "destructive"
-              ? AlertCircleIcon
-              : status === "queued" ||
-                  status === "pending" ||
-                  status.startsWith("waiting")
-                ? Clock01Icon
-                : variant === "warning"
-                  ? progress.has(status)
-                    ? RefreshIcon
-                    : Alert02Icon
-                  : InformationCircleIcon;
+    status === "preview"
+      ? Rocket01Icon
+      : status === "production"
+        ? ServerStack01Icon
+        : status === "restarted"
+          ? RefreshIcon
+          : status === "running" && context === "runtime"
+            ? PlayIcon
+            : status === "stopped" || status === "cancelled"
+              ? StopIcon
+              : variant === "success"
+                ? CheckmarkCircle01Icon
+                : variant === "destructive"
+                  ? AlertCircleIcon
+                  : status === "queued" ||
+                      status === "pending" ||
+                      status.startsWith("waiting")
+                    ? Clock01Icon
+                    : variant === "warning"
+                      ? progress.has(status)
+                        ? RefreshIcon
+                        : Alert02Icon
+                      : InformationCircleIcon;
   return (
     <Chip variant={variant} icon={<HugeiconsIcon icon={icon} />}>
       {label ?? formatStatus(status)}

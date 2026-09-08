@@ -43,7 +43,7 @@ import { useDeploymentStream } from "@/hooks/use-deployment-stream";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
-import { formatDeploymentTrigger } from "./deployment-table";
+import { DeploymentTriggerChip } from "./deployment-table";
 import { DeploymentVulnerabilityScanPanel } from "./deployment-vulnerability-scan";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
@@ -286,7 +286,7 @@ export function DeploymentDetail() {
                       <StatusBadge status={item.environment} />
                     </Attributes.Item>
                     <Attributes.Item label="Trigger">
-                      {formatDeploymentTrigger(item.trigger)}
+                      <DeploymentTriggerChip trigger={item.trigger} />
                     </Attributes.Item>
                     <Attributes.Item label="Requested">
                       {formatDate(item.createdAt)}
