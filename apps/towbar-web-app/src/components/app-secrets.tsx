@@ -265,44 +265,6 @@ function SecretVariablesEditor({
           </Widget.Title>
         </Widget.Header>
         <Widget.Content className="content-grid min-w-0">
-          <p className="text-sm text-muted">
-            {endpoint === "/v1/core/settings/secrets" ? (
-              <>
-                Store reusable values here. Children use{" "}
-                <code>{"{{globals.ENV_KEY}}"}</code> to reference them.
-              </>
-            ) : (
-              <>
-                Shared secrets are not added automatically. Use{" "}
-                <code>{"{{globals.ENV_KEY}}"}</code> for a global value
-                {endpoint.includes("/apps/") ||
-                endpoint.includes("/resources/") ? (
-                  <>
-                    {" "}
-                    or <code>{"{{source.ENV_KEY}}"}</code> for a source value
-                  </>
-                ) : null}
-                . References use this environment and stage.
-              </>
-            )}
-          </p>
-          {binding.availableReferences &&
-          (binding.availableReferences.globals.length > 0 ||
-            binding.availableReferences.source.length > 0) ? (
-            <details className="text-sm text-muted">
-              <summary className="cursor-pointer">Available references</summary>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {Object.entries(binding.availableReferences).flatMap(
-                  ([scope, names]) =>
-                    names.map((name) => (
-                      <code
-                        key={`${scope}.${name}`}
-                      >{`{{${scope}.${name}}}`}</code>
-                    )),
-                )}
-              </div>
-            </details>
-          ) : null}
           {!keys.length && !newKeys.length ? (
             <EmptyState>
               <EmptyState.Header>
