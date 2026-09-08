@@ -5,6 +5,39 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.6.4] - 2026-09-09
+
+### Added
+
+- Owners can reveal and hide individual environment secrets with the eye control.
+  Hidden values show stars; visible variable references are highlighted in yellow.
+  Revealing a value does not save or modify it.
+- Environment values support explicit `{{globals.ENV_KEY}}` and
+  `{{source.ENV_KEY}}` references within the same environment and stage.
+  Source values can reference globals, and references can be embedded in text.
+- Status, deployment-trigger, environment, health, and Scout chips include icons
+  that identify healthy states, running containers, queued work, and problems.
+
+### Fixed
+
+- Running containers and in-sync configurations use green chips. Recovered
+  incidents, warning alerts, critical failures, and Scout states use consistent
+  status colors across entity pages, monitoring lists, and incident drawers.
+- YAML and captured-log panels scroll vertically and horizontally within the
+  code area while keeping the header and copy button visible.
+- Container restart events use status chips alongside deployment events.
+
+### Upgrade notes
+
+- Shared secrets are no longer inherited automatically. Before the next app or
+  resource deployment, add explicit references for each shared value it needs.
+  Existing containers retain their current environment; shared values remain
+  stored. Missing or invalid references stop deployment with a value-free error.
+- Secret reveal is owner-only, audited without values, and excluded from caching.
+  References reveal their stored expression. Server SSH and Cloudflare credentials
+  remain write-only.
+- No database migration or Scout Agent reinstall is required.
+
 ## [1.6.3] - 2026-09-07
 
 ### Added
@@ -479,7 +512,8 @@ before resuming deployments:
 - Source-scoped AWS Secrets Manager integration and environment editors.
 - A same-domain owner setup, authentication, and operations dashboard.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.6.3...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.6.4...HEAD
+[1.6.4]: https://github.com/avgeek-inc/towbar/compare/v1.6.3...v1.6.4
 [1.6.3]: https://github.com/avgeek-inc/towbar/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/avgeek-inc/towbar/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/avgeek-inc/towbar/compare/v1.6.0...v1.6.1
