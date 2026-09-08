@@ -201,6 +201,18 @@ export function SourceDetail() {
         )
       }
       title={item.repositoryName}
+      titleContent={
+        <a
+          href={`https://github.com/${encodeURIComponent(item.repositoryOwner)}/${encodeURIComponent(item.repositoryName)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="truncate rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+          aria-label={`${item.repositoryOwner}/${item.repositoryName} on GitHub (opens in a new tab)`}
+          title={`${item.repositoryOwner}/${item.repositoryName}`}
+        >
+          {item.repositoryName}
+        </a>
+      }
     >
       <PageTabs
         defaultValue="apps"
