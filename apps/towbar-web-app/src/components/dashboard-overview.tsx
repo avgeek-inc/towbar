@@ -25,12 +25,13 @@ import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
 import { DashboardPage, InlineLink } from "@/components/page-parts";
 import {
-  OverviewMonitoring,
-  OverviewAttention,
+  OverviewIncidents,
+  OverviewScout,
   OverviewDeployments,
-  OverviewServers,
 } from "./overview-operations";
 import { useApiQuery } from "@/hooks/use-api-query";
+
+import { buildDeploymentActivity } from "@/lib/overview";
 
 const activitySeries = [
   { color: "var(--accent-soft-foreground)", key: "total", label: "Requested" },
@@ -127,43 +128,34 @@ export function DashboardOverview() {
         </ButtonLink>
       }
     >
-      <div className="grid grid-cols-2 gap-x-8 gap-y-5 border-b border-separator pb-6 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {metrics.map((metric) => (
-          <InlineLink
-            key={metric.label}
-            href={metric.href}
-            className="group grid min-w-0 gap-2 py-1"
-            aria-label={`${metric.value} ${metric.label.toLowerCase()} — view all`}
-          >
-            <span className="inline-flex items-center gap-2 text-sm text-muted">
-              <OverviewMetricIcon icon={metric.icon} />
-              {metric.label}
-            </span>
-            <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="text-3xl font-semibold tracking-tight tabular-nums">
+          <Widget className="min-w-0" key={metric.label}>
+            <Widget.Header>
+              <Widget.Title icon={<OverviewMetricIcon icon={metric.icon} />}>
+                {metric.label}
+              </Widget.Title>
+            </Widget.Header>
+            <Widget.Content className="flex flex-wrap items-end justify-between gap-3 py-5">
+              <InlineLink
+                href={metric.href}
+                className="inline-flex min-h-11 min-w-11 items-center text-4xl font-semibold tracking-tight tabular-nums"
+                aria-label={`${metric.value} ${metric.label.toLowerCase()} — view all`}
+              >
                 {metric.value}
-              </span>
-              <span className="text-xs text-muted">{metric.detail}</span>
-            </span>
-          </InlineLink>
+              </InlineLink>
+              <span className="pb-1 text-xs text-muted">{metric.detail}</span>
+            </Widget.Content>
+          </Widget>
         ))}
       </div>
-      <OverviewMonitoring />
-      <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1.8fr)_minmax(300px,1fr)]">
-        <div className="grid min-w-0 gap-8">
-          <OverviewActivity />
-          <OverviewDeployments />
-        </div>
-        <aside
-          aria-label="Infrastructure health"
-          className="order-first grid min-w-0 gap-8 rounded-2xl bg-surface-secondary p-5 xl:order-last"
-        >
-          <OverviewAttention workloads={[...activeApps, ...activeResources]} />
-          <OverviewServers
-            servers={activeServers}
-            workloads={[...activeApps, ...activeResources]}
-          />
-        </aside>
+      <div className="grid items-stretch gap-4 xl:grid-cols-2">
+        <OverviewIncidents />
+        <OverviewScout servers={activeServers} />
+      </div>
+      <div className="grid items-stretch gap-4 xl:grid-cols-2">
+        <OverviewActivity />
+        <OverviewDeployments />
       </div>
     </DashboardPage>
   );
@@ -177,9 +169,9 @@ function OverviewActivity() {
   const deploymentItems = query.data?.deployments ?? [];
   const activity = buildDeploymentActivity(deploymentItems);
   return (
-    <Widget className="min-w-0 overflow-visible rounded-none bg-transparent">
+    <Widget className="min-w-0">
       <Widget.Header
-        className="m-0 mb-4 flex-wrap gap-3 p-0"
+        className="flex-wrap gap-3 py-2"
         endContent={
           deploymentItems.length ? (
             <Widget.Legend className="flex-wrap">
@@ -193,20 +185,20 @@ function OverviewActivity() {
         }
       >
         <Widget.Title icon={<HugeiconsIcon icon={Activity01Icon} />}>
-          Production deployments · last 14 days
+          Production deployments · last 7 days
         </Widget.Title>
       </Widget.Header>
-      <Widget.Content className="m-0 grid min-w-0 gap-3 rounded-none bg-transparent p-0 shadow-none">
+      <Widget.Content className="grid min-w-0 content-center gap-3">
         {query.error ? (
           <QueryError message={query.error} />
         ) : !query.data ? (
           <QueryLoading />
         ) : deploymentItems.length ? (
           <LineChart
-            aria-label="Deployment activity over the last 14 days"
+            aria-label="Deployment activity over the last 7 days"
             className="min-w-0"
             data={activity}
-            height={210}
+            height={260}
           >
             <LineChart.Grid vertical={false} />
             <LineChart.XAxis
@@ -265,30 +257,6 @@ function OverviewMetricIcon({
   return (
     <HugeiconsIcon aria-hidden="true" className="size-4 shrink-0" icon={icon} />
   );
-}
-
-function buildDeploymentActivity(deployments: Deployment[]) {
-  const days = Array.from({ length: 14 }, (_, index) => {
-    const date = new Date();
-    date.setUTCHours(0, 0, 0, 0);
-    date.setUTCDate(date.getUTCDate() - (13 - index));
-    return {
-      date: date.toISOString().slice(0, 10),
-      failed: 0,
-      succeeded: 0,
-      total: 0,
-    };
-  });
-  const byDate = new Map(days.map((day) => [day.date, day] as const));
-  for (const deployment of deployments) {
-    const day = byDate.get(deployment.createdAt.slice(0, 10));
-    if (!day) continue;
-    day.total += 1;
-    if (["succeeded", "succeeded_with_warnings"].includes(deployment.state))
-      day.succeeded += 1;
-    if (deployment.state === "failed") day.failed += 1;
-  }
-  return days;
 }
 
 function formatActivityDate(value: string) {

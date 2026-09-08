@@ -1,19 +1,36 @@
-import type { App, Resource } from "@workspace/towbar-web-client";
+import type { Deployment, Server } from "@workspace/towbar-web-client";
 
-export function workloadAttention(
-  item: Pick<App | Resource, "runtimeState" | "serverReady">,
+export function buildDeploymentActivity(
+  deployments: Pick<Deployment, "createdAt" | "state">[],
+  now = new Date(),
 ) {
-  const runtime = item.runtimeState;
-  if (runtime.healthStatus === "unhealthy")
-    return { status: "unhealthy", label: "Unhealthy" };
-  if (
-    runtime.desiredState === "running" &&
-    ["missing", "stopped"].includes(runtime.observedState)
-  )
-    return { status: "failed", label: "Not running" };
-  if (!item.serverReady)
-    return { status: "warning", label: "Server not ready" };
-  if (runtime.driftStatus === "drifted")
-    return { status: "warning", label: "Configuration drift" };
-  return null;
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(now);
+    date.setUTCHours(0, 0, 0, 0);
+    date.setUTCDate(date.getUTCDate() - (6 - index));
+    return {
+      date: date.toISOString().slice(0, 10),
+      failed: 0,
+      succeeded: 0,
+      total: 0,
+    };
+  });
+  const byDate = new Map(days.map((day) => [day.date, day] as const));
+  for (const deployment of deployments) {
+    const day = byDate.get(deployment.createdAt.slice(0, 10));
+    if (!day) continue;
+    day.total += 1;
+    if (["succeeded", "succeeded_with_warnings"].includes(deployment.state))
+      day.succeeded += 1;
+    if (deployment.state === "failed") day.failed += 1;
+  }
+  return days;
+}
+
+export function scoutCoverage(servers: Pick<Server, "scout">[]) {
+  const online = servers.filter(
+    (server) => server.scout?.enabled && server.scout.status === "online",
+  ).length;
+  const inactive = servers.filter((server) => !server.scout?.enabled).length;
+  return { online, inactive, notReporting: servers.length - online - inactive };
 }
