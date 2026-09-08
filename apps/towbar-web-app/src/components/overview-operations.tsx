@@ -26,58 +26,58 @@ export function OverviewMonitoring() {
     activeIncidents: number;
     pressuredEntities: number;
   }>("/v1/core/monitoring/summary", 30_000);
+  if (query.error) return <QueryError message={query.error} />;
+  if (!query.data)
+    return (
+      <div className="min-h-20">
+        <QueryLoading />
+      </div>
+    );
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      {[
-        {
-          label: "Active incidents",
-          href: "/monitoring/incidents",
-          icon: AlertCircleIcon,
-          value: query.data?.activeIncidents,
-          status: "critical",
-          detail: "Alerts that have not recovered",
-        },
-        {
-          label: "Resource pressure",
-          href: "/monitoring/performance",
-          icon: Activity01Icon,
-          value: query.data?.pressuredEntities,
-          status: "warning",
-          detail: "Entities consuming more than 80%",
-        },
-      ].map((item) => (
-        <Widget key={item.label}>
-          <Widget.Header>
-            <Widget.Title icon={<HugeiconsIcon icon={item.icon} />}>
-              {item.label}
-            </Widget.Title>
-          </Widget.Header>
-          <Widget.Content className="grid gap-2">
-            {query.error ? (
-              <QueryError message={query.error} />
-            ) : item.value === undefined ? (
-              <QueryLoading />
-            ) : (
-              <>
-                <div className="flex items-center justify-between gap-3">
-                  <InlineLink
-                    href={item.href}
-                    aria-label={`${item.value} ${item.label.toLowerCase()} — view all`}
-                    className="inline-flex min-h-11 min-w-11 items-center text-3xl font-semibold tabular-nums"
-                  >
-                    {item.value}
-                  </InlineLink>
-                  <StatusBadge
-                    status={item.value ? item.status : "none"}
-                    label={item.value ? "Review" : "None detected"}
-                  />
-                </div>
-                <p className="text-xs text-muted">{item.detail}</p>
-              </>
-            )}
-          </Widget.Content>
-        </Widget>
-      ))}
+    <div className="flex flex-wrap items-center gap-x-8 gap-y-3 py-2">
+      <h2 className="text-sm font-medium">Right now</h2>
+      <InlineLink
+        href="/monitoring/incidents"
+        className="inline-flex min-h-11 items-center gap-3"
+      >
+        <span
+          className={query.data.activeIncidents ? "text-danger" : "text-muted"}
+        >
+          <HugeiconsIcon
+            icon={AlertCircleIcon}
+            className="size-5"
+            aria-hidden="true"
+          />
+        </span>
+        <span>
+          <strong className="font-semibold tabular-nums">
+            {query.data.activeIncidents}
+          </strong>{" "}
+          active {query.data.activeIncidents === 1 ? "incident" : "incidents"}
+        </span>
+      </InlineLink>
+      <InlineLink
+        href="/monitoring/performance"
+        className="inline-flex min-h-11 items-center gap-3"
+      >
+        <span
+          className={
+            query.data.pressuredEntities ? "text-warning" : "text-muted"
+          }
+        >
+          <HugeiconsIcon
+            icon={Activity01Icon}
+            className="size-5"
+            aria-hidden="true"
+          />
+        </span>
+        <span>
+          <strong className="font-semibold tabular-nums">
+            {query.data.pressuredEntities}
+          </strong>{" "}
+          entities above 80%
+        </span>
+      </InlineLink>
     </div>
   );
 }
@@ -103,19 +103,23 @@ export function OverviewAttention({
       item.runtimeState.healthStatus === "unknown",
   ).length;
   return (
-    <Widget className="min-w-0">
+    <Widget className="min-w-0 overflow-visible rounded-none bg-transparent">
       <Widget.Header
+        className="m-0 mb-4 flex-wrap gap-2 p-0"
         endContent={
           <span className="text-xs text-muted">
             {attention.length} workloads
           </span>
         }
       >
-        <Widget.Title icon={<HugeiconsIcon icon={AlertCircleIcon} />}>
+        <Widget.Title
+          className="text-sm text-foreground"
+          icon={<HugeiconsIcon icon={AlertCircleIcon} />}
+        >
           Needs attention
         </Widget.Title>
       </Widget.Header>
-      <Widget.Content className="grid content-start gap-0">
+      <Widget.Content className="m-0 grid content-start gap-0 rounded-none bg-transparent p-0">
         {attention.length ? (
           <ul className="divide-y divide-separator">
             {attention.slice(0, 5).map(({ item, issue }) => (
@@ -184,19 +188,23 @@ export function OverviewDeployments() {
     5_000,
   );
   return (
-    <Widget className="min-w-0">
+    <Widget className="min-w-0 overflow-visible rounded-none bg-transparent">
       <Widget.Header
+        className="m-0 mb-4 flex-wrap gap-2 p-0"
         endContent={
           <InlineLink className="text-xs" href="/deployments">
             All deployments
           </InlineLink>
         }
       >
-        <Widget.Title icon={<HugeiconsIcon icon={Rocket01Icon} />}>
+        <Widget.Title
+          className="text-sm text-foreground"
+          icon={<HugeiconsIcon icon={Rocket01Icon} />}
+        >
           Recent deployments
         </Widget.Title>
       </Widget.Header>
-      <Widget.Content>
+      <Widget.Content className="m-0 rounded-none bg-transparent p-0">
         {query.error ? (
           <QueryError message={query.error} />
         ) : !query.data ? (
@@ -249,19 +257,23 @@ export function OverviewServers({
   workloads: Array<App | Resource>;
 }) {
   return (
-    <Widget className="min-w-0">
+    <Widget className="min-w-0 overflow-visible rounded-none bg-transparent">
       <Widget.Header
+        className="m-0 mb-4 flex-wrap gap-2 p-0"
         endContent={
           <InlineLink className="text-xs" href="/servers">
             All servers
           </InlineLink>
         }
       >
-        <Widget.Title icon={<HugeiconsIcon icon={ServerStack01Icon} />}>
+        <Widget.Title
+          className="text-sm text-foreground"
+          icon={<HugeiconsIcon icon={ServerStack01Icon} />}
+        >
           Server fleet
         </Widget.Title>
       </Widget.Header>
-      <Widget.Content>
+      <Widget.Content className="m-0 rounded-none bg-transparent p-0">
         {servers.length ? (
           <ul className="divide-y divide-separator">
             {servers.slice(0, 6).map((server) => {

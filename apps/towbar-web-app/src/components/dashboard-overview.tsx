@@ -127,46 +127,44 @@ export function DashboardOverview() {
         </ButtonLink>
       }
     >
-      <div className="content-grid grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-x-8 gap-y-5 border-b border-separator pb-6 sm:grid-cols-4">
         {metrics.map((metric) => (
-          <Widget className="min-w-0" key={metric.label}>
-            <Widget.Header>
-              <Widget.Title className="inline-flex items-center gap-2">
-                <OverviewMetricIcon icon={metric.icon} />
-                {metric.label}
-              </Widget.Title>
-            </Widget.Header>
-            <Widget.Content className="flex flex-wrap items-end justify-between gap-3">
-              <dl>
-                <dt className="sr-only">{metric.label}</dt>
-                <dd className="text-3xl font-semibold tracking-tight tabular-nums">
-                  <InlineLink
-                    aria-label={`${metric.value.toLocaleString()} ${metric.label.toLowerCase()} — view all`}
-                    className="inline-flex min-h-11 min-w-11 items-center"
-                    href={metric.href}
-                  >
-                    {metric.value.toLocaleString()}
-                  </InlineLink>
-                </dd>
-              </dl>
+          <InlineLink
+            key={metric.label}
+            href={metric.href}
+            className="group grid min-w-0 gap-2 py-1"
+            aria-label={`${metric.value} ${metric.label.toLowerCase()} — view all`}
+          >
+            <span className="inline-flex items-center gap-2 text-sm text-muted">
+              <OverviewMetricIcon icon={metric.icon} />
+              {metric.label}
+            </span>
+            <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span className="text-3xl font-semibold tracking-tight tabular-nums">
+                {metric.value}
+              </span>
               <span className="text-xs text-muted">{metric.detail}</span>
-            </Widget.Content>
-          </Widget>
+            </span>
+          </InlineLink>
         ))}
       </div>
-
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-        <div className="grid min-w-0 gap-4">
-          <OverviewMonitoring />
+      <OverviewMonitoring />
+      <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1.8fr)_minmax(300px,1fr)]">
+        <div className="grid min-w-0 gap-8">
+          <OverviewActivity />
+          <OverviewDeployments />
+        </div>
+        <aside
+          aria-label="Infrastructure health"
+          className="order-first grid min-w-0 gap-8 rounded-2xl bg-surface-secondary p-5 xl:order-last"
+        >
           <OverviewAttention workloads={[...activeApps, ...activeResources]} />
           <OverviewServers
             servers={activeServers}
             workloads={[...activeApps, ...activeResources]}
           />
-        </div>
-        <OverviewDeployments />
+        </aside>
       </div>
-      <OverviewActivity />
     </DashboardPage>
   );
 }
@@ -179,9 +177,9 @@ function OverviewActivity() {
   const deploymentItems = query.data?.deployments ?? [];
   const activity = buildDeploymentActivity(deploymentItems);
   return (
-    <Widget className="min-w-0">
+    <Widget className="min-w-0 overflow-visible rounded-none bg-transparent">
       <Widget.Header
-        className="flex-wrap py-2"
+        className="m-0 mb-4 flex-wrap gap-3 p-0"
         endContent={
           deploymentItems.length ? (
             <Widget.Legend className="flex-wrap">
@@ -198,7 +196,7 @@ function OverviewActivity() {
           Production deployments · last 14 days
         </Widget.Title>
       </Widget.Header>
-      <Widget.Content className="grid min-w-0 gap-3">
+      <Widget.Content className="m-0 grid min-w-0 gap-3 rounded-none bg-transparent p-0">
         {query.error ? (
           <QueryError message={query.error} />
         ) : !query.data ? (
@@ -208,7 +206,7 @@ function OverviewActivity() {
             aria-label="Deployment activity over the last 14 days"
             className="min-w-0"
             data={activity}
-            height={236}
+            height={210}
           >
             <LineChart.Grid vertical={false} />
             <LineChart.XAxis
