@@ -520,6 +520,12 @@ function SecretValueInput({
       if (request.current.generation === current) setLoading(false);
     }
   }
+  const displayedValue = configured ? (visible ? (stored ?? "") : "") : value;
+  const hasReference =
+    visible &&
+    /\{\{\s*(globals|source)\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}/u.test(
+      displayedValue,
+    );
   return (
     <InputGroup fullWidth variant="secondary">
       <InputGroup.Prefix>
@@ -527,6 +533,9 @@ function SecretValueInput({
       </InputGroup.Prefix>
       <InputGroup.Input
         aria-label={label}
+        className={
+          hasReference ? "text-yellow-600 dark:text-yellow-400" : undefined
+        }
         type={visible ? "text" : "password"}
         autoComplete="off"
         data-lpignore="true"
@@ -535,7 +544,7 @@ function SecretValueInput({
         placeholder={
           configured ? (visible ? "" : "********") : "Value or reference"
         }
-        value={configured ? (visible ? (stored ?? "") : "") : value}
+        value={displayedValue}
         disabled={disabled || loading}
         onChange={(event) => {
           setStored(undefined);
