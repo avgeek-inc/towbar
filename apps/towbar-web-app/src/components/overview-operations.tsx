@@ -13,6 +13,8 @@ import type {
   Server,
   DeploymentHistoryPage,
 } from "@workspace/towbar-web-client";
+import { TypographyCode } from "@workspace/web-design-system/typography/typography";
+import { ButtonLink } from "@workspace/web-design-system/buttons/button";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
@@ -37,9 +39,9 @@ export function OverviewIncidents() {
     <>
       <Widget className="min-w-0">
         <Widget.Header
-          className="flex-wrap gap-2 py-2"
+          className="flex-wrap gap-2"
           endContent={
-            <InlineLink href="/monitoring/incidents" className="text-xs">
+            <InlineLink href="/monitoring/incidents" className="text-sm">
               All incidents
             </InlineLink>
           }
@@ -65,9 +67,9 @@ export function OverviewIncidents() {
                     <StatusBadge status={row.incident.severity} />
                   </div>
                   <div className="flex flex-wrap items-end justify-between gap-3">
-                    <div className="grid gap-1 text-xs text-muted">
+                    <div className="grid gap-2 text-sm">
                       <span>{entityLabel(row, row.incident)}</span>
-                      <span>
+                      <span className="text-sm text-muted">
                         {conditionDescription(row.incident.condition)}
                       </span>
                       <RelativeTime
@@ -122,9 +124,9 @@ export function OverviewScout({ servers }: { servers: Server[] }) {
   return (
     <Widget className="min-w-0">
       <Widget.Header
-        className="flex-wrap gap-2 py-2"
+        className="flex-wrap gap-2"
         endContent={
-          <InlineLink href="/monitoring/performance" className="text-xs">
+          <InlineLink href="/monitoring/performance" className="text-sm">
             View performance
           </InlineLink>
         }
@@ -133,75 +135,53 @@ export function OverviewScout({ servers }: { servers: Server[] }) {
           Scout Agent
         </Widget.Title>
       </Widget.Header>
-      <Widget.Content className="grid content-start gap-5">
-        <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-semibold tabular-nums">{online}</span>
-          <span className="text-sm text-muted">
-            of {servers.length} servers reporting
-          </span>
-        </div>
-        <div
-          className="flex h-2 overflow-hidden rounded-full bg-surface-secondary"
-          role="img"
-          aria-label={`${online} online, ${notReporting} not reporting, ${inactive} inactive servers`}
-        >
-          {online > 0 && (
-            <span
-              className="bg-success"
-              style={{ width: `${(online / servers.length) * 100}%` }}
-            />
-          )}
-          {notReporting > 0 && (
-            <span
-              className="bg-warning"
-              style={{ width: `${(notReporting / servers.length) * 100}%` }}
-            />
-          )}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <StatusBadge status="online" label={`${online} online`} />
-          <StatusBadge
-            status="warning"
-            label={`${notReporting} not reporting`}
-          />
-          <StatusBadge status="inactive" label={`${inactive} inactive`} />
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-separator pt-4">
-          {query.error ? (
-            <QueryError message={query.error} />
-          ) : !query.data ? (
-            <QueryLoading />
-          ) : (
-            <InlineLink
-              href="/monitoring/performance"
-              className="inline-flex min-h-11 items-center gap-2"
-            >
-              <HugeiconsIcon
-                icon={Activity01Icon}
-                className="size-4 text-warning"
-                aria-hidden="true"
-              />
-              <span>
-                <strong className="tabular-nums">
-                  {query.data.pressuredEntities}
-                </strong>{" "}
-                entities above 80% usage
-              </span>
-            </InlineLink>
-          )}
-          <InlineLink
-            href="/servers"
-            className="inline-flex min-h-11 items-center gap-2 text-xs"
-          >
-            <HugeiconsIcon
-              icon={ServerStack01Icon}
-              className="size-4"
-              aria-hidden="true"
-            />
-            Manage servers
-          </InlineLink>
-        </div>
+      <Widget.Content className="grid content-start gap-4">
+        <dl className="grid grid-cols-2 gap-4">
+          {[
+            { label: "Online", count: online, status: "online" },
+            { label: "Not reporting", count: notReporting, status: "warning" },
+            { label: "Inactive", count: inactive, status: "inactive" },
+          ].map((item) => (
+            <div key={item.label} className="grid min-w-0 gap-1">
+              <dt className="text-sm font-medium text-muted">{item.label}</dt>
+              <dd className="text-sm">
+                <StatusBadge
+                  status={item.count ? item.status : "inactive"}
+                  label={`${item.count} ${item.count === 1 ? "server" : "servers"}`}
+                />
+              </dd>
+            </div>
+          ))}
+          <div className="grid min-w-0 gap-1">
+            <dt className="text-sm font-medium text-muted">Usage above 80%</dt>
+            <dd className="text-sm">
+              {query.error ? (
+                <QueryError message={query.error} />
+              ) : !query.data ? (
+                <QueryLoading />
+              ) : (
+                <StatusBadge
+                  status={query.data.pressuredEntities ? "warning" : "inactive"}
+                  label={`${query.data.pressuredEntities} ${query.data.pressuredEntities === 1 ? "entity" : "entities"}`}
+                />
+              )}
+            </dd>
+          </div>
+        </dl>
       </Widget.Content>
+      <Widget.Footer className="flex-wrap gap-2 pb-2">
+        <Widget.FooterDescription>
+          {servers.length} {servers.length === 1 ? "server" : "servers"} total
+        </Widget.FooterDescription>
+        <ButtonLink href="/servers" size="sm" variant="secondary">
+          <HugeiconsIcon
+            icon={ServerStack01Icon}
+            className="size-4"
+            aria-hidden="true"
+          />
+          Manage servers
+        </ButtonLink>
+      </Widget.Footer>
     </Widget>
   );
 }
@@ -214,17 +194,14 @@ export function OverviewDeployments() {
   return (
     <Widget className="min-w-0">
       <Widget.Header
-        className="flex-wrap gap-2 py-2"
+        className="flex-wrap gap-2"
         endContent={
-          <InlineLink className="text-xs" href="/deployments">
+          <InlineLink className="text-sm" href="/deployments">
             All deployments
           </InlineLink>
         }
       >
-        <Widget.Title
-          className="text-sm text-foreground"
-          icon={<HugeiconsIcon icon={Rocket01Icon} />}
-        >
+        <Widget.Title icon={<HugeiconsIcon icon={Rocket01Icon} />}>
           Recent deployments
         </Widget.Title>
       </Widget.Header>
@@ -247,16 +224,16 @@ export function OverviewDeployments() {
                   >
                     {item.deployableName}
                   </InlineLink>
-                  <p className="mt-1 text-xs text-muted">
-                    {item.environment === "production"
-                      ? "Production"
-                      : "Preview"}{" "}
-                    · {item.commitSha.slice(0, 7)}
+                  <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                    <StatusBadge status={item.environment} />
+                    <TypographyCode title={item.commitSha}>
+                      {item.commitSha.slice(0, 7)}
+                    </TypographyCode>
                   </p>
                 </div>
                 <div className="grid justify-items-end gap-2">
                   <StatusBadge status={item.state} />
-                  <span className="text-xs text-muted">
+                  <span className="text-sm">
                     <RelativeTime label="Requested" value={item.createdAt} />
                   </span>
                 </div>

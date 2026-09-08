@@ -19,6 +19,7 @@ import type {
 } from "@workspace/towbar-web-client";
 import { LineChart } from "@workspace/web-design-system/charts/line-chart";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
+import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -87,28 +88,43 @@ export function DashboardOverview() {
       icon: GitBranchIcon,
       href: "/sources",
       label: "Sources",
-      detail: `${activeSources.filter((source) => source.latestCommitSha).length} imported`,
+      status: "synced",
+      detailCount: activeSources.filter((source) => source.latestCommitSha)
+        .length,
+      detailLabel: "imported",
       value: activeSources.length,
     },
     {
       icon: DashboardCircleIcon,
       href: "/apps",
       label: "Apps",
-      detail: `${activeApps.filter((item) => item.runtimeState.observedState === "running").length} running`,
+      status: "running",
+      detailCount: activeApps.filter(
+        (item) => item.runtimeState.observedState === "running",
+      ).length,
+      detailLabel: "running",
       value: activeApps.length,
     },
     {
       icon: DatabaseIcon,
       href: "/resources",
       label: "Resources",
-      detail: `${activeResources.filter((item) => item.runtimeState.observedState === "running").length} running`,
+      status: "running",
+      detailCount: activeResources.filter(
+        (item) => item.runtimeState.observedState === "running",
+      ).length,
+      detailLabel: "running",
       value: activeResources.length,
     },
     {
       icon: ServerStack01Icon,
       href: "/servers",
       label: "Servers",
-      detail: `${activeServers.filter((server) => server.setupStatus === "ready").length} ready`,
+      status: "ready",
+      detailCount: activeServers.filter(
+        (server) => server.setupStatus === "ready",
+      ).length,
+      detailLabel: "ready",
       value: activeServers.length,
     },
   ];
@@ -136,15 +152,19 @@ export function DashboardOverview() {
                 {metric.label}
               </Widget.Title>
             </Widget.Header>
-            <Widget.Content className="flex flex-wrap items-end justify-between gap-3 py-5">
+            <Widget.Content className="flex flex-wrap items-end justify-between gap-3">
               <InlineLink
                 href={metric.href}
-                className="inline-flex min-h-11 min-w-11 items-center text-4xl font-semibold tracking-tight tabular-nums"
+                className="inline-flex min-h-11 min-w-11 items-center text-3xl font-semibold tracking-tight tabular-nums"
                 aria-label={`${metric.value} ${metric.label.toLowerCase()} — view all`}
               >
                 {metric.value}
               </InlineLink>
-              <span className="pb-1 text-xs text-muted">{metric.detail}</span>
+              <StatusBadge
+                context="runtime"
+                status={metric.detailCount ? metric.status : "inactive"}
+                label={`${metric.detailCount} ${metric.detailLabel}`}
+              />
             </Widget.Content>
           </Widget>
         ))}
@@ -171,7 +191,7 @@ function OverviewActivity() {
   return (
     <Widget className="min-w-0">
       <Widget.Header
-        className="flex-wrap gap-3 py-2"
+        className="flex-wrap gap-3"
         endContent={
           deploymentItems.length ? (
             <Widget.Legend className="flex-wrap">
