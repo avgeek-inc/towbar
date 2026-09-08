@@ -119,7 +119,7 @@ export function OverviewAttention({
           Needs attention
         </Widget.Title>
       </Widget.Header>
-      <Widget.Content className="m-0 grid content-start gap-0 rounded-none bg-transparent p-0">
+      <Widget.Content className="m-0 grid content-start gap-0 rounded-none bg-transparent p-0 shadow-none">
         {attention.length ? (
           <ul className="divide-y divide-separator">
             {attention.slice(0, 5).map(({ item, issue }) => (
@@ -204,7 +204,7 @@ export function OverviewDeployments() {
           Recent deployments
         </Widget.Title>
       </Widget.Header>
-      <Widget.Content className="m-0 rounded-none bg-transparent p-0">
+      <Widget.Content className="m-0 rounded-none bg-transparent p-0 shadow-none">
         {query.error ? (
           <QueryError message={query.error} />
         ) : !query.data ? (
@@ -273,7 +273,7 @@ export function OverviewServers({
           Server fleet
         </Widget.Title>
       </Widget.Header>
-      <Widget.Content className="m-0 rounded-none bg-transparent p-0">
+      <Widget.Content className="m-0 rounded-none bg-transparent p-0 shadow-none">
         {servers.length ? (
           <ul className="divide-y divide-separator">
             {servers.slice(0, 6).map((server) => {

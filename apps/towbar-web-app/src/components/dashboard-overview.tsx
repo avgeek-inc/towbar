@@ -196,7 +196,7 @@ function OverviewActivity() {
           Production deployments · last 14 days
         </Widget.Title>
       </Widget.Header>
-      <Widget.Content className="m-0 grid min-w-0 gap-3 rounded-none bg-transparent p-0">
+      <Widget.Content className="m-0 grid min-w-0 gap-3 rounded-none bg-transparent p-0 shadow-none">
         {query.error ? (
           <QueryError message={query.error} />
         ) : !query.data ? (
