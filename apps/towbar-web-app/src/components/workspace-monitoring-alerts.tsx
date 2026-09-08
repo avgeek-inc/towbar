@@ -64,6 +64,23 @@ export function WorkspaceAlerts() {
         return (
           <Chip
             size="small"
+            icon={
+              <ScoutIcon
+                name={
+                  !rule.enabled || muted
+                    ? "mute"
+                    : rule.evaluationState === "healthy"
+                      ? "resolved"
+                      : rule.evaluationState === "firing"
+                        ? rule.severity === "critical"
+                          ? "critical"
+                          : "warning"
+                        : rule.evaluationState === "error"
+                          ? "critical"
+                          : "time"
+                }
+              />
+            }
             variant={
               !rule.enabled || muted
                 ? "secondary"
@@ -102,6 +119,11 @@ export function WorkspaceAlerts() {
       cell: ({ rule }) => (
         <Chip
           size="small"
+          icon={
+            <ScoutIcon
+              name={rule.severity === "critical" ? "critical" : "warning"}
+            />
+          }
           variant={rule.severity === "critical" ? "destructive" : "warning"}
         >
           {rule.severity === "critical" ? "Critical" : "Warning"}

@@ -18,6 +18,7 @@ export type ChipProps = Omit<
 > & {
   children?: ReactNode;
   loading?: boolean;
+  icon?: ReactNode;
   size?: ChipSize;
   variant?: ChipVariant;
 };
@@ -36,6 +37,7 @@ const sizes = { small: "sm", default: "md", large: "lg" } as const;
 export function Chip({
   children,
   loading,
+  icon,
   size,
   variant,
   ...props
@@ -49,7 +51,17 @@ export function Chip({
       {...props}
     >
       {loading ? <Spinner color="current" size="sm" /> : null}
-      <HeroChip.Label className="whitespace-nowrap">{children}</HeroChip.Label>
+      <HeroChip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap">
+        {!loading && icon ? (
+          <span
+            aria-hidden="true"
+            className="inline-flex shrink-0 [&_svg]:size-3.5"
+          >
+            {icon}
+          </span>
+        ) : null}
+        {children}
+      </HeroChip.Label>
     </HeroChip>
   );
 }

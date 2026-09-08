@@ -269,6 +269,19 @@ export function MonitoringStatus({ agent }: { agent: MonitoringAgentStatus }) {
   return (
     <Chip
       size="small"
+      icon={
+        <ScoutIcon
+          name={
+            agent.status === "online"
+              ? "resolved"
+              : agent.status === "failed"
+                ? "critical"
+                : agent.status === "offline"
+                  ? "warning"
+                  : "time"
+          }
+        />
+      }
       variant={
         agent.status === "online"
           ? "success"

@@ -1,3 +1,14 @@
+import {
+  Alert02Icon,
+  AlertCircleIcon,
+  CheckmarkCircle01Icon,
+  Clock01Icon,
+  InformationCircleIcon,
+  PlayIcon,
+  StopIcon,
+  RefreshIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 
 const success = new Set([
@@ -73,6 +84,31 @@ const destructive = new Set([
   "not_restore_ready",
 ]);
 
+const progress = new Set([
+  "building",
+  "deleting",
+  "checking_health",
+  "checking_public_endpoint",
+  "checking_server",
+  "cleaning_up",
+  "configuring_routing",
+  "fetching_source",
+  "preparing",
+  "provisioning_tls",
+  "resolving_secrets",
+  "running",
+  "running_post_deploy",
+  "running_pre_deploy",
+  "starting_candidate",
+  "switching_traffic",
+  "transferring",
+  "validating_credentials",
+  "connecting",
+  "reconnecting",
+  "delivering",
+  "retrying",
+]);
+
 export function StatusBadge({
   status,
   context,
@@ -88,7 +124,29 @@ export function StatusBadge({
         : destructive.has(status)
           ? "destructive"
           : "secondary";
-  return <Chip variant={variant}>{formatStatus(status)}</Chip>;
+  const icon =
+    status === "running" && context === "runtime"
+      ? PlayIcon
+      : status === "stopped" || status === "cancelled"
+        ? StopIcon
+        : variant === "success"
+          ? CheckmarkCircle01Icon
+          : variant === "destructive"
+            ? AlertCircleIcon
+            : status === "queued" ||
+                status === "pending" ||
+                status.startsWith("waiting")
+              ? Clock01Icon
+              : variant === "warning"
+                ? progress.has(status)
+                  ? RefreshIcon
+                  : Alert02Icon
+                : InformationCircleIcon;
+  return (
+    <Chip variant={variant} icon={<HugeiconsIcon icon={icon} />}>
+      {formatStatus(status)}
+    </Chip>
+  );
 }
 
 export function formatStatus(status: string) {

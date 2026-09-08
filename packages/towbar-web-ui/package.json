@@ -13,7 +13,9 @@
     "@workspace/web-design-system": "workspace:*",
     "next": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "@hugeicons/core-free-icons": "catalog:",
+    "@hugeicons/react": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
