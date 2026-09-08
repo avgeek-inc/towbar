@@ -1251,6 +1251,36 @@ export function createFixtureApiServer() {
       response.end();
       return;
     }
+    const revealMatch = path.match(
+      /^\/v1\/core\/(sources|apps|resources)\/([^/]+)\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)\/reveal$/,
+    );
+    const globalRevealMatch = path.match(
+      /^\/v1\/core\/settings\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)\/reveal$/,
+    );
+    if (request.method === "POST" && (revealMatch || globalRevealMatch)) {
+      const slot = revealMatch
+        ? `${revealMatch[2]}:${revealMatch[3]}:${revealMatch[4]}`
+        : `${user.workspaceId}:${globalRevealMatch![1]}:${globalRevealMatch![2]}`;
+      response.setHeader("Cache-Control", "no-store");
+      void readRequestJson(request)
+        .then((input) => {
+          const { key } = input as { key: string };
+          if (!fixtureSecretKeys.get(slot)?.includes(key))
+            return writeNotFound(response);
+          return writeJson(response, 200, {
+            value:
+              fixtureSecretValues.get(slot)?.[key] ??
+              `fixture-only-${key.toLowerCase()}`,
+            revision: fixtureSecretVersions.get(slot) ?? null,
+          });
+        })
+        .catch(() =>
+          writeJson(response, 400, {
+            error: { message: "Invalid reveal request" },
+          }),
+        );
+      return;
+    }
     const mutationMatch = path.match(
       /^\/v1\/core\/(sources|apps|resources)\/([^/]+)\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)$/,
     );
@@ -2154,18 +2184,13 @@ function getFixtureSecretsResponse(
       if (scope === "deployable" && environment === "preview") {
         Object.assign(shared, fixtureMetadata(`${source.id}:preview:${stage}`));
       }
-      const inheritedKeys = [
-        ...new Set([...global.keys, ...shared.keys]),
-      ].sort();
       return {
         ...local,
         environment,
         stage,
-        inheritedKeys,
-        inheritedOrigins: Object.fromEntries([
-          ...global.keys.map((key) => [key, "global"] as const),
-          ...shared.keys.map((key) => [key, "source"] as const),
-        ]),
+        inheritedKeys: [],
+        inheritedOrigins: {},
+        availableReferences: { globals: global.keys, source: shared.keys },
         inheritedRevisions: {
           global: global.revision,
           source: shared.revision,

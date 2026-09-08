@@ -77,9 +77,86 @@ export function applySecretMutation(
   return next;
 }
 
-export function mergeSecretValues(
-  shared: Record<string, string>,
-  local: Record<string, string>,
+export function resolveSecretReferences(
+  values: Record<string, string>,
+  globals: Record<string, string>,
+  source?: Record<string, string>,
 ) {
-  return { ...shared, ...local };
+  const result: Record<string, string> = Object.create(null);
+  for (const [key, value] of Object.entries(values)) {
+    result[key] = value.replace(
+      /\{\{\s*(globals|source)\.([^{}]*?)\s*\}\}/gu,
+      (_match, scope: string, name: string) => {
+        const reference = name.trim();
+        const parent = scope === "globals" ? globals : source;
+        if (
+          !/^[A-Za-z_][A-Za-z0-9_]*$/u.test(reference) ||
+          !parent ||
+          !Object.hasOwn(parent, reference)
+        ) {
+          throw new Error(
+            `Secret ${key} has an unavailable ${scope} reference`,
+          );
+        }
+        if (scope === "source") {
+          validateSecretReferences({ [key]: parent[reference]! }, "source");
+          return resolveSecretReferences(
+            { [key]: parent[reference]! },
+            globals,
+          )[key]!;
+        }
+        return parent[reference]!;
+      },
+    );
+    if (result[key]!.length > 65_536)
+      throw new Error(`Resolved secret ${key} exceeds the value size limit`);
+  }
+  return { ...result };
+}
+
+export function secretReferenceDependencies(
+  local: Record<string, string>,
+  source: Record<string, string>,
+) {
+  let global = false;
+  let shared = false;
+  for (const value of Object.values(local)) {
+    if (/\{\{\s*globals\./u.test(value)) global = true;
+    for (const match of value.matchAll(
+      /\{\{\s*source\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/gu,
+    )) {
+      shared = true;
+      if (
+        Object.hasOwn(source, match[1]!) &&
+        /\{\{\s*globals\./u.test(source[match[1]!]!)
+      )
+        global = true;
+    }
+  }
+  return { global, shared };
+}
+
+export function validateSecretReferences(
+  values: Record<string, string>,
+  scope: "workspace" | "source" | "app",
+) {
+  for (const [key, value] of Object.entries(values)) {
+    const remainder = value.replace(
+      /\{\{\s*(globals|source)\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/gu,
+      (_match, parent: string) => {
+        if (
+          scope === "workspace" ||
+          (scope === "source" && parent === "source")
+        )
+          throw new Error(
+            `Secret ${key} cannot reference ${parent} at this scope`,
+          );
+        return "";
+      },
+    );
+    if (/\{\{\s*(globals|source)\b/u.test(remainder))
+      throw new Error(
+        `Secret ${key} has an invalid reference. Use {{globals.KEY}} or {{source.KEY}}`,
+      );
+  }
 }

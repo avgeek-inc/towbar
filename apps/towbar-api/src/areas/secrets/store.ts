@@ -236,3 +236,29 @@ export async function resolveServerCredentials(
     );
   return result;
 }
+
+export async function revealSecretValue(
+  slot: SecretSlot,
+  key: string,
+  actorUserId: string,
+) {
+  await requireSecretOwner(slot);
+  const { values, revision } = await readSecretValues(slot);
+  if (!Object.hasOwn(values, key)) throw notFound("Secret");
+  await getTowbarDatabase()
+    .insert(auditEvents)
+    .values({
+      workspaceId: slot.workspaceId,
+      actorUserId,
+      action: "secrets.revealed",
+      targetType: slot.type,
+      targetId: ownerKey(slot),
+      metadata: {
+        environment: slot.environment,
+        stage: slot.stage,
+        key,
+        revision,
+      },
+    });
+  return { value: values[key]!, revision };
+}

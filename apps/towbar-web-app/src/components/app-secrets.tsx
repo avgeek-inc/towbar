@@ -1,13 +1,11 @@
 "use client";
 
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
-
 import { useSearchParams } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   Delete02Icon,
-  GitBranchIcon,
-  GlobeIcon,
+  ViewIcon,
+  ViewOffSlashIcon,
   Key01Icon,
   LockIcon,
   RestoreBinIcon,
@@ -177,7 +175,7 @@ function EnvironmentEditors({
         value: binding.stage,
         content: (
           <SecretVariablesEditor
-            key={`${binding.environment}:${binding.stage}:${binding.revision}:${binding.inheritedRevisions.global}:${binding.inheritedRevisions.source}`}
+            key={`${props.endpoint}:${binding.environment}:${binding.stage}:${binding.revision}:${binding.inheritedRevisions.global}:${binding.inheritedRevisions.source}`}
             {...props}
             binding={binding}
             canManage={data.canManageSecrets}
@@ -207,7 +205,7 @@ function SecretVariablesEditor({
     Array<{ id: string; key: string; value: string }>
   >([]);
   const [error, setError] = useState<string>();
-  const keys = [...new Set([...binding.inheritedKeys, ...binding.keys])].sort();
+  const keys = [...binding.keys].sort();
   const hasChanges =
     Object.keys(replacements).length > 0 ||
     deleted.length > 0 ||
@@ -295,37 +293,13 @@ function SecretVariablesEditor({
           {keys.length > 0 || newKeys.length > 0 ? (
             <div className="grid gap-3">
               {keys.map((key) => {
-                const local = binding.keys.includes(key);
                 const removed = deleted.includes(key);
-                const inherited = !local;
-                const inheritedOrigin = binding.inheritedOrigins[key];
-                const inheritedLabel =
-                  inheritedOrigin === "global"
-                    ? "Inherited from Shared secrets"
-                    : "Inherited from Source";
                 return (
                   <div
                     key={key}
                     className="grid grid-cols-[repeat(8,minmax(0,1fr))_2.5rem] sm:grid-cols-[repeat(8,minmax(0,1fr))_2.25rem] items-center gap-2 md:gap-3"
                   >
                     <div className="col-span-4 flex min-h-10 min-w-0 items-center gap-2">
-                      {inherited ? (
-                        <TooltipText
-                          aria-label={inheritedLabel}
-                          className="inline-flex shrink-0 text-muted"
-                          tooltip={inheritedLabel}
-                        >
-                          <HugeiconsIcon
-                            aria-hidden="true"
-                            icon={
-                              inheritedOrigin === "global"
-                                ? GlobeIcon
-                                : GitBranchIcon
-                            }
-                            size={16}
-                          />
-                        </TooltipText>
-                      ) : null}
                       <span
                         className={`break-all font-mono text-sm ${
                           removed ? "text-muted line-through" : ""
@@ -335,40 +309,34 @@ function SecretVariablesEditor({
                       </span>
                     </div>
                     <div className="col-span-4 min-w-0">
-                      <InputGroup fullWidth variant="secondary">
-                        <InputGroup.Prefix>
-                          <HugeiconsIcon
-                            aria-hidden="true"
-                            icon={LockIcon}
-                            size={16}
-                          />
-                        </InputGroup.Prefix>
-                        <InputGroup.Input
-                          aria-label={`Replacement value for ${key}`}
-                          autoComplete="off"
-                          spellCheck={false}
-                          placeholder={
-                            local
-                              ? "Configured — enter a replacement"
-                              : "Enter a local override"
-                          }
-                          value={
-                            Object.hasOwn(replacements, key)
-                              ? replacements[key]!
-                              : ""
-                          }
-                          disabled={!canManage || busy || removed}
-                          onChange={(event) => {
-                            const value = event.currentTarget.value;
-                            setReplacements((current) => ({
-                              ...current,
-                              [key]: value,
-                            }));
-                          }}
-                        />
-                      </InputGroup>
+                      <SecretValueInput
+                        label={`Value for ${key}`}
+                        value={replacements[key] ?? ""}
+                        configured={!Object.hasOwn(replacements, key)}
+                        disabled={!canManage || busy || removed}
+                        reveal={async () => {
+                          const result = await api.post<{
+                            value: string;
+                            revision: string | null;
+                          }>(
+                            `${endpoint}/${binding.environment}/${binding.stage}/reveal`,
+                            { key },
+                          );
+                          if (result.revision !== binding.revision)
+                            throw new Error(
+                              "This secret changed. Refresh before viewing it.",
+                            );
+                          return result.value;
+                        }}
+                        onChange={(value) =>
+                          setReplacements((current) => ({
+                            ...current,
+                            [key]: value,
+                          }))
+                        }
+                      />
                     </div>
-                    {canManage && local ? (
+                    {canManage ? (
                       <Button
                         aria-label={removed ? `Keep ${key}` : `Remove ${key}`}
                         className="col-span-1 size-10 min-w-0 justify-self-end sm:size-9"
@@ -423,31 +391,18 @@ function SecretVariablesEditor({
                     />
                   </div>
                   <div className="col-span-4 min-w-0">
-                    <InputGroup fullWidth variant="secondary">
-                      <InputGroup.Prefix>
-                        <HugeiconsIcon
-                          aria-hidden="true"
-                          icon={LockIcon}
-                          size={16}
-                        />
-                      </InputGroup.Prefix>
-                      <InputGroup.Input
-                        aria-label={`New variable ${index + 1} value`}
-                        autoComplete="off"
-                        placeholder="Value"
-                        spellCheck={false}
-                        disabled={busy}
-                        value={row.value}
-                        onChange={(event) => {
-                          const value = event.currentTarget.value;
-                          setNewKeys((current) =>
-                            current.map((item) =>
-                              item.id === row.id ? { ...item, value } : item,
-                            ),
-                          );
-                        }}
-                      />
-                    </InputGroup>
+                    <SecretValueInput
+                      label={`New variable ${index + 1} value`}
+                      value={row.value}
+                      disabled={busy}
+                      onChange={(value) =>
+                        setNewKeys((current) =>
+                          current.map((item) =>
+                            item.id === row.id ? { ...item, value } : item,
+                          ),
+                        )
+                      }
+                    />
                   </div>
                   <Button
                     aria-label={`Remove new variable ${index + 1}`}
@@ -501,5 +456,119 @@ function SecretVariablesEditor({
         </Widget.Content>
       </Widget>
     </form>
+  );
+}
+
+function SecretValueInput({
+  label,
+  value,
+  configured = false,
+  disabled,
+  reveal,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  configured?: boolean;
+  disabled: boolean;
+  reveal?: () => Promise<string>;
+  onChange: (value: string) => void;
+}) {
+  const [visible, setVisible] = useState(false);
+  const [stored, setStored] = useState<string>();
+  const [loading, setLoading] = useState(false);
+  const request = useRef({ generation: 0 });
+  useEffect(() => {
+    const state = request.current;
+    const hide = () => {
+      state.generation++;
+      setVisible(false);
+      setStored(undefined);
+      setLoading(false);
+    };
+    window.addEventListener("blur", hide);
+    return () => {
+      state.generation++;
+      window.removeEventListener("blur", hide);
+    };
+  }, []);
+  async function toggle() {
+    const current = ++request.current.generation;
+    if (visible) {
+      setVisible(false);
+      setStored(undefined);
+      return;
+    }
+    if (!configured) {
+      setVisible(true);
+      return;
+    }
+    setLoading(true);
+    try {
+      const revealed = await reveal!();
+      if (request.current.generation !== current) return;
+      setStored(revealed);
+      setVisible(true);
+    } catch (error) {
+      if (request.current.generation === current)
+        toast.danger(
+          error instanceof Error
+            ? error.message
+            : "Secret could not be revealed",
+        );
+    } finally {
+      if (request.current.generation === current) setLoading(false);
+    }
+  }
+  const displayedValue = configured ? (visible ? (stored ?? "") : "") : value;
+  const hasReference =
+    visible &&
+    /\{\{\s*(globals|source)\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}/u.test(
+      displayedValue,
+    );
+  return (
+    <InputGroup fullWidth variant="secondary">
+      <InputGroup.Prefix>
+        <HugeiconsIcon aria-hidden="true" icon={LockIcon} size={16} />
+      </InputGroup.Prefix>
+      <InputGroup.Input
+        aria-label={label}
+        className={
+          hasReference ? "text-yellow-600 dark:text-yellow-400" : undefined
+        }
+        type={visible ? "text" : "password"}
+        autoComplete="off"
+        data-lpignore="true"
+        data-1p-ignore
+        spellCheck={false}
+        placeholder={
+          configured ? (visible ? "" : "********") : "Value or reference"
+        }
+        value={displayedValue}
+        disabled={disabled || loading}
+        onChange={(event) => {
+          setStored(undefined);
+          onChange(event.currentTarget.value);
+        }}
+      />
+      <InputGroup.Suffix>
+        <Button
+          type="button"
+          isIconOnly
+          variant="ghost"
+          size="sm"
+          aria-label={`${visible ? "Hide" : "Reveal"} ${label.toLowerCase()}`}
+          aria-pressed={visible}
+          isDisabled={disabled || loading}
+          onPress={() => void toggle()}
+        >
+          <HugeiconsIcon
+            aria-hidden="true"
+            icon={visible ? ViewOffSlashIcon : ViewIcon}
+            size={18}
+          />
+        </Button>
+      </InputGroup.Suffix>
+    </InputGroup>
   );
 }

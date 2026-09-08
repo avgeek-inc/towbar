@@ -47,6 +47,15 @@ export async function testManagedSecretExecution({
   await t.test(
     "deployment resolution records only revisions, keeps running values stable, and rollback uses current values",
     async () => {
+      await mutateSecret(
+        { ...appOwner, environment: "production", stage: "pre_deploy" },
+        {
+          expectedRevision: null,
+          set: { MIGRATION: "{{source.MIGRATION}}" },
+          delete: [],
+        },
+        actorUserId,
+      );
       const privateKey = generateKeyPairSync("ed25519")
         .privateKey.export({ type: "pkcs8", format: "pem" })
         .toString();
@@ -177,7 +186,15 @@ export async function testManagedSecretExecution({
           { ...appOwner, environment: "preview", stage },
           {
             expectedRevision: null,
-            set: { PREVIEW_ONLY: `${stage}-preview` },
+            set: {
+              PREVIEW_ONLY: `${stage}-preview`,
+              ...(stage === "deployment"
+                ? { GLOBAL_PREVIEW: "{{globals.GLOBAL_PREVIEW}}" }
+                : {}),
+              ...(stage === "pre_deploy"
+                ? { SOURCE_PREVIEW: "{{source.SOURCE_PREVIEW}}" }
+                : {}),
+            },
             delete: [],
           },
           actorUserId,

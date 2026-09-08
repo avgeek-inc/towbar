@@ -74,11 +74,11 @@ Choose **Prepare Server** and follow the steps until the host is **Ready**. If p
 
 ## 4. Save application secrets
 
-Open **App → Settings → Secrets** and select Production. Add build, runtime, or hook values as needed, then save. Values inherited from workspace Shared secrets and the Source appear with their origin.
+Open **App → Settings → Secrets** and select Production. Add build, runtime, or hook values as needed, then save. To reuse a shared value, set the app variable to `{{globals.KEY}}` or `{{source.KEY}}`. Shared values are not injected automatically.
 
 The Hello Towbar example needs no secrets, so you can skip this step for your first deployment.
 
-Saved values are write-only. Leaving a replacement field untouched preserves its value. Saving does not start a deployment. See [Shared secrets](/docs/secrets) for precedence and rotation.
+Saved values are hidden until an owner reveals them with the eye icon. Leaving a replacement field untouched preserves its value. Saving does not start a deployment. See [Shared secrets](/docs/secrets) for references and rotation.
 
 ## 5. Deploy
 

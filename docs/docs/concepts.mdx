@@ -34,7 +34,7 @@ flowchart LR
 
 **Git describes the workload.** The manifest defines images or Dockerfiles, health checks, domains, resource limits, and deployment policy. Keep stable IDs when renaming an app or resource so its history stays attached.
 
-**Towbar stores operational settings and secrets.** Server credentials, SSH trust, concurrency, and write-only secret values belong in the dashboard. Saving a secret does not deploy it.
+**Towbar stores operational settings and secrets.** Server credentials, SSH trust, concurrency, and encrypted secret values belong in the dashboard. Saving a secret does not deploy it.
 
 **The installation environment configures the control plane.** Database credentials, internal authentication, the GitHub App, Slack, and SMTP are configured on the host running Towbar.
 
@@ -46,6 +46,6 @@ A deployment records an immutable configuration snapshot. Secret values are reso
 
 ## Production and previews
 
-Production follows `source.branch`. Previews run eligible same-repository pull requests against that branch. Each environment has its own secret inheritance, and previews do not clone database resources.
+Production follows `source.branch`. Previews run eligible same-repository pull requests against that branch. Each environment has its own secret values and explicit references, and previews do not clone database resources.
 
 Continue with [Your first deployment](/docs/getting-started), or see the [architecture](/docs/self-hosting/architecture) for service and trust boundaries.

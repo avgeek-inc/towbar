@@ -68,7 +68,7 @@ Omit `domains` and `tls` for an app that does not need public routing. The dashb
 
 ## Supply configuration
 
-Set build and runtime values in the app's [Secrets settings](/docs/secrets). Production and preview values inherit independently from the workspace and Source. Use BuildKit secret mounts when a build needs credentials.
+Set build and runtime values in the app's [Secrets settings](/docs/secrets). Reference workspace or Source values explicitly with `{{globals.KEY}}` or `{{source.KEY}}`; production and preview remain separate. Use BuildKit secret mounts when a build needs credentials.
 
 CPU and memory allocations are declared under `container.resources`. The inventory shows the configured capacity and observed usage relative to it; an unavailable measurement is not zero usage.
 
