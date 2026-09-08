@@ -273,6 +273,7 @@ export function createApplicationSidebar(
       {
         kind: "action",
         id: "sign-out",
+        destructive: true,
         label: "Sign out",
         icon: sidebarIcons.logout,
         confirmation: {
