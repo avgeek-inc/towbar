@@ -198,10 +198,10 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
   return (
     <nav
       aria-label={config.accessibleLabel}
-      className="flex min-h-dvh flex-col"
+      className="flex h-full min-h-0 flex-col overflow-hidden"
     >
       <RoutedLink
-        className="inline-flex min-h-16 min-w-0 items-center gap-2.5 border-b border-separator px-4"
+        className="inline-flex min-h-16 min-w-0 shrink-0 items-center gap-2.5 border-b border-separator px-4"
         item={homeItem}
       >
         <BrandLockup
@@ -223,7 +223,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
           </span>
         ) : null}
       </RoutedLink>
-      <div className="grid flex-1 content-start gap-1 overflow-y-auto px-3 pt-2">
+      <div className="grid min-h-0 flex-1 content-start gap-1 overflow-y-auto overscroll-contain px-3 pt-2">
         {config.groups.map((group) => (
           <section className="grid gap-1 [&+&]:mt-2" key={group.id}>
             {group.label ? (
@@ -277,7 +277,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
         ))}
       </div>
       {config.footerActions?.length ? (
-        <div className="mt-auto grid gap-1 px-3 pb-4 pt-2">
+        <div className="grid shrink-0 gap-1 border-t border-separator px-3 pb-4 pt-2">
           {config.footerActions.map((item) => (
             <SidebarAction item={item} key={item.id} />
           ))}
@@ -294,7 +294,7 @@ function SidebarAction({ item }: { item: SidebarActionConfig }) {
       aria-label={item.accessibleLabel}
       className={cn(
         "flex min-h-9 items-center gap-3 rounded-2xl px-2 py-1.5 text-start text-sm font-normal text-muted hover:bg-default/60 hover:text-foreground disabled:opacity-50",
-        item.destructive && "hover:text-danger",
+        item.destructive && "text-danger hover:bg-danger/10 hover:text-danger",
       )}
       disabled={item.disabled}
       onClick={() => {
