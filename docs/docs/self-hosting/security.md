@@ -32,8 +32,10 @@ should pin a reviewed release and subscribe to repository security advisories.
   credentials. Fork pull requests are not Preview input.
 - Public HTTP services are behind TLS. PostgreSQL, Temporal, Temporal UI, and
   SSH are restricted by host and network controls.
-- Secrets are encrypted with AES-256-GCM and remain write-only in public APIs.
-  Only owners may change them; audit events and Temporal history exclude values.
+- Secrets are encrypted with AES-256-GCM. Only owners may change or explicitly
+  reveal them; reveal responses disable caching. Metadata responses, audit events,
+  and Temporal history exclude values. File mode reveals the selected secret set
+  for editing. Server SSH and Cloudflare credentials remain write-only.
 - Keep the installation encryption key separate from database backups. Losing
   the key makes stored secrets unrecoverable.
 - The optional workspace AWS identity is scoped only to required S3 backup operations.

@@ -17,11 +17,11 @@
 </p>
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/deployments-dark.webp" />
-  <img src="docs/assets/deployments-light.webp" alt="Towbar dashboard showing deployment history for apps, databases, and pull request previews in an example workspace." width="1200" />
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/overview-dark.webp" />
+  <img src="docs/assets/overview-light.webp" alt="Towbar overview showing deployment trends, app and resource counts, servers, active incidents, and recent deployments." width="1200" />
 </picture>
 
-_An example Towbar workspace. Follow each deployment from its source commit to its final result._
+_An example Towbar workspace: deployment trends, workload status, active incidents, and recent activity._
 
 Towbar brings repository configuration, deployments, and day-to-day operations
 into one dashboard. Connect GitHub, register an Ubuntu server, and describe your
@@ -34,7 +34,7 @@ workloads in a manifest. Towbar builds and runs them on your infrastructure.
 | Deploy from Git        | Keep configuration with your code. Deploy manually, automatically, or only when selected files change.                                                |
 | Run apps and databases | Build Dockerfile apps on your servers. Run PostgreSQL, Redis, and container images with persistent storage.                                           |
 | Preview pull requests  | Share a stable preview URL with separate secrets. Environments are cleaned up when pull requests close or merge.                                      |
-| Manage secrets         | Store encrypted values with owner-only reveal and explicit references across workspace, Source, and workload scopes.                                  |
+| Manage secrets         | Edit encrypted values in Form or .env File mode, with owner-only reveal and explicit shared references.                                               |
 | Monitor performance    | Track server and workload history with Scout Agent, configure alerts and public uptime checks, and compare deployments for changes in resource usage. |
 | Back up and restore    | Schedule PostgreSQL and Redis backups to S3, check restore readiness, and restore through an isolated candidate before promotion.                     |
 | Stay informed          | Send deployment, preview, health, backup, and restore events to Slack or email.                                                                       |
