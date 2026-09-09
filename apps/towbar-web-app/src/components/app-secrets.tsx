@@ -123,44 +123,37 @@ function EnvironmentSecretSettings({
     "production",
   );
   const { update } = usePageQuery();
-  const [stage] = useQueryChoice(
-    "stage",
-    ["build", "deployment", "pre_deploy", "post_deploy"],
-    "build",
-  );
   const query = useApiQuery<AppSecretsResponse>(
     active ? `${endpoint}?environment=${environment}` : null,
   );
   if (!active) return null;
   return (
     <div className={scope === "global" ? "w-full" : "max-w-5xl"}>
-      {scope === "global"
-        ? (["production", "preview"] as const).map((group) => (
-            <SecondaryItems
-              key={group}
-              title={group === "production" ? "Production" : "Preview"}
-              selected={environment === group ? stage : ""}
-              onSelect={(value) =>
-                update({
-                  environment: group === "production" ? null : group,
-                  stage: value === "build" ? null : value,
-                })
-              }
-              items={(
-                ["build", "deployment", "pre_deploy", "post_deploy"] as const
-              ).map((value) => ({
-                id: value,
-                label: stageLabels[value],
-                icon: <HugeiconsIcon icon={stageIcons[value]} />,
-              }))}
-            />
-          ))
-        : null}
+      {scope === "global" ? (
+        <SecondaryItems
+          title="Environment"
+          selected={environment}
+          onSelect={(value) =>
+            update({ environment: value === "production" ? null : value })
+          }
+          items={[
+            {
+              id: "production",
+              label: "Production",
+              icon: <HugeiconsIcon icon={ServerStack01Icon} />,
+            },
+            {
+              id: "preview",
+              label: "Preview",
+              icon: <HugeiconsIcon icon={Rocket01Icon} />,
+            },
+          ]}
+        />
+      ) : null}
       <EnvironmentEditors
         key={environment}
         endpoint={endpoint}
         query={query}
-        hideStageNavigation={scope === "global"}
         environment={scope !== "global" ? environment : undefined}
         onEnvironmentChange={(value) =>
           update({ environment: value === "production" ? null : value })
@@ -270,13 +263,11 @@ function SecretSelector({
 function EnvironmentEditors({
   query,
   endpoint,
-  hideStageNavigation = false,
   environment,
   onEnvironmentChange,
 }: {
   query: Query;
   endpoint: string;
-  hideStageNavigation?: boolean;
   environment?: "production" | "preview";
   onEnvironmentChange?: (value: string) => void;
 }) {
@@ -312,7 +303,7 @@ function EnvironmentEditors({
             ]}
           />
         ) : null}
-        {!hideStageNavigation && binding && data ? (
+        {binding && data ? (
           <SecretSelector
             label="Secret stage"
             value={binding.stage}
