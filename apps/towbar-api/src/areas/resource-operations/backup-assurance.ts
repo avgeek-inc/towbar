@@ -114,7 +114,10 @@ async function inspectAzureBackupObject(
       result;
     const storageAccount =
       ("storageAccount" in targetDest && targetDest.storageAccount) ||
-      targetDest.bucket.split("/")[0]!;
+      result.storageAccount;
+    if (!storageAccount) {
+      return { error: "unavailable", exists: false };
+    }
     const container = targetDest.bucket;
     const blobPath = targetDest.key
       .split("/")

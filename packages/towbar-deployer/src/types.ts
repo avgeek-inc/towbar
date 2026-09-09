@@ -179,6 +179,7 @@ export type ResourceOperationExecutionContext = {
   operationId: string;
   retentionBackups: Array<{
     bucket: string;
+    destinations?: import("@workspace/towbar-core").BackupDestinationResult[];
     id: string;
     key: string;
     storageAccount?: string;

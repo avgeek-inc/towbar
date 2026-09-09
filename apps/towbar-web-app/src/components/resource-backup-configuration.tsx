@@ -141,7 +141,7 @@ export function ResourceBackupConfiguration({
       id: "azureBlob",
       label: "Azure Blob Storage",
       providerName: "Azure",
-      locationUri: `${backup.azureBlob.storageAccount}/${backup.azureBlob.container}/${backup.azureBlob.prefix || "towbar"}`,
+      locationUri: `az://${backup.azureBlob.storageAccount}/${backup.azureBlob.container}/${backup.azureBlob.prefix || "towbar"}`,
       credentialsConfigured: Boolean(assuranceData.azureConfigured),
     });
   }
@@ -410,6 +410,10 @@ function ProviderBackupsTable({
   backups: SourceBackup[];
   provider: ConfiguredProvider;
 }) {
+  const destinationBackups = backups.filter((item) =>
+    Boolean(getDestinationInfo(item, provider.id)),
+  );
+
   const columns: ResourceTableColumn<SourceBackup>[] = [
     {
       key: "created",
@@ -465,7 +469,7 @@ function ProviderBackupsTable({
       emptyDescription={`Backups uploaded to ${provider.label} will appear here.`}
       emptyTitle="No backups in this destination"
       getRowKey={(item) => item.id}
-      items={backups}
+      items={destinationBackups}
     />
   );
 }
@@ -561,7 +565,13 @@ export function formatBackupFormat(format: SourceBackup["result"]["format"]) {
   return "Metadata missing";
 }
 
-function InlineLink({ children, href }: { children: ReactNode; href: string }) {
+export function InlineLink({
+  children,
+  href,
+}: {
+  children: ReactNode;
+  href: string;
+}) {
   return (
     <Link
       className="focus-visible:ring-focus inline-flex items-center rounded-sm font-medium underline underline-offset-4 outline-none focus-visible:ring-2"

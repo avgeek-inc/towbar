@@ -9,9 +9,8 @@ import {
   Undo02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import Link from "next/link";
 import { useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import type { FormEvent } from "react";
 
 import type {
   BackupAssurance,
@@ -48,6 +47,13 @@ import { CloudProviderLogo } from "@/components/cloud-provider-logo";
 import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
+import {
+  InlineLink,
+  RelativeTime,
+  formatBackupFormat,
+  formatBytes,
+  formatEngine,
+} from "./resource-backup-configuration";
 
 export function ResourceRestoreConfiguration({
   active,
@@ -137,7 +143,7 @@ export function ResourceRestoreConfiguration({
       : restoreProvider === "gcs" && backup.gcs
         ? `gs://${backup.gcs.bucket}/${backup.gcs.prefix || "towbar"}`
         : restoreProvider === "azureBlob" && backup.azureBlob
-          ? `${backup.azureBlob.storageAccount}/${backup.azureBlob.container}/${backup.azureBlob.prefix || "towbar"}`
+          ? `az://${backup.azureBlob.storageAccount}/${backup.azureBlob.container}/${backup.azureBlob.prefix || "towbar"}`
           : "Not configured";
 
   const restoreColumns: ResourceTableColumn<SourceBackup>[] = [
@@ -803,50 +809,6 @@ function RestoreCleanupConfirmation({
   );
 }
 
-function RelativeTime({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | null;
-}) {
-  if (!value) return "—";
-  const date = new Date(value);
-  return (
-    <span className="inline-flex flex-col gap-0.5" aria-label={label}>
-      <span>{formatDate(value)}</span>
-      <span className="text-muted typography--body-xs">
-        {formatRelativeTime(date)}
-      </span>
-    </span>
-  );
-}
-
-function formatRelativeTime(date: Date) {
-  const now = Date.now();
-  const diffMs = date.getTime() - now;
-  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-  const seconds = Math.round(diffMs / 1000);
-  if (Math.abs(seconds) < 60) return rtf.format(seconds, "second");
-  const minutes = Math.round(seconds / 60);
-  if (Math.abs(minutes) < 60) return rtf.format(minutes, "minute");
-  const hours = Math.round(minutes / 60);
-  if (Math.abs(hours) < 24) return rtf.format(hours, "hour");
-  const days = Math.round(hours / 24);
-  return rtf.format(days, "day");
-}
-
-function formatBytes(bytes: number) {
-  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
-  const units = ["B", "KiB", "MiB", "GiB", "TiB"];
-  const exponent = Math.min(
-    Math.floor(Math.log(bytes) / Math.log(1024)),
-    units.length - 1,
-  );
-  const value = bytes / 1024 ** exponent;
-  return `${value.toFixed(value >= 10 || exponent === 0 ? 0 : 1)} ${units[exponent]}`;
-}
-
 function readRestoreResult(result: ResourceOperation["result"]) {
   if (!result || !("outcome" in result)) return null;
   return result as RestoreResult;
@@ -856,33 +818,10 @@ function readString(value: unknown) {
   return typeof value === "string" ? value : null;
 }
 
-function formatEngine(engine: "postgres" | "redis" | undefined) {
-  if (engine === "postgres") return "PostgreSQL";
-  if (engine === "redis") return "Redis";
-  return "Unknown";
-}
-
-function formatBackupFormat(format: SourceBackup["result"]["format"]) {
-  if (format === "postgres-custom") return "PostgreSQL custom";
-  if (format === "redis-rdb") return "Redis RDB";
-  return "Metadata missing";
-}
-
 function formatPhase(phase: string | null) {
   if (!phase) return "Queued";
   return phase
     .split("_")
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join(" ");
-}
-
-function InlineLink({ children, href }: { children: ReactNode; href: string }) {
-  return (
-    <Link
-      className="focus-visible:ring-focus inline-flex items-center rounded-sm font-medium underline underline-offset-4 outline-none focus-visible:ring-2"
-      href={href}
-    >
-      {children}
-    </Link>
-  );
 }

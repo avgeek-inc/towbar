@@ -156,14 +156,14 @@ export type BackupOperationResult = {
   checksum: string;
   deletedBackupIds: string[];
   destinations?: BackupDestinationResult[];
-  encryption: "AES256" | "aws:kms" | (string & {});
+  encryption: "AES256" | "aws:kms" | string;
   engine?: "postgres" | "redis";
   engineMajorVersion?: number;
   format?: "postgres-custom" | "redis-rdb";
   key: string;
   metadataVersion?: 1;
   objectVersionId?: string;
-  region: string;
+  region?: string;
   restoreFrom?: "azureBlob" | "gcs" | "s3";
   sizeBytes: number;
   storageAccount?: string;
@@ -189,7 +189,7 @@ export function normalizeBackupOperationResult(
               ? { objectVersion: result.objectVersionId }
               : {}),
             provider: "s3" as const,
-            region: result.region,
+            ...(result.region ? { region: result.region } : {}),
           },
         ];
   const restoreFrom = result.restoreFrom ?? "s3";
@@ -230,7 +230,7 @@ export const backupOperationResultSchema = z
     key: z.string().trim().min(1).max(2_048),
     metadataVersion: z.literal(1).optional(),
     objectVersionId: z.string().trim().min(1).max(1_024).optional(),
-    region: z.string().trim().min(1).max(64),
+    region: z.string().trim().min(1).max(64).optional(),
     restoreFrom: z.enum(["s3", "gcs", "azureBlob"]).optional(),
     sizeBytes: z.number().int().nonnegative().max(maximumBackupBytes),
     storageAccount: z.string().trim().min(1).max(128).optional(),

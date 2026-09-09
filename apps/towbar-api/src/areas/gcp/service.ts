@@ -11,7 +11,12 @@ import {
 import { workspaceGcpCredentials } from "@workspace/towbar-database/schema";
 
 import { getEnv } from "../../env.js";
-import { badRequest, notFound, serviceUnavailable } from "../../http/errors.js";
+import {
+  HttpError,
+  badRequest,
+  notFound,
+  serviceUnavailable,
+} from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 
 export const gcpServiceAccountKeySchema = z
@@ -127,7 +132,7 @@ export async function getGcpAccessToken(
     }
     return data.access_token;
   } catch (error) {
-    if (error instanceof Error && error.message.includes("rejected")) {
+    if (error instanceof HttpError) {
       throw error;
     }
     throw serviceUnavailable(

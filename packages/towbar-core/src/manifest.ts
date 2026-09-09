@@ -37,7 +37,7 @@ const s3BucketPattern =
 const gcsBucketPattern =
   /^(?!\d+\.\d+\.\d+\.\d+$)[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$/;
 const azureStorageAccountPattern = /^[a-z0-9]{3,24}$/;
-const azureContainerPattern = /^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])?$/;
+const azureContainerPattern = /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/;
 const sshUsernamePattern = /^[a-z_][a-z0-9_-]{0,31}$/i;
 const branchSchema = z
   .string()

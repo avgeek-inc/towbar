@@ -510,6 +510,7 @@ async function uploadAndVerifyDestination(params: {
 async function cleanupRetentionBackups(
   retentionBackups: readonly {
     bucket: string;
+    destinations?: readonly BackupDestinationResult[];
     id: string;
     key: string;
     storageAccount?: string;
@@ -520,23 +521,43 @@ async function cleanupRetentionBackups(
   const deletedBackupIds: string[] = [];
   const warnings: string[] = [];
   for (const candidate of retentionBackups) {
-    try {
-      for (const provider of configuredProviders) {
-        const storage = availableStorages[provider];
-        if (storage) {
-          await storage
-            .deleteObject({
-              bucket: candidate.bucket,
-              key: candidate.key,
-              ...(candidate.storageAccount
-                ? { storageAccount: candidate.storageAccount }
-                : {}),
-            })
-            .catch(() => undefined);
-        }
+    let anySucceeded = false;
+    let deleteFailed = false;
+    const destinations =
+      candidate.destinations && candidate.destinations.length > 0
+        ? candidate.destinations
+        : configuredProviders.map((provider) => ({
+            bucket: candidate.bucket,
+            key: candidate.key,
+            provider,
+            storageAccount: candidate.storageAccount,
+          }));
+
+    for (const dest of destinations) {
+      const storage = availableStorages[dest.provider];
+      if (!storage) continue;
+      try {
+        await storage.deleteObject({
+          bucket: dest.bucket,
+          key: dest.key,
+          ...(dest.storageAccount
+            ? { storageAccount: dest.storageAccount }
+            : {}),
+        });
+        anySucceeded = true;
+      } catch {
+        deleteFailed = true;
       }
+    }
+
+    if (anySucceeded) {
       deletedBackupIds.push(candidate.id);
-    } catch {
+      if (deleteFailed) {
+        warnings.push(
+          `Retention cleanup deleted backup ${candidate.id} with partial destination failures`,
+        );
+      }
+    } else {
       warnings.push(
         `Retention cleanup could not delete backup ${candidate.id}`,
       );
@@ -562,6 +583,7 @@ function buildBackupResult(params: {
   const primaryDest =
     destinationResults.find((dest) => dest.provider === backup.restoreFrom) ??
     destinationResults[0]!;
+  const region = primaryDest.region ?? params.region;
 
   return {
     backupId: params.operationId,
@@ -580,7 +602,7 @@ function buildBackupResult(params: {
     ...(primaryDest.objectVersion
       ? { objectVersionId: primaryDest.objectVersion }
       : {}),
-    region: primaryDest.region ?? params.region ?? "",
+    ...(region ? { region } : {}),
     restoreFrom: backup.restoreFrom,
     sizeBytes: params.sizeBytes,
     ...(primaryDest.storageAccount
@@ -601,4 +623,9 @@ export const resourceOperationScripts = {
   cleanupOrphans: cleanupOrphansScript,
   containerOperation: containerOperationScript,
   createBackup: createBackupScript,
+} as const;
+
+export const resourceOperationInternal = {
+  buildBackupResult,
+  cleanupRetentionBackups,
 } as const;

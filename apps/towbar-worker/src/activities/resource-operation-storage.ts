@@ -1,5 +1,6 @@
 import { createSign } from "node:crypto";
 import { createReadStream, createWriteStream } from "node:fs";
+import { open } from "node:fs/promises";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
@@ -396,6 +397,15 @@ export function azureBlobStorage(
       for (const [k, v] of Object.entries(metadata)) {
         metaHeaders[`x-ms-meta-${k}`] = v;
       }
+      if (sizeBytes > MAX_AZURE_SINGLE_PUT_BYTES) {
+        return await uploadAzureBlockBlobChunked({
+          localPath,
+          metaHeaders,
+          sizeBytes,
+          token,
+          url,
+        });
+      }
       const stream = createReadStream(localPath);
       const response = await fetch(url, {
         body: Readable.toWeb(stream) as unknown as RequestInit["body"],
@@ -417,6 +427,77 @@ export function azureBlobStorage(
       return versionId ? { versionId } : {};
     },
   };
+}
+
+const MAX_AZURE_SINGLE_PUT_BYTES = 256 * 1024 * 1024;
+const AZURE_BLOCK_SIZE = 32 * 1024 * 1024;
+
+async function uploadAzureBlockBlobChunked(params: {
+  localPath: string;
+  metaHeaders: Record<string, string>;
+  sizeBytes: number;
+  token: string;
+  url: string;
+}): Promise<{ versionId?: string }> {
+  const fileHandle = await open(params.localPath, "r");
+  const blockIds: string[] = [];
+  try {
+    let offset = 0;
+    let blockIndex = 0;
+    const buffer = Buffer.alloc(AZURE_BLOCK_SIZE);
+    while (offset < params.sizeBytes) {
+      const bytesToRead = Math.min(AZURE_BLOCK_SIZE, params.sizeBytes - offset);
+      const { bytesRead } = await fileHandle.read(
+        buffer,
+        0,
+        bytesToRead,
+        offset,
+      );
+      if (bytesRead === 0) break;
+      const blockId = Buffer.from(String(blockIndex).padStart(6, "0")).toString(
+        "base64",
+      );
+      const blockUrl = `${params.url}?comp=block&blockid=${encodeURIComponent(blockId)}`;
+      const chunk = buffer.subarray(0, bytesRead);
+      const blockRes = await fetch(blockUrl, {
+        body: chunk,
+        headers: {
+          Authorization: `Bearer ${params.token}`,
+          "Content-Length": String(bytesRead),
+          "Content-Type": "application/octet-stream",
+          "x-ms-version": "2024-11-04",
+        },
+        method: "PUT",
+      });
+      if (!blockRes.ok) {
+        throw new Error(`Azure Put Block failed: HTTP ${blockRes.status}`);
+      }
+      blockIds.push(blockId);
+      offset += bytesRead;
+      blockIndex++;
+    }
+  } finally {
+    await fileHandle.close();
+  }
+
+  const blockListXml = `<?xml version="1.0" encoding="utf-8"?><BlockList>${blockIds.map((id) => `<Latest>${id}</Latest>`).join("")}</BlockList>`;
+  const blockListUrl = `${params.url}?comp=blocklist`;
+  const putListRes = await fetch(blockListUrl, {
+    body: blockListXml,
+    headers: {
+      Authorization: `Bearer ${params.token}`,
+      "Content-Length": String(Buffer.byteLength(blockListXml)),
+      "Content-Type": "application/xml",
+      "x-ms-version": "2024-11-04",
+      ...params.metaHeaders,
+    },
+    method: "PUT",
+  });
+  if (!putListRes.ok) {
+    throw new Error(`Azure Put Block List failed: HTTP ${putListRes.status}`);
+  }
+  const versionId = putListRes.headers.get("x-ms-version-id") ?? undefined;
+  return versionId ? { versionId } : {};
 }
 
 function parsePositiveInteger(value: string | undefined) {
