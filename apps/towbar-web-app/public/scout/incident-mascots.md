@@ -1,5 +1,19 @@
 # Incident mascot assets
 
+## Darker gray and trimmed assets
+
+Current inventory assets: `overview-apps-trimmed.png`, `overview-resources-trimmed.png`, and `overview-servers-trimmed.png`. Current incident assets: `mascot-soft-healthy-trimmed.png` and `mascot-soft-smoking-trimmed.png`.
+
+Color edits used the built-in image tool. After generation, all five assets were cropped to their visible alpha bounds using Sharp, as requested. The crop ignores alpha values at or below 16/255 when locating the bounds to avoid almost invisible generated speckles; retained pixels keep their original alpha.
+
+apps prompt: Darken both shipping containers to a clear medium graphite gray, approximately #747b84 base paint, with soft shading. Keep the blue Docker symbol unchanged. Preserve composition, smooth matte toy style and transparent PNG background.
+
+resources prompt: Darken both shipping containers to a clear medium graphite gray, approximately #747b84 base paint, with soft shading. Keep the yellow database symbol unchanged. Preserve composition, smooth matte toy style and transparent PNG background.
+
+servers prompt: Change the boat hull, cabin walls, smokestack and mast to neutral medium gray. Keep yellow ONLY as narrow border trim around the deck rim, cabin roof edge and bottom hull edge. Cargo containers stay gray. No large yellow filled surfaces. Preserve soft matte 3D style, composition and transparent PNG background.
+
+Apps and boat background extraction prompt: Remove the background from this image. Output a PNG with transparency. Keep all objects unchanged.
+
 ## Yellow inventory accents
 
 Current resources and server assets are `overview-resources-yellow.png` and `overview-servers-yellow.png`, edited using the built-in image tool from their preceding versions. Both have transparent alpha.
