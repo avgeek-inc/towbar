@@ -135,8 +135,8 @@ export function AwsIntegration() {
                 </Modal.Header>
                 <Modal.Body className="content-grid">
                   <p className="text-muted typography--body-sm">
-                    Values are encrypted before PostgreSQL, scoped to this
-                    workspace, and never returned.
+                    Values are encrypted before storage, scoped to this
+                    workspace, and never returned in normal responses.
                   </p>
                   <SimpleForm
                     fields={[
