@@ -301,7 +301,7 @@ export function SourceDetail() {
                             code={manifest.data.manifest.rawManifest}
                           />
                         </CodeBlock.Header>
-                        <Widget.Content>
+                        <Widget.Content className="py-0">
                           <CodeEditor
                             ariaLabel="Deployment manifest code"
                             language="yaml"

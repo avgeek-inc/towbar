@@ -107,7 +107,7 @@ export default function CodeEditor({
               overflow: "hidden",
             },
             "&.cm-focused": {
-              outline: "2px solid var(--focus)",
+              outline: embedded ? "none" : "2px solid var(--focus)",
               outlineOffset: "2px",
             },
             ".cm-scroller": {
@@ -119,7 +119,7 @@ export default function CodeEditor({
               maxHeight: "480px",
             },
             ".cm-content": {
-              padding: "12px 0",
+              padding: embedded ? "0" : "12px 0",
               caretColor: "var(--foreground)",
             },
             ".cm-line": { padding: "0 12px" },
