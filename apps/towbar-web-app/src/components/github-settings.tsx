@@ -131,6 +131,12 @@ export function GitHubSettings() {
             </Alert.Description>
             <div className="mt-3">
               <ActionButton
+                confirm={{
+                  title: "Retry GitHub reporting?",
+                  description:
+                    "Retry pending or failed Preview reports. This can update deployment statuses and comments on GitHub.",
+                  actionLabel: "Retry reporting",
+                }}
                 action={async () => {
                   const result = await api.post<{
                     attempted: number;

@@ -171,6 +171,12 @@ export function DeploymentDetail() {
   ) : item.environment === "production" &&
     (item.state === "failed" || item.state === "cancelled") ? (
     <ActionButton
+      confirm={{
+        title: "Retry this deployment?",
+        description:
+          "Queue another deployment attempt. A successful attempt may replace the running release.",
+        actionLabel: "Retry deployment",
+      }}
       action={() =>
         api.post<{ deployment: Deployment }>(
           `/v1/core/deployments/${deploymentId}/actions/retry`,

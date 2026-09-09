@@ -1,5 +1,11 @@
 "use client";
 import {
+  PageSelectionContext,
+  PageSelectionTitle,
+  type PageSelection,
+} from "./page-selection-title";
+import { DetailSettingsContext, SecondaryItems } from "./secondary-sidebar";
+import {
   FloppyDiskIcon,
   Cancel01Icon,
   Delete02Icon,
@@ -10,7 +16,9 @@ import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Children } from "react";
+import { useDetailNavigation } from "@/hooks/use-detail-navigation";
+import { SecondaryEntityHeader } from "./secondary-sidebar";
+import { Children, useEffect } from "react";
 import type { ComponentProps, FormEvent, Key, ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useId, useState } from "react";
@@ -19,7 +27,6 @@ import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { Spinner } from "@workspace/web-design-system/feedback/spinner";
 import { AlertDialog } from "@workspace/web-design-system/overlays/alert-dialog";
 import { Button } from "@workspace/web-design-system/buttons/button";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import {
   Field,
@@ -28,7 +35,6 @@ import {
 } from "@workspace/web-design-system/forms/field";
 import { Input } from "@workspace/web-design-system/forms/input";
 import type { InputProps } from "@workspace/web-design-system/forms/input";
-import { Tabs } from "@workspace/web-design-system/navigation/tabs";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { PageSection } from "@workspace/web-design-system/layouts/page";
 import { cn } from "@workspace/web-design-system/lib/utils";
@@ -66,36 +72,55 @@ export function DashboardPage({
   title: string;
   titleContent?: ReactNode;
 }) {
+  const [selection, setSelection] = useState<PageSelection | null>(null);
+  const heading = selection ? selection.label : title;
   return (
-    <ApplicationPage
-      actions={actions}
-      badge={badge}
-      breadcrumbAncestors={breadcrumbAncestors}
-      breadcrumbLabel={breadcrumbLabel}
-      title={title}
-      titleContent={
-        <span className="inline-flex min-w-0 items-center gap-2">
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-6 shrink-0"
-            icon={icon}
-          />
-          {titleContent ?? (
-            <TooltipText className="truncate" tooltip={title}>
-              {title}
-            </TooltipText>
-          )}
-        </span>
-      }
-    >
-      <PageSection
-        className="content-grid pt-0"
-        xPadding="none"
-        yPadding="compact"
+    <PageSelectionContext.Provider value={setSelection}>
+      <ApplicationPage
+        actions={actions}
+        badge={badge}
+        breadcrumbAncestors={
+          selection?.keepEntityName
+            ? [...breadcrumbAncestors, { label: title }]
+            : breadcrumbAncestors
+        }
+        breadcrumbLabel={breadcrumbLabel}
+        title={heading}
+        titleContent={
+          <span className="inline-flex min-w-0 items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="inline-flex shrink-0 [&_svg]:size-6"
+            >
+              {selection?.icon ?? <HugeiconsIcon icon={icon} />}
+            </span>
+            {titleContent && !selection ? (
+              <>{titleContent}</>
+            ) : (
+              <TooltipText className="truncate" tooltip={heading}>
+                {heading}
+              </TooltipText>
+            )}
+          </span>
+        }
       >
-        {Children.toArray(children)}
-      </PageSection>
-    </ApplicationPage>
+        {selection?.keepEntityName ? (
+          <SecondaryEntityHeader
+            title={title}
+            icon={<HugeiconsIcon icon={icon} />}
+          >
+            {titleContent ?? title}
+          </SecondaryEntityHeader>
+        ) : null}
+        <PageSection
+          className="content-grid pt-0"
+          xPadding="none"
+          yPadding="compact"
+        >
+          {Children.toArray(children)}
+        </PageSection>
+      </ApplicationPage>
+    </PageSelectionContext.Provider>
   );
 }
 
@@ -129,15 +154,41 @@ export function PageTabs({
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const section = searchParams.get("section");
+  const detail = useDetailNavigation();
+  const section = detail.base ? detail.section : searchParams.get("section");
   const requestedSection = section ? (aliases?.[section] ?? section) : null;
   const selectedKey = tabs.some((tab) => tab.value === requestedSection)
     ? requestedSection!
     : defaultValue;
 
+  useEffect(() => {
+    if (
+      detail.base &&
+      (!detail.pathname.slice(detail.base.length) ||
+        searchParams.has("section") ||
+        searchParams.has("settings"))
+    ) {
+      detail.router.replace(
+        detail.href(
+          selectedKey,
+          selectedKey === "settings"
+            ? (detail.settings ?? undefined)
+            : selectedKey === "info"
+              ? (searchParams.get("source-information") ?? detail.subpage)
+              : undefined,
+          true,
+        ),
+      );
+    }
+  }, [detail, searchParams, selectedKey]);
+
   function selectSection(key: Key) {
     const value = String(key);
     if (value === selectedKey) return;
+    if (detail.base) {
+      detail.router.push(detail.href(value));
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     if (value === defaultValue) params.delete("section");
     else params.set("section", value);
@@ -152,86 +203,49 @@ export function PageTabs({
     );
   }
 
+  const active = tabs.find((tab) => tab.value === selectedKey);
   return (
-    <Tabs
-      className="grid w-full min-w-0 max-w-full gap-4"
-      selectedKey={selectedKey}
-      onSelectionChange={selectSection}
-    >
-      <Tabs.ListContainer className="min-w-0 max-w-full">
-        <Tabs.List aria-label="Page sections">
-          {tabs.map((tab) => (
-            <Tabs.Tab id={tab.value} key={tab.value}>
-              <span className="inline-flex min-w-0 items-center gap-2">
-                {tab.icon ? (
+    <>
+      {selectedKey !== "settings" && active ? (
+        <PageSelectionTitle
+          label={active.label}
+          icon={active.icon}
+          keepEntityName
+        />
+      ) : null}
+      <SecondaryItems
+        title="Sections"
+        selected={selectedKey}
+        onSelect={selectSection}
+        items={tabs
+          .filter((tab) => tab.value !== "settings")
+          .map((tab) => ({
+            id: tab.value,
+            label: tab.label,
+            icon: tab.icon,
+            badge:
+              typeof tab.indicator === "object" ? (
+                tab.indicator.dot ? (
                   <span
-                    aria-hidden="true"
-                    className="flex shrink-0 items-center justify-center [&_svg]:size-4"
-                  >
-                    {tab.icon}
-                  </span>
-                ) : null}
-                <TooltipText
-                  tabIndex={-1}
-                  className="truncate"
-                  tooltip={
-                    typeof tab.label === "string" ? tab.label : undefined
-                  }
-                >
-                  {tab.label}
-                </TooltipText>
-                {tab.indicator ? (
-                  typeof tab.indicator === "object" && tab.indicator.dot ? (
-                    <TooltipText
-                      aria-label={
-                        tab.indicator.ariaLabel ??
-                        tab.indicator.label ??
-                        "Warning"
-                      }
-                      className="bg-warning size-2 shrink-0 rounded-full"
-                      role="img"
-                      tooltip={
-                        tab.indicator.ariaLabel ??
-                        tab.indicator.label ??
-                        "Warning"
-                      }
-                    />
-                  ) : (
-                    <Chip
-                      aria-label={
-                        typeof tab.indicator === "object"
-                          ? (tab.indicator.ariaLabel ?? tab.indicator.label)
-                          : undefined
-                      }
-                      size="small"
-                      variant={
-                        typeof tab.indicator === "object"
-                          ? tab.indicator.variant
-                          : "default"
-                      }
-                    >
-                      {typeof tab.indicator === "object"
-                        ? (tab.indicator.label ?? "Active")
-                        : "Active"}
-                    </Chip>
-                  )
-                ) : null}
-              </span>
-              <Tabs.Indicator />
-            </Tabs.Tab>
-          ))}
-        </Tabs.List>
-      </Tabs.ListContainer>
-      {tabs.map((tab) => (
-        <Tabs.Panel
-          className="m-0 w-full min-w-0 max-w-full p-0 outline-none"
-          id={tab.value}
-          key={tab.value}
-        >
-          {tab.content}
-        </Tabs.Panel>
-      ))}
-    </Tabs>
+                    role="img"
+                    aria-label={tab.indicator.ariaLabel ?? "Needs attention"}
+                    className="inline-block size-2 rounded-full bg-warning"
+                  />
+                ) : (
+                  tab.indicator.label
+                )
+              ) : (
+                tab.indicator
+              ),
+          }))}
+      />
+      <DetailSettingsContext.Provider value={selectedKey === "settings"}>
+        {tabs.find((tab) => tab.value === "settings")?.content}
+      </DetailSettingsContext.Provider>
+      {selectedKey !== "settings" ? (
+        <div className="min-w-0">{active?.content}</div>
+      ) : null}
+    </>
   );
 }
 

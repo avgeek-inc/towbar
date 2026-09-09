@@ -51,7 +51,17 @@ export function useMonitoringOverview<T>(
   state = "all",
   filter = "",
 ) {
-  const [cursors, setCursors] = useState<string[]>([""]);
+  const filterKey = `${area}:${state}:${filter}`;
+  const [cursorState, setCursorState] = useState({
+    key: filterKey,
+    cursors: [""],
+  });
+  const cursors = cursorState.key === filterKey ? cursorState.cursors : [""];
+  const setCursors = (value: string[] | ((old: string[]) => string[])) =>
+    setCursorState({
+      key: filterKey,
+      cursors: typeof value === "function" ? value(cursors) : value,
+    });
   const query = useApiQuery<{
     items: T[];
     nextBefore: string | null;

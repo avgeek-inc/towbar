@@ -1,5 +1,10 @@
 "use client";
 import {
+  InventorySidebar,
+  useInventoryQuery,
+  type InventoryCounts,
+} from "./inventory-sidebar";
+import {
   Add01Icon,
   DashboardCircleIcon,
   DatabaseIcon,
@@ -43,7 +48,10 @@ import { ServerIpLink } from "./source-inventory";
 import { AppIdentity, ResourceIdentity } from "./deployable-identity";
 
 export function AppsIndex() {
-  const apps = useApiQuery<{ apps: App[] }>("/v1/core/apps", 5_000);
+  const apps = useApiQuery<{ apps: App[]; counts: InventoryCounts }>(
+    useInventoryQuery("apps"),
+    5_000,
+  );
   const deployments = useApiQuery<{ deployments: Deployment[] }>(
     "/v1/core/deployments",
     5_000,
@@ -55,6 +63,12 @@ export function AppsIndex() {
 
   return (
     <DashboardPage icon={DashboardCircleIcon} title="Apps">
+      <InventorySidebar
+        kind="apps"
+        counts={apps.data?.counts}
+        sources={sources.data?.sources}
+        servers={servers.data?.servers}
+      />
       {error ? (
         <QueryError message={error} />
       ) : !apps.data || !deployments.data || !sources.data || !servers.data ? (
@@ -77,10 +91,10 @@ export function ResourcesIndex() {
     "/v1/core/deployments",
     5_000,
   );
-  const resources = useApiQuery<{ resources: Resource[] }>(
-    "/v1/core/resources",
-    5_000,
-  );
+  const resources = useApiQuery<{
+    resources: Resource[];
+    counts: InventoryCounts;
+  }>(useInventoryQuery("resources"), 5_000);
   const sources = useApiQuery<{ sources: Source[] }>("/v1/core/sources");
   const servers = useApiQuery<{ servers: Server[] }>("/v1/core/servers");
   const error =
@@ -88,6 +102,12 @@ export function ResourcesIndex() {
 
   return (
     <DashboardPage icon={DatabaseIcon} title="Resources">
+      <InventorySidebar
+        kind="resources"
+        counts={resources.data?.counts}
+        sources={sources.data?.sources}
+        servers={servers.data?.servers}
+      />
       {error ? (
         <QueryError message={error} />
       ) : !deployments.data ||
@@ -114,8 +134,8 @@ export function ServersIndex() {
     "/v1/core/resources",
     5_000,
   );
-  const servers = useApiQuery<{ servers: Server[] }>(
-    "/v1/core/servers",
+  const servers = useApiQuery<{ servers: Server[]; counts: InventoryCounts }>(
+    useInventoryQuery("servers"),
     30_000,
   );
   const error = apps.error ?? resources.error ?? servers.error;
@@ -135,6 +155,7 @@ export function ServersIndex() {
       }
       title="Servers"
     >
+      <InventorySidebar kind="servers" counts={servers.data?.counts} />
       {error ? (
         <QueryError message={error} />
       ) : !apps.data || !resources.data || !servers.data ? (
@@ -177,6 +198,9 @@ function DeployableInventoryTable({
   servers,
   sources,
 }: DeployableInventoryProps) {
+  const filtered = useInventoryQuery(
+    kind === "app" ? "apps" : "resources",
+  ).includes("?");
   const runtimeById = useInventoryRuntimeCapacity();
   const activeDeploymentStates = getActiveDeploymentStates(deployments);
   const sourcesById = new Map(sources.map((source) => [source.id, source]));
@@ -264,11 +288,19 @@ function DeployableInventoryTable({
       ariaLabel={kind === "app" ? "Apps" : "Resources"}
       columns={columns}
       emptyDescription={
-        kind === "app"
-          ? "A successful Source sync imports apps into this workspace."
-          : "A successful Source sync imports resources into this workspace."
+        filtered
+          ? "Try changing or clearing the filters."
+          : kind === "app"
+            ? "A successful Source sync imports apps into this workspace."
+            : "A successful Source sync imports resources into this workspace."
       }
-      emptyTitle={kind === "app" ? "No apps yet" : "No resources yet"}
+      emptyTitle={
+        filtered
+          ? "No matching workloads"
+          : kind === "app"
+            ? "No apps yet"
+            : "No resources yet"
+      }
       getRowHref={(item) =>
         `/sources/${item.sourceId}/${kind === "app" ? "apps" : "resources"}/${item.id}`
       }
@@ -308,6 +340,7 @@ function ServerInventory({
   resources: Resource[];
   servers: Server[];
 }) {
+  const filtered = useInventoryQuery("servers").includes("?");
   const appCounts = countBy(apps, (app) => app.serverIp);
   const resourceCounts = countBy(resources, (resource) => resource.serverIp);
   const columns: ResourceTableColumn<Server>[] = [
@@ -404,8 +437,12 @@ function ServerInventory({
     <ResourceTable
       ariaLabel="Servers"
       columns={columns}
-      emptyDescription="Add a server before syncing a Source that targets its IP address."
-      emptyTitle="No servers yet"
+      emptyDescription={
+        filtered
+          ? "Try changing or clearing the filters."
+          : "Add a server before syncing a Source that targets its IP address."
+      }
+      emptyTitle={filtered ? "No matching servers" : "No servers yet"}
       getRowHref={(server) => `/servers/${server.id}`}
       getRowKey={(server) => server.id}
       items={servers}

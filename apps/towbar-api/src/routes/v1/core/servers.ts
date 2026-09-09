@@ -1,3 +1,4 @@
+import { filterServers, serverFilters } from "@workspace/towbar-core/inventory";
 import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -79,14 +80,18 @@ serverRoutes.get(
   "/",
   operation({
     responseSchema: 'servers.ts:get:"/"',
+    query: serverFilters,
     summary: "List servers",
     response: "JSON object containing servers.",
     status: 200,
   }),
-  async (context) =>
-    context.json({
-      servers: await listServers(context.get("user").workspaceId),
-    }),
+  async (context) => {
+    const result = filterServers(
+      await listServers(context.get("user").workspaceId),
+      serverFilters.parse(context.req.query()),
+    );
+    return context.json({ servers: result.items, counts: result.counts });
+  },
 );
 serverRoutes.post(
   "/",

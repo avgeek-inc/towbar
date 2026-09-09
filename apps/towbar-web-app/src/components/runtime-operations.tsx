@@ -277,6 +277,12 @@ export function RuntimeLogs({
   const result = readLogResult(latest?.result);
   const captureLogsButton = active ? (
     <ActionButton
+      confirm={{
+        title: "Capture container logs?",
+        description:
+          "Queue a server operation to capture the latest 500 log lines from this container.",
+        actionLabel: "Capture logs",
+      }}
       action={() =>
         api.post(
           `/v1/core/${path}/${deployableId}/actions/logs`,

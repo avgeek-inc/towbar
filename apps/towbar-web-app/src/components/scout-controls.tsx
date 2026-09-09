@@ -159,9 +159,24 @@ export function ScoutSelect({
       isDisabled={disabled}
       className="min-w-0"
     >
-      <Label className={hideLabel ? "sr-only" : undefined}>{label}</Label>
+      <Label
+        className={
+          hideLabel
+            ? "sr-only"
+            : "[[data-secondary-menu]_&]:pl-2 [[data-secondary-menu]_&]:text-xs [[data-secondary-menu]_&]:text-muted"
+        }
+      >
+        {label}
+      </Label>
       <Select.Trigger>
-        <Select.Value className="flex min-w-0 items-center" />
+        <Select.Value className="flex min-w-0 flex-1 items-center overflow-hidden">
+          <span className="flex min-w-0 items-center gap-2">
+            <ScoutOptionIcon value={value} label={label} />
+            <span className="truncate">
+              {options.find((option) => option.id === value)?.label}
+            </span>
+          </span>
+        </Select.Value>
         <Select.Indicator />
       </Select.Trigger>
       <Select.Popover>

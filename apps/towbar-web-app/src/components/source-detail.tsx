@@ -1,4 +1,5 @@
 "use client";
+import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import {
   DashboardCircleIcon,
   DatabaseIcon,
@@ -12,7 +13,7 @@ import {
 import { ElapsedTime } from "./elapsed-time";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { type Key, type ReactNode } from "react";
 import type {
   App,
@@ -73,7 +74,7 @@ const SOURCE_SYNC_PAGE_SIZE = 10;
 export function SourceDetail() {
   const { sourceId } = useParams<{ sourceId: string }>();
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const detailNavigation = useDetailNavigation();
   const source = useApiQuery<{
     canManageSource: boolean;
     source: Source;
@@ -348,7 +349,7 @@ export function SourceDetail() {
             content: (
               <SourceSettings
                 canManage={source.data.canManageSource}
-                isActive={searchParams.get("section") === "settings"}
+                isActive={detailNavigation.section === "settings"}
                 onDelete={() => router.push("/sources")}
                 sourceId={sourceId}
               />

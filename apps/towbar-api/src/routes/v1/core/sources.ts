@@ -1,3 +1,4 @@
+import { filterSources, sourceFilters } from "@workspace/towbar-core/inventory";
 import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -43,14 +44,18 @@ sourceRoutes.get(
   "/",
   operation({
     responseSchema: 'sources.ts:get:"/"',
+    query: sourceFilters,
     summary: "List sources",
     response: "JSON object containing sources.",
     status: 200,
   }),
-  async (context) =>
-    context.json({
-      sources: await listSources(context.get("user").workspaceId),
-    }),
+  async (context) => {
+    const result = filterSources(
+      await listSources(context.get("user").workspaceId),
+      sourceFilters.parse(context.req.query()),
+    );
+    return context.json({ sources: result.items, counts: result.counts });
+  },
 );
 
 sourceRoutes.post(

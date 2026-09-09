@@ -1,7 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useMonitoringSelection } from "@/hooks/use-monitoring-selection";
 import { MonitoringEntityPicker } from "./monitoring-entity-picker";
-import type { MonitoringEntity } from "./workspace-monitoring-shared";
 import { ScoutIcon } from "./scout-icons";
 import { Notification01Icon } from "@hugeicons/core-free-icons";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
@@ -11,6 +10,7 @@ import {
   ResourceTable,
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
+import { PageSelectionTitle } from "./page-selection-title";
 import { DashboardPage } from "./page-parts";
 import { conditionDescription, scoutValue } from "./scout-controls";
 import {
@@ -21,8 +21,14 @@ import {
 } from "./workspace-monitoring-shared";
 
 export function WorkspaceAlerts() {
-  const [kind, setKind] = useState("all");
-  const [selected, setSelected] = useState<MonitoringEntity | null>(null);
+  const {
+    kind,
+    setKind,
+    selected,
+    select: setSelected,
+    entityKey,
+    resolve,
+  } = useMonitoringSelection();
   const { query, pagination, reset } = useMonitoringOverview<OverviewRule>(
     "alerts",
     "all",
@@ -157,7 +163,16 @@ export function WorkspaceAlerts() {
     },
   ];
   return (
-    <DashboardPage title="Alerts" icon={Notification01Icon}>
+    <DashboardPage
+      title={selected ? `${selected.name} · Alerts` : "Alerts"}
+      icon={Notification01Icon}
+    >
+      {selected ? (
+        <PageSelectionTitle
+          label={`${selected.name} · Alerts`}
+          icon={<ScoutIcon name={selected.kind} />}
+        />
+      ) : null}
       <div className="grid gap-5">
         <p className="text-sm text-muted">
           All configured alerts. Open an alert’s entity to manage its rules.
@@ -165,18 +180,24 @@ export function WorkspaceAlerts() {
         <MonitoringEntityPicker
           allowAll
           kind={kind}
+          entityKey={entityKey}
+          onResolve={resolve}
           onKindChange={(value) => {
             setKind(value);
             reset();
           }}
           selected={selected}
-          onSelect={(entity) => {
-            setSelected(entity);
+          onSelect={(entity, replace) => {
+            setSelected(entity, replace);
             reset();
           }}
         />
         {query.error ? <QueryError message={query.error} /> : null}
-        {query.data ? (
+        {entityKey && !selected ? (
+          <p className="text-sm text-muted">
+            Select an available entity to view its alerts.
+          </p>
+        ) : query.data ? (
           <ResourceTable
             ariaLabel="Workspace alerts"
             columns={columns}

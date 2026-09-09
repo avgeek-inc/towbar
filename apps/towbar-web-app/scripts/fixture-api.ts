@@ -1,3 +1,11 @@
+import {
+  workloadFilters,
+  serverFilters,
+  sourceFilters,
+  filterWorkloads,
+  filterServers,
+  filterSources,
+} from "@workspace/towbar-core/inventory";
 import { createScoutFixture } from "./scout-fixture.ts";
 import {
   fixtureServerMonitoringSummary,
@@ -878,19 +886,63 @@ export function createFixtureApiServer() {
     const requestUrl = new URL(request.url ?? "/", "http://localhost");
     const path = requestUrl.pathname;
     if (scoutFixture(request, response, requestUrl)) return;
-    if (request.method === "GET" && path === "/v1/core/servers") {
-      response.writeHead(200, { "content-type": "application/json" });
-      response.end(
-        JSON.stringify({
-          servers: servers.map((server) => ({
-            ...server,
-            scout: fixtureServerMonitoringSummary(
-              monitoring.get(server.id)!,
-              server.id,
-            ),
-          })),
-        }),
-      );
+    if (
+      request.method === "GET" &&
+      [
+        "/v1/core/servers",
+        "/v1/core/apps",
+        "/v1/core/resources",
+        "/v1/core/sources",
+      ].includes(path)
+    ) {
+      const query = Object.fromEntries(requestUrl.searchParams);
+      try {
+        if (path.endsWith("/servers")) {
+          const result = filterServers(
+            servers.map((server) => ({
+              ...server,
+              healthStatus:
+                server.setupStatus === "ready" ? "healthy" : "unknown",
+              scout: fixtureServerMonitoringSummary(
+                monitoring.get(server.id)!,
+                server.id,
+              ),
+            })),
+            serverFilters.parse(query),
+          );
+          writeJson(response, 200, {
+            servers: result.items,
+            counts: result.counts,
+          });
+        } else if (path.endsWith("/sources")) {
+          const result = filterSources(
+            sources.map((source) => ({
+              ...source,
+              latestSyncStatus: source.latestManifestDigest
+                ? "succeeded"
+                : "never",
+              autoDeployPaused: false,
+            })),
+            sourceFilters.parse(query),
+          );
+          writeJson(response, 200, {
+            sources: result.items,
+            counts: result.counts,
+          });
+        } else {
+          const resource = path.endsWith("/resources");
+          const result = filterWorkloads<FixtureApp | FixtureResource>(
+            resource ? resources : apps,
+            workloadFilters.parse(query),
+          );
+          writeJson(response, 200, {
+            [resource ? "resources" : "apps"]: result.items,
+            counts: result.counts,
+          });
+        }
+      } catch {
+        writeJson(response, 400, { message: "Invalid inventory filters" });
+      }
       return;
     }
     const monitoringPath = path.match(
@@ -1730,14 +1782,38 @@ function getFixturePayload(
       100,
       readPositiveInteger(searchParams.get("limit"), 10),
     );
-    const ordered = [...deployments].sort(
-      (left, right) =>
-        right.createdAt.localeCompare(left.createdAt) ||
-        right.id.localeCompare(left.id),
-    );
     const deployables = new Map(
       [...apps, ...resources].map((item) => [item.id, item]),
     );
+    const ordered = deployments
+      .filter((item) => {
+        const type = searchParams.get("type");
+        return (
+          (!type ||
+            (type === "app"
+              ? item.deployableKind === "app"
+              : item.deployableKind !== "app")) &&
+          ["environment", "state", "trigger", "serverId"].every(
+            (key) =>
+              !searchParams.get(key) ||
+              item[key as "environment" | "state" | "trigger" | "serverId"] ===
+                searchParams.get(key),
+          )
+        );
+      })
+      .sort((left, right) => {
+        const sort = searchParams.get("sort");
+        if (sort === "name_asc" || sort === "name_desc") {
+          const names = (deployables.get(left.appId)?.name ?? "").localeCompare(
+            deployables.get(right.appId)?.name ?? "",
+          );
+          if (names) return sort === "name_asc" ? names : -names;
+        }
+        const newest =
+          right.createdAt.localeCompare(left.createdAt) ||
+          right.id.localeCompare(left.id);
+        return sort === "oldest" ? -newest : newest;
+      });
     return {
       deployments: ordered
         .slice((page - 1) * limit, page * limit)
