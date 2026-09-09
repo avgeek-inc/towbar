@@ -251,6 +251,9 @@ fixtureSecretVersions.set(`${source.id}:preview:build`, crypto.randomUUID());
 
 const platformApps = apps.filter((app) => app.sourceId === source.id);
 
+const deploymentFixtureNow = Date.now();
+const deploymentDayOffsets = [6, 6, 5, 5, 5, 4, 3, 3, 2, 2, 2, 1, 0, 0];
+
 const deployments: Deployment[] = [
   createDeploymentFixture(
     fixtureIds.deployment,
@@ -276,7 +279,7 @@ const deployments: Deployment[] = [
       (item) => item.canonicalIp === deployable.serverIp,
     )!;
     const createdAt = new Date(
-      Date.parse(fixtureNow) - (13 - index) * 86_400_000,
+      deploymentFixtureNow - deploymentDayOffsets[index]! * 86_400_000,
     ).toISOString();
     return createDeploymentFixture(
       `51111111-1111-4111-8111-${String(index).padStart(12, "0")}`,
@@ -289,7 +292,7 @@ const deployments: Deployment[] = [
   }),
   ...Array.from({ length: 12 }, (_, index) => {
     const createdAt = new Date(
-      Date.parse(fixtureNow) - (index + 1) * 43_200_000,
+      deploymentFixtureNow - (index + 1) * 43_200_000,
     ).toISOString();
     return createDeploymentFixture(
       `52111111-1111-4111-8111-${String(index).padStart(12, "0")}`,

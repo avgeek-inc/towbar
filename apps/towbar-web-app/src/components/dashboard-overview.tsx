@@ -192,7 +192,7 @@ function OverviewActivity() {
         }
       >
         <Widget.Title icon={<HugeiconsIcon icon={Activity01Icon} />}>
-          Production deployments · last 7 days
+          Deployments trend
         </Widget.Title>
       </Widget.Header>
       <Widget.Content className="grid min-w-0 content-center gap-3">
