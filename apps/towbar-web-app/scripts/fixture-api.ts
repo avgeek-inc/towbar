@@ -1255,10 +1255,10 @@ export function createFixtureApiServer() {
       return;
     }
     const revealMatch = path.match(
-      /^\/v1\/core\/(sources|apps|resources)\/([^/]+)\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)\/reveal$/,
+      /^\/v1\/core\/(sources|apps|resources)\/([^/]+)\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)\/reveal(?:-all)?$/,
     );
     const globalRevealMatch = path.match(
-      /^\/v1\/core\/settings\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)\/reveal$/,
+      /^\/v1\/core\/settings\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)\/reveal(?:-all)?$/,
     );
     if (request.method === "POST" && (revealMatch || globalRevealMatch)) {
       const slot = revealMatch
@@ -1267,6 +1267,18 @@ export function createFixtureApiServer() {
       response.setHeader("Cache-Control", "no-store");
       void readRequestJson(request)
         .then((input) => {
+          if (path.endsWith("/reveal-all")) {
+            return writeJson(response, 200, {
+              values: Object.fromEntries(
+                (fixtureSecretKeys.get(slot) ?? []).map((key) => [
+                  key,
+                  fixtureSecretValues.get(slot)?.[key] ??
+                    `fixture-only-${key.toLowerCase()}`,
+                ]),
+              ),
+              revision: fixtureSecretVersions.get(slot) ?? null,
+            });
+          }
           const { key } = input as { key: string };
           if (!fixtureSecretKeys.get(slot)?.includes(key))
             return writeNotFound(response);

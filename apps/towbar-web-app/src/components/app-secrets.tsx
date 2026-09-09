@@ -366,27 +366,32 @@ function SecretVariablesEditor({
         const entries: Array<[string, string]> = [];
         const stored = new Map<string, string>();
         const retained = keys.filter((key) => !deleted.includes(key));
-        for (let index = 0; index < retained.length; index += 8) {
-          const batch = await Promise.all(
-            retained.slice(index, index + 8).map(async (key) => {
-              if (Object.hasOwn(replacements, key))
-                return [key, replacements[key]!] as [string, string];
-              const result = await api.post<{
-                value: string;
-                revision: string | null;
-              }>(`${endpoint}/${binding.environment}/${binding.stage}/reveal`, {
-                key,
-              });
-              if (result.revision !== binding.revision)
-                throw new Error(
-                  "Secrets changed. Refresh before opening file mode.",
-                );
-              stored.set(key, result.value);
-              return [key, result.value] as [string, string];
-            }),
+        if (retained.length > 0) {
+          const result = await api.post<{
+            values: Record<string, string>;
+            revision: string | null;
+          }>(
+            `${endpoint}/${binding.environment}/${binding.stage}/reveal-all`,
+            {},
           );
           if (request !== modeRequest.current) return;
-          entries.push(...batch);
+          if (result.revision !== binding.revision)
+            throw new Error(
+              "Secrets changed. Refresh before opening file mode.",
+            );
+          for (const key of retained) {
+            if (!Object.hasOwn(result.values, key))
+              throw new Error(
+                "Secrets changed. Refresh before opening file mode.",
+              );
+            stored.set(key, result.values[key]!);
+            entries.push([
+              key,
+              Object.hasOwn(replacements, key)
+                ? replacements[key]!
+                : result.values[key]!,
+            ]);
+          }
         }
         for (const row of newKeys) {
           if (!row.key.trim() && !row.value) continue;

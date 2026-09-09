@@ -1596,7 +1596,19 @@
         },
         "required": ["value", "revision"]
       },
-      "Response_78": {
+      "Record_78": {
+        "type": "object",
+        "additionalProperties": { "type": "string" }
+      },
+      "Response_77": {
+        "type": "object",
+        "properties": {
+          "values": { "$ref": "#/components/schemas/Record_78" },
+          "revision": { "anyOf": [{ "type": "null" }, { "type": "string" }] }
+        },
+        "required": ["values", "revision"]
+      },
+      "Response_80": {
         "type": "object",
         "properties": {
           "keys": { "type": "array", "items": { "type": "string" } },
@@ -1605,7 +1617,7 @@
         },
         "required": ["keys", "revision", "updatedAt"]
       },
-      "Response_79": {
+      "Response_81": {
         "type": "object",
         "properties": {
           "keys": { "type": "array", "items": { "type": "string" } },
@@ -1614,27 +1626,27 @@
         },
         "required": ["keys", "revision", "updatedAt"]
       },
-      "Response_77": {
+      "Response_79": {
         "type": "object",
         "properties": {
           "credential": {
             "anyOf": [
-              { "$ref": "#/components/schemas/Response_78" },
-              { "$ref": "#/components/schemas/Response_79" }
+              { "$ref": "#/components/schemas/Response_80" },
+              { "$ref": "#/components/schemas/Response_81" }
             ]
           },
           "canManage": { "type": "boolean" }
         },
         "required": ["credential", "canManage"]
       },
-      "Response_80": {
+      "Response_82": {
         "type": "object",
         "properties": {
           "credential": { "$ref": "#/components/schemas/Response_75" }
         },
         "required": ["credential"]
       },
-      "Response_82": {
+      "Response_84": {
         "type": "object",
         "properties": {
           "createdAt": { "type": "string", "format": "date-time" },
@@ -1650,7 +1662,7 @@
         },
         "required": ["createdAt", "expiresAt", "id", "lastSeenAt", "revokedAt"]
       },
-      "Response_81": {
+      "Response_83": {
         "type": "object",
         "properties": {
           "currentSessionId": {
@@ -1658,12 +1670,12 @@
           },
           "sessions": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_82" }
+            "items": { "$ref": "#/components/schemas/Response_84" }
           }
         },
         "required": ["currentSessionId", "sessions"]
       },
-      "AuthenticatedUser_84": {
+      "AuthenticatedUser_86": {
         "type": "object",
         "properties": {
           "email": { "type": "string" },
@@ -1679,14 +1691,14 @@
         },
         "required": ["email", "id", "name", "workspaceId", "workspaceRole"]
       },
-      "Response_83": {
+      "Response_85": {
         "type": "object",
         "properties": {
-          "user": { "$ref": "#/components/schemas/AuthenticatedUser_84" }
+          "user": { "$ref": "#/components/schemas/AuthenticatedUser_86" }
         },
         "required": ["user"]
       },
-      "Response_86": {
+      "Response_88": {
         "type": "object",
         "properties": {
           "workspaceId": { "type": "string" },
@@ -1702,14 +1714,14 @@
         },
         "required": ["workspaceId", "workspaceRole"]
       },
-      "Response_85": {
+      "Response_87": {
         "type": "object",
         "properties": {
-          "user": { "$ref": "#/components/schemas/Response_86" }
+          "user": { "$ref": "#/components/schemas/Response_88" }
         },
         "required": ["user"]
       },
-      "Response_89": {
+      "Response_91": {
         "type": "object",
         "properties": {
           "desiredState": {
@@ -1767,7 +1779,7 @@
           "observedImage"
         ]
       },
-      "Response_92": {
+      "Response_94": {
         "type": "object",
         "properties": {
           "cpus": { "type": "number" },
@@ -1775,17 +1787,17 @@
         },
         "required": ["cpus", "memory"]
       },
-      "Response_91": {
+      "Response_93": {
         "type": "object",
         "properties": {
           "network": { "type": "string" },
           "networkAlias": { "type": "string" },
           "port": { "type": "number" },
-          "resources": { "$ref": "#/components/schemas/Response_92" }
+          "resources": { "$ref": "#/components/schemas/Response_94" }
         },
         "required": ["port"]
       },
-      "Response_94": {
+      "Response_96": {
         "type": "object",
         "properties": {
           "host": { "type": "string" },
@@ -1798,18 +1810,18 @@
         },
         "required": ["host", "status"]
       },
-      "Response_93": {
+      "Response_95": {
         "type": "object",
         "properties": {
           "primary": { "type": "string" },
           "redirects": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_94" }
+            "items": { "$ref": "#/components/schemas/Response_96" }
           }
         },
         "required": ["primary", "redirects"]
       },
-      "Response_95": {
+      "Response_97": {
         "type": "object",
         "properties": {
           "path": { "type": "string" },
@@ -1817,7 +1829,7 @@
         },
         "required": ["path", "timeoutSeconds"]
       },
-      "NormalizedDeploymentHook_97": {
+      "NormalizedDeploymentHook_99": {
         "type": "object",
         "properties": {
           "command": { "type": "array", "items": { "type": "string" } },
@@ -1825,18 +1837,18 @@
         },
         "required": ["command", "timeoutSeconds"]
       },
-      "Response_96": {
+      "Response_98": {
         "type": "object",
         "properties": {
           "postDeploy": {
-            "$ref": "#/components/schemas/NormalizedDeploymentHook_97"
+            "$ref": "#/components/schemas/NormalizedDeploymentHook_99"
           },
           "preDeploy": {
-            "$ref": "#/components/schemas/NormalizedDeploymentHook_97"
+            "$ref": "#/components/schemas/NormalizedDeploymentHook_99"
           }
         }
       },
-      "Response_98": {
+      "Response_100": {
         "type": "object",
         "properties": {
           "domain": { "type": "string" },
@@ -1845,7 +1857,7 @@
         },
         "required": ["domain", "enabled", "ttlHours"]
       },
-      "Response_99": {
+      "Response_101": {
         "type": "object",
         "properties": {
           "mode": {
@@ -1857,13 +1869,13 @@
         },
         "required": ["mode"]
       },
-      "NormalizedApp_90": {
+      "NormalizedApp_92": {
         "type": "object",
         "properties": {
           "kind": { "type": "string", "const": "app" },
           "autoDeploy": { "type": "boolean" },
           "vulnerabilityScanning": { "type": "boolean" },
-          "container": { "$ref": "#/components/schemas/Response_91" },
+          "container": { "$ref": "#/components/schemas/Response_93" },
           "context": { "type": "string" },
           "deploymentInputs": {
             "type": "array",
@@ -1871,15 +1883,15 @@
           },
           "description": { "type": "string" },
           "dockerfile": { "type": "string" },
-          "domains": { "$ref": "#/components/schemas/Response_93" },
-          "health": { "$ref": "#/components/schemas/Response_95" },
-          "hooks": { "$ref": "#/components/schemas/Response_96" },
+          "domains": { "$ref": "#/components/schemas/Response_95" },
+          "health": { "$ref": "#/components/schemas/Response_97" },
+          "hooks": { "$ref": "#/components/schemas/Response_98" },
           "id": { "type": "string" },
           "name": { "type": "string" },
-          "preview": { "$ref": "#/components/schemas/Response_98" },
+          "preview": { "$ref": "#/components/schemas/Response_100" },
           "server": { "type": "string" },
           "sourceBranch": { "type": "string" },
-          "tls": { "$ref": "#/components/schemas/Response_99" }
+          "tls": { "$ref": "#/components/schemas/Response_101" }
         },
         "required": [
           "autoDeploy",
@@ -1896,24 +1908,24 @@
           "sourceBranch"
         ]
       },
-      "Response_102": {
+      "Response_104": {
         "type": "object",
         "properties": { "hostPort": { "type": "number" } },
         "required": ["hostPort"]
       },
-      "Response_101": {
+      "Response_103": {
         "type": "object",
         "properties": {
-          "sshTunnel": { "$ref": "#/components/schemas/Response_102" }
+          "sshTunnel": { "$ref": "#/components/schemas/Response_104" }
         },
         "required": ["sshTunnel"]
       },
-      "Response_104": {
+      "Response_106": {
         "type": "object",
         "properties": { "keepLast": { "type": "number" } },
         "required": ["keepLast"]
       },
-      "Response_105": {
+      "Response_107": {
         "type": "object",
         "properties": {
           "bucket": { "type": "string" },
@@ -1929,7 +1941,7 @@
         },
         "required": ["bucket", "encryption", "prefix"]
       },
-      "Response_106": {
+      "Response_108": {
         "type": "object",
         "properties": {
           "cron": { "type": "string" },
@@ -1937,16 +1949,16 @@
         },
         "required": ["cron", "timezone"]
       },
-      "Response_103": {
+      "Response_105": {
         "type": "object",
         "properties": {
-          "retention": { "$ref": "#/components/schemas/Response_104" },
-          "s3": { "$ref": "#/components/schemas/Response_105" },
-          "schedule": { "$ref": "#/components/schemas/Response_106" }
+          "retention": { "$ref": "#/components/schemas/Response_106" },
+          "s3": { "$ref": "#/components/schemas/Response_107" },
+          "schedule": { "$ref": "#/components/schemas/Response_108" }
         },
         "required": ["retention", "s3"]
       },
-      "Response_108": {
+      "Response_110": {
         "type": "object",
         "properties": {
           "cpus": { "type": "number" },
@@ -1954,7 +1966,7 @@
         },
         "required": ["cpus", "memory"]
       },
-      "Response_109": {
+      "Response_111": {
         "type": "object",
         "properties": {
           "mountPath": { "type": "string" },
@@ -1962,22 +1974,22 @@
         },
         "required": ["mountPath", "name"]
       },
-      "Response_107": {
+      "Response_109": {
         "type": "object",
         "properties": {
           "command": { "type": "array", "items": { "type": "string" } },
           "network": { "type": "string" },
           "networkAlias": { "type": "string" },
           "port": { "type": "number" },
-          "resources": { "$ref": "#/components/schemas/Response_108" },
+          "resources": { "$ref": "#/components/schemas/Response_110" },
           "volumes": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_109" }
+            "items": { "$ref": "#/components/schemas/Response_111" }
           }
         },
         "required": ["command", "resources", "volumes"]
       },
-      "Response_110": {
+      "Response_112": {
         "type": "object",
         "properties": {
           "command": { "type": "array", "items": { "type": "string" } },
@@ -1986,7 +1998,7 @@
         },
         "required": ["command", "timeoutSeconds", "type"]
       },
-      "Response_111": {
+      "Response_113": {
         "type": "object",
         "properties": {
           "timeoutSeconds": { "type": "number" },
@@ -1994,7 +2006,7 @@
         },
         "required": ["timeoutSeconds", "type"]
       },
-      "Response_112": {
+      "Response_114": {
         "type": "object",
         "properties": {
           "path": { "type": "string" },
@@ -2003,7 +2015,7 @@
         },
         "required": ["path", "timeoutSeconds", "type"]
       },
-      "Response_113": {
+      "Response_115": {
         "type": "object",
         "properties": {
           "mode": {
@@ -2015,20 +2027,20 @@
         },
         "required": ["mode"]
       },
-      "NormalizedResource_100": {
+      "NormalizedResource_102": {
         "type": "object",
         "properties": {
-          "access": { "$ref": "#/components/schemas/Response_101" },
+          "access": { "$ref": "#/components/schemas/Response_103" },
           "autoDeploy": { "type": "boolean" },
-          "backup": { "$ref": "#/components/schemas/Response_103" },
-          "container": { "$ref": "#/components/schemas/Response_107" },
+          "backup": { "$ref": "#/components/schemas/Response_105" },
+          "container": { "$ref": "#/components/schemas/Response_109" },
           "description": { "type": "string" },
-          "domains": { "$ref": "#/components/schemas/Response_93" },
+          "domains": { "$ref": "#/components/schemas/Response_95" },
           "health": {
             "anyOf": [
-              { "$ref": "#/components/schemas/Response_110" },
-              { "$ref": "#/components/schemas/Response_111" },
-              { "$ref": "#/components/schemas/Response_112" }
+              { "$ref": "#/components/schemas/Response_112" },
+              { "$ref": "#/components/schemas/Response_113" },
+              { "$ref": "#/components/schemas/Response_114" }
             ]
           },
           "id": { "type": "string" },
@@ -2043,7 +2055,7 @@
           "name": { "type": "string" },
           "server": { "type": "string" },
           "sourceBranch": { "type": "string" },
-          "tls": { "$ref": "#/components/schemas/Response_113" }
+          "tls": { "$ref": "#/components/schemas/Response_115" }
         },
         "required": [
           "autoDeploy",
@@ -2057,10 +2069,10 @@
           "sourceBranch"
         ]
       },
-      "Response_88": {
+      "Response_90": {
         "type": "object",
         "properties": {
-          "runtimeState": { "$ref": "#/components/schemas/Response_89" },
+          "runtimeState": { "$ref": "#/components/schemas/Response_91" },
           "serverReady": { "type": "boolean" },
           "archivedAt": {
             "anyOf": [
@@ -2070,8 +2082,8 @@
           },
           "config": {
             "anyOf": [
-              { "$ref": "#/components/schemas/NormalizedApp_90" },
-              { "$ref": "#/components/schemas/NormalizedResource_100" }
+              { "$ref": "#/components/schemas/NormalizedApp_92" },
+              { "$ref": "#/components/schemas/NormalizedResource_102" }
             ]
           },
           "createdAt": { "type": "string", "format": "date-time" },
@@ -2111,17 +2123,17 @@
           "updatedAt"
         ]
       },
-      "Response_87": {
+      "Response_89": {
         "type": "object",
         "properties": {
           "apps": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_88" }
+            "items": { "$ref": "#/components/schemas/Response_90" }
           }
         },
         "required": ["apps"]
       },
-      "Response_116": {
+      "Response_118": {
         "type": "object",
         "properties": {
           "port": { "type": "number" },
@@ -2129,11 +2141,11 @@
         },
         "required": ["port", "username"]
       },
-      "Response_115": {
+      "Response_117": {
         "type": "object",
         "properties": {
-          "serverSsh": { "$ref": "#/components/schemas/Response_116" },
-          "runtimeState": { "$ref": "#/components/schemas/Response_89" },
+          "serverSsh": { "$ref": "#/components/schemas/Response_118" },
+          "runtimeState": { "$ref": "#/components/schemas/Response_91" },
           "serverReady": { "type": "boolean" },
           "archivedAt": {
             "anyOf": [
@@ -2143,8 +2155,8 @@
           },
           "config": {
             "anyOf": [
-              { "$ref": "#/components/schemas/NormalizedApp_90" },
-              { "$ref": "#/components/schemas/NormalizedResource_100" }
+              { "$ref": "#/components/schemas/NormalizedApp_92" },
+              { "$ref": "#/components/schemas/NormalizedResource_102" }
             ]
           },
           "createdAt": { "type": "string", "format": "date-time" },
@@ -2186,14 +2198,14 @@
           "updatedAt"
         ]
       },
-      "Response_114": {
+      "Response_116": {
         "type": "object",
         "properties": {
-          "app": { "$ref": "#/components/schemas/Response_115" }
+          "app": { "$ref": "#/components/schemas/Response_117" }
         },
         "required": ["app"]
       },
-      "DeferredAutomaticDeployment_120": {
+      "DeferredAutomaticDeployment_122": {
         "type": "object",
         "properties": {
           "commitSha": { "type": "string" },
@@ -2217,13 +2229,13 @@
           "scope"
         ]
       },
-      "Response_119": {
+      "Response_121": {
         "type": "object",
         "properties": {
           "pending": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/DeferredAutomaticDeployment_120" }
+              { "$ref": "#/components/schemas/DeferredAutomaticDeployment_122" }
             ]
           },
           "paused": { "type": "boolean" },
@@ -2231,13 +2243,13 @@
         },
         "required": ["pending", "paused", "scope"]
       },
-      "Response_121": {
+      "Response_123": {
         "type": "object",
         "properties": {
           "pending": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/DeferredAutomaticDeployment_120" }
+              { "$ref": "#/components/schemas/DeferredAutomaticDeployment_122" }
             ]
           },
           "paused": { "type": "boolean" },
@@ -2250,13 +2262,13 @@
         },
         "required": ["pending", "paused", "scope"]
       },
-      "Response_118": {
+      "Response_120": {
         "type": "object",
         "properties": {
           "effective": {
             "anyOf": [
-              { "$ref": "#/components/schemas/Response_119" },
-              { "$ref": "#/components/schemas/Response_121" }
+              { "$ref": "#/components/schemas/Response_121" },
+              { "$ref": "#/components/schemas/Response_123" }
             ]
           },
           "manifestAutoDeployEnabled": { "type": "boolean" },
@@ -2264,21 +2276,21 @@
         },
         "required": ["effective", "manifestAutoDeployEnabled", "paused"]
       },
-      "Response_117": {
+      "Response_119": {
         "type": "object",
         "properties": {
-          "autoDeploy": { "$ref": "#/components/schemas/Response_118" },
+          "autoDeploy": { "$ref": "#/components/schemas/Response_120" },
           "canManageAutoDeploy": { "type": "boolean" }
         },
         "required": ["autoDeploy", "canManageAutoDeploy"]
       },
-      "autoDeploy_123": {
+      "autoDeploy_125": {
         "type": "object",
         "properties": {
           "effective": {
             "anyOf": [
-              { "$ref": "#/components/schemas/Response_119" },
-              { "$ref": "#/components/schemas/Response_121" }
+              { "$ref": "#/components/schemas/Response_121" },
+              { "$ref": "#/components/schemas/Response_123" }
             ]
           },
           "manifestAutoDeployEnabled": { "type": "boolean" },
@@ -2286,15 +2298,15 @@
         },
         "required": ["effective", "manifestAutoDeployEnabled", "paused"]
       },
-      "Response_122": {
+      "Response_124": {
         "type": "object",
         "properties": {
-          "autoDeploy": { "$ref": "#/components/schemas/autoDeploy_123" },
+          "autoDeploy": { "$ref": "#/components/schemas/autoDeploy_125" },
           "canManageAutoDeploy": { "type": "boolean" }
         },
         "required": ["autoDeploy", "canManageAutoDeploy"]
       },
-      "Response_125": {
+      "Response_127": {
         "type": "object",
         "properties": {
           "appId": { "type": "string" },
@@ -2416,17 +2428,17 @@
           "updatedAt"
         ]
       },
-      "Response_124": {
+      "Response_126": {
         "type": "object",
         "properties": {
           "deployments": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_125" }
+            "items": { "$ref": "#/components/schemas/Response_127" }
           }
         },
         "required": ["deployments"]
       },
-      "Response_127": {
+      "Response_129": {
         "type": "object",
         "properties": {
           "id": { "type": "string" },
@@ -2495,17 +2507,17 @@
           "supersededAt"
         ]
       },
-      "Response_126": {
+      "Response_128": {
         "type": "object",
         "properties": {
           "releases": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_127" }
+            "items": { "$ref": "#/components/schemas/Response_129" }
           }
         },
         "required": ["releases"]
       },
-      "Response_129": {
+      "Response_131": {
         "type": "object",
         "properties": {
           "pullRequestUrl": { "type": "string" },
@@ -2566,17 +2578,17 @@
           "updatedAt"
         ]
       },
-      "Response_128": {
+      "Response_130": {
         "type": "object",
         "properties": {
           "previews": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_129" }
+            "items": { "$ref": "#/components/schemas/Response_131" }
           }
         },
         "required": ["previews"]
       },
-      "ResourceReleaseSnapshot_133": {
+      "ResourceReleaseSnapshot_135": {
         "type": "object",
         "properties": {
           "containerName": { "type": "string" },
@@ -2585,28 +2597,28 @@
         },
         "required": ["containerName", "imageTag", "releaseId"]
       },
-      "Response_132": {
+      "Response_134": {
         "type": "object",
         "properties": {
           "release": {
-            "$ref": "#/components/schemas/ResourceReleaseSnapshot_133"
+            "$ref": "#/components/schemas/ResourceReleaseSnapshot_135"
           },
           "type": { "type": "string", "const": "backup" }
         },
         "required": ["release", "type"]
       },
-      "Response_134": {
+      "Response_136": {
         "type": "object",
         "properties": {
           "release": {
-            "$ref": "#/components/schemas/ResourceReleaseSnapshot_133"
+            "$ref": "#/components/schemas/ResourceReleaseSnapshot_135"
           },
           "tail": { "type": "number" },
           "type": { "type": "string", "const": "capture_logs" }
         },
         "required": ["release", "tail", "type"]
       },
-      "Response_136": {
+      "Response_138": {
         "type": "object",
         "properties": {
           "kind": {
@@ -2621,46 +2633,46 @@
         },
         "required": ["kind", "name", "reason"]
       },
-      "Response_135": {
+      "Response_137": {
         "type": "object",
         "properties": {
           "items": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_136" }
+            "items": { "$ref": "#/components/schemas/Response_138" }
           },
           "type": { "type": "string", "const": "cleanup_orphans" }
         },
         "required": ["items", "type"]
       },
-      "Response_137": {
+      "Response_139": {
         "type": "object",
         "properties": {
           "backupId": { "type": "string" },
           "reason": { "type": "string" },
           "release": {
-            "$ref": "#/components/schemas/ResourceReleaseSnapshot_133"
+            "$ref": "#/components/schemas/ResourceReleaseSnapshot_135"
           },
           "type": { "type": "string", "const": "restore" }
         },
         "required": ["backupId", "reason", "release", "type"]
       },
-      "Response_138": {
+      "Response_140": {
         "type": "object",
         "properties": {
           "restoreId": { "type": "string" },
           "release": {
-            "$ref": "#/components/schemas/ResourceReleaseSnapshot_133"
+            "$ref": "#/components/schemas/ResourceReleaseSnapshot_135"
           },
           "type": { "type": "string", "const": "restore_cleanup" },
           "volumes": { "type": "array", "items": { "type": "string" } }
         },
         "required": ["restoreId", "release", "type", "volumes"]
       },
-      "Response_139": {
+      "Response_141": {
         "type": "object",
         "properties": {
           "release": {
-            "$ref": "#/components/schemas/ResourceReleaseSnapshot_133"
+            "$ref": "#/components/schemas/ResourceReleaseSnapshot_135"
           },
           "type": {
             "anyOf": [
@@ -2672,7 +2684,7 @@
         },
         "required": ["release", "type"]
       },
-      "BackupOperationResult_140": {
+      "BackupOperationResult_142": {
         "type": "object",
         "properties": {
           "backupId": { "type": "string" },
@@ -2722,21 +2734,21 @@
           "warnings"
         ]
       },
-      "Response_141": {
+      "Response_143": {
         "type": "object",
         "properties": {
           "cleaned": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_136" }
+            "items": { "$ref": "#/components/schemas/Response_138" }
           },
           "skipped": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_136" }
+            "items": { "$ref": "#/components/schemas/Response_138" }
           }
         },
         "required": ["cleaned", "skipped"]
       },
-      "Response_142": {
+      "Response_144": {
         "type": "object",
         "properties": {
           "logs": { "type": "string" },
@@ -2744,23 +2756,23 @@
         },
         "required": ["logs", "truncated"]
       },
-      "Response_144": {
-        "type": "object",
-        "properties": {
-          "logicalName": { "type": "string" },
-          "volumeName": { "type": "string" }
-        },
-        "required": ["logicalName", "volumeName"]
-      },
-      "Response_145": {
-        "type": "object",
-        "properties": {
-          "logicalName": { "type": "string" },
-          "volumeName": { "type": "string" }
-        },
-        "required": ["logicalName", "volumeName"]
-      },
       "Response_146": {
+        "type": "object",
+        "properties": {
+          "logicalName": { "type": "string" },
+          "volumeName": { "type": "string" }
+        },
+        "required": ["logicalName", "volumeName"]
+      },
+      "Response_147": {
+        "type": "object",
+        "properties": {
+          "logicalName": { "type": "string" },
+          "volumeName": { "type": "string" }
+        },
+        "required": ["logicalName", "volumeName"]
+      },
+      "Response_148": {
         "type": "object",
         "properties": {
           "databaseName": {
@@ -2784,12 +2796,12 @@
           "readable"
         ]
       },
-      "Response_143": {
+      "Response_145": {
         "type": "object",
         "properties": {
           "activeVolumes": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_144" }
+            "items": { "$ref": "#/components/schemas/Response_146" }
           },
           "candidateCleaned": { "type": "boolean" },
           "outcome": {
@@ -2802,7 +2814,7 @@
           },
           "previousVolumes": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_145" }
+            "items": { "$ref": "#/components/schemas/Response_147" }
           },
           "restoredBackupId": { "type": "string" },
           "rollbackAvailableUntil": {
@@ -2811,7 +2823,7 @@
           "validation": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_146" }
+              { "$ref": "#/components/schemas/Response_148" }
             ]
           },
           "verifiedAt": { "anyOf": [{ "type": "null" }, { "type": "string" }] }
@@ -2827,7 +2839,7 @@
           "verifiedAt"
         ]
       },
-      "Response_147": {
+      "Response_149": {
         "type": "object",
         "properties": {
           "cleanedVolumes": { "type": "array", "items": { "type": "string" } },
@@ -2836,7 +2848,7 @@
         },
         "required": ["cleanedVolumes", "restoreId", "skippedVolumes"]
       },
-      "Response_148": {
+      "Response_150": {
         "type": "object",
         "properties": {
           "state": {
@@ -2848,7 +2860,7 @@
         },
         "required": ["state"]
       },
-      "Response_131": {
+      "Response_133": {
         "type": "object",
         "properties": {
           "createdAt": { "type": "string", "format": "date-time" },
@@ -2900,24 +2912,24 @@
           },
           "request": {
             "anyOf": [
-              { "$ref": "#/components/schemas/Response_132" },
               { "$ref": "#/components/schemas/Response_134" },
-              { "$ref": "#/components/schemas/Response_135" },
+              { "$ref": "#/components/schemas/Response_136" },
               { "$ref": "#/components/schemas/Response_137" },
-              { "$ref": "#/components/schemas/Response_138" },
-              { "$ref": "#/components/schemas/Response_139" }
+              { "$ref": "#/components/schemas/Response_139" },
+              { "$ref": "#/components/schemas/Response_140" },
+              { "$ref": "#/components/schemas/Response_141" }
             ]
           },
           "resourceId": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
           "result": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/BackupOperationResult_140" },
-              { "$ref": "#/components/schemas/Response_141" },
-              { "$ref": "#/components/schemas/Response_142" },
+              { "$ref": "#/components/schemas/BackupOperationResult_142" },
               { "$ref": "#/components/schemas/Response_143" },
-              { "$ref": "#/components/schemas/Response_147" },
-              { "$ref": "#/components/schemas/Response_148" }
+              { "$ref": "#/components/schemas/Response_144" },
+              { "$ref": "#/components/schemas/Response_145" },
+              { "$ref": "#/components/schemas/Response_149" },
+              { "$ref": "#/components/schemas/Response_150" }
             ]
           },
           "serverId": { "type": "string" },
@@ -2972,41 +2984,41 @@
           "updatedAt"
         ]
       },
-      "Response_130": {
+      "Response_132": {
         "type": "object",
         "properties": {
           "operations": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_131" }
+            "items": { "$ref": "#/components/schemas/Response_133" }
           }
         },
         "required": ["operations"]
       },
-      "Response_149": {
-        "type": "object",
-        "properties": {
-          "deployment": { "$ref": "#/components/schemas/Response_125" },
-          "replayed": { "type": "boolean" }
-        },
-        "required": ["deployment", "replayed"]
-      },
-      "Response_150": {
-        "type": "object",
-        "properties": {
-          "deployment": { "$ref": "#/components/schemas/Response_125" },
-          "replayed": { "type": "boolean" }
-        },
-        "required": ["deployment", "replayed"]
-      },
       "Response_151": {
         "type": "object",
         "properties": {
-          "operation": { "$ref": "#/components/schemas/Response_131" },
+          "deployment": { "$ref": "#/components/schemas/Response_127" },
+          "replayed": { "type": "boolean" }
+        },
+        "required": ["deployment", "replayed"]
+      },
+      "Response_152": {
+        "type": "object",
+        "properties": {
+          "deployment": { "$ref": "#/components/schemas/Response_127" },
+          "replayed": { "type": "boolean" }
+        },
+        "required": ["deployment", "replayed"]
+      },
+      "Response_153": {
+        "type": "object",
+        "properties": {
+          "operation": { "$ref": "#/components/schemas/Response_133" },
           "replayed": { "type": "boolean" }
         },
         "required": ["operation", "replayed"]
       },
-      "Response_153": {
+      "Response_155": {
         "type": "object",
         "properties": {
           "appId": { "type": "string" },
@@ -3138,17 +3150,17 @@
           "queueBlocker"
         ]
       },
-      "Response_152": {
+      "Response_154": {
         "type": "object",
         "properties": {
           "deployments": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_153" }
+            "items": { "$ref": "#/components/schemas/Response_155" }
           }
         },
         "required": ["deployments"]
       },
-      "Response_155": {
+      "Response_157": {
         "type": "object",
         "properties": {
           "deployableName": { "type": "string" },
@@ -3282,7 +3294,7 @@
           "queueBlocker"
         ]
       },
-      "Response_156": {
+      "Response_158": {
         "type": "object",
         "properties": {
           "limit": { "type": "number" },
@@ -3292,18 +3304,18 @@
         },
         "required": ["limit", "page", "total", "totalPages"]
       },
-      "Response_154": {
+      "Response_156": {
         "type": "object",
         "properties": {
           "deployments": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_155" }
+            "items": { "$ref": "#/components/schemas/Response_157" }
           },
-          "pagination": { "$ref": "#/components/schemas/Response_156" }
+          "pagination": { "$ref": "#/components/schemas/Response_158" }
         },
         "required": ["deployments", "pagination"]
       },
-      "Response_160": {
+      "Response_162": {
         "type": "object",
         "properties": {
           "critical": { "type": "number" },
@@ -3314,7 +3326,7 @@
         },
         "required": ["critical", "high", "low", "medium", "unknown"]
       },
-      "Response_159": {
+      "Response_161": {
         "type": "object",
         "properties": {
           "completedAt": {
@@ -3337,7 +3349,7 @@
           "scannerVersion": {
             "anyOf": [{ "type": "null" }, { "type": "string" }]
           },
-          "severityTotals": { "$ref": "#/components/schemas/Response_160" },
+          "severityTotals": { "$ref": "#/components/schemas/Response_162" },
           "startedAt": {
             "anyOf": [
               { "type": "null" },
@@ -3377,13 +3389,13 @@
           "vulnerabilityDatabaseUpdatedAt"
         ]
       },
-      "Response_158": {
+      "Response_160": {
         "type": "object",
         "properties": {
           "vulnerabilityScan": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_159" }
+              { "$ref": "#/components/schemas/Response_161" }
             ]
           },
           "vulnerabilityScanningEnabled": { "type": "boolean" },
@@ -3518,14 +3530,14 @@
           "queueBlocker"
         ]
       },
-      "Response_157": {
+      "Response_159": {
         "type": "object",
         "properties": {
-          "deployment": { "$ref": "#/components/schemas/Response_158" }
+          "deployment": { "$ref": "#/components/schemas/Response_160" }
         },
         "required": ["deployment"]
       },
-      "Response_162": {
+      "Response_164": {
         "type": "object",
         "properties": {
           "createdAt": { "type": "string", "format": "date-time" },
@@ -3592,17 +3604,17 @@
           "status"
         ]
       },
-      "Response_161": {
+      "Response_163": {
         "type": "object",
         "properties": {
           "steps": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_162" }
+            "items": { "$ref": "#/components/schemas/Response_164" }
           }
         },
         "required": ["steps"]
       },
-      "Response_164": {
+      "Response_166": {
         "type": "object",
         "properties": {
           "content": { "type": "string" },
@@ -3613,17 +3625,17 @@
         },
         "required": ["content", "createdAt", "id", "sequence", "stream"]
       },
-      "Response_163": {
+      "Response_165": {
         "type": "object",
         "properties": {
           "logs": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_164" }
+            "items": { "$ref": "#/components/schemas/Response_166" }
           }
         },
         "required": ["logs"]
       },
-      "Response_166": {
+      "Response_168": {
         "type": "object",
         "properties": {
           "advisoryId": { "type": "string" },
@@ -3654,47 +3666,47 @@
           "target"
         ]
       },
-      "Response_165": {
+      "Response_167": {
         "type": "object",
         "properties": {
           "findings": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_166" }
+            "items": { "$ref": "#/components/schemas/Response_168" }
           }
         },
         "required": ["findings"]
       },
-      "Response_167": {
+      "Response_169": {
         "type": "object",
         "properties": {
-          "deployment": { "$ref": "#/components/schemas/Response_158" },
+          "deployment": { "$ref": "#/components/schemas/Response_160" },
           "logs": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_164" }
+            "items": { "$ref": "#/components/schemas/Response_166" }
           },
           "steps": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_162" }
+            "items": { "$ref": "#/components/schemas/Response_164" }
           }
         },
         "required": ["deployment", "logs", "steps"]
       },
-      "Response_168": {
+      "Response_170": {
         "type": "object",
         "properties": {
-          "deployment": { "$ref": "#/components/schemas/Response_125" }
+          "deployment": { "$ref": "#/components/schemas/Response_127" }
         },
         "required": ["deployment"]
       },
-      "Response_169": {
+      "Response_171": {
         "type": "object",
         "properties": {
           "replayed": { "type": "boolean" },
-          "scan": { "$ref": "#/components/schemas/Response_159" }
+          "scan": { "$ref": "#/components/schemas/Response_161" }
         },
         "required": ["replayed", "scan"]
       },
-      "Response_171": {
+      "Response_173": {
         "type": "object",
         "properties": {
           "accessKeyIdSuffix": { "type": "string" },
@@ -3728,43 +3740,43 @@
           "verificationMessage"
         ]
       },
-      "Response_170": {
+      "Response_172": {
         "type": "object",
         "properties": {
           "canManage": { "type": "boolean" },
           "credential": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_171" }
+              { "$ref": "#/components/schemas/Response_173" }
             ]
           }
         },
         "required": ["canManage", "credential"]
       },
-      "Response_172": {
+      "Response_174": {
         "type": "object",
         "properties": {
           "credential": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_171" }
+              { "$ref": "#/components/schemas/Response_173" }
             ]
           }
         },
         "required": ["credential"]
       },
-      "Response_175": {
+      "Response_177": {
         "type": "object",
         "properties": {
           "status": { "type": "string", "const": "unavailable" }
         },
         "required": ["status"]
       },
-      "Response_174": {
+      "Response_176": {
         "type": "object",
         "properties": {
           "permissionReadiness": {
-            "$ref": "#/components/schemas/Response_175"
+            "$ref": "#/components/schemas/Response_177"
           },
           "accountLogin": { "type": "string" },
           "accountType": { "type": "string" },
@@ -3788,7 +3800,7 @@
           "updatedAt"
         ]
       },
-      "Response_177": {
+      "Response_179": {
         "type": "object",
         "properties": {
           "status": { "type": "string", "const": "available" },
@@ -3828,11 +3840,11 @@
           "pullRequests"
         ]
       },
-      "Response_176": {
+      "Response_178": {
         "type": "object",
         "properties": {
           "permissionReadiness": {
-            "$ref": "#/components/schemas/Response_177"
+            "$ref": "#/components/schemas/Response_179"
           },
           "accountLogin": { "type": "string" },
           "accountType": { "type": "string" },
@@ -3856,7 +3868,7 @@
           "updatedAt"
         ]
       },
-      "Response_178": {
+      "Response_180": {
         "type": "object",
         "properties": {
           "failedCount": { "type": "number" },
@@ -3870,21 +3882,21 @@
         },
         "required": ["failedCount", "lastError", "lastFailedAt"]
       },
-      "Response_173": {
+      "Response_175": {
         "type": "object",
         "properties": {
           "connection": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_174" },
-              { "$ref": "#/components/schemas/Response_176" }
+              { "$ref": "#/components/schemas/Response_176" },
+              { "$ref": "#/components/schemas/Response_178" }
             ]
           },
-          "previewReporting": { "$ref": "#/components/schemas/Response_178" }
+          "previewReporting": { "$ref": "#/components/schemas/Response_180" }
         },
         "required": ["connection", "previewReporting"]
       },
-      "Response_179": {
+      "Response_181": {
         "type": "object",
         "properties": {
           "attempted": { "type": "number" },
@@ -3893,24 +3905,24 @@
         },
         "required": ["attempted", "failed", "succeeded"]
       },
-      "Response_180": {
+      "Response_182": {
         "type": "object",
         "properties": { "url": { "type": "string" } },
         "required": ["url"]
       },
-      "Response_182": {
+      "Response_184": {
         "type": "object",
         "properties": { "id": { "type": "string" } },
         "required": ["id"]
       },
-      "Response_181": {
+      "Response_183": {
         "type": "object",
         "properties": {
-          "installation": { "$ref": "#/components/schemas/Response_182" }
+          "installation": { "$ref": "#/components/schemas/Response_184" }
         },
         "required": ["installation"]
       },
-      "Response_184": {
+      "Response_186": {
         "type": "object",
         "properties": {
           "defaultBranch": { "type": "string" },
@@ -3929,17 +3941,17 @@
           "private"
         ]
       },
-      "Response_183": {
+      "Response_185": {
         "type": "object",
         "properties": {
           "repositories": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_184" }
+            "items": { "$ref": "#/components/schemas/Response_186" }
           }
         },
         "required": ["repositories"]
       },
-      "Response_188": {
+      "Response_190": {
         "type": "object",
         "properties": {
           "provider": {
@@ -3958,13 +3970,13 @@
         },
         "required": ["provider", "type"]
       },
-      "ServerHardware_187": {
+      "ServerHardware_189": {
         "type": "object",
         "properties": {
           "instance": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_188" }
+              { "$ref": "#/components/schemas/Response_190" }
             ]
           },
           "cpuCount": { "anyOf": [{ "type": "null" }, { "type": "number" }] },
@@ -3972,7 +3984,7 @@
         },
         "required": ["instance", "cpuCount", "memoryBytes"]
       },
-      "Response_190": {
+      "Response_192": {
         "type": "object",
         "properties": {
           "at": { "type": "string" },
@@ -3983,7 +3995,7 @@
         },
         "required": ["at", "cpuPercent", "memoryPercent"]
       },
-      "ServerMonitoringSummary_189": {
+      "ServerMonitoringSummary_191": {
         "type": "object",
         "properties": {
           "enabled": { "type": "boolean" },
@@ -3995,7 +4007,7 @@
           "end": { "type": "string" },
           "points": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_190" }
+            "items": { "$ref": "#/components/schemas/Response_192" }
           }
         },
         "required": [
@@ -4007,17 +4019,17 @@
           "points"
         ]
       },
-      "Response_186": {
+      "Response_188": {
         "type": "object",
         "properties": {
           "hardware": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/ServerHardware_187" }
+              { "$ref": "#/components/schemas/ServerHardware_189" }
             ]
           },
           "scout": {
-            "$ref": "#/components/schemas/ServerMonitoringSummary_189"
+            "$ref": "#/components/schemas/ServerMonitoringSummary_191"
           },
           "setupStatus": {
             "anyOf": [
@@ -4030,17 +4042,17 @@
         },
         "required": ["hardware", "scout", "setupStatus"]
       },
-      "Response_185": {
+      "Response_187": {
         "type": "object",
         "properties": {
           "servers": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_186" }
+            "items": { "$ref": "#/components/schemas/Response_188" }
           }
         },
         "required": ["servers"]
       },
-      "Response_192": {
+      "Response_194": {
         "type": "object",
         "properties": {
           "setupStatus": {
@@ -4054,20 +4066,20 @@
         },
         "required": ["setupStatus"]
       },
-      "Response_191": {
+      "Response_193": {
         "type": "object",
         "properties": {
-          "server": { "$ref": "#/components/schemas/Response_192" }
+          "server": { "$ref": "#/components/schemas/Response_194" }
         },
         "required": ["server"]
       },
-      "Response_194": {
+      "Response_196": {
         "type": "object",
         "properties": {
           "hardware": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/ServerHardware_187" }
+              { "$ref": "#/components/schemas/ServerHardware_189" }
             ]
           },
           "setupStatus": {
@@ -4081,13 +4093,13 @@
         },
         "required": ["hardware", "setupStatus"]
       },
-      "Response_193": {
+      "Response_195": {
         "type": "object",
         "properties": {
           "canCleanupOrphans": { "type": "boolean" },
           "canManageServer": { "type": "boolean" },
           "canRemoveServer": { "type": "boolean" },
-          "server": { "$ref": "#/components/schemas/Response_194" }
+          "server": { "$ref": "#/components/schemas/Response_196" }
         },
         "required": [
           "canCleanupOrphans",
@@ -4096,14 +4108,14 @@
           "server"
         ]
       },
-      "Response_195": {
+      "Response_197": {
         "type": "object",
         "properties": {
-          "server": { "$ref": "#/components/schemas/Response_192" }
+          "server": { "$ref": "#/components/schemas/Response_194" }
         },
         "required": ["server"]
       },
-      "Response_198": {
+      "Response_200": {
         "type": "object",
         "properties": {
           "desiredState": {
@@ -4161,11 +4173,11 @@
           "observedImage"
         ]
       },
-      "Response_197": {
+      "Response_199": {
         "type": "object",
         "properties": {
           "serverReady": { "type": "boolean" },
-          "runtimeState": { "$ref": "#/components/schemas/Response_198" },
+          "runtimeState": { "$ref": "#/components/schemas/Response_200" },
           "archivedAt": {
             "anyOf": [
               { "type": "null" },
@@ -4174,8 +4186,8 @@
           },
           "config": {
             "anyOf": [
-              { "$ref": "#/components/schemas/NormalizedApp_90" },
-              { "$ref": "#/components/schemas/NormalizedResource_100" }
+              { "$ref": "#/components/schemas/NormalizedApp_92" },
+              { "$ref": "#/components/schemas/NormalizedResource_102" }
             ]
           },
           "createdAt": { "type": "string", "format": "date-time" },
@@ -4215,37 +4227,37 @@
           "updatedAt"
         ]
       },
-      "Response_196": {
+      "Response_198": {
         "type": "object",
         "properties": {
           "apps": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_197" }
+            "items": { "$ref": "#/components/schemas/Response_199" }
           }
         },
         "required": ["apps"]
       },
-      "Response_199": {
+      "Response_201": {
         "type": "object",
         "properties": {
           "resources": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_197" }
+            "items": { "$ref": "#/components/schemas/Response_199" }
           }
         },
         "required": ["resources"]
       },
-      "Response_200": {
+      "Response_202": {
         "type": "object",
         "properties": {
           "deployments": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_125" }
+            "items": { "$ref": "#/components/schemas/Response_127" }
           }
         },
         "required": ["deployments"]
       },
-      "Response_203": {
+      "Response_205": {
         "type": "object",
         "properties": {
           "logicalCount": { "type": "number" },
@@ -4254,25 +4266,25 @@
         },
         "required": ["logicalCount", "loadAverage1m", "usagePercent"]
       },
-      "Response_204": {
-        "type": "object",
-        "properties": {
-          "availableBytes": { "type": "number" },
-          "totalBytes": { "type": "number" },
-          "usedPercent": { "type": "number" }
-        },
-        "required": ["availableBytes", "totalBytes", "usedPercent"]
-      },
-      "Response_205": {
-        "type": "object",
-        "properties": {
-          "availableBytes": { "type": "number" },
-          "totalBytes": { "type": "number" },
-          "usedPercent": { "type": "number" }
-        },
-        "required": ["availableBytes", "totalBytes", "usedPercent"]
-      },
       "Response_206": {
+        "type": "object",
+        "properties": {
+          "availableBytes": { "type": "number" },
+          "totalBytes": { "type": "number" },
+          "usedPercent": { "type": "number" }
+        },
+        "required": ["availableBytes", "totalBytes", "usedPercent"]
+      },
+      "Response_207": {
+        "type": "object",
+        "properties": {
+          "availableBytes": { "type": "number" },
+          "totalBytes": { "type": "number" },
+          "usedPercent": { "type": "number" }
+        },
+        "required": ["availableBytes", "totalBytes", "usedPercent"]
+      },
+      "Response_208": {
         "type": "object",
         "properties": {
           "cpuPercent": { "anyOf": [{ "type": "null" }, { "type": "number" }] },
@@ -4329,20 +4341,20 @@
           "startedAt"
         ]
       },
-      "RuntimeCapacity_202": {
+      "RuntimeCapacity_204": {
         "type": "object",
         "properties": {
           "checkedAt": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
           "cpu": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_203" }
+              { "$ref": "#/components/schemas/Response_205" }
             ]
           },
           "disk": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_204" }
+              { "$ref": "#/components/schemas/Response_206" }
             ]
           },
           "id": { "type": "string" },
@@ -4359,12 +4371,12 @@
           "memory": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_205" }
+              { "$ref": "#/components/schemas/Response_207" }
             ]
           },
           "runtimes": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_206" }
+            "items": { "$ref": "#/components/schemas/Response_208" }
           },
           "status": {
             "anyOf": [
@@ -4391,15 +4403,15 @@
           "uptimeSeconds"
         ]
       },
-      "Response_201": {
+      "Response_203": {
         "type": "object",
         "properties": {
-          "capacity": { "$ref": "#/components/schemas/RuntimeCapacity_202" }
+          "capacity": { "$ref": "#/components/schemas/RuntimeCapacity_204" }
         },
         "required": ["capacity"]
       },
-      "Record_209": { "type": "object", "additionalProperties": {} },
-      "Response_208": {
+      "Record_211": { "type": "object", "additionalProperties": {} },
+      "Response_210": {
         "type": "object",
         "properties": {
           "createdAt": { "type": "string", "format": "date-time" },
@@ -4417,7 +4429,7 @@
           "result": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Record_209" }
+              { "$ref": "#/components/schemas/Record_211" }
             ]
           },
           "startedAt": {
@@ -4446,7 +4458,7 @@
           "status"
         ]
       },
-      "Response_210": {
+      "Response_212": {
         "type": "object",
         "properties": {
           "limit": { "type": "number" },
@@ -4456,24 +4468,24 @@
         },
         "required": ["limit", "page", "total", "totalPages"]
       },
-      "Response_207": {
+      "Response_209": {
         "type": "object",
         "properties": {
           "checks": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_208" }
+            "items": { "$ref": "#/components/schemas/Response_210" }
           },
           "latestCheck": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_208" }
+              { "$ref": "#/components/schemas/Response_210" }
             ]
           },
-          "pagination": { "$ref": "#/components/schemas/Response_210" }
+          "pagination": { "$ref": "#/components/schemas/Response_212" }
         },
         "required": ["checks", "latestCheck", "pagination"]
       },
-      "ServerPreparationStep_213": {
+      "ServerPreparationStep_215": {
         "type": "object",
         "properties": {
           "finishedAt": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
@@ -4509,7 +4521,7 @@
           "title"
         ]
       },
-      "Response_212": {
+      "Response_214": {
         "type": "object",
         "properties": {
           "createdAt": { "type": "string", "format": "date-time" },
@@ -4527,7 +4539,7 @@
           "result": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Record_209" }
+              { "$ref": "#/components/schemas/Record_211" }
             ]
           },
           "startedAt": {
@@ -4547,7 +4559,7 @@
           "steps": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ServerPreparationStep_213"
+              "$ref": "#/components/schemas/ServerPreparationStep_215"
             }
           }
         },
@@ -4563,27 +4575,27 @@
           "steps"
         ]
       },
-      "Response_211": {
+      "Response_213": {
         "type": "object",
         "properties": {
           "preparations": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_212" }
+            "items": { "$ref": "#/components/schemas/Response_214" }
           }
         },
         "required": ["preparations"]
       },
-      "Response_214": {
+      "Response_216": {
         "type": "object",
         "properties": {
           "orphans": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_136" }
+            "items": { "$ref": "#/components/schemas/Response_138" }
           }
         },
         "required": ["orphans"]
       },
-      "Response_216": {
+      "Response_218": {
         "type": "object",
         "properties": {
           "algorithm": { "type": "string" },
@@ -4593,17 +4605,17 @@
         },
         "required": ["algorithm", "createdAt", "fingerprint", "id"]
       },
-      "Response_215": {
+      "Response_217": {
         "type": "object",
         "properties": {
           "hostKeys": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_216" }
+            "items": { "$ref": "#/components/schemas/Response_218" }
           }
         },
         "required": ["hostKeys"]
       },
-      "Response_218": {
+      "Response_220": {
         "type": "object",
         "properties": {
           "createdAt": { "type": "string", "format": "date-time" },
@@ -4621,7 +4633,7 @@
           "result": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Record_209" }
+              { "$ref": "#/components/schemas/Record_211" }
             ]
           },
           "startedAt": {
@@ -4650,14 +4662,14 @@
           "status"
         ]
       },
-      "Response_217": {
+      "Response_219": {
         "type": "object",
         "properties": {
-          "check": { "$ref": "#/components/schemas/Response_218" }
+          "check": { "$ref": "#/components/schemas/Response_220" }
         },
         "required": ["check"]
       },
-      "Response_220": {
+      "Response_222": {
         "type": "object",
         "properties": {
           "createdAt": { "type": "string", "format": "date-time" },
@@ -4675,7 +4687,7 @@
           "result": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Record_209" }
+              { "$ref": "#/components/schemas/Record_211" }
             ]
           },
           "startedAt": {
@@ -4695,7 +4707,7 @@
           "steps": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ServerPreparationStep_213"
+              "$ref": "#/components/schemas/ServerPreparationStep_215"
             }
           }
         },
@@ -4711,14 +4723,14 @@
           "steps"
         ]
       },
-      "Response_219": {
+      "Response_221": {
         "type": "object",
         "properties": {
-          "preparation": { "$ref": "#/components/schemas/Response_220" }
+          "preparation": { "$ref": "#/components/schemas/Response_222" }
         },
         "required": ["preparation"]
       },
-      "Response_222": {
+      "Response_224": {
         "type": "object",
         "properties": {
           "algorithm": { "type": "string" },
@@ -4727,50 +4739,50 @@
         },
         "required": ["algorithm", "fingerprint", "id"]
       },
-      "Response_221": {
+      "Response_223": {
         "type": "object",
         "properties": {
-          "hostKey": { "$ref": "#/components/schemas/Response_222" }
+          "hostKey": { "$ref": "#/components/schemas/Response_224" }
         },
         "required": ["hostKey"]
       },
-      "Response_223": {
+      "Response_225": {
         "type": "object",
         "properties": { "pending": { "type": "boolean" } },
         "required": ["pending"]
       },
-      "Response_224": {
+      "Response_226": {
         "type": "object",
         "properties": {
           "resources": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_88" }
+            "items": { "$ref": "#/components/schemas/Response_90" }
           }
         },
         "required": ["resources"]
       },
-      "Response_225": {
+      "Response_227": {
         "type": "object",
         "properties": {
-          "resource": { "$ref": "#/components/schemas/Response_115" }
+          "resource": { "$ref": "#/components/schemas/Response_117" }
         },
         "required": ["resource"]
       },
-      "Response_226": {
+      "Response_228": {
         "type": "object",
         "properties": {
-          "autoDeploy": { "$ref": "#/components/schemas/Response_118" },
+          "autoDeploy": { "$ref": "#/components/schemas/Response_120" },
           "canManageAutoDeploy": { "type": "boolean" }
         },
         "required": ["autoDeploy", "canManageAutoDeploy"]
       },
-      "autoDeploy_228": {
+      "autoDeploy_230": {
         "type": "object",
         "properties": {
           "effective": {
             "anyOf": [
-              { "$ref": "#/components/schemas/Response_119" },
-              { "$ref": "#/components/schemas/Response_121" }
+              { "$ref": "#/components/schemas/Response_121" },
+              { "$ref": "#/components/schemas/Response_123" }
             ]
           },
           "manifestAutoDeployEnabled": { "type": "boolean" },
@@ -4778,45 +4790,45 @@
         },
         "required": ["effective", "manifestAutoDeployEnabled", "paused"]
       },
-      "Response_227": {
+      "Response_229": {
         "type": "object",
         "properties": {
-          "autoDeploy": { "$ref": "#/components/schemas/autoDeploy_228" },
+          "autoDeploy": { "$ref": "#/components/schemas/autoDeploy_230" },
           "canManageAutoDeploy": { "type": "boolean" }
         },
         "required": ["autoDeploy", "canManageAutoDeploy"]
       },
-      "Response_229": {
+      "Response_231": {
         "type": "object",
         "properties": {
           "deployments": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_125" }
+            "items": { "$ref": "#/components/schemas/Response_127" }
           }
         },
         "required": ["deployments"]
       },
-      "Response_230": {
+      "Response_232": {
         "type": "object",
         "properties": {
           "releases": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_127" }
+            "items": { "$ref": "#/components/schemas/Response_129" }
           }
         },
         "required": ["releases"]
       },
-      "Response_231": {
+      "Response_233": {
         "type": "object",
         "properties": {
           "operations": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_131" }
+            "items": { "$ref": "#/components/schemas/Response_133" }
           }
         },
         "required": ["operations"]
       },
-      "Response_234": {
+      "Response_236": {
         "type": "object",
         "properties": {
           "message": { "type": "string" },
@@ -4835,14 +4847,14 @@
         },
         "required": ["message", "name", "passed"]
       },
-      "Response_233": {
+      "Response_235": {
         "type": "object",
         "properties": {
           "backupOperationId": { "type": "string" },
           "checkedAt": { "type": "string", "format": "date-time" },
           "checks": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_234" }
+            "items": { "$ref": "#/components/schemas/Response_236" }
           },
           "resourceId": { "type": "string" },
           "restoreReady": { "type": "boolean" },
@@ -4866,25 +4878,25 @@
           "updatedAt"
         ]
       },
-      "Response_232": {
+      "Response_234": {
         "type": "object",
         "properties": {
           "assurance": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_233" }
+              { "$ref": "#/components/schemas/Response_235" }
             ]
           },
           "assurances": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_233" }
+            "items": { "$ref": "#/components/schemas/Response_235" }
           },
           "awsConfigured": { "type": "boolean" },
           "canRestore": { "type": "boolean" }
         },
         "required": ["assurance", "assurances", "awsConfigured", "canRestore"]
       },
-      "Record_237": {
+      "Record_239": {
         "type": "object",
         "additionalProperties": {
           "anyOf": [
@@ -4895,7 +4907,7 @@
           ]
         }
       },
-      "Response_236": {
+      "Response_238": {
         "type": "object",
         "properties": {
           "command": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
@@ -4909,7 +4921,7 @@
             ]
           },
           "message": { "type": "string" },
-          "metadata": { "$ref": "#/components/schemas/Record_237" },
+          "metadata": { "$ref": "#/components/schemas/Record_239" },
           "phase": {
             "anyOf": [
               { "type": "string", "const": "queued" },
@@ -4942,79 +4954,35 @@
           "sequence"
         ]
       },
-      "Response_235": {
+      "Response_237": {
         "type": "object",
         "properties": {
           "events": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_236" }
+            "items": { "$ref": "#/components/schemas/Response_238" }
           }
         },
         "required": ["events"]
       },
-      "Response_238": {
+      "Response_240": {
         "type": "object",
         "properties": {
-          "operation": { "$ref": "#/components/schemas/Response_131" }
+          "operation": { "$ref": "#/components/schemas/Response_133" }
         },
         "required": ["operation"]
       },
-      "Response_239": {
+      "Response_241": {
         "type": "object",
         "properties": { "accepted": { "type": "boolean" } },
         "required": ["accepted"]
       },
-      "Response_240": {
+      "Response_242": {
         "type": "object",
         "properties": {
           "accepted": { "type": "boolean" },
           "deploymentId": { "type": "string" }
         },
         "required": ["accepted", "deploymentId"]
-      },
-      "Response_242": {
-        "type": "object",
-        "properties": {
-          "branch": { "type": "string" },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "id": { "type": "string" },
-          "latestCommitSha": {
-            "anyOf": [{ "type": "null" }, { "type": "string" }]
-          },
-          "latestManifestDigest": {
-            "anyOf": [{ "type": "null" }, { "type": "string" }]
-          },
-          "repositoryName": { "type": "string" },
-          "repositoryOwner": { "type": "string" },
-          "status": {
-            "anyOf": [
-              { "type": "string", "const": "active" },
-              { "type": "string", "const": "archived" }
-            ]
-          },
-          "updatedAt": { "type": "string", "format": "date-time" }
-        },
-        "required": [
-          "branch",
-          "createdAt",
-          "id",
-          "latestCommitSha",
-          "latestManifestDigest",
-          "repositoryName",
-          "repositoryOwner",
-          "status",
-          "updatedAt"
-        ]
-      },
-      "Response_241": {
-        "type": "object",
-        "properties": {
-          "sources": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_242" }
-          }
-        },
-        "required": ["sources"]
       },
       "Response_244": {
         "type": "object",
@@ -5053,19 +5021,63 @@
       "Response_243": {
         "type": "object",
         "properties": {
-          "source": { "$ref": "#/components/schemas/Response_244" }
+          "sources": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_244" }
+          }
         },
-        "required": ["source"]
+        "required": ["sources"]
+      },
+      "Response_246": {
+        "type": "object",
+        "properties": {
+          "branch": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "id": { "type": "string" },
+          "latestCommitSha": {
+            "anyOf": [{ "type": "null" }, { "type": "string" }]
+          },
+          "latestManifestDigest": {
+            "anyOf": [{ "type": "null" }, { "type": "string" }]
+          },
+          "repositoryName": { "type": "string" },
+          "repositoryOwner": { "type": "string" },
+          "status": {
+            "anyOf": [
+              { "type": "string", "const": "active" },
+              { "type": "string", "const": "archived" }
+            ]
+          },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": [
+          "branch",
+          "createdAt",
+          "id",
+          "latestCommitSha",
+          "latestManifestDigest",
+          "repositoryName",
+          "repositoryOwner",
+          "status",
+          "updatedAt"
+        ]
       },
       "Response_245": {
         "type": "object",
         "properties": {
+          "source": { "$ref": "#/components/schemas/Response_246" }
+        },
+        "required": ["source"]
+      },
+      "Response_247": {
+        "type": "object",
+        "properties": {
           "canManageSource": { "type": "boolean" },
-          "source": { "$ref": "#/components/schemas/Response_242" }
+          "source": { "$ref": "#/components/schemas/Response_244" }
         },
         "required": ["canManageSource", "source"]
       },
-      "Response_248": {
+      "Response_250": {
         "type": "object",
         "properties": {
           "pending": { "type": "null" },
@@ -5074,7 +5086,7 @@
         },
         "required": ["pending", "paused", "scope"]
       },
-      "Response_249": {
+      "Response_251": {
         "type": "object",
         "properties": {
           "pending": { "type": "null" },
@@ -5088,89 +5100,89 @@
         },
         "required": ["pending", "paused", "scope"]
       },
-      "Response_247": {
+      "Response_249": {
         "type": "object",
         "properties": {
           "effective": {
             "anyOf": [
-              { "$ref": "#/components/schemas/Response_248" },
-              { "$ref": "#/components/schemas/Response_249" }
+              { "$ref": "#/components/schemas/Response_250" },
+              { "$ref": "#/components/schemas/Response_251" }
             ]
           },
           "paused": { "type": "boolean" }
         },
         "required": ["effective", "paused"]
       },
-      "Response_246": {
+      "Response_248": {
         "type": "object",
         "properties": {
-          "autoDeploy": { "$ref": "#/components/schemas/Response_247" },
+          "autoDeploy": { "$ref": "#/components/schemas/Response_249" },
           "canManageAutoDeploy": { "type": "boolean" }
         },
         "required": ["autoDeploy", "canManageAutoDeploy"]
       },
-      "autoDeploy_251": {
+      "autoDeploy_253": {
         "type": "object",
         "properties": {
           "effective": {
             "anyOf": [
-              { "$ref": "#/components/schemas/Response_248" },
-              { "$ref": "#/components/schemas/Response_249" }
+              { "$ref": "#/components/schemas/Response_250" },
+              { "$ref": "#/components/schemas/Response_251" }
             ]
           },
           "paused": { "type": "boolean" }
         },
         "required": ["effective", "paused"]
-      },
-      "Response_250": {
-        "type": "object",
-        "properties": {
-          "autoDeploy": { "$ref": "#/components/schemas/autoDeploy_251" },
-          "canManageAutoDeploy": { "type": "boolean" }
-        },
-        "required": ["autoDeploy", "canManageAutoDeploy"]
       },
       "Response_252": {
         "type": "object",
         "properties": {
-          "apps": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_88" }
-          }
+          "autoDeploy": { "$ref": "#/components/schemas/autoDeploy_253" },
+          "canManageAutoDeploy": { "type": "boolean" }
         },
-        "required": ["apps"]
-      },
-      "Response_253": {
-        "type": "object",
-        "properties": {
-          "resources": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_88" }
-          }
-        },
-        "required": ["resources"]
+        "required": ["autoDeploy", "canManageAutoDeploy"]
       },
       "Response_254": {
         "type": "object",
         "properties": {
-          "capacities": {
+          "apps": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/RuntimeCapacity_202" }
+            "items": { "$ref": "#/components/schemas/Response_90" }
           }
         },
-        "required": ["capacities"]
+        "required": ["apps"]
       },
       "Response_255": {
         "type": "object",
         "properties": {
+          "resources": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_90" }
+          }
+        },
+        "required": ["resources"]
+      },
+      "Response_256": {
+        "type": "object",
+        "properties": {
+          "capacities": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/RuntimeCapacity_204" }
+          }
+        },
+        "required": ["capacities"]
+      },
+      "Response_257": {
+        "type": "object",
+        "properties": {
           "deployments": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_153" }
+            "items": { "$ref": "#/components/schemas/Response_155" }
           }
         },
         "required": ["deployments"]
       },
-      "Response_257": {
+      "Response_259": {
         "type": "object",
         "properties": {
           "resourceKind": {
@@ -5232,24 +5244,24 @@
           },
           "request": {
             "anyOf": [
-              { "$ref": "#/components/schemas/Response_132" },
               { "$ref": "#/components/schemas/Response_134" },
-              { "$ref": "#/components/schemas/Response_135" },
+              { "$ref": "#/components/schemas/Response_136" },
               { "$ref": "#/components/schemas/Response_137" },
-              { "$ref": "#/components/schemas/Response_138" },
-              { "$ref": "#/components/schemas/Response_139" }
+              { "$ref": "#/components/schemas/Response_139" },
+              { "$ref": "#/components/schemas/Response_140" },
+              { "$ref": "#/components/schemas/Response_141" }
             ]
           },
           "resourceId": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
           "result": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/BackupOperationResult_140" },
-              { "$ref": "#/components/schemas/Response_141" },
-              { "$ref": "#/components/schemas/Response_142" },
+              { "$ref": "#/components/schemas/BackupOperationResult_142" },
               { "$ref": "#/components/schemas/Response_143" },
-              { "$ref": "#/components/schemas/Response_147" },
-              { "$ref": "#/components/schemas/Response_148" }
+              { "$ref": "#/components/schemas/Response_144" },
+              { "$ref": "#/components/schemas/Response_145" },
+              { "$ref": "#/components/schemas/Response_149" },
+              { "$ref": "#/components/schemas/Response_150" }
             ]
           },
           "serverId": { "type": "string" },
@@ -5307,48 +5319,48 @@
           "updatedAt"
         ]
       },
-      "Response_256": {
+      "Response_258": {
         "type": "object",
         "properties": {
           "backups": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_257" }
+            "items": { "$ref": "#/components/schemas/Response_259" }
           }
         },
         "required": ["backups"]
       },
-      "Response_258": {
+      "Response_260": {
         "type": "object",
         "properties": {
           "previews": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_129" }
+            "items": { "$ref": "#/components/schemas/Response_131" }
           }
         },
         "required": ["previews"]
       },
-      "Response_262": {
+      "Response_264": {
         "type": "object",
         "properties": { "branch": { "type": "string" } },
         "required": ["branch"]
       },
-      "NormalizedDeploymentManifest_261": {
+      "NormalizedDeploymentManifest_263": {
         "type": "object",
         "properties": {
           "apps": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/NormalizedApp_90" }
+            "items": { "$ref": "#/components/schemas/NormalizedApp_92" }
           },
           "resources": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/NormalizedResource_100" }
+            "items": { "$ref": "#/components/schemas/NormalizedResource_102" }
           },
-          "source": { "$ref": "#/components/schemas/Response_262" },
+          "source": { "$ref": "#/components/schemas/Response_264" },
           "version": { "type": "number", "const": 1 }
         },
         "required": ["apps", "source", "version"]
       },
-      "Response_260": {
+      "Response_262": {
         "type": "object",
         "properties": {
           "commitSha": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
@@ -5356,7 +5368,7 @@
             "anyOf": [
               { "type": "null" },
               {
-                "$ref": "#/components/schemas/NormalizedDeploymentManifest_261"
+                "$ref": "#/components/schemas/NormalizedDeploymentManifest_263"
               }
             ]
           },
@@ -5367,53 +5379,17 @@
         },
         "required": ["commitSha", "manifest", "manifestDigest", "rawManifest"]
       },
-      "Response_259": {
+      "Response_261": {
         "type": "object",
         "properties": {
           "manifest": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_260" }
+              { "$ref": "#/components/schemas/Response_262" }
             ]
           }
         },
         "required": ["manifest"]
-      },
-      "MaterializedManifestEntity_266": {
-        "type": "object",
-        "properties": {
-          "archivedAt": {
-            "anyOf": [
-              { "type": "null" },
-              { "type": "string", "format": "date-time" }
-            ]
-          },
-          "config": { "$ref": "#/components/schemas/NormalizedApp_90" },
-          "configDigest": { "type": "string" },
-          "id": { "type": "string" },
-          "identity": { "type": "string" }
-        },
-        "required": ["archivedAt", "config", "configDigest", "id", "identity"]
-      },
-      "ReconciliationAction_265": {
-        "type": "object",
-        "properties": {
-          "action": {
-            "anyOf": [
-              { "type": "string", "const": "update" },
-              { "type": "string", "const": "archive" },
-              { "type": "string", "const": "create" },
-              { "type": "string", "const": "restore" },
-              { "type": "string", "const": "unchanged" }
-            ]
-          },
-          "current": {
-            "$ref": "#/components/schemas/MaterializedManifestEntity_266"
-          },
-          "desired": { "$ref": "#/components/schemas/NormalizedApp_90" },
-          "id": { "type": "string" }
-        },
-        "required": ["action", "id"]
       },
       "MaterializedManifestEntity_268": {
         "type": "object",
@@ -5424,7 +5400,7 @@
               { "type": "string", "format": "date-time" }
             ]
           },
-          "config": { "$ref": "#/components/schemas/NormalizedResource_100" },
+          "config": { "$ref": "#/components/schemas/NormalizedApp_92" },
           "configDigest": { "type": "string" },
           "id": { "type": "string" },
           "identity": { "type": "string" }
@@ -5446,37 +5422,73 @@
           "current": {
             "$ref": "#/components/schemas/MaterializedManifestEntity_268"
           },
-          "desired": { "$ref": "#/components/schemas/NormalizedResource_100" },
+          "desired": { "$ref": "#/components/schemas/NormalizedApp_92" },
           "id": { "type": "string" }
         },
         "required": ["action", "id"]
       },
-      "Record_269": { "type": "object" },
-      "ManifestReconciliation_264": {
+      "MaterializedManifestEntity_270": {
+        "type": "object",
+        "properties": {
+          "archivedAt": {
+            "anyOf": [
+              { "type": "null" },
+              { "type": "string", "format": "date-time" }
+            ]
+          },
+          "config": { "$ref": "#/components/schemas/NormalizedResource_102" },
+          "configDigest": { "type": "string" },
+          "id": { "type": "string" },
+          "identity": { "type": "string" }
+        },
+        "required": ["archivedAt", "config", "configDigest", "id", "identity"]
+      },
+      "ReconciliationAction_269": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "anyOf": [
+              { "type": "string", "const": "update" },
+              { "type": "string", "const": "archive" },
+              { "type": "string", "const": "create" },
+              { "type": "string", "const": "restore" },
+              { "type": "string", "const": "unchanged" }
+            ]
+          },
+          "current": {
+            "$ref": "#/components/schemas/MaterializedManifestEntity_270"
+          },
+          "desired": { "$ref": "#/components/schemas/NormalizedResource_102" },
+          "id": { "type": "string" }
+        },
+        "required": ["action", "id"]
+      },
+      "Record_271": { "type": "object" },
+      "ManifestReconciliation_266": {
         "type": "object",
         "properties": {
           "apps": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/ReconciliationAction_265" }
+            "items": { "$ref": "#/components/schemas/ReconciliationAction_267" }
           },
           "resources": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/ReconciliationAction_267" }
+            "items": { "$ref": "#/components/schemas/ReconciliationAction_269" }
           },
-          "summary": { "$ref": "#/components/schemas/Record_269" }
+          "summary": { "$ref": "#/components/schemas/Record_271" }
         },
         "required": ["apps", "resources", "summary"]
       },
-      "Response_263": {
+      "Response_265": {
         "type": "object",
         "properties": {
           "commitSha": { "type": "string" },
           "manifest": {
-            "$ref": "#/components/schemas/NormalizedDeploymentManifest_261"
+            "$ref": "#/components/schemas/NormalizedDeploymentManifest_263"
           },
           "manifestDigest": { "type": "string" },
           "reconciliation": {
-            "$ref": "#/components/schemas/ManifestReconciliation_264"
+            "$ref": "#/components/schemas/ManifestReconciliation_266"
           }
         },
         "required": [
@@ -5486,19 +5498,19 @@
           "reconciliation"
         ]
       },
-      "Response_271": {
+      "Response_273": {
         "type": "object",
         "properties": { "id": { "type": "string" } },
         "required": ["id"]
       },
-      "Response_270": {
+      "Response_272": {
         "type": "object",
         "properties": {
-          "sync": { "$ref": "#/components/schemas/Response_271" }
+          "sync": { "$ref": "#/components/schemas/Response_273" }
         },
         "required": ["sync"]
       },
-      "ManifestIssue_274": {
+      "ManifestIssue_276": {
         "type": "object",
         "properties": {
           "column": { "type": "number" },
@@ -5511,7 +5523,7 @@
         },
         "required": ["message", "path"]
       },
-      "Response_273": {
+      "Response_275": {
         "type": "object",
         "properties": {
           "commitSha": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
@@ -5528,7 +5540,7 @@
               { "type": "null" },
               {
                 "type": "array",
-                "items": { "$ref": "#/components/schemas/ManifestIssue_274" }
+                "items": { "$ref": "#/components/schemas/ManifestIssue_276" }
               }
             ]
           },
@@ -5538,7 +5550,7 @@
           "reconciliation": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/ManifestReconciliation_264" }
+              { "$ref": "#/components/schemas/ManifestReconciliation_266" }
             ]
           },
           "startedAt": {
@@ -5568,24 +5580,24 @@
           "status"
         ]
       },
-      "Response_272": {
+      "Response_274": {
         "type": "object",
         "properties": {
           "syncs": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_273" }
+            "items": { "$ref": "#/components/schemas/Response_275" }
           }
         },
         "required": ["syncs"]
       },
-      "Response_275": {
+      "Response_277": {
         "type": "object",
         "properties": {
-          "sync": { "$ref": "#/components/schemas/Response_273" }
+          "sync": { "$ref": "#/components/schemas/Response_275" }
         },
         "required": ["sync"]
       },
-      "SystemHealthCheck_277": {
+      "SystemHealthCheck_279": {
         "type": "object",
         "properties": {
           "checkedAt": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
@@ -5625,13 +5637,13 @@
           "title"
         ]
       },
-      "SystemHealth_276": {
+      "SystemHealth_278": {
         "type": "object",
         "properties": {
           "checkedAt": { "type": "string" },
           "checks": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/SystemHealthCheck_277" }
+            "items": { "$ref": "#/components/schemas/SystemHealthCheck_279" }
           },
           "status": {
             "anyOf": [
@@ -5644,65 +5656,6 @@
           "version": { "type": "string" }
         },
         "required": ["checkedAt", "checks", "status", "version"]
-      },
-      "Response_279": {
-        "type": "object",
-        "properties": {
-          "categories": {
-            "type": "array",
-            "items": {
-              "anyOf": [
-                { "type": "string", "const": "health" },
-                { "type": "string", "const": "deployments" },
-                { "type": "string", "const": "previews" },
-                { "type": "string", "const": "backups" },
-                { "type": "string", "const": "restores" },
-                { "type": "string", "const": "scout" }
-              ]
-            }
-          },
-          "config": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/Response_39" },
-              { "$ref": "#/components/schemas/Response_40" }
-            ]
-          },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "enabled": { "type": "boolean" },
-          "id": { "type": "string" },
-          "provider": {
-            "anyOf": [
-              { "type": "string", "const": "slack" },
-              { "type": "string", "const": "smtp" }
-            ]
-          },
-          "sourceId": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
-          "serverId": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
-          "updatedAt": { "type": "string", "format": "date-time" }
-        },
-        "required": [
-          "categories",
-          "config",
-          "createdAt",
-          "enabled",
-          "id",
-          "provider",
-          "sourceId",
-          "serverId",
-          "updatedAt"
-        ]
-      },
-      "Response_278": {
-        "type": "object",
-        "properties": {
-          "canManageNotifications": { "type": "boolean" },
-          "destinations": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_279" }
-          },
-          "providers": { "$ref": "#/components/schemas/Response_41" }
-        },
-        "required": ["canManageNotifications", "destinations", "providers"]
       },
       "Response_281": {
         "type": "object",
@@ -5754,18 +5707,77 @@
       "Response_280": {
         "type": "object",
         "properties": {
-          "destination": { "$ref": "#/components/schemas/Response_281" }
+          "canManageNotifications": { "type": "boolean" },
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_281" }
+          },
+          "providers": { "$ref": "#/components/schemas/Response_41" }
         },
-        "required": ["destination"]
+        "required": ["canManageNotifications", "destinations", "providers"]
+      },
+      "Response_283": {
+        "type": "object",
+        "properties": {
+          "categories": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                { "type": "string", "const": "health" },
+                { "type": "string", "const": "deployments" },
+                { "type": "string", "const": "previews" },
+                { "type": "string", "const": "backups" },
+                { "type": "string", "const": "restores" },
+                { "type": "string", "const": "scout" }
+              ]
+            }
+          },
+          "config": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/Response_39" },
+              { "$ref": "#/components/schemas/Response_40" }
+            ]
+          },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "enabled": { "type": "boolean" },
+          "id": { "type": "string" },
+          "provider": {
+            "anyOf": [
+              { "type": "string", "const": "slack" },
+              { "type": "string", "const": "smtp" }
+            ]
+          },
+          "sourceId": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
+          "serverId": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": [
+          "categories",
+          "config",
+          "createdAt",
+          "enabled",
+          "id",
+          "provider",
+          "sourceId",
+          "serverId",
+          "updatedAt"
+        ]
       },
       "Response_282": {
         "type": "object",
         "properties": {
-          "destination": { "$ref": "#/components/schemas/Response_279" }
+          "destination": { "$ref": "#/components/schemas/Response_283" }
         },
         "required": ["destination"]
       },
       "Response_284": {
+        "type": "object",
+        "properties": {
+          "destination": { "$ref": "#/components/schemas/Response_281" }
+        },
+        "required": ["destination"]
+      },
+      "Response_286": {
         "type": "object",
         "properties": {
           "cycle": { "type": "number" },
@@ -5773,21 +5785,21 @@
         },
         "required": ["cycle", "id"]
       },
-      "Response_283": {
+      "Response_285": {
         "type": "object",
         "properties": {
-          "delivery": { "$ref": "#/components/schemas/Response_284" }
+          "delivery": { "$ref": "#/components/schemas/Response_286" }
         },
         "required": ["delivery"]
       },
-      "Response_285": {
+      "Response_287": {
         "type": "object",
         "properties": {
           "providers": { "$ref": "#/components/schemas/Response_41" }
         },
         "required": ["providers"]
       },
-      "Response_289": {
+      "Response_291": {
         "type": "object",
         "properties": {
           "id": { "type": "string" },
@@ -5808,7 +5820,7 @@
         },
         "required": ["id", "kind", "name"]
       },
-      "Response_290": {
+      "Response_292": {
         "type": "object",
         "properties": {
           "id": { "type": "string" },
@@ -5816,17 +5828,17 @@
         },
         "required": ["id", "name"]
       },
-      "Response_288": {
+      "Response_290": {
         "type": "object",
         "properties": {
-          "details": { "$ref": "#/components/schemas/Record_237" },
-          "entity": { "$ref": "#/components/schemas/Response_289" },
+          "details": { "$ref": "#/components/schemas/Record_239" },
+          "entity": { "$ref": "#/components/schemas/Response_291" },
           "message": { "type": "string" },
           "occurredAt": { "type": "string" },
           "source": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_290" }
+              { "$ref": "#/components/schemas/Response_292" }
             ]
           },
           "title": { "type": "string" }
@@ -5840,7 +5852,7 @@
           "title"
         ]
       },
-      "Response_287": {
+      "Response_289": {
         "type": "object",
         "properties": {
           "category": {
@@ -5857,7 +5869,7 @@
           "createdAt": { "type": "string", "format": "date-time" },
           "id": { "type": "string" },
           "occurredAt": { "type": "string", "format": "date-time" },
-          "payload": { "$ref": "#/components/schemas/Response_288" },
+          "payload": { "$ref": "#/components/schemas/Response_290" },
           "type": {
             "anyOf": [
               { "type": "string", "const": "deployment.queued" },
@@ -5895,12 +5907,12 @@
           "type"
         ]
       },
-      "Response_286": {
+      "Response_288": {
         "type": "object",
         "properties": {
           "notifications": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_287" }
+            "items": { "$ref": "#/components/schemas/Response_289" }
           }
         },
         "required": ["notifications"]
@@ -5978,7 +5990,7 @@
             "description": "JSON object containing connection, previewReporting.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_173" }
+                "schema": { "$ref": "#/components/schemas/Response_175" }
               }
             }
           },
@@ -6027,7 +6039,7 @@
             "description": "The number of preview reports queued for retry.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_179" }
+                "schema": { "$ref": "#/components/schemas/Response_181" }
               }
             }
           },
@@ -6056,7 +6068,7 @@
             "description": "JSON object containing repositories.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_183" }
+                "schema": { "$ref": "#/components/schemas/Response_185" }
               }
             }
           },
@@ -6085,7 +6097,7 @@
             "description": "JSON object containing canManage, credential.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_170" }
+                "schema": { "$ref": "#/components/schemas/Response_172" }
               }
             }
           },
@@ -6143,7 +6155,7 @@
             "description": "JSON object containing credential.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_172" }
+                "schema": { "$ref": "#/components/schemas/Response_174" }
               }
             }
           },
@@ -6358,6 +6370,69 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Response_76" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ApiError" },
+          "401": { "$ref": "#/components/responses/ApiError" },
+          "403": { "$ref": "#/components/responses/ApiError" },
+          "404": { "$ref": "#/components/responses/ApiError" },
+          "409": { "$ref": "#/components/responses/ApiError" },
+          "413": { "$ref": "#/components/responses/ApiError" },
+          "422": { "$ref": "#/components/responses/ApiError" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ApiError" }
+        }
+      }
+    },
+    "/settings/secrets/{environment}/{stage}/reveal-all": {
+      "post": {
+        "operationId": "post_settings_secrets_by_environment_by_stage_reveal_all",
+        "summary": "Reveal all environment secrets in a stage",
+        "tags": ["Workspace / Shared secrets"],
+        "description": "Requires workspace owner permission. Requires a full-access key.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "environment",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string",
+              "enum": ["production", "preview"]
+            }
+          },
+          {
+            "name": "stage",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string",
+              "enum": ["build", "deployment", "pre_deploy", "post_deploy"]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON object containing stored values and their revision.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Response_77" }
               }
             }
           },
@@ -6600,6 +6675,80 @@
         }
       }
     },
+    "/sources/{ownerId}/secrets/{environment}/{stage}/reveal-all": {
+      "post": {
+        "operationId": "post_sources_by_id_secrets_by_environment_by_stage_reveal_all",
+        "summary": "Reveal all environment secrets in a stage",
+        "tags": ["Sources / Secrets"],
+        "description": "Requires workspace owner permission. Requires a full-access key.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "environment",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string",
+              "enum": ["production", "preview"]
+            }
+          },
+          {
+            "name": "stage",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string",
+              "enum": ["build", "deployment", "pre_deploy", "post_deploy"]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON object containing stored values and their revision.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Response_77" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ApiError" },
+          "401": { "$ref": "#/components/responses/ApiError" },
+          "403": { "$ref": "#/components/responses/ApiError" },
+          "404": { "$ref": "#/components/responses/ApiError" },
+          "409": { "$ref": "#/components/responses/ApiError" },
+          "413": { "$ref": "#/components/responses/ApiError" },
+          "422": { "$ref": "#/components/responses/ApiError" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ApiError" }
+        }
+      }
+    },
     "/apps/{ownerId}/secrets": {
       "get": {
         "operationId": "get_apps_by_id_secrets",
@@ -6812,6 +6961,80 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Response_76" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ApiError" },
+          "401": { "$ref": "#/components/responses/ApiError" },
+          "403": { "$ref": "#/components/responses/ApiError" },
+          "404": { "$ref": "#/components/responses/ApiError" },
+          "409": { "$ref": "#/components/responses/ApiError" },
+          "413": { "$ref": "#/components/responses/ApiError" },
+          "422": { "$ref": "#/components/responses/ApiError" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ApiError" }
+        }
+      }
+    },
+    "/apps/{ownerId}/secrets/{environment}/{stage}/reveal-all": {
+      "post": {
+        "operationId": "post_apps_by_id_secrets_by_environment_by_stage_reveal_all",
+        "summary": "Reveal all environment secrets in a stage",
+        "tags": ["Apps / Secrets"],
+        "description": "Requires workspace owner permission. Requires a full-access key.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "environment",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string",
+              "enum": ["production", "preview"]
+            }
+          },
+          {
+            "name": "stage",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string",
+              "enum": ["build", "deployment", "pre_deploy", "post_deploy"]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON object containing stored values and their revision.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Response_77" }
               }
             }
           },
@@ -7054,6 +7277,80 @@
         }
       }
     },
+    "/resources/{ownerId}/secrets/{environment}/{stage}/reveal-all": {
+      "post": {
+        "operationId": "post_resources_by_id_secrets_by_environment_by_stage_reveal_all",
+        "summary": "Reveal all environment secrets in a stage",
+        "tags": ["Resources / Secrets"],
+        "description": "Requires workspace owner permission. Requires a full-access key.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "environment",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string",
+              "enum": ["production", "preview"]
+            }
+          },
+          {
+            "name": "stage",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string",
+              "enum": ["build", "deployment", "pre_deploy", "post_deploy"]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON object containing stored values and their revision.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Response_77" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ApiError" },
+          "401": { "$ref": "#/components/responses/ApiError" },
+          "403": { "$ref": "#/components/responses/ApiError" },
+          "404": { "$ref": "#/components/responses/ApiError" },
+          "409": { "$ref": "#/components/responses/ApiError" },
+          "413": { "$ref": "#/components/responses/ApiError" },
+          "422": { "$ref": "#/components/responses/ApiError" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ApiError" }
+        }
+      }
+    },
     "/servers/{serverId}/credentials": {
       "get": {
         "operationId": "get_servers_by_id_credentials",
@@ -7079,7 +7376,7 @@
             "description": "JSON object containing credential, canManage.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_77" }
+                "schema": { "$ref": "#/components/schemas/Response_79" }
               }
             }
           },
@@ -7155,7 +7452,7 @@
             "description": "JSON object containing credential.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_80" }
+                "schema": { "$ref": "#/components/schemas/Response_82" }
               }
             }
           },
@@ -8926,7 +9223,7 @@
             "description": "JSON object containing sources.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_241" }
+                "schema": { "$ref": "#/components/schemas/Response_243" }
               }
             }
           },
@@ -8993,7 +9290,7 @@
             "description": "JSON object containing source.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_243" }
+                "schema": { "$ref": "#/components/schemas/Response_245" }
               }
             }
           },
@@ -9034,7 +9331,7 @@
             "description": "JSON object containing canManageSource, source.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_245" }
+                "schema": { "$ref": "#/components/schemas/Response_247" }
               }
             }
           },
@@ -9107,7 +9404,7 @@
             "description": "JSON object containing autoDeploy, canManageAutoDeploy.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_246" }
+                "schema": { "$ref": "#/components/schemas/Response_248" }
               }
             }
           },
@@ -9160,7 +9457,7 @@
             "description": "JSON object containing autoDeploy, canManageAutoDeploy.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_250" }
+                "schema": { "$ref": "#/components/schemas/Response_252" }
               }
             }
           },
@@ -9201,7 +9498,7 @@
             "description": "JSON object containing apps.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_252" }
+                "schema": { "$ref": "#/components/schemas/Response_254" }
               }
             }
           },
@@ -9242,7 +9539,7 @@
             "description": "JSON object containing resources.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_253" }
+                "schema": { "$ref": "#/components/schemas/Response_255" }
               }
             }
           },
@@ -9283,7 +9580,7 @@
             "description": "JSON object containing capacities.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_254" }
+                "schema": { "$ref": "#/components/schemas/Response_256" }
               }
             }
           },
@@ -9324,7 +9621,7 @@
             "description": "JSON object containing deployments.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_255" }
+                "schema": { "$ref": "#/components/schemas/Response_257" }
               }
             }
           },
@@ -9365,7 +9662,7 @@
             "description": "JSON object containing backups.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_256" }
+                "schema": { "$ref": "#/components/schemas/Response_258" }
               }
             }
           },
@@ -9406,7 +9703,7 @@
             "description": "JSON object containing previews.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_258" }
+                "schema": { "$ref": "#/components/schemas/Response_260" }
               }
             }
           },
@@ -9447,7 +9744,7 @@
             "description": "JSON object containing manifest.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_259" }
+                "schema": { "$ref": "#/components/schemas/Response_261" }
               }
             }
           },
@@ -9488,7 +9785,7 @@
             "description": "The proposed manifest changes and reconciliation result.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_263" }
+                "schema": { "$ref": "#/components/schemas/Response_265" }
               }
             }
           },
@@ -9529,7 +9826,7 @@
             "description": "JSON object containing sync. Accepted work continues asynchronously; poll its ID.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_270" }
+                "schema": { "$ref": "#/components/schemas/Response_272" }
               }
             }
           },
@@ -9570,7 +9867,7 @@
             "description": "JSON object containing syncs.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_272" }
+                "schema": { "$ref": "#/components/schemas/Response_274" }
               }
             }
           },
@@ -9622,7 +9919,7 @@
             "description": "JSON object containing sync.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_275" }
+                "schema": { "$ref": "#/components/schemas/Response_277" }
               }
             }
           },
@@ -9651,7 +9948,7 @@
             "description": "JSON object containing apps.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_87" }
+                "schema": { "$ref": "#/components/schemas/Response_89" }
               }
             }
           },
@@ -9692,7 +9989,7 @@
             "description": "JSON object containing app.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_114" }
+                "schema": { "$ref": "#/components/schemas/Response_116" }
               }
             }
           },
@@ -9733,7 +10030,7 @@
             "description": "JSON object containing autoDeploy, canManageAutoDeploy.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_117" }
+                "schema": { "$ref": "#/components/schemas/Response_119" }
               }
             }
           },
@@ -9786,7 +10083,7 @@
             "description": "JSON object containing autoDeploy, canManageAutoDeploy.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_122" }
+                "schema": { "$ref": "#/components/schemas/Response_124" }
               }
             }
           },
@@ -9827,7 +10124,7 @@
             "description": "JSON object containing deployments.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_124" }
+                "schema": { "$ref": "#/components/schemas/Response_126" }
               }
             }
           },
@@ -9868,7 +10165,7 @@
             "description": "JSON object containing releases.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_126" }
+                "schema": { "$ref": "#/components/schemas/Response_128" }
               }
             }
           },
@@ -9909,7 +10206,7 @@
             "description": "JSON object containing previews.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_128" }
+                "schema": { "$ref": "#/components/schemas/Response_130" }
               }
             }
           },
@@ -9950,7 +10247,7 @@
             "description": "JSON object containing operations.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_130" }
+                "schema": { "$ref": "#/components/schemas/Response_132" }
               }
             }
           },
@@ -9997,7 +10294,7 @@
             "description": "The deployment and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_149" }
+                "schema": { "$ref": "#/components/schemas/Response_151" }
               }
             }
           },
@@ -10005,7 +10302,7 @@
             "description": "The deployment and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_149" }
+                "schema": { "$ref": "#/components/schemas/Response_151" }
               }
             }
           },
@@ -10071,7 +10368,7 @@
             "description": "The rollback deployment and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_150" }
+                "schema": { "$ref": "#/components/schemas/Response_152" }
               }
             }
           },
@@ -10079,7 +10376,7 @@
             "description": "The rollback deployment and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_150" }
+                "schema": { "$ref": "#/components/schemas/Response_152" }
               }
             }
           },
@@ -10126,7 +10423,7 @@
             "description": "The runtime operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -10134,7 +10431,7 @@
             "description": "The runtime operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -10181,7 +10478,7 @@
             "description": "The runtime operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -10189,7 +10486,7 @@
             "description": "The runtime operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -10236,7 +10533,7 @@
             "description": "The runtime operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -10244,7 +10541,7 @@
             "description": "The runtime operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -10307,7 +10604,7 @@
             "description": "The runtime operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -10315,7 +10612,7 @@
             "description": "The runtime operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -10344,7 +10641,7 @@
             "description": "JSON object containing resources.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_224" }
+                "schema": { "$ref": "#/components/schemas/Response_226" }
               }
             }
           },
@@ -10385,7 +10682,7 @@
             "description": "JSON object containing resource.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_225" }
+                "schema": { "$ref": "#/components/schemas/Response_227" }
               }
             }
           },
@@ -10426,7 +10723,7 @@
             "description": "JSON object containing autoDeploy, canManageAutoDeploy.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_226" }
+                "schema": { "$ref": "#/components/schemas/Response_228" }
               }
             }
           },
@@ -10479,7 +10776,7 @@
             "description": "JSON object containing autoDeploy, canManageAutoDeploy.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_227" }
+                "schema": { "$ref": "#/components/schemas/Response_229" }
               }
             }
           },
@@ -10520,7 +10817,7 @@
             "description": "JSON object containing deployments.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_229" }
+                "schema": { "$ref": "#/components/schemas/Response_231" }
               }
             }
           },
@@ -10561,7 +10858,7 @@
             "description": "JSON object containing releases.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_230" }
+                "schema": { "$ref": "#/components/schemas/Response_232" }
               }
             }
           },
@@ -10602,7 +10899,7 @@
             "description": "JSON object containing operations.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_231" }
+                "schema": { "$ref": "#/components/schemas/Response_233" }
               }
             }
           },
@@ -10643,7 +10940,7 @@
             "description": "JSON object containing assurance, assurances, awsConfigured, canRestore.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_232" }
+                "schema": { "$ref": "#/components/schemas/Response_234" }
               }
             }
           },
@@ -10695,7 +10992,7 @@
             "description": "JSON object containing events.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_235" }
+                "schema": { "$ref": "#/components/schemas/Response_237" }
               }
             }
           },
@@ -10742,7 +11039,7 @@
             "description": "The deployment and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_149" }
+                "schema": { "$ref": "#/components/schemas/Response_151" }
               }
             }
           },
@@ -10750,7 +11047,7 @@
             "description": "The deployment and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_149" }
+                "schema": { "$ref": "#/components/schemas/Response_151" }
               }
             }
           },
@@ -10816,7 +11113,7 @@
             "description": "The rollback deployment and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_150" }
+                "schema": { "$ref": "#/components/schemas/Response_152" }
               }
             }
           },
@@ -10824,7 +11121,7 @@
             "description": "The rollback deployment and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_150" }
+                "schema": { "$ref": "#/components/schemas/Response_152" }
               }
             }
           },
@@ -10871,7 +11168,7 @@
             "description": "The runtime operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -10879,7 +11176,7 @@
             "description": "The runtime operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -10926,7 +11223,7 @@
             "description": "The runtime operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -10934,7 +11231,7 @@
             "description": "The runtime operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -10981,7 +11278,7 @@
             "description": "The runtime operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -10989,7 +11286,7 @@
             "description": "The runtime operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -11036,7 +11333,7 @@
             "description": "The runtime operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -11044,7 +11341,7 @@
             "description": "The runtime operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -11121,7 +11418,7 @@
             "description": "The restore operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -11129,7 +11426,7 @@
             "description": "The restore operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -11196,7 +11493,7 @@
             "description": "The restore cleanup operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -11204,7 +11501,7 @@
             "description": "The restore cleanup operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -11256,7 +11553,7 @@
             "description": "JSON object containing operation.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_238" }
+                "schema": { "$ref": "#/components/schemas/Response_240" }
               }
             }
           },
@@ -11319,7 +11616,7 @@
             "description": "The runtime operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -11327,7 +11624,7 @@
             "description": "The runtime operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -11368,7 +11665,7 @@
             "description": "The preview cleanup operation and its status. Accepted work continues asynchronously; poll its ID.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_239" }
+                "schema": { "$ref": "#/components/schemas/Response_241" }
               }
             }
           },
@@ -11376,7 +11673,7 @@
             "description": "The preview cleanup operation and its status. Accepted work continues asynchronously; poll its ID.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_239" }
+                "schema": { "$ref": "#/components/schemas/Response_241" }
               }
             }
           },
@@ -11417,7 +11714,7 @@
             "description": "The preview deployment and whether the request was replayed. Accepted work continues asynchronously; poll its ID.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_240" }
+                "schema": { "$ref": "#/components/schemas/Response_242" }
               }
             }
           },
@@ -11446,7 +11743,7 @@
             "description": "JSON object containing servers.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_185" }
+                "schema": { "$ref": "#/components/schemas/Response_187" }
               }
             }
           },
@@ -11530,7 +11827,7 @@
             "description": "JSON object containing server.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_191" }
+                "schema": { "$ref": "#/components/schemas/Response_193" }
               }
             }
           },
@@ -11571,7 +11868,7 @@
             "description": "JSON object containing canCleanupOrphans, canManageServer, canRemoveServer, server.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_193" }
+                "schema": { "$ref": "#/components/schemas/Response_195" }
               }
             }
           },
@@ -11667,7 +11964,7 @@
             "description": "JSON object containing server.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_195" }
+                "schema": { "$ref": "#/components/schemas/Response_197" }
               }
             }
           },
@@ -11745,7 +12042,7 @@
             "description": "JSON object containing apps.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_196" }
+                "schema": { "$ref": "#/components/schemas/Response_198" }
               }
             }
           },
@@ -11786,7 +12083,7 @@
             "description": "JSON object containing resources.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_199" }
+                "schema": { "$ref": "#/components/schemas/Response_201" }
               }
             }
           },
@@ -11827,7 +12124,7 @@
             "description": "JSON object containing deployments.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_200" }
+                "schema": { "$ref": "#/components/schemas/Response_202" }
               }
             }
           },
@@ -11868,7 +12165,7 @@
             "description": "JSON object containing capacity.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_201" }
+                "schema": { "$ref": "#/components/schemas/Response_203" }
               }
             }
           },
@@ -11931,7 +12228,7 @@
             "description": "Server checks and pagination metadata.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_207" }
+                "schema": { "$ref": "#/components/schemas/Response_209" }
               }
             }
           },
@@ -11972,7 +12269,7 @@
             "description": "JSON object containing preparations.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_211" }
+                "schema": { "$ref": "#/components/schemas/Response_213" }
               }
             }
           },
@@ -12013,7 +12310,7 @@
             "description": "JSON object containing orphans.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_214" }
+                "schema": { "$ref": "#/components/schemas/Response_216" }
               }
             }
           },
@@ -12054,7 +12351,7 @@
             "description": "JSON object containing hostKeys.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_215" }
+                "schema": { "$ref": "#/components/schemas/Response_217" }
               }
             }
           },
@@ -12095,7 +12392,7 @@
             "description": "JSON object containing check. Accepted work continues asynchronously; poll its ID.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_217" }
+                "schema": { "$ref": "#/components/schemas/Response_219" }
               }
             }
           },
@@ -12136,7 +12433,7 @@
             "description": "JSON object containing preparation. Accepted work continues asynchronously; poll its ID.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_219" }
+                "schema": { "$ref": "#/components/schemas/Response_221" }
               }
             }
           },
@@ -12219,7 +12516,7 @@
             "description": "The cleanup operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -12227,7 +12524,7 @@
             "description": "The cleanup operation and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_151" }
+                "schema": { "$ref": "#/components/schemas/Response_153" }
               }
             }
           },
@@ -12297,7 +12594,7 @@
             "description": "JSON object containing hostKey.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_221" }
+                "schema": { "$ref": "#/components/schemas/Response_223" }
               }
             }
           },
@@ -12371,7 +12668,7 @@
             "description": "JSON object containing deployments.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_152" }
+                "schema": { "$ref": "#/components/schemas/Response_154" }
               }
             }
           },
@@ -12423,7 +12720,7 @@
             "description": "Deployment history and pagination metadata.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_154" }
+                "schema": { "$ref": "#/components/schemas/Response_156" }
               }
             }
           },
@@ -12464,7 +12761,7 @@
             "description": "JSON object containing deployment.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_157" }
+                "schema": { "$ref": "#/components/schemas/Response_159" }
               }
             }
           },
@@ -12505,7 +12802,7 @@
             "description": "JSON object containing steps.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_161" }
+                "schema": { "$ref": "#/components/schemas/Response_163" }
               }
             }
           },
@@ -12556,7 +12853,7 @@
             "description": "JSON object containing logs.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_163" }
+                "schema": { "$ref": "#/components/schemas/Response_165" }
               }
             }
           },
@@ -12597,7 +12894,7 @@
             "description": "JSON object containing findings.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_165" }
+                "schema": { "$ref": "#/components/schemas/Response_167" }
               }
             }
           },
@@ -12654,7 +12951,7 @@
             "description": "JSON object containing deployment, logs, steps.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_167" }
+                "schema": { "$ref": "#/components/schemas/Response_169" }
               },
               "text/event-stream": { "schema": { "type": "string" } }
             }
@@ -12696,7 +12993,7 @@
             "description": "JSON object containing deployment. Accepted work continues asynchronously; poll its ID.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_168" }
+                "schema": { "$ref": "#/components/schemas/Response_170" }
               }
             }
           },
@@ -12743,7 +13040,7 @@
             "description": "The retry deployment and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_149" }
+                "schema": { "$ref": "#/components/schemas/Response_151" }
               }
             }
           },
@@ -12751,7 +13048,7 @@
             "description": "The retry deployment and whether the request was replayed. Accepted work continues asynchronously; poll its ID. An idempotent replay returns 200.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_149" }
+                "schema": { "$ref": "#/components/schemas/Response_151" }
               }
             }
           },
@@ -12795,7 +13092,7 @@
                 "schema": {
                   "anyOf": [
                     { "type": "null" },
-                    { "$ref": "#/components/schemas/Response_169" }
+                    { "$ref": "#/components/schemas/Response_171" }
                   ]
                 }
               }
@@ -12826,7 +13123,7 @@
             "description": "Control-plane, integration, and server health checks.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SystemHealth_276" }
+                "schema": { "$ref": "#/components/schemas/SystemHealth_278" }
               }
             }
           },
@@ -12855,7 +13152,7 @@
             "description": "Updated control-plane, integration, and server health checks.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SystemHealth_276" }
+                "schema": { "$ref": "#/components/schemas/SystemHealth_278" }
               }
             }
           },
@@ -12884,7 +13181,7 @@
             "description": "JSON object containing user.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Response_83" }
+                "schema": { "$ref": "#/components/schemas/Response_85" }
               }
             }
           },

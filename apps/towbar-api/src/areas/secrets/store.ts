@@ -262,3 +262,27 @@ export async function revealSecretValue(
     });
   return { value: values[key]!, revision };
 }
+
+export async function revealSecretValues(
+  slot: SecretSlot,
+  actorUserId: string,
+) {
+  await requireSecretOwner(slot);
+  const { values, revision } = await readSecretValues(slot);
+  await getTowbarDatabase()
+    .insert(auditEvents)
+    .values({
+      workspaceId: slot.workspaceId,
+      actorUserId,
+      action: "secrets.revealed",
+      targetType: slot.type,
+      targetId: ownerKey(slot),
+      metadata: {
+        environment: slot.environment,
+        stage: slot.stage,
+        keyCount: Object.keys(values).length,
+        revision,
+      },
+    });
+  return { values, revision };
+}

@@ -95,6 +95,8 @@ After saving, queue a production deployment through the existing app/resource de
 
 To reveal one stored environment value, send `POST` to the secret stage path followed by `/reveal`, with `{ "key": "ENV_KEY" }`. For example, `/v1/core/apps/{id}/secrets/production/deployment/reveal`. The response contains `value` and `revision`, uses `Cache-Control: no-store`, and records a value-free audit event. Workspace and Source paths support the same operation. Reveal does not resolve references or save changes.
 
+To reveal all stored values for one environment and stage, send `POST` to the same stage path followed by `/reveal-all`, with `{}`. The response contains `values` (a key/value object) and one `revision`. File mode uses this single request. It has the same owner and workspace restrictions, returns stored reference expressions without resolving them, disables caching, and records a value-free audit event with the key count. It does not fetch other scopes, environments, or stages.
+
 ## Storage and recovery
 
 Secret records are encrypted in PostgreSQL using the separately configured 32-byte `TOWBAR_CREDENTIALS_KEY`. Authenticated encryption binds each record to its workspace, owner, environment, stage, and identity. Values are resolved by the API for execution and sent over the authenticated internal worker path. An owner can also retrieve one stored value through the explicit reveal operation. Temporal history, metadata responses, deployment snapshots, and audit events contain no plaintext values.

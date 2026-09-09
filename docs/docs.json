@@ -141,7 +141,8 @@
                 "pages": [
                   "api-reference/get_sources_by_id_secrets",
                   "api-reference/patch_sources_by_id_secrets_by_environment_by_stage",
-                  "api-reference/post_sources_by_id_secrets_by_environment_by_stage_reveal"
+                  "api-reference/post_sources_by_id_secrets_by_environment_by_stage_reveal",
+                  "api-reference/post_sources_by_id_secrets_by_environment_by_stage_reveal_all"
                 ]
               }
             ]
@@ -190,7 +191,8 @@
                 "pages": [
                   "api-reference/get_apps_by_id_secrets",
                   "api-reference/patch_apps_by_id_secrets_by_environment_by_stage",
-                  "api-reference/post_apps_by_id_secrets_by_environment_by_stage_reveal"
+                  "api-reference/post_apps_by_id_secrets_by_environment_by_stage_reveal",
+                  "api-reference/post_apps_by_id_secrets_by_environment_by_stage_reveal_all"
                 ]
               }
             ]
@@ -246,7 +248,8 @@
                 "pages": [
                   "api-reference/get_resources_by_id_secrets",
                   "api-reference/patch_resources_by_id_secrets_by_environment_by_stage",
-                  "api-reference/post_resources_by_id_secrets_by_environment_by_stage_reveal"
+                  "api-reference/post_resources_by_id_secrets_by_environment_by_stage_reveal",
+                  "api-reference/post_resources_by_id_secrets_by_environment_by_stage_reveal_all"
                 ]
               }
             ]
@@ -397,7 +400,8 @@
                 "pages": [
                   "api-reference/get_settings_secrets",
                   "api-reference/patch_settings_secrets_by_environment_by_stage",
-                  "api-reference/post_settings_secrets_by_environment_by_stage_reveal"
+                  "api-reference/post_settings_secrets_by_environment_by_stage_reveal",
+                  "api-reference/post_settings_secrets_by_environment_by_stage_reveal_all"
                 ]
               },
               {
