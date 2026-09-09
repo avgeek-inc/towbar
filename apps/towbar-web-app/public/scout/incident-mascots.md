@@ -105,6 +105,7 @@ Prompt: Create one transparent PNG UI mascot asset based on the reference Scout 
 ### mascot-worried.png
 
 Prompt: Create one transparent PNG UI mascot asset based on the reference Scout bird. Preserve exactly this yellow fluffy chick character, round body, glossy black eyes, little ivory beak, three crown feathers, dark feet, soft polished 3D toy rendering. Full body, centered square composition with a small even margin. Expression and pose: worried and tense, clearly concerned about an incident, slightly hunched shoulders, wings held near cheeks, eyes looking anxiously forward with worried eyebrows, small tense open beak. Gentle worried expression, not horror or crying. Keep recognizable bird anatomy, no human hands. No extra objects, no lettering, no badge, no background, no ground plane. Genuine transparent alpha around the character, no checkerboard. Designed to be legible at 140px in a dashboard on both dark and light backgrounds.
+
 # Bottom-right illustrations
 
 Current assets: `overview-apps-corner.png`, `overview-resources-corner.png`,
@@ -135,6 +136,7 @@ PNG with transparency. Keep all objects unchanged.
 
 Transparent margins were trimmed to visible alpha bounds after generation. The UI
 anchors each asset to the bottom-right edge with a small clipped bleed.
+
 # Edge-composed illustrations
 
 Current files: `overview-{apps,resources,healthy,smoking}-edge.png` and `overview-servers-edge-v2.png`.
@@ -164,4 +166,3 @@ Refinements:
 Transparency was requested directly in every prompt. Inventory outputs retained alpha;
 Scout edits required a subsequent ImageGen background removal request. All final PNGs
 were checked for an alpha channel. No local background removal was used.
-
