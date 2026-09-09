@@ -10,12 +10,12 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { ComponentProps } from "react";
+import Image from "next/image";
 import type {
   App,
   Deployment,
   Resource,
   Server,
-  Source,
 } from "@workspace/towbar-web-client";
 import { LineChart } from "@workspace/web-design-system/charts/line-chart";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
@@ -51,18 +51,14 @@ export function DashboardOverview() {
     "/v1/core/servers",
     30_000,
   );
-  const sources = useApiQuery<{ sources: Source[] }>(
-    "/v1/core/sources",
-    30_000,
-  );
-  const error = apps.error ?? resources.error ?? servers.error ?? sources.error;
+  const error = apps.error ?? resources.error ?? servers.error;
   if (error)
     return (
       <DashboardPage icon={DashboardSquare01Icon} title="Overview">
         <QueryError message={error} />
       </DashboardPage>
     );
-  if (!apps.data || !resources.data || !servers.data || !sources.data)
+  if (!apps.data || !resources.data || !servers.data)
     return (
       <DashboardPage icon={DashboardSquare01Icon} title="Overview">
         <QueryLoading variant="dashboard" />
@@ -72,28 +68,15 @@ export function DashboardOverview() {
   const appItems = apps.data.apps;
   const resourceItems = resources.data.resources;
   const serverItems = servers.data.servers;
-  const sourceItems = sources.data.sources;
   const activeApps = appItems.filter((app) => !app.archivedAt);
   const activeResources = resourceItems.filter((item) => !item.archivedAt);
   const activeServers = serverItems.filter((server) => !server.archivedAt);
-  const activeSources = sourceItems.filter(
-    (source) => source.status === "active",
-  );
   const metrics = [
-    {
-      icon: GitBranchIcon,
-      href: "/sources",
-      label: "Sources",
-      status: "synced",
-      detailCount: activeSources.filter((source) => source.latestCommitSha)
-        .length,
-      detailLabel: "imported",
-      value: activeSources.length,
-    },
     {
       icon: DashboardCircleIcon,
       href: "/apps",
       label: "Apps",
+      image: "/scout/overview-apps.png",
       status: "running",
       detailCount: activeApps.filter(
         (item) => item.runtimeState.observedState === "running",
@@ -105,6 +88,7 @@ export function DashboardOverview() {
       icon: DatabaseIcon,
       href: "/resources",
       label: "Resources",
+      image: "/scout/overview-resources.png",
       status: "running",
       detailCount: activeResources.filter(
         (item) => item.runtimeState.observedState === "running",
@@ -116,6 +100,7 @@ export function DashboardOverview() {
       icon: ServerStack01Icon,
       href: "/servers",
       label: "Servers",
+      image: "/scout/overview-servers.png",
       status: "ready",
       detailCount: activeServers.filter(
         (server) => server.setupStatus === "ready",
@@ -140,33 +125,42 @@ export function DashboardOverview() {
         </ButtonLink>
       }
     >
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {metrics.map((metric) => (
-          <Widget className="min-w-0" key={metric.label}>
-            <Widget.Header>
-              <Widget.Title icon={<OverviewMetricIcon icon={metric.icon} />}>
-                {metric.label}
-              </Widget.Title>
-            </Widget.Header>
-            <Widget.Content className="flex flex-wrap items-end justify-between gap-3">
-              <InlineLink
-                href={metric.href}
-                className="inline-flex min-h-11 min-w-11 items-center text-3xl font-semibold tracking-tight tabular-nums"
-                aria-label={`${metric.value} ${metric.label.toLowerCase()} — view all`}
-              >
-                {metric.value}
-              </InlineLink>
-              <StatusBadge
-                context="runtime"
-                status={metric.detailCount ? metric.status : "inactive"}
-                label={`${metric.detailCount} ${metric.detailLabel}`}
-              />
-            </Widget.Content>
-          </Widget>
-        ))}
-      </div>
-      <div className="grid items-stretch gap-4 lg:grid-cols-2">
-        <OverviewIncidents />
+      <div className="grid items-stretch gap-4 xl:grid-cols-2">
+        <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+          {metrics.map((metric) => (
+            <Widget className="min-w-0" key={metric.label}>
+              <Widget.Header>
+                <Widget.Title icon={<OverviewMetricIcon icon={metric.icon} />}>
+                  {metric.label}
+                </Widget.Title>
+              </Widget.Header>
+              <Widget.Content className="flex min-h-40 items-center justify-between gap-3">
+                <div className="grid justify-items-start gap-3">
+                  <InlineLink
+                    href={metric.href}
+                    className="inline-flex min-h-11 min-w-11 items-center text-3xl font-semibold tracking-tight tabular-nums"
+                    aria-label={`${metric.value} ${metric.label.toLowerCase()} — view all`}
+                  >
+                    {metric.value}
+                  </InlineLink>
+                  <StatusBadge
+                    context="runtime"
+                    status={metric.detailCount ? metric.status : "inactive"}
+                    label={`${metric.detailCount} ${metric.detailLabel}`}
+                  />
+                </div>
+                <Image
+                  src={metric.image}
+                  alt=""
+                  width={128}
+                  height={96}
+                  className="h-24 w-28 shrink-0 object-contain"
+                />
+              </Widget.Content>
+            </Widget>
+          ))}
+          <OverviewIncidents />
+        </div>
         <OverviewActivity />
       </div>
       <OverviewDeployments apps={appItems} />

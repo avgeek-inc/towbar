@@ -1,5 +1,23 @@
 # Incident mascot assets
 
+## Inventory widget illustrations
+
+Generated using the built-in image tool with `mascot-soft-healthy.png` as the style reference. All three final PNGs have transparent alpha.
+
+### overview-apps.png
+
+Prompt: Create a transparent PNG dashboard illustration. Two small light gray shipping containers stacked slightly offset, with a clear blue Docker whale-and-containers symbol centered on the front container. Soft simplified 3D designer toy aesthetic matching the containers in the reference. Smooth matte surfaces, rounded corners, broad simplified corrugations, gentle diffuse lighting, no realistic metal texture, no tiny details. Compact centered landscape composition, all objects inside frame with margin, readable at 100px wide. Only the described objects; no Scout bird, no text, no floor, no backdrop. Genuine transparent alpha background.
+
+### overview-resources.png
+
+Prompt: Create a transparent PNG dashboard illustration. Two small light gray shipping containers stacked slightly offset, with a clear blue database cylinder symbol centered on the front container. Soft simplified 3D designer toy aesthetic matching the containers in the reference. Smooth matte surfaces, rounded corners, broad simplified corrugations, gentle diffuse lighting, no realistic metal texture, no tiny details. Compact centered landscape composition, all objects inside frame with margin, readable at 100px wide. Only the described objects; no Scout bird, no text, no floor, no backdrop. Genuine transparent alpha background.
+
+### overview-servers.png
+
+Prompt: Create a transparent PNG dashboard illustration. One small friendly cargo ship in three quarter view, neutral light gray hull, blue trim, carrying a few light gray shipping containers. No water or scenery. Soft simplified 3D designer toy aesthetic matching the containers in the reference. Smooth matte surfaces, rounded corners, broad simplified corrugations, gentle diffuse lighting, no realistic metal texture, no tiny details. Compact centered landscape composition, all objects inside frame with margin, readable at 100px wide. Only the described objects; no Scout bird, no text, no floor, no backdrop. Genuine transparent alpha background.
+
+Ship background extraction: Remove the background from this image. Output a PNG with transparency. Keep the ship and its containers.
+
 ## Soft texture revision
 
 Current assets: `mascot-soft-healthy.png` and `mascot-soft-smoking.png`. Generated using the built-in image tool from the preceding healthy/smoking container images. Both have verified transparent alpha. Prior prompts below document the asset history.

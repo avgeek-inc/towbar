@@ -64,7 +64,7 @@ export function OverviewIncidents() {
               alt=""
               width={160}
               height={120}
-              className="h-24 w-32 shrink-0 object-contain sm:h-30 sm:w-40"
+              className="h-24 w-28 shrink-0 object-contain"
             />
           </>
         )}
