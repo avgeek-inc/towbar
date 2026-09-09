@@ -112,7 +112,7 @@ export function SecondaryEntityHeader({
     ? createPortal(
         <div
           data-secondary-menu
-          className="order-first flex min-w-0 items-center gap-2 border-b border-separator px-2 pb-3 pt-5 text-xl font-medium text-foreground"
+          className="order-first flex min-w-0 items-center gap-2 px-2 pb-3 pt-5 text-xl font-medium text-foreground"
         >
           <span
             aria-hidden="true"
