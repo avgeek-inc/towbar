@@ -88,7 +88,7 @@ export function DashboardOverview() {
       icon: DatabaseIcon,
       href: "/resources",
       label: "Resources",
-      image: "/scout/overview-resources.png",
+      image: "/scout/overview-resources-yellow.png",
       status: "running",
       detailCount: activeResources.filter(
         (item) => item.runtimeState.observedState === "running",
@@ -100,7 +100,7 @@ export function DashboardOverview() {
       icon: ServerStack01Icon,
       href: "/servers",
       label: "Servers",
-      image: "/scout/overview-servers.png",
+      image: "/scout/overview-servers-yellow.png",
       status: "ready",
       detailCount: activeServers.filter(
         (server) => server.setupStatus === "ready",
@@ -134,7 +134,7 @@ export function DashboardOverview() {
                   {metric.label}
                 </Widget.Title>
               </Widget.Header>
-              <Widget.Content className="flex min-h-40 items-center justify-between gap-3">
+              <Widget.Content className="flex min-h-30 items-center justify-between gap-3">
                 <div className="grid justify-items-start gap-3">
                   <InlineLink
                     href={metric.href}
@@ -154,7 +154,11 @@ export function DashboardOverview() {
                   alt=""
                   width={128}
                   height={96}
-                  className="h-24 w-28 shrink-0 object-contain"
+                  className={
+                    metric.label === "Servers"
+                      ? "h-20 w-28 shrink-0 object-contain p-2"
+                      : "h-24 w-28 shrink-0 object-contain"
+                  }
                 />
               </Widget.Content>
             </Widget>
@@ -205,7 +209,7 @@ function OverviewActivity() {
             aria-label="Deployment activity over the last 7 days"
             className="min-w-0"
             data={activity}
-            height={260}
+            height={240}
           >
             <LineChart.Grid vertical={false} />
             <LineChart.XAxis

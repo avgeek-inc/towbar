@@ -1,5 +1,13 @@
 # Incident mascot assets
 
+## Yellow inventory accents
+
+Current resources and server assets are `overview-resources-yellow.png` and `overview-servers-yellow.png`, edited using the built-in image tool from their preceding versions. Both have transparent alpha.
+
+Database prompt: Change only the blue database cylinder symbol to warm golden yellow. Preserve gray containers, smooth soft toy style, composition and transparent PNG background.
+
+Boat prompt: Recolor the boat itself in soft warm yellow shades: golden yellow trim and pale buttery yellow hull and cabin. Keep cargo containers gray, windows dark, and preserve the smooth soft toy style and exact composition. Transparent PNG background.
+
 ## Inventory widget illustrations
 
 Generated using the built-in image tool with `mascot-soft-healthy.png` as the style reference. All three final PNGs have transparent alpha.

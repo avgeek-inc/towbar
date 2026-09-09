@@ -35,7 +35,7 @@ export function OverviewIncidents() {
           Active incidents
         </Widget.Title>
       </Widget.Header>
-      <Widget.Content className="flex min-h-40 items-center justify-between gap-4">
+      <Widget.Content className="flex min-h-30 items-center justify-between gap-4">
         {query.error ? (
           <QueryError message={query.error} />
         ) : count === undefined ? (
