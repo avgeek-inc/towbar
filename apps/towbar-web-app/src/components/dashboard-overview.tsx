@@ -76,7 +76,7 @@ export function DashboardOverview() {
       icon: DashboardCircleIcon,
       href: "/apps",
       label: "Apps",
-      image: "/scout/overview-apps-trimmed.png",
+      image: "/scout/overview-apps-v2.png",
       status: "running",
       detailCount: activeApps.filter(
         (item) => item.runtimeState.observedState === "running",
@@ -100,7 +100,7 @@ export function DashboardOverview() {
       icon: ServerStack01Icon,
       href: "/servers",
       label: "Servers",
-      image: "/scout/overview-servers-trimmed.png",
+      image: "/scout/overview-servers-v2.png",
       status: "ready",
       detailCount: activeServers.filter(
         (server) => server.setupStatus === "ready",

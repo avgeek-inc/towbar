@@ -1,5 +1,19 @@
 # Incident mascot assets
 
+## Unified yellow accents and gray cargo
+
+Current replacements: `overview-apps-v2.png`, `overview-servers-v2.png`, `overview-healthy-v2.png`, `overview-smoking-v2.png`. Edited with the built-in image tool and cropped to visible alpha bounds as above. The resource illustration remains `overview-resources-trimmed.png`.
+
+apps prompt: Change only the blue Docker symbol to warm golden yellow. Keep the graphite gray containers unchanged. Preserve the soft matte style and transparent PNG background. Keep every object fully inside the frame.
+
+servers prompt: Simplify the ship and its cargo containers into a minimal smooth 3D toy. Remove the mast, tiny latches, door rods, corner holes, smokestack stripes and excess corrugations. Keep three simple rounded gray cargo boxes with just a few broad grooves, a simple cabin with dark windows, gray hull and yellow border trim. Preserve recognizable cargo ship silhouette and current angle. Preserve the soft matte style and transparent PNG background. Keep every object fully inside the frame.
+
+healthy prompt: Change all green shipping containers to uniform medium graphite gray. Keep Scout yellow with the exact happy pose and soft plush style unchanged. Preserve the soft matte style and transparent PNG background. Keep every object fully inside the frame.
+
+smoking prompt: Change only the two green shipping containers to uniform medium graphite gray. Keep the red container red with its smoke, and keep Scout yellow in the same worried pose and soft plush style. Preserve the soft matte style and transparent PNG background. Keep every object fully inside the frame.
+
+Each edit then used this background extraction prompt: Remove the background from this image. Output a PNG with transparency. Keep all objects unchanged.
+
 ## Darker gray and trimmed assets
 
 Current inventory assets: `overview-apps-trimmed.png`, `overview-resources-trimmed.png`, and `overview-servers-trimmed.png`. Current incident assets: `mascot-soft-healthy-trimmed.png` and `mascot-soft-smoking-trimmed.png`.
