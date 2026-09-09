@@ -214,7 +214,11 @@ function OverviewActivity() {
               tickFormatter={(value) => formatActivityDate(String(value))}
               tickMargin={8}
             />
-            <LineChart.YAxis tick={activityAxisTick} width={32} />
+            <LineChart.YAxis
+              allowDecimals={false}
+              tick={activityAxisTick}
+              width={32}
+            />
             {activitySeries.map((series) => (
               <LineChart.Line
                 dataKey={series.key}
