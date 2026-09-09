@@ -398,6 +398,10 @@
                 ]
               },
               {
+                "group": "Security scans",
+                "pages": ["api-reference/get_monitoring_security_scans"]
+              },
+              {
                 "group": "Shared secrets",
                 "pages": [
                   "api-reference/get_settings_secrets",

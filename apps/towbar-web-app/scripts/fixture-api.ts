@@ -57,6 +57,7 @@ import type {
   UserSession,
   VulnerabilityFinding,
   VulnerabilityScan,
+  VulnerabilityScanSummary,
 } from "@workspace/towbar-web-client";
 
 export const fixtureIds = {
@@ -352,6 +353,199 @@ const vulnerabilityFindings: VulnerabilityFinding[] = [
     target: "node:24-alpine (alpine 3.23.1)",
   },
 ];
+
+const emptySeverityTotals = {
+  critical: 0,
+  high: 0,
+  low: 0,
+  medium: 0,
+  unknown: 0,
+};
+
+const securityScanProfiles = [
+  {
+    findings: [
+      {
+        advisoryId: "CVE-2026-21001",
+        fixedVersion: "3.5.1-r0",
+        id: "a1111111-1111-4111-8111-555555555555",
+        installedVersion: "3.5.0-r0",
+        packageName: "openssl",
+        severity: "critical",
+        target: "node:24-alpine (alpine 3.23.1)",
+      },
+      {
+        advisoryId: "CVE-2026-21002",
+        fixedVersion: "1.4.3-r0",
+        id: "a1111111-1111-4111-8111-666666666666",
+        installedVersion: "1.4.2-r1",
+        packageName: "busybox",
+        severity: "critical",
+        target: "node:24-alpine (alpine 3.23.1)",
+      },
+      ...vulnerabilityFindings,
+      {
+        advisoryId: "CVE-2026-21003",
+        fixedVersion: null,
+        id: "a1111111-1111-4111-8111-444444444444",
+        installedVersion: "2.31.0",
+        packageName: "esbuild",
+        severity: "low",
+        target: "node:24-alpine (alpine 3.23.1)",
+      },
+    ],
+    severityTotals: {
+      critical: 2,
+      high: 1,
+      low: 3,
+      medium: 1,
+      unknown: 0,
+    },
+    state: "findings",
+    vulnerabilityDatabaseUpdatedAt: "2026-08-14T00:00:00.000Z",
+  },
+  {
+    findings: vulnerabilityFindings,
+    severityTotals: { critical: 0, high: 1, low: 2, medium: 1, unknown: 0 },
+    state: "stale",
+    vulnerabilityDatabaseUpdatedAt: "2026-07-01T00:00:00.000Z",
+  },
+  {
+    findings: [] as VulnerabilityFinding[],
+    severityTotals: emptySeverityTotals,
+    state: "clean",
+    vulnerabilityDatabaseUpdatedAt: "2026-08-14T00:00:00.000Z",
+  },
+] as const;
+
+function latestScannedDeploymentForApp(
+  app: FixtureApp,
+): Deployment | undefined {
+  return deployments
+    .filter(
+      (deployment) =>
+        deployment.appId === app.id &&
+        deployment.environment !== "preview" &&
+        ["succeeded", "succeeded_with_warnings"].includes(deployment.state),
+    )
+    .at(-1);
+}
+
+const securityScanSummaries: VulnerabilityScanSummary[] = apps.flatMap(
+  (app, index) => {
+    const deployment = latestScannedDeploymentForApp(app);
+    if (!deployment?.vulnerabilityScan) return [];
+    const profile = securityScanProfiles[index % securityScanProfiles.length]!;
+    const sourceForApp = sources.find((item) => item.id === app.sourceId);
+    const serverForApp = servers.find((item) => item.id === app.serverId);
+    deployment.vulnerabilityScan = {
+      ...deployment.vulnerabilityScan,
+      errorCode: null,
+      errorMessage: null,
+      severityTotals: { ...profile.severityTotals },
+      state: profile.state,
+      vulnerabilityDatabaseUpdatedAt: profile.vulnerabilityDatabaseUpdatedAt,
+    };
+    return [
+      {
+        ...deployment.vulnerabilityScan,
+        appArchivedAt: app.archivedAt,
+        appName: app.name,
+        deploymentId: deployment.id,
+        serverId: app.serverId,
+        serverName: serverForApp?.canonicalIp ?? app.serverIp,
+        sourceId: app.sourceId,
+        sourceName: sourceForApp
+          ? `${sourceForApp.repositoryOwner}/${sourceForApp.repositoryName}`
+          : null,
+      },
+    ];
+  },
+);
+
+const vulnerabilityFindingsByDeployment = new Map<
+  string,
+  VulnerabilityFinding[]
+>(
+  securityScanSummaries.map((scan, index) => [
+    scan.deploymentId,
+    [...securityScanProfiles[index % securityScanProfiles.length]!.findings],
+  ]),
+);
+
+const appIdByScanId = new Map<string, string>(
+  securityScanSummaries.map((scan) => [
+    scan.id,
+    deployments.find((item) => item.id === scan.deploymentId)?.appId ?? "",
+  ]),
+);
+
+const severityRank = ["critical", "high", "medium", "low", "unknown"] as const;
+
+function getSecurityScansFixture(searchParams: URLSearchParams) {
+  const severityParam = searchParams.get("severity") ?? "all";
+  const severity: "all" | (typeof severityRank)[number] =
+    severityParam === "all" ||
+    (severityRank as readonly string[]).includes(severityParam)
+      ? (severityParam as "all" | (typeof severityRank)[number])
+      : "all";
+  const appId = searchParams.get("appId");
+  const serverId = searchParams.get("serverId");
+  const page = Math.max(1, Number(searchParams.get("page") ?? 1) || 1);
+  const limit = Math.min(
+    50,
+    Math.max(1, Number(searchParams.get("limit") ?? 20) || 20),
+  );
+  const entityMatches = (scan: VulnerabilityScanSummary) =>
+    (!appId || appIdByScanId.get(scan.id) === appId) &&
+    (!serverId || scan.serverId === serverId);
+  const filtered = securityScanSummaries
+    .filter(entityMatches)
+    .filter((scan) => severity === "all" || scan.severityTotals[severity] > 0);
+  filtered.sort((left, right) => {
+    for (const level of severityRank) {
+      const difference =
+        right.severityTotals[level] - left.severityTotals[level];
+      if (difference !== 0) return difference;
+    }
+    return (right.completedAt ?? right.requestedAt).localeCompare(
+      left.completedAt ?? left.requestedAt,
+    );
+  });
+  const start = (page - 1) * limit;
+  const items = filtered.slice(start, start + limit);
+  const scoped = securityScanSummaries.filter(entityMatches);
+  const summary = {
+    activeScans: scoped.filter((scan) =>
+      ["pending", "running"].includes(scan.state),
+    ).length,
+    cleanScans: scoped.filter((scan) => scan.state === "clean").length,
+    critical: sumSeverity(scoped, "critical"),
+    failedScans: scoped.filter((scan) => scan.state === "failed").length,
+    high: sumSeverity(scoped, "high"),
+    low: sumSeverity(scoped, "low"),
+    medium: sumSeverity(scoped, "medium"),
+    scansWithFindings: scoped.filter((scan) => scan.state === "findings")
+      .length,
+    unknown: sumSeverity(scoped, "unknown"),
+  };
+  return {
+    nextPage: start + limit < filtered.length ? page + 1 : null,
+    page,
+    scans: items,
+    summary,
+  };
+}
+
+function sumSeverity(
+  scans: VulnerabilityScanSummary[],
+  severity: (typeof severityRank)[number],
+) {
+  return scans.reduce(
+    (total, scan) => total + scan.severityTotals[severity],
+    0,
+  );
+}
 
 const previews: PreviewEnvironment[] = [
   {
@@ -2030,9 +2224,15 @@ function getFixturePayload(
     const deployment = deployments.find(
       (item) => item.id === vulnerabilityFindingsMatch[1],
     );
-    return deployment?.vulnerabilityScan
-      ? { findings: vulnerabilityFindings }
-      : undefined;
+    if (!deployment?.vulnerabilityScan) return undefined;
+    return {
+      findings:
+        vulnerabilityFindingsByDeployment.get(deployment.id) ??
+        vulnerabilityFindings,
+    };
+  }
+  if (path === "/v1/core/monitoring/security-scans") {
+    return getSecurityScansFixture(searchParams);
   }
   if (deploymentMatch) {
     const deployment = deployments.find(

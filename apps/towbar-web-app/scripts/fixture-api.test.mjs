@@ -18,6 +18,7 @@ const readRoutes = [
   "/v1/core/servers",
   "/v1/core/deployments",
   "/v1/core/deployments/history",
+  "/v1/core/monitoring/security-scans",
   "/v1/core/system-health",
   "/v1/core/aws",
   "/v1/core/settings/secrets",
@@ -605,6 +606,69 @@ test("the local fixture covers retained backups from multiple Resources", async 
       ),
       true,
     );
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
+test("the local fixture ranks workspace security scans by severity", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  try {
+    const response = await fetch(
+      `${baseUrl}/v1/core/monitoring/security-scans`,
+    );
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.scans.length, 3);
+    assert.equal(payload.nextPage, null);
+    assert.equal(payload.scans[0].appName, "Towbar API");
+    assert.equal(payload.scans[0].severityTotals.critical, 2);
+    assert.equal(payload.scans[1].state, "stale");
+    assert.equal(payload.scans[2].state, "clean");
+    assert.equal(payload.summary.critical, 2);
+    assert.equal(payload.summary.scansWithFindings, 1);
+    assert.equal(payload.summary.cleanScans, 1);
+
+    const criticalOnly = await fetch(
+      `${baseUrl}/v1/core/monitoring/security-scans?severity=critical`,
+    ).then((item) => item.json());
+    assert.equal(criticalOnly.scans.length, 1);
+    assert.equal(criticalOnly.scans[0].appName, "Towbar API");
+    assert.equal(criticalOnly.summary.critical, 2);
+
+    const appScoped = await fetch(
+      `${baseUrl}/v1/core/monitoring/security-scans?appId=${fixtureIds.app}`,
+    ).then((item) => item.json());
+    assert.equal(appScoped.scans.length, 1);
+    assert.equal(appScoped.scans[0].appName, "Example Website");
+    assert.equal(appScoped.scans[0].state, "stale");
+
+    const paged = await fetch(
+      `${baseUrl}/v1/core/monitoring/security-scans?limit=2`,
+    ).then((item) => item.json());
+    assert.equal(paged.scans.length, 2);
+    assert.equal(paged.nextPage, 2);
+
+    const findings = await fetch(
+      `${baseUrl}/v1/core/deployments/${payload.scans[0].deploymentId}/vulnerability-scan/findings`,
+    ).then((item) => item.json());
+    assert.equal(findings.findings.length, 5);
+    assert.equal(
+      findings.findings.some((finding) => finding.severity === "critical"),
+      true,
+    );
+
+    const cleanFindings = await fetch(
+      `${baseUrl}/v1/core/deployments/${payload.scans[2].deploymentId}/vulnerability-scan/findings`,
+    ).then((item) => item.json());
+    assert.deepEqual(cleanFindings.findings, []);
   } finally {
     server.close();
     await once(server, "close");

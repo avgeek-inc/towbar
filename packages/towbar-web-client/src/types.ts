@@ -469,6 +469,33 @@ export type VulnerabilityFinding = {
   target: string;
 };
 
+export type VulnerabilityScanSummary = VulnerabilityScan & {
+  appArchivedAt: string | null;
+  appName: string;
+  deploymentId: string;
+  serverId: string;
+  serverName: string;
+  sourceId: string;
+  sourceName: string | null;
+};
+
+export type WorkspaceVulnerabilityScans = {
+  nextPage: number | null;
+  page: number;
+  scans: VulnerabilityScanSummary[];
+  summary: {
+    activeScans: number;
+    cleanScans: number;
+    critical: number;
+    failedScans: number;
+    high: number;
+    low: number;
+    medium: number;
+    scansWithFindings: number;
+    unknown: number;
+  };
+};
+
 export type PreviewEnvironment = {
   appId: string;
   appName: string;

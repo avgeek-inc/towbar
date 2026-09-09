@@ -7,6 +7,10 @@ import {
   monitoringEntitiesQuery,
   monitoringOverviewQuery,
 } from "../../../areas/monitoring/workspace.js";
+import {
+  listWorkspaceVulnerabilityScans,
+  vulnerabilityScansQuery,
+} from "../../../areas/vulnerability-scans/workspace.js";
 import { operation } from "../../../http/operation.js";
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
@@ -62,6 +66,25 @@ monitoringOverviewRoutes.get(
       await listWorkspaceIncidents(
         context.get("user").workspaceId,
         monitoringOverviewQuery.parse(context.req.query()),
+      ),
+    ),
+);
+
+monitoringOverviewRoutes.get(
+  "/security-scans",
+  operation({
+    responseSchema: 'monitoring-overview.ts:get:"/security-scans"',
+    summary: "List workspace vulnerability scans",
+    query: vulnerabilityScansQuery,
+    response:
+      "Paginated image vulnerability scans ranked by severity, with app, source, and server identity, plus workspace severity totals. Only Apps receive image scans.",
+    status: 200,
+  }),
+  async (context) =>
+    context.json(
+      await listWorkspaceVulnerabilityScans(
+        context.get("user").workspaceId,
+        vulnerabilityScansQuery.parse(context.req.query()),
       ),
     ),
 );
