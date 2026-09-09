@@ -152,8 +152,8 @@ export function DashboardOverview() {
                 <Image
                   src={metric.image}
                   alt=""
-                  width={128}
-                  height={96}
+                  width={512}
+                  height={512}
                   className="pointer-events-none absolute right-0 bottom-0 h-28 w-28 object-contain object-right-bottom"
                 />
               </Widget.Content>

@@ -35,7 +35,17 @@ export function OverviewIncidents() {
           Active incidents
         </Widget.Title>
       </Widget.Header>
-      <Widget.Content className="relative flex min-h-30 items-center overflow-hidden pr-28">
+      <Widget.Content
+        className="relative flex min-h-30 items-center overflow-hidden pr-28"
+        style={
+          !query.error && count !== undefined && count > 0
+            ? {
+                backgroundImage:
+                  "linear-gradient(color-mix(in srgb, var(--danger) 2%, transparent), color-mix(in srgb, var(--danger) 2%, transparent))",
+              }
+            : undefined
+        }
+      >
         {query.error ? (
           <QueryError message={query.error} />
         ) : count === undefined ? (
@@ -62,8 +72,8 @@ export function OverviewIncidents() {
                   : "/scout/overview-healthy-matched.png"
               }
               alt=""
-              width={160}
-              height={120}
+              width={512}
+              height={512}
               className="pointer-events-none absolute right-0 bottom-0 h-28 w-28 object-contain object-right-bottom"
             />
           </>
