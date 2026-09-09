@@ -1,11 +1,4 @@
-import { ComputerIcon } from "@hugeicons/core-free-icons";
-import { DashboardPage } from "@/components/page-parts";
-import { SessionSettings } from "@/components/settings-pages";
-
+import { redirect } from "next/navigation";
 export default function Page() {
-  return (
-    <DashboardPage icon={ComputerIcon} title="Sessions">
-      <SessionSettings />
-    </DashboardPage>
-  );
+  redirect("/settings?settings=sessions");
 }

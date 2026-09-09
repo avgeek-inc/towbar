@@ -1,4 +1,5 @@
 "use client";
+import { SecondaryItems } from "./secondary-sidebar";
 import {
   FloppyDiskIcon,
   Cancel01Icon,
@@ -19,7 +20,6 @@ import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { Spinner } from "@workspace/web-design-system/feedback/spinner";
 import { AlertDialog } from "@workspace/web-design-system/overlays/alert-dialog";
 import { Button } from "@workspace/web-design-system/buttons/button";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import {
   Field,
@@ -28,7 +28,6 @@ import {
 } from "@workspace/web-design-system/forms/field";
 import { Input } from "@workspace/web-design-system/forms/input";
 import type { InputProps } from "@workspace/web-design-system/forms/input";
-import { Tabs } from "@workspace/web-design-system/navigation/tabs";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { PageSection } from "@workspace/web-design-system/layouts/page";
 import { cn } from "@workspace/web-design-system/lib/utils";
@@ -152,86 +151,35 @@ export function PageTabs({
     );
   }
 
+  const active = tabs.find((tab) => tab.value === selectedKey);
   return (
-    <Tabs
-      className="grid w-full min-w-0 max-w-full gap-4"
-      selectedKey={selectedKey}
-      onSelectionChange={selectSection}
-    >
-      <Tabs.ListContainer className="min-w-0 max-w-full">
-        <Tabs.List aria-label="Page sections">
-          {tabs.map((tab) => (
-            <Tabs.Tab id={tab.value} key={tab.value}>
-              <span className="inline-flex min-w-0 items-center gap-2">
-                {tab.icon ? (
-                  <span
-                    aria-hidden="true"
-                    className="flex shrink-0 items-center justify-center [&_svg]:size-4"
-                  >
-                    {tab.icon}
-                  </span>
-                ) : null}
-                <TooltipText
-                  tabIndex={-1}
-                  className="truncate"
-                  tooltip={
-                    typeof tab.label === "string" ? tab.label : undefined
-                  }
-                >
-                  {tab.label}
-                </TooltipText>
-                {tab.indicator ? (
-                  typeof tab.indicator === "object" && tab.indicator.dot ? (
-                    <TooltipText
-                      aria-label={
-                        tab.indicator.ariaLabel ??
-                        tab.indicator.label ??
-                        "Warning"
-                      }
-                      className="bg-warning size-2 shrink-0 rounded-full"
-                      role="img"
-                      tooltip={
-                        tab.indicator.ariaLabel ??
-                        tab.indicator.label ??
-                        "Warning"
-                      }
-                    />
-                  ) : (
-                    <Chip
-                      aria-label={
-                        typeof tab.indicator === "object"
-                          ? (tab.indicator.ariaLabel ?? tab.indicator.label)
-                          : undefined
-                      }
-                      size="small"
-                      variant={
-                        typeof tab.indicator === "object"
-                          ? tab.indicator.variant
-                          : "default"
-                      }
-                    >
-                      {typeof tab.indicator === "object"
-                        ? (tab.indicator.label ?? "Active")
-                        : "Active"}
-                    </Chip>
-                  )
-                ) : null}
-              </span>
-              <Tabs.Indicator />
-            </Tabs.Tab>
-          ))}
-        </Tabs.List>
-      </Tabs.ListContainer>
-      {tabs.map((tab) => (
-        <Tabs.Panel
-          className="m-0 w-full min-w-0 max-w-full p-0 outline-none"
-          id={tab.value}
-          key={tab.value}
-        >
-          {tab.content}
-        </Tabs.Panel>
-      ))}
-    </Tabs>
+    <>
+      <SecondaryItems
+        title="Sections"
+        selected={selectedKey}
+        onSelect={selectSection}
+        items={tabs.map((tab) => ({
+          id: tab.value,
+          label: tab.label,
+          icon: tab.icon,
+          badge:
+            typeof tab.indicator === "object" ? (
+              tab.indicator.dot ? (
+                <span
+                  role="img"
+                  aria-label={tab.indicator.ariaLabel ?? "Needs attention"}
+                  className="inline-block size-2 rounded-full bg-warning"
+                />
+              ) : (
+                tab.indicator.label
+              )
+            ) : (
+              tab.indicator
+            ),
+        }))}
+      />
+      <div className="min-w-0">{active?.content}</div>
+    </>
   );
 }
 

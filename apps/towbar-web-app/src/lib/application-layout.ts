@@ -15,6 +15,7 @@ import {
   Rocket01Icon,
   ServerStack01Icon,
   UserAccountIcon,
+  Settings01Icon,
 } from "@hugeicons/core-free-icons";
 import { createElement } from "react";
 
@@ -190,22 +191,14 @@ const sidebar = {
       ],
     },
     {
-      id: "account",
-      label: "Account",
+      id: "settings",
       items: [
         {
           kind: "link",
-          id: "profile",
-          label: "Profile",
-          href: "/account/profile",
-          icon: sidebarIcons.profile,
-        },
-        {
-          kind: "link",
-          id: "sessions",
-          label: "Sessions",
-          href: "/account/sessions",
-          icon: sidebarIcons.sessions,
+          id: "settings",
+          label: "Settings",
+          href: "/settings",
+          icon: Settings01Icon,
         },
       ],
     },

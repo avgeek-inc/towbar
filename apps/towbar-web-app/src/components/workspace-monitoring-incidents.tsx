@@ -1,4 +1,5 @@
 "use client";
+import { SecondaryItems } from "./secondary-sidebar";
 import { ScoutIcon } from "./scout-icons";
 import { useState } from "react";
 import { AlertCircleIcon } from "@hugeicons/core-free-icons";
@@ -10,11 +11,7 @@ import {
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
 import { DashboardPage } from "./page-parts";
-import {
-  ScoutSelect,
-  conditionDescription,
-  scoutValue,
-} from "./scout-controls";
+import { conditionDescription, scoutValue } from "./scout-controls";
 import { RelativeTime } from "./last-synced-time";
 import { ScoutIncidentDrawer } from "./scout-incident-drawer";
 import {
@@ -136,30 +133,28 @@ export function WorkspaceIncidents() {
     },
   ];
   return (
-    <DashboardPage
-      title="Incidents"
-      icon={AlertCircleIcon}
-      actions={
-        <div className="flex justify-end">
-          <div className="w-48">
-            <ScoutSelect
-              label="Incident status"
-              hideLabel
-              value={state}
-              onChange={(value) => {
-                setState(value);
-                reset();
-              }}
-              options={[
-                { id: "all", label: "All incidents" },
-                { id: "active", label: "Active" },
-                { id: "resolved", label: "Resolved" },
-              ]}
-            />
-          </div>
-        </div>
-      }
-    >
+    <DashboardPage title="Incidents" icon={AlertCircleIcon}>
+      <SecondaryItems
+        title="Incident status"
+        selected={state}
+        onSelect={(value) => {
+          setState(value);
+          reset();
+        }}
+        items={[
+          { id: "all", label: "All incidents", icon: <ScoutIcon name="all" /> },
+          {
+            id: "active",
+            label: "Active",
+            icon: <ScoutIcon name="critical" />,
+          },
+          {
+            id: "resolved",
+            label: "Resolved",
+            icon: <ScoutIcon name="resolved" />,
+          },
+        ]}
+      />
       <div className="grid gap-5">
         {query.error ? <QueryError message={query.error} /> : null}
         {query.data ? (

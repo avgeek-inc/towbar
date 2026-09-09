@@ -1,4 +1,5 @@
 "use client";
+import { SecondarySidebarLayout } from "./secondary-sidebar";
 
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -122,12 +123,14 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
         toggleShortcut
         {...sidebarState}
       >
-        <AppShell.Content
-          className="pt-0 pb-20 sm:pt-0 sm:pb-24"
-          variant="broad"
-        >
-          <RelativeTimeProvider>{children}</RelativeTimeProvider>
-        </AppShell.Content>
+        <SecondarySidebarLayout>
+          <AppShell.Content
+            className="pt-0 pb-20 sm:pt-0 sm:pb-24"
+            variant="broad"
+          >
+            <RelativeTimeProvider>{children}</RelativeTimeProvider>
+          </AppShell.Content>
+        </SecondarySidebarLayout>
         <DeploymentQueue />
       </AppLayout>
     </AppShell>

@@ -10,7 +10,11 @@ export function WorkspacePerformance() {
   const [kind, setKind] = useState("all");
   const [selected, setSelected] = useState<MonitoringEntity | null>(null);
   return (
-    <DashboardPage title="Performance" icon={Analytics01Icon}>
+    <DashboardPage
+      title={selected?.name ?? "Performance"}
+      breadcrumbLabel="Performance"
+      icon={Analytics01Icon}
+    >
       <div className="grid min-w-0 gap-6">
         <MonitoringEntityPicker
           kind={kind}

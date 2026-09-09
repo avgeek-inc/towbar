@@ -1,4 +1,5 @@
 "use client";
+import { SecondaryItems } from "./secondary-sidebar";
 import {
   Add01Icon,
   ArrowLeft01Icon,
@@ -41,8 +42,6 @@ import { toast } from "@workspace/web-design-system/overlays/toast";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
-import { Select, ListBox } from "@workspace/web-design-system/forms/select";
-import { Label } from "@workspace/web-design-system/forms/label";
 
 const CodeEditor = dynamic(() => import("./code-editor"), {
   ssr: false,
@@ -157,82 +156,17 @@ function SecretSelector({
   options: Array<{ value: string; label: string; icon: typeof PackageIcon }>;
   onChange: (value: string) => void;
 }) {
-  const selected = options.find((option) => option.value === value);
   return (
-    <>
-      <Select
-        className="md:hidden"
-        fullWidth
-        variant="secondary"
-        selectedKey={value}
-        onSelectionChange={(key) => {
-          if (key !== null) onChange(String(key));
-        }}
-      >
-        <Label className="sr-only">{label}</Label>
-        <Select.Trigger>
-          <Select.Value>
-            <span className="inline-flex min-w-0 items-center gap-2">
-              <HugeiconsIcon
-                aria-hidden="true"
-                icon={selected?.icon ?? PackageIcon}
-                className="size-4 shrink-0"
-              />
-              <span className="truncate">{selected?.label}</span>
-            </span>
-          </Select.Value>
-          <Select.Indicator />
-        </Select.Trigger>
-        <Select.Popover>
-          <ListBox>
-            {options.map((option) => (
-              <ListBox.Item
-                key={option.value}
-                id={option.value}
-                textValue={option.label}
-              >
-                <span className="inline-flex items-center gap-2">
-                  <HugeiconsIcon
-                    aria-hidden="true"
-                    icon={option.icon}
-                    className="size-4 shrink-0"
-                  />
-                  {option.label}
-                </span>
-                <ListBox.ItemIndicator />
-              </ListBox.Item>
-            ))}
-          </ListBox>
-        </Select.Popover>
-      </Select>
-      <Tabs
-        className="hidden min-w-0 md:block"
-        selectedKey={value}
-        onSelectionChange={(key) => {
-          if (key !== null) onChange(String(key));
-        }}
-      >
-        <Tabs.ListContainer className="w-fit max-w-full overflow-x-auto">
-          <Tabs.List aria-label={label} className="min-w-max">
-            {options.map((option) => (
-              <Tabs.Tab
-                key={option.value}
-                id={option.value}
-                className="w-auto shrink-0 gap-2 whitespace-nowrap"
-              >
-                <HugeiconsIcon
-                  aria-hidden="true"
-                  icon={option.icon}
-                  className="size-4 shrink-0"
-                />
-                {option.label}
-                <Tabs.Indicator />
-              </Tabs.Tab>
-            ))}
-          </Tabs.List>
-        </Tabs.ListContainer>
-      </Tabs>
-    </>
+    <SecondaryItems
+      title={label}
+      selected={value}
+      onSelect={onChange}
+      items={options.map((option) => ({
+        id: option.value,
+        label: option.label,
+        icon: <HugeiconsIcon icon={option.icon} />,
+      }))}
+    />
   );
 }
 

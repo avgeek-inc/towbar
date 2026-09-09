@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-
+import { AccountSettings } from "@/components/account-settings";
 export default function Page() {
-  redirect("/account/profile");
+  return <AccountSettings />;
 }

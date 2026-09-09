@@ -1730,14 +1730,38 @@ function getFixturePayload(
       100,
       readPositiveInteger(searchParams.get("limit"), 10),
     );
-    const ordered = [...deployments].sort(
-      (left, right) =>
-        right.createdAt.localeCompare(left.createdAt) ||
-        right.id.localeCompare(left.id),
-    );
     const deployables = new Map(
       [...apps, ...resources].map((item) => [item.id, item]),
     );
+    const ordered = deployments
+      .filter((item) => {
+        const type = searchParams.get("type");
+        return (
+          (!type ||
+            (type === "app"
+              ? item.deployableKind === "app"
+              : item.deployableKind !== "app")) &&
+          ["environment", "state", "trigger", "serverId"].every(
+            (key) =>
+              !searchParams.get(key) ||
+              item[key as "environment" | "state" | "trigger" | "serverId"] ===
+                searchParams.get(key),
+          )
+        );
+      })
+      .sort((left, right) => {
+        const sort = searchParams.get("sort");
+        if (sort === "name_asc" || sort === "name_desc") {
+          const names = (deployables.get(left.appId)?.name ?? "").localeCompare(
+            deployables.get(right.appId)?.name ?? "",
+          );
+          if (names) return sort === "name_asc" ? names : -names;
+        }
+        const newest =
+          right.createdAt.localeCompare(left.createdAt) ||
+          right.id.localeCompare(left.id);
+        return sort === "oldest" ? -newest : newest;
+      });
     return {
       deployments: ordered
         .slice((page - 1) * limit, page * limit)

@@ -381,6 +381,21 @@ void test(
           requestWorkspace = id;
         },
       });
+      const { testDeploymentHistory } =
+        await import("../deployments/history-tests.js");
+      await testDeploymentHistory({
+        t,
+        db,
+        workspaceId,
+        otherWorkspaceId,
+        sourceId,
+        appId,
+        serverId,
+        actorUserId,
+        appConfig,
+        resourceConfig: manifest.resources![0]!,
+        serverConfig,
+      });
       const { testManagedSecretExecution } =
         await import("./execution-tests.js");
       await testManagedSecretExecution({
