@@ -1,5 +1,5 @@
 "use client";
-import { useQueryChoice } from "@/hooks/use-page-query";
+import { usePageQuery, useQueryChoice } from "@/hooks/use-page-query";
 import { SecondaryItems } from "./secondary-sidebar";
 import {
   Add01Icon,
@@ -14,8 +14,6 @@ import {
   PlayIcon,
   ReloadIcon,
   RestoreBinIcon,
-  Rocket01Icon,
-  ServerStack01Icon,
   SourceCodeIcon,
   ViewIcon,
   ViewOffSlashIcon,
@@ -115,10 +113,16 @@ function EnvironmentSecretSettings({
   endpoint: string;
   scope: "global" | "source" | "app";
 }) {
-  const [environment, setEnvironment] = useQueryChoice(
+  const [environment] = useQueryChoice(
     "environment",
     ["production", "preview"],
     "production",
+  );
+  const { update } = usePageQuery();
+  const [stage] = useQueryChoice(
+    "stage",
+    ["build", "deployment", "pre_deploy", "post_deploy"],
+    "build",
   );
   const query = useApiQuery<AppSecretsResponse>(
     active ? `${endpoint}?environment=${environment}` : null,
@@ -126,12 +130,31 @@ function EnvironmentSecretSettings({
   if (!active) return null;
   return (
     <div className={scope === "global" ? "w-full" : "max-w-5xl"}>
+      {(["production", "preview"] as const).map((group) => (
+        <SecondaryItems
+          key={group}
+          title={group === "production" ? "Production" : "Preview"}
+          selected={environment === group ? stage : ""}
+          onSelect={(value) =>
+            update({
+              environment: group === "production" ? null : group,
+              stage: value === "build" ? null : value,
+            })
+          }
+          items={(
+            ["build", "deployment", "pre_deploy", "post_deploy"] as const
+          ).map((value) => ({
+            id: value,
+            label: stageLabels[value],
+            icon: <HugeiconsIcon icon={stageIcons[value]} />,
+          }))}
+        />
+      ))}
       <EnvironmentEditors
         key={environment}
         endpoint={endpoint}
         query={query}
-        environment={environment}
-        onEnvironmentChange={setEnvironment}
+        hideStageNavigation
       />
     </div>
   );
@@ -143,10 +166,6 @@ const stageIcons = {
   pre_deploy: ArrowLeft01Icon,
   post_deploy: ArrowRight01Icon,
 };
-const environmentOptions = [
-  { value: "production", label: "Production", icon: ServerStack01Icon },
-  { value: "preview", label: "Preview", icon: Rocket01Icon },
-];
 
 function SecretSelector({
   label,
@@ -176,13 +195,11 @@ function SecretSelector({
 function EnvironmentEditors({
   query,
   endpoint,
-  environment,
-  onEnvironmentChange,
+  hideStageNavigation = false,
 }: {
   query: Query;
   endpoint: string;
-  environment?: "production" | "preview";
-  onEnvironmentChange?: (value: "production" | "preview") => void;
+  hideStageNavigation?: boolean;
 }) {
   const [stage, setStage] = useQueryChoice(
     "stage",
@@ -194,36 +211,18 @@ function EnvironmentEditors({
     data?.bindings.find((item) => item.stage === stage) ?? data?.bindings[0];
   return (
     <div className="grid min-w-0 gap-4">
-      <div
-        className={
-          environment
-            ? "grid min-w-0 grid-cols-2 gap-3 md:grid-cols-1"
-            : "grid min-w-0"
-        }
-      >
-        {environment && onEnvironmentChange ? (
-          <SecretSelector
-            label="Secret environment"
-            value={environment}
-            options={environmentOptions}
-            onChange={(value) =>
-              onEnvironmentChange(value as "production" | "preview")
-            }
-          />
-        ) : null}
-        {binding && data ? (
-          <SecretSelector
-            label="Secret stage"
-            value={binding.stage}
-            options={data.bindings.map((item) => ({
-              value: item.stage,
-              label: stageLabels[item.stage],
-              icon: stageIcons[item.stage],
-            }))}
-            onChange={(value) => setStage(value as AppSecretStage)}
-          />
-        ) : null}
-      </div>
+      {!hideStageNavigation && binding && data ? (
+        <SecretSelector
+          label="Secret stage"
+          value={binding.stage}
+          options={data.bindings.map((item) => ({
+            value: item.stage,
+            label: stageLabels[item.stage],
+            icon: stageIcons[item.stage],
+          }))}
+          onChange={(value) => setStage(value as AppSecretStage)}
+        />
+      ) : null}
       {query.error ? (
         <QueryError message={query.error} />
       ) : !data ? (
