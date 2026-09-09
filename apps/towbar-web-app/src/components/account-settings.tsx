@@ -6,30 +6,32 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { DashboardPage } from "./page-parts";
-import { ResponsiveSubtabs } from "./responsive-subtabs";
+import { useRouter } from "next/navigation";
+import { SecondaryItems } from "./secondary-sidebar";
 import { ProfileSettings, SessionSettings } from "./settings-pages";
 
-export function AccountSettings() {
+export function AccountSettings({ page }: { page: "profile" | "sessions" }) {
+  const router = useRouter();
   return (
     <DashboardPage title="Settings" icon={Settings01Icon}>
-      <ResponsiveSubtabs
-        ariaLabel="Account settings"
-        defaultSelectedKey="profile"
-        tabs={[
+      <SecondaryItems
+        title="Account settings"
+        selected={page}
+        onSelect={(value) => router.push(`/settings/${value}`)}
+        items={[
           {
-            value: "profile",
+            id: "profile",
             label: "Profile",
             icon: <HugeiconsIcon icon={UserAccountIcon} />,
-            content: <ProfileSettings />,
           },
           {
-            value: "sessions",
+            id: "sessions",
             label: "Sessions",
             icon: <HugeiconsIcon icon={ComputerIcon} />,
-            content: <SessionSettings />,
           },
         ]}
       />
+      {page === "profile" ? <ProfileSettings /> : <SessionSettings />}
     </DashboardPage>
   );
 }
