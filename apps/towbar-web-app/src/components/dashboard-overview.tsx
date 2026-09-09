@@ -126,6 +126,7 @@ export function DashboardOverview() {
       }
     >
       <div className="grid items-stretch gap-4 xl:grid-cols-2">
+        <OverviewActivity />
         <div className="grid min-w-0 gap-4 sm:grid-cols-2">
           {metrics.map((metric) => (
             <Widget className="min-w-0" key={metric.label}>
@@ -161,7 +162,6 @@ export function DashboardOverview() {
           ))}
           <OverviewIncidents />
         </div>
-        <OverviewActivity />
       </div>
       <OverviewDeployments apps={appItems} />
     </DashboardPage>
