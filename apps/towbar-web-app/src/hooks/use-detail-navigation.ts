@@ -13,8 +13,12 @@ export function useDetailNavigation() {
   const parts = match?.[2]?.split("/") ?? [];
   const section = parts[0] ?? search.get("section");
   const settings = parts[0] === "settings" ? parts[1] : search.get("settings");
-  function href(nextSection: string, nextSettings?: string) {
-    const params = new URLSearchParams(search.toString());
+  function href(
+    nextSection: string,
+    nextSettings?: string,
+    preserveQuery = false,
+  ) {
+    const params = new URLSearchParams(preserveQuery ? search.toString() : "");
     params.delete("section");
     params.delete("settings");
     params.delete("source-information");

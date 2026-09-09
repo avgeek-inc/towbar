@@ -69,7 +69,7 @@ export function ResponsiveSubtabs({
       active &&
       !detail.subpage
     ) {
-      detail.router.replace(detail.href(routeSection, active.value));
+      detail.router.replace(detail.href(routeSection, active.value, true));
     }
   }, [detail, routeSection, detailSettings, active]);
   function select(key: string) {

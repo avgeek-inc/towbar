@@ -176,6 +176,7 @@ export function PageTabs({
             : selectedKey === "info"
               ? (searchParams.get("source-information") ?? detail.subpage)
               : undefined,
+          true,
         ),
       );
     }
