@@ -163,8 +163,19 @@ export type Resource = {
     access?: { sshTunnel: { hostPort: number } };
     autoDeploy?: boolean;
     backup?: {
+      azureBlob?: {
+        container: string;
+        prefix?: string;
+        storageAccount: string;
+      };
+      gcs?: {
+        bucket: string;
+        prefix?: string;
+        region?: string;
+      };
+      restoreFrom?: "azureBlob" | "gcs" | "s3";
       retention: { keepLast: number };
-      s3: {
+      s3?: {
         bucket: string;
         encryption: "AES256" | "aws:kms";
         kmsKeyId?: string;
@@ -247,12 +258,23 @@ export type OrphanItem = {
   reason: string;
 };
 
+export type BackupDestinationResult = {
+  bucket: string;
+  encryption?: string;
+  key: string;
+  objectVersion?: string;
+  provider: "azureBlob" | "gcs" | "s3";
+  region?: string;
+  storageAccount?: string;
+};
+
 export type BackupResult = {
   backupId: string;
   bucket: string;
   checksum: string;
   deletedBackupIds: string[];
-  encryption: "AES256" | "aws:kms";
+  destinations?: BackupDestinationResult[];
+  encryption: "AES256" | "aws:kms" | (string & {});
   engine?: "postgres" | "redis";
   engineMajorVersion?: number;
   format?: "postgres-custom" | "redis-rdb";
@@ -260,7 +282,9 @@ export type BackupResult = {
   metadataVersion?: 1;
   objectVersionId?: string;
   region: string;
+  restoreFrom?: "azureBlob" | "gcs" | "s3";
   sizeBytes: number;
+  storageAccount?: string;
   verifiedAt: string;
   warnings: string[];
 };
@@ -530,6 +554,27 @@ export type AwsCredentialMetadata = {
   lastVerifiedAt: string | null;
   region: string;
   status: "unverified" | "verified" | "failed";
+  updatedAt: string;
+  verificationMessage: string | null;
+};
+
+export type GcpCredentialMetadata = {
+  clientEmail: string;
+  createdAt: string;
+  lastVerifiedAt: string | null;
+  projectId: string;
+  status: "unverified" | "verified" | "failed";
+  updatedAt: string;
+  verificationMessage: string | null;
+};
+
+export type AzureCredentialMetadata = {
+  clientId: string;
+  clientSecretSuffix: string;
+  createdAt: string;
+  lastVerifiedAt: string | null;
+  status: "unverified" | "verified" | "failed";
+  tenantId: string;
   updatedAt: string;
   verificationMessage: string | null;
 };

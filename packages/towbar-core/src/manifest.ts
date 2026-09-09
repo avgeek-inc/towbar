@@ -34,6 +34,10 @@ const dockerVolumePattern = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/;
 const dockerImagePattern = /^[A-Za-z0-9][A-Za-z0-9._/:@-]{0,511}$/;
 const s3BucketPattern =
   /^(?!\d+\.\d+\.\d+\.\d+$)[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/;
+const gcsBucketPattern =
+  /^(?!\d+\.\d+\.\d+\.\d+$)[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$/;
+const azureStorageAccountPattern = /^[a-z0-9]{3,24}$/;
+const azureContainerPattern = /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/;
 const sshUsernamePattern = /^[a-z_][a-z0-9_-]{0,31}$/i;
 const branchSchema = z
   .string()
@@ -252,47 +256,73 @@ const resourceAccessSchema = z
   })
   .strict();
 
+const backupPrefixSchema = z
+  .string()
+  .trim()
+  .max(512)
+  .refine(
+    (value) =>
+      !value.startsWith("/") &&
+      !value.split("/").some((segment) => segment === ".."),
+    "Backup prefix must be relative and cannot contain parent traversal",
+  )
+  .optional();
+
+export const backupProviders = ["s3", "gcs", "azureBlob"] as const;
+export type BackupProvider = (typeof backupProviders)[number];
+
+const resourceBackupS3Schema = z
+  .object({
+    bucket: z.string().trim().regex(s3BucketPattern),
+    encryption: z.enum(["AES256", "aws:kms"]).optional(),
+    kmsKeyId: z.string().trim().min(1).max(2_048).optional(),
+    prefix: backupPrefixSchema,
+    region: z.string().trim().min(1).max(64).optional(),
+  })
+  .strict()
+  .superRefine((s3, context) => {
+    if (s3.encryption === "aws:kms" && !s3.kmsKeyId) {
+      context.addIssue({
+        code: "custom",
+        message: "AWS KMS backup encryption requires kmsKeyId",
+        path: ["kmsKeyId"],
+      });
+    }
+    if (s3.encryption !== "aws:kms" && s3.kmsKeyId) {
+      context.addIssue({
+        code: "custom",
+        message: "kmsKeyId is only valid with aws:kms encryption",
+        path: ["kmsKeyId"],
+      });
+    }
+  });
+
+const resourceBackupGcsSchema = z
+  .object({
+    bucket: z.string().trim().regex(gcsBucketPattern),
+    prefix: backupPrefixSchema,
+    region: z.string().trim().min(1).max(64).optional(),
+  })
+  .strict();
+
+const resourceBackupAzureBlobSchema = z
+  .object({
+    container: z.string().trim().regex(azureContainerPattern),
+    prefix: backupPrefixSchema,
+    storageAccount: z.string().trim().regex(azureStorageAccountPattern),
+  })
+  .strict();
+
 const resourceBackupSchema = z
   .object({
+    azureBlob: resourceBackupAzureBlobSchema.optional(),
+    gcs: resourceBackupGcsSchema.optional(),
+    restoreFrom: z.enum(backupProviders).optional(),
     retention: z
       .object({ keepLast: z.number().int().min(1).max(100).optional() })
       .strict()
       .optional(),
-    s3: z
-      .object({
-        bucket: z.string().trim().regex(s3BucketPattern),
-        encryption: z.enum(["AES256", "aws:kms"]).optional(),
-        kmsKeyId: z.string().trim().min(1).max(2_048).optional(),
-        prefix: z
-          .string()
-          .trim()
-          .max(512)
-          .refine(
-            (value) =>
-              !value.startsWith("/") &&
-              !value.split("/").some((segment) => segment === ".."),
-            "S3 backup prefix must be relative and cannot contain parent traversal",
-          )
-          .optional(),
-        region: z.string().trim().min(1).max(64).optional(),
-      })
-      .strict()
-      .superRefine((s3, context) => {
-        if (s3.encryption === "aws:kms" && !s3.kmsKeyId) {
-          context.addIssue({
-            code: "custom",
-            message: "AWS KMS backup encryption requires kmsKeyId",
-            path: ["kmsKeyId"],
-          });
-        }
-        if (s3.encryption !== "aws:kms" && s3.kmsKeyId) {
-          context.addIssue({
-            code: "custom",
-            message: "kmsKeyId is only valid with aws:kms encryption",
-            path: ["kmsKeyId"],
-          });
-        }
-      }),
+    s3: resourceBackupS3Schema.optional(),
     schedule: z
       .object({
         cron: z.string().trim().min(1).max(120),
@@ -315,7 +345,41 @@ const resourceBackupSchema = z
       })
       .optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((backup, context) => {
+    const destinations = (
+      [
+        backup.s3 && "s3",
+        backup.gcs && "gcs",
+        backup.azureBlob && "azureBlob",
+      ] as const
+    ).filter((value): value is (typeof backupProviders)[number] =>
+      Boolean(value),
+    );
+    if (destinations.length === 0) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "At least one backup destination (s3, gcs, or azureBlob) is required",
+        path: [],
+      });
+    }
+    if (destinations.length > 1 && !backup.restoreFrom) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "restoreFrom is required when multiple backup destinations are declared",
+        path: ["restoreFrom"],
+      });
+    }
+    if (backup.restoreFrom && !destinations.includes(backup.restoreFrom)) {
+      context.addIssue({
+        code: "custom",
+        message: `restoreFrom '${backup.restoreFrom}' must reference a declared backup destination`,
+        path: ["restoreFrom"],
+      });
+    }
+  });
 
 const appSchema = z
   .object({
@@ -817,8 +881,19 @@ export type NormalizedResource = {
   };
   autoDeploy: boolean;
   backup?: {
+    azureBlob?: {
+      container: string;
+      prefix: string;
+      storageAccount: string;
+    };
+    gcs?: {
+      bucket: string;
+      prefix: string;
+      region?: string;
+    };
+    restoreFrom: "s3" | "gcs" | "azureBlob";
     retention: { keepLast: number };
-    s3: {
+    s3?: {
       bucket: string;
       encryption: "AES256" | "aws:kms";
       kmsKeyId?: string;
@@ -1173,15 +1248,45 @@ function normalizeResourceBackup(
   backup: z.output<typeof resourceBackupSchema> | undefined,
 ): NormalizedResource["backup"] {
   if (!backup) return undefined;
+  const destinations = [
+    backup.s3 && "s3",
+    backup.gcs && "gcs",
+    backup.azureBlob && "azureBlob",
+  ].filter(Boolean) as Array<"s3" | "gcs" | "azureBlob">;
+  const restoreFrom =
+    backup.restoreFrom ?? (destinations.length === 1 ? destinations[0]! : "s3");
   return {
+    ...(backup.azureBlob
+      ? {
+          azureBlob: {
+            container: backup.azureBlob.container,
+            prefix: backup.azureBlob.prefix || "towbar",
+            storageAccount: backup.azureBlob.storageAccount,
+          },
+        }
+      : {}),
+    ...(backup.gcs
+      ? {
+          gcs: {
+            bucket: backup.gcs.bucket,
+            prefix: backup.gcs.prefix || "towbar",
+            ...(backup.gcs.region ? { region: backup.gcs.region } : {}),
+          },
+        }
+      : {}),
+    restoreFrom,
     retention: { keepLast: backup.retention?.keepLast ?? 7 },
-    s3: {
-      bucket: backup.s3.bucket,
-      encryption: backup.s3.encryption ?? "AES256",
-      ...(backup.s3.kmsKeyId ? { kmsKeyId: backup.s3.kmsKeyId } : {}),
-      prefix: backup.s3.prefix || "towbar",
-      ...(backup.s3.region ? { region: backup.s3.region } : {}),
-    },
+    ...(backup.s3
+      ? {
+          s3: {
+            bucket: backup.s3.bucket,
+            encryption: backup.s3.encryption ?? "AES256",
+            ...(backup.s3.kmsKeyId ? { kmsKeyId: backup.s3.kmsKeyId } : {}),
+            prefix: backup.s3.prefix || "towbar",
+            ...(backup.s3.region ? { region: backup.s3.region } : {}),
+          },
+        }
+      : {}),
     ...(backup.schedule
       ? {
           schedule: {

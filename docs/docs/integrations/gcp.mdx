@@ -1,0 +1,29 @@
+---
+title: "Google Cloud"
+description: "Connect one workspace service account credential for managed Google Cloud Storage (GCS) backups and restores."
+---
+
+Google Cloud is optional. Towbar can deploy to registered Ubuntu servers without a Google Cloud account. Connect Google Cloud when PostgreSQL or Redis resources need managed GCS backups and restores.
+
+## Connect credentials
+
+1. Prepare a Google Cloud service account with permissions scoped to the buckets and prefixes your resources will use.
+2. Grant the service account the **Storage Object Admin** role (`roles/storage.objectAdmin`) or custom permissions for object creation, deletion, and inspection (`storage.objects.create`, `storage.objects.get`, `storage.objects.delete`).
+3. Generate and download a JSON service account key.
+4. Open **Manage → Integrations → Cloud providers → Google Cloud**.
+5. Paste the service account key JSON into the credential field.
+6. Save. Towbar verifies the service account identity and project metadata before storing encrypted credentials.
+
+The workspace has one Google Cloud credential shared by its resource backup policies. The UI exposes metadata, project ID, and the client email, not the private key. Updating the credential affects future GCS operations across the workspace.
+
+## Grant storage access
+
+The service account needs permissions for backup writes, object inspection, resumable upload sessions, and retention cleanup within the declared bucket/prefix. Restores require object read access (`storage.objects.get`); versioned buckets also require access to the retained object generation. Customer-managed encryption keys (CMEK) require Cloud KMS encrypt and decrypt permissions.
+
+A credential verification check confirms the service account key is valid. It does not test all Cloud Storage bucket permissions. Confirm those by completing a [backup](/docs/backups) and checking restore readiness.
+
+## Check and rotate
+
+Open **Manage → System health** and choose **Run checks** to revalidate connected Google Cloud credentials. Failed checks require attention; old verification results become stale.
+
+To rotate, generate a replacement service account key in the Google Cloud Console, update the integration with the new key, verify a backup, and delete the retired key from Google Cloud. Deleting the integration pauses configured backup schedules targeting GCS until replacement credentials are stored.

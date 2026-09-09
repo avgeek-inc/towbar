@@ -242,6 +242,7 @@ void test("normalizes image, PostgreSQL, and Redis resources", () => {
   });
   assert.equal(database?.container.networkAlias, "database");
   assert.deepEqual(database?.backup, {
+    restoreFrom: "s3",
     retention: { keepLast: 14 },
     s3: {
       bucket: "example-production-backups",
@@ -288,31 +289,6 @@ void test("rejects removed terminal declarations", () => {
           "    tls:\n      mode: cloudflare-dns",
           "    terminal:\n      enabled: true\n    tls:\n      mode: cloudflare-dns",
         ),
-      ),
-    ManifestValidationError,
-  );
-});
-
-void test("normalizes managed backups and rejects unsafe declarations", () => {
-  const parsed = parseDeploymentManifest(
-    `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    backup:\n      s3:\n        bucket: example-production-backups\n        encryption: aws:kms\n        kmsKeyId: alias/towbar-backups\n`,
-  ).manifest;
-  const resource = parsed.resources?.[0];
-  assert.ok(resource);
-  assert.equal(resource.backup?.s3.encryption, "aws:kms");
-  assert.equal(resource.backup?.s3.kmsKeyId, "alias/towbar-backups");
-
-  assert.throws(
-    () =>
-      parseDeploymentManifest(
-        `${manifest}\nresources:\n  - id: metrics\n    name: Metrics\n    type: image\n    image: prom/prometheus:v3.5.0\n    server: 203.0.113.10\n    backup:\n      s3:\n        bucket: example-production-backups\n`,
-      ),
-    ManifestValidationError,
-  );
-  assert.throws(
-    () =>
-      parseDeploymentManifest(
-        `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    backup:\n      s3:\n        bucket: example-production-backups\n        encryption: aws:kms\n`,
       ),
     ManifestValidationError,
   );

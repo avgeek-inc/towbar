@@ -1,17 +1,37 @@
 ---
 title: "Database backups"
-description: "Configure S3 storage, retention, and scheduled recovery points for PostgreSQL and Redis."
+description: "Configure multi-cloud storage (S3, GCS, Azure Blob), retention, and scheduled recovery points for PostgreSQL and Redis."
 ---
 
-Towbar can back up PostgreSQL and Redis resources to S3. The manifest defines storage and scheduling; the workspace AWS integration supplies credentials. Generic image resources do not support managed backups.
+Towbar can back up PostgreSQL and Redis resources to AWS S3, Google Cloud Storage (GCS), and Azure Blob Storage. You can configure a single provider or multiple cloud providers simultaneously for off-site redundancy. The manifest defines storage and scheduling; connected workspace integrations supply credentials. Generic image resources do not support managed backups.
 
 ## Prerequisites
 
-Connect [AWS](/docs/integrations/aws), deploy a healthy database resource, and choose a bucket and prefix for its backups. Keep backup permissions limited to the declared storage locations. Backup schedules remain paused while the AWS integration is unconfigured.
+Connect the cloud integrations required by your declared destinations under **Manage → Integrations**:
+
+- [AWS](/docs/integrations/aws) for S3 storage.
+- [Google Cloud](/docs/integrations/gcp) for Google Cloud Storage.
+- [Azure](/docs/integrations/azure) for Azure Blob Storage.
+
+Deploy a healthy database resource, choose storage buckets or containers, and keep permissions scoped to the declared paths. Backup schedules remain paused if a declared destination lacks credentials (indicated by a warning dot in the secondary sidebar).
+
+## Provider configuration
+
+Towbar supports three cloud storage providers. A resource must declare at least one destination:
+
+- **AWS S3 (`s3`)**: Declare `bucket`, optional `prefix` (defaults to `towbar`), optional `region` (defaults to the workspace AWS integration region), and optional `encryption` (`AES256` or `aws:kms`). When using `encryption: aws:kms`, supply `kmsKeyId`.
+- **Google Cloud Storage (`gcs`)**: Declare `bucket`, optional `prefix` (defaults to `towbar`), and optional `region`. Encryption uses Google-managed keys or Cloud KMS keys (CMEK) configured on the bucket.
+- **Azure Blob Storage (`azureBlob`)**: Declare `container`, `storageAccount`, and optional `prefix` (defaults to `towbar`). Encryption uses Microsoft-managed keys.
+
+### Multi-destination backups
+
+To store backups across multiple clouds simultaneously, declare more than one destination block (`s3`, `gcs`, `azureBlob`). Towbar executes backups to all declared destinations concurrently and verifies restore-readiness on each.
+
+When multiple destinations are declared, specify `restoreFrom` (`s3`, `gcs`, or `azureBlob`) to identify which provider serves as the authoritative source for database restores. If only one destination is declared, `restoreFrom` defaults to that provider automatically.
 
 ## Define a policy
 
-This complete manifest creates a PostgreSQL resource with a daily backup at 03:00 UTC and retains the latest 14 backups:
+This complete manifest creates a PostgreSQL resource with daily backups at 03:00 UTC, retains the latest 14 recovery points, and replicates backups to AWS S3 and Google Cloud Storage:
 
 ```yaml
 version: 1
@@ -34,17 +54,56 @@ resources:
         prefix: databases
         region: ap-south-1
         encryption: AES256
+      gcs:
+        bucket: example-gcs-backups
+        prefix: databases
+        region: asia-south1
+      restoreFrom: s3
 ```
 
-Replace the host and storage values, then save `POSTGRES_PASSWORD` in the resource's runtime secrets. Sync the Source and inspect **Resource → Settings → Backups**.
+You can also target Azure Blob Storage individually:
 
-Schedules use five-field UTC cron expressions and cannot run more frequently than hourly. Retention accepts 1–100 backups and defaults to 7. Omitting `schedule` leaves backups manual. The default prefix is `towbar` and default encryption is `AES256`.
+```yaml
+version: 1
+source:
+  branch: main
+resources:
+  - id: cache
+    name: Redis cache
+    type: redis
+    server: 203.0.113.10
+    backup:
+      schedule:
+        cron: "0 4 * * *"
+        timezone: UTC
+      retention:
+        keepLast: 7
+      azureBlob:
+        storageAccount: prodbackups
+        container: database-archives
+        prefix: redis
+```
 
-For KMS encryption, set `encryption: aws:kms` and provide `kmsKeyId`. The AWS identity and key policy must permit the required encryption and decryption operations.
+Replace the host and storage values, then save `POSTGRES_PASSWORD` in the resource's runtime secrets. Sync the Source and open **Resource → Settings → Backup**.
+
+Schedules use five-field UTC cron expressions and cannot run more frequently than hourly. Retention accepts 1–100 backups and defaults to 7. Omitting `schedule` leaves backups manual.
+
+## Backup management UI
+
+In the secondary sidebar under **Resource → Settings → Backup**, Towbar provides an operational dashboard for your database backups:
+
+1. **Credentials & health alert**: Displays an immediate warning if any configured backup provider lacks credentials in workspace integrations.
+2. **Provider destination tabs**: Each configured provider (`AWS (S3)`, `Google Cloud (GCS)`, `Azure Blob Storage`) appears as a tab with its official brand logo.
+3. **Provider configuration card**: Inside each tab, view the destination URI, encryption mode, connection status, backup schedule, and retention limit.
+4. **Retained backups table**: Positioned directly beneath the configuration card, listing recovery points with creation timestamp, size, engine version, format, and object key.
 
 ## Verify a recovery point
 
-Run a manual backup and wait for completion. Check its object metadata and restore-readiness result in the Backups view. Towbar checks object existence, size, checksum metadata, encryption, engine compatibility, and backup format.
+Choose **Back up now** to trigger an immediate backup run. Towbar performs a 3-stage verification pipeline:
+
+- **Backup run**: Executes database-native export tools (`pg_dump` or `redis-cli`) inside the container and validates archive integrity.
+- **Saved copy**: Uploads the archive to all configured destinations with SHA-256 checksum metadata.
+- **Restore check**: Verifies object existence, size, checksum metadata, encryption, engine compatibility, and format across all destinations.
 
 Freshness and usability answer different questions. An older retained backup can miss the schedule's recovery-point objective while remaining usable for an explicit restore.
 

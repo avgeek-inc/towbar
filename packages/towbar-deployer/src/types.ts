@@ -151,6 +151,17 @@ export type WorkspaceAwsCredential = {
   secretAccessKey: string;
 };
 
+export type WorkspaceGcpCredential = {
+  projectId?: string;
+  serviceAccountKey: string;
+};
+
+export type WorkspaceAzureCredential = {
+  clientId: string;
+  clientSecret: string;
+  tenantId: string;
+};
+
 export type ResourceOperationExecutionContext = {
   cleanupExpected: {
     ownedDeployableIds?: string[];
@@ -166,7 +177,13 @@ export type ResourceOperationExecutionContext = {
   deployable: NormalizedDeployable | null;
   deployableId: string | null;
   operationId: string;
-  retentionBackups: Array<{ bucket: string; id: string; key: string }>;
+  retentionBackups: Array<{
+    bucket: string;
+    destinations?: import("@workspace/towbar-core").BackupDestinationResult[];
+    id: string;
+    key: string;
+    storageAccount?: string;
+  }>;
   restoreBackup: {
     createdAt: string;
     id: string;
@@ -180,28 +197,36 @@ export type ResourceOperationExecutionContext = {
 
 export type ResourceOperationSecrets = {
   aws: WorkspaceAwsCredential | null;
+  azure: WorkspaceAzureCredential | null;
+  gcp: WorkspaceGcpCredential | null;
   login: SshLoginSecret;
   runtime: Record<string, string>;
   sensitiveValues: string[];
 };
 
 export type BackupStorage = {
-  deleteObject(input: { bucket: string; key: string }): Promise<void>;
+  deleteObject(input: {
+    bucket: string;
+    key: string;
+    storageAccount?: string;
+  }): Promise<void>;
   download(input: {
     bucket: string;
     key: string;
     localPath: string;
+    storageAccount?: string;
     versionId?: string;
   }): Promise<void>;
   headObject(input: {
     bucket: string;
     key: string;
+    storageAccount?: string;
     versionId?: string;
   }): Promise<{
     checksum?: string;
     engine?: "postgres" | "redis";
     engineMajorVersion?: number;
-    encryption?: "AES256" | "aws:kms";
+    encryption?: string;
     exists: boolean;
     format?: "postgres-custom" | "redis-rdb";
     metadataVersion?: number;
@@ -209,12 +234,13 @@ export type BackupStorage = {
   }>;
   upload(input: {
     bucket: string;
-    encryption: "AES256" | "aws:kms";
+    encryption?: string;
     key: string;
     kmsKeyId?: string;
     localPath: string;
     metadata: Record<string, string>;
     sizeBytes: number;
+    storageAccount?: string;
   }): Promise<{ versionId?: string }>;
 };
 

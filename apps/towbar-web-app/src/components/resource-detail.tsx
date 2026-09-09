@@ -32,6 +32,7 @@ import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 import { DeploymentTable, formatDeploymentTrigger } from "./deployment-table";
 import { ResourceBackupConfiguration } from "./resource-backup-configuration";
+import { ResourceRestoreConfiguration } from "./resource-restore-configuration";
 import { ResponsiveSubtabs } from "./responsive-subtabs";
 import { ResourceSecrets } from "./app-secrets";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
@@ -65,6 +66,20 @@ export function ResourceDetail() {
   );
   const releases = useApiQuery<{ releases: Release[] }>(
     `/v1/core/resources/${resourceId}/releases`,
+  );
+  const assurances = useApiQuery<{
+    awsConfigured: boolean;
+    azureConfigured?: boolean;
+    canRestore: boolean;
+    gcpConfigured?: boolean;
+    missingCredentialMessage?: string;
+  }>(
+    resource.data?.resource &&
+      resource.data.resource.kind !== "image" &&
+      resource.data.resource.config.backup
+      ? `/v1/core/resources/${resourceId}/backup-assurance`
+      : null,
+    10_000,
   );
   const error = resource.error ?? deployments.error ?? releases.error;
 
@@ -116,6 +131,25 @@ export function ResourceDetail() {
   );
   const latestDeployment = orderedDeployments[0];
   const lifecycleStatus = getResourceLifecycleStatus(item);
+  const backup = item.config.backup;
+  const assuranceData = assurances.data;
+  const missingBackupCredentials = Boolean(
+    backup &&
+    assuranceData &&
+    ((backup.s3 && !assuranceData.awsConfigured) ||
+      (backup.gcs && !assuranceData.gcpConfigured) ||
+      (backup.azureBlob && !assuranceData.azureConfigured)),
+  );
+  const restoreProvider =
+    backup?.restoreFrom ??
+    (backup?.s3 ? "s3" : backup?.gcs ? "gcs" : "azureBlob");
+  const missingRestoreCredentials = Boolean(
+    backup &&
+    assuranceData &&
+    ((restoreProvider === "s3" && !assuranceData.awsConfigured) ||
+      (restoreProvider === "gcs" && !assuranceData.gcpConfigured) ||
+      (restoreProvider === "azureBlob" && !assuranceData.azureConfigured)),
+  );
   const tabs = [
     {
       value: "overview",
@@ -250,7 +284,18 @@ export function ResourceDetail() {
       value: "settings",
       label: "Settings",
       icon: <HugeiconsIcon icon={Settings01Icon} />,
-      content: <ResourceSettings item={item} resourceId={resourceId} />,
+      indicator:
+        missingBackupCredentials || missingRestoreCredentials
+          ? { dot: true, ariaLabel: "Needs credentials" }
+          : undefined,
+      content: (
+        <ResourceSettings
+          item={item}
+          missingBackupCredentials={missingBackupCredentials}
+          missingRestoreCredentials={missingRestoreCredentials}
+          resourceId={resourceId}
+        />
+      ),
     },
   ];
 
@@ -321,13 +366,24 @@ export function ResourceDetail() {
 
 function ResourceSettings({
   item,
+  missingBackupCredentials,
+  missingRestoreCredentials,
   resourceId,
 }: {
   item: ResourceRecord;
+  missingBackupCredentials?: boolean;
+  missingRestoreCredentials?: boolean;
   resourceId: string;
 }) {
   const requestedSettings = useDetailNavigation().settings;
-  const tabs: Array<{ content: ReactNode; label: string; value: string }> = [
+  const normalizedSettings =
+    requestedSettings === "backups" ? "backup" : requestedSettings;
+  const tabs: Array<{
+    badge?: ReactNode;
+    content: ReactNode;
+    label: string;
+    value: string;
+  }> = [
     {
       value: "configuration",
       label: "Configuration",
@@ -347,10 +403,36 @@ function ResourceSettings({
       ? []
       : [
           {
-            value: "backups",
-            label: "Backups",
+            value: "backup",
+            label: "Backup",
+            badge: missingBackupCredentials ? (
+              <span
+                role="img"
+                aria-label="Needs credentials"
+                title="Needs credentials"
+                className="block size-1.5 rounded-full bg-warning"
+              />
+            ) : undefined,
             content: (
               <ResourceBackupConfiguration
+                active={!item.archivedAt && item.serverReady}
+                resource={item}
+              />
+            ),
+          },
+          {
+            value: "restore",
+            label: "Restore",
+            badge: missingRestoreCredentials ? (
+              <span
+                role="img"
+                aria-label="Needs credentials"
+                title="Needs credentials"
+                className="block size-1.5 rounded-full bg-warning"
+              />
+            ) : undefined,
+            content: (
+              <ResourceRestoreConfiguration
                 active={!item.archivedAt && item.serverReady}
                 resource={item}
               />
@@ -373,7 +455,13 @@ function ResourceSettings({
     <ResponsiveSubtabs
       ariaLabel="Resource settings"
       defaultSelectedKey={
-        requestedSettings === "secrets" ? "secrets" : "configuration"
+        normalizedSettings === "secrets" ? "secrets" : "configuration"
+      }
+      layout="sidebar"
+      selectedKey={
+        tabs.some((tab) => tab.value === normalizedSettings)
+          ? normalizedSettings!
+          : undefined
       }
       tabs={tabs}
     />

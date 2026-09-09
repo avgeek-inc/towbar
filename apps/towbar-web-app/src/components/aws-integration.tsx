@@ -79,7 +79,7 @@ export function AwsIntegration() {
                   confirm={{
                     actionLabel: "Delete credentials",
                     description:
-                      "S3 backups and restores across Towbar will pause until replacement credentials are stored.",
+                      "AWS S3 backups and restores across Towbar will pause until replacement credentials are stored.",
                     title: "Delete the AWS integration credentials?",
                   }}
                   pendingLabel="Deleting…"
@@ -104,7 +104,7 @@ export function AwsIntegration() {
             <EmptyState.Title>AWS is not configured</EmptyState.Title>
             <EmptyState.Description>
               {canManage
-                ? "Add one AWS credential for S3 backups and restores across Towbar."
+                ? "Add AWS credentials for S3 backups and restores across Towbar."
                 : "An administrator can configure the workspace AWS integration."}
             </EmptyState.Description>
           </EmptyState.Header>
@@ -135,8 +135,8 @@ export function AwsIntegration() {
                 </Modal.Header>
                 <Modal.Body className="content-grid">
                   <p className="text-muted typography--body-sm">
-                    Values are encrypted before PostgreSQL, scoped to this
-                    workspace, and never returned.
+                    Values are encrypted before storage, scoped to this
+                    workspace, and never returned in normal responses.
                   </p>
                   <SimpleForm
                     fields={[

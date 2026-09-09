@@ -351,6 +351,13 @@
       "when": 1788707880736,
       "tag": "0049_scout_incident_context",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1788965739708,
+      "tag": "0050_calm_big_bertha",
+      "breakpoints": true
     }
   ]
 }

@@ -42,6 +42,7 @@ function resourceFixture(engine: Engine): NormalizedResource {
   return {
     autoDeploy: true,
     backup: {
+      restoreFrom: "s3",
       retention: { keepLast: 7 },
       s3: {
         bucket: "towbar-fixture-backups",
@@ -135,6 +136,8 @@ function restoreSecrets(engine: Engine): ResourceOperationSecrets {
       region: "ap-south-1",
       secretAccessKey: "fixture",
     },
+    azure: null,
+    gcp: null,
     login: { privateKey: "fixture" },
     runtime:
       engine === "postgres"

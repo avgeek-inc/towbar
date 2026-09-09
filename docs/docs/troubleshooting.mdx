@@ -35,7 +35,7 @@ If an older healthy preview remains online after a failed build, inspect the new
 
 ## Backup and restore problems
 
-Check the AWS integration, bucket/prefix permissions, object availability, engine version, and available host disk. A stale backup can still be restore-ready; a missing or incompatible object cannot. Read the final restore phase before retrying and confirm whether promotion occurred or rollback completed.
+Check the relevant cloud provider integration ([AWS](/docs/integrations/aws), [Google Cloud](/docs/integrations/gcp), or [Azure](/docs/integrations/azure)), bucket/container permissions, object availability, engine version, and available host disk. A stale backup can still be restore-ready; a missing or incompatible object cannot. Read the final restore phase before retrying and confirm whether promotion occurred or rollback completed.
 
 ## Collect useful diagnostics
 

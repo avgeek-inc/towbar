@@ -21,7 +21,12 @@ import type {
   ResourceOperationHooks,
   ResourceOperationSecrets,
 } from "./types.js";
-import type { NormalizedResource, OrphanItem } from "@workspace/towbar-core";
+import type {
+  BackupDestinationResult,
+  BackupProvider,
+  NormalizedResource,
+  OrphanItem,
+} from "@workspace/towbar-core";
 import {
   executeManagedRestore,
   executeRestoreCleanup,
@@ -146,6 +151,7 @@ export async function executeResourceOperation(input: {
   hooks?: ResourceOperationHooks;
   secrets: ResourceOperationSecrets;
   storage?: BackupStorage;
+  storages?: Partial<Record<BackupProvider, BackupStorage>>;
   signal?: AbortSignal;
 }): Promise<ResourceOperationExecutorResult> {
   const { context, secrets, signal } = input;
@@ -254,12 +260,27 @@ async function createBackup(input: {
   session: SshSession;
   signal?: AbortSignal;
   storage?: BackupStorage;
+  storages?: Partial<Record<BackupProvider, BackupStorage>>;
 }) {
   const backup = input.deployable.backup;
   const release = input.context.currentRelease;
-  if (!backup || !release || !input.storage || !input.secrets.aws) {
-    throw new Error("Backup storage configuration is incomplete");
+  if (!backup || !release) {
+    throw new Error("A current release is required for this operation");
   }
+  if (
+    input.deployable.kind !== "postgres" &&
+    input.deployable.kind !== "redis"
+  ) {
+    throw new Error("Managed backups require a PostgreSQL or Redis resource");
+  }
+  const engine: "postgres" | "redis" = input.deployable.kind;
+
+  const { availableStorages, configuredProviders } = resolveBackupStorages(
+    backup,
+    input.storages,
+    input.storage,
+  );
+
   const extension = input.deployable.kind === "postgres" ? "dump" : "rdb";
   const localPath = path.join(input.localDirectory, `backup.${extension}`);
   const remotePath = `${input.remoteDirectory}/backup.${extension}`;
@@ -284,14 +305,8 @@ async function createBackup(input: {
     timeoutMs: 30 * 60_000,
   });
   const createdAt = new Date();
-  const key = [
-    backup.s3.prefix,
-    requireOperationSource(input.context.sourceId),
-    input.context.operationId,
-    `${createdAt.toISOString().replaceAll(":", "-")}.${extension}`,
-  ]
-    .filter(Boolean)
-    .join("/");
+  const timestamp = createdAt.toISOString().replaceAll(":", "-");
+  const sourceId = requireOperationSource(input.context.sourceId);
   const checksum = await sha256File(localPath);
   const metadata = await stat(localPath);
   if (metadata.size > maximumBackupBytes) {
@@ -299,67 +314,303 @@ async function createBackup(input: {
   }
   const format =
     input.deployable.kind === "postgres" ? "postgres-custom" : "redis-rdb";
-  const upload = await input.storage.upload({
-    bucket: backup.s3.bucket,
-    encryption: backup.s3.encryption,
-    key,
-    ...(backup.s3.kmsKeyId ? { kmsKeyId: backup.s3.kmsKeyId } : {}),
-    localPath,
+
+  const destinationResults: BackupDestinationResult[] = [];
+
+  for (const provider of configuredProviders) {
+    const storage = availableStorages[provider]!;
+    const config = getDestinationUploadParams(
+      provider,
+      backup,
+      sourceId,
+      input.context.operationId,
+      timestamp,
+      extension,
+      input.secrets.aws?.region,
+    );
+    const result = await uploadAndVerifyDestination({
+      checksum,
+      config,
+      engine,
+      engineMajorVersion,
+      expectedS3Encryption: backup.s3?.encryption,
+      format,
+      localPath,
+      provider,
+      sizeBytes: metadata.size,
+      storage,
+    });
+    destinationResults.push(result);
+  }
+
+  const { deletedBackupIds, warnings } = await cleanupRetentionBackups(
+    input.context.retentionBackups,
+    configuredProviders,
+    availableStorages,
+  );
+
+  return buildBackupResult({
+    backup,
+    checksum,
+    deletedBackupIds,
+    destinationResults,
+    engine,
+    engineMajorVersion,
+    format,
+    operationId: input.context.operationId,
+    region: input.secrets.aws?.region,
+    sizeBytes: metadata.size,
+    warnings,
+  });
+}
+
+function resolveBackupStorages(
+  backup: NonNullable<NormalizedResource["backup"]>,
+  storages?: Partial<Record<BackupProvider, BackupStorage>>,
+  singleStorage?: BackupStorage,
+) {
+  const availableStorages: Partial<Record<BackupProvider, BackupStorage>> = {
+    ...storages,
+    ...(singleStorage ? { [backup.restoreFrom]: singleStorage } : {}),
+  };
+
+  const configuredProviders: BackupProvider[] = [];
+  if (backup.s3) configuredProviders.push("s3");
+  if (backup.gcs) configuredProviders.push("gcs");
+  if (backup.azureBlob) configuredProviders.push("azureBlob");
+
+  if (configuredProviders.length === 0) {
+    throw new Error(
+      "Backup storage configuration is incomplete: no destination configured",
+    );
+  }
+
+  for (const provider of configuredProviders) {
+    if (!availableStorages[provider]) {
+      throw new Error(
+        `Backup storage configuration is incomplete: missing storage for ${provider}`,
+      );
+    }
+  }
+
+  return { availableStorages, configuredProviders };
+}
+
+function getDestinationUploadParams(
+  provider: BackupProvider,
+  backup: NonNullable<NormalizedResource["backup"]>,
+  sourceId: string,
+  operationId: string,
+  timestamp: string,
+  extension: string,
+  defaultAwsRegion?: string,
+) {
+  const fileKey = `${timestamp}.${extension}`;
+  if (provider === "s3") {
+    const s3Prefix = backup.s3?.prefix || "towbar";
+    return {
+      bucket: backup.s3?.bucket ?? "",
+      encryption: backup.s3?.encryption ?? "AES256",
+      key: [s3Prefix, sourceId, operationId, fileKey].filter(Boolean).join("/"),
+      kmsKeyId: backup.s3?.kmsKeyId,
+      region: backup.s3?.region ?? defaultAwsRegion,
+      storageAccount: undefined,
+    };
+  }
+  if (provider === "gcs") {
+    const gcsPrefix = backup.gcs?.prefix || "towbar";
+    return {
+      bucket: backup.gcs?.bucket ?? "",
+      encryption: "Google-managed",
+      key: [gcsPrefix, sourceId, operationId, fileKey]
+        .filter(Boolean)
+        .join("/"),
+      kmsKeyId: undefined,
+      region: backup.gcs?.region,
+      storageAccount: undefined,
+    };
+  }
+  const azurePrefix = backup.azureBlob?.prefix || "towbar";
+  return {
+    bucket: backup.azureBlob?.container ?? "",
+    encryption: "Microsoft-managed",
+    key: [azurePrefix, sourceId, operationId, fileKey]
+      .filter(Boolean)
+      .join("/"),
+    kmsKeyId: undefined,
+    region: undefined,
+    storageAccount: backup.azureBlob?.storageAccount,
+  };
+}
+
+async function uploadAndVerifyDestination(params: {
+  checksum: string;
+  config: ReturnType<typeof getDestinationUploadParams>;
+  engine: "postgres" | "redis";
+  engineMajorVersion: number;
+  expectedS3Encryption?: string;
+  format: "postgres-custom" | "redis-rdb";
+  localPath: string;
+  provider: BackupProvider;
+  sizeBytes: number;
+  storage: BackupStorage;
+}): Promise<BackupDestinationResult> {
+  const { config, storage } = params;
+  const upload = await storage.upload({
+    bucket: config.bucket,
+    encryption: config.encryption,
+    key: config.key,
+    ...(config.kmsKeyId ? { kmsKeyId: config.kmsKeyId } : {}),
+    localPath: params.localPath,
     metadata: {
-      "towbar-checksum": checksum,
-      "towbar-engine": input.deployable.kind,
-      "towbar-engine-major-version": String(engineMajorVersion),
-      "towbar-format": format,
+      "towbar-checksum": params.checksum,
+      "towbar-engine": params.engine,
+      "towbar-engine-major-version": String(params.engineMajorVersion),
+      "towbar-format": params.format,
       "towbar-metadata-version": "1",
     },
-    sizeBytes: metadata.size,
+    sizeBytes: params.sizeBytes,
+    ...(config.storageAccount ? { storageAccount: config.storageAccount } : {}),
   });
-  const verified = await input.storage.headObject({
-    bucket: backup.s3.bucket,
-    key,
+
+  const verified = await storage.headObject({
+    bucket: config.bucket,
+    key: config.key,
     ...(upload.versionId ? { versionId: upload.versionId } : {}),
+    ...(config.storageAccount ? { storageAccount: config.storageAccount } : {}),
   });
+
   if (
     !verified.exists ||
-    verified.checksum !== checksum ||
-    verified.sizeBytes !== metadata.size ||
-    verified.engine !== input.deployable.kind ||
-    verified.engineMajorVersion !== engineMajorVersion ||
-    verified.format !== format ||
+    verified.checksum !== params.checksum ||
+    verified.sizeBytes !== params.sizeBytes ||
+    verified.engine !== params.engine ||
+    verified.engineMajorVersion !== params.engineMajorVersion ||
+    verified.format !== params.format ||
     verified.metadataVersion !== 1 ||
-    verified.encryption !== backup.s3.encryption
+    (params.provider === "s3" &&
+      verified.encryption !== params.expectedS3Encryption)
   ) {
-    throw new Error("Uploaded backup failed restore-readiness verification");
+    throw new Error(
+      `Uploaded backup to ${params.provider} failed restore-readiness verification`,
+    );
   }
+
+  return {
+    bucket: config.bucket,
+    encryption: config.encryption,
+    key: config.key,
+    ...(upload.versionId ? { objectVersion: upload.versionId } : {}),
+    provider: params.provider,
+    ...(config.region ? { region: config.region } : {}),
+    ...(config.storageAccount ? { storageAccount: config.storageAccount } : {}),
+  };
+}
+
+async function cleanupRetentionBackups(
+  retentionBackups: readonly {
+    bucket: string;
+    destinations?: readonly BackupDestinationResult[];
+    id: string;
+    key: string;
+    storageAccount?: string;
+  }[],
+  configuredProviders: readonly BackupProvider[],
+  availableStorages: Partial<Record<BackupProvider, BackupStorage>>,
+) {
   const deletedBackupIds: string[] = [];
   const warnings: string[] = [];
-  for (const candidate of input.context.retentionBackups) {
-    try {
-      await input.storage.deleteObject(candidate);
+  for (const candidate of retentionBackups) {
+    let anySucceeded = false;
+    let deleteFailed = false;
+    const destinations =
+      candidate.destinations && candidate.destinations.length > 0
+        ? candidate.destinations
+        : configuredProviders.map((provider) => ({
+            bucket: candidate.bucket,
+            key: candidate.key,
+            provider,
+            storageAccount: candidate.storageAccount,
+          }));
+
+    for (const dest of destinations) {
+      const storage = availableStorages[dest.provider];
+      if (!storage) continue;
+      try {
+        await storage.deleteObject({
+          bucket: dest.bucket,
+          key: dest.key,
+          ...(dest.storageAccount
+            ? { storageAccount: dest.storageAccount }
+            : {}),
+        });
+        anySucceeded = true;
+      } catch {
+        deleteFailed = true;
+      }
+    }
+
+    if (anySucceeded) {
       deletedBackupIds.push(candidate.id);
-    } catch {
+      if (deleteFailed) {
+        warnings.push(
+          `Retention cleanup deleted backup ${candidate.id} with partial destination failures`,
+        );
+      }
+    } else {
       warnings.push(
         `Retention cleanup could not delete backup ${candidate.id}`,
       );
     }
   }
+  return { deletedBackupIds, warnings };
+}
+
+function buildBackupResult(params: {
+  backup: NonNullable<NormalizedResource["backup"]>;
+  checksum: string;
+  deletedBackupIds: string[];
+  destinationResults: BackupDestinationResult[];
+  engine: "postgres" | "redis";
+  engineMajorVersion: number;
+  format: "postgres-custom" | "redis-rdb";
+  operationId: string;
+  region?: string;
+  sizeBytes: number;
+  warnings: string[];
+}): ResourceOperationExecutorResult {
+  const { backup, destinationResults } = params;
+  const primaryDest =
+    destinationResults.find((dest) => dest.provider === backup.restoreFrom) ??
+    destinationResults[0]!;
+  const region = primaryDest.region ?? params.region;
+
   return {
-    backupId: input.context.operationId,
-    bucket: backup.s3.bucket,
-    checksum,
-    deletedBackupIds,
-    encryption: backup.s3.encryption,
-    engine: input.deployable.kind,
-    engineMajorVersion,
-    format,
-    key,
+    backupId: params.operationId,
+    bucket: primaryDest.bucket,
+    checksum: params.checksum,
+    deletedBackupIds: params.deletedBackupIds,
+    destinations: destinationResults,
+    encryption:
+      primaryDest.encryption ??
+      ((backup.s3?.encryption ?? "AES256") as "AES256" | "aws:kms"),
+    engine: params.engine,
+    engineMajorVersion: params.engineMajorVersion,
+    format: params.format,
+    key: primaryDest.key,
     metadataVersion: 1,
-    ...(upload.versionId ? { objectVersionId: upload.versionId } : {}),
-    region: backup.s3.region ?? input.secrets.aws.region,
-    sizeBytes: metadata.size,
+    ...(primaryDest.objectVersion
+      ? { objectVersionId: primaryDest.objectVersion }
+      : {}),
+    ...(region ? { region } : {}),
+    restoreFrom: backup.restoreFrom,
+    sizeBytes: params.sizeBytes,
+    ...(primaryDest.storageAccount
+      ? { storageAccount: primaryDest.storageAccount }
+      : {}),
     verifiedAt: new Date().toISOString(),
-    warnings,
-  } satisfies ResourceOperationExecutorResult;
+    warnings: params.warnings,
+  };
 }
 
 async function sha256File(filePath: string) {
@@ -372,4 +623,9 @@ export const resourceOperationScripts = {
   cleanupOrphans: cleanupOrphansScript,
   containerOperation: containerOperationScript,
   createBackup: createBackupScript,
+} as const;
+
+export const resourceOperationInternal = {
+  buildBackupResult,
+  cleanupRetentionBackups,
 } as const;

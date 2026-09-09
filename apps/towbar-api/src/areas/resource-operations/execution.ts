@@ -1,4 +1,5 @@
 import { resolveServerCredentials } from "../secrets/store.js";
+import type { SecretDatabase } from "../secrets/store.js";
 import { and, eq, isNull } from "drizzle-orm";
 
 import { backupOperationResultSchema } from "@workspace/towbar-core";
@@ -10,6 +11,8 @@ import {
 import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { getDecryptedAwsCredential } from "../aws/service.js";
+import { getDecryptedAzureCredential } from "../azure/service.js";
+import { getDecryptedGcpCredential } from "../gcp/service.js";
 import {
   requireResourcePasswords,
   resolveRuntimeEnvironmentSecrets,
@@ -122,29 +125,159 @@ export async function resolveOperationSecrets(operationId: string) {
           : {};
       if (operation.request.type === "restore")
         requireResourcePasswords(operation.app?.kind, runtime);
-      const requiresAws = ["backup", "restore"].includes(
-        operation.request.type,
-      );
-      const awsCredential = requiresAws
-        ? await getDecryptedAwsCredential({
-            workspaceId: operation.workspaceId,
-          })
-        : null;
+
+      const { aws, azure, gcp, sensitiveStorageValues } =
+        await resolveCloudStorageSecrets(operation, database);
+
       return {
-        aws: awsCredential
-          ? { ...awsCredential.payload, region: awsCredential.region }
-          : null,
+        aws,
+        azure,
+        gcp,
         login,
         runtime,
         sensitiveValues: [
           login.privateKey,
-          ...(awsCredential ? [awsCredential.payload.secretAccessKey] : []),
+          ...sensitiveStorageValues,
           ...Object.values(runtime),
         ],
       };
     },
     { isolationLevel: "repeatable read" },
   );
+}
+
+function extractBackupConfig(
+  app: unknown,
+): import("@workspace/towbar-core").NormalizedResource["backup"] | undefined {
+  if (app && typeof app === "object" && "backup" in app) {
+    return (
+      app as {
+        backup?: import("@workspace/towbar-core").NormalizedResource["backup"];
+      }
+    ).backup;
+  }
+  return undefined;
+}
+
+async function resolveTargetRestoreProvider(
+  operation: {
+    request: { type: string; backupId?: string };
+  },
+  database?: SecretDatabase,
+): Promise<"s3" | "gcs" | "azureBlob" | undefined> {
+  if (operation.request.type !== "restore" || !operation.request.backupId) {
+    return undefined;
+  }
+  const db = database ?? getTowbarDatabase();
+  const [targetBackup] = await db
+    .select({ result: resourceOperations.result })
+    .from(resourceOperations)
+    .where(eq(resourceOperations.id, operation.request.backupId))
+    .limit(1);
+  if (!targetBackup?.result) {
+    return undefined;
+  }
+  const parsed = backupOperationResultSchema.safeParse(targetBackup.result);
+  if (!parsed.success) {
+    return undefined;
+  }
+  return (
+    parsed.data.restoreFrom ?? (parsed.data.storageAccount ? "azureBlob" : "s3")
+  );
+}
+
+function determineRequiredProviders(
+  requiresBackup: boolean,
+  backupConfig:
+    import("@workspace/towbar-core").NormalizedResource["backup"] | undefined,
+  restoreFromProvider?: "s3" | "gcs" | "azureBlob",
+) {
+  if (!requiresBackup) {
+    return { needsAws: false, needsAzure: false, needsGcp: false };
+  }
+  return {
+    needsAws:
+      !backupConfig ||
+      Boolean(backupConfig.s3) ||
+      backupConfig.restoreFrom === "s3" ||
+      restoreFromProvider === "s3",
+    needsAzure: Boolean(
+      backupConfig?.azureBlob ||
+      backupConfig?.restoreFrom === "azureBlob" ||
+      restoreFromProvider === "azureBlob",
+    ),
+    needsGcp: Boolean(
+      backupConfig?.gcs ||
+      backupConfig?.restoreFrom === "gcs" ||
+      restoreFromProvider === "gcs",
+    ),
+  };
+}
+
+async function resolveCloudStorageSecrets(
+  operation: {
+    app: unknown;
+    request: { type: string; backupId?: string };
+    workspaceId: string;
+  },
+  database?: SecretDatabase,
+) {
+  const requiresBackup = ["backup", "restore"].includes(operation.request.type);
+  const backupConfig = extractBackupConfig(operation.app);
+  const restoreFromProvider = await resolveTargetRestoreProvider(
+    operation,
+    database,
+  );
+  const { needsAws, needsAzure, needsGcp } = determineRequiredProviders(
+    requiresBackup,
+    backupConfig,
+    restoreFromProvider,
+  );
+
+  const [awsCredential, azureCredential, gcpCredential] = await Promise.all([
+    needsAws
+      ? getDecryptedAwsCredential({
+          workspaceId: operation.workspaceId,
+        }).catch(() => null)
+      : null,
+    needsAzure
+      ? getDecryptedAzureCredential({
+          workspaceId: operation.workspaceId,
+        }).catch(() => null)
+      : null,
+    needsGcp
+      ? getDecryptedGcpCredential({
+          workspaceId: operation.workspaceId,
+        }).catch(() => null)
+      : null,
+  ]);
+
+  const aws = awsCredential
+    ? { ...awsCredential.payload, region: awsCredential.region }
+    : null;
+
+  const azure = azureCredential
+    ? {
+        clientId: azureCredential.clientId,
+        clientSecret: azureCredential.payload.clientSecret,
+        tenantId: azureCredential.tenantId,
+      }
+    : null;
+
+  const gcp = gcpCredential
+    ? {
+        projectId: gcpCredential.projectId,
+        serviceAccountKey: JSON.stringify(gcpCredential.payload),
+      }
+    : null;
+
+  const sensitiveStorageValues = [
+    ...(awsCredential ? [awsCredential.payload.secretAccessKey] : []),
+    ...(azureCredential ? [azureCredential.payload.clientSecret] : []),
+    ...(gcpCredential ? [gcpCredential.payload.private_key] : []),
+  ];
+
+  return { aws, azure, gcp, sensitiveStorageValues };
 }
 
 function requireOperationSource(sourceId: string | null) {

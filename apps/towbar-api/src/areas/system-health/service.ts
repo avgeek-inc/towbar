@@ -17,6 +17,14 @@ import {
   getAwsCredentialMetadata,
   reverifyAwsCredentials,
 } from "../aws/service.js";
+import {
+  getAzureCredentialMetadata,
+  reverifyAzureCredentials,
+} from "../azure/service.js";
+import {
+  getGcpCredentialMetadata,
+  reverifyGcpCredentials,
+} from "../gcp/service.js";
 import { getGitHubInstallation } from "../github/client.js";
 import {
   listSystemHealthSignals,
@@ -25,6 +33,8 @@ import {
 } from "./signals.js";
 
 import { awsHealthCheck } from "./aws-check.js";
+import { azureHealthCheck } from "./azure-check.js";
+import { gcpHealthCheck } from "./gcp-check.js";
 import { githubHealthCheck } from "./github-check.js";
 
 import type { SystemHealthSignal } from "./signals.js";
@@ -35,7 +45,13 @@ export async function getSystemHealth(
   workspaceId: string,
 ): Promise<SystemHealth> {
   await pingDatabase();
-  const [signals, githubConnection, awsCredential] = await Promise.all([
+  const [
+    signals,
+    githubConnection,
+    awsCredential,
+    azureCredential,
+    gcpCredential,
+  ] = await Promise.all([
     listSystemHealthSignals(workspaceId),
     getTowbarDatabase()
       .select({
@@ -46,6 +62,8 @@ export async function getSystemHealth(
       .where(eq(githubInstallations.workspaceId, workspaceId))
       .limit(1),
     getAwsCredentialMetadata(workspaceId),
+    getAzureCredentialMetadata(workspaceId),
+    getGcpCredentialMetadata(workspaceId),
   ]);
   const byComponent = new Map(
     signals.map((signal) => [signal.component, signal]),
@@ -85,6 +103,8 @@ export async function getSystemHealth(
       signal: byComponent.get("github"),
     }),
     ...(awsCredential ? [awsHealthCheck(awsCredential)] : []),
+    ...(azureCredential ? [azureHealthCheck(azureCredential)] : []),
+    ...(gcpCredential ? [gcpHealthCheck(gcpCredential)] : []),
   ];
   return {
     checkedAt: new Date().toISOString(),
@@ -101,6 +121,8 @@ export async function runSystemHealthChecks(workspaceId: string) {
     checkTemporal(workspaceId, version),
     checkGitHub(workspaceId),
     reverifyAwsCredentials(workspaceId),
+    reverifyAzureCredentials(workspaceId),
+    reverifyGcpCredentials(workspaceId),
   ]);
   return await getSystemHealth(workspaceId);
 }

@@ -145,27 +145,27 @@ function getBackupHealthStages(input: {
     !latestBackup
       ? {
           description: "Waiting for the first completed backup.",
-          label: "S3 copy",
+          label: "Saved copy",
           status: "Waiting",
           tone: "secondary",
         }
       : !assurance
         ? {
             description: "Towbar has not checked the saved file yet.",
-            label: "S3 copy",
+            label: "Saved copy",
             status: "Waiting",
             tone: "secondary",
           }
         : savedFileVerified
           ? {
               description: "The saved backup file is readable.",
-              label: "S3 copy",
+              label: "Saved copy",
               status: "Verified",
               tone: "success",
             }
           : {
-              description: friendlyS3Failure(assurance.checks),
-              label: "S3 copy",
+              description: friendlyStorageFailure(assurance.checks),
+              label: "Saved copy",
               status: "Cannot verify",
               tone: "destructive",
             },
@@ -241,15 +241,15 @@ function operationStage(
   };
 }
 
-function friendlyS3Failure(checks: BackupAssurance["checks"]) {
+function friendlyStorageFailure(checks: BackupAssurance["checks"]) {
   const objectCheck = checks.find((check) => check.name === "object_exists");
   if (objectCheck?.message.toLowerCase().includes("cannot access")) {
-    return "Towbar cannot read the saved file. Check the workspace AWS permissions.";
+    return "Towbar cannot read the saved file. Check the workspace backup provider permissions.";
   }
   if (objectCheck && !objectCheck.passed) {
     return objectCheck.message.toLowerCase().includes("unavailable")
-      ? "The S3 check is temporarily unavailable."
-      : "Towbar cannot find the saved file in S3.";
+      ? "The storage check is temporarily unavailable."
+      : "Towbar cannot find the saved backup file.";
   }
   return "Towbar could not verify the saved backup file.";
 }
@@ -259,7 +259,7 @@ function friendlyAssuranceFailure(checks: BackupAssurance["checks"]) {
     checks.filter((check) => !check.passed).map((check) => check.name),
   );
   if (failedNames.has("object_exists") || failedNames.has("size")) {
-    return friendlyS3Failure(checks);
+    return friendlyStorageFailure(checks);
   }
   if (failedNames.has("checksum")) {
     return "The saved backup file did not pass its integrity check. Run a new backup.";

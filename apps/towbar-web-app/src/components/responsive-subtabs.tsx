@@ -10,6 +10,7 @@ import { cn } from "@workspace/web-design-system/lib/utils";
 import { DetailSettingsContext, SecondaryItems } from "./secondary-sidebar";
 
 type ResponsiveSubtab = {
+  badge?: ReactNode;
   content: ReactNode;
   group?: string;
   disabledReason?: string;
@@ -112,6 +113,7 @@ export function ResponsiveSubtabs({
               id: tab.value,
               label: tab.label,
               icon: tab.icon,
+              badge: tab.badge,
               disabled: tab.isDisabled,
               disabledReason: tab.disabledReason,
             }))}

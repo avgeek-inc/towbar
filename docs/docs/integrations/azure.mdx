@@ -1,0 +1,29 @@
+---
+title: "Azure"
+description: "Connect one workspace credential for managed Azure Blob Storage backups and restores."
+---
+
+Azure is optional. Towbar can deploy to registered Ubuntu servers without an Azure account. Connect Azure when PostgreSQL or Redis resources need managed Azure Blob Storage backups and restores.
+
+## Connect credentials
+
+1. In Microsoft Entra ID (Azure Active Directory), register an application (Service Principal) for Towbar.
+2. Under **Certificates & secrets**, generate a new client secret and record its value.
+3. In your Azure Storage account or container, assign the Service Principal the **Storage Blob Data Contributor** role (or a custom role with blob read, write, and delete permissions).
+4. Open **Manage → Integrations → Cloud providers → Azure**.
+5. Enter the **Application (client) ID**, **Client secret**, and **Directory (tenant) ID**.
+6. Save. Towbar verifies token issuance before storing encrypted credentials.
+
+The workspace has one Azure credential shared by its resource backup policies. The UI exposes metadata, tenant ID, and client ID suffix, not the client secret. Updating the credential affects future Azure Blob operations across the workspace.
+
+## Grant storage access
+
+The Service Principal needs permissions for block blob writes, blob deletion, object inspection (metadata HEAD requests), and reads within the declared container and storage account. Restores require blob read permissions; versioned containers also require access to the retained blob version ID.
+
+A credential verification check confirms token acquisition from Microsoft Entra ID. It does not test all storage container permissions. Confirm those by completing a [backup](/docs/backups) and checking restore readiness.
+
+## Check and rotate
+
+Open **Manage → System health** and choose **Run checks** to revalidate connected Azure credentials. Failed checks require attention; old verification results become stale.
+
+To rotate, generate a replacement client secret in Microsoft Entra ID, update the integration in Towbar with the new secret, verify a backup, and delete the expired secret from Azure. Deleting the integration pauses configured backup schedules targeting Azure Blob Storage until replacement credentials are stored.

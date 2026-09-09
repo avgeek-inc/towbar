@@ -12,7 +12,9 @@ export default async function Page({
     settings: [
       "configuration",
       "connection",
+      "backup",
       "backups",
+      "restore",
       "auto-deploy",
       "secrets",
     ],
