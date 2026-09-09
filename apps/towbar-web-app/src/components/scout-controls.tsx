@@ -159,7 +159,15 @@ export function ScoutSelect({
       isDisabled={disabled}
       className="min-w-0"
     >
-      <Label className={hideLabel ? "sr-only" : undefined}>{label}</Label>
+      <Label
+        className={
+          hideLabel
+            ? "sr-only"
+            : "[[data-secondary-menu]_&]:pl-2 [[data-secondary-menu]_&]:text-xs [[data-secondary-menu]_&]:text-muted"
+        }
+      >
+        {label}
+      </Label>
       <Select.Trigger>
         <Select.Value className="flex min-w-0 items-center" />
         <Select.Indicator />
