@@ -175,3 +175,12 @@ as the gray material reference, preserving edge composition and accents.
 Transparency was requested directly and verified in the final PNGs. The ship
 asset remains unchanged. Apps was derived from the final Resources asset with
 only its emblem changed to preserve their matching container palette.
+
+## Neutral charcoal inventory assets
+
+Apps, Resources and Servers now use overview-*-charcoal.png. ImageGen edits
+requested darker neutral gray main faces (around #454545 to #505050), no blue
+tint, smooth plastic surfaces, and the existing yellow accents and corner
+composition. A final ImageGen background-removal pass produced transparent
+PNGs; all three alpha channels were verified. Originals were copied at full
+resolution without local recoloring or resizing. Incident images are unchanged.
