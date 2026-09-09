@@ -422,7 +422,9 @@ function getDestinationUploadParams(
     return {
       bucket: backup.gcs?.bucket ?? "",
       encryption: "Google-managed",
-      key: [gcsPrefix, sourceId, operationId, fileKey].filter(Boolean).join("/"),
+      key: [gcsPrefix, sourceId, operationId, fileKey]
+        .filter(Boolean)
+        .join("/"),
       kmsKeyId: undefined,
       region: backup.gcs?.region,
       storageAccount: undefined,
@@ -432,7 +434,9 @@ function getDestinationUploadParams(
   return {
     bucket: backup.azureBlob?.container ?? "",
     encryption: "Microsoft-managed",
-    key: [azurePrefix, sourceId, operationId, fileKey].filter(Boolean).join("/"),
+    key: [azurePrefix, sourceId, operationId, fileKey]
+      .filter(Boolean)
+      .join("/"),
     kmsKeyId: undefined,
     region: undefined,
     storageAccount: backup.azureBlob?.storageAccount,
@@ -484,7 +488,8 @@ async function uploadAndVerifyDestination(params: {
     verified.engineMajorVersion !== params.engineMajorVersion ||
     verified.format !== params.format ||
     verified.metadataVersion !== 1 ||
-    (params.provider === "s3" && verified.encryption !== params.expectedS3Encryption)
+    (params.provider === "s3" &&
+      verified.encryption !== params.expectedS3Encryption)
   ) {
     throw new Error(
       `Uploaded backup to ${params.provider} failed restore-readiness verification`,
@@ -532,7 +537,9 @@ async function cleanupRetentionBackups(
       }
       deletedBackupIds.push(candidate.id);
     } catch {
-      warnings.push(`Retention cleanup could not delete backup ${candidate.id}`);
+      warnings.push(
+        `Retention cleanup could not delete backup ${candidate.id}`,
+      );
     }
   }
   return { deletedBackupIds, warnings };

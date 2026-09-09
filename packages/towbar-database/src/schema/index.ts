@@ -435,7 +435,9 @@ export const workspaceAzureCredentials = pgTable(
       .notNull(),
     tenantId: varchar("tenant_id", { length: 64 }).notNull(),
     clientId: varchar("client_id", { length: 64 }).notNull(),
-    clientSecretSuffix: varchar("client_secret_suffix", { length: 8 }).notNull(),
+    clientSecretSuffix: varchar("client_secret_suffix", {
+      length: 8,
+    }).notNull(),
     verificationStatus: credentialVerificationStatusEnum("verification_status")
       .default("unverified")
       .notNull(),

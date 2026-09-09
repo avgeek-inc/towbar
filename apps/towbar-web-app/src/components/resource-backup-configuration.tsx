@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  Archive01Icon,
-  DatabaseIcon,
-} from "@hugeicons/core-free-icons";
+import { Archive01Icon, DatabaseIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
 import { useState } from "react";
@@ -114,8 +111,10 @@ export function ResourceBackupConfiguration({
 
   const missingProviders: string[] = [];
   if (backup.s3 && !assuranceData.awsConfigured) missingProviders.push("AWS");
-  if (backup.gcs && !assuranceData.gcpConfigured) missingProviders.push("Google Cloud");
-  if (backup.azureBlob && !assuranceData.azureConfigured) missingProviders.push("Azure");
+  if (backup.gcs && !assuranceData.gcpConfigured)
+    missingProviders.push("Google Cloud");
+  if (backup.azureBlob && !assuranceData.azureConfigured)
+    missingProviders.push("Azure");
   const credentialsConfigured = missingProviders.length === 0;
 
   const configuredProviders: ConfiguredProvider[] = [];
@@ -257,7 +256,9 @@ function ResourceBackupContent({
                     !active ||
                     !credentialsConfigured ||
                     (latestBackupOperation &&
-                      ["queued", "running"].includes(latestBackupOperation.state))
+                      ["queued", "running"].includes(
+                        latestBackupOperation.state,
+                      ))
                   }
                   pendingLabel="Queueing backup…"
                   success="Resource backup queued"
@@ -304,7 +305,10 @@ function ResourceBackupContent({
                   key={provider.id}
                   className="min-w-max gap-2 whitespace-nowrap"
                 >
-                  <CloudProviderLogo provider={provider.id} className="size-4 shrink-0" />
+                  <CloudProviderLogo
+                    provider={provider.id}
+                    className="size-4 shrink-0"
+                  />
                   <span>{provider.label}</span>
                   <Tabs.Indicator />
                 </Tabs.Tab>
@@ -318,10 +322,7 @@ function ResourceBackupContent({
               key={provider.id}
               className="content-grid m-0 min-w-0 p-0 outline-none"
             >
-              <ProviderDestinationCard
-                backup={backup}
-                provider={provider}
-              />
+              <ProviderDestinationCard backup={backup} provider={provider} />
 
               <ProviderBackupsTable
                 backups={retainedBackups}
@@ -344,7 +345,9 @@ function ProviderDestinationCard({
 }) {
   return (
     <Attributes
-      icon={<CloudProviderLogo provider={provider.id} className="size-5 shrink-0" />}
+      icon={
+        <CloudProviderLogo provider={provider.id} className="size-5 shrink-0" />
+      }
       title={`${provider.label} configuration`}
       variant="card"
     >
@@ -366,18 +369,14 @@ function ProviderDestinationCard({
       ) : null}
       {provider.id === "gcs" && backup.gcs ? (
         <>
-          <Attributes.Item label="Encryption">
-            Google-managed
-          </Attributes.Item>
+          <Attributes.Item label="Encryption">Google-managed</Attributes.Item>
           <Attributes.Item label="Region">
             {backup.gcs.region ?? "Default"}
           </Attributes.Item>
         </>
       ) : null}
       {provider.id === "azureBlob" && backup.azureBlob ? (
-        <Attributes.Item label="Encryption">
-          Microsoft-managed
-        </Attributes.Item>
+        <Attributes.Item label="Encryption">Microsoft-managed</Attributes.Item>
       ) : null}
       <Attributes.Item label="Schedule">
         {backup.schedule ? (
@@ -395,7 +394,9 @@ function ProviderDestinationCard({
       <Attributes.Item label="Credentials status">
         <StatusBadge
           status={provider.credentialsConfigured ? "healthy" : "critical"}
-          label={provider.credentialsConfigured ? "Connected" : "Missing credentials"}
+          label={
+            provider.credentialsConfigured ? "Connected" : "Missing credentials"
+          }
         />
       </Attributes.Item>
     </Attributes>
@@ -560,13 +561,7 @@ export function formatBackupFormat(format: SourceBackup["result"]["format"]) {
   return "Metadata missing";
 }
 
-function InlineLink({
-  children,
-  href,
-}: {
-  children: ReactNode;
-  href: string;
-}) {
+function InlineLink({ children, href }: { children: ReactNode; href: string }) {
   return (
     <Link
       className="focus-visible:ring-focus inline-flex items-center rounded-sm font-medium underline underline-offset-4 outline-none focus-visible:ring-2"

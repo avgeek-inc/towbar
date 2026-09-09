@@ -307,15 +307,9 @@ const resourceBackupGcsSchema = z
 
 const resourceBackupAzureBlobSchema = z
   .object({
-    container: z
-      .string()
-      .trim()
-      .regex(azureContainerPattern),
+    container: z.string().trim().regex(azureContainerPattern),
     prefix: backupPrefixSchema,
-    storageAccount: z
-      .string()
-      .trim()
-      .regex(azureStorageAccountPattern),
+    storageAccount: z.string().trim().regex(azureStorageAccountPattern),
   })
   .strict();
 
@@ -359,7 +353,9 @@ const resourceBackupSchema = z
         backup.gcs && "gcs",
         backup.azureBlob && "azureBlob",
       ] as const
-    ).filter((value): value is (typeof backupProviders)[number] => Boolean(value));
+    ).filter((value): value is (typeof backupProviders)[number] =>
+      Boolean(value),
+    );
     if (destinations.length === 0) {
       context.addIssue({
         code: "custom",

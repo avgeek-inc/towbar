@@ -84,8 +84,8 @@ export function ResourceRestoreConfiguration({
         <EmptyState.Header>
           <EmptyState.Title>No managed backups configured</EmptyState.Title>
           <EmptyState.Description>
-            Database restore requires backup storage configured in the
-            resource manifest.
+            Database restore requires backup storage configured in the resource
+            manifest.
           </EmptyState.Description>
         </EmptyState.Header>
       </EmptyState>
@@ -111,8 +111,7 @@ export function ResourceRestoreConfiguration({
   );
 
   const restoreProvider =
-    backup.restoreFrom ??
-    (backup.s3 ? "s3" : backup.gcs ? "gcs" : "azureBlob");
+    backup.restoreFrom ?? (backup.s3 ? "s3" : backup.gcs ? "gcs" : "azureBlob");
   const restoreProviderLabel =
     restoreProvider === "gcs"
       ? "Google Cloud (GCS)"
@@ -240,7 +239,10 @@ export function ResourceRestoreConfiguration({
       >
         <Attributes.Item label="Authoritative provider">
           <span className="inline-flex items-center gap-2">
-            <CloudProviderLogo provider={restoreProvider} className="size-4 shrink-0" />
+            <CloudProviderLogo
+              provider={restoreProvider}
+              className="size-4 shrink-0"
+            />
             <span>{restoreProviderLabel}</span>
           </span>
         </Attributes.Item>
@@ -262,7 +264,9 @@ export function ResourceRestoreConfiguration({
 
       {restoreOperations.length ? (
         <RestoreHistory
-          canManage={active && restoreProviderConfigured && assuranceData.canRestore}
+          canManage={
+            active && restoreProviderConfigured && assuranceData.canRestore
+          }
           operations={restoreOperations}
           resourceId={resource.id}
         />
@@ -872,13 +876,7 @@ function formatPhase(phase: string | null) {
     .join(" ");
 }
 
-function InlineLink({
-  children,
-  href,
-}: {
-  children: ReactNode;
-  href: string;
-}) {
+function InlineLink({ children, href }: { children: ReactNode; href: string }) {
   return (
     <Link
       className="focus-visible:ring-focus inline-flex items-center rounded-sm font-medium underline underline-offset-4 outline-none focus-visible:ring-2"

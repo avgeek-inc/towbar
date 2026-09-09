@@ -1135,7 +1135,9 @@ export function createFixtureApiServer() {
             // ignore
           }
           gcpCredential = {
-            clientEmail: parsed.client_email ?? "backup@gcp-project.iam.gserviceaccount.com",
+            clientEmail:
+              parsed.client_email ??
+              "backup@gcp-project.iam.gserviceaccount.com",
             createdAt: now,
             lastVerifiedAt: now,
             projectId: parsed.project_id ?? "gcp-project",

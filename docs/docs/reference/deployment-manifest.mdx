@@ -194,18 +194,18 @@ IDs must be unique across both apps and resources. Paths are repository-relative
 
 Resources require `id`, `name`, `server`, and `type`. They share app fields for description, domains, TLS, and container allocations, with these differences:
 
-| Field                       | Meaning                                                                                         |
-| --------------------------- | ----------------------------------------------------------------------------------------------- |
-| `type`                      | `image`, `postgres`, or `redis`                                                                 |
-| `image`                     | Required for `image`; presets default to `postgres:17-alpine` and `redis:8-alpine`              |
-| `autoDeploy`                | Boolean only; defaults to `false`                                                               |
-| `container.port`            | Optional; defaults to 5432 for PostgreSQL and 6379 for Redis                                    |
-| `container.command`         | Optional command array for `image` resources only                                               |
-| `container.networkAlias`    | Defaults to the resource ID when a network is declared                                          |
-| `container.volumes`         | Up to 20 `{ name, mountPath }` entries; mount paths must be absolute                            |
-| `health`                    | `type: http` with a path, `command` with a command array, or `container`; timeout 5–600 seconds |
-| `access.sshTunnel.hostPort` | Localhost-only operator port, 1024–65535                                                        |
-| `backup`                    | PostgreSQL/Redis only: S3 settings, optional retention and schedule                             |
+| Field                       | Meaning                                                                                                     |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `type`                      | `image`, `postgres`, or `redis`                                                                             |
+| `image`                     | Required for `image`; presets default to `postgres:17-alpine` and `redis:8-alpine`                          |
+| `autoDeploy`                | Boolean only; defaults to `false`                                                                           |
+| `container.port`            | Optional; defaults to 5432 for PostgreSQL and 6379 for Redis                                                |
+| `container.command`         | Optional command array for `image` resources only                                                           |
+| `container.networkAlias`    | Defaults to the resource ID when a network is declared                                                      |
+| `container.volumes`         | Up to 20 `{ name, mountPath }` entries; mount paths must be absolute                                        |
+| `health`                    | `type: http` with a path, `command` with a command array, or `container`; timeout 5–600 seconds             |
+| `access.sshTunnel.hostPort` | Localhost-only operator port, 1024–65535                                                                    |
+| `backup`                    | PostgreSQL/Redis only: multi-cloud destinations (S3, GCS, Azure Blob), retention, schedule, and restoreFrom |
 
 Public resources require an HTTP health check and a port. Managed database presets supply health commands and a data volume. Hooks, Dockerfile builds, vulnerability scanning, and pull request previews are app features.
 

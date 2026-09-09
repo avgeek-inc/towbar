@@ -119,8 +119,8 @@ export function AzureIntegration() {
                   <p className="text-muted typography--body-sm">
                     Values are encrypted before storage, scoped to this
                     workspace, and never returned in normal responses. Provide
-                    an Azure service principal with Storage Blob Data Contributor
-                    role.
+                    an Azure service principal with Storage Blob Data
+                    Contributor role.
                   </p>
                   <SimpleForm
                     fields={[

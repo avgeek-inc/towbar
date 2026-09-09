@@ -94,7 +94,9 @@ export async function getAzureAccessToken(
   }
 }
 
-export async function validateAzureCredentials(payload: AzureCredentialPayload) {
+export async function validateAzureCredentials(
+  payload: AzureCredentialPayload,
+) {
   await getAzureAccessToken(payload);
   return {
     clientId: payload.clientId,

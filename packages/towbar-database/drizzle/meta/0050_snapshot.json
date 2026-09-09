@@ -120,12 +120,8 @@
           "name": "towbar_api_keys_user_id_towbar_users_id_fk",
           "tableFrom": "towbar_api_keys",
           "tableTo": "towbar_users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -133,12 +129,8 @@
           "name": "towbar_api_keys_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_api_keys",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -373,12 +365,8 @@
           "name": "towbar_apps_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_apps",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -386,12 +374,8 @@
           "name": "towbar_apps_source_id_towbar_sources_id_fk",
           "tableFrom": "towbar_apps",
           "tableTo": "towbar_sources",
-          "columnsFrom": [
-            "source_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -399,12 +383,8 @@
           "name": "towbar_apps_server_id_towbar_servers_id_fk",
           "tableFrom": "towbar_apps",
           "tableTo": "towbar_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -505,12 +485,8 @@
           "name": "towbar_audit_events_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_audit_events",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -518,12 +494,8 @@
           "name": "towbar_audit_events_actor_user_id_towbar_users_id_fk",
           "tableFrom": "towbar_audit_events",
           "tableTo": "towbar_users",
-          "columnsFrom": [
-            "actor_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["actor_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -692,12 +664,8 @@
           "name": "towbar_deployable_runtime_states_app_id_towbar_apps_id_fk",
           "tableFrom": "towbar_deployable_runtime_states",
           "tableTo": "towbar_apps",
-          "columnsFrom": [
-            "app_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["app_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -705,12 +673,8 @@
           "name": "towbar_deployable_runtime_states_last_check_id_towbar_server_checks_id_fk",
           "tableFrom": "towbar_deployable_runtime_states",
           "tableTo": "towbar_server_checks",
-          "columnsFrom": [
-            "last_check_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["last_check_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -807,12 +771,8 @@
           "name": "towbar_deployment_log_chunks_deployment_id_towbar_deployments_id_fk",
           "tableFrom": "towbar_deployment_log_chunks",
           "tableTo": "towbar_deployments",
-          "columnsFrom": [
-            "deployment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deployment_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -915,12 +875,8 @@
           "name": "towbar_deployment_steps_deployment_id_towbar_deployments_id_fk",
           "tableFrom": "towbar_deployment_steps",
           "tableTo": "towbar_deployments",
-          "columnsFrom": [
-            "deployment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deployment_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1251,12 +1207,8 @@
           "name": "towbar_deployments_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_deployments",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1264,12 +1216,8 @@
           "name": "towbar_deployments_source_id_towbar_sources_id_fk",
           "tableFrom": "towbar_deployments",
           "tableTo": "towbar_sources",
-          "columnsFrom": [
-            "source_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1277,12 +1225,8 @@
           "name": "towbar_deployments_app_id_towbar_apps_id_fk",
           "tableFrom": "towbar_deployments",
           "tableTo": "towbar_apps",
-          "columnsFrom": [
-            "app_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["app_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1290,12 +1234,8 @@
           "name": "towbar_deployments_server_id_towbar_servers_id_fk",
           "tableFrom": "towbar_deployments",
           "tableTo": "towbar_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1303,12 +1243,8 @@
           "name": "towbar_deployments_requested_by_towbar_users_id_fk",
           "tableFrom": "towbar_deployments",
           "tableTo": "towbar_users",
-          "columnsFrom": [
-            "requested_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["requested_by"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1316,12 +1252,8 @@
           "name": "towbar_deployments_preview_environment_id_towbar_preview_environments_id_fk",
           "tableFrom": "towbar_deployments",
           "tableTo": "towbar_preview_environments",
-          "columnsFrom": [
-            "preview_environment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["preview_environment_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1434,12 +1366,8 @@
           "name": "towbar_github_installations_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_github_installations",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1520,12 +1448,8 @@
           "name": "towbar_github_webhook_deliveries_source_id_towbar_sources_id_fk",
           "tableFrom": "towbar_github_webhook_deliveries",
           "tableTo": "towbar_sources",
-          "columnsFrom": [
-            "source_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1626,12 +1550,8 @@
           "name": "towbar_image_vulnerability_findings_scan_id_towbar_image_vulnerability_scans_id_fk",
           "tableFrom": "towbar_image_vulnerability_findings",
           "tableTo": "towbar_image_vulnerability_scans",
-          "columnsFrom": [
-            "scan_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["scan_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1845,12 +1765,8 @@
           "name": "towbar_image_vulnerability_scans_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_image_vulnerability_scans",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1858,12 +1774,8 @@
           "name": "towbar_image_vulnerability_scans_source_id_towbar_sources_id_fk",
           "tableFrom": "towbar_image_vulnerability_scans",
           "tableTo": "towbar_sources",
-          "columnsFrom": [
-            "source_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1871,12 +1783,8 @@
           "name": "towbar_image_vulnerability_scans_app_id_towbar_apps_id_fk",
           "tableFrom": "towbar_image_vulnerability_scans",
           "tableTo": "towbar_apps",
-          "columnsFrom": [
-            "app_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["app_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1884,12 +1792,8 @@
           "name": "towbar_image_vulnerability_scans_server_id_towbar_servers_id_fk",
           "tableFrom": "towbar_image_vulnerability_scans",
           "tableTo": "towbar_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1897,12 +1801,8 @@
           "name": "towbar_image_vulnerability_scans_deployment_id_towbar_deployments_id_fk",
           "tableFrom": "towbar_image_vulnerability_scans",
           "tableTo": "towbar_deployments",
-          "columnsFrom": [
-            "deployment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deployment_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -2034,12 +1934,8 @@
           "name": "towbar_managed_secrets_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_managed_secrets",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2047,12 +1943,8 @@
           "name": "towbar_managed_secrets_source_id_towbar_sources_id_fk",
           "tableFrom": "towbar_managed_secrets",
           "tableTo": "towbar_sources",
-          "columnsFrom": [
-            "source_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2060,12 +1952,8 @@
           "name": "towbar_managed_secrets_app_id_towbar_apps_id_fk",
           "tableFrom": "towbar_managed_secrets",
           "tableTo": "towbar_apps",
-          "columnsFrom": [
-            "app_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["app_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2073,12 +1961,8 @@
           "name": "towbar_managed_secrets_server_id_towbar_servers_id_fk",
           "tableFrom": "towbar_managed_secrets",
           "tableTo": "towbar_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2086,14 +1970,8 @@
           "name": "fk_towbar_secret_sources_owner",
           "tableFrom": "towbar_managed_secrets",
           "tableTo": "towbar_sources",
-          "columnsFrom": [
-            "source_id",
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id",
-            "workspace_id"
-          ],
+          "columnsFrom": ["source_id", "workspace_id"],
+          "columnsTo": ["id", "workspace_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2101,16 +1979,8 @@
           "name": "fk_towbar_secret_apps_owner",
           "tableFrom": "towbar_managed_secrets",
           "tableTo": "towbar_apps",
-          "columnsFrom": [
-            "app_id",
-            "workspace_id",
-            "source_id"
-          ],
-          "columnsTo": [
-            "id",
-            "workspace_id",
-            "source_id"
-          ],
+          "columnsFrom": ["app_id", "workspace_id", "source_id"],
+          "columnsTo": ["id", "workspace_id", "source_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2118,14 +1988,8 @@
           "name": "fk_towbar_secret_servers_owner",
           "tableFrom": "towbar_managed_secrets",
           "tableTo": "towbar_servers",
-          "columnsFrom": [
-            "server_id",
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id",
-            "workspace_id"
-          ],
+          "columnsFrom": ["server_id", "workspace_id"],
+          "columnsTo": ["id", "workspace_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2277,12 +2141,8 @@
           "name": "towbar_monitoring_agents_server_id_towbar_servers_id_fk",
           "tableFrom": "towbar_monitoring_agents",
           "tableTo": "towbar_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2290,12 +2150,8 @@
           "name": "towbar_monitoring_agents_removal_requested_by_towbar_users_id_fk",
           "tableFrom": "towbar_monitoring_agents",
           "tableTo": "towbar_users",
-          "columnsFrom": [
-            "removal_requested_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["removal_requested_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2303,12 +2159,8 @@
           "name": "towbar_monitoring_agents_requested_by_towbar_users_id_fk",
           "tableFrom": "towbar_monitoring_agents",
           "tableTo": "towbar_users",
-          "columnsFrom": [
-            "requested_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["requested_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2378,12 +2230,8 @@
           "name": "towbar_monitoring_batches_server_id_towbar_servers_id_fk",
           "tableFrom": "towbar_monitoring_batches",
           "tableTo": "towbar_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2391,10 +2239,7 @@
       "compositePrimaryKeys": {
         "towbar_monitoring_batches_server_id_sample_id_pk": {
           "name": "towbar_monitoring_batches_server_id_sample_id_pk",
-          "columns": [
-            "server_id",
-            "sample_id"
-          ]
+          "columns": ["server_id", "sample_id"]
         }
       },
       "uniqueConstraints": {},
@@ -2538,12 +2383,8 @@
           "name": "towbar_monitoring_samples_server_id_towbar_servers_id_fk",
           "tableFrom": "towbar_monitoring_samples",
           "tableTo": "towbar_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2551,12 +2392,7 @@
       "compositePrimaryKeys": {
         "towbar_monitoring_samples_server_id_entity_id_bucket_at_resolution_pk": {
           "name": "towbar_monitoring_samples_server_id_entity_id_bucket_at_resolution_pk",
-          "columns": [
-            "server_id",
-            "entity_id",
-            "bucket_at",
-            "resolution"
-          ]
+          "columns": ["server_id", "entity_id", "bucket_at", "resolution"]
         }
       },
       "uniqueConstraints": {},
@@ -2729,12 +2565,8 @@
           "name": "towbar_notification_deliveries_event_id_towbar_notification_events_id_fk",
           "tableFrom": "towbar_notification_deliveries",
           "tableTo": "towbar_notification_events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2742,12 +2574,8 @@
           "name": "towbar_notification_deliveries_destination_id_towbar_notification_destinations_id_fk",
           "tableFrom": "towbar_notification_deliveries",
           "tableTo": "towbar_notification_destinations",
-          "columnsFrom": [
-            "destination_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["destination_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2876,12 +2704,8 @@
           "name": "towbar_notification_delivery_attempts_delivery_id_towbar_notification_deliveries_id_fk",
           "tableFrom": "towbar_notification_delivery_attempts",
           "tableTo": "towbar_notification_deliveries",
-          "columnsFrom": [
-            "delivery_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["delivery_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3005,12 +2829,8 @@
           "name": "towbar_notification_destinations_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_notification_destinations",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3018,12 +2838,8 @@
           "name": "towbar_notification_destinations_source_id_towbar_sources_id_fk",
           "tableFrom": "towbar_notification_destinations",
           "tableTo": "towbar_sources",
-          "columnsFrom": [
-            "source_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3031,12 +2847,8 @@
           "name": "towbar_notification_destinations_server_id_towbar_servers_id_fk",
           "tableFrom": "towbar_notification_destinations",
           "tableTo": "towbar_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3204,12 +3016,8 @@
           "name": "towbar_notification_events_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_notification_events",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3217,12 +3025,8 @@
           "name": "towbar_notification_events_source_id_towbar_sources_id_fk",
           "tableFrom": "towbar_notification_events",
           "tableTo": "towbar_sources",
-          "columnsFrom": [
-            "source_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3230,12 +3034,8 @@
           "name": "towbar_notification_events_server_id_towbar_servers_id_fk",
           "tableFrom": "towbar_notification_events",
           "tableTo": "towbar_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3368,12 +3168,8 @@
           "name": "towbar_notification_threads_destination_id_towbar_notification_destinations_id_fk",
           "tableFrom": "towbar_notification_threads",
           "tableTo": "towbar_notification_destinations",
-          "columnsFrom": [
-            "destination_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["destination_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3381,12 +3177,8 @@
           "name": "towbar_notification_threads_creating_delivery_id_towbar_notification_deliveries_id_fk",
           "tableFrom": "towbar_notification_threads",
           "tableTo": "towbar_notification_deliveries",
-          "columnsFrom": [
-            "creating_delivery_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["creating_delivery_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3433,12 +3225,8 @@
           "name": "towbar_password_credentials_user_id_towbar_users_id_fk",
           "tableFrom": "towbar_password_credentials",
           "tableTo": "towbar_users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3677,12 +3465,8 @@
           "name": "towbar_preview_environments_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_preview_environments",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3690,12 +3474,8 @@
           "name": "towbar_preview_environments_source_id_towbar_sources_id_fk",
           "tableFrom": "towbar_preview_environments",
           "tableTo": "towbar_sources",
-          "columnsFrom": [
-            "source_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3703,12 +3483,8 @@
           "name": "towbar_preview_environments_app_id_towbar_apps_id_fk",
           "tableFrom": "towbar_preview_environments",
           "tableTo": "towbar_apps",
-          "columnsFrom": [
-            "app_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["app_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3716,12 +3492,8 @@
           "name": "towbar_preview_environments_server_id_towbar_servers_id_fk",
           "tableFrom": "towbar_preview_environments",
           "tableTo": "towbar_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -3923,12 +3695,8 @@
           "name": "towbar_preview_pull_request_reports_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_preview_pull_request_reports",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3936,12 +3704,8 @@
           "name": "towbar_preview_pull_request_reports_source_id_towbar_sources_id_fk",
           "tableFrom": "towbar_preview_pull_request_reports",
           "tableTo": "towbar_sources",
-          "columnsFrom": [
-            "source_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4128,12 +3892,8 @@
           "name": "towbar_releases_app_id_towbar_apps_id_fk",
           "tableFrom": "towbar_releases",
           "tableTo": "towbar_apps",
-          "columnsFrom": [
-            "app_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["app_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4141,12 +3901,8 @@
           "name": "towbar_releases_deployment_id_towbar_deployments_id_fk",
           "tableFrom": "towbar_releases",
           "tableTo": "towbar_deployments",
-          "columnsFrom": [
-            "deployment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deployment_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -4154,12 +3910,8 @@
           "name": "towbar_releases_preview_environment_id_towbar_preview_environments_id_fk",
           "tableFrom": "towbar_releases",
           "tableTo": "towbar_preview_environments",
-          "columnsFrom": [
-            "preview_environment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["preview_environment_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -4226,10 +3978,7 @@
       "compositePrimaryKeys": {
         "pk_towbar_request_nonces": {
           "name": "pk_towbar_request_nonces",
-          "columns": [
-            "scope",
-            "nonce"
-          ]
+          "columns": ["scope", "nonce"]
         }
       },
       "uniqueConstraints": {},
@@ -4325,12 +4074,8 @@
           "name": "towbar_resource_backup_assurances_resource_id_towbar_apps_id_fk",
           "tableFrom": "towbar_resource_backup_assurances",
           "tableTo": "towbar_apps",
-          "columnsFrom": [
-            "resource_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["resource_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4338,12 +4083,8 @@
           "name": "towbar_resource_backup_assurances_backup_operation_id_towbar_resource_operations_id_fk",
           "tableFrom": "towbar_resource_backup_assurances",
           "tableTo": "towbar_resource_operations",
-          "columnsFrom": [
-            "backup_operation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["backup_operation_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4466,12 +4207,8 @@
           "name": "towbar_resource_operation_events_operation_id_towbar_resource_operations_id_fk",
           "tableFrom": "towbar_resource_operation_events",
           "tableTo": "towbar_resource_operations",
-          "columnsFrom": [
-            "operation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["operation_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4716,12 +4453,8 @@
           "name": "towbar_resource_operations_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_resource_operations",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4729,12 +4462,8 @@
           "name": "towbar_resource_operations_source_id_towbar_sources_id_fk",
           "tableFrom": "towbar_resource_operations",
           "tableTo": "towbar_sources",
-          "columnsFrom": [
-            "source_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4742,12 +4471,8 @@
           "name": "towbar_resource_operations_resource_id_towbar_apps_id_fk",
           "tableFrom": "towbar_resource_operations",
           "tableTo": "towbar_apps",
-          "columnsFrom": [
-            "resource_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["resource_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4755,12 +4480,8 @@
           "name": "towbar_resource_operations_server_id_towbar_servers_id_fk",
           "tableFrom": "towbar_resource_operations",
           "tableTo": "towbar_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4768,12 +4489,8 @@
           "name": "towbar_resource_operations_requested_by_towbar_users_id_fk",
           "tableFrom": "towbar_resource_operations",
           "tableTo": "towbar_users",
-          "columnsFrom": [
-            "requested_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["requested_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -4955,12 +4672,8 @@
           "name": "towbar_scout_alert_incidents_rule_id_towbar_scout_alert_rules_id_fk",
           "tableFrom": "towbar_scout_alert_incidents",
           "tableTo": "towbar_scout_alert_rules",
-          "columnsFrom": [
-            "rule_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["rule_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4968,12 +4681,8 @@
           "name": "towbar_scout_alert_incidents_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_scout_alert_incidents",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4981,12 +4690,8 @@
           "name": "towbar_scout_alert_incidents_server_id_towbar_servers_id_fk",
           "tableFrom": "towbar_scout_alert_incidents",
           "tableTo": "towbar_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5163,12 +4868,8 @@
           "name": "towbar_scout_alert_rules_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_scout_alert_rules",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5176,12 +4877,8 @@
           "name": "towbar_scout_alert_rules_server_id_towbar_servers_id_fk",
           "tableFrom": "towbar_scout_alert_rules",
           "tableTo": "towbar_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5189,12 +4886,8 @@
           "name": "towbar_scout_alert_rules_deployable_id_towbar_apps_id_fk",
           "tableFrom": "towbar_scout_alert_rules",
           "tableTo": "towbar_apps",
-          "columnsFrom": [
-            "deployable_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deployable_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5251,12 +4944,8 @@
           "name": "towbar_scout_alert_settings_server_id_towbar_servers_id_fk",
           "tableFrom": "towbar_scout_alert_settings",
           "tableTo": "towbar_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5343,12 +5032,8 @@
           "name": "towbar_scout_http_checks_rule_id_towbar_scout_alert_rules_id_fk",
           "tableFrom": "towbar_scout_http_checks",
           "tableTo": "towbar_scout_alert_rules",
-          "columnsFrom": [
-            "rule_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["rule_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5356,10 +5041,7 @@
       "compositePrimaryKeys": {
         "towbar_scout_http_checks_rule_id_scheduled_at_pk": {
           "name": "towbar_scout_http_checks_rule_id_scheduled_at_pk",
-          "columns": [
-            "rule_id",
-            "scheduled_at"
-          ]
+          "columns": ["rule_id", "scheduled_at"]
         }
       },
       "uniqueConstraints": {},
@@ -5475,12 +5157,8 @@
           "name": "towbar_server_checks_server_id_towbar_servers_id_fk",
           "tableFrom": "towbar_server_checks",
           "tableTo": "towbar_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5488,12 +5166,8 @@
           "name": "towbar_server_checks_requested_by_towbar_users_id_fk",
           "tableFrom": "towbar_server_checks",
           "tableTo": "towbar_users",
-          "columnsFrom": [
-            "requested_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["requested_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -5527,12 +5201,8 @@
           "name": "towbar_server_deployable_ownership_server_id_towbar_servers_id_fk",
           "tableFrom": "towbar_server_deployable_ownership",
           "tableTo": "towbar_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5540,10 +5210,7 @@
       "compositePrimaryKeys": {
         "towbar_server_deployable_ownership_server_id_deployable_id_pk": {
           "name": "towbar_server_deployable_ownership_server_id_deployable_id_pk",
-          "columns": [
-            "server_id",
-            "deployable_id"
-          ]
+          "columns": ["server_id", "deployable_id"]
         }
       },
       "uniqueConstraints": {},
@@ -5676,12 +5343,8 @@
           "name": "towbar_server_preparations_server_id_towbar_servers_id_fk",
           "tableFrom": "towbar_server_preparations",
           "tableTo": "towbar_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5689,12 +5352,8 @@
           "name": "towbar_server_preparations_requested_by_towbar_users_id_fk",
           "tableFrom": "towbar_server_preparations",
           "tableTo": "towbar_users",
-          "columnsFrom": [
-            "requested_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["requested_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -5852,12 +5511,8 @@
           "name": "towbar_servers_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_servers",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5970,12 +5625,8 @@
           "name": "towbar_sessions_user_id_towbar_users_id_fk",
           "tableFrom": "towbar_sessions",
           "tableTo": "towbar_users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -6101,12 +5752,8 @@
           "name": "towbar_source_syncs_source_id_towbar_sources_id_fk",
           "tableFrom": "towbar_source_syncs",
           "tableTo": "towbar_sources",
-          "columnsFrom": [
-            "source_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6114,12 +5761,8 @@
           "name": "towbar_source_syncs_requested_by_towbar_users_id_fk",
           "tableFrom": "towbar_source_syncs",
           "tableTo": "towbar_users",
-          "columnsFrom": [
-            "requested_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["requested_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -6301,12 +5944,8 @@
           "name": "towbar_sources_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_sources",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6314,12 +5953,8 @@
           "name": "towbar_sources_github_installation_id_towbar_github_installations_id_fk",
           "tableFrom": "towbar_sources",
           "tableTo": "towbar_github_installations",
-          "columnsFrom": [
-            "github_installation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["github_installation_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -6413,12 +6048,8 @@
           "name": "towbar_ssh_host_keys_server_id_towbar_servers_id_fk",
           "tableFrom": "towbar_ssh_host_keys",
           "tableTo": "towbar_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6426,12 +6057,8 @@
           "name": "towbar_ssh_host_keys_trusted_by_towbar_users_id_fk",
           "tableFrom": "towbar_ssh_host_keys",
           "tableTo": "towbar_users",
-          "columnsFrom": [
-            "trusted_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["trusted_by"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -6525,12 +6152,8 @@
           "name": "towbar_system_health_signals_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_system_health_signals",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -6701,12 +6324,8 @@
           "name": "towbar_workspace_aws_credentials_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_workspace_aws_credentials",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -6815,12 +6434,8 @@
           "name": "towbar_workspace_azure_credentials_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_workspace_azure_credentials",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -6923,12 +6538,8 @@
           "name": "towbar_workspace_gcp_credentials_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_workspace_gcp_credentials",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -6992,12 +6603,8 @@
           "name": "towbar_workspace_members_workspace_id_towbar_workspaces_id_fk",
           "tableFrom": "towbar_workspace_members",
           "tableTo": "towbar_workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -7005,12 +6612,8 @@
           "name": "towbar_workspace_members_user_id_towbar_users_id_fk",
           "tableFrom": "towbar_workspace_members",
           "tableTo": "towbar_users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -7018,10 +6621,7 @@
       "compositePrimaryKeys": {
         "pk_towbar_workspace_members": {
           "name": "pk_towbar_workspace_members",
-          "columns": [
-            "workspace_id",
-            "user_id"
-          ]
+          "columns": ["workspace_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -7096,57 +6696,32 @@
     "public.towbar_backup_assurance_status": {
       "name": "towbar_backup_assurance_status",
       "schema": "public",
-      "values": [
-        "missing",
-        "stale",
-        "not_restore_ready",
-        "restore_ready"
-      ]
+      "values": ["missing", "stale", "not_restore_ready", "restore_ready"]
     },
     "public.towbar_check_status": {
       "name": "towbar_check_status",
       "schema": "public",
-      "values": [
-        "queued",
-        "running",
-        "succeeded",
-        "failed"
-      ]
+      "values": ["queued", "running", "succeeded", "failed"]
     },
     "public.towbar_credential_verification_status": {
       "name": "towbar_credential_verification_status",
       "schema": "public",
-      "values": [
-        "unverified",
-        "verified",
-        "failed"
-      ]
+      "values": ["unverified", "verified", "failed"]
     },
     "public.towbar_deployable_kind": {
       "name": "towbar_deployable_kind",
       "schema": "public",
-      "values": [
-        "app",
-        "image",
-        "postgres",
-        "redis"
-      ]
+      "values": ["app", "image", "postgres", "redis"]
     },
     "public.towbar_deployment_environment": {
       "name": "towbar_deployment_environment",
       "schema": "public",
-      "values": [
-        "production",
-        "preview"
-      ]
+      "values": ["production", "preview"]
     },
     "public.towbar_deployment_kind": {
       "name": "towbar_deployment_kind",
       "schema": "public",
-      "values": [
-        "deploy",
-        "rollback"
-      ]
+      "values": ["deploy", "rollback"]
     },
     "public.towbar_deployment_state": {
       "name": "towbar_deployment_state",
@@ -7180,13 +6755,7 @@
     "public.towbar_deployment_step_status": {
       "name": "towbar_deployment_step_status",
       "schema": "public",
-      "values": [
-        "waiting",
-        "running",
-        "succeeded",
-        "failed",
-        "skipped"
-      ]
+      "values": ["waiting", "running", "succeeded", "failed", "skipped"]
     },
     "public.towbar_notification_attempt_state": {
       "name": "towbar_notification_attempt_state",
@@ -7201,21 +6770,12 @@
     "public.towbar_notification_delivery_state": {
       "name": "towbar_notification_delivery_state",
       "schema": "public",
-      "values": [
-        "pending",
-        "delivering",
-        "retrying",
-        "succeeded",
-        "failed"
-      ]
+      "values": ["pending", "delivering", "retrying", "succeeded", "failed"]
     },
     "public.towbar_notification_provider": {
       "name": "towbar_notification_provider",
       "schema": "public",
-      "values": [
-        "slack",
-        "smtp"
-      ]
+      "values": ["slack", "smtp"]
     },
     "public.towbar_preview_environment_status": {
       "name": "towbar_preview_environment_status",
@@ -7232,31 +6792,17 @@
     "public.towbar_preview_report_delivery_status": {
       "name": "towbar_preview_report_delivery_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "published",
-        "failed"
-      ]
+      "values": ["pending", "published", "failed"]
     },
     "public.towbar_release_status": {
       "name": "towbar_release_status",
       "schema": "public",
-      "values": [
-        "current",
-        "previous",
-        "superseded"
-      ]
+      "values": ["current", "previous", "superseded"]
     },
     "public.towbar_resource_operation_state": {
       "name": "towbar_resource_operation_state",
       "schema": "public",
-      "values": [
-        "queued",
-        "running",
-        "succeeded",
-        "failed",
-        "cancelled"
-      ]
+      "values": ["queued", "running", "succeeded", "failed", "cancelled"]
     },
     "public.towbar_resource_operation_type": {
       "name": "towbar_resource_operation_type",
@@ -7275,88 +6821,47 @@
     "public.towbar_runtime_desired_state": {
       "name": "towbar_runtime_desired_state",
       "schema": "public",
-      "values": [
-        "running",
-        "stopped"
-      ]
+      "values": ["running", "stopped"]
     },
     "public.towbar_runtime_drift_state": {
       "name": "towbar_runtime_drift_state",
       "schema": "public",
-      "values": [
-        "drifted",
-        "in_sync",
-        "unknown"
-      ]
+      "values": ["drifted", "in_sync", "unknown"]
     },
     "public.towbar_runtime_health_state": {
       "name": "towbar_runtime_health_state",
       "schema": "public",
-      "values": [
-        "healthy",
-        "none",
-        "starting",
-        "unhealthy",
-        "unknown"
-      ]
+      "values": ["healthy", "none", "starting", "unhealthy", "unknown"]
     },
     "public.towbar_runtime_observed_state": {
       "name": "towbar_runtime_observed_state",
       "schema": "public",
-      "values": [
-        "missing",
-        "running",
-        "stopped",
-        "unknown"
-      ]
+      "values": ["missing", "running", "stopped", "unknown"]
     },
     "public.towbar_source_status": {
       "name": "towbar_source_status",
       "schema": "public",
-      "values": [
-        "active",
-        "archived"
-      ]
+      "values": ["active", "archived"]
     },
     "public.towbar_source_sync_status": {
       "name": "towbar_source_sync_status",
       "schema": "public",
-      "values": [
-        "queued",
-        "running",
-        "succeeded",
-        "failed"
-      ]
+      "values": ["queued", "running", "succeeded", "failed"]
     },
     "public.towbar_vulnerability_scan_state": {
       "name": "towbar_vulnerability_scan_state",
       "schema": "public",
-      "values": [
-        "pending",
-        "running",
-        "clean",
-        "findings",
-        "failed"
-      ]
+      "values": ["pending", "running", "clean", "findings", "failed"]
     },
     "public.towbar_vulnerability_severity": {
       "name": "towbar_vulnerability_severity",
       "schema": "public",
-      "values": [
-        "critical",
-        "high",
-        "medium",
-        "low",
-        "unknown"
-      ]
+      "values": ["critical", "high", "medium", "low", "unknown"]
     },
     "public.towbar_workspace_role": {
       "name": "towbar_workspace_role",
       "schema": "public",
-      "values": [
-        "owner",
-        "member"
-      ]
+      "values": ["owner", "member"]
     }
   },
   "schemas": {},

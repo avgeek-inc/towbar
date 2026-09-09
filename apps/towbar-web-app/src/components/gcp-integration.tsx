@@ -113,8 +113,8 @@ export function GcpIntegration() {
                 <Modal.Body className="content-grid">
                   <p className="text-muted typography--body-sm">
                     Values are encrypted before storage, scoped to this
-                    workspace, and never returned in normal responses. Paste
-                    the full service account JSON key file content.
+                    workspace, and never returned in normal responses. Paste the
+                    full service account JSON key file content.
                   </p>
                   <SimpleForm
                     fields={[
@@ -124,7 +124,8 @@ export function GcpIntegration() {
                         label: "Service account JSON key",
                         minLength: 20,
                         name: "serviceAccountKey",
-                        placeholder: '{\n  "type": "service_account",\n  ...\n}',
+                        placeholder:
+                          '{\n  "type": "service_account",\n  ...\n}',
                         required: true,
                         rows: 7,
                         spellCheck: false,

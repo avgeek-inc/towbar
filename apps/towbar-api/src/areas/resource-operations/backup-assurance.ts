@@ -116,7 +116,10 @@ async function inspectAzureBackupObject(
       ("storageAccount" in targetDest && targetDest.storageAccount) ||
       targetDest.bucket.split("/")[0]!;
     const container = targetDest.bucket;
-    const blobPath = targetDest.key.split("/").map(encodeURIComponent).join("/");
+    const blobPath = targetDest.key
+      .split("/")
+      .map(encodeURIComponent)
+      .join("/");
     const url = `https://${encodeURIComponent(storageAccount)}.blob.core.windows.net/${encodeURIComponent(container)}/${blobPath}`;
     const response = await fetch(url, {
       headers: {
@@ -151,8 +154,7 @@ async function inspectAzureBackupObject(
         headers.get("x-ms-meta-towbar-format") === "postgres-custom" ||
         headers.get("x-ms-meta-towbar-format") === "redis-rdb"
           ? (headers.get("x-ms-meta-towbar-format") as
-              | "postgres-custom"
-              | "redis-rdb")
+              "postgres-custom" | "redis-rdb")
           : undefined,
       metadataVersion: parsePositiveInteger(
         headers.get("x-ms-meta-towbar-metadata-version") ?? undefined,

@@ -294,7 +294,6 @@ void test("rejects removed terminal declarations", () => {
   );
 });
 
-
 void test("rejects mutable resource images and duplicate deployable ids", () => {
   const mutable = `${manifest}\nresources:\n  - id: metrics\n    name: Metrics\n    type: image\n    image: prom/prometheus:latest\n    server: 203.0.113.10\n`;
   assert.throws(

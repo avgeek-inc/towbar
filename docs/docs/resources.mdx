@@ -7,11 +7,11 @@ Resources run from an existing container image. Use them for databases, caches, 
 
 ## Supported types
 
-| Type       | Use it for                   | Towbar behavior                                                                                 |
-| ---------- | ---------------------------- | ----------------------------------------------------------------------------------------------- |
-| `postgres` | PostgreSQL databases         | Managed command, database health checks, persistent data volume, optional S3 backup and restore |
-| `redis`    | Redis caches and data stores | Password-protected managed command, persistent data volume, optional S3 backup and restore      |
-| `image`    | Other containerized services | Your image and optional command, declared ports, volumes, and health checks                     |
+| Type       | Use it for                   | Towbar behavior                                                                                          |
+| ---------- | ---------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `postgres` | PostgreSQL databases         | Managed command, database health checks, persistent data volume, optional multi-cloud backup and restore |
+| `redis`    | Redis caches and data stores | Password-protected managed command, persistent data volume, optional multi-cloud backup and restore      |
+| `image`    | Other containerized services | Your image and optional command, declared ports, volumes, and health checks                              |
 
 Images must have an explicit non-`latest` tag or a digest. Use a digest when you need an immutable image reference. PostgreSQL and Redis have preset images if you omit `image`; pin an explicit version when planning upgrades.
 
@@ -91,4 +91,4 @@ Changing `POSTGRES_PASSWORD` in Towbar does not rotate the password already stor
 
 ## Back up and restore
 
-Only PostgreSQL and Redis presets support Towbar-managed backups. Configure [AWS](/docs/integrations/aws) and a [backup policy](/docs/backups), then verify restore readiness. Read the [restore procedure](/docs/restores) before relying on a backup for recovery.
+Only PostgreSQL and Redis presets support Towbar-managed backups. Connect cloud provider integrations ([AWS](/docs/integrations/aws), [Google Cloud](/docs/integrations/gcp), or [Azure](/docs/integrations/azure)) and declare a [backup policy](/docs/backups), then verify restore readiness. Read the [restore procedure](/docs/restores) before relying on a backup for recovery.

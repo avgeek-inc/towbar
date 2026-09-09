@@ -152,14 +152,14 @@ async function resolveCloudStorageSecrets(operation: {
 }) {
   const requiresBackup = ["backup", "restore"].includes(operation.request.type);
   const backupConfig =
-    operation.app && typeof operation.app === "object" && "backup" in operation.app
+    operation.app &&
+    typeof operation.app === "object" &&
+    "backup" in operation.app
       ? (
-          (
-            operation.app as {
-              backup?: import("@workspace/towbar-core").NormalizedResource["backup"];
-            }
-          ).backup
-        )
+          operation.app as {
+            backup?: import("@workspace/towbar-core").NormalizedResource["backup"];
+          }
+        ).backup
       : undefined;
 
   const needsAws =

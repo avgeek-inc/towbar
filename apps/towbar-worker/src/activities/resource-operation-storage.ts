@@ -116,8 +116,7 @@ export function gcsStorage(serviceAccountKey: {
     const claims = Buffer.from(
       JSON.stringify({
         aud:
-          serviceAccountKey.token_uri ??
-          "https://oauth2.googleapis.com/token",
+          serviceAccountKey.token_uri ?? "https://oauth2.googleapis.com/token",
         exp: now + 3600,
         iat: now,
         iss: serviceAccountKey.client_email,

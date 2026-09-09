@@ -135,20 +135,20 @@ export function ResourceDetail() {
   const assuranceData = assurances.data;
   const missingBackupCredentials = Boolean(
     backup &&
-      assuranceData &&
-      ((backup.s3 && !assuranceData.awsConfigured) ||
-        (backup.gcs && !assuranceData.gcpConfigured) ||
-        (backup.azureBlob && !assuranceData.azureConfigured)),
+    assuranceData &&
+    ((backup.s3 && !assuranceData.awsConfigured) ||
+      (backup.gcs && !assuranceData.gcpConfigured) ||
+      (backup.azureBlob && !assuranceData.azureConfigured)),
   );
   const restoreProvider =
     backup?.restoreFrom ??
     (backup?.s3 ? "s3" : backup?.gcs ? "gcs" : "azureBlob");
   const missingRestoreCredentials = Boolean(
     backup &&
-      assuranceData &&
-      ((restoreProvider === "s3" && !assuranceData.awsConfigured) ||
-        (restoreProvider === "gcs" && !assuranceData.gcpConfigured) ||
-        (restoreProvider === "azureBlob" && !assuranceData.azureConfigured)),
+    assuranceData &&
+    ((restoreProvider === "s3" && !assuranceData.awsConfigured) ||
+      (restoreProvider === "gcs" && !assuranceData.gcpConfigured) ||
+      (restoreProvider === "azureBlob" && !assuranceData.azureConfigured)),
   );
   const tabs = [
     {

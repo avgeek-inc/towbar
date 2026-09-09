@@ -52,6 +52,8 @@
             "pages": [
               "docs/integrations/github",
               "docs/integrations/aws",
+              "docs/integrations/gcp",
+              "docs/integrations/azure",
               "docs/integrations/notifications"
             ]
           }
@@ -432,6 +434,22 @@
                   "api-reference/get_aws",
                   "api-reference/put_aws",
                   "api-reference/delete_aws"
+                ]
+              },
+              {
+                "group": "Azure",
+                "pages": [
+                  "api-reference/get_azure",
+                  "api-reference/put_azure",
+                  "api-reference/delete_azure"
+                ]
+              },
+              {
+                "group": "GCP",
+                "pages": [
+                  "api-reference/get_gcp",
+                  "api-reference/put_gcp",
+                  "api-reference/delete_gcp"
                 ]
               }
             ]
