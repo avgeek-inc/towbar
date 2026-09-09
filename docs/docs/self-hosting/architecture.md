@@ -73,7 +73,7 @@ App has deployment and pull-request write permission.
 
 ## Secret resolution
 
-Secrets are editor-owned database records, separate from manifest snapshots. Owners can add, replace, and delete values; no public API can reveal saved values. Matching-environment values resolve from workspace Shared secrets to the Source and then the app or resource. Resources inherit Production runtime defaults only. Preview apps inherit Preview defaults and never receive Production values.
+Secrets are editor-owned database records, separate from manifest snapshots. Owners can add, reveal, replace, and delete values. Shared values are not inherited automatically: child variables explicitly reference `{{globals.ENV_KEY}}` or `{{source.ENV_KEY}}` in the same environment and stage. Resources support Production runtime values only. Preview values and references never resolve Production secrets. The owner-only reveal operation returns a stored value or reference expression without resolving it and disables caching. File mode uses this operation to load values for editing.
 
 The API encrypts each record with AES-256-GCM using `TOWBAR_CREDENTIALS_KEY`, binding ciphertext to workspace, owner, environment, stage, and record identity. An advisory transaction lock and expected revision protect both first writes and updates. Audit events contain metadata only. Deployment execution reads a consistent database snapshot and records only the revisions used; plaintext stays in execution memory and protected transfer files, outside Temporal history. Saving does not enqueue work. Image rollback resolves current runtime credentials.
 

@@ -3,7 +3,7 @@ title: "Shared secrets"
 description: "Configure encrypted deployment secrets in Towbar."
 ---
 
-Towbar manages deployment secrets without an AWS Secrets Manager account. Values and assignments live in the editor, separate from `.towbar/deployment.yml`. Owners can create, reveal, replace, and delete values. Saved values stay hidden until an owner clicks the eye icon.
+Towbar manages deployment secrets without an AWS Secrets Manager account. Values and assignments live in the editor, separate from `.towbar/deployment.yml`. Owners can create, reveal, replace, and delete values. Saved values stay hidden until an owner clicks the eye icon or opens File mode.
 
 ## Choose the right scope
 
@@ -31,6 +31,22 @@ References use the same environment and stage as the child variable. Production 
 
 If you previously relied on automatic inheritance, add explicit references to each app or resource before its next deployment. Existing containers continue using their current environment. Shared secrets remain stored, but are no longer injected into children automatically.
 
+## Form and File modes
+
+Select the environment and stage, then use the **Form** and **File** tabs inside the secrets widget. On mobile, environment and stage use dropdowns; larger screens show tabs.
+
+**Form** edits one key and value at a time. Configured values show a masked placeholder; use the eye icon to reveal or hide one value. Valid shared-reference expressions are highlighted in yellow.
+
+**File** fetches and reveals the stored values for the selected scope, environment, and stage in a `.env` editor. Edit one `KEY=value` assignment per line. Quoted values, multiline quoted strings, comments, and optional `export` prefixes are supported. Quote values containing `#` to keep it as part of the value. Duplicate keys and invalid syntax must be corrected before saving or switching back to Form. Comments and formatting are not stored.
+
+```dotenv
+LOG_LEVEL="info"
+PACKAGE_TOKEN="{{source.PACKAGE_REGISTRY_TOKEN}}"
+AUTH_HEADER="Bearer {{globals.API_TOKEN}}"
+```
+
+Removing a line deletes that key when saved; `KEY=` saves an empty string. Unchanged values are preserved. Switching modes does not save: use **Save** to apply edits. References remain expressions in the editor and resolve only for execution.
+
 ## Save and deploy
 
 The editor shows locally configured keys. Click the eye icon to reveal a stored value, then click it again to hide it. Revealing a value does not change it. References are shown as the stored expression so they remain editable; deployment resolves them to the referenced value. Leaving a replacement input untouched preserves the value. Replacing it with an empty string explicitly saves an empty value. Concurrent edits are rejected; refresh and reapply the intended changes.
@@ -41,10 +57,10 @@ Shared Preview values and app references can be saved independently and are used
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/features/secrets-light.webp" alt="Example Shared secrets editor. Configured keys are visible; stored secret values remain hidden." width="1440" height="600" loading="lazy" />
+    <img src="/assets/features/secrets-light.webp" alt="Example Shared secrets editor. Configured keys are visible; stored secret values remain hidden." width="2400" height="900" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/features/secrets-dark.webp" alt="Example Shared secrets editor. Configured keys are visible; stored secret values remain hidden." width="1440" height="600" loading="lazy" />
+    <img src="/assets/features/secrets-dark.webp" alt="Example Shared secrets editor. Configured keys are visible; stored secret values remain hidden." width="2400" height="900" loading="lazy" />
   </div>
   <p>Example Shared secrets editor. Configured keys are visible; stored secret values remain hidden.</p>
 </div>

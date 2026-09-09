@@ -23,6 +23,12 @@ docker compose logs --tail 200 migrate api worker
 
 A previous image alone is not a recovery plan for a database migration. Review migration compatibility before reverting a release. Do not replace `TOWBAR_CREDENTIALS_KEY`: existing encrypted records require the matching key.
 
+## Upgrading from before 1.6.4
+
+Shared secrets are no longer injected into Sources, apps, or resources automatically. Before the next workload deployment, add explicit `{{globals.ENV_KEY}}` or `{{source.ENV_KEY}}` references for the shared values it needs, in the matching environment and stage. Existing containers keep their current environment, and shared values remain stored. See [Shared secrets](/docs/secrets) for the reference rules.
+
+Version 1.6.5 adds interface improvements without a database migration or Scout Agent reinstall. Workloads do not need redeployment to receive the interface update.
+
 ## Upgrading from 1.4.0 to 1.5.0
 
 1.5.0 changes server ownership, manifest configuration, and integration storage.
@@ -33,7 +39,7 @@ old credential values into the new ownership model.
    restores to finish. Back up the Towbar database and preserve `.env` and the
    matching `TOWBAR_CREDENTIALS_KEY`. Confirm you can retrieve the server SSH keys,
    Cloudflare tokens, AWS credentials, and notification provider credentials from
-   your own secure records before starting. Towbar's secret fields are write-only.
+   your own secure records before starting. These credentials cannot be recovered through the older release's write-only fields.
 2. Update each repository's manifest: remove its top-level `servers` block and
    retain the `server` IP on every App and Resource. Host SSH/proxy/concurrency
    settings now belong in **Servers → server → Settings → Configuration**.

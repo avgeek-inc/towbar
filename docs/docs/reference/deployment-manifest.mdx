@@ -91,11 +91,13 @@ an automatic deployment only when selected source inputs, runtime
 configuration, or target server configuration changed. An incomplete Git tree
 fails safe by treating the commit as changed.
 
+To inspect the imported YAML, open **Source → Info → Manifest**. The read-only editor supports syntax highlighting, line numbers, scrolling, and copying. Make configuration changes in the repository, then sync the Source.
+
 ## Managed secrets
 
-Secret values and assignments are configured through the Towbar editor and do not belong in YAML. Global and Source defaults support separate Production and Preview values for build, runtime, pre-deploy, and post-deploy stages. Apps can override each stage in the matching environment; resources inherit Production runtime values only. Saved values remain write-only.
+Secret values and assignments are configured through the Towbar secrets editor and do not belong in YAML. Global, Source, and app values are separate for Production and Preview and for each build, runtime, pre-deploy, and post-deploy stage. Shared values are used only through explicit `{{globals.ENV_KEY}}` or `{{source.ENV_KEY}}` references. Resources support Production runtime values only. Owners can reveal values individually or edit them in File mode.
 
-See [Managed secrets](/docs/secrets) for inheritance, explicit deployment, external managers, and recovery.
+See [Managed secrets](/docs/secrets) for shared references, explicit deployment, external managers, and recovery.
 
 ## Apps and Resources
 
@@ -126,7 +128,7 @@ routes that port through Caddy or Cloudflare.
 
 Preview deployments are opt-in per App. They run for relevant same-repository
 pull requests targeting `source.branch`, using Preview-only build, runtime, and
-hook values configured in the editor. Resources are not cloned. Preview apps inherit Preview shared values and never receive Production secrets.
+hook values configured in the editor. Resources are not cloned. Preview apps use explicitly configured Preview values and references; they never receive Production secrets.
 
 ```yaml
 apps:
