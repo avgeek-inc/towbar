@@ -58,8 +58,8 @@ export function OverviewIncidents() {
             <Image
               src={
                 count
-                  ? "/scout/overview-smoking-edge.png"
-                  : "/scout/overview-healthy-edge.png"
+                  ? "/scout/overview-smoking-matched.png"
+                  : "/scout/overview-healthy-matched.png"
               }
               alt=""
               width={160}

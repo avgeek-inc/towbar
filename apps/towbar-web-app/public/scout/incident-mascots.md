@@ -166,3 +166,12 @@ Refinements:
 Transparency was requested directly in every prompt. Inventory outputs retained alpha;
 Scout edits required a subsequent ImageGen background removal request. All final PNGs
 were checked for an alpha channel. No local background removal was used.
+
+## Ship gray color reference
+
+The current Apps, Resources, healthy Scout and worried Scout assets use the
+`overview-*-matched.png` suffix. ImageGen edits used `overview-servers-edge-v2.png`
+as the gray material reference, preserving edge composition and accents.
+Transparency was requested directly and verified in the final PNGs. The ship
+asset remains unchanged. Apps was derived from the final Resources asset with
+only its emblem changed to preserve their matching container palette.

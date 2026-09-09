@@ -76,7 +76,7 @@ export function DashboardOverview() {
       icon: DashboardCircleIcon,
       href: "/apps",
       label: "Apps",
-      image: "/scout/overview-apps-edge.png",
+      image: "/scout/overview-apps-matched.png",
       status: "running",
       detailCount: activeApps.filter(
         (item) => item.runtimeState.observedState === "running",
@@ -88,7 +88,7 @@ export function DashboardOverview() {
       icon: DatabaseIcon,
       href: "/resources",
       label: "Resources",
-      image: "/scout/overview-resources-edge.png",
+      image: "/scout/overview-resources-matched.png",
       status: "running",
       detailCount: activeResources.filter(
         (item) => item.runtimeState.observedState === "running",
