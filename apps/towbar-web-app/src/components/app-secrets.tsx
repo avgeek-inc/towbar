@@ -44,7 +44,7 @@ import { api } from "@/lib/api";
 import { Select, ListBox } from "@workspace/web-design-system/forms/select";
 import { Label } from "@workspace/web-design-system/forms/label";
 
-const SecretFileEditor = dynamic(() => import("./secret-file-editor"), {
+const CodeEditor = dynamic(() => import("./code-editor"), {
   ssr: false,
 });
 
@@ -514,7 +514,7 @@ function SecretVariablesEditor({
             >
               {fileMode ? (
                 <div className="grid min-w-0 gap-3">
-                  <SecretFileEditor
+                  <CodeEditor
                     value={fileText}
                     onChange={setFileText}
                     disabled={busy}
