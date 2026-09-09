@@ -1,5 +1,13 @@
 # Incident mascot assets
 
+## Soft texture revision
+
+Current assets: `mascot-soft-healthy.png` and `mascot-soft-smoking.png`. Generated using the built-in image tool from the preceding healthy/smoking container images. Both have verified transparent alpha. Prior prompts below document the asset history.
+
+Healthy prompt: Restyle this exact illustration into a soft, simplified 3D designer toy render. Scout should have smooth velvety plush surfaces with only a subtle hint of down, no individually visible strands, scratchy fur, grain or realistic pores. Containers should have softly rounded corners, simplified broad corrugations and matte painted toy surfaces, no sharp metallic detail. Soft diffuse lighting, gentle shading and restrained highlights. Preserve Scout's identity, yellow color, expression and pose, composition, uniform emerald green containers. Keep crisp readable silhouettes, do not simply blur the image. Output a transparent PNG cutout.
+
+Smoking prompt: Restyle this exact illustration into a soft, simplified 3D designer toy render. Scout should have smooth velvety plush surfaces with only a subtle hint of down, no individually visible strands, scratchy fur, grain or realistic pores. Containers should have softly rounded corners, simplified broad corrugations and matte painted toy surfaces, no sharp metallic detail. Soft diffuse lighting, gentle shading and restrained highlights. Preserve Scout's identity, yellow color, expression and pose, composition, uniform emerald green containers, red top container and smoke plume. Make the smoke soft rounded stylized puffs. Keep crisp readable silhouettes, do not simply blur the image. Output a transparent PNG cutout.
+
 ## Uniform green and smoke revision
 
 Generated with the built-in image tool. Both final assets have verified transparent alpha. These replace the earlier container variants; original Scout-only assets remain.
