@@ -375,6 +375,7 @@ function SecretVariablesEditor({
                     <Input
                       aria-label={`New variable ${index + 1} name`}
                       autoComplete="off"
+                      fullWidth
                       placeholder="VARIABLE_NAME"
                       spellCheck={false}
                       variant="secondary"
@@ -542,7 +543,7 @@ function SecretValueInput({
         data-1p-ignore
         spellCheck={false}
         placeholder={
-          configured ? (visible ? "" : "********") : "Value or reference"
+          configured ? (visible ? "" : "∗∗∗∗∗∗∗∗") : "Value or reference"
         }
         value={displayedValue}
         disabled={disabled || loading}
