@@ -1,26 +1,30 @@
 "use client";
+import {
+  Add01Icon,
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  Delete02Icon,
+  FloppyDiskIcon,
+  Key01Icon,
+  LockIcon,
+  Menu01Icon,
+  PackageIcon,
+  PlayIcon,
+  ReloadIcon,
+  RestoreBinIcon,
+  Rocket01Icon,
+  ServerStack01Icon,
+  SourceCodeIcon,
+  ViewIcon,
+  ViewOffSlashIcon,
+} from "@hugeicons/core-free-icons";
 
 import dynamic from "next/dynamic";
 import { Tabs } from "@workspace/web-design-system/navigation/tabs";
 import { parseSecretEnv, serializeSecretEnv } from "@/lib/secret-env";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import {
-  Delete02Icon,
-  SourceCodeIcon,
-  Menu01Icon,
-  ViewIcon,
-  ViewOffSlashIcon,
-  Key01Icon,
-  LockIcon,
-  RestoreBinIcon,
-  ServerStack01Icon,
-  Rocket01Icon,
-  PackageIcon,
-  PlayIcon,
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
-} from "@hugeicons/core-free-icons";
+
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
   AppSecretBinding,
@@ -536,6 +540,11 @@ function SecretVariablesEditor({
                           ])
                         }
                       >
+                        <HugeiconsIcon
+                          aria-hidden="true"
+                          icon={Add01Icon}
+                          className="size-4 shrink-0"
+                        />
                         Add variable
                       </Button>
                     </EmptyState.Content>
@@ -687,6 +696,11 @@ function SecretVariablesEditor({
                 <FieldError>
                   {error}{" "}
                   <Button variant="ghost" onPress={onUpdated}>
+                    <HugeiconsIcon
+                      aria-hidden="true"
+                      icon={ReloadIcon}
+                      className="size-4 shrink-0"
+                    />
                     Refresh secrets
                   </Button>
                 </FieldError>
@@ -705,10 +719,20 @@ function SecretVariablesEditor({
                         ])
                       }
                     >
+                      <HugeiconsIcon
+                        aria-hidden="true"
+                        icon={Add01Icon}
+                        className="size-4 shrink-0"
+                      />
                       Add variable
                     </Button>
                   ) : null}
                   <Button type="submit" isDisabled={busy || !hasChanges}>
+                    <HugeiconsIcon
+                      aria-hidden="true"
+                      icon={FloppyDiskIcon}
+                      className="size-4 shrink-0"
+                    />
                     {busy ? "Saving…" : "Save"}
                   </Button>
                 </div>

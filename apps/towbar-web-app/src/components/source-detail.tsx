@@ -1,15 +1,16 @@
 "use client";
-
-import { ElapsedTime } from "./elapsed-time";
-
 import {
   DashboardCircleIcon,
   DatabaseIcon,
   Delete02Icon,
   GithubIcon,
   InformationSquareIcon,
+  ReloadIcon,
   Settings01Icon,
 } from "@hugeicons/core-free-icons";
+
+import { ElapsedTime } from "./elapsed-time";
+
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { type Key, type ReactNode } from "react";
@@ -182,6 +183,11 @@ export function SourceDetail() {
               success="Source sync queued"
               variant="primary"
             >
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={ReloadIcon}
+                className="size-4 shrink-0"
+              />
               Sync now
             </ActionButton>
           ) : null}
@@ -413,6 +419,11 @@ function SourceSettings({
                         success="Source deleted"
                         variant="danger"
                       >
+                        <HugeiconsIcon
+                          aria-hidden="true"
+                          icon={Delete02Icon}
+                          className="size-4 shrink-0"
+                        />
                         Delete Source
                       </ActionButton>
                     </div>

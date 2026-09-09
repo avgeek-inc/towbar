@@ -1,15 +1,17 @@
 "use client";
-
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
-
 import {
   Activity01Icon,
   AlertCircleIcon,
+  ArrowRight01Icon,
   CheckmarkCircle02Icon,
   HealthIcon,
   InformationCircleIcon,
   PlugSocketIcon,
+  Tick02Icon,
 } from "@hugeicons/core-free-icons";
+
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import type {
@@ -83,6 +85,11 @@ export function SystemHealthPage() {
           success="System checks completed"
           variant="primary"
         >
+          <HugeiconsIcon
+            aria-hidden="true"
+            icon={Tick02Icon}
+            className="size-4 shrink-0"
+          />
           Run checks
         </ActionButton>
       }
@@ -155,6 +162,11 @@ function HealthChecks({
               </div>
               {check.remediationHref && check.remediationLabel ? (
                 <ButtonLink href={check.remediationHref} variant="secondary">
+                  <HugeiconsIcon
+                    aria-hidden="true"
+                    icon={ArrowRight01Icon}
+                    className="size-4 shrink-0"
+                  />
                   {check.remediationLabel}
                 </ButtonLink>
               ) : null}

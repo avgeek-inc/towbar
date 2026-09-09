@@ -1,4 +1,6 @@
 "use client";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Settings01Icon } from "@hugeicons/core-free-icons";
 import { ScoutOptionIcon } from "./scout-icons";
 
 import { useCallback, useDeferredValue, useId, useMemo, useState } from "react";
@@ -265,6 +267,11 @@ function MonitoringEmptyState({
             href={`/servers/${serverId}?section=settings&settings=monitoring`}
             variant="secondary"
           >
+            <HugeiconsIcon
+              aria-hidden="true"
+              icon={Settings01Icon}
+              className="size-4 shrink-0"
+            />
             Scout Agent settings
           </ButtonLink>
           <MonitoringDocumentation />

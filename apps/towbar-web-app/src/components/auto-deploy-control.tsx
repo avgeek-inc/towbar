@@ -1,8 +1,7 @@
 "use client";
+import { FloppyDiskIcon, Rocket01Icon } from "@hugeicons/core-free-icons";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-
-import { Rocket01Icon } from "@hugeicons/core-free-icons";
 
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
@@ -107,6 +106,11 @@ export function AutoDeployControlEditor({
             }
             type="submit"
           >
+            <HugeiconsIcon
+              aria-hidden="true"
+              icon={FloppyDiskIcon}
+              className="size-4 shrink-0"
+            />
             {saving ? "Saving…" : "Save"}
           </Button>
         </Widget.Content>

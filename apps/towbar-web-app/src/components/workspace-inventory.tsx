@@ -1,13 +1,14 @@
 "use client";
-
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
-
 import {
+  Add01Icon,
   DashboardCircleIcon,
   DatabaseIcon,
   GithubIcon,
   ServerStack01Icon,
 } from "@hugeicons/core-free-icons";
+
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
   App,
@@ -122,7 +123,16 @@ export function ServersIndex() {
   return (
     <DashboardPage
       icon={ServerStack01Icon}
-      actions={<ButtonLink href="/servers/new">Add server</ButtonLink>}
+      actions={
+        <ButtonLink href="/servers/new">
+          <HugeiconsIcon
+            aria-hidden="true"
+            icon={Add01Icon}
+            className="size-4 shrink-0"
+          />
+          Add server
+        </ButtonLink>
+      }
       title="Servers"
     >
       {error ? (

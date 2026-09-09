@@ -285,6 +285,11 @@ export function ResourceDetail() {
               success="Resource deployment queued"
               variant="primary"
             >
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={Rocket01Icon}
+                className="size-4 shrink-0"
+              />
               Deploy
             </ActionButton>
           </div>

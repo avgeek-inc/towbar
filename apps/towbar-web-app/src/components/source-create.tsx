@@ -1,8 +1,12 @@
 "use client";
+import {
+  Add01Icon,
+  GitBranchIcon,
+  GithubIcon,
+} from "@hugeicons/core-free-icons";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 
-import { GitBranchIcon } from "@hugeicons/core-free-icons";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type {
@@ -78,6 +82,11 @@ export function SourceCreate() {
           </EmptyState.Header>
           <EmptyState.Content>
             <ButtonLink href="/manage/integrations?integration=github">
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={GithubIcon}
+                className="size-4 shrink-0"
+              />
               Open GitHub integration
             </ButtonLink>
           </EmptyState.Content>
@@ -247,6 +256,11 @@ export function SourceCreate() {
               isDisabled={!selected || busy}
               type="submit"
             >
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={Add01Icon}
+                className="size-4 shrink-0"
+              />
               {busy ? "Adding…" : "Add and sync source"}
             </Button>
           </form>

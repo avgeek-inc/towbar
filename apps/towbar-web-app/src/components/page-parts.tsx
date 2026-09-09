@@ -1,4 +1,10 @@
 "use client";
+import {
+  FloppyDiskIcon,
+  Cancel01Icon,
+  Delete02Icon,
+  Tick02Icon,
+} from "@hugeicons/core-free-icons";
 
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 
@@ -276,7 +282,10 @@ export function ActionButton<T>({
     busy && isIconOnly ? (
       <Spinner aria-label={pendingLabel} size="sm" />
     ) : busy ? (
-      pendingLabel
+      <>
+        <Spinner aria-label={pendingLabel} size="sm" />
+        {pendingLabel}
+      </>
     ) : (
       children
     );
@@ -314,6 +323,11 @@ export function ActionButton<T>({
                 variant="secondary"
                 onPress={() => setIsConfirming(false)}
               >
+                <HugeiconsIcon
+                  aria-hidden="true"
+                  icon={Cancel01Icon}
+                  className="size-4 shrink-0"
+                />
                 Cancel
               </Button>
               <Button
@@ -324,7 +338,23 @@ export function ActionButton<T>({
                   void runAction();
                 }}
               >
-                {busy ? pendingLabel : (confirm.actionLabel ?? children)}
+                {busy ? (
+                  <>
+                    <Spinner aria-label={pendingLabel} size="sm" />
+                    {pendingLabel}
+                  </>
+                ) : confirm.actionLabel ? (
+                  <>
+                    <HugeiconsIcon
+                      aria-hidden="true"
+                      icon={variant === "danger" ? Delete02Icon : Tick02Icon}
+                      className="size-4 shrink-0"
+                    />
+                    {confirm.actionLabel}
+                  </>
+                ) : (
+                  children
+                )}
               </Button>
             </AlertDialog.Footer>
           </AlertDialog.Dialog>
@@ -441,6 +471,11 @@ export function SimpleForm({
         </Field>
       ))}
       <Button className="w-fit" isDisabled={busy} type="submit">
+        <HugeiconsIcon
+          aria-hidden="true"
+          icon={FloppyDiskIcon}
+          className="size-4 shrink-0"
+        />
         {busy ? "Saving…" : submitLabel}
       </Button>
     </form>

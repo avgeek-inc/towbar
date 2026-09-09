@@ -1,14 +1,19 @@
 "use client";
+import {
+  Archive01Icon,
+  Cancel01Icon,
+  Copy01Icon,
+  DatabaseIcon,
+  Delete02Icon,
+  RefreshIcon,
+  Settings01Icon,
+  Shield01Icon,
+  Undo02Icon,
+} from "@hugeicons/core-free-icons";
 
 import { ElapsedTime } from "./elapsed-time";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-
-import {
-  Archive01Icon,
-  RefreshIcon,
-  Settings01Icon,
-} from "@hugeicons/core-free-icons";
 
 import { useState } from "react";
 import type { FormEvent } from "react";
@@ -187,6 +192,11 @@ export function ResourceBackupConfiguration({
             variant="secondary"
             onPress={() => setSelectedBackup(item)}
           >
+            <HugeiconsIcon
+              aria-hidden="true"
+              icon={Undo02Icon}
+              className="size-4 shrink-0"
+            />
             Restore
           </Button>
         );
@@ -253,6 +263,11 @@ export function ResourceBackupConfiguration({
                     success="Backup queued"
                     variant="primary"
                   >
+                    <HugeiconsIcon
+                      aria-hidden="true"
+                      icon={DatabaseIcon}
+                      className="size-4 shrink-0"
+                    />
                     Back up now
                   </ActionButton>
                 ) : null}
@@ -489,6 +504,11 @@ function RestoreConfirmation({
                     variant="secondary"
                     onPress={close}
                   >
+                    <HugeiconsIcon
+                      aria-hidden="true"
+                      icon={Cancel01Icon}
+                      className="size-4 shrink-0"
+                    />
                     Cancel
                   </Button>
                   <Button
@@ -500,6 +520,11 @@ function RestoreConfirmation({
                     type="submit"
                     variant="danger"
                   >
+                    <HugeiconsIcon
+                      aria-hidden="true"
+                      icon={Undo02Icon}
+                      className="size-4 shrink-0"
+                    />
                     {submitting ? "Queueing restore…" : "Restore database"}
                   </Button>
                 </div>
@@ -727,10 +752,20 @@ function RestoreOperationAction({
       success="Restore cancellation requested"
       variant="danger"
     >
+      <HugeiconsIcon
+        aria-hidden="true"
+        icon={Cancel01Icon}
+        className="size-4 shrink-0"
+      />
       Cancel
     </ActionButton>
   ) : (
     <Button size="sm" variant="secondary" onPress={onCleanup}>
+      <HugeiconsIcon
+        aria-hidden="true"
+        icon={Delete02Icon}
+        className="size-4 shrink-0"
+      />
       Clean up volume
     </Button>
   );
@@ -821,6 +856,11 @@ function RestoreCleanupConfirmation({
                   variant="secondary"
                   onPress={close}
                 >
+                  <HugeiconsIcon
+                    aria-hidden="true"
+                    icon={Shield01Icon}
+                    className="size-4 shrink-0"
+                  />
                   Keep rollback volume
                 </Button>
                 <Button
@@ -828,6 +868,11 @@ function RestoreCleanupConfirmation({
                   variant="danger"
                   onPress={cleanUp}
                 >
+                  <HugeiconsIcon
+                    aria-hidden="true"
+                    icon={Delete02Icon}
+                    className="size-4 shrink-0"
+                  />
                   {submitting ? "Queueing cleanup…" : "Clean up volume"}
                 </Button>
               </div>
@@ -852,10 +897,15 @@ function CopyBackupKey({ backup }: { backup: SourceBackup }) {
     <span className="flex min-h-7 flex-wrap items-center gap-x-3 gap-y-1">
       <span>{formatDate(backup.finishedAt ?? backup.createdAt)}</span>
       <button
-        className="focus-visible:ring-focus relative inline-flex min-h-7 items-center rounded-md font-medium underline-offset-4 outline-none after:absolute after:-inset-x-1 after:-inset-y-2 after:content-[''] pointer-fine:hover:underline focus-visible:ring-2"
+        className="focus-visible:ring-focus relative inline-flex min-h-7 items-center gap-2 rounded-md font-medium underline-offset-4 outline-none after:absolute after:-inset-x-1 after:-inset-y-2 after:content-[''] pointer-fine:hover:underline focus-visible:ring-2"
         type="button"
         onClick={copyObjectKey}
       >
+        <HugeiconsIcon
+          aria-hidden="true"
+          icon={Copy01Icon}
+          className="size-4 shrink-0"
+        />
         Copy S3 key
       </button>
     </span>

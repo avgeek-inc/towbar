@@ -40,6 +40,7 @@ type IdentityCredentialsFormOwnProps = {
   onSubmit: (credentials: IdentityCredentials) => Promise<void>;
   passwordAction?: ReactNode;
   submitLabel?: string;
+  submitIcon?: ReactNode;
   submittingLabel?: string;
 };
 
@@ -61,6 +62,7 @@ export function IdentityCredentialsForm({
   onSubmit,
   passwordAction,
   submitLabel = "Sign in",
+  submitIcon,
   submittingLabel = "Signing in…",
   ...props
 }: IdentityCredentialsFormProps) {
@@ -163,6 +165,7 @@ export function IdentityCredentialsForm({
         isDisabled={disabled || isSubmitting}
         className="w-full"
       >
+        {submitIcon}
         {isSubmitting ? submittingLabel : submitLabel}
       </Button>
     </form>

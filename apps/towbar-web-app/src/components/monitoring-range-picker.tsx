@@ -1,4 +1,6 @@
 "use client";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { useId, useState } from "react";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Input } from "@workspace/web-design-system/forms/input";
@@ -119,6 +121,11 @@ export function MonitoringRangePicker({
                 ) : null}
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="secondary" onPress={onClose}>
+                    <HugeiconsIcon
+                      aria-hidden="true"
+                      icon={Cancel01Icon}
+                      className="size-4 shrink-0"
+                    />
                     Cancel
                   </Button>
                   <Button type="submit">

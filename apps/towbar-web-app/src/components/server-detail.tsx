@@ -1,4 +1,16 @@
 "use client";
+import {
+  Activity01Icon,
+  Cancel01Icon,
+  DashboardCircleIcon,
+  DatabaseIcon,
+  Delete02Icon,
+  Link01Icon,
+  ServerStack01Icon,
+  Settings01Icon,
+  Shield01Icon,
+  Tick02Icon,
+} from "@hugeicons/core-free-icons";
 
 import { MonitoringAgentSettings } from "./monitoring-agent-settings";
 import { ScoutPanel } from "./scout-panel";
@@ -9,14 +21,6 @@ import { ConfigurationLinks } from "./configuration-links";
 import { ServerEditor } from "./server-editor";
 import { ServerHardwareDescription } from "./server-hardware";
 
-import {
-  Activity01Icon,
-  DashboardCircleIcon,
-  DatabaseIcon,
-  Link01Icon,
-  ServerStack01Icon,
-  Settings01Icon,
-} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
@@ -314,6 +318,11 @@ export function ServerDetail() {
             success="Host key untrusted"
             variant="danger"
           >
+            <HugeiconsIcon
+              aria-hidden="true"
+              icon={Cancel01Icon}
+              className="size-4 shrink-0"
+            />
             Untrust key
           </ActionButton>
         ) : key.status === "untrusted" && key.publicKey ? (
@@ -341,6 +350,11 @@ export function ServerDetail() {
             }}
             success="Host key trusted"
           >
+            <HugeiconsIcon
+              aria-hidden="true"
+              icon={Shield01Icon}
+              className="size-4 shrink-0"
+            />
             Trust key
           </ActionButton>
         ) : (
@@ -360,6 +374,11 @@ export function ServerDetail() {
           success="Server check queued"
           variant="primary"
         >
+          <HugeiconsIcon
+            aria-hidden="true"
+            icon={Tick02Icon}
+            className="size-4 shrink-0"
+          />
           Check server
         </ActionButton>
       }
@@ -779,6 +798,11 @@ function ServerPreparationPanel({
               success="Server preparation queued"
               variant="primary"
             >
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={Settings01Icon}
+                className="size-4 shrink-0"
+              />
               Prepare Server
             </ActionButton>
           </div>
@@ -871,6 +895,11 @@ function CleanupButton({
       success="Orphan cleanup queued"
       variant="danger"
     >
+      <HugeiconsIcon
+        aria-hidden="true"
+        icon={Delete02Icon}
+        className="size-4 shrink-0"
+      />
       {label}
     </ActionButton>
   );

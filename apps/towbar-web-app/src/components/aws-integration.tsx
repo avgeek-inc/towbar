@@ -1,8 +1,12 @@
 "use client";
+import {
+  Add01Icon,
+  Delete02Icon,
+  Edit02Icon,
+  Key01Icon,
+} from "@hugeicons/core-free-icons";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-
-import { Key01Icon } from "@hugeicons/core-free-icons";
 
 import { useState } from "react";
 import type { AwsCredentialMetadata } from "@workspace/towbar-web-client";
@@ -61,6 +65,11 @@ export function AwsIntegration() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap gap-3">
                 <Button onPress={() => setEditorOpen(true)}>
+                  <HugeiconsIcon
+                    aria-hidden="true"
+                    icon={Edit02Icon}
+                    className="size-4 shrink-0"
+                  />
                   Update credentials
                 </Button>
               </div>
@@ -77,6 +86,11 @@ export function AwsIntegration() {
                   success="S3 backup credentials deleted"
                   variant="danger"
                 >
+                  <HugeiconsIcon
+                    aria-hidden="true"
+                    icon={Delete02Icon}
+                    className="size-4 shrink-0"
+                  />
                   Delete credentials
                 </ActionButton>
               </div>
@@ -97,6 +111,11 @@ export function AwsIntegration() {
           {canManage ? (
             <EmptyState.Content>
               <Button onPress={() => setEditorOpen(true)}>
+                <HugeiconsIcon
+                  aria-hidden="true"
+                  icon={Add01Icon}
+                  className="size-4 shrink-0"
+                />
                 Add credentials
               </Button>
             </EmptyState.Content>

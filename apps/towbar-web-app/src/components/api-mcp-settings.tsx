@@ -1,4 +1,12 @@
 "use client";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  BookOpen01Icon,
+  Key01Icon,
+  Tick02Icon,
+  Add01Icon,
+  Cancel01Icon,
+} from "@hugeicons/core-free-icons";
 import { useId, useState, type FormEvent, type ReactNode } from "react";
 import {
   Button,
@@ -180,6 +188,11 @@ export function ApiMcpSettings() {
             variant="danger"
             success="Key revoked"
           >
+            <HugeiconsIcon
+              aria-hidden="true"
+              icon={Cancel01Icon}
+              className="size-4 shrink-0"
+            />
             Revoke
           </ActionButton>
         ) : null,
@@ -206,6 +219,11 @@ export function ApiMcpSettings() {
                   emptyDescription="Create a key for your scripts or MCP client. The secret is only shown once."
                 />
                 <Button className="w-fit" onPress={() => setCreating(true)}>
+                  <HugeiconsIcon
+                    aria-hidden="true"
+                    icon={Add01Icon}
+                    className="size-4 shrink-0"
+                  />
                   Create API key
                 </Button>
               </div>
@@ -230,7 +248,12 @@ export function ApiMcpSettings() {
                   variant="secondary"
                   className="w-fit"
                 >
-                  API documentation and route reference →
+                  <HugeiconsIcon
+                    aria-hidden="true"
+                    icon={BookOpen01Icon}
+                    className="size-4 shrink-0"
+                  />
+                  API documentation and route reference
                 </ButtonLink>
               </div>
             ),
@@ -279,7 +302,14 @@ export function ApiMcpSettings() {
                 {revealed ? (
                   <SetupCode title="Your new key" code={revealed} />
                 ) : null}
-                <Button onPress={() => setRevealed(null)}>Done</Button>
+                <Button onPress={() => setRevealed(null)}>
+                  <HugeiconsIcon
+                    aria-hidden="true"
+                    icon={Tick02Icon}
+                    className="size-4 shrink-0"
+                  />
+                  Done
+                </Button>
               </Modal.Body>
             </Modal.Dialog>
           </Modal.Container>
@@ -364,6 +394,11 @@ function CreateKey({ onCreated }: { onCreated: (token: string) => void }) {
         ]}
       />
       <Button type="submit" isDisabled={busy}>
+        <HugeiconsIcon
+          aria-hidden="true"
+          icon={Key01Icon}
+          className="size-4 shrink-0"
+        />
         {busy ? "Creating…" : "Create key"}
       </Button>
     </form>
@@ -470,7 +505,12 @@ function McpSetup({ url }: { url: string }) {
           variant="secondary"
           className="w-fit"
         >
-          MCP setup and troubleshooting →
+          <HugeiconsIcon
+            aria-hidden="true"
+            icon={BookOpen01Icon}
+            className="size-4 shrink-0"
+          />
+          MCP setup and troubleshooting
         </ButtonLink>
       </div>
     </FormCard>

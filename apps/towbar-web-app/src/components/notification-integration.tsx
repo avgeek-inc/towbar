@@ -1,11 +1,12 @@
 "use client";
-
 import {
   Alert02Icon,
+  BookOpen01Icon,
   CheckmarkCircle01Icon,
   Mail01Icon,
   SlackIcon,
 } from "@hugeicons/core-free-icons";
+
 import { HugeiconsIcon } from "@hugeicons/react";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
@@ -88,6 +89,11 @@ export function NotificationIntegration({
           target="_blank"
           rel="noopener noreferrer"
         >
+          <HugeiconsIcon
+            aria-hidden="true"
+            icon={BookOpen01Icon}
+            className="size-4 shrink-0"
+          />
           {name} setup documentation
         </ButtonLink>
       </Widget.Content>

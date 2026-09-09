@@ -1,4 +1,15 @@
 "use client";
+import {
+  Activity01Icon,
+  Cancel01Icon,
+  DashboardCircleIcon,
+  DatabaseIcon,
+  FileViewIcon,
+  InformationSquareIcon,
+  ReloadIcon,
+  Rocket01Icon,
+  ServerStack01Icon,
+} from "@hugeicons/core-free-icons";
 
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 
@@ -7,15 +18,6 @@ import { isEventRunning } from "@/lib/elapsed-time";
 
 import { ConfigurationLinks } from "./configuration-links";
 
-import {
-  Activity01Icon,
-  DashboardCircleIcon,
-  DatabaseIcon,
-  FileViewIcon,
-  InformationSquareIcon,
-  Rocket01Icon,
-  ServerStack01Icon,
-} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
 import type { Deployment, Source } from "@workspace/towbar-web-client";
@@ -159,6 +161,11 @@ export function DeploymentDetail() {
       success="Cancellation requested"
       variant="danger"
     >
+      <HugeiconsIcon
+        aria-hidden="true"
+        icon={Cancel01Icon}
+        className="size-4 shrink-0"
+      />
       Cancel
     </ActionButton>
   ) : item.environment === "production" &&
@@ -180,6 +187,11 @@ export function DeploymentDetail() {
       success="Retry queued"
       variant="primary"
     >
+      <HugeiconsIcon
+        aria-hidden="true"
+        icon={ReloadIcon}
+        className="size-4 shrink-0"
+      />
       Retry
     </ActionButton>
   ) : undefined;
