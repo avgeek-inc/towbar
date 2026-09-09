@@ -145,7 +145,7 @@ export function MonitoringEntityPicker({
               <span className="grid gap-0.5">
                 <span>{entity.name}</span>
                 {entity.kind !== "server" ? (
-                  <span className="text-xs font-normal text-muted">
+                  <span className="text-xs font-normal">
                     {entity.serverName}
                   </span>
                 ) : null}

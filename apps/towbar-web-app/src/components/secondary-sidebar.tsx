@@ -145,10 +145,8 @@ export function SecondaryItems({
               close();
             }}
             className={cn(
-              "flex min-h-9 w-full min-w-0 items-center gap-3 rounded-2xl px-2 py-1.5 text-start text-sm outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-50",
-              selected === item.id
-                ? "bg-default font-medium text-foreground"
-                : "font-normal text-muted hover:bg-default/60 hover:text-foreground",
+              "flex min-h-9 w-full min-w-0 items-center gap-3 rounded-2xl px-2 py-1.5 text-start text-sm text-foreground hover:bg-default/60 outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-50",
+              selected === item.id ? "font-medium" : "font-normal",
             )}
           >
             {!item.disabled ? (
