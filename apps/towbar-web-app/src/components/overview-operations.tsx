@@ -35,7 +35,7 @@ export function OverviewIncidents() {
           Active incidents
         </Widget.Title>
       </Widget.Header>
-      <Widget.Content className="flex min-h-30 items-center justify-between gap-4">
+      <Widget.Content className="relative flex min-h-30 items-center overflow-hidden pr-28">
         {query.error ? (
           <QueryError message={query.error} />
         ) : count === undefined ? (
@@ -58,13 +58,13 @@ export function OverviewIncidents() {
             <Image
               src={
                 count
-                  ? "/scout/overview-smoking-v2.png"
-                  : "/scout/overview-healthy-v2.png"
+                  ? "/scout/overview-smoking-corner.png"
+                  : "/scout/overview-healthy-corner.png"
               }
               alt=""
               width={160}
               height={120}
-              className="h-24 w-28 shrink-0 object-contain"
+              className="pointer-events-none absolute -right-2 -bottom-2 h-28 w-28 object-contain object-right-bottom"
             />
           </>
         )}

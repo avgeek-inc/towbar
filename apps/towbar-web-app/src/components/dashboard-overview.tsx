@@ -76,7 +76,7 @@ export function DashboardOverview() {
       icon: DashboardCircleIcon,
       href: "/apps",
       label: "Apps",
-      image: "/scout/overview-apps-v2.png",
+      image: "/scout/overview-apps-corner.png",
       status: "running",
       detailCount: activeApps.filter(
         (item) => item.runtimeState.observedState === "running",
@@ -88,7 +88,7 @@ export function DashboardOverview() {
       icon: DatabaseIcon,
       href: "/resources",
       label: "Resources",
-      image: "/scout/overview-resources-trimmed.png",
+      image: "/scout/overview-resources-corner.png",
       status: "running",
       detailCount: activeResources.filter(
         (item) => item.runtimeState.observedState === "running",
@@ -100,7 +100,7 @@ export function DashboardOverview() {
       icon: ServerStack01Icon,
       href: "/servers",
       label: "Servers",
-      image: "/scout/overview-servers-v2.png",
+      image: "/scout/overview-servers-corner.png",
       status: "ready",
       detailCount: activeServers.filter(
         (server) => server.setupStatus === "ready",
@@ -134,7 +134,7 @@ export function DashboardOverview() {
                   {metric.label}
                 </Widget.Title>
               </Widget.Header>
-              <Widget.Content className="flex min-h-30 items-center justify-between gap-3">
+              <Widget.Content className="relative flex min-h-30 items-center overflow-hidden pr-28">
                 <div className="grid justify-items-start gap-3">
                   <InlineLink
                     href={metric.href}
@@ -154,11 +154,7 @@ export function DashboardOverview() {
                   alt=""
                   width={128}
                   height={96}
-                  className={
-                    metric.label === "Servers"
-                      ? "h-20 w-28 shrink-0 object-contain p-2"
-                      : "h-24 w-28 shrink-0 object-contain"
-                  }
+                  className="pointer-events-none absolute -right-2 -bottom-2 h-28 w-28 object-contain object-right-bottom"
                 />
               </Widget.Content>
             </Widget>

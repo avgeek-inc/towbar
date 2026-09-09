@@ -105,3 +105,33 @@ Prompt: Create one transparent PNG UI mascot asset based on the reference Scout 
 ### mascot-worried.png
 
 Prompt: Create one transparent PNG UI mascot asset based on the reference Scout bird. Preserve exactly this yellow fluffy chick character, round body, glossy black eyes, little ivory beak, three crown feathers, dark feet, soft polished 3D toy rendering. Full body, centered square composition with a small even margin. Expression and pose: worried and tense, clearly concerned about an incident, slightly hunched shoulders, wings held near cheeks, eyes looking anxiously forward with worried eyebrows, small tense open beak. Gentle worried expression, not horror or crying. Keep recognizable bird anatomy, no human hands. No extra objects, no lettering, no badge, no background, no ground plane. Genuine transparent alpha around the character, no checkerboard. Designed to be legible at 140px in a dashboard on both dark and light backgrounds.
+# Bottom-right illustrations
+
+Current assets: `overview-apps-corner.png`, `overview-resources-corner.png`,
+`overview-servers-corner.png`, `overview-healthy-corner.png`, and
+`overview-smoking-corner.png`.
+
+Generated using built-in image generation in edit mode. Shared direction: front-facing
+soft matte 3D illustrations, graphite containers, golden yellow accents, three broad
+grooves, no fittings or small hardware. Apps and Resources share the same container
+composition. The ship faces bow-first toward the viewer. Scout retains happy and
+worried states, with red cargo and smoke only for active incidents.
+
+Prompt details:
+
+- apps: Two stacked graphite containers, rear container offset slightly right, front container faces viewer squarely with a golden yellow Docker whale emblem.
+  Simplification: Edit this illustration: simplify both containers to smooth rounded charcoal gray boxes with THREE broad vertical grooves only. Remove all holes, bolts, corner fittings and fine detail. Change yellow database emblem to yellow Docker whale emblem. Keep same frontal view and stacked composition. No bird. Soft matte clay with no texture. Remove background completely; actual transparent PNG, not checkerboard.
+- resources: Two stacked graphite containers, rear container offset slightly right, front container faces viewer squarely with a golden yellow database cylinder emblem. Same container geometry as apps reference.
+  Simplification: Replace only the Docker whale emblem with a yellow database cylinder emblem. Keep the exact same containers, geometry, colors, framing and style. Remove background, output actual transparent PNG.
+- servers: A simple small cargo ship seen BOW-ON, bow pointing straight out toward viewer from bottom-right corner. Gray hull and cabin with yellow edge trim only, two graphite containers above deck facing viewer. Very simple rounded forms, no mast, no rigging, no tiny details.
+  Simplification: Simplify containers to smooth charcoal rounded boxes with three broad recessed grooves only, remove corner fittings and all small details. Keep composition, colors and subject identity unchanged. Smooth matte clay texture. Remove background, output actual transparent PNG.
+- healthy: Scout yellow bird from second reference looking happy and waving, beside two graphite containers. Face toward viewer, very soft smooth fur, not photorealistic. Containers face forward, all gray, no green, no smoke.
+  Simplification: Simplify containers to smooth charcoal rounded boxes with three broad recessed grooves only, remove corner fittings and all small details. Keep composition, colors and subject identity unchanged. Smooth matte clay texture. Remove background, output actual transparent PNG.
+- smoking: Scout yellow bird from second reference looking worried with hands on cheeks, beside two graphite containers and one red container emitting three soft gray smoke puffs. Face toward viewer, very soft smooth fur, not photorealistic. Containers face forward, no green.
+  Simplification: Simplify containers to smooth charcoal rounded boxes with three broad recessed grooves only, remove corner fittings and all small details. Keep composition, colors and subject identity unchanged. Smooth matte clay texture. Remove background, output actual transparent PNG.
+
+Final background-extraction prompt: Remove the background from this image. Output a
+PNG with transparency. Keep all objects unchanged.
+
+Transparent margins were trimmed to visible alpha bounds after generation. The UI
+anchors each asset to the bottom-right edge with a small clipped bleed.
