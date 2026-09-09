@@ -38,10 +38,14 @@ export function OverviewIncidents() {
       <Widget.Content
         className="relative flex min-h-30 items-center overflow-hidden pr-28"
         style={
-          !query.error && count !== undefined && count > 0
+          !query.error && count !== undefined
             ? {
-                backgroundImage:
-                  "linear-gradient(color-mix(in srgb, var(--danger) 2%, transparent), color-mix(in srgb, var(--danger) 2%, transparent))",
+                border: "1px solid transparent",
+                background:
+                  count > 0
+                    ? "linear-gradient(color-mix(in srgb, var(--danger) 5%, var(--surface)), color-mix(in srgb, var(--danger) 5%, var(--surface))) padding-box, linear-gradient(135deg, color-mix(in srgb, var(--warning) 40%, var(--surface)), color-mix(in srgb, var(--danger) 40%, var(--surface))) border-box"
+                    : "linear-gradient(color-mix(in srgb, var(--success) 5%, var(--surface)), color-mix(in srgb, var(--success) 5%, var(--surface))) padding-box, linear-gradient(135deg, color-mix(in srgb, var(--success) 20%, var(--surface)), color-mix(in srgb, var(--success) 40%, var(--surface))) border-box",
+                boxShadow: "none",
               }
             : undefined
         }
