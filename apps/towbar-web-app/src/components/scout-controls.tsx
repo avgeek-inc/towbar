@@ -169,7 +169,14 @@ export function ScoutSelect({
         {label}
       </Label>
       <Select.Trigger>
-        <Select.Value className="flex min-w-0 items-center" />
+        <Select.Value className="flex min-w-0 flex-1 items-center overflow-hidden">
+          <span className="flex min-w-0 items-center gap-2">
+            <ScoutOptionIcon value={value} label={label} />
+            <span className="truncate">
+              {options.find((option) => option.id === value)?.label}
+            </span>
+          </span>
+        </Select.Value>
         <Select.Indicator />
       </Select.Trigger>
       <Select.Popover>
