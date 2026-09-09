@@ -45,7 +45,7 @@ void test("shows the successful backup state machine", () => {
         },
         {
           description: "The saved backup file is readable.",
-          label: "S3 copy",
+          label: "Saved copy",
           status: "Verified",
           tone: "success",
         },
@@ -69,7 +69,7 @@ void test("translates an S3 access failure into an actionable health state", () 
       check.name === "object_exists"
         ? {
             ...check,
-            message: "Workspace AWS credentials cannot access the S3 object",
+            message: "Workspace credentials cannot access the backup object",
             passed: false,
           }
         : check,
@@ -86,13 +86,13 @@ void test("translates an S3 access failure into an actionable health state", () 
   assert.equal(health.title, "Backup cannot be verified");
   assert.equal(
     health.description,
-    "Towbar cannot read the saved file. Check the workspace AWS permissions.",
+    "Towbar cannot read the saved file. Check the workspace backup provider permissions.",
   );
   assert.deepEqual(
     health.stages.map((stage) => [stage.label, stage.status]),
     [
       ["Backup run", "Complete"],
-      ["S3 copy", "Cannot verify"],
+      ["Saved copy", "Cannot verify"],
       ["Restore check", "Not ready"],
     ],
   );

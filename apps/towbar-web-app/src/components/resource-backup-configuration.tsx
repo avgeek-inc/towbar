@@ -60,7 +60,9 @@ type AssuranceResponse = {
   assurance: BackupAssurance | null;
   assurances: BackupAssurance[];
   awsConfigured: boolean;
+  azureConfigured?: boolean;
   canRestore: boolean;
+  gcpConfigured?: boolean;
 };
 
 export function ResourceBackupConfiguration({
@@ -93,7 +95,7 @@ export function ResourceBackupConfiguration({
         <EmptyState.Header>
           <EmptyState.Title>Backups not configured</EmptyState.Title>
           <EmptyState.Description>
-            Declare backup.s3 in .towbar/deployment.yml to enable backups for
+            Declare backup in .towbar/deployment.yml to enable backups for
             this Resource.
           </EmptyState.Description>
         </EmptyState.Header>
@@ -130,6 +132,19 @@ export function ResourceBackupConfiguration({
     latestBackup,
     latestOperation: latestBackupOperation,
   });
+
+  const missingProviders: string[] = [];
+  if (backup.s3 && !assuranceData.awsConfigured) missingProviders.push("AWS");
+  if (backup.gcs && !assuranceData.gcpConfigured) missingProviders.push("Google Cloud");
+  if (backup.azureBlob && !assuranceData.azureConfigured) missingProviders.push("Azure");
+  const credentialsConfigured = missingProviders.length === 0;
+
+  const restoreProviderConfigured =
+    backup.restoreFrom === "gcs"
+      ? Boolean(assuranceData.gcpConfigured)
+      : backup.restoreFrom === "azureBlob"
+        ? Boolean(assuranceData.azureConfigured)
+        : Boolean(assuranceData.awsConfigured);
 
   const backupColumns: ResourceTableColumn<SourceBackup>[] = [
     {
@@ -181,7 +196,7 @@ export function ResourceBackupConfiguration({
           <Button
             isDisabled={
               !active ||
-              !assuranceData.awsConfigured ||
+              !restoreProviderConfigured ||
               !assuranceData.canRestore ||
               !assurance?.restoreReady ||
               restoreOperations.some((operation) =>
@@ -208,7 +223,7 @@ export function ResourceBackupConfiguration({
   return (
     <div className="content-grid min-w-0">
       <div className="content-grid min-w-0">
-        {assuranceData.awsConfigured ? (
+        {credentialsConfigured ? (
           <Widget className="min-w-0">
             <Widget.Header
               endContent={
@@ -286,8 +301,8 @@ export function ResourceBackupConfiguration({
             <Alert.Content>
               <Alert.Title>Backups paused</Alert.Title>
               <Alert.Description>
-                Add AWS credentials in{" "}
-                <InlineLink href="/manage/integrations?integration=aws">
+                Add {missingProviders.join(" and ")} credentials in{" "}
+                <InlineLink href="/manage/integrations">
                   Manage → Integrations
                 </InlineLink>{" "}
                 before backups can run.
@@ -314,16 +329,42 @@ export function ResourceBackupConfiguration({
           <Attributes.Item label="Retention">
             Keep {backup.retention.keepLast}
           </Attributes.Item>
-          <Attributes.Item label="S3 location">
-            <TypographyCode
-              className="block truncate"
-              title={`s3://${backup.s3.bucket}/${backup.s3.prefix}`}
-            >
-              s3://{backup.s3.bucket}/{backup.s3.prefix}
-            </TypographyCode>
-          </Attributes.Item>
-          <Attributes.Item label="Encryption">
-            {backup.s3.encryption}
+          {backup.s3 ? (
+            <Attributes.Item label="AWS S3 location">
+              <TypographyCode
+                className="block truncate"
+                title={`s3://${backup.s3.bucket}/${backup.s3.prefix || "towbar"}`}
+              >
+                s3://{backup.s3.bucket}/{backup.s3.prefix || "towbar"}
+              </TypographyCode>
+            </Attributes.Item>
+          ) : null}
+          {backup.gcs ? (
+            <Attributes.Item label="Google Cloud location">
+              <TypographyCode
+                className="block truncate"
+                title={`gs://${backup.gcs.bucket}/${backup.gcs.prefix || "towbar"}`}
+              >
+                gs://{backup.gcs.bucket}/{backup.gcs.prefix || "towbar"}
+              </TypographyCode>
+            </Attributes.Item>
+          ) : null}
+          {backup.azureBlob ? (
+            <Attributes.Item label="Azure Blob location">
+              <TypographyCode
+                className="block truncate"
+                title={`${backup.azureBlob.storageAccount}/${backup.azureBlob.container}/${backup.azureBlob.prefix || "towbar"}`}
+              >
+                {backup.azureBlob.storageAccount}/{backup.azureBlob.container}/{backup.azureBlob.prefix || "towbar"}
+              </TypographyCode>
+            </Attributes.Item>
+          ) : null}
+          <Attributes.Item label="Restore source">
+            {backup.restoreFrom === "gcs"
+              ? "Google Cloud (GCS)"
+              : backup.restoreFrom === "azureBlob"
+                ? "Azure Blob Storage"
+                : "AWS (S3)"}
           </Attributes.Item>
           {latestBackupOperation ? (
             <Attributes.Item label="Latest backup duration">
@@ -900,9 +941,9 @@ function CopyBackupKey({ backup }: { backup: SourceBackup }) {
   async function copyObjectKey() {
     try {
       await navigator.clipboard.writeText(backup.result.key);
-      toast.success("S3 object key copied");
+      toast.success("Backup object key copied");
     } catch {
-      toast.danger("Couldn't copy the S3 object key");
+      toast.danger("Couldn't copy the backup object key");
     }
   }
   return (
@@ -918,7 +959,7 @@ function CopyBackupKey({ backup }: { backup: SourceBackup }) {
           icon={Copy01Icon}
           className="size-4 shrink-0"
         />
-        Copy S3 key
+        Copy backup key
       </button>
     </span>
   );

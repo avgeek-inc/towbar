@@ -208,7 +208,14 @@ export async function getRetentionBackups(
     .orderBy(desc(resourceOperations.createdAt));
   return backups.slice(keepPrevious).map((backup) => {
     const result = backupOperationResultSchema.parse(backup.result);
-    return { bucket: result.bucket, id: backup.id, key: result.key };
+    return {
+      bucket: result.bucket,
+      id: backup.id,
+      key: result.key,
+      ...(result.storageAccount
+        ? { storageAccount: result.storageAccount }
+        : {}),
+    };
   });
 }
 

@@ -140,12 +140,23 @@ export type ResourceOperationRequest =
 
 export type PersistedResourceOperationRequest = ResourceOperationRequest;
 
+export type BackupDestinationResult = {
+  bucket: string;
+  encryption?: string;
+  key: string;
+  objectVersion?: string;
+  provider: "azureBlob" | "gcs" | "s3";
+  region?: string;
+  storageAccount?: string;
+};
+
 export type BackupOperationResult = {
   backupId: string;
   bucket: string;
   checksum: string;
   deletedBackupIds: string[];
-  encryption: "AES256" | "aws:kms";
+  destinations?: BackupDestinationResult[];
+  encryption: "AES256" | "aws:kms" | (string & {});
   engine?: "postgres" | "redis";
   engineMajorVersion?: number;
   format?: "postgres-custom" | "redis-rdb";
@@ -153,10 +164,41 @@ export type BackupOperationResult = {
   metadataVersion?: 1;
   objectVersionId?: string;
   region: string;
+  restoreFrom?: "azureBlob" | "gcs" | "s3";
   sizeBytes: number;
+  storageAccount?: string;
   verifiedAt: string;
   warnings: string[];
 };
+
+export function normalizeBackupOperationResult(
+  result: BackupOperationResult,
+): BackupOperationResult & {
+  destinations: BackupDestinationResult[];
+  restoreFrom: "azureBlob" | "gcs" | "s3";
+} {
+  const destinations =
+    result.destinations && result.destinations.length > 0
+      ? result.destinations
+      : [
+          {
+            bucket: result.bucket,
+            encryption: result.encryption,
+            key: result.key,
+            ...(result.objectVersionId
+              ? { objectVersion: result.objectVersionId }
+              : {}),
+            provider: "s3" as const,
+            region: result.region,
+          },
+        ];
+  const restoreFrom = result.restoreFrom ?? "s3";
+  return {
+    ...result,
+    destinations,
+    restoreFrom,
+  };
+}
 
 export const maximumBackupBytes = 20 * 1_024 * 1_024 * 1_024;
 
@@ -166,7 +208,22 @@ export const backupOperationResultSchema = z
     bucket: z.string().trim().min(1).max(255),
     checksum: z.string().regex(/^[a-f0-9]{64}$/u),
     deletedBackupIds: z.array(z.string().uuid()),
-    encryption: z.enum(["AES256", "aws:kms"]),
+    destinations: z
+      .array(
+        z
+          .object({
+            bucket: z.string().trim().min(1).max(255),
+            encryption: z.string().trim().max(128).optional(),
+            key: z.string().trim().min(1).max(2_048),
+            objectVersion: z.string().trim().min(1).max(1_024).optional(),
+            provider: z.enum(["s3", "gcs", "azureBlob"]),
+            region: z.string().trim().min(1).max(64).optional(),
+            storageAccount: z.string().trim().min(1).max(128).optional(),
+          })
+          .strict(),
+      )
+      .optional(),
+    encryption: z.string().trim().min(1).max(64),
     engine: z.enum(["postgres", "redis"]).optional(),
     engineMajorVersion: z.number().int().positive().max(1_000).optional(),
     format: z.enum(["postgres-custom", "redis-rdb"]).optional(),
@@ -174,7 +231,9 @@ export const backupOperationResultSchema = z
     metadataVersion: z.literal(1).optional(),
     objectVersionId: z.string().trim().min(1).max(1_024).optional(),
     region: z.string().trim().min(1).max(64),
+    restoreFrom: z.enum(["s3", "gcs", "azureBlob"]).optional(),
     sizeBytes: z.number().int().nonnegative().max(maximumBackupBytes),
+    storageAccount: z.string().trim().min(1).max(128).optional(),
     verifiedAt: z.string().datetime(),
     warnings: z.array(z.string().max(500)),
   })

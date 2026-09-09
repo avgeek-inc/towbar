@@ -15,6 +15,14 @@ import {
 
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { getDecryptedAwsCredential } from "../aws/service.js";
+import {
+  getDecryptedAzureCredential,
+  getAzureAccessToken,
+} from "../azure/service.js";
+import {
+  getDecryptedGcpCredential,
+  getGcpAccessToken,
+} from "../gcp/service.js";
 import { shouldEmitBackupNotRestorableNotification } from "../notifications/backup-notifications.js";
 import { emitBackupAssuranceNotification } from "../notifications/events.js";
 
@@ -31,6 +39,116 @@ async function inspectBackupObject(input: {
   workspaceId: string;
 }): Promise<AssuredObject> {
   if (!input.result) return null;
+
+  if (input.result.restoreFrom === "gcs") {
+    try {
+      const credential = await getDecryptedGcpCredential({
+        workspaceId: input.workspaceId,
+      });
+      const token = await getGcpAccessToken(credential.payload);
+      const targetDest =
+        input.result.destinations?.find((dest) => dest.provider === "gcs") ??
+        input.result;
+      const url = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(targetDest.bucket)}/o/${encodeURIComponent(targetDest.key)}`;
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.status === 404) return { exists: false };
+      if (response.status === 401 || response.status === 403) {
+        return { exists: false, error: "access_denied" };
+      }
+      if (!response.ok) return { exists: false, error: "unavailable" };
+      const data = (await response.json()) as {
+        kmsKeyName?: string;
+        metadata?: Record<string, string>;
+        size?: string;
+      };
+      const metadata = data.metadata ?? {};
+      return {
+        checksum: metadata["towbar-checksum"],
+        encryption: data.kmsKeyName ? "Google-CMEK" : "Google-managed",
+        engine:
+          metadata["towbar-engine"] === "postgres" ||
+          metadata["towbar-engine"] === "redis"
+            ? metadata["towbar-engine"]
+            : undefined,
+        engineMajorVersion: parsePositiveInteger(
+          metadata["towbar-engine-major-version"],
+        ),
+        exists: true,
+        format:
+          metadata["towbar-format"] === "postgres-custom" ||
+          metadata["towbar-format"] === "redis-rdb"
+            ? metadata["towbar-format"]
+            : undefined,
+        metadataVersion: parsePositiveInteger(
+          metadata["towbar-metadata-version"],
+        ),
+        sizeBytes: data.size ? Number(data.size) : undefined,
+      };
+    } catch {
+      return { exists: false, error: "unavailable" };
+    }
+  }
+
+  if (input.result.restoreFrom === "azureBlob") {
+    try {
+      const credential = await getDecryptedAzureCredential({
+        workspaceId: input.workspaceId,
+      });
+      const token = await getAzureAccessToken(credential.payload);
+      const targetDest =
+        input.result.destinations?.find((dest) => dest.provider === "azureBlob") ??
+        input.result;
+      const storageAccount =
+        ("storageAccount" in targetDest && targetDest.storageAccount) ||
+        targetDest.bucket.split("/")[0]!;
+      const container = targetDest.bucket;
+      const blobPath = targetDest.key.split("/").map(encodeURIComponent).join("/");
+      const url = `https://${encodeURIComponent(storageAccount)}.blob.core.windows.net/${encodeURIComponent(container)}/${blobPath}`;
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "x-ms-version": "2024-11-04",
+        },
+        method: "HEAD",
+      });
+      if (response.status === 404) return { exists: false };
+      if (response.status === 401 || response.status === 403) {
+        return { exists: false, error: "access_denied" };
+      }
+      if (!response.ok) return { exists: false, error: "unavailable" };
+      const headers = response.headers;
+      const contentLength = headers.get("content-length");
+      return {
+        checksum: headers.get("x-ms-meta-towbar-checksum") ?? undefined,
+        encryption: headers.get("x-ms-server-encrypted") === "true" ? "Microsoft-managed" : undefined,
+        engine:
+          headers.get("x-ms-meta-towbar-engine") === "postgres" ||
+          headers.get("x-ms-meta-towbar-engine") === "redis"
+            ? (headers.get("x-ms-meta-towbar-engine") as "postgres" | "redis")
+            : undefined,
+        engineMajorVersion: parsePositiveInteger(
+          headers.get("x-ms-meta-towbar-engine-major-version") ?? undefined,
+        ),
+        exists: true,
+        format:
+          headers.get("x-ms-meta-towbar-format") === "postgres-custom" ||
+          headers.get("x-ms-meta-towbar-format") === "redis-rdb"
+            ? (headers.get("x-ms-meta-towbar-format") as
+                | "postgres-custom"
+                | "redis-rdb")
+            : undefined,
+        metadataVersion: parsePositiveInteger(
+          headers.get("x-ms-meta-towbar-metadata-version") ?? undefined,
+        ),
+        sizeBytes: contentLength ? Number(contentLength) : undefined,
+      };
+    } catch {
+      return { exists: false, error: "unavailable" };
+    }
+  }
+
   const credential = await getDecryptedAwsCredential({
     workspaceId: input.workspaceId,
   });

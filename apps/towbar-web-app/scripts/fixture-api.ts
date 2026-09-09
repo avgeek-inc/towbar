@@ -26,6 +26,8 @@ import type {
   AppSecretsResponse,
   AutoDeployControlResponse,
   AwsCredentialMetadata,
+  AzureCredentialMetadata,
+  GcpCredentialMetadata,
   Deployment,
   DeploymentEvent,
   DeploymentLog,
@@ -425,6 +427,8 @@ const sourceSync: SourceSync = {
 };
 
 let awsCredential: AwsCredentialMetadata | null = null;
+let azureCredential: AzureCredentialMetadata | null = null;
+let gcpCredential: GcpCredentialMetadata | null = null;
 
 const githubConnection: GitHubConnection = {
   accountLogin: "example-inc",
@@ -865,6 +869,8 @@ export function createFixtureApiServer() {
     ]),
   );
   awsCredential = null;
+  azureCredential = null;
+  gcpCredential = null;
   const apiKeys: Array<{
     id: string;
     name: string;
@@ -1087,6 +1093,63 @@ export function createFixtureApiServer() {
     }
     if (path === "/v1/core/aws" && request.method === "DELETE") {
       awsCredential = null;
+      response.writeHead(204);
+      response.end();
+      return;
+    }
+    if (path === "/v1/core/azure" && request.method === "PUT") {
+      void readRequestJson(request)
+        .then((input) => {
+          const values = input as { clientId?: string; tenantId?: string };
+          const now = new Date().toISOString();
+          azureCredential = {
+            clientId: values.clientId ?? "00000000-0000-0000-0000-000000000000",
+            clientSecretSuffix: "1234",
+            createdAt: now,
+            lastVerifiedAt: now,
+            status: "verified",
+            tenantId: values.tenantId ?? "00000000-0000-0000-0000-000000000000",
+            updatedAt: now,
+            verificationMessage: "Azure identity verified",
+          };
+          return writeJson(response, 200, { credential: azureCredential });
+        })
+        .catch(() => writeJson(response, 400, { error: "Invalid JSON" }));
+      return;
+    }
+    if (path === "/v1/core/azure" && request.method === "DELETE") {
+      azureCredential = null;
+      response.writeHead(204);
+      response.end();
+      return;
+    }
+    if (path === "/v1/core/gcp" && request.method === "PUT") {
+      void readRequestJson(request)
+        .then((input) => {
+          const values = input as { serviceAccountKey?: string };
+          const now = new Date().toISOString();
+          let parsed: { client_email?: string; project_id?: string } = {};
+          try {
+            parsed = JSON.parse(values.serviceAccountKey ?? "{}");
+          } catch {
+            // ignore
+          }
+          gcpCredential = {
+            clientEmail: parsed.client_email ?? "backup@gcp-project.iam.gserviceaccount.com",
+            createdAt: now,
+            lastVerifiedAt: now,
+            projectId: parsed.project_id ?? "gcp-project",
+            status: "verified",
+            updatedAt: now,
+            verificationMessage: "Google Cloud identity verified",
+          };
+          return writeJson(response, 200, { credential: gcpCredential });
+        })
+        .catch(() => writeJson(response, 400, { error: "Invalid JSON" }));
+      return;
+    }
+    if (path === "/v1/core/gcp" && request.method === "DELETE") {
+      gcpCredential = null;
       response.writeHead(204);
       response.end();
       return;
@@ -1917,6 +1980,8 @@ function getFixturePayload(
     ],
     [`/v1/core/sources/${source.id}/syncs`, { syncs: [sourceSync] }],
     ["/v1/core/aws", { canManage: true, credential: awsCredential }],
+    ["/v1/core/azure", { canManage: true, credential: azureCredential }],
+    ["/v1/core/gcp", { canManage: true, credential: gcpCredential }],
     [
       `/v1/core/sources/${source.id}/apps`,
       { apps: apps.filter((item) => item.sourceId === source.id) },
@@ -2023,7 +2088,9 @@ function getFixturePayload(
       assurance: assurances[0] ?? null,
       assurances,
       awsConfigured: Boolean(awsCredential),
+      azureConfigured: Boolean(azureCredential),
       canRestore: true,
+      gcpConfigured: Boolean(gcpCredential),
     };
   }
 

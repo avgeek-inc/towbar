@@ -16,6 +16,8 @@ import { usePageQuery } from "@/hooks/use-page-query";
 
 import { PageSelectionTitle } from "./page-selection-title";
 import { AwsIntegration } from "@/components/aws-integration";
+import { AzureIntegration } from "@/components/azure-integration";
+import { GcpIntegration } from "@/components/gcp-integration";
 import { GitHubSettings } from "@/components/github-settings";
 import { NotificationIntegration } from "@/components/notification-integration";
 import { SecondaryItems } from "@/components/secondary-sidebar";
@@ -34,8 +36,8 @@ const integrationGroups = [
     ],
   },
   {
-    value: "cloud-providers",
-    label: "Cloud providers",
+    value: "backup-providers",
+    label: "Backup providers",
     icon: CloudIcon,
     providers: [
       {
@@ -43,6 +45,18 @@ const integrationGroups = [
         label: "AWS",
         icon: CloudIcon,
         content: <AwsIntegration />,
+      },
+      {
+        value: "gcp",
+        label: "Google Cloud",
+        icon: CloudIcon,
+        content: <GcpIntegration />,
+      },
+      {
+        value: "azure",
+        label: "Azure",
+        icon: CloudIcon,
+        content: <AzureIntegration />,
       },
     ],
   },

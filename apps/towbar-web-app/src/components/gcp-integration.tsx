@@ -1,15 +1,9 @@
 "use client";
-import {
-  Add01Icon,
-  Delete02Icon,
-  Edit02Icon,
-  Key01Icon,
-} from "@hugeicons/core-free-icons";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-
+import { Key01Icon } from "@hugeicons/core-free-icons";
 import { useState } from "react";
-import type { AwsCredentialMetadata } from "@workspace/towbar-web-client";
+import type { GcpCredentialMetadata } from "@workspace/towbar-web-client";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { Button } from "@workspace/web-design-system/buttons/button";
@@ -23,12 +17,12 @@ import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 
-export function AwsIntegration() {
+export function GcpIntegration() {
   const [editorOpen, setEditorOpen] = useState(false);
-  const endpoint = "/v1/core/aws";
+  const endpoint = "/v1/core/gcp";
   const query = useApiQuery<{
     canManage: boolean;
-    credential: AwsCredentialMetadata | null;
+    credential: GcpCredentialMetadata | null;
   }>(endpoint);
   if (query.error) return <QueryError message={query.error} />;
   if (!query.data) return <QueryLoading />;
@@ -41,16 +35,14 @@ export function AwsIntegration() {
         <div className="content-grid">
           <Attributes
             icon={<HugeiconsIcon icon={Key01Icon} />}
-            title="AWS credentials"
+            title="Google Cloud credentials"
             variant="card"
           >
-            <Attributes.Item label="Access key">
-              <TypographyCode>
-                ••••{credential.accessKeyIdSuffix}
-              </TypographyCode>
+            <Attributes.Item label="Project ID">
+              <TypographyCode>{credential.projectId}</TypographyCode>
             </Attributes.Item>
-            <Attributes.Item label="Region">
-              {credential.region}
+            <Attributes.Item label="Client email">
+              <TypographyCode>{credential.clientEmail}</TypographyCode>
             </Attributes.Item>
             <Attributes.Item label="Status">
               <StatusBadge status={credential.status} />
@@ -65,11 +57,6 @@ export function AwsIntegration() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap gap-3">
                 <Button onPress={() => setEditorOpen(true)}>
-                  <HugeiconsIcon
-                    aria-hidden="true"
-                    icon={Edit02Icon}
-                    className="size-4 shrink-0"
-                  />
                   Update credentials
                 </Button>
               </div>
@@ -79,18 +66,13 @@ export function AwsIntegration() {
                   confirm={{
                     actionLabel: "Delete credentials",
                     description:
-                      "AWS S3 backups and restores across Towbar will pause until replacement credentials are stored.",
-                    title: "Delete the AWS integration credentials?",
+                      "GCS backups and restores across Towbar will pause until replacement credentials are stored.",
+                    title: "Delete the Google Cloud integration credentials?",
                   }}
                   pendingLabel="Deleting…"
-                  success="S3 backup credentials deleted"
+                  success="GCS backup credentials deleted"
                   variant="danger"
                 >
-                  <HugeiconsIcon
-                    aria-hidden="true"
-                    icon={Delete02Icon}
-                    className="size-4 shrink-0"
-                  />
                   Delete credentials
                 </ActionButton>
               </div>
@@ -101,21 +83,16 @@ export function AwsIntegration() {
       {!credential ? (
         <EmptyState>
           <EmptyState.Header>
-            <EmptyState.Title>AWS is not configured</EmptyState.Title>
+            <EmptyState.Title>Google Cloud is not configured</EmptyState.Title>
             <EmptyState.Description>
               {canManage
-                ? "Add AWS credentials for S3 backups and restores across Towbar."
-                : "An administrator can configure the workspace AWS integration."}
+                ? "Add a Google Cloud service account JSON key for GCS backups and restores across Towbar."
+                : "An administrator can configure the workspace Google Cloud integration."}
             </EmptyState.Description>
           </EmptyState.Header>
           {canManage ? (
             <EmptyState.Content>
               <Button onPress={() => setEditorOpen(true)}>
-                <HugeiconsIcon
-                  aria-hidden="true"
-                  icon={Add01Icon}
-                  className="size-4 shrink-0"
-                />
                 Add credentials
               </Button>
             </EmptyState.Content>
@@ -136,36 +113,19 @@ export function AwsIntegration() {
                 <Modal.Body className="content-grid">
                   <p className="text-muted typography--body-sm">
                     Values are encrypted before storage, scoped to this
-                    workspace, and never returned in normal responses.
+                    workspace, and never returned in normal responses. Paste
+                    the full service account JSON key file content.
                   </p>
                   <SimpleForm
                     fields={[
                       {
                         autoComplete: "off",
-                        label: "Access key ID",
-                        maxLength: 128,
-                        minLength: 16,
-                        name: "accessKeyId",
-                        required: true,
-                        variant: "secondary",
-                      },
-                      {
-                        autoComplete: "new-password",
-                        label: "Secret access key",
-                        maxLength: 256,
+                        label: "Service account JSON key",
                         minLength: 20,
-                        name: "secretAccessKey",
+                        name: "serviceAccountKey",
+                        placeholder: '{\n  "type": "service_account",\n  ...\n}',
                         required: true,
-                        type: "password",
-                        variant: "secondary",
-                      },
-                      {
-                        defaultValue: credential?.region,
-                        label: "Default AWS region",
-                        maxLength: 64,
-                        name: "region",
-                        placeholder: "ap-south-1",
-                        required: true,
+                        type: "textarea",
                         variant: "secondary",
                       },
                     ]}
@@ -177,8 +137,8 @@ export function AwsIntegration() {
                     }}
                     successMessage={
                       credential
-                        ? "S3 backup credentials verified and updated"
-                        : "S3 backup credentials verified and saved"
+                        ? "Google Cloud credentials verified and updated"
+                        : "Google Cloud credentials verified and saved"
                     }
                     submitLabel="Save credentials"
                   />

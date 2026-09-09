@@ -394,6 +394,65 @@ export const workspaceAwsCredentials = pgTable(
   ],
 );
 
+export const workspaceGcpCredentials = pgTable(
+  "towbar_workspace_gcp_credentials",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    encryptedPayload: jsonb("encrypted_payload")
+      .$type<EncryptedCredential>()
+      .notNull(),
+    projectId: varchar("project_id", { length: 128 }).notNull(),
+    clientEmail: varchar("client_email", { length: 256 }).notNull(),
+    verificationStatus: credentialVerificationStatusEnum("verification_status")
+      .default("unverified")
+      .notNull(),
+    verificationMessage: varchar("verification_message", { length: 500 }),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_gcp_credentials_workspace").on(table.workspaceId),
+  ],
+);
+
+export const workspaceAzureCredentials = pgTable(
+  "towbar_workspace_azure_credentials",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    encryptedPayload: jsonb("encrypted_payload")
+      .$type<EncryptedCredential>()
+      .notNull(),
+    tenantId: varchar("tenant_id", { length: 64 }).notNull(),
+    clientId: varchar("client_id", { length: 64 }).notNull(),
+    clientSecretSuffix: varchar("client_secret_suffix", { length: 8 }).notNull(),
+    verificationStatus: credentialVerificationStatusEnum("verification_status")
+      .default("unverified")
+      .notNull(),
+    verificationMessage: varchar("verification_message", { length: 500 }),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_azure_credentials_workspace").on(table.workspaceId),
+  ],
+);
+
 export const notificationDestinations = pgTable(
   "towbar_notification_destinations",
   {
