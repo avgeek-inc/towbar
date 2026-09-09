@@ -1,9 +1,11 @@
 "use client";
 
+import { deploymentSubtitle } from "@/lib/overview";
 import Image from "next/image";
-import { AlertCircleIcon, Rocket01Icon } from "@hugeicons/core-free-icons";
+import { AlertCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
+  App,
   DeploymentHistoryItem,
   DeploymentHistoryPage,
 } from "@workspace/towbar-web-client";
@@ -55,12 +57,14 @@ export function OverviewIncidents() {
             </div>
             <Image
               src={
-                count ? "/scout/mascot-worried.png" : "/scout/mascot-all-ok.png"
+                count
+                  ? "/scout/mascot-containers-worried.png"
+                  : "/scout/mascot-containers-all-ok.png"
               }
               alt=""
-              width={160}
-              height={160}
-              className="size-32 shrink-0 object-contain sm:size-40"
+              width={240}
+              height={180}
+              className="h-28 w-36 shrink-0 object-contain sm:h-44 sm:w-60"
             />
           </>
         )}
@@ -69,63 +73,70 @@ export function OverviewIncidents() {
   );
 }
 
-const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
-  {
-    key: "deployment",
-    header: "Deployment",
-    className: "min-w-44",
-    cell: (item) => (
-      <div className="grid gap-2">
-        <span className="font-medium">{item.deployableName}</span>
-        <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge status={item.environment} />
-          <TypographyCode title={item.commitSha}>
-            {item.commitSha.slice(0, 7)}
-          </TypographyCode>
-        </div>
-      </div>
-    ),
-  },
-  {
-    key: "status",
-    header: "Status",
-    className: "whitespace-nowrap",
-    cell: (item) => <StatusBadge status={getDeploymentDisplayStatus(item)} />,
-  },
-  {
-    key: "requested",
-    header: "Requested",
-    className: "whitespace-nowrap",
-    cell: (item) => <RelativeTime label="Requested" value={item.createdAt} />,
-  },
-];
+function deploymentColumns(
+  apps: App[],
+): ResourceTableColumn<DeploymentHistoryItem>[] {
+  return [
+    {
+      key: "deployment",
+      header: "Deployment",
+      className: "min-w-40",
+      cell: (item) => {
+        const detail = deploymentSubtitle(
+          item,
+          apps.find((app) => app.id === item.appId)?.config.domains?.primary,
+        );
+        return (
+          <div className="grid gap-1">
+            <span className="font-medium">{item.deployableName}</span>
+            {detail && (
+              <span
+                className="max-w-48 truncate text-sm text-muted"
+                title={detail}
+              >
+                {detail}
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: "environment",
+      header: "Environment",
+      className: "whitespace-nowrap",
+      cell: (item) => <StatusBadge status={item.environment} />,
+    },
+    {
+      key: "id",
+      header: "ID",
+      className: "whitespace-nowrap",
+      cell: (item) => (
+        <TypographyCode title={item.id}>{item.id.slice(0, 8)}</TypographyCode>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      className: "whitespace-nowrap",
+      cell: (item) => <StatusBadge status={getDeploymentDisplayStatus(item)} />,
+    },
+    {
+      key: "requested",
+      header: "Requested",
+      className: "whitespace-nowrap",
+      cell: (item) => <RelativeTime label="Requested" value={item.createdAt} />,
+    },
+  ];
+}
 
-export function OverviewDeployments() {
+export function OverviewDeployments({ apps }: { apps: App[] }) {
   const query = useApiQuery<DeploymentHistoryPage>(
     "/v1/core/deployments/history?page=1&limit=6",
     5_000,
   );
   return (
-    <section
-      aria-labelledby="overview-deployments"
-      className="grid min-w-0 content-start gap-3"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2
-          id="overview-deployments"
-          className="inline-flex items-center gap-2 text-sm font-medium"
-        >
-          <HugeiconsIcon
-            icon={Rocket01Icon}
-            className="size-4"
-            aria-hidden="true"
-          />
-          Recent deployments
-        </h2>
-        <InlineLink className="text-sm" href="/deployments">
-          All deployments
-        </InlineLink>
-      </div>
+    <section aria-label="Recent deployments" className="min-w-0">
       {query.error ? (
         <QueryError message={query.error} />
       ) : !query.data ? (
@@ -133,7 +144,7 @@ export function OverviewDeployments() {
       ) : (
         <ResourceTable
           ariaLabel="Recent deployments"
-          columns={columns}
+          columns={deploymentColumns(apps)}
           items={query.data.deployments}
           getRowKey={(item) => item.id}
           getRowHref={(item) =>

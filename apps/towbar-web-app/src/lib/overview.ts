@@ -26,3 +26,17 @@ export function buildDeploymentActivity(
   }
   return days;
 }
+
+export function deploymentSubtitle(
+  item: Pick<Deployment, "deployableKind" | "hostname" | "environment">,
+  productionDomain?: string,
+) {
+  if (item.deployableKind !== "app")
+    return { image: "Container image", postgres: "PostgreSQL", redis: "Redis" }[
+      item.deployableKind
+    ];
+  return (
+    item.hostname ??
+    (item.environment === "production" ? productionDomain : undefined)
+  );
+}

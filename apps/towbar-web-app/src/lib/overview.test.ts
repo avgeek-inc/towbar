@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildDeploymentActivity } from "./overview";
+import { buildDeploymentActivity, deploymentSubtitle } from "./overview";
 
 void test("activity includes exactly seven UTC dates across month boundaries", () => {
   const days = buildDeploymentActivity(
@@ -21,4 +21,40 @@ void test("activity includes exactly seven UTC dates across month boundaries", (
   );
   assert.equal(days.find((day) => day.date === "2026-08-31")?.succeeded, 1);
   assert.equal(days.find((day) => day.date === "2026-09-01")?.failed, 1);
+});
+
+void test("deployment descriptions respect preview domains and resource kinds", () => {
+  assert.equal(
+    deploymentSubtitle(
+      { deployableKind: "app", environment: "preview", hostname: null },
+      "production.example.com",
+    ),
+    undefined,
+  );
+  assert.equal(
+    deploymentSubtitle(
+      {
+        deployableKind: "app",
+        environment: "preview",
+        hostname: "preview.example.com",
+      },
+      "production.example.com",
+    ),
+    "preview.example.com",
+  );
+  assert.equal(
+    deploymentSubtitle(
+      { deployableKind: "app", environment: "production", hostname: null },
+      "production.example.com",
+    ),
+    "production.example.com",
+  );
+  assert.equal(
+    deploymentSubtitle({
+      deployableKind: "postgres",
+      environment: "production",
+      hostname: "db.example.com",
+    }),
+    "PostgreSQL",
+  );
 });

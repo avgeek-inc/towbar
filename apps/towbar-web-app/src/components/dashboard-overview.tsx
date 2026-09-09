@@ -165,12 +165,12 @@ export function DashboardOverview() {
           </Widget>
         ))}
       </div>
-      <div className="grid items-stretch gap-4 xl:grid-cols-2">
+      <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         <div className="grid min-w-0 content-start gap-4">
           <OverviewIncidents />
           <OverviewActivity />
         </div>
-        <OverviewDeployments />
+        <OverviewDeployments apps={appItems} />
       </div>
     </DashboardPage>
   );
