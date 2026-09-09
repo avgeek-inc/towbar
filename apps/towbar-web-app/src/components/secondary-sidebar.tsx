@@ -97,6 +97,21 @@ export function SecondarySection({
   return host ? createPortal(content, host) : null;
 }
 
+export function SecondaryEntityHeader({ children }: { children: ReactNode }) {
+  const { host } = useContext(SecondaryContext);
+  return host
+    ? createPortal(
+        <div
+          data-secondary-menu
+          className="order-first min-w-0 border-b border-separator px-2 pb-3 pt-1 text-xl font-medium text-foreground"
+        >
+          {children}
+        </div>,
+        host,
+      )
+    : null;
+}
+
 export type SecondaryItem = {
   id: string;
   label: ReactNode;

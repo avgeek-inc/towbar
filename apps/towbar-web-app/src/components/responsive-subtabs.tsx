@@ -2,8 +2,9 @@
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import { menuIcons } from "./secondary-sidebar";
+import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import { PageSelectionTitle } from "./page-selection-title";
-import { useContext, type Key, type ReactNode } from "react";
+import { useContext, useEffect, type Key, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@workspace/web-design-system/lib/utils";
 import { DetailSettingsContext, SecondaryItems } from "./secondary-sidebar";
@@ -36,17 +37,47 @@ export function ResponsiveSubtabs({
   sidebarWidth?: "default" | "wide";
   tabs: ResponsiveSubtab[];
 }) {
+  const detail = useDetailNavigation();
   const detailSettings = useContext(DetailSettingsContext);
   const pathname = usePathname();
   const search = useSearchParams();
   const parameter = ariaLabel.endsWith("settings")
     ? "settings"
     : ariaLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  const requested = selectedKey ?? search.get(parameter) ?? defaultSelectedKey;
+  const requested =
+    selectedKey ??
+    (detailSettings !== null
+      ? detail.settings
+      : detail.base && detail.section === "info"
+        ? (detail.subpage ?? search.get(parameter))
+        : search.get(parameter)) ??
+    defaultSelectedKey;
   const active =
     tabs.find((tab) => tab.value === requested && !tab.isDisabled) ??
     tabs.find((tab) => !tab.isDisabled);
+  const routeSection =
+    detailSettings !== null
+      ? "settings"
+      : detail.base && detail.section === "info"
+        ? "info"
+        : null;
+  useEffect(() => {
+    if (
+      detail.base &&
+      routeSection &&
+      detailSettings !== false &&
+      active &&
+      !detail.subpage
+    ) {
+      detail.router.replace(detail.href(routeSection, active.value));
+    }
+  }, [detail, routeSection, detailSettings, active]);
   function select(key: string) {
+    if (routeSection && detail.base) {
+      detail.router.push(detail.href(routeSection, key));
+      onSelectionChange?.(key);
+      return;
+    }
     if (selectedKey === undefined) {
       const params = new URLSearchParams(search.toString());
       params.set(parameter, key);
@@ -66,7 +97,7 @@ export function ResponsiveSubtabs({
               <HugeiconsIcon icon={menuIcons[active.value]!} />
             ) : undefined)
           }
-          keepEntityName={detailSettings !== null}
+          keepEntityName={!!detail.base}
         />
       ) : null}
       {Array.from(new Set(tabs.map((tab) => tab.group))).map((group) => (

@@ -1,4 +1,5 @@
 "use client";
+import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import {
   Activity01Icon,
   Cancel01Icon,
@@ -22,7 +23,7 @@ import { ServerEditor } from "./server-editor";
 import { ServerHardwareDescription } from "./server-hardware";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useEffect } from "react";
 import type {
   OrphanItem,
@@ -81,7 +82,7 @@ type HostKeyRow = {
 const SERVER_CHECK_PAGE_SIZE = 10;
 
 export function ServerDetail() {
-  const requestedSettings = useSearchParams().get("settings");
+  const requestedSettings = useDetailNavigation().settings;
   const settingsTab = ["monitoring", "host-keys", "cleanup"].includes(
     requestedSettings ?? "",
   )

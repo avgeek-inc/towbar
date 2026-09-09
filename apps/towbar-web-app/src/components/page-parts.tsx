@@ -16,7 +16,9 @@ import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Children } from "react";
+import { useDetailNavigation } from "@/hooks/use-detail-navigation";
+import { SecondaryEntityHeader } from "./secondary-sidebar";
+import { Children, useEffect } from "react";
 import type { ComponentProps, FormEvent, Key, ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useId, useState } from "react";
@@ -71,17 +73,17 @@ export function DashboardPage({
   titleContent?: ReactNode;
 }) {
   const [selection, setSelection] = useState<PageSelection | null>(null);
-  const heading = selection
-    ? selection.keepEntityName
-      ? `${title} · ${selection.label}`
-      : selection.label
-    : title;
+  const heading = selection ? selection.label : title;
   return (
     <PageSelectionContext.Provider value={setSelection}>
       <ApplicationPage
         actions={actions}
         badge={badge}
-        breadcrumbAncestors={breadcrumbAncestors}
+        breadcrumbAncestors={
+          selection?.keepEntityName
+            ? [...breadcrumbAncestors, { label: title }]
+            : breadcrumbAncestors
+        }
         breadcrumbLabel={breadcrumbLabel}
         title={heading}
         titleContent={
@@ -92,11 +94,8 @@ export function DashboardPage({
             >
               {selection?.icon ?? <HugeiconsIcon icon={icon} />}
             </span>
-            {titleContent && (!selection || selection.keepEntityName) ? (
-              <>
-                {titleContent}
-                {selection ? ` · ${selection.label}` : null}
-              </>
+            {titleContent && !selection ? (
+              <>{titleContent}</>
             ) : (
               <TooltipText className="truncate" tooltip={heading}>
                 {heading}
@@ -105,6 +104,9 @@ export function DashboardPage({
           </span>
         }
       >
+        {selection?.keepEntityName ? (
+          <SecondaryEntityHeader>{titleContent ?? title}</SecondaryEntityHeader>
+        ) : null}
         <PageSection
           className="content-grid pt-0"
           xPadding="none"
@@ -147,15 +149,40 @@ export function PageTabs({
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const section = searchParams.get("section");
+  const detail = useDetailNavigation();
+  const section = detail.base ? detail.section : searchParams.get("section");
   const requestedSection = section ? (aliases?.[section] ?? section) : null;
   const selectedKey = tabs.some((tab) => tab.value === requestedSection)
     ? requestedSection!
     : defaultValue;
 
+  useEffect(() => {
+    if (
+      detail.base &&
+      (!detail.pathname.slice(detail.base.length) ||
+        searchParams.has("section") ||
+        searchParams.has("settings"))
+    ) {
+      detail.router.replace(
+        detail.href(
+          selectedKey,
+          selectedKey === "settings"
+            ? (detail.settings ?? undefined)
+            : selectedKey === "info"
+              ? (searchParams.get("source-information") ?? detail.subpage)
+              : undefined,
+        ),
+      );
+    }
+  }, [detail, searchParams, selectedKey]);
+
   function selectSection(key: Key) {
     const value = String(key);
     if (value === selectedKey) return;
+    if (detail.base) {
+      detail.router.push(detail.href(value));
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     if (value === defaultValue) params.delete("section");
     else params.set("section", value);

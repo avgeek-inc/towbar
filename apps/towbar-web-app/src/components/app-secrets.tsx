@@ -1,4 +1,5 @@
 "use client";
+import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import { usePageQuery, useQueryChoice } from "@/hooks/use-page-query";
 import { PageSelectionTitle } from "./page-selection-title";
 import { SecondaryItems } from "./secondary-sidebar";
@@ -27,7 +28,6 @@ import { Select, ListBox } from "@workspace/web-design-system/forms/select";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { Tabs } from "@workspace/web-design-system/navigation/tabs";
 import { parseSecretEnv, serializeSecretEnv } from "@/lib/secret-env";
-import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -59,7 +59,7 @@ export const stageLabels: Record<AppSecretStage, string> = {
 };
 
 export function AppSecrets({ appId }: { appId: string }) {
-  const active = useSearchParams().get("section") === "settings";
+  const active = useDetailNavigation().section === "settings";
   return (
     <EnvironmentSecretSettings
       active={active}
@@ -70,7 +70,7 @@ export function AppSecrets({ appId }: { appId: string }) {
 }
 
 export function ResourceSecrets({ resourceId }: { resourceId: string }) {
-  const active = useSearchParams().get("section") === "settings";
+  const active = useDetailNavigation().section === "settings";
   const endpoint = `/v1/core/resources/${resourceId}/secrets`;
   const query = useApiQuery<AppSecretsResponse>(active ? endpoint : null);
   if (!active) return null;

@@ -1,4 +1,5 @@
 "use client";
+import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import { ScoutPanel } from "./scout-panel";
 
 import {
@@ -12,7 +13,7 @@ import {
   Settings01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import type {
   Deployment,
@@ -325,7 +326,7 @@ function ResourceSettings({
   item: ResourceRecord;
   resourceId: string;
 }) {
-  const requestedSettings = useSearchParams().get("settings");
+  const requestedSettings = useDetailNavigation().settings;
   const tabs: Array<{ content: ReactNode; label: string; value: string }> = [
     {
       value: "configuration",
