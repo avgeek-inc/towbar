@@ -11,7 +11,7 @@ import {
 import { workspaceAzureCredentials } from "@workspace/towbar-database/schema";
 
 import { getEnv } from "../../env.js";
-import { badRequest, notFound, serviceUnavailable } from "../../http/errors.js";
+import { notFound, serviceUnavailable } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 
 export const azureCredentialPayloadSchema = z

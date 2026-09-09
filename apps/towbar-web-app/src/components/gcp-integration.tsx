@@ -120,11 +120,14 @@ export function GcpIntegration() {
                     fields={[
                       {
                         autoComplete: "off",
+                        className: "font-mono text-xs",
                         label: "Service account JSON key",
                         minLength: 20,
                         name: "serviceAccountKey",
                         placeholder: '{\n  "type": "service_account",\n  ...\n}',
                         required: true,
+                        rows: 7,
+                        spellCheck: false,
                         type: "textarea",
                         variant: "secondary",
                       },

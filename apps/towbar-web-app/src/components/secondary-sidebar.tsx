@@ -24,6 +24,7 @@ import {
   ServerStack01Icon,
   Notification01Icon,
   GitBranchIcon,
+  Undo02Icon,
 } from "@hugeicons/core-free-icons";
 import { usePathname } from "next/navigation";
 import { cn } from "@workspace/web-design-system/lib/utils";
@@ -143,6 +144,8 @@ export const menuIcons: Record<string, typeof Menu01Icon> = {
   cleanup: Delete02Icon,
   danger: Delete02Icon,
   backups: ReloadIcon,
+  backup: ReloadIcon,
+  restore: Undo02Icon,
   preview: Rocket01Icon,
   keys: Key01Icon,
   api: SourceCodeIcon,

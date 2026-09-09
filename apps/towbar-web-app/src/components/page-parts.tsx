@@ -35,6 +35,7 @@ import {
 } from "@workspace/web-design-system/forms/field";
 import { Input } from "@workspace/web-design-system/forms/input";
 import type { InputProps } from "@workspace/web-design-system/forms/input";
+import { Textarea } from "@workspace/web-design-system/forms/textarea";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { PageSection } from "@workspace/web-design-system/layouts/page";
 import { cn } from "@workspace/web-design-system/lib/utils";
@@ -409,6 +410,7 @@ export function SimpleForm({
 }: {
   fields: Array<{
     autoComplete?: string;
+    className?: string;
     defaultValue?: string;
     description?: string;
     disabled?: boolean;
@@ -418,6 +420,8 @@ export function SimpleForm({
     name: string;
     placeholder?: string;
     required?: boolean;
+    rows?: number;
+    spellCheck?: boolean;
     type?: string;
     variant?: InputProps["variant"];
   }>;
@@ -466,19 +470,38 @@ export function SimpleForm({
           <FieldLabel htmlFor={`${formId}-${field.name}`}>
             {field.label}
           </FieldLabel>
-          <Input
-            id={`${formId}-${field.name}`}
-            autoComplete={field.autoComplete}
-            defaultValue={field.defaultValue}
-            disabled={field.disabled}
-            maxLength={field.maxLength}
-            minLength={field.minLength}
-            name={field.name}
-            placeholder={field.placeholder}
-            required={field.required}
-            type={field.type}
-            variant={field.variant}
-          />
+          {field.type === "textarea" ? (
+            <Textarea
+              id={`${formId}-${field.name}`}
+              autoComplete={field.autoComplete}
+              className={cn("w-full", field.className)}
+              defaultValue={field.defaultValue}
+              disabled={field.disabled}
+              maxLength={field.maxLength}
+              minLength={field.minLength}
+              name={field.name}
+              placeholder={field.placeholder}
+              required={field.required}
+              rows={field.rows ?? 6}
+              spellCheck={field.spellCheck}
+              variant={field.variant}
+            />
+          ) : (
+            <Input
+              id={`${formId}-${field.name}`}
+              autoComplete={field.autoComplete}
+              className={field.className}
+              defaultValue={field.defaultValue}
+              disabled={field.disabled}
+              maxLength={field.maxLength}
+              minLength={field.minLength}
+              name={field.name}
+              placeholder={field.placeholder}
+              required={field.required}
+              type={field.type}
+              variant={field.variant}
+            />
+          )}
           {field.description ? (
             <FieldDescription>{field.description}</FieldDescription>
           ) : null}

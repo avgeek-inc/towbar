@@ -2557,6 +2557,17 @@ function createResourceFixture(
       backup:
         kind === "postgres"
           ? {
+              azureBlob: {
+                container: "backups",
+                prefix: manifestId,
+                storageAccount: "towbarfixture",
+              },
+              gcs: {
+                bucket: "towbar-fixture-gcs-backups",
+                prefix: manifestId,
+                region: "asia-south1",
+              },
+              restoreFrom: "s3" as const,
               retention: { keepLast: 7 },
               s3: {
                 bucket: "towbar-fixture-backups",
@@ -2686,6 +2697,29 @@ function createBackupFixture(
       bucket: "towbar-fixture-backups",
       checksum: "sha256:" + "a".repeat(64),
       deletedBackupIds: [],
+      destinations: [
+        {
+          bucket: "towbar-fixture-backups",
+          encryption: "AES256",
+          key,
+          provider: "s3",
+          region: "ap-south-1",
+        },
+        {
+          bucket: "towbar-fixture-gcs-backups",
+          encryption: "Google-managed",
+          key: `${resource.manifestId}/${createdAt.replaceAll(":", "-")}.dump`,
+          provider: "gcs",
+          region: "asia-south1",
+        },
+        {
+          bucket: "backups",
+          encryption: "Microsoft-managed",
+          key: `${resource.manifestId}/${createdAt.replaceAll(":", "-")}.dump`,
+          provider: "azureBlob",
+          storageAccount: "towbarfixture",
+        },
+      ],
       encryption: "AES256",
       engine: resource.kind === "redis" ? "redis" : "postgres",
       engineMajorVersion: resource.kind === "redis" ? 8 : 18,
@@ -2693,6 +2727,7 @@ function createBackupFixture(
       key,
       metadataVersion: 1,
       region: "ap-south-1",
+      restoreFrom: "s3" as const,
       sizeBytes,
       verifiedAt: createdAt,
       warnings: [],

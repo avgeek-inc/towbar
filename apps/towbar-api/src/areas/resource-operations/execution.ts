@@ -124,84 +124,104 @@ export async function resolveOperationSecrets(operationId: string) {
           : {};
       if (operation.request.type === "restore")
         requireResourcePasswords(operation.app?.kind, runtime);
-      const requiresBackup = ["backup", "restore"].includes(
-        operation.request.type,
-      );
-      const backupConfig =
-        operation.app && "backup" in operation.app
-          ? (operation.app.backup as
-              | import("@workspace/towbar-core").NormalizedResource["backup"]
-              | undefined)
-          : undefined;
 
-      const needsAws =
-        requiresBackup &&
-        (!backupConfig ||
-          Boolean(backupConfig.s3) ||
-          backupConfig.restoreFrom === "s3");
-
-      const needsGcp =
-        requiresBackup &&
-        Boolean(backupConfig?.gcs || backupConfig?.restoreFrom === "gcs");
-
-      const needsAzure =
-        requiresBackup &&
-        Boolean(
-          backupConfig?.azureBlob || backupConfig?.restoreFrom === "azureBlob",
-        );
-
-      const awsCredential = needsAws
-        ? await getDecryptedAwsCredential({
-            workspaceId: operation.workspaceId,
-          }).catch(() => null)
-        : null;
-
-      const azureCredential = needsAzure
-        ? await getDecryptedAzureCredential({
-            workspaceId: operation.workspaceId,
-          }).catch(() => null)
-        : null;
-
-      const gcpCredential = needsGcp
-        ? await getDecryptedGcpCredential({
-            workspaceId: operation.workspaceId,
-          }).catch(() => null)
-        : null;
-
-      const azure = azureCredential
-        ? {
-            clientId: azureCredential.clientId,
-            clientSecret: azureCredential.payload.clientSecret,
-            tenantId: azureCredential.tenantId,
-          }
-        : null;
-
-      const gcp = gcpCredential
-        ? {
-            projectId: gcpCredential.projectId,
-            serviceAccountKey: JSON.stringify(gcpCredential.payload),
-          }
-        : null;
+      const { aws, azure, gcp, sensitiveStorageValues } =
+        await resolveCloudStorageSecrets(operation);
 
       return {
-        aws: awsCredential
-          ? { ...awsCredential.payload, region: awsCredential.region }
-          : null,
+        aws,
         azure,
         gcp,
         login,
         runtime,
         sensitiveValues: [
           login.privateKey,
-          ...(awsCredential ? [awsCredential.payload.secretAccessKey] : []),
-          ...(azureCredential ? [azureCredential.payload.clientSecret] : []),
-          ...(gcpCredential ? [gcpCredential.payload.private_key] : []),
+          ...sensitiveStorageValues,
           ...Object.values(runtime),
         ],
       };
     },
     { isolationLevel: "repeatable read" },
   );
+}
+
+async function resolveCloudStorageSecrets(operation: {
+  app: unknown;
+  request: { type: string };
+  workspaceId: string;
+}) {
+  const requiresBackup = ["backup", "restore"].includes(operation.request.type);
+  const backupConfig =
+    operation.app && typeof operation.app === "object" && "backup" in operation.app
+      ? (
+          (
+            operation.app as {
+              backup?: import("@workspace/towbar-core").NormalizedResource["backup"];
+            }
+          ).backup
+        )
+      : undefined;
+
+  const needsAws =
+    requiresBackup &&
+    (!backupConfig ||
+      Boolean(backupConfig.s3) ||
+      backupConfig.restoreFrom === "s3");
+
+  const needsGcp =
+    requiresBackup &&
+    Boolean(backupConfig?.gcs || backupConfig?.restoreFrom === "gcs");
+
+  const needsAzure =
+    requiresBackup &&
+    Boolean(
+      backupConfig?.azureBlob || backupConfig?.restoreFrom === "azureBlob",
+    );
+
+  const [awsCredential, azureCredential, gcpCredential] = await Promise.all([
+    needsAws
+      ? getDecryptedAwsCredential({
+          workspaceId: operation.workspaceId,
+        }).catch(() => null)
+      : null,
+    needsAzure
+      ? getDecryptedAzureCredential({
+          workspaceId: operation.workspaceId,
+        }).catch(() => null)
+      : null,
+    needsGcp
+      ? getDecryptedGcpCredential({
+          workspaceId: operation.workspaceId,
+        }).catch(() => null)
+      : null,
+  ]);
+
+  const aws = awsCredential
+    ? { ...awsCredential.payload, region: awsCredential.region }
+    : null;
+
+  const azure = azureCredential
+    ? {
+        clientId: azureCredential.clientId,
+        clientSecret: azureCredential.payload.clientSecret,
+        tenantId: azureCredential.tenantId,
+      }
+    : null;
+
+  const gcp = gcpCredential
+    ? {
+        projectId: gcpCredential.projectId,
+        serviceAccountKey: JSON.stringify(gcpCredential.payload),
+      }
+    : null;
+
+  const sensitiveStorageValues = [
+    ...(awsCredential ? [awsCredential.payload.secretAccessKey] : []),
+    ...(azureCredential ? [azureCredential.payload.clientSecret] : []),
+    ...(gcpCredential ? [gcpCredential.payload.private_key] : []),
+  ];
+
+  return { aws, azure, gcp, sensitiveStorageValues };
 }
 
 function requireOperationSource(sourceId: string | null) {
