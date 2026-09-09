@@ -105,7 +105,12 @@ export function DashboardPage({
         }
       >
         {selection?.keepEntityName ? (
-          <SecondaryEntityHeader>{titleContent ?? title}</SecondaryEntityHeader>
+          <SecondaryEntityHeader
+            title={title}
+            icon={<HugeiconsIcon icon={icon} />}
+          >
+            {titleContent ?? title}
+          </SecondaryEntityHeader>
         ) : null}
         <PageSection
           className="content-grid pt-0"

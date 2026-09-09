@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import { createPortal } from "react-dom";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -97,15 +98,31 @@ export function SecondarySection({
   return host ? createPortal(content, host) : null;
 }
 
-export function SecondaryEntityHeader({ children }: { children: ReactNode }) {
+export function SecondaryEntityHeader({
+  children,
+  title,
+  icon,
+}: {
+  children: ReactNode;
+  title: string;
+  icon: ReactNode;
+}) {
   const { host } = useContext(SecondaryContext);
   return host
     ? createPortal(
         <div
           data-secondary-menu
-          className="order-first min-w-0 border-b border-separator px-2 pb-3 pt-1 text-xl font-medium text-foreground"
+          className="order-first flex min-w-0 items-center gap-2 border-b border-separator px-2 pb-3 pt-5 text-xl font-medium text-foreground"
         >
-          {children}
+          <span
+            aria-hidden="true"
+            className="inline-flex shrink-0 [&_svg]:size-6"
+          >
+            {icon}
+          </span>
+          <TooltipText className="min-w-0 flex-1 truncate" tooltip={title}>
+            {children}
+          </TooltipText>
         </div>,
         host,
       )
