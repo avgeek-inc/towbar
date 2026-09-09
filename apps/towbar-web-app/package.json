@@ -20,6 +20,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@codemirror/commands": "^6.11.0",
+    "@codemirror/state": "^6.7.4",
+    "@codemirror/view": "^6.43.11",
     "@hugeicons/core-free-icons": "catalog:",
     "@hugeicons/react": "catalog:",
     "@workspace/identity-web-ui": "workspace:*",
@@ -37,10 +40,10 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@workspace/eslint-config": "workspace:^",
+    "@workspace/towbar-core": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "eslint": "catalog:",
     "tsx": "^4.23.13",
-    "typescript": "catalog:",
-    "@workspace/towbar-core": "workspace:*"
+    "typescript": "catalog:"
   }
 }

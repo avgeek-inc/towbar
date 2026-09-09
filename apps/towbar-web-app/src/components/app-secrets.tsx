@@ -1,14 +1,25 @@
 "use client";
 
+import dynamic from "next/dynamic";
+import { Tabs } from "@workspace/web-design-system/navigation/tabs";
+import { parseSecretEnv, serializeSecretEnv } from "@/lib/secret-env";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   Delete02Icon,
+  SourceCodeIcon,
+  Menu01Icon,
   ViewIcon,
   ViewOffSlashIcon,
   Key01Icon,
   LockIcon,
   RestoreBinIcon,
+  ServerStack01Icon,
+  Rocket01Icon,
+  PackageIcon,
+  PlayIcon,
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
@@ -26,7 +37,12 @@ import { toast } from "@workspace/web-design-system/overlays/toast";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
-import { ResponsiveSubtabs } from "./responsive-subtabs";
+import { Select, ListBox } from "@workspace/web-design-system/forms/select";
+import { Label } from "@workspace/web-design-system/forms/label";
+
+const SecretFileEditor = dynamic(() => import("./secret-file-editor"), {
+  ssr: false,
+});
 
 export const stageLabels: Record<AppSecretStage, string> = {
   build: "Build",
@@ -37,38 +53,12 @@ export const stageLabels: Record<AppSecretStage, string> = {
 
 export function AppSecrets({ appId }: { appId: string }) {
   const active = useSearchParams().get("section") === "settings";
-  const [environment, setEnvironment] = useState<"production" | "preview">(
-    "production",
-  );
-  const endpoint = `/v1/core/apps/${appId}/secrets`;
-  const query = useApiQuery<AppSecretsResponse>(
-    active ? `${endpoint}?environment=${environment}` : null,
-  );
-  if (!active) return null;
   return (
-    <div className="max-w-5xl">
-      <ResponsiveSubtabs
-        ariaLabel="Secret environments"
-        defaultSelectedKey="production"
-        layout="inline"
-        selectedKey={environment}
-        onSelectionChange={(key) =>
-          setEnvironment(String(key) as "production" | "preview")
-        }
-        tabs={(["production", "preview"] as const).map((value) => ({
-          label: value === "production" ? "Production" : "Preview",
-          value,
-          content:
-            value === environment ? (
-              <EnvironmentEditors
-                key={environment}
-                endpoint={endpoint}
-                query={query}
-              />
-            ) : null,
-        }))}
-      />
-    </div>
+    <EnvironmentSecretSettings
+      active={active}
+      endpoint={`/v1/core/apps/${appId}/secrets`}
+      scope="app"
+    />
   );
 }
 
@@ -119,7 +109,7 @@ function EnvironmentSecretSettings({
 }: {
   active: boolean;
   endpoint: string;
-  scope: "global" | "source";
+  scope: "global" | "source" | "app";
 }) {
   const [environment, setEnvironment] = useState<"production" | "preview">(
     "production",
@@ -130,60 +120,175 @@ function EnvironmentSecretSettings({
   if (!active) return null;
   return (
     <div className={scope === "global" ? "w-full" : "max-w-5xl"}>
-      <ResponsiveSubtabs
-        ariaLabel="Secret environments"
-        defaultSelectedKey="production"
-        layout="inline"
-        selectedKey={environment}
-        onSelectionChange={(key) =>
-          setEnvironment(String(key) as "production" | "preview")
-        }
-        tabs={(["production", "preview"] as const).map((value) => ({
-          label: value === "production" ? "Production" : "Preview",
-          value,
-          content:
-            value === environment ? (
-              <EnvironmentEditors
-                key={environment}
-                endpoint={endpoint}
-                query={query}
-              />
-            ) : null,
-        }))}
+      <EnvironmentEditors
+        key={environment}
+        endpoint={endpoint}
+        query={query}
+        environment={environment}
+        onEnvironmentChange={setEnvironment}
       />
     </div>
   );
 }
 
+const stageIcons = {
+  build: PackageIcon,
+  deployment: PlayIcon,
+  pre_deploy: ArrowLeft01Icon,
+  post_deploy: ArrowRight01Icon,
+};
+const environmentOptions = [
+  { value: "production", label: "Production", icon: ServerStack01Icon },
+  { value: "preview", label: "Preview", icon: Rocket01Icon },
+];
+
+function SecretSelector({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: Array<{ value: string; label: string; icon: typeof PackageIcon }>;
+  onChange: (value: string) => void;
+}) {
+  const selected = options.find((option) => option.value === value);
+  return (
+    <>
+      <Select
+        className="md:hidden"
+        fullWidth
+        variant="secondary"
+        selectedKey={value}
+        onSelectionChange={(key) => {
+          if (key !== null) onChange(String(key));
+        }}
+      >
+        <Label className="sr-only">{label}</Label>
+        <Select.Trigger>
+          <Select.Value>
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={selected?.icon ?? PackageIcon}
+                className="size-4 shrink-0"
+              />
+              <span className="truncate">{selected?.label}</span>
+            </span>
+          </Select.Value>
+          <Select.Indicator />
+        </Select.Trigger>
+        <Select.Popover>
+          <ListBox>
+            {options.map((option) => (
+              <ListBox.Item
+                key={option.value}
+                id={option.value}
+                textValue={option.label}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <HugeiconsIcon
+                    aria-hidden="true"
+                    icon={option.icon}
+                    className="size-4 shrink-0"
+                  />
+                  {option.label}
+                </span>
+                <ListBox.ItemIndicator />
+              </ListBox.Item>
+            ))}
+          </ListBox>
+        </Select.Popover>
+      </Select>
+      <Tabs
+        className="hidden min-w-0 md:block"
+        selectedKey={value}
+        onSelectionChange={(key) => {
+          if (key !== null) onChange(String(key));
+        }}
+      >
+        <Tabs.ListContainer className="w-fit max-w-full overflow-x-auto">
+          <Tabs.List aria-label={label} className="min-w-max">
+            {options.map((option) => (
+              <Tabs.Tab key={option.value} id={option.value} className="gap-2">
+                <HugeiconsIcon
+                  aria-hidden="true"
+                  icon={option.icon}
+                  className="size-4 shrink-0"
+                />
+                {option.label}
+                <Tabs.Indicator />
+              </Tabs.Tab>
+            ))}
+          </Tabs.List>
+        </Tabs.ListContainer>
+      </Tabs>
+    </>
+  );
+}
+
 function EnvironmentEditors({
   query,
-  ...props
+  endpoint,
+  environment,
+  onEnvironmentChange,
 }: {
   query: Query;
   endpoint: string;
+  environment?: "production" | "preview";
+  onEnvironmentChange?: (value: "production" | "preview") => void;
 }) {
-  if (query.error) return <QueryError message={query.error} />;
-  if (!query.data) return <QueryLoading />;
+  const [stage, setStage] = useState<AppSecretStage>("build");
   const data = query.data;
+  const binding =
+    data?.bindings.find((item) => item.stage === stage) ?? data?.bindings[0];
   return (
-    <ResponsiveSubtabs
-      ariaLabel="Secret stages"
-      defaultSelectedKey={data.bindings[0]?.stage ?? "build"}
-      layout="inline"
-      tabs={data.bindings.map((binding) => ({
-        label: stageLabels[binding.stage],
-        value: binding.stage,
-        content: (
-          <SecretVariablesEditor
-            key={`${props.endpoint}:${binding.environment}:${binding.stage}:${binding.revision}:${binding.inheritedRevisions.global}:${binding.inheritedRevisions.source}`}
-            {...props}
-            binding={binding}
-            canManage={data.canManageSecrets}
-            onUpdated={query.refresh}
+    <div className="grid min-w-0 gap-4">
+      <div
+        className={
+          environment
+            ? "grid min-w-0 grid-cols-2 gap-3 md:grid-cols-1"
+            : "grid min-w-0"
+        }
+      >
+        {environment && onEnvironmentChange ? (
+          <SecretSelector
+            label="Secret environment"
+            value={environment}
+            options={environmentOptions}
+            onChange={(value) =>
+              onEnvironmentChange(value as "production" | "preview")
+            }
           />
-        ),
-      }))}
-    />
+        ) : null}
+        {binding && data ? (
+          <SecretSelector
+            label="Secret stage"
+            value={binding.stage}
+            options={data.bindings.map((item) => ({
+              value: item.stage,
+              label: stageLabels[item.stage],
+              icon: stageIcons[item.stage],
+            }))}
+            onChange={(value) => setStage(value as AppSecretStage)}
+          />
+        ) : null}
+      </div>
+      {query.error ? (
+        <QueryError message={query.error} />
+      ) : !data ? (
+        <QueryLoading />
+      ) : binding ? (
+        <SecretVariablesEditor
+          key={`${endpoint}:${binding.environment}:${binding.stage}:${binding.revision}:${binding.inheritedRevisions.global}:${binding.inheritedRevisions.source}`}
+          endpoint={endpoint}
+          binding={binding}
+          canManage={data.canManageSecrets}
+          onUpdated={query.refresh}
+        />
+      ) : null}
+    </div>
   );
 }
 
@@ -205,19 +310,118 @@ function SecretVariablesEditor({
     Array<{ id: string; key: string; value: string }>
   >([]);
   const [error, setError] = useState<string>();
+  const [fileMode, setFileMode] = useState(false);
+  const [fileText, setFileText] = useState("");
+  const [initialFile, setInitialFile] = useState("");
+  const originalValues = useRef(new Map<string, string>());
+  const modeRequest = useRef(0);
+  useEffect(
+    () => () => {
+      modeRequest.current++;
+    },
+    [],
+  );
   const keys = [...binding.keys].sort();
   const hasChanges =
+    (fileMode && fileText !== initialFile) ||
     Object.keys(replacements).length > 0 ||
     deleted.length > 0 ||
     newKeys.length > 0;
+  function fileChanges() {
+    const values = parseSecretEnv(fileText);
+    const replacement: Record<string, string> = Object.create(null);
+    const added: Array<{ id: string; key: string; value: string }> = [];
+    for (const [key, value] of values) {
+      if (keys.includes(key)) {
+        if (value !== originalValues.current.get(key)) replacement[key] = value;
+      } else added.push({ id: crypto.randomUUID(), key, value });
+    }
+    return {
+      replacement,
+      added,
+      removed: keys.filter((key) => !values.has(key)),
+    };
+  }
+  async function toggleMode() {
+    if (busy) return;
+    const request = ++modeRequest.current;
+    setBusy(true);
+    try {
+      if (fileMode) {
+        const changes = fileChanges();
+        setReplacements(changes.replacement);
+        setNewKeys(changes.added);
+        setDeleted(changes.removed);
+        setFileText("");
+        originalValues.current.clear();
+      } else {
+        const entries: Array<[string, string]> = [];
+        const stored = new Map<string, string>();
+        const retained = keys.filter((key) => !deleted.includes(key));
+        for (let index = 0; index < retained.length; index += 8) {
+          const batch = await Promise.all(
+            retained.slice(index, index + 8).map(async (key) => {
+              if (Object.hasOwn(replacements, key))
+                return [key, replacements[key]!] as [string, string];
+              const result = await api.post<{
+                value: string;
+                revision: string | null;
+              }>(`${endpoint}/${binding.environment}/${binding.stage}/reveal`, {
+                key,
+              });
+              if (result.revision !== binding.revision)
+                throw new Error(
+                  "Secrets changed. Refresh before opening file mode.",
+                );
+              stored.set(key, result.value);
+              return [key, result.value] as [string, string];
+            }),
+          );
+          if (request !== modeRequest.current) return;
+          entries.push(...batch);
+        }
+        for (const row of newKeys) {
+          if (!row.key.trim() && !row.value) continue;
+          entries.push([row.key.trim(), row.value]);
+        }
+        const text = serializeSecretEnv(entries);
+        parseSecretEnv(text);
+        originalValues.current = stored;
+        setFileText(text);
+        setInitialFile(text);
+      }
+      setError(undefined);
+      setFileMode(!fileMode);
+    } catch (failure) {
+      if (request === modeRequest.current)
+        setError(
+          failure instanceof Error
+            ? failure.message
+            : "Could not open file mode.",
+        );
+    } finally {
+      if (request === modeRequest.current) setBusy(false);
+    }
+  }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    let draft;
+    try {
+      draft = fileMode
+        ? fileChanges()
+        : { replacement: replacements, added: newKeys, removed: deleted };
+    } catch (failure) {
+      setError(
+        failure instanceof Error ? failure.message : "Check the .env file.",
+      );
+      return;
+    }
     const set: Record<string, string> = Object.assign(
       Object.create(null),
-      replacements,
+      draft.replacement,
     );
     const seen = new Set(keys);
-    for (const row of newKeys) {
+    for (const row of draft.added) {
       const key = row.key.trim();
       if (!/^[A-Za-z_][A-Za-z0-9_]*$/u.test(key) || seen.has(key)) {
         setError(
@@ -228,7 +432,7 @@ function SecretVariablesEditor({
       seen.add(key);
       set[key] = row.value;
     }
-    if (!Object.keys(set).length && !deleted.length) {
+    if (!Object.keys(set).length && !draft.removed.length) {
       setError("Add, replace, or remove at least one variable.");
       return;
     }
@@ -238,11 +442,13 @@ function SecretVariablesEditor({
       await api.patch(`${endpoint}/${binding.environment}/${binding.stage}`, {
         expectedRevision: binding.revision,
         set,
-        delete: deleted,
+        delete: draft.removed,
       });
       setReplacements({});
       setDeleted([]);
       setNewKeys([]);
+      setFileMode(false);
+      setFileText("");
       toast.success("Secrets saved. Changes apply on the next deployment.");
       onUpdated();
     } catch (failure) {
@@ -265,194 +471,250 @@ function SecretVariablesEditor({
           </Widget.Title>
         </Widget.Header>
         <Widget.Content className="content-grid min-w-0">
-          {!keys.length && !newKeys.length ? (
-            <EmptyState>
-              <EmptyState.Header>
-                <EmptyState.Title>
-                  No {stageLabel.toLowerCase()} secrets
-                </EmptyState.Title>
-                <EmptyState.Description className="max-w-sm text-pretty">
-                  Add a variable to make it available at this stage.
-                </EmptyState.Description>
-              </EmptyState.Header>
-              {canManage ? (
-                <EmptyState.Content>
-                  <Button
-                    onPress={() =>
-                      setNewKeys([
-                        { id: crypto.randomUUID(), key: "", value: "" },
-                      ])
-                    }
-                  >
-                    Add variable
-                  </Button>
-                </EmptyState.Content>
+          <Tabs
+            selectedKey={fileMode ? "file" : "form"}
+            onSelectionChange={(key) => {
+              if ((key === "file") !== fileMode) void toggleMode();
+            }}
+          >
+            <Tabs.ListContainer className="mb-4 w-fit">
+              <Tabs.List aria-label="Secret editing mode">
+                <Tabs.Tab id="form" className="gap-2" isDisabled={busy}>
+                  <HugeiconsIcon
+                    aria-hidden="true"
+                    icon={Menu01Icon}
+                    size={16}
+                  />
+                  Form
+                  <Tabs.Indicator />
+                </Tabs.Tab>
+                <Tabs.Tab
+                  id="file"
+                  className="gap-2"
+                  isDisabled={busy || !canManage}
+                >
+                  <HugeiconsIcon
+                    aria-hidden="true"
+                    icon={SourceCodeIcon}
+                    size={16}
+                  />
+                  {busy && !fileMode ? "Loading…" : "File"}
+                  <Tabs.Indicator />
+                </Tabs.Tab>
+              </Tabs.List>
+            </Tabs.ListContainer>
+            <Tabs.Panel
+              id={fileMode ? "file" : "form"}
+              key={fileMode ? "file" : "form"}
+              className="content-grid m-0 min-w-0 p-0"
+            >
+              {fileMode ? (
+                <div className="grid min-w-0 gap-3">
+                  <SecretFileEditor
+                    value={fileText}
+                    onChange={setFileText}
+                    disabled={busy}
+                  />
+                </div>
               ) : null}
-            </EmptyState>
-          ) : null}
-          {keys.length > 0 || newKeys.length > 0 ? (
-            <div className="grid gap-3">
-              {keys.map((key) => {
-                const removed = deleted.includes(key);
-                return (
-                  <div
-                    key={key}
-                    className="grid grid-cols-[repeat(8,minmax(0,1fr))_2.5rem] sm:grid-cols-[repeat(8,minmax(0,1fr))_2.25rem] items-center gap-2 md:gap-3"
-                  >
-                    <div className="col-span-4 flex min-h-10 min-w-0 items-center gap-2">
-                      <span
-                        className={`break-all font-mono text-sm ${
-                          removed ? "text-muted line-through" : ""
-                        }`}
-                      >
-                        {key}
-                      </span>
-                    </div>
-                    <div className="col-span-4 min-w-0">
-                      <SecretValueInput
-                        label={`Value for ${key}`}
-                        value={replacements[key] ?? ""}
-                        configured={!Object.hasOwn(replacements, key)}
-                        disabled={!canManage || busy || removed}
-                        reveal={async () => {
-                          const result = await api.post<{
-                            value: string;
-                            revision: string | null;
-                          }>(
-                            `${endpoint}/${binding.environment}/${binding.stage}/reveal`,
-                            { key },
-                          );
-                          if (result.revision !== binding.revision)
-                            throw new Error(
-                              "This secret changed. Refresh before viewing it.",
-                            );
-                          return result.value;
-                        }}
-                        onChange={(value) =>
-                          setReplacements((current) => ({
-                            ...current,
-                            [key]: value,
-                          }))
-                        }
-                      />
-                    </div>
-                    {canManage ? (
+              {!fileMode && !keys.length && !newKeys.length ? (
+                <EmptyState>
+                  <EmptyState.Header>
+                    <EmptyState.Title>
+                      No {stageLabel.toLowerCase()} secrets
+                    </EmptyState.Title>
+                    <EmptyState.Description className="max-w-sm text-pretty">
+                      Add a variable to make it available at this stage.
+                    </EmptyState.Description>
+                  </EmptyState.Header>
+                  {canManage ? (
+                    <EmptyState.Content>
                       <Button
-                        aria-label={removed ? `Keep ${key}` : `Remove ${key}`}
+                        onPress={() =>
+                          setNewKeys([
+                            { id: crypto.randomUUID(), key: "", value: "" },
+                          ])
+                        }
+                      >
+                        Add variable
+                      </Button>
+                    </EmptyState.Content>
+                  ) : null}
+                </EmptyState>
+              ) : null}
+              {!fileMode && (keys.length > 0 || newKeys.length > 0) ? (
+                <div className="grid gap-3">
+                  {keys.map((key) => {
+                    const removed = deleted.includes(key);
+                    return (
+                      <div
+                        key={key}
+                        className="grid grid-cols-[repeat(8,minmax(0,1fr))_2.5rem] sm:grid-cols-[repeat(8,minmax(0,1fr))_2.25rem] items-center gap-2 md:gap-3"
+                      >
+                        <div className="col-span-4 flex min-h-10 min-w-0 items-center gap-2">
+                          <span
+                            className={`break-all font-mono text-sm ${
+                              removed ? "text-muted line-through" : ""
+                            }`}
+                          >
+                            {key}
+                          </span>
+                        </div>
+                        <div className="col-span-4 min-w-0">
+                          <SecretValueInput
+                            label={`Value for ${key}`}
+                            value={replacements[key] ?? ""}
+                            configured={!Object.hasOwn(replacements, key)}
+                            disabled={!canManage || busy || removed}
+                            reveal={async () => {
+                              const result = await api.post<{
+                                value: string;
+                                revision: string | null;
+                              }>(
+                                `${endpoint}/${binding.environment}/${binding.stage}/reveal`,
+                                { key },
+                              );
+                              if (result.revision !== binding.revision)
+                                throw new Error(
+                                  "This secret changed. Refresh before viewing it.",
+                                );
+                              return result.value;
+                            }}
+                            onChange={(value) =>
+                              setReplacements((current) => ({
+                                ...current,
+                                [key]: value,
+                              }))
+                            }
+                          />
+                        </div>
+                        {canManage ? (
+                          <Button
+                            aria-label={
+                              removed ? `Keep ${key}` : `Remove ${key}`
+                            }
+                            className="col-span-1 size-10 min-w-0 justify-self-end sm:size-9"
+                            isIconOnly
+                            variant="secondary"
+                            isDisabled={busy}
+                            onPress={() => {
+                              setDeleted((current) =>
+                                removed
+                                  ? current.filter((item) => item !== key)
+                                  : [...current, key],
+                              );
+                              setReplacements((current) => {
+                                const next = { ...current };
+                                delete next[key];
+                                return next;
+                              });
+                            }}
+                          >
+                            <HugeiconsIcon
+                              aria-hidden="true"
+                              icon={removed ? RestoreBinIcon : Delete02Icon}
+                              size={18}
+                            />
+                          </Button>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                  {newKeys.map((row, index) => (
+                    <div
+                      key={row.id}
+                      className="grid grid-cols-[repeat(8,minmax(0,1fr))_2.5rem] sm:grid-cols-[repeat(8,minmax(0,1fr))_2.25rem] items-center gap-2 md:gap-3"
+                    >
+                      <div className="col-span-4 min-w-0">
+                        <Input
+                          aria-label={`New variable ${index + 1} name`}
+                          autoComplete="off"
+                          fullWidth
+                          placeholder="VARIABLE_NAME"
+                          spellCheck={false}
+                          variant="secondary"
+                          disabled={busy}
+                          value={row.key}
+                          onChange={(event) => {
+                            const value = event.currentTarget.value;
+                            setNewKeys((current) =>
+                              current.map((item) =>
+                                item.id === row.id
+                                  ? { ...item, key: value }
+                                  : item,
+                              ),
+                            );
+                          }}
+                        />
+                      </div>
+                      <div className="col-span-4 min-w-0">
+                        <SecretValueInput
+                          label={`New variable ${index + 1} value`}
+                          value={row.value}
+                          disabled={busy}
+                          onChange={(value) =>
+                            setNewKeys((current) =>
+                              current.map((item) =>
+                                item.id === row.id ? { ...item, value } : item,
+                              ),
+                            )
+                          }
+                        />
+                      </div>
+                      <Button
+                        aria-label={`Remove new variable ${index + 1}`}
                         className="col-span-1 size-10 min-w-0 justify-self-end sm:size-9"
                         isIconOnly
                         variant="secondary"
                         isDisabled={busy}
-                        onPress={() => {
-                          setDeleted((current) =>
-                            removed
-                              ? current.filter((item) => item !== key)
-                              : [...current, key],
-                          );
-                          setReplacements((current) => {
-                            const next = { ...current };
-                            delete next[key];
-                            return next;
-                          });
-                        }}
+                        onPress={() =>
+                          setNewKeys((current) =>
+                            current.filter((item) => item.id !== row.id),
+                          )
+                        }
                       >
                         <HugeiconsIcon
                           aria-hidden="true"
-                          icon={removed ? RestoreBinIcon : Delete02Icon}
+                          icon={Delete02Icon}
                           size={18}
                         />
                       </Button>
-                    ) : null}
-                  </div>
-                );
-              })}
-              {newKeys.map((row, index) => (
-                <div
-                  key={row.id}
-                  className="grid grid-cols-[repeat(8,minmax(0,1fr))_2.5rem] sm:grid-cols-[repeat(8,minmax(0,1fr))_2.25rem] items-center gap-2 md:gap-3"
-                >
-                  <div className="col-span-4 min-w-0">
-                    <Input
-                      aria-label={`New variable ${index + 1} name`}
-                      autoComplete="off"
-                      placeholder="VARIABLE_NAME"
-                      spellCheck={false}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              {error ? (
+                <FieldError>
+                  {error}{" "}
+                  <Button variant="ghost" onPress={onUpdated}>
+                    Refresh secrets
+                  </Button>
+                </FieldError>
+              ) : null}
+              {canManage &&
+              (fileMode || keys.length > 0 || newKeys.length > 0) ? (
+                <div className="flex flex-wrap gap-2">
+                  {!fileMode ? (
+                    <Button
                       variant="secondary"
-                      disabled={busy}
-                      value={row.key}
-                      onChange={(event) => {
-                        const value = event.currentTarget.value;
-                        setNewKeys((current) =>
-                          current.map((item) =>
-                            item.id === row.id ? { ...item, key: value } : item,
-                          ),
-                        );
-                      }}
-                    />
-                  </div>
-                  <div className="col-span-4 min-w-0">
-                    <SecretValueInput
-                      label={`New variable ${index + 1} value`}
-                      value={row.value}
-                      disabled={busy}
-                      onChange={(value) =>
-                        setNewKeys((current) =>
-                          current.map((item) =>
-                            item.id === row.id ? { ...item, value } : item,
-                          ),
-                        )
+                      isDisabled={busy || newKeys.length >= 200}
+                      onPress={() =>
+                        setNewKeys((current) => [
+                          ...current,
+                          { id: crypto.randomUUID(), key: "", value: "" },
+                        ])
                       }
-                    />
-                  </div>
-                  <Button
-                    aria-label={`Remove new variable ${index + 1}`}
-                    className="col-span-1 size-10 min-w-0 justify-self-end sm:size-9"
-                    isIconOnly
-                    variant="secondary"
-                    isDisabled={busy}
-                    onPress={() =>
-                      setNewKeys((current) =>
-                        current.filter((item) => item.id !== row.id),
-                      )
-                    }
-                  >
-                    <HugeiconsIcon
-                      aria-hidden="true"
-                      icon={Delete02Icon}
-                      size={18}
-                    />
+                    >
+                      Add variable
+                    </Button>
+                  ) : null}
+                  <Button type="submit" isDisabled={busy || !hasChanges}>
+                    {busy ? "Saving…" : "Save"}
                   </Button>
                 </div>
-              ))}
-            </div>
-          ) : null}
-          {error ? (
-            <FieldError>
-              {error}{" "}
-              <Button variant="ghost" onPress={onUpdated}>
-                Refresh secrets
-              </Button>
-            </FieldError>
-          ) : null}
-          {canManage && (keys.length > 0 || newKeys.length > 0) ? (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="secondary"
-                isDisabled={busy || newKeys.length >= 200}
-                onPress={() =>
-                  setNewKeys((current) => [
-                    ...current,
-                    { id: crypto.randomUUID(), key: "", value: "" },
-                  ])
-                }
-              >
-                Add variable
-              </Button>
-              <Button type="submit" isDisabled={busy || !hasChanges}>
-                {busy ? "Saving…" : "Save"}
-              </Button>
-            </div>
-          ) : null}
+              ) : null}
+            </Tabs.Panel>
+          </Tabs>
         </Widget.Content>
       </Widget>
     </form>
@@ -542,7 +804,7 @@ function SecretValueInput({
         data-1p-ignore
         spellCheck={false}
         placeholder={
-          configured ? (visible ? "" : "********") : "Value or reference"
+          configured ? (visible ? "" : "∗∗∗∗∗∗∗∗") : "Value or reference"
         }
         value={displayedValue}
         disabled={disabled || loading}
