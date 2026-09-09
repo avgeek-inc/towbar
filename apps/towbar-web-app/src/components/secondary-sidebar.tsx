@@ -38,7 +38,7 @@ export function SecondarySidebarLayout({ children }: { children: ReactNode }) {
   const id = useId();
   return (
     <SecondaryContext.Provider value={{ host, close: () => setOpen(false) }}>
-      <div className="min-w-0 lg:grid lg:has-[[data-secondary-menu]]:grid-cols-[13rem_minmax(0,1fr)]">
+      <div className="min-w-0 lg:grid lg:has-[[data-secondary-menu]]:grid-cols-[15rem_minmax(0,1fr)]">
         <aside className="hidden min-w-0 border-b border-separator bg-background has-[[data-secondary-menu]]:block lg:sticky lg:top-16 lg:h-[calc(100dvh-4rem)] lg:self-start lg:border-b-0 lg:border-r">
           <div className="p-3 lg:hidden">
             <Button
