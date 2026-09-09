@@ -62,9 +62,9 @@ export function OverviewIncidents() {
                   : "/scout/mascot-containers-healthy.png"
               }
               alt=""
-              width={240}
-              height={180}
-              className="h-28 w-36 shrink-0 object-contain sm:h-44 sm:w-60"
+              width={160}
+              height={120}
+              className="h-24 w-32 shrink-0 object-contain sm:h-30 sm:w-40"
             />
           </>
         )}
@@ -79,7 +79,7 @@ function deploymentColumns(
   return [
     {
       key: "deployment",
-      header: "Deployment",
+      header: "Recent deployments",
       className: "min-w-40",
       cell: (item) => {
         const detail = deploymentSubtitle(
