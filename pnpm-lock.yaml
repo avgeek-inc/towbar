@@ -8739,11 +8739,6 @@ snapshots:
       react: 19.2.8
       react-aria: 3.51.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react-dom: 19.2.8(react@19.2.8)
-    dependencies:
-      "@swc/helpers": 0.5.23
-      react: 19.2.8
-      react-aria: 3.51.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      react-dom: 19.2.8(react@19.2.8)
 
   "@react-aria/i18n@3.13.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)":
     dependencies:
@@ -8754,25 +8749,12 @@ snapshots:
       react: 19.2.8
       react-aria: 3.51.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react-dom: 19.2.8(react@19.2.8)
-    dependencies:
-      "@internationalized/date": 3.12.4
-      "@internationalized/message": 3.1.10
-      "@internationalized/string": 3.2.10
-      "@swc/helpers": 0.5.23
-      react: 19.2.8
-      react-aria: 3.52.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      react-dom: 19.2.8(react@19.2.8)
 
   "@react-aria/ssr@3.10.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)":
     dependencies:
       "@swc/helpers": 0.5.23
       react: 19.2.8
       react-aria: 3.51.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      react-dom: 19.2.8(react@19.2.8)
-    dependencies:
-      "@swc/helpers": 0.5.23
-      react: 19.2.8
-      react-aria: 3.52.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react-dom: 19.2.8(react@19.2.8)
 
   "@react-aria/utils@3.34.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)":
@@ -8782,12 +8764,6 @@ snapshots:
       react-aria: 3.51.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react-dom: 19.2.8(react@19.2.8)
       react-stately: 3.49.0(react@19.2.8)
-    dependencies:
-      "@swc/helpers": 0.5.23
-      react: 19.2.8
-      react-aria: 3.52.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      react-dom: 19.2.8(react@19.2.8)
-      react-stately: 3.50.0(react@19.2.8)
 
   "@react-spectrum/color@3.2.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)":
     dependencies:
