@@ -1,5 +1,19 @@
 # Incident mascot assets
 
+## Uniform green and smoke revision
+
+Generated with the built-in image tool. Both final assets have verified transparent alpha. These replace the earlier container variants; original Scout-only assets remain.
+
+### mascot-containers-healthy.png
+
+Edited the earlier all-clear container asset with: Edit only the container paint colors: all three containers must have the same uniform medium emerald green paint, matching the front left container. Keep natural lighting and shading, but no lime green and no different green hues. Preserve Scout, pose, layout and transparent PNG background.
+
+Final background extraction prompt: Remove the background from this image. Output a PNG with transparency. Keep the bird and all three containers.
+
+### mascot-containers-smoking.png
+
+Edited the earlier worried container asset with: Edit the two green containers to the same uniform medium emerald green paint, no lime green. Add a clearly visible soft gray plume of smoke rising from the top of the red container, in the same 3D illustration style. Smoke must originate only from the red container and stay clear of Scout's face. Keep the red container red, preserve Scout's worried pose and composition. Transparent PNG background, including around the smoke.
+
 ## Container variants
 
 Both container variants are transparent PNG assets generated with the built-in image tool. The original mascot assets are retained.
