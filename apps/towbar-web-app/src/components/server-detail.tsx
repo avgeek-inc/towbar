@@ -556,15 +556,6 @@ export function ServerDetail() {
                   ariaLabel="Server settings"
                   defaultSelectedKey={settingsTab}
                   key={settingsTab}
-                  onSelectionChange={(key) => {
-                    const params = new URLSearchParams(window.location.search);
-                    params.set("settings", String(key));
-                    window.history.pushState(
-                      null,
-                      "",
-                      `/servers/${serverId}?${params.toString()}`,
-                    );
-                  }}
                   tabs={[
                     {
                       value: "configuration",

@@ -13,6 +13,8 @@ import {
   PackageIcon,
   PlayIcon,
   ReloadIcon,
+  Rocket01Icon,
+  ServerStack01Icon,
   RestoreBinIcon,
   SourceCodeIcon,
   ViewIcon,
@@ -20,6 +22,8 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import dynamic from "next/dynamic";
+import { Select, ListBox } from "@workspace/web-design-system/forms/select";
+import { Label } from "@workspace/web-design-system/forms/label";
 import { Tabs } from "@workspace/web-design-system/navigation/tabs";
 import { parseSecretEnv, serializeSecretEnv } from "@/lib/secret-env";
 import { useSearchParams } from "next/navigation";
@@ -130,31 +134,37 @@ function EnvironmentSecretSettings({
   if (!active) return null;
   return (
     <div className={scope === "global" ? "w-full" : "max-w-5xl"}>
-      {(["production", "preview"] as const).map((group) => (
-        <SecondaryItems
-          key={group}
-          title={group === "production" ? "Production" : "Preview"}
-          selected={environment === group ? stage : ""}
-          onSelect={(value) =>
-            update({
-              environment: group === "production" ? null : group,
-              stage: value === "build" ? null : value,
-            })
-          }
-          items={(
-            ["build", "deployment", "pre_deploy", "post_deploy"] as const
-          ).map((value) => ({
-            id: value,
-            label: stageLabels[value],
-            icon: <HugeiconsIcon icon={stageIcons[value]} />,
-          }))}
-        />
-      ))}
+      {scope === "global"
+        ? (["production", "preview"] as const).map((group) => (
+            <SecondaryItems
+              key={group}
+              title={group === "production" ? "Production" : "Preview"}
+              selected={environment === group ? stage : ""}
+              onSelect={(value) =>
+                update({
+                  environment: group === "production" ? null : group,
+                  stage: value === "build" ? null : value,
+                })
+              }
+              items={(
+                ["build", "deployment", "pre_deploy", "post_deploy"] as const
+              ).map((value) => ({
+                id: value,
+                label: stageLabels[value],
+                icon: <HugeiconsIcon icon={stageIcons[value]} />,
+              }))}
+            />
+          ))
+        : null}
       <EnvironmentEditors
         key={environment}
         endpoint={endpoint}
         query={query}
-        hideStageNavigation
+        hideStageNavigation={scope === "global"}
+        environment={scope !== "global" ? environment : undefined}
+        onEnvironmentChange={(value) =>
+          update({ environment: value === "production" ? null : value })
+        }
       />
     </div>
   );
@@ -178,17 +188,82 @@ function SecretSelector({
   options: Array<{ value: string; label: string; icon: typeof PackageIcon }>;
   onChange: (value: string) => void;
 }) {
+  const selected = options.find((option) => option.value === value);
   return (
-    <SecondaryItems
-      title={label}
-      selected={value}
-      onSelect={onChange}
-      items={options.map((option) => ({
-        id: option.value,
-        label: option.label,
-        icon: <HugeiconsIcon icon={option.icon} />,
-      }))}
-    />
+    <>
+      <Select
+        className="md:hidden"
+        fullWidth
+        variant="secondary"
+        selectedKey={value}
+        onSelectionChange={(key) => {
+          if (key !== null) onChange(String(key));
+        }}
+      >
+        <Label className="sr-only">{label}</Label>
+        <Select.Trigger>
+          <Select.Value>
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={selected?.icon ?? PackageIcon}
+                className="size-4 shrink-0"
+              />
+              <span className="truncate">{selected?.label}</span>
+            </span>
+          </Select.Value>
+          <Select.Indicator />
+        </Select.Trigger>
+        <Select.Popover>
+          <ListBox>
+            {options.map((option) => (
+              <ListBox.Item
+                key={option.value}
+                id={option.value}
+                textValue={option.label}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <HugeiconsIcon
+                    aria-hidden="true"
+                    icon={option.icon}
+                    className="size-4 shrink-0"
+                  />
+                  {option.label}
+                </span>
+                <ListBox.ItemIndicator />
+              </ListBox.Item>
+            ))}
+          </ListBox>
+        </Select.Popover>
+      </Select>
+      <Tabs
+        className="hidden min-w-0 md:block"
+        selectedKey={value}
+        onSelectionChange={(key) => {
+          if (key !== null) onChange(String(key));
+        }}
+      >
+        <Tabs.ListContainer className="w-fit max-w-full overflow-x-auto">
+          <Tabs.List aria-label={label} className="min-w-max">
+            {options.map((option) => (
+              <Tabs.Tab
+                key={option.value}
+                id={option.value}
+                className="w-auto shrink-0 gap-2 whitespace-nowrap"
+              >
+                <HugeiconsIcon
+                  aria-hidden="true"
+                  icon={option.icon}
+                  className="size-4 shrink-0"
+                />
+                {option.label}
+                <Tabs.Indicator />
+              </Tabs.Tab>
+            ))}
+          </Tabs.List>
+        </Tabs.ListContainer>
+      </Tabs>
+    </>
   );
 }
 
@@ -196,10 +271,14 @@ function EnvironmentEditors({
   query,
   endpoint,
   hideStageNavigation = false,
+  environment,
+  onEnvironmentChange,
 }: {
   query: Query;
   endpoint: string;
   hideStageNavigation?: boolean;
+  environment?: "production" | "preview";
+  onEnvironmentChange?: (value: string) => void;
 }) {
   const [stage, setStage] = useQueryChoice(
     "stage",
@@ -211,18 +290,41 @@ function EnvironmentEditors({
     data?.bindings.find((item) => item.stage === stage) ?? data?.bindings[0];
   return (
     <div className="grid min-w-0 gap-4">
-      {!hideStageNavigation && binding && data ? (
-        <SecretSelector
-          label="Secret stage"
-          value={binding.stage}
-          options={data.bindings.map((item) => ({
-            value: item.stage,
-            label: stageLabels[item.stage],
-            icon: stageIcons[item.stage],
-          }))}
-          onChange={(value) => setStage(value as AppSecretStage)}
-        />
-      ) : null}
+      <div
+        className={
+          environment
+            ? "grid min-w-0 gap-3 grid-cols-2 md:grid-cols-1"
+            : "grid min-w-0 gap-3"
+        }
+      >
+        {environment && onEnvironmentChange ? (
+          <SecretSelector
+            label="Secret environment"
+            value={environment}
+            onChange={onEnvironmentChange}
+            options={[
+              {
+                value: "production",
+                label: "Production",
+                icon: ServerStack01Icon,
+              },
+              { value: "preview", label: "Preview", icon: Rocket01Icon },
+            ]}
+          />
+        ) : null}
+        {!hideStageNavigation && binding && data ? (
+          <SecretSelector
+            label="Secret stage"
+            value={binding.stage}
+            options={data.bindings.map((item) => ({
+              value: item.stage,
+              label: stageLabels[item.stage],
+              icon: stageIcons[item.stage],
+            }))}
+            onChange={(value) => setStage(value as AppSecretStage)}
+          />
+        ) : null}
+      </div>
       {query.error ? (
         <QueryError message={query.error} />
       ) : !data ? (

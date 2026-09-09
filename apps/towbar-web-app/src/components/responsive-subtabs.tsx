@@ -1,9 +1,9 @@
 "use client";
 
-import { type Key, type ReactNode } from "react";
+import { useContext, type Key, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@workspace/web-design-system/lib/utils";
-import { SecondaryItems } from "./secondary-sidebar";
+import { DetailSettingsContext, SecondaryItems } from "./secondary-sidebar";
 
 type ResponsiveSubtab = {
   content: ReactNode;
@@ -32,6 +32,7 @@ export function ResponsiveSubtabs({
   sidebarWidth?: "default" | "wide";
   tabs: ResponsiveSubtab[];
 }) {
+  const detailSettings = useContext(DetailSettingsContext);
   const pathname = usePathname();
   const search = useSearchParams();
   const parameter = ariaLabel.endsWith("settings")
@@ -45,6 +46,7 @@ export function ResponsiveSubtabs({
     if (selectedKey === undefined) {
       const params = new URLSearchParams(search.toString());
       params.set(parameter, key);
+      if (detailSettings !== null) params.set("section", "settings");
       window.history.pushState(null, "", `${pathname}?${params}`);
     }
     onSelectionChange?.(key);
@@ -52,8 +54,8 @@ export function ResponsiveSubtabs({
   return (
     <>
       <SecondaryItems
-        title={ariaLabel}
-        selected={active?.value ?? ""}
+        title={detailSettings !== null ? "Settings" : ariaLabel}
+        selected={detailSettings === false ? "" : (active?.value ?? "")}
         onSelect={select}
         items={tabs.map((tab) => ({
           id: tab.value,
@@ -63,7 +65,11 @@ export function ResponsiveSubtabs({
           disabledReason: tab.disabledReason,
         }))}
       />
-      <div className={cn("min-w-0", panelClassName)}>{active?.content}</div>
+      {detailSettings !== false ? (
+        <DetailSettingsContext.Provider value={null}>
+          <div className={cn("min-w-0", panelClassName)}>{active?.content}</div>
+        </DetailSettingsContext.Provider>
+      ) : null}
     </>
   );
 }

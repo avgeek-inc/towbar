@@ -1,5 +1,5 @@
 "use client";
-import { SecondaryItems } from "./secondary-sidebar";
+import { DetailSettingsContext, SecondaryItems } from "./secondary-sidebar";
 import {
   FloppyDiskIcon,
   Cancel01Icon,
@@ -158,27 +158,34 @@ export function PageTabs({
         title="Sections"
         selected={selectedKey}
         onSelect={selectSection}
-        items={tabs.map((tab) => ({
-          id: tab.value,
-          label: tab.label,
-          icon: tab.icon,
-          badge:
-            typeof tab.indicator === "object" ? (
-              tab.indicator.dot ? (
-                <span
-                  role="img"
-                  aria-label={tab.indicator.ariaLabel ?? "Needs attention"}
-                  className="inline-block size-2 rounded-full bg-warning"
-                />
+        items={tabs
+          .filter((tab) => tab.value !== "settings")
+          .map((tab) => ({
+            id: tab.value,
+            label: tab.label,
+            icon: tab.icon,
+            badge:
+              typeof tab.indicator === "object" ? (
+                tab.indicator.dot ? (
+                  <span
+                    role="img"
+                    aria-label={tab.indicator.ariaLabel ?? "Needs attention"}
+                    className="inline-block size-2 rounded-full bg-warning"
+                  />
+                ) : (
+                  tab.indicator.label
+                )
               ) : (
-                tab.indicator.label
-              )
-            ) : (
-              tab.indicator
-            ),
-        }))}
+                tab.indicator
+              ),
+          }))}
       />
-      <div className="min-w-0">{active?.content}</div>
+      <DetailSettingsContext.Provider value={selectedKey === "settings"}>
+        {tabs.find((tab) => tab.value === "settings")?.content}
+      </DetailSettingsContext.Provider>
+      {selectedKey !== "settings" ? (
+        <div className="min-w-0">{active?.content}</div>
+      ) : null}
     </>
   );
 }

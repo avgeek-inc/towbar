@@ -26,6 +26,8 @@ import { usePathname } from "next/navigation";
 import { cn } from "@workspace/web-design-system/lib/utils";
 import { Button } from "@workspace/web-design-system/buttons/button";
 
+export const DetailSettingsContext = createContext<boolean | null>(null);
+
 const SecondaryContext = createContext<{
   host: HTMLElement | null;
   close: () => void;
