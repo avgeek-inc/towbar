@@ -155,50 +155,76 @@ function SecretSelector({
 }) {
   const selected = options.find((option) => option.value === value);
   return (
-    <Select
-      fullWidth
-      variant="secondary"
-      selectedKey={value}
-      onSelectionChange={(key) => {
-        if (key !== null) onChange(String(key));
-      }}
-    >
-      <Label className="sr-only">{label}</Label>
-      <Select.Trigger>
-        <Select.Value>
-          <span className="inline-flex min-w-0 items-center gap-2">
-            <HugeiconsIcon
-              aria-hidden="true"
-              icon={selected?.icon ?? PackageIcon}
-              className="size-4 shrink-0"
-            />
-            <span className="truncate">{selected?.label}</span>
-          </span>
-        </Select.Value>
-        <Select.Indicator />
-      </Select.Trigger>
-      <Select.Popover>
-        <ListBox>
-          {options.map((option) => (
-            <ListBox.Item
-              key={option.value}
-              id={option.value}
-              textValue={option.label}
-            >
-              <span className="inline-flex items-center gap-2">
+    <>
+      <Select
+        className="md:hidden"
+        fullWidth
+        variant="secondary"
+        selectedKey={value}
+        onSelectionChange={(key) => {
+          if (key !== null) onChange(String(key));
+        }}
+      >
+        <Label className="sr-only">{label}</Label>
+        <Select.Trigger>
+          <Select.Value>
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={selected?.icon ?? PackageIcon}
+                className="size-4 shrink-0"
+              />
+              <span className="truncate">{selected?.label}</span>
+            </span>
+          </Select.Value>
+          <Select.Indicator />
+        </Select.Trigger>
+        <Select.Popover>
+          <ListBox>
+            {options.map((option) => (
+              <ListBox.Item
+                key={option.value}
+                id={option.value}
+                textValue={option.label}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <HugeiconsIcon
+                    aria-hidden="true"
+                    icon={option.icon}
+                    className="size-4 shrink-0"
+                  />
+                  {option.label}
+                </span>
+                <ListBox.ItemIndicator />
+              </ListBox.Item>
+            ))}
+          </ListBox>
+        </Select.Popover>
+      </Select>
+      <Tabs
+        className="hidden min-w-0 md:block"
+        selectedKey={value}
+        onSelectionChange={(key) => {
+          if (key !== null) onChange(String(key));
+        }}
+      >
+        <Tabs.ListContainer className="w-fit max-w-full overflow-x-auto">
+          <Tabs.List aria-label={label} className="min-w-max">
+            {options.map((option) => (
+              <Tabs.Tab key={option.value} id={option.value} className="gap-2">
                 <HugeiconsIcon
                   aria-hidden="true"
                   icon={option.icon}
                   className="size-4 shrink-0"
                 />
                 {option.label}
-              </span>
-              <ListBox.ItemIndicator />
-            </ListBox.Item>
-          ))}
-        </ListBox>
-      </Select.Popover>
-    </Select>
+                <Tabs.Indicator />
+              </Tabs.Tab>
+            ))}
+          </Tabs.List>
+        </Tabs.ListContainer>
+      </Tabs>
+    </>
   );
 }
 
@@ -221,7 +247,9 @@ function EnvironmentEditors({
     <div className="grid min-w-0 gap-4">
       <div
         className={
-          environment ? "grid min-w-0 grid-cols-2 gap-3" : "grid min-w-0"
+          environment
+            ? "grid min-w-0 grid-cols-2 gap-3 md:grid-cols-1"
+            : "grid min-w-0"
         }
       >
         {environment && onEnvironmentChange ? (
