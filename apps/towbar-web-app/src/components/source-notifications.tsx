@@ -148,6 +148,12 @@ export function SourceNotifications({
         canManage ? (
           <div className="flex flex-wrap justify-end gap-2">
             <ActionButton
+              confirm={{
+                title: "Send a test notification?",
+                description:
+                  "Send a test message to this notification destination.",
+                actionLabel: "Send test",
+              }}
               action={() =>
                 api.post(
                   `${endpoint}/destinations/${destination.id}/actions/test`,

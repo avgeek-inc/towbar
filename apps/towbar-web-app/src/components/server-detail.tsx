@@ -369,6 +369,12 @@ export function ServerDetail() {
       icon={ServerStack01Icon}
       actions={
         <ActionButton
+          confirm={{
+            title: "Check this server?",
+            description:
+              "Towbar will connect over SSH, inspect the server and its containers, and record a fresh check result.",
+            actionLabel: "Check server",
+          }}
           action={() => api.post(`/v1/core/servers/${serverId}/actions/check`)}
           pendingLabel="Checking…"
           success="Server check queued"

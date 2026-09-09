@@ -268,6 +268,12 @@ export function ResourceDetail() {
               type="resource"
             />
             <ActionButton
+              confirm={{
+                title: "Deploy this resource?",
+                description:
+                  "Queue a new resource deployment. This may replace its running container and briefly interrupt connections.",
+                actionLabel: "Deploy resource",
+              }}
               action={() =>
                 api.post<{ deployment: Deployment }>(
                   `/v1/core/resources/${resourceId}/actions/deploy`,

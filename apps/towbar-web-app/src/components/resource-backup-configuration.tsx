@@ -252,6 +252,12 @@ export function ResourceBackupConfiguration({
                 ) : null}
                 {active ? (
                   <ActionButton
+                    confirm={{
+                      title: "Back up this resource?",
+                      description:
+                        "Create a new backup on the server and upload it to the configured storage.",
+                      actionLabel: "Back up now",
+                    }}
                     action={() =>
                       api.post(
                         `/v1/core/resources/${resource.id}/actions/backup`,
@@ -743,6 +749,12 @@ function RestoreOperationAction({
   if (!canManage || (!cancellable && !cleanable)) return "—";
   return cancellable ? (
     <ActionButton
+      confirm={{
+        title: "Cancel this restore?",
+        description:
+          "Request cancellation of this restore. Review the operation result before using the restored data.",
+        actionLabel: "Cancel restore",
+      }}
       action={() =>
         api.post(
           `/v1/core/resources/${resourceId}/operations/${operation.id}/actions/cancel`,

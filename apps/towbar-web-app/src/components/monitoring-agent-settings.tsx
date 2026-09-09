@@ -169,6 +169,15 @@ function MonitoringAgentForm({
           {canManage && days !== agent.retentionDays ? (
             <div>
               <ActionButton
+                confirm={
+                  days < agent.retentionDays
+                    ? {
+                        title: "Reduce performance retention?",
+                        description: `Performance data older than ${days} days will be removed. This cannot be undone.`,
+                        actionLabel: "Reduce retention",
+                      }
+                    : undefined
+                }
                 action={() => api.patch(endpoint, { retentionDays: days })}
                 onSuccess={() => setRetention(null)}
                 isDisabled={busy}
@@ -210,7 +219,12 @@ function MonitoringAgentForm({
                           "Install the latest version of Scout Agent. Reporting may pause briefly.",
                         actionLabel: "Update Scout Agent",
                       }
-                    : undefined
+                    : {
+                        title: "Install Scout Agent?",
+                        description:
+                          "Install Scout Agent on this server and begin collecting performance data.",
+                        actionLabel: "Install Scout Agent",
+                      }
                 }
                 onSuccess={() => {
                   setAcknowledged(false);

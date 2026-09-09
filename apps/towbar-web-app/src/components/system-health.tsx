@@ -79,6 +79,12 @@ export function SystemHealthPage() {
       icon={HealthIcon}
       actions={
         <ActionButton<SystemHealth>
+          confirm={{
+            title: "Run system checks?",
+            description:
+              "Run fresh checks against the control plane and configured integrations.",
+            actionLabel: "Run checks",
+          }}
           action={() => api.post("/v1/core/system-health/actions/check")}
           onSuccess={() => query.refresh()}
           pendingLabel="Running checks…"

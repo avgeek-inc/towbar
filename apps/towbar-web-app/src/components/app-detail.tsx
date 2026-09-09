@@ -119,6 +119,12 @@ export function AppDetail() {
               type="app"
             />
             <ActionButton
+              confirm={{
+                title: "Deploy this app?",
+                description:
+                  "Queue a new app deployment. A successful deployment will replace the running release.",
+                actionLabel: "Deploy app",
+              }}
               action={() =>
                 api.post<{ deployment: Deployment }>(
                   `/v1/core/apps/${appId}/actions/deploy`,
