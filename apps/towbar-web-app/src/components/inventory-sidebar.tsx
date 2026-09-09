@@ -1,4 +1,5 @@
 "use client";
+import { PageSelectionTitle } from "./page-selection-title";
 import {
   AlertCircleIcon,
   DashboardCircleIcon,
@@ -150,6 +151,22 @@ export function InventorySidebar({
     );
   return (
     <>
+      <PageSelectionTitle
+        icon={
+          <HugeiconsIcon
+            icon={
+              search.get("view") === "attention"
+                ? AlertCircleIcon
+                : DashboardCircleIcon
+            }
+          />
+        }
+        label={
+          search.get("view") === "attention"
+            ? `${kind[0]!.toUpperCase()}${kind.slice(1)} needing attention`
+            : `All ${kind}`
+        }
+      />
       <SecondaryItems
         title="Views"
         selected={search.get("view") ?? "all"}

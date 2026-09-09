@@ -1,9 +1,5 @@
 "use client";
-import {
-  ComputerIcon,
-  Settings01Icon,
-  UserAccountIcon,
-} from "@hugeicons/core-free-icons";
+import { ComputerIcon, UserAccountIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { DashboardPage } from "./page-parts";
 import { useRouter } from "next/navigation";
@@ -13,7 +9,10 @@ import { ProfileSettings, SessionSettings } from "./settings-pages";
 export function AccountSettings({ page }: { page: "profile" | "sessions" }) {
   const router = useRouter();
   return (
-    <DashboardPage title="Settings" icon={Settings01Icon}>
+    <DashboardPage
+      title={page === "profile" ? "Profile" : "Sessions"}
+      icon={page === "profile" ? UserAccountIcon : ComputerIcon}
+    >
       <SecondaryItems
         title="Account settings"
         selected={page}

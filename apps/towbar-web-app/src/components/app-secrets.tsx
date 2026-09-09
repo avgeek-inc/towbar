@@ -1,5 +1,6 @@
 "use client";
 import { usePageQuery, useQueryChoice } from "@/hooks/use-page-query";
+import { PageSelectionTitle } from "./page-selection-title";
 import { SecondaryItems } from "./secondary-sidebar";
 import {
   Add01Icon,
@@ -129,6 +130,18 @@ function EnvironmentSecretSettings({
   if (!active) return null;
   return (
     <div className={scope === "global" ? "w-full" : "max-w-5xl"}>
+      {scope === "global" ? (
+        <PageSelectionTitle
+          icon={
+            <HugeiconsIcon
+              icon={
+                environment === "production" ? ServerStack01Icon : Rocket01Icon
+              }
+            />
+          }
+          label={`${environment === "production" ? "Production" : "Preview"} shared secrets`}
+        />
+      ) : null}
       {scope === "global" ? (
         <SecondaryItems
           title="Environment"

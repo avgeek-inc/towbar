@@ -1,4 +1,9 @@
 "use client";
+import {
+  PageSelectionContext,
+  PageSelectionTitle,
+  type PageSelection,
+} from "./page-selection-title";
 import { DetailSettingsContext, SecondaryItems } from "./secondary-sidebar";
 import {
   FloppyDiskIcon,
@@ -65,36 +70,50 @@ export function DashboardPage({
   title: string;
   titleContent?: ReactNode;
 }) {
+  const [selection, setSelection] = useState<PageSelection | null>(null);
+  const heading = selection
+    ? selection.keepEntityName
+      ? `${title} · ${selection.label}`
+      : selection.label
+    : title;
   return (
-    <ApplicationPage
-      actions={actions}
-      badge={badge}
-      breadcrumbAncestors={breadcrumbAncestors}
-      breadcrumbLabel={breadcrumbLabel}
-      title={title}
-      titleContent={
-        <span className="inline-flex min-w-0 items-center gap-2">
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-6 shrink-0"
-            icon={icon}
-          />
-          {titleContent ?? (
-            <TooltipText className="truncate" tooltip={title}>
-              {title}
-            </TooltipText>
-          )}
-        </span>
-      }
-    >
-      <PageSection
-        className="content-grid pt-0"
-        xPadding="none"
-        yPadding="compact"
+    <PageSelectionContext.Provider value={setSelection}>
+      <ApplicationPage
+        actions={actions}
+        badge={badge}
+        breadcrumbAncestors={breadcrumbAncestors}
+        breadcrumbLabel={breadcrumbLabel}
+        title={heading}
+        titleContent={
+          <span className="inline-flex min-w-0 items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="inline-flex shrink-0 [&_svg]:size-6"
+            >
+              {selection?.icon ?? <HugeiconsIcon icon={icon} />}
+            </span>
+            {titleContent && (!selection || selection.keepEntityName) ? (
+              <>
+                {titleContent}
+                {selection ? ` · ${selection.label}` : null}
+              </>
+            ) : (
+              <TooltipText className="truncate" tooltip={heading}>
+                {heading}
+              </TooltipText>
+            )}
+          </span>
+        }
       >
-        {Children.toArray(children)}
-      </PageSection>
-    </ApplicationPage>
+        <PageSection
+          className="content-grid pt-0"
+          xPadding="none"
+          yPadding="compact"
+        >
+          {Children.toArray(children)}
+        </PageSection>
+      </ApplicationPage>
+    </PageSelectionContext.Provider>
   );
 }
 
@@ -154,6 +173,13 @@ export function PageTabs({
   const active = tabs.find((tab) => tab.value === selectedKey);
   return (
     <>
+      {selectedKey !== "settings" && active ? (
+        <PageSelectionTitle
+          label={active.label}
+          icon={active.icon}
+          keepEntityName
+        />
+      ) : null}
       <SecondaryItems
         title="Sections"
         selected={selectedKey}

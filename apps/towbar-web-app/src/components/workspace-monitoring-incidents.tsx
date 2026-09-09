@@ -3,7 +3,10 @@ import { SecondaryItems } from "./secondary-sidebar";
 import { ScoutIcon } from "./scout-icons";
 import { useState } from "react";
 import { useQueryChoice } from "@/hooks/use-page-query";
-import { AlertCircleIcon } from "@hugeicons/core-free-icons";
+import {
+  AlertCircleIcon,
+  CheckmarkCircle02Icon,
+} from "@hugeicons/core-free-icons";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -138,7 +141,16 @@ export function WorkspaceIncidents() {
     },
   ];
   return (
-    <DashboardPage title="Incidents" icon={AlertCircleIcon}>
+    <DashboardPage
+      title={
+        state === "active"
+          ? "Active incidents"
+          : state === "resolved"
+            ? "Resolved incidents"
+            : "All incidents"
+      }
+      icon={state === "resolved" ? CheckmarkCircle02Icon : AlertCircleIcon}
+    >
       <SecondaryItems
         title="Incident status"
         selected={state}

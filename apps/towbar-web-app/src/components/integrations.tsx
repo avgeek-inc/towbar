@@ -14,6 +14,7 @@ import type {
 import { useApiQuery } from "@/hooks/use-api-query";
 import { usePageQuery } from "@/hooks/use-page-query";
 
+import { PageSelectionTitle } from "./page-selection-title";
 import { AwsIntegration } from "@/components/aws-integration";
 import { GitHubSettings } from "@/components/github-settings";
 import { NotificationIntegration } from "@/components/notification-integration";
@@ -106,6 +107,10 @@ export function Integrations() {
 
   return (
     <>
+      <PageSelectionTitle
+        label={activeProvider.label}
+        icon={<HugeiconsIcon icon={activeProvider.icon} />}
+      />
       {integrationGroups.map((group) => (
         <SecondaryItems
           key={group.value}

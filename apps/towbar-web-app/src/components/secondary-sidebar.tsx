@@ -10,6 +10,8 @@ import {
 import { createPortal } from "react-dom";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
+  Activity01Icon,
+  Delete02Icon,
   Menu01Icon,
   DashboardCircleIcon,
   Settings01Icon,
@@ -103,7 +105,13 @@ export type SecondaryItem = {
   disabled?: boolean;
   disabledReason?: string;
 };
-const menuIcons: Record<string, typeof Menu01Icon> = {
+export const menuIcons: Record<string, typeof Menu01Icon> = {
+  "host-keys": Key01Icon,
+  monitoring: Activity01Icon,
+  cleanup: Delete02Icon,
+  danger: Delete02Icon,
+  backups: ReloadIcon,
+  preview: Rocket01Icon,
   keys: Key01Icon,
   api: SourceCodeIcon,
   mcp: SourceCodeIcon,

@@ -1,5 +1,8 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { menuIcons } from "./secondary-sidebar";
+import { PageSelectionTitle } from "./page-selection-title";
 import { useContext, type Key, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@workspace/web-design-system/lib/utils";
@@ -54,6 +57,18 @@ export function ResponsiveSubtabs({
   }
   return (
     <>
+      {detailSettings !== false && active ? (
+        <PageSelectionTitle
+          label={active.label}
+          icon={
+            active.icon ??
+            (menuIcons[active.value] ? (
+              <HugeiconsIcon icon={menuIcons[active.value]!} />
+            ) : undefined)
+          }
+          keepEntityName={detailSettings !== null}
+        />
+      ) : null}
       {Array.from(new Set(tabs.map((tab) => tab.group))).map((group) => (
         <SecondaryItems
           key={group ?? ariaLabel}

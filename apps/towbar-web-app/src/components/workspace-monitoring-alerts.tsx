@@ -10,6 +10,7 @@ import {
   ResourceTable,
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
+import { PageSelectionTitle } from "./page-selection-title";
 import { DashboardPage } from "./page-parts";
 import { conditionDescription, scoutValue } from "./scout-controls";
 import {
@@ -162,7 +163,16 @@ export function WorkspaceAlerts() {
     },
   ];
   return (
-    <DashboardPage title="Alerts" icon={Notification01Icon}>
+    <DashboardPage
+      title={selected ? `${selected.name} · Alerts` : "Alerts"}
+      icon={Notification01Icon}
+    >
+      {selected ? (
+        <PageSelectionTitle
+          label={`${selected.name} · Alerts`}
+          icon={<ScoutIcon name={selected.kind} />}
+        />
+      ) : null}
       <div className="grid gap-5">
         <p className="text-sm text-muted">
           All configured alerts. Open an alert’s entity to manage its rules.
