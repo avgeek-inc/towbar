@@ -58,13 +58,13 @@ export function OverviewIncidents() {
             <Image
               src={
                 count
-                  ? "/scout/overview-smoking-corner.png"
-                  : "/scout/overview-healthy-corner.png"
+                  ? "/scout/overview-smoking-edge.png"
+                  : "/scout/overview-healthy-edge.png"
               }
               alt=""
               width={160}
               height={120}
-              className="pointer-events-none absolute -right-2 -bottom-2 h-28 w-28 object-contain object-right-bottom"
+              className="pointer-events-none absolute right-0 bottom-0 h-28 w-28 object-contain object-right-bottom"
             />
           </>
         )}

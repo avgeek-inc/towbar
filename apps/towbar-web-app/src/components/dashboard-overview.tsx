@@ -76,7 +76,7 @@ export function DashboardOverview() {
       icon: DashboardCircleIcon,
       href: "/apps",
       label: "Apps",
-      image: "/scout/overview-apps-corner.png",
+      image: "/scout/overview-apps-edge.png",
       status: "running",
       detailCount: activeApps.filter(
         (item) => item.runtimeState.observedState === "running",
@@ -88,7 +88,7 @@ export function DashboardOverview() {
       icon: DatabaseIcon,
       href: "/resources",
       label: "Resources",
-      image: "/scout/overview-resources-corner.png",
+      image: "/scout/overview-resources-edge.png",
       status: "running",
       detailCount: activeResources.filter(
         (item) => item.runtimeState.observedState === "running",
@@ -100,7 +100,7 @@ export function DashboardOverview() {
       icon: ServerStack01Icon,
       href: "/servers",
       label: "Servers",
-      image: "/scout/overview-servers-corner.png",
+      image: "/scout/overview-servers-edge-v2.png",
       status: "ready",
       detailCount: activeServers.filter(
         (server) => server.setupStatus === "ready",
@@ -154,7 +154,7 @@ export function DashboardOverview() {
                   alt=""
                   width={128}
                   height={96}
-                  className="pointer-events-none absolute -right-2 -bottom-2 h-28 w-28 object-contain object-right-bottom"
+                  className="pointer-events-none absolute right-0 bottom-0 h-28 w-28 object-contain object-right-bottom"
                 />
               </Widget.Content>
             </Widget>

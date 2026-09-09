@@ -135,3 +135,33 @@ PNG with transparency. Keep all objects unchanged.
 
 Transparent margins were trimmed to visible alpha bounds after generation. The UI
 anchors each asset to the bottom-right edge with a small clipped bleed.
+# Edge-composed illustrations
+
+Current files: `overview-{apps,resources,healthy,smoking}-edge.png` and `overview-servers-edge-v2.png`.
+
+Generated with the built-in image tool. The canvas composition itself carries objects
+through the bottom and right edges. Files are copied unchanged; no post-generation
+cropping. UI uses bottom: 0 and right: 0, without negative offsets.
+
+Shared generation prompt:
+
+Create a minimal soft 3D dashboard corner illustration. Actual transparent PNG background with alpha, NOT a checkerboard drawing. IMPORTANT placement problem: this image is rendered flush against a card's bottom and right edges, so a fully visible rounded object leaves ugly transparent gaps. Solve IN THE IMAGE COMPOSITION: objects extend well BEYOND the right and bottom canvas boundaries and are visibly sliced by the straight canvas edges. No transparent gutter along the lower right edge. Do not include full silhouettes or rounded bottom-right object corners. Transparent area only above and to the left of the subject. Square canvas.
+Unified design: extremely simple matte clay, flat broad surfaces, uniform medium charcoal gray (#60656c), warm yellow (#f6c634), just two shallow grooves on containers, no frames, no rims, no bolts, no tiny details, no outlines, no photorealism, no fur texture, no glossy highlights. Straight-on view. Soft subtle shading. Large uncomplicated shapes, readable at 100px.
+
+Subject prompts:
+
+- apps: Two overlapping gray containers. Yellow simple Docker whale symbol on the front one. Front container continues off BOTH bottom and right canvas edges. No mascot.
+- servers: Bow of a small gray cargo ship with a single yellow trim stripe, one simple cabin with two windows, two gray containers. Bow and right side of ship continue off bottom and right canvas edges. No mast or smokestack.
+- smoking: Yellow Scout chick, worried expression, simple black eyes, hands on cheeks. Two gray containers and one red container with two simple gray smoke puffs. The lower containers and Scout body continue OFF the bottom and right canvas edges. Face fully visible. Same minimalist clay shapes as containers, no realistic fur, no feet visible.
+
+Refinements:
+
+- resources-prompt: Change ONLY yellow Docker whale symbol to a simple yellow database cylinder emblem. Preserve exact gray containers, colors, soft matte style, composition and edge cropping. Actual transparent PNG background directly.
+- smoking-prompt: Replace the three cylindrical barrels in image 1 with rectangular shipping containers matching image 2: broad smooth gray rounded boxes with two shallow VERTICAL grooves. Keep top container muted red and smoking. Preserve Scout, colors and composition from image 1. Objects continue off bottom and right canvas edges. No outlines, no detail, soft matte clay. Actual transparent PNG background directly.
+- servers-finalprompt: Simplify only the ship's cargo containers to match image 2 exactly: TWO broad shallow vertical grooves per container, same medium charcoal gray, broad smooth matte surfaces, no raised edges or frames. Keep ship composition and yellow stripe, no new details. Objects must remain cut off at right and bottom canvas edges. Actual transparent background PNG directly, preserve alpha.
+- healthy-finalprompt: Keep exact composition, shapes and matte clay style. Change red container to matching gray, remove smoke, make Scout smile happily and lower hands. Keep bottom and right objects cropped by canvas boundaries. Output actual transparent PNG background with alpha, no checkerboard.
+
+Transparency was requested directly in every prompt. Inventory outputs retained alpha;
+Scout edits required a subsequent ImageGen background removal request. All final PNGs
+were checked for an alpha channel. No local background removal was used.
+
