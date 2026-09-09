@@ -1,4 +1,6 @@
 "use client";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 import { useEffect, useState } from "react";
 import {
   Autocomplete,
@@ -168,6 +170,11 @@ export function MonitoringEntityPicker({
                     variant="secondary"
                     onPress={() => setAfter("")}
                   >
+                    <HugeiconsIcon
+                      aria-hidden="true"
+                      icon={ArrowLeft01Icon}
+                      className="size-4 shrink-0"
+                    />
                     First results
                   </Button>
                 ) : null}

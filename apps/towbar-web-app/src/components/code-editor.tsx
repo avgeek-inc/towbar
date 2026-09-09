@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { yaml } from "@codemirror/lang-yaml";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { tags } from "@lezer/highlight";
 import { Compartment, EditorState } from "@codemirror/state";
 import {
   Decoration,
@@ -37,14 +40,32 @@ const highlighting = ViewPlugin.fromClass(
   { decorations: (plugin) => plugin.decorations },
 );
 
-export default function SecretFileEditor({
+const yamlHighlighting = syntaxHighlighting(
+  HighlightStyle.define([
+    {
+      tag: [tags.propertyName, tags.definition(tags.propertyName)],
+      color: "var(--accent)",
+    },
+    { tag: tags.string, color: "var(--success)" },
+    { tag: [tags.number, tags.bool, tags.null], color: "var(--warning)" },
+    { tag: tags.comment, color: "var(--muted)" },
+  ]),
+);
+
+export default function CodeEditor({
   value,
-  disabled,
+  disabled = false,
+  embedded = false,
+  language = "env",
+  ariaLabel = "Secrets .env file",
   onChange,
 }: {
   value: string;
-  disabled: boolean;
-  onChange: (value: string) => void;
+  disabled?: boolean;
+  embedded?: boolean;
+  language?: "env" | "yaml";
+  ariaLabel?: string;
+  onChange?: (value: string) => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const editor = useRef<EditorView>(null);
@@ -58,31 +79,35 @@ export default function SecretFileEditor({
         doc: value,
         extensions: [
           lineNumbers(),
-          highlighting,
+          language === "yaml" ? [yaml(), yamlHighlighting] : highlighting,
           drawSelection(),
-          highlightActiveLine(),
+          disabled ? [] : highlightActiveLine(),
           history(),
           keymap.of([...defaultKeymap, ...historyKeymap]),
           editable.current.of(EditorState.readOnly.of(disabled)),
-          EditorView.contentAttributes.of({
-            "aria-label": "Secrets .env file",
+          EditorView.contentAttributes.of((view) => ({
+            "aria-label": ariaLabel,
+            "aria-readonly": String(view.state.readOnly),
             autocapitalize: "off",
             spellcheck: "false",
             "data-lpignore": "true",
             "data-1p-ignore": "true",
-          }),
+          })),
           EditorView.updateListener.of((update) => {
-            if (update.docChanged) change.current(update.state.doc.toString());
+            if (update.docChanged)
+              change.current?.(update.state.doc.toString());
           }),
           EditorView.theme({
             "&": {
               color: "var(--foreground)",
-              backgroundColor: "var(--surface-secondary)",
+              backgroundColor: embedded
+                ? "transparent"
+                : "var(--surface-secondary)",
               borderRadius: "var(--radius-lg)",
               overflow: "hidden",
             },
             "&.cm-focused": {
-              outline: "2px solid var(--focus)",
+              outline: embedded ? "none" : "2px solid var(--focus)",
               outlineOffset: "2px",
             },
             ".cm-scroller": {
@@ -94,12 +119,14 @@ export default function SecretFileEditor({
               maxHeight: "480px",
             },
             ".cm-content": {
-              padding: "12px 0",
+              padding: embedded ? "0" : "12px 0",
               caretColor: "var(--foreground)",
             },
             ".cm-line": { padding: "0 12px" },
             ".cm-gutters": {
-              backgroundColor: "var(--surface-secondary)",
+              backgroundColor: embedded
+                ? "transparent"
+                : "var(--surface-secondary)",
               color: "var(--muted)",
               border: "none",
             },
@@ -117,7 +144,7 @@ export default function SecretFileEditor({
       view.destroy();
       editor.current = null;
     };
-    // The document is owned by this editor until file mode is closed.
+    // Language and label are fixed for the lifetime of an editor instance.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
@@ -125,5 +152,13 @@ export default function SecretFileEditor({
       effects: editable.current.reconfigure(EditorState.readOnly.of(disabled)),
     });
   }, [disabled]);
+  useEffect(() => {
+    const view = editor.current;
+    if (view && value !== view.state.doc.toString()) {
+      view.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: value },
+      });
+    }
+  }, [value]);
   return <div ref={host} className="min-w-0" />;
 }

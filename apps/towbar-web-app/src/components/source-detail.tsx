@@ -1,15 +1,16 @@
 "use client";
-
-import { ElapsedTime } from "./elapsed-time";
-
 import {
   DashboardCircleIcon,
   DatabaseIcon,
   Delete02Icon,
   GithubIcon,
   InformationSquareIcon,
+  ReloadIcon,
   Settings01Icon,
 } from "@hugeicons/core-free-icons";
+
+import { ElapsedTime } from "./elapsed-time";
+
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { type Key, type ReactNode } from "react";
@@ -26,7 +27,9 @@ import { EmptyState } from "@workspace/web-design-system/data-display/empty-stat
 import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
 import { Pagination } from "@workspace/web-design-system/navigation/pagination";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
-import { CodePanel } from "@workspace/towbar-web-ui/code-panel";
+import dynamic from "next/dynamic";
+import { Widget } from "@workspace/web-design-system/data-display/widget";
+import { CodeBlock } from "@workspace/web-design-system/typography/code-block";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
@@ -53,6 +56,8 @@ import {
 import { SourceApps, SourceResources } from "./source-inventory";
 import { ResponsiveSubtabs } from "./responsive-subtabs";
 import { AutoDeployControlEditor } from "./auto-deploy-control";
+
+const CodeEditor = dynamic(() => import("./code-editor"), { ssr: false });
 
 type ManifestResponse = {
   manifest: {
@@ -182,6 +187,11 @@ export function SourceDetail() {
               success="Source sync queued"
               variant="primary"
             >
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={ReloadIcon}
+                className="size-4 shrink-0"
+              />
               Sync now
             </ActionButton>
           ) : null}
@@ -279,12 +289,28 @@ export function SourceDetail() {
                     value: "manifest",
                     label: "Manifest",
                     content: manifest.data.manifest ? (
-                      <CodePanel
-                        ariaLabel="Deployment manifest"
-                        language="yaml"
+                      <CodeBlock
+                        aria-label="Deployment manifest"
+                        className="w-full min-w-0"
                       >
-                        {manifest.data.manifest.rawManifest}
-                      </CodePanel>
+                        <CodeBlock.Header>
+                          <CodeBlock.Filename>
+                            Deployment manifest
+                          </CodeBlock.Filename>
+                          <CodeBlock.CopyButton
+                            code={manifest.data.manifest.rawManifest}
+                          />
+                        </CodeBlock.Header>
+                        <Widget.Content>
+                          <CodeEditor
+                            ariaLabel="Deployment manifest code"
+                            language="yaml"
+                            value={manifest.data.manifest.rawManifest}
+                            disabled
+                            embedded
+                          />
+                        </Widget.Content>
+                      </CodeBlock>
                     ) : (
                       <EmptyState>
                         <EmptyState.Header>
@@ -413,6 +439,11 @@ function SourceSettings({
                         success="Source deleted"
                         variant="danger"
                       >
+                        <HugeiconsIcon
+                          aria-hidden="true"
+                          icon={Delete02Icon}
+                          className="size-4 shrink-0"
+                        />
                         Delete Source
                       </ActionButton>
                     </div>

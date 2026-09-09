@@ -1,4 +1,6 @@
 "use client";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Login01Icon, UserAdd01Icon } from "@hugeicons/core-free-icons";
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useState, type FormEvent } from "react";
@@ -72,6 +74,13 @@ export function LoginForm() {
   return (
     <AuthFrame description="Use your Towbar owner account." title="Sign in">
       <IdentityCredentialsForm
+        submitIcon={
+          <HugeiconsIcon
+            aria-hidden="true"
+            icon={Login01Icon}
+            className="size-4 shrink-0"
+          />
+        }
         identifierLabel="Email"
         identifierType="email"
         onSubmit={async ({ identifier, password }) => {
@@ -200,6 +209,11 @@ function InitialOwnerSetup() {
           </Alert>
         ) : null}
         <Button className="w-full" isDisabled={isSubmitting} type="submit">
+          <HugeiconsIcon
+            aria-hidden="true"
+            icon={UserAdd01Icon}
+            className="size-4 shrink-0"
+          />
           {isSubmitting ? "Creating owner…" : "Create owner"}
         </Button>
       </form>

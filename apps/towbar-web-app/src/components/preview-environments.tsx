@@ -1,4 +1,6 @@
 "use client";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Delete02Icon, ReloadIcon } from "@hugeicons/core-free-icons";
 
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 
@@ -146,6 +148,11 @@ export function PreviewEnvironments({
               pendingLabel="Queueing…"
               success="Preview cleanup retry queued"
             >
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={ReloadIcon}
+                className="size-4 shrink-0"
+              />
               Retry cleanup
             </ActionButton>
           ) : (
@@ -164,6 +171,11 @@ export function PreviewEnvironments({
               success="Preview cleanup queued"
               variant="danger"
             >
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={Delete02Icon}
+                className="size-4 shrink-0"
+              />
               Delete
             </ActionButton>
           )}

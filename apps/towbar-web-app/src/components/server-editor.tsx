@@ -1,8 +1,11 @@
 "use client";
+import {
+  Delete02Icon,
+  FloppyDiskIcon,
+  Settings01Icon,
+} from "@hugeicons/core-free-icons";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-
-import { Delete02Icon, Settings01Icon } from "@hugeicons/core-free-icons";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -177,6 +180,11 @@ export function ServerEditor({
             isDisabled={busy || !canManage}
             type="submit"
           >
+            <HugeiconsIcon
+              aria-hidden="true"
+              icon={FloppyDiskIcon}
+              className="size-4 shrink-0"
+            />
             {busy ? "Saving…" : editing ? "Save" : "Add server"}
           </Button>
         </form>
@@ -209,6 +217,11 @@ export function ServerEditor({
               success="Server removal requested"
               variant="danger"
             >
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={Delete02Icon}
+                className="size-4 shrink-0"
+              />
               Remove server
             </ActionButton>
           </div>

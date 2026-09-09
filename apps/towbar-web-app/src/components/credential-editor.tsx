@@ -1,13 +1,15 @@
 "use client";
+import {
+  CheckmarkCircle01Icon,
+  Delete02Icon,
+  FloppyDiskIcon,
+  InformationCircleIcon,
+  Key01Icon,
+  ReloadIcon,
+  Undo02Icon,
+} from "@hugeicons/core-free-icons";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-
-import {
-  Key01Icon,
-  CheckmarkCircle01Icon,
-  InformationCircleIcon,
-  Delete02Icon,
-} from "@hugeicons/core-free-icons";
 
 import { useState, type FormEvent } from "react";
 import type { SecretMetadata, Server } from "@workspace/towbar-web-client";
@@ -249,12 +251,22 @@ function ServerCredentialForm({
           <FieldError>
             {error}{" "}
             <Button variant="ghost" onPress={refresh}>
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={ReloadIcon}
+                className="size-4 shrink-0"
+              />
               Refresh settings
             </Button>
           </FieldError>
         ) : null}
         {canManage ? (
           <Button type="submit" className="w-fit" isDisabled={busy}>
+            <HugeiconsIcon
+              aria-hidden="true"
+              icon={FloppyDiskIcon}
+              className="size-4 shrink-0"
+            />
             {busy ? "Saving…" : "Save"}
           </Button>
         ) : null}
@@ -356,6 +368,11 @@ function CredentialField({
           isDisabled={busy}
           onPress={() => onRemoveChange(!deleted)}
         >
+          <HugeiconsIcon
+            aria-hidden="true"
+            icon={deleted ? Undo02Icon : Delete02Icon}
+            className="size-4 shrink-0"
+          />
           {deleted ? "Keep" : "Remove"}
         </Button>
       ) : null}

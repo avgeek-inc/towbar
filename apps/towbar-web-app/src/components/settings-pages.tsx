@@ -1,8 +1,11 @@
 "use client";
+import {
+  Cancel01Icon,
+  Key01Icon,
+  UserAccountIcon,
+} from "@hugeicons/core-free-icons";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-
-import { Key01Icon, UserAccountIcon } from "@hugeicons/core-free-icons";
 
 import type { TowbarUser, UserSession } from "@workspace/towbar-web-client";
 import { Button } from "@workspace/web-design-system/buttons/button";
@@ -170,6 +173,11 @@ export function SessionSettings() {
       cell: (session) =>
         session.id === currentSessionId ? (
           <Button isDisabled variant="danger">
+            <HugeiconsIcon
+              aria-hidden="true"
+              icon={Cancel01Icon}
+              className="size-4 shrink-0"
+            />
             Revoke
           </Button>
         ) : (
@@ -184,6 +192,11 @@ export function SessionSettings() {
             success="Session revoked"
             variant="danger"
           >
+            <HugeiconsIcon
+              aria-hidden="true"
+              icon={Cancel01Icon}
+              className="size-4 shrink-0"
+            />
             Revoke
           </ActionButton>
         ),

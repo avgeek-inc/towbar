@@ -1,4 +1,6 @@
 "use client";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ReloadIcon } from "@hugeicons/core-free-icons";
 
 import { useEffect, useState } from "react";
 
@@ -100,6 +102,11 @@ export function QueryError({
               variant="secondary"
               onPress={() => window.dispatchEvent(new Event("towbar:refresh"))}
             >
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={ReloadIcon}
+                className="size-4 shrink-0"
+              />
               Retry
             </Button>
           </div>

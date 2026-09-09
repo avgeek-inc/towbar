@@ -1,8 +1,13 @@
 "use client";
+import {
+  Add01Icon,
+  Cancel01Icon,
+  GithubIcon,
+  ReloadIcon,
+  Shield01Icon,
+} from "@hugeicons/core-free-icons";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-
-import { GithubIcon } from "@hugeicons/core-free-icons";
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -69,6 +74,11 @@ export function GitHubSettings() {
         success="Opening GitHub"
         variant="primary"
       >
+        <HugeiconsIcon
+          aria-hidden="true"
+          icon={ReloadIcon}
+          className="size-4 shrink-0"
+        />
         Reconnect GitHub
       </ActionButton>
     ) : (
@@ -83,6 +93,11 @@ export function GitHubSettings() {
         success="GitHub disconnected"
         variant="danger"
       >
+        <HugeiconsIcon
+          aria-hidden="true"
+          icon={Cancel01Icon}
+          className="size-4 shrink-0"
+        />
         Disconnect GitHub
       </ActionButton>
     )
@@ -92,6 +107,11 @@ export function GitHubSettings() {
       success="Opening GitHub"
       variant="primary"
     >
+      <HugeiconsIcon
+        aria-hidden="true"
+        icon={Add01Icon}
+        className="size-4 shrink-0"
+      />
       Install GitHub App
     </ActionButton>
   );
@@ -127,6 +147,11 @@ export function GitHubSettings() {
                 pendingLabel="Retrying…"
                 success="Preview reporting retried"
               >
+                <HugeiconsIcon
+                  aria-hidden="true"
+                  icon={ReloadIcon}
+                  className="size-4 shrink-0"
+                />
                 Retry reporting
               </ActionButton>
             </div>
@@ -182,6 +207,11 @@ export function GitHubSettings() {
             action={openGitHubInstallation}
             success="Opening GitHub"
           >
+            <HugeiconsIcon
+              aria-hidden="true"
+              icon={Shield01Icon}
+              className="size-4 shrink-0"
+            />
             Review permissions
           </ActionButton>
         ) : null}

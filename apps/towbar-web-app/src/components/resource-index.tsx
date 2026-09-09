@@ -1,14 +1,15 @@
 "use client";
+import {
+  Add01Icon,
+  DashboardCircleIcon,
+  DatabaseIcon,
+  GitBranchIcon,
+  GithubIcon,
+  ServerStack01Icon,
+} from "@hugeicons/core-free-icons";
 
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 
-import {
-  GithubIcon,
-  GitBranchIcon,
-  DashboardCircleIcon,
-  DatabaseIcon,
-  ServerStack01Icon,
-} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
 import type { App, Resource, Source } from "@workspace/towbar-web-client";
@@ -144,7 +145,16 @@ export function SourceIndex() {
   return (
     <DashboardPage
       icon={GitBranchIcon}
-      actions={<ButtonLink href="/sources/new">Add source</ButtonLink>}
+      actions={
+        <ButtonLink href="/sources/new">
+          <HugeiconsIcon
+            aria-hidden="true"
+            icon={Add01Icon}
+            className="size-4 shrink-0"
+          />
+          Add source
+        </ButtonLink>
+      }
       title="Sources"
     >
       {error ? (
@@ -155,7 +165,16 @@ export function SourceIndex() {
         <ResourceTable
           ariaLabel="Sources"
           columns={columns}
-          emptyAction={<ButtonLink href="/sources/new">Add source</ButtonLink>}
+          emptyAction={
+            <ButtonLink href="/sources/new">
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={Add01Icon}
+                className="size-4 shrink-0"
+              />
+              Add source
+            </ButtonLink>
+          }
           emptyDescription="Connect a GitHub repository to import its Towbar manifest."
           emptyTitle="No sources yet"
           getRowHref={(source) => `/sources/${source.id}`}

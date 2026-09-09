@@ -250,6 +250,11 @@ function OverviewActivity() {
             </EmptyState.Header>
             <EmptyState.Content>
               <ButtonLink href="/sources" variant="secondary">
+                <HugeiconsIcon
+                  aria-hidden="true"
+                  icon={GitBranchIcon}
+                  className="size-4 shrink-0"
+                />
                 Open Sources
               </ButtonLink>
             </EmptyState.Content>

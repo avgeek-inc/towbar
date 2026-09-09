@@ -1,10 +1,6 @@
 "use client";
-
-import { ElapsedTime } from "./elapsed-time";
-
-import { ConfigurationLinks } from "./configuration-links";
-
 import {
+  Cancel01Icon,
   MoreHorizontalIcon,
   PlayIcon,
   ReloadIcon,
@@ -12,6 +8,11 @@ import {
   StopIcon,
   Undo02Icon,
 } from "@hugeicons/core-free-icons";
+
+import { ElapsedTime } from "./elapsed-time";
+
+import { ConfigurationLinks } from "./configuration-links";
+
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -163,6 +164,11 @@ export function DeployableActionsMenu({
                 variant="secondary"
                 onPress={() => setSelectedAction(null)}
               >
+                <HugeiconsIcon
+                  aria-hidden="true"
+                  icon={Cancel01Icon}
+                  className="size-4 shrink-0"
+                />
                 Cancel
               </Button>
               <Button
@@ -170,6 +176,11 @@ export function DeployableActionsMenu({
                 variant={selection?.danger ? "danger" : "primary"}
                 onPress={runAction}
               >
+                <HugeiconsIcon
+                  aria-hidden="true"
+                  icon={selectedAction ? actionIcon(selectedAction) : PlayIcon}
+                  className="size-4 shrink-0"
+                />
                 {busy ? selection?.pendingLabel : selection?.label}
               </Button>
             </AlertDialog.Footer>
@@ -277,6 +288,11 @@ export function RuntimeLogs({
       success="Log capture queued"
       variant="primary"
     >
+      <HugeiconsIcon
+        aria-hidden="true"
+        icon={SourceCodeIcon}
+        className="size-4 shrink-0"
+      />
       Capture logs
     </ActionButton>
   ) : null;
