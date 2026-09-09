@@ -215,7 +215,11 @@ function SecretSelector({
         <Tabs.ListContainer className="w-fit max-w-full overflow-x-auto">
           <Tabs.List aria-label={label} className="min-w-max">
             {options.map((option) => (
-              <Tabs.Tab key={option.value} id={option.value} className="gap-2">
+              <Tabs.Tab
+                key={option.value}
+                id={option.value}
+                className="w-auto shrink-0 gap-2 whitespace-nowrap"
+              >
                 <HugeiconsIcon
                   aria-hidden="true"
                   icon={option.icon}
