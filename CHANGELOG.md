@@ -5,6 +5,34 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.6.5] - 2026-09-09
+
+### Added
+
+- The overview pairs a seven-day deployment trend with illustrated app, resource,
+  server, and active-incident counts, followed by a full-width recent deployments
+  table. Counts link to their list pages, and incident artwork reflects health.
+- Secrets support Form and File tabs. File mode reveals stored values for `.env`
+  editing, highlights variable references, and saves only changed values.
+- Deployment manifests use a read-only YAML editor with syntax highlighting,
+  line numbers, scrolling, and a copy action inside the standard widget layout.
+- Action buttons across the app include consistent icons, including confirmation,
+  retry, authentication, and pending states.
+
+### Fixed
+
+- Secret key inputs fill their available width and configured-value masks are
+  vertically centered. Environment and stage selectors use tabs on larger screens
+  and icon-labelled dropdowns on mobile.
+- The sidebar header stays fixed while navigation scrolls. Sign out has a divider
+  and red styling.
+- Source titles open their GitHub repository in a new tab.
+
+### Upgrade notes
+
+- No database migration, Scout Agent reinstall, or workload redeployment is
+  required. Update Towbar to receive these interface improvements.
+
 ## [1.6.4] - 2026-09-09
 
 ### Added
@@ -512,7 +540,8 @@ before resuming deployments:
 - Source-scoped AWS Secrets Manager integration and environment editors.
 - A same-domain owner setup, authentication, and operations dashboard.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.6.4...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.6.5...HEAD
+[1.6.5]: https://github.com/avgeek-inc/towbar/compare/v1.6.4...v1.6.5
 [1.6.4]: https://github.com/avgeek-inc/towbar/compare/v1.6.3...v1.6.4
 [1.6.3]: https://github.com/avgeek-inc/towbar/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/avgeek-inc/towbar/compare/v1.6.1...v1.6.2
