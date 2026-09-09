@@ -2,6 +2,7 @@
 import { SecondaryItems } from "./secondary-sidebar";
 import { ScoutIcon } from "./scout-icons";
 import { useState } from "react";
+import { useQueryChoice } from "@/hooks/use-page-query";
 import { AlertCircleIcon } from "@hugeicons/core-free-icons";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
@@ -21,7 +22,11 @@ import {
 } from "./workspace-monitoring-shared";
 
 export function WorkspaceIncidents() {
-  const [state, setState] = useState("all");
+  const [state, setState] = useQueryChoice(
+    "state",
+    ["all", "active", "resolved"],
+    "all",
+  );
   const [selected, setSelected] = useState<OverviewIncident | null>(null);
   const { query, pagination, reset } = useMonitoringOverview<OverviewIncident>(
     "incidents",

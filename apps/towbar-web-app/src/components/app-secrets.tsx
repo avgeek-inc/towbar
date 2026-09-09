@@ -1,4 +1,5 @@
 "use client";
+import { useQueryChoice } from "@/hooks/use-page-query";
 import { SecondaryItems } from "./secondary-sidebar";
 import {
   Add01Icon,
@@ -114,7 +115,9 @@ function EnvironmentSecretSettings({
   endpoint: string;
   scope: "global" | "source" | "app";
 }) {
-  const [environment, setEnvironment] = useState<"production" | "preview">(
+  const [environment, setEnvironment] = useQueryChoice(
+    "environment",
+    ["production", "preview"],
     "production",
   );
   const query = useApiQuery<AppSecretsResponse>(
@@ -181,7 +184,11 @@ function EnvironmentEditors({
   environment?: "production" | "preview";
   onEnvironmentChange?: (value: "production" | "preview") => void;
 }) {
-  const [stage, setStage] = useState<AppSecretStage>("build");
+  const [stage, setStage] = useQueryChoice(
+    "stage",
+    ["build", "deployment", "pre_deploy", "post_deploy"],
+    "build",
+  );
   const data = query.data;
   const binding =
     data?.bindings.find((item) => item.stage === stage) ?? data?.bindings[0];

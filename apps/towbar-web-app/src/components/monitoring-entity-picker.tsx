@@ -1,4 +1,5 @@
 "use client";
+import { usePageQuery } from "@/hooks/use-page-query";
 
 import { useEffect, useMemo, useState } from "react";
 import { QueryError } from "@workspace/towbar-web-ui/query-state";
@@ -13,16 +14,23 @@ export function MonitoringEntityPicker({
   kind,
   onKindChange,
   selected,
+  entityKey,
+  onResolve,
   onSelect,
   allowAll = false,
 }: {
   kind: string;
   onKindChange: (kind: string) => void;
   selected: MonitoringEntity | null;
-  onSelect: (entity: MonitoringEntity | null) => void;
+  entityKey: string | null;
+  onResolve: (entity: MonitoringEntity | null) => void;
+  onSelect: (entity: MonitoringEntity | null, replace?: boolean) => void;
   allowAll?: boolean;
 }) {
-  const [search, setSearch] = useState("");
+  const { search: pageQuery, update } = usePageQuery();
+  const search = pageQuery.get("entitySearch") ?? "";
+  const setSearch = (value: string) =>
+    update({ entitySearch: value || null }, true);
   const [result, setResult] = useState<{
     kind: string;
     entities: MonitoringEntity[];
@@ -67,11 +75,12 @@ export function MonitoringEntityPicker({
   );
   useEffect(() => {
     if (result?.kind !== kind) return;
-    if (selected && entities.some((entity) => entity.key === selected.key))
-      return;
-    if (!allowAll || selected)
-      onSelect(allowAll ? null : (entities[0] ?? null));
-  }, [kind, result, entities, selected, allowAll, onSelect]);
+    if (entityKey) {
+      onResolve(entities.find((entity) => entity.key === entityKey) ?? null);
+    } else if (!allowAll && entities.length) {
+      onSelect(entities[0]!, true);
+    } else onResolve(null);
+  }, [kind, result, entities, entityKey, allowAll, onSelect, onResolve]);
   const filtered = entities.filter((entity) =>
     `${entity.name} ${entity.serverName}`
       .toLowerCase()
@@ -91,10 +100,7 @@ export function MonitoringEntityPicker({
             { id: "resource", label: "Resources" },
           ]}
           onChange={(value) => {
-            setSearch("");
             onKindChange(value);
-            if (selected && value !== "all" && selected.kind !== value)
-              onSelect(null);
           }}
         />
         <Input
@@ -105,6 +111,13 @@ export function MonitoringEntityPicker({
           className="mt-2 w-full"
         />
         {error ? <QueryError message={error} /> : null}
+        {entityKey &&
+        result?.kind === kind &&
+        !entities.some((entity) => entity.key === entityKey) ? (
+          <p role="status" className="px-2 text-sm text-muted">
+            This entity is unavailable. Choose another entity.
+          </p>
+        ) : null}
         {result?.kind !== kind && !error ? (
           <p className="px-2 text-sm text-muted">Loading entities…</p>
         ) : null}

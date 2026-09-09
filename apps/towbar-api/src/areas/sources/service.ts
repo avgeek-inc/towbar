@@ -44,11 +44,35 @@ import { resolveWorkspaceServers } from "../servers/references.js";
 import type { ManifestIssue } from "@workspace/towbar-core";
 
 export async function listSources(workspaceId: string) {
-  return await getTowbarDatabase()
-    .select(publicSourceSelection)
+  const database = getTowbarDatabase();
+  const rows = await database
+    .select({
+      ...publicSourceSelection,
+      autoDeployPaused: sources.autoDeployPaused,
+    })
     .from(sources)
     .where(eq(sources.workspaceId, workspaceId))
     .orderBy(desc(sources.updatedAt));
+  const ids = rows.map((source) => source.id);
+  const syncs = ids.length
+    ? await database
+        .selectDistinctOn([sourceSyncs.sourceId], {
+          sourceId: sourceSyncs.sourceId,
+          status: sourceSyncs.status,
+        })
+        .from(sourceSyncs)
+        .where(inArray(sourceSyncs.sourceId, ids))
+        .orderBy(
+          sourceSyncs.sourceId,
+          desc(sourceSyncs.createdAt),
+          desc(sourceSyncs.id),
+        )
+    : [];
+  const statuses = new Map(syncs.map((sync) => [sync.sourceId, sync.status]));
+  return rows.map((source) => ({
+    ...source,
+    latestSyncStatus: statuses.get(source.id) ?? "never",
+  }));
 }
 
 export async function createSource(input: {

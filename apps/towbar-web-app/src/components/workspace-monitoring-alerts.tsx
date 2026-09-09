@@ -1,7 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useMonitoringSelection } from "@/hooks/use-monitoring-selection";
 import { MonitoringEntityPicker } from "./monitoring-entity-picker";
-import type { MonitoringEntity } from "./workspace-monitoring-shared";
 import { ScoutIcon } from "./scout-icons";
 import { Notification01Icon } from "@hugeicons/core-free-icons";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
@@ -21,8 +20,14 @@ import {
 } from "./workspace-monitoring-shared";
 
 export function WorkspaceAlerts() {
-  const [kind, setKind] = useState("all");
-  const [selected, setSelected] = useState<MonitoringEntity | null>(null);
+  const {
+    kind,
+    setKind,
+    selected,
+    select: setSelected,
+    entityKey,
+    resolve,
+  } = useMonitoringSelection();
   const { query, pagination, reset } = useMonitoringOverview<OverviewRule>(
     "alerts",
     "all",
@@ -165,18 +170,24 @@ export function WorkspaceAlerts() {
         <MonitoringEntityPicker
           allowAll
           kind={kind}
+          entityKey={entityKey}
+          onResolve={resolve}
           onKindChange={(value) => {
             setKind(value);
             reset();
           }}
           selected={selected}
-          onSelect={(entity) => {
-            setSelected(entity);
+          onSelect={(entity, replace) => {
+            setSelected(entity, replace);
             reset();
           }}
         />
         {query.error ? <QueryError message={query.error} /> : null}
-        {query.data ? (
+        {entityKey && !selected ? (
+          <p className="text-sm text-muted">
+            Select an available entity to view its alerts.
+          </p>
+        ) : query.data ? (
           <ResourceTable
             ariaLabel="Workspace alerts"
             columns={columns}

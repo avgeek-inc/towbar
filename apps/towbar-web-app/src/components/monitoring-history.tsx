@@ -1,4 +1,5 @@
 "use client";
+import { usePageQuery, useQueryChoice } from "@/hooks/use-page-query";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Settings01Icon } from "@hugeicons/core-free-icons";
 import { ScoutOptionIcon } from "./scout-icons";
@@ -60,24 +61,54 @@ export function MonitoringHistory({
   serverId?: string;
   workload?: boolean;
 }) {
-  const [range, setRange] = useState("15m");
-  const [custom, setCustom] = useState<CustomMonitoringRange>();
+  const { search, update } = usePageQuery();
+  const requestedRange = search.get("range");
+  const range =
+    monitoringRanges.some((row) => row.id === requestedRange) &&
+    requestedRange !== "custom"
+      ? requestedRange!
+      : "15m";
+  const startAt = search.get("startAt");
+  const endAt = search.get("endAt");
+  const custom =
+    requestedRange === "custom" &&
+    startAt &&
+    endAt &&
+    Number.isFinite(Date.parse(startAt)) &&
+    Number.isFinite(Date.parse(endAt)) &&
+    Date.parse(endAt) > Date.parse(startAt)
+      ? { startAt, endAt }
+      : undefined;
   const [pickerOpen, setPickerOpen] = useState(false);
   const applyCustom = useCallback(
-    (value: CustomMonitoringRange) => setCustom(value),
-    [],
+    (value: CustomMonitoringRange) =>
+      update({ range: "custom", startAt: value.startAt, endAt: value.endAt }),
+    [update],
   );
-  const selectRange = useCallback((start: number, end: number) => {
-    const to = Math.min(end, Date.now());
-    if (to - start < 30_000) return;
-    setCustom({
-      startAt: new Date(Math.ceil(start)).toISOString(),
-      endAt: new Date(Math.floor(to)).toISOString(),
-    });
-  }, []);
-  const [environment, setEnvironment] = useState("production");
-  const [view, setView] = useState("average");
-  const [instance, setInstance] = useState("all");
+  const selectRange = useCallback(
+    (start: number, end: number) => {
+      const to = Math.min(end, Date.now());
+      if (to - start < 30_000) return;
+      applyCustom({
+        startAt: new Date(Math.ceil(start)).toISOString(),
+        endAt: new Date(Math.floor(to)).toISOString(),
+      });
+    },
+    [applyCustom],
+  );
+  const [environment] = useQueryChoice(
+    "environment",
+    ["production", "preview"],
+    "production",
+  );
+  const [view, setView] = useQueryChoice(
+    "metricView",
+    ["average", "peak"],
+    "average",
+  );
+  const instance = search.get("instance") ?? "all";
+  const setInstance = (value: string) =>
+    update({ instance: value === "all" ? null : value });
   const syncId = useId();
   const query = useApiQuery<History>(
     `${path}?${new URLSearchParams({ range: custom ? "custom" : range, environment, ...custom })}`,
@@ -133,8 +164,10 @@ export function MonitoringHistory({
               label="Environment"
               value={environment}
               onChange={(value) => {
-                setEnvironment(value);
-                setInstance("all");
+                update({
+                  environment: value === "production" ? null : value,
+                  instance: null,
+                });
               }}
               options={[
                 { id: "production", label: "Production" },
@@ -173,8 +206,11 @@ export function MonitoringHistory({
                 setPickerOpen(true);
                 return;
               }
-              setRange(value);
-              setCustom(undefined);
+              update({
+                range: value === "15m" ? null : value,
+                startAt: null,
+                endAt: null,
+              });
             }}
             onReselect={(value) => {
               if (value === "custom") setPickerOpen(true);

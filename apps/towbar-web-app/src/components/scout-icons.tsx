@@ -23,6 +23,8 @@ import {
   GitCompareIcon,
   Globe02Icon,
   Layers01Icon,
+  GitBranchIcon,
+  PlayIcon,
   Mail01Icon,
   Notification01Icon,
   NotificationOff01Icon,
@@ -37,6 +39,34 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { MonitoringMetricIcon } from "./monitoring-metric-icon";
 
 const icons = {
+  healthy: CheckmarkCircle01Icon,
+  unhealthy: AlertCircleIcon,
+  unknown: Clock01Icon,
+  none: Cancel01Icon,
+  missing: AlertCircleIcon,
+  ready: CheckmarkCircle01Icon,
+  pending: Clock01Icon,
+  preparing: RefreshIcon,
+  failed: AlertCircleIcon,
+  queued: Clock01Icon,
+  succeeded: CheckmarkCircle01Icon,
+  never: Clock01Icon,
+  running: PlayIcon,
+  stopped: Cancel01Icon,
+  starting: RefreshIcon,
+  installing: RefreshIcon,
+  uninstalling: RefreshIcon,
+  waiting: Clock01Icon,
+  enabled: CheckmarkCircle01Icon,
+  disabled: Cancel01Icon,
+  paused: Cancel01Icon,
+  online: CheckmarkCircle01Icon,
+  offline: AlertCircleIcon,
+  error: AlertCircleIcon,
+  postgres: DatabaseIcon,
+  redis: DatabaseIcon,
+  image: Layers01Icon,
+  source: GitBranchIcon,
   add: Add01Icon,
   docs: BookOpen01Icon,
   install: Download01Icon,
@@ -102,6 +132,8 @@ export function ScoutOptionIcon({
     return <ScoutIcon name="time" />;
   if (label === "Baseline" || label === "Compare with")
     return <ScoutIcon name="preview" />;
+  if (value !== "all" && label === "Source") return <ScoutIcon name="source" />;
+  if (value !== "all" && label === "Server") return <ScoutIcon name="server" />;
   const key = value.split(":")[0]!;
   return (
     <ScoutIcon

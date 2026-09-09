@@ -1,3 +1,11 @@
+import {
+  workloadFilters,
+  serverFilters,
+  sourceFilters,
+  filterWorkloads,
+  filterServers,
+  filterSources,
+} from "@workspace/towbar-core/inventory";
 import { createScoutFixture } from "./scout-fixture.ts";
 import {
   fixtureServerMonitoringSummary,
@@ -878,19 +886,63 @@ export function createFixtureApiServer() {
     const requestUrl = new URL(request.url ?? "/", "http://localhost");
     const path = requestUrl.pathname;
     if (scoutFixture(request, response, requestUrl)) return;
-    if (request.method === "GET" && path === "/v1/core/servers") {
-      response.writeHead(200, { "content-type": "application/json" });
-      response.end(
-        JSON.stringify({
-          servers: servers.map((server) => ({
-            ...server,
-            scout: fixtureServerMonitoringSummary(
-              monitoring.get(server.id)!,
-              server.id,
-            ),
-          })),
-        }),
-      );
+    if (
+      request.method === "GET" &&
+      [
+        "/v1/core/servers",
+        "/v1/core/apps",
+        "/v1/core/resources",
+        "/v1/core/sources",
+      ].includes(path)
+    ) {
+      const query = Object.fromEntries(requestUrl.searchParams);
+      try {
+        if (path.endsWith("/servers")) {
+          const result = filterServers(
+            servers.map((server) => ({
+              ...server,
+              healthStatus:
+                server.setupStatus === "ready" ? "healthy" : "unknown",
+              scout: fixtureServerMonitoringSummary(
+                monitoring.get(server.id)!,
+                server.id,
+              ),
+            })),
+            serverFilters.parse(query),
+          );
+          writeJson(response, 200, {
+            servers: result.items,
+            counts: result.counts,
+          });
+        } else if (path.endsWith("/sources")) {
+          const result = filterSources(
+            sources.map((source) => ({
+              ...source,
+              latestSyncStatus: source.latestManifestDigest
+                ? "succeeded"
+                : "never",
+              autoDeployPaused: false,
+            })),
+            sourceFilters.parse(query),
+          );
+          writeJson(response, 200, {
+            sources: result.items,
+            counts: result.counts,
+          });
+        } else {
+          const resource = path.endsWith("/resources");
+          const result = filterWorkloads<FixtureApp | FixtureResource>(
+            resource ? resources : apps,
+            workloadFilters.parse(query),
+          );
+          writeJson(response, 200, {
+            [resource ? "resources" : "apps"]: result.items,
+            counts: result.counts,
+          });
+        }
+      } catch {
+        writeJson(response, 400, { message: "Invalid inventory filters" });
+      }
       return;
     }
     const monitoringPath = path.match(

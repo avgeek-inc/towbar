@@ -15,7 +15,8 @@
     "./temporal": "./dist/temporal.js",
     "./schema": "./schemas/deployment.v1.json",
     "./scout-alerts": "./dist/scout-alerts.js",
-    "./deployment-comparison": "./dist/deployment-comparison.js"
+    "./deployment-comparison": "./dist/deployment-comparison.js",
+    "./inventory": "./dist/inventory.js"
   },
   "scripts": {
     "build": "tsc --project tsconfig.build.json",

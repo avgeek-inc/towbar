@@ -1,3 +1,7 @@
+import {
+  filterWorkloads,
+  workloadFilters,
+} from "@workspace/towbar-core/inventory";
 import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -55,14 +59,18 @@ resourceRoutes.get(
   "/",
   operation({
     responseSchema: 'resources.ts:get:"/"',
+    query: workloadFilters,
     summary: "List resources",
     response: "JSON object containing resources.",
     status: 200,
   }),
-  async (context) =>
-    context.json({
-      resources: await listResources(context.get("user").workspaceId),
-    }),
+  async (context) => {
+    const result = filterWorkloads(
+      await listResources(context.get("user").workspaceId),
+      workloadFilters.parse(context.req.query()),
+    );
+    return context.json({ resources: result.items, counts: result.counts });
+  },
 );
 
 resourceRoutes.get(

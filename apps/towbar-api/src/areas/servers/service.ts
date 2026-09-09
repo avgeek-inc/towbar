@@ -69,8 +69,33 @@ export async function listServers(workspaceId: string) {
     getServerHardware(ids),
     getServerMonitoringSummaries(workspaceId),
   ]);
+  const checks = ids.length
+    ? await database
+        .selectDistinctOn([serverChecks.serverId], {
+          serverId: serverChecks.serverId,
+          status: serverChecks.status,
+        })
+        .from(serverChecks)
+        .where(inArray(serverChecks.serverId, ids))
+        .orderBy(
+          serverChecks.serverId,
+          desc(serverChecks.createdAt),
+          desc(serverChecks.id),
+        )
+    : [];
+  const health = new Map(
+    checks.map((check) => [
+      check.serverId,
+      check.status === "succeeded"
+        ? "healthy"
+        : check.status === "failed"
+          ? "unhealthy"
+          : "unknown",
+    ]),
+  );
   return rows.map((server) => ({
     ...toPublicServer(server, latestPreparations.get(server.id)),
+    healthStatus: health.get(server.id) ?? "unknown",
     hardware: hardware.get(server.id) ?? null,
     scout: scout.get(server.id),
   }));
