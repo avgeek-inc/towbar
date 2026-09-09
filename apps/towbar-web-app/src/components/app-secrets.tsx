@@ -14,6 +14,12 @@ import {
   Key01Icon,
   LockIcon,
   RestoreBinIcon,
+  ServerStack01Icon,
+  Rocket01Icon,
+  PackageIcon,
+  PlayIcon,
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
@@ -31,7 +37,8 @@ import { toast } from "@workspace/web-design-system/overlays/toast";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
-import { ResponsiveSubtabs } from "./responsive-subtabs";
+import { Select, ListBox } from "@workspace/web-design-system/forms/select";
+import { Label } from "@workspace/web-design-system/forms/label";
 
 const SecretFileEditor = dynamic(() => import("./secret-file-editor"), {
   ssr: false,
@@ -46,38 +53,12 @@ export const stageLabels: Record<AppSecretStage, string> = {
 
 export function AppSecrets({ appId }: { appId: string }) {
   const active = useSearchParams().get("section") === "settings";
-  const [environment, setEnvironment] = useState<"production" | "preview">(
-    "production",
-  );
-  const endpoint = `/v1/core/apps/${appId}/secrets`;
-  const query = useApiQuery<AppSecretsResponse>(
-    active ? `${endpoint}?environment=${environment}` : null,
-  );
-  if (!active) return null;
   return (
-    <div className="max-w-5xl">
-      <ResponsiveSubtabs
-        ariaLabel="Secret environments"
-        defaultSelectedKey="production"
-        layout="inline"
-        selectedKey={environment}
-        onSelectionChange={(key) =>
-          setEnvironment(String(key) as "production" | "preview")
-        }
-        tabs={(["production", "preview"] as const).map((value) => ({
-          label: value === "production" ? "Production" : "Preview",
-          value,
-          content:
-            value === environment ? (
-              <EnvironmentEditors
-                key={environment}
-                endpoint={endpoint}
-                query={query}
-              />
-            ) : null,
-        }))}
-      />
-    </div>
+    <EnvironmentSecretSettings
+      active={active}
+      endpoint={`/v1/core/apps/${appId}/secrets`}
+      scope="app"
+    />
   );
 }
 
@@ -128,7 +109,7 @@ function EnvironmentSecretSettings({
 }: {
   active: boolean;
   endpoint: string;
-  scope: "global" | "source";
+  scope: "global" | "source" | "app";
 }) {
   const [environment, setEnvironment] = useState<"production" | "preview">(
     "production",
@@ -139,60 +120,147 @@ function EnvironmentSecretSettings({
   if (!active) return null;
   return (
     <div className={scope === "global" ? "w-full" : "max-w-5xl"}>
-      <ResponsiveSubtabs
-        ariaLabel="Secret environments"
-        defaultSelectedKey="production"
-        layout="inline"
-        selectedKey={environment}
-        onSelectionChange={(key) =>
-          setEnvironment(String(key) as "production" | "preview")
-        }
-        tabs={(["production", "preview"] as const).map((value) => ({
-          label: value === "production" ? "Production" : "Preview",
-          value,
-          content:
-            value === environment ? (
-              <EnvironmentEditors
-                key={environment}
-                endpoint={endpoint}
-                query={query}
-              />
-            ) : null,
-        }))}
+      <EnvironmentEditors
+        key={environment}
+        endpoint={endpoint}
+        query={query}
+        environment={environment}
+        onEnvironmentChange={setEnvironment}
       />
     </div>
   );
 }
 
+const stageIcons = {
+  build: PackageIcon,
+  deployment: PlayIcon,
+  pre_deploy: ArrowLeft01Icon,
+  post_deploy: ArrowRight01Icon,
+};
+const environmentOptions = [
+  { value: "production", label: "Production", icon: ServerStack01Icon },
+  { value: "preview", label: "Preview", icon: Rocket01Icon },
+];
+
+function SecretSelector({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: Array<{ value: string; label: string; icon: typeof PackageIcon }>;
+  onChange: (value: string) => void;
+}) {
+  const selected = options.find((option) => option.value === value);
+  return (
+    <Select
+      fullWidth
+      variant="secondary"
+      selectedKey={value}
+      onSelectionChange={(key) => {
+        if (key !== null) onChange(String(key));
+      }}
+    >
+      <Label className="sr-only">{label}</Label>
+      <Select.Trigger>
+        <Select.Value>
+          <span className="inline-flex min-w-0 items-center gap-2">
+            <HugeiconsIcon
+              aria-hidden="true"
+              icon={selected?.icon ?? PackageIcon}
+              className="size-4 shrink-0"
+            />
+            <span className="truncate">{selected?.label}</span>
+          </span>
+        </Select.Value>
+        <Select.Indicator />
+      </Select.Trigger>
+      <Select.Popover>
+        <ListBox>
+          {options.map((option) => (
+            <ListBox.Item
+              key={option.value}
+              id={option.value}
+              textValue={option.label}
+            >
+              <span className="inline-flex items-center gap-2">
+                <HugeiconsIcon
+                  aria-hidden="true"
+                  icon={option.icon}
+                  className="size-4 shrink-0"
+                />
+                {option.label}
+              </span>
+              <ListBox.ItemIndicator />
+            </ListBox.Item>
+          ))}
+        </ListBox>
+      </Select.Popover>
+    </Select>
+  );
+}
+
 function EnvironmentEditors({
   query,
-  ...props
+  endpoint,
+  environment,
+  onEnvironmentChange,
 }: {
   query: Query;
   endpoint: string;
+  environment?: "production" | "preview";
+  onEnvironmentChange?: (value: "production" | "preview") => void;
 }) {
-  if (query.error) return <QueryError message={query.error} />;
-  if (!query.data) return <QueryLoading />;
+  const [stage, setStage] = useState<AppSecretStage>("build");
   const data = query.data;
+  const binding =
+    data?.bindings.find((item) => item.stage === stage) ?? data?.bindings[0];
   return (
-    <ResponsiveSubtabs
-      ariaLabel="Secret stages"
-      defaultSelectedKey={data.bindings[0]?.stage ?? "build"}
-      layout="inline"
-      tabs={data.bindings.map((binding) => ({
-        label: stageLabels[binding.stage],
-        value: binding.stage,
-        content: (
-          <SecretVariablesEditor
-            key={`${props.endpoint}:${binding.environment}:${binding.stage}:${binding.revision}:${binding.inheritedRevisions.global}:${binding.inheritedRevisions.source}`}
-            {...props}
-            binding={binding}
-            canManage={data.canManageSecrets}
-            onUpdated={query.refresh}
+    <div className="grid min-w-0 gap-4">
+      <div
+        className={
+          environment ? "grid min-w-0 grid-cols-2 gap-3" : "grid min-w-0"
+        }
+      >
+        {environment && onEnvironmentChange ? (
+          <SecretSelector
+            label="Secret environment"
+            value={environment}
+            options={environmentOptions}
+            onChange={(value) =>
+              onEnvironmentChange(value as "production" | "preview")
+            }
           />
-        ),
-      }))}
-    />
+        ) : null}
+        {binding && data ? (
+          <SecretSelector
+            label="Secret stage"
+            value={binding.stage}
+            options={data.bindings.map((item) => ({
+              value: item.stage,
+              label: stageLabels[item.stage],
+              icon: stageIcons[item.stage],
+            }))}
+            onChange={(value) => setStage(value as AppSecretStage)}
+          />
+        ) : null}
+      </div>
+      {query.error ? (
+        <QueryError message={query.error} />
+      ) : !data ? (
+        <QueryLoading />
+      ) : binding ? (
+        <SecretVariablesEditor
+          key={`${endpoint}:${binding.environment}:${binding.stage}:${binding.revision}:${binding.inheritedRevisions.global}:${binding.inheritedRevisions.source}`}
+          endpoint={endpoint}
+          binding={binding}
+          canManage={data.canManageSecrets}
+          onUpdated={query.refresh}
+        />
+      ) : null}
+    </div>
   );
 }
 
@@ -383,7 +451,7 @@ function SecretVariablesEditor({
           >
             <Tabs.ListContainer className="mb-4 w-fit">
               <Tabs.List aria-label="Secret editing mode">
-                <Tabs.Tab id="form" isDisabled={busy}>
+                <Tabs.Tab id="form" className="gap-2" isDisabled={busy}>
                   <HugeiconsIcon
                     aria-hidden="true"
                     icon={Menu01Icon}
@@ -392,7 +460,11 @@ function SecretVariablesEditor({
                   Form
                   <Tabs.Indicator />
                 </Tabs.Tab>
-                <Tabs.Tab id="file" isDisabled={busy || !canManage}>
+                <Tabs.Tab
+                  id="file"
+                  className="gap-2"
+                  isDisabled={busy || !canManage}
+                >
                   <HugeiconsIcon
                     aria-hidden="true"
                     icon={SourceCodeIcon}

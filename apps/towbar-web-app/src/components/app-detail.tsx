@@ -10,6 +10,7 @@ import {
   Rocket01Icon,
   ServerStack01Icon,
   Settings01Icon,
+  Key01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -310,10 +311,16 @@ export function AppDetail() {
 
 function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
   const requestedSettings = useSearchParams().get("settings");
-  const tabs: Array<{ content: ReactNode; label: string; value: string }> = [
+  const tabs: Array<{
+    content: ReactNode;
+    icon: ReactNode;
+    label: string;
+    value: string;
+  }> = [
     {
       value: "configuration",
       label: "Configuration",
+      icon: <HugeiconsIcon icon={Settings01Icon} />,
       content: <AppConfiguration item={item} />,
     },
     ...(item.config.preview?.enabled
@@ -321,6 +328,7 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
           {
             value: "preview",
             label: "Preview",
+            icon: <HugeiconsIcon icon={Rocket01Icon} />,
             content: (
               <Attributes
                 icon={<HugeiconsIcon icon={Settings01Icon} />}
@@ -342,11 +350,13 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
     {
       value: "auto-deploy",
       label: "Auto-deploy",
+      icon: <HugeiconsIcon icon={GitBranchIcon} />,
       content: <AutoDeployControlEditor id={appId} type="app" />,
     },
     {
       value: "secrets",
       label: "Secrets",
+      icon: <HugeiconsIcon icon={Key01Icon} />,
       content: <AppSecrets appId={appId} />,
     },
   ];
