@@ -207,6 +207,7 @@ export function ApiMcpSettings() {
         tabs={[
           {
             value: "keys",
+            group: "Settings",
             label: "API Keys",
             content: (
               <div className="content-grid">
@@ -231,11 +232,13 @@ export function ApiMcpSettings() {
           },
           {
             value: "mcp",
+            group: "Docs",
             label: "MCP Guide",
             content: <McpSetup url={data.mcpUrl} />,
           },
           {
             value: "api",
+            group: "Docs",
             label: "API Guide",
             content: (
               <div className="content-grid">

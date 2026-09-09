@@ -7,6 +7,7 @@ import { DetailSettingsContext, SecondaryItems } from "./secondary-sidebar";
 
 type ResponsiveSubtab = {
   content: ReactNode;
+  group?: string;
   disabledReason?: string;
   isDisabled?: boolean;
   icon?: ReactNode;
@@ -53,18 +54,23 @@ export function ResponsiveSubtabs({
   }
   return (
     <>
-      <SecondaryItems
-        title={detailSettings !== null ? "Settings" : ariaLabel}
-        selected={detailSettings === false ? "" : (active?.value ?? "")}
-        onSelect={select}
-        items={tabs.map((tab) => ({
-          id: tab.value,
-          label: tab.label,
-          icon: tab.icon,
-          disabled: tab.isDisabled,
-          disabledReason: tab.disabledReason,
-        }))}
-      />
+      {Array.from(new Set(tabs.map((tab) => tab.group))).map((group) => (
+        <SecondaryItems
+          key={group ?? ariaLabel}
+          title={group ?? (detailSettings !== null ? "Settings" : ariaLabel)}
+          selected={detailSettings === false ? "" : (active?.value ?? "")}
+          onSelect={select}
+          items={tabs
+            .filter((tab) => tab.group === group)
+            .map((tab) => ({
+              id: tab.value,
+              label: tab.label,
+              icon: tab.icon,
+              disabled: tab.isDisabled,
+              disabledReason: tab.disabledReason,
+            }))}
+        />
+      ))}
       {detailSettings !== false ? (
         <DetailSettingsContext.Provider value={null}>
           <div className={cn("min-w-0", panelClassName)}>{active?.content}</div>
