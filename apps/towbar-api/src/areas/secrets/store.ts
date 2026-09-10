@@ -101,11 +101,18 @@ async function declaredKeysForSlot(slot: SecretSlot, database: SecretDatabase) {
     .from(apps)
     .innerJoin(
       sourceEnvironments,
-      eq(sourceEnvironments.id, apps.sourceEnvironmentId),
+      and(
+        eq(sourceEnvironments.id, apps.sourceEnvironmentId),
+        eq(sourceEnvironments.sourceId, apps.sourceId),
+      ),
     )
     .where(and(eq(apps.id, slot.id), eq(apps.workspaceId, slot.workspaceId)))
     .limit(1);
-  if (!instance) return null;
+  if (!instance)
+    throw conflict(
+      "This instance requires an environment mapping",
+      "ENVIRONMENT_REQUIRED",
+    );
   if (
     slot.environment !== instance.environment &&
     slot.environment !== `preview:${instance.environment}`

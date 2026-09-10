@@ -62,12 +62,17 @@ export function environmentSecretRoutes(
               workspaceId: user.workspaceId,
             } as const);
       const environments = await listSecretEnvironments(owner);
-      const environment = secretEnvironmentSchema.parse(
-        context.req.query("environment") ?? environments[0],
-      );
+      const environment = context.req.query("environment") ?? environments[0];
+      if (environment && !environments.includes(environment))
+        throw unprocessable(
+          "Connect this environment before managing its secrets",
+          "SECRET_ENVIRONMENT_MISMATCH",
+        );
       return context.json({
         environments,
-        bindings: await listEnvironmentSecrets(owner, environment),
+        bindings: environment
+          ? await listEnvironmentSecrets(owner, environment)
+          : [],
         canManageSecrets: user.workspaceRole === "owner",
       });
     },

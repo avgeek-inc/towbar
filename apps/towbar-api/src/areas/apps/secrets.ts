@@ -413,6 +413,6 @@ export async function listSecretEnvironments(owner: SecretOwner) {
       ),
     )
     .orderBy(sourceEnvironments.name);
-  const names = rows.length ? rows.map((row) => row.name) : ["production"];
+  const names = rows.map((row) => row.name);
   return names.flatMap((name) => [name, `preview:${name}`]);
 }

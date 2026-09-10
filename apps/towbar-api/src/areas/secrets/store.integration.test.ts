@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import {
   normalizeDeploymentManifest,
@@ -12,7 +12,6 @@ import {
   auditEvents,
   deployments,
   githubInstallations,
-  managedSecrets,
   releases,
   servers,
   sources,
@@ -46,12 +45,8 @@ void test(
     });
     const { getTowbarDatabase, closeDatabase } =
       await import("../../infrastructure/database.js");
-    const {
-      mutateSecret,
-      readSecretValues,
-      readSecretMetadata,
-      resolveServerCredentials,
-    } = await import("./store.js");
+    const { mutateSecret, readSecretMetadata, resolveServerCredentials } =
+      await import("./store.js");
     const { listEnvironmentSecrets } = await import("../apps/secrets.js");
     const { environmentSecretRoutes } =
       await import("../../routes/v1/core/environment-secrets.js");
@@ -61,8 +56,7 @@ void test(
       getNotificationProviderConfiguration,
       notificationProviderAvailability,
     } = await import("../notifications/configuration.js");
-    const { createServer, updateServer } =
-      await import("../servers/lifecycle.js");
+    const { createServer } = await import("../servers/lifecycle.js");
     const { listServerApps } = await import("../servers/service.js");
     const { HttpError } = await import("../../http/errors.js");
     const db = getTowbarDatabase();
@@ -277,6 +271,36 @@ void test(
           );
         },
       );
+      await t.test(
+        "secret environments reflect connected mappings without a production fallback",
+        async () => {
+          const connected = await api.request("/settings/secrets");
+          assert.equal(connected.status, 200);
+          const connectedBody = (await connected.json()) as {
+            environments: string[];
+          };
+          assert.deepEqual(connectedBody.environments, [
+            "production",
+            "preview:production",
+          ]);
+          const unknown = await api.request(
+            "/settings/secrets?environment=staging",
+          );
+          assert.equal(unknown.status, 422);
+          requestWorkspace = otherWorkspaceId;
+          try {
+            const empty = await api.request("/settings/secrets");
+            assert.equal(empty.status, 200);
+            assert.deepEqual(await empty.json(), {
+              environments: [],
+              bindings: [],
+              canManageSecrets: true,
+            });
+          } finally {
+            requestWorkspace = workspaceId;
+          }
+        },
+      );
       const { testManagedSecretInheritance } =
         await import("./inheritance-tests.js");
       await testManagedSecretInheritance({
@@ -467,126 +491,18 @@ void test(
           );
         },
       );
-      await t.test(
-        "archival and restoration preserve stored secrets; tampering fails closed; deletion cascades",
-        async () => {
-          await db
-            .update(apps)
-            .set({ archivedAt: new Date() })
-            .where(and(eq(apps.id, appId), eq(apps.workspaceId, workspaceId)));
-          const retained = await readSecretValues(slot);
-          assert.equal(retained.values.MULTILINE, "line one\nline two");
-          await db
-            .update(apps)
-            .set({ archivedAt: null, name: "Renamed" })
-            .where(and(eq(apps.id, appId), eq(apps.workspaceId, workspaceId)));
-          assert.equal(
-            (await readSecretValues(slot)).values.MULTILINE,
-            "line one\nline two",
-          );
-          assert.equal(
-            (
-              await updateServer({
-                config: { ...serverConfig, buildConcurrency: 2 },
-                serverId,
-                workspaceId,
-              })
-            ).id,
-            serverId,
-          );
-          assert.match(
-            (
-              await db
-                .select({ deploymentDigest: apps.deploymentDigest })
-                .from(apps)
-                .where(eq(apps.id, appId))
-                .limit(1)
-            )[0]!.deploymentDigest!,
-            /^[a-f0-9]{64}$/u,
-          );
-          const newServer = await createServer({
-            config: { ...serverConfig, ip: "192.0.2.11" },
-            workspaceId,
-          });
-          assert.equal(
-            (
-              await readSecretMetadata({
-                type: "server",
-                id: newServer.id,
-                workspaceId,
-                environment: "production",
-                stage: "credentials",
-              })
-            ).revision,
-            null,
-          );
-          assert.equal(
-            (await readSecretValues(slot)).revision,
-            retained.revision,
-          );
-          const [row] = await db
-            .select()
-            .from(managedSecrets)
-            .where(
-              and(
-                eq(managedSecrets.owner, `app:${appId}`),
-                eq(managedSecrets.stage, "deployment"),
-                eq(managedSecrets.environment, "production"),
-              ),
-            );
-          assert(row);
-          // Database ownership cannot be reassigned across a workspace even by a direct write.
-          await assert.rejects(
-            db
-              .update(managedSecrets)
-              .set({ workspaceId: otherWorkspaceId })
-              .where(eq(managedSecrets.id, row.id)),
-          );
-          const [another] = await db
-            .select()
-            .from(managedSecrets)
-            .where(
-              and(
-                eq(managedSecrets.owner, `source:${sourceId}`),
-                eq(managedSecrets.stage, "deployment"),
-              ),
-            );
-          assert(another);
-          await db
-            .update(managedSecrets)
-            .set({ encryptedPayload: another.encryptedPayload })
-            .where(eq(managedSecrets.id, row.id));
-          await assert.rejects(
-            readSecretValues(slot),
-            /could not be unlocked/u,
-          );
-          await db
-            .update(managedSecrets)
-            .set({ encryptedPayload: row.encryptedPayload })
-            .where(eq(managedSecrets.id, row.id));
-          await db
-            .update(managedSecrets)
-            .set({
-              encryptedPayload: {
-                ...row.encryptedPayload,
-                authenticationTag: randomBytes(16).toString("base64url"),
-              },
-            })
-            .where(eq(managedSecrets.id, row.id));
-          await assert.rejects(
-            readSecretValues(slot),
-            /could not be unlocked/u,
-          );
-          const audit = await db
-            .select()
-            .from(auditEvents)
-            .where(eq(auditEvents.workspaceId, workspaceId));
-          assert(!JSON.stringify(audit).includes("shared-value"));
-          assert(!JSON.stringify(audit).includes("test-slack-token"));
-          await db.delete(apps).where(eq(apps.id, appId));
-          assert.equal((await readSecretMetadata(slot)).revision, null);
-        },
-      );
+      const { testSecretLifecycle } = await import("./lifecycle-tests.js");
+      await testSecretLifecycle({
+        t,
+        db,
+        appId,
+        workspaceId,
+        otherWorkspaceId,
+        sourceId,
+        serverId,
+        serverConfig,
+        slot,
+      });
     } finally {
       await db.delete(releases).where(eq(releases.appId, appId));
       await db

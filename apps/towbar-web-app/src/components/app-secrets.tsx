@@ -143,7 +143,11 @@ function EnvironmentSecretSettings({
               }
             />
           }
-          label={`${secretEnvironmentLabel(environment ?? "")} shared secrets`}
+          label={
+            environment
+              ? `${secretEnvironmentLabel(environment)} shared secrets`
+              : "Shared secrets"
+          }
         />
       ) : null}
       {scope === "global" ? (
@@ -216,6 +220,17 @@ function EnvironmentEditors({
   const data = query.data;
   const binding =
     data?.bindings.find((item) => item.stage === stage) ?? data?.bindings[0];
+  if (data && !data.environments.length)
+    return (
+      <EmptyState>
+        <EmptyState.Header>
+          <EmptyState.Title>No connected environments</EmptyState.Title>
+          <EmptyState.Description>
+            Connect a source environment to configure its shared secrets.
+          </EmptyState.Description>
+        </EmptyState.Header>
+      </EmptyState>
+    );
   return (
     <div className="grid min-w-0 gap-4">
       <div

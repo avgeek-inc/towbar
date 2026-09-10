@@ -65,11 +65,30 @@ export async function assertInstanceQueryIdentity({
   const { instanceSecretEnvironment } =
     await import("../apps/instance-environment.js");
   const { requestAppDeployment } = await import("../apps/service.js");
+  const { readSecretMetadata, readSecretValues, mutateSecret } =
+    await import("../secrets/store.js");
   await database
     .update(apps)
     .set({ sourceEnvironmentId: null })
     .where(eq(apps.id, stage.id));
   try {
+    const slot = {
+      type: "app" as const,
+      id: stage.id,
+      workspaceId,
+      environment: "staging",
+      stage: "deployment",
+    };
+    await assert.rejects(readSecretMetadata(slot), /requires an environment/);
+    await assert.rejects(readSecretValues(slot), /requires an environment/);
+    await assert.rejects(
+      mutateSecret(
+        { ...slot, stage: "build" },
+        { expectedRevision: null, set: { UNDECLARED: "value" }, delete: [] },
+        randomUUID(),
+      ),
+      /requires an environment/,
+    );
     await assert.rejects(
       instanceSecretEnvironment({ appId: stage.id, workspaceId }),
       /requires an environment/,
