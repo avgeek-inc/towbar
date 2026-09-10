@@ -206,3 +206,15 @@ navigation. The sync detail breadcrumb now leads to `/sync-history` instead of
 the obsolete `?section=info` route. Fixture sync records are readable by ID and
 scoped to their source; all 25 fixture tests, web typecheck and targeted lint pass.
 This is UI/fixture evidence, not proof of real GitHub fetch or worker execution.
+
+### Declared-secret editor browser verification
+
+For a newly connected staging app, the browser opened File mode with an unset
+`NPM_TOKEN`, saved an intentionally empty string, reopened bulk reveal, and
+rejected replacing the declared key with an undeclared key while retaining the
+draft. A corrected file edit survived switching to Form and saved successfully.
+Fixture API readback verified the saved staging value and that the production
+instance's key remained unset. App/resource breadcrumbs now use the corresponding
+source inventory page paths. This verifies editor behavior against fixture
+bindings; real secret reconciliation and deployment admission still require their
+API/database and workflow checks.

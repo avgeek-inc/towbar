@@ -57,7 +57,7 @@ export function ResourceDetail() {
   }>();
   const router = useRouter();
   const breadcrumbAncestors = useSourceBreadcrumbs(sourceId, {
-    href: `/sources/${sourceId}?section=resources`,
+    href: `/sources/${sourceId}/resources`,
     label: "Resources",
   });
   const resource = useApiQuery<{

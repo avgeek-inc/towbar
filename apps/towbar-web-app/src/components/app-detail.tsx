@@ -52,7 +52,7 @@ export function AppDetail() {
     `/v1/core/apps/${appId}`,
   );
   const breadcrumbAncestors = useSourceBreadcrumbs(sourceId, {
-    href: `/sources/${sourceId}?section=apps`,
+    href: `/sources/${sourceId}/apps`,
     label: "Apps",
   });
   const deployments = useApiQuery<{ deployments: Deployment[] }>(
