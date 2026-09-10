@@ -218,3 +218,15 @@ instance's key remained unset. App/resource breadcrumbs now use the correspondin
 source inventory page paths. This verifies editor behavior against fixture
 bindings; real secret reconciliation and deployment admission still require their
 API/database and workflow checks.
+
+### Worker self-deployment identity audit
+
+The full API suite passed against the isolated PostgreSQL database: 228 tests,
+zero skips. Auditing execution found the worker still compared `TOWBAR_APP_ID`
+(the runtime instance identity) with the logical manifest app ID when deciding
+whether to defer cleanup of its own container. It now uses the deployer's runtime
+identity function. A regression covers persistent self-deployment, staging
+siblings, preview identity, and a worker without a runtime ID. Worker typecheck
+and lint pass; its suite reports 29 passed and two opt-in integration tests skipped.
+A real self-deployment remains part of workflow verification, not proven by this
+identity-selection test.
