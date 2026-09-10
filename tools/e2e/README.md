@@ -22,3 +22,22 @@ or setup failure. The reusable `towbar-v2-e2e-target:local` image remains cached
 This target currently supports private app/resource deployment testing. It does
 not emulate Ubuntu systemd or Caddy setup, and its smoke check does not verify
 API admission, Temporal workflows, deployments, backups or PR handling.
+
+## Resource deployment lifecycle
+
+```sh
+pnpm --filter @workspace/towbar-deployer... build
+node tools/e2e/resource-lifecycle.mjs
+```
+
+This runner calls the production `executeDeployment` implementation over SSH to
+an Ubuntu target. It deploys two Redis instances with the same logical ID on
+separate networks, writes distinct data, redeploys staging, and deliberately
+fails a staging candidate's health check. Assertions check retained data in both
+environments, recovery of staging's previous container, and candidate cleanup.
+The target includes real Docker and Caddy binaries; systemd and public TLS setup
+are not exercised.
+
+The runner supplies resolved configuration/secrets and an in-memory release
+commit callback. It verifies the deployer, not API admission, database release
+transactions or Temporal delivery. Those need the subsequent lifecycle runner.

@@ -3,4 +3,4 @@ set -eu
 install -o deploy -g deploy -m 600 /test-key.pub /home/deploy/.ssh/authorized_keys
 ssh-keygen -A
 /usr/sbin/sshd -D -e -o PasswordAuthentication=no -o PermitRootLogin=no &
-exec dockerd-entrypoint.sh dockerd --host=unix:///var/run/docker.sock
+exec /usr/local/bin/dind dockerd --host=unix:///var/run/docker.sock

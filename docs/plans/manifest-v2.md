@@ -230,3 +230,16 @@ siblings, preview identity, and a worker without a runtime ID. Worker typecheck
 and lint pass; its suite reports 29 passed and two opt-in integration tests skipped.
 A real self-deployment remains part of workflow verification, not proven by this
 identity-selection test.
+
+### Real resource deployer lifecycle
+
+`tools/e2e/resource-lifecycle.mjs` passed against a disposable Ubuntu target with
+non-root SSH and a separate nested Docker daemon. It ran the production deployer
+through two same-logical-ID Redis instances, independent data writes, a staging
+redeployment, and a staging candidate that failed its health check. Assertions
+verified both data sets survived, production's container stayed unchanged, the
+old staging container was removed after successful promotion, and failure
+restored the retained staging runtime without leaving a failed candidate.
+The target and temporary credentials were removed after the run. Configuration,
+secrets and release commit callbacks are supplied by this runner; API/database
+admission and Temporal execution are still separate outstanding checks.
