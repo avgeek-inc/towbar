@@ -511,3 +511,23 @@ The adapter keeps actual backup bytes/metadata in memory instead of calling a
 cloud provider. Cloud SDK transport, operation API admission and database result
 persistence remain separate coverage; this result closes the archive/import
 runtime gap, not those boundaries.
+
+### Current-fixture secrets navigation review
+
+Restarted the local fixture API from current code before the rendered check;
+the previous process still held older connected-source configurations. A new
+fixture connection mapped production/main and staging/develop using the current
+parser-backed manifest. In the staging app's Secrets page, the UI showed the
+correct `Staging` / `Staging previews` scopes and declared `NPM_TOKEN` build key.
+The browser saved a fixture-only value through File mode, switched to production
+and verified that value was absent, then used Back to restore the staging route
+and revealed saved value. File mode has the accessible editor name
+`Secrets .env file`; the unprepared server kept Deploy disabled.
+
+These are fixture-backed UI results, separate from real PostgreSQL secret and
+runtime deployment tests. The fixture API remains available locally on 4423
+with the new sample connection; no hosted source or secrets were changed.
+
+Remote CI passed for implementation commit `85487ab`: verify, docs, compose,
+monitoring-agent and all CodeQL analyses. Mintlify deployment/link checks passed;
+its optional spelling check was skipped.
