@@ -483,13 +483,19 @@ shift
 container_count="$1"
 shift
 for ((index = 0; index < container_count; index += 1)); do
-  docker rm -f "$1" >/dev/null 2>&1 || true
+  containers="$(docker container ls --all --format '{{.Names}}')"
+  if grep -Fxq -- "$1" <<<"$containers"; then
+    docker rm -f "$1" >/dev/null
+  fi
   shift
 done
 image_count="$1"
 shift
 for ((index = 0; index < image_count; index += 1)); do
-  docker image rm "$1" >/dev/null 2>&1 || true
+  images="$(docker image ls --format '{{.Repository}}:{{.Tag}}')"
+  if grep -Fxq -- "$1" <<<"$images"; then
+    docker image rm "$1" >/dev/null
+  fi
   shift
 done
 sudo rm -f "/etc/caddy/towbar/$runtime_id.caddy"

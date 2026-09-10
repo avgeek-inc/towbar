@@ -313,3 +313,15 @@ Only the three retained containers remained; the target was removed afterward.
 GitHub archive responses and release commits are simulated in this runner.
 It does not establish public TLS, real GitHub authentication, API admission for
 apps, or PR lifecycle reconciliation and cleanup.
+
+### Preview cleanup failure reporting
+
+Cleanup previously ignored every Docker container/image removal error, allowing
+a later routing reload to mark cleanup successful with workloads still present.
+The script now lists existing objects, skips already absent objects for retries,
+and propagates inventory/removal failures to the worker's existing cleanup
+failure handling. Executable shell regressions reproduced false success before
+the fix and now pass for container, image and daemon failures plus absent/present
+objects. All 18 related tests, deployer typecheck and scoped lint pass. The tests
+simulate Docker and routing commands; full PR cleanup against a prepared public
+server remains unproven.
