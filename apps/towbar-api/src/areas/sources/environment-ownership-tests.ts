@@ -112,17 +112,30 @@ export async function assertEnvironmentOwnership(
         .values({ sourceId: source.id, sourceEnvironmentId: environment!.id }),
       "fk_towbar_source_syncs_environment_owner",
     );
-    await rejectsForeignKey(
-      db.insert(apps).values({
-        ...instance,
-        id: randomUUID(),
-        workspaceId: otherWorkspaceId,
-        serverId: otherServer!.id,
-        entityId: null,
-        sourceEnvironmentId: null,
-      }),
-      "fk_towbar_apps_source_owner",
-    );
+    const [unusedEntity] = await db
+      .insert(sourceEntities)
+      .values({
+        sourceId: source.id,
+        manifestId: randomUUID(),
+        entityType: "app",
+      })
+      .returning();
+    try {
+      await rejectsForeignKey(
+        db.insert(apps).values({
+          ...instance,
+          id: randomUUID(),
+          entityId: unusedEntity!.id,
+          workspaceId: otherWorkspaceId,
+          serverId: otherServer!.id,
+        }),
+        "fk_towbar_apps_source_owner",
+      );
+    } finally {
+      await db
+        .delete(sourceEntities)
+        .where(eq(sourceEntities.id, unusedEntity!.id));
+    }
   } finally {
     await db.delete(sources).where(eq(sources.id, otherSourceId));
     await db.delete(workspaces).where(eq(workspaces.id, otherWorkspaceId));

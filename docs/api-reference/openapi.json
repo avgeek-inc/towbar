@@ -2261,7 +2261,7 @@
           "description": {
             "anyOf": [{ "type": "null" }, { "type": "string" }]
           },
-          "entityId": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
+          "entityId": { "type": "string" },
           "environment": {
             "anyOf": [
               { "type": "null" },
@@ -2368,7 +2368,7 @@
           "description": {
             "anyOf": [{ "type": "null" }, { "type": "string" }]
           },
-          "entityId": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
+          "entityId": { "type": "string" },
           "environment": {
             "anyOf": [
               { "type": "null" },

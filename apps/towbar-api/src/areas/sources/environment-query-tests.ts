@@ -1,8 +1,9 @@
 import { assertEnvironmentSyncReporting } from "./environment-status-tests.js";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
-import { apps, sourceSyncs } from "@workspace/towbar-database/schema";
+import { eq, sql } from "drizzle-orm";
+import type { apps} from "@workspace/towbar-database/schema";
+import { sourceSyncs } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import {
   executeSourceSync,
@@ -64,59 +65,14 @@ export async function assertInstanceQueryIdentity({
       /not found/i,
     );
   }
-  const { instanceSecretEnvironment } =
-    await import("../apps/instance-environment.js");
-  const { requestAppDeployment } = await import("../apps/service.js");
-  const { readSecretMetadata, readSecretValues, mutateSecret } =
-    await import("../secrets/store.js");
-  await database
-    .update(apps)
-    .set({ sourceEnvironmentId: null })
-    .where(eq(apps.id, stage.id));
-  try {
-    const slot = {
-      type: "app" as const,
-      id: stage.id,
-      workspaceId,
-      environment: "staging",
-      stage: "deployment",
-    };
-    await assert.rejects(readSecretMetadata(slot), /requires an environment/);
-    await assert.rejects(readSecretValues(slot), /requires an environment/);
+  for (const column of ["entity_id", "source_environment_id"]) {
     await assert.rejects(
-      mutateSecret(
-        { ...slot, stage: "build" },
-        { expectedRevision: null, set: { UNDECLARED: "value" }, delete: [] },
-        randomUUID(),
+      database.execute(
+        sql`update towbar_apps set ${sql.identifier(column)} = null where id = ${stage.id}`,
       ),
-      /requires an environment/,
+      (error: unknown) =>
+        (error as { cause?: { code?: string } }).cause?.code === "23502",
     );
-    await assert.rejects(
-      instanceSecretEnvironment({ appId: stage.id, workspaceId }),
-      /requires an environment/,
-    );
-    await assert.rejects(
-      instanceSecretEnvironment({
-        appId: stage.id,
-        workspaceId,
-        preview: true,
-      }),
-      /requires an environment/,
-    );
-    await assert.rejects(
-      requestAppDeployment({
-        appId: stage.id,
-        workspaceId,
-        requestedBy: null,
-        idempotencyKey: randomUUID(),
-      }),
-      /requires an environment/,
-    );
-  } finally {
-    await database
-      .update(apps)
-      .set({ sourceEnvironmentId: stage.sourceEnvironmentId })
-      .where(eq(apps.id, stage.id));
   }
   const instances = await listApps(workspaceId, sourceId);
   assert.equal(instances.length, 2);

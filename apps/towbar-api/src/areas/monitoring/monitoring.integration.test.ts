@@ -1,3 +1,4 @@
+import { testInstanceLinks } from "../sources/instance-test-helper.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -351,6 +352,7 @@ void test(
             ],
           }).apps[0]!;
           await db.insert(apps).values({
+            ...(await testInstanceLinks(sourceId, "app")),
             id: appId,
             workspaceId,
             sourceId,

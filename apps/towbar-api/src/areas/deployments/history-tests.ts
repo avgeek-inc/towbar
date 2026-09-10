@@ -1,3 +1,4 @@
+import { testInstanceLinks } from "../sources/instance-test-helper.js";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
@@ -54,6 +55,7 @@ export async function testDeploymentHistory({
       });
       const ids = [randomUUID(), randomUUID(), randomUUID()];
       await db.insert(apps).values({
+        ...(await testInstanceLinks(sourceId, "history-resource", "resource")),
         id: resourceId,
         workspaceId,
         sourceId,

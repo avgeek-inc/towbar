@@ -926,13 +926,14 @@ export const apps = pgTable(
     serverId: uuid("server_id")
       .notNull()
       .references(() => servers.id, { onDelete: "restrict" }),
-    entityId: uuid("entity_id").references(() => sourceEntities.id, {
-      onDelete: "cascade",
-    }),
-    sourceEnvironmentId: uuid("source_environment_id").references(
-      () => sourceEnvironments.id,
-      { onDelete: "cascade" },
-    ),
+    entityId: uuid("entity_id")
+      .notNull()
+      .references(() => sourceEntities.id, {
+        onDelete: "cascade",
+      }),
+    sourceEnvironmentId: uuid("source_environment_id")
+      .notNull()
+      .references(() => sourceEnvironments.id, { onDelete: "cascade" }),
     requiredSecrets: jsonb("required_secrets").$type<RequiredSecrets>(),
     manifestId: varchar("manifest_id", { length: 63 }).notNull(),
     kind: deployableKindEnum("kind").default("app").notNull(),

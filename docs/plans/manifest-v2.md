@@ -58,8 +58,8 @@ not a list of untouched work.
 - Storage: environments, mapping revisions, logical entities, instance links,
   required keys and server slugs exist. Composite foreign keys guard instance,
   source, server and workspace ownership. Source-level branch storage and its
-  public field are removed; each workspace connects a repository once. Nullable
-  instance links remain; database cleanup is not complete. Source commit, digest
+  public field are removed; each workspace connects a repository once. App and
+  resource entity/environment links are required by PostgreSQL. Source commit, digest
   and successful-sync fields are removed; environments own these snapshots.
 - Sources: discovery/connect, selected environment subsets, initial sync without
   deployment, explicit add/edit/disconnect/reconnect, per-environment snapshots,
@@ -111,7 +111,7 @@ tests. Do not reset the hosted installation or use its database.
 
 ## Remaining delivery work
 
-1. Finish the database model: tighten required instance/environment/entity/slug links after
+1. Finish the database model: tighten required server slugs and secret declarations after
    converting callers, and distinguish named environment identity from preview
    deployment kind throughout stored/public deployment state.
 2. Audit resource operations, backups/restores, monitoring, alerts and scanning

@@ -1,3 +1,4 @@
+import { testInstanceLinks } from "../sources/instance-test-helper.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -193,6 +194,7 @@ void test(
       const environment = await createSecretTestEnvironment(db, sourceId);
       await db.insert(apps).values({
         id: appId,
+        ...(await testInstanceLinks(sourceId, "app")),
         sourceEnvironmentId: environment!.id,
         requiredSecrets: {
           build: ["BUILD", "PREVIEW_ONLY"],
@@ -233,6 +235,7 @@ void test(
           });
           await db.insert(apps).values({
             id: secondAppId,
+            ...(await testInstanceLinks(secondSourceId, "app")),
             workspaceId,
             sourceId: secondSourceId,
             serverId,

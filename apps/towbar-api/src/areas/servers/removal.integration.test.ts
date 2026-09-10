@@ -1,3 +1,4 @@
+import { testInstanceLinks } from "../sources/instance-test-helper.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -101,6 +102,7 @@ void test(
         ],
       });
       const values = {
+        ...(await testInstanceLinks(sourceId, "app")),
         id: appId,
         workspaceId,
         sourceId,
@@ -177,6 +179,7 @@ void test(
           }).resources![0]!;
           await db.insert(apps).values({
             ...values,
+            ...(await testInstanceLinks(sourceId, "db", "resource")),
             id: resourceId,
             kind: "postgres",
             config: resource,

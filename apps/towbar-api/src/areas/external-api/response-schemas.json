@@ -2566,7 +2566,7 @@
         },
         "createdAt": { "type": "string", "format": "date-time" },
         "description": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
-        "entityId": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
+        "entityId": { "type": "string" },
         "environment": {
           "anyOf": [
             { "type": "null" },
@@ -2671,7 +2671,7 @@
         },
         "createdAt": { "type": "string", "format": "date-time" },
         "description": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
-        "entityId": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
+        "entityId": { "type": "string" },
         "environment": {
           "anyOf": [
             { "type": "null" },
