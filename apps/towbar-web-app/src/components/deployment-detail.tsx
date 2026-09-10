@@ -43,6 +43,7 @@ import {
   PageTabs,
 } from "@/components/page-parts";
 import { useDeploymentStream } from "@/hooks/use-deployment-stream";
+import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
@@ -64,6 +65,7 @@ export function DeploymentDetail() {
     sourceId: string;
   }>();
   const router = useRouter();
+  const detail = useDetailNavigation();
   const stream = useDeploymentStream(deploymentId);
   const source = useApiQuery<{ source: Source }>(
     `/v1/core/sources/${sourceId}`,
@@ -219,20 +221,24 @@ export function DeploymentDetail() {
     ? progressSteps.length
     : currentStepIndex;
 
+  const sectionTitles: Record<string, string> = {
+    logs: "Logs",
+    overview: "Overview",
+    progress: "Progress",
+    vulnerabilities: "Vulnerabilities",
+  };
+  const activeSectionTitle =
+    (detail.section && sectionTitles[detail.section]) ??
+    (terminal.has(item.state) ? "Overview" : "Progress");
+
   return (
     <DashboardPage
       icon={Rocket01Icon}
       actions={actions}
       badge={<StatusBadge status={displayStatus} />}
       breadcrumbAncestors={breadcrumbAncestors}
-      breadcrumbLabel={`Deployment ${item.id.slice(0, 8)}`}
-      title={`Deployment ${item.id.slice(0, 8)}`}
-      titleContent={
-        <span className="inline-flex min-w-0 items-center gap-2">
-          <span>Deployment</span>
-          <TypographyCode title={item.id}>{item.id.slice(0, 8)}</TypographyCode>
-        </span>
-      }
+      breadcrumbLabel={activeSectionTitle}
+      title="Deployment"
     >
       {item.errorMessage ? (
         <Alert
