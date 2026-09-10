@@ -87,7 +87,7 @@ export function NotificationCenter() {
       >
         <HugeiconsIcon aria-hidden="true" icon={Notification02Icon} size={18} />
         {unreadCount > 0 ? (
-          <span className="absolute end-0.5 top-0.5 grid min-h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[0.625rem] font-medium leading-4 text-danger-foreground">
+          <span className="absolute end-0.5 top-0.5 grid min-h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[0.625rem] font-mono font-medium leading-4 text-danger-foreground">
             {Math.min(unreadCount, 9)}
           </span>
         ) : null}

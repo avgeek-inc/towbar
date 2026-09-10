@@ -42,6 +42,10 @@ export function Chip({
   variant,
   ...props
 }: ChipProps) {
+  const numeric =
+    typeof children === "number" ||
+    (typeof children === "string" &&
+      /^\s*[+-]?\d[\d,]*(?:\.\d+)?\s*$/.test(children));
   return (
     <HeroChip
       aria-busy={loading || undefined}
@@ -51,7 +55,9 @@ export function Chip({
       {...props}
     >
       {loading ? <Spinner color="current" size="sm" /> : null}
-      <HeroChip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap">
+      <HeroChip.Label
+        className={`inline-flex items-center gap-1.5 whitespace-nowrap font-normal${numeric ? " font-mono tabular-nums" : ""}`}
+      >
         {!loading && icon ? (
           <span
             aria-hidden="true"

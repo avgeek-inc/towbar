@@ -54,7 +54,7 @@ export function WorkspaceIncidents() {
       className: "min-w-72",
       cell: ({ incident }) => (
         <div className="grid gap-1">
-          <span className="font-medium">{incident.ruleName}</span>
+          <span>{incident.ruleName}</span>
           <span className="text-sm text-muted">
             {conditionDescription(incident.condition)}
           </span>

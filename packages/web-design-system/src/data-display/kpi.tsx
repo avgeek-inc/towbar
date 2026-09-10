@@ -39,7 +39,10 @@ function Value({
 }) {
   return (
     <dd
-      className={cn("text-3xl font-semibold tracking-tight", className)}
+      className={cn(
+        "text-3xl font-mono font-semibold tracking-tight tabular-nums",
+        className,
+      )}
       {...props}
     >
       {new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(

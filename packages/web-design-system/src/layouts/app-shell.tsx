@@ -254,7 +254,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
                         aria-label={item.badge.label}
                         title={item.badge.label}
                         className={cn(
-                          "ms-auto min-w-5 text-xs tabular-nums",
+                          "ms-auto min-w-5 text-xs font-mono tabular-nums",
                           item.badge.tone
                             ? "rounded-full px-1.5 py-0.5 text-center font-medium"
                             : "text-end text-muted",

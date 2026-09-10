@@ -338,7 +338,7 @@ function CapacityValue({
     <div className="grid content-start gap-0.5">
       <span className="text-sm font-medium">{label}</span>
       <TypographyHeading
-        className="font-medium leading-5 tabular-nums"
+        className="font-medium font-mono leading-5 tabular-nums"
         level={5}
       >
         {value}
@@ -363,7 +363,9 @@ function CapacityMeter({
     <div className="grid gap-2">
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-sm font-medium">{label}</span>
-        <span className="text-sm tabular-nums">{value.toFixed(1)}%</span>
+        <span className="text-sm font-mono tabular-nums">
+          {value.toFixed(1)}%
+        </span>
       </div>
       <MeterBar label={`${label} used`} status={status} value={value} />
       <span className="text-xs text-muted">{detail}</span>
