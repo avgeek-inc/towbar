@@ -1,5 +1,7 @@
 "use client";
 
+import { RelativeTime as SharedRelativeTime } from "./last-synced-time";
+
 import { Archive01Icon, DatabaseIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
@@ -516,30 +518,7 @@ export function RelativeTime({
   label: string;
   value: string | null;
 }) {
-  if (!value) return "—";
-  const date = new Date(value);
-  return (
-    <span className="inline-flex flex-col gap-0.5" aria-label={label}>
-      <span>{formatDate(value)}</span>
-      <span className="text-muted typography--body-xs">
-        {formatRelativeTime(date)}
-      </span>
-    </span>
-  );
-}
-
-export function formatRelativeTime(date: Date) {
-  const now = Date.now();
-  const diffMs = date.getTime() - now;
-  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-  const seconds = Math.round(diffMs / 1000);
-  if (Math.abs(seconds) < 60) return rtf.format(seconds, "second");
-  const minutes = Math.round(seconds / 60);
-  if (Math.abs(minutes) < 60) return rtf.format(minutes, "minute");
-  const hours = Math.round(minutes / 60);
-  if (Math.abs(hours) < 24) return rtf.format(hours, "hour");
-  const days = Math.round(hours / 24);
-  return rtf.format(days, "day");
+  return value ? <SharedRelativeTime label={label} value={value} /> : "—";
 }
 
 export function formatBytes(bytes: number) {

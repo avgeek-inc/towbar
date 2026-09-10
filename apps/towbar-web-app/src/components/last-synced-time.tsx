@@ -37,12 +37,11 @@ export function RelativeTime({
       className="grid gap-0.5 whitespace-nowrap tabular-nums"
       dateTime={value}
     >
-      <span>{formatted.absolute}</span>
-      <span
-        className="text-xs font-normal text-muted"
-        aria-hidden={!formatted.relative}
-      >
+      <span className="text-sm font-normal" aria-hidden={!formatted.relative}>
         {formatted.relative ?? "\u00a0"}
+      </span>
+      <span className="text-xs font-normal text-muted">
+        {formatted.absolute}
       </span>
     </time>
   );
