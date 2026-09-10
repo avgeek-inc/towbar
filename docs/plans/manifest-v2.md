@@ -57,8 +57,10 @@ not a list of untouched work.
   check. Starter files and configuration documentation use v2.
 - Storage: environments, mapping revisions, logical entities, instance links,
   required keys and server slugs exist. Composite foreign keys guard instance,
-  source, server and workspace ownership. Nullable legacy scaffolding and Source
-  branch/revision columns remain; database cleanup is not complete.
+  source, server and workspace ownership. Source-level branch storage and its
+  public field are removed; each workspace connects a repository once. Nullable
+  legacy scaffolding and Source revision columns remain; database cleanup is
+  not complete.
 - Sources: discovery/connect, selected environment subsets, initial sync without
   deployment, explicit add/edit/disconnect/reconnect, per-environment snapshots,
   mapped push routing and sync history are implemented. Immutable GitHub loading
@@ -80,8 +82,9 @@ not a list of untouched work.
   entities. Other monitoring/deployment labels need an environment audit.
 - Fixtures: production/staging sibling app and resource instances and history
   filters exist. Browser checks proved a staging history permalink, opening its
-  app instance, switching to production, and Back restoring staging. Onboarding,
-  secrets and manifest snapshot fixture handlers still need v2 conversion.
+  app instance, switching to production, and Back restoring staging. Per-environment v2 manifest snapshot fixtures are validated through the parser;
+  the obsolete source manifest endpoint returns 404. Onboarding and secret
+  fixture handlers still need v2 conversion.
 - API/MCP: current catalogue has 140 operations and 55 curated tools. Generated
   contracts and owner/read-only boundaries are checked. The MCP integration
   fixture now explicitly connects an environment before editing shared secrets.
@@ -108,8 +111,7 @@ tests. Do not reset the hosted installation or use its database.
 
 ## Remaining delivery work
 
-1. Finish the database model: remove legacy Source branch/revision fields and
-   indexes, tighten required instance/environment/entity/slug links after
+1. Finish the database model: remove legacy Source revision fields, tighten required instance/environment/entity/slug links after
    converting callers, and distinguish named environment identity from preview
    deployment kind throughout stored/public deployment state.
 2. Audit resource operations, backups/restores, monitoring, alerts and scanning
@@ -118,7 +120,7 @@ tests. Do not reset the hosted installation or use its database.
 3. Complete logical-entity inventory presentation and verify all environment
    controls, readiness, validation failures and permalinks in rendered pages.
 4. Convert remaining fixture handlers for connection/discovery, declared secrets
-   and per-environment manifest files. Remove obsolete source-manifest fixtures.
+   and complete per-environment manifest configuration fidelity.
    Exercise Form/File editing, reveal, missing/empty values and branch changes.
 5. Prove complete local production/staging app/database and PR workflows,
    including failure isolation, stale jobs, cleanup, resource data separation and

@@ -35,7 +35,6 @@ export async function assertEnvironmentPushRouting() {
       githubInstallationId: installation!.id,
       repositoryOwner: "push-test",
       repositoryName: "example",
-      branch: "main",
     });
     const [production, staging] = await database
       .insert(sourceEnvironments)

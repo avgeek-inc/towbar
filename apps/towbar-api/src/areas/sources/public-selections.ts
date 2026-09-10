@@ -6,7 +6,6 @@ import {
 
 /** Public Source fields shared by create, detail, update, and list responses. */
 export const publicSourceSelection = {
-  branch: sources.branch,
   createdAt: sources.createdAt,
   id: sources.id,
   latestCommitSha: sources.latestCommitSha,

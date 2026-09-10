@@ -7,7 +7,6 @@ export type TowbarUser = {
 };
 
 export type Source = {
-  branch: string;
   createdAt: string;
   id: string;
   latestCommitSha: string | null;

@@ -85,7 +85,6 @@ void test(
         githubInstallationId: installation!.id,
         repositoryOwner: "example",
         repositoryName: "platform",
-        branch: "main",
       });
       const manifest = normalizeDeploymentManifest({
         version: 2,

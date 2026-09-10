@@ -180,7 +180,6 @@ void test(
         githubInstallationId: installation!.id,
         repositoryOwner: "test",
         repositoryName: "test",
-        branch: "main",
       });
       await db.insert(servers).values({
         id: serverId,
@@ -231,7 +230,6 @@ void test(
             githubInstallationId: installation!.id,
             repositoryOwner: "test",
             repositoryName: "second",
-            branch: "main",
           });
           await db.insert(apps).values({
             id: secondAppId,

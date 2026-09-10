@@ -37,7 +37,6 @@ export async function assertScoutWorkloadLinks(
     githubInstallationId: installation!.id,
     repositoryOwner: "example",
     repositoryName: "links",
-    branch: "main",
   });
   const manifest = normalizeDeploymentManifest({
     version: 2,

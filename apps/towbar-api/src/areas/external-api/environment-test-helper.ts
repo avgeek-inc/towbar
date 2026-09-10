@@ -23,7 +23,6 @@ export async function seedConnectedEnvironment(workspaceId: string) {
     githubInstallationId: installationId,
     repositoryOwner: "api-test",
     repositoryName: "platform",
-    branch: "main",
   });
   await database.insert(sourceEnvironments).values({
     sourceId,

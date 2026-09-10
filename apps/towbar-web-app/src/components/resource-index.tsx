@@ -8,8 +8,8 @@ import {
   Add01Icon,
   DashboardCircleIcon,
   DatabaseIcon,
-  GitBranchIcon,
   GithubIcon,
+  GitBranchIcon,
   ServerStack01Icon,
 } from "@hugeicons/core-free-icons";
 
@@ -122,21 +122,6 @@ export function SourceIndex() {
           </span>
         );
       },
-    },
-    {
-      key: "branch",
-      header: "Prod Branch",
-      cell: (source) => (
-        <span className="inline-flex items-center gap-2">
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-4 shrink-0 text-muted-foreground"
-            icon={GitBranchIcon}
-          />
-          {source.branch}
-        </span>
-      ),
-      className: "min-w-32 whitespace-nowrap",
     },
     {
       key: "last-synced",

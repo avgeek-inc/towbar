@@ -104,7 +104,6 @@ void test(
         githubInstallationId: installation!.id,
         repositoryOwner: "example",
         repositoryName: "comparison",
-        branch: "main",
       });
       await db.insert(apps).values({
         id: appId,

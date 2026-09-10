@@ -25,6 +25,18 @@ export async function assertEnvironmentOwnership(
     .from(servers)
     .where(eq(servers.id, instance.serverId));
   assert(source && server);
+  await assert.rejects(
+    db.insert(sources).values({ ...source, id: randomUUID() }),
+    (error: unknown) => {
+      const failure = error as {
+        cause?: { code?: string; constraint_name?: string };
+      };
+      return (
+        failure.cause?.code === "23505" &&
+        failure.cause.constraint_name === "uq_towbar_sources_repository"
+      );
+    },
+  );
   const otherSourceId = randomUUID(),
     otherWorkspaceId = randomUUID();
   const rejectsForeignKey = async (

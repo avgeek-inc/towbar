@@ -5656,7 +5656,6 @@
     "Response_265": {
       "type": "object",
       "properties": {
-        "branch": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "id": { "type": "string" },
         "latestCommitSha": {
@@ -5676,7 +5675,6 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": [
-        "branch",
         "createdAt",
         "id",
         "latestCommitSha",
@@ -5931,7 +5929,6 @@
       "properties": {
         "latestSyncStatus": { "type": "string" },
         "autoDeployPaused": { "type": "boolean" },
-        "branch": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "id": { "type": "string" },
         "latestCommitSha": {
@@ -5953,7 +5950,6 @@
       "required": [
         "latestSyncStatus",
         "autoDeployPaused",
-        "branch",
         "createdAt",
         "id",
         "latestCommitSha",
@@ -5986,7 +5982,6 @@
     "Response_286": {
       "type": "object",
       "properties": {
-        "branch": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "id": { "type": "string" },
         "latestCommitSha": {
@@ -6006,7 +6001,6 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": [
-        "branch",
         "createdAt",
         "id",
         "latestCommitSha",

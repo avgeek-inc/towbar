@@ -109,7 +109,6 @@ const user: TowbarUser = {
 };
 
 const source: Source = {
-  branch: "main",
   createdAt: fixtureNow,
   id: fixtureIds.source,
   latestCommitSha: commitSha,
@@ -126,19 +125,16 @@ const sources: Source[] = [
     ...source,
     id: fixtureIds.docsSource,
     repositoryName: "documentation",
-    branch: "production",
   },
   {
     ...source,
     id: fixtureIds.analyticsSource,
     repositoryName: "analytics",
-    branch: "main",
   },
   {
     ...source,
     id: fixtureIds.sandboxSource,
     repositoryName: "sandbox",
-    branch: "develop",
     latestCommitSha: null,
     latestManifestDigest: null,
   },
@@ -238,7 +234,7 @@ const environmentMappings = sources
       id: `${name === "staging" ? "a" : "c"}${item.id.slice(1)}`,
       sourceId: item.id,
       name,
-      branch: name === "staging" ? "develop" : item.branch,
+      branch: name === "staging" ? "develop" : "main",
       mappingRevision: `${name === "staging" ? "a" : "c"}${item.id.slice(1)}`,
       previewsEnabled: name === "staging",
       latestSyncStatus: "succeeded" as const,

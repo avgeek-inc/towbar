@@ -130,7 +130,6 @@ export async function connectRepositorySource(
         githubInstallationId: input.githubInstallationId,
         repositoryName: input.repositoryName,
         repositoryOwner: input.repositoryOwner,
-        branch: input.discoveryBranch,
       })
       .returning(publicSourceSelection);
     if (!source) throw new Error("Unable to connect Source");

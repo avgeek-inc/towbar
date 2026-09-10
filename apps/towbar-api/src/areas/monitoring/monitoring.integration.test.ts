@@ -335,7 +335,6 @@ void test(
             githubInstallationId: installation!.id,
             repositoryOwner: "example",
             repositoryName: "metrics",
-            branch: "main",
           });
           const config = normalizeDeploymentManifest({
             version: 2,

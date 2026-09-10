@@ -337,7 +337,6 @@ export const sources = pgTable(
       .references(() => githubInstallations.id, { onDelete: "restrict" }),
     repositoryOwner: varchar("repository_owner", { length: 255 }).notNull(),
     repositoryName: varchar("repository_name", { length: 255 }).notNull(),
-    branch: varchar("branch", { length: 255 }).notNull(),
     status: sourceStatusEnum("status").default("active").notNull(),
     latestCommitSha: varchar("latest_commit_sha", { length: 64 }),
     latestManifestDigest: varchar("latest_manifest_digest", { length: 64 }),
@@ -356,11 +355,10 @@ export const sources = pgTable(
       table.id,
       table.workspaceId,
     ),
-    uniqueIndex("uq_towbar_sources_repository_branch").on(
+    uniqueIndex("uq_towbar_sources_repository").on(
       table.workspaceId,
       table.repositoryOwner,
       table.repositoryName,
-      table.branch,
     ),
     index("idx_towbar_sources_workspace").on(table.workspaceId),
   ],

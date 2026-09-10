@@ -110,7 +110,6 @@ void test(
         githubInstallationId: installation!.id,
         repositoryOwner: "test",
         repositoryName: "test",
-        branch: "main",
       });
       const config = normalizeServerConfiguration({
         ip: "192.0.2.10",
