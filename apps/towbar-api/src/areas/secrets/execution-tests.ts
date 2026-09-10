@@ -238,6 +238,10 @@ export async function testManagedSecretExecution({
         ttlHours: 24,
         workspaceId,
       };
+      await assert.rejects(
+        admitPreviewDeployment({ ...input, sourceId: randomUUID() }),
+        /preview target changed/,
+      );
       const initial = await admitPreviewDeployment(input);
       assert(initial.deploymentId);
       const resolved = await resolveDeploymentSecrets(initial.deploymentId);

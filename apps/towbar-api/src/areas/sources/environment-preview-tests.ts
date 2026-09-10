@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { isNormalizedResource } from "@workspace/towbar-core";
-import { sourceEnvironments } from "@workspace/towbar-database/schema";
-import type { apps, servers } from "@workspace/towbar-database/schema";
+import { apps, sourceEnvironments } from "@workspace/towbar-database/schema";
+import type { servers } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { getInstanceEnvironment } from "../apps/instance-environment.js";
 
@@ -50,7 +50,9 @@ export async function assertPreviewAdmissionGuards({
     appId: stage.id,
     workspaceId,
   });
-  assert(environment && !isNormalizedResource(stage.config));
+  assert(
+    environment && stage.requiredSecrets && !isNormalizedResource(stage.config),
+  );
   const input = {
     appId: stage.id,
     branch: "feature",
@@ -68,7 +70,23 @@ export async function assertPreviewAdmissionGuards({
     workspaceId,
     targetEnvironment: environment,
     targetConfigDigest: stage.configDigest,
+    requiredSecrets: stage.requiredSecrets,
   };
+  await database
+    .update(apps)
+    .set({ sourceEnvironmentId: null })
+    .where(eq(apps.id, stage.id));
+  try {
+    await assert.rejects(
+      admitPreviewDeployment(input),
+      /requires an environment/,
+    );
+  } finally {
+    await database
+      .update(apps)
+      .set({ sourceEnvironmentId: environment.id })
+      .where(eq(apps.id, stage.id));
+  }
   try {
     await database
       .update(sourceEnvironments)

@@ -38,13 +38,13 @@ type Transaction = Parameters<
 >[0];
 
 export async function admitPreviewDeployment(input: {
-  targetEnvironment?: {
+  targetEnvironment: {
     id: string;
     mappingRevision: string;
     latestCommitSha: string | null;
   };
-  targetConfigDigest?: string;
-  requiredSecrets?: RequiredSecrets;
+  targetConfigDigest: string;
+  requiredSecrets: RequiredSecrets;
   force?: boolean;
   requestedBy?: string;
   appId: string;
@@ -482,36 +482,48 @@ async function lockPreviewTarget(
     { appId: input.appId, workspaceId: input.workspaceId },
     transaction,
   );
-  if (environment) {
-    if (
-      !input.targetEnvironment ||
-      input.targetEnvironment.id !== environment.id ||
-      !environment.previewsEnabled ||
-      environment.mappingRevision !== environment.syncedMappingRevision
+  if (!environment)
+    throw conflict(
+      "This instance requires an environment mapping",
+      "ENVIRONMENT_REQUIRED",
+    );
+  if (
+    !input.targetEnvironment ||
+    input.targetEnvironment.id !== environment.id ||
+    !environment.previewsEnabled ||
+    environment.mappingRevision !== environment.syncedMappingRevision
+  )
+    throw conflict(
+      "The preview target changed. Sync and retry.",
+      "PREVIEW_TARGET_CHANGED",
+    );
+  const current = await lockDeploymentEnvironment(
+    input.targetEnvironment,
+    transaction,
+  );
+  if (!current.previewsEnabled)
+    throw conflict(
+      "Previews are disabled for this environment",
+      "PREVIEW_TARGET_CHANGED",
+    );
+  const [target] = await transaction
+    .select()
+    .from(apps)
+    .where(
+      and(eq(apps.id, input.appId), eq(apps.workspaceId, input.workspaceId)),
     )
-      throw conflict(
-        "The preview target changed. Sync and retry.",
-        "PREVIEW_TARGET_CHANGED",
-      );
-    await lockDeploymentEnvironment(input.targetEnvironment, transaction);
-    const [target] = await transaction
-      .select()
-      .from(apps)
-      .where(
-        and(eq(apps.id, input.appId), eq(apps.workspaceId, input.workspaceId)),
-      )
-      .for("update");
-    if (
-      !target ||
-      target.archivedAt ||
-      isNormalizedResource(target.config) ||
-      !target.config.preview?.enabled ||
-      target.configDigest !== input.targetConfigDigest ||
-      target.serverId !== input.serverId
-    )
-      throw conflict(
-        "The preview target changed. Retry against the current configuration.",
-        "PREVIEW_TARGET_CHANGED",
-      );
-  }
+    .for("update");
+  if (
+    !target ||
+    target.sourceId !== input.sourceId ||
+    target.archivedAt ||
+    isNormalizedResource(target.config) ||
+    !target.config.preview?.enabled ||
+    target.configDigest !== input.targetConfigDigest ||
+    target.serverId !== input.serverId
+  )
+    throw conflict(
+      "The preview target changed. Retry against the current configuration.",
+      "PREVIEW_TARGET_CHANGED",
+    );
 }

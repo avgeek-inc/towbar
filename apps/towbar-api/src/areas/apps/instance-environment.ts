@@ -87,4 +87,5 @@ export async function lockDeploymentEnvironment(
       "The environment changed. Sync and retry the deployment.",
       "ENVIRONMENT_MAPPING_CHANGED",
     );
+  return current;
 }
