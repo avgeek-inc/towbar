@@ -386,42 +386,6 @@ test("the local fixture supports write-only stage edits and rejects stale revisi
   }
 });
 
-test("the local fixture covers source creation and the initial sync", async () => {
-  const server = createFixtureApiServer();
-  server.listen(0, "127.0.0.1");
-  await once(server, "listening");
-  const address = server.address();
-  assert(address && typeof address === "object");
-  const baseUrl = `http://127.0.0.1:${address.port}`;
-
-  try {
-    const createResponse = await fetch(`${baseUrl}/v1/core/sources`, {
-      body: JSON.stringify({
-        branch: "main",
-        githubInstallationId: "b1111111-1111-4111-8111-111111111111",
-        repositoryName: "platform",
-        repositoryOwner: "example-inc",
-      }),
-      headers: { "content-type": "application/json" },
-      method: "POST",
-    });
-    assert.equal(createResponse.status, 201);
-    const createPayload = await createResponse.json();
-    assert.equal(createPayload.source.id, fixtureIds.source);
-
-    const syncResponse = await fetch(
-      `${baseUrl}/v1/core/sources/${createPayload.source.id}/actions/sync`,
-      { method: "POST" },
-    );
-    assert.equal(syncResponse.status, 202);
-    const syncPayload = await syncResponse.json();
-    assert.equal(syncPayload.sync.id, fixtureIds.sync);
-  } finally {
-    server.close();
-    await once(server, "close");
-  }
-});
-
 test("the local fixture models one write-only workspace AWS integration", async () => {
   const server = createFixtureApiServer();
   server.listen(0, "127.0.0.1");
@@ -1095,6 +1059,60 @@ test("v2 fixtures expose environment mappings and isolated sibling instances", a
       "/v1/core/deployments/history?targetEnvironment=missing",
     );
     assert.equal(missing.pagination.total, 0);
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
+test("source discovery uses v2 environments and unsupported mutations do not return read payloads", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+  const post = (path, body) =>
+    fetch(baseUrl + path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  try {
+    const { connection } = await (
+      await fetch(`${baseUrl}/v1/core/github`)
+    ).json();
+    const request = {
+      githubInstallationId: connection.id,
+      repositoryOwner: "example-inc",
+      repositoryName: "example-service",
+      discoveryBranch: "main",
+    };
+    const discovery = await post("/v1/core/sources/discover", request);
+    assert.equal(discovery.status, 200);
+    assert.deepEqual((await discovery.json()).environments, [
+      { name: "production", previewsEnabled: false },
+      { name: "staging", previewsEnabled: true },
+    ]);
+    assert.equal(
+      (
+        await post("/v1/core/sources/discover", {
+          ...request,
+          discoveryBranch: "missing",
+        })
+      ).status,
+      404,
+    );
+    assert.equal((await post("/v1/core/sources", request)).status, 404);
+    assert.equal(
+      (
+        await fetch(
+          `${baseUrl}/v1/core/sources/${fixtureIds.source}/environments`,
+          { method: "PATCH" },
+        )
+      ).status,
+      404,
+    );
   } finally {
     server.close();
     await once(server, "close");

@@ -87,13 +87,19 @@ not a list of untouched work.
 - Fixtures: production/staging sibling app and resource instances and history
   filters exist. Browser checks proved a staging history permalink, opening its
   app instance, switching to production, and Back restoring staging. Per-environment v2 manifest snapshot fixtures are validated through the parser;
-  the obsolete source manifest endpoint returns 404. Onboarding and secret
-  fixture handlers still need v2 conversion.
+  the obsolete source manifest endpoint returns 404. Discovery returns v2
+  environment declarations and rejects unavailable branches/installations.
+  Unsupported writes fail rather than returning cached read data. The obsolete
+  v1 creation fixture/test are removed. Stateful connection/initial sync and
+  secret fixture handlers still need conversion.
 - API/MCP: current catalogue has 140 operations and 55 curated tools. Generated
   contracts and owner/read-only boundaries are checked. The MCP integration
   fixture now explicitly connects an environment before editing shared secrets.
 
 ## Latest verification
+
+- Fixture discovery and unsupported-mutation regressions pass; all 24 fixture
+  tests pass. Stateful v2 connection and initial sync are not yet fixture-tested.
 
 - Rollback admission now locks the environment, instance/server and selected
   retained release before insertion. It rejects changed configuration, archival,

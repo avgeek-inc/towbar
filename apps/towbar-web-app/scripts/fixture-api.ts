@@ -1460,8 +1460,42 @@ export function createFixtureApiServer() {
       if (awsCredential) awsCredential.lastVerifiedAt = checkedAt;
       return writeJson(response, 200, fixtureSystemHealth());
     }
-    if (request.method === "POST" && path === "/v1/core/sources") {
-      return writeJson(response, 201, { source });
+    if (request.method === "POST" && path === "/v1/core/sources/discover") {
+      void readRequestJson(request)
+        .then((input) => {
+          if (input.githubInstallationId !== githubConnection.id)
+            return writeJson(response, 404, {
+              error: "GitHub installation was not found",
+            });
+          const repository = githubRepositories.find(
+            (item) =>
+              item.owner === input.repositoryOwner &&
+              item.name === input.repositoryName,
+          );
+          if (!repository)
+            return writeJson(response, 404, {
+              error: "Repository was not found",
+            });
+          if (
+            ![repository.defaultBranch, "develop"].includes(
+              String(input.discoveryBranch),
+            )
+          )
+            return writeJson(response, 404, {
+              error: "Discovery branch was not found",
+            });
+          return writeJson(response, 200, {
+            commitSha,
+            environments: [
+              { name: "production", previewsEnabled: false },
+              { name: "staging", previewsEnabled: true },
+            ],
+          });
+        })
+        .catch(() =>
+          writeJson(response, 400, { error: "Invalid discovery request" }),
+        );
+      return;
     }
     if (request.method === "POST" && path === "/v1/core/servers") {
       void readRequestJson(request)
@@ -2117,6 +2151,7 @@ export function createFixtureApiServer() {
       return writeDeploymentEvents(response, deployment);
     }
 
+    if (request.method !== "GET") return writeNotFound(response);
     const payload = getFixturePayload(path, requestUrl.searchParams);
     if (payload === undefined) return writeNotFound(response);
     writeJson(response, 200, payload);
