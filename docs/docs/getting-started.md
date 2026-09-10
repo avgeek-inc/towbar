@@ -67,10 +67,10 @@ A successful sync imports **Hello Towbar** into the Source's Apps list. If it fa
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/features/sources-light.webp" alt="Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result." width="2160" height="904" loading="lazy" />
+    <img src="/assets/features/sources-light.webp" alt="Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result." width="2176" height="1054" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/features/sources-dark.webp" alt="Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result." width="2160" height="904" loading="lazy" />
+    <img src="/assets/features/sources-dark.webp" alt="Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result." width="2176" height="1054" loading="lazy" />
   </div>
   <p>Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result.</p>
 </div>

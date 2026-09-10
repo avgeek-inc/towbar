@@ -421,3 +421,14 @@ The original deployer-only app mode also passed after the shared harness changes
 including production/staging/preview isolation and failed preview-candidate
 recovery. Both runs removed their disposable Docker targets. The dedicated
 Temporal development server was stopped after the integrated run.
+
+### Core documentation screenshot refresh
+
+Refreshed light/dark fixture captures for the overview (also used by README),
+Sources inventory, app detail and resource detail. App/resource captures include
+production/staging selection. Images retain surrounding padding and 2x resolution;
+all affected documentation dimensions and captions match the new assets. The
+resource feature now uses its detail view because the inventory's horizontally
+scrolling table cannot show every column inside its fixed content width. No
+screenshot-only layout changes were applied. Documentation checks pass for all
+180 pages. These screenshots demonstrate fixture UI, not hosted deployment.
