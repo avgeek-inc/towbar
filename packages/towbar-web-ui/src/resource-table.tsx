@@ -134,7 +134,7 @@ export function ResourceName({
       </TooltipText>
       {description ? (
         <TooltipText
-          className="text-muted typography--body-xs truncate font-normal"
+          className="text-muted text-xs truncate font-normal"
           tooltip={typeof description === "string" ? description : undefined}
         >
           {description}
