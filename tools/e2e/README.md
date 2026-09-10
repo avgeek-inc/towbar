@@ -9,7 +9,7 @@ node tools/e2e/target.mjs
 The harness builds a disposable Linux target with SSH and its own Docker daemon.
 It requires Docker support for privileged containers (Docker Desktop or Colima).
 It does not mount the host Docker socket or reuse the host daemon's workload
-containers and volumes. Only SSH is published, on a random loopback port.
+containers and volumes. By default only SSH is published, on a random loopback port.
 
 The smoke check connects as the non-root `deploy` user and compares daemon IDs
 to verify isolation. It also checks executable paths required by the deployer.
@@ -173,3 +173,26 @@ are rejected, except for the test's own internal API listener. Source snapshots
 and server readiness are seeded. PR reconciliation, authentication, public TLS
 and server preparation remain outside this mode. Without a Temporal address,
 the original deployer-only production/staging/preview runner remains available.
+
+## Local HTTPS routing
+
+```sh
+pnpm --filter @workspace/towbar-deployer... build
+node tools/e2e/https-target.mjs
+TOWBAR_TEST_HTTPS=1 node tools/e2e/app-lifecycle.mjs
+```
+
+HTTPS mode requires an available loopback port 443 and DNS resolution for
+`*.127.0.0.1.nip.io`. It starts the systemd target with real Caddy and a local
+certificate authority. The runner adds that authority to its Node process and
+sets `CURL_CA_BUNDLE` for its origin checks, restoring both on cleanup. It does
+not modify the host trust store or disable certificate validation. The target
+and certificate file are removed afterward.
+
+The smoke check exercises the production origin and hostname health checks.
+The app runner additionally verifies real HTTPS responses for production,
+staging and preview after a staging update and an unhealthy preview candidate.
+Only the GitHub token/archive responses and release callback are simulated in
+this mode. These checks cover local TLS routing, not public ACME issuance or
+PR event reconciliation. `TOWBAR_TEST_HTTPS=1` can also be combined with the
+Temporal mode above; that combination has not yet been verified.

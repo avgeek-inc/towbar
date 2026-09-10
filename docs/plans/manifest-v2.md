@@ -432,3 +432,17 @@ resource feature now uses its detail view because the inventory's horizontally
 scrolling table cannot show every column inside its fixed content width. No
 screenshot-only layout changes were applied. Documentation checks pass for all
 180 pages. These screenshots demonstrate fixture UI, not hosted deployment.
+
+### Local HTTPS lifecycle verification
+
+The isolated systemd target now supports loopback HTTPS with Caddy's local CA.
+The origin curl check and Node hostname check retain certificate validation;
+trust is scoped to the runner process and removed with the disposable target.
+No host trust-store changes or public ACME requests are involved.
+
+`TOWBAR_TEST_HTTPS=1 node tools/e2e/app-lifecycle.mjs` passed with real app builds,
+SSH, Caddy routing and HTTPS reads. Production retained revision A, staging
+served revision B, and a failed preview candidate retained the healthy preview
+revision A. The target was removed on completion. GitHub token/archive responses
+and release commits remain simulated in this run. Full PR reconciliation through
+API admission, Temporal delivery and cleanup is still a separate unproven gate.

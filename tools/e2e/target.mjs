@@ -11,7 +11,7 @@ const docker = (args) =>
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
 
-export async function startTestTarget({ systemd = false } = {}) {
+export async function startTestTarget({ systemd = false, https = false } = {}) {
   const directory = mkdtempSync(path.join(tmpdir(), "towbar-v2-target-"));
   const name = `towbar-v2-target-${process.pid}-${Date.now()}`;
   const key = path.join(directory, "identity");
@@ -40,6 +40,7 @@ export async function startTestTarget({ systemd = false } = {}) {
     container = docker([
       "create",
       "--privileged",
+      ...(https ? ["-p", "127.0.0.1:443:443"] : []),
       ...(systemd
         ? [
             "--cgroupns=private",

@@ -12,8 +12,10 @@ import {
   scanHostKeys,
 } from "../../packages/towbar-deployer/dist/index.js";
 import { startTestTarget } from "./target.mjs";
+import { startHttpsTarget } from "./https-target.mjs";
 
-const target = await startTestTarget();
+const routed = process.env.TOWBAR_TEST_HTTPS === "1";
+const target = routed ? await startHttpsTarget() : await startTestTarget();
 const originalFetch = globalThis.fetch;
 let database, temporal;
 const integrated = Boolean(process.env.TOWBAR_TEST_TEMPORAL_ADDRESS);
@@ -63,6 +65,13 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
   const fetched = [];
   globalThis.fetch = async (input, init) => {
     const url = new URL(String(input));
+    if (
+      routed &&
+      ["production", "staging", "preview"].some(
+        (name) => url.origin === `https://${name}.127.0.0.1.nip.io`,
+      )
+    )
+      return originalFetch(input, init);
     if (integrated && url.origin === process.env.TOWBAR_API_BASE_URL)
       return originalFetch(input, init);
     if (
@@ -123,6 +132,12 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
           name: "Website",
           server: "test",
           dockerfile: "Dockerfile",
+          ...(routed
+            ? {
+                domains: { primary: `${name}.127.0.0.1.nip.io` },
+                tls: { mode: "direct" },
+              }
+            : {}),
           container: {
             port: 8080,
             network: `e2e-${name}`,
@@ -222,6 +237,19 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
     running,
     [...instances.values()].map((item) => item.current.containerName).sort(),
   );
+  if (routed) {
+    for (const name of instances.keys()) {
+      const response = await originalFetch(`https://${name}.127.0.0.1.nip.io`);
+      assert.equal(response.status, 200);
+      assert.equal(
+        await response.text(),
+        `${name}:${name === "staging" ? "b" : "a"}`,
+      );
+    }
+    console.log(
+      "HTTPS routes preserve production and the healthy staging/preview release after candidate failure.",
+    );
+  }
   if (integrated) {
     await database.verify(instances, "failed");
     await temporal.verify();
