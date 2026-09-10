@@ -288,3 +288,15 @@ PostgreSQL, Docker and Temporal runs. The subsequent README update documents v2
 file paths, environment mappings, required-secret setup and repository examples;
 docs checks and formatting pass after that change. Screenshots still need a v2
 refresh.
+
+### Linux non-root vulnerability scanning
+
+`node tools/e2e/trivy-lifecycle.mjs` passed on the disposable Ubuntu target over
+SSH as `deploy`. The production Trivy script scanned Alpine successfully with
+its sandbox restrictions. The previous private-directory mount failed with
+permission denied under the same Linux identity and restrictions, confirming
+the archive-only mount fixes the non-root regression. Successful scans and both
+permission/missing-image failures removed temporary archives. The Docker target
+and nested scanner cache were removed afterward. This supplies actual Linux
+scanner evidence rather than counting the default opt-in skip as a pass; scan
+scheduling and findings presentation are outside this runner.

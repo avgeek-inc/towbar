@@ -93,3 +93,23 @@ Source sync snapshots, instances, and server readiness are seeded in PostgreSQL.
 The runner verifies admission, idempotent retries, server coordinator delivery,
 and execution. It does not exercise browser/API authentication for deployment
 requests or GitHub source synchronization.
+
+## Non-root vulnerability scanning
+
+```sh
+pnpm --filter towbar-worker build
+node tools/e2e/trivy-lifecycle.mjs
+```
+
+This runner executes the production Trivy script over SSH as the non-root
+`deploy` user on the isolated Linux target. It downloads the pinned scanner and
+its vulnerability database, scans an Alpine image, and checks the parsed result.
+A negative control mounts the private parent directory instead of the readable
+archive and must fail with a Linux permission error. Successful scans, permission
+failures and missing-image failures must all remove temporary archives.
+
+The scanner keeps the production restrictions, including dropped capabilities,
+a read-only root filesystem and an offline image scan. The cache lives in the
+nested Docker daemon and is removed with the target. Network access to the image
+registry and vulnerability database is required. This verifies scanner execution
+and cleanup; scheduling and presentation of findings need separate coverage.
