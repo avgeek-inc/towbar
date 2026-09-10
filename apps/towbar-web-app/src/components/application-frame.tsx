@@ -1,4 +1,5 @@
 "use client";
+import { groupDeployableInstances } from "@/lib/deployable-groups";
 import { SecondarySidebarLayout } from "./secondary-sidebar";
 
 import { useCallback, useEffect, useState } from "react";
@@ -96,8 +97,12 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
   const sidebar = createApplicationSidebar(
     () => router.push("/logout"),
     {
-      apps: apps.data?.apps.length,
-      resources: resources.data?.resources.length,
+      apps: apps.data
+        ? groupDeployableInstances(apps.data.apps).length
+        : undefined,
+      resources: resources.data
+        ? groupDeployableInstances(resources.data.resources).length
+        : undefined,
       servers: servers.data?.servers.length,
       sources: sources.data?.sources.length,
     },

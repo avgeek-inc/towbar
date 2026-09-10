@@ -1067,6 +1067,12 @@ test("v2 fixtures expose environment mappings and isolated sibling instances", a
         [stagingId],
       );
     }
+    const appInventory = await get("/v1/core/apps");
+    const resourceInventory = await get("/v1/core/resources");
+    assert.equal(appInventory.apps.length, 5);
+    assert.equal(appInventory.counts.all, 4);
+    assert.equal(resourceInventory.resources.length, 6);
+    assert.equal(resourceInventory.counts.all, 5);
     const monitoring = await get("/v1/core/monitoring/entities?search=staging");
     assert.deepEqual(
       monitoring.entities.map((entity) => entity.id).sort(),

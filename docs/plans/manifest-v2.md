@@ -98,8 +98,11 @@ not a list of untouched work.
 - Inventory grouping: focused identity/scope regression, web typecheck and
   scoped lint pass. Rendered Apps and Resources show production/staging siblings
   in one logical group; staging filtering, opening its instance and browser Back
-  restoring the filtered list were verified. Sidebar/overview/source counts
-  still need conversion from instance counts to logical-entity counts.
+  restoring the filtered list were verified. Sidebar, overview, Source and API
+  inventory counts now deduplicate logical entities. Overview running chips
+  explicitly count instances; server workloads retain instance counts. Core
+  filter/count and Source count regressions pass, as do all 24 fixture tests
+  and the 16-test secrets/inventory database suite.
 
 - Monitoring environment labels: the database regression verifies staging-only
   entity search and environment identity on alerts/incidents. All 22 fixture API
@@ -132,8 +135,8 @@ tests. Do not reset the hosted installation or use its database.
 2. Audit resource operations, backups/restores, monitoring, alerts and scanning
    for instance/environment scope and labels. Validate that resource secret
    stage declarations match stages the resource editor and execution support.
-3. Align inventory counts with logical-entity grouping and verify all environment
-   controls, readiness, validation failures and permalinks in rendered pages.
+3. Verify remaining environment controls, readiness, validation failures and
+   permalinks in rendered pages, including Source-scoped inventory views.
 4. Convert remaining fixture handlers for connection/discovery, declared secrets
    and complete per-environment manifest configuration fidelity.
    Exercise Form/File editing, reveal, missing/empty values and branch changes.

@@ -49,13 +49,19 @@ function select<T>(
   query: Base,
   attention: (item: T) => boolean,
   matches: (item: T) => boolean,
+  countKey?: (item: T) => unknown,
 ) {
+  const count = (rows: T[]) =>
+    countKey ? new Set(rows.map(countKey)).size : rows.length;
   return {
     items: items.filter(
       (item) =>
         (query.view !== "attention" || attention(item)) && matches(item),
     ),
-    counts: { all: items.length, attention: items.filter(attention).length },
+    counts: {
+      all: count(items),
+      attention: count(items.filter(attention)),
+    },
   };
 }
 const includes = (text: string, q?: string) =>
@@ -64,6 +70,7 @@ export function filterWorkloads<
   T extends {
     name: string;
     sourceId: string;
+    entityId?: string | null;
     serverIp: string;
     kind: string;
     serverReady: boolean;
@@ -93,6 +100,7 @@ export function filterWorkloads<
       (!query.resourceType || item.kind === query.resourceType) &&
       (!query.running || item.runtimeState.observedState === query.running) &&
       (!query.health || item.runtimeState.healthStatus === query.health),
+    (item) => (item.entityId ? `${item.sourceId}:${item.entityId}` : item),
   );
   return {
     ...result,

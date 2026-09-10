@@ -190,3 +190,30 @@ void test("inventory filter validation rejects unsupported state, malformed ids 
   assert.equal(sourceFilters.safeParse({ autoSync: "true" }).success, false);
   assert.equal(sourceFilters.safeParse({ q: "x".repeat(201) }).success, false);
 });
+
+void test("workload counts count logical entities and flag any affected instance", () => {
+  const production = {
+    ...healthy,
+    entityId: "website",
+    environment: { name: "production" },
+  };
+  const staging = {
+    ...production,
+    environment: { name: "staging" },
+    serverReady: false,
+  };
+  const otherSource = { ...staging, sourceId: "other-source" };
+  const result = filterWorkloads(
+    [production, staging, otherSource],
+    workloadFilters.parse({ environment: "staging" }),
+  );
+  assert.deepEqual(result.items, [staging, otherSource]);
+  assert.deepEqual(result.counts, { all: 2, attention: 2 });
+  assert.deepEqual(
+    filterWorkloads(
+      [staging, { ...staging, environment: { name: "testing" } }],
+      workloadFilters.parse({}),
+    ).counts,
+    { all: 1, attention: 1 },
+  );
+});

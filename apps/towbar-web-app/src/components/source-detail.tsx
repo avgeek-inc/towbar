@@ -1,4 +1,5 @@
 "use client";
+import { groupDeployableInstances } from "@/lib/deployable-groups";
 import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import {
   DashboardCircleIcon,
@@ -257,7 +258,12 @@ export function SourceDetail() {
             label: "Apps",
             icon: <HugeiconsIcon icon={DashboardCircleIcon} />,
             indicator: apps.data
-              ? { label: String(apps.data.apps.length), variant: "secondary" }
+              ? {
+                  label: String(
+                    groupDeployableInstances(apps.data.apps).length,
+                  ),
+                  variant: "secondary",
+                }
               : undefined,
             content: (
               <SourceApps
@@ -281,7 +287,9 @@ export function SourceDetail() {
             icon: <HugeiconsIcon icon={DatabaseIcon} />,
             indicator: resources.data
               ? {
-                  label: String(resources.data.resources.length),
+                  label: String(
+                    groupDeployableInstances(resources.data.resources).length,
+                  ),
                   variant: "secondary",
                 }
               : undefined,
