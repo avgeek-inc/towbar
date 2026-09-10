@@ -95,6 +95,18 @@ not a list of untouched work.
 
 ## Latest verification
 
+- Opt-in Docker execution: the alias integration test passed with real
+  containers, checking replacement, collision rejection, rollback and independent
+  responses from the same alias in separate production/staging networks. Cleanup
+  left no test containers. These are explicitly separate configured networks;
+  this does not prove complete API-to-worker environment deployment.
+- Opt-in Temporal execution: the Scout loop passed worker restart, queued wake
+  signal and persisted-history replay against a disposable local Temporal server.
+  Its evaluation activity is a test stub, so database evaluation and deployment
+  execution require their own proof. The disposable server was stopped afterward.
+- Trivy's private-archive permission regression requires native non-root Linux;
+  it has not been executed on this macOS host.
+
 - Inventory grouping: focused identity/scope regression, web typecheck and
   scoped lint pass. Rendered Apps and Resources show production/staging siblings
   in one logical group; staging filtering, opening its instance and browser Back
