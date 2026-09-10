@@ -175,9 +175,7 @@ export function PageTabs({
           selectedKey,
           selectedKey === "settings"
             ? (detail.settings ?? undefined)
-            : selectedKey === "info"
-              ? (searchParams.get("source-information") ?? detail.subpage)
-              : undefined,
+            : undefined,
           true,
         ),
       );

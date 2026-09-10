@@ -5,8 +5,8 @@ import {
   DatabaseIcon,
   Delete02Icon,
   GithubIcon,
-  InformationSquareIcon,
   ReloadIcon,
+  SourceCodeIcon,
   Settings01Icon,
 } from "@hugeicons/core-free-icons";
 
@@ -278,67 +278,54 @@ export function SourceDetail() {
             ),
           },
           {
-            value: "info",
-            label: "Info",
-            icon: <HugeiconsIcon icon={InformationSquareIcon} />,
+            value: "manifest",
+            label: "Manifest",
+            group: "Source information",
+            icon: <HugeiconsIcon icon={SourceCodeIcon} />,
+            content: manifest.data.manifest ? (
+              <CodeBlock
+                aria-label="Deployment manifest"
+                className="w-full min-w-0"
+              >
+                <CodeBlock.Header>
+                  <CodeBlock.Filename>Deployment manifest</CodeBlock.Filename>
+                  <CodeBlock.CopyButton
+                    code={manifest.data.manifest.rawManifest}
+                  />
+                </CodeBlock.Header>
+                <Widget.Content>
+                  <CodeEditor
+                    ariaLabel="Deployment manifest code"
+                    language="yaml"
+                    value={manifest.data.manifest.rawManifest}
+                    disabled
+                    embedded
+                  />
+                </Widget.Content>
+              </CodeBlock>
+            ) : (
+              <EmptyState>
+                <EmptyState.Header>
+                  <EmptyState.Title>No manifest imported</EmptyState.Title>
+                  <EmptyState.Description>
+                    Run the first Source sync to load and validate the
+                    deployment manifest.
+                  </EmptyState.Description>
+                </EmptyState.Header>
+              </EmptyState>
+            ),
+          },
+          {
+            value: "sync-history",
+            label: "Sync history",
+            group: "Source information",
+            icon: <HugeiconsIcon icon={ReloadIcon} />,
             content: (
-              <SourceSubtabs
-                ariaLabel="Source information"
-                defaultSelectedKey="manifest"
-                tabs={[
-                  {
-                    value: "manifest",
-                    label: "Manifest",
-                    content: manifest.data.manifest ? (
-                      <CodeBlock
-                        aria-label="Deployment manifest"
-                        className="w-full min-w-0"
-                      >
-                        <CodeBlock.Header>
-                          <CodeBlock.Filename>
-                            Deployment manifest
-                          </CodeBlock.Filename>
-                          <CodeBlock.CopyButton
-                            code={manifest.data.manifest.rawManifest}
-                          />
-                        </CodeBlock.Header>
-                        <Widget.Content>
-                          <CodeEditor
-                            ariaLabel="Deployment manifest code"
-                            language="yaml"
-                            value={manifest.data.manifest.rawManifest}
-                            disabled
-                            embedded
-                          />
-                        </Widget.Content>
-                      </CodeBlock>
-                    ) : (
-                      <EmptyState>
-                        <EmptyState.Header>
-                          <EmptyState.Title>
-                            No manifest imported
-                          </EmptyState.Title>
-                          <EmptyState.Description>
-                            Run the first Source sync to load and validate the
-                            deployment manifest.
-                          </EmptyState.Description>
-                        </EmptyState.Header>
-                      </EmptyState>
-                    ),
-                  },
-                  {
-                    value: "sync-history",
-                    label: "Sync history",
-                    content: (
-                      <SourceSyncHistory
-                        columns={syncColumns}
-                        repositoryName={item.repositoryName}
-                        sourceId={sourceId}
-                        syncs={syncs.data.syncs}
-                      />
-                    ),
-                  },
-                ]}
+              <SourceSyncHistory
+                columns={syncColumns}
+                repositoryName={item.repositoryName}
+                sourceId={sourceId}
+                syncs={syncs.data.syncs}
               />
             ),
           },
