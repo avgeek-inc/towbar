@@ -1,3 +1,4 @@
+import { environmentSyncDependencies } from "./environment-sync-fixture.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -51,41 +52,12 @@ void test(
     let keys = ["TOKEN", "EMPTY"];
     let broken = false;
     let snapshotCommit = "a".repeat(40);
-    const dependencies = {
-      snapshot: () =>
-        Promise.resolve({
-          commitSha: snapshotCommit,
-          root,
-          configuration: {
-            version: 2 as const,
-            environments: { production: {}, staging: {} },
-          },
-          directories: [".towbar/apps"],
-          files: [
-            {
-              path: ".towbar/apps/site.app.yml",
-              content: JSON.stringify({
-                id: "site",
-                name: "Site",
-                dockerfile: "Dockerfile",
-                container: { port: 3000 },
-                secrets: { runtime: keys },
-                environments: {
-                  production: {
-                    server: "host",
-                    domains: { primary: "prod.example.com" },
-                  },
-                  staging: {
-                    server: broken ? "missing-host" : "host",
-                    domains: { primary: "stage.example.com" },
-                  },
-                },
-              }),
-            },
-          ],
-        }),
-      tree: () => Promise.resolve({ complete: true, entries: [] }),
-    };
+    const dependencies = environmentSyncDependencies(() => ({
+      root,
+      snapshotCommit,
+      keys,
+      broken,
+    }));
     try {
       await database
         .insert(workspaces)
@@ -167,6 +139,19 @@ void test(
       const stage = instances.find(
         (row) => row.sourceEnvironmentId === staging!.id,
       )!;
+      await t.test(
+        "a delayed retry cannot reopen a completed sync",
+        async () => {
+          const { assertCompletedSyncRetry } =
+            await import("./environment-sync-retry-tests.js");
+          await assertCompletedSyncRetry({
+            staging: staging!,
+            workspaceId,
+            snapshotCommit,
+            dependencies,
+          });
+        },
+      );
       await t.test("instance identity and mapped push routing", async () => {
         const { assertInstanceQueryIdentity } =
           await import("./environment-query-tests.js");
@@ -580,15 +565,13 @@ void test(
       await t.test(
         "changed branch mapping rejects a previously queued sync",
         async () => {
-          await database
-            .update(sourceEnvironments)
-            .set({ mappingRevision: randomUUID(), branch: "next" })
-            .where(eq(sourceEnvironments.id, staging!.id));
-          await assert.rejects(sync(staging!), /mapping changed/);
-          assert.deepEqual((await readSecretMetadata(slot)).keys, [
-            "ADDED",
-            "EMPTY",
-          ]);
+          const { assertStaleSync } =
+            await import("./environment-sync-retry-tests.js");
+          await assertStaleSync(
+            staging!,
+            () => sync(staging!),
+            () => readSecretMetadata(slot),
+          );
         },
       );
     } finally {

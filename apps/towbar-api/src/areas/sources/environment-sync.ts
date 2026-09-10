@@ -50,10 +50,21 @@ export async function executeEnvironmentSync(
         "STALE_ENVIRONMENT_SYNC",
       );
     }
-    await database
+    const [started] = await database
       .update(sourceSyncs)
       .set({ status: "running", startedAt: new Date() })
-      .where(eq(sourceSyncs.id, sync.id));
+      .where(
+        and(eq(sourceSyncs.id, sync.id), ne(sourceSyncs.status, "succeeded")),
+      )
+      .returning({ id: sourceSyncs.id });
+    if (!started) {
+      const [completed] = await database
+        .select()
+        .from(sourceSyncs)
+        .where(eq(sourceSyncs.id, sync.id));
+      if (!completed) throw notFound("Environment sync");
+      return completed;
+    }
     const snapshot = await dependencies.snapshot({
       ...source,
       branch: environment.branch,

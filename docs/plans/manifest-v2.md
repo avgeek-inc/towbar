@@ -531,3 +531,18 @@ with the new sample connection; no hosted source or secrets were changed.
 Remote CI passed for implementation commit `85487ab`: verify, docs, compose,
 monitoring-agent and all CodeQL analyses. Mintlify deployment/link checks passed;
 its optional spelling check was skipped.
+
+### Sync retry completion race
+
+The final sync audit found that a delayed retry could overwrite `succeeded` with
+`running` after another worker completed the same sync. The start update now
+atomically excludes successful jobs and returns the completed record when no row
+is updated, without fetching or reconciling again.
+
+A PostgreSQL regression locks the sync row, observes the retry waiting on its
+status update, marks the job complete in the winning transaction, then releases
+the lock. It requires the retry to return success without a repository fetch and
+checks the persisted status. All 229 API tests passed against PostgreSQL without
+skips. After extracting the shared snapshot fixture to keep the test file within
+its lint limit, all 15 environment integration tests, API lint and typecheck
+passed. This correction needs current-head CI before review readiness.
