@@ -2,7 +2,7 @@ import { assertEnvironmentSyncReporting } from "./environment-status-tests.js";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
-import type { apps} from "@workspace/towbar-database/schema";
+import type { apps } from "@workspace/towbar-database/schema";
 import { sourceSyncs } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import {
@@ -65,7 +65,11 @@ export async function assertInstanceQueryIdentity({
       /not found/i,
     );
   }
-  for (const column of ["entity_id", "source_environment_id"]) {
+  for (const column of [
+    "entity_id",
+    "source_environment_id",
+    "required_secrets",
+  ]) {
     await assert.rejects(
       database.execute(
         sql`update towbar_apps set ${sql.identifier(column)} = null where id = ${stage.id}`,

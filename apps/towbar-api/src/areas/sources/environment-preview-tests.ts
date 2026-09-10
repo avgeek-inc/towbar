@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { isNormalizedResource } from "@workspace/towbar-core";
 import { sourceEnvironments } from "@workspace/towbar-database/schema";
-import type { apps , servers} from "@workspace/towbar-database/schema";
+import type { apps, servers } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { getInstanceEnvironment } from "../apps/instance-environment.js";
 

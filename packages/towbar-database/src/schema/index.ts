@@ -934,7 +934,9 @@ export const apps = pgTable(
     sourceEnvironmentId: uuid("source_environment_id")
       .notNull()
       .references(() => sourceEnvironments.id, { onDelete: "cascade" }),
-    requiredSecrets: jsonb("required_secrets").$type<RequiredSecrets>(),
+    requiredSecrets: jsonb("required_secrets")
+      .$type<RequiredSecrets>()
+      .notNull(),
     manifestId: varchar("manifest_id", { length: 63 }).notNull(),
     kind: deployableKindEnum("kind").default("app").notNull(),
     name: varchar("name", { length: 120 }).notNull(),

@@ -39,5 +39,9 @@ export async function testInstanceLinks(
       ),
     );
   if (!environment || !entity) throw new Error("Unable to seed instance links");
-  return { sourceEnvironmentId: environment.id, entityId: entity.id };
+  return {
+    sourceEnvironmentId: environment.id,
+    entityId: entity.id,
+    requiredSecrets: { build: [], runtime: [], preDeploy: [], postDeploy: [] },
+  };
 }

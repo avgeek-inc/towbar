@@ -407,6 +407,13 @@
       "when": 1789068861845,
       "tag": "0057_worried_bloodstorm",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1789069131951,
+      "tag": "0058_premium_tarantula",
+      "breakpoints": true
     }
   ]
 }

@@ -91,6 +91,11 @@ export async function materializeEnvironment(
       repositoryTree: tree,
       server: server.config,
     });
+    const declarations = input.requiredSecrets[`${entityType}:${entity.id}`];
+    if (!declarations)
+      throw new Error(
+        "Missing required secret declarations for resolved entity",
+      );
     const values = {
       workspaceId,
       sourceId: input.sourceId,
@@ -106,7 +111,7 @@ export async function materializeEnvironment(
       deploymentDigest: digest.deploymentDigest,
       sourceInputDigest: digest.sourceInputDigest,
       sourceRevision: input.commitSha,
-      requiredSecrets: input.requiredSecrets[`${entityType}:${entity.id}`],
+      requiredSecrets: declarations,
       archivedAt: null,
       updatedAt: new Date(),
     };
@@ -120,7 +125,7 @@ export async function materializeEnvironment(
           .insert(apps)
           .values(values)
           .returning({ id: apps.id });
-    if (!instance || !values.requiredSecrets)
+    if (!instance)
       throw new Error("Instance secret declarations were not resolved");
     await reconcileInstanceSecretDeclarations(
       {

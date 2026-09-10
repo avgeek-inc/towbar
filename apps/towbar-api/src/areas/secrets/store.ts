@@ -122,9 +122,7 @@ async function declaredKeysForSlot(slot: SecretSlot, database: SecretDatabase) {
       "SECRET_ENVIRONMENT_MISMATCH",
     );
   }
-  return instance.declarations
-    ? requiredKeysForStage(instance.declarations, slot.stage)
-    : [];
+  return requiredKeysForStage(instance.declarations, slot.stage);
 }
 
 export async function readSecretMetadata(
