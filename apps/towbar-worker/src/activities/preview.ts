@@ -40,6 +40,7 @@ export async function executePreviewCleanupActivity(
   const [contextResponse, secrets] = await Promise.all([
     signedApiRequest<{
       context: PreviewCleanupContext;
+      cleanupAttempt: number;
       latestDeploymentId: string | null;
     }>("GET", `/v1/internal/previews/${previewEnvironmentId}/cleanup/context`),
     signedApiRequest<{
@@ -62,9 +63,13 @@ export async function executePreviewCleanupActivity(
         hostname: contextResponse.context.hostname,
       });
     }
-    await recordCleanupResult(previewEnvironmentId, { succeeded: true });
+    await recordCleanupResult(previewEnvironmentId, {
+      succeeded: true,
+      cleanupAttempt: contextResponse.cleanupAttempt,
+    });
   } catch (error) {
     await recordCleanupResult(previewEnvironmentId, {
+      cleanupAttempt: contextResponse.cleanupAttempt,
       errorMessage: safeErrorMessage(error),
       succeeded: false,
     }).catch(() => undefined);
@@ -74,7 +79,7 @@ export async function executePreviewCleanupActivity(
 
 async function recordCleanupResult(
   previewEnvironmentId: string,
-  result: { errorMessage?: string; succeeded: boolean },
+  result: { cleanupAttempt: number; errorMessage?: string; succeeded: boolean },
 ) {
   await signedApiRequest(
     "POST",

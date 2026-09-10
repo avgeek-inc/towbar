@@ -212,6 +212,55 @@ export async function assertDeploymentSecretSnapshot({
       })
       .where(eq(deployments.id, id));
     await assert.rejects(resolveDeploymentSecrets(id), /PR_ONLY/);
+    const { recordPreviewCleanupResult, getPreviewCleanupContext } =
+      await import("../previews/cleanup.js");
+    await database
+      .update(previewEnvironments)
+      .set({ status: "healthy", cleanupAttempts: 1 })
+      .where(eq(previewEnvironments.id, previewId));
+    assert.deepEqual(
+      await recordPreviewCleanupResult(previewId, {
+        cleanupAttempt: 1,
+        succeeded: true,
+      }),
+      { accepted: false },
+    );
+    await assert.rejects(
+      getPreviewCleanupContext(previewId),
+      /not awaiting cleanup/,
+    );
+    await database
+      .update(previewEnvironments)
+      .set({ status: "deleting", cleanupAttempts: 2 })
+      .where(eq(previewEnvironments.id, previewId));
+    assert.equal((await getPreviewCleanupContext(previewId)).cleanupAttempt, 2);
+    assert.deepEqual(
+      await recordPreviewCleanupResult(previewId, {
+        cleanupAttempt: 1,
+        succeeded: true,
+      }),
+      { accepted: false },
+    );
+    const [unchanged] = await database
+      .select()
+      .from(previewEnvironments)
+      .where(eq(previewEnvironments.id, previewId));
+    assert.equal(unchanged!.status, "deleting");
+    assert.deepEqual(
+      await recordPreviewCleanupResult(previewId, {
+        cleanupAttempt: 2,
+        succeeded: false,
+        errorMessage: "test failure",
+      }),
+      { accepted: true },
+    );
+    assert.deepEqual(
+      await recordPreviewCleanupResult(previewId, {
+        cleanupAttempt: 2,
+        succeeded: true,
+      }),
+      { accepted: false },
+    );
   } finally {
     await database.delete(deployments).where(eq(deployments.id, id));
     await database

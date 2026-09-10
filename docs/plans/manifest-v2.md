@@ -353,3 +353,23 @@ verification used the refreshed local web build; the running fixture retained
 its older generic error payload. The updated fixture response matches the API's
 structured error shape, and its regression verifies `Branch was not found`.
 All 23 fixture API tests, web typecheck, scoped lint and web build passed.
+
+### Cleanup attempt guards and CI database verification
+
+Preview cleanup results now require the attempt number returned by cleanup
+context. The database update accepts only the same attempt while the preview is
+still deleting; rejected callbacks cannot supersede release records or publish
+cleanup notifications. The worker includes the attempt in both result paths.
+The PostgreSQL regression exercises a healthy preview, an older attempt, an
+accepted failure, and a late success after that failure.
+
+CI at 4372d9d exposed a historical migration test applying the full v2 schema to
+populated 1.x rows. That test now stops at its workspace-cleanup migration. A
+separate fresh-install test applies all migrations twice and checks the required
+v2 columns. This does not add support for upgrading populated 1.x installations.
+
+Validation: API/worker typecheck and lint passed; the environment integration
+suite passed 14 tests. Repository `pnpm test` with the dedicated PostgreSQL URL
+passed all 11 tasks, including 228 API tests without skips. Optional native Docker
+tests remain separate from this gate. Full PR lifecycle and screenshot work
+listed above are still outstanding.
