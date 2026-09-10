@@ -87,10 +87,11 @@ Set `TOWBAR_VULNERABILITY_SCANNING_ENABLED=true` to make image scanning
 available to Sources. Each App must then opt in explicitly in its deployment
 manifest:
 
-```yaml
-apps:
-  - id: hello-towbar
-    vulnerabilityScanning: true
+```yaml title=".towbar/apps/hello-towbar.app.yml"
+id: hello-towbar
+vulnerabilityScanning: true
+environments:
+  production: {}
 ```
 
 Towbar queues a scan of that App's immutable image digest after each successful

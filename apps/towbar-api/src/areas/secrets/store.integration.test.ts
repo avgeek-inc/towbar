@@ -67,7 +67,7 @@ void test(
       serverId = randomUUID(),
       appId = randomUUID();
     const manifest = normalizeDeploymentManifest({
-      version: 1,
+      version: 2,
       apps: [
         {
           id: "app",

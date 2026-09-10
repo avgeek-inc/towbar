@@ -50,7 +50,7 @@ void test(
       ssh: { username: "deploy" },
     });
     const appConfig = normalizeDeploymentManifest({
-      version: 1,
+      version: 2,
       apps: [
         {
           id: "app",

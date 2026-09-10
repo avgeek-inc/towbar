@@ -35,55 +35,67 @@ A retained recovery point keeps its original storage provider and location. Chan
 
 This complete manifest creates a PostgreSQL resource with daily backups at 03:00 UTC, retains the latest 14 recovery points, and replicates backups to AWS S3 and Google Cloud Storage:
 
-```yaml
-version: 1
-source:
-  branch: main
-resources:
-  - id: database
-    name: Primary database
-    type: postgres
-    image: postgres:17-alpine
-    server: 203.0.113.10
-    backup:
-      schedule:
-        cron: "0 3 * * *"
-        timezone: UTC
-      retention:
-        keepLast: 14
-      s3:
-        bucket: example-production-backups
-        prefix: databases
-        region: ap-south-1
-        encryption: AES256
-      gcs:
-        bucket: example-gcs-backups
-        prefix: databases
-        region: asia-south1
-      restoreFrom: s3
+```yaml title="towbar.yml"
+version: 2
+environments:
+  production:
+    previews:
+      enabled: true
+```
+
+```yaml title=".towbar/resources/database.resource.yml"
+id: database
+name: Primary database
+type: postgres
+image: postgres:17-alpine
+server: production-server
+backup:
+  schedule:
+    cron: 0 3 * * *
+    timezone: UTC
+  retention:
+    keepLast: 14
+  s3:
+    bucket: example-production-backups
+    prefix: databases
+    region: ap-south-1
+    encryption: AES256
+  gcs:
+    bucket: example-gcs-backups
+    prefix: databases
+    region: asia-south1
+  restoreFrom: s3
+environments:
+  production: {}
 ```
 
 You can also target Azure Blob Storage individually:
 
-```yaml
-version: 1
-source:
-  branch: main
-resources:
-  - id: cache
-    name: Redis cache
-    type: redis
-    server: 203.0.113.10
-    backup:
-      schedule:
-        cron: "0 4 * * *"
-        timezone: UTC
-      retention:
-        keepLast: 7
-      azureBlob:
-        storageAccount: prodbackups
-        container: database-archives
-        prefix: redis
+```yaml title="towbar.yml"
+version: 2
+environments:
+  production:
+    previews:
+      enabled: true
+```
+
+```yaml title=".towbar/resources/cache.resource.yml"
+id: cache
+name: Redis cache
+type: redis
+server: production-server
+backup:
+  schedule:
+    cron: 0 4 * * *
+    timezone: UTC
+  retention:
+    keepLast: 7
+  azureBlob:
+    storageAccount: prodbackups
+    container: database-archives
+    prefix: redis
+environments:
+  production: {}
 ```
 
 Replace the host and storage values, then save `POSTGRES_PASSWORD` in the resource's runtime secrets. Sync the Source and open **Resource → Settings → Backup**.

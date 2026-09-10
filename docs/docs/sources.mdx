@@ -3,14 +3,14 @@ title: "Sources"
 description: "Connect a repository and keep its deployable inventory in sync with Git."
 ---
 
-A Source connects a GitHub repository to Towbar. Its `.towbar/deployment.yml` defines the apps and resources Towbar can deploy, and `source.branch` identifies the production branch.
+A Source connects a GitHub repository to Towbar. Its `towbar.yml` declares environments, and files under `.towbar/apps` and `.towbar/resources` define workloads. Each connected environment follows a branch selected in Towbar.
 
 ## Add a Source
 
 1. [Connect the GitHub App](/docs/integrations/github) and grant access to the repository.
-2. Add every target IP under [Servers](/docs/servers).
+2. Register each target under [Servers](/docs/servers) and assign a unique slug.
 3. Commit a valid [manifest](/docs/reference/deployment-manifest) to the repository.
-4. Open **Sources → Add source** and select the repository.
+4. Open **Sources → Add source**, select the repository and discovery branch, then choose environments and map their deployment branches.
 5. Open the sync result and confirm it succeeded. The imported apps and resources should now appear under the Source.
 
 Manifest validation is atomic. Invalid configuration or a reference to an unregistered server fails the sync without partially changing inventory.
@@ -42,7 +42,7 @@ Manifest validation is atomic. Invalid configuration or a reference to an unregi
 
 ## Change configuration
 
-Edit the manifest in Git and merge it into the production branch. A push webhook starts reconciliation; **Sync now** lets you request it explicitly. Review the sync's commit and issues before expecting a deployment.
+Edit the entity files in Git and merge into the affected environment's mapped branch. A push webhook starts reconciliation; **Sync now** lets you request it explicitly. Review the sync's commit and issues before expecting a deployment.
 
 Rename the display `name` freely, but preserve each workload's `id`. Removing an ID archives that workload. Reintroducing the same ID and kind restores its identity and history.
 
@@ -54,7 +54,7 @@ Manual deployment is still a separate action. See [Deployments and releases](/do
 
 ## Source settings
 
-Use **Settings → Secrets** for values shared by this Source's workloads, with separate production and preview environments. Use **Settings → Notifications** to choose destinations and event categories. SSH and Cloudflare credentials belong to the workspace server rather than the Source.
+Use **Settings → Secrets** for values shared by this Source's workloads, with separate named environments and isolated preview values. Use **Settings → Notifications** to choose destinations and event categories. SSH and Cloudflare credentials belong to the workspace server rather than the Source.
 
 If a repository is missing or a webhook stops arriving, start with [GitHub troubleshooting](/docs/integrations/github#maintain-the-connection).
 

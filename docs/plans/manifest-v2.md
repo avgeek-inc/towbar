@@ -1,3 +1,8 @@
+---
+title: "Manifest v2 implementation plan"
+description: "Delivery requirements and verification checkpoints for environment-scoped configuration."
+---
+
 # Manifest v2 implementation
 
 Status: in progress. Release as 2.0.0 after review and merge; do not publish during implementation.

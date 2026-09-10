@@ -53,24 +53,30 @@ verification of image provenance or security.
 
 ## Add a database
 
-```yaml
-version: 1
-source:
-  branch: main
-resources:
-  - id: database
-    name: Primary database
-    type: postgres
-    image: postgres:17-alpine
-    server: 203.0.113.10
-    container:
-      network: app-network
-      resources:
-        cpus: 1
-        memory: 1g
-    access:
-      sshTunnel:
-        hostPort: 15432
+```yaml title="towbar.yml"
+version: 2
+environments:
+  production:
+    previews:
+      enabled: true
+```
+
+```yaml title=".towbar/resources/database.resource.yml"
+id: database
+name: Primary database
+type: postgres
+image: postgres:17-alpine
+server: production-server
+container:
+  network: app-network
+  resources:
+    cpus: 1
+    memory: 1g
+access:
+  sshTunnel:
+    hostPort: 15432
+environments:
+  production: {}
 ```
 
 Register the server, then save `POSTGRES_PASSWORD` under **Resource → Settings → Secrets**. Redis resources use `REDIS_PASSWORD`. These values are production runtime secrets and never belong in YAML.

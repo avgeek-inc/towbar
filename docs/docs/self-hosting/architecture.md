@@ -34,7 +34,7 @@ flowchart LR
   SSH --> Host[Ubuntu: Docker and Caddy]
 ```
 
-Each Source is a GitHub repository with a `.towbar/deployment.yml`. Successful
+Each Source is a GitHub repository with a `towbar.yml` and the entity files under `.towbar/`. Successful
 syncs normalize Apps and Resources into Source-scoped database records. Servers
 are workspace-owned physical hosts and may run workloads from multiple Sources.
 The optional AWS credential is workspace-scoped. Deployment history and

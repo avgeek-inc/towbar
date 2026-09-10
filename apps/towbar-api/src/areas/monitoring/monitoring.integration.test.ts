@@ -338,7 +338,7 @@ void test(
             branch: "main",
           });
           const config = normalizeDeploymentManifest({
-            version: 1,
+            version: 2,
             apps: [
               {
                 id: "app",

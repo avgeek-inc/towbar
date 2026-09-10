@@ -12,8 +12,8 @@ Towbar connects the configuration in Git to the services running on your servers
 | Workspace  | The boundary for servers, shared secrets, and integrations             | Towbar                                                 |
 | Source     | A GitHub repository and its production branch                          | Repository selection in Towbar; branch in the manifest |
 | Server     | One Ubuntu host, identified by its canonical IP                        | Towbar                                                 |
-| App        | A service built from a Dockerfile                                      | `.towbar/deployment.yml`                               |
-| Resource   | A service run from an image, including PostgreSQL and Redis            | `.towbar/deployment.yml`                               |
+| App        | A service built from a Dockerfile                                      | `towbar.yml` and the entity files under `.towbar/`     |
+| Resource   | A service run from an image, including PostgreSQL and Redis            | `towbar.yml` and the entity files under `.towbar/`     |
 | Deployment | One attempt to build or pull, start, check, and promote a workload     | Queued manually or by policy                           |
 | Release    | A retained result that identifies the deployed image and configuration | Recorded by Towbar                                     |
 | Preview    | An app environment associated with a pull request                      | Enabled per app in the manifest                        |

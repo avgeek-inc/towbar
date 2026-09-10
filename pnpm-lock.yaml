@@ -467,6 +467,9 @@ importers:
       eslint:
         specifier: "catalog:"
         version: 9.39.5(jiti@2.7.0)
+      prettier:
+        specifier: "catalog:"
+        version: 3.9.6
       tsx:
         specifier: ^4.23.13
         version: 4.23.13

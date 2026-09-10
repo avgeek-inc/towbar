@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "version": { "type": "number", "const": 2 },
+    "environments": {
+      "type": "object",
+      "propertyNames": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]{0,62}$",
+        "not": {
+          "enum": [
+            "preview",
+            "previews",
+            "__proto__",
+            "constructor",
+            "prototype"
+          ]
+        }
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "previews": {
+            "type": "object",
+            "properties": { "enabled": { "type": "boolean" } },
+            "required": ["enabled"],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "minProperties": 1
+    }
+  },
+  "required": ["version", "environments"],
+  "additionalProperties": false,
+  "$id": "https://www.towbar.dev/schemas/repository.v2.json"
+}

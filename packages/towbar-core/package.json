@@ -13,16 +13,20 @@
     "./resource-operations": "./dist/resource-operations.js",
     "./security": "./dist/security.js",
     "./temporal": "./dist/temporal.js",
-    "./schema": "./schemas/deployment.v1.json",
+    "./schema": "./schemas/repository.v2.json",
     "./scout-alerts": "./dist/scout-alerts.js",
     "./deployment-comparison": "./dist/deployment-comparison.js",
-    "./inventory": "./dist/inventory.js"
+    "./inventory": "./dist/inventory.js",
+    "./schema/app": "./schemas/app.v2.json",
+    "./schema/resource": "./schemas/resource.v2.json"
   },
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "lint": "eslint . --max-warnings 0",
-    "test": "tsx --test \"src/**/*.test.ts\"",
-    "typecheck": "tsc --noEmit"
+    "test": "pnpm schemas:check && tsx --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "schemas": "tsx scripts/export-manifest-schemas.ts",
+    "schemas:check": "tsx scripts/export-manifest-schemas.ts --check"
   },
   "dependencies": {
     "croner": "^10.0.1",
@@ -36,6 +40,7 @@
     "@workspace/typescript-config": "workspace:*",
     "eslint": "catalog:",
     "tsx": "^4.23.13",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "prettier": "catalog:"
   }
 }

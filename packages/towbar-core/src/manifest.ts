@@ -4,12 +4,10 @@ import { isIP } from "node:net";
 import path from "node:path";
 
 import { Cron } from "croner";
-import { parseDocument } from "yaml";
 import { z } from "zod";
 
 import {
   canonicalIp,
-  digestValue,
   findDuplicates,
   isValidBranchName,
   normalizeDomain,
@@ -25,7 +23,6 @@ export {
   validateServerLoginSecret,
 } from "./manifest-values.js";
 
-const MAX_MANIFEST_BYTES = 256 * 1_024;
 const appIdPattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const deploymentInputGroupPattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const dockerNetworkPattern = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/;
@@ -666,9 +663,9 @@ export const resourceSchema = z
     }
   });
 
-export const deploymentManifestSchema = z
+export const resolvedDeploymentManifestSchema = z
   .object({
-    version: z.union([z.literal(1), z.literal(2)]),
+    version: z.literal(2),
     deploymentInputs: z
       .record(
         z.string().regex(deploymentInputGroupPattern),
@@ -686,30 +683,16 @@ export const deploymentManifestSchema = z
   })
   .strict()
   .superRefine((manifest, context) => {
-    if (
-      manifest.version === 1 &&
-      (manifest.apps?.length ?? 0) + (manifest.resources?.length ?? 0) < 1
-    ) {
-      context.addIssue({
-        code: "custom",
-        message: "Declare at least one app or resource",
-        path: [],
-      });
-    }
     const deployables = [
       ...(manifest.apps ?? []),
       ...(manifest.resources ?? []),
     ];
-    findDuplicates(
-      manifest.version === 1
-        ? deployables.map((deployable) => deployable.id)
-        : [
-            ...(manifest.apps ?? []).map((app) => `app:${app.id}`),
-            ...(manifest.resources ?? []).map(
-              (resource) => `resource:${resource.id}`,
-            ),
-          ],
-    ).forEach((id) =>
+    findDuplicates([
+      ...(manifest.apps ?? []).map((app) => `app:${app.id}`),
+      ...(manifest.resources ?? []).map(
+        (resource) => `resource:${resource.id}`,
+      ),
+    ]).forEach((id) =>
       context.addIssue({
         code: "custom",
         message: `Deployable id '${id}' is declared more than once`,
@@ -835,7 +818,9 @@ export const deploymentManifestSchema = z
     });
   });
 
-export type DeploymentManifestInput = z.input<typeof deploymentManifestSchema>;
+export type DeploymentManifestInput = z.input<
+  typeof resolvedDeploymentManifestSchema
+>;
 
 export type NormalizedServer = {
   buildConcurrency: number;
@@ -945,7 +930,7 @@ export type NormalizedDeploymentManifest = {
   apps: NormalizedApp[];
   resources?: NormalizedResource[];
   source: { branch: string };
-  version: 1 | 2;
+  version: 2;
 };
 
 export type ManifestIssue = {
@@ -965,72 +950,10 @@ export class ManifestValidationError extends Error {
   }
 }
 
-export function parseDeploymentManifest(source: string) {
-  if (Buffer.byteLength(source, "utf8") > MAX_MANIFEST_BYTES) {
-    throw new ManifestValidationError([
-      {
-        message: `Manifest exceeds the ${MAX_MANIFEST_BYTES}-byte limit`,
-        path: [],
-      },
-    ]);
-  }
-
-  const document = parseDocument(source, {
-    prettyErrors: false,
-    strict: true,
-    uniqueKeys: true,
-  });
-  if (document.errors.length > 0) {
-    throw new ManifestValidationError(
-      document.errors.map((error) => ({
-        ...(error.linePos?.[0]
-          ? {
-              column: error.linePos[0].col,
-              line: error.linePos[0].line,
-            }
-          : {}),
-        message: error.message,
-        path: [],
-      })),
-    );
-  }
-
-  let value: unknown;
-  try {
-    value = document.toJS({ maxAliasCount: 0 });
-  } catch (error) {
-    throw new ManifestValidationError([
-      {
-        message:
-          error instanceof Error ? error.message : "Unable to decode YAML",
-        path: [],
-      },
-    ]);
-  }
-
-  const result = deploymentManifestSchema.safeParse(value);
-  if (!result.success) {
-    throw new ManifestValidationError(
-      result.error.issues.map((issue) => ({
-        message: issue.message,
-        path: issue.path.map((part) =>
-          typeof part === "symbol" ? (part.description ?? "symbol") : part,
-        ),
-      })),
-    );
-  }
-
-  const manifest = normalizeDeploymentManifest(result.data);
-  return {
-    digest: digestValue(manifest),
-    manifest,
-  };
-}
-
 export function normalizeDeploymentManifest(
   manifest: DeploymentManifestInput,
 ): NormalizedDeploymentManifest {
-  const parsed = deploymentManifestSchema.parse(manifest);
+  const parsed = resolvedDeploymentManifestSchema.parse(manifest);
   const sourceBranch = parsed.source?.branch ?? "main";
   return {
     version: parsed.version,

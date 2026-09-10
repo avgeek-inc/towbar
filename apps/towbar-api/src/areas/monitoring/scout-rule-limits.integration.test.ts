@@ -91,7 +91,7 @@ void test(
         branch: "main",
       });
       const manifest = normalizeDeploymentManifest({
-        version: 1,
+        version: 2,
         resources: [
           {
             id: "database",

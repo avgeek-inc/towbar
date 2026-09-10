@@ -88,7 +88,7 @@ void test(
         branch: "main",
       });
       const manifest = normalizeDeploymentManifest({
-        version: 1,
+        version: 2,
         apps: [
           {
             id: "app",
@@ -171,7 +171,7 @@ void test(
         async () => {
           await db.delete(apps).where(eq(apps.id, appId));
           const resource = normalizeDeploymentManifest({
-            version: 1,
+            version: 2,
             resources: [
               { id: "db", name: "DB", type: "postgres", server: config.ip },
             ],

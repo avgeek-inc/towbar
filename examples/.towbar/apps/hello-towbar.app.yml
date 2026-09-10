@@ -1,0 +1,40 @@
+id: hello-towbar
+name: Hello Towbar
+description: A Dockerfile application deployed by Towbar.
+dockerfile: Dockerfile
+context: .
+vulnerabilityScanning: true
+autoDeploy:
+  inputs:
+    - Dockerfile
+    - package.json
+    - src/**
+container:
+  port: 3000
+  resources:
+    cpus: 0.5
+    memory: 512m
+health:
+  path: /health
+  timeoutSeconds: 60
+tls:
+  mode: direct
+environments:
+  production:
+    server: production-server
+    domains:
+      primary: hello.example.com
+  staging:
+    server: staging-server
+    domains:
+      primary: staging.example.com
+preview:
+  enabled: true
+  domain: preview.example.com
+  ttlHours: 72
+secrets:
+  build: []
+  runtime:
+    - DATABASE_URL
+  preDeploy: []
+  postDeploy: []

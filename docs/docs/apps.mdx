@@ -32,33 +32,39 @@ An app is a service built from a Dockerfile in your Source repository. Towbar tr
 
 ## Define an app
 
-This complete manifest runs a service that listens on port 3000 and responds at `/health`:
+These files define a service that listens on port 3000 and responds at `/health`:
 
-```yaml
-version: 1
-source:
-  branch: main
-apps:
-  - id: web
-    name: Web
-    server: 203.0.113.10
-    dockerfile: Dockerfile
-    context: .
-    container:
-      port: 3000
-      resources:
-        cpus: 1
-        memory: 1g
-    health:
-      path: /health
-      timeoutSeconds: 60
-    domains:
-      primary: app.example.com
-    tls:
-      mode: direct
+```yaml title="towbar.yml"
+version: 2
+environments:
+  production:
+    previews:
+      enabled: true
 ```
 
-Replace the IP and domain, register the server, and point DNS at it before deploying. The Dockerfile must be inside the declared context. Configure the process to listen on the container's network interface, not only on its loopback address.
+```yaml title=".towbar/apps/web.app.yml"
+id: web
+name: Web
+server: production-server
+dockerfile: Dockerfile
+context: .
+container:
+  port: 3000
+  resources:
+    cpus: 1
+    memory: 1g
+health:
+  path: /health
+  timeoutSeconds: 60
+domains:
+  primary: app.example.com
+tls:
+  mode: direct
+environments:
+  production: {}
+```
+
+Replace the server slug and domain, register the server, and point DNS at it before deploying. The Dockerfile must be inside the declared context. Configure the process to listen on the container's network interface, not only on its loopback address.
 
 ## Choose a health endpoint
 

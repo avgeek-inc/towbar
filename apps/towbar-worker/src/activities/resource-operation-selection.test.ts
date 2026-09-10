@@ -4,7 +4,7 @@ import { normalizeDeploymentManifest } from "@workspace/towbar-core";
 import { initializeBackupStorages } from "./resource-operation.js";
 
 const deployable = normalizeDeploymentManifest({
-  version: 1,
+  version: 2,
   resources: [
     {
       id: "db",

@@ -40,7 +40,7 @@ export async function assertScoutWorkloadLinks(
     branch: "main",
   });
   const manifest = normalizeDeploymentManifest({
-    version: 1,
+    version: 2,
     apps: [
       {
         id: "app",
