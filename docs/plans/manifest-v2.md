@@ -180,10 +180,10 @@ tests. Do not reset the hosted installation or use its database.
 This list supersedes earlier pending-work notes in the chronological evidence
 below. It does not treat fixture coverage as real deployment proof.
 
-1. Complete backup archive download/import/restore execution against isolated
-   environment instances. Admission and execution check resource/source/workspace
-   ownership; real Redis promotion and sibling-data isolation passed separately.
-   Full archive transport/import remains unproven.
+1. Review the Redis restore correction and its completed backup/import lifecycle
+   evidence below. Admission and execution check resource/source/workspace
+   ownership separately; cloud-provider transport is not exercised by the local
+   storage adapter.
 2. Finish the rendered UI and label audit against current fixtures: Source-scoped
    inventory, environment controls, readiness, Form/File secret editing and
    permalinks. Existing browser checks and refreshed screenshots are recorded
@@ -490,3 +490,24 @@ not runtime assertions in this harness. Final scope audit remains outstanding.
 
 The final generated API response/catalogue check (`pnpm docs:api:check`) also
 passed at the `ed6050e` implementation checkpoint.
+
+### Backup/restore runtime result and Redis fix
+
+The isolated backup lifecycle exposed a real Redis restore defect: managed Redis
+starts with AOF enabled, so copying an RDB and starting the candidate with that
+configuration produced an empty database even though health checks passed.
+The restore now loads the snapshot with AOF disabled, enables AOF and waits for
+its rewrite to complete before promoting the candidate volume.
+
+`TOWBAR_TEST_BACKUP=1 node tools/e2e/resource-lifecycle.mjs` now passes real Redis
+export, SSH archive transfer, corrupted-download checksum rejection, candidate
+import and promotion. Staging recovers its backed-up value; production retains
+its own value. Previous volume retention, instance ownership and removal of
+candidate containers are asserted. The temporary target was removed afterward.
+The deployer suite passed 128 tests, with its two explicit Docker opt-ins skipped;
+the lifecycle run is separate actual Docker evidence.
+
+The adapter keeps actual backup bytes/metadata in memory instead of calling a
+cloud provider. Cloud SDK transport, operation API admission and database result
+persistence remain separate coverage; this result closes the archive/import
+runtime gap, not those boundaries.

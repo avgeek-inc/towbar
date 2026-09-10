@@ -11,6 +11,11 @@ import {
 } from "../../packages/towbar-deployer/dist/index.js";
 import { startTestTarget } from "./target.mjs";
 
+const backupLifecycle = process.env.TOWBAR_TEST_BACKUP === "1";
+assert(
+  !backupLifecycle || !process.env.TOWBAR_TEST_DATABASE_URL,
+  "Backup runner currently uses deployer-only mode",
+);
 const target = await startTestTarget();
 let database;
 let temporal;
@@ -58,6 +63,7 @@ try {
     }).resources[0];
     if (failHealth)
       app.health = { type: "command", command: ["false"], timeoutSeconds: 2 };
+    if (!failHealth) instance.app = app;
     const previous = instance.current;
     const execution = database
       ? await database.prepare(name, app, !temporal)
@@ -141,6 +147,18 @@ try {
   if (database)
     await database.verify(instances, temporal ? "failed" : "checking_health");
   if (temporal) await temporal.verify();
+  if (backupLifecycle) {
+    const { runBackupLifecycle } =
+      await import("./resource-backup-lifecycle.mjs");
+    await runBackupLifecycle({
+      target,
+      server,
+      trustedHostKeys,
+      sourceId,
+      instances,
+      redis,
+    });
+  }
   console.log(
     "Production/staging data isolation, redeployment, failed-health recovery and candidate cleanup verified.",
   );

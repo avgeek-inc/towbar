@@ -229,3 +229,24 @@ reconciliation service directly; webhook authentication and the event-dispatch
 workflow are outside this test. Local TLS uses the process-scoped test CA, not
 public ACME. Rebuild both services before running to avoid testing stale compiled
 worker/API contracts.
+
+## Redis backup and restore lifecycle
+
+```sh
+pnpm --filter @workspace/towbar-deployer build
+TOWBAR_TEST_BACKUP=1 node tools/e2e/resource-lifecycle.mjs
+```
+
+Run this mode without database/Temporal environment variables. After deploying
+independent production/staging Redis instances, it exports a real RDB backup over
+SSH, stores its bytes and metadata in an in-memory storage adapter, changes the
+staging value, and restores the backup through `executeResourceOperation`.
+A corrupted download must fail checksum validation without changing the running
+database. The valid backup must pass import, candidate validation and promotion,
+recover staging's saved value, retain the previous volume and leave production's
+value unchanged. Runtime ownership and candidate-container cleanup are checked.
+
+This exercises real Redis persistence, archive transfer, checksum validation,
+remote import and promotion. The storage adapter replaces cloud object storage;
+it does not prove cloud-provider transport, API admission or operation-result
+persistence. The target and all its volumes are removed on completion.

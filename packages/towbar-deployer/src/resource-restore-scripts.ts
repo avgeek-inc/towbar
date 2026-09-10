@@ -92,8 +92,11 @@ if test "$kind" = redis; then
     --mount "type=bind,src=$backup_path,dst=/tmp/towbar-restore.rdb,readonly" \
     --mount "type=volume,src=$volume,dst=$mount_path" \
     --entrypoint sh "$image" -c "cp /tmp/towbar-restore.rdb '$mount_path/dump.rdb'"
+  # Load the RDB before enabling AOF; starting with AOF enabled ignores the snapshot.
+  run_candidate sh -c 'exec redis-server --appendonly no --requirepass "$REDIS_PASSWORD"'
+else
+  run_candidate "$@"
 fi
-run_candidate "$@"
 deadline=$((SECONDS + 120))
 while true; do
   if test "$kind" = postgres && docker exec "$container" sh -c 'pg_isready -U "${"$"}{POSTGRES_USER:-postgres}" -d "${"$"}{POSTGRES_DB:-postgres}"' >/dev/null 2>&1; then break; fi
@@ -111,6 +114,14 @@ else
   docker exec "$container" redis-check-rdb "$mount_path/dump.rdb" >/dev/null
   docker exec "$container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning PING' | grep -Fxq PONG
   docker exec "$container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning DBSIZE' | grep -Eq '^[0-9]+$'
+  docker exec "$container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning CONFIG SET appendonly yes' | grep -Fxq OK
+  deadline=$((SECONDS + 120))
+  while true; do
+    persistence="$(docker exec "$container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning INFO persistence' | tr -d '\r')"
+    if grep -Fxq 'aof_enabled:1' <<<"$persistence" && grep -Fxq 'aof_rewrite_in_progress:0' <<<"$persistence" && grep -Fxq 'aof_rewrite_scheduled:0' <<<"$persistence" && grep -Fxq 'aof_last_bgrewrite_status:ok' <<<"$persistence"; then break; fi
+    if (( SECONDS >= deadline )); then exit 68; fi
+    sleep 1
+  done
 fi
 `;
 
