@@ -1,4 +1,8 @@
 "use client";
+import { useDetailNavigation } from "@/hooks/use-detail-navigation";
+import { usePageQuery, useQueryChoice } from "@/hooks/use-page-query";
+import { PageSelectionTitle } from "./page-selection-title";
+import { SecondaryItems } from "./secondary-sidebar";
 import {
   Add01Icon,
   ArrowLeft01Icon,
@@ -11,18 +15,19 @@ import {
   PackageIcon,
   PlayIcon,
   ReloadIcon,
-  RestoreBinIcon,
   Rocket01Icon,
   ServerStack01Icon,
+  RestoreBinIcon,
   SourceCodeIcon,
   ViewIcon,
   ViewOffSlashIcon,
 } from "@hugeicons/core-free-icons";
 
 import dynamic from "next/dynamic";
+import { Select, ListBox } from "@workspace/web-design-system/forms/select";
+import { Label } from "@workspace/web-design-system/forms/label";
 import { Tabs } from "@workspace/web-design-system/navigation/tabs";
 import { parseSecretEnv, serializeSecretEnv } from "@/lib/secret-env";
-import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -41,8 +46,6 @@ import { toast } from "@workspace/web-design-system/overlays/toast";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
-import { Select, ListBox } from "@workspace/web-design-system/forms/select";
-import { Label } from "@workspace/web-design-system/forms/label";
 
 const CodeEditor = dynamic(() => import("./code-editor"), {
   ssr: false,
@@ -56,7 +59,7 @@ export const stageLabels: Record<AppSecretStage, string> = {
 };
 
 export function AppSecrets({ appId }: { appId: string }) {
-  const active = useSearchParams().get("section") === "settings";
+  const active = useDetailNavigation().section === "settings";
   return (
     <EnvironmentSecretSettings
       active={active}
@@ -67,7 +70,7 @@ export function AppSecrets({ appId }: { appId: string }) {
 }
 
 export function ResourceSecrets({ resourceId }: { resourceId: string }) {
-  const active = useSearchParams().get("section") === "settings";
+  const active = useDetailNavigation().section === "settings";
   const endpoint = `/v1/core/resources/${resourceId}/secrets`;
   const query = useApiQuery<AppSecretsResponse>(active ? endpoint : null);
   if (!active) return null;
@@ -115,21 +118,59 @@ function EnvironmentSecretSettings({
   endpoint: string;
   scope: "global" | "source" | "app";
 }) {
-  const [environment, setEnvironment] = useState<"production" | "preview">(
+  const [environment] = useQueryChoice(
+    "environment",
+    ["production", "preview"],
     "production",
   );
+  const { update } = usePageQuery();
   const query = useApiQuery<AppSecretsResponse>(
     active ? `${endpoint}?environment=${environment}` : null,
   );
   if (!active) return null;
   return (
     <div className={scope === "global" ? "w-full" : "max-w-5xl"}>
+      {scope === "global" ? (
+        <PageSelectionTitle
+          icon={
+            <HugeiconsIcon
+              icon={
+                environment === "production" ? ServerStack01Icon : Rocket01Icon
+              }
+            />
+          }
+          label={`${environment === "production" ? "Production" : "Preview"} shared secrets`}
+        />
+      ) : null}
+      {scope === "global" ? (
+        <SecondaryItems
+          title="Environment"
+          selected={environment}
+          onSelect={(value) =>
+            update({ environment: value === "production" ? null : value })
+          }
+          items={[
+            {
+              id: "production",
+              label: "Production",
+              icon: <HugeiconsIcon icon={ServerStack01Icon} />,
+            },
+            {
+              id: "preview",
+              label: "Preview",
+              icon: <HugeiconsIcon icon={Rocket01Icon} />,
+            },
+          ]}
+        />
+      ) : null}
       <EnvironmentEditors
         key={environment}
         endpoint={endpoint}
         query={query}
-        environment={environment}
-        onEnvironmentChange={setEnvironment}
+        environment={scope !== "global" ? environment : undefined}
+        onEnvironmentChange={(value) =>
+          update({ environment: value === "production" ? null : value })
+        }
       />
     </div>
   );
@@ -141,10 +182,6 @@ const stageIcons = {
   pre_deploy: ArrowLeft01Icon,
   post_deploy: ArrowRight01Icon,
 };
-const environmentOptions = [
-  { value: "production", label: "Production", icon: ServerStack01Icon },
-  { value: "preview", label: "Preview", icon: Rocket01Icon },
-];
 
 function SecretSelector({
   label,
@@ -215,7 +252,11 @@ function SecretSelector({
         <Tabs.ListContainer className="w-fit max-w-full overflow-x-auto">
           <Tabs.List aria-label={label} className="min-w-max">
             {options.map((option) => (
-              <Tabs.Tab key={option.value} id={option.value} className="gap-2">
+              <Tabs.Tab
+                key={option.value}
+                id={option.value}
+                className="w-auto shrink-0 gap-2 whitespace-nowrap"
+              >
                 <HugeiconsIcon
                   aria-hidden="true"
                   icon={option.icon}
@@ -241,9 +282,13 @@ function EnvironmentEditors({
   query: Query;
   endpoint: string;
   environment?: "production" | "preview";
-  onEnvironmentChange?: (value: "production" | "preview") => void;
+  onEnvironmentChange?: (value: string) => void;
 }) {
-  const [stage, setStage] = useState<AppSecretStage>("build");
+  const [stage, setStage] = useQueryChoice(
+    "stage",
+    ["build", "deployment", "pre_deploy", "post_deploy"],
+    "build",
+  );
   const data = query.data;
   const binding =
     data?.bindings.find((item) => item.stage === stage) ?? data?.bindings[0];
@@ -252,18 +297,23 @@ function EnvironmentEditors({
       <div
         className={
           environment
-            ? "grid min-w-0 grid-cols-2 gap-3 md:grid-cols-1"
-            : "grid min-w-0"
+            ? "grid min-w-0 gap-3 grid-cols-2 md:grid-cols-1"
+            : "grid min-w-0 gap-3"
         }
       >
         {environment && onEnvironmentChange ? (
           <SecretSelector
             label="Secret environment"
             value={environment}
-            options={environmentOptions}
-            onChange={(value) =>
-              onEnvironmentChange(value as "production" | "preview")
-            }
+            onChange={onEnvironmentChange}
+            options={[
+              {
+                value: "production",
+                label: "Production",
+                icon: ServerStack01Icon,
+              },
+              { value: "preview", label: "Preview", icon: Rocket01Icon },
+            ]}
           />
         ) : null}
         {binding && data ? (
@@ -362,27 +412,32 @@ function SecretVariablesEditor({
         const entries: Array<[string, string]> = [];
         const stored = new Map<string, string>();
         const retained = keys.filter((key) => !deleted.includes(key));
-        for (let index = 0; index < retained.length; index += 8) {
-          const batch = await Promise.all(
-            retained.slice(index, index + 8).map(async (key) => {
-              if (Object.hasOwn(replacements, key))
-                return [key, replacements[key]!] as [string, string];
-              const result = await api.post<{
-                value: string;
-                revision: string | null;
-              }>(`${endpoint}/${binding.environment}/${binding.stage}/reveal`, {
-                key,
-              });
-              if (result.revision !== binding.revision)
-                throw new Error(
-                  "Secrets changed. Refresh before opening file mode.",
-                );
-              stored.set(key, result.value);
-              return [key, result.value] as [string, string];
-            }),
+        if (retained.length > 0) {
+          const result = await api.post<{
+            values: Record<string, string>;
+            revision: string | null;
+          }>(
+            `${endpoint}/${binding.environment}/${binding.stage}/reveal-all`,
+            {},
           );
           if (request !== modeRequest.current) return;
-          entries.push(...batch);
+          if (result.revision !== binding.revision)
+            throw new Error(
+              "Secrets changed. Refresh before opening file mode.",
+            );
+          for (const key of retained) {
+            if (!Object.hasOwn(result.values, key))
+              throw new Error(
+                "Secrets changed. Refresh before opening file mode.",
+              );
+            stored.set(key, result.values[key]!);
+            entries.push([
+              key,
+              Object.hasOwn(replacements, key)
+                ? replacements[key]!
+                : result.values[key]!,
+            ]);
+          }
         }
         for (const row of newKeys) {
           if (!row.key.trim() && !row.value) continue;

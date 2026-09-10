@@ -1,7 +1,14 @@
 "use client";
+import { SecondaryItems } from "./secondary-sidebar";
+import { MonitoringEntityPicker } from "./monitoring-entity-picker";
+import { useMonitoringSelection } from "@/hooks/use-monitoring-selection";
 import { ScoutIcon } from "./scout-icons";
 import { useState } from "react";
-import { AlertCircleIcon } from "@hugeicons/core-free-icons";
+import { useQueryChoice } from "@/hooks/use-page-query";
+import {
+  AlertCircleIcon,
+  CheckmarkCircle02Icon,
+} from "@hugeicons/core-free-icons";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -10,11 +17,8 @@ import {
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
 import { DashboardPage } from "./page-parts";
-import {
-  ScoutSelect,
-  conditionDescription,
-  scoutValue,
-} from "./scout-controls";
+import { PageSelectionTitle } from "./page-selection-title";
+import { conditionDescription, scoutValue } from "./scout-controls";
 import { RelativeTime } from "./last-synced-time";
 import { ScoutIncidentDrawer } from "./scout-incident-drawer";
 import {
@@ -24,11 +28,24 @@ import {
 } from "./workspace-monitoring-shared";
 
 export function WorkspaceIncidents() {
-  const [state, setState] = useState("all");
+  const {
+    kind,
+    setKind,
+    selected: selectedEntity,
+    select: setSelectedEntity,
+    entityKey,
+    resolve,
+  } = useMonitoringSelection();
+  const [state, setState] = useQueryChoice(
+    "state",
+    ["all", "active", "resolved"],
+    "all",
+  );
   const [selected, setSelected] = useState<OverviewIncident | null>(null);
   const { query, pagination, reset } = useMonitoringOverview<OverviewIncident>(
     "incidents",
     state,
+    `&kind=${kind}${selectedEntity ? `&entityId=${selectedEntity.id}` : ""}`,
   );
   const columns: ResourceTableColumn<OverviewIncident>[] = [
     {
@@ -137,32 +154,66 @@ export function WorkspaceIncidents() {
   ];
   return (
     <DashboardPage
-      title="Incidents"
-      icon={AlertCircleIcon}
-      actions={
-        <div className="flex justify-end">
-          <div className="w-48">
-            <ScoutSelect
-              label="Incident status"
-              hideLabel
-              value={state}
-              onChange={(value) => {
-                setState(value);
-                reset();
-              }}
-              options={[
-                { id: "all", label: "All incidents" },
-                { id: "active", label: "Active" },
-                { id: "resolved", label: "Resolved" },
-              ]}
-            />
-          </div>
-        </div>
+      title={
+        selectedEntity
+          ? `${selectedEntity.name} · ${state === "active" ? "Active incidents" : state === "resolved" ? "Resolved incidents" : "All incidents"}`
+          : state === "active"
+            ? "Active incidents"
+            : state === "resolved"
+              ? "Resolved incidents"
+              : "All incidents"
       }
+      icon={state === "resolved" ? CheckmarkCircle02Icon : AlertCircleIcon}
     >
+      {selectedEntity ? (
+        <PageSelectionTitle
+          label={`${selectedEntity.name} · ${state === "active" ? "Active incidents" : state === "resolved" ? "Resolved incidents" : "All incidents"}`}
+          icon={<ScoutIcon name={selectedEntity.kind} />}
+        />
+      ) : null}
+      <SecondaryItems
+        title="Incident status"
+        selected={state}
+        onSelect={(value) => {
+          setState(value);
+          reset();
+        }}
+        items={[
+          { id: "all", label: "All incidents", icon: <ScoutIcon name="all" /> },
+          {
+            id: "active",
+            label: "Active",
+            icon: <ScoutIcon name="critical" />,
+          },
+          {
+            id: "resolved",
+            label: "Resolved",
+            icon: <ScoutIcon name="resolved" />,
+          },
+        ]}
+      />
+      <MonitoringEntityPicker
+        allowAll
+        kind={kind}
+        entityKey={entityKey}
+        onResolve={resolve}
+        onKindChange={(value) => {
+          setKind(value);
+          reset();
+        }}
+        selected={selectedEntity}
+        onSelect={(entity, replace) => {
+          setSelectedEntity(entity, replace);
+          reset();
+        }}
+      />
       <div className="grid gap-5">
         {query.error ? <QueryError message={query.error} /> : null}
-        {query.data ? (
+        {entityKey && !selectedEntity ? (
+          <p className="text-sm text-muted">
+            Select an available entity to view its incidents.
+          </p>
+        ) : query.data ? (
           <ResourceTable
             ariaLabel="Workspace incidents"
             columns={columns}

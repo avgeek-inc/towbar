@@ -42,7 +42,7 @@ export type BackupAssuranceCheck = z.infer<typeof backupAssuranceCheckSchema>;
 type BackupMetadata = {
   checksum?: string;
   createdAt: Date;
-  encryption?: "AES256" | "aws:kms";
+  encryption?: string;
   engine?: "postgres" | "redis";
   engineMajorVersion?: number;
   format?: "postgres-custom" | "redis-rdb";
@@ -53,7 +53,7 @@ type BackupMetadata = {
 
 type BackupObjectMetadata = {
   checksum?: string;
-  encryption?: "AES256" | "aws:kms";
+  encryption?: string;
   engine?: "postgres" | "redis";
   engineMajorVersion?: number;
   error?: "access_denied" | "unavailable";
@@ -85,13 +85,13 @@ function objectExistsCheck(
   object: BackupObjectMetadata | null,
 ): BackupAssuranceCheck {
   const passed = Boolean(backup && object?.exists);
-  let failure = "S3 object is missing";
+  let failure = "Backup object is missing";
   if (object?.error === "access_denied") {
-    failure = "Workspace AWS credentials cannot access the S3 object";
+    failure = "Workspace credentials cannot access the backup object";
   } else if (object?.error === "unavailable") {
-    failure = "S3 object verification is temporarily unavailable";
+    failure = "Backup object verification is temporarily unavailable";
   }
-  return check("object_exists", passed, "S3 object exists", failure);
+  return check("object_exists", passed, "Backup object exists", failure);
 }
 
 function engineCheck(

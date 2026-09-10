@@ -17,6 +17,8 @@ import { accountRoutes } from "./account.js";
 import { appRoutes } from "./apps.js";
 import { deploymentRoutes } from "./deployments.js";
 import { awsRoutes } from "./aws.js";
+import { azureRoutes } from "./azure.js";
+import { gcpRoutes } from "./gcp.js";
 import { githubRoutes } from "./github.js";
 import { sessionRoutes } from "./session.js";
 import { serverRoutes } from "./servers.js";
@@ -34,6 +36,8 @@ export const controlPlaneRoutes = new Hono<TowbarHonoEnvironment>();
 controlPlaneRoutes.route("/settings/api-keys", apiKeyRoutes);
 controlPlaneRoutes.route("/github", githubRoutes);
 controlPlaneRoutes.route("/aws", awsRoutes);
+controlPlaneRoutes.route("/azure", azureRoutes);
+controlPlaneRoutes.route("/gcp", gcpRoutes);
 controlPlaneRoutes.route(
   "/sources/:sourceId/notifications",
   notificationRoutes,

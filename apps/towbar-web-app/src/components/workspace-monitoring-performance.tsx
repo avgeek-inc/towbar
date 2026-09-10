@@ -1,19 +1,38 @@
 "use client";
-import { useState } from "react";
+import { ScoutIcon } from "./scout-icons";
+import { useMonitoringSelection } from "@/hooks/use-monitoring-selection";
 import { Analytics01Icon } from "@hugeicons/core-free-icons";
+import { PageSelectionTitle } from "./page-selection-title";
 import { DashboardPage } from "./page-parts";
 import { MonitoringEntityPicker } from "./monitoring-entity-picker";
 import { MonitoringHistory } from "./monitoring-history";
-import type { MonitoringEntity } from "./workspace-monitoring-shared";
 
 export function WorkspacePerformance() {
-  const [kind, setKind] = useState("all");
-  const [selected, setSelected] = useState<MonitoringEntity | null>(null);
+  const {
+    kind,
+    setKind,
+    selected,
+    select: setSelected,
+    entityKey,
+    resolve,
+  } = useMonitoringSelection();
   return (
-    <DashboardPage title="Performance" icon={Analytics01Icon}>
+    <DashboardPage
+      title={selected?.name ?? "Performance"}
+      breadcrumbLabel="Performance"
+      icon={Analytics01Icon}
+    >
+      {selected ? (
+        <PageSelectionTitle
+          label={selected.name}
+          icon={<ScoutIcon name={selected.kind} />}
+        />
+      ) : null}
       <div className="grid min-w-0 gap-6">
         <MonitoringEntityPicker
           kind={kind}
+          entityKey={entityKey}
+          onResolve={resolve}
           onKindChange={setKind}
           selected={selected}
           onSelect={setSelected}

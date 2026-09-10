@@ -1,3 +1,11 @@
+import {
+  workloadFilters,
+  serverFilters,
+  sourceFilters,
+  filterWorkloads,
+  filterServers,
+  filterSources,
+} from "@workspace/towbar-core/inventory";
 import { createScoutFixture } from "./scout-fixture.ts";
 import {
   fixtureServerMonitoringSummary,
@@ -18,6 +26,8 @@ import type {
   AppSecretsResponse,
   AutoDeployControlResponse,
   AwsCredentialMetadata,
+  AzureCredentialMetadata,
+  GcpCredentialMetadata,
   Deployment,
   DeploymentEvent,
   DeploymentLog,
@@ -417,6 +427,8 @@ const sourceSync: SourceSync = {
 };
 
 let awsCredential: AwsCredentialMetadata | null = null;
+let azureCredential: AzureCredentialMetadata | null = null;
+let gcpCredential: GcpCredentialMetadata | null = null;
 
 const githubConnection: GitHubConnection = {
   accountLogin: "example-inc",
@@ -857,6 +869,8 @@ export function createFixtureApiServer() {
     ]),
   );
   awsCredential = null;
+  azureCredential = null;
+  gcpCredential = null;
   const apiKeys: Array<{
     id: string;
     name: string;
@@ -878,19 +892,63 @@ export function createFixtureApiServer() {
     const requestUrl = new URL(request.url ?? "/", "http://localhost");
     const path = requestUrl.pathname;
     if (scoutFixture(request, response, requestUrl)) return;
-    if (request.method === "GET" && path === "/v1/core/servers") {
-      response.writeHead(200, { "content-type": "application/json" });
-      response.end(
-        JSON.stringify({
-          servers: servers.map((server) => ({
-            ...server,
-            scout: fixtureServerMonitoringSummary(
-              monitoring.get(server.id)!,
-              server.id,
-            ),
-          })),
-        }),
-      );
+    if (
+      request.method === "GET" &&
+      [
+        "/v1/core/servers",
+        "/v1/core/apps",
+        "/v1/core/resources",
+        "/v1/core/sources",
+      ].includes(path)
+    ) {
+      const query = Object.fromEntries(requestUrl.searchParams);
+      try {
+        if (path.endsWith("/servers")) {
+          const result = filterServers(
+            servers.map((server) => ({
+              ...server,
+              healthStatus:
+                server.setupStatus === "ready" ? "healthy" : "unknown",
+              scout: fixtureServerMonitoringSummary(
+                monitoring.get(server.id)!,
+                server.id,
+              ),
+            })),
+            serverFilters.parse(query),
+          );
+          writeJson(response, 200, {
+            servers: result.items,
+            counts: result.counts,
+          });
+        } else if (path.endsWith("/sources")) {
+          const result = filterSources(
+            sources.map((source) => ({
+              ...source,
+              latestSyncStatus: source.latestManifestDigest
+                ? "succeeded"
+                : "never",
+              autoDeployPaused: false,
+            })),
+            sourceFilters.parse(query),
+          );
+          writeJson(response, 200, {
+            sources: result.items,
+            counts: result.counts,
+          });
+        } else {
+          const resource = path.endsWith("/resources");
+          const result = filterWorkloads<FixtureApp | FixtureResource>(
+            resource ? resources : apps,
+            workloadFilters.parse(query),
+          );
+          writeJson(response, 200, {
+            [resource ? "resources" : "apps"]: result.items,
+            counts: result.counts,
+          });
+        }
+      } catch {
+        writeJson(response, 400, { message: "Invalid inventory filters" });
+      }
       return;
     }
     const monitoringPath = path.match(
@@ -1035,6 +1093,65 @@ export function createFixtureApiServer() {
     }
     if (path === "/v1/core/aws" && request.method === "DELETE") {
       awsCredential = null;
+      response.writeHead(204);
+      response.end();
+      return;
+    }
+    if (path === "/v1/core/azure" && request.method === "PUT") {
+      void readRequestJson(request)
+        .then((input) => {
+          const values = input as { clientId?: string; tenantId?: string };
+          const now = new Date().toISOString();
+          azureCredential = {
+            clientId: values.clientId ?? "00000000-0000-0000-0000-000000000000",
+            clientSecretSuffix: "1234",
+            createdAt: now,
+            lastVerifiedAt: now,
+            status: "verified",
+            tenantId: values.tenantId ?? "00000000-0000-0000-0000-000000000000",
+            updatedAt: now,
+            verificationMessage: "Azure identity verified",
+          };
+          return writeJson(response, 200, { credential: azureCredential });
+        })
+        .catch(() => writeJson(response, 400, { error: "Invalid JSON" }));
+      return;
+    }
+    if (path === "/v1/core/azure" && request.method === "DELETE") {
+      azureCredential = null;
+      response.writeHead(204);
+      response.end();
+      return;
+    }
+    if (path === "/v1/core/gcp" && request.method === "PUT") {
+      void readRequestJson(request)
+        .then((input) => {
+          const values = input as { serviceAccountKey?: string };
+          const now = new Date().toISOString();
+          let parsed: { client_email?: string; project_id?: string } = {};
+          try {
+            parsed = JSON.parse(values.serviceAccountKey ?? "{}");
+          } catch {
+            // ignore
+          }
+          gcpCredential = {
+            clientEmail:
+              parsed.client_email ??
+              "backup@gcp-project.iam.gserviceaccount.com",
+            createdAt: now,
+            lastVerifiedAt: now,
+            projectId: parsed.project_id ?? "gcp-project",
+            status: "verified",
+            updatedAt: now,
+            verificationMessage: "Google Cloud identity verified",
+          };
+          return writeJson(response, 200, { credential: gcpCredential });
+        })
+        .catch(() => writeJson(response, 400, { error: "Invalid JSON" }));
+      return;
+    }
+    if (path === "/v1/core/gcp" && request.method === "DELETE") {
+      gcpCredential = null;
       response.writeHead(204);
       response.end();
       return;
@@ -1255,10 +1372,10 @@ export function createFixtureApiServer() {
       return;
     }
     const revealMatch = path.match(
-      /^\/v1\/core\/(sources|apps|resources)\/([^/]+)\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)\/reveal$/,
+      /^\/v1\/core\/(sources|apps|resources)\/([^/]+)\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)\/reveal(?:-all)?$/,
     );
     const globalRevealMatch = path.match(
-      /^\/v1\/core\/settings\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)\/reveal$/,
+      /^\/v1\/core\/settings\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)\/reveal(?:-all)?$/,
     );
     if (request.method === "POST" && (revealMatch || globalRevealMatch)) {
       const slot = revealMatch
@@ -1267,6 +1384,18 @@ export function createFixtureApiServer() {
       response.setHeader("Cache-Control", "no-store");
       void readRequestJson(request)
         .then((input) => {
+          if (path.endsWith("/reveal-all")) {
+            return writeJson(response, 200, {
+              values: Object.fromEntries(
+                (fixtureSecretKeys.get(slot) ?? []).map((key) => [
+                  key,
+                  fixtureSecretValues.get(slot)?.[key] ??
+                    `fixture-only-${key.toLowerCase()}`,
+                ]),
+              ),
+              revision: fixtureSecretVersions.get(slot) ?? null,
+            });
+          }
           const { key } = input as { key: string };
           if (!fixtureSecretKeys.get(slot)?.includes(key))
             return writeNotFound(response);
@@ -1718,14 +1847,38 @@ function getFixturePayload(
       100,
       readPositiveInteger(searchParams.get("limit"), 10),
     );
-    const ordered = [...deployments].sort(
-      (left, right) =>
-        right.createdAt.localeCompare(left.createdAt) ||
-        right.id.localeCompare(left.id),
-    );
     const deployables = new Map(
       [...apps, ...resources].map((item) => [item.id, item]),
     );
+    const ordered = deployments
+      .filter((item) => {
+        const type = searchParams.get("type");
+        return (
+          (!type ||
+            (type === "app"
+              ? item.deployableKind === "app"
+              : item.deployableKind !== "app")) &&
+          ["environment", "state", "trigger", "serverId"].every(
+            (key) =>
+              !searchParams.get(key) ||
+              item[key as "environment" | "state" | "trigger" | "serverId"] ===
+                searchParams.get(key),
+          )
+        );
+      })
+      .sort((left, right) => {
+        const sort = searchParams.get("sort");
+        if (sort === "name_asc" || sort === "name_desc") {
+          const names = (deployables.get(left.appId)?.name ?? "").localeCompare(
+            deployables.get(right.appId)?.name ?? "",
+          );
+          if (names) return sort === "name_asc" ? names : -names;
+        }
+        const newest =
+          right.createdAt.localeCompare(left.createdAt) ||
+          right.id.localeCompare(left.id);
+        return sort === "oldest" ? -newest : newest;
+      });
     return {
       deployments: ordered
         .slice((page - 1) * limit, page * limit)
@@ -1829,6 +1982,8 @@ function getFixturePayload(
     ],
     [`/v1/core/sources/${source.id}/syncs`, { syncs: [sourceSync] }],
     ["/v1/core/aws", { canManage: true, credential: awsCredential }],
+    ["/v1/core/azure", { canManage: true, credential: azureCredential }],
+    ["/v1/core/gcp", { canManage: true, credential: gcpCredential }],
     [
       `/v1/core/sources/${source.id}/apps`,
       { apps: apps.filter((item) => item.sourceId === source.id) },
@@ -1935,7 +2090,9 @@ function getFixturePayload(
       assurance: assurances[0] ?? null,
       assurances,
       awsConfigured: Boolean(awsCredential),
+      azureConfigured: Boolean(azureCredential),
       canRestore: true,
+      gcpConfigured: Boolean(gcpCredential),
     };
   }
 
@@ -2402,6 +2559,17 @@ function createResourceFixture(
       backup:
         kind === "postgres"
           ? {
+              azureBlob: {
+                container: "backups",
+                prefix: manifestId,
+                storageAccount: "towbarfixture",
+              },
+              gcs: {
+                bucket: "towbar-fixture-gcs-backups",
+                prefix: manifestId,
+                region: "asia-south1",
+              },
+              restoreFrom: "s3" as const,
               retention: { keepLast: 7 },
               s3: {
                 bucket: "towbar-fixture-backups",
@@ -2531,6 +2699,29 @@ function createBackupFixture(
       bucket: "towbar-fixture-backups",
       checksum: "sha256:" + "a".repeat(64),
       deletedBackupIds: [],
+      destinations: [
+        {
+          bucket: "towbar-fixture-backups",
+          encryption: "AES256",
+          key,
+          provider: "s3",
+          region: "ap-south-1",
+        },
+        {
+          bucket: "towbar-fixture-gcs-backups",
+          encryption: "Google-managed",
+          key: `${resource.manifestId}/${createdAt.replaceAll(":", "-")}.dump`,
+          provider: "gcs",
+          region: "asia-south1",
+        },
+        {
+          bucket: "backups",
+          encryption: "Microsoft-managed",
+          key: `${resource.manifestId}/${createdAt.replaceAll(":", "-")}.dump`,
+          provider: "azureBlob",
+          storageAccount: "towbarfixture",
+        },
+      ],
       encryption: "AES256",
       engine: resource.kind === "redis" ? "redis" : "postgres",
       engineMajorVersion: resource.kind === "redis" ? 8 : 18,
@@ -2538,6 +2729,7 @@ function createBackupFixture(
       key,
       metadataVersion: 1,
       region: "ap-south-1",
+      restoreFrom: "s3" as const,
       sizeBytes,
       verifiedAt: createdAt,
       warnings: [],

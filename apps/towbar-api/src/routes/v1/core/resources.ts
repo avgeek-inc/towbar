@@ -1,3 +1,7 @@
+import {
+  filterWorkloads,
+  workloadFilters,
+} from "@workspace/towbar-core/inventory";
 import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -21,6 +25,8 @@ import {
   requestRestoreCleanup,
 } from "../../../areas/resource-operations/service.js";
 import { hasAwsCredentials } from "../../../areas/aws/service.js";
+import { hasAzureCredentials } from "../../../areas/azure/service.js";
+import { hasGcpCredentials } from "../../../areas/gcp/service.js";
 import { badRequest, forbidden } from "../../../http/errors.js";
 import { readJson } from "../../../http/requests.js";
 import { autoDeployControlPatchSchema } from "./auto-deploy-control-requests.js";
@@ -55,14 +61,18 @@ resourceRoutes.get(
   "/",
   operation({
     responseSchema: 'resources.ts:get:"/"',
+    query: workloadFilters,
     summary: "List resources",
     response: "JSON object containing resources.",
     status: 200,
   }),
-  async (context) =>
-    context.json({
-      resources: await listResources(context.get("user").workspaceId),
-    }),
+  async (context) => {
+    const result = filterWorkloads(
+      await listResources(context.get("user").workspaceId),
+      workloadFilters.parse(context.req.query()),
+    );
+    return context.json({ resources: result.items, counts: result.counts });
+  },
 );
 
 resourceRoutes.get(
@@ -201,6 +211,11 @@ resourceRoutes.get(
   }),
   async (context) => {
     const user = context.get("user");
+    const [awsConfigured, azureConfigured, gcpConfigured] = await Promise.all([
+      hasAwsCredentials(user.workspaceId),
+      hasAzureCredentials(user.workspaceId),
+      hasGcpCredentials(user.workspaceId),
+    ]);
     return context.json({
       assurance: await getResourceBackupAssurance(
         context.req.param("resourceId"),
@@ -210,8 +225,10 @@ resourceRoutes.get(
         context.req.param("resourceId"),
         user.workspaceId,
       ),
-      awsConfigured: await hasAwsCredentials(user.workspaceId),
+      awsConfigured,
+      azureConfigured,
       canRestore: user.workspaceRole === "owner",
+      gcpConfigured,
     });
   },
 );

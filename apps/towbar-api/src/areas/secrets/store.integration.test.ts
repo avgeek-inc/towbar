@@ -119,7 +119,7 @@ void test(
       stage: "deployment",
     };
     let workspaceRole: "owner" | "member" = "owner",
-      requestWorkspace = workspaceId;
+      requestWorkspace: string = workspaceId;
     const api = new Hono<TowbarHonoEnvironment>();
     api.use("*", async (context, next) => {
       context.set("user", {
@@ -143,6 +143,10 @@ void test(
       ),
     );
     api.route("/apps/:ownerId/secrets", environmentSecretRoutes("app"));
+    api.route(
+      "/resources/:ownerId/secrets",
+      environmentSecretRoutes("resource"),
+    );
     api.route("/sources/:ownerId/secrets", environmentSecretRoutes("source"));
     api.route("/settings/secrets", environmentSecretRoutes("workspace"));
     api.route("/servers/:serverId/credentials", serverCredentialRoutes);
@@ -356,6 +360,52 @@ void test(
           assert(!(await response.text()).includes("shared-value"));
         },
       );
+      const { testBulkReveal } = await import("./bulk-reveal-tests.js");
+      await testBulkReveal({
+        t,
+        db,
+        api,
+        appId,
+        sourceId,
+        slot,
+        sharedSlot,
+        globalSlot,
+        workspaceId,
+        otherWorkspaceId,
+        manifest,
+        appConfig,
+        setRole: (role) => {
+          workspaceRole = role;
+        },
+        setWorkspace: (id) => {
+          requestWorkspace = id;
+        },
+      });
+      const { testDeploymentHistory } =
+        await import("../deployments/history-tests.js");
+      await testDeploymentHistory({
+        t,
+        db,
+        workspaceId,
+        otherWorkspaceId,
+        sourceId,
+        appId,
+        serverId,
+        actorUserId,
+        appConfig,
+        resourceConfig: manifest.resources![0]!,
+        serverConfig,
+      });
+      const { testInventory } =
+        await import("../inventory/integration-tests.js");
+      await testInventory({
+        t,
+        db,
+        workspaceId,
+        otherWorkspaceId,
+        sourceId,
+        serverId,
+      });
       const { testManagedSecretExecution } =
         await import("./execution-tests.js");
       await testManagedSecretExecution({

@@ -24,3 +24,5 @@ export type {
   ComparisonPoint,
   ComparisonMetricSummary,
 } from "@workspace/towbar-core";
+
+export { deploymentStates } from "@workspace/towbar-core/temporal";

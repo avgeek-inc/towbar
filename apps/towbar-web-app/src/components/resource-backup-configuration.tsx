@@ -1,45 +1,21 @@
 "use client";
-import {
-  Archive01Icon,
-  Cancel01Icon,
-  Copy01Icon,
-  DatabaseIcon,
-  Delete02Icon,
-  RefreshIcon,
-  Settings01Icon,
-  Shield01Icon,
-  Undo02Icon,
-} from "@hugeicons/core-free-icons";
 
-import { ElapsedTime } from "./elapsed-time";
-
+import { Archive01Icon, DatabaseIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-
+import Link from "next/link";
 import { useState } from "react";
-import type { FormEvent } from "react";
+import type { ReactNode } from "react";
 
 import type {
   BackupAssurance,
   Resource,
   ResourceOperation,
-  ResourceOperationEvent,
-  RestoreResult,
   SourceBackup,
 } from "@workspace/towbar-web-client";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
-import {
-  Field,
-  FieldDescription,
-  FieldLabel,
-} from "@workspace/web-design-system/forms/field";
-import { Input } from "@workspace/web-design-system/forms/input";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { Modal } from "@workspace/web-design-system/overlays/modal";
-import { toast } from "@workspace/web-design-system/overlays/toast";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
@@ -47,20 +23,24 @@ import {
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
+import { Tabs } from "@workspace/web-design-system/navigation/tabs";
+import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 
-import { ActionButton, InlineLink } from "@/components/page-parts";
-import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";
+import { ActionButton } from "@/components/page-parts";
+import { CloudProviderLogo } from "@/components/cloud-provider-logo";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { getBackupHealth } from "@/lib/backup-health";
-import { RelativeTime } from "./last-synced-time";
 import { formatDate } from "./dashboard-overview";
-import { formatBytes } from "./runtime-operations";
 
-type AssuranceResponse = {
-  assurance: BackupAssurance | null;
-  assurances: BackupAssurance[];
-  awsConfigured: boolean;
-  canRestore: boolean;
+type ProviderKey = "s3" | "gcs" | "azureBlob";
+
+type ConfiguredProvider = {
+  id: ProviderKey;
+  label: string;
+  providerName: string;
+  locationUri: string;
+  credentialsConfigured: boolean;
 };
 
 export function ResourceBackupConfiguration({
@@ -71,30 +51,32 @@ export function ResourceBackupConfiguration({
   resource: Resource;
 }) {
   const backup = resource.config.backup;
+
   const backups = useApiQuery<{ backups: SourceBackup[] }>(
     `/v1/core/sources/${resource.sourceId}/backups`,
-    5_000,
+    10_000,
   );
-  const assurances = useApiQuery<AssuranceResponse>(
-    `/v1/core/resources/${resource.id}/backup-assurance`,
-    5_000,
-  );
+  const assurances = useApiQuery<{
+    assurances: BackupAssurance[];
+    awsConfigured: boolean;
+    azureConfigured?: boolean;
+    canRestore: boolean;
+    gcpConfigured?: boolean;
+    missingCredentialMessage?: string;
+  }>(`/v1/core/resources/${resource.id}/backup-assurance`, 10_000);
   const operations = useApiQuery<{ operations: ResourceOperation[] }>(
     `/v1/core/resources/${resource.id}/operations`,
-    3_000,
-  );
-  const [selectedBackup, setSelectedBackup] = useState<SourceBackup | null>(
-    null,
+    5_000,
   );
 
   if (!backup) {
     return (
       <EmptyState>
         <EmptyState.Header>
-          <EmptyState.Title>Backups not configured</EmptyState.Title>
+          <EmptyState.Title>No managed backups configured</EmptyState.Title>
           <EmptyState.Description>
-            Declare backup.s3 in .towbar/deployment.yml to enable backups for
-            this Resource.
+            Backups are disabled in the resource manifest. Configure backup
+            storage to enable managed backups.
           </EmptyState.Description>
         </EmptyState.Header>
       </EmptyState>
@@ -109,10 +91,6 @@ export function ResourceBackupConfiguration({
 
   const retainedBackups = backups.data.backups.filter(
     (candidate) => candidate.resourceId === resource.id,
-  );
-  const restoreOperations = operations.data.operations.filter(
-    (operation) =>
-      operation.type === "restore" || operation.type === "restore_cleanup",
   );
   const assuranceData = assurances.data;
   const assuranceByBackup = new Map(
@@ -131,84 +109,93 @@ export function ResourceBackupConfiguration({
     latestOperation: latestBackupOperation,
   });
 
-  const backupColumns: ResourceTableColumn<SourceBackup>[] = [
-    {
-      key: "created",
-      header: "Created",
-      cell: (item) => (
-        <RelativeTime
-          label="Created"
-          value={item.finishedAt ?? item.createdAt}
-        />
-      ),
-      className: "min-w-48 whitespace-nowrap tabular-nums",
-    },
-    {
-      key: "size",
-      header: "Size",
-      cell: (item) => formatBytes(item.result.sizeBytes),
-      className: "whitespace-nowrap tabular-nums",
-      headerClassName: "whitespace-nowrap",
-    },
-    {
-      key: "engine",
-      header: "Engine",
-      cell: (item) =>
-        item.result.engine && item.result.engineMajorVersion
-          ? `${formatEngine(item.result.engine)} ${item.result.engineMajorVersion}`
-          : "Metadata missing",
-    },
-    {
-      key: "format",
-      header: "Format",
-      cell: (item) => formatBackupFormat(item.result.format),
-    },
-    {
-      key: "assurance",
-      header: "Restore assurance",
-      cell: (item) => (
-        <StatusBadge
-          status={assuranceByBackup.get(item.id)?.status ?? "unknown"}
-        />
-      ),
-    },
-    {
-      key: "actions",
-      header: "Action",
-      cell: (item) => {
-        const assurance = assuranceByBackup.get(item.id);
-        return (
-          <Button
-            isDisabled={
-              !active ||
-              !assuranceData.awsConfigured ||
-              !assuranceData.canRestore ||
-              !assurance?.restoreReady ||
-              restoreOperations.some((operation) =>
-                ["queued", "running"].includes(operation.state),
-              )
-            }
-            size="sm"
-            variant="secondary"
-            onPress={() => setSelectedBackup(item)}
-          >
-            <HugeiconsIcon
-              aria-hidden="true"
-              icon={Undo02Icon}
-              className="size-4 shrink-0"
-            />
-            Restore
-          </Button>
-        );
-      },
-      className: "whitespace-nowrap",
-    },
-  ];
+  const missingProviders: string[] = [];
+  if (backup.s3 && !assuranceData.awsConfigured) missingProviders.push("AWS");
+  if (backup.gcs && !assuranceData.gcpConfigured)
+    missingProviders.push("Google Cloud");
+  if (backup.azureBlob && !assuranceData.azureConfigured)
+    missingProviders.push("Azure");
+  const credentialsConfigured = missingProviders.length === 0;
+
+  const configuredProviders: ConfiguredProvider[] = [];
+  if (backup.s3) {
+    configuredProviders.push({
+      id: "s3",
+      label: "AWS (S3)",
+      providerName: "AWS",
+      locationUri: `s3://${backup.s3.bucket}/${backup.s3.prefix || "towbar"}`,
+      credentialsConfigured: Boolean(assuranceData.awsConfigured),
+    });
+  }
+  if (backup.gcs) {
+    configuredProviders.push({
+      id: "gcs",
+      label: "Google Cloud (GCS)",
+      providerName: "Google Cloud",
+      locationUri: `gs://${backup.gcs.bucket}/${backup.gcs.prefix || "towbar"}`,
+      credentialsConfigured: Boolean(assuranceData.gcpConfigured),
+    });
+  }
+  if (backup.azureBlob) {
+    configuredProviders.push({
+      id: "azureBlob",
+      label: "Azure Blob Storage",
+      providerName: "Azure",
+      locationUri: `az://${backup.azureBlob.storageAccount}/${backup.azureBlob.container}/${backup.azureBlob.prefix || "towbar"}`,
+      credentialsConfigured: Boolean(assuranceData.azureConfigured),
+    });
+  }
+
+  return (
+    <ResourceBackupContent
+      active={active}
+      backup={backup}
+      backupHealth={backupHealth}
+      configuredProviders={configuredProviders}
+      credentialsConfigured={credentialsConfigured}
+      latestAssurance={latestAssurance}
+      latestBackup={latestBackup}
+      latestBackupOperation={latestBackupOperation}
+      missingProviders={missingProviders}
+      retainedBackups={retainedBackups}
+      resource={resource}
+    />
+  );
+}
+
+function ResourceBackupContent({
+  active,
+  backup,
+  backupHealth,
+  configuredProviders,
+  credentialsConfigured,
+  latestAssurance: _latestAssurance,
+  latestBackup,
+  latestBackupOperation,
+  missingProviders,
+  retainedBackups,
+  resource,
+}: {
+  active: boolean;
+  backup: NonNullable<Resource["config"]["backup"]>;
+  backupHealth: ReturnType<typeof getBackupHealth>;
+  configuredProviders: ConfiguredProvider[];
+  credentialsConfigured: boolean;
+  latestAssurance?: BackupAssurance;
+  latestBackup?: SourceBackup;
+  latestBackupOperation?: ResourceOperation;
+  missingProviders: string[];
+  retainedBackups: SourceBackup[];
+  resource: Resource;
+}) {
+  const [selectedProvider, setSelectedProvider] = useState<ProviderKey>(
+    configuredProviders[0]?.id ?? "s3",
+  );
 
   return (
     <div className="content-grid min-w-0">
       <div className="content-grid min-w-0">
-        {assuranceData.awsConfigured ? (
+        {credentialsConfigured ? (
           <Widget className="min-w-0">
             <Widget.Header
               endContent={
@@ -242,37 +229,50 @@ export function ResourceBackupConfiguration({
                   </li>
                 ))}
               </ol>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-muted typography--body-xs">
+                  {latestBackup ? (
+                    <>
+                      Last retained snapshot:{" "}
+                      <span className="font-medium text-foreground">
+                        {formatDate(
+                          latestBackup.finishedAt ?? latestBackup.createdAt,
+                        )}
+                      </span>
+                    </>
+                  ) : (
+                    "No retained backups yet. Use Back up now to trigger the initial snapshot."
+                  )}
+                </p>
+                <ActionButton
+                  action={() =>
+                    api.post(
+                      `/v1/core/resources/${resource.id}/actions/backup`,
+                      undefined,
+                      { "Idempotency-Key": crypto.randomUUID() },
+                    )
+                  }
+                  isDisabled={
+                    !active ||
+                    !credentialsConfigured ||
+                    (latestBackupOperation &&
+                      ["queued", "running"].includes(
+                        latestBackupOperation.state,
+                      ))
+                  }
+                  pendingLabel="Queueing backup…"
+                  success="Resource backup queued"
+                  variant="secondary"
+                >
+                  <HugeiconsIcon
+                    aria-hidden="true"
+                    icon={DatabaseIcon}
+                    className="size-4 shrink-0"
+                  />
+                  Back up now
+                </ActionButton>
+              </div>
             </Widget.Content>
-            {latestAssurance || active ? (
-              <Widget.Footer className="justify-end">
-                {latestAssurance ? (
-                  <Widget.FooterDescription>
-                    Last checked {formatDate(latestAssurance.checkedAt)}
-                  </Widget.FooterDescription>
-                ) : null}
-                {active ? (
-                  <ActionButton
-                    action={() =>
-                      api.post(
-                        `/v1/core/resources/${resource.id}/actions/backup`,
-                        undefined,
-                        { "Idempotency-Key": crypto.randomUUID() },
-                      )
-                    }
-                    pendingLabel="Queueing backup…"
-                    success="Backup queued"
-                    variant="primary"
-                  >
-                    <HugeiconsIcon
-                      aria-hidden="true"
-                      icon={DatabaseIcon}
-                      className="size-4 shrink-0"
-                    />
-                    Back up now
-                  </ActionButton>
-                ) : null}
-              </Widget.Footer>
-            ) : null}
           </Widget>
         ) : (
           <Alert status="warning">
@@ -280,8 +280,8 @@ export function ResourceBackupConfiguration({
             <Alert.Content>
               <Alert.Title>Backups paused</Alert.Title>
               <Alert.Description>
-                Add AWS credentials in{" "}
-                <InlineLink href="/manage/integrations?integration=aws">
+                Add {missingProviders.join(" and ")} credentials in{" "}
+                <InlineLink href="/manage/integrations">
                   Manage → Integrations
                 </InlineLink>{" "}
                 before backups can run.
@@ -289,654 +289,295 @@ export function ResourceBackupConfiguration({
             </Alert.Content>
           </Alert>
         )}
-
-        <Attributes
-          icon={<HugeiconsIcon icon={Settings01Icon} />}
-          title="Backup settings"
-          variant="card"
-        >
-          <Attributes.Item label="Schedule">
-            {backup.schedule ? (
-              <span className="inline-flex items-center gap-2">
-                <TypographyCode>{backup.schedule.cron}</TypographyCode>
-                <span>UTC</span>
-              </span>
-            ) : (
-              "Manual only"
-            )}
-          </Attributes.Item>
-          <Attributes.Item label="Retention">
-            Keep {backup.retention.keepLast}
-          </Attributes.Item>
-          <Attributes.Item label="S3 location">
-            <TypographyCode
-              className="block truncate"
-              title={`s3://${backup.s3.bucket}/${backup.s3.prefix}`}
-            >
-              s3://{backup.s3.bucket}/{backup.s3.prefix}
-            </TypographyCode>
-          </Attributes.Item>
-          <Attributes.Item label="Encryption">
-            {backup.s3.encryption}
-          </Attributes.Item>
-          {latestBackupOperation ? (
-            <Attributes.Item label="Latest backup duration">
-              <ElapsedTime
-                {...latestBackupOperation}
-                status={latestBackupOperation.state}
-              />
-            </Attributes.Item>
-          ) : null}
-          <Attributes.Item label="Latest saved backup">
-            {latestBackup ? (
-              <CopyBackupKey backup={latestBackup} />
-            ) : (
-              "Not backed up yet"
-            )}
-          </Attributes.Item>
-        </Attributes>
       </div>
 
-      <section className="grid min-w-0 gap-3">
-        <h4 className="typography--heading-sm">Retained backups</h4>
-        <ResourceTable
-          ariaLabel="Retained backups"
-          columns={backupColumns}
-          emptyDescription="Run a backup to create the first retained restore point."
-          emptyTitle="No retained backups"
-          getRowKey={(item) => item.id}
-          items={retainedBackups}
-        />
-      </section>
+      {configuredProviders.length > 0 ? (
+        <Tabs
+          selectedKey={selectedProvider}
+          onSelectionChange={(key) => setSelectedProvider(key as ProviderKey)}
+          className="content-grid min-w-0"
+        >
+          <Tabs.ListContainer className="w-fit max-w-full overflow-x-auto">
+            <Tabs.List aria-label="Backup provider destinations">
+              {configuredProviders.map((provider) => (
+                <Tabs.Tab
+                  id={provider.id}
+                  key={provider.id}
+                  className="min-w-max gap-2 whitespace-nowrap"
+                >
+                  <CloudProviderLogo
+                    provider={provider.id}
+                    className="size-4 shrink-0"
+                  />
+                  <span>{provider.label}</span>
+                  <Tabs.Indicator />
+                </Tabs.Tab>
+              ))}
+            </Tabs.List>
+          </Tabs.ListContainer>
 
-      {restoreOperations.length ? (
-        <RestoreHistory
-          canManage={
-            active && assuranceData.awsConfigured && assuranceData.canRestore
-          }
-          operations={restoreOperations}
-          resourceId={resource.id}
-        />
+          {configuredProviders.map((provider) => (
+            <Tabs.Panel
+              id={provider.id}
+              key={provider.id}
+              className="content-grid m-0 min-w-0 p-0 outline-none"
+            >
+              <ProviderDestinationCard backup={backup} provider={provider} />
+
+              <ProviderBackupsTable
+                backups={retainedBackups}
+                provider={provider}
+              />
+            </Tabs.Panel>
+          ))}
+        </Tabs>
       ) : null}
-
-      <RestoreConfirmation
-        backup={selectedBackup}
-        resource={resource}
-        onClose={() => setSelectedBackup(null)}
-      />
     </div>
   );
 }
 
-function RestoreConfirmation({
+function ProviderDestinationCard({
   backup,
-  onClose,
-  resource,
+  provider,
 }: {
-  backup: SourceBackup | null;
-  onClose: () => void;
-  resource: Resource;
+  backup: NonNullable<Resource["config"]["backup"]>;
+  provider: ConfiguredProvider;
 }) {
-  const [confirmation, setConfirmation] = useState("");
-  const [reason, setReason] = useState("");
-  const [error, setError] = useState<string>();
-  const [submitting, setSubmitting] = useState(false);
-
-  function close() {
-    setConfirmation("");
-    setReason("");
-    setError(undefined);
-    onClose();
-  }
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!backup) return;
-    setSubmitting(true);
-    setError(undefined);
-    try {
-      await api.post(
-        `/v1/core/resources/${resource.id}/actions/restore`,
-        { backupId: backup.id, confirmation, reason },
-        { "Idempotency-Key": crypto.randomUUID() },
-      );
-      toast.success("Database restore queued");
-      refreshApiQueries();
-      close();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Restore failed");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   return (
-    <Modal
-      isOpen={Boolean(backup)}
-      onOpenChange={(open) => {
-        if (!open && !submitting) close();
-      }}
+    <Attributes
+      icon={
+        <CloudProviderLogo provider={provider.id} className="size-5 shrink-0" />
+      }
+      title={`${provider.label} configuration`}
+      variant="card"
     >
-      <Modal.Backdrop>
-        <Modal.Container scroll="inside" size="lg">
-          <Modal.Dialog>
-            <Modal.CloseTrigger />
-            <Modal.Header>
-              <Modal.Heading>Restore {resource.name}</Modal.Heading>
-            </Modal.Header>
-            <Modal.Body>
-              <form className="content-grid" onSubmit={submit}>
-                <Alert status="danger">
-                  <Alert.Indicator />
-                  <Alert.Content>
-                    <Alert.Title>This replaces the active database</Alert.Title>
-                    <Alert.Description>
-                      Towbar restores into an isolated candidate first. After
-                      validation, promotion briefly replaces the active volume.
-                      Promotion cannot be cancelled; the previous volume is
-                      retained for rollback for seven days.
-                    </Alert.Description>
-                  </Alert.Content>
-                </Alert>
-                {backup ? (
-                  <Attributes
-                    icon={<HugeiconsIcon icon={Archive01Icon} />}
-                    columns={2}
-                    title="Selected backup"
-                  >
-                    <Attributes.Item label="Created">
-                      {formatDate(backup.finishedAt ?? backup.createdAt)}
-                    </Attributes.Item>
-                    <Attributes.Item label="Size">
-                      {formatBytes(backup.result.sizeBytes)}
-                    </Attributes.Item>
-                    <Attributes.Item label="Engine">
-                      {formatEngine(backup.result.engine)}{" "}
-                      {backup.result.engineMajorVersion}
-                    </Attributes.Item>
-                    <Attributes.Item label="Checksum">
-                      <TypographyCode title={backup.result.checksum}>
-                        {backup.result.checksum.slice(0, 12)}
-                      </TypographyCode>
-                    </Attributes.Item>
-                  </Attributes>
-                ) : null}
-                {error ? (
-                  <Alert status="danger">
-                    <Alert.Indicator />
-                    <Alert.Content>
-                      <Alert.Title>Couldn&apos;t queue restore</Alert.Title>
-                      <Alert.Description>{error}</Alert.Description>
-                    </Alert.Content>
-                  </Alert>
-                ) : null}
-                <Field>
-                  <FieldLabel htmlFor="restore-reason">Reason</FieldLabel>
-                  <Input
-                    id="restore-reason"
-                    minLength={10}
-                    required
-                    value={reason}
-                    variant="secondary"
-                    onChange={(event) => setReason(event.currentTarget.value)}
-                  />
-                  <FieldDescription>
-                    Recorded in the restore audit trail. Minimum 10 characters.
-                  </FieldDescription>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="restore-confirmation">
-                    Type {resource.name} to confirm
-                  </FieldLabel>
-                  <Input
-                    id="restore-confirmation"
-                    required
-                    value={confirmation}
-                    variant="secondary"
-                    onChange={(event) =>
-                      setConfirmation(event.currentTarget.value)
-                    }
-                  />
-                </Field>
-                <div className="flex flex-wrap justify-end gap-2">
-                  <Button
-                    isDisabled={submitting}
-                    variant="secondary"
-                    onPress={close}
-                  >
-                    <HugeiconsIcon
-                      aria-hidden="true"
-                      icon={Cancel01Icon}
-                      className="size-4 shrink-0"
-                    />
-                    Cancel
-                  </Button>
-                  <Button
-                    isDisabled={
-                      submitting ||
-                      confirmation !== resource.name ||
-                      reason.trim().length < 10
-                    }
-                    type="submit"
-                    variant="danger"
-                  >
-                    <HugeiconsIcon
-                      aria-hidden="true"
-                      icon={Undo02Icon}
-                      className="size-4 shrink-0"
-                    />
-                    {submitting ? "Queueing restore…" : "Restore database"}
-                  </Button>
-                </div>
-              </form>
-            </Modal.Body>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
+      <Attributes.Item label="Location">
+        <TypographyCode className="block truncate" title={provider.locationUri}>
+          {provider.locationUri}
+        </TypographyCode>
+      </Attributes.Item>
+      {provider.id === "s3" && backup.s3 ? (
+        <>
+          <Attributes.Item label="Encryption">
+            {backup.s3.encryption ?? "AES256"}
+            {backup.s3.kmsKeyId ? ` (KMS: ${backup.s3.kmsKeyId})` : ""}
+          </Attributes.Item>
+          <Attributes.Item label="Region">
+            {backup.s3.region ?? "Default (from credentials)"}
+          </Attributes.Item>
+        </>
+      ) : null}
+      {provider.id === "gcs" && backup.gcs ? (
+        <>
+          <Attributes.Item label="Encryption">Google-managed</Attributes.Item>
+          <Attributes.Item label="Region">
+            {backup.gcs.region ?? "Default"}
+          </Attributes.Item>
+        </>
+      ) : null}
+      {provider.id === "azureBlob" && backup.azureBlob ? (
+        <Attributes.Item label="Encryption">Microsoft-managed</Attributes.Item>
+      ) : null}
+      <Attributes.Item label="Schedule">
+        {backup.schedule ? (
+          <span className="inline-flex items-center gap-2">
+            <TypographyCode>{backup.schedule.cron}</TypographyCode>
+            <span>UTC</span>
+          </span>
+        ) : (
+          "Manual only"
+        )}
+      </Attributes.Item>
+      <Attributes.Item label="Retention">
+        Keep {backup.retention.keepLast}
+      </Attributes.Item>
+      <Attributes.Item label="Credentials status">
+        <StatusBadge
+          status={provider.credentialsConfigured ? "healthy" : "critical"}
+          label={
+            provider.credentialsConfigured ? "Connected" : "Missing credentials"
+          }
+        />
+      </Attributes.Item>
+    </Attributes>
   );
 }
 
-function RestoreHistory({
-  canManage,
-  operations,
-  resourceId,
+function ProviderBackupsTable({
+  backups,
+  provider,
 }: {
-  canManage: boolean;
-  operations: ResourceOperation[];
-  resourceId: string;
+  backups: SourceBackup[];
+  provider: ConfiguredProvider;
 }) {
-  const [cleanupOperation, setCleanupOperation] =
-    useState<ResourceOperation | null>(null);
-  const latestRestore = operations.find(
-    (operation) => operation.type === "restore",
+  const destinationBackups = backups.filter((item) =>
+    Boolean(getDestinationInfo(item, provider.id)),
   );
-  const cleanupByRestore = new Set(
-    operations
-      .filter(
-        (operation) =>
-          operation.type === "restore_cleanup" &&
-          ["queued", "running", "succeeded"].includes(operation.state),
-      )
-      .map((operation) =>
-        operation.request.type === "restore_cleanup"
-          ? operation.request.restoreId
-          : null,
-      )
-      .filter((restoreId): restoreId is string => Boolean(restoreId)),
-  );
-  const restoreColumns: ResourceTableColumn<ResourceOperation>[] = [
+
+  const columns: ResourceTableColumn<SourceBackup>[] = [
     {
       key: "created",
       header: "Created",
-      cell: (operation) => (
-        <RelativeTime label="Created" value={operation.createdAt} />
+      cell: (item) => (
+        <RelativeTime
+          label="Created"
+          value={item.finishedAt ?? item.createdAt}
+        />
       ),
       className: "min-w-48 whitespace-nowrap tabular-nums",
     },
     {
-      key: "restore-id",
-      header: "Restore ID",
-      cell: (operation) => (
-        <TypographyCode title={operation.id}>
-          {operation.id.slice(0, 8)}
-        </TypographyCode>
-      ),
-      className: "whitespace-nowrap",
+      key: "size",
+      header: "Size",
+      cell: (item) => formatBytes(item.result.sizeBytes),
+      className: "whitespace-nowrap tabular-nums",
       headerClassName: "whitespace-nowrap",
     },
     {
-      key: "reason",
-      header: "Reason",
-      cell: (operation) => readString(operation.request.reason) ?? "—",
-      className: "min-w-64",
+      key: "engine",
+      header: "Engine",
+      cell: (item) =>
+        item.result.engine && item.result.engineMajorVersion
+          ? `${formatEngine(item.result.engine)} ${item.result.engineMajorVersion}`
+          : "Metadata missing",
     },
     {
-      key: "phase",
-      header: "Phase",
-      cell: (operation) => formatPhase(operation.phase),
+      key: "format",
+      header: "Format",
+      cell: (item) => formatBackupFormat(item.result.format),
     },
     {
-      key: "duration",
-      header: "Duration",
-      cell: (operation) => (
-        <ElapsedTime {...operation} status={operation.state} />
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      cell: (operation) => <StatusBadge status={operation.state} />,
-    },
-    {
-      key: "rollback",
-      header: "Rollback retention",
-      cell: (operation) => {
-        const result = readRestoreResult(operation.result);
-        return result?.rollbackAvailableUntil ? (
-          <RelativeTime
-            label="Rollback retention"
-            value={result.rollbackAvailableUntil}
-          />
-        ) : (
-          "—"
+      key: "object-key",
+      header: "Object key",
+      cell: (item) => {
+        const info = getDestinationInfo(item, provider.id);
+        if (!info?.key) return <span className="text-muted">—</span>;
+        return (
+          <TypographyCode className="max-w-64 truncate" title={info.key}>
+            {info.key}
+          </TypographyCode>
         );
       },
-    },
-    {
-      key: "action",
-      header: "Action",
-      cell: (operation) => (
-        <RestoreOperationAction
-          canManage={canManage}
-          cleanupCompleted={cleanupByRestore.has(operation.id)}
-          operation={operation}
-          resourceId={resourceId}
-          onCleanup={() => setCleanupOperation(operation)}
-        />
-      ),
+      className: "min-w-64",
     },
   ];
+
   return (
-    <section className="grid min-w-0 gap-3">
-      <h4 className="typography--heading-sm">Restore history</h4>
-      {latestRestore && ["queued", "running"].includes(latestRestore.state) ? (
-        <RestoreProgress operation={latestRestore} resourceId={resourceId} />
-      ) : null}
-      <ResourceTable
-        ariaLabel="Restore history"
-        columns={restoreColumns}
-        emptyDescription="Restore operations appear here with their audit trail."
-        emptyTitle="No restore history"
-        getRowKey={(operation) => operation.id}
-        items={operations}
-      />
-      <RestoreCleanupConfirmation
-        operation={cleanupOperation}
-        resourceId={resourceId}
-        onClose={() => setCleanupOperation(null)}
-      />
-    </section>
+    <ResourceTable
+      ariaLabel={`Retained backups for ${provider.label}`}
+      columns={columns}
+      emptyDescription={`Backups uploaded to ${provider.label} will appear here.`}
+      emptyTitle="No backups in this destination"
+      getRowKey={(item) => item.id}
+      items={destinationBackups}
+    />
   );
 }
 
-function RestoreProgress({
-  operation,
-  resourceId,
-}: {
-  operation: ResourceOperation;
-  resourceId: string;
-}) {
-  const events = useApiQuery<{ events: ResourceOperationEvent[] }>(
-    `/v1/core/resources/${resourceId}/operations/${operation.id}/events`,
-    2_000,
+function getDestinationInfo(
+  backupItem: SourceBackup,
+  providerId: ProviderKey,
+): {
+  bucket?: string;
+  encryption?: string;
+  key?: string;
+  region?: string;
+  storageAccount?: string;
+} | null {
+  const dest = backupItem.result.destinations?.find(
+    (d) => d.provider === providerId,
   );
-  return (
-    <Widget>
-      <Widget.Header endContent={<StatusBadge status={operation.state} />}>
-        <Widget.Title icon={<HugeiconsIcon icon={RefreshIcon} />}>
-          Restore progress
-        </Widget.Title>
-      </Widget.Header>
-      <Widget.Content>
-        <p className="mb-3 text-sm text-muted">
-          Duration: <ElapsedTime {...operation} status={operation.state} />
-        </p>
-        {events.error ? <QueryError message={events.error} /> : null}
-        {!events.data && !events.error ? <QueryLoading variant="list" /> : null}
-        {events.data ? (
-          <ol className="grid gap-3">
-            {events.data.events.map((event) => (
-              <li className="grid gap-1" key={event.id}>
-                <span className="flex flex-wrap items-center gap-2">
-                  <StatusBadge status={event.level} />
-                  <span className="font-medium">
-                    {formatPhase(event.phase)}
-                  </span>
-                  <span className="text-muted typography--body-xs">
-                    {formatDate(event.createdAt)}
-                  </span>
-                </span>
-                <span className="text-muted typography--body-sm">
-                  {event.message}
-                </span>
-                {event.command ? (
-                  <TypographyCode>{event.command}</TypographyCode>
-                ) : null}
-              </li>
-            ))}
-          </ol>
-        ) : null}
-      </Widget.Content>
-    </Widget>
-  );
-}
-
-function RestoreOperationAction({
-  canManage,
-  cleanupCompleted,
-  onCleanup,
-  operation,
-  resourceId,
-}: {
-  canManage: boolean;
-  cleanupCompleted: boolean;
-  onCleanup: () => void;
-  operation: ResourceOperation;
-  resourceId: string;
-}) {
-  const result = readRestoreResult(operation.result);
-  const cancellable =
-    operation.type === "restore" &&
-    ["queued", "running"].includes(operation.state) &&
-    ![
-      "promoting",
-      "verifying_promotion",
-      "rolling_back",
-      "retaining_previous",
-    ].includes(operation.phase ?? "");
-  const cleanable =
-    operation.type === "restore" &&
-    operation.state === "succeeded" &&
-    !cleanupCompleted &&
-    Boolean(result?.previousVolumes.length);
-  if (!canManage || (!cancellable && !cleanable)) return "—";
-  return cancellable ? (
-    <ActionButton
-      action={() =>
-        api.post(
-          `/v1/core/resources/${resourceId}/operations/${operation.id}/actions/cancel`,
-        )
-      }
-      pendingLabel="Cancelling…"
-      success="Restore cancellation requested"
-      variant="danger"
-    >
-      <HugeiconsIcon
-        aria-hidden="true"
-        icon={Cancel01Icon}
-        className="size-4 shrink-0"
-      />
-      Cancel
-    </ActionButton>
-  ) : (
-    <Button size="sm" variant="secondary" onPress={onCleanup}>
-      <HugeiconsIcon
-        aria-hidden="true"
-        icon={Delete02Icon}
-        className="size-4 shrink-0"
-      />
-      Clean up volume
-    </Button>
-  );
-}
-
-function RestoreCleanupConfirmation({
-  onClose,
-  operation,
-  resourceId,
-}: {
-  onClose: () => void;
-  operation: ResourceOperation | null;
-  resourceId: string;
-}) {
-  const [error, setError] = useState<string>();
-  const [submitting, setSubmitting] = useState(false);
-  const result = operation ? readRestoreResult(operation.result) : null;
-
-  function close() {
-    setError(undefined);
-    onClose();
+  if (dest) {
+    return {
+      bucket: dest.bucket,
+      encryption: dest.encryption,
+      key: dest.key,
+      region: dest.region,
+      storageAccount: dest.storageAccount,
+    };
   }
-
-  async function cleanUp() {
-    if (!operation) return;
-    setSubmitting(true);
-    setError(undefined);
-    try {
-      await api.post(
-        `/v1/core/resources/${resourceId}/actions/restore-cleanup`,
-        { restoreId: operation.id },
-        { "Idempotency-Key": crypto.randomUUID() },
-      );
-      toast.success("Rollback volume cleanup queued");
-      refreshApiQueries();
-      close();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Cleanup failed");
-    } finally {
-      setSubmitting(false);
-    }
+  // Fallback for legacy records created before multi-destination fan-out
+  if (providerId === "s3" && backupItem.result.key) {
+    return {
+      bucket: backupItem.result.bucket,
+      encryption: backupItem.result.encryption,
+      key: backupItem.result.key,
+      region: backupItem.result.region,
+      storageAccount: backupItem.result.storageAccount,
+    };
   }
-
-  return (
-    <Modal
-      isOpen={Boolean(operation)}
-      onOpenChange={(open) => {
-        if (!open && !submitting) close();
-      }}
-    >
-      <Modal.Backdrop>
-        <Modal.Container size="md">
-          <Modal.Dialog>
-            <Modal.CloseTrigger />
-            <Modal.Header>
-              <Modal.Heading>Clean up rollback volume?</Modal.Heading>
-            </Modal.Header>
-            <Modal.Body className="content-grid">
-              <Alert status="danger">
-                <Alert.Indicator />
-                <Alert.Content>
-                  <Alert.Title>
-                    This removes the retained database volume
-                  </Alert.Title>
-                  <Alert.Description>
-                    The promoted database stays active, but Towbar can no longer
-                    roll back to the previous volume after cleanup.
-                  </Alert.Description>
-                </Alert.Content>
-              </Alert>
-              <p className="text-muted typography--body-sm">
-                {result?.previousVolumes.length ?? 0} previous volume
-                {(result?.previousVolumes.length ?? 0) === 1 ? "" : "s"} will be
-                removed.
-              </p>
-              {error ? (
-                <Alert status="danger">
-                  <Alert.Indicator />
-                  <Alert.Content>
-                    <Alert.Title>Couldn&apos;t queue cleanup</Alert.Title>
-                    <Alert.Description>{error}</Alert.Description>
-                  </Alert.Content>
-                </Alert>
-              ) : null}
-              <div className="flex flex-wrap justify-end gap-2">
-                <Button
-                  isDisabled={submitting}
-                  variant="secondary"
-                  onPress={close}
-                >
-                  <HugeiconsIcon
-                    aria-hidden="true"
-                    icon={Shield01Icon}
-                    className="size-4 shrink-0"
-                  />
-                  Keep rollback volume
-                </Button>
-                <Button
-                  isDisabled={submitting}
-                  variant="danger"
-                  onPress={cleanUp}
-                >
-                  <HugeiconsIcon
-                    aria-hidden="true"
-                    icon={Delete02Icon}
-                    className="size-4 shrink-0"
-                  />
-                  {submitting ? "Queueing cleanup…" : "Clean up volume"}
-                </Button>
-              </div>
-            </Modal.Body>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
-  );
+  return null;
 }
 
-function CopyBackupKey({ backup }: { backup: SourceBackup }) {
-  async function copyObjectKey() {
-    try {
-      await navigator.clipboard.writeText(backup.result.key);
-      toast.success("S3 object key copied");
-    } catch {
-      toast.danger("Couldn't copy the S3 object key");
-    }
-  }
+export function RelativeTime({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | null;
+}) {
+  if (!value) return "—";
+  const date = new Date(value);
   return (
-    <span className="flex min-h-7 flex-wrap items-center gap-x-3 gap-y-1">
-      <span>{formatDate(backup.finishedAt ?? backup.createdAt)}</span>
-      <button
-        className="focus-visible:ring-focus relative inline-flex min-h-7 items-center gap-2 rounded-md font-medium underline-offset-4 outline-none after:absolute after:-inset-x-1 after:-inset-y-2 after:content-[''] pointer-fine:hover:underline focus-visible:ring-2"
-        type="button"
-        onClick={copyObjectKey}
-      >
-        <HugeiconsIcon
-          aria-hidden="true"
-          icon={Copy01Icon}
-          className="size-4 shrink-0"
-        />
-        Copy S3 key
-      </button>
+    <span className="inline-flex flex-col gap-0.5" aria-label={label}>
+      <span>{formatDate(value)}</span>
+      <span className="text-muted typography--body-xs">
+        {formatRelativeTime(date)}
+      </span>
     </span>
   );
 }
 
-function readRestoreResult(result: ResourceOperation["result"]) {
-  if (!result || !("outcome" in result)) return null;
-  return result as RestoreResult;
+export function formatRelativeTime(date: Date) {
+  const now = Date.now();
+  const diffMs = date.getTime() - now;
+  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+  const seconds = Math.round(diffMs / 1000);
+  if (Math.abs(seconds) < 60) return rtf.format(seconds, "second");
+  const minutes = Math.round(seconds / 60);
+  if (Math.abs(minutes) < 60) return rtf.format(minutes, "minute");
+  const hours = Math.round(minutes / 60);
+  if (Math.abs(hours) < 24) return rtf.format(hours, "hour");
+  const days = Math.round(hours / 24);
+  return rtf.format(days, "day");
 }
 
-function readString(value: unknown) {
-  return typeof value === "string" ? value : null;
+export function formatBytes(bytes: number) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  const units = ["B", "KiB", "MiB", "GiB", "TiB"];
+  const exponent = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+    units.length - 1,
+  );
+  const value = bytes / 1024 ** exponent;
+  return `${value.toFixed(value >= 10 || exponent === 0 ? 0 : 1)} ${units[exponent]}`;
 }
 
-function formatEngine(engine: "postgres" | "redis" | undefined) {
+export function formatEngine(engine: "postgres" | "redis" | undefined) {
   if (engine === "postgres") return "PostgreSQL";
   if (engine === "redis") return "Redis";
   return "Unknown";
 }
 
-function formatBackupFormat(format: SourceBackup["result"]["format"]) {
+export function formatBackupFormat(format: SourceBackup["result"]["format"]) {
   if (format === "postgres-custom") return "PostgreSQL custom";
   if (format === "redis-rdb") return "Redis RDB";
   return "Metadata missing";
 }
 
-function formatPhase(phase: string | null) {
-  if (!phase) return "Queued";
-  return phase
-    .split("_")
-    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
-    .join(" ");
+export function InlineLink({
+  children,
+  href,
+}: {
+  children: ReactNode;
+  href: string;
+}) {
+  return (
+    <Link
+      className="focus-visible:ring-focus inline-flex items-center rounded-sm font-medium underline underline-offset-4 outline-none focus-visible:ring-2"
+      href={href}
+    >
+      {children}
+    </Link>
+  );
 }

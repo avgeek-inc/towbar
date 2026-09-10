@@ -1,5 +1,10 @@
 "use client";
 import {
+  InventorySidebar,
+  useInventoryQuery,
+  type InventoryCounts,
+} from "./inventory-sidebar";
+import {
   Add01Icon,
   DashboardCircleIcon,
   DatabaseIcon,
@@ -28,7 +33,11 @@ import { LastSyncedTime } from "./last-synced-time";
 
 export function SourceIndex() {
   const router = useRouter();
-  const query = useApiQuery<{ sources: Source[] }>("/v1/core/sources", 5_000);
+  const filtered = useInventoryQuery("sources").includes("?");
+  const query = useApiQuery<{ sources: Source[]; counts: InventoryCounts }>(
+    useInventoryQuery("sources"),
+    5_000,
+  );
   const apps = useApiQuery<{ apps: App[] }>("/v1/core/apps", 5_000);
   const resources = useApiQuery<{ resources: Resource[] }>(
     "/v1/core/resources",
@@ -157,6 +166,7 @@ export function SourceIndex() {
       }
       title="Sources"
     >
+      <InventorySidebar kind="sources" counts={query.data?.counts} />
       {error ? (
         <QueryError message={error} />
       ) : !query.data || !apps.data || !resources.data ? (
@@ -175,8 +185,12 @@ export function SourceIndex() {
               Add source
             </ButtonLink>
           }
-          emptyDescription="Connect a GitHub repository to import its Towbar manifest."
-          emptyTitle="No sources yet"
+          emptyDescription={
+            filtered
+              ? "Try changing or clearing the filters."
+              : "Connect a GitHub repository to import its Towbar manifest."
+          }
+          emptyTitle={filtered ? "No matching sources" : "No sources yet"}
           getRowHref={(source) => `/sources/${source.id}`}
           getRowKey={(source) => source.id}
           items={query.data.sources}

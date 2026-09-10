@@ -1,11 +1,4 @@
-import { UserAccountIcon } from "@hugeicons/core-free-icons";
-import { DashboardPage } from "@/components/page-parts";
-import { ProfileSettings } from "@/components/settings-pages";
-
+import { redirect } from "next/navigation";
 export default function Page() {
-  return (
-    <DashboardPage icon={UserAccountIcon} title="Profile">
-      <ProfileSettings />
-    </DashboardPage>
-  );
+  redirect("/settings/profile");
 }

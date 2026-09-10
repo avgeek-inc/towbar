@@ -1,13 +1,4 @@
-import { createReadStream, createWriteStream } from "node:fs";
-import { pipeline } from "node:stream/promises";
-
-import {
-  DeleteObjectCommand,
-  GetObjectCommand,
-  HeadObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
+import { S3Client } from "@aws-sdk/client-s3";
 import { ApplicationFailure, Context } from "@temporalio/activity";
 
 import { executeResourceOperation } from "@workspace/towbar-deployer";
@@ -15,17 +6,23 @@ import { isNormalizedResource } from "@workspace/towbar-core";
 
 import { signedApiRequest } from "../infrastructure/towbar-api.js";
 import { getEnv } from "../env.js";
+import {
+  azureBlobStorage,
+  gcsStorage,
+  s3Storage,
+} from "./resource-operation-storage.js";
 
 import type {
   BackupStorage,
   ResourceOperationExecutionContext,
   ResourceOperationSecrets,
 } from "@workspace/towbar-deployer";
+import type { BackupProvider } from "@workspace/towbar-core";
 
 export async function executeResourceOperationActivity(operationId: string) {
   const activity = Context.current();
   const pulse = setInterval(() => activity.heartbeat({ operationId }), 10_000);
-  let client: S3Client | undefined;
+  let s3Client: S3Client | undefined;
   try {
     const [contextResponse, secretsResponse] = await Promise.all([
       signedApiRequest<{ context: ResourceOperationExecutionContext }>(
@@ -39,21 +36,13 @@ export async function executeResourceOperationActivity(operationId: string) {
     ]);
     const { context } = contextResponse;
     const { secrets } = secretsResponse;
-    let storage: BackupStorage | undefined;
-    if (secrets.aws) {
-      const configuredRegion =
-        (context.deployable && isNormalizedResource(context.deployable)
-          ? context.deployable.backup?.s3.region
-          : undefined) ?? secrets.aws.region;
-      client = new S3Client({
-        credentials: {
-          accessKeyId: secrets.aws.accessKeyId,
-          secretAccessKey: secrets.aws.secretAccessKey,
-        },
-        region: configuredRegion,
-      });
-      storage = s3Storage(client);
-    }
+
+    const { client, storage, storages } = initializeBackupStorages(
+      context,
+      secrets,
+    );
+    s3Client = client;
+
     const result = await executeResourceOperation({
       context,
       hooks: {
@@ -66,7 +55,7 @@ export async function executeResourceOperationActivity(operationId: string) {
         },
       },
       secrets,
-      ...(storage ? { storage } : {}),
+      ...(storage ? { storage, storages } : {}),
       signal: activity.cancellationSignal,
     });
     await signedApiRequest(
@@ -75,26 +64,137 @@ export async function executeResourceOperationActivity(operationId: string) {
       { result, state: "succeeded" },
     );
   } catch (error) {
-    const cancelled = error instanceof Error && error.name === "AbortError";
-    const result = restoreFailureResult(error);
-    await signedApiRequest(
-      "POST",
-      `/v1/internal/resource-operations/${operationId}/events`,
-      {
-        errorCode: classifyError(error),
-        errorMessage: safeErrorMessage(error),
-        ...(result ? { result } : {}),
-        state: cancelled ? "cancelled" : "failed",
-      },
-    ).catch(() => undefined);
-    throw ApplicationFailure.create({
-      message: safeErrorMessage(error),
-      type: classifyError(error),
-    });
+    await handleResourceOperationError(operationId, error);
   } finally {
     clearInterval(pulse);
-    client?.destroy();
+    s3Client?.destroy();
   }
+}
+
+function initAwsStorage(
+  context: ResourceOperationExecutionContext,
+  awsSecret: NonNullable<ResourceOperationSecrets["aws"]>,
+) {
+  const configuredRegion =
+    (context.deployable && isNormalizedResource(context.deployable)
+      ? context.deployable.backup?.s3?.region
+      : undefined) ?? awsSecret.region;
+  const client = new S3Client({
+    credentials: {
+      accessKeyId: awsSecret.accessKeyId,
+      secretAccessKey: awsSecret.secretAccessKey,
+    },
+    region: configuredRegion,
+  });
+  return { client, storage: s3Storage(client) };
+}
+
+function initGcpStorage(
+  context: ResourceOperationExecutionContext,
+  gcpSecret: NonNullable<ResourceOperationSecrets["gcp"]>,
+  currentStorage?: BackupStorage,
+) {
+  const parsedKey = JSON.parse(gcpSecret.serviceAccountKey) as {
+    client_email: string;
+    private_key: string;
+    token_uri?: string;
+  };
+  const gcs = gcsStorage(parsedKey);
+  const isPrimary =
+    (context.deployable &&
+      isNormalizedResource(context.deployable) &&
+      context.deployable.backup?.restoreFrom === "gcs") ||
+    context.restoreBackup?.result.restoreFrom === "gcs";
+  return {
+    gcs,
+    storage: !currentStorage || isPrimary ? gcs : currentStorage,
+  };
+}
+
+function initAzureStorage(
+  context: ResourceOperationExecutionContext,
+  azureSecret: NonNullable<ResourceOperationSecrets["azure"]>,
+  currentStorage?: BackupStorage,
+) {
+  const defaultStorageAccount =
+    (context.deployable && isNormalizedResource(context.deployable)
+      ? context.deployable.backup?.azureBlob?.storageAccount
+      : undefined) ??
+    context.restoreBackup?.result.storageAccount ??
+    context.restoreBackup?.result.destinations?.find(
+      (d) => d.provider === "azureBlob",
+    )?.storageAccount;
+  const azure = azureBlobStorage(azureSecret, defaultStorageAccount);
+
+  const isPrimary =
+    (context.deployable &&
+      isNormalizedResource(context.deployable) &&
+      context.deployable.backup?.restoreFrom === "azureBlob") ||
+    (context.restoreBackup &&
+      (context.restoreBackup.result.restoreFrom === "azureBlob" ||
+        (!context.restoreBackup.result.restoreFrom &&
+          Boolean(context.restoreBackup.result.storageAccount))));
+
+  return {
+    azure,
+    storage: !currentStorage || isPrimary ? azure : currentStorage,
+  };
+}
+
+function initializeBackupStorages(
+  context: ResourceOperationExecutionContext,
+  secrets: ResourceOperationSecrets,
+): {
+  client?: S3Client;
+  storage?: BackupStorage;
+  storages: Partial<Record<BackupProvider, BackupStorage>>;
+} {
+  let client: S3Client | undefined;
+  let storage: BackupStorage | undefined;
+  const storages: Partial<Record<BackupProvider, BackupStorage>> = {};
+
+  if (secrets.aws) {
+    const aws = initAwsStorage(context, secrets.aws);
+    client = aws.client;
+    storage = aws.storage;
+    storages.s3 = aws.storage;
+  }
+
+  if (secrets.gcp) {
+    const gcp = initGcpStorage(context, secrets.gcp, storage);
+    storages.gcs = gcp.gcs;
+    storage = gcp.storage;
+  }
+
+  if (secrets.azure) {
+    const azure = initAzureStorage(context, secrets.azure, storage);
+    storages.azureBlob = azure.azure;
+    storage = azure.storage;
+  }
+
+  return { client, storage, storages };
+}
+
+async function handleResourceOperationError(
+  operationId: string,
+  error: unknown,
+): Promise<never> {
+  const cancelled = error instanceof Error && error.name === "AbortError";
+  const result = restoreFailureResult(error);
+  await signedApiRequest(
+    "POST",
+    `/v1/internal/resource-operations/${operationId}/events`,
+    {
+      errorCode: classifyError(error),
+      errorMessage: safeErrorMessage(error),
+      ...(result ? { result } : {}),
+      state: cancelled ? "cancelled" : "failed",
+    },
+  ).catch(() => undefined);
+  throw ApplicationFailure.create({
+    message: safeErrorMessage(error),
+    type: classifyError(error),
+  });
 }
 
 export async function markResourceOperationInterruptedActivity(
@@ -115,113 +215,6 @@ export async function runMaintenanceSweepActivity() {
   await signedApiRequest("POST", "/v1/internal/maintenance/sweep", {
     version: getEnv().SOURCE_COMMIT,
   });
-}
-
-function s3Storage(client: S3Client): BackupStorage {
-  return {
-    deleteObject: async ({ bucket, key }) => {
-      await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
-    },
-    download: async ({ bucket, key, localPath, versionId }) => {
-      const object = await client.send(
-        new GetObjectCommand({
-          Bucket: bucket,
-          Key: key,
-          ...(versionId ? { VersionId: versionId } : {}),
-        }),
-      );
-      if (!object.Body) throw new Error("Backup object has no body");
-      await pipeline(
-        object.Body as NodeJS.ReadableStream,
-        createWriteStream(localPath, { mode: 0o600 }),
-      );
-    },
-    headObject: async ({ bucket, key, versionId }) => {
-      try {
-        const object = await client.send(
-          new HeadObjectCommand({
-            Bucket: bucket,
-            Key: key,
-            ...(versionId ? { VersionId: versionId } : {}),
-          }),
-        );
-        const metadata = object.Metadata ?? {};
-        return {
-          checksum: metadata["towbar-checksum"],
-          encryption:
-            object.ServerSideEncryption === "aws:kms"
-              ? "aws:kms"
-              : object.ServerSideEncryption === "AES256"
-                ? "AES256"
-                : undefined,
-          engine: parseEngine(metadata["towbar-engine"]),
-          engineMajorVersion: parsePositiveInteger(
-            metadata["towbar-engine-major-version"],
-          ),
-          exists: true,
-          format: parseFormat(metadata["towbar-format"]),
-          metadataVersion: parsePositiveInteger(
-            metadata["towbar-metadata-version"],
-          ),
-          sizeBytes: object.ContentLength,
-        };
-      } catch (error) {
-        if (isS3ObjectMissing(error)) return { exists: false };
-        throw error;
-      }
-    },
-    upload: async ({
-      bucket,
-      encryption,
-      key,
-      kmsKeyId,
-      localPath,
-      metadata,
-      sizeBytes,
-    }) => {
-      const result = await client.send(
-        new PutObjectCommand({
-          Body: createReadStream(localPath),
-          Bucket: bucket,
-          ContentLength: sizeBytes,
-          Key: key,
-          Metadata: metadata,
-          ServerSideEncryption: encryption,
-          ...(kmsKeyId ? { SSEKMSKeyId: kmsKeyId } : {}),
-        }),
-      );
-      return result.VersionId ? { versionId: result.VersionId } : {};
-    },
-  };
-}
-
-function parsePositiveInteger(value: string | undefined) {
-  if (!value || !/^\d+$/u.test(value)) return undefined;
-  const parsed = Number(value);
-  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined;
-}
-
-function isS3ObjectMissing(error: unknown) {
-  if (typeof error !== "object" || error === null) return false;
-  const candidate = error as {
-    $metadata?: { httpStatusCode?: number };
-    name?: string;
-  };
-  return (
-    candidate.$metadata?.httpStatusCode === 404 ||
-    candidate.name === "NoSuchKey" ||
-    candidate.name === "NotFound"
-  );
-}
-
-function parseEngine(value: string | undefined) {
-  return value === "postgres" || value === "redis" ? value : undefined;
-}
-
-function parseFormat(value: string | undefined) {
-  return value === "postgres-custom" || value === "redis-rdb"
-    ? value
-    : undefined;
 }
 
 function restoreFailureResult(error: unknown) {

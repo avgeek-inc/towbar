@@ -23,6 +23,8 @@ const categoryByRoot: Record<string, string> = {
   "system-health": "Workspace",
   github: "Integrations",
   aws: "Integrations",
+  azure: "Integrations",
+  gcp: "Integrations",
 };
 
 export const sectionOrder = [
@@ -51,6 +53,8 @@ export const sectionOrder = [
   "Identity",
   "GitHub",
   "AWS",
+  "Azure",
+  "GCP",
   "Lifecycle",
 ];
 
@@ -120,6 +124,8 @@ const rules: Record<string, Array<[string, RegExp]>> = {
   "system-health": [["System health", /^\/system-health(?:\/|$)/]],
   github: [["GitHub", /^\/github(?:\/|$)/]],
   aws: [["AWS", /^\/aws$/]],
+  azure: [["Azure", /^\/azure$/]],
+  gcp: [["GCP", /^\/gcp$/]],
 };
 
 export function referenceGroup(path: string): [string, string] {

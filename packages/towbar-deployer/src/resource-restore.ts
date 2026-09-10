@@ -91,7 +91,6 @@ function resolveRestorePlan(input: ManagedRestoreInput): RestorePlan {
     !release ||
     !backup ||
     !storage ||
-    !secrets.aws ||
     !context.deployableId
   ) {
     throw new Error("Restore execution context is incomplete");
@@ -147,6 +146,7 @@ async function verifyRestoreObject(plan: RestorePlan) {
   const object = await storage.headObject({
     bucket: result.bucket,
     key: result.key,
+    ...(result.storageAccount ? { storageAccount: result.storageAccount } : {}),
     ...(result.objectVersionId ? { versionId: result.objectVersionId } : {}),
   });
   const matches =
@@ -216,15 +216,18 @@ export async function executeManagedRestore(input: ManagedRestoreInput) {
     await progress(
       hooks,
       "downloading_backup",
-      "Downloading the retained S3 object",
+      "Downloading the retained backup object",
       {
-        command: "s3:GetObject <retained-backup>",
+        command: "storage:GetObject <retained-backup>",
       },
     );
     await storage.download({
       bucket: result.bucket,
       key: result.key,
       localPath: localBackup,
+      ...(result.storageAccount
+        ? { storageAccount: result.storageAccount }
+        : {}),
       ...(result.objectVersionId ? { versionId: result.objectVersionId } : {}),
     });
     await progress(

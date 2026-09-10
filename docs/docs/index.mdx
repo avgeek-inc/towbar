@@ -7,6 +7,10 @@ Towbar is an open source deployment platform for Ubuntu servers you control.
 Define apps and resources in Git, register your servers in Towbar, and follow
 each deployment from its source commit to the running service.
 
+## Start with the overview
+
+The homepage pairs the seven-day **Deployments trend** with app, resource, server, and active-incident counts. Click a count to open its list page. Status chips summarize the inventory, and the incident card changes appearance when attention is needed. The recent deployments table shows each workload, environment, ID, status, and request time.
+
 ## Start with a working deployment
 
 <CardGroup cols={2}>
@@ -46,6 +50,18 @@ Sources, servers, workloads, deployments, and releases.
     Review pull requests at stable URLs with separate secrets.
   </Card>
 </CardGroup>
+
+## Filter and share views
+
+The secondary sidebar contains the current page’s filters and sections. On mobile, open **Page menu**. Apps, Resources, Servers, and Sources have **All** and **Needs attention** views with counts for the full inventory.
+
+- **Apps and Resources:** filter by Source, server, running state, and health. Resources also supports resource type.
+- **Servers:** filter by setup status, latest check health, and Scout Agent status. An absent or unfinished check is shown as unknown.
+- **Sources:** filter by latest sync result and whether automatic deployments are enabled or paused.
+
+Needs attention includes workloads with unprepared servers, unhealthy runtime checks, configuration drift, or a missing/stopped container that should be running. Servers need attention when setup is pending or failed, the latest check failed, or an enabled Scout Agent is offline or in error. Sources need attention after a failed latest sync. An intentionally stopped workload or a disabled Scout Agent does not by itself need attention.
+
+Search and filter selections are stored in the URL. Opening a copied URL restores the view; browser Back and Forward restore earlier selections. Performance and Alerts links also retain the selected entity. Monitoring links preserve the time range, environment, aggregation, and instance selection, while shared-secret links preserve environment and stage. Secret values are never included in these links.
 
 ## Operate with context
 

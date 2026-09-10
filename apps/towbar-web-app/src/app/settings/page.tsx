@@ -1,5 +1,11 @@
 import { redirect } from "next/navigation";
-
-export default function Page() {
-  redirect("/account/profile");
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ settings?: string }>;
+}) {
+  const { settings } = await searchParams;
+  redirect(
+    settings === "sessions" ? "/settings/sessions" : "/settings/profile",
+  );
 }

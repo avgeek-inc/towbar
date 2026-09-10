@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   backupOperationResultSchema,
   isNormalizedResource,
+  normalizeBackupOperationResult,
   orphanItemSchema,
 } from "@workspace/towbar-core";
 import {
@@ -208,7 +209,16 @@ export async function getRetentionBackups(
     .orderBy(desc(resourceOperations.createdAt));
   return backups.slice(keepPrevious).map((backup) => {
     const result = backupOperationResultSchema.parse(backup.result);
-    return { bucket: result.bucket, id: backup.id, key: result.key };
+    const normalized = normalizeBackupOperationResult(result);
+    return {
+      bucket: result.bucket,
+      destinations: normalized.destinations,
+      id: backup.id,
+      key: result.key,
+      ...(result.storageAccount
+        ? { storageAccount: result.storageAccount }
+        : {}),
+    };
   });
 }
 

@@ -1,4 +1,5 @@
 "use client";
+import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import {
   Activity01Icon,
   Cancel01Icon,
@@ -22,7 +23,7 @@ import { ServerEditor } from "./server-editor";
 import { ServerHardwareDescription } from "./server-hardware";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useEffect } from "react";
 import type {
   OrphanItem,
@@ -81,7 +82,7 @@ type HostKeyRow = {
 const SERVER_CHECK_PAGE_SIZE = 10;
 
 export function ServerDetail() {
-  const requestedSettings = useSearchParams().get("settings");
+  const requestedSettings = useDetailNavigation().settings;
   const settingsTab = ["monitoring", "host-keys", "cleanup"].includes(
     requestedSettings ?? "",
   )
@@ -369,6 +370,12 @@ export function ServerDetail() {
       icon={ServerStack01Icon}
       actions={
         <ActionButton
+          confirm={{
+            title: "Check this server?",
+            description:
+              "Towbar will connect over SSH, inspect the server and its containers, and record a fresh check result.",
+            actionLabel: "Check server",
+          }}
           action={() => api.post(`/v1/core/servers/${serverId}/actions/check`)}
           pendingLabel="Checking…"
           success="Server check queued"
@@ -556,15 +563,6 @@ export function ServerDetail() {
                   ariaLabel="Server settings"
                   defaultSelectedKey={settingsTab}
                   key={settingsTab}
-                  onSelectionChange={(key) => {
-                    const params = new URLSearchParams(window.location.search);
-                    params.set("settings", String(key));
-                    window.history.pushState(
-                      null,
-                      "",
-                      `/servers/${serverId}?${params.toString()}`,
-                    );
-                  }}
                   tabs={[
                     {
                       value: "configuration",

@@ -142,6 +142,12 @@ export function PreviewEnvironments({
           ) : null}
           {preview.status === "cleanup_failed" ? (
             <ActionButton
+              confirm={{
+                title: "Retry Preview cleanup?",
+                description:
+                  "Retry removing this Preview\u2019s container, image, route, and DNS record.",
+                actionLabel: "Retry cleanup",
+              }}
               action={() =>
                 api.post(`/v1/core/previews/${preview.id}/actions/delete`)
               }

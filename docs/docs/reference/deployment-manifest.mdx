@@ -91,11 +91,13 @@ an automatic deployment only when selected source inputs, runtime
 configuration, or target server configuration changed. An incomplete Git tree
 fails safe by treating the commit as changed.
 
+To inspect the imported YAML, open **Source → Info → Manifest**. The read-only editor supports syntax highlighting, line numbers, scrolling, and copying. Make configuration changes in the repository, then sync the Source.
+
 ## Managed secrets
 
-Secret values and assignments are configured through the Towbar editor and do not belong in YAML. Global and Source defaults support separate Production and Preview values for build, runtime, pre-deploy, and post-deploy stages. Apps can override each stage in the matching environment; resources inherit Production runtime values only. Saved values remain write-only.
+Secret values and assignments are configured through the Towbar secrets editor and do not belong in YAML. Global, Source, and app values are separate for Production and Preview and for each build, runtime, pre-deploy, and post-deploy stage. Shared values are used only through explicit `{{globals.ENV_KEY}}` or `{{source.ENV_KEY}}` references. Resources support Production runtime values only. Owners can reveal values individually or edit them in File mode.
 
-See [Managed secrets](/docs/secrets) for inheritance, explicit deployment, external managers, and recovery.
+See [Managed secrets](/docs/secrets) for shared references, explicit deployment, external managers, and recovery.
 
 ## Apps and Resources
 
@@ -126,7 +128,7 @@ routes that port through Caddy or Cloudflare.
 
 Preview deployments are opt-in per App. They run for relevant same-repository
 pull requests targeting `source.branch`, using Preview-only build, runtime, and
-hook values configured in the editor. Resources are not cloned. Preview apps inherit Preview shared values and never receive Production secrets.
+hook values configured in the editor. Resources are not cloned. Preview apps use explicitly configured Preview values and references; they never receive Production secrets.
 
 ```yaml
 apps:
@@ -192,18 +194,18 @@ IDs must be unique across both apps and resources. Paths are repository-relative
 
 Resources require `id`, `name`, `server`, and `type`. They share app fields for description, domains, TLS, and container allocations, with these differences:
 
-| Field                       | Meaning                                                                                         |
-| --------------------------- | ----------------------------------------------------------------------------------------------- |
-| `type`                      | `image`, `postgres`, or `redis`                                                                 |
-| `image`                     | Required for `image`; presets default to `postgres:17-alpine` and `redis:8-alpine`              |
-| `autoDeploy`                | Boolean only; defaults to `false`                                                               |
-| `container.port`            | Optional; defaults to 5432 for PostgreSQL and 6379 for Redis                                    |
-| `container.command`         | Optional command array for `image` resources only                                               |
-| `container.networkAlias`    | Defaults to the resource ID when a network is declared                                          |
-| `container.volumes`         | Up to 20 `{ name, mountPath }` entries; mount paths must be absolute                            |
-| `health`                    | `type: http` with a path, `command` with a command array, or `container`; timeout 5–600 seconds |
-| `access.sshTunnel.hostPort` | Localhost-only operator port, 1024–65535                                                        |
-| `backup`                    | PostgreSQL/Redis only: S3 settings, optional retention and schedule                             |
+| Field                       | Meaning                                                                                                     |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `type`                      | `image`, `postgres`, or `redis`                                                                             |
+| `image`                     | Required for `image`; presets default to `postgres:17-alpine` and `redis:8-alpine`                          |
+| `autoDeploy`                | Boolean only; defaults to `false`                                                                           |
+| `container.port`            | Optional; defaults to 5432 for PostgreSQL and 6379 for Redis                                                |
+| `container.command`         | Optional command array for `image` resources only                                                           |
+| `container.networkAlias`    | Defaults to the resource ID when a network is declared                                                      |
+| `container.volumes`         | Up to 20 `{ name, mountPath }` entries; mount paths must be absolute                                        |
+| `health`                    | `type: http` with a path, `command` with a command array, or `container`; timeout 5–600 seconds             |
+| `access.sshTunnel.hostPort` | Localhost-only operator port, 1024–65535                                                                    |
+| `backup`                    | PostgreSQL/Redis only: multi-cloud destinations (S3, GCS, Azure Blob), retention, schedule, and restoreFrom |
 
 Public resources require an HTTP health check and a port. Managed database presets supply health commands and a data volume. Hooks, Dockerfile builds, vulnerability scanning, and pull request previews are app features.
 
