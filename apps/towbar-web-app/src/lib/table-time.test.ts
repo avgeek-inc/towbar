@@ -22,7 +22,8 @@ void test("expiry timestamps describe the future", () => {
 });
 void test("server markup is timezone-explicit and stable until hydration", () => {
   assert.deepEqual(formatTableTime("2026-09-05T13:00:00+05:30", 0), {
-    absolute: "5 Sept 2026, 07:30 UTC",
+    absolute: "07:30, 5 Sept 2026",
+    timezone: "UTC",
     relative: null,
   });
 });
