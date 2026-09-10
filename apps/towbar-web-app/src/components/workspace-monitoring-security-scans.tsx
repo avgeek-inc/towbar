@@ -8,10 +8,7 @@ import { SecurityCheckIcon } from "@hugeicons/core-free-icons";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
-import {
-  Tooltip,
-  TooltipText,
-} from "@workspace/web-design-system/overlays/tooltip";
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
@@ -101,16 +98,12 @@ export function WorkspaceSecurityScans() {
     {
       key: "scanned",
       header: "Scanned",
-      cell: (finding) => (
-        <div className="flex items-center gap-2 whitespace-nowrap">
-          {finding.scannedAt ? (
-            <RelativeTime label="Scanned" value={finding.scannedAt} />
-          ) : (
-            "—"
-          )}
-          {finding.scanState === "stale" ? <OlderDatabaseChip /> : null}
-        </div>
-      ),
+      cell: (finding) =>
+        finding.scannedAt ? (
+          <RelativeTime label="Scanned" value={finding.scannedAt} />
+        ) : (
+          "—"
+        ),
       className: "whitespace-nowrap",
     },
   ];
@@ -184,31 +177,6 @@ export function WorkspaceSecurityScans() {
         ) : null}
       </div>
     </DashboardPage>
-  );
-}
-
-function OlderDatabaseChip() {
-  return (
-    <Tooltip>
-      <Tooltip.Trigger
-        render={(props) => (
-          <span
-            {...props}
-            className="inline-flex rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-focus"
-          />
-        )}
-      >
-        <Chip size="small" variant="warning">
-          Older database
-        </Chip>
-      </Tooltip.Trigger>
-      <Tooltip.Content className="max-w-xs text-xs" placement="top" showArrow>
-        <Tooltip.Arrow />
-        The scan that reported this finding used a vulnerability database older
-        than the workspace limit, so newer advisories may be missing. Rescan
-        from the deployment to refresh it.
-      </Tooltip.Content>
-    </Tooltip>
   );
 }
 
