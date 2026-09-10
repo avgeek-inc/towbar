@@ -32,6 +32,7 @@ workloads in a manifest. Towbar builds and runs them on your infrastructure.
 | Feature                | What it gives you                                                                                                                                                              |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Deploy from Git        | Keep configuration with your code. Deploy manually, automatically, or only when selected files change.                                                                         |
+| Separate environments  | Map production, staging, and other environments to branches in Towbar. Keep instance configuration, secrets, containers, and data separate.                                    |
 | Run apps and databases | Build Dockerfile apps on your servers. Run PostgreSQL, Redis, and container images with persistent storage.                                                                    |
 | Preview pull requests  | Share a stable preview URL with separate secrets. Environments are cleaned up when pull requests close or merge.                                                               |
 | Manage secrets         | Edit encrypted values in Form or .env File mode, with owner-only reveal and explicit shared references.                                                                        |
@@ -58,11 +59,44 @@ Read the [monitoring guide](https://www.towbar.dev/docs/monitoring), [Scout Aler
 
 ## How it works
 
-1. **Connect a Source:** a GitHub repository with a `.towbar/deployment.yml` manifest.
-2. **Register a server:** add an Ubuntu host, verify its SSH identity, and prepare
-   Docker and Caddy. Multiple Sources can share one server.
-3. **Deploy:** Towbar builds or pulls the image, starts a candidate, checks its
+1. **Register a server:** add an Ubuntu host, choose its server slug, verify its
+   SSH identity, and prepare Docker and Caddy. Multiple Sources can share one server.
+2. **Connect a Source:** select a GitHub repository containing `towbar.yml` and
+   entity files under `.towbar/apps/` and `.towbar/resources/`. Map each environment
+   to a branch in Towbar and sync its configuration.
+3. **Set required secrets:** fill the keys declared by each environment’s apps
+   and resources. Sync preserves existing values and adds new keys as unset.
+4. **Deploy:** Towbar builds or pulls the image, starts a candidate, checks its
    health, and promotes it to serve traffic.
+
+### Production, staging, and previews
+
+Declare environments in the root file:
+
+```yaml
+# towbar.yml
+version: 2
+environments:
+  production: {}
+  staging:
+    previews:
+      enabled: true
+```
+
+Map production to `main` and staging to `develop`, for example, in Source
+settings. Branch names stay in Towbar so you can change them without editing
+Git configuration. Connecting or changing a mapping syncs without deploying.
+
+Each `*.app.yml` or `*.resource.yml` file defines one logical workload, with
+shared settings and explicit environment overrides. Those overrides can select
+different server slugs, domains, and container settings. Each environment has
+its own workload instances and secret values. PRs targeting a preview-enabled
+environment’s branch can deploy previews for opted-in apps, using isolated
+preview secrets.
+
+See the [root example](examples/towbar.yml) and
+[app example](examples/.towbar/apps/hello-towbar.app.yml), or read the
+[configuration guide](https://www.towbar.dev/docs/reference/deployment-manifest).
 
 The control plane runs with Docker Compose. PostgreSQL stores state and Temporal
 coordinates durable workflows. Deployment targets are the Ubuntu hosts you
@@ -76,7 +110,7 @@ Installation and configuration live in the [Towbar documentation](https://www.to
 - **[Deploy your first app](https://www.towbar.dev/docs/getting-started)** — connect GitHub, prepare a server, and deploy.
 - **[Browse the guides and reference](https://www.towbar.dev/docs)** — apps, databases, previews, Scout Agent, API, MCP, and operations.
 
-For a working app to start with, [use the Hello Towbar template](https://github.com/avgeek-inc/towbar-example/generate).
+Start with the [v2 example configuration](examples/) in this repository.
 
 ## Contribute
 

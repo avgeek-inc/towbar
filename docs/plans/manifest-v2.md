@@ -277,3 +277,14 @@ namespace. API typecheck and scoped lint pass. API shutdown now closes its cache
 Temporal client as well as PostgreSQL; test cleanup also closes that connection.
 This does not prove public request authentication or GitHub synchronization,
 because the runner calls admission directly and seeds the source snapshots.
+
+### Full gate after admission integration
+
+`pnpm verify` passed at `08aaadb`, including docs, formatting, lint, typecheck,
+tests and builds. Default test execution still skips opt-in integration suites:
+API reported 137 passed/11 skipped, deployer 122 passed/2 skipped, worker
+29 passed/2 skipped. These skips do not replace the separately recorded real
+PostgreSQL, Docker and Temporal runs. The subsequent README update documents v2
+file paths, environment mappings, required-secret setup and repository examples;
+docs checks and formatting pass after that change. Screenshots still need a v2
+refresh.
