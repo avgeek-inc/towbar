@@ -114,6 +114,12 @@ export function SourceDetail() {
   const latestSync = syncs.data.syncs[0];
   const syncColumns: ResourceTableColumn<SourceSync>[] = [
     {
+      key: "environment",
+      header: "Environment",
+      cell: (sync) => sync.environment?.name ?? "Not recorded",
+      className: "min-w-36",
+    },
+    {
       key: "commit",
       header: "Commit",
       cell: (sync) => (
@@ -132,7 +138,13 @@ export function SourceDetail() {
     {
       key: "result",
       header: "Result",
-      cell: (sync) => getSyncIssueMessage(sync.issues) ?? "Manifest accepted",
+      cell: (sync) =>
+        getSyncIssueMessage(sync.issues) ??
+        (sync.status === "succeeded"
+          ? "Manifest accepted"
+          : sync.status === "failed"
+            ? "Sync failed"
+            : "Pending validation"),
       className: "min-w-48 whitespace-nowrap",
     },
     {

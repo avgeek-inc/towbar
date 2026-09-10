@@ -1,4 +1,8 @@
-import { sourceSyncs, sources } from "@workspace/towbar-database/schema";
+import {
+  sourceEnvironments,
+  sourceSyncs,
+  sources,
+} from "@workspace/towbar-database/schema";
 
 /** Public Source fields shared by create, detail, update, and list responses. */
 export const publicSourceSelection = {
@@ -15,6 +19,9 @@ export const publicSourceSelection = {
 
 /** A sync status deliberately excludes raw manifests and actor ownership. */
 export const publicSourceSyncSelection = {
+  environment: { id: sourceEnvironments.id, name: sourceEnvironments.name },
+  mappingRevision: sourceSyncs.mappingRevision,
+
   commitSha: sourceSyncs.commitSha,
   createdAt: sourceSyncs.createdAt,
   finishedAt: sourceSyncs.finishedAt,

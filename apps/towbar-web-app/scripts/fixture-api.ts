@@ -637,6 +637,8 @@ const releases: Release[] = [...apps, ...resources].map(
 );
 
 const sourceSync: SourceSync = {
+  environment: null,
+  mappingRevision: null,
   commitSha,
   createdAt: fixtureNow,
   finishedAt: fixtureNow,

@@ -6,6 +6,7 @@ import {
   imageVulnerabilityScans,
   releases,
   resourceOperations,
+  sourceEnvironments,
   sourceSyncs,
   sources,
 } from "@workspace/towbar-database/schema";
@@ -191,6 +192,13 @@ export async function listSourceSyncs(sourceId: string, workspaceId: string) {
   return await getTowbarDatabase()
     .select(publicSourceSyncSelection)
     .from(sourceSyncs)
+    .leftJoin(
+      sourceEnvironments,
+      and(
+        eq(sourceEnvironments.id, sourceSyncs.sourceEnvironmentId),
+        eq(sourceEnvironments.sourceId, sourceSyncs.sourceId),
+      ),
+    )
     .where(eq(sourceSyncs.sourceId, sourceId))
     .orderBy(desc(sourceSyncs.createdAt));
 }
@@ -204,6 +212,13 @@ export async function getSourceSync(
   const [sync] = await getTowbarDatabase()
     .select(publicSourceSyncSelection)
     .from(sourceSyncs)
+    .leftJoin(
+      sourceEnvironments,
+      and(
+        eq(sourceEnvironments.id, sourceSyncs.sourceEnvironmentId),
+        eq(sourceEnvironments.sourceId, sourceSyncs.sourceId),
+      ),
+    )
     .where(and(eq(sourceSyncs.id, syncId), eq(sourceSyncs.sourceId, sourceId)))
     .limit(1);
   if (!sync) throw notFound("Source sync");

@@ -3,7 +3,11 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { sourceSyncs } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
-import { executeSourceSync } from "./service.js";
+import {
+  executeSourceSync,
+  getSourceSync,
+  listSourceSyncs,
+} from "./service.js";
 import { assertEnvironmentPushRouting } from "./environment-webhook-tests.js";
 import type { apps } from "@workspace/towbar-database/schema";
 import {
@@ -42,6 +46,20 @@ export async function assertInstanceQueryIdentity({
   assert(rejected?.issues);
   assert.match(rejected.issues[0]!.message, /requires an environment/);
   await database.delete(sourceSyncs).where(eq(sourceSyncs.id, unscoped!.id));
+  const history = await listSourceSyncs(sourceId, workspaceId);
+  assert.equal(history.length, 2);
+  assert.deepEqual(history.map((sync) => sync.environment?.name).sort(), [
+    "production",
+    "staging",
+  ]);
+  for (const sync of history) {
+    assert(sync.mappingRevision);
+    assert.deepEqual(await getSourceSync(sourceId, sync.id, workspaceId), sync);
+    await assert.rejects(
+      getSourceSync(sourceId, sync.id, randomUUID()),
+      /not found/i,
+    );
+  }
   const instances = await listApps(workspaceId, sourceId);
   assert.equal(instances.length, 2);
   for (const [record, name] of [

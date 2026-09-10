@@ -104,6 +104,18 @@ export function SourceSyncDetail() {
                   title="Sync"
                   variant="card"
                 >
+                  <Attributes.Item label="Environment">
+                    {sync.environment?.name ?? "Not recorded"}
+                  </Attributes.Item>
+                  <Attributes.Item label="Mapping revision">
+                    {sync.mappingRevision ? (
+                      <TypographyCode title={sync.mappingRevision}>
+                        {sync.mappingRevision.slice(0, 8)}
+                      </TypographyCode>
+                    ) : (
+                      "Not recorded"
+                    )}
+                  </Attributes.Item>
                   <Attributes.Item label="Requested">
                     {formatDate(sync.createdAt)}
                   </Attributes.Item>

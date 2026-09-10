@@ -626,6 +626,8 @@ export type AzureCredentialMetadata = {
 };
 
 export type SourceSync = {
+  environment: { id: string; name: string } | null;
+  mappingRevision: string | null;
   commitSha: string | null;
   createdAt: string;
   finishedAt: string | null;
