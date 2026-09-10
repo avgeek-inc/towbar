@@ -113,3 +113,23 @@ a read-only root filesystem and an offline image scan. The cache lives in the
 nested Docker daemon and is removed with the target. Network access to the image
 registry and vulnerability database is required. This verifies scanner execution
 and cleanup; scheduling and presentation of findings need separate coverage.
+
+## Application build lifecycle
+
+```sh
+pnpm --filter @workspace/towbar-deployer... build
+node tools/e2e/app-lifecycle.mjs
+```
+
+This runner builds a small HTTP app from two controlled source archives. The
+production deployer fetches the exact requested commit, extracts and transfers
+the archive, mounts a BuildKit secret, builds the image, starts a container with
+runtime values, and checks health over HTTP. Three instances share the same
+logical app ID but have separate production, staging and preview runtime IDs.
+The runner updates staging to the second revision and fails a preview candidate,
+checking that the other instances and the previous healthy preview stay intact.
+
+Only the GitHub archive response and release-commit callback are simulated.
+Unexpected fetches fail. Docker builds, SSH, health checks and runtime recovery
+are real. Public domains/TLS, API admission and PR eligibility/reconciliation are
+outside this runner. It does not prove complete PR lifecycle support.

@@ -300,3 +300,16 @@ permission/missing-image failures removed temporary archives. The Docker target
 and nested scanner cache were removed afterward. This supplies actual Linux
 scanner evidence rather than counting the default opt-in skip as a pass; scan
 scheduling and findings presentation are outside this runner.
+
+### Application Docker build and runtime isolation
+
+`node tools/e2e/app-lifecycle.mjs` passed using the production deployer over SSH
+against the isolated Linux target. It built a Python HTTP application using a
+BuildKit secret mount and started production, staging and preview runtime IDs
+for the same logical app. HTTP assertions verified independent runtime values,
+staging replacement at a new immutable source revision, and preservation of
+production and the previous preview after an unhealthy preview candidate.
+Only the three retained containers remained; the target was removed afterward.
+GitHub archive responses and release commits are simulated in this runner.
+It does not establish public TLS, real GitHub authentication, API admission for
+apps, or PR lifecycle reconciliation and cleanup.
