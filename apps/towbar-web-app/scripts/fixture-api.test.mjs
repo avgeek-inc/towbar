@@ -652,6 +652,19 @@ test("the local fixture ranks workspace advisories by severity with affected app
     );
     assert.equal(criticalOnly.summary.critical, 2);
 
+    const appScoped = await fetch(
+      `${baseUrl}/v1/core/monitoring/vulnerabilities?appId=${fixtureIds.app}`,
+    ).then((item) => item.json());
+    assert.equal(appScoped.findings.length, 2);
+    assert.equal(
+      appScoped.findings.every(
+        (finding) => finding.appName === "Example Website",
+      ),
+      true,
+    );
+    assert.equal(appScoped.summary.high, 1);
+    assert.equal(appScoped.summary.scansWithFindings, 0);
+
     const paged = await fetch(
       `${baseUrl}/v1/core/monitoring/vulnerabilities?limit=5`,
     ).then((item) => item.json());

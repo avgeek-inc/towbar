@@ -519,12 +519,14 @@ function getSecurityScansFixture(searchParams: URLSearchParams) {
     (severityRank as readonly string[]).includes(severityParam)
       ? (severityParam as "all" | (typeof severityRank)[number])
       : "all";
+  const appId = searchParams.get("appId");
   const page = Math.max(1, Number(searchParams.get("page") ?? 1) || 1);
   const limit = Math.min(
     50,
     Math.max(1, Number(searchParams.get("limit") ?? 20) || 20),
   );
   const filtered = securityFindingRows
+    .filter((finding) => !appId || finding.appId === appId)
     .filter((finding) => severity === "all" || finding.severity === severity)
     .sort((left, right) => {
       const severityDifference =
@@ -538,22 +540,22 @@ function getSecurityScansFixture(searchParams: URLSearchParams) {
       return left.appName.localeCompare(right.appName);
     });
   const start = (page - 1) * limit;
+  const scoped = securityScanSummaries.filter(
+    (scan) => !appId || appIdByScanId.get(scan.id) === appId,
+  );
   const summary = {
-    activeScans: securityScanSummaries.filter((scan) =>
+    activeScans: scoped.filter((scan) =>
       ["pending", "running"].includes(scan.state),
     ).length,
-    cleanScans: securityScanSummaries.filter((scan) => scan.state === "clean")
+    cleanScans: scoped.filter((scan) => scan.state === "clean").length,
+    critical: sumSeverity(scoped, "critical"),
+    failedScans: scoped.filter((scan) => scan.state === "failed").length,
+    high: sumSeverity(scoped, "high"),
+    low: sumSeverity(scoped, "low"),
+    medium: sumSeverity(scoped, "medium"),
+    scansWithFindings: scoped.filter((scan) => scan.state === "findings")
       .length,
-    critical: sumSeverity(securityScanSummaries, "critical"),
-    failedScans: securityScanSummaries.filter((scan) => scan.state === "failed")
-      .length,
-    high: sumSeverity(securityScanSummaries, "high"),
-    low: sumSeverity(securityScanSummaries, "low"),
-    medium: sumSeverity(securityScanSummaries, "medium"),
-    scansWithFindings: securityScanSummaries.filter(
-      (scan) => scan.state === "findings",
-    ).length,
-    unknown: sumSeverity(securityScanSummaries, "unknown"),
+    unknown: sumSeverity(scoped, "unknown"),
   };
   return {
     findings: filtered.slice(start, start + limit),

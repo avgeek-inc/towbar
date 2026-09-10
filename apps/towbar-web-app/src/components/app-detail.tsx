@@ -1,9 +1,11 @@
 "use client";
 import { useDetailNavigation } from "@/hooks/use-detail-navigation";
+import { DeployableVulnerabilities } from "./deployable-vulnerabilities";
 import { ScoutPanel } from "./scout-panel";
 
 import {
   Activity01Icon,
+  SecurityCheckIcon,
   DashboardCircleIcon,
   FileViewIcon,
   GitBranchIcon,
@@ -260,6 +262,7 @@ export function AppDetail() {
           {
             value: "monitoring",
             label: "Scout Agent",
+            group: "Monitoring",
             icon: <HugeiconsIcon icon={Activity01Icon} />,
             content: (
               <ScoutPanel
@@ -268,6 +271,13 @@ export function AppDetail() {
                 deployableId={appId}
               />
             ),
+          },
+          {
+            value: "vulnerabilities",
+            label: "Vulnerabilities",
+            group: "Monitoring",
+            icon: <HugeiconsIcon icon={SecurityCheckIcon} className="size-4" />,
+            content: <DeployableVulnerabilities appId={appId} kind="app" />,
           },
           {
             value: "deployments",
