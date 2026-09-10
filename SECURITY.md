@@ -18,13 +18,13 @@ and disclosure timeline with the reporter.
 
 ## Supported versions
 
-Security fixes are provided for the latest `1.x` release. Production operators
+Security fixes are provided for the latest stable release. Production operators
 should pin a reviewed release and subscribe to repository security advisories.
 
 ## Security assumptions
 
-- The configured Git branch is trusted deployment input and is protected by the
-  repository owner.
+- Branches mapped to connected environments are trusted deployment input and
+  are protected by the repository owner.
 - Any same-repository branch is trusted executable input for Apps with Preview
   enabled. Preview environments use separate, least-privilege, non-production
   credentials; production and shared values are not inherited.
@@ -32,7 +32,7 @@ should pin a reviewed release and subscribe to repository security advisories.
 - PostgreSQL, Temporal, Temporal UI, and SSH are restricted by host and network
   controls rather than exposed broadly.
 - Towbar stores secrets encrypted with AES-256-GCM. The installation encryption key is stored separately from database backups; losing it makes secrets unrecoverable.
-- Secret values are write-only in public APIs. Only owners can mutate them; audit events and Temporal history contain no secret values. Database access plus the installation key permits decryption, so both are trusted operational boundaries.
+- Secret metadata and mutation responses contain no values. Only owners can mutate or explicitly reveal environment secret values; server credentials remain write-only. Audit events and Temporal history contain no secret values. Database access plus the installation key permits decryption, so both are trusted operational boundaries.
 - Optional Source AWS identities are scoped to the S3 backup operations they require.
 - Destination hosts use SSH keys, pinned host identity, current security
   updates, and least-privilege network rules.
@@ -42,6 +42,6 @@ should pin a reviewed release and subscribe to repository security advisories.
   changed in Settings.
 
 Towbar does not provide a security boundary against a malicious contributor who
-is authorized to modify a deployed production or Preview branch. Review,
+is authorized to modify a deployed environment branch or Preview branch. Review,
 branch protection, secret separation, and the decision to enable Preview are
 part of the trust model. Fork pull requests are not Preview deployment input.
