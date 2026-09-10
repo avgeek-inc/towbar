@@ -60,7 +60,8 @@ not a list of untouched work.
   source, server and workspace ownership. Source-level branch storage and its
   public field are removed; each workspace connects a repository once. App and
   resource entity/environment links, server slugs and instance secret declarations
-  are required by PostgreSQL. Source commit, digest
+  are required by PostgreSQL. Deployment secret declarations are also required
+  snapshots; execution always checks their required keys. Source commit, digest
   and successful-sync fields are removed; environments own these snapshots.
 - Sources: discovery/connect, selected environment subsets, initial sync without
   deployment, explicit add/edit/disconnect/reconnect, per-environment snapshots,
@@ -112,8 +113,7 @@ tests. Do not reset the hosted installation or use its database.
 
 ## Remaining delivery work
 
-1. Finish the database model: require deployment secret snapshots and
-   distinguish named environment identity from preview
+1. Finish the database model: distinguish named environment identity from preview
    deployment kind throughout stored/public deployment state.
 2. Audit resource operations, backups/restores, monitoring, alerts and scanning
    for instance/environment scope and labels. Validate that resource secret

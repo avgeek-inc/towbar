@@ -122,6 +122,12 @@ void test(
       for (const [i, id] of [baselineId, candidateId].entries()) {
         const finishedAt = new Date(now.getTime() - (2 - i) * 3600_000);
         await db.insert(deployments).values({
+          requiredSecrets: {
+            build: [],
+            runtime: [],
+            preDeploy: [],
+            postDeploy: [],
+          },
           id,
           workspaceId,
           sourceId,

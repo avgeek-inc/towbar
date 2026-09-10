@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { isNormalizedResource } from "@workspace/towbar-core";
 import { sourceEnvironments } from "@workspace/towbar-database/schema";
 import type { apps, servers } from "@workspace/towbar-database/schema";
@@ -173,6 +173,13 @@ export async function assertDeploymentSecretSnapshot({
     },
   });
   try {
+    await assert.rejects(
+      database.execute(
+        sql`update towbar_deployments set required_secrets = null where id = ${id}`,
+      ),
+      (error: unknown) =>
+        (error as { cause?: { code?: string } }).cause?.code === "23502",
+    );
     await assert.rejects(
       resolveDeploymentSecrets(id),
       /Required secrets missing for deployment/,

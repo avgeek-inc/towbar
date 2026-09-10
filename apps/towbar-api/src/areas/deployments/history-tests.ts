@@ -76,6 +76,12 @@ export async function testDeploymentHistory({
             sourceId,
             serverId,
             appId: index === 2 ? resourceId : appId,
+            requiredSecrets: {
+              build: [],
+              runtime: [],
+              preDeploy: [],
+              postDeploy: [],
+            },
             idempotencyKey: id,
             temporalWorkflowId: id,
             commitSha: "1234567",

@@ -51,17 +51,15 @@ export async function resolveDeploymentSecrets(deploymentId: string) {
           },
           database,
         );
-        if (deployment.requiredSecrets) {
-          const missing = requiredKeysForStage(
-            deployment.requiredSecrets,
-            stage,
-          ).filter((key) => !Object.hasOwn(result.values, key));
-          if (missing.length)
-            throw unprocessable(
-              `Required secrets missing for deployment (${stage}): ${missing.join(", ")}`,
-              "REQUIRED_SECRETS_MISSING",
-            );
-        }
+        const missing = requiredKeysForStage(
+          deployment.requiredSecrets,
+          stage,
+        ).filter((key) => !Object.hasOwn(result.values, key));
+        if (missing.length)
+          throw unprocessable(
+            `Required secrets missing for deployment (${stage}): ${missing.join(", ")}`,
+            "REQUIRED_SECRETS_MISSING",
+          );
         Object.assign(revisions, result.revisions);
         return result.values;
       }

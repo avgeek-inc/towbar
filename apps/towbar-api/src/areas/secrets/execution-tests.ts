@@ -121,6 +121,12 @@ export async function testManagedSecretExecution({
       setWorkspaceRole("owner");
       const deploymentId = randomUUID();
       await db.insert(deployments).values({
+        requiredSecrets: {
+          build: [],
+          runtime: ["TOKEN"],
+          preDeploy: ["MIGRATION"],
+          postDeploy: [],
+        },
         id: deploymentId,
         workspaceId,
         sourceId,

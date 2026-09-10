@@ -1169,7 +1169,9 @@ export const deployments = pgTable(
     manifestDigest: varchar("manifest_digest", { length: 64 }).notNull(),
     imageDigest: varchar("image_digest", { length: 71 }),
     imagePlatform: varchar("image_platform", { length: 64 }),
-    requiredSecrets: jsonb("required_secrets").$type<RequiredSecrets>(),
+    requiredSecrets: jsonb("required_secrets")
+      .$type<RequiredSecrets>()
+      .notNull(),
     appSnapshot: jsonb("app_snapshot").$type<NormalizedDeployable>().notNull(),
     serverSnapshot: jsonb("server_snapshot")
       .$type<NormalizedServer>()

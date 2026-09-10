@@ -383,6 +383,12 @@ void test(
           const deploymentIds = [randomUUID(), randomUUID(), randomUUID()];
           for (const [i, id] of deploymentIds.entries())
             await db.insert(deployments).values({
+              requiredSecrets: {
+                build: [],
+                runtime: [],
+                preDeploy: [],
+                postDeploy: [],
+              },
               id,
               workspaceId,
               sourceId,

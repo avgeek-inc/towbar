@@ -414,6 +414,13 @@
       "when": 1789069131951,
       "tag": "0058_premium_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1789069336008,
+      "tag": "0059_overjoyed_vertigo",
+      "breakpoints": true
     }
   ]
 }
