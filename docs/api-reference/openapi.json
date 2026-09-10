@@ -5488,7 +5488,15 @@
       "Response_268": {
         "type": "object",
         "properties": {
-          "latestSyncStatus": { "type": "string" },
+          "latestSyncStatus": {
+            "anyOf": [
+              { "type": "string", "const": "never" },
+              { "type": "string", "const": "running" },
+              { "type": "string", "const": "queued" },
+              { "type": "string", "const": "succeeded" },
+              { "type": "string", "const": "failed" }
+            ]
+          },
           "latestSyncFinishedAt": {
             "anyOf": [
               { "type": "null" },

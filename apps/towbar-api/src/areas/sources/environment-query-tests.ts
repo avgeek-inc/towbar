@@ -1,3 +1,4 @@
+import { assertEnvironmentSyncReporting } from "./environment-status-tests.js";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
@@ -27,6 +28,7 @@ export async function assertInstanceQueryIdentity({
   prod: typeof apps.$inferSelect;
   stage: typeof apps.$inferSelect;
 }) {
+  await assertEnvironmentSyncReporting(sourceId, workspaceId);
   await assertEnvironmentPushRouting();
   const { assertEnvironmentOwnership } =
     await import("./environment-ownership-tests.js");

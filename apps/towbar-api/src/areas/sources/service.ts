@@ -1,3 +1,7 @@
+import {
+  environmentSyncStatuses,
+  summarizeSyncStatus,
+} from "./environment-status.js";
 import { and, desc, eq, inArray, notInArray } from "drizzle-orm";
 import {
   apps,
@@ -29,24 +33,17 @@ export async function listSources(workspaceId: string) {
     .where(eq(sources.workspaceId, workspaceId))
     .orderBy(desc(sources.updatedAt));
   const ids = rows.map((source) => source.id);
-  const syncs = ids.length
-    ? await database
-        .selectDistinctOn([sourceSyncs.sourceId], {
-          sourceId: sourceSyncs.sourceId,
-          status: sourceSyncs.status,
-        })
-        .from(sourceSyncs)
-        .where(inArray(sourceSyncs.sourceId, ids))
-        .orderBy(
-          sourceSyncs.sourceId,
-          desc(sourceSyncs.createdAt),
-          desc(sourceSyncs.id),
-        )
-    : [];
-  const statuses = new Map(syncs.map((sync) => [sync.sourceId, sync.status]));
+  const environments = await environmentSyncStatuses(ids);
   return rows.map((source) => ({
     ...source,
-    latestSyncStatus: statuses.get(source.id) ?? "never",
+    latestSyncStatus: summarizeSyncStatus(
+      environments
+        .filter(
+          (environment) =>
+            environment.sourceId === source.id && !environment.disconnectedAt,
+        )
+        .map((environment) => environment.latestSyncStatus),
+    ),
   }));
 }
 

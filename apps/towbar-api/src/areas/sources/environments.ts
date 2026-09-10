@@ -1,5 +1,6 @@
+import { environmentSyncStatuses } from "./environment-status.js";
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import {
   resolveRepositoryEnvironment,
   sourceEnvironmentMappingSchema,
@@ -40,37 +41,7 @@ export async function listSourceEnvironments(
   workspaceId: string,
 ) {
   await sourceRepository(sourceId, workspaceId);
-  const database = getTowbarDatabase();
-  const environments = await database
-    .select()
-    .from(sourceEnvironments)
-    .where(eq(sourceEnvironments.sourceId, sourceId))
-    .orderBy(sourceEnvironments.name);
-  const attempts = await database
-    .selectDistinctOn([sourceSyncs.sourceEnvironmentId], {
-      environmentId: sourceSyncs.sourceEnvironmentId,
-      status: sourceSyncs.status,
-      finishedAt: sourceSyncs.finishedAt,
-      issues: sourceSyncs.issues,
-    })
-    .from(sourceSyncs)
-    .where(eq(sourceSyncs.sourceId, sourceId))
-    .orderBy(
-      sourceSyncs.sourceEnvironmentId,
-      desc(sourceSyncs.createdAt),
-      desc(sourceSyncs.id),
-    );
-  return environments.map((environment) => {
-    const attempt = attempts.find(
-      (item) => item.environmentId === environment.id,
-    );
-    return {
-      ...environment,
-      latestSyncStatus: attempt?.status ?? "never",
-      latestSyncFinishedAt: attempt?.finishedAt ?? null,
-      latestSyncIssues: attempt?.issues ?? [],
-    };
-  });
+  return environmentSyncStatuses([sourceId]);
 }
 
 export async function connectSourceEnvironment(input: {
