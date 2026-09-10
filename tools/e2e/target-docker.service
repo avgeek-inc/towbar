@@ -1,0 +1,12 @@
+[Unit]
+Description=Isolated test Docker daemon
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/dind /usr/local/bin/dockerd --host=unix:///var/run/docker.sock
+Delegate=yes
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

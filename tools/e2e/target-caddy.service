@@ -1,0 +1,11 @@
+[Unit]
+Description=Test Caddy routing
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/caddy run --config /etc/caddy/Caddyfile
+ExecReload=/usr/bin/caddy reload --config /etc/caddy/Caddyfile
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

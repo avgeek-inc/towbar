@@ -11,7 +11,7 @@ const docker = (args) =>
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
 
-export async function startTestTarget() {
+export async function startTestTarget({ systemd = false } = {}) {
   const directory = mkdtempSync(path.join(tmpdir(), "towbar-v2-target-"));
   const name = `towbar-v2-target-${process.pid}-${Date.now()}`;
   const key = path.join(directory, "identity");
@@ -40,6 +40,17 @@ export async function startTestTarget() {
     container = docker([
       "create",
       "--privileged",
+      ...(systemd
+        ? [
+            "--cgroupns=private",
+            "--tmpfs",
+            "/run",
+            "--tmpfs",
+            "/run/lock",
+            "-e",
+            "TOWBAR_TEST_SYSTEMD=1",
+          ]
+        : []),
       "--name",
       name,
       "--label",
@@ -88,6 +99,8 @@ export async function startTestTarget() {
     while (Date.now() < deadline) {
       try {
         ssh("docker info --format '{{.ID}}'");
+        if (systemd)
+          ssh("sudo systemctl is-active caddy ssh towbar-test-docker");
         return { container, directory, key, port, ssh, close };
       } catch (error) {
         lastError = error;

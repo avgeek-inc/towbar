@@ -373,3 +373,15 @@ suite passed 14 tests. Repository `pnpm test` with the dedicated PostgreSQL URL
 passed all 11 tasks, including 228 API tests without skips. Optional native Docker
 tests remain separate from this gate. Full PR lifecycle and screenshot work
 listed above are still outstanding.
+
+### Real preview cleanup and Caddy reload
+
+The disposable Linux target now has an optional real systemd mode. The preview
+cleanup lifecycle runner creates production, preview and orphan candidate
+containers plus local Caddy HTTP routes, then invokes production cleanup over
+non-root SSH. It verified removal of preview containers/images and the route,
+production availability, and idempotent repetition. Real `systemctl reload
+caddy` succeeds. The target and nested Docker volumes were removed afterward.
+This closes the remote-cleanup/service-reload gap; PR webhook/admission and
+public DNS/TLS coverage remain separate requirements. Server preparation itself
+is not exercised by this target's preinstalled services.

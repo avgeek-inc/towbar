@@ -19,9 +19,10 @@ or setup failure. The reusable `towbar-v2-e2e-target:local` image remains cached
 `startTestTarget()` returns the SSH port, private key path, `ssh(command)` and
 `close()` for a lifecycle runner. Always call `close()` in `finally`.
 
-This target currently supports private app/resource deployment testing. It does
-not emulate Ubuntu systemd or Caddy setup, and its smoke check does not verify
-API admission, Temporal workflows, deployments, backups or PR handling.
+The default target supports private app/resource deployment testing. Passing
+`{ systemd: true }` starts real systemd services for SSH, Docker and Caddy. The
+smoke check does not verify API admission, Temporal workflows, deployments,
+backups or PR handling.
 
 ## Resource deployment lifecycle
 
@@ -133,3 +134,21 @@ Only the GitHub archive response and release-commit callback are simulated.
 Unexpected fetches fail. Docker builds, SSH, health checks and runtime recovery
 are real. Public domains/TLS, API admission and PR eligibility/reconciliation are
 outside this runner. It does not prove complete PR lifecycle support.
+
+## Preview cleanup and routing
+
+```sh
+pnpm --filter @workspace/towbar-deployer... build
+node tools/e2e/preview-cleanup-lifecycle.mjs
+```
+
+This runner uses the systemd target and calls production preview cleanup over
+SSH. It creates separate production and preview containers, an orphan preview
+candidate without a release record, and Caddy HTTP routes. Cleanup must remove
+both preview containers and their images, remove the preview route, reload the
+real Caddy service, and keep production responding. A second cleanup must also
+succeed. The target and its volumes are removed afterward.
+
+This verifies remote cleanup and service reload, including runtime-label orphan
+discovery. It seeds containers and local HTTP routes; it does not exercise PR
+webhooks, API cleanup admission, external DNS, or public certificate issuance.
