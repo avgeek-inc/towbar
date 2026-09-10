@@ -59,9 +59,10 @@ loopback interface for operator tools reached through SSH. Alias claims are
 unique per server and Docker network; tunnel ports are unique per server within
 one manifest, with host-wide conflicts rejected again during deployment.
 
-PostgreSQL and Redis Resources may declare Source-scoped S3 backup storage,
+PostgreSQL and Redis Resources may declare S3, GCS, and Azure Blob backup destinations,
 retention, and an optional five-field UTC cron schedule that runs no more than
-hourly. Runtime-operation, health/drift, and Source-owned orphan contracts are
+hourly. Workspace cloud integrations supply credentials, and a multi-provider
+policy selects `restoreFrom` for new recovery points. Runtime-operation, health/drift, and Source-owned orphan contracts are
 shared here so the API, worker, deployer, and web client use the same bounded
 vocabulary.
 

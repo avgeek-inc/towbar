@@ -33,7 +33,7 @@ If you previously relied on automatic inheritance, add explicit references to ea
 
 ## Form and File modes
 
-Select the environment and stage, then use the **Form** and **File** tabs inside the secrets widget. On mobile, environment and stage use dropdowns; larger screens show tabs.
+For Shared secrets, select Production or Preview in the secondary sidebar, then choose the stage inside the page. On an app or Source, both environment and stage stay inside the page. Use the **Form** and **File** tabs inside the secrets widget. In-page environment and stage selectors use dropdowns on mobile and tabs on larger screens.
 
 **Form** edits one key and value at a time. Configured values show a masked placeholder; use the eye icon to reveal or hide one value. Valid shared-reference expressions are highlighted in yellow.
 
@@ -47,6 +47,11 @@ AUTH_HEADER="Bearer {{globals.API_TOKEN}}"
 
 Removing a line deletes that key when saved; `KEY=` saves an empty string. Unchanged values are preserved. Switching modes does not save: use **Save** to apply edits. References remain expressions in the editor and resolve only for execution.
 
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light"><img src="/assets/guides/secrets-file-light.webp" alt="The .env File editor using synthetic example secret values." width="2160" height="1168" loading="lazy" /></div>
+  <div className="towbar-product-dark"><img src="/assets/guides/secrets-file-dark.webp" alt="The .env File editor using synthetic example secret values." width="2160" height="1168" loading="lazy" /></div>
+</div>
+
 ## Save and deploy
 
 The editor shows locally configured keys. Click the eye icon to reveal a stored value, then click it again to hide it. Revealing a value does not change it. References are shown as the stored expression so they remain editable; deployment resolves them to the referenced value. Leaving a replacement input untouched preserves the value. Replacing it with an empty string explicitly saves an empty value. Concurrent edits are rejected; refresh and reapply the intended changes.
@@ -57,10 +62,10 @@ Shared Preview values and app references can be saved independently and are used
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/features/secrets-light.webp" alt="Example Shared secrets editor. Configured keys are visible; stored secret values remain hidden." width="2400" height="900" loading="lazy" />
+    <img src="/assets/features/secrets-light.webp" alt="Example Shared secrets editor. Configured keys are visible; stored secret values remain hidden." width="2160" height="768" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/features/secrets-dark.webp" alt="Example Shared secrets editor. Configured keys are visible; stored secret values remain hidden." width="2400" height="900" loading="lazy" />
+    <img src="/assets/features/secrets-dark.webp" alt="Example Shared secrets editor. Configured keys are visible; stored secret values remain hidden." width="2160" height="768" loading="lazy" />
   </div>
   <p>Example Shared secrets editor. Configured keys are visible; stored secret values remain hidden.</p>
 </div>

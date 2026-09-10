@@ -482,6 +482,7 @@ async function uploadAndVerifyDestination(params: {
 
   if (
     !verified.exists ||
+    !verified.encryption ||
     verified.checksum !== params.checksum ||
     verified.sizeBytes !== params.sizeBytes ||
     verified.engine !== params.engine ||
@@ -498,7 +499,7 @@ async function uploadAndVerifyDestination(params: {
 
   return {
     bucket: config.bucket,
-    encryption: config.encryption,
+    encryption: verified.encryption,
     key: config.key,
     ...(upload.versionId ? { objectVersion: upload.versionId } : {}),
     provider: params.provider,
@@ -535,7 +536,10 @@ async function cleanupRetentionBackups(
 
     for (const dest of destinations) {
       const storage = availableStorages[dest.provider];
-      if (!storage) continue;
+      if (!storage) {
+        deleteFailed = true;
+        continue;
+      }
       try {
         await storage.deleteObject({
           bucket: dest.bucket,
@@ -550,16 +554,11 @@ async function cleanupRetentionBackups(
       }
     }
 
-    if (anySucceeded) {
+    if (anySucceeded && !deleteFailed) {
       deletedBackupIds.push(candidate.id);
-      if (deleteFailed) {
-        warnings.push(
-          `Retention cleanup deleted backup ${candidate.id} with partial destination failures`,
-        );
-      }
     } else {
       warnings.push(
-        `Retention cleanup could not delete backup ${candidate.id}`,
+        `Retention cleanup could not delete backup ${candidate.id} from every destination; it will be retried`,
       );
     }
   }
@@ -628,4 +627,5 @@ export const resourceOperationScripts = {
 export const resourceOperationInternal = {
   buildBackupResult,
   cleanupRetentionBackups,
+  uploadAndVerifyDestination,
 } as const;

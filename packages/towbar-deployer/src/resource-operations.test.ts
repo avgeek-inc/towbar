@@ -197,7 +197,7 @@ void describe("cleanupRetentionBackups", () => {
     assert.equal(result.warnings.length, 0);
   });
 
-  void it("emits warning and deletes ID when at least one destination succeeds", async () => {
+  void it("keeps the backup tracked when any destination fails", async () => {
     const mockSucceedStorage = {
       deleteObject: () => Promise.resolve(),
       download: () => Promise.resolve(),
@@ -235,11 +235,9 @@ void describe("cleanupRetentionBackups", () => {
       { gcs: mockFailStorage, s3: mockSucceedStorage },
     );
 
-    assert.deepEqual(result.deletedBackupIds, [
-      "31111111-1111-4111-8111-333333333333",
-    ]);
+    assert.deepEqual(result.deletedBackupIds, []);
     assert.equal(result.warnings.length, 1);
-    assert.match(result.warnings[0]!, /partial destination failures/);
+    assert.match(result.warnings[0]!, /will be retried/);
   });
 
   void it("emits warning and does not delete ID when all storages fail", async () => {

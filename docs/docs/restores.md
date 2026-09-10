@@ -13,6 +13,8 @@ Restore workflows are managed on a dedicated page under **Resource → Settings 
 - **Restorable backups table**: Displays all retained backups from the authoritative provider along with their size, engine, format, and restore-assurance status.
 - **Status indicators**: If the authoritative provider lacks configured credentials in workspace integrations, a warning dot appears next to **Restore** in the secondary sidebar.
 
+An older backup retains its original provider and object location even after the manifest’s `restoreFrom` changes. Keep that provider’s workspace credentials available for as long as you retain the backup.
+
 ## Before a restore
 
 A retained backup must be marked restore-ready on the Resource's **Restore** page. Towbar continuously checks every retained object for:
@@ -48,10 +50,10 @@ The target Server must be prepared, have a healthy current Resource release, use
 
 <div className="towbar-doc-screenshot towbar-doc-screenshot-portrait">
   <div className="towbar-product-light">
-    <img src="/assets/guides/restore-confirmation-light.webp" alt="Example restore confirmation. Review the selected backup, enter an operator reason, and confirm the resource name before proceeding." width="1024" height="1374" loading="lazy" />
+    <img src="/assets/guides/restore-confirmation-light.webp" alt="Example restore confirmation. Review the selected backup, enter an operator reason, and confirm the resource name before proceeding." width="1024" height="1370" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/guides/restore-confirmation-dark.webp" alt="Example restore confirmation. Review the selected backup, enter an operator reason, and confirm the resource name before proceeding." width="1024" height="1374" loading="lazy" />
+    <img src="/assets/guides/restore-confirmation-dark.webp" alt="Example restore confirmation. Review the selected backup, enter an operator reason, and confirm the resource name before proceeding." width="1024" height="1370" loading="lazy" />
   </div>
   <p>Example restore confirmation. Review the selected backup, enter an operator reason, and confirm the resource name before proceeding.</p>
 </div>

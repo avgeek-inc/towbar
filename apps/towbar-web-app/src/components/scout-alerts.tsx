@@ -90,9 +90,9 @@ export function ScoutAlerts({
       key: "name",
       header: "Rule",
       cell: (r) => (
-        <div className="grid gap-1">
+        <div className="grid gap-0.5">
           <span>{r.name}</span>
-          <span className="text-sm text-muted">
+          <span className="text-xs text-muted">
             {conditionDescription(r.condition)}
           </span>
           <span className="text-xs text-muted">
@@ -112,7 +112,7 @@ export function ScoutAlerts({
       key: "status",
       header: "Status",
       cell: (r) => (
-        <div className="grid justify-items-start gap-1">
+        <div className="grid justify-items-start gap-0.5">
           <Chip
             size="small"
             icon={
@@ -174,7 +174,7 @@ export function ScoutAlerts({
       key: "reading",
       header: "Latest reading",
       cell: (r) => (
-        <span className="tabular-nums">
+        <span className="grid gap-0.5 tabular-nums">
           {scoutValue(r.observedValue, r.condition.metric)}
           {r.httpCheck ? (
             <span className="block text-xs text-muted">
@@ -225,9 +225,9 @@ export function ScoutAlerts({
       key: "rule",
       header: "Incident",
       cell: (i) => (
-        <div className="grid gap-1">
+        <div className="grid gap-0.5">
           <span>{i.ruleName}</span>
-          <span className="text-sm text-muted">
+          <span className="text-xs text-muted">
             {conditionDescription(i.condition)}
           </span>
         </div>
@@ -279,7 +279,7 @@ export function ScoutAlerts({
       header: "Ended",
       cell: (i) =>
         i.resolvedAt ? (
-          <div className="grid gap-1">
+          <div className="grid gap-0.5">
             <span>{formatDate(i.resolvedAt)}</span>
             <span className="text-xs text-muted">
               {i.resolutionReason?.replaceAll("_", " ")}

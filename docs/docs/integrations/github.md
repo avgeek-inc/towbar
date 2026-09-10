@@ -47,10 +47,10 @@ Open **Sources → Add source** and confirm the intended repository is available
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/guides/github-light.webp" alt="Example GitHub connection. A preview-reporting warning can appear while the installation remains connected." width="2400" height="1136" loading="lazy" />
+    <img src="/assets/guides/github-light.webp" alt="Example GitHub connection. A preview-reporting warning can appear while the installation remains connected." width="2160" height="1096" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/guides/github-dark.webp" alt="Example GitHub connection. A preview-reporting warning can appear while the installation remains connected." width="2400" height="1136" loading="lazy" />
+    <img src="/assets/guides/github-dark.webp" alt="Example GitHub connection. A preview-reporting warning can appear while the installation remains connected." width="2160" height="1096" loading="lazy" />
   </div>
   <p>Example GitHub connection. A preview-reporting warning can appear while the installation remains connected.</p>
 </div>

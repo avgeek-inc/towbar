@@ -63,12 +63,12 @@ the pull request, and keeps production runtime health unchanged. Pull request
 merge or closure, retargeting, TTL expiry, manifest disablement, and owner
 deletion converge on the same cleanup admission path.
 
-Optional S3 backup credentials are workspace-scoped. Servers are
+AWS, Google Cloud, and Azure backup credentials are workspace-scoped. Servers are
 workspace-owned; server identity is `(workspace_id, canonical_ip)`, so independent Sources that
 target the same IP share configuration, credentials, trust, and preparation.
 Deleting a Source permanently
 removes its inventory, backup metadata, runtime
-state, and operational history. Backup objects already uploaded to S3 remain
+state, and operational history. Backup objects already uploaded to cloud storage remain
 external and are not deleted by Source removal.
 
 Apps and Resources share the deployment ledger but remain separate API and UI

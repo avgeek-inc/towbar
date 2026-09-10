@@ -10,19 +10,19 @@ No rules are enabled automatically. The dotted 80% line in performance charts is
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
     <img
-      src="/assets/guides/scout-alerts-light.png"
+      src="/assets/guides/scout-alerts-light.webp"
       alt="Scout alert rules and incidents"
-      width="1160"
-      height="800"
+      width="2160"
+      height="1548"
       loading="lazy"
     />
   </div>
   <div className="towbar-product-dark">
     <img
-      src="/assets/guides/scout-alerts-dark.png"
+      src="/assets/guides/scout-alerts-dark.webp"
       alt="Scout alert rules and incidents"
-      width="1160"
-      height="800"
+      width="2160"
+      height="1548"
       loading="lazy"
     />
   </div>
@@ -51,11 +51,32 @@ The examples above are starting points for your own thresholds. Configure restar
 
 The **Monitoring** sidebar section brings your workspace together:
 
-- **Performance** lets you find a server, app, or resource by name or server IP. Search inside the entity dropdown and use the type filter to narrow the list. Switching to a different type selects its first entity automatically. Select an entity to use the same metrics, time ranges, average/peak controls, environment and container filters, and event history as its entity page. Scout installation stays on the server settings page.
+- **Performance** lets you find a server, app, or resource by name or server IP. Choose a type in the secondary sidebar and search its entity list. Switching to a different type selects its first entity automatically. Select an entity to use the same metrics, time ranges, average/peak controls, environment and container filters, and event history as its entity page. Scout installation stays on the server settings page.
 - **Alerts** lists configured rules across the workspace, with type and searchable entity filters. This page is read-only; **View alert** opens the entity’s **Scout Agent → Alerts** page to manage the rule.
 - **Incidents** lists active and resolved incidents across the workspace, with pagination and a status filter. **View Incident** opens the details drawer on this page.
 
 The sidebar shows active incidents in a red count. An orange count beside **Performance** shows servers, apps, and resources with fresh CPU, memory, or disk usage above 80%, even without configured alerts. Each entity counts once across its metrics and containers. Inactive agents, stale readings, and removed entities are excluded. Both counts refresh every 30 seconds and disappear at zero.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/guides/alerts-light.webp"
+      alt="Workspace alert rules with entity filters and current evaluation states."
+      width="3200"
+      height="2100"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/guides/alerts-dark.webp"
+      alt="Workspace alert rules with entity filters and current evaluation states."
+      width="3200"
+      height="2100"
+      loading="lazy"
+    />
+  </div>
+</div>
 
 ## Inspect an incident
 
@@ -66,6 +87,27 @@ The **Monitoring** tab shows the relevant graph. The **Notifications** tab lists
 The monitoring chart covers the incident start through now, including after recovery, and refreshes every 30 seconds while open. It shows the relevant metric, the rule’s threshold, and a recovery or closure marker. Tooltip timestamps include the time zone. Longer periods use at most 361 points, preserving the highest reading for upper thresholds or the lowest for lower thresholds. Dotted bridges mark gaps between measurements; they are not measured values.
 
 History follows the server’s retention setting. Restart windows use individual counter measurements available for the last 24 hours; report-age history is estimated from retained report timestamps. The drawer explains when older measurements or an older incident’s original configuration are unavailable.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/guides/incidents-light.webp"
+      alt="Workspace incidents with active and resolved states, readings, and timestamps."
+      width="3200"
+      height="2100"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/guides/incidents-dark.webp"
+      alt="Workspace incidents with active and resolved states, readings, and timestamps."
+      width="3200"
+      height="2100"
+      loading="lazy"
+    />
+  </div>
+</div>
 
 ## Measurements and incident states
 

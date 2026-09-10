@@ -29,6 +29,8 @@ To store backups across multiple clouds simultaneously, declare more than one de
 
 When multiple destinations are declared, specify `restoreFrom` (`s3`, `gcs`, or `azureBlob`) to identify which provider serves as the authoritative source for database restores. If only one destination is declared, `restoreFrom` defaults to that provider automatically.
 
+A retained recovery point keeps its original storage provider and location. Changing the manifest’s `restoreFrom` later affects new backups; it does not redirect an older backup to another cloud. Keep credentials for the retained provider available until those recovery points expire. If retention cannot delete every stored copy, Towbar keeps the recovery point eligible for another cleanup attempt.
+
 ## Define a policy
 
 This complete manifest creates a PostgreSQL resource with daily backups at 03:00 UTC, retains the latest 14 recovery points, and replicates backups to AWS S3 and Google Cloud Storage:
@@ -111,18 +113,18 @@ Freshness and usability answer different questions. An older retained backup can
   <div className="towbar-product-light">
     <img
       src="/assets/guides/backups-light.webp"
-      alt="Example backup view. Review the backup run, S3 copy, restore check, and retained recovery point."
-      width="2400"
-      height="1666"
+      alt="Example backup view with provider configuration, restore readiness, and retained recovery points."
+      width="2160"
+      height="1506"
       loading="lazy"
     />
   </div>
   <div className="towbar-product-dark">
     <img
       src="/assets/guides/backups-dark.webp"
-      alt="Example backup view. Review the backup run, S3 copy, restore check, and retained recovery point."
-      width="2400"
-      height="1666"
+      alt="Example backup view with provider configuration, restore readiness, and retained recovery points."
+      width="2160"
+      height="1506"
       loading="lazy"
     />
   </div>

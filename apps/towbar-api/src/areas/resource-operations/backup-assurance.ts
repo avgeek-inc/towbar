@@ -139,28 +139,28 @@ async function inspectAzureBackupObject(
     const headers = response.headers;
     const contentLength = headers.get("content-length");
     return {
-      checksum: headers.get("x-ms-meta-towbar-checksum") ?? undefined,
+      checksum: headers.get("x-ms-meta-towbar_checksum") ?? undefined,
       encryption:
         headers.get("x-ms-server-encrypted") === "true"
           ? "Microsoft-managed"
           : undefined,
       engine:
-        headers.get("x-ms-meta-towbar-engine") === "postgres" ||
-        headers.get("x-ms-meta-towbar-engine") === "redis"
-          ? (headers.get("x-ms-meta-towbar-engine") as "postgres" | "redis")
+        headers.get("x-ms-meta-towbar_engine") === "postgres" ||
+        headers.get("x-ms-meta-towbar_engine") === "redis"
+          ? (headers.get("x-ms-meta-towbar_engine") as "postgres" | "redis")
           : undefined,
       engineMajorVersion: parsePositiveInteger(
-        headers.get("x-ms-meta-towbar-engine-major-version") ?? undefined,
+        headers.get("x-ms-meta-towbar_engine_major_version") ?? undefined,
       ),
       exists: true,
       format:
-        headers.get("x-ms-meta-towbar-format") === "postgres-custom" ||
-        headers.get("x-ms-meta-towbar-format") === "redis-rdb"
-          ? (headers.get("x-ms-meta-towbar-format") as
+        headers.get("x-ms-meta-towbar_format") === "postgres-custom" ||
+        headers.get("x-ms-meta-towbar_format") === "redis-rdb"
+          ? (headers.get("x-ms-meta-towbar_format") as
               "postgres-custom" | "redis-rdb")
           : undefined,
       metadataVersion: parsePositiveInteger(
-        headers.get("x-ms-meta-towbar-metadata-version") ?? undefined,
+        headers.get("x-ms-meta-towbar_metadata_version") ?? undefined,
       ),
       sizeBytes: contentLength ? Number(contentLength) : undefined,
     };

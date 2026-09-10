@@ -1,5 +1,6 @@
 "use client";
 
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import type { ReactNode } from "react";
 import { useSyncExternalStore } from "react";
 import { usePageVisibilityInterval } from "@workspace/web-design-system/hooks/use-page-visibility-interval";
@@ -32,19 +33,20 @@ export function RelativeTime({
   if (!formatted) return <span aria-label={`${label} unavailable`}>—</span>;
 
   return (
-    <time
-      aria-label={`${label}: ${formatted.absolute}${formatted.relative ? `, ${formatted.relative}` : ""}`}
+    <TooltipText
+      as="time"
+      tooltip={formatted.timezone}
+      aria-label={`${label}: ${formatted.absolute} ${formatted.timezone}${formatted.relative ? `, ${formatted.relative}` : ""}`}
       className="grid gap-0.5 whitespace-nowrap tabular-nums"
       dateTime={value}
     >
-      <span>{formatted.absolute}</span>
-      <span
-        className="text-xs font-normal text-muted"
-        aria-hidden={!formatted.relative}
-      >
+      <span className="text-sm font-normal" aria-hidden={!formatted.relative}>
         {formatted.relative ?? "\u00a0"}
       </span>
-    </time>
+      <span className="text-xs font-normal text-muted">
+        {formatted.absolute}
+      </span>
+    </TooltipText>
   );
 }
 

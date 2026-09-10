@@ -52,7 +52,7 @@ export function PreviewEnvironments({
             PR #{preview.pullRequestNumber}
           </a>
           <TooltipText
-            className="max-w-48 truncate text-sm text-muted"
+            className="max-w-48 truncate text-xs text-muted"
             tooltip={preview.branch}
           >
             {preview.branch}
@@ -120,7 +120,7 @@ export function PreviewEnvironments({
           ) : null}
           {preview.status === "cleanup_failed" &&
           preview.nextCleanupAttemptAt ? (
-            <span className="text-sm text-muted">
+            <span className="text-xs text-muted">
               Automatic retry {formatDate(preview.nextCleanupAttemptAt)}
             </span>
           ) : null}

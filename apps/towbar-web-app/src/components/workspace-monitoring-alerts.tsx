@@ -39,9 +39,9 @@ export function WorkspaceAlerts() {
       key: "rule",
       header: "Alert",
       cell: ({ rule }) => (
-        <div className="grid gap-1">
+        <div className="grid gap-0.5">
           <span>{rule.name}</span>
-          <span className="text-sm text-muted">
+          <span className="text-xs text-muted">
             {conditionDescription(rule.condition)}
           </span>
         </div>
@@ -51,7 +51,7 @@ export function WorkspaceAlerts() {
       key: "entity",
       header: "Entity",
       cell: (row) => (
-        <div className="grid gap-1">
+        <div className="grid gap-0.5">
           <span>{entityLabel(row, row.rule)}</span>
           <span className="text-xs text-muted">
             {row.rule.deployableId
@@ -157,7 +157,7 @@ export function WorkspaceAlerts() {
             View alert
           </ButtonLink>
         ) : (
-          <span className="text-sm text-muted">Entity removed</span>
+          <span className="text-xs text-muted">Entity removed</span>
         );
       },
     },

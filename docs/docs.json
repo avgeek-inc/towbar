@@ -42,6 +42,7 @@
               "docs/scout",
               "docs/scout-alerts",
               "docs/deployment-comparisons",
+              "docs/vulnerability-scanning",
               "docs/backups",
               "docs/restores",
               "docs/troubleshooting"

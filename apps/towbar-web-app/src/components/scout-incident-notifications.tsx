@@ -43,7 +43,7 @@ export function ScoutIncidentNotifications({
       key: "destination",
       header: "Destination",
       cell: (d) => (
-        <div className="grid min-w-40 gap-1">
+        <div className="grid min-w-40 gap-0.5">
           <span>{d.destination}</span>
           <span className="flex items-center gap-1 text-xs text-muted">
             <ScoutIcon name={d.provider} />
@@ -57,7 +57,7 @@ export function ScoutIncidentNotifications({
       key: "status",
       header: "Status",
       cell: (d) => (
-        <div className="grid min-w-20 gap-1">
+        <div className="grid min-w-20 gap-0.5">
           <Chip
             size="small"
             icon={

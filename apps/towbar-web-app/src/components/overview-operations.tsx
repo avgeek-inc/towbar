@@ -101,11 +101,11 @@ function deploymentColumns(
           apps.find((app) => app.id === item.appId)?.config.domains?.primary,
         );
         return (
-          <div className="grid gap-1">
+          <div className="grid gap-0.5">
             <span>{item.deployableName}</span>
             {detail && (
               <span
-                className="max-w-48 truncate text-sm text-muted"
+                className="max-w-48 truncate text-xs text-muted"
                 title={detail}
               >
                 {detail}

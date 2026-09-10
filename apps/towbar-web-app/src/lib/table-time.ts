@@ -18,8 +18,12 @@ const serverFormatter = new Intl.DateTimeFormat("en-GB", {
 export function formatTableTime(value: string, now: number) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return null;
+  const parts = (now ? localFormatter : serverFormatter).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((value) => value.type === type)?.value ?? "";
   return {
-    absolute: (now ? localFormatter : serverFormatter).format(date),
+    absolute: `${part("hour")}:${part("minute")}, ${part("day")} ${part("month")} ${part("year")}`,
+    timezone: part("timeZoneName"),
     relative: now ? formatDistanceStrict(date, now, { addSuffix: true }) : null,
   };
 }

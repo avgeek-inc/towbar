@@ -53,9 +53,9 @@ export function WorkspaceIncidents() {
       header: "Incident",
       className: "min-w-72",
       cell: ({ incident }) => (
-        <div className="grid gap-1">
+        <div className="grid gap-0.5">
           <span>{incident.ruleName}</span>
-          <span className="text-sm text-muted">
+          <span className="text-xs text-muted">
             {conditionDescription(incident.condition)}
           </span>
         </div>
@@ -65,7 +65,7 @@ export function WorkspaceIncidents() {
       key: "entity",
       header: "Entity",
       cell: (row) => (
-        <div className="grid min-w-40 gap-1">
+        <div className="grid min-w-40 gap-0.5">
           <span className="whitespace-nowrap">
             {entityLabel(row, row.incident)}
           </span>
