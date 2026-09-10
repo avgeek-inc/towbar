@@ -4,15 +4,11 @@ import test from "node:test";
 import { ManifestValidationError } from "@workspace/towbar-core";
 
 import {
-  calculateDesiredDeploymentDigests,
+  calculateDesiredDeploymentDigest,
   calculateReleaseDeploymentDigest,
 } from "./deployment-digests.js";
 
-import type {
-  NormalizedApp,
-  NormalizedDeploymentManifest,
-  NormalizedServer,
-} from "@workspace/towbar-core";
+import type { NormalizedApp, NormalizedServer } from "@workspace/towbar-core";
 
 const server = {
   buildConcurrency: 1,
@@ -39,13 +35,6 @@ const app = {
   sourceBranch: "main",
 } satisfies NormalizedApp;
 
-const manifest = {
-  apps: [app],
-  resources: [],
-  source: { branch: "main" },
-  version: 1,
-} satisfies NormalizedDeploymentManifest;
-
 const repositoryTree = {
   complete: true,
   entries: [
@@ -59,18 +48,18 @@ const repositoryTree = {
 };
 
 void test("materializes stable desired digests from matched repository inputs", () => {
-  const first = calculateDesiredDeploymentDigests({
+  const first = calculateDesiredDeploymentDigest({
     commitSha: "1".repeat(40),
-    manifest,
+    deployable: app,
     repositoryTree,
-    servers: [server],
-  }).get("web");
-  const laterUnrelatedCommit = calculateDesiredDeploymentDigests({
+    server,
+  });
+  const laterUnrelatedCommit = calculateDesiredDeploymentDigest({
     commitSha: "2".repeat(40),
-    manifest,
+    deployable: app,
     repositoryTree,
-    servers: [server],
-  }).get("web");
+    server,
+  });
   assert.ok(first);
   assert.deepEqual(first, laterUnrelatedCommit);
 });
@@ -78,26 +67,23 @@ void test("materializes stable desired digests from matched repository inputs", 
 void test("rejects a complete tree when an app input contract matches nothing", () => {
   assert.throws(
     () =>
-      calculateDesiredDeploymentDigests({
+      calculateDesiredDeploymentDigest({
         commitSha: "1".repeat(40),
-        manifest: {
-          ...manifest,
-          apps: [{ ...app, deploymentInputs: ["apps/missing/**"] }],
-        },
+        deployable: { ...app, deploymentInputs: ["apps/missing/**"] },
         repositoryTree,
-        servers: [server],
+        server,
       }),
     ManifestValidationError,
   );
 });
 
-void test("legacy releases can be interpreted with the newly declared input contract", () => {
-  const desired = calculateDesiredDeploymentDigests({
+void test("release digests use the supplied deployment input contract", () => {
+  const desired = calculateDesiredDeploymentDigest({
     commitSha: "2".repeat(40),
-    manifest,
+    deployable: app,
     repositoryTree,
-    servers: [server],
-  }).get("web");
+    server,
+  });
   const release = calculateReleaseDeploymentDigest({
     commitSha: "1".repeat(40),
     deployable: { ...app, autoDeploy: false, deploymentInputs: [] },

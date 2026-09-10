@@ -61,8 +61,6 @@ void test(
       getNotificationProviderConfiguration,
       notificationProviderAvailability,
     } = await import("../notifications/configuration.js");
-    const { applyDeployableAction } =
-      await import("../sources/materialization.js");
     const { createServer, updateServer } =
       await import("../servers/lifecycle.js");
     const { listServerApps } = await import("../servers/service.js");
@@ -445,48 +443,22 @@ void test(
         },
       );
       await t.test(
-        "archival and sync preserve secrets; tampering fails closed; deletion cascades",
+        "archival and restoration preserve stored secrets; tampering fails closed; deletion cascades",
         async () => {
-          const syncInput = {
-            commitSha: "7654321",
-            sourceId,
-            workspaceId,
-            deploymentDigests: new Map([
-              [
-                appConfig.id,
-                { deploymentDigest: "new-digest", sourceInputDigest: null },
-              ],
-            ]),
-            serverIds: new Map([[serverConfig.ip, serverId]]),
-          };
-          await db.transaction(async (transaction) => {
-            await applyDeployableAction(transaction, {
-              ...syncInput,
-              action: {
-                action: "archive",
-                id: appConfig.id,
-                current: {
-                  id: appId,
-                  config: appConfig,
-                  configDigest: "digest",
-                  identity: appConfig.id,
-                  archivedAt: null,
-                },
-              },
-            });
-          });
+          await db
+            .update(apps)
+            .set({ archivedAt: new Date() })
+            .where(and(eq(apps.id, appId), eq(apps.workspaceId, workspaceId)));
           const retained = await readSecretValues(slot);
           assert.equal(retained.values.MULTILINE, "line one\nline two");
-          await db.transaction(async (transaction) => {
-            await applyDeployableAction(transaction, {
-              ...syncInput,
-              action: {
-                action: "restore",
-                id: appConfig.id,
-                desired: { ...appConfig, name: "Renamed" },
-              },
-            });
-          });
+          await db
+            .update(apps)
+            .set({ archivedAt: null, name: "Renamed" })
+            .where(and(eq(apps.id, appId), eq(apps.workspaceId, workspaceId)));
+          assert.equal(
+            (await readSecretValues(slot)).values.MULTILINE,
+            "line one\nline two",
+          );
           assert.equal(
             (
               await updateServer({
