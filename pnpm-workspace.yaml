@@ -61,6 +61,6 @@ catalog:
   recharts: ^3.10.1
   tailwind-merge: ^3.6.0
   tailwindcss: ^4.2.4
-  typescript: ^5.9.3
+  typescript: ^7.0.2
   yaml: ^2.8.3
   zod: ^4.5.4
