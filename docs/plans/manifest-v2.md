@@ -80,8 +80,8 @@ not a list of untouched work.
   manual redeploy. Real end-to-end PR execution remains unproven.
 - UI: server slugs, Source environment controls, instance environment switching,
   inventory environment filters, deployment history filters and URL navigation
-  exist. Inventory still presents instance rows rather than grouping logical
-  entities. Deployment chips show the recorded environment name. Monitoring
+  exist. Workspace and Source inventories group instances by logical entity,
+  retaining each environment row and direct instance link. Deployment chips show the recorded environment name. Monitoring
   entity search and alert/incident identities include environment names; kind
   filters distinguish persistent deployments from previews.
 - Fixtures: production/staging sibling app and resource instances and history
@@ -94,6 +94,12 @@ not a list of untouched work.
   fixture now explicitly connects an environment before editing shared secrets.
 
 ## Latest verification
+
+- Inventory grouping: focused identity/scope regression, web typecheck and
+  scoped lint pass. Rendered Apps and Resources show production/staging siblings
+  in one logical group; staging filtering, opening its instance and browser Back
+  restoring the filtered list were verified. Sidebar/overview/source counts
+  still need conversion from instance counts to logical-entity counts.
 
 - Monitoring environment labels: the database regression verifies staging-only
   entity search and environment identity on alerts/incidents. All 22 fixture API
@@ -126,7 +132,7 @@ tests. Do not reset the hosted installation or use its database.
 2. Audit resource operations, backups/restores, monitoring, alerts and scanning
    for instance/environment scope and labels. Validate that resource secret
    stage declarations match stages the resource editor and execution support.
-3. Complete logical-entity inventory presentation and verify all environment
+3. Align inventory counts with logical-entity grouping and verify all environment
    controls, readiness, validation failures and permalinks in rendered pages.
 4. Convert remaining fixture handlers for connection/discovery, declared secrets
    and complete per-environment manifest configuration fidelity.

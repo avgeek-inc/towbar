@@ -46,6 +46,7 @@ import { LastSyncedTime, RelativeTime } from "./last-synced-time";
 import { ScoutServerSummary } from "./scout-server-summary";
 import { InstanceEnvironmentLabel } from "./instance-environment-label";
 import { ServerIpLink } from "./source-inventory";
+import { DeployableInventoryTable as GroupedDeployableTable } from "./deployable-inventory-table";
 import { AppIdentity, ResourceIdentity } from "./deployable-identity";
 
 export function AppsIndex() {
@@ -297,7 +298,7 @@ function DeployableInventoryTable({
   ];
 
   return (
-    <ResourceTable
+    <GroupedDeployableTable
       ariaLabel={kind === "app" ? "Apps" : "Resources"}
       columns={columns}
       emptyDescription={

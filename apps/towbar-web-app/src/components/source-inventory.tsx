@@ -11,11 +11,9 @@ import type {
   Server,
 } from "@workspace/towbar-web-client";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
-import {
-  ResourceTable,
-  type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+import { type ResourceTableColumn } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
+import { DeployableInventoryTable } from "./deployable-inventory-table";
 import { AppIdentity, ResourceIdentity } from "./deployable-identity";
 import { InstanceEnvironmentLabel } from "./instance-environment-label";
 import { ServerHardwareDescription } from "./server-hardware";
@@ -209,7 +207,7 @@ export function SourceApps({
   const runtimeById = getRuntimeByDeployableId(capacities);
   const serversByIp = getServersByIp(servers);
   return (
-    <ResourceTable
+    <DeployableInventoryTable
       ariaLabel="Source apps"
       columns={appColumns(activeDeploymentStates, runtimeById, serversByIp)}
       emptyDescription="A successful manifest sync imports this Source's apps."
@@ -244,7 +242,7 @@ export function SourceResources({
   const runtimeById = getRuntimeByDeployableId(capacities);
   const serversByIp = getServersByIp(servers);
   return (
-    <ResourceTable
+    <DeployableInventoryTable
       ariaLabel="Source resources"
       columns={resourceColumns(
         activeDeploymentStates,
