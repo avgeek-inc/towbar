@@ -1,6 +1,11 @@
+import {
+  getInstanceEnvironment,
+  instanceSecretEnvironment,
+} from "./instance-environment.js";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import {
   isNormalizedResource,
+  requiredKeysForStage,
   resolveSecretReferences,
   secretReferenceDependencies,
   secretStages,
@@ -10,6 +15,8 @@ import {
   apps,
   deployments,
   previewEnvironments,
+  sourceEnvironments,
+  sources,
 } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { notFound, unprocessable } from "../../http/errors.js";
@@ -20,7 +27,11 @@ import {
   requireSecretOwner,
 } from "../secrets/store.js";
 import type { SecretDatabase, SecretOwner } from "../secrets/store.js";
-import type { SecretMutation, SecretStage } from "@workspace/towbar-core";
+import type {
+  RequiredSecrets,
+  SecretMutation,
+  SecretStage,
+} from "@workspace/towbar-core";
 
 export async function getEnvironmentSecretOwner(owner: SecretOwner) {
   const ownership = await requireSecretOwner(owner);
@@ -55,11 +66,21 @@ export async function listEnvironmentSecrets(
             config: apps.config,
           })
           .from(apps)
+          .innerJoin(
+            sourceEnvironments,
+            eq(sourceEnvironments.id, apps.sourceEnvironmentId),
+          )
           .where(
             and(
               eq(apps.sourceId, owner.id),
               eq(apps.workspaceId, owner.workspaceId),
               isNull(apps.archivedAt),
+              eq(
+                sourceEnvironments.name,
+                environment.startsWith("preview:")
+                  ? environment.slice(8)
+                  : environment,
+              ),
             ),
           )
       : [];
@@ -97,7 +118,9 @@ export async function listEnvironmentSecrets(
               eq(deployments.appId, owner.id),
               eq(
                 deployments.environment,
-                environment.startsWith("preview") ? "preview" : "production",
+                environment === "preview" || environment.startsWith("preview:")
+                  ? "preview"
+                  : "production",
               ),
               inArray(deployments.state, [
                 "succeeded",
@@ -194,14 +217,20 @@ export async function listEnvironmentSecrets(
           : affected
               .filter(
                 (app) =>
-                  stage === "deployment" ||
-                  (!isNormalizedResource(app.config) &&
-                    (stage === "build" ||
-                      Boolean(
-                        app.config.hooks[
-                          stage === "pre_deploy" ? "preDeploy" : "postDeploy"
-                        ],
-                      ))),
+                  (!(
+                    environment === "preview" ||
+                    environment.startsWith("preview:")
+                  ) ||
+                    (!isNormalizedResource(app.config) &&
+                      Boolean(app.config.preview?.enabled))) &&
+                  (stage === "deployment" ||
+                    (!isNormalizedResource(app.config) &&
+                      (stage === "build" ||
+                        Boolean(
+                          app.config.hooks[
+                            stage === "pre_deploy" ? "preDeploy" : "postDeploy"
+                          ],
+                        )))),
               )
               .map((app) => ({
                 id: app.id,
@@ -306,4 +335,80 @@ function resolveValues(
       "SECRET_REFERENCE_INVALID",
     );
   }
+}
+
+export async function assertRequiredInstanceSecrets(
+  input: {
+    appId: string;
+    sourceId: string;
+    workspaceId: string;
+    preview?: boolean;
+    declarations?: RequiredSecrets;
+  },
+  database: SecretDatabase = getTowbarDatabase(),
+) {
+  const environment = await instanceSecretEnvironment(input, database);
+  for (const stage of secretStages) {
+    if (input.declarations) {
+      const required = requiredKeysForStage(input.declarations, stage);
+      if (!required.length) continue;
+      const resolved = await resolveEnvironmentStage(
+        { ...input, environment, stage },
+        database,
+      );
+      const missing = required.filter(
+        (key) => !Object.hasOwn(resolved.values, key),
+      );
+      if (missing.length)
+        throw unprocessable(
+          `Required secrets missing in ${environment} (${stage}): ${missing.join(", ")}`,
+          "REQUIRED_SECRETS_MISSING",
+        );
+      continue;
+    }
+    const metadata = await readSecretMetadata(
+      {
+        type: "app",
+        id: input.appId,
+        workspaceId: input.workspaceId,
+        environment,
+        stage,
+      },
+      database,
+    );
+    if (metadata.missingKeys.length)
+      throw unprocessable(
+        `Required secrets missing in ${environment} (${stage}): ${metadata.missingKeys.join(", ")}`,
+        "REQUIRED_SECRETS_MISSING",
+      );
+    if (metadata.declared && metadata.keys.length)
+      await resolveEnvironmentStage({ ...input, environment, stage }, database);
+  }
+}
+
+export async function listSecretEnvironments(owner: SecretOwner) {
+  const ownership = await getEnvironmentSecretOwner(owner);
+  if (owner.type === "app") {
+    const environment = await getInstanceEnvironment({
+      appId: owner.id,
+      workspaceId: owner.workspaceId,
+    });
+    const name = environment?.name ?? "production";
+    return ownership.resource
+      ? [name]
+      : [name, environment ? `preview:${name}` : "preview"];
+  }
+  const rows = await getTowbarDatabase()
+    .selectDistinct({ name: sourceEnvironments.name })
+    .from(sourceEnvironments)
+    .innerJoin(sources, eq(sources.id, sourceEnvironments.sourceId))
+    .where(
+      and(
+        eq(sources.workspaceId, owner.workspaceId),
+        owner.type === "source" ? eq(sources.id, owner.id) : undefined,
+      ),
+    )
+    .orderBy(sourceEnvironments.name);
+  const names = rows.length ? rows.map((row) => row.name) : ["production"];
+  return names.flatMap((name) => [name, `preview:${name}`]);
 }

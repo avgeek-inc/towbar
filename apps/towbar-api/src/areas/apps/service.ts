@@ -18,6 +18,11 @@ import { enqueueDeployment } from "../../infrastructure/temporal.js";
 import { publicDeploymentSelection } from "../deployment-selection.js";
 import { emitDeploymentNotification } from "../notifications/events.js";
 import { scopeDeploymentIdempotencyKey } from "./idempotency.js";
+import {
+  getInstanceEnvironment,
+  lockDeploymentEnvironment,
+} from "./instance-environment.js";
+import { assertRequiredInstanceSecrets } from "./secrets.js";
 import { getApp, getResource } from "./queries.js";
 
 export { getApp, getResource, listApps, listResources } from "./queries.js";
@@ -106,6 +111,11 @@ export async function requestAppDeployment(input: {
     throw unprocessable("The Source must have a successful sync before deploy");
   }
   requireServerReady(target);
+  await assertRequiredInstanceSecrets({
+    appId: target.id,
+    sourceId: target.sourceId,
+    workspaceId: request.workspaceId,
+  });
   const commitSha = target.commitSha;
   const deploymentDigest = target.deploymentDigest;
   const manifestDigest = target.manifestDigest;
@@ -119,8 +129,12 @@ export async function requestAppDeployment(input: {
   let admission;
   try {
     admission = await database.transaction(async (transaction) => {
+      if (target.environment) {
+        await lockDeploymentEnvironment(target.environment, transaction);
+      }
       const [currentApp] = await transaction
         .select({
+          archivedAt: apps.archivedAt,
           deploymentDigest: apps.deploymentDigest,
           id: apps.id,
           serverConfigDigest: servers.configDigest,
@@ -138,6 +152,8 @@ export async function requestAppDeployment(input: {
         )
         .for("update");
       if (!currentApp) throw notFound("App");
+      if (currentApp.archivedAt)
+        throw conflict("Archived apps cannot be deployed");
       requireServerReady(currentApp);
       if (
         currentApp.sourceRevision !== commitSha ||
@@ -192,6 +208,7 @@ export async function requestAppDeployment(input: {
       const deploymentValues: typeof deployments.$inferInsert = {
         appId: target.id,
         appSnapshot: target.config,
+        requiredSecrets: target.requiredSecrets,
         commitSha,
         configDigest: target.configDigest,
         deploymentDigest,
@@ -315,6 +332,7 @@ export async function requestAppRollback(input: {
       .values({
         appId: app.id,
         appSnapshot: app.config,
+        requiredSecrets: app.requiredSecrets,
         commitSha: app.commitSha ?? original.commitSha,
         configDigest: app.configDigest,
         deploymentDigest: app.deploymentDigest ?? original.deploymentDigest,
@@ -439,6 +457,7 @@ async function getAppForDeployment(appId: string, workspaceId: string) {
   const [app] = await getTowbarDatabase()
     .select({
       archivedAt: apps.archivedAt,
+      requiredSecrets: apps.requiredSecrets,
       commitSha: sources.latestCommitSha,
       config: apps.config,
       configDigest: apps.configDigest,
@@ -461,7 +480,29 @@ async function getAppForDeployment(appId: string, workspaceId: string) {
     .where(and(eq(apps.id, appId), eq(apps.workspaceId, workspaceId)))
     .limit(1);
   if (!app) throw notFound("App");
-  return app;
+  const environment = await getInstanceEnvironment({ appId, workspaceId });
+  if (environment?.disconnectedAt)
+    throw conflict(
+      "This environment is disconnected",
+      "ENVIRONMENT_DISCONNECTED",
+    );
+  if (
+    environment &&
+    environment.mappingRevision !== environment.syncedMappingRevision
+  ) {
+    throw conflict(
+      "Sync this environment after changing its branch before deploying",
+      "ENVIRONMENT_SYNC_REQUIRED",
+    );
+  }
+  return environment
+    ? {
+        ...app,
+        environment,
+        commitSha: environment.latestCommitSha,
+        manifestDigest: environment.latestManifestDigest,
+      }
+    : { ...app, environment: null };
 }
 
 function requireServerReady(target: {

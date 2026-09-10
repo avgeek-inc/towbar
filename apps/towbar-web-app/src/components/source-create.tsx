@@ -1,6 +1,7 @@
 "use client";
 import {
   Add01Icon,
+  Search01Icon,
   GitBranchIcon,
   GithubIcon,
 } from "@hugeicons/core-free-icons";
@@ -46,6 +47,11 @@ export function SourceCreate() {
   );
   const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [discoveryBranch, setDiscoveryBranch] = useState("");
+  const [discovered, setDiscovered] = useState<
+    { name: string; previewsEnabled: boolean }[] | null
+  >(null);
+  const [mappings, setMappings] = useState<Record<string, string>>({});
   if (connection.error && !connection.data)
     return (
       <DashboardPage
@@ -144,7 +150,7 @@ export function SourceCreate() {
       <div className="content-grid">
         <div className="max-w-full overflow-x-auto pb-1">
           <div className="min-w-[44rem]">
-            <Stepper currentStep={busy ? 2 : 1}>
+            <Stepper currentStep={discovered ? 2 : 1}>
               {[
                 ["Connect GitHub", "Repository access is ready."],
                 [
@@ -152,8 +158,8 @@ export function SourceCreate() {
                   "Select the repository Towbar should sync.",
                 ],
                 [
-                  "Sync manifest",
-                  "Towbar validates and imports .towbar/deployment.yml.",
+                  "Connect environments",
+                  "Map branches and sync configuration without deploying.",
                 ],
               ].map(([title, description]) => (
                 <Stepper.Step key={title}>
@@ -178,45 +184,62 @@ export function SourceCreate() {
               event.preventDefault();
               if (!selected) return;
               setBusy(true);
-              let createdSource: Source;
               try {
-                const response = await api.post<{ source: Source }>(
-                  "/v1/core/sources",
+                const repository = {
+                  discoveryBranch: discoveryBranch || selected.defaultBranch,
+                  githubInstallationId,
+                  repositoryName: selected.name,
+                  repositoryOwner: selected.owner,
+                };
+                if (!discovered) {
+                  const result = await api.post<{
+                    environments: { name: string; previewsEnabled: boolean }[];
+                  }>("/v1/core/sources/discover", repository);
+                  setDiscovered(result.environments);
+                  setMappings(
+                    Object.fromEntries(
+                      result.environments.map((environment) => [
+                        environment.name,
+                        environment.name === "production"
+                          ? selected.defaultBranch
+                          : "",
+                      ]),
+                    ),
+                  );
+                  return;
+                }
+                const result = await api.post<{
+                  source: Source;
+                  syncs: { error: string | null }[];
+                }>("/v1/core/sources/connect", {
+                  ...repository,
+                  environments: discovered.map((environment) => ({
+                    environment: environment.name,
+                    branch: mappings[environment.name]?.trim(),
+                  })),
+                });
+                if (result.syncs.some((sync) => sync.error)) {
+                  toast.danger("Source connected; some syncs need retry", {
+                    description:
+                      "Open the environment to retry its initial sync.",
+                  });
+                } else toast.success("Source connected");
+                router.push(`/sources/${result.source.id}`);
+              } catch (caught) {
+                toast.danger(
+                  discovered
+                    ? "Couldn't connect source"
+                    : "Couldn't read configuration",
                   {
-                    branch: selected.defaultBranch,
-                    githubInstallationId,
-                    repositoryName: selected.name,
-                    repositoryOwner: selected.owner,
+                    description:
+                      caught instanceof Error
+                        ? caught.message
+                        : "The request failed",
                   },
                 );
-                if (!response.source?.id) {
-                  throw new Error("Towbar did not return the created Source.");
-                }
-                createdSource = response.source;
-              } catch (caught) {
-                toast.danger("Couldn't add source", {
-                  description:
-                    caught instanceof Error
-                      ? caught.message
-                      : "Could not add source",
-                });
+              } finally {
                 setBusy(false);
-                return;
               }
-
-              try {
-                await api.post(
-                  `/v1/core/sources/${createdSource.id}/actions/sync`,
-                );
-              } catch (caught) {
-                toast.danger("Source added, but sync couldn't start", {
-                  description:
-                    caught instanceof Error
-                      ? caught.message
-                      : "Could not start the initial source sync",
-                });
-              }
-              router.push(`/sources/${createdSource.id}`);
             }}
           >
             <ComboBox
@@ -224,7 +247,11 @@ export function SourceCreate() {
               fullWidth
               selectedKey={fullName || null}
               variant="secondary"
-              onSelectionChange={(value) => setFullName(String(value ?? ""))}
+              onSelectionChange={(value) => {
+                setFullName(String(value ?? ""));
+                setDiscoveryBranch("");
+                setDiscovered(null);
+              }}
             >
               <Label>Repository</Label>
               <ComboBox.InputGroup>
@@ -247,21 +274,85 @@ export function SourceCreate() {
                 </ListBox>
               </ComboBox.Popover>
               <Description>
-                The default branch is used only for the first sync. Future syncs
-                use the branch declared in .towbar/deployment.yml.
+                Towbar reads towbar.yml to discover environments. Deployment
+                branches are managed here, not in YAML.
               </Description>
             </ComboBox>
+            <div className="grid gap-2">
+              <Label htmlFor="source-discovery-branch">Discovery branch</Label>
+              <Input
+                id="source-discovery-branch"
+                value={discoveryBranch || selected?.defaultBranch || ""}
+                variant="secondary"
+                disabled={!selected || busy}
+                onChange={(event) => {
+                  setDiscoveryBranch(event.target.value);
+                  setDiscovered(null);
+                }}
+              />
+              <p className="text-xs text-muted">
+                Used to discover environments during connection. Each
+                environment follows its own branch after connecting.
+              </p>
+            </div>
+            {discovered ? (
+              <div className="grid gap-4">
+                <p>Choose the branch for each environment.</p>
+                {discovered.map((environment) => (
+                  <div key={environment.name} className="grid gap-2">
+                    <Label htmlFor={`branch-${environment.name}`}>
+                      {environment.name}
+                    </Label>
+                    <Input
+                      id={`branch-${environment.name}`}
+                      required
+                      variant="secondary"
+                      value={mappings[environment.name] ?? ""}
+                      disabled={busy}
+                      placeholder="Choose a deployment branch"
+                      onChange={(event) =>
+                        setMappings((current) => ({
+                          ...current,
+                          [environment.name]: event.target.value,
+                        }))
+                      }
+                    />
+                    <p className="text-xs text-muted">
+                      {environment.previewsEnabled
+                        ? "PR previews enabled for this target branch"
+                        : "PR previews disabled"}
+                    </p>
+                  </div>
+                ))}
+                <p className="text-xs text-muted">
+                  Connecting imports configuration and creates required secret
+                  fields. It does not deploy workloads.
+                </p>
+              </div>
+            ) : null}
             <Button
               className="w-fit"
-              isDisabled={!selected || busy}
+              isDisabled={
+                !selected ||
+                busy ||
+                Boolean(
+                  discovered?.some(
+                    (environment) => !mappings[environment.name]?.trim(),
+                  ),
+                )
+              }
               type="submit"
             >
               <HugeiconsIcon
                 aria-hidden="true"
-                icon={Add01Icon}
+                icon={discovered ? Add01Icon : Search01Icon}
                 className="size-4 shrink-0"
               />
-              {busy ? "Adding…" : "Add and sync source"}
+              {busy
+                ? "Loading…"
+                : discovered
+                  ? "Connect source"
+                  : "Review configuration"}
             </Button>
           </form>
         </FormCard>

@@ -1,8 +1,12 @@
 import { eq } from "drizzle-orm";
-import { isNormalizedResource } from "@workspace/towbar-core";
+import {
+  isNormalizedResource,
+  requiredKeysForStage,
+} from "@workspace/towbar-core";
 import { deployments } from "@workspace/towbar-database/schema";
 import { notFound, unprocessable } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
+import { instanceSecretEnvironment } from "../apps/instance-environment.js";
 import { resolveEnvironmentStage } from "../apps/secrets.js";
 import { resolveServerCredentials } from "../secrets/store.js";
 import { sshLoginSecretSchema } from "../servers/service.js";
@@ -39,11 +43,25 @@ export async function resolveDeploymentSecrets(deploymentId: string) {
             workspaceId: deployment.workspaceId,
             sourceId: deployment.sourceId,
             appId: deployment.appId,
-            environment: deployment.environment,
+            environment: await instanceSecretEnvironment(
+              { ...deployment, preview: deployment.environment === "preview" },
+              database,
+            ),
             stage,
           },
           database,
         );
+        if (deployment.requiredSecrets) {
+          const missing = requiredKeysForStage(
+            deployment.requiredSecrets,
+            stage,
+          ).filter((key) => !Object.hasOwn(result.values, key));
+          if (missing.length)
+            throw unprocessable(
+              `Required secrets missing for deployment (${stage}): ${missing.join(", ")}`,
+              "REQUIRED_SECRETS_MISSING",
+            );
+        }
         Object.assign(revisions, result.revisions);
         return result.values;
       }
@@ -124,7 +142,11 @@ export async function resolveRuntimeEnvironmentSecrets(
 ) {
   return (
     await resolveEnvironmentStage(
-      { ...input, environment: "production", stage: "deployment" },
+      {
+        ...input,
+        environment: await instanceSecretEnvironment(input, database),
+        stage: "deployment",
+      },
       database,
     )
   ).values;

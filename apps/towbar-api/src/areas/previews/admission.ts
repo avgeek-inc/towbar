@@ -4,17 +4,23 @@ import { and, eq, notInArray, sql } from "drizzle-orm";
 
 import {
   digestValue,
+  isNormalizedResource,
   previewRef,
   previewRuntimeId,
 } from "@workspace/towbar-core";
 import { deploymentWorkflowId } from "@workspace/towbar-core/temporal";
 import type { servers } from "@workspace/towbar-database/schema";
 import {
+  apps,
   deployments,
   previewEnvironments,
   releases,
 } from "@workspace/towbar-database/schema";
 
+import {
+  getInstanceEnvironment,
+  lockDeploymentEnvironment,
+} from "../apps/instance-environment.js";
 import { conflict } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import {
@@ -25,13 +31,20 @@ import {
   shouldDeferPreviewAdmission,
 } from "./admission-state.js";
 
-import type { NormalizedApp } from "@workspace/towbar-core";
+import type { NormalizedApp, RequiredSecrets } from "@workspace/towbar-core";
 
 type Transaction = Parameters<
   Parameters<ReturnType<typeof getTowbarDatabase>["transaction"]>[0]
 >[0];
 
 export async function admitPreviewDeployment(input: {
+  targetEnvironment?: {
+    id: string;
+    mappingRevision: string;
+    latestCommitSha: string | null;
+  };
+  targetConfigDigest?: string;
+  requiredSecrets?: RequiredSecrets;
   force?: boolean;
   requestedBy?: string;
   appId: string;
@@ -52,13 +65,14 @@ export async function admitPreviewDeployment(input: {
   const database = getTowbarDatabase();
   const gitRef = previewRef(input.pullRequestNumber);
   const runtimeId = previewRuntimeId({
-    appId: input.config.id,
+    appId: input.appId,
     pullRequestNumber: input.pullRequestNumber,
     sourceId: input.sourceId,
   });
   const deploymentId = randomUUID();
   const expiresAt = new Date(Date.now() + input.ttlHours * 60 * 60_000);
   return await database.transaction(async (transaction) => {
+    await lockPreviewTarget(transaction, input);
     const admissionLockKey = previewAdmissionLockKey({
       appId: input.appId,
       gitRef,
@@ -250,6 +264,7 @@ export async function admitPreviewDeployment(input: {
       .values({
         appId: input.appId,
         appSnapshot: input.config,
+        requiredSecrets: input.requiredSecrets,
         commitSha: input.commitSha,
         configDigest: digestValue(input.config),
         deployableKind: "app",
@@ -457,4 +472,46 @@ async function replayPreviewDeployment(
     shouldEnqueue: action !== "reuse",
     supersededDeploymentIds: [],
   };
+}
+
+async function lockPreviewTarget(
+  transaction: Transaction,
+  input: Parameters<typeof admitPreviewDeployment>[0],
+) {
+  const environment = await getInstanceEnvironment(
+    { appId: input.appId, workspaceId: input.workspaceId },
+    transaction,
+  );
+  if (environment) {
+    if (
+      !input.targetEnvironment ||
+      input.targetEnvironment.id !== environment.id ||
+      !environment.previewsEnabled ||
+      environment.mappingRevision !== environment.syncedMappingRevision
+    )
+      throw conflict(
+        "The preview target changed. Sync and retry.",
+        "PREVIEW_TARGET_CHANGED",
+      );
+    await lockDeploymentEnvironment(input.targetEnvironment, transaction);
+    const [target] = await transaction
+      .select()
+      .from(apps)
+      .where(
+        and(eq(apps.id, input.appId), eq(apps.workspaceId, input.workspaceId)),
+      )
+      .for("update");
+    if (
+      !target ||
+      target.archivedAt ||
+      isNormalizedResource(target.config) ||
+      !target.config.preview?.enabled ||
+      target.configDigest !== input.targetConfigDigest ||
+      target.serverId !== input.serverId
+    )
+      throw conflict(
+        "The preview target changed. Retry against the current configuration.",
+        "PREVIEW_TARGET_CHANGED",
+      );
+  }
 }

@@ -10,6 +10,7 @@ import {
 import {
   getEnvironmentSecretOwner,
   listEnvironmentSecrets,
+  listSecretEnvironments,
   updateEnvironmentSecrets,
 } from "../../../areas/apps/secrets.js";
 import { getApp, getResource } from "../../../areas/apps/queries.js";
@@ -49,9 +50,6 @@ export function environmentSecretRoutes(
     }),
     async (context) => {
       const user = context.get("user");
-      const environment = secretEnvironmentSchema.parse(
-        context.req.query("environment") ?? "production",
-      );
       const owner =
         kind === "workspace"
           ? ({ type: "workspace", workspaceId: user.workspaceId } as const)
@@ -63,7 +61,12 @@ export function environmentSecretRoutes(
               ),
               workspaceId: user.workspaceId,
             } as const);
+      const environments = await listSecretEnvironments(owner);
+      const environment = secretEnvironmentSchema.parse(
+        context.req.query("environment") ?? environments[0],
+      );
       return context.json({
+        environments,
         bindings: await listEnvironmentSecrets(owner, environment),
         canManageSecrets: user.workspaceRole === "owner",
       });
@@ -163,9 +166,13 @@ export function environmentSecretRoutes(
     const stage = secretStageSchema.parse(context.req.param("stage"));
     if (
       ownership.resource &&
-      (environment !== "production" || stage !== "deployment")
+      (environment === "preview" ||
+        environment.startsWith("preview:") ||
+        stage !== "deployment")
     )
-      throw unprocessable("Resources only support production runtime secrets");
+      throw unprocessable(
+        "Resources only support their environment runtime secrets",
+      );
 
     return { slot: { ...owner, environment, stage }, actorUserId: user.id };
   }

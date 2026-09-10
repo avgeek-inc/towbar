@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {
   digestValue,
+  isNormalizedResource,
   normalizeServerConfiguration,
 } from "@workspace/towbar-core";
 import {
   apps,
   githubInstallations,
+  previewPullRequestReports,
   servers,
   sourceEnvironments,
   sourceSyncs,
@@ -35,6 +37,10 @@ void test(
     const { getTowbarDatabase, closeDatabase } =
       await import("../../infrastructure/database.js");
     const { executeEnvironmentSync } = await import("./environment-sync.js");
+    const { assertRequiredInstanceSecrets, listSecretEnvironments } =
+      await import("../apps/secrets.js");
+    const { getInstanceEnvironment, lockDeploymentEnvironment } =
+      await import("../apps/instance-environment.js");
     const { readSecretValues, readSecretMetadata, mutateSecret } =
       await import("../secrets/store.js");
     const database = getTowbarDatabase();
@@ -44,10 +50,11 @@ void test(
     const root = "version: 2\nenvironments:\n  production: {}\n  staging: {}\n";
     let keys = ["TOKEN", "EMPTY"];
     let broken = false;
+    let snapshotCommit = "a".repeat(40);
     const dependencies = {
       snapshot: () =>
         Promise.resolve({
-          commitSha: "a".repeat(40),
+          commitSha: snapshotCommit,
           root,
           configuration: {
             version: 2 as const,
@@ -83,13 +90,11 @@ void test(
       await database
         .insert(workspaces)
         .values({ id: workspaceId, slug: workspaceId, name: "V2 test" });
-      await database
-        .insert(users)
-        .values({
-          id: userId,
-          email: `${userId}@example.com`,
-          displayName: "Test",
-        });
+      await database.insert(users).values({
+        id: userId,
+        email: `${userId}@example.com`,
+        displayName: "Test",
+      });
       const [installation] = await database
         .insert(githubInstallations)
         .values({
@@ -99,29 +104,33 @@ void test(
           accountType: "Organization",
         })
         .returning();
-      await database
-        .insert(sources)
-        .values({
-          id: sourceId,
-          workspaceId,
-          githubInstallationId: installation!.id,
-          repositoryOwner: "test",
-          repositoryName: "test",
-          branch: "main",
-        });
+      await database.insert(sources).values({
+        id: sourceId,
+        workspaceId,
+        githubInstallationId: installation!.id,
+        repositoryOwner: "test",
+        repositoryName: "test",
+        branch: "main",
+      });
       const config = normalizeServerConfiguration({
         ip: "192.0.2.10",
         ssh: { username: "deploy" },
       });
-      await database
-        .insert(servers)
-        .values({
-          workspaceId,
-          slug: "host",
-          canonicalIp: config.ip,
-          config,
-          configDigest: digestValue(config),
-        });
+      await database.insert(servers).values({
+        workspaceId,
+        slug: "host",
+        canonicalIp: config.ip,
+        config,
+        configDigest: digestValue(config),
+      });
+      await t.test(
+        "server slugs are editable and unique without changing preparation configuration",
+        async () => {
+          const { assertServerSlugEditing } =
+            await import("./environment-server-tests.js");
+          await assertServerSlugEditing(workspaceId);
+        },
+      );
       const [production, staging] = await database
         .insert(sourceEnvironments)
         .values([
@@ -144,6 +153,7 @@ void test(
         return executeEnvironmentSync(job!.id, workspaceId, dependencies);
       }
       await sync(production!);
+      snapshotCommit = "b".repeat(40);
       await sync(staging!);
       const instances = await database
         .select()
@@ -166,16 +176,35 @@ void test(
         stage: "deployment",
       };
       const prodSlot = { ...slot, id: prod.id, environment: "production" };
-      await t.test("new declarations are visible but unset", async () => {
-        assert.deepEqual((await readSecretMetadata(slot)).missingKeys, [
-          "EMPTY",
-          "TOKEN",
-        ]);
-        assert.deepEqual(
-          Object.keys((await readSecretValues(slot)).values),
-          [],
-        );
-      });
+      await t.test(
+        "new declarations and environment snapshots are isolated",
+        async () => {
+          const { assertEnvironmentManifestSnapshots } =
+            await import("./environment-preview-tests.js");
+          await assertEnvironmentManifestSnapshots({
+            sourceId,
+            workspaceId,
+            productionId: production!.id,
+            stagingId: staging!.id,
+          });
+          assert.deepEqual((await readSecretMetadata(slot)).missingKeys, [
+            "EMPTY",
+            "TOKEN",
+          ]);
+          assert.deepEqual(
+            Object.keys((await readSecretValues(slot)).values),
+            [],
+          );
+        },
+      );
+      await assert.rejects(
+        assertRequiredInstanceSecrets({
+          appId: stage.id,
+          sourceId,
+          workspaceId,
+        }),
+        /Required secrets missing in staging/,
+      );
       const metadata = await readSecretMetadata(slot);
       await mutateSecret(
         slot,
@@ -196,6 +225,45 @@ void test(
           /does not match/,
         );
       });
+      await t.test(
+        "PR declarations validate isolated preview values without reconciling slots",
+        async () => {
+          assert.deepEqual(
+            await listSecretEnvironments({
+              type: "app",
+              id: stage.id,
+              workspaceId,
+            }),
+            ["staging", "preview:staging"],
+          );
+          const before = await readSecretMetadata(slot);
+          await assert.rejects(
+            assertRequiredInstanceSecrets({
+              appId: stage.id,
+              sourceId,
+              workspaceId,
+              preview: true,
+              declarations: {
+                build: [],
+                runtime: ["TOKEN", "PR_ONLY"],
+                preDeploy: [],
+                postDeploy: [],
+              },
+            }),
+            /Required secrets missing in preview:staging/,
+          );
+          assert.deepEqual(await readSecretMetadata(slot), before);
+          assert.deepEqual(
+            (
+              await readSecretMetadata({
+                ...slot,
+                environment: "preview:staging",
+              })
+            ).keys,
+            before.keys,
+          );
+        },
+      );
       await t.test(
         "sync preserves empty values, adds unset keys and removes deleted values only in staging",
         async () => {
@@ -232,6 +300,272 @@ void test(
             );
           assert.equal(retained!.config.server, "host");
           broken = false;
+        },
+      );
+      await t.test(
+        "deployment admission serializes branch edits and rejects stale mappings",
+        async () => {
+          const expected = await getInstanceEnvironment({
+            appId: stage.id,
+            workspaceId,
+          });
+          assert(expected);
+          await database.transaction(async (transaction) => {
+            await lockDeploymentEnvironment(expected, transaction);
+            await assert.rejects(
+              database.transaction(async (editor) => {
+                await editor.execute(sql`set local lock_timeout = '100ms'`);
+                await editor
+                  .update(sourceEnvironments)
+                  .set({ mappingRevision: randomUUID() })
+                  .where(eq(sourceEnvironments.id, expected.id));
+              }),
+              (error: unknown) => {
+                const cause = error as {
+                  cause?: { code?: string };
+                  code?: string;
+                };
+                return (cause.cause?.code ?? cause.code) === "55P03";
+              },
+            );
+          });
+          await assert.rejects(
+            database.transaction((transaction) =>
+              lockDeploymentEnvironment(
+                { ...expected, mappingRevision: randomUUID() },
+                transaction,
+              ),
+            ),
+            /environment changed/,
+          );
+        },
+      );
+      await t.test(
+        "resuming a source selects each environment revision independently",
+        async () => {
+          const { scheduleLatestAutomaticDeploymentsForSource } =
+            await import("../apps/automatic-deployments.js");
+          const before = await database
+            .select()
+            .from(apps)
+            .where(eq(apps.sourceId, sourceId));
+          try {
+            await database
+              .update(sources)
+              .set({ autoDeployPaused: true })
+              .where(eq(sources.id, sourceId));
+            await database
+              .update(servers)
+              .set({
+                preparedAt: new Date(),
+                preparedConfigDigest: digestValue(config),
+              })
+              .where(eq(servers.id, stage.serverId));
+            for (const instance of before) {
+              await database
+                .update(apps)
+                .set({
+                  config: { ...instance.config, autoDeploy: true },
+                  requiredSecrets: {
+                    build: [],
+                    runtime: [],
+                    preDeploy: [],
+                    postDeploy: [],
+                  },
+                })
+                .where(eq(apps.id, instance.id));
+            }
+            assert.deepEqual(
+              await scheduleLatestAutomaticDeploymentsForSource({
+                sourceId,
+                workspaceId,
+              }),
+              { deploymentIds: [] },
+            );
+            const deferred = await database
+              .select()
+              .from(apps)
+              .where(eq(apps.sourceId, sourceId));
+            assert.equal(
+              deferred.find((item) => item.id === prod.id)
+                ?.deferredAutomaticDeployment?.commitSha,
+              "a".repeat(40),
+            );
+            assert.equal(
+              deferred.find((item) => item.id === stage.id)
+                ?.deferredAutomaticDeployment?.commitSha,
+              "b".repeat(40),
+            );
+            await database
+              .update(apps)
+              .set({ deferredAutomaticDeployment: null })
+              .where(eq(apps.sourceId, sourceId));
+            await scheduleLatestAutomaticDeploymentsForSource({
+              sourceId,
+              workspaceId,
+              sourceEnvironmentId: staging!.id,
+            });
+            const scoped = await database
+              .select()
+              .from(apps)
+              .where(eq(apps.sourceId, sourceId));
+            assert.equal(
+              scoped.find((item) => item.id === prod.id)
+                ?.deferredAutomaticDeployment,
+              null,
+            );
+            assert.equal(
+              scoped.find((item) => item.id === stage.id)
+                ?.deferredAutomaticDeployment?.commitSha,
+              "b".repeat(40),
+            );
+            await database
+              .update(apps)
+              .set({ deferredAutomaticDeployment: null })
+              .where(eq(apps.sourceId, sourceId));
+            await database
+              .update(sourceEnvironments)
+              .set({ mappingRevision: randomUUID() })
+              .where(eq(sourceEnvironments.id, staging!.id));
+            await scheduleLatestAutomaticDeploymentsForSource({
+              sourceId,
+              workspaceId,
+            });
+            const afterBranchEdit = await database
+              .select()
+              .from(apps)
+              .where(eq(apps.sourceId, sourceId));
+            assert.equal(
+              afterBranchEdit.find((item) => item.id === stage.id)
+                ?.deferredAutomaticDeployment,
+              null,
+            );
+            assert.equal(
+              afterBranchEdit.find((item) => item.id === prod.id)
+                ?.deferredAutomaticDeployment?.commitSha,
+              "a".repeat(40),
+            );
+          } finally {
+            await database
+              .update(sourceEnvironments)
+              .set({ mappingRevision: staging!.mappingRevision })
+              .where(eq(sourceEnvironments.id, staging!.id));
+            await database
+              .update(sources)
+              .set({ autoDeployPaused: false })
+              .where(eq(sources.id, sourceId));
+            for (const instance of before) {
+              await database
+                .update(apps)
+                .set({
+                  config: instance.config,
+                  requiredSecrets: instance.requiredSecrets,
+                  deferredAutomaticDeployment: null,
+                })
+                .where(eq(apps.id, instance.id));
+            }
+          }
+        },
+      );
+      await t.test(
+        "preview discovery uses mapped branches and retains cleanup work when disabled",
+        async () => {
+          const { scheduleSourcePreviewReconciliations } =
+            await import("../previews/reconciliation-scheduler.js");
+          const current = await database
+            .select()
+            .from(apps)
+            .where(eq(apps.id, stage.id));
+          assert(current[0] && !isNormalizedResource(current[0].config));
+          const configBefore = current[0].config;
+          const branches: string[] = [];
+          const queued: number[] = [];
+          const dependencies = {
+            listPullRequests: (input: { baseBranch: string }) => {
+              branches.push(input.baseBranch);
+              return Promise.resolve([7, 9]);
+            },
+            enqueue: (input: { pullRequestNumber: number }) => {
+              queued.push(input.pullRequestNumber);
+              return Promise.resolve({
+                workflowId: `preview-test-${input.pullRequestNumber}`,
+              });
+            },
+          };
+          try {
+            await database
+              .update(sourceEnvironments)
+              .set({ previewsEnabled: true })
+              .where(eq(sourceEnvironments.id, staging!.id));
+            await database
+              .update(apps)
+              .set({
+                config: {
+                  ...configBefore,
+                  preview: {
+                    enabled: true,
+                    domain: "preview.example.com",
+                    ttlHours: 72,
+                  },
+                },
+              })
+              .where(eq(apps.id, stage.id));
+            await database.insert(previewPullRequestReports).values({
+              sourceId,
+              workspaceId,
+              pullRequestNumber: 9,
+              branch: "feature",
+              latestCommitSha: "b".repeat(40),
+            });
+            await scheduleSourcePreviewReconciliations(sourceId, dependencies);
+            assert.deepEqual(branches, ["develop"]);
+            assert.deepEqual(queued, [7, 9]);
+            branches.length = 0;
+            queued.length = 0;
+            await database
+              .update(sourceEnvironments)
+              .set({ previewsEnabled: false })
+              .where(eq(sourceEnvironments.id, staging!.id));
+            await scheduleSourcePreviewReconciliations(sourceId, dependencies);
+            assert.deepEqual(branches, []);
+            assert.deepEqual(queued, [9]);
+          } finally {
+            await database
+              .update(apps)
+              .set({ config: configBefore })
+              .where(eq(apps.id, stage.id));
+            await database
+              .update(sourceEnvironments)
+              .set({ previewsEnabled: false })
+              .where(eq(sourceEnvironments.id, staging!.id));
+          }
+        },
+      );
+      await t.test(
+        "preview admission rejects stale environment snapshots and disabled target apps",
+        async () => {
+          const { assertPreviewAdmissionGuards } =
+            await import("./environment-preview-tests.js");
+          await assertPreviewAdmissionGuards({
+            stage,
+            sourceId,
+            workspaceId,
+            config,
+          });
+        },
+      );
+      await t.test(
+        "worker validates snapshotted preview declarations and preserves intentional empty values",
+        async () => {
+          const { assertDeploymentSecretSnapshot } =
+            await import("./environment-preview-tests.js");
+          await assertDeploymentSecretSnapshot({
+            stage,
+            sourceId,
+            workspaceId,
+            config,
+            userId,
+          });
         },
       );
       await t.test(

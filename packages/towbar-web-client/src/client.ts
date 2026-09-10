@@ -52,8 +52,8 @@ export function createTowbarClient(options: TowbarClientOptions) {
   };
 
   return {
-    delete: async <T>(path: string) =>
-      await request<T>(path, { method: "DELETE" }),
+    delete: async <T>(path: string, json?: unknown) =>
+      await request<T>(path, { json, method: "DELETE" }),
     get: async <T>(path: string) => await request<T>(path),
     patch: async <T>(path: string, json?: unknown) =>
       await request<T>(path, { json, method: "PATCH" }),

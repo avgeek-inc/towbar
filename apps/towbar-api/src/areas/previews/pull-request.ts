@@ -16,7 +16,7 @@ export function previewPullRequestDisposition(input: {
   pullRequest: GitHubPullRequest;
   repositoryName: string;
   repositoryOwner: string;
-  sourceBranch: string;
+  sourceBranches: string[];
 }): PreviewPullRequestDisposition {
   const { pullRequest } = input;
   if (pullRequest.state === "closed") {
@@ -45,10 +45,11 @@ export function previewPullRequestDisposition(input: {
       reason: "The pull request no longer targets the Source repository",
     };
   }
-  if (pullRequest.baseBranch !== input.sourceBranch) {
+  if (!input.sourceBranches.includes(pullRequest.baseBranch)) {
     return {
       action: "cleanup",
-      reason: `The pull request no longer targets '${input.sourceBranch}'`,
+      reason:
+        "The pull request no longer targets a connected environment with previews enabled",
     };
   }
   return { action: "deploy" };
@@ -56,4 +57,20 @@ export function previewPullRequestDisposition(input: {
 
 function sameRepository(left: string, right: string) {
   return left.toLowerCase() === right.toLowerCase();
+}
+
+export function samePreviewPullRequestRevision(
+  left: GitHubPullRequest,
+  right: GitHubPullRequest,
+) {
+  return (
+    left.headSha === right.headSha &&
+    left.baseBranch === right.baseBranch &&
+    left.state === right.state &&
+    left.merged === right.merged &&
+    left.draft === right.draft &&
+    left.headBranch === right.headBranch &&
+    left.headRepository === right.headRepository &&
+    left.baseRepository === right.baseRepository
+  );
 }

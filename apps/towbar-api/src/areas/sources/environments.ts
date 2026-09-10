@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import {
   resolveRepositoryEnvironment,
   sourceEnvironmentMappingSchema,
@@ -40,11 +40,37 @@ export async function listSourceEnvironments(
   workspaceId: string,
 ) {
   await sourceRepository(sourceId, workspaceId);
-  return getTowbarDatabase()
+  const database = getTowbarDatabase();
+  const environments = await database
     .select()
     .from(sourceEnvironments)
     .where(eq(sourceEnvironments.sourceId, sourceId))
     .orderBy(sourceEnvironments.name);
+  const attempts = await database
+    .selectDistinctOn([sourceSyncs.sourceEnvironmentId], {
+      environmentId: sourceSyncs.sourceEnvironmentId,
+      status: sourceSyncs.status,
+      finishedAt: sourceSyncs.finishedAt,
+      issues: sourceSyncs.issues,
+    })
+    .from(sourceSyncs)
+    .where(eq(sourceSyncs.sourceId, sourceId))
+    .orderBy(
+      sourceSyncs.sourceEnvironmentId,
+      desc(sourceSyncs.createdAt),
+      desc(sourceSyncs.id),
+    );
+  return environments.map((environment) => {
+    const attempt = attempts.find(
+      (item) => item.environmentId === environment.id,
+    );
+    return {
+      ...environment,
+      latestSyncStatus: attempt?.status ?? "never",
+      latestSyncFinishedAt: attempt?.finishedAt ?? null,
+      latestSyncIssues: attempt?.issues ?? [],
+    };
+  });
 }
 
 export async function connectSourceEnvironment(input: {
@@ -87,6 +113,7 @@ export async function connectSourceEnvironment(input: {
       previewsEnabled: resolved.manifest.previewsEnabled,
       mappingRevision: randomUUID(),
       disconnectedAt: null,
+      autoDeployPaused: false,
       updatedAt: new Date(),
     };
     const [environment] = existing
@@ -274,4 +301,44 @@ export async function disconnectSourceEnvironment(input: {
     });
     return environment;
   });
+}
+
+export async function getEnvironmentManifest(input: {
+  sourceId: string;
+  environmentId: string;
+  workspaceId: string;
+}) {
+  await sourceRepository(input.sourceId, input.workspaceId);
+  const [environment] = await getTowbarDatabase()
+    .select()
+    .from(sourceEnvironments)
+    .where(
+      and(
+        eq(sourceEnvironments.id, input.environmentId),
+        eq(sourceEnvironments.sourceId, input.sourceId),
+      ),
+    );
+  if (!environment) throw notFound("Environment");
+  if (!environment.latestSuccessfulSyncId) return null;
+  const [sync] = await getTowbarDatabase()
+    .select({
+      commitSha: sourceSyncs.commitSha,
+      rawManifest: sourceSyncs.rawManifest,
+    })
+    .from(sourceSyncs)
+    .where(
+      and(
+        eq(sourceSyncs.id, environment.latestSuccessfulSyncId),
+        eq(sourceSyncs.sourceEnvironmentId, environment.id),
+      ),
+    );
+  if (!sync?.rawManifest) return null;
+  const snapshot = JSON.parse(sync.rawManifest) as {
+    root: string;
+    files: { path: string; content: string }[];
+  };
+  return {
+    commitSha: sync.commitSha,
+    files: [{ path: "towbar.yml", content: snapshot.root }, ...snapshot.files],
+  };
 }

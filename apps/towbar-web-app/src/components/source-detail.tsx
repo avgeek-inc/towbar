@@ -5,6 +5,7 @@ import {
   DatabaseIcon,
   Delete02Icon,
   GithubIcon,
+  Layers01Icon,
   ReloadIcon,
   SourceCodeIcon,
   Settings01Icon,
@@ -24,13 +25,9 @@ import type {
   Source,
   SourceSync,
 } from "@workspace/towbar-web-client";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
 import { Pagination } from "@workspace/web-design-system/navigation/pagination";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
-import dynamic from "next/dynamic";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { CodeBlock } from "@workspace/web-design-system/typography/code-block";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
@@ -54,20 +51,11 @@ import {
   SourceNotifications,
   type NotificationDestinationsResponse,
 } from "./source-notifications";
+import { SourceEnvironmentManifest } from "./source-environment-manifest";
+import { SourceEnvironments } from "./source-environments";
 import { SourceApps, SourceResources } from "./source-inventory";
 import { ResponsiveSubtabs } from "./responsive-subtabs";
 import { AutoDeployControlEditor } from "./auto-deploy-control";
-
-const CodeEditor = dynamic(() => import("./code-editor"), { ssr: false });
-
-type ManifestResponse = {
-  manifest: {
-    commitSha: string;
-    manifest: unknown;
-    manifestDigest: string;
-    rawManifest: string;
-  } | null;
-};
 
 const SOURCE_SYNC_PAGE_SIZE = 10;
 
@@ -79,9 +67,6 @@ export function SourceDetail() {
     canManageSource: boolean;
     source: Source;
   }>(`/v1/core/sources/${sourceId}`);
-  const manifest = useApiQuery<ManifestResponse>(
-    `/v1/core/sources/${sourceId}/manifest`,
-  );
   const syncs = useApiQuery<{ syncs: SourceSync[] }>(
     `/v1/core/sources/${sourceId}/syncs`,
     5_000,
@@ -103,7 +88,7 @@ export function SourceDetail() {
     5_000,
   );
   const servers = useApiQuery<{ servers: Server[] }>("/v1/core/servers", 5_000);
-  const error = source.error ?? manifest.error ?? syncs.error;
+  const error = source.error ?? syncs.error;
   if (error)
     return (
       <DashboardPage
@@ -114,7 +99,7 @@ export function SourceDetail() {
         <QueryError message={error} />
       </DashboardPage>
     );
-  if (!source.data || !manifest.data || !syncs.data)
+  if (!source.data || !syncs.data)
     return (
       <DashboardPage
         icon={GithubIcon}
@@ -175,17 +160,33 @@ export function SourceDetail() {
         <div className="flex flex-wrap justify-end gap-2">
           {item.status === "active" ? (
             <ActionButton
-              action={() =>
-                api.post(`/v1/core/sources/${sourceId}/actions/sync`)
-              }
+              action={async () => {
+                const result = await api.post<{
+                  outcomes: {
+                    environmentId: string;
+                    syncId: string | null;
+                    error: string | null;
+                  }[];
+                }>(`/v1/core/sources/${sourceId}/environments/syncs`);
+                const failures = result.outcomes.filter(
+                  (outcome) => outcome.error,
+                );
+                if (failures.length) {
+                  throw new Error(
+                    `${result.outcomes.length - failures.length} environment syncs queued; ${failures.length} failed: ${failures.map((outcome) => outcome.error).join("; ")}`,
+                  );
+                }
+                if (!result.outcomes.length)
+                  throw new Error("No connected environments to sync");
+              }}
               confirm={{
-                actionLabel: "Sync source",
+                actionLabel: "Sync all environments",
                 description:
-                  "Towbar will fetch the latest commit, validate and reconcile the manifest, then queue every eligible missing or outdated deployable with auto-deploy enabled.",
-                title: "Sync this Source now?",
+                  "Towbar will sync each connected environment from its mapped branch, then queue eligible deployments with auto-deploy enabled. Each environment syncs independently.",
+                title: "Sync all environments now?",
               }}
               pendingLabel="Queueing sync…"
-              success="Source sync queued"
+              success="Environment syncs queued"
               variant="primary"
             >
               <HugeiconsIcon
@@ -193,7 +194,7 @@ export function SourceDetail() {
                 icon={ReloadIcon}
                 className="size-4 shrink-0"
               />
-              Sync now
+              Sync all environments
             </ActionButton>
           ) : null}
         </div>
@@ -226,8 +227,19 @@ export function SourceDetail() {
       }
     >
       <PageTabs
-        defaultValue="apps"
+        defaultValue="environments"
         tabs={[
+          {
+            value: "environments",
+            label: "Environments",
+            icon: <HugeiconsIcon icon={Layers01Icon} />,
+            content: (
+              <SourceEnvironments
+                sourceId={sourceId}
+                canManage={source.data.canManageSource}
+              />
+            ),
+          },
           {
             value: "apps",
             label: "Apps",
@@ -282,38 +294,7 @@ export function SourceDetail() {
             label: "Manifest",
             group: "Source information",
             icon: <HugeiconsIcon icon={SourceCodeIcon} />,
-            content: manifest.data.manifest ? (
-              <CodeBlock
-                aria-label="Deployment manifest"
-                className="w-full min-w-0"
-              >
-                <CodeBlock.Header>
-                  <CodeBlock.Filename>Deployment manifest</CodeBlock.Filename>
-                  <CodeBlock.CopyButton
-                    code={manifest.data.manifest.rawManifest}
-                  />
-                </CodeBlock.Header>
-                <Widget.Content>
-                  <CodeEditor
-                    ariaLabel="Deployment manifest code"
-                    language="yaml"
-                    value={manifest.data.manifest.rawManifest}
-                    disabled
-                    embedded
-                  />
-                </Widget.Content>
-              </CodeBlock>
-            ) : (
-              <EmptyState>
-                <EmptyState.Header>
-                  <EmptyState.Title>No manifest imported</EmptyState.Title>
-                  <EmptyState.Description>
-                    Run the first Source sync to load and validate the
-                    deployment manifest.
-                  </EmptyState.Description>
-                </EmptyState.Header>
-              </EmptyState>
-            ),
+            content: <SourceEnvironmentManifest sourceId={sourceId} />,
           },
           {
             value: "sync-history",

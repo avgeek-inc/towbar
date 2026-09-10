@@ -77,7 +77,7 @@ export async function requestPreviewPullRequestCleanup(input: {
   };
 }
 
-export async function requestPreviewInputMismatchCleanups(input: {
+export async function requestObsoletePreviewCleanups(input: {
   appIds: string[];
   pullRequestNumber: number;
   sourceId: string;
@@ -85,7 +85,7 @@ export async function requestPreviewInputMismatchCleanups(input: {
   if (input.appIds.length === 0) return { cleanupIds: [] as string[] };
   const now = new Date();
   const reason =
-    "Pull request changes no longer match this App's deployment inputs";
+    "This app is no longer eligible for the pull request target or configuration";
   const environments = await getTowbarDatabase()
     .update(previewEnvironments)
     .set({

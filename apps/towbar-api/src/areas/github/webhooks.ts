@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { digestValue } from "@workspace/towbar-core";
@@ -8,12 +8,14 @@ import {
   githubInstallations,
   githubWebhookDeliveries,
   sources,
+  sourceEnvironments,
 } from "@workspace/towbar-database/schema";
 
 import { requireGitHubEnv } from "../../env.js";
 import { badRequest, unauthorized } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueuePreviewPullRequestEvent } from "../../infrastructure/temporal.js";
+import { requestEnvironmentSync } from "../sources/environments.js";
 import { requestSourceSync } from "../sources/service.js";
 import { shouldReconcilePreviewPullRequest } from "./webhook-events.js";
 
@@ -108,7 +110,31 @@ async function processPush(payload: unknown) {
   });
   const deleted = isDeletedPush(push);
   for (const source of matchingSources) {
-    if (source.branch !== branch || deleted) continue;
+    if (deleted) continue;
+    const environments = await getTowbarDatabase()
+      .select()
+      .from(sourceEnvironments)
+      .where(
+        and(
+          eq(sourceEnvironments.sourceId, source.id),
+          isNull(sourceEnvironments.disconnectedAt),
+        ),
+      );
+    if (environments.length) {
+      for (const environment of environments.filter(
+        (candidate) => candidate.branch === branch,
+      )) {
+        await requestEnvironmentSync({
+          sourceId: source.id,
+          environmentId: environment.id,
+          workspaceId: source.workspaceId,
+          requestedBy: null,
+          deployAfterSync: true,
+        });
+      }
+      continue;
+    }
+    if (source.branch !== branch) continue;
     await requestSourceSync({
       requestedBy: null,
       sourceId: source.id,

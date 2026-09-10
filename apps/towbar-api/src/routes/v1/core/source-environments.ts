@@ -4,6 +4,7 @@ import { sourceEnvironmentMappingSchema } from "@workspace/towbar-core";
 import {
   connectSourceEnvironment,
   disconnectSourceEnvironment,
+  getEnvironmentManifest,
   listSourceEnvironments,
   requestEnvironmentSync,
   updateEnvironmentBranch,
@@ -114,7 +115,7 @@ sourceEnvironmentRoutes.patch(
       environmentId,
       workspaceId: user.workspaceId,
       requestedBy: user.id,
-      deployAfterSync: true,
+      deployAfterSync: false,
     });
     return context.json({ environment, sync });
   },
@@ -177,4 +178,77 @@ sourceEnvironmentRoutes.delete(
       }),
     });
   },
+);
+
+sourceEnvironmentRoutes.post(
+  "/syncs",
+  operation({
+    responseSchema: 'source-environments.ts:post:"/syncs"',
+    summary: "Sync all connected environments",
+    ownerOnly: true,
+    response: "Independent queue outcomes for each connected environment.",
+    status: 202,
+  }),
+  async (context) => {
+    const user = context.get("user");
+    const sourceId = readUuidPathParameter(
+      context.req.param("sourceId")!,
+      "sourceId",
+    );
+    const environments = await listSourceEnvironments(
+      sourceId,
+      user.workspaceId,
+    );
+    const outcomes = [];
+    for (const environment of environments.filter(
+      (item) => !item.disconnectedAt,
+    )) {
+      try {
+        const sync = await requestEnvironmentSync({
+          sourceId,
+          environmentId: environment.id,
+          workspaceId: user.workspaceId,
+          requestedBy: user.id,
+          deployAfterSync: true,
+        });
+        outcomes.push({
+          environmentId: environment.id,
+          syncId: sync.id,
+          error: null,
+        });
+      } catch (error) {
+        outcomes.push({
+          environmentId: environment.id,
+          syncId: null,
+          error:
+            error instanceof Error ? error.message : "Sync could not be queued",
+        });
+      }
+    }
+    return context.json({ outcomes }, 202);
+  },
+);
+
+sourceEnvironmentRoutes.get(
+  "/:environmentId/manifest",
+  operation({
+    responseSchema: 'source-environments.ts:get:"/:environmentId/manifest"',
+    summary: "Read an environment manifest snapshot",
+    response: "Files from the last successful environment sync.",
+    status: 200,
+  }),
+  async (context) =>
+    context.json({
+      manifest: await getEnvironmentManifest({
+        sourceId: readUuidPathParameter(
+          context.req.param("sourceId")!,
+          "sourceId",
+        ),
+        environmentId: readUuidPathParameter(
+          context.req.param("environmentId"),
+          "environmentId",
+        ),
+        workspaceId: context.get("user").workspaceId,
+      }),
+    }),
 );

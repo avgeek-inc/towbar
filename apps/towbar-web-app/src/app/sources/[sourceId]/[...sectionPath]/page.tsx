@@ -12,9 +12,14 @@ export default async function Page({
   };
   if (
     !section ||
-    !["apps", "resources", "manifest", "sync-history", "settings"].includes(
-      section,
-    ) ||
+    ![
+      "environments",
+      "apps",
+      "resources",
+      "manifest",
+      "sync-history",
+      "settings",
+    ].includes(section) ||
     sectionPath.length > 2 ||
     (child && !children[section]?.includes(child))
   )

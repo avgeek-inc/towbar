@@ -6,6 +6,7 @@ import { z } from "zod";
 import {
   normalizeServerConfiguration,
   serverConfigurationSchema,
+  serverSlugSchema,
 } from "@workspace/towbar-core";
 
 import {
@@ -74,6 +75,10 @@ const cleanupSchema = z
   })
   .strict();
 
+const serverRegistrationSchema = serverConfigurationSchema.safeExtend({
+  slug: serverSlugSchema,
+});
+
 export const serverRoutes = new Hono<TowbarHonoEnvironment>();
 
 serverRoutes.get(
@@ -98,7 +103,7 @@ serverRoutes.post(
   operation({
     responseSchema: 'servers.ts:post:"/"',
     summary: "Create server",
-    body: serverConfigurationSchema,
+    body: serverRegistrationSchema,
     ownerOnly: true,
     response: "JSON object containing server.",
     status: 201,
@@ -108,11 +113,19 @@ serverRoutes.post(
     if (user.workspaceRole !== "owner") {
       throw forbidden("Only the owner can add servers");
     }
-    const config = normalizeServerConfiguration(
-      await readJson(context, serverConfigurationSchema),
+    const { slug, ...configuration } = await readJson(
+      context,
+      serverRegistrationSchema,
     );
+    const config = normalizeServerConfiguration(configuration);
     return context.json(
-      { server: await createServer({ config, workspaceId: user.workspaceId }) },
+      {
+        server: await createServer({
+          config,
+          slug,
+          workspaceId: user.workspaceId,
+        }),
+      },
       201,
     );
   },
@@ -147,7 +160,7 @@ serverRoutes.patch(
   operation({
     responseSchema: 'servers.ts:patch:"/:serverId"',
     summary: "Update server",
-    body: serverConfigurationSchema,
+    body: serverRegistrationSchema,
     ownerOnly: true,
     response: "JSON object containing server.",
     status: 200,
@@ -157,12 +170,15 @@ serverRoutes.patch(
     if (user.workspaceRole !== "owner") {
       throw forbidden("Only the owner can update servers");
     }
-    const config = normalizeServerConfiguration(
-      await readJson(context, serverConfigurationSchema),
+    const { slug, ...configuration } = await readJson(
+      context,
+      serverRegistrationSchema,
     );
+    const config = normalizeServerConfiguration(configuration);
     return context.json({
       server: await updateServer({
         config,
+        slug,
         serverId: context.req.param("serverId"),
         workspaceId: user.workspaceId,
       }),

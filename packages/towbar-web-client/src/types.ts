@@ -93,7 +93,9 @@ export type App = {
 export type AppSecretStage =
   "build" | "deployment" | "pre_deploy" | "post_deploy";
 export type AppSecretBinding = {
-  environment: "production" | "preview";
+  declared?: boolean;
+  missingKeys?: string[];
+  environment: string;
   stage: AppSecretStage;
   keys: string[];
   inheritedKeys: string[];
@@ -113,6 +115,7 @@ export type AppSecretBinding = {
   }>;
 };
 export type AppSecretsResponse = {
+  environments: string[];
   bindings: AppSecretBinding[];
   canManageSecrets: boolean;
 };
@@ -223,6 +226,7 @@ export type Resource = {
 };
 
 export type Server = {
+  slug?: string | null;
   scout?: import("@workspace/towbar-core").ServerMonitoringSummary;
   hardware?: import("@workspace/towbar-core").ServerHardware | null;
   archivedAt: string | null;

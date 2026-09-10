@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { enqueueMonitoringAgent } from "../../infrastructure/temporal.js";
-import { and, eq, inArray, isNull, notInArray } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, notInArray, sql } from "drizzle-orm";
 
 import {
   digestValue,
   getDeployableDeploymentDigest,
   requiresServerPreparation,
+  serverSlugSchema,
 } from "@workspace/towbar-core";
 import {
   apps,
@@ -30,6 +31,7 @@ import type { NormalizedServer } from "@workspace/towbar-core";
 
 export async function createServer(input: {
   config: NormalizedServer;
+  slug?: string;
   workspaceId: string;
 }) {
   return await getTowbarDatabase().transaction(async (transaction) => {
@@ -50,12 +52,35 @@ export async function createServer(input: {
         "SERVER_ALREADY_EXISTS",
       );
     }
+    if (input.slug !== undefined) {
+      serverSlugSchema.parse(input.slug);
+      await transaction.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${`server-slugs:${input.workspaceId}`}, 0))`,
+      );
+      const [duplicate] = await transaction
+        .select({ id: servers.id })
+        .from(servers)
+        .where(
+          and(
+            eq(servers.workspaceId, input.workspaceId),
+            eq(servers.slug, input.slug),
+            ne(servers.canonicalIp, input.config.ip),
+          ),
+        )
+        .limit(1);
+      if (duplicate)
+        throw conflict(
+          `Server slug '${input.slug}' is already in use`,
+          "SERVER_SLUG_IN_USE",
+        );
+    }
     const configDigest = digestValue(input.config);
     const [server] = existing
       ? await transaction
           .update(servers)
           .set({
             archivedAt: null,
+            slug: input.slug,
             config: input.config,
             configDigest,
             preparedConfigDigest: requiresServerPreparation(
@@ -71,6 +96,7 @@ export async function createServer(input: {
       : await transaction
           .insert(servers)
           .values({
+            slug: input.slug,
             canonicalIp: input.config.ip,
             config: input.config,
             configDigest,
@@ -84,6 +110,7 @@ export async function createServer(input: {
 
 export async function updateServer(input: {
   config: NormalizedServer;
+  slug?: string;
   serverId: string;
   workspaceId: string;
 }) {
@@ -107,6 +134,28 @@ export async function updateServer(input: {
         "SERVER_IP_IMMUTABLE",
       );
     }
+    if (input.slug !== undefined) {
+      serverSlugSchema.parse(input.slug);
+      await transaction.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${`server-slugs:${input.workspaceId}`}, 0))`,
+      );
+      const [duplicate] = await transaction
+        .select({ id: servers.id })
+        .from(servers)
+        .where(
+          and(
+            eq(servers.workspaceId, input.workspaceId),
+            eq(servers.slug, input.slug),
+            ne(servers.canonicalIp, input.config.ip),
+          ),
+        )
+        .limit(1);
+      if (duplicate)
+        throw conflict(
+          `Server slug '${input.slug}' is already in use`,
+          "SERVER_SLUG_IN_USE",
+        );
+    }
     const configDigest = digestValue(input.config);
     const preservePreparation =
       Boolean(current.preparedAt) &&
@@ -115,6 +164,7 @@ export async function updateServer(input: {
     const [server] = await transaction
       .update(servers)
       .set({
+        slug: input.slug,
         config: input.config,
         configDigest,
         preparedConfigDigest: preservePreparation

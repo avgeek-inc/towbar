@@ -2563,6 +2563,7 @@ function getFixtureSecretsResponse(
     ? ["deployment" as const]
     : (["build", "deployment", "pre_deploy", "post_deploy"] as const);
   return {
+    environments: resource ? ["production"] : ["production", "preview"],
     canManageSecrets: true,
     bindings: stages.map((stage) => {
       const local = fixtureMetadata(`${id}:${environment}:${stage}`);

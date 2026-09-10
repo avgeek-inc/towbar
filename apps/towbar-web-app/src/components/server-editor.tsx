@@ -46,6 +46,7 @@ export function ServerEditor({
       ? (server!.config.ssh.host ?? server!.canonicalIp)
       : String(values.get("sshHost") ?? "").trim();
     const config = {
+      slug: String(values.get("slug") ?? "").trim(),
       buildConcurrency: Number(values.get("buildConcurrency")),
       previewBuildConcurrency: Number(values.get("previewBuildConcurrency")),
       ip,
@@ -86,6 +87,26 @@ export function ServerEditor({
         title={editing ? "Server configuration" : "Connection and scheduling"}
       >
         <form className="content-grid" onSubmit={save}>
+          <Field>
+            <FieldLabel htmlFor="server-slug">Server slug</FieldLabel>
+            <Input
+              id="server-slug"
+              name="slug"
+              defaultValue={server?.slug ?? ""}
+              disabled={!canManage}
+              required
+              maxLength={63}
+              pattern="[a-z0-9]([a-z0-9-]*[a-z0-9])?"
+              placeholder="production-server"
+              variant="secondary"
+              aria-describedby="server-slug-description"
+            />
+            <p id="server-slug-description" className="text-xs text-muted">
+              Unique within this workspace. Use this value in app and resource
+              YAML. Changing it requires updating any manifests that reference
+              it.
+            </p>
+          </Field>
           <div className="content-grid grid-cols-2 lg:grid-cols-4">
             {!editing ? (
               <>
