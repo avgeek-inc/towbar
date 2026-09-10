@@ -47,10 +47,7 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 import { DeploymentTriggerChip } from "./deployment-table";
-import {
-  DeploymentVulnerabilities,
-  DeploymentVulnerabilityScanPanel,
-} from "./deployment-vulnerability-scan";
+import { DeploymentVulnerabilities } from "./deployment-vulnerability-scan";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
 
@@ -433,7 +430,6 @@ export function DeploymentDetail() {
                     </Attributes.Item>
                   </Attributes>
                 </div>
-                <DeploymentVulnerabilityScanPanel deployment={item} />
               </div>
             ),
           },
