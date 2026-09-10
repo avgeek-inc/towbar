@@ -556,3 +556,14 @@ enqueue failure, while running/successful jobs retain their worker-owned status.
 All 15 environment integration tests, API lint and typecheck pass after the
 change. The enqueue function is injectable for this controlled transport-failure
 test; production continues to use `enqueueSourceSync` by default.
+
+### Mobile resource environment review
+
+At a 390px mobile viewport, switching the current fixture resource from staging
+to production and using browser Back preserved the Secrets section and restored
+the staging instance route. Document width matched the viewport. The review found
+that declared keys squeezed the value field into half the card, so declared
+secret rows now stack key/value below the small breakpoint while retaining the
+desktop columns. The rendered value field uses the full mobile card width after
+the fix. Web lint/typecheck and diff whitespace checks pass. This is local
+fixture/browser evidence; no hosted state was changed.

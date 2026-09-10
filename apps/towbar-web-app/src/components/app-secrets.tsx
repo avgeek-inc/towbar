@@ -579,7 +579,9 @@ function SecretVariablesEditor({
                             : "grid grid-cols-[repeat(8,minmax(0,1fr))_2.5rem] sm:grid-cols-[repeat(8,minmax(0,1fr))_2.25rem] items-center gap-2 md:gap-3"
                         }
                       >
-                        <div className="col-span-4 flex min-h-10 min-w-0 items-center gap-2">
+                        <div
+                          className={`${binding.declared ? "col-span-full sm:col-span-4" : "col-span-4"} flex min-h-10 min-w-0 items-center gap-2`}
+                        >
                           <span
                             className={`break-all font-mono text-sm ${
                               removed ? "text-muted line-through" : ""
@@ -588,7 +590,9 @@ function SecretVariablesEditor({
                             {key}
                           </span>
                         </div>
-                        <div className="col-span-4 min-w-0">
+                        <div
+                          className={`${binding.declared ? "col-span-full sm:col-span-4" : "col-span-4"} min-w-0`}
+                        >
                           <SecretValueInput
                             label={`Value for ${key}`}
                             value={replacements[key] ?? ""}
