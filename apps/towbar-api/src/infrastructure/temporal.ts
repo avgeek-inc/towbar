@@ -346,6 +346,12 @@ export async function cancelResourceOperationWorkflow(operationId: string) {
     .cancel();
 }
 
+export async function closeTemporalClient() {
+  const pending = clientPromise;
+  clientPromise = undefined;
+  if (pending) await (await pending).connection.close();
+}
+
 async function getTemporalClient() {
   clientPromise ??= createTemporalClient().catch((error: unknown) => {
     clientPromise = undefined;

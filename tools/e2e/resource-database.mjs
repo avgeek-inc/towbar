@@ -19,6 +19,16 @@ export async function createResourceLifecycleDatabase({
     "Use a dedicated TOWBAR_TEST_DATABASE_URL ending in _test",
   );
   process.env.DATABASE_TOWBAR_URL = url;
+  if (process.env.TOWBAR_TEST_TEMPORAL_ADDRESS) {
+    assert(
+      /^(127\.0\.0\.1|localhost):\d+$/.test(
+        process.env.TOWBAR_TEST_TEMPORAL_ADDRESS,
+      ),
+    );
+    process.env.TEMPORAL_ADDRESS = process.env.TOWBAR_TEST_TEMPORAL_ADDRESS;
+    process.env.TEMPORAL_NAMESPACE = `resource-lifecycle-${randomUUID()}`;
+    delete process.env.TEMPORAL_API_KEY;
+  }
   process.env.TOWBAR_CREDENTIALS_KEY = randomBytes(32).toString("base64");
   process.env.TOWBAR_INTERNAL_HMAC_SECRET = randomBytes(32).toString("hex");
   const { runTowbarMigrations } =
@@ -98,6 +108,7 @@ export async function createResourceLifecycleDatabase({
       configDigest: "test",
       preparedConfigDigest: "test",
       setupStatus: "ready",
+      preparedAt: new Date(),
     });
     await db.insert(schema.sshHostKeys).values(
       trustedHostKeys.map((item) => ({
@@ -134,6 +145,25 @@ export async function createResourceLifecycleDatabase({
           branch: name === "production" ? "main" : "develop",
         })
         .returning();
+      const [sync] = await db
+        .insert(schema.sourceSyncs)
+        .values({
+          sourceId,
+          sourceEnvironmentId: environment.id,
+          mappingRevision: environment.mappingRevision,
+          status: "succeeded",
+          commitSha: "c".repeat(40),
+          manifestDigest: "test",
+        })
+        .returning();
+      await db
+        .update(schema.sourceEnvironments)
+        .set({
+          latestSuccessfulSyncId: sync.id,
+          latestCommitSha: "c".repeat(40),
+          latestManifestDigest: "test",
+        })
+        .where(eq(schema.sourceEnvironments.id, environment.id));
       instances.set(name, {
         id: randomUUID(),
         environment,
@@ -164,6 +194,7 @@ export async function createResourceLifecycleDatabase({
             kind: app.kind,
             config: app,
             configDigest: "test",
+            deploymentDigest: "test",
             sourceRevision: "c".repeat(40),
             requiredSecrets,
           });
@@ -184,6 +215,26 @@ export async function createResourceLifecycleDatabase({
             userId,
           );
         }
+        if (!resolve) {
+          await db
+            .update(schema.apps)
+            .set({ config: app })
+            .where(eq(schema.apps.id, instance.id));
+          const { requestAppDeployment } =
+            await import("../../apps/towbar-api/dist/areas/apps/service.js");
+          const request = {
+            appId: instance.id,
+            workspaceId,
+            requestedBy: userId,
+            expectedType: "resource",
+            idempotencyKey: randomUUID(),
+          };
+          const result = await requestAppDeployment(request);
+          const replay = await requestAppDeployment(request);
+          assert.equal(replay.deployment.id, result.deployment.id);
+          assert.equal(replay.replayed, true);
+          return { deploymentId: result.deployment.id };
+        }
         const deploymentId = randomUUID();
         const { id, branch, mappingRevision } = instance.environment;
         await db.insert(schema.deployments).values({
@@ -203,7 +254,6 @@ export async function createResourceLifecycleDatabase({
           serverSnapshot: server,
           deployableKind: "redis",
         });
-        if (!resolve) return { deploymentId };
         await recordDeploymentEvent(deploymentId, {
           state: "waiting_for_server",
         });

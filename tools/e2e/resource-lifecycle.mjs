@@ -32,7 +32,7 @@ try {
   if (process.env.TOWBAR_TEST_TEMPORAL_ADDRESS) {
     assert(database, "Temporal mode requires TOWBAR_TEST_DATABASE_URL");
     const { startResourceTemporal } = await import("./resource-temporal.mjs");
-    temporal = await startResourceTemporal();
+    temporal = await startResourceTemporal({ serverIp: server.ip });
   }
   const sourceId = randomUUID();
   const instances = new Map(

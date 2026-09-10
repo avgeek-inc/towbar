@@ -265,3 +265,15 @@ state while preserving the previous runtime. All four histories replayed
 successfully. The worker, API listener, workspace rows and Docker target were
 cleaned up. Requests remain seeded directly: user-facing admission and server
 queue coordination are not proven by this execution test.
+
+### Resource admission and server coordinator
+
+The Temporal resource lifecycle now uses `requestAppDeployment` instead of
+inserting deployment rows. With seeded successful sync snapshots and server
+readiness, it passed production/staging admission, idempotent request replay,
+real server-coordinator delivery, signed worker API calls, release commits,
+failed-candidate recovery and workflow replay. Each run uses its own Temporal
+namespace. API typecheck and scoped lint pass. API shutdown now closes its cached
+Temporal client as well as PostgreSQL; test cleanup also closes that connection.
+This does not prove public request authentication or GitHub synchronization,
+because the runner calls admission directly and seeds the source snapshots.

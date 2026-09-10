@@ -80,13 +80,16 @@ node tools/e2e/resource-lifecycle.mjs
 ```
 
 This mode serves the production internal API on a random loopback port and runs
-production deployment activities on a unique Temporal task queue. Each deployment
-runs through `runDeploymentWorkflow`, including signed HTTP requests, secret
+production deployment activities in a unique Temporal namespace. Deployment
+requests use the real admission service and signal the server coordinator, which
+starts `runDeploymentWorkflow`, including signed HTTP requests, secret
 resolution, release commits, and failure recovery. Assertions require three
 completed workflows, one failed workflow, matching database/runtime releases,
 and successful replay of all four histories. The worker, API listener, test rows
 and Docker target are closed afterward. Stop the dedicated Temporal server when
 finished; its workflow histories remain available until then.
 
-Deployment requests are seeded directly in PostgreSQL. This verifies execution,
-not user-facing admission, source synchronization, or server queue coordination.
+Source sync snapshots, instances, and server readiness are seeded in PostgreSQL.
+The runner verifies admission, idempotent retries, server coordinator delivery,
+and execution. It does not exercise browser/API authentication for deployment
+requests or GitHub source synchronization.
