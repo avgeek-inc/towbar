@@ -3,7 +3,7 @@ title: "Your first deployment"
 description: "Take a Dockerfile app from a GitHub repository to a verified deployment on your Ubuntu server."
 ---
 
-This guide takes one app through Source sync, server preparation, deployment, and route verification. Use the [Hello Towbar example](https://github.com/avgeek-inc/towbar-example) for a working Dockerfile app and health endpoint, or bring your own app.
+This guide takes one app through Source sync, server preparation, deployment, and route verification. Use the [example files in this repository](https://github.com/avgeek-inc/towbar/tree/main/examples) for a small HTTP app and health endpoint, or bring your own app.
 
 ## Before you begin
 
@@ -13,21 +13,24 @@ Use a domain you control for a public app. The examples use documentation-only I
 
 ## 1. Create your app repository
 
-[Use the Hello Towbar template](https://github.com/avgeek-inc/towbar-example/generate)
-or fork the [example repository](https://github.com/avgeek-inc/towbar-example).
-Grant the connected GitHub App access to your copy. The example needs no package
-installation or application secrets and can be checked locally with `npm test`
-and `npm start` on Node.js 24 or newer.
+Create a GitHub repository and copy `server.mjs`, `Dockerfile`, and
+`.dockerignore` from the example directory into its root. Grant the connected
+GitHub App access to your repository. The app needs no dependencies or secrets.
+Run it locally with Node.js 24 or newer:
+
+```sh
+node server.mjs
+```
+
+Open `http://localhost:3000` and check `http://localhost:3000/health`.
 
 Create `towbar.yml` and `.towbar/apps/hello-towbar.app.yml`, replacing the server slug and domain.
-If you are bringing your own app, create the file with this configuration:
+For a first deployment to production, use:
 
 ```yaml title="towbar.yml"
 version: 2
 environments:
-  production:
-    previews:
-      enabled: true
+  production: {}
 ```
 
 ```yaml title=".towbar/apps/hello-towbar.app.yml"
@@ -80,7 +83,7 @@ Choose **Prepare Server** and follow the steps until the host is **Ready**. If p
 
 ## 4. Save application secrets
 
-Open **App → Settings → Secrets** and select Production. Add build, runtime, or hook values as needed, then save. To reuse a shared value, set the app variable to `{{globals.KEY}}` or `{{source.KEY}}`. Shared values are not injected automatically.
+If your app needs secrets, declare their keys in the entity file’s top-level `secrets` field and sync the production environment. Open the production app instance’s **Settings → Secrets** page and fill the declared build, runtime, or hook values, then save. New required keys appear as unset; missing values block deployment, but do not block sync. To reuse a shared value, set the app variable to `{{globals.KEY}}` or `{{source.KEY}}`. Shared values are not injected automatically.
 
 The Hello Towbar example needs no secrets, so you can skip this step for your first deployment.
 
@@ -115,8 +118,8 @@ For an app without a public domain, verify it through its intended private clien
 
 ## Next steps
 
-For your second deployment, edit the heading in `src/index.html`, commit to
-`main`, and deploy again. Reload the public page to verify that your new code is
+For your second deployment, edit the response in `server.mjs`, commit to the
+branch mapped to production, and deploy again. Reload the public page to verify that your new code is
 running.
 
 Enable [automatic deployment](/docs/deployments#automatic-deployments), add [pull request previews](/docs/previews), or connect a [database resource](/docs/resources). Configure [notifications](/docs/integrations/notifications) so failed operations reach the people who need to act.

@@ -7,8 +7,7 @@ vulnerabilityScanning: true
 autoDeploy:
   inputs:
     - Dockerfile
-    - package.json
-    - src/**
+    - server.mjs
 container:
   port: 3000
   resources:
@@ -34,7 +33,6 @@ preview:
   ttlHours: 72
 secrets:
   build: []
-  runtime:
-    - DATABASE_URL
+  runtime: []
   preDeploy: []
   postDeploy: []

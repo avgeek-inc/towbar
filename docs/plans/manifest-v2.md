@@ -333,3 +333,13 @@ the unique preview runtime ID, not the logical app ID. The new executable-shell
 regression failed before the change and now passes with the other 18 related
 tests. Scoped lint also passes after fixing import ordering and documenting the
 test-only PATH shim. Full remote routing cleanup remains a separate requirement.
+
+### Self-contained starter application
+
+The repository examples now include a dependency-free Node HTTP app, Dockerfile
+and Docker ignore rules. The Hello app declaration watches its actual source
+file and no longer requires an unused database secret. The getting-started guide
+uses these files, control-plane branch mappings and YAML-declared secret keys.
+The Docker image built and served `/` and `/health` as a non-root user; its test
+container/image were removed. The example parser test passed for production and
+staging, and published example synchronization plus all docs checks passed.
