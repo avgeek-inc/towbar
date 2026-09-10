@@ -15,7 +15,6 @@ import {
   managedSecrets,
   releases,
   servers,
-  sourceEnvironments,
   sources,
   users,
   workspaces,
@@ -83,6 +82,13 @@ void test(
           dockerfile: "Dockerfile",
           context: ".",
           container: { port: 3000 },
+          domains: { primary: "app.example.com" },
+          tls: { mode: "cloudflare-dns" },
+          preview: {
+            enabled: true,
+            domain: "preview.example.com",
+            ttlHours: 24,
+          },
           hooks: {
             preDeploy: { command: ["echo", "pre"] },
             postDeploy: { command: ["echo", "post"] },
@@ -189,13 +195,26 @@ void test(
         config: serverConfig,
         configDigest: "digest",
       });
-      const [environment] = await db
-        .insert(sourceEnvironments)
-        .values({ sourceId, name: "production", branch: "main" })
-        .returning();
+      const { createSecretTestEnvironment } =
+        await import("./execution-tests.js");
+      const environment = await createSecretTestEnvironment(db, sourceId);
       await db.insert(apps).values({
         id: appId,
         sourceEnvironmentId: environment!.id,
+        requiredSecrets: {
+          build: ["BUILD", "PREVIEW_ONLY"],
+          runtime: [
+            "TOKEN",
+            "MULTILINE",
+            "EMPTY",
+            "COMMON",
+            "GLOBAL_ONLY",
+            "PREVIEW_ONLY",
+            "GLOBAL_PREVIEW",
+          ],
+          preDeploy: ["MIGRATION", "PREVIEW_ONLY", "SOURCE_PREVIEW"],
+          postDeploy: ["PREVIEW_ONLY"],
+        },
         workspaceId,
         sourceId,
         serverId,

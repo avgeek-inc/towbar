@@ -2,14 +2,18 @@ import assert from "node:assert/strict";
 import { generateKeyPairSync, randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import {
+  apps,
   deployments,
   previewEnvironments,
   releases,
+  sourceEnvironments,
+  sourceSyncs,
 } from "@workspace/towbar-database/schema";
 import type { TestContext } from "node:test";
 import type { NormalizedApp, NormalizedServer } from "@workspace/towbar-core";
 import type { getTowbarDatabase } from "../../infrastructure/database.js";
 import { resolveDeploymentSecrets } from "../deployments/deployment-secrets.js";
+import { getInstanceEnvironment } from "../apps/instance-environment.js";
 import { admitPreviewDeployment } from "../previews/admission.js";
 import { mutateSecret, readSecretMetadata } from "./store.js";
 import type { SecretSlot } from "./store.js";
@@ -183,7 +187,7 @@ export async function testManagedSecretExecution({
         "post_deploy",
       ] as const) {
         await mutateSecret(
-          { ...appOwner, environment: "preview", stage },
+          { ...appOwner, environment: "preview:production", stage },
           {
             expectedRevision: null,
             set: {
@@ -200,7 +204,25 @@ export async function testManagedSecretExecution({
           actorUserId,
         );
       }
+      const targetEnvironment = await getInstanceEnvironment({
+        appId,
+        workspaceId,
+      });
+      assert(targetEnvironment);
+      const [target] = await db
+        .select({ configDigest: apps.configDigest })
+        .from(apps)
+        .where(eq(apps.id, appId));
+      assert(target);
       const input = {
+        targetEnvironment,
+        targetConfigDigest: target.configDigest,
+        requiredSecrets: {
+          build: ["PREVIEW_ONLY"],
+          runtime: ["PREVIEW_ONLY", "GLOBAL_PREVIEW"],
+          preDeploy: ["PREVIEW_ONLY", "SOURCE_PREVIEW"],
+          postDeploy: ["PREVIEW_ONLY"],
+        },
         appId,
         branch: "feature",
         commitSha: "1234567",
@@ -278,4 +300,38 @@ export async function testManagedSecretExecution({
         .where(eq(previewEnvironments.id, initial.environmentId));
     },
   );
+}
+
+export async function createSecretTestEnvironment(
+  db: ReturnType<typeof getTowbarDatabase>,
+  sourceId: string,
+) {
+  const [environment] = await db
+    .insert(sourceEnvironments)
+    .values({
+      sourceId,
+      name: "production",
+      branch: "main",
+      previewsEnabled: true,
+    })
+    .returning();
+  const [initialSync] = await db
+    .insert(sourceSyncs)
+    .values({
+      sourceId,
+      sourceEnvironmentId: environment!.id,
+      mappingRevision: environment!.mappingRevision,
+      status: "succeeded",
+      commitSha: "1234567",
+    })
+    .returning();
+  await db
+    .update(sourceEnvironments)
+    .set({
+      latestSuccessfulSyncId: initialSync!.id,
+      latestCommitSha: "1234567",
+    })
+    .where(eq(sourceEnvironments.id, environment!.id));
+
+  return environment!;
 }
