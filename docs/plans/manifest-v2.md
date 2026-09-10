@@ -546,3 +546,13 @@ checks the persisted status. All 229 API tests passed against PostgreSQL without
 skips. After extracting the shared snapshot fixture to keep the test file within
 its lint limit, all 15 environment integration tests, API lint and typecheck
 passed. This correction needs current-head CI before review readiness.
+
+### Uncertain sync enqueue response
+
+The enqueue-error fallback now updates only jobs still queued. A lost Temporal
+response must not replace a running or successful sync with failed. The database
+retry regression now covers all three states: an untouched queued job records the
+enqueue failure, while running/successful jobs retain their worker-owned status.
+All 15 environment integration tests, API lint and typecheck pass after the
+change. The enqueue function is injectable for this controlled transport-failure
+test; production continues to use `enqueueSourceSync` by default.

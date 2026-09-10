@@ -7,6 +7,7 @@ import {
   sourceSyncs,
 } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
+import { requestEnvironmentSync } from "./environments.js";
 import { executeEnvironmentSync } from "./environment-sync.js";
 
 export async function assertCompletedSyncRetry(input: {
@@ -89,6 +90,36 @@ export async function assertCompletedSyncRetry(input: {
     })
     .where(eq(sourceEnvironments.id, staging.id));
   await database.delete(sourceSyncs).where(eq(sourceSyncs.id, job.id));
+  for (const state of ["queued", "running", "succeeded"] as const) {
+    let syncId = "";
+    await assert.rejects(
+      requestEnvironmentSync(
+        {
+          sourceId,
+          environmentId: staging.id,
+          workspaceId,
+          requestedBy: null,
+          deployAfterSync: false,
+        },
+        async (input) => {
+          syncId = input.syncId;
+          if (state !== "queued")
+            await database
+              .update(sourceSyncs)
+              .set({ status: state })
+              .where(eq(sourceSyncs.id, syncId));
+          throw new Error("Signal delivery response lost");
+        },
+      ),
+      /Signal delivery response lost/,
+    );
+    const [record] = await database
+      .select()
+      .from(sourceSyncs)
+      .where(eq(sourceSyncs.id, syncId));
+    assert.equal(record?.status, state === "queued" ? "failed" : state);
+    await database.delete(sourceSyncs).where(eq(sourceSyncs.id, syncId));
+  }
 }
 
 export async function assertStaleSync(

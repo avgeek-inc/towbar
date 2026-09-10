@@ -173,14 +173,17 @@ export async function updateEnvironmentBranch(input: {
   });
 }
 
-export async function requestEnvironmentSync(input: {
-  sourceId: string;
-  environmentId: string;
-  workspaceId: string;
-  requestedBy: string | null;
-  deployAfterSync: boolean;
-  expectedMappingRevision?: string;
-}) {
+export async function requestEnvironmentSync(
+  input: {
+    sourceId: string;
+    environmentId: string;
+    workspaceId: string;
+    requestedBy: string | null;
+    deployAfterSync: boolean;
+    expectedMappingRevision?: string;
+  },
+  enqueue = enqueueSourceSync,
+) {
   await sourceRepository(input.sourceId, input.workspaceId);
   const sync = await getTowbarDatabase().transaction(async (transaction) => {
     const [environment] = await transaction
@@ -218,7 +221,7 @@ export async function requestEnvironmentSync(input: {
     return row;
   });
   try {
-    await enqueueSourceSync({ sourceId: input.sourceId, syncId: sync.id });
+    await enqueue({ sourceId: input.sourceId, syncId: sync.id });
   } catch (error) {
     await getTowbarDatabase()
       .update(sourceSyncs)
@@ -232,7 +235,9 @@ export async function requestEnvironmentSync(input: {
           },
         ],
       })
-      .where(eq(sourceSyncs.id, sync.id));
+      .where(
+        and(eq(sourceSyncs.id, sync.id), eq(sourceSyncs.status, "queued")),
+      );
     throw error;
   }
   return sync;
