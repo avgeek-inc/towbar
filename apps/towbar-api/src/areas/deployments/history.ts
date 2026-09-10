@@ -1,4 +1,14 @@
-import { and, asc, count, desc, eq, isNotNull, isNull, ne } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  isNotNull,
+  isNull,
+  ne,
+  sql,
+} from "drizzle-orm";
 
 import {
   apps,
@@ -34,7 +44,7 @@ export async function listDeploymentHistory({
     eq(deployments.workspaceId, workspaceId),
     environment ? eq(deployments.environment, environment) : undefined,
     targetEnvironment
-      ? eq(sourceEnvironments.name, targetEnvironment)
+      ? sql`${deployments.targetEnvironment}->>'name' = ${targetEnvironment}`
       : undefined,
     type === "app"
       ? eq(deployments.deployableKind, "app")
@@ -67,22 +77,11 @@ export async function listDeploymentHistory({
       .select({
         ...publicDeploymentSelection,
         deployableName: apps.name,
-        targetEnvironment: {
-          id: sourceEnvironments.id,
-          name: sourceEnvironments.name,
-        },
       })
       .from(deployments)
       .innerJoin(
         apps,
         and(eq(apps.id, deployments.appId), eq(apps.workspaceId, workspaceId)),
-      )
-      .leftJoin(
-        sourceEnvironments,
-        and(
-          eq(sourceEnvironments.id, apps.sourceEnvironmentId),
-          eq(sourceEnvironments.sourceId, apps.sourceId),
-        ),
       )
       .where(filter)
       .orderBy(...order)
@@ -94,13 +93,6 @@ export async function listDeploymentHistory({
       .innerJoin(
         apps,
         and(eq(apps.id, deployments.appId), eq(apps.workspaceId, workspaceId)),
-      )
-      .leftJoin(
-        sourceEnvironments,
-        and(
-          eq(sourceEnvironments.id, apps.sourceEnvironmentId),
-          eq(sourceEnvironments.sourceId, apps.sourceId),
-        ),
       )
       .where(filter),
     database

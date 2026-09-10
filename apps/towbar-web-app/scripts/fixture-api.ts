@@ -2212,7 +2212,7 @@ function getFixturePayload(
         const type = searchParams.get("type");
         return (
           (!searchParams.get("targetEnvironment") ||
-            deployables.get(item.appId)?.environment?.name ===
+            item.targetEnvironment.name ===
               searchParams.get("targetEnvironment")) &&
           (!type ||
             (type === "app"
@@ -2249,7 +2249,6 @@ function getFixturePayload(
           ...item,
           deployableName:
             deployables.get(item.appId)?.name ?? "Unknown workload",
-          targetEnvironment: deployables.get(item.appId)?.environment ?? null,
         })),
       pagination: {
         page,
@@ -3157,6 +3156,10 @@ function createDeploymentFixture(
   createdAt = fixtureNow,
   trigger: Deployment["trigger"] = "manual",
 ): Deployment {
+  const mapping = environmentMappings.find(
+    (item) => item.id === deployable.environment?.id,
+  );
+  if (!mapping) throw new Error("Fixture deployment requires an environment");
   const terminal = terminalStates.has(state);
   const scanCompletedAt = new Date(
     new Date(createdAt).getTime() + 102_000,
@@ -3164,6 +3167,12 @@ function createDeploymentFixture(
   const startedAt = state === "queued" ? null : createdAt;
   const imageDigest = `sha256:${id.replaceAll("-", "").repeat(2)}`;
   return {
+    targetEnvironment: {
+      id: mapping.id,
+      name: mapping.name,
+      branch: mapping.branch,
+      mappingRevision: mapping.mappingRevision,
+    },
     appId: deployable.id,
     commitSha,
     createdAt,

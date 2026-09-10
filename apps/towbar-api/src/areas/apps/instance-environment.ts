@@ -89,3 +89,13 @@ export async function lockDeploymentEnvironment(
     );
   return current;
 }
+
+export function deploymentEnvironmentSnapshot(environment: {
+  id: string;
+  name: string;
+  branch: string;
+  mappingRevision: string;
+}) {
+  const { id, name, branch, mappingRevision } = environment;
+  return { id, name, branch, mappingRevision };
+}

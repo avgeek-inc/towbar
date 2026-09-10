@@ -414,6 +414,12 @@ export type DeploymentState =
   | "cancelled";
 
 export type Deployment = {
+  targetEnvironment: {
+    id: string;
+    name: string;
+    branch: string;
+    mappingRevision: string;
+  };
   appId: string;
   commitSha: string;
   createdAt: string;
@@ -656,7 +662,6 @@ export type PaginationMetadata = {
 
 export type DeploymentHistoryItem = Deployment & {
   deployableName: string;
-  targetEnvironment: { id: string; name: string } | null;
 };
 
 export type DeploymentHistoryPage = {

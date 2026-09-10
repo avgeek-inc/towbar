@@ -113,8 +113,9 @@ tests. Do not reset the hosted installation or use its database.
 
 ## Remaining delivery work
 
-1. Finish the database model: distinguish named environment identity from preview
-   deployment kind throughout stored/public deployment state.
+1. Audit persistent/preview deployment labels throughout UI and generated docs.
+   Deployment records now preserve a required target environment snapshot with
+   ID, name, branch and mapping revision; history filters use that snapshot.
 2. Audit resource operations, backups/restores, monitoring, alerts and scanning
    for instance/environment scope and labels. Validate that resource secret
    stage declarations match stages the resource editor and execution support.

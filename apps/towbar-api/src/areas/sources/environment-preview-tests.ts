@@ -1,3 +1,4 @@
+import { testDeploymentEnvironment } from "./instance-test-helper.js";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
@@ -150,6 +151,7 @@ export async function assertDeploymentSecretSnapshot({
     expiresAt: new Date(Date.now() + 3600000),
   });
   await database.insert(deployments).values({
+    targetEnvironment: await testDeploymentEnvironment(stage.id),
     id,
     sourceId,
     workspaceId,

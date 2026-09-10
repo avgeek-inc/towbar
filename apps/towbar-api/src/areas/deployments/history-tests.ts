@@ -1,3 +1,4 @@
+import { testDeploymentEnvironment } from "../sources/instance-test-helper.js";
 import { testInstanceLinks } from "../sources/instance-test-helper.js";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -68,6 +69,8 @@ export async function testDeploymentHistory({
         configDigest: "history",
         sourceRevision: "1234567",
       });
+      const appEnvironment = await testDeploymentEnvironment(appId);
+      const resourceEnvironment = await testDeploymentEnvironment(resourceId);
       try {
         await db.insert(deployments).values(
           ids.map((id, index) => ({
@@ -76,6 +79,8 @@ export async function testDeploymentHistory({
             sourceId,
             serverId,
             appId: index === 2 ? resourceId : appId,
+            targetEnvironment:
+              index === 2 ? resourceEnvironment : appEnvironment,
             requiredSecrets: {
               build: [],
               runtime: [],
@@ -111,12 +116,16 @@ export async function testDeploymentHistory({
             ...historyQuerySchema.parse(input),
             workspaceId,
           });
+        await db
+          .update(sourceEnvironments)
+          .set({ branch: "release/staging", mappingRevision: randomUUID() })
+          .where(eq(sourceEnvironments.id, environmentId));
         const all = await query({ limit: 1 });
         assert.deepEqual(all.environments, ["production", "staging"]);
-        assert.deepEqual(all.deployments[0]?.targetEnvironment, {
-          id: environmentId,
-          name: "staging",
-        });
+        assert.deepEqual(
+          all.deployments[0]?.targetEnvironment,
+          resourceEnvironment,
+        );
         const staging = await query({ targetEnvironment: "staging", limit: 1 });
         assert.equal(staging.pagination.total, 1);
         assert.equal(staging.deployments[0]?.id, ids[2]);

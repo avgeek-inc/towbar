@@ -1,3 +1,4 @@
+import { testDeploymentEnvironment } from "../sources/instance-test-helper.js";
 import assert from "node:assert/strict";
 import { generateKeyPairSync, randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
@@ -121,6 +122,7 @@ export async function testManagedSecretExecution({
       setWorkspaceRole("owner");
       const deploymentId = randomUUID();
       await db.insert(deployments).values({
+        targetEnvironment: await testDeploymentEnvironment(appId),
         requiredSecrets: {
           build: [],
           runtime: ["TOKEN"],

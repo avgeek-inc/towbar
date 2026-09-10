@@ -1,3 +1,4 @@
+import { testDeploymentEnvironment } from "../sources/instance-test-helper.js";
 import { testInstanceLinks } from "../sources/instance-test-helper.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -383,6 +384,7 @@ void test(
           const deploymentIds = [randomUUID(), randomUUID(), randomUUID()];
           for (const [i, id] of deploymentIds.entries())
             await db.insert(deployments).values({
+              targetEnvironment: await testDeploymentEnvironment(appId),
               requiredSecrets: {
                 build: [],
                 runtime: [],

@@ -1,5 +1,7 @@
+import { deploymentEnvironmentSnapshot } from "../apps/instance-environment.js";
 import { and, eq } from "drizzle-orm";
 import {
+  apps,
   sourceEntities,
   sourceEnvironments,
 } from "@workspace/towbar-database/schema";
@@ -44,4 +46,18 @@ export async function testInstanceLinks(
     entityId: entity.id,
     requiredSecrets: { build: [], runtime: [], preDeploy: [], postDeploy: [] },
   };
+}
+
+export async function testDeploymentEnvironment(appId: string) {
+  const db = getTowbarDatabase();
+  const [row] = await db
+    .select({ environment: sourceEnvironments })
+    .from(apps)
+    .innerJoin(
+      sourceEnvironments,
+      eq(sourceEnvironments.id, apps.sourceEnvironmentId),
+    )
+    .where(eq(apps.id, appId));
+  if (!row) throw new Error("Missing test deployment environment");
+  return deploymentEnvironmentSnapshot(row.environment);
 }

@@ -1,3 +1,4 @@
+import { deploymentEnvironmentSnapshot } from "../apps/instance-environment.js";
 import { randomUUID } from "node:crypto";
 
 import { and, eq, notInArray, sql } from "drizzle-orm";
@@ -72,7 +73,7 @@ export async function admitPreviewDeployment(input: {
   const deploymentId = randomUUID();
   const expiresAt = new Date(Date.now() + input.ttlHours * 60 * 60_000);
   return await database.transaction(async (transaction) => {
-    await lockPreviewTarget(transaction, input);
+    const targetEnvironment = await lockPreviewTarget(transaction, input);
     const admissionLockKey = previewAdmissionLockKey({
       appId: input.appId,
       gitRef,
@@ -265,6 +266,7 @@ export async function admitPreviewDeployment(input: {
         appId: input.appId,
         appSnapshot: input.config,
         requiredSecrets: input.requiredSecrets,
+        targetEnvironment: deploymentEnvironmentSnapshot(targetEnvironment),
         commitSha: input.commitSha,
         configDigest: digestValue(input.config),
         deployableKind: "app",
@@ -526,4 +528,5 @@ async function lockPreviewTarget(
       "The preview target changed. Retry against the current configuration.",
       "PREVIEW_TARGET_CHANGED",
     );
+  return current;
 }

@@ -1,3 +1,4 @@
+import { deploymentEnvironmentSnapshot } from "./instance-environment.js";
 import { randomUUID } from "node:crypto";
 
 import { and, desc, eq, notInArray } from "drizzle-orm";
@@ -207,6 +208,7 @@ export async function requestAppDeployment(input: {
         appId: target.id,
         appSnapshot: target.config,
         requiredSecrets: target.requiredSecrets,
+        targetEnvironment: deploymentEnvironmentSnapshot(target.environment),
         commitSha,
         configDigest: target.configDigest,
         deploymentDigest,
@@ -331,6 +333,7 @@ export async function requestAppRollback(input: {
         appId: app.id,
         appSnapshot: app.config,
         requiredSecrets: app.requiredSecrets,
+        targetEnvironment: deploymentEnvironmentSnapshot(app.environment),
         commitSha: app.commitSha ?? original.commitSha,
         configDigest: app.configDigest,
         deploymentDigest: app.deploymentDigest ?? original.deploymentDigest,

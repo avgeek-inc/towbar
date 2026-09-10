@@ -1125,6 +1125,14 @@ export const previewPullRequestReports = pgTable(
 export const deployments = pgTable(
   "towbar_deployments",
   {
+    targetEnvironment: jsonb("target_environment")
+      .$type<{
+        id: string;
+        name: string;
+        branch: string;
+        mappingRevision: string;
+      }>()
+      .notNull(),
     id: uuid("id").defaultRandom().primaryKey(),
     workspaceId: uuid("workspace_id")
       .notNull()
