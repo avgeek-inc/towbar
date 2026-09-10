@@ -1,3 +1,4 @@
+import type { RequiredSecrets } from "@workspace/towbar-core";
 import { randomUUID } from "node:crypto";
 import type {
   App,
@@ -18,6 +19,7 @@ const stages: AppSecretStage[] = [
 export function createDeclaredSecretsFixture(instances: {
   apps: App[];
   resources: Resource[];
+  declarations(instance: App | Resource): RequiredSecrets;
 }) {
   const slots = new Map<string, Slot>();
   function target(path: string) {
@@ -36,12 +38,16 @@ export function createDeclaredSecretsFixture(instances: {
         : [environment];
     const allowedStages =
       instance.kind === "app" ? stages : ["deployment" as const];
+    const required = instances.declarations(instance);
     const declarations = (stage: AppSecretStage) =>
-      stage === "deployment"
-        ? [instance.kind === "app" ? "DATABASE_URL" : "POSTGRES_PASSWORD"]
-        : stage === "build"
-          ? ["NPM_TOKEN"]
-          : [];
+      required[
+        {
+          deployment: "runtime",
+          build: "build",
+          pre_deploy: "preDeploy",
+          post_deploy: "postDeploy",
+        }[stage] as keyof RequiredSecrets
+      ];
     return { match, instance, environments, allowedStages, declarations };
   }
   function slot(id: string, environment: string, stage: string) {

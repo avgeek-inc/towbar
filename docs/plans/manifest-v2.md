@@ -90,16 +90,18 @@ not a list of untouched work.
   the obsolete source manifest endpoint returns 404. Discovery returns v2
   environment declarations and rejects unavailable branches/installations.
   Unsupported writes fail rather than returning cached read data. The obsolete
-  v1 creation fixture/test are removed. Stateful connection/initial sync and
-  secret fixture handlers still need conversion.
+  v1 creation fixture/test are removed. Stateful connection, initial sync and
+  declared-secret handlers exist. Newly connected sources expose v2 manifest
+  files; configuration and required keys both come from the production parser.
 - API/MCP: current catalogue has 140 operations and 55 curated tools. Generated
   contracts and owner/read-only boundaries are checked. The MCP integration
   fixture now explicitly connects an environment before editing shared secrets.
 
 ## Latest verification
 
-- Fixture discovery and unsupported-mutation regressions pass; all 24 fixture
-  tests pass. Stateful v2 connection and initial sync are not yet fixture-tested.
+- All 25 fixture tests pass, including stateful v2 connection/initial sync,
+  environment edits, isolated declared-secret values, and manifest/configuration
+  fidelity. Web typecheck and lint pass for the parser-backed connection fixtures.
 
 - Rollback admission now locks the environment, instance/server and selected
   retained release before insertion. It rejects changed configuration, archival,
@@ -194,8 +196,8 @@ tests. Do not reset the hosted installation or use its database.
    environments; do not treat their default skips as success.
 6. Finish user documentation, README/screenshots, examples and release notes;
    audit generated schemas/contracts after remaining model changes.
-7. Review the full diff, open the PR, resolve remote CI and complete the delivery
-   checklist. Publish 2.0.0 only after merge. No v2 PR or release is complete yet.
+7. Review the full diff, finish draft PR #112, resolve remote CI and complete the
+   delivery checklist. Publish 2.0.0 only after merge.
 
 ### Onboarding browser verification
 

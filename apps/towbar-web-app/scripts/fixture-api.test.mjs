@@ -1300,6 +1300,21 @@ test("connecting a selected environment persists isolated instances without depl
       (item) => item.stage === "deployment",
     );
     assert.equal(runtime.declared, true);
+    const snapshot = (await get(`${endpoint}/${mapping.id}/manifest`)).manifest;
+    const resolved = resolveRepositoryEnvironment({
+      root: snapshot.files.find((file) => file.path === "towbar.yml").content,
+      files: snapshot.files.filter((file) => file.path !== "towbar.yml"),
+      environment: "staging",
+      branch: "develop",
+    }).manifest;
+    assert.deepEqual(
+      (await get(`/apps/${original.id}`)).app.config,
+      resolved.apps[0],
+    );
+    assert.deepEqual(
+      runtime.keys,
+      resolved.requiredSecrets["app:service"].runtime,
+    );
     assert.deepEqual(runtime.keys, ["DATABASE_URL"]);
     assert.deepEqual(runtime.missingKeys, ["DATABASE_URL"]);
     const valuePath = `${secretEndpoint}/staging/deployment`;

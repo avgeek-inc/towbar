@@ -1,3 +1,7 @@
+import {
+  connectionManifestFiles,
+  resolveConnectionManifest,
+} from "./connection-manifest-fixture.ts";
 import { randomUUID } from "node:crypto";
 import { sourceEnvironmentMappingSchema } from "@workspace/towbar-core";
 import type {
@@ -78,6 +82,11 @@ export function createSourceConnectionFixture(input: {
     deployAfterSync: boolean;
   })[] = [];
   const materialize = (source: Source, environment: Mapping) => {
+    const resolved = resolveConnectionManifest(
+      `server-${input.app.serverId}`,
+      environment.name,
+      environment.branch,
+    );
     const now = new Date().toISOString();
     const appEntityId =
       apps.find((item) => item.sourceId === source.id)?.entityId ??
@@ -93,13 +102,7 @@ export function createSourceConnectionFixture(input: {
       name: "Example Service",
       manifestId: "service",
       environment,
-      config: {
-        ...structuredClone(input.app.config),
-        id: "service",
-        name: "Example Service",
-        sourceBranch: environment.branch,
-        autoDeploy: false,
-      },
+      config: resolved.apps[0]!,
       runtimeState: initialRuntimeState(),
       archivedAt: null,
       updatedAt: now,
@@ -112,12 +115,7 @@ export function createSourceConnectionFixture(input: {
       name: "Service Database",
       manifestId: "database",
       environment,
-      config: {
-        ...structuredClone(input.resource.config),
-        id: "database",
-        name: "Service Database",
-        autoDeploy: false,
-      },
+      config: resolved.resources![0]!,
       runtimeState: initialRuntimeState(),
       archivedAt: null,
       updatedAt: now,
@@ -275,7 +273,11 @@ export function createSourceConnectionFixture(input: {
     for (const app of apps.filter(
       (item) => item.environment?.id === environment.id,
     ))
-      app.config.sourceBranch = environment.branch;
+      app.config = resolveConnectionManifest(
+        `server-${input.app.serverId}`,
+        environment.name,
+        environment.branch,
+      ).apps[0]!;
     const record = {
       id: environment.latestSuccessfulSyncId,
       sourceId: environment.sourceId,
@@ -314,6 +316,20 @@ export function createSourceConnectionFixture(input: {
     const source = sources.find((source) => source.id === match?.[1]);
     if (!source) return undefined;
     const child = match?.[2];
+    const manifestMatch = child?.match(/^environments\/([^/]+)\/manifest$/);
+    if (manifestMatch) {
+      const environment = mappings.find(
+        (item) => item.sourceId === source.id && item.id === manifestMatch[1],
+      );
+      if (!environment)
+        throw new FixtureEnvironmentError("Environment was not found", 404);
+      return {
+        manifest: {
+          commitSha: "c".repeat(40),
+          files: connectionManifestFiles(`server-${input.app.serverId}`),
+        },
+      };
+    }
     if (!child) return { source, canManageSource: true };
     if (child === "environments")
       return {
@@ -340,6 +356,20 @@ export function createSourceConnectionFixture(input: {
     return undefined;
   };
   return {
+    declarations(instance: App | Resource) {
+      const environment = mappings.find(
+        (item) => item.id === instance.environment?.id,
+      );
+      if (!environment)
+        throw new FixtureEnvironmentError("Environment was not found", 404);
+      return resolveConnectionManifest(
+        `server-${input.app.serverId}`,
+        environment.name,
+        environment.branch,
+      ).requiredSecrets[
+        `${instance.kind === "app" ? "app" : "resource"}:${instance.manifestId}`
+      ]!;
+    },
     sources,
     apps,
     resources,
