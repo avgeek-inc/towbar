@@ -1288,6 +1288,106 @@ test("connecting a selected environment persists isolated instances without depl
       (await get(`/sources/${source.id}/deployments`)).deployments,
       [],
     );
+    assert.equal((await get(`/apps/${original.id}`)).app.id, original.id);
+    assert.deepEqual(
+      (await get(`/apps/${original.id}/deployments`)).deployments,
+      [],
+    );
+    const secretEndpoint = `/apps/${original.id}/secrets`;
+    const metadata = await get(secretEndpoint);
+    assert.equal(metadata.environments[0], "staging");
+    const runtime = metadata.bindings.find(
+      (item) => item.stage === "deployment",
+    );
+    assert.equal(runtime.declared, true);
+    assert.deepEqual(runtime.keys, ["DATABASE_URL"]);
+    assert.deepEqual(runtime.missingKeys, ["DATABASE_URL"]);
+    const valuePath = `${secretEndpoint}/staging/deployment`;
+    const unset = await mutate("POST", `${valuePath}/reveal-all`, {});
+    assert.equal(unset.headers.get("cache-control"), "no-store");
+    assert.deepEqual((await unset.json()).values, {});
+    const emptySaved = await mutate("PATCH", valuePath, {
+      expectedRevision: null,
+      set: { DATABASE_URL: "" },
+    });
+    assert.equal(emptySaved.status, 200);
+    const { secret } = await emptySaved.json();
+    assert.deepEqual(
+      (await get(secretEndpoint)).bindings.find(
+        (item) => item.stage === "deployment",
+      ).missingKeys,
+      [],
+    );
+    assert.deepEqual(
+      (await (await mutate("POST", `${valuePath}/reveal-all`, {})).json())
+        .values,
+      { DATABASE_URL: "" },
+    );
+    assert.equal(
+      (
+        await mutate("PATCH", valuePath, {
+          expectedRevision: null,
+          set: { DATABASE_URL: "stale" },
+        })
+      ).status,
+      409,
+    );
+    assert.equal(
+      (
+        await mutate("PATCH", valuePath, {
+          expectedRevision: secret.revision,
+          set: { UNDECLARED: "invalid" },
+        })
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await mutate("PATCH", valuePath, {
+          expectedRevision: secret.revision,
+          delete: ["DATABASE_URL"],
+        })
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await mutate(
+          "POST",
+          `${secretEndpoint}/production/deployment/reveal-all`,
+          {},
+        )
+      ).status,
+      404,
+    );
+    const production = siblings.find(
+      (item) => item.environment.name === "production",
+    );
+    assert.deepEqual(
+      (await get(`/apps/${production.id}/secrets`)).bindings.find(
+        (item) => item.stage === "deployment",
+      ).missingKeys,
+      ["DATABASE_URL"],
+    );
+    const database = (await get(`/sources/${source.id}/resources`))
+      .resources[0];
+    const resourceBindings = (await get(`/resources/${database.id}/secrets`))
+      .bindings;
+    assert.deepEqual(
+      resourceBindings.map((item) => item.stage),
+      ["deployment"],
+    );
+    assert.deepEqual(resourceBindings[0].missingKeys, ["POSTGRES_PASSWORD"]);
+    assert.equal(
+      (
+        await mutate(
+          "POST",
+          `/resources/${database.id}/secrets/staging/build/reveal-all`,
+          {},
+        )
+      ).status,
+      404,
+    );
   } finally {
     server.close();
     await once(server, "close");

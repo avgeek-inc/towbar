@@ -296,6 +296,20 @@ export function createSourceConnectionFixture(input: {
     return record;
   };
   const read = (path: string) => {
+    const instanceMatch = path.match(
+      /^\/v1\/core\/(apps|resources)\/([^/]+)(?:\/(deployments|releases|operations|previews))?$/,
+    );
+    if (instanceMatch) {
+      const instance = (instanceMatch[1] === "apps" ? apps : resources).find(
+        (item) => item.id === instanceMatch[2],
+      );
+      if (!instance) return undefined;
+      if (instanceMatch[3]) return { [instanceMatch[3]]: [] };
+      return instanceMatch[1] === "apps"
+        ? { app: instance }
+        : { resource: instance };
+    }
+
     const match = path.match(/^\/v1\/core\/sources\/([^/]+)(?:\/(.*))?$/);
     const source = sources.find((source) => source.id === match?.[1]);
     if (!source) return undefined;

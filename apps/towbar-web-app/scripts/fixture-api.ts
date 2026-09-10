@@ -1,3 +1,4 @@
+import { createDeclaredSecretsFixture } from "./declared-secrets-fixture.ts";
 import {
   createSourceConnectionFixture,
   FixtureEnvironmentError,
@@ -1146,6 +1147,7 @@ export function createFixtureApiServer() {
     app: apps[0]!,
     resource: resources[0]!,
   });
+  const declaredSecrets = createDeclaredSecretsFixture(connections);
   const scoutFixture = createScoutFixture(
     servers.map((s) => s.id),
     [...apps, ...resources],
@@ -1718,6 +1720,51 @@ export function createFixtureApiServer() {
       notificationDestinations.splice(index, 1);
       response.writeHead(204);
       response.end();
+      return;
+    }
+    if (declaredSecrets.owns(path)) {
+      if (request.method === "GET") {
+        try {
+          const payload = declaredSecrets.read(
+            path,
+            requestUrl.searchParams.get("environment"),
+          );
+          return payload
+            ? writeJson(response, 200, payload)
+            : writeNotFound(response);
+        } catch (error) {
+          return writeJson(
+            response,
+            error instanceof FixtureEnvironmentError ? error.status : 400,
+            {
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Invalid secret request",
+            },
+          );
+        }
+      }
+      response.setHeader("Cache-Control", "no-store");
+      void readRequestJson(request)
+        .then((body) => {
+          const payload = declaredSecrets.mutate(request.method!, path, body);
+          return payload
+            ? writeJson(response, 200, payload)
+            : writeNotFound(response);
+        })
+        .catch((error) =>
+          writeJson(
+            response,
+            error instanceof FixtureEnvironmentError ? error.status : 400,
+            {
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Invalid secret request",
+            },
+          ),
+        );
       return;
     }
     const revealMatch = path.match(
