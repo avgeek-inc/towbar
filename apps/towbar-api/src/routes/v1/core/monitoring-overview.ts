@@ -8,7 +8,7 @@ import {
   monitoringOverviewQuery,
 } from "../../../areas/monitoring/workspace.js";
 import {
-  listWorkspaceVulnerabilityScans,
+  listWorkspaceVulnerabilityFindings,
   vulnerabilityScansQuery,
 } from "../../../areas/vulnerability-scans/workspace.js";
 import { operation } from "../../../http/operation.js";
@@ -74,15 +74,15 @@ monitoringOverviewRoutes.get(
   "/security-scans",
   operation({
     responseSchema: 'monitoring-overview.ts:get:"/security-scans"',
-    summary: "List workspace vulnerability scans",
+    summary: "List workspace vulnerability findings",
     query: vulnerabilityScansQuery,
     response:
-      "Paginated image vulnerability scans ranked by severity, with app, source, and server identity, plus workspace severity totals. Only Apps receive image scans.",
+      "Paginated advisories from the latest scanned image of each App, ranked by severity with app, source, and server identity, plus workspace severity totals. Resources are not image-scanned.",
     status: 200,
   }),
   async (context) =>
     context.json(
-      await listWorkspaceVulnerabilityScans(
+      await listWorkspaceVulnerabilityFindings(
         context.get("user").workspaceId,
         vulnerabilityScansQuery.parse(context.req.query()),
       ),

@@ -56,8 +56,8 @@ import type {
   TrustedHostKey,
   UserSession,
   VulnerabilityFinding,
+  VulnerabilityFindingSummary,
   VulnerabilityScan,
-  VulnerabilityScanSummary,
 } from "@workspace/towbar-web-client";
 
 export const fixtureIds = {
@@ -431,7 +431,17 @@ function latestScannedDeploymentForApp(
     .at(-1);
 }
 
-const securityScanSummaries: VulnerabilityScanSummary[] = apps.flatMap(
+type FixtureScanSummary = VulnerabilityScan & {
+  appArchivedAt: string | null;
+  appName: string;
+  deploymentId: string;
+  serverId: string;
+  serverName: string;
+  sourceId: string;
+  sourceName: string | null;
+};
+
+const securityScanSummaries: FixtureScanSummary[] = apps.flatMap(
   (app, index) => {
     const deployment = latestScannedDeploymentForApp(app);
     if (!deployment?.vulnerabilityScan) return [];
@@ -482,6 +492,26 @@ const appIdByScanId = new Map<string, string>(
 
 const severityRank = ["critical", "high", "medium", "low", "unknown"] as const;
 
+const securityFindingRows: VulnerabilityFindingSummary[] =
+  securityScanSummaries.flatMap((scan, index) =>
+    securityScanProfiles[index % securityScanProfiles.length]!.findings.map(
+      (finding) => ({
+        ...finding,
+        appArchivedAt: scan.appArchivedAt,
+        appId: appIdByScanId.get(scan.id)!,
+        appName: scan.appName,
+        deploymentId: scan.deploymentId,
+        imageDigest: scan.imageDigest,
+        scanState: scan.state,
+        scannedAt: scan.completedAt,
+        serverId: scan.serverId,
+        serverName: scan.serverName,
+        sourceId: scan.sourceId,
+        sourceName: scan.sourceName,
+      }),
+    ),
+  );
+
 function getSecurityScansFixture(searchParams: URLSearchParams) {
   const severityParam = searchParams.get("severity") ?? "all";
   const severity: "all" | (typeof severityRank)[number] =
@@ -489,56 +519,52 @@ function getSecurityScansFixture(searchParams: URLSearchParams) {
     (severityRank as readonly string[]).includes(severityParam)
       ? (severityParam as "all" | (typeof severityRank)[number])
       : "all";
-  const appId = searchParams.get("appId");
-  const serverId = searchParams.get("serverId");
   const page = Math.max(1, Number(searchParams.get("page") ?? 1) || 1);
   const limit = Math.min(
     50,
     Math.max(1, Number(searchParams.get("limit") ?? 20) || 20),
   );
-  const entityMatches = (scan: VulnerabilityScanSummary) =>
-    (!appId || appIdByScanId.get(scan.id) === appId) &&
-    (!serverId || scan.serverId === serverId);
-  const filtered = securityScanSummaries
-    .filter(entityMatches)
-    .filter((scan) => severity === "all" || scan.severityTotals[severity] > 0);
-  filtered.sort((left, right) => {
-    for (const level of severityRank) {
-      const difference =
-        right.severityTotals[level] - left.severityTotals[level];
-      if (difference !== 0) return difference;
-    }
-    return (right.completedAt ?? right.requestedAt).localeCompare(
-      left.completedAt ?? left.requestedAt,
-    );
-  });
+  const filtered = securityFindingRows
+    .filter((finding) => severity === "all" || finding.severity === severity)
+    .sort((left, right) => {
+      const severityDifference =
+        severityRank.indexOf(left.severity) -
+        severityRank.indexOf(right.severity);
+      if (severityDifference !== 0) return severityDifference;
+      const advisoryDifference = left.advisoryId.localeCompare(
+        right.advisoryId,
+      );
+      if (advisoryDifference !== 0) return advisoryDifference;
+      return left.appName.localeCompare(right.appName);
+    });
   const start = (page - 1) * limit;
-  const items = filtered.slice(start, start + limit);
-  const scoped = securityScanSummaries.filter(entityMatches);
   const summary = {
-    activeScans: scoped.filter((scan) =>
+    activeScans: securityScanSummaries.filter((scan) =>
       ["pending", "running"].includes(scan.state),
     ).length,
-    cleanScans: scoped.filter((scan) => scan.state === "clean").length,
-    critical: sumSeverity(scoped, "critical"),
-    failedScans: scoped.filter((scan) => scan.state === "failed").length,
-    high: sumSeverity(scoped, "high"),
-    low: sumSeverity(scoped, "low"),
-    medium: sumSeverity(scoped, "medium"),
-    scansWithFindings: scoped.filter((scan) => scan.state === "findings")
+    cleanScans: securityScanSummaries.filter((scan) => scan.state === "clean")
       .length,
-    unknown: sumSeverity(scoped, "unknown"),
+    critical: sumSeverity(securityScanSummaries, "critical"),
+    failedScans: securityScanSummaries.filter((scan) => scan.state === "failed")
+      .length,
+    high: sumSeverity(securityScanSummaries, "high"),
+    low: sumSeverity(securityScanSummaries, "low"),
+    medium: sumSeverity(securityScanSummaries, "medium"),
+    scansWithFindings: securityScanSummaries.filter(
+      (scan) => scan.state === "findings",
+    ).length,
+    unknown: sumSeverity(securityScanSummaries, "unknown"),
   };
   return {
+    findings: filtered.slice(start, start + limit),
     nextPage: start + limit < filtered.length ? page + 1 : null,
     page,
-    scans: items,
     summary,
   };
 }
 
 function sumSeverity(
-  scans: VulnerabilityScanSummary[],
+  scans: FixtureScanSummary[],
   severity: (typeof severityRank)[number],
 ) {
   return scans.reduce(

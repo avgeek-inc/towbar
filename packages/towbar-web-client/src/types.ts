@@ -469,20 +469,24 @@ export type VulnerabilityFinding = {
   target: string;
 };
 
-export type VulnerabilityScanSummary = VulnerabilityScan & {
+export type VulnerabilityFindingSummary = VulnerabilityFinding & {
   appArchivedAt: string | null;
+  appId: string;
   appName: string;
   deploymentId: string;
+  imageDigest: string;
+  scanState: "pending" | "running" | "clean" | "findings" | "failed" | "stale";
+  scannedAt: string | null;
   serverId: string;
   serverName: string;
   sourceId: string;
   sourceName: string | null;
 };
 
-export type WorkspaceVulnerabilityScans = {
+export type WorkspaceVulnerabilityFindings = {
+  findings: VulnerabilityFindingSummary[];
   nextPage: number | null;
   page: number;
-  scans: VulnerabilityScanSummary[];
   summary: {
     activeScans: number;
     cleanScans: number;

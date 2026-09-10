@@ -612,7 +612,7 @@ test("the local fixture covers retained backups from multiple Resources", async 
   }
 });
 
-test("the local fixture ranks workspace security scans by severity", async () => {
+test("the local fixture ranks workspace advisories by severity with affected apps", async () => {
   const server = createFixtureApiServer();
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -626,12 +626,18 @@ test("the local fixture ranks workspace security scans by severity", async () =>
     );
     assert.equal(response.status, 200);
     const payload = await response.json();
-    assert.equal(payload.scans.length, 3);
+    assert.equal(payload.findings.length, 7);
     assert.equal(payload.nextPage, null);
-    assert.equal(payload.scans[0].appName, "Towbar API");
-    assert.equal(payload.scans[0].severityTotals.critical, 2);
-    assert.equal(payload.scans[1].state, "stale");
-    assert.equal(payload.scans[2].state, "clean");
+    assert.equal(payload.findings[0].advisoryId, "CVE-2026-21001");
+    assert.equal(payload.findings[0].severity, "critical");
+    assert.equal(payload.findings[0].appName, "Towbar API");
+    assert.equal(payload.findings[0].packageName, "openssl");
+    assert.equal(payload.findings[1].advisoryId, "CVE-2026-21002");
+    assert.equal(payload.findings[2].advisoryId, "CVE-2026-12001");
+    assert.equal(payload.findings[2].appName, "Example Website");
+    assert.equal(payload.findings[2].scanState, "stale");
+    assert.equal(payload.findings[3].appName, "Towbar API");
+    assert.equal(payload.findings.at(-1).severity, "low");
     assert.equal(payload.summary.critical, 2);
     assert.equal(payload.summary.scansWithFindings, 1);
     assert.equal(payload.summary.cleanScans, 1);
@@ -639,36 +645,30 @@ test("the local fixture ranks workspace security scans by severity", async () =>
     const criticalOnly = await fetch(
       `${baseUrl}/v1/core/monitoring/security-scans?severity=critical`,
     ).then((item) => item.json());
-    assert.equal(criticalOnly.scans.length, 1);
-    assert.equal(criticalOnly.scans[0].appName, "Towbar API");
+    assert.equal(criticalOnly.findings.length, 2);
+    assert.equal(
+      criticalOnly.findings.every((finding) => finding.severity === "critical"),
+      true,
+    );
     assert.equal(criticalOnly.summary.critical, 2);
 
-    const appScoped = await fetch(
-      `${baseUrl}/v1/core/monitoring/security-scans?appId=${fixtureIds.app}`,
-    ).then((item) => item.json());
-    assert.equal(appScoped.scans.length, 1);
-    assert.equal(appScoped.scans[0].appName, "Example Website");
-    assert.equal(appScoped.scans[0].state, "stale");
-
     const paged = await fetch(
-      `${baseUrl}/v1/core/monitoring/security-scans?limit=2`,
+      `${baseUrl}/v1/core/monitoring/security-scans?limit=5`,
     ).then((item) => item.json());
-    assert.equal(paged.scans.length, 2);
+    assert.equal(paged.findings.length, 5);
     assert.equal(paged.nextPage, 2);
 
+    const towbarApiDeployment = payload.findings.find(
+      (finding) => finding.appName === "Towbar API",
+    ).deploymentId;
     const findings = await fetch(
-      `${baseUrl}/v1/core/deployments/${payload.scans[0].deploymentId}/vulnerability-scan/findings`,
+      `${baseUrl}/v1/core/deployments/${towbarApiDeployment}/vulnerability-scan/findings`,
     ).then((item) => item.json());
     assert.equal(findings.findings.length, 5);
     assert.equal(
       findings.findings.some((finding) => finding.severity === "critical"),
       true,
     );
-
-    const cleanFindings = await fetch(
-      `${baseUrl}/v1/core/deployments/${payload.scans[2].deploymentId}/vulnerability-scan/findings`,
-    ).then((item) => item.json());
-    assert.deepEqual(cleanFindings.findings, []);
   } finally {
     server.close();
     await once(server, "close");
