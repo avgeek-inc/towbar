@@ -216,7 +216,7 @@ export function PageTabs({
         />
       ) : null}
       <SecondaryItems
-        title="Sections"
+        title="Manage"
         selected={selectedKey}
         onSelect={selectSection}
         items={tabs
