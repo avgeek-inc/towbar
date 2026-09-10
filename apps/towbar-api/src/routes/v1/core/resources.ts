@@ -71,7 +71,11 @@ resourceRoutes.get(
       await listResources(context.get("user").workspaceId),
       workloadFilters.parse(context.req.query()),
     );
-    return context.json({ resources: result.items, counts: result.counts });
+    return context.json({
+      resources: result.items,
+      counts: result.counts,
+      environments: result.environments,
+    });
   },
 );
 

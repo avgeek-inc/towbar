@@ -17,6 +17,7 @@ import {
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { AppIdentity, ResourceIdentity } from "./deployable-identity";
+import { InstanceEnvironmentLabel } from "./instance-environment-label";
 import { ServerHardwareDescription } from "./server-hardware";
 import { InlineLink } from "@/components/page-parts";
 import {
@@ -42,6 +43,12 @@ function appColumns(
       className: "min-w-88",
       header: "App Name",
       key: "name",
+    },
+    {
+      cell: (app) => <InstanceEnvironmentLabel environment={app.environment} />,
+      className: "min-w-40",
+      header: "Environment",
+      key: "environment",
     },
     {
       cell: (app) => (
@@ -113,6 +120,14 @@ function resourceColumns(
       wrapRowLink: false,
       header: "Resource Name",
       key: "name",
+    },
+    {
+      cell: (resource) => (
+        <InstanceEnvironmentLabel environment={resource.environment} />
+      ),
+      className: "min-w-40",
+      header: "Environment",
+      key: "environment",
     },
     {
       cell: (resource) => (

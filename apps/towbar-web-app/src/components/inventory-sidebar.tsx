@@ -16,11 +16,20 @@ import { ScoutSelect } from "./scout-controls";
 type Kind = "apps" | "resources" | "servers" | "sources";
 export type InventoryCounts = { all: number; attention: number };
 const keys: Record<Kind, string[]> = {
-  apps: ["q", "view", "sourceId", "serverIp", "running", "health"],
+  apps: [
+    "q",
+    "view",
+    "sourceId",
+    "environment",
+    "serverIp",
+    "running",
+    "health",
+  ],
   resources: [
     "q",
     "view",
     "sourceId",
+    "environment",
     "serverIp",
     "resourceType",
     "running",
@@ -43,11 +52,13 @@ export function InventorySidebar({
   counts,
   sources = [],
   servers = [],
+  environments = [],
 }: {
   kind: Kind;
   counts?: InventoryCounts;
   sources?: Source[];
   servers?: Server[];
+  environments?: string[];
 }) {
   const { search, update } = usePageQuery();
   const workload = kind === "apps" || kind === "resources";
@@ -67,6 +78,11 @@ export function InventorySidebar({
           id: s.id,
           label: `${s.repositoryOwner}/${s.repositoryName}`,
         })),
+      },
+      {
+        key: "environment",
+        label: "Environment",
+        options: environments.map((name) => ({ id: name, label: name })),
       },
       {
         key: "serverIp",

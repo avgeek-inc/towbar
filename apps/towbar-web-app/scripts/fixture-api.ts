@@ -1171,6 +1171,7 @@ export function createFixtureApiServer() {
           writeJson(response, 200, {
             [resource ? "resources" : "apps"]: result.items,
             counts: result.counts,
+            environments: result.environments,
           });
         }
       } catch {

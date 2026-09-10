@@ -7,6 +7,7 @@ const base = z.object({
 export const workloadFilters = base
   .extend({
     sourceId: z.uuid().optional(),
+    environment: z.string().min(1).max(63).optional(),
     serverIp: z.string().max(100).optional(),
     resourceType: z.enum(["image", "postgres", "redis"]).optional(),
     running: z.enum(["running", "stopped", "missing", "unknown"]).optional(),
@@ -66,6 +67,7 @@ export function filterWorkloads<
     serverIp: string;
     kind: string;
     serverReady: boolean;
+    environment?: { name: string } | null;
     runtimeState: {
       healthStatus: string;
       observedState: string;
@@ -74,7 +76,7 @@ export function filterWorkloads<
     };
   },
 >(items: T[], query: z.output<typeof workloadFilters>) {
-  return select(
+  const result = select(
     items,
     query,
     (item) =>
@@ -86,11 +88,22 @@ export function filterWorkloads<
     (item) =>
       includes(`${item.name} ${item.serverIp}`, query.q) &&
       (!query.sourceId || item.sourceId === query.sourceId) &&
+      (!query.environment || item.environment?.name === query.environment) &&
       (!query.serverIp || item.serverIp === query.serverIp) &&
       (!query.resourceType || item.kind === query.resourceType) &&
       (!query.running || item.runtimeState.observedState === query.running) &&
       (!query.health || item.runtimeState.healthStatus === query.health),
   );
+  return {
+    ...result,
+    environments: [
+      ...new Set(
+        items
+          .filter((item) => !query.sourceId || item.sourceId === query.sourceId)
+          .flatMap((item) => (item.environment ? [item.environment.name] : [])),
+      ),
+    ].sort(),
+  };
 }
 export function filterServers<
   T extends {
