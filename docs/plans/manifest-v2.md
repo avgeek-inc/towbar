@@ -453,3 +453,28 @@ releases and four replayed workflow histories. Production remained on A and
 staging on healthy B through the failure. The dedicated Temporal server and
 Docker target were stopped afterward. This mode seeds source snapshots and
 server readiness; it does not cover PR event reconciliation.
+
+### Connected PR reconciliation lifecycle
+
+The opt-in `TOWBAR_TEST_PR=1 TOWBAR_TEST_HTTPS=1` app lifecycle passed against
+rebuilt API/worker output, a dedicated Temporal server and disposable PostgreSQL
+workspace/SSH target. Controlled GitHub PR and immutable blob/archive responses
+fed the production reconciliation service. Two PR revisions deployed through
+admission, server coordination, signed internal API calls, Docker and real HTTPS.
+Duplicate reconciliation reused deployment IDs. Closing the PR removed its
+containers, images and Caddy file; repeated closure was harmless. Production A
+and staging B stayed available, and persistent app configuration and secret
+key declarations remained unchanged. Preview builds used separate preview values.
+All six deployment workflow histories replayed successfully.
+
+The app negative case now returns HTTP 503 at `/unhealthy`, replacing an invalid
+command-health configuration that previously failed app health validation. The
+complete rerun passed with this actual HTTP failure and retained the healthy
+staging release. Temporary Docker workloads were removed and the dedicated
+Temporal server stopped afterward.
+
+This closes the combined reconciliation/deployment/cleanup runtime gap. The test
+calls the reconciliation service directly, with GitHub transport simulated;
+webhook authentication and event-workflow dispatch still rely on their separate
+coverage. Server preparation and source synchronization are seeded prerequisites,
+not runtime assertions in this harness. Final scope audit remains outstanding.

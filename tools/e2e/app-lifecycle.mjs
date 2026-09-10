@@ -14,6 +14,13 @@ import {
 import { startTestTarget } from "./target.mjs";
 import { startHttpsTarget } from "./https-target.mjs";
 
+const previewLifecycle = process.env.TOWBAR_TEST_PR === "1";
+assert(
+  !previewLifecycle ||
+    (process.env.TOWBAR_TEST_HTTPS === "1" &&
+      process.env.TOWBAR_TEST_TEMPORAL_ADDRESS),
+  "PR lifecycle requires HTTPS and Temporal modes",
+);
 const routed = process.env.TOWBAR_TEST_HTTPS === "1";
 const target = routed ? await startHttpsTarget() : await startTestTarget();
 const originalFetch = globalThis.fetch;
@@ -47,7 +54,7 @@ CMD ["python", "app.py"]
 from http.server import BaseHTTPRequestHandler, HTTPServer
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        self.send_response(200)
+        self.send_response(503 if self.path == "/unhealthy" else 200)
         self.end_headers()
         self.wfile.write((os.environ["ENV_MARKER"] + ":" + open("revision").read()).encode())
 HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
@@ -63,8 +70,21 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
     archives.set(revision.repeat(40), readFileSync(archive));
   }
   const fetched = [];
+  let previewFetch;
   globalThis.fetch = async (input, init) => {
     const url = new URL(String(input));
+    if (
+      previewFetch &&
+      ((url.origin === "https://api.github.com" &&
+        url.pathname.startsWith("/repos/test/test/") &&
+        !url.pathname.includes("/tarball/")) ||
+        (url.protocol === "https:" &&
+          url.hostname.endsWith(".127.0.0.1.nip.io") &&
+          !["production", "staging", "preview"].some(
+            (name) => url.hostname === `${name}.127.0.0.1.nip.io`,
+          )))
+    )
+      return previewFetch(input, init);
     if (
       routed &&
       ["production", "staging", "preview"].some(
@@ -147,8 +167,7 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
         },
       ],
     }).apps[0];
-    if (failHealth)
-      app.health = { type: "command", command: ["false"], timeoutSeconds: 2 };
+    if (failHealth) app.health = { path: "/unhealthy", timeoutSeconds: 2 };
     const previous = instance.current;
     if (integrated) {
       const execution = await database.prepare(
@@ -254,6 +273,18 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
     await database.verify(instances, "failed");
     await temporal.verify();
     assert.equal(response("staging"), "staging:b");
+  }
+  if (previewLifecycle) {
+    const { runPreviewLifecycle } = await import("./preview-pr-lifecycle.mjs");
+    await runPreviewLifecycle({
+      database,
+      temporal,
+      target,
+      originalFetch,
+      setFetch: (handler) => {
+        previewFetch = handler;
+      },
+    });
   }
   console.log(
     integrated

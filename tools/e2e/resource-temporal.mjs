@@ -96,7 +96,10 @@ export async function startResourceTemporal({ serverIp }) {
       namespace: process.env.TEMPORAL_NAMESPACE,
       taskQueue,
       workflowBundle,
-      activities,
+      activities: {
+        ...activities,
+        ...(await import("../../apps/towbar-worker/dist/activities/preview.js")),
+      },
       shutdownGraceTime: "10 seconds",
     });
     run = worker.run();
@@ -120,16 +123,13 @@ export async function startResourceTemporal({ serverIp }) {
         handles.push(handle);
         await handle.result();
       },
-      async verify() {
+      async verify(
+        expectedStatuses = ["COMPLETED", "COMPLETED", "COMPLETED", "FAILED"],
+      ) {
         const statuses = await Promise.all(
           handles.map(async (handle) => (await handle.describe()).status.name),
         );
-        assert.deepEqual(statuses, [
-          "COMPLETED",
-          "COMPLETED",
-          "COMPLETED",
-          "FAILED",
-        ]);
+        assert.deepEqual(statuses, expectedStatuses);
         for (const handle of handles)
           await Worker.runReplayHistory(
             { workflowBundle },

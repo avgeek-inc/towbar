@@ -178,6 +178,15 @@ export async function createResourceLifecycleDatabase({
     }
     return {
       close,
+      previewContext: {
+        db,
+        schema,
+        instances,
+        sourceId,
+        workspaceId,
+        userId,
+        mutateSecret,
+      },
       async prepare(name, app, resolve = true, commitSha = "c".repeat(40)) {
         const instance = instances.get(name);
         const requiredSecrets = {

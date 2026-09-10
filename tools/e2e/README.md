@@ -198,3 +198,34 @@ PR event reconciliation. `TOWBAR_TEST_HTTPS=1` can also be combined with the
 Temporal mode above. That combination passed with production/staging routes,
 three successful deployments, one intentional unhealthy candidate failure,
 database release assertions and replay of all four workflow histories.
+
+## PR reconciliation lifecycle
+
+Build the API and worker from the current checkout, start the dedicated Temporal
+server above, then run:
+
+```sh
+pnpm --filter towbar-api build
+pnpm --filter towbar-worker build
+TOWBAR_TEST_PR=1 TOWBAR_TEST_HTTPS=1 \
+TOWBAR_TEST_TEMPORAL_ADDRESS=127.0.0.1:17239 \
+TOWBAR_TEST_DATABASE_URL=postgres://user:password@localhost:5432/towbar_test \
+node tools/e2e/app-lifecycle.mjs
+```
+
+After the persistent app lifecycle, this mode calls the production PR
+reconciliation service against controlled GitHub PR, immutable tree/blob and
+archive responses. It deploys two PR revisions through real admission, Temporal,
+signed internal API calls, Docker and Caddy HTTPS. Duplicate reconciliation must
+reuse the deployment. Closing the PR must remove its runtime containers, images
+and Caddy route; repeated closure must be harmless. Production and staging must
+keep serving their own revisions, and staging configuration and secret
+declarations must remain unchanged. Preview builds use isolated preview secrets.
+All six deployment workflow histories are replayed.
+
+GitHub responses are simulated, including deployment reporting. Source snapshots,
+server readiness and initial secrets are seeded. The runner invokes the
+reconciliation service directly; webhook authentication and the event-dispatch
+workflow are outside this test. Local TLS uses the process-scoped test CA, not
+public ACME. Rebuild both services before running to avoid testing stale compiled
+worker/API contracts.
