@@ -8,8 +8,6 @@ import {
 export const publicSourceSelection = {
   createdAt: sources.createdAt,
   id: sources.id,
-  latestCommitSha: sources.latestCommitSha,
-  latestManifestDigest: sources.latestManifestDigest,
   repositoryName: sources.repositoryName,
   repositoryOwner: sources.repositoryOwner,
   status: sources.status,

@@ -5658,12 +5658,6 @@
       "properties": {
         "createdAt": { "type": "string", "format": "date-time" },
         "id": { "type": "string" },
-        "latestCommitSha": {
-          "anyOf": [{ "type": "null" }, { "type": "string" }]
-        },
-        "latestManifestDigest": {
-          "anyOf": [{ "type": "null" }, { "type": "string" }]
-        },
         "repositoryName": { "type": "string" },
         "repositoryOwner": { "type": "string" },
         "status": {
@@ -5677,8 +5671,6 @@
       "required": [
         "createdAt",
         "id",
-        "latestCommitSha",
-        "latestManifestDigest",
         "repositoryName",
         "repositoryOwner",
         "status",
@@ -5939,12 +5931,6 @@
         "autoDeployPaused": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" },
         "id": { "type": "string" },
-        "latestCommitSha": {
-          "anyOf": [{ "type": "null" }, { "type": "string" }]
-        },
-        "latestManifestDigest": {
-          "anyOf": [{ "type": "null" }, { "type": "string" }]
-        },
         "repositoryName": { "type": "string" },
         "repositoryOwner": { "type": "string" },
         "status": {
@@ -5960,8 +5946,6 @@
         "autoDeployPaused",
         "createdAt",
         "id",
-        "latestCommitSha",
-        "latestManifestDigest",
         "repositoryName",
         "repositoryOwner",
         "status",
@@ -5992,12 +5976,6 @@
       "properties": {
         "createdAt": { "type": "string", "format": "date-time" },
         "id": { "type": "string" },
-        "latestCommitSha": {
-          "anyOf": [{ "type": "null" }, { "type": "string" }]
-        },
-        "latestManifestDigest": {
-          "anyOf": [{ "type": "null" }, { "type": "string" }]
-        },
         "repositoryName": { "type": "string" },
         "repositoryOwner": { "type": "string" },
         "status": {
@@ -6011,8 +5989,6 @@
       "required": [
         "createdAt",
         "id",
-        "latestCommitSha",
-        "latestManifestDigest",
         "repositoryName",
         "repositoryOwner",
         "status",

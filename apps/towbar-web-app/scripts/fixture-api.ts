@@ -111,8 +111,6 @@ const user: TowbarUser = {
 const source: Source = {
   createdAt: fixtureNow,
   id: fixtureIds.source,
-  latestCommitSha: commitSha,
-  latestManifestDigest: manifestDigest,
   repositoryName: "platform",
   repositoryOwner: "example-inc",
   status: "active",
@@ -135,8 +133,6 @@ const sources: Source[] = [
     ...source,
     id: fixtureIds.sandboxSource,
     repositoryName: "sandbox",
-    latestCommitSha: null,
-    latestManifestDigest: null,
   },
 ];
 
@@ -225,7 +221,7 @@ resources.push({
 });
 
 const environmentMappings = sources
-  .filter((item) => item.latestManifestDigest)
+  .filter((item) => item.id !== fixtureIds.sandboxSource)
   .flatMap((item) =>
     (item.id === fixtureIds.source
       ? ["production", "staging"]
@@ -1211,7 +1207,9 @@ export function createFixtureApiServer() {
           const result = filterSources(
             sources.map((source) => ({
               ...source,
-              latestSyncStatus: source.latestManifestDigest
+              latestSyncStatus: environmentMappings.some(
+                (item) => item.sourceId === source.id,
+              )
                 ? "succeeded"
                 : "never",
               autoDeployPaused: false,

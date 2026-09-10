@@ -9,8 +9,6 @@ export type TowbarUser = {
 export type Source = {
   createdAt: string;
   id: string;
-  latestCommitSha: string | null;
-  latestManifestDigest: string | null;
   repositoryName: string;
   repositoryOwner: string;
   status: "active" | "archived";

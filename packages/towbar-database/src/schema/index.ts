@@ -338,9 +338,6 @@ export const sources = pgTable(
     repositoryOwner: varchar("repository_owner", { length: 255 }).notNull(),
     repositoryName: varchar("repository_name", { length: 255 }).notNull(),
     status: sourceStatusEnum("status").default("active").notNull(),
-    latestCommitSha: varchar("latest_commit_sha", { length: 64 }),
-    latestManifestDigest: varchar("latest_manifest_digest", { length: 64 }),
-    latestSuccessfulSyncId: uuid("latest_successful_sync_id"),
     autoDeployPaused: boolean("auto_deploy_paused").default(false).notNull(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
