@@ -7,7 +7,11 @@ import Link from "next/link";
 import { SecurityCheckIcon } from "@hugeicons/core-free-icons";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+import { Widget } from "@workspace/web-design-system/data-display/widget";
+import {
+  Tooltip,
+  TooltipText,
+} from "@workspace/web-design-system/overlays/tooltip";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
@@ -83,24 +87,16 @@ export function WorkspaceSecurityScans() {
     },
     {
       key: "app",
-      header: "Affected app",
+      header: "Affected entity",
       cell: (finding) => (
-        <div className="grid gap-1">
-          <Link
-            className="focus-visible:ring-focus inline-flex items-center gap-1 rounded-sm font-medium underline underline-offset-4 outline-none focus-visible:ring-2"
-            href={`/sources/${finding.sourceId}/deployments/${finding.deploymentId}`}
-          >
-            {finding.appName}
-            {finding.appArchivedAt ? (
-              <span className="text-xs font-normal text-muted">Archived</span>
-            ) : null}
-          </Link>
-          <span className="text-xs text-muted">
-            {finding.sourceName ?? "—"} · {finding.serverName}
-          </span>
-        </div>
+        <Link
+          className="focus-visible:ring-focus inline-flex items-center rounded-sm font-medium underline underline-offset-4 outline-none focus-visible:ring-2"
+          href={`/sources/${finding.sourceId}/deployments/${finding.deploymentId}`}
+        >
+          {finding.appName}
+        </Link>
       ),
-      className: "min-w-56",
+      className: "whitespace-nowrap",
     },
     {
       key: "scanned",
@@ -112,11 +108,7 @@ export function WorkspaceSecurityScans() {
           ) : (
             "—"
           )}
-          {finding.scanState === "stale" ? (
-            <Chip size="small" variant="warning">
-              Stale database
-            </Chip>
-          ) : null}
+          {finding.scanState === "stale" ? <OlderDatabaseChip /> : null}
         </div>
       ),
       className: "whitespace-nowrap",
@@ -195,32 +187,70 @@ export function WorkspaceSecurityScans() {
   );
 }
 
+function OlderDatabaseChip() {
+  return (
+    <Tooltip>
+      <Tooltip.Trigger
+        render={(props) => (
+          <span
+            {...props}
+            className="inline-flex rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          />
+        )}
+      >
+        <Chip size="small" variant="warning">
+          Older database
+        </Chip>
+      </Tooltip.Trigger>
+      <Tooltip.Content className="max-w-xs text-xs" placement="top" showArrow>
+        <Tooltip.Arrow />
+        The scan that reported this finding used a vulnerability database older
+        than the workspace limit, so newer advisories may be missing. Rescan
+        from the deployment to refresh it.
+      </Tooltip.Content>
+    </Tooltip>
+  );
+}
+
 function SeveritySummary({
   summary,
 }: {
   summary: WorkspaceVulnerabilityFindings["summary"];
 }) {
-  const hasUnknown = summary.unknown > 0;
+  const cards: Array<{
+    label: string;
+    tone: "danger" | "warning" | "neutral";
+    total: number;
+  }> = [
+    { label: "Critical", tone: "danger", total: summary.critical },
+    { label: "High", tone: "danger", total: summary.high },
+    { label: "Medium", tone: "warning", total: summary.medium },
+    { label: "Low", tone: "neutral", total: summary.low },
+    { label: "Unknown", tone: "neutral", total: summary.unknown },
+  ];
   return (
-    <section aria-label="Workspace vulnerability totals" className="grid gap-3">
-      <div
-        className={`grid grid-cols-2 ${hasUnknown ? "sm:grid-cols-5" : "sm:grid-cols-4"}`}
-      >
-        <SeverityTotal
-          label="Critical"
-          total={summary.critical}
-          tone="danger"
-        />
-        <SeverityTotal label="High" total={summary.high} tone="danger" />
-        <SeverityTotal label="Medium" total={summary.medium} tone="warning" />
-        <SeverityTotal label="Low" total={summary.low} tone="neutral" />
-        {hasUnknown ? (
-          <SeverityTotal
-            label="Unknown"
-            total={summary.unknown}
-            tone="neutral"
-          />
-        ) : null}
+    <section aria-label="Workspace vulnerability totals" className="grid gap-4">
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        {cards.map((card) => (
+          <Widget className="min-w-0" key={card.label}>
+            <Widget.Header>
+              <Widget.Title>{card.label}</Widget.Title>
+            </Widget.Header>
+            <Widget.Content className="flex min-h-16 items-center">
+              <span
+                className={
+                  card.tone === "danger" && card.total > 0
+                    ? "text-3xl font-semibold tracking-tight tabular-nums text-danger"
+                    : card.tone === "warning" && card.total > 0
+                      ? "text-3xl font-semibold tracking-tight tabular-nums text-warning"
+                      : "text-3xl font-semibold tracking-tight tabular-nums"
+                }
+              >
+                {card.total}
+              </span>
+            </Widget.Content>
+          </Widget>
+        ))}
       </div>
       <p className="text-sm text-muted">
         {summary.scansWithFindings} app
@@ -229,33 +259,6 @@ function SeveritySummary({
         {summary.activeScans} in progress
       </p>
     </section>
-  );
-}
-
-function SeverityTotal({
-  label,
-  tone,
-  total,
-}: {
-  label: string;
-  tone: "danger" | "warning" | "neutral";
-  total: number;
-}) {
-  return (
-    <div className="rounded-xl border border-separator p-3">
-      <p className="text-xs text-muted">{label}</p>
-      <p
-        className={
-          tone === "danger" && total > 0
-            ? "text-xl font-medium tabular-nums text-danger"
-            : tone === "warning" && total > 0
-              ? "text-xl font-medium tabular-nums text-warning"
-              : "text-xl font-medium tabular-nums"
-        }
-      >
-        {total}
-      </p>
-    </div>
   );
 }
 
