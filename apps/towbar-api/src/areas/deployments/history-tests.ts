@@ -115,6 +115,21 @@ export async function testDeploymentHistory({
         const execution = await getDeploymentExecutionContext(ids[2]!);
         assert.equal(execution.runtimeId, resourceId);
         assert.notEqual(execution.runtimeId, resourceConfig.id);
+        await db
+          .update(deployments)
+          .set({ kind: "deploy", rollbackReleaseSnapshot: null })
+          .where(eq(deployments.id, ids[2]!));
+        const resourceExecution = await getDeploymentExecutionContext(ids[2]!);
+        assert.equal(resourceExecution.githubToken, null);
+        assert.equal(resourceExecution.runtimeId, resourceId);
+        await db
+          .update(deployments)
+          .set({
+            kind: "rollback",
+            rollbackReleaseSnapshot: execution.rollbackRelease,
+          })
+          .where(eq(deployments.id, ids[2]!));
+
         const query = (input: Record<string, unknown> = {}) =>
           listDeploymentHistory({
             ...historyQuerySchema.parse(input),
