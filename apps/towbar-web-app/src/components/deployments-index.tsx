@@ -1,4 +1,5 @@
 "use client";
+import { DeploymentEnvironmentChip } from "./deployment-environment-chip";
 
 import {
   Cancel01Icon,
@@ -20,7 +21,6 @@ import {
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
 import { Pagination } from "@workspace/web-design-system/navigation/pagination";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
@@ -64,15 +64,6 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
           />
           {item.deployableName}
         </InlineLink>
-        {item.environment === "preview" ? (
-          <Chip
-            size="small"
-            variant="secondary"
-            icon={<HugeiconsIcon icon={Rocket01Icon} />}
-          >
-            Preview
-          </Chip>
-        ) : null}
       </span>
     ),
     className: "min-w-56",
@@ -80,7 +71,7 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
   {
     key: "environment",
     header: "Environment",
-    cell: (item) => item.targetEnvironment?.name ?? "—",
+    cell: (item) => <DeploymentEnvironmentChip deployment={item} />,
     className: "whitespace-nowrap",
   },
   {

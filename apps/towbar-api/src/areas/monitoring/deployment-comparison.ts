@@ -39,6 +39,7 @@ export async function listComparisonDeployments(input: {
       commitSha: deployments.commitSha,
       finishedAt: deployments.finishedAt,
       environment: deployments.environment,
+      targetEnvironment: deployments.targetEnvironment,
       previewId: deployments.previewEnvironmentId,
       serverId: deployments.serverId,
       kind: deployments.kind,

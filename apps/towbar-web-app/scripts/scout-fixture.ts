@@ -14,6 +14,7 @@ import {
 import type { ComparisonPoint } from "@workspace/towbar-web-client";
 
 type Workload = {
+  environment: { id: string; name: string } | null;
   id: string;
   name: string;
   serverId: string;
@@ -103,6 +104,7 @@ export function createScoutFixture(
     Array.from({ length: 3 }, (_, index) => ({
       id: randomUUID(),
       deployableId: w.id,
+      targetEnvironment: w.environment,
       commitSha: [
         "ad92c1b48bd78f920ddd",
         "c88b05a41bb93c9f411a",
