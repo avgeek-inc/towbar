@@ -51,6 +51,7 @@ export function SourceEnvironments({
   const [editing, setEditing] = useState<SourceEnvironment | null>(null);
   const [branch, setBranch] = useState("");
   const [busy, setBusy] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   if (query.error && !query.data) return <QueryError message={query.error} />;
   if (!query.data) return <QueryLoading />;
   return (
@@ -133,6 +134,7 @@ export function SourceEnvironments({
                   <Button
                     variant="secondary"
                     onPress={() => {
+                      setSaveError(null);
                       setEditing(item);
                       setBranch(item.branch);
                     }}
@@ -204,6 +206,7 @@ export function SourceEnvironments({
             className="content-grid"
             onSubmit={async (event) => {
               event.preventDefault();
+              setSaveError(null);
               setBusy(true);
               try {
                 await api.patch(`${endpoint}/${editing.id}`, {
@@ -214,12 +217,11 @@ export function SourceEnvironments({
                 setEditing(null);
                 refreshApiQueries();
               } catch (error) {
-                toast.danger("Couldn't save branch", {
-                  description:
-                    error instanceof Error
-                      ? error.message
-                      : "The request failed",
-                });
+                setSaveError(
+                  error instanceof Error
+                    ? error.message
+                    : "Couldn't save branch",
+                );
               } finally {
                 setBusy(false);
               }
@@ -233,13 +235,28 @@ export function SourceEnvironments({
                 id="environment-branch"
                 required
                 value={branch}
-                onChange={(event) => setBranch(event.target.value)}
+                onChange={(event) => {
+                  setBranch(event.target.value);
+                  setSaveError(null);
+                }}
+                aria-describedby={
+                  saveError ? "environment-branch-error" : undefined
+                }
                 variant="secondary"
               />
             </Field>
             <p className="text-xs text-muted">
               Saving syncs configuration from this branch without deploying.
             </p>
+            {saveError ? (
+              <p
+                id="environment-branch-error"
+                role="alert"
+                className="text-sm text-danger"
+              >
+                {saveError}
+              </p>
+            ) : null}
             <div className="flex gap-2">
               <Button type="submit" isDisabled={busy || !branch.trim()}>
                 <HugeiconsIcon

@@ -2252,10 +2252,13 @@ export function createFixtureApiServer() {
             response,
             error instanceof FixtureEnvironmentError ? error.status : 400,
             {
-              error:
-                error instanceof Error
-                  ? error.message
-                  : "Invalid environment request",
+              error: {
+                code: "INVALID_ENVIRONMENT_REQUEST",
+                message:
+                  error instanceof Error
+                    ? error.message
+                    : "Invalid environment request",
+              },
             },
           ),
         );

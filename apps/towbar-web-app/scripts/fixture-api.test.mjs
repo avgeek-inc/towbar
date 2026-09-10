@@ -1227,14 +1227,14 @@ test("connecting a selected environment persists isolated instances without depl
       409,
     );
     mapping = saved.environment;
+    const missingBranch = await mutate("PATCH", `${endpoint}/${mapping.id}`, {
+      branch: "missing",
+      expectedRevision: mapping.mappingRevision,
+    });
+    assert.equal(missingBranch.status, 400);
     assert.equal(
-      (
-        await mutate("PATCH", `${endpoint}/${mapping.id}`, {
-          branch: "missing",
-          expectedRevision: mapping.mappingRevision,
-        })
-      ).status,
-      400,
+      (await missingBranch.json()).error.message,
+      "Branch was not found",
     );
     assert.equal((await get(endpoint)).environments[0].branch, "main");
     assert.deepEqual(

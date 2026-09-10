@@ -343,3 +343,13 @@ uses these files, control-plane branch mappings and YAML-declared secret keys.
 The Docker image built and served `/` and `/health` as a non-root user; its test
 container/image were removed. The example parser test passed for production and
 staging, and published example synchronization plus all docs checks passed.
+
+### Branch-edit validation UX
+
+A browser check rejected an unavailable branch while retaining staging's develop
+mapping and the edit draft. Branch-save failures now remain inline beside the
+form and clear when the branch changes or another mapping is opened. Rendered
+verification used the refreshed local web build; the running fixture retained
+its older generic error payload. The updated fixture response matches the API's
+structured error shape, and its regression verifies `Branch was not found`.
+All 23 fixture API tests, web typecheck, scoped lint and web build passed.
