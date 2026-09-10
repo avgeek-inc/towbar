@@ -955,7 +955,7 @@ test("fixture Sources have distinct inventories and working scoped routes", asyn
     ).json();
     assert.equal(sources.length, 4);
     const expected = new Map([
-      [fixtureIds.source, [3, 4, 2]],
+      [fixtureIds.source, [4, 5, 2]],
       [fixtureIds.docsSource, [1, 0, 1]],
       [fixtureIds.analyticsSource, [0, 1, 1]],
       [fixtureIds.sandboxSource, [0, 0, 0]],
@@ -985,6 +985,67 @@ test("fixture Sources have distinct inventories and working scoped routes", asyn
         expected.get(source.id),
       );
     }
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
+test("v2 fixtures expose environment mappings and isolated sibling instances", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+  const get = async (path) => {
+    const response = await fetch(baseUrl + path);
+    assert.equal(response.status, 200, path);
+    return response.json();
+  };
+  try {
+    const { environments } = await get(
+      `/v1/core/sources/${fixtureIds.source}/environments`,
+    );
+    assert.deepEqual(
+      environments.map(({ name, branch }) => [name, branch]),
+      [
+        ["production", "main"],
+        ["staging", "develop"],
+      ],
+    );
+    for (const [kind, productionId, stagingId] of [
+      ["apps", fixtureIds.app, fixtureIds.stagingApp],
+      ["resources", fixtureIds.resource, fixtureIds.stagingResource],
+    ]) {
+      const items = (
+        await get(`/v1/core/sources/${fixtureIds.source}/${kind}`)
+      )[kind];
+      const production = items.find((item) => item.id === productionId);
+      const staging = items.find((item) => item.id === stagingId);
+      assert.equal(production.entityId, staging.entityId);
+      assert.notEqual(production.id, staging.id);
+      assert.equal(production.environment.name, "production");
+      assert.equal(staging.environment.name, "staging");
+      assert.equal(staging.environment.branch, "develop");
+      const filtered = await get(`/v1/core/${kind}?environment=staging`);
+      assert.deepEqual(
+        filtered[kind].map((item) => item.id),
+        [stagingId],
+      );
+    }
+    const history = await get(
+      "/v1/core/deployments/history?targetEnvironment=staging&limit=1",
+    );
+    assert.deepEqual(history.environments, ["production", "staging"]);
+    assert.equal(history.pagination.total, 2);
+    assert.equal(history.pagination.totalPages, 2);
+    assert.equal(history.deployments.length, 1);
+    assert.equal(history.deployments[0].targetEnvironment.name, "staging");
+    const missing = await get(
+      "/v1/core/deployments/history?targetEnvironment=missing",
+    );
+    assert.equal(missing.pagination.total, 0);
   } finally {
     server.close();
     await once(server, "close");

@@ -61,6 +61,8 @@ import type {
 } from "@workspace/towbar-web-client";
 
 export const fixtureIds = {
+  stagingApp: "31111111-1111-4111-8111-666666666666",
+  stagingResource: "41111111-1111-4111-8111-666666666666",
   app: "31111111-1111-4111-8111-222222222222",
   deployment: "61111111-1111-4111-8111-111111111111",
   preview: "b1111111-1111-4111-8111-111111111111",
@@ -226,6 +228,49 @@ resources.push({
   sourceId: fixtureIds.analyticsSource,
 });
 
+const environmentMappings = sources
+  .filter((item) => item.latestManifestDigest)
+  .flatMap((item) =>
+    (item.id === fixtureIds.source
+      ? ["production", "staging"]
+      : ["production"]
+    ).map((name) => ({
+      id: `${name === "staging" ? "a" : "c"}${item.id.slice(1)}`,
+      sourceId: item.id,
+      name,
+      branch: name === "staging" ? "develop" : item.branch,
+      mappingRevision: `${name === "staging" ? "a" : "c"}${item.id.slice(1)}`,
+      previewsEnabled: name === "staging",
+      latestSyncStatus: "succeeded" as const,
+      latestSyncFinishedAt: fixtureNow,
+      latestSuccessfulSyncId: fixtureIds.sync,
+      disconnectedAt: null,
+    })),
+  );
+for (const item of [...apps, ...resources]) {
+  item.entityId = item.id;
+  item.environment = environmentMappings.find(
+    (environment) =>
+      environment.sourceId === item.sourceId &&
+      environment.name === "production",
+  )!;
+}
+const stagingEnvironment = environmentMappings.find(
+  (environment) =>
+    environment.sourceId === fixtureIds.source &&
+    environment.name === "staging",
+)!;
+apps.push({
+  ...apps.find((item) => item.id === fixtureIds.app)!,
+  id: fixtureIds.stagingApp,
+  environment: stagingEnvironment,
+});
+resources.push({
+  ...resources.find((item) => item.id === fixtureIds.resource)!,
+  id: fixtureIds.stagingResource,
+  environment: stagingEnvironment,
+});
+
 const fixtureSecretKeys = new Map<string, string[]>();
 const fixtureSecretVersions = new Map<string, string>();
 const fixtureSecretValues = new Map<string, Record<string, string>>();
@@ -260,7 +305,9 @@ fixtureSecretVersions.set(
 fixtureSecretKeys.set(`${source.id}:preview:build`, ["SOURCE_PREVIEW_TOKEN"]);
 fixtureSecretVersions.set(`${source.id}:preview:build`, crypto.randomUUID());
 
-const platformApps = apps.filter((app) => app.sourceId === source.id);
+const platformApps = apps.filter(
+  (app) => app.sourceId === source.id && app.environment?.name === "production",
+);
 
 const deploymentFixtureNow = Date.now();
 const deploymentDayOffsets = [6, 6, 5, 5, 5, 4, 3, 3, 2, 2, 2, 1, 0, 0];
@@ -315,6 +362,21 @@ const deployments: Deployment[] = [
     );
   }),
 ];
+
+deployments.push(
+  createDeploymentFixture(
+    "61111111-1111-4111-8111-666666666666",
+    apps.find((item) => item.id === fixtureIds.stagingApp)!,
+    servers[1]!,
+    "queued",
+  ),
+  createDeploymentFixture(
+    "62111111-1111-4111-8111-666666666666",
+    resources.find((item) => item.id === fixtureIds.stagingResource)!,
+    servers[0]!,
+    "queued",
+  ),
+);
 
 const previewDeployment: Deployment = {
   ...createDeploymentFixture(
@@ -2071,6 +2133,18 @@ function getFixturePayload(
   path: string,
   searchParams: URLSearchParams,
 ): unknown {
+  const environmentSource = path.match(
+    /^\/v1\/core\/sources\/([^/]+)\/environments$/,
+  );
+  if (
+    environmentSource &&
+    sources.some((item) => item.id === environmentSource[1])
+  )
+    return {
+      environments: environmentMappings.filter(
+        (item) => item.sourceId === environmentSource[1],
+      ),
+    };
   if (path === "/v1/core/deployments/history") {
     const page = readPositiveInteger(searchParams.get("page"), 1);
     const limit = Math.min(
@@ -2084,6 +2158,9 @@ function getFixturePayload(
       .filter((item) => {
         const type = searchParams.get("type");
         return (
+          (!searchParams.get("targetEnvironment") ||
+            deployables.get(item.appId)?.environment?.name ===
+              searchParams.get("targetEnvironment")) &&
           (!type ||
             (type === "app"
               ? item.deployableKind === "app"
@@ -2110,12 +2187,16 @@ function getFixturePayload(
         return sort === "oldest" ? -newest : newest;
       });
     return {
+      environments: [
+        ...new Set(environmentMappings.map((item) => item.name)),
+      ].sort(),
       deployments: ordered
         .slice((page - 1) * limit, page * limit)
         .map((item) => ({
           ...item,
           deployableName:
             deployables.get(item.appId)?.name ?? "Unknown workload",
+          targetEnvironment: deployables.get(item.appId)?.environment ?? null,
         })),
       pagination: {
         page,
