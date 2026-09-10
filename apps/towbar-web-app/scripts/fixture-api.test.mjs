@@ -18,6 +18,7 @@ const readRoutes = [
   "/v1/core/servers",
   "/v1/core/deployments",
   "/v1/core/deployments/history",
+  "/v1/core/monitoring/vulnerabilities",
   "/v1/core/system-health",
   "/v1/core/aws",
   "/v1/core/settings/secrets",
@@ -603,6 +604,82 @@ test("the local fixture covers retained backups from multiple Resources", async 
       payload.backups.some(
         (backup) => backup.resourceId === fixtureIds.secondaryPostgres,
       ),
+      true,
+    );
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
+test("the local fixture ranks workspace advisories by severity with affected apps", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  try {
+    const response = await fetch(
+      `${baseUrl}/v1/core/monitoring/vulnerabilities`,
+    );
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.findings.length, 7);
+    assert.equal(payload.nextPage, null);
+    assert.equal(payload.findings[0].advisoryId, "CVE-2026-21001");
+    assert.equal(payload.findings[0].severity, "critical");
+    assert.equal(payload.findings[0].appName, "Towbar API");
+    assert.equal(payload.findings[0].packageName, "openssl");
+    assert.equal(payload.findings[1].advisoryId, "CVE-2026-21002");
+    assert.equal(payload.findings[2].advisoryId, "CVE-2026-12001");
+    assert.equal(payload.findings[2].appName, "Example Website");
+    assert.equal(payload.findings[2].scanState, "stale");
+    assert.equal(payload.findings[3].appName, "Towbar API");
+    assert.equal(payload.findings.at(-1).severity, "low");
+    assert.equal(payload.summary.critical, 2);
+    assert.equal(payload.summary.scansWithFindings, 1);
+    assert.equal(payload.summary.cleanScans, 1);
+
+    const criticalOnly = await fetch(
+      `${baseUrl}/v1/core/monitoring/vulnerabilities?severity=critical`,
+    ).then((item) => item.json());
+    assert.equal(criticalOnly.findings.length, 2);
+    assert.equal(
+      criticalOnly.findings.every((finding) => finding.severity === "critical"),
+      true,
+    );
+    assert.equal(criticalOnly.summary.critical, 2);
+
+    const appScoped = await fetch(
+      `${baseUrl}/v1/core/monitoring/vulnerabilities?appId=${fixtureIds.app}`,
+    ).then((item) => item.json());
+    assert.equal(appScoped.findings.length, 2);
+    assert.equal(
+      appScoped.findings.every(
+        (finding) => finding.appName === "Example Website",
+      ),
+      true,
+    );
+    assert.equal(appScoped.summary.high, 1);
+    assert.equal(appScoped.summary.scansWithFindings, 0);
+
+    const paged = await fetch(
+      `${baseUrl}/v1/core/monitoring/vulnerabilities?limit=5`,
+    ).then((item) => item.json());
+    assert.equal(paged.findings.length, 5);
+    assert.equal(paged.nextPage, 2);
+
+    const towbarApiDeployment = payload.findings.find(
+      (finding) => finding.appName === "Towbar API",
+    ).deploymentId;
+    const findings = await fetch(
+      `${baseUrl}/v1/core/deployments/${towbarApiDeployment}/vulnerability-scan/findings`,
+    ).then((item) => item.json());
+    assert.equal(findings.findings.length, 5);
+    assert.equal(
+      findings.findings.some((finding) => finding.severity === "critical"),
       true,
     );
   } finally {

@@ -396,6 +396,19 @@ void test(
         resourceConfig: manifest.resources![0]!,
         serverConfig,
       });
+      const { testWorkspaceVulnerabilities } =
+        await import("../vulnerability-scans/workspace-tests.js");
+      await testWorkspaceVulnerabilities({
+        t,
+        db,
+        workspaceId,
+        otherWorkspaceId,
+        sourceId,
+        serverId,
+        appId,
+        appConfig,
+        serverConfig,
+      });
       const { testInventory } =
         await import("../inventory/integration-tests.js");
       await testInventory({

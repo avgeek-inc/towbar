@@ -55,7 +55,7 @@ export function Chip({
         {!loading && icon ? (
           <span
             aria-hidden="true"
-            className="inline-flex shrink-0 [&_svg]:size-3.5"
+            className="inline-flex shrink-0 [&_svg]:size-3.5 [&_svg]:text-current"
           >
             {icon}
           </span>

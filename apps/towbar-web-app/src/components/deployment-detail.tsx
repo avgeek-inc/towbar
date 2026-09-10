@@ -8,6 +8,7 @@ import {
   InformationSquareIcon,
   ReloadIcon,
   Rocket01Icon,
+  SecurityCheckIcon,
   ServerStack01Icon,
 } from "@hugeicons/core-free-icons";
 
@@ -42,11 +43,12 @@ import {
   PageTabs,
 } from "@/components/page-parts";
 import { useDeploymentStream } from "@/hooks/use-deployment-stream";
+import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 import { DeploymentTriggerChip } from "./deployment-table";
-import { DeploymentVulnerabilityScanPanel } from "./deployment-vulnerability-scan";
+import { DeploymentVulnerabilities } from "./deployment-vulnerability-scan";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
 
@@ -63,6 +65,7 @@ export function DeploymentDetail() {
     sourceId: string;
   }>();
   const router = useRouter();
+  const detail = useDetailNavigation();
   const stream = useDeploymentStream(deploymentId);
   const source = useApiQuery<{ source: Source }>(
     `/v1/core/sources/${sourceId}`,
@@ -218,20 +221,27 @@ export function DeploymentDetail() {
     ? progressSteps.length
     : currentStepIndex;
 
+  const sectionTitles: Record<string, string> = {
+    logs: "Logs",
+    overview: "Overview",
+    progress: "Progress",
+    vulnerabilities: "Vulnerabilities",
+  };
+  const activeSectionTitle =
+    (detail.section && sectionTitles[detail.section]) ??
+    (terminal.has(item.state) ? "Overview" : "Progress");
+  const criticalVulnerabilities =
+    (item.vulnerabilityScan?.severityTotals.critical ?? 0) +
+    (item.vulnerabilityScan?.severityTotals.high ?? 0);
+
   return (
     <DashboardPage
       icon={Rocket01Icon}
       actions={actions}
       badge={<StatusBadge status={displayStatus} />}
       breadcrumbAncestors={breadcrumbAncestors}
-      breadcrumbLabel={`Deployment ${item.id.slice(0, 8)}`}
-      title={`Deployment ${item.id.slice(0, 8)}`}
-      titleContent={
-        <span className="inline-flex min-w-0 items-center gap-2">
-          <span>Deployment</span>
-          <TypographyCode title={item.id}>{item.id.slice(0, 8)}</TypographyCode>
-        </span>
-      }
+      breadcrumbLabel={activeSectionTitle}
+      title="Deployment"
     >
       {item.errorMessage ? (
         <Alert
@@ -429,7 +439,6 @@ export function DeploymentDetail() {
                     </Attributes.Item>
                   </Attributes>
                 </div>
-                <DeploymentVulnerabilityScanPanel deployment={item} />
               </div>
             ),
           },
@@ -542,6 +551,27 @@ export function DeploymentDetail() {
               </EmptyState>
             ),
           },
+          ...(item.vulnerabilityScanningEnabled || item.vulnerabilityScan
+            ? [
+                {
+                  value: "vulnerabilities",
+                  label: "Vulnerabilities",
+                  icon: (
+                    <HugeiconsIcon
+                      icon={SecurityCheckIcon}
+                      className="size-4"
+                    />
+                  ),
+                  indicator: criticalVulnerabilities
+                    ? {
+                        label: String(criticalVulnerabilities),
+                        ariaLabel: `${criticalVulnerabilities} critical or high vulnerabilit${criticalVulnerabilities === 1 ? "y" : "ies"}`,
+                      }
+                    : undefined,
+                  content: <DeploymentVulnerabilities deployment={item} />,
+                },
+              ]
+            : []),
         ]}
       />
     </DashboardPage>

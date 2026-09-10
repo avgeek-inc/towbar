@@ -21,9 +21,14 @@ export default async function Page({
   };
   if (
     !section ||
-    !["overview", "monitoring", "deployments", "logs", "settings"].includes(
-      section,
-    ) ||
+    ![
+      "overview",
+      "monitoring",
+      "deployments",
+      "logs",
+      "settings",
+      "vulnerabilities",
+    ].includes(section) ||
     sectionPath.length > 2 ||
     (child && !children[section]?.includes(child))
   )

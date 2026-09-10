@@ -192,7 +192,11 @@ void test(
       // No rules exist: count entities once, even across metrics and replicas. Exactly 80 is healthy.
       assert.deepEqual(
         await getWorkspaceMonitoringSummary(workspaceId, summaryNow),
-        { activeIncidents: 0, pressuredEntities: 2 },
+        {
+          activeIncidents: 0,
+          criticalVulnerabilities: 0,
+          pressuredEntities: 2,
+        },
       );
       await db.insert(monitoringSamples).values({
         serverId,

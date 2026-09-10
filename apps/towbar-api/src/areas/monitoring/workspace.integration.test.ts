@@ -105,6 +105,7 @@ void test(
         await import("./workspace-summary.js");
       assert.deepEqual(await getWorkspaceMonitoringSummary(workspaceId), {
         activeIncidents: 1,
+        criticalVulnerabilities: 0,
         pressuredEntities: 0,
       });
       const query = monitoringOverviewQuery.parse({ limit: 1 });

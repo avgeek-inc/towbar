@@ -20,7 +20,11 @@ type Workload = {
   sourceId: string;
   kind?: string;
 };
-export function createScoutFixture(serverIds: string[], workloads: Workload[]) {
+export function createScoutFixture(
+  serverIds: string[],
+  workloads: Workload[],
+  criticalVulnerabilities = 0,
+) {
   const now = Date.now();
   const iso = (ago: number) => new Date(now - ago * 60_000).toISOString();
   const destinations = serverIds.map((serverId) => ({
@@ -136,6 +140,7 @@ export function createScoutFixture(serverIds: string[], workloads: Workload[]) {
       if (url.pathname.endsWith("/summary")) {
         send(200, {
           activeIncidents: incidents.filter((i) => !i.resolvedAt).length,
+          criticalVulnerabilities,
           pressuredEntities: 2,
         });
         return true;
