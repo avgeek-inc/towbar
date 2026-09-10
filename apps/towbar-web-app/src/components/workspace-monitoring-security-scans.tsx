@@ -252,12 +252,6 @@ function SeveritySummary({
           </Widget>
         ))}
       </div>
-      <p className="text-sm text-muted">
-        {summary.scansWithFindings} app
-        {summary.scansWithFindings === 1 ? "" : "s"} with findings ·{" "}
-        {summary.cleanScans} clean · {summary.failedScans} failed ·{" "}
-        {summary.activeScans} in progress
-      </p>
     </section>
   );
 }
