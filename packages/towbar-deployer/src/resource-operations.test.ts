@@ -24,7 +24,7 @@ void describe("Resource operation scripts", () => {
     ]) {
       assert.match(script, /towbar\.managed/);
       assert.match(script, /towbar\.deployable/);
-      assert.match(script, /towbar\.app/);
+      assert.doesNotMatch(script, /towbar\.app/);
     }
   });
 

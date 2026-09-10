@@ -95,6 +95,14 @@ not a list of untouched work.
 
 ## Latest verification
 
+- Resource ownership audit: backup, runtime actions and restore preflight now
+  require the exact instance label. Removed the legacy manifest-label fallback
+  and its positional arguments. A shell regression rejects sibling and missing
+  instance owners before Docker operations, and accepts the exact owner for log
+  capture. All 34 focused resource tests, deployer typecheck and scoped lint pass.
+  Volume paths use instance IDs; complete database data/backup isolation still
+  needs execution proof. Continue auditing restored-container cleanup labels.
+
 - Opt-in Docker execution: the alias integration test passed with real
   containers, checking replacement, collision rejection, rollback and independent
   responses from the same alias in separate production/staging networks. Cleanup

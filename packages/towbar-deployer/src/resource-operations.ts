@@ -39,12 +39,10 @@ container="$2"
 remote_dir="$3"
 backup_path="$4"
 deployable_id="$5"
-manifest_id="$6"
 install -d -m 700 "$remote_dir"
 test "$(docker inspect --format '{{index .Config.Labels "towbar.managed"}}' "$container")" = true
 owned="$(docker inspect --format '{{index .Config.Labels "towbar.deployable"}}' "$container")"
-legacy="$(docker inspect --format '{{index .Config.Labels "towbar.app"}}' "$container")"
-test "$owned" = "$deployable_id" || test "$legacy" = "$manifest_id"
+test "$owned" = "$deployable_id"
 if test "$kind" = postgres; then
   docker exec "$container" sh -c 'exec pg_dump -U "${"$"}{POSTGRES_USER:-postgres}" -d "${"$"}{POSTGRES_DB:-postgres}" --format=custom --no-owner --no-privileges' >"$backup_path"
   test -s "$backup_path"
@@ -70,13 +68,11 @@ set -euo pipefail
 operation="$1"
 container="$2"
 deployable_id="$3"
-manifest_id="$4"
-tail_lines="$5"
+tail_lines="$4"
 managed="$(docker inspect --format '{{index .Config.Labels "towbar.managed"}}' "$container")"
 owned="$(docker inspect --format '{{index .Config.Labels "towbar.deployable"}}' "$container")"
-legacy="$(docker inspect --format '{{index .Config.Labels "towbar.app"}}' "$container")"
 test "$managed" = true
-test "$owned" = "$deployable_id" || test "$legacy" = "$manifest_id"
+test "$owned" = "$deployable_id"
 case "$operation" in
   capture_logs) docker logs --timestamps --tail "$tail_lines" "$container" 2>&1 ;;
   restart) docker restart --time 30 "$container" >/dev/null ;;
@@ -224,7 +220,6 @@ export async function executeResourceOperation(input: {
         context.request.type,
         release.containerName,
         context.deployableId,
-        deployable.id,
         context.request.type === "capture_logs"
           ? String(context.request.tail)
           : "0",
@@ -292,7 +287,6 @@ async function createBackup(input: {
       input.remoteDirectory,
       remotePath,
       input.context.deployableId!,
-      input.deployable.id,
     ],
     { signal: input.signal, timeoutMs: 30 * 60_000 },
   );
