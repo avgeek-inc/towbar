@@ -167,7 +167,7 @@ export function calculateReleaseDeploymentDigest(input: {
   };
 }
 
-function calculateDesiredDeploymentDigest(input: {
+export function calculateDesiredDeploymentDigest(input: {
   commitSha: string;
   deployable: NormalizedDeployable;
   repositoryTree?: RepositoryTree;

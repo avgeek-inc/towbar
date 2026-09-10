@@ -5,6 +5,7 @@ import {
   decryptCredential,
   encryptCredential,
   parseCredentialsMasterKey,
+  requiredKeysForStage,
   validateSecretObject,
 } from "@workspace/towbar-core";
 import {
@@ -12,6 +13,7 @@ import {
   auditEvents,
   managedSecrets,
   servers,
+  sourceEnvironments,
   sources,
   workspaces,
 } from "@workspace/towbar-database/schema";
@@ -31,14 +33,14 @@ export type SecretOwner = { workspaceId: string } & (
   | { type: "server"; id: string }
 );
 export type SecretSlot = SecretOwner & {
-  environment: "production" | "preview";
+  environment: string;
   stage: string;
 };
 export const ownerKey = (owner: SecretOwner) =>
   owner.type === "workspace"
     ? `workspace:${owner.workspaceId}`
     : `${owner.type}:${owner.id}`;
-const slotKey = (slot: SecretSlot) =>
+export const slotKey = (slot: SecretSlot) =>
   `${slot.workspaceId}:${ownerKey(slot)}:${slot.environment}:${slot.stage}`;
 
 export async function requireSecretOwner(
@@ -89,10 +91,40 @@ export function secretSlotFilter(slot: SecretSlot) {
   );
 }
 
+async function declaredKeysForSlot(slot: SecretSlot, database: SecretDatabase) {
+  if (slot.type !== "app") return null;
+  const [instance] = await database
+    .select({
+      declarations: apps.requiredSecrets,
+      environment: sourceEnvironments.name,
+    })
+    .from(apps)
+    .innerJoin(
+      sourceEnvironments,
+      eq(sourceEnvironments.id, apps.sourceEnvironmentId),
+    )
+    .where(and(eq(apps.id, slot.id), eq(apps.workspaceId, slot.workspaceId)))
+    .limit(1);
+  if (!instance) return null;
+  if (
+    slot.environment !== instance.environment &&
+    slot.environment !== `preview:${instance.environment}`
+  ) {
+    throw unprocessable(
+      "Secret environment does not match this instance",
+      "SECRET_ENVIRONMENT_MISMATCH",
+    );
+  }
+  return instance.declarations
+    ? requiredKeysForStage(instance.declarations, slot.stage)
+    : [];
+}
+
 export async function readSecretMetadata(
   slot: SecretSlot,
   database: SecretDatabase = getTowbarDatabase(),
 ) {
+  const declaredKeys = await declaredKeysForSlot(slot, database);
   const [row] = await database
     .select({
       keys: managedSecrets.keys,
@@ -102,13 +134,29 @@ export async function readSecretMetadata(
     .from(managedSecrets)
     .where(secretSlotFilter(slot))
     .limit(1);
-  return row ?? { keys: [] as string[], revision: null, updatedAt: null };
+  const metadata = row ?? {
+    keys: [] as string[],
+    revision: null,
+    updatedAt: null,
+  };
+  if (declaredKeys === null)
+    return { ...metadata, missingKeys: [] as string[], declared: false };
+  const current = await readSecretValues(slot, database);
+  return {
+    ...metadata,
+    keys: [...declaredKeys].sort(),
+    missingKeys: declaredKeys
+      .filter((key) => !Object.hasOwn(current.values, key))
+      .sort(),
+    declared: true,
+  };
 }
 
 export async function readSecretValues(
   slot: SecretSlot,
   database: SecretDatabase = getTowbarDatabase(),
 ) {
+  await declaredKeysForSlot(slot, database);
   const [row] = await database
     .select()
     .from(managedSecrets)
@@ -154,6 +202,17 @@ export async function mutateSecret(
         "These secrets changed after loading. Refresh before saving.",
         "SECRET_VERSION_CHANGED",
       );
+    const declaredKeys = await declaredKeysForSlot(slot, database);
+    if (
+      declaredKeys !== null &&
+      (mutation.delete.length > 0 ||
+        Object.keys(mutation.set).some((key) => !declaredKeys.includes(key)))
+    ) {
+      throw unprocessable(
+        "Required secret keys are managed in YAML. Edit values here; sync YAML to add or remove keys.",
+        "SECRET_DECLARATIONS_MANAGED",
+      );
+    }
     const current = await readSecretValues(slot, database);
     const values = applySecretMutation(current.values, mutation);
     if (
@@ -186,7 +245,10 @@ export async function mutateSecret(
       stage: slot.stage,
       revision,
       updatedAt,
-      keys: Object.keys(values).sort(),
+      keys:
+        declaredKeys === null
+          ? Object.keys(values).sort()
+          : [...declaredKeys].sort(),
       encryptedPayload: encryptCredential({
         associatedData: `${slotKey(slot)}:${id}`,
         masterKey: parseCredentialsMasterKey(getEnv().TOWBAR_CREDENTIALS_KEY),

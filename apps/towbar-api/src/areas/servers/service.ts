@@ -42,6 +42,7 @@ export const sshLoginSecretSchema = z
   .strict();
 
 export const serverSelection = {
+  slug: servers.slug,
   archivedAt: servers.archivedAt,
   canonicalIp: servers.canonicalIp,
   config: servers.config,

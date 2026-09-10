@@ -17,6 +17,7 @@ import {
   sources,
 } from "@workspace/towbar-database/schema";
 
+import { executeEnvironmentSync } from "./environment-sync.js";
 import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import {
@@ -259,6 +260,7 @@ export async function executeSourceSync(syncId: string) {
   const [sync] = await getTowbarDatabase()
     .select({
       sourceId: sourceSyncs.sourceId,
+      sourceEnvironmentId: sourceSyncs.sourceEnvironmentId,
       workspaceId: sources.workspaceId,
     })
     .from(sourceSyncs)
@@ -266,6 +268,8 @@ export async function executeSourceSync(syncId: string) {
     .where(eq(sourceSyncs.id, syncId))
     .limit(1);
   if (!sync) throw notFound("Source sync");
+  if (sync.sourceEnvironmentId)
+    return executeEnvironmentSync(syncId, sync.workspaceId);
   return await applySourceSync({ ...sync, syncId });
 }
 

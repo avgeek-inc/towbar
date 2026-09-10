@@ -143,6 +143,9 @@ const ipAddressSchema = z
   .trim()
   .refine((value) => isIP(value) !== 0, "Expected an IPv4 or IPv6 address");
 
+export const serverSlugSchema = z.string().regex(appIdPattern);
+const serverReferenceSchema = z.union([ipAddressSchema, serverSlugSchema]);
+
 const redirectSchema = z
   .object({
     host: domainSchema,
@@ -381,14 +384,14 @@ const resourceBackupSchema = z
     }
   });
 
-const appSchema = z
+export const appSchema = z
   .object({
     autoDeploy: appAutoDeploySchema.optional(),
     vulnerabilityScanning: z.boolean().optional(),
     id: z.string().trim().regex(appIdPattern),
     name: z.string().trim().min(1).max(120),
     description: z.string().trim().max(500).optional(),
-    server: ipAddressSchema,
+    server: serverReferenceSchema,
     dockerfile: repositoryPathSchema,
     context: repositoryPathSchema.optional(),
     container: z
@@ -573,7 +576,7 @@ function validateResourceConnectivity(
   }
 }
 
-const resourceSchema = z
+export const resourceSchema = z
   .object({
     access: resourceAccessSchema.optional(),
     autoDeploy: z.boolean().optional(),
@@ -583,7 +586,7 @@ const resourceSchema = z
     description: z.string().trim().max(500).optional(),
     type: z.enum(["image", "postgres", "redis"]),
     image: z.string().trim().regex(dockerImagePattern).optional(),
-    server: ipAddressSchema,
+    server: serverReferenceSchema,
     container: z
       .object({
         command: z.array(hookArgumentSchema).min(1).max(64).optional(),
@@ -665,7 +668,7 @@ const resourceSchema = z
 
 export const deploymentManifestSchema = z
   .object({
-    version: z.literal(1),
+    version: z.union([z.literal(1), z.literal(2)]),
     deploymentInputs: z
       .record(
         z.string().regex(deploymentInputGroupPattern),
@@ -683,7 +686,10 @@ export const deploymentManifestSchema = z
   })
   .strict()
   .superRefine((manifest, context) => {
-    if ((manifest.apps?.length ?? 0) + (manifest.resources?.length ?? 0) < 1) {
+    if (
+      manifest.version === 1 &&
+      (manifest.apps?.length ?? 0) + (manifest.resources?.length ?? 0) < 1
+    ) {
       context.addIssue({
         code: "custom",
         message: "Declare at least one app or resource",
@@ -694,13 +700,21 @@ export const deploymentManifestSchema = z
       ...(manifest.apps ?? []),
       ...(manifest.resources ?? []),
     ];
-    findDuplicates(deployables.map((deployable) => deployable.id)).forEach(
-      (id) =>
-        context.addIssue({
-          code: "custom",
-          message: `Deployable id '${id}' is declared more than once`,
-          path: [],
-        }),
+    findDuplicates(
+      manifest.version === 1
+        ? deployables.map((deployable) => deployable.id)
+        : [
+            ...(manifest.apps ?? []).map((app) => `app:${app.id}`),
+            ...(manifest.resources ?? []).map(
+              (resource) => `resource:${resource.id}`,
+            ),
+          ],
+    ).forEach((id) =>
+      context.addIssue({
+        code: "custom",
+        message: `Deployable id '${id}' is declared more than once`,
+        path: [],
+      }),
     );
 
     const claimedDomains = new Map<string, string>();
@@ -931,7 +945,7 @@ export type NormalizedDeploymentManifest = {
   apps: NormalizedApp[];
   resources?: NormalizedResource[];
   source: { branch: string };
-  version: 1;
+  version: 1 | 2;
 };
 
 export type ManifestIssue = {
@@ -1019,7 +1033,7 @@ export function normalizeDeploymentManifest(
   const parsed = deploymentManifestSchema.parse(manifest);
   const sourceBranch = parsed.source?.branch ?? "main";
   return {
-    version: 1,
+    version: parsed.version,
     source: { branch: sourceBranch },
     apps: (parsed.apps ?? [])
       .map((app) => {

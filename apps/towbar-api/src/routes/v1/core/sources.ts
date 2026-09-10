@@ -1,3 +1,4 @@
+import { sourceEnvironmentRoutes } from "./source-environments.js";
 import { filterSources, sourceFilters } from "@workspace/towbar-core/inventory";
 import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
@@ -39,6 +40,7 @@ const sourceSchema = z
   })
   .strict();
 export const sourceRoutes = new Hono<TowbarHonoEnvironment>();
+sourceRoutes.route("/:sourceId/environments", sourceEnvironmentRoutes);
 
 sourceRoutes.get(
   "/",

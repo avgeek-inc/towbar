@@ -44,6 +44,8 @@ export function sourceSyncDeploymentIdempotencyKey(input: {
 export async function scheduleSourceAutomaticDeployments(syncId: string) {
   const [sync] = await getTowbarDatabase()
     .select({
+      sourceEnvironmentId: sourceSyncs.sourceEnvironmentId,
+      deployAfterSync: sourceSyncs.deployAfterSync,
       commitSha: sourceSyncs.commitSha,
       requestedBy: sourceSyncs.requestedBy,
       sourceId: sourceSyncs.sourceId,
@@ -54,7 +56,11 @@ export async function scheduleSourceAutomaticDeployments(syncId: string) {
     .innerJoin(sources, eq(sources.id, sourceSyncs.sourceId))
     .where(eq(sourceSyncs.id, syncId))
     .limit(1);
-  if (!sync || !isSourceSyncEligibleForAutomaticDeployments(sync)) {
+  if (
+    !sync ||
+    (sync.sourceEnvironmentId && !sync.deployAfterSync) ||
+    !isSourceSyncEligibleForAutomaticDeployments(sync)
+  ) {
     return { deploymentIds: [] };
   }
   const result = await scheduleEligibleAutomaticDeployments({

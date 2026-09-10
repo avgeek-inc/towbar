@@ -33,6 +33,7 @@ import type {
   NormalizedDeployable,
   NormalizedDeploymentManifest,
   NormalizedServer,
+  RequiredSecrets,
   BackupAssuranceCheck,
   BackupAssuranceStatus,
   RestoreOperationPhase,
@@ -365,6 +366,77 @@ export const sources = pgTable(
   ],
 );
 
+export const sourceEnvironments = pgTable(
+  "towbar_source_environments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 63 }).notNull(),
+    branch: varchar("branch", { length: 255 }).notNull(),
+    mappingRevision: uuid("mapping_revision").defaultRandom().notNull(),
+    previewsEnabled: boolean("previews_enabled").default(false).notNull(),
+    latestCommitSha: varchar("latest_commit_sha", { length: 64 }),
+    latestManifestDigest: varchar("latest_manifest_digest", { length: 64 }),
+    latestSuccessfulSyncId: uuid("latest_successful_sync_id"),
+    autoDeployPaused: boolean("auto_deploy_paused").default(false).notNull(),
+    disconnectedAt: timestamp("disconnected_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_source_environments_name").on(
+      table.sourceId,
+      table.name,
+    ),
+    uniqueIndex("uq_towbar_source_environments_owner").on(
+      table.id,
+      table.sourceId,
+    ),
+    index("idx_towbar_source_environments_branch").on(
+      table.sourceId,
+      table.branch,
+    ),
+  ],
+);
+
+export const sourceEntities = pgTable(
+  "towbar_source_entities",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "cascade" }),
+    entityType: varchar("entity_type", { length: 16 })
+      .$type<"app" | "resource">()
+      .notNull(),
+    manifestId: varchar("manifest_id", { length: 63 }).notNull(),
+    resourceType: varchar("resource_type", { length: 16 }).$type<
+      "image" | "postgres" | "redis"
+    >(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_source_entities_identity").on(
+      table.sourceId,
+      table.entityType,
+      table.manifestId,
+    ),
+    uniqueIndex("uq_towbar_source_entities_owner").on(table.id, table.sourceId),
+    check(
+      "towbar_source_entity_kind",
+      sql`(${table.entityType} = 'app' AND ${table.resourceType} IS NULL) OR (${table.entityType} = 'resource' AND ${table.resourceType} IN ('image', 'postgres', 'redis'))`,
+    ),
+  ],
+);
+
 export const workspaceAwsCredentials = pgTable(
   "towbar_workspace_aws_credentials",
   {
@@ -652,6 +724,12 @@ export const sourceSyncs = pgTable(
     sourceId: uuid("source_id")
       .notNull()
       .references(() => sources.id, { onDelete: "cascade" }),
+    sourceEnvironmentId: uuid("source_environment_id").references(
+      () => sourceEnvironments.id,
+      { onDelete: "cascade" },
+    ),
+    mappingRevision: uuid("mapping_revision"),
+    deployAfterSync: boolean("deploy_after_sync").default(false).notNull(),
     status: sourceSyncStatusEnum("status").default("queued").notNull(),
     commitSha: varchar("commit_sha", { length: 64 }),
     manifestDigest: varchar("manifest_digest", { length: 64 }),
@@ -703,6 +781,7 @@ export const servers = pgTable(
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
+    slug: varchar("slug", { length: 63 }),
     canonicalIp: varchar("canonical_ip", { length: 64 }).notNull(),
     config: jsonb("config").$type<NormalizedServer>().notNull(),
     configDigest: varchar("config_digest", { length: 64 }).notNull(),
@@ -720,6 +799,10 @@ export const servers = pgTable(
     uniqueIndex("uq_towbar_servers_secret_owner").on(
       table.id,
       table.workspaceId,
+    ),
+    uniqueIndex("uq_towbar_servers_workspace_slug").on(
+      table.workspaceId,
+      table.slug,
     ),
     uniqueIndex("uq_towbar_servers_workspace_ip").on(
       table.workspaceId,
@@ -843,6 +926,14 @@ export const apps = pgTable(
     serverId: uuid("server_id")
       .notNull()
       .references(() => servers.id, { onDelete: "restrict" }),
+    entityId: uuid("entity_id").references(() => sourceEntities.id, {
+      onDelete: "cascade",
+    }),
+    sourceEnvironmentId: uuid("source_environment_id").references(
+      () => sourceEnvironments.id,
+      { onDelete: "cascade" },
+    ),
+    requiredSecrets: jsonb("required_secrets").$type<RequiredSecrets>(),
     manifestId: varchar("manifest_id", { length: 63 }).notNull(),
     kind: deployableKindEnum("kind").default("app").notNull(),
     name: varchar("name", { length: 120 }).notNull(),
@@ -870,9 +961,9 @@ export const apps = pgTable(
       table.workspaceId,
       table.sourceId,
     ),
-    uniqueIndex("uq_towbar_apps_source_manifest_id").on(
-      table.sourceId,
-      table.manifestId,
+    uniqueIndex("uq_towbar_apps_environment_entity").on(
+      table.sourceEnvironmentId,
+      table.entityId,
     ),
     index("idx_towbar_apps_workspace").on(table.workspaceId),
     index("idx_towbar_apps_server").on(table.serverId),
@@ -1547,7 +1638,7 @@ export const managedSecrets = pgTable(
       onDelete: "cascade",
     }),
     owner: text("owner").notNull(),
-    environment: deploymentEnvironmentEnum("environment")
+    environment: varchar("environment", { length: 80 })
       .notNull()
       .default("production"),
     stage: text("stage").notNull(),
