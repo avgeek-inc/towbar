@@ -177,27 +177,36 @@ tests. Do not reset the hosted installation or use its database.
 
 ## Remaining delivery work
 
-1. Audit persistent/preview deployment labels throughout UI and generated docs.
-   Deployment records now preserve a required target environment snapshot with
-   ID, name, branch and mapping revision; history filters use that snapshot.
-2. Complete the audit of resource operations, backups/restores, monitoring,
-   alerts and scanning
-   for instance/environment scope and labels. Validate that resource secret
-   stage declarations match stages the resource editor and execution support.
-3. Verify remaining environment controls, readiness, validation failures and
-   permalinks in rendered pages, including Source-scoped inventory views.
-4. Complete declared-secret fixture handlers and per-environment manifest
-   configuration fidelity. Connection/discovery, branch edits, disconnect and
-   reconnect now have stateful fixture coverage.
-   Exercise Form/File editing, reveal, missing/empty values and branch changes.
-5. Prove complete local production/staging app/database and PR workflows,
-   including failure isolation, stale jobs, cleanup, resource data separation and
-   worker execution. Run relevant Docker/Temporal tests in supported isolated
-   environments; do not treat their default skips as success.
-6. Finish user documentation, README/screenshots, examples and release notes;
-   audit generated schemas/contracts after remaining model changes.
-7. Review the full diff, finish draft PR #112, resolve remote CI and complete the
-   delivery checklist. Publish 2.0.0 only after merge.
+This list supersedes earlier pending-work notes in the chronological evidence
+below. It does not treat fixture coverage as real deployment proof.
+
+1. Complete backup archive download/import/restore execution against isolated
+   environment instances. Admission and execution check resource/source/workspace
+   ownership; real Redis promotion and sibling-data isolation passed separately.
+   Full archive transport/import remains unproven.
+2. Finish the rendered UI and label audit against current fixtures: Source-scoped
+   inventory, environment controls, readiness, Form/File secret editing and
+   permalinks. Existing browser checks and refreshed screenshots are recorded
+   below; review remaining routes before marking the whole UI area complete.
+3. Review the complete diff and reconcile every delivery checklist item, including
+   documentation, generated API/MCP contracts, examples and release notes. The
+   connected app/PR deployment and cleanup harness now passes; webhook dispatch
+   and source synchronization have separate test coverage, not live GitHub proof.
+4. Finish draft PR #112 and check remote CI at its final head. Publish 2.0.0 only
+   after review and merge. Do not modify the hosted installation during this work.
+
+### Current verification checkpoint
+
+At `ed6050e`, `TOWBAR_TEST_DATABASE_URL=... pnpm verify` passed docs, formatting,
+lint, typechecks, all standard tests and builds. The API suite ran 228 tests
+against the disposable PostgreSQL database with zero skips. Docker/Temporal
+proof remains the explicit opt-in lifecycle evidence below; the default gate
+still contains unrelated environment-gated skips.
+
+The resource operation audit confirmed instance-scoped backup/restore selection
+in `resource-operations/service.ts`, execution-time ownership checks in
+`resource-operations/execution.ts`, and exact instance labels in the remote
+backup/restore scripts. This code review is not archive import execution proof.
 
 ### Onboarding browser verification
 
@@ -478,3 +487,6 @@ calls the reconciliation service directly, with GitHub transport simulated;
 webhook authentication and event-workflow dispatch still rely on their separate
 coverage. Server preparation and source synchronization are seeded prerequisites,
 not runtime assertions in this harness. Final scope audit remains outstanding.
+
+The final generated API response/catalogue check (`pnpm docs:api:check`) also
+passed at the `ed6050e` implementation checkpoint.
