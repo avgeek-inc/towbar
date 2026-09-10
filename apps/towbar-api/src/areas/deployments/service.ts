@@ -267,7 +267,7 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
     runtimeId:
       context.environment === "preview"
         ? await getPreviewRuntimeId(context.previewEnvironmentId!)
-        : context.app.id,
+        : appId,
     githubToken:
       context.kind === "deploy"
         ? await createInstallationToken(context.installationId)

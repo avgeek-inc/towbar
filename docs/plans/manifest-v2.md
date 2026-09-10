@@ -95,6 +95,14 @@ not a list of untouched work.
 
 ## Latest verification
 
+- Final identity pass: persistent API execution contexts and deployer defaults
+  use the instance UUID, not the shared manifest ID. Resource image cleanup
+  labels use that same identity. The database execution-context regression and
+  all 16 secrets/inventory tests pass; deployer defaults pass 122 tests with two
+  explicit Docker skips. `pnpm verify` passed after these changes, including
+  docs, formatting, lint, types, standard tests and builds. Real Docker and
+  Temporal results below remain separate from this default gate.
+
 - Resource ownership audit: backup, runtime actions and restore preflight now
   require the exact instance label. Removed the legacy manifest-label fallback
   and its positional arguments. A shell regression rejects sibling and missing
@@ -156,7 +164,8 @@ tests. Do not reset the hosted installation or use its database.
 1. Audit persistent/preview deployment labels throughout UI and generated docs.
    Deployment records now preserve a required target environment snapshot with
    ID, name, branch and mapping revision; history filters use that snapshot.
-2. Audit resource operations, backups/restores, monitoring, alerts and scanning
+2. Audit rollback admission locking and resource operations, backups/restores,
+   monitoring, alerts and scanning
    for instance/environment scope and labels. Validate that resource secret
    stage declarations match stages the resource editor and execution support.
 3. Verify remaining environment controls, readiness, validation failures and

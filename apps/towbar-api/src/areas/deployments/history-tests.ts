@@ -111,6 +111,10 @@ export async function testDeploymentHistory({
                 : null,
           })),
         );
+        const { getDeploymentExecutionContext } = await import("./service.js");
+        const execution = await getDeploymentExecutionContext(ids[2]!);
+        assert.equal(execution.runtimeId, resourceId);
+        assert.notEqual(execution.runtimeId, resourceConfig.id);
         const query = (input: Record<string, unknown> = {}) =>
           listDeploymentHistory({
             ...historyQuerySchema.parse(input),
