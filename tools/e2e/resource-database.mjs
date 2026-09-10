@@ -143,7 +143,7 @@ export async function createResourceLifecycleDatabase({
     }
     return {
       close,
-      async prepare(name, app) {
+      async prepare(name, app, resolve = true) {
         const instance = instances.get(name);
         const requiredSecrets = {
           build: [],
@@ -203,6 +203,7 @@ export async function createResourceLifecycleDatabase({
           serverSnapshot: server,
           deployableKind: "redis",
         });
+        if (!resolve) return { deploymentId };
         await recordDeploymentEvent(deploymentId, {
           state: "waiting_for_server",
         });
@@ -219,7 +220,15 @@ export async function createResourceLifecycleDatabase({
           },
         };
       },
-      async verify(runningInstances) {
+      async result(deploymentId) {
+        const [release] = await db
+          .select()
+          .from(schema.releases)
+          .where(eq(schema.releases.deploymentId, deploymentId));
+        assert(release, "Successful workflow must commit a release");
+        return release;
+      },
+      async verify(runningInstances, failureState = "checking_health") {
         const rows = await db
           .select()
           .from(schema.releases)
@@ -256,7 +265,7 @@ export async function createResourceLifecycleDatabase({
           (item) => item.state !== "succeeded",
         );
         assert.equal(failedCandidate.length, 1);
-        assert.equal(failedCandidate[0].state, "checking_health");
+        assert.equal(failedCandidate[0].state, failureState);
         assert(!rows.some((row) => row.deploymentId === failedCandidate[0].id));
         assert.equal(
           deployments.filter((item) => item.state === "succeeded").length,

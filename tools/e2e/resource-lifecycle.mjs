@@ -13,6 +13,7 @@ import { startTestTarget } from "./target.mjs";
 
 const target = await startTestTarget();
 let database;
+let temporal;
 try {
   const server = normalizeServerConfiguration({
     ip: "127.0.0.1",
@@ -27,6 +28,11 @@ try {
       trustedHostKeys,
       key: target.key,
     });
+  }
+  if (process.env.TOWBAR_TEST_TEMPORAL_ADDRESS) {
+    assert(database, "Temporal mode requires TOWBAR_TEST_DATABASE_URL");
+    const { startResourceTemporal } = await import("./resource-temporal.mjs");
+    temporal = await startResourceTemporal();
   }
   const sourceId = randomUUID();
   const instances = new Map(
@@ -54,7 +60,7 @@ try {
       app.health = { type: "command", command: ["false"], timeoutSeconds: 2 };
     const previous = instance.current;
     const execution = database
-      ? await database.prepare(name, app)
+      ? await database.prepare(name, app, !temporal)
       : {
           context: {
             app,
@@ -89,7 +95,10 @@ try {
             }),
           },
         };
-    const result = await executeDeployment(execution);
+    const result = temporal
+      ? (await temporal.execute(execution.deploymentId),
+        await database.result(execution.deploymentId))
+      : await executeDeployment(execution);
     instance.current = result;
     return result;
   };
@@ -129,13 +138,19 @@ try {
     .split("\n")
     .sort();
   assert.deepEqual(running, [originalProduction, retainedStaging].sort());
-  if (database) await database.verify(instances);
+  if (database)
+    await database.verify(instances, temporal ? "failed" : "checking_health");
+  if (temporal) await temporal.verify();
   console.log(
     "Production/staging data isolation, redeployment, failed-health recovery and candidate cleanup verified.",
   );
 } finally {
   try {
-    if (database) await database.close();
+    try {
+      if (temporal) await temporal.close();
+    } finally {
+      if (database) await database.close();
+    }
   } finally {
     target.close();
   }

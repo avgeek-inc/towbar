@@ -60,3 +60,33 @@ removed afterward; use a disposable test database.
 The runner calls services directly. It does not exercise HTTP admission or
 Temporal delivery, and the unsuccessful candidate remains at `checking_health`
 until test cleanup because workflow failure handling is not part of this mode.
+
+## Temporal resource lifecycle
+
+Start a dedicated local Temporal development server in a separate terminal:
+
+```sh
+temporal server start-dev --ip 127.0.0.1 --port 17239 --headless
+```
+
+Build the API, deployer and worker, then run:
+
+```sh
+pnpm --filter towbar-api build
+pnpm --filter towbar-worker build
+TOWBAR_TEST_TEMPORAL_ADDRESS=127.0.0.1:17239 \
+TOWBAR_TEST_DATABASE_URL=postgres://user:password@localhost:5432/towbar_test \
+node tools/e2e/resource-lifecycle.mjs
+```
+
+This mode serves the production internal API on a random loopback port and runs
+production deployment activities on a unique Temporal task queue. Each deployment
+runs through `runDeploymentWorkflow`, including signed HTTP requests, secret
+resolution, release commits, and failure recovery. Assertions require three
+completed workflows, one failed workflow, matching database/runtime releases,
+and successful replay of all four histories. The worker, API listener, test rows
+and Docker target are closed afterward. Stop the dedicated Temporal server when
+finished; its workflow histories remain available until then.
+
+Deployment requests are seeded directly in PostgreSQL. This verifies execution,
+not user-facing admission, source synchronization, or server queue coordination.

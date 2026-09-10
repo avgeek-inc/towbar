@@ -253,3 +253,15 @@ and no release for the unhealthy candidate. The runner removes its workspace
 rows and target afterward. HTTP admission and Temporal delivery are not exercised;
 the failed attempt stays at checking_health until cleanup because workflow
 failure handling is outside this direct-service harness.
+
+### Temporal resource execution
+
+The resource lifecycle passed with the production deployment workflow and
+activities on a disposable local Temporal server. Activities called the real
+signed internal HTTP API, which resolved encrypted secrets and committed release
+transactions in the isolated PostgreSQL database. Three workflows completed;
+the unhealthy candidate produced a failed workflow and terminal failed database
+state while preserving the previous runtime. All four histories replayed
+successfully. The worker, API listener, workspace rows and Docker target were
+cleaned up. Requests remain seeded directly: user-facing admission and server
+queue coordination are not proven by this execution test.
