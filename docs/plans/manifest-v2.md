@@ -5,7 +5,7 @@ description: "Delivery requirements and verification checkpoints for environment
 
 # Manifest v2 implementation
 
-Status: in progress. Release as 2.0.0 after review and merge; do not publish during implementation.
+Status: implementation and local verification complete; final remote verification and PR review remain. Release as 2.0.0 after review and merge; do not publish during implementation.
 
 ## Contract
 
@@ -31,18 +31,20 @@ Status: in progress. Release as 2.0.0 after review and merge; do not publish dur
 
 ## Delivery checklist
 
-- [ ] Core v2 schemas, file discovery, overrides, secret declarations, deterministic resolved configuration.
-- [ ] Repository/environment/logical-entity/instance schema and server slugs.
-- [ ] GitHub discovery and immutable file loading; API connection and environment mapping endpoints.
-- [ ] Environment-specific atomic sync, stale-job guards, webhooks, initial sync without deployment.
-- [ ] Secret reconciliation and validation in Form/File modes, bulk reveal, shared references and deployment admission.
-- [ ] App/resource deployment, resource operations/backups, monitoring and vulnerability scope.
-- [ ] Preview mapping, PR configuration isolation, hostname and secret scope, cleanup.
-- [ ] Source connection/review and environment UI; entity pages, filters, permalinks.
-- [ ] API/MCP contracts and generated docs.
-- [ ] Fixtures, examples, screenshots, user documentation and release notes.
-- [ ] End-to-end Production/Staging app/database and PR preview proof; failed-sync/secret-isolation checks.
-- [ ] Full local verification, PR, remote CI. Publish 2.0.0 only after merge.
+- [x] Core v2 schemas, file discovery, overrides, secret declarations, deterministic resolved configuration.
+- [x] Repository/environment/logical-entity/instance schema and server slugs.
+- [x] GitHub discovery and immutable file loading; API connection and environment mapping endpoints.
+- [x] Environment-specific atomic sync, stale-job guards, webhooks, initial sync without deployment.
+- [x] Secret reconciliation and validation in Form/File modes, bulk reveal, shared references and deployment admission.
+- [x] App/resource deployment, resource operations/backups, monitoring and vulnerability scope.
+- [x] Preview mapping, PR configuration isolation, hostname and secret scope, cleanup.
+- [x] Source connection/review and environment UI; entity pages, filters, permalinks.
+- [x] API/MCP contracts and generated docs.
+- [x] Fixtures, examples, screenshots, user documentation and release notes.
+- [x] End-to-end Production/Staging app/database and PR preview proof; failed-sync/secret-isolation checks.
+- [x] Full local verification and draft PR #112.
+- [ ] Final-head remote CI and PR review.
+- [ ] Merge and publish 2.0.0.
 
 ## Current implementation
 
@@ -77,7 +79,8 @@ not a list of untouched work.
 - Previews: mapped base-branch eligibility, target and app opt-in, immutable PR
   head resolution, isolated PR declarations, target admission guards and cleanup
   selection are implemented. Lifecycle locking protects reconciliation and
-  manual redeploy. Real end-to-end PR execution remains unproven.
+  manual redeploy. The connected PR lifecycle below proves deployment, update and
+  cleanup through the real API, worker and disposable Docker target.
 - UI: server slugs, Source environment controls, instance environment switching,
   inventory environment filters, deployment history filters and URL navigation
   exist. Workspace and Source inventories group instances by logical entity,
@@ -177,23 +180,21 @@ tests. Do not reset the hosted installation or use its database.
 
 ## Remaining delivery work
 
-This list supersedes earlier pending-work notes in the chronological evidence
-below. It does not treat fixture coverage as real deployment proof.
+The checklist above is the current delivery status. The checkpoints below are
+chronological evidence; their earlier pending-work statements are superseded by
+later results and this section.
 
-1. Review the Redis restore correction and its completed backup/import lifecycle
-   evidence below. Admission and execution check resource/source/workspace
-   ownership separately; cloud-provider transport is not exercised by the local
-   storage adapter.
-2. Finish the rendered UI and label audit against current fixtures: Source-scoped
-   inventory, environment controls, readiness, Form/File secret editing and
-   permalinks. Existing browser checks and refreshed screenshots are recorded
-   below; review remaining routes before marking the whole UI area complete.
-3. Review the complete diff and reconcile every delivery checklist item, including
-   documentation, generated API/MCP contracts, examples and release notes. The
-   connected app/PR deployment and cleanup harness now passes; webhook dispatch
-   and source synchronization have separate test coverage, not live GitHub proof.
-4. Finish draft PR #112 and check remote CI at its final head. Publish 2.0.0 only
-   after review and merge. Do not modify the hosted installation during this work.
+1. Confirm final-head remote CI and complete PR review. The current implementation
+   has passed the full local gate with PostgreSQL, and the final rendered review
+   covers Source inventories, environment controls, readiness, Form/File secrets,
+   mobile layout and navigation.
+2. Merge, then prepare and publish 2.0.0 through the release pipeline. Do not reset
+   or modify the hosted installation as part of this implementation.
+
+Verification boundaries: GitHub payloads and archive responses are controlled in
+the connected PR harness; webhook dispatch has separate integration coverage.
+Backup bytes use a local storage adapter, with cloud transport covered separately.
+These tests do not claim a live GitHub installation or hosted deployment run.
 
 ### Current verification checkpoint
 
@@ -577,3 +578,23 @@ The release notes now include Redis AOF restore recovery, sync retry/enqueue
 races and mobile declared-secret layout. Light/dark File-mode screenshots were
 recaptured from the current staging fixture, with matching intrinsic dimensions
 and horizontal padding. They show a synthetic value, not a real credential.
+
+### Final Source inventory and monitoring review
+
+The current fixture Source Apps and Resources permalinks both render one logical
+entity group with separate production and staging rows. Resource rows link to
+different instance UUIDs, display main/develop beneath their environment names,
+and retain the shared logical-entity count in the sidebar. The desktop capture
+was visually inspected after the route assertions passed.
+
+The monitoring diff retains instance UUID identity while exposing environment
+names in entity search and alert/incident labels. Its PostgreSQL regression
+creates same-name sibling instances, searches staging and verifies the returned
+instance and alert/incident environment labels. Deployment comparison responses
+include the recorded target environment, and deployment chips display that name
+with a Preview suffix where applicable.
+
+At implementation head `3d81a91`, the complete remote CI run passed: verify
+(including generated contracts, PostgreSQL tests and builds), CodeQL, docs,
+Compose and monitoring-agent. The subsequent checklist-only commit will receive
+its own final-head checks before merge.
