@@ -394,12 +394,9 @@
                 "pages": [
                   "api-reference/get_monitoring_entities",
                   "api-reference/get_monitoring_alerts",
-                  "api-reference/get_monitoring_incidents"
+                  "api-reference/get_monitoring_incidents",
+                  "api-reference/get_monitoring_vulnerabilities"
                 ]
-              },
-              {
-                "group": "Security scans",
-                "pages": ["api-reference/get_monitoring_security_scans"]
               },
               {
                 "group": "Shared secrets",

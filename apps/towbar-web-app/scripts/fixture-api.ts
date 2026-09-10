@@ -2257,7 +2257,7 @@ function getFixturePayload(
         vulnerabilityFindings,
     };
   }
-  if (path === "/v1/core/monitoring/security-scans") {
+  if (path === "/v1/core/monitoring/vulnerabilities") {
     return getSecurityScansFixture(searchParams);
   }
   if (deploymentMatch) {

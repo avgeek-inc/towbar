@@ -18,7 +18,7 @@ const readRoutes = [
   "/v1/core/servers",
   "/v1/core/deployments",
   "/v1/core/deployments/history",
-  "/v1/core/monitoring/security-scans",
+  "/v1/core/monitoring/vulnerabilities",
   "/v1/core/system-health",
   "/v1/core/aws",
   "/v1/core/settings/secrets",
@@ -622,7 +622,7 @@ test("the local fixture ranks workspace advisories by severity with affected app
 
   try {
     const response = await fetch(
-      `${baseUrl}/v1/core/monitoring/security-scans`,
+      `${baseUrl}/v1/core/monitoring/vulnerabilities`,
     );
     assert.equal(response.status, 200);
     const payload = await response.json();
@@ -643,7 +643,7 @@ test("the local fixture ranks workspace advisories by severity with affected app
     assert.equal(payload.summary.cleanScans, 1);
 
     const criticalOnly = await fetch(
-      `${baseUrl}/v1/core/monitoring/security-scans?severity=critical`,
+      `${baseUrl}/v1/core/monitoring/vulnerabilities?severity=critical`,
     ).then((item) => item.json());
     assert.equal(criticalOnly.findings.length, 2);
     assert.equal(
@@ -653,7 +653,7 @@ test("the local fixture ranks workspace advisories by severity with affected app
     assert.equal(criticalOnly.summary.critical, 2);
 
     const paged = await fetch(
-      `${baseUrl}/v1/core/monitoring/security-scans?limit=5`,
+      `${baseUrl}/v1/core/monitoring/vulnerabilities?limit=5`,
     ).then((item) => item.json());
     assert.equal(paged.findings.length, 5);
     assert.equal(paged.nextPage, 2);

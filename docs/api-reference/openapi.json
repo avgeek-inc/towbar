@@ -8471,11 +8471,11 @@
         }
       }
     },
-    "/monitoring/security-scans": {
+    "/monitoring/vulnerabilities": {
       "get": {
-        "operationId": "get_monitoring_security_scans",
+        "operationId": "get_monitoring_vulnerabilities",
         "summary": "List workspace vulnerability findings",
-        "tags": ["Workspace / Security scans"],
+        "tags": ["Workspace / Monitoring"],
         "description": "Available to workspace members and owners. Read-only and full-access keys are accepted.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [

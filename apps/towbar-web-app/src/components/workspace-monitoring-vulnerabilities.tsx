@@ -27,7 +27,7 @@ const severityOrder = ["critical", "high", "medium", "low", "unknown"] as const;
 
 type Severity = (typeof severityOrder)[number];
 
-export function WorkspaceSecurityScans() {
+export function WorkspaceVulnerabilities() {
   const [severity, setSeverity] = useQueryChoice(
     "severity",
     ["all", ...severityOrder],
@@ -35,7 +35,7 @@ export function WorkspaceSecurityScans() {
   );
   const [page, setPage] = useState(1);
   const query = useApiQuery<WorkspaceVulnerabilityFindings>(
-    `/v1/core/monitoring/security-scans?severity=${severity}&page=${page}&limit=20`,
+    `/v1/core/monitoring/vulnerabilities?severity=${severity}&page=${page}&limit=20`,
     30_000,
     { keepPreviousData: true },
   );
@@ -59,39 +59,46 @@ export function WorkspaceSecurityScans() {
     {
       key: "package",
       header: "Package",
+      cell: (finding) => finding.packageName,
+      className: "whitespace-nowrap",
+    },
+    {
+      key: "installed",
+      header: "Installed",
       cell: (finding) => (
-        <div className="grid gap-1">
-          <span className="font-medium">{finding.packageName}</span>
-          <span className="text-xs text-muted">
-            {finding.installedVersion} →{" "}
-            {finding.fixedVersion ?? "No fix available"}
-          </span>
-        </div>
+        <TypographyCode>{finding.installedVersion}</TypographyCode>
       ),
-      className: "min-w-56",
+      className: "whitespace-nowrap",
+    },
+    {
+      key: "fixed",
+      header: "Fixed in",
+      cell: (finding) =>
+        finding.fixedVersion ? (
+          <TypographyCode>{finding.fixedVersion}</TypographyCode>
+        ) : (
+          "Not available"
+        ),
+      className: "whitespace-nowrap",
+    },
+    {
+      key: "entity",
+      header: "Entity",
+      cell: (finding) => (
+        <Link
+          className="focus-visible:ring-focus hover:font-medium inline-flex items-center rounded-sm outline-none focus-visible:ring-2"
+          href={`/sources/${finding.sourceId}/deployments/${finding.deploymentId}`}
+        >
+          {finding.appName}
+        </Link>
+      ),
+      className: "whitespace-nowrap",
     },
     {
       key: "target",
       header: "Target",
       cell: (finding) => (
-        <TooltipText
-          className="block max-w-48 truncate"
-          tooltip={finding.target}
-        >
-          {finding.target}
-        </TooltipText>
-      ),
-    },
-    {
-      key: "app",
-      header: "Affected entity",
-      cell: (finding) => (
-        <Link
-          className="focus-visible:ring-focus inline-flex items-center rounded-sm font-medium underline underline-offset-4 outline-none focus-visible:ring-2"
-          href={`/sources/${finding.sourceId}/deployments/${finding.deploymentId}`}
-        >
-          {finding.appName}
-        </Link>
+        <TooltipText tooltip={finding.target}>{finding.target}</TooltipText>
       ),
       className: "whitespace-nowrap",
     },
@@ -108,7 +115,7 @@ export function WorkspaceSecurityScans() {
     },
   ];
   return (
-    <DashboardPage title="Security scans" icon={SecurityCheckIcon}>
+    <DashboardPage title="Vulnerabilities" icon={SecurityCheckIcon}>
       <SecondaryItems
         title="Severity"
         selected={severity}

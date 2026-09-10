@@ -61,8 +61,10 @@ export const sectionOrder = [
 // Match the most specific task before a broader collection or runtime route.
 const rules: Record<string, Array<[string, RegExp]>> = {
   monitoring: [
-    ["Security scans", /^\/monitoring\/security-scans$/],
-    ["Monitoring", /^\/monitoring\/(entities|alerts|incidents)$/],
+    [
+      "Monitoring",
+      /^\/monitoring\/(entities|alerts|incidents|vulnerabilities)$/,
+    ],
   ],
   sources: [
     ["Secrets", /\/secrets(?:\/|$)/],

@@ -9,7 +9,7 @@
     "monitoring-overview.ts:get:\"/incidents\"": {
       "$ref": "#/components/schemas/Response_9"
     },
-    "monitoring-overview.ts:get:\"/security-scans\"": {
+    "monitoring-overview.ts:get:\"/vulnerabilities\"": {
       "$ref": "#/components/schemas/Response_14"
     },
     "monitoring-overview.ts:get:\"/summary\"": {
