@@ -40,6 +40,41 @@ Manifest validation is atomic. Invalid configuration or a reference to an unregi
   </p>
 </div>
 
+## Map environments to branches
+
+Open **Environments** inside the Source to see its branch mappings and sync
+status. **Edit branch** changes a mapping in Towbar; branch names do not belong
+in `towbar.yml`. Saving validates and syncs the selected branch without deploying.
+If that branch cannot be read or its configuration is invalid, Towbar preserves
+the last valid configuration and existing secret values.
+
+PR previews follow the branch mapped to an environment with previews enabled.
+For example, staging mapped to `develop` accepts eligible PRs targeting `develop`.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/features/source-environments-light.webp"
+      alt="Source environment mappings: staging follows develop with PR previews enabled, and production follows main. Both environments are synced."
+      width="2176"
+      height="676"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/features/source-environments-dark.webp"
+      alt="Source environment mappings: staging follows develop with PR previews enabled, and production follows main. Both environments are synced."
+      width="2176"
+      height="676"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Branch mappings are managed in Towbar, independently for each environment.
+  </p>
+</div>
+
 ## Change configuration
 
 Edit the entity files in Git and merge into the affected environment's mapped branch. A push webhook starts reconciliation; **Sync now** lets you request it explicitly. Review the sync's commit and issues before expecting a deployment.

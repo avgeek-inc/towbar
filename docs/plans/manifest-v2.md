@@ -385,3 +385,15 @@ caddy` succeeds. The target and nested Docker volumes were removed afterward.
 This closes the remote-cleanup/service-reload gap; PR webhook/admission and
 public DNS/TLS coverage remain separate requirements. Server preparation itself
 is not exercised by this target's preinstalled services.
+
+### Environment mapping screenshots
+
+Captured and visually inspected the fixture-backed Source Environments page in
+light and dark themes at 2x resolution (2176 by 676). The captures retain 32 CSS
+pixels of horizontal content padding. The source guide now shows production/main
+and staging/develop mappings and describes editing branches in the control plane.
+The rendered review also exposed a neutral Synced table badge; the shared badge
+now treats synced as a success state, matching the source header. Documentation
+checks passed for all 180 pages and shared UI lint passed. These are fixture UI
+captures, not evidence of GitHub or hosted deployment behavior. Other screenshots
+and the full PR lifecycle audit remain outstanding.

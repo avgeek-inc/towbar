@@ -30,6 +30,7 @@ const success = new Set([
   "ready",
   "restore_ready",
   "succeeded",
+  "synced",
   "trusted",
   "verified",
 ]);
