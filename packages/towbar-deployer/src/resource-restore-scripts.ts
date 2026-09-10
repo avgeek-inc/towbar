@@ -160,7 +160,7 @@ run_runtime() {
     --env "TOWBAR_COMMIT_SHA=$commit_sha" \
     --env "TOWBAR_DEPLOYMENT_ID=$deployment_id" \
     --label towbar.managed=true \
-    --label "towbar.app=$manifest_id" \
+    --label "towbar.app=$deployable_id" \
     --label "towbar.resource=$deployable_id" \
     --label "towbar.deployable=$deployable_id" \
     --label "towbar.source=$source_id" \

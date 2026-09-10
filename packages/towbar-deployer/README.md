@@ -25,6 +25,11 @@ and the self-managed Towbar worker cannot use this mode. Run the Docker
 integration test with `TOWBAR_DOCKER_TESTS=true pnpm --filter
 @workspace/towbar-deployer test`.
 
+This opt-in suite also runs Redis restore promotion against real Docker volumes.
+It checks that the restored container retains its instance ownership labels,
+that the previous volume remains available, and that a sibling environment keeps
+its data. It does not exercise backup upload/download or the API-to-worker path.
+
 Pre- and post-deploy hooks execute in disposable containers from the selected
 image, with the app's network and resource limits, an explicit hook-only secret
 bundle, a timeout, and redacted output. Pre-deploy failure aborts promotion;

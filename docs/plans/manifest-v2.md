@@ -101,7 +101,11 @@ not a list of untouched work.
   instance owners before Docker operations, and accepts the exact owner for log
   capture. All 34 focused resource tests, deployer typecheck and scoped lint pass.
   Volume paths use instance IDs; complete database data/backup isolation still
-  needs execution proof. Continue auditing restored-container cleanup labels.
+  needs complete execution proof. Restored-container cleanup labels now use
+  the instance ID, matching normal resource deployments. The opt-in Redis Docker
+  promotion test proves new-volume activation, previous-volume retention, correct
+  ownership labels and unchanged sibling environment data. Test containers and
+  volumes were cleaned up; archive download/import is outside this test.
 
 - Opt-in Docker execution: the alias integration test passed with real
   containers, checking replacement, collision rejection, rollback and independent
