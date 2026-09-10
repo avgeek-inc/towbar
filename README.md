@@ -29,15 +29,15 @@ workloads in a manifest. Towbar builds and runs them on your infrastructure.
 
 ## What you can do
 
-| Feature                | What it gives you                                                                                                                                     |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Deploy from Git        | Keep configuration with your code. Deploy manually, automatically, or only when selected files change.                                                |
-| Run apps and databases | Build Dockerfile apps on your servers. Run PostgreSQL, Redis, and container images with persistent storage.                                           |
-| Preview pull requests  | Share a stable preview URL with separate secrets. Environments are cleaned up when pull requests close or merge.                                      |
-| Manage secrets         | Edit encrypted values in Form or .env File mode, with owner-only reveal and explicit shared references.                                               |
-| Monitor performance    | Track server and workload history with Scout Agent, configure alerts and public uptime checks, and compare deployments for changes in resource usage. |
-| Back up and restore    | Schedule PostgreSQL and Redis backups to S3, check restore readiness, and restore through an isolated candidate before promotion.                     |
-| Stay informed          | Send deployment, preview, health, backup, and restore events to Slack or email.                                                                       |
+| Feature                | What it gives you                                                                                                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Deploy from Git        | Keep configuration with your code. Deploy manually, automatically, or only when selected files change.                                                                         |
+| Run apps and databases | Build Dockerfile apps on your servers. Run PostgreSQL, Redis, and container images with persistent storage.                                                                    |
+| Preview pull requests  | Share a stable preview URL with separate secrets. Environments are cleaned up when pull requests close or merge.                                                               |
+| Manage secrets         | Edit encrypted values in Form or .env File mode, with owner-only reveal and explicit shared references.                                                                        |
+| Monitor performance    | Track server and workload history with Scout Agent, configure alerts and public uptime checks, and compare deployments for changes in resource usage.                          |
+| Back up and restore    | Schedule PostgreSQL and Redis backups to S3, Google Cloud Storage, or Azure Blob Storage, check restore readiness, and restore through an isolated candidate before promotion. |
+| Stay informed          | Send deployment, preview, health, backup, and restore events to Slack or email.                                                                                                |
 
 ## Meet Scout Agent
 
@@ -47,6 +47,14 @@ workloads in a manifest. Towbar builds and runs them on your infrastructure.
 Follow server, app, and resource performance with updates every 30 seconds,
 deployment and restart markers, and up to 60 days of history. Install it from
 **Server → Settings → Scout Agent**.
+
+## Monitor, alert, and investigate
+
+- **Performance:** select a server, app, or resource in the monitoring sidebar to inspect CPU, memory, disk, and network history. Compare releases with equal observation windows and share a filtered view by URL.
+- **Alerts and incidents:** define metric thresholds or public HTTP checks, receive Slack or email notifications, and inspect active or resolved incidents with their graphs and delivery history. Maintenance mutes pause notifications while incident tracking continues.
+- **Vulnerabilities:** opt apps into image scanning after successful deployments. Review severity totals, affected packages, installed and fixed versions, and the scan’s freshness. Scanning reports findings separately from deployment success.
+
+Read the [monitoring guide](https://www.towbar.dev/docs/monitoring), [Scout Alerts guide](https://www.towbar.dev/docs/scout-alerts), and [vulnerability scanning guide](https://www.towbar.dev/docs/vulnerability-scanning).
 
 ## How it works
 

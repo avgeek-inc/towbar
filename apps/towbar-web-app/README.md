@@ -17,13 +17,14 @@ Pending` until the Server is ready.
 App and Resource pages show observed health/drift and bounded runtime actions.
 Infrastructure settings and lifecycle are projections of the Source manifest;
 removal and restoration happen through Git and Source sync. Secrets are
-editor-owned and independent of sync. Manage → Shared secrets and Source Settings hold
-Production and Preview defaults for build, runtime, pre-deploy, and post-deploy.
-Apps override each stage in the matching environment; resources inherit and
-override Production runtime values only. Owners can start with an empty
-configuration and add, replace, or delete values, then save them for the next
-deployment.
-Saved values remain write-only: only key names, origins, and revisions return.
+editor-owned and independent of sync. Shared secrets and Source settings store
+Production and Preview values separately for build, runtime, pre-deploy, and
+post-deploy stages. Apps reference shared values explicitly with
+`{{globals.ENV_KEY}}` or `{{source.ENV_KEY}}`; there is no automatic inheritance.
+Resources support Production runtime secrets only. Owners edit in Form or .env
+File mode, with owner-only reveal. File mode loads the selected scope’s values
+through one bulk-reveal request. Ordinary reads return metadata, not plaintext.
+Saving secrets does not enqueue a deployment.
 Server Settings holds connection, concurrency, Cloudflare enablement, SSH, and
 Cloudflare credentials.
 Source, App, and Resource Settings each expose one operator control for pausing
@@ -31,23 +32,23 @@ new automatic deployments. A Source pause applies to all of its deployables;
 manual deployment actions remain available.
 Apps with Preview enabled expose pull request environments, stable URLs,
 expiry, latest deployment status, and an owner cleanup action from the App
-page. Preview build and deployment secret bindings inherit only Preview defaults
-and are edited independently from Production bindings.
+page. Preview references resolve only Preview values and are edited independently
+from Production bindings.
 Database Resource pages expose verified backup policy, manual capture, and
-retained S3 artifact metadata. When configured by the manifest, the Resource
+retained S3, Google Cloud Storage, and Azure Blob Storage artifact metadata. When configured by the manifest, the Resource
 connection view exposes non-secret private-network and SSH-tunnel coordinates
 for tools such as TablePlus. Owners can restore an individually assured,
 retained PostgreSQL or Redis backup through an isolated candidate, validated
 promotion, and bounded rollback-volume retention.
 Server pages show host capacity on Overview and container capacity in an
-Apps/Resources tab. Host CPU, memory, Docker disk pressure, and uptime are shown
+Apps/Resources page. Host CPU, memory, Docker disk pressure, and uptime are shown
 separately from the runtime inventory, whose CPU and memory values include
 compact usage meters. The owning Source repeats those meters in its Apps and
 Resources inventories without a separate sync-status column. Server pages also
 list workspace server orphan candidates from the latest check; owner-confirmed
 cleanup is destructive and persistent volumes are never removed automatically.
 Trusted SSH host keys can be explicitly untrusted from the Server's Host Keys
-tab after confirmation.
+page after confirmation.
 Deployment details show the immutable Docker image digest and platform together
 with the source commit, manifest digest, and selected source-input digest.
 Source Settings also contains a Notifications section for Slack and SMTP
@@ -55,6 +56,18 @@ destinations. Provider credentials come from the API deployment environment;
 unconfigured provider types are not offered. Owners select event categories and supply only a Slack channel ID
 or email recipients; recent operational events appear in the application
 header without exposing provider secrets in the browser.
+
+## Navigation and monitoring
+
+The secondary sidebar holds page filters and entity sections, using dedicated
+paths for detail pages and settings. Filter and entity selections are restored
+from permalinks and browser history. On mobile, these controls appear in the
+Page menu.
+
+Workspace Performance, Alerts, and Incidents bring Scout measurements and
+incident history together. The Vulnerabilities page filters image findings by
+severity and links to deployment scan details. The overview pairs deployment
+trends with inventory and incident counts, followed by recent deployments.
 
 ## Local UI fixture
 

@@ -9,6 +9,37 @@ Towbar exposes several kinds of health. Read the relevant check and its timestam
 
 On Performance and Alerts, choose an entity type in the secondary sidebar, then select a server, app, or resource from the list. Search the list by name or IP address. Alerts also supports all entities of the selected type. On Incidents, choose **All incidents**, **Active**, or **Resolved**. On mobile, open **Page menu** for these controls.
 
+## Performance history
+
+Select **Monitoring → Performance**, choose an entity type, and select an entity in the sidebar. Use the time range and chart controls to inspect CPU, memory, disk, and network measurements. Workload views also offer environment and container selection. The URL retains the entity and chart filters, so a shared link opens the same view.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/guides/monitoring-performance-light.webp"
+      alt="Example Performance page with entity navigation and Scout resource usage charts."
+      width="3200"
+      height="2100"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/guides/monitoring-performance-dark.webp"
+      alt="Example Performance page with entity navigation and Scout resource usage charts."
+      width="3200"
+      height="2100"
+      loading="lazy"
+    />
+  </div>
+</div>
+
+Deployment and restart markers connect changes in usage to operational events. Drag across a chart to zoom, or choose a custom time range. Missing measurements appear as gaps. See [Scout Agent](/docs/scout) for collection and retention, and [Deployment comparisons](/docs/deployment-comparisons) for comparing releases over equal windows.
+
+## Alerts, incidents, and vulnerabilities
+
+Use **Monitoring → Alerts** to inspect configured rules and **Incidents** to review active or resolved conditions. Configure rules and notification destinations through [Scout Alerts](/docs/scout-alerts). **Vulnerabilities** provides a separate view of known package findings from app image scans; see [Vulnerability scanning](/docs/vulnerability-scanning).
+
 ## System health
 
 Open **Manage → System health** and choose **Run checks**.
@@ -25,8 +56,8 @@ A provider configuration badge means required settings exist. It does not confir
     <img
       src="/assets/guides/system-health-light.webp"
       alt="Example System health page with separate control-plane and integration checks."
-      width="2400"
-      height="1510"
+      width="2432"
+      height="1478"
       loading="lazy"
     />
   </div>
@@ -34,8 +65,8 @@ A provider configuration badge means required settings exist. It does not confir
     <img
       src="/assets/guides/system-health-dark.webp"
       alt="Example System health page with separate control-plane and integration checks."
-      width="2400"
-      height="1510"
+      width="2432"
+      height="1478"
       loading="lazy"
     />
   </div>
@@ -62,8 +93,8 @@ Server capacity columns describe the host's maximum capacity. They do not repres
     <img
       src="/assets/guides/server-workloads-light.webp"
       alt="Example server Apps view. Usage percentages are shown against each workload’s allocated CPU and memory."
-      width="2400"
-      height="810"
+      width="2064"
+      height="422"
       loading="lazy"
     />
   </div>
@@ -71,8 +102,8 @@ Server capacity columns describe the host's maximum capacity. They do not repres
     <img
       src="/assets/guides/server-workloads-dark.webp"
       alt="Example server Apps view. Usage percentages are shown against each workload’s allocated CPU and memory."
-      width="2400"
-      height="810"
+      width="2064"
+      height="422"
       loading="lazy"
     />
   </div>
@@ -84,7 +115,7 @@ Server capacity columns describe the host's maximum capacity. They do not repres
 
 ## Follow an operation
 
-Deployment, preparation, backup, and restore histories show stage progress and final results. Durations update while an operation is running. Date columns include the timezone and a relative time to help compare recent activity.
+Deployment, preparation, backup, and restore histories show stage progress and final results. Durations update while an operation is running. Date columns show relative time first, with the local date and time below it as **15:26, 10 Sept 2026**. Hover or focus the timestamp to see its timezone.
 
 For runtime problems, inspect the workload's logs and latest health check. For control-plane problems, start with:
 

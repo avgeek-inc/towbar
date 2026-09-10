@@ -112,6 +112,8 @@ after changing scanner configuration:
 docker compose up --detach --force-recreate api worker
 ```
 
+See [Vulnerability scanning](/docs/vulnerability-scanning) for workspace findings, scan states, and rescanning.
+
 ## Owner recovery
 
 Initial owner setup happens in the dashboard on an empty installation. For later recovery, `TOWBAR_OWNER_RESET_EMAIL` and `TOWBAR_OWNER_RESET_PASSWORD` must be set together. Follow the [recovery procedure](/docs/self-hosting/upgrades#forgotten-owner-password), then remove both variables.

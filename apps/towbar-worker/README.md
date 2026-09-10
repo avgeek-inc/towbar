@@ -35,5 +35,5 @@ cleanup is durable and targets only the pull request runtime identity.
 The coordinator also runs bounded Resource operations. Operations for one
 deployable serialize with its deployments; server-wide orphan cleanup is an
 exclusive barrier. A durable maintenance workflow wakes every five minutes to
-request read-only reconciliation and due UTC cron backups. S3 credentials and SSH
+request read-only reconciliation and due UTC cron backups. Cloud storage credentials and SSH
 keys are resolved only inside activities and never enter workflow history.

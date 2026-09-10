@@ -7,10 +7,10 @@ Preview environments let you review an app before merging a pull request. Each e
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/features/previews-light.webp" alt="Example preview environments with pull request URLs, commits, expiry times, and cleanup status." width="2120" height="508" loading="lazy" />
+    <img src="/assets/features/previews-light.webp" alt="Example preview environments with pull request URLs, commits, expiry times, and cleanup status." width="2064" height="716" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/features/previews-dark.webp" alt="Example preview environments with pull request URLs, commits, expiry times, and cleanup status." width="2120" height="508" loading="lazy" />
+    <img src="/assets/features/previews-dark.webp" alt="Example preview environments with pull request URLs, commits, expiry times, and cleanup status." width="2064" height="716" loading="lazy" />
   </div>
   <p>Example preview environments with pull request URLs, commits, expiry times, and cleanup status.</p>
 </div>

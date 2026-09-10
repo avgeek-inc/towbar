@@ -58,10 +58,10 @@ A successful sync imports **Hello Towbar** into the Source's Apps list. If it fa
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/features/sources-light.webp" alt="Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result." width="1800" height="624" loading="lazy" />
+    <img src="/assets/features/sources-light.webp" alt="Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result." width="2064" height="904" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/features/sources-dark.webp" alt="Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result." width="1800" height="624" loading="lazy" />
+    <img src="/assets/features/sources-dark.webp" alt="Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result." width="2064" height="904" loading="lazy" />
   </div>
   <p>Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result.</p>
 </div>
@@ -88,10 +88,10 @@ If a stage fails, open its output and correct that failure before retrying. The 
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/deployments-light.webp" alt="Example deployment history showing queued, active, successful, and failed attempts." width="2400" height="1290" loading="lazy" />
+    <img src="/assets/deployments-light.webp" alt="Example deployment history showing queued, active, successful, and failed attempts." width="3200" height="2100" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/deployments-dark.webp" alt="Example deployment history showing queued, active, successful, and failed attempts." width="2400" height="1290" loading="lazy" />
+    <img src="/assets/deployments-dark.webp" alt="Example deployment history showing queued, active, successful, and failed attempts." width="3200" height="2100" loading="lazy" />
   </div>
   <p>Example deployment history showing queued, active, successful, and failed attempts.</p>
 </div>
