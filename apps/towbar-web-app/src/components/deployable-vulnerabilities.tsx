@@ -1,4 +1,7 @@
 "use client";
+import { useState } from "react";
+import { Button } from "@workspace/web-design-system/buttons/button";
+import { ScoutIcon } from "./scout-icons";
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
@@ -27,9 +30,10 @@ export function DeployableVulnerabilities({
   appId: string;
   kind: "app" | "resource";
 }) {
+  const [page, setPage] = useState(1);
   const query = useApiQuery<WorkspaceVulnerabilityFindings>(
     kind === "app"
-      ? `/v1/core/monitoring/vulnerabilities?appId=${appId}&limit=50`
+      ? `/v1/core/monitoring/vulnerabilities?appId=${appId}&limit=50&page=${page}`
       : null,
   );
   if (kind === "resource") {
@@ -122,6 +126,27 @@ export function DeployableVulnerabilities({
         emptyTitle="No advisories"
         emptyDescription="Findings from the latest scan of this App's production image appear here ranked by severity."
       />
+      <div className="flex items-center justify-end gap-3">
+        <span className="text-sm text-muted">Page {page}</span>
+        <Button
+          size="sm"
+          variant="secondary"
+          isDisabled={page === 1}
+          onPress={() => setPage(page - 1)}
+        >
+          <ScoutIcon name="previous" />
+          Previous
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          isDisabled={!query.data.nextPage}
+          onPress={() => setPage(page + 1)}
+        >
+          <ScoutIcon name="next" />
+          Next
+        </Button>
+      </div>
     </div>
   );
 }

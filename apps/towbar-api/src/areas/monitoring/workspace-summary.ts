@@ -54,7 +54,7 @@ export async function getWorkspaceMonitoringSummary(
           SELECT DISTINCT ON (v.app_id) v.server_id, v.severity_totals
           FROM towbar_image_vulnerability_scans v
           WHERE v.workspace_id = ${workspaceId}::uuid
-          ORDER BY v.app_id, v.requested_at DESC
+          ORDER BY v.app_id, v.requested_at DESC, v.id DESC
         ) latest_scan
         JOIN scoped_servers s ON s.id = latest_scan.server_id) AS critical_vulnerabilities,
       (SELECT count(*)::int FROM pressured) AS pressured_entities
