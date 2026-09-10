@@ -28,6 +28,9 @@ export async function assertInstanceQueryIdentity({
   stage: typeof apps.$inferSelect;
 }) {
   await assertEnvironmentPushRouting();
+  const { assertEnvironmentOwnership } =
+    await import("./environment-ownership-tests.js");
+  await assertEnvironmentOwnership(stage);
   const database = getTowbarDatabase();
   const [unscoped] = await database
     .insert(sourceSyncs)

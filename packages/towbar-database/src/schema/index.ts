@@ -749,6 +749,11 @@ export const sourceSyncs = pgTable(
       .notNull(),
   },
   (table) => [
+    foreignKey({
+      name: "fk_towbar_source_syncs_environment_owner",
+      columns: [table.sourceEnvironmentId, table.sourceId],
+      foreignColumns: [sourceEnvironments.id, sourceEnvironments.sourceId],
+    }).onDelete("cascade"),
     index("idx_towbar_source_syncs_source_created").on(
       table.sourceId,
       table.createdAt,
@@ -956,6 +961,26 @@ export const apps = pgTable(
       .notNull(),
   },
   (table) => [
+    foreignKey({
+      name: "fk_towbar_apps_environment_owner",
+      columns: [table.sourceEnvironmentId, table.sourceId],
+      foreignColumns: [sourceEnvironments.id, sourceEnvironments.sourceId],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "fk_towbar_apps_entity_owner",
+      columns: [table.entityId, table.sourceId],
+      foreignColumns: [sourceEntities.id, sourceEntities.sourceId],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "fk_towbar_apps_source_owner",
+      columns: [table.sourceId, table.workspaceId],
+      foreignColumns: [sources.id, sources.workspaceId],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "fk_towbar_apps_server_owner",
+      columns: [table.serverId, table.workspaceId],
+      foreignColumns: [servers.id, servers.workspaceId],
+    }).onDelete("restrict"),
     uniqueIndex("uq_towbar_apps_secret_owner").on(
       table.id,
       table.workspaceId,
