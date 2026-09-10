@@ -109,7 +109,7 @@ export function ResourceTable<T>({
         </Table.Content>
       </Table.ScrollContainer>
       {footer ? (
-        <div className="text-muted typography--body-xs flex min-h-8 flex-wrap items-center gap-x-4 gap-y-1 px-4 pt-1 pb-2">
+        <div className="text-muted typography--body-xs flex min-h-8 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-1">
           {footer}
         </div>
       ) : null}
