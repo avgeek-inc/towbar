@@ -130,6 +130,35 @@ void test("logical app and resource may share an id", () => {
   assert.equal(result.manifest.apps[0]?.id, result.manifest.resources?.[0]?.id);
 });
 
+void test("resources declare runtime secrets only", () => {
+  const resource = {
+    id: "database",
+    name: "Database",
+    type: "postgres",
+    secrets: { runtime: ["POSTGRES_PASSWORD"] },
+    environments: { staging: { server: "staging-server" } },
+  };
+  assert.deepEqual(
+    resolve(app, "staging", resource).manifest.requiredSecrets[
+      "resource:database"
+    ],
+    {
+      build: [],
+      runtime: ["POSTGRES_PASSWORD"],
+      preDeploy: [],
+      postDeploy: [],
+    },
+  );
+  for (const stage of ["build", "preDeploy", "postDeploy"]) {
+    assert.throws(() =>
+      resolve(app, "staging", {
+        ...resource,
+        secrets: { ...resource.secrets, [stage]: ["TOKEN"] },
+      }),
+    );
+  }
+});
+
 void test("rejects unknown environments and identity overrides", () => {
   assert.throws(
     () =>

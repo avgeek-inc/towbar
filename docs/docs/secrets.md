@@ -29,8 +29,9 @@ References use the same environment and stage as the child variable. Each named 
 
 ### Required keys
 
-Declare `secrets.build`, `secrets.runtime`, `secrets.preDeploy`, and
-`secrets.postDeploy` at entity level. Sync adds new keys unset, preserves existing
+Apps declare `secrets.build`, `secrets.runtime`, `secrets.preDeploy`, and
+`secrets.postDeploy` at entity level. Resources declare only `secrets.runtime`;
+build and hook stages are rejected. Sync adds new keys unset, preserves existing
 values and references, and removes values for deleted declarations only in the
 synced environment. The editor always shows declared keys. Missing values block
 deployment; they do not block sync. Key changes are made in Git, while shared

@@ -78,6 +78,9 @@ export const requiredSecretsSchema = z
   })
   .strict();
 export type RequiredSecrets = z.infer<typeof requiredSecretsSchema>;
+export const resourceRequiredSecretsSchema = requiredSecretsSchema.pick({
+  runtime: true,
+});
 export type RepositoryManifest = z.infer<typeof repositoryManifestSchema>;
 export type RepositoryFile = { path: string; content: string };
 
@@ -253,9 +256,15 @@ export function resolveRepositoryEnvironment(input: {
     if (identities.has(identity))
       invalid(file.path, `Duplicate ${kind} id '${id}'`);
     identities.add(identity);
-    const required = validate(requiredSecretsSchema, secrets ?? {}, file.path);
-    if (kind === "resource" && required.build.length)
-      invalid(file.path, "Resources do not support build secrets");
+    const required = requiredSecretsSchema.parse(
+      validate(
+        kind === "resource"
+          ? resourceRequiredSecretsSchema
+          : requiredSecretsSchema,
+        secrets ?? {},
+        file.path,
+      ),
+    );
     const selected = overrides[input.environment];
     if (!selected) continue;
     const resolved = mergeEnvironmentConfiguration(defaults, selected);

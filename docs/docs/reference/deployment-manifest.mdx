@@ -97,8 +97,9 @@ Declare required key names under top-level `secrets.build`, `secrets.runtime`,
 entered in Towbar. New keys appear unset after sync, existing values and
 references are preserved, and removed declarations delete their stored values
 in the synced environment. Missing values block deployment, not sync.
-An explicitly saved empty string counts as a value. Resources support runtime
-secrets. See [Secrets](/docs/secrets) for reference syntax and reveal controls.
+An explicitly saved empty string counts as a value. Resources accept only
+`secrets.runtime`; build and hook stages are rejected. See [Secrets](/docs/secrets)
+for reference syntax and reveal controls.
 
 ## Apps and Resources
 

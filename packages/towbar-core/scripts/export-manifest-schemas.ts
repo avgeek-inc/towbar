@@ -10,6 +10,7 @@ import {
   environmentNameSchema,
   repositoryManifestSchema,
   requiredSecretsSchema,
+  resourceRequiredSecretsSchema,
 } from "../src/manifest-v2.js";
 
 type Schema = Record<string, unknown>;
@@ -44,7 +45,10 @@ function entitySchema(
   );
   properties.server = z.toJSONSchema(serverSlugSchema, { io: "input" });
   overrides.server = properties.server;
-  properties.secrets = z.toJSONSchema(requiredSecretsSchema, { io: "input" });
+  properties.secrets = z.toJSONSchema(
+    kind === "resource" ? resourceRequiredSecretsSchema : requiredSecretsSchema,
+    { io: "input" },
+  );
   properties.environments = {
     type: "object",
     propertyNames: environmentNames,
