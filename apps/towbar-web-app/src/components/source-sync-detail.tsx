@@ -43,8 +43,8 @@ export function SourceSyncDetail() {
     5_000,
   );
   const breadcrumbAncestors = useSourceBreadcrumbs(sourceId, {
-    href: `/sources/${sourceId}?section=info`,
-    label: "Info",
+    href: `/sources/${sourceId}/sync-history`,
+    label: "Sync history",
   });
 
   if (query.error) {

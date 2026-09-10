@@ -314,6 +314,13 @@ export function createSourceConnectionFixture(input: {
     if (child === "deployments") return { deployments: [] };
     if (child === "capacity") return { capacities: [] };
     if (child === "backups") return { backups: [] };
+    const syncMatch = child?.match(/^syncs\/([^/]+)$/);
+    if (syncMatch) {
+      const record = history.find(
+        (item) => item.sourceId === source.id && item.id === syncMatch[1],
+      );
+      return record ? { sync: record } : undefined;
+    }
     if (child === "syncs")
       return { syncs: history.filter((item) => item.sourceId === source.id) };
     return undefined;

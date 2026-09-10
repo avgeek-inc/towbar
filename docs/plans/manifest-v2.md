@@ -184,8 +184,9 @@ tests. Do not reset the hosted installation or use its database.
    stage declarations match stages the resource editor and execution support.
 3. Verify remaining environment controls, readiness, validation failures and
    permalinks in rendered pages, including Source-scoped inventory views.
-4. Convert remaining fixture handlers for connection/discovery, declared secrets
-   and complete per-environment manifest configuration fidelity.
+4. Complete declared-secret fixture handlers and per-environment manifest
+   configuration fidelity. Connection/discovery, branch edits, disconnect and
+   reconnect now have stateful fixture coverage.
    Exercise Form/File editing, reveal, missing/empty values and branch changes.
 5. Prove complete local production/staging app/database and PR workflows,
    including failure isolation, stale jobs, cleanup, resource data separation and
@@ -195,3 +196,13 @@ tests. Do not reset the hosted installation or use its database.
    audit generated schemas/contracts after remaining model changes.
 7. Review the full diff, open the PR, resolve remote CI and complete the delivery
    checklist. Publish 2.0.0 only after merge. No v2 PR or release is complete yet.
+
+### Onboarding browser verification
+
+The local fixture-backed browser verified repository discovery, connecting only
+staging from `develop`, changing its branch to `main`, disconnect confirmation,
+disconnected state and preview disabling, reconnect confirmation, and sync detail
+navigation. The sync detail breadcrumb now leads to `/sync-history` instead of
+the obsolete `?section=info` route. Fixture sync records are readable by ID and
+scoped to their source; all 25 fixture tests, web typecheck and targeted lint pass.
+This is UI/fixture evidence, not proof of real GitHub fetch or worker execution.

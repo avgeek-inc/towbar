@@ -1197,6 +1197,18 @@ test("connecting a selected environment persists isolated instances without depl
       });
     const original = (await get(`/sources/${source.id}/apps`)).apps[0];
     const initialHistory = (await get(`/sources/${source.id}/syncs`)).syncs;
+    assert.deepEqual(
+      (await get(`/sources/${source.id}/syncs/${initialHistory[0].id}`)).sync,
+      initialHistory[0],
+    );
+    assert.equal(
+      (
+        await fetch(
+          `${base}/sources/${fixtureIds.source}/syncs/${initialHistory[0].id}`,
+        )
+      ).status,
+      404,
+    );
     let mapping = environments[0];
     const changed = await mutate("PATCH", `${endpoint}/${mapping.id}`, {
       branch: "main",
