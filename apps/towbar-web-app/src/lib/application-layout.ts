@@ -13,6 +13,7 @@ import {
   Logout03Icon,
   PlugSocketIcon,
   Rocket01Icon,
+  SecurityCheckIcon,
   ServerStack01Icon,
   UserAccountIcon,
   Settings01Icon,
@@ -42,6 +43,7 @@ const sidebarIcons = defineSidebarIcons({
   profile: UserAccountIcon,
   resources: DatabaseIcon,
   secrets: Key01Icon,
+  vulnerabilities: SecurityCheckIcon,
   servers: ServerStack01Icon,
   sessions: ComputerIcon,
   sources: GitBranchIcon,
@@ -154,6 +156,13 @@ const sidebar = {
           href: "/monitoring/incidents",
           icon: sidebarIcons.incidents,
         },
+        {
+          kind: "link",
+          id: "vulnerabilities",
+          label: "Vulnerabilities",
+          href: "/monitoring/vulnerabilities",
+          icon: sidebarIcons.vulnerabilities,
+        },
       ],
     },
     {
@@ -209,7 +218,11 @@ const sidebar = {
 export function createApplicationSidebar(
   onSignOut: () => void,
   counts: ApplicationSidebarCounts = {},
-  monitoring?: { activeIncidents: number; pressuredEntities: number },
+  monitoring?: {
+    activeIncidents: number;
+    criticalVulnerabilities: number;
+    pressuredEntities: number;
+  },
 ) {
   return {
     ...sidebar,
@@ -241,7 +254,9 @@ export function createApplicationSidebar(
                     ? monitoring?.activeIncidents
                     : item.id === "performance"
                       ? monitoring?.pressuredEntities
-                      : undefined;
+                      : item.id === "vulnerabilities"
+                        ? monitoring?.criticalVulnerabilities
+                        : undefined;
                 return !value
                   ? item
                   : {
@@ -249,13 +264,15 @@ export function createApplicationSidebar(
                       badge: {
                         value,
                         tone:
-                          item.id === "incidents"
-                            ? ("danger" as const)
-                            : ("warning" as const),
+                          item.id === "performance"
+                            ? ("warning" as const)
+                            : ("danger" as const),
                         label:
                           item.id === "incidents"
                             ? `${value} active incident${value === 1 ? "" : "s"}`
-                            : `${value} entit${value === 1 ? "y" : "ies"} with resource usage above 80%`,
+                            : item.id === "performance"
+                              ? `${value} entit${value === 1 ? "y" : "ies"} with resource usage above 80%`
+                              : `${value} critical or high vulnerabilit${value === 1 ? "y" : "ies"}`,
                       },
                     };
               }),

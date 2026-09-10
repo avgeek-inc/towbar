@@ -259,9 +259,9 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
                             ? "rounded-full px-1.5 py-0.5 text-center font-medium"
                             : "text-end text-muted",
                           item.badge.tone === "danger" &&
-                            "bg-danger/15 text-danger",
+                            "bg-[var(--danger-soft)] text-danger-soft-foreground",
                           item.badge.tone === "warning" &&
-                            "bg-warning/15 text-warning",
+                            "bg-[var(--warning-soft)] text-warning-soft-foreground",
                         )}
                       >
                         {item.badge.value}

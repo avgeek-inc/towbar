@@ -383,7 +383,7 @@ void test(
       });
       const { testDeploymentHistory } =
         await import("../deployments/history-tests.js");
-      await testDeploymentHistory({
+      const deploymentContext = {
         t,
         db,
         workspaceId,
@@ -395,7 +395,11 @@ void test(
         appConfig,
         resourceConfig: manifest.resources![0]!,
         serverConfig,
-      });
+      };
+      await testDeploymentHistory(deploymentContext);
+      const { testWorkspaceVulnerabilities } =
+        await import("../vulnerability-scans/workspace-tests.js");
+      await testWorkspaceVulnerabilities(deploymentContext);
       const { testInventory } =
         await import("../inventory/integration-tests.js");
       await testInventory({

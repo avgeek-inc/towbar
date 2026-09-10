@@ -20,6 +20,7 @@ export default async function Page({
       "previews",
       "logs",
       "settings",
+      "vulnerabilities",
     ].includes(section) ||
     sectionPath.length > 2 ||
     (child && !children[section]?.includes(child))

@@ -486,13 +486,13 @@ function McpSetup({ url }: { url: string }) {
         {client === "codex" ? (
           <div className="text-muted text-sm">
             Set{" "}
-            <pre className="inline whitespace-nowrap rounded bg-default px-1.5 py-0.5 text-foreground">
+            <pre className="inline whitespace-nowrap rounded bg-default px-1 py-0.25 text-foreground">
               <code>TOWBAR_API_KEY</code>
             </pre>{" "}
             to your key in the environment that launches Codex, then restart it.
             The configuration stores the variable name, not the key. In the CLI,
             use{" "}
-            <code className="rounded bg-default px-1.5 py-0.5 text-foreground">
+            <code className="rounded bg-default px-1 py-0.25 text-foreground">
               /mcp
             </code>{" "}
             to check the connection.

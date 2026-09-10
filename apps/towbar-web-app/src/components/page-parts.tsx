@@ -134,6 +134,7 @@ export function PageTabs({
   defaultValue: string;
   tabs: Array<{
     content: ReactNode;
+    group?: string;
     icon?: ReactNode;
     indicator?:
       | boolean
@@ -174,9 +175,7 @@ export function PageTabs({
           selectedKey,
           selectedKey === "settings"
             ? (detail.settings ?? undefined)
-            : selectedKey === "info"
-              ? (searchParams.get("source-information") ?? detail.subpage)
-              : undefined,
+            : undefined,
           true,
         ),
       );
@@ -215,11 +214,11 @@ export function PageTabs({
         />
       ) : null}
       <SecondaryItems
-        title="Sections"
+        title="Manage"
         selected={selectedKey}
         onSelect={selectSection}
         items={tabs
-          .filter((tab) => tab.value !== "settings")
+          .filter((tab) => !tab.group && tab.value !== "settings")
           .map((tab) => ({
             id: tab.value,
             label: tab.label,
@@ -240,6 +239,37 @@ export function PageTabs({
               ),
           }))}
       />
+      {[
+        ...new Set(tabs.filter((tab) => tab.group).map((tab) => tab.group!)),
+      ].map((group) => (
+        <SecondaryItems
+          key={group}
+          title={group}
+          selected={selectedKey}
+          onSelect={selectSection}
+          items={tabs
+            .filter((tab) => tab.group === group)
+            .map((tab) => ({
+              id: tab.value,
+              label: tab.label,
+              icon: tab.icon,
+              badge:
+                typeof tab.indicator === "object" ? (
+                  tab.indicator.dot ? (
+                    <span
+                      role="img"
+                      aria-label={tab.indicator.ariaLabel ?? "Needs attention"}
+                      className="inline-block size-2 rounded-full bg-warning"
+                    />
+                  ) : (
+                    tab.indicator.label
+                  )
+                ) : (
+                  tab.indicator
+                ),
+            }))}
+        />
+      ))}
       <DetailSettingsContext.Provider value={selectedKey === "settings"}>
         {tabs.find((tab) => tab.value === "settings")?.content}
       </DetailSettingsContext.Provider>

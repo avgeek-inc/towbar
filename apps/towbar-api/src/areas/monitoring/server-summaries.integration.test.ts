@@ -155,10 +155,12 @@ void test(
         );
       assert.deepEqual(await getWorkspaceMonitoringSummary(workspaceId, now), {
         activeIncidents: 0,
+        criticalVulnerabilities: 0,
         pressuredEntities: 1,
       });
       assert.deepEqual(await getWorkspaceMonitoringSummary(randomUUID(), now), {
         activeIncidents: 0,
+        criticalVulnerabilities: 0,
         pressuredEntities: 0,
       });
       await db
