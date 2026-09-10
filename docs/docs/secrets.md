@@ -54,8 +54,8 @@ AUTH_HEADER="Bearer {{globals.API_TOKEN}}"
 Removing a line deletes that key when saved; `KEY=` saves an empty string. Unchanged values are preserved. Switching modes does not save: use **Save** to apply edits. References remain expressions in the editor and resolve only for execution.
 
 <div className="towbar-doc-screenshot">
-  <div className="towbar-product-light"><img src="/assets/guides/secrets-file-light.webp" alt="The .env File editor using synthetic example secret values." width="2160" height="1168" loading="lazy" /></div>
-  <div className="towbar-product-dark"><img src="/assets/guides/secrets-file-dark.webp" alt="The .env File editor using synthetic example secret values." width="2160" height="1168" loading="lazy" /></div>
+  <div className="towbar-product-light"><img src="/assets/guides/secrets-file-light.webp" alt="The staging Build secrets File editor with a YAML-declared key and a synthetic value." width="2192" height="1404" loading="lazy" /></div>
+  <div className="towbar-product-dark"><img src="/assets/guides/secrets-file-dark.webp" alt="The staging Build secrets File editor with a YAML-declared key and a synthetic value." width="2192" height="1404" loading="lazy" /></div>
 </div>
 
 ## Save and deploy

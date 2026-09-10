@@ -47,6 +47,11 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ### Fixed
 
+- Redis restores load RDB snapshots before enabling append-only persistence,
+  preventing an empty database from passing restore health checks.
+- Completed environment syncs remain successful when delayed retries or lost
+  queue responses arrive after the worker has progressed.
+- Declared secret inputs use the full card width on mobile.
 - Deployment and rollback admission reject disconnected, stale, archived, or
   unprepared targets, and retain the selected environment in deployment snapshots.
 - Runtime identities use instance IDs, preventing sibling environments from

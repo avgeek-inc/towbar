@@ -567,3 +567,13 @@ secret rows now stack key/value below the small breakpoint while retaining the
 desktop columns. The rendered value field uses the full mobile card width after
 the fix. Web lint/typecheck and diff whitespace checks pass. This is local
 fixture/browser evidence; no hosted state was changed.
+
+### Final implementation verification checkpoint
+
+`TOWBAR_TEST_DATABASE_URL=... pnpm verify` passed at `81fcbb0`, including all
+229 API tests against PostgreSQL, documentation, formatting, lint, typechecks and
+builds. Opt-in runtime coverage remains the separate evidence recorded above.
+The release notes now include Redis AOF restore recovery, sync retry/enqueue
+races and mobile declared-secret layout. Light/dark File-mode screenshots were
+recaptured from the current staging fixture, with matching intrinsic dimensions
+and horizontal padding. They show a synthetic value, not a real credential.
