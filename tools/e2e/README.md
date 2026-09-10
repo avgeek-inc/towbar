@@ -152,3 +152,24 @@ succeed. The target and its volumes are removed afterward.
 This verifies remote cleanup and service reload, including runtime-label orphan
 discovery. It seeds containers and local HTTP routes; it does not exercise PR
 webhooks, API cleanup admission, external DNS, or public certificate issuance.
+
+For persistent app admission and worker execution, start the dedicated Temporal
+server described above, build the API and worker, and run:
+
+```sh
+TOWBAR_TEST_TEMPORAL_ADDRESS=127.0.0.1:17239 \
+TOWBAR_TEST_DATABASE_URL=postgres://user:password@localhost:5432/towbar_test \
+node tools/e2e/app-lifecycle.mjs
+```
+
+This mode exercises production/staging app admission, idempotent requests,
+server coordinator delivery, signed internal API calls, encrypted build/runtime
+secret resolution, Docker builds and database release commits. It updates
+staging and rejects an unhealthy staging candidate while keeping production
+and the prior staging release available. All four workflow histories are replayed.
+
+Only GitHub token/archive responses are simulated; unexpected network requests
+are rejected, except for the test's own internal API listener. Source snapshots
+and server readiness are seeded. PR reconciliation, authentication, public TLS
+and server preparation remain outside this mode. Without a Temporal address,
+the original deployer-only production/staging/preview runner remains available.

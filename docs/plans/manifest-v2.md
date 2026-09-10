@@ -399,3 +399,25 @@ now treats synced as a success state, matching the source header. Documentation
 checks passed for all 180 pages and shared UI lint passed. These are fixture UI
 captures, not evidence of GitHub or hosted deployment behavior. Other screenshots
 and the full PR lifecycle audit remain outstanding.
+
+### Persistent app admission and worker execution
+
+The app lifecycle runner now has a PostgreSQL/Temporal mode using the shared
+resource harness. It exercises real admission and idempotent request replay,
+server coordinator delivery, signed internal API calls, encrypted build/runtime
+secret resolution, source archive builds and database release commits. Production
+and staging deploy revision A; staging replaces it with revision B. An unhealthy
+staging candidate fails without replacing the healthy release or changing
+production. Current release records match the running containers. Three workflows
+completed and one failed, and all four histories replayed successfully.
+
+GitHub installation token and archive responses are controlled test responses;
+all other external fetches are rejected. Source sync state and server readiness
+are seeded. This closes persistent app API-to-worker execution coverage but does
+not prove PR reconciliation, browser authentication or public TLS. The worker,
+API listener, test rows and Docker target were cleaned up after the run.
+
+The original deployer-only app mode also passed after the shared harness changes,
+including production/staging/preview isolation and failed preview-candidate
+recovery. Both runs removed their disposable Docker targets. The dedicated
+Temporal development server was stopped after the integrated run.

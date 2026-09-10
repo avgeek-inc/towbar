@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { generateKeyPairSync, randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import {
@@ -15,6 +15,18 @@ import { startTestTarget } from "./target.mjs";
 
 const target = await startTestTarget();
 const originalFetch = globalThis.fetch;
+let database, temporal;
+const integrated = Boolean(process.env.TOWBAR_TEST_TEMPORAL_ADDRESS);
+if (integrated) {
+  process.env.GITHUB_APP_ID = "1001";
+  process.env.GITHUB_APP_SLUG = "towbar-test";
+  process.env.GITHUB_APP_PRIVATE_KEY = generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+  })
+    .privateKey.export({ type: "pkcs8", format: "pem" })
+    .toString();
+  process.env.GITHUB_WEBHOOK_SECRET = "test-webhook-secret";
+}
 try {
   const checkout = path.join(target.directory, "checkout");
   mkdirSync(checkout);
@@ -51,6 +63,17 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
   const fetched = [];
   globalThis.fetch = async (input, init) => {
     const url = new URL(String(input));
+    if (integrated && url.origin === process.env.TOWBAR_API_BASE_URL)
+      return originalFetch(input, init);
+    if (
+      integrated &&
+      url.origin === "https://api.github.com" &&
+      /^\/app\/installations\/[^/]+\/access_tokens$/.test(url.pathname)
+    )
+      return Response.json({
+        token: "test-archive-token",
+        expires_at: "2099-01-01T00:00:00Z",
+      });
     const match = url.pathname.match(
       /^\/repos\/test\/test\/tarball\/([ab]{40})$/,
     );
@@ -70,12 +93,24 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
     ssh: { username: "deploy", port: target.port },
   });
   const trustedHostKeys = await scanHostKeys(server);
+  if (integrated) {
+    const { createResourceLifecycleDatabase } =
+      await import("./resource-database.mjs");
+    database = await createResourceLifecycleDatabase({
+      server,
+      trustedHostKeys,
+      key: target.key,
+      entityType: "app",
+    });
+    const { startResourceTemporal } = await import("./resource-temporal.mjs");
+    temporal = await startResourceTemporal({ serverIp: server.ip });
+  }
   const sourceId = randomUUID();
   const instances = new Map(
-    ["production", "staging", "preview"].map((name) => [
-      name,
-      { id: randomUUID(), current: null },
-    ]),
+    (integrated
+      ? ["production", "staging"]
+      : ["production", "staging", "preview"]
+    ).map((name) => [name, { id: randomUUID(), current: null }]),
   );
   const deploy = async (name, revision = "a", failHealth = false) => {
     const instance = instances.get(name);
@@ -100,6 +135,17 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
     if (failHealth)
       app.health = { type: "command", command: ["false"], timeoutSeconds: 2 };
     const previous = instance.current;
+    if (integrated) {
+      const execution = await database.prepare(
+        name,
+        app,
+        false,
+        revision.repeat(40),
+      );
+      await temporal.execute(execution.deploymentId);
+      instance.current = await database.result(execution.deploymentId);
+      return instance.current;
+    }
     const result = await executeDeployment({
       context: {
         app,
@@ -138,10 +184,13 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
     instance.current = result;
     return result;
   };
-  const response = (name) =>
-    target.ssh(
-      `curl --fail --silent http://127.0.0.1:${instances.get(name).current.candidatePort}/`,
+  const response = (name) => {
+    const address = target.ssh(
+      `docker port ${instances.get(name).current.containerName} 8080/tcp`,
     );
+    assert.match(address, /^127\.0\.0\.1:\d+$/);
+    return target.ssh(`curl --fail --silent http://${address}/`);
+  };
   for (const name of instances.keys()) await deploy(name);
   for (const name of instances.keys())
     assert.equal(response(name), `${name}:a`);
@@ -149,18 +198,21 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
   await deploy("staging", "b");
   assert.equal(response("staging"), "staging:b");
   assert.equal(response("production"), "production:a");
-  assert.equal(response("preview"), "preview:a");
-  const oldPreview = instances.get("preview").current.containerName;
-  await assert.rejects(deploy("preview", "b", true));
-  assert.equal(instances.get("preview").current.containerName, oldPreview);
-  assert.equal(response("preview"), "preview:a");
+  if (!integrated) assert.equal(response("preview"), "preview:a");
+  const failedTarget = integrated ? "staging" : "preview";
+  const oldPreview = instances.get(failedTarget).current.containerName;
+  await assert.rejects(deploy(failedTarget, "b", true));
+  assert.equal(instances.get(failedTarget).current.containerName, oldPreview);
+  if (!integrated) assert.equal(response("preview"), "preview:a");
   assert.equal(
     instances.get("production").current.containerName,
     productionContainer,
   );
   assert.deepEqual(
     fetched,
-    ["a", "a", "a", "b", "b"].map((value) => value.repeat(40)),
+    (integrated ? ["a", "a", "b", "b"] : ["a", "a", "a", "b", "b"]).map(
+      (value) => value.repeat(40),
+    ),
   );
   const running = target
     .ssh("docker ps --format '{{.Names}}'")
@@ -170,10 +222,25 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
     running,
     [...instances.values()].map((item) => item.current.containerName).sort(),
   );
+  if (integrated) {
+    await database.verify(instances, "failed");
+    await temporal.verify();
+    assert.equal(response("staging"), "staging:b");
+  }
   console.log(
-    "App builds, environment isolation, immutable revisions and failed preview-candidate recovery verified.",
+    integrated
+      ? "App admission, worker execution, database releases, environment isolation and failed-candidate recovery verified."
+      : "App builds, environment isolation, immutable revisions and failed preview-candidate recovery verified.",
   );
 } finally {
-  globalThis.fetch = originalFetch;
-  target.close();
+  try {
+    await temporal?.close();
+  } finally {
+    try {
+      await database?.close();
+    } finally {
+      globalThis.fetch = originalFetch;
+      target.close();
+    }
+  }
 }

@@ -12,6 +12,7 @@ export async function createResourceLifecycleDatabase({
   server,
   trustedHostKeys,
   key,
+  entityType = "resource",
 }) {
   const url = process.env.TOWBAR_TEST_DATABASE_URL;
   assert(
@@ -134,7 +135,11 @@ export async function createResourceLifecycleDatabase({
     );
     const [entity] = await db
       .insert(schema.sourceEntities)
-      .values({ sourceId, manifestId: "database", entityType: "resource" })
+      .values({
+        sourceId,
+        manifestId: entityType === "app" ? "website" : "database",
+        entityType,
+      })
       .returning();
     for (const name of ["production", "staging"]) {
       const [environment] = await db
@@ -166,18 +171,18 @@ export async function createResourceLifecycleDatabase({
         .where(eq(schema.sourceEnvironments.id, environment.id));
       instances.set(name, {
         id: randomUUID(),
-        environment,
+        environment: { ...environment, latestSuccessfulSyncId: sync.id },
         entityId: entity.id,
         seeded: false,
       });
     }
     return {
       close,
-      async prepare(name, app, resolve = true) {
+      async prepare(name, app, resolve = true, commitSha = "c".repeat(40)) {
         const instance = instances.get(name);
         const requiredSecrets = {
-          build: [],
-          runtime: ["REDIS_PASSWORD"],
+          build: entityType === "app" ? ["BUILD_MARKER"] : [],
+          runtime: [entityType === "app" ? "ENV_MARKER" : "REDIS_PASSWORD"],
           preDeploy: [],
           postDeploy: [],
         };
@@ -209,16 +214,52 @@ export async function createResourceLifecycleDatabase({
             },
             {
               expectedRevision: null,
-              set: { REDIS_PASSWORD: `test-${name}` },
+              set:
+                entityType === "app"
+                  ? { ENV_MARKER: name }
+                  : { REDIS_PASSWORD: `test-${name}` },
               delete: [],
             },
             userId,
           );
         }
+        if (entityType === "app") {
+          await db
+            .update(schema.sourceEnvironments)
+            .set({ latestCommitSha: commitSha })
+            .where(eq(schema.sourceEnvironments.id, instance.environment.id));
+          await db
+            .update(schema.sourceSyncs)
+            .set({ commitSha })
+            .where(
+              eq(
+                schema.sourceSyncs.id,
+                instance.environment.latestSuccessfulSyncId,
+              ),
+            );
+          if (!instance.buildSecretStored) {
+            await mutateSecret(
+              {
+                type: "app",
+                id: instance.id,
+                workspaceId,
+                environment: name,
+                stage: "build",
+              },
+              {
+                expectedRevision: null,
+                set: { BUILD_MARKER: "test-build-value" },
+                delete: [],
+              },
+              userId,
+            );
+            instance.buildSecretStored = true;
+          }
+        }
         if (!resolve) {
           await db
             .update(schema.apps)
-            .set({ config: app })
+            .set({ config: app, sourceRevision: commitSha })
             .where(eq(schema.apps.id, instance.id));
           const { requestAppDeployment } =
             await import("../../apps/towbar-api/dist/areas/apps/service.js");
@@ -226,7 +267,7 @@ export async function createResourceLifecycleDatabase({
             appId: instance.id,
             workspaceId,
             requestedBy: userId,
-            expectedType: "resource",
+            expectedType: entityType,
             idempotencyKey: randomUUID(),
           };
           const result = await requestAppDeployment(request);
