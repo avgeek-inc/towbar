@@ -81,7 +81,9 @@ not a list of untouched work.
 - UI: server slugs, Source environment controls, instance environment switching,
   inventory environment filters, deployment history filters and URL navigation
   exist. Inventory still presents instance rows rather than grouping logical
-  entities. Other monitoring/deployment labels need an environment audit.
+  entities. Deployment chips show the recorded environment name. Monitoring
+  entity search and alert/incident identities include environment names; kind
+  filters distinguish persistent deployments from previews.
 - Fixtures: production/staging sibling app and resource instances and history
   filters exist. Browser checks proved a staging history permalink, opening its
   app instance, switching to production, and Back restoring staging. Per-environment v2 manifest snapshot fixtures are validated through the parser;
@@ -92,6 +94,11 @@ not a list of untouched work.
   fixture now explicitly connects an environment before editing shared secrets.
 
 ## Latest verification
+
+- Monitoring environment labels: the database regression verifies staging-only
+  entity search and environment identity on alerts/incidents. All 22 fixture API
+  tests pass, including staging monitoring search. API/web typechecks, scoped
+  lint and generated documentation checks pass.
 
 - `pnpm verify` passed: docs, formatting, lint, typechecks, standard tests and
   builds. The default test run contains environment-gated skips; this is not

@@ -161,7 +161,7 @@ export function MonitoringHistory({
         <div className="flex max-w-full flex-wrap items-center gap-2">
           {workload ? (
             <HistorySelect
-              label="Environment"
+              label="Deployment kind"
               value={environment}
               onChange={(value) => {
                 update({
@@ -170,7 +170,7 @@ export function MonitoringHistory({
                 });
               }}
               options={[
-                { id: "production", label: "Production" },
+                { id: "production", label: "Persistent" },
                 { id: "preview", label: "Previews" },
               ]}
             />

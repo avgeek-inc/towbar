@@ -95,7 +95,7 @@ function IncidentBody({
       [
         "Entity",
         query.data
-          ? `${query.data.entity.name}${query.data.incident.deployableId && query.data.incident.environment ? ` · ${query.data.incident.environment === "preview" ? "Previews" : "Production"}` : ""}`
+          ? `${query.data.entity.name}${query.data.incident.deployableId && query.data.incident.environment ? ` · ${query.data.incident.environment === "preview" ? "Previews" : "Persistent"}` : ""}`
           : "Loading…",
       ],
       [

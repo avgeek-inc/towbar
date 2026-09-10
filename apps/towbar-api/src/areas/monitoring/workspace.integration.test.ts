@@ -3,13 +3,18 @@ import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
 import { eq } from "drizzle-orm";
 import {
+  normalizeDeploymentManifest,
   normalizeServerConfiguration,
   scoutAlertRuleSchema,
 } from "@workspace/towbar-core";
 import {
+  apps,
+  githubInstallations,
   scoutAlertIncidents,
   scoutAlertRules,
   servers,
+  sourceEnvironments,
+  sources,
   workspaces,
 } from "@workspace/towbar-database/schema";
 const databaseUrl = process.env.TOWBAR_TEST_DATABASE_URL;
@@ -197,6 +202,93 @@ void test(
         ).entities.length,
         0,
       );
+      const { testInstanceLinks } =
+        await import("../sources/instance-test-helper.js");
+      const [installation] = await db
+        .insert(githubInstallations)
+        .values({
+          workspaceId,
+          installationId: randomUUID(),
+          accountLogin: "example",
+          accountType: "Organization",
+        })
+        .returning();
+      const sourceId = randomUUID();
+      await db.insert(sources).values({
+        id: sourceId,
+        workspaceId,
+        githubInstallationId: installation!.id,
+        repositoryOwner: "example",
+        repositoryName: "monitoring",
+      });
+      const links = await testInstanceLinks(sourceId, "website");
+      const [staging] = await db
+        .insert(sourceEnvironments)
+        .values({
+          sourceId,
+          name: "staging",
+          branch: "develop",
+        })
+        .returning();
+      const config = normalizeDeploymentManifest({
+        version: 2,
+        apps: [
+          {
+            id: "website",
+            name: "Website",
+            server: `server-${serverId}`,
+            dockerfile: "Dockerfile",
+            container: { port: 3000 },
+          },
+        ],
+      }).apps[0]!;
+      const instances = await db
+        .insert(apps)
+        .values(
+          [links.sourceEnvironmentId, staging!.id].map(
+            (sourceEnvironmentId) => ({
+              ...links,
+              sourceEnvironmentId,
+              workspaceId,
+              sourceId,
+              serverId,
+              manifestId: "website",
+              name: "Website",
+              config,
+              configDigest: "fixture",
+              sourceRevision: "abcdef0",
+            }),
+          ),
+        )
+        .returning();
+      const stagingEntities = await listMonitoringEntities(
+        workspaceId,
+        monitoringEntitiesQuery.parse({ search: "staging" }),
+      );
+      assert.deepEqual(
+        stagingEntities.entities.map((entity) => ({
+          id: entity.id,
+          environment: entity.environmentName,
+        })),
+        [{ id: instances[1]!.id, environment: "staging" }],
+      );
+      await db
+        .update(scoutAlertRules)
+        .set({ deployableId: instances[1]!.id })
+        .where(eq(scoutAlertRules.id, rules[1]!.id));
+      await db
+        .update(scoutAlertIncidents)
+        .set({ deployableId: instances[1]!.id })
+        .where(eq(scoutAlertIncidents.ruleId, rules[1]!.id));
+      for (const incidents of [false, true]) {
+        const result = await listWorkspaceScout(
+          workspaceId,
+          monitoringOverviewQuery.parse({ entityId: instances[1]!.id }),
+          incidents,
+        );
+        assert.equal(result.items.length, 1);
+        assert.equal(result.items[0]!.workload?.environmentName, "staging");
+      }
       await db
         .update(servers)
         .set({ archivedAt: now })

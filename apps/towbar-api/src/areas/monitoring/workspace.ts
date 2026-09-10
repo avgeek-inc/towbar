@@ -5,6 +5,7 @@ import {
   scoutAlertIncidents,
   scoutAlertRules,
   servers,
+  sourceEnvironments,
 } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 
@@ -42,17 +43,19 @@ export async function listMonitoringEntities(
     serverId: string;
     serverName: string;
     sourceId: string | null;
+    environmentName: string | null;
   }>(sql`
     with entities as (
-      select id,'server:'||id::text key,canonical_ip name,'server' kind,id "serverId",canonical_ip "serverName",null::uuid "sourceId"
+      select id,'server:'||id::text key,canonical_ip name,'server' kind,id "serverId",canonical_ip "serverName",null::uuid "sourceId",null::text "environmentName"
       from towbar_servers where workspace_id=${workspaceId}::uuid and archived_at is null
       union all
       select a.id,(case when a.kind='app' then 'app:' else 'resource:' end)||a.id::text key,a.name,
-        case when a.kind='app' then 'app' else 'resource' end kind,a.server_id "serverId",s.canonical_ip "serverName",a.source_id "sourceId"
+        case when a.kind='app' then 'app' else 'resource' end kind,a.server_id "serverId",s.canonical_ip "serverName",a.source_id "sourceId",e.name "environmentName"
       from towbar_apps a join towbar_servers s on s.id=a.server_id and s.workspace_id=a.workspace_id
+      join towbar_source_environments e on e.id=a.source_environment_id and e.source_id=a.source_id
       where a.workspace_id=${workspaceId}::uuid and a.archived_at is null and s.archived_at is null
     ) select * from entities where (${input.kind}='all' or kind=${input.kind})
-      and (name ilike ${search} or "serverName" ilike ${search})
+      and (name ilike ${search} or "serverName" ilike ${search} or "environmentName" ilike ${search})
       ${input.after ? sql`and key>${input.after}` : sql``}
       order by key limit ${input.limit + 1}`);
   const entities = rows.slice(0, input.limit);
@@ -65,6 +68,7 @@ export async function listMonitoringEntities(
 type OverviewQuery = z.infer<typeof monitoringOverviewQuery>;
 const entity = {
   name: apps.name,
+  environmentName: sourceEnvironments.name,
   kind: apps.kind,
   sourceId: apps.sourceId,
   archivedAt: apps.archivedAt,
@@ -128,6 +132,10 @@ export async function listWorkspaceIncidents(
         eq(apps.workspaceId, workspaceId),
       ),
     )
+    .leftJoin(
+      sourceEnvironments,
+      eq(sourceEnvironments.id, apps.sourceEnvironmentId),
+    )
     .where(
       and(
         joins,
@@ -175,6 +183,10 @@ export async function listWorkspaceAlerts(
         eq(apps.id, scoutAlertRules.deployableId),
         eq(apps.workspaceId, workspaceId),
       ),
+    )
+    .leftJoin(
+      sourceEnvironments,
+      eq(sourceEnvironments.id, apps.sourceEnvironmentId),
     )
     .where(and(joins, isNull(scoutAlertRules.deletedAt)))
     .orderBy(desc(scoutAlertRules.createdAt), desc(scoutAlertRules.id))

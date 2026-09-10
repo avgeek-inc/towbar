@@ -1067,6 +1067,16 @@ test("v2 fixtures expose environment mappings and isolated sibling instances", a
         [stagingId],
       );
     }
+    const monitoring = await get("/v1/core/monitoring/entities?search=staging");
+    assert.deepEqual(
+      monitoring.entities.map((entity) => entity.id).sort(),
+      [fixtureIds.stagingApp, fixtureIds.stagingResource].sort(),
+    );
+    assert(
+      monitoring.entities.every(
+        (entity) => entity.environmentName === "staging",
+      ),
+    );
     const history = await get(
       "/v1/core/deployments/history?targetEnvironment=staging&limit=1",
     );
