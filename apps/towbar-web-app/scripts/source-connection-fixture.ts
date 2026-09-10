@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { sourceEnvironmentMappingSchema } from "@workspace/towbar-core";
-import type { App, Resource, Source } from "@workspace/towbar-web-client";
+import type {
+  App,
+  Resource,
+  Source,
+  SourceSync,
+} from "@workspace/towbar-web-client";
 
 type ConnectedApp = App & { serverId: string };
 type ConnectedResource = Resource & {
@@ -21,6 +26,14 @@ function initialRuntimeState(): App["runtimeState"] {
   };
 }
 
+export class FixtureEnvironmentError extends Error {
+  readonly status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
 type Mapping = {
   id: string;
   sourceId: string;
@@ -31,8 +44,23 @@ type Mapping = {
   latestSyncStatus: "succeeded";
   latestSyncFinishedAt: string;
   latestSuccessfulSyncId: string;
-  disconnectedAt: null;
+  disconnectedAt: string | null;
 };
+
+function makeMapping(sourceId: string, name: string, branch: string): Mapping {
+  return {
+    id: randomUUID(),
+    sourceId,
+    name,
+    branch,
+    mappingRevision: randomUUID(),
+    previewsEnabled: name === "staging",
+    latestSyncStatus: "succeeded",
+    latestSyncFinishedAt: new Date().toISOString(),
+    latestSuccessfulSyncId: randomUUID(),
+    disconnectedAt: null,
+  };
+}
 
 export function createSourceConnectionFixture(input: {
   existing: Source[];
@@ -44,6 +72,57 @@ export function createSourceConnectionFixture(input: {
     apps: ConnectedApp[] = [],
     resources: ConnectedResource[] = [],
     mappings: Mapping[] = [];
+  const history: (SourceSync & {
+    sourceId: string;
+    branch: string;
+    deployAfterSync: boolean;
+  })[] = [];
+  const materialize = (source: Source, environment: Mapping) => {
+    const now = new Date().toISOString();
+    const appEntityId =
+      apps.find((item) => item.sourceId === source.id)?.entityId ??
+      randomUUID();
+    const resourceEntityId =
+      resources.find((item) => item.sourceId === source.id)?.entityId ??
+      randomUUID();
+    apps.push({
+      ...structuredClone(input.app),
+      id: randomUUID(),
+      entityId: appEntityId,
+      sourceId: source.id,
+      name: "Example Service",
+      manifestId: "service",
+      environment,
+      config: {
+        ...structuredClone(input.app.config),
+        id: "service",
+        name: "Example Service",
+        sourceBranch: environment.branch,
+        autoDeploy: false,
+      },
+      runtimeState: initialRuntimeState(),
+      archivedAt: null,
+      updatedAt: now,
+    });
+    resources.push({
+      ...structuredClone(input.resource),
+      id: randomUUID(),
+      entityId: resourceEntityId,
+      sourceId: source.id,
+      name: "Service Database",
+      manifestId: "database",
+      environment,
+      config: {
+        ...structuredClone(input.resource.config),
+        id: "database",
+        name: "Service Database",
+        autoDeploy: false,
+      },
+      runtimeState: initialRuntimeState(),
+      archivedAt: null,
+      updatedAt: now,
+    });
+  };
   const connect = (body: unknown) => {
     if (!body || typeof body !== "object" || Array.isArray(body))
       throw new Error("Invalid connection request");
@@ -92,58 +171,12 @@ export function createSourceConnectionFixture(input: {
       createdAt: now,
       updatedAt: now,
     };
-    const appEntityId = randomUUID(),
-      resourceEntityId = randomUUID();
-    const connected = selected.map((item) => ({
-      id: randomUUID(),
-      sourceId: source.id,
-      name: item.environment,
-      branch: item.branch,
-      mappingRevision: randomUUID(),
-      previewsEnabled: item.environment === "staging",
-      latestSyncStatus: "succeeded" as const,
-      latestSyncFinishedAt: now,
-      latestSuccessfulSyncId: randomUUID(),
-      disconnectedAt: null,
-    }));
+    const connected = selected.map((item) =>
+      makeMapping(source.id, item.environment, item.branch),
+    );
     for (const environment of connected) {
-      apps.push({
-        ...structuredClone(input.app),
-        id: randomUUID(),
-        entityId: appEntityId,
-        sourceId: source.id,
-        name: "Example Service",
-        manifestId: "service",
-        environment,
-        config: {
-          ...structuredClone(input.app.config),
-          id: "service",
-          name: "Example Service",
-          sourceBranch: environment.branch,
-          autoDeploy: false,
-        },
-        runtimeState: initialRuntimeState(),
-        archivedAt: null,
-        updatedAt: now,
-      });
-      resources.push({
-        ...structuredClone(input.resource),
-        id: randomUUID(),
-        entityId: resourceEntityId,
-        sourceId: source.id,
-        name: "Service Database",
-        manifestId: "database",
-        environment,
-        config: {
-          ...structuredClone(input.resource.config),
-          id: "database",
-          name: "Service Database",
-          autoDeploy: false,
-        },
-        runtimeState: initialRuntimeState(),
-        archivedAt: null,
-        updatedAt: now,
-      });
+      materialize(source, environment);
+      sync(environment);
     }
     sources.push(source);
     mappings.push(...connected);
@@ -155,6 +188,112 @@ export function createSourceConnectionFixture(input: {
         error: null,
       })),
     };
+  };
+  const mutateEnvironment = (method: string, path: string, body: unknown) => {
+    const match = path.match(
+      /^\/v1\/core\/sources\/([^/]+)\/environments(?:\/([^/]+))?(?:\/(syncs))?$/,
+    );
+    const source = sources.find((item) => item.id === match?.[1]);
+    if (!source || !match) return undefined;
+    if (!["POST", "PATCH", "DELETE"].includes(method)) return undefined;
+    const request =
+      body && typeof body === "object" && !Array.isArray(body)
+        ? (body as Record<string, unknown>)
+        : {};
+    if (method === "POST" && !match[2]) {
+      const selected = sourceEnvironmentMappingSchema.parse(request);
+      if (
+        !["production", "staging"].includes(selected.environment) ||
+        !["main", "develop"].includes(selected.branch)
+      )
+        throw new Error("Environment or branch was not found");
+      let environment = mappings.find(
+        (item) =>
+          item.sourceId === source.id && item.name === selected.environment,
+      );
+      if (environment && !environment.disconnectedAt)
+        throw new FixtureEnvironmentError(
+          "Environment is already connected",
+          409,
+        );
+      if (environment) {
+        environment.disconnectedAt = null;
+        environment.branch = selected.branch;
+        environment.mappingRevision = randomUUID();
+      } else {
+        environment = makeMapping(
+          source.id,
+          selected.environment,
+          selected.branch,
+        );
+        mappings.push(environment);
+        materialize(source, environment);
+      }
+      return { status: 201, body: { environment, sync: sync(environment) } };
+    }
+    if (method === "POST" && match[2] === "syncs" && !match[3]) {
+      const outcomes = mappings
+        .filter((item) => item.sourceId === source.id && !item.disconnectedAt)
+        .map((environment) => ({
+          environmentId: environment.id,
+          syncId: sync(environment, true).id,
+          error: null,
+        }));
+      return { status: 202, body: { outcomes } };
+    }
+    const environment = mappings.find(
+      (item) => item.sourceId === source.id && item.id === match[2],
+    );
+    if (!environment || environment.disconnectedAt)
+      throw new FixtureEnvironmentError("Environment was not found", 404);
+    if (method === "POST" && match[3] === "syncs")
+      return { status: 202, body: { sync: sync(environment, true) } };
+    if (match[3] || !["PATCH", "DELETE"].includes(method)) return undefined;
+    if (request.expectedRevision !== environment.mappingRevision)
+      throw new FixtureEnvironmentError(
+        "The environment mapping changed. Refresh before saving.",
+        409,
+      );
+    if (method === "PATCH") {
+      const selected = sourceEnvironmentMappingSchema.parse({
+        environment: environment.name,
+        branch: request.branch,
+      });
+      if (!["main", "develop"].includes(selected.branch))
+        throw new Error("Branch was not found");
+      environment.branch = selected.branch;
+      environment.mappingRevision = randomUUID();
+      return { status: 200, body: { environment, sync: sync(environment) } };
+    }
+    environment.disconnectedAt = new Date().toISOString();
+    environment.mappingRevision = randomUUID();
+    return { status: 200, body: { environment } };
+  };
+  const sync = (environment: Mapping, deployAfterSync = false) => {
+    environment.latestSuccessfulSyncId = randomUUID();
+    environment.latestSyncFinishedAt = new Date().toISOString();
+    for (const app of apps.filter(
+      (item) => item.environment?.id === environment.id,
+    ))
+      app.config.sourceBranch = environment.branch;
+    const record = {
+      id: environment.latestSuccessfulSyncId,
+      sourceId: environment.sourceId,
+      environment: { id: environment.id, name: environment.name },
+      branch: environment.branch,
+      mappingRevision: environment.mappingRevision,
+      status: "succeeded" as const,
+      commitSha: "c".repeat(40),
+      manifestDigest: null,
+      reconciliation: null,
+      createdAt: environment.latestSyncFinishedAt,
+      startedAt: environment.latestSyncFinishedAt,
+      finishedAt: environment.latestSyncFinishedAt,
+      issues: [],
+      deployAfterSync,
+    };
+    history.unshift(record);
+    return record;
   };
   const read = (path: string) => {
     const match = path.match(/^\/v1\/core\/sources\/([^/]+)(?:\/(.*))?$/);
@@ -176,23 +315,16 @@ export function createSourceConnectionFixture(input: {
     if (child === "capacity") return { capacities: [] };
     if (child === "backups") return { backups: [] };
     if (child === "syncs")
-      return {
-        syncs: mappings
-          .filter((item) => item.sourceId === source.id)
-          .map((item) => ({
-            id: item.latestSuccessfulSyncId,
-            sourceId: source.id,
-            environment: { id: item.id, name: item.name, branch: item.branch },
-            mappingRevision: item.mappingRevision,
-            status: "succeeded",
-            createdAt: item.latestSyncFinishedAt,
-            startedAt: item.latestSyncFinishedAt,
-            finishedAt: item.latestSyncFinishedAt,
-            issues: [],
-            autoDeploy: false,
-          })),
-      };
+      return { syncs: history.filter((item) => item.sourceId === source.id) };
     return undefined;
   };
-  return { sources, apps, resources, mappings, connect, read };
+  return {
+    sources,
+    apps,
+    resources,
+    mappings,
+    connect,
+    read,
+    mutateEnvironment,
+  };
 }

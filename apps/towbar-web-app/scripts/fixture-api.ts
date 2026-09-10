@@ -1,4 +1,7 @@
-import { createSourceConnectionFixture } from "./source-connection-fixture.ts";
+import {
+  createSourceConnectionFixture,
+  FixtureEnvironmentError,
+} from "./source-connection-fixture.ts";
 import {
   workloadFilters,
   serverFilters,
@@ -2175,6 +2178,41 @@ export function createFixtureApiServer() {
       const deployment = deployments.find((item) => item.id === eventMatch[1]);
       if (!deployment) return writeNotFound(response);
       return writeDeploymentEvents(response, deployment);
+    }
+
+    if (
+      request.method !== "GET" &&
+      /^\/v1\/core\/sources\/[^/]+\/environments(?:\/|$)/.test(path)
+    ) {
+      if (
+        !connections.sources.some((source) => source.id === path.split("/")[4])
+      )
+        return writeNotFound(response);
+      void (
+        path.endsWith("/syncs") ? Promise.resolve({}) : readRequestJson(request)
+      )
+        .then((body) => {
+          const result = connections.mutateEnvironment(
+            request.method!,
+            path,
+            body,
+          );
+          if (!result) return writeNotFound(response);
+          writeJson(response, result.status, result.body);
+        })
+        .catch((error) =>
+          writeJson(
+            response,
+            error instanceof FixtureEnvironmentError ? error.status : 400,
+            {
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Invalid environment request",
+            },
+          ),
+        );
+      return;
     }
 
     if (request.method !== "GET") return writeNotFound(response);

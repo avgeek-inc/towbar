@@ -1188,6 +1188,94 @@ test("connecting a selected environment persists isolated instances without depl
       (await get(`/sources/${source.id}/environments`)).environments.length,
       1,
     );
+    const endpoint = `/sources/${source.id}/environments`;
+    const mutate = (method, path, body) =>
+      fetch(base + path, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      });
+    const original = (await get(`/sources/${source.id}/apps`)).apps[0];
+    const initialHistory = (await get(`/sources/${source.id}/syncs`)).syncs;
+    let mapping = environments[0];
+    const changed = await mutate("PATCH", `${endpoint}/${mapping.id}`, {
+      branch: "main",
+      expectedRevision: mapping.mappingRevision,
+    });
+    assert.equal(changed.status, 200);
+    const saved = await changed.json();
+    assert.equal(saved.sync.deployAfterSync, false);
+    assert.notEqual(saved.environment.mappingRevision, mapping.mappingRevision);
+    assert.equal(
+      (
+        await mutate("DELETE", `${endpoint}/${mapping.id}`, {
+          expectedRevision: mapping.mappingRevision,
+        })
+      ).status,
+      409,
+    );
+    mapping = saved.environment;
+    assert.equal(
+      (
+        await mutate("PATCH", `${endpoint}/${mapping.id}`, {
+          branch: "missing",
+          expectedRevision: mapping.mappingRevision,
+        })
+      ).status,
+      400,
+    );
+    assert.equal((await get(endpoint)).environments[0].branch, "main");
+    assert.deepEqual(
+      (await get(`/sources/${source.id}/syncs`)).syncs.slice(1),
+      initialHistory,
+    );
+    assert.equal(
+      (
+        await mutate("DELETE", `${endpoint}/${mapping.id}`, {
+          expectedRevision: mapping.mappingRevision,
+        })
+      ).status,
+      200,
+    );
+    assert.equal(
+      (await mutate("POST", `${endpoint}/${mapping.id}/syncs`)).status,
+      404,
+    );
+    assert.equal(
+      (await get(`/sources/${source.id}/apps`)).apps[0].id,
+      original.id,
+    );
+    const reconnected = await mutate("POST", endpoint, {
+      environment: "staging",
+      branch: "develop",
+    });
+    assert.equal(reconnected.status, 201);
+    assert.equal((await reconnected.json()).environment.id, mapping.id);
+    assert.equal(
+      (await get(`/sources/${source.id}/apps`)).apps[0].id,
+      original.id,
+    );
+    assert.equal(
+      (await mutate("POST", `${endpoint}/${mapping.id}/syncs`)).status,
+      202,
+    );
+    assert.equal(
+      (
+        await mutate("POST", endpoint, {
+          environment: "production",
+          branch: "main",
+        })
+      ).status,
+      201,
+    );
+    const siblings = (await get(`/sources/${source.id}/apps`)).apps;
+    assert.equal(siblings.length, 2);
+    assert.notEqual(siblings[0].id, siblings[1].id);
+    assert.equal(siblings[0].entityId, siblings[1].entityId);
+    assert.deepEqual(
+      (await get(`/sources/${source.id}/deployments`)).deployments,
+      [],
+    );
   } finally {
     server.close();
     await once(server, "close");
