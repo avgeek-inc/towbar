@@ -7,7 +7,6 @@ import Link from "next/link";
 import { SecurityCheckIcon } from "@hugeicons/core-free-icons";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
@@ -17,6 +16,10 @@ import {
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { DashboardPage } from "./page-parts";
+import {
+  severityVariant,
+  VulnerabilitySeverityWidgets,
+} from "./vulnerability-severity-widgets";
 import { RelativeTime } from "./last-synced-time";
 import type {
   VulnerabilityFindingSummary,
@@ -24,8 +27,6 @@ import type {
 } from "@workspace/towbar-web-client";
 
 const severityOrder = ["critical", "high", "medium", "low", "unknown"] as const;
-
-type Severity = (typeof severityOrder)[number];
 
 export function WorkspaceVulnerabilities() {
   const [severity, setSeverity] = useQueryChoice(
@@ -148,7 +149,7 @@ export function WorkspaceVulnerabilities() {
         {query.error ? <QueryError message={query.error} /> : null}
         {query.data ? (
           <>
-            <SeveritySummary summary={query.data.summary} />
+            <VulnerabilitySeverityWidgets totals={query.data.summary} />
             <ResourceTable
               ariaLabel="Workspace vulnerability findings"
               columns={columns}
@@ -185,54 +186,4 @@ export function WorkspaceVulnerabilities() {
       </div>
     </DashboardPage>
   );
-}
-
-function SeveritySummary({
-  summary,
-}: {
-  summary: WorkspaceVulnerabilityFindings["summary"];
-}) {
-  const cards: Array<{
-    label: string;
-    tone: "danger" | "warning" | "neutral";
-    total: number;
-  }> = [
-    { label: "Critical", tone: "danger", total: summary.critical },
-    { label: "High", tone: "danger", total: summary.high },
-    { label: "Medium", tone: "warning", total: summary.medium },
-    { label: "Low", tone: "neutral", total: summary.low },
-    { label: "Unknown", tone: "neutral", total: summary.unknown },
-  ];
-  return (
-    <section aria-label="Workspace vulnerability totals" className="grid gap-4">
-      <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        {cards.map((card) => (
-          <Widget className="min-w-0" key={card.label}>
-            <Widget.Header>
-              <Widget.Title>{card.label}</Widget.Title>
-            </Widget.Header>
-            <Widget.Content className="flex min-h-16 items-center">
-              <span
-                className={
-                  card.tone === "danger" && card.total > 0
-                    ? "text-3xl font-semibold tracking-tight tabular-nums text-danger"
-                    : card.tone === "warning" && card.total > 0
-                      ? "text-3xl font-semibold tracking-tight tabular-nums text-warning"
-                      : "text-3xl font-semibold tracking-tight tabular-nums"
-                }
-              >
-                {card.total}
-              </span>
-            </Widget.Content>
-          </Widget>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function severityVariant(severity: Severity) {
-  if (severity === "critical" || severity === "high") return "destructive";
-  if (severity === "medium") return "warning";
-  return "secondary";
 }

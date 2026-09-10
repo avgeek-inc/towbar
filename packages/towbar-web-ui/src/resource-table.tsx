@@ -25,6 +25,7 @@ export function ResourceTable<T>({
   emptyClassName,
   emptyDescription,
   emptyTitle,
+  footer,
   getRowHref,
   getRowKey,
   items,
@@ -38,6 +39,7 @@ export function ResourceTable<T>({
   emptyClassName?: string;
   emptyDescription: string;
   emptyTitle: string;
+  footer?: ReactNode;
   getRowHref?: (item: T) => string;
   getRowKey: (item: T) => string;
   items: T[];
@@ -106,6 +108,11 @@ export function ResourceTable<T>({
           </Table.Body>
         </Table.Content>
       </Table.ScrollContainer>
+      {footer ? (
+        <div className="text-muted typography--body-xs flex min-h-8 flex-wrap items-center gap-x-4 gap-y-1 px-4 pt-1 pb-2">
+          {footer}
+        </div>
+      ) : null}
     </Table>
   );
 }

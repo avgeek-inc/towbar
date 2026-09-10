@@ -8,6 +8,7 @@ import {
   InformationSquareIcon,
   ReloadIcon,
   Rocket01Icon,
+  SecurityCheckIcon,
   ServerStack01Icon,
 } from "@hugeicons/core-free-icons";
 
@@ -46,7 +47,10 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
 import { DeploymentTriggerChip } from "./deployment-table";
-import { DeploymentVulnerabilityScanPanel } from "./deployment-vulnerability-scan";
+import {
+  DeploymentVulnerabilities,
+  DeploymentVulnerabilityScanPanel,
+} from "./deployment-vulnerability-scan";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
 
@@ -542,6 +546,21 @@ export function DeploymentDetail() {
               </EmptyState>
             ),
           },
+          ...(item.vulnerabilityScanningEnabled || item.vulnerabilityScan
+            ? [
+                {
+                  value: "vulnerabilities",
+                  label: "Vulnerabilities",
+                  icon: (
+                    <HugeiconsIcon
+                      icon={SecurityCheckIcon}
+                      className="size-4"
+                    />
+                  ),
+                  content: <DeploymentVulnerabilities deployment={item} />,
+                },
+              ]
+            : []),
         ]}
       />
     </DashboardPage>
