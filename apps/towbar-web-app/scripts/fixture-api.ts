@@ -1081,6 +1081,11 @@ export function createFixtureApiServer() {
   const scoutFixture = createScoutFixture(
     servers.map((s) => s.id),
     [...apps, ...resources],
+    securityScanSummaries.reduce(
+      (total, scan) =>
+        total + scan.severityTotals.critical + scan.severityTotals.high,
+      0,
+    ),
   );
   const monitoring = new Map(
     servers.map((server, index) => [

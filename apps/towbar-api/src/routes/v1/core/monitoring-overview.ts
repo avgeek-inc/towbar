@@ -96,7 +96,7 @@ monitoringOverviewRoutes.get(
     summary: "Read workspace monitoring counts",
     browserOnly: true,
     response:
-      "Active incidents and distinct entities with fresh resource usage above 80%, independent of alert rules.",
+      "Active incidents, distinct entities with fresh resource usage above 80%, and critical or high findings from the latest scan of each App, independent of alert rules.",
     status: 200,
   }),
   async (context) =>

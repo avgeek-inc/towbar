@@ -54,6 +54,7 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
   );
   const monitoring = useApiQuery<{
     activeIncidents: number;
+    criticalVulnerabilities: number;
     pressuredEntities: number;
   }>(user ? "/v1/core/monitoring/summary" : null, 30_000);
   const sidebarState = usePersistentAppSidebar("towbar-sidebar");

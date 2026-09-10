@@ -9,6 +9,7 @@ export async function getWorkspaceMonitoringSummary(
   const freshSince = new Date(now.getTime() - 90_000).toISOString();
   const [row] = await getTowbarDatabase().execute<{
     active_incidents: number;
+    critical_vulnerabilities: number;
     pressured_entities: number;
   }>(sql`
     WITH scoped_servers AS (
@@ -46,10 +47,20 @@ export async function getWorkspaceMonitoringSummary(
       (SELECT count(*)::int FROM towbar_scout_alert_incidents i
         JOIN scoped_servers s ON s.id = i.server_id
         WHERE i.workspace_id = ${workspaceId}::uuid AND i.resolved_at IS NULL) AS active_incidents,
+      (SELECT coalesce(sum(
+        (latest_scan.severity_totals->>'critical')::int +
+        (latest_scan.severity_totals->>'high')::int), 0)::int
+        FROM (
+          SELECT DISTINCT ON (v.app_id) v.severity_totals
+          FROM towbar_image_vulnerability_scans v
+          WHERE v.workspace_id = ${workspaceId}::uuid
+          ORDER BY v.app_id, v.requested_at DESC
+        ) latest_scan) AS critical_vulnerabilities,
       (SELECT count(*)::int FROM pressured) AS pressured_entities
   `);
   return {
     activeIncidents: row?.active_incidents ?? 0,
+    criticalVulnerabilities: row?.critical_vulnerabilities ?? 0,
     pressuredEntities: row?.pressured_entities ?? 0,
   };
 }

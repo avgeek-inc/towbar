@@ -230,6 +230,9 @@ export function DeploymentDetail() {
   const activeSectionTitle =
     (detail.section && sectionTitles[detail.section]) ??
     (terminal.has(item.state) ? "Overview" : "Progress");
+  const criticalVulnerabilities =
+    (item.vulnerabilityScan?.severityTotals.critical ?? 0) +
+    (item.vulnerabilityScan?.severityTotals.high ?? 0);
 
   return (
     <DashboardPage
@@ -559,6 +562,12 @@ export function DeploymentDetail() {
                       className="size-4"
                     />
                   ),
+                  indicator: criticalVulnerabilities
+                    ? {
+                        label: String(criticalVulnerabilities),
+                        ariaLabel: `${criticalVulnerabilities} critical or high vulnerabilit${criticalVulnerabilities === 1 ? "y" : "ies"}`,
+                      }
+                    : undefined,
                   content: <DeploymentVulnerabilities deployment={item} />,
                 },
               ]

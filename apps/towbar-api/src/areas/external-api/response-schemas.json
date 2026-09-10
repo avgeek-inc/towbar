@@ -848,9 +848,14 @@
       "type": "object",
       "properties": {
         "activeIncidents": { "type": "number" },
+        "criticalVulnerabilities": { "type": "number" },
         "pressuredEntities": { "type": "number" }
       },
-      "required": ["activeIncidents", "pressuredEntities"]
+      "required": [
+        "activeIncidents",
+        "criticalVulnerabilities",
+        "pressuredEntities"
+      ]
     },
     "Response_20": {
       "type": "object",
