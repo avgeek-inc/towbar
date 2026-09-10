@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { assertEnvironmentPushRouting } from "./environment-webhook-tests.js";
 import type { apps } from "@workspace/towbar-database/schema";
 import {
   getApp,
@@ -19,6 +20,7 @@ export async function assertInstanceQueryIdentity({
   prod: typeof apps.$inferSelect;
   stage: typeof apps.$inferSelect;
 }) {
+  await assertEnvironmentPushRouting();
   const instances = await listApps(workspaceId, sourceId);
   assert.equal(instances.length, 2);
   for (const [record, name] of [

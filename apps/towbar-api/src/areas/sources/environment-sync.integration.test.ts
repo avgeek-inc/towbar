@@ -168,7 +168,7 @@ void test(
       const stage = instances.find(
         (row) => row.sourceEnvironmentId === staging!.id,
       )!;
-      await t.test("instance queries expose environment identity", async () => {
+      await t.test("instance identity and mapped push routing", async () => {
         const { assertInstanceQueryIdentity } =
           await import("./environment-query-tests.js");
         await assertInstanceQueryIdentity({

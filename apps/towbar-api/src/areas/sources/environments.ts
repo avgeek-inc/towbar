@@ -208,6 +208,7 @@ export async function requestEnvironmentSync(input: {
   workspaceId: string;
   requestedBy: string | null;
   deployAfterSync: boolean;
+  expectedMappingRevision?: string;
 }) {
   await sourceRepository(input.sourceId, input.workspaceId);
   const sync = await getTowbarDatabase().transaction(async (transaction) => {
@@ -223,6 +224,15 @@ export async function requestEnvironmentSync(input: {
       )
       .for("update");
     if (!environment) throw notFound("Environment");
+    if (
+      input.expectedMappingRevision &&
+      environment.mappingRevision !== input.expectedMappingRevision
+    ) {
+      throw conflict(
+        "Environment branch mapping changed. Retry with the current mapping.",
+        "ENVIRONMENT_MAPPING_CHANGED",
+      );
+    }
     const [row] = await transaction
       .insert(sourceSyncs)
       .values({
