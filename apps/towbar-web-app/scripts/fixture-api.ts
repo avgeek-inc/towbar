@@ -2145,6 +2145,65 @@ function getFixturePayload(
         (item) => item.sourceId === environmentSource[1],
       ),
     };
+  const manifestMatch = path.match(
+    /^\/v1\/core\/sources\/([^/]+)\/environments\/([^/]+)\/manifest$/,
+  );
+  if (manifestMatch) {
+    const mapping = environmentMappings.find(
+      (item) =>
+        item.sourceId === manifestMatch[1] && item.id === manifestMatch[2],
+    );
+    if (!mapping) return undefined;
+    const mappings = environmentMappings.filter(
+      (item) => item.sourceId === mapping.sourceId,
+    );
+    const files = [...apps, ...resources]
+      .filter((item) => item.sourceId === mapping.sourceId)
+      .filter(
+        (item, index, all) =>
+          all.findIndex((other) => other.entityId === item.entityId) === index,
+      )
+      .map((item) => {
+        const isApp = item.kind === "app";
+        const members = [...apps, ...resources].filter(
+          (other) => other.entityId === item.entityId,
+        );
+        const content = [
+          `id: ${item.manifestId}`,
+          `name: ${JSON.stringify(item.name)}`,
+          ...(isApp
+            ? ["dockerfile: Dockerfile", "container:", "  port: 3000"]
+            : [
+                `type: ${item.kind}`,
+                ...(item.kind === "image"
+                  ? ["image: axllent/mailpit:v1.27"]
+                  : []),
+              ]),
+          "environments:",
+          ...members.flatMap((member) => [
+            `  ${member.environment!.name}:`,
+            `    server: server-${member.serverId}`,
+          ]),
+          "",
+        ].join("\n");
+        return {
+          path: `.towbar/${isApp ? "apps" : "resources"}/${item.manifestId}.${isApp ? "app" : "resource"}.yml`,
+          content,
+        };
+      });
+    return {
+      manifest: {
+        commitSha,
+        files: [
+          {
+            path: "towbar.yml",
+            content: `version: 2\nenvironments:\n${mappings.map((item) => (item.previewsEnabled ? `  ${item.name}:\n    previews:\n      enabled: true` : `  ${item.name}: {}`)).join("\n")}\n`,
+          },
+          ...files,
+        ],
+      },
+    };
+  }
   if (path === "/v1/core/deployments/history") {
     const page = readPositiveInteger(searchParams.get("page"), 1);
     const limit = Math.min(
@@ -2221,7 +2280,6 @@ function getFixturePayload(
     if (!child) return { canManageSource: true, source: extraSource };
     if (child === "apps") return { apps: sourceApps };
     if (child === "resources") return { resources: sourceResources };
-    if (child === "manifest") return { manifest: null };
     if (child === "syncs") return { syncs: [] };
     if (child === "deployments") return { deployments: [] };
     if (child === "previews") return { previews: [] };
@@ -2280,17 +2338,6 @@ function getFixturePayload(
       },
     ],
     [`/v1/core/sources/${source.id}`, { canManageSource: true, source }],
-    [
-      `/v1/core/sources/${source.id}/manifest`,
-      {
-        manifest: {
-          commitSha,
-          manifest: { apps: [], resources: [], version: 1 },
-          manifestDigest,
-          rawManifest: "version: 1\napps: []\nresources: []\n",
-        },
-      },
-    ],
     [`/v1/core/sources/${source.id}/syncs`, { syncs: [sourceSync] }],
     ["/v1/core/aws", { canManage: true, credential: awsCredential }],
     ["/v1/core/azure", { canManage: true, credential: azureCredential }],

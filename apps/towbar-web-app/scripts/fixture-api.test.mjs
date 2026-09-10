@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
+import { resolveRepositoryEnvironment } from "@workspace/towbar-core";
 
 import { createFixtureApiServer, fixtureIds } from "./fixture-api.ts";
 import { reconcileServerSetupStatus } from "../src/lib/server-preparation-status.ts";
@@ -23,7 +24,7 @@ const readRoutes = [
   "/v1/core/aws",
   "/v1/core/settings/secrets",
   `/v1/core/sources/${fixtureIds.source}`,
-  `/v1/core/sources/${fixtureIds.source}/manifest`,
+  `/v1/core/sources/${fixtureIds.source}/environments`,
   `/v1/core/sources/${fixtureIds.source}/syncs`,
   `/v1/core/sources/${fixtureIds.source}/auto-deploy-control`,
   `/v1/core/sources/${fixtureIds.source}/secrets`,
@@ -964,13 +965,45 @@ test("fixture Sources have distinct inventories and working scoped routes", asyn
       const path = `${baseUrl}/v1/core/sources/${source.id}`;
       for (const child of [
         "",
-        "/manifest",
+        "/environments",
         "/syncs",
         "/capacity",
         "/deployments",
       ]) {
         assert.equal((await fetch(path + child)).status, 200, path + child);
       }
+      assert.equal((await fetch(`${path}/manifest`)).status, 404);
+      const { environments } = await (
+        await fetch(`${path}/environments`)
+      ).json();
+      for (const environment of environments) {
+        const { manifest } = await (
+          await fetch(`${path}/environments/${environment.id}/manifest`)
+        ).json();
+        const resolved = resolveRepositoryEnvironment({
+          root: manifest.files[0].content,
+          files: manifest.files.slice(1),
+          environment: environment.name,
+          branch: environment.branch,
+        });
+        assert.equal(resolved.manifest.environment, environment.name);
+        assert.match(manifest.files[0].content, /^version: 2/);
+        assert.equal(manifest.files[0].path, "towbar.yml");
+        assert(manifest.files.length > 1);
+        assert(
+          manifest.files
+            .slice(1)
+            .every((file) => file.path.startsWith(".towbar/")),
+        );
+      }
+      assert.equal(
+        (
+          await fetch(
+            `${path}/environments/00000000-0000-4000-8000-000000000000/manifest`,
+          )
+        ).status,
+        404,
+      );
       const { apps } = await (await fetch(`${path}/apps`)).json();
       const { resources } = await (await fetch(`${path}/resources`)).json();
       assert(
