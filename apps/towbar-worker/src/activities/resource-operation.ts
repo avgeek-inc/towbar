@@ -71,108 +71,54 @@ export async function executeResourceOperationActivity(operationId: string) {
   }
 }
 
-function initAwsStorage(
-  context: ResourceOperationExecutionContext,
-  awsSecret: NonNullable<ResourceOperationSecrets["aws"]>,
+export function initializeBackupStorages(
+  context: Pick<
+    ResourceOperationExecutionContext,
+    "deployable" | "restoreBackup" | "request"
+  >,
+  secrets: Pick<ResourceOperationSecrets, "aws" | "gcp" | "azure">,
 ) {
-  const configuredRegion =
-    (context.deployable && isNormalizedResource(context.deployable)
-      ? context.deployable.backup?.s3?.region
-      : undefined) ?? awsSecret.region;
-  const client = new S3Client({
-    credentials: {
-      accessKeyId: awsSecret.accessKeyId,
-      secretAccessKey: awsSecret.secretAccessKey,
-    },
-    region: configuredRegion,
-  });
-  return { client, storage: s3Storage(client) };
-}
-
-function initGcpStorage(
-  context: ResourceOperationExecutionContext,
-  gcpSecret: NonNullable<ResourceOperationSecrets["gcp"]>,
-  currentStorage?: BackupStorage,
-) {
-  const parsedKey = JSON.parse(gcpSecret.serviceAccountKey) as {
-    client_email: string;
-    private_key: string;
-    token_uri?: string;
-  };
-  const gcs = gcsStorage(parsedKey);
-  const isPrimary =
-    (context.deployable &&
-      isNormalizedResource(context.deployable) &&
-      context.deployable.backup?.restoreFrom === "gcs") ||
-    context.restoreBackup?.result.restoreFrom === "gcs";
-  return {
-    gcs,
-    storage: !currentStorage || isPrimary ? gcs : currentStorage,
-  };
-}
-
-function initAzureStorage(
-  context: ResourceOperationExecutionContext,
-  azureSecret: NonNullable<ResourceOperationSecrets["azure"]>,
-  currentStorage?: BackupStorage,
-) {
-  const defaultStorageAccount =
-    (context.deployable && isNormalizedResource(context.deployable)
-      ? context.deployable.backup?.azureBlob?.storageAccount
-      : undefined) ??
-    context.restoreBackup?.result.storageAccount ??
-    context.restoreBackup?.result.destinations?.find(
-      (d) => d.provider === "azureBlob",
-    )?.storageAccount;
-  const azure = azureBlobStorage(azureSecret, defaultStorageAccount);
-
-  const isPrimary =
-    (context.deployable &&
-      isNormalizedResource(context.deployable) &&
-      context.deployable.backup?.restoreFrom === "azureBlob") ||
-    (context.restoreBackup &&
-      (context.restoreBackup.result.restoreFrom === "azureBlob" ||
-        (!context.restoreBackup.result.restoreFrom &&
-          Boolean(context.restoreBackup.result.storageAccount))));
-
-  return {
-    azure,
-    storage: !currentStorage || isPrimary ? azure : currentStorage,
-  };
-}
-
-function initializeBackupStorages(
-  context: ResourceOperationExecutionContext,
-  secrets: ResourceOperationSecrets,
-): {
-  client?: S3Client;
-  storage?: BackupStorage;
-  storages: Partial<Record<BackupProvider, BackupStorage>>;
-} {
+  const backup =
+    context.deployable && isNormalizedResource(context.deployable)
+      ? context.deployable.backup
+      : undefined;
+  const retained =
+    context.request.type === "restore"
+      ? context.restoreBackup?.result
+      : undefined;
+  const provider =
+    context.request.type === "restore"
+      ? (retained?.restoreFrom ??
+        (retained?.storageAccount ? "azureBlob" : "s3"))
+      : (backup?.restoreFrom ?? "s3");
   let client: S3Client | undefined;
-  let storage: BackupStorage | undefined;
   const storages: Partial<Record<BackupProvider, BackupStorage>> = {};
-
   if (secrets.aws) {
-    const aws = initAwsStorage(context, secrets.aws);
-    client = aws.client;
-    storage = aws.storage;
-    storages.s3 = aws.storage;
+    client = new S3Client({
+      credentials: {
+        accessKeyId: secrets.aws.accessKeyId,
+        secretAccessKey: secrets.aws.secretAccessKey,
+      },
+      region:
+        retained && provider === "s3"
+          ? (retained.region ?? secrets.aws.region)
+          : (backup?.s3?.region ?? secrets.aws.region),
+    });
+    storages.s3 = s3Storage(client);
   }
-
   if (secrets.gcp) {
-    const gcp = initGcpStorage(context, secrets.gcp, storage);
-    storages.gcs = gcp.gcs;
-    storage = gcp.storage;
+    const key = JSON.parse(secrets.gcp.serviceAccountKey) as Parameters<
+      typeof gcsStorage
+    >[0];
+    storages.gcs = gcsStorage(key);
   }
-
   if (secrets.azure) {
-    const azure = initAzureStorage(context, secrets.azure, storage);
-    storages.azureBlob = azure.azure;
-    storage = azure.storage;
+    storages.azureBlob = azureBlobStorage(
+      secrets.azure,
+      retained?.storageAccount ?? backup?.azureBlob?.storageAccount,
+    );
   }
-
-  return { client, storage, storages };
+  return { client, storage: storages[provider], storages };
 }
 
 async function handleResourceOperationError(

@@ -362,23 +362,23 @@ export function azureBlobStorage(
       const headers = response.headers;
       const contentLength = headers.get("content-length");
       return {
-        checksum: headers.get("x-ms-meta-towbar-checksum") ?? undefined,
+        checksum: headers.get("x-ms-meta-towbar_checksum") ?? undefined,
         encryption:
           headers.get("x-ms-server-encrypted") === "true"
             ? "Microsoft-managed"
             : undefined,
         engine: parseEngine(
-          headers.get("x-ms-meta-towbar-engine") ?? undefined,
+          headers.get("x-ms-meta-towbar_engine") ?? undefined,
         ),
         engineMajorVersion: parsePositiveInteger(
-          headers.get("x-ms-meta-towbar-engine-major-version") ?? undefined,
+          headers.get("x-ms-meta-towbar_engine_major_version") ?? undefined,
         ),
         exists: true,
         format: parseFormat(
-          headers.get("x-ms-meta-towbar-format") ?? undefined,
+          headers.get("x-ms-meta-towbar_format") ?? undefined,
         ),
         metadataVersion: parsePositiveInteger(
-          headers.get("x-ms-meta-towbar-metadata-version") ?? undefined,
+          headers.get("x-ms-meta-towbar_metadata_version") ?? undefined,
         ),
         sizeBytes: contentLength ? Number(contentLength) : undefined,
       };
@@ -395,7 +395,7 @@ export function azureBlobStorage(
       const url = resolveUrl(storageAccount, bucket, key);
       const metaHeaders: Record<string, string> = {};
       for (const [k, v] of Object.entries(metadata)) {
-        metaHeaders[`x-ms-meta-${k}`] = v;
+        metaHeaders[`x-ms-meta-${k.replaceAll("-", "_")}`] = v;
       }
       if (sizeBytes > MAX_AZURE_SINGLE_PUT_BYTES) {
         return await uploadAzureBlockBlobChunked({
