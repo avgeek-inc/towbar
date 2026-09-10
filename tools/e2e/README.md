@@ -41,3 +41,22 @@ are not exercised.
 The runner supplies resolved configuration/secrets and an in-memory release
 commit callback. It verifies the deployer, not API admission, database release
 transactions or Temporal delivery. Those need the subsequent lifecycle runner.
+
+For database-backed execution, build the API and supply a dedicated PostgreSQL
+URL whose database name ends in `_test`:
+
+```sh
+pnpm --filter towbar-api build
+TOWBAR_TEST_DATABASE_URL=postgres://user:password@localhost:5432/towbar_test node tools/e2e/resource-lifecycle.mjs
+```
+
+This mode runs migrations, creates an isolated workspace with production and
+staging mappings, stores encrypted credentials and environment secrets, and
+uses the production API services to resolve execution contexts and commit
+releases. It verifies that current database releases match the running
+containers and that the unhealthy candidate has no release. Test rows are
+removed afterward; use a disposable test database.
+
+The runner calls services directly. It does not exercise HTTP admission or
+Temporal delivery, and the unsuccessful candidate remains at `checking_health`
+until test cleanup because workflow failure handling is not part of this mode.

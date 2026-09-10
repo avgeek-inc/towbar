@@ -12,12 +12,22 @@ import {
 import { startTestTarget } from "./target.mjs";
 
 const target = await startTestTarget();
+let database;
 try {
   const server = normalizeServerConfiguration({
     ip: "127.0.0.1",
     ssh: { username: "deploy", port: target.port },
   });
   const trustedHostKeys = await scanHostKeys(server);
+  if (process.env.TOWBAR_TEST_DATABASE_URL) {
+    const { createResourceLifecycleDatabase } =
+      await import("./resource-database.mjs");
+    database = await createResourceLifecycleDatabase({
+      server,
+      trustedHostKeys,
+      key: target.key,
+    });
+  }
   const sourceId = randomUUID();
   const instances = new Map(
     ["production", "staging"].map((name) => [
@@ -43,40 +53,43 @@ try {
     if (failHealth)
       app.health = { type: "command", command: ["false"], timeoutSeconds: 2 };
     const previous = instance.current;
-    const result = await executeDeployment({
-      context: {
-        app,
-        server,
-        trustedHostKeys,
-        sourceId,
-        deployableId: instance.id,
-        deploymentId: randomUUID(),
-        commitSha: "c".repeat(40),
-        environment: "production",
-        kind: "deploy",
-        githubToken: null,
-        repositoryName: "test",
-        repositoryOwner: "test",
-        rollbackRelease: null,
-        currentRelease: previous,
-      },
-      secrets: {
-        build: {},
-        runtime: { REDIS_PASSWORD: `test-${name}` },
-        hooks: { preDeploy: {}, postDeploy: {} },
-        cloudflare: null,
-        login: { privateKey: readFileSync(target.key, "utf8") },
-      },
-      hooks: {
-        transition: async (state) => console.log(`${name}: ${state}`),
-        commitRelease: async (candidate) => ({
-          retainedImageTags: [
-            candidate.imageTag,
-            ...(previous ? [previous.imageTag] : []),
-          ],
-        }),
-      },
-    });
+    const execution = database
+      ? await database.prepare(name, app)
+      : {
+          context: {
+            app,
+            server,
+            trustedHostKeys,
+            sourceId,
+            deployableId: instance.id,
+            deploymentId: randomUUID(),
+            commitSha: "c".repeat(40),
+            environment: "production",
+            kind: "deploy",
+            githubToken: null,
+            repositoryName: "test",
+            repositoryOwner: "test",
+            rollbackRelease: null,
+            currentRelease: previous,
+          },
+          secrets: {
+            build: {},
+            runtime: { REDIS_PASSWORD: `test-${name}` },
+            hooks: { preDeploy: {}, postDeploy: {} },
+            cloudflare: null,
+            login: { privateKey: readFileSync(target.key, "utf8") },
+          },
+          hooks: {
+            transition: async (state) => console.log(`${name}: ${state}`),
+            commitRelease: async (candidate) => ({
+              retainedImageTags: [
+                candidate.imageTag,
+                ...(previous ? [previous.imageTag] : []),
+              ],
+            }),
+          },
+        };
+    const result = await executeDeployment(execution);
     instance.current = result;
     return result;
   };
@@ -116,9 +129,14 @@ try {
     .split("\n")
     .sort();
   assert.deepEqual(running, [originalProduction, retainedStaging].sort());
+  if (database) await database.verify(instances);
   console.log(
     "Production/staging data isolation, redeployment, failed-health recovery and candidate cleanup verified.",
   );
 } finally {
-  target.close();
+  try {
+    if (database) await database.close();
+  } finally {
+    target.close();
+  }
 }

@@ -243,3 +243,13 @@ restored the retained staging runtime without leaving a failed candidate.
 The target and temporary credentials were removed after the run. Configuration,
 secrets and release commit callbacks are supplied by this runner; API/database
 admission and Temporal execution are still separate outstanding checks.
+
+The database-backed mode also passed against the isolated test PostgreSQL
+instance. It seeds environment mappings and encrypted secrets, resolves execution
+context through production API services, and commits actual release transactions.
+Assertions verified two current releases matching the running containers, one
+previous release, three successful deployments with secret revision snapshots,
+and no release for the unhealthy candidate. The runner removes its workspace
+rows and target afterward. HTTP admission and Temporal delivery are not exercised;
+the failed attempt stays at checking_health until cleanup because workflow
+failure handling is outside this direct-service harness.
