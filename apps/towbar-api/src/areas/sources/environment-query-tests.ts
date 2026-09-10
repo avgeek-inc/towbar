@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { eq } from "drizzle-orm";
+import { sourceSyncs } from "@workspace/towbar-database/schema";
+import { getTowbarDatabase } from "../../infrastructure/database.js";
+import { executeSourceSync } from "./service.js";
 import { assertEnvironmentPushRouting } from "./environment-webhook-tests.js";
 import type { apps } from "@workspace/towbar-database/schema";
 import {
@@ -21,6 +25,23 @@ export async function assertInstanceQueryIdentity({
   stage: typeof apps.$inferSelect;
 }) {
   await assertEnvironmentPushRouting();
+  const database = getTowbarDatabase();
+  const [unscoped] = await database
+    .insert(sourceSyncs)
+    .values({ sourceId })
+    .returning();
+  await assert.rejects(
+    executeSourceSync(unscoped!.id),
+    /requires an environment/,
+  );
+  const [rejected] = await database
+    .select()
+    .from(sourceSyncs)
+    .where(eq(sourceSyncs.id, unscoped!.id));
+  assert.equal(rejected!.status, "failed");
+  assert(rejected?.issues);
+  assert.match(rejected.issues[0]!.message, /requires an environment/);
+  await database.delete(sourceSyncs).where(eq(sourceSyncs.id, unscoped!.id));
   const instances = await listApps(workspaceId, sourceId);
   assert.equal(instances.length, 2);
   for (const [record, name] of [

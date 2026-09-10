@@ -3,18 +3,13 @@ import { sourceEnvironmentRoutes } from "./source-environments.js";
 import { filterSources, sourceFilters } from "@workspace/towbar-core/inventory";
 import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
-import { z } from "zod";
 
 import {
-  createSource,
   deleteSource,
   getSource,
-  getSourceManifest,
   getSourceSync,
   listSourceSyncs,
   listSources,
-  previewSourceSync,
-  requestSourceSync,
 } from "../../../areas/sources/service.js";
 import { listApps, listResources } from "../../../areas/apps/service.js";
 import { listDeployments } from "../../../areas/deployments/service.js";
@@ -32,14 +27,6 @@ import { wakeMaintenanceWorkflow } from "../../../infrastructure/temporal.js";
 
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
-const sourceSchema = z
-  .object({
-    branch: z.string().trim().min(1).max(255),
-    githubInstallationId: z.string().uuid(),
-    repositoryName: z.string().trim().min(1).max(255),
-    repositoryOwner: z.string().trim().min(1).max(255),
-  })
-  .strict();
 export const sourceRoutes = new Hono<TowbarHonoEnvironment>();
 sourceRoutes.route("/", sourceConnectionRoutes);
 sourceRoutes.route("/:sourceId/environments", sourceEnvironmentRoutes);
@@ -59,25 +46,6 @@ sourceRoutes.get(
       sourceFilters.parse(context.req.query()),
     );
     return context.json({ sources: result.items, counts: result.counts });
-  },
-);
-
-sourceRoutes.post(
-  "/",
-  operation({
-    responseSchema: 'sources.ts:post:"/"',
-    summary: "Create source",
-    body: sourceSchema,
-    response: "JSON object containing source.",
-    status: 201,
-  }),
-  async (context) => {
-    const input = await readJson(context, sourceSchema);
-    const source = await createSource({
-      ...input,
-      workspaceId: context.get("user").workspaceId,
-    });
-    return context.json({ source }, 201);
   },
 );
 
@@ -264,59 +232,6 @@ sourceRoutes.get(
         workspaceId: user.workspaceId,
       }),
     });
-  },
-);
-
-sourceRoutes.get(
-  "/:sourceId/manifest",
-  operation({
-    responseSchema: 'sources.ts:get:"/:sourceId/manifest"',
-    summary: "Get source manifest",
-    response: "JSON object containing manifest.",
-    status: 200,
-  }),
-  async (context) =>
-    context.json({
-      manifest: await getSourceManifest(
-        context.req.param("sourceId"),
-        context.get("user").workspaceId,
-      ),
-    }),
-);
-
-sourceRoutes.post(
-  "/:sourceId/actions/preview-sync",
-  operation({
-    responseSchema: 'sources.ts:post:"/:sourceId/actions/preview-sync"',
-    summary: "Preview source sync",
-    response: "The proposed manifest changes and reconciliation result.",
-    status: 200,
-  }),
-  async (context) =>
-    context.json(
-      await previewSourceSync(
-        context.req.param("sourceId"),
-        context.get("user").workspaceId,
-      ),
-    ),
-);
-
-sourceRoutes.post(
-  "/:sourceId/actions/sync",
-  operation({
-    responseSchema: 'sources.ts:post:"/:sourceId/actions/sync"',
-    summary: "Request source sync",
-    response: "JSON object containing sync.",
-    status: 202,
-  }),
-  async (context) => {
-    const user = context.get("user");
-    const sync = await requestSourceSync({
-      requestedBy: user.id,
-      sourceId: context.req.param("sourceId"),
-      workspaceId: user.workspaceId,
-    });
-    return context.json({ sync }, 202);
   },
 );
 
