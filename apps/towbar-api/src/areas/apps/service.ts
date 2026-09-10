@@ -129,9 +129,7 @@ export async function requestAppDeployment(input: {
   let admission;
   try {
     admission = await database.transaction(async (transaction) => {
-      if (target.environment) {
-        await lockDeploymentEnvironment(target.environment, transaction);
-      }
+      await lockDeploymentEnvironment(target.environment, transaction);
       const [currentApp] = await transaction
         .select({
           archivedAt: apps.archivedAt,
@@ -458,13 +456,11 @@ async function getAppForDeployment(appId: string, workspaceId: string) {
     .select({
       archivedAt: apps.archivedAt,
       requiredSecrets: apps.requiredSecrets,
-      commitSha: sources.latestCommitSha,
       config: apps.config,
       configDigest: apps.configDigest,
       deploymentDigest: apps.deploymentDigest,
       id: apps.id,
       kind: apps.kind,
-      manifestDigest: sources.latestManifestDigest,
       serverConfig: servers.config,
       serverId: servers.id,
       serverIp: servers.canonicalIp,
@@ -481,28 +477,28 @@ async function getAppForDeployment(appId: string, workspaceId: string) {
     .limit(1);
   if (!app) throw notFound("App");
   const environment = await getInstanceEnvironment({ appId, workspaceId });
-  if (environment?.disconnectedAt)
+  if (!environment)
+    throw conflict(
+      "This instance requires an environment mapping",
+      "ENVIRONMENT_REQUIRED",
+    );
+  if (environment.disconnectedAt)
     throw conflict(
       "This environment is disconnected",
       "ENVIRONMENT_DISCONNECTED",
     );
-  if (
-    environment &&
-    environment.mappingRevision !== environment.syncedMappingRevision
-  ) {
+  if (environment.mappingRevision !== environment.syncedMappingRevision) {
     throw conflict(
       "Sync this environment after changing its branch before deploying",
       "ENVIRONMENT_SYNC_REQUIRED",
     );
   }
-  return environment
-    ? {
-        ...app,
-        environment,
-        commitSha: environment.latestCommitSha,
-        manifestDigest: environment.latestManifestDigest,
-      }
-    : { ...app, environment: null };
+  return {
+    ...app,
+    environment,
+    commitSha: environment.latestCommitSha,
+    manifestDigest: environment.latestManifestDigest,
+  };
 }
 
 function requireServerReady(target: {

@@ -15,6 +15,7 @@ import {
   managedSecrets,
   releases,
   servers,
+  sourceEnvironments,
   sources,
   users,
   workspaces,
@@ -188,8 +189,13 @@ void test(
         config: serverConfig,
         configDigest: "digest",
       });
+      const [environment] = await db
+        .insert(sourceEnvironments)
+        .values({ sourceId, name: "production", branch: "main" })
+        .returning();
       await db.insert(apps).values({
         id: appId,
+        sourceEnvironmentId: environment!.id,
         workspaceId,
         sourceId,
         serverId,

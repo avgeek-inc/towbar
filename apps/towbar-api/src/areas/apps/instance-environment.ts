@@ -27,7 +27,10 @@ export async function getInstanceEnvironment(
     .from(apps)
     .innerJoin(
       sourceEnvironments,
-      eq(sourceEnvironments.id, apps.sourceEnvironmentId),
+      and(
+        eq(sourceEnvironments.id, apps.sourceEnvironmentId),
+        eq(sourceEnvironments.sourceId, apps.sourceId),
+      ),
     )
     .leftJoin(
       sourceSyncs,
@@ -45,13 +48,17 @@ export async function instanceSecretEnvironment(
   database: SecretDatabase = getTowbarDatabase(),
 ) {
   const environment = await getInstanceEnvironment(input, database);
-  if (environment?.disconnectedAt)
+  if (!environment)
+    throw conflict(
+      "This instance requires an environment mapping",
+      "ENVIRONMENT_REQUIRED",
+    );
+  if (environment.disconnectedAt)
     throw conflict(
       "This environment is disconnected",
       "ENVIRONMENT_DISCONNECTED",
     );
-  const name = environment?.name ?? "production";
-  return input.preview ? (environment ? `preview:${name}` : "preview") : name;
+  return input.preview ? `preview:${environment.name}` : environment.name;
 }
 
 export async function lockDeploymentEnvironment(

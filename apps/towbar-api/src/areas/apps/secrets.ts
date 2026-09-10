@@ -393,10 +393,14 @@ export async function listSecretEnvironments(owner: SecretOwner) {
       appId: owner.id,
       workspaceId: owner.workspaceId,
     });
-    const name = environment?.name ?? "production";
+    if (!environment)
+      throw unprocessable(
+        "This instance requires an environment mapping",
+        "ENVIRONMENT_REQUIRED",
+      );
     return ownership.resource
-      ? [name]
-      : [name, environment ? `preview:${name}` : "preview"];
+      ? [environment.name]
+      : [environment.name, `preview:${environment.name}`];
   }
   const rows = await getTowbarDatabase()
     .selectDistinct({ name: sourceEnvironments.name })

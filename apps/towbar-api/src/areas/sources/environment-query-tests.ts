@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { sourceSyncs } from "@workspace/towbar-database/schema";
+import { apps, sourceSyncs } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import {
   executeSourceSync,
@@ -9,7 +9,6 @@ import {
   listSourceSyncs,
 } from "./service.js";
 import { assertEnvironmentPushRouting } from "./environment-webhook-tests.js";
-import type { apps } from "@workspace/towbar-database/schema";
 import {
   getApp,
   getResource,
@@ -59,6 +58,41 @@ export async function assertInstanceQueryIdentity({
       getSourceSync(sourceId, sync.id, randomUUID()),
       /not found/i,
     );
+  }
+  const { instanceSecretEnvironment } =
+    await import("../apps/instance-environment.js");
+  const { requestAppDeployment } = await import("../apps/service.js");
+  await database
+    .update(apps)
+    .set({ sourceEnvironmentId: null })
+    .where(eq(apps.id, stage.id));
+  try {
+    await assert.rejects(
+      instanceSecretEnvironment({ appId: stage.id, workspaceId }),
+      /requires an environment/,
+    );
+    await assert.rejects(
+      instanceSecretEnvironment({
+        appId: stage.id,
+        workspaceId,
+        preview: true,
+      }),
+      /requires an environment/,
+    );
+    await assert.rejects(
+      requestAppDeployment({
+        appId: stage.id,
+        workspaceId,
+        requestedBy: null,
+        idempotencyKey: randomUUID(),
+      }),
+      /requires an environment/,
+    );
+  } finally {
+    await database
+      .update(apps)
+      .set({ sourceEnvironmentId: stage.sourceEnvironmentId })
+      .where(eq(apps.id, stage.id));
   }
   const instances = await listApps(workspaceId, sourceId);
   assert.equal(instances.length, 2);
