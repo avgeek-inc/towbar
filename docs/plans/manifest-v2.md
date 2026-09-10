@@ -95,6 +95,14 @@ not a list of untouched work.
 
 ## Latest verification
 
+- Rollback admission now locks the environment, instance/server and selected
+  retained release before insertion. It rejects changed configuration, archival,
+  unavailable releases and releases from another server, and only selects
+  persistent releases. The database regression observes a real row-lock wait,
+  archives the instance, then verifies no rollback is admitted; it also rejects
+  a preview release. All 14 environment tests and the full 228-test API database
+  suite pass without skips. API typecheck and scoped lint pass.
+
 - Final identity pass: persistent API execution contexts and deployer defaults
   use the instance UUID, not the shared manifest ID. Resource image cleanup
   labels use that same identity. The database execution-context regression and
@@ -164,8 +172,8 @@ tests. Do not reset the hosted installation or use its database.
 1. Audit persistent/preview deployment labels throughout UI and generated docs.
    Deployment records now preserve a required target environment snapshot with
    ID, name, branch and mapping revision; history filters use that snapshot.
-2. Audit rollback admission locking and resource operations, backups/restores,
-   monitoring, alerts and scanning
+2. Complete the audit of resource operations, backups/restores, monitoring,
+   alerts and scanning
    for instance/environment scope and labels. Validate that resource secret
    stage declarations match stages the resource editor and execution support.
 3. Verify remaining environment controls, readiness, validation failures and

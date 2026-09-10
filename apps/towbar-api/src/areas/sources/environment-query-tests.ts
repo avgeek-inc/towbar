@@ -34,6 +34,9 @@ export async function assertInstanceQueryIdentity({
   const { assertEnvironmentOwnership } =
     await import("./environment-ownership-tests.js");
   await assertEnvironmentOwnership(stage);
+  const { assertRollbackAdmission } =
+    await import("./environment-rollback-tests.js");
+  await assertRollbackAdmission(stage);
   const database = getTowbarDatabase();
   const [unscoped] = await database
     .insert(sourceSyncs)

@@ -1,3 +1,7 @@
+import {
+  lockRollbackInstance,
+  requireServerReady,
+} from "./deployment-guards.js";
 import { deploymentEnvironmentSnapshot } from "./instance-environment.js";
 import { randomUUID } from "node:crypto";
 
@@ -308,6 +312,7 @@ export async function requestAppRollback(input: {
   const conditions = [
     eq(releases.appId, app.id),
     eq(releases.status, "previous"),
+    eq(releases.environment, "production"),
   ];
   if (request.releaseId) conditions.push(eq(releases.id, request.releaseId));
   const [release] = await getTowbarDatabase()
@@ -324,40 +329,72 @@ export async function requestAppRollback(input: {
     .where(eq(deployments.id, release.deploymentId))
     .limit(1);
   if (!original) throw notFound("Release deployment");
+  if (original.serverId !== app.serverId)
+    throw conflict("The rollback release belongs to a different server");
   const deploymentId = randomUUID();
   let deployment;
   try {
-    [deployment] = await getTowbarDatabase()
-      .insert(deployments)
-      .values({
-        appId: app.id,
-        appSnapshot: app.config,
-        requiredSecrets: app.requiredSecrets,
-        targetEnvironment: deploymentEnvironmentSnapshot(app.environment),
-        commitSha: app.commitSha ?? original.commitSha,
-        configDigest: app.configDigest,
-        deploymentDigest: app.deploymentDigest ?? original.deploymentDigest,
-        deployableKind: original.deployableKind,
-        id: deploymentId,
-        idempotencyKey: request.idempotencyKey,
-        kind: "rollback",
-        manifestDigest: app.manifestDigest ?? original.manifestDigest,
-        requestedBy: request.requestedBy,
-        rollbackReleaseSnapshot: {
-          commitSha: release.commitSha,
-          containerName: release.containerName,
-          imageTag: release.imageTag,
-          releaseId: release.id,
-          sourceDeploymentId: release.deploymentId,
-        },
-        serverId: app.serverId,
-        serverSnapshot: app.serverConfig,
-        sourceId: app.sourceId,
-        sourceInputDigest: app.sourceInputDigest,
-        temporalWorkflowId: deploymentWorkflowId(deploymentId),
-        workspaceId: request.workspaceId,
-      })
-      .returning();
+    deployment = await getTowbarDatabase().transaction(async (transaction) => {
+      await lockDeploymentEnvironment(app.environment, transaction);
+      const current = await lockRollbackInstance(
+        transaction,
+        app.id,
+        request.workspaceId,
+      );
+      if (!current) throw notFound("App");
+      if (current.archivedAt)
+        throw conflict("Archived apps cannot be rolled back");
+      requireServerReady(current);
+      if (
+        current.configDigest !== app.configDigest ||
+        current.deploymentDigest !== app.deploymentDigest ||
+        current.serverId !== app.serverId ||
+        current.serverConfigDigest !== app.serverConfigDigest
+      )
+        throw conflict(
+          "The instance changed. Retry the rollback.",
+          "SOURCE_REVISION_SUPERSEDED",
+        );
+      const [retained] = await transaction
+        .select({ id: releases.id })
+        .from(releases)
+        .where(and(eq(releases.id, release.id), ...conditions))
+        .for("update");
+      if (!retained)
+        throw conflict("The rollback release is no longer available");
+      const [admitted] = await transaction
+        .insert(deployments)
+        .values({
+          appId: app.id,
+          appSnapshot: app.config,
+          requiredSecrets: app.requiredSecrets,
+          targetEnvironment: deploymentEnvironmentSnapshot(app.environment),
+          commitSha: app.commitSha ?? original.commitSha,
+          configDigest: app.configDigest,
+          deploymentDigest: app.deploymentDigest ?? original.deploymentDigest,
+          deployableKind: original.deployableKind,
+          id: deploymentId,
+          idempotencyKey: request.idempotencyKey,
+          kind: "rollback",
+          manifestDigest: app.manifestDigest ?? original.manifestDigest,
+          requestedBy: request.requestedBy,
+          rollbackReleaseSnapshot: {
+            commitSha: release.commitSha,
+            containerName: release.containerName,
+            imageTag: release.imageTag,
+            releaseId: release.id,
+            sourceDeploymentId: release.deploymentId,
+          },
+          serverId: app.serverId,
+          serverSnapshot: app.serverConfig,
+          sourceId: app.sourceId,
+          sourceInputDigest: app.sourceInputDigest,
+          temporalWorkflowId: deploymentWorkflowId(deploymentId),
+          workspaceId: request.workspaceId,
+        })
+        .returning();
+      return admitted;
+    });
   } catch (error) {
     if (isUniqueViolation(error)) {
       const replay = await findIdempotentDeployment(request);
@@ -502,22 +539,6 @@ async function getAppForDeployment(appId: string, workspaceId: string) {
     commitSha: environment.latestCommitSha,
     manifestDigest: environment.latestManifestDigest,
   };
-}
-
-function requireServerReady(target: {
-  serverConfigDigest: string;
-  serverPreparedAt: Date | null;
-  serverPreparedConfigDigest: string | null;
-}) {
-  if (
-    !target.serverPreparedAt ||
-    target.serverPreparedConfigDigest !== target.serverConfigDigest
-  ) {
-    throw conflict(
-      "Prepare this server before deploying apps or resources",
-      "SERVER_SETUP_PENDING",
-    );
-  }
 }
 
 function requireDeployableType(
