@@ -446,3 +446,10 @@ served revision B, and a failed preview candidate retained the healthy preview
 revision A. The target was removed on completion. GitHub token/archive responses
 and release commits remain simulated in this run. Full PR reconciliation through
 API admission, Temporal delivery and cleanup is still a separate unproven gate.
+
+The combined HTTPS + PostgreSQL + Temporal app run also passed: three completed
+deployments, one intentional failed staging candidate, matching runtime/database
+releases and four replayed workflow histories. Production remained on A and
+staging on healthy B through the failure. The dedicated Temporal server and
+Docker target were stopped afterward. This mode seeds source snapshots and
+server readiness; it does not cover PR event reconciliation.

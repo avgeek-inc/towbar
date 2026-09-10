@@ -195,4 +195,6 @@ staging and preview after a staging update and an unhealthy preview candidate.
 Only the GitHub token/archive responses and release callback are simulated in
 this mode. These checks cover local TLS routing, not public ACME issuance or
 PR event reconciliation. `TOWBAR_TEST_HTTPS=1` can also be combined with the
-Temporal mode above; that combination has not yet been verified.
+Temporal mode above. That combination passed with production/staging routes,
+three successful deployments, one intentional unhealthy candidate failure,
+database release assertions and replay of all four workflow histories.
