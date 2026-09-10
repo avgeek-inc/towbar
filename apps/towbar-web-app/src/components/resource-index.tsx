@@ -64,7 +64,7 @@ export function SourceIndex() {
       key: "repository",
       header: "Source Repo",
       cell: (source) => (
-        <span className="flex min-w-0 items-center gap-2 font-medium">
+        <span className="flex min-w-0 items-center gap-2">
           <HugeiconsIcon
             aria-hidden="true"
             className="size-5 shrink-0"

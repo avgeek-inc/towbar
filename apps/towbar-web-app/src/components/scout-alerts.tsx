@@ -91,7 +91,7 @@ export function ScoutAlerts({
       header: "Rule",
       cell: (r) => (
         <div className="grid gap-1">
-          <span className="font-medium">{r.name}</span>
+          <span>{r.name}</span>
           <span className="text-sm text-muted">
             {conditionDescription(r.condition)}
           </span>
@@ -226,7 +226,7 @@ export function ScoutAlerts({
       header: "Incident",
       cell: (i) => (
         <div className="grid gap-1">
-          <span className="font-medium">{i.ruleName}</span>
+          <span>{i.ruleName}</span>
           <span className="text-sm text-muted">
             {conditionDescription(i.condition)}
           </span>

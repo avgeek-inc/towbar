@@ -59,7 +59,7 @@ export function OverviewIncidents() {
             <div className="grid justify-items-start gap-3">
               <InlineLink
                 href="/monitoring/incidents"
-                className="inline-flex min-h-11 min-w-11 items-center text-3xl font-semibold tracking-tight tabular-nums"
+                className="inline-flex min-h-11 min-w-11 items-center text-3xl font-semibold tracking-tight font-mono tabular-nums"
                 aria-label={`${count} active ${count === 1 ? "incident" : "incidents"} — view all`}
               >
                 {count}
@@ -102,7 +102,7 @@ function deploymentColumns(
         );
         return (
           <div className="grid gap-1">
-            <span className="font-medium">{item.deployableName}</span>
+            <span>{item.deployableName}</span>
             {detail && (
               <span
                 className="max-w-48 truncate text-sm text-muted"

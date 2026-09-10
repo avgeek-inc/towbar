@@ -51,7 +51,7 @@ export function Chip({
       {...props}
     >
       {loading ? <Spinner color="current" size="sm" /> : null}
-      <HeroChip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap">
+      <HeroChip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap font-mono font-normal tabular-nums">
         {!loading && icon ? (
           <span
             aria-hidden="true"

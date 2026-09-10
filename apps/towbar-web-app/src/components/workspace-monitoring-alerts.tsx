@@ -40,7 +40,7 @@ export function WorkspaceAlerts() {
       header: "Alert",
       cell: ({ rule }) => (
         <div className="grid gap-1">
-          <span className="font-medium">{rule.name}</span>
+          <span>{rule.name}</span>
           <span className="text-sm text-muted">
             {conditionDescription(rule.condition)}
           </span>

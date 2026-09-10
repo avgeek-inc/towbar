@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "@heroui/styles";
 @import "@fontsource-variable/inter";
+@import "@fontsource-variable/geist-mono/wght.css";
+
+@theme {
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+}
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -112,7 +117,7 @@ a {
 
 code,
 pre {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-mono);
 }
 
 .theme-changing *,
