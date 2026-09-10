@@ -1118,3 +1118,78 @@ test("source discovery uses v2 environments and unsupported mutations do not ret
     await once(server, "close");
   }
 });
+
+test("connecting a selected environment persists isolated instances without deployment", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  const base = `http://127.0.0.1:${address.port}/v1/core`;
+  const get = async (path) => {
+    const response = await fetch(base + path);
+    assert.equal(response.status, 200, path);
+    return response.json();
+  };
+  const connect = (body) =>
+    fetch(base + "/sources/connect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  try {
+    const { connection } = await get("/github");
+    const request = {
+      githubInstallationId: connection.id,
+      repositoryOwner: "example-inc",
+      repositoryName: "example-service",
+      discoveryBranch: "main",
+      environments: [{ environment: "staging", branch: "develop" }],
+    };
+    const before = await get("/sources");
+    for (const invalid of [
+      null,
+      { ...request, environments: [] },
+      {
+        ...request,
+        environments: [{ environment: "staging", branch: "missing" }],
+      },
+    ])
+      assert.equal((await connect(invalid)).status, 400);
+    assert.deepEqual(await get("/sources"), before);
+    const response = await connect(request);
+    assert.equal(response.status, 201);
+    const { source, syncs } = await response.json();
+    assert.equal(syncs.length, 1);
+    assert.equal(syncs[0].environment, "staging");
+    assert.equal(syncs[0].error, null);
+    assert.deepEqual((await get(`/sources/${source.id}`)).source, source);
+    const { environments } = await get(`/sources/${source.id}/environments`);
+    assert.equal(environments.length, 1);
+    assert.equal(environments[0].branch, "develop");
+    for (const kind of ["apps", "resources"]) {
+      const instances = (await get(`/sources/${source.id}/${kind}`))[kind];
+      assert.equal(instances.length, 1);
+      assert.equal(instances[0].environment.name, "staging");
+      assert.equal(instances[0].sourceId, source.id);
+      assert.equal(instances[0].runtimeState.observedContainerName, null);
+      assert.equal(instances[0].runtimeState.observedState, "unknown");
+      assert.ok(
+        (await get(`/${kind}`))[kind].some(
+          (item) => item.id === instances[0].id,
+        ),
+      );
+    }
+    assert.deepEqual(
+      (await get(`/sources/${source.id}/deployments`)).deployments,
+      [],
+    );
+    assert.equal((await connect(request)).status, 400);
+    assert.equal(
+      (await get(`/sources/${source.id}/environments`)).environments.length,
+      1,
+    );
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});

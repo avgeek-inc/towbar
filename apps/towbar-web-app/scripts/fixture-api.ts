@@ -1,3 +1,4 @@
+import { createSourceConnectionFixture } from "./source-connection-fixture.ts";
 import {
   workloadFilters,
   serverFilters,
@@ -1136,6 +1137,12 @@ const workflowStates: DeploymentState[] = [
 ];
 
 export function createFixtureApiServer() {
+  const connections = createSourceConnectionFixture({
+    existing: sources,
+    installationId: githubConnection.id,
+    app: apps[0]!,
+    resource: resources[0]!,
+  });
   const scoutFixture = createScoutFixture(
     servers.map((s) => s.id),
     [...apps, ...resources],
@@ -1205,11 +1212,12 @@ export function createFixtureApiServer() {
           });
         } else if (path.endsWith("/sources")) {
           const result = filterSources(
-            sources.map((source) => ({
+            [...sources, ...connections.sources].map((source) => ({
               ...source,
-              latestSyncStatus: environmentMappings.some(
-                (item) => item.sourceId === source.id,
-              )
+              latestSyncStatus: [
+                ...environmentMappings,
+                ...connections.mappings,
+              ].some((item) => item.sourceId === source.id)
                 ? "succeeded"
                 : "never",
               autoDeployPaused: false,
@@ -1223,7 +1231,9 @@ export function createFixtureApiServer() {
         } else {
           const resource = path.endsWith("/resources");
           const result = filterWorkloads<FixtureApp | FixtureResource>(
-            resource ? resources : apps,
+            resource
+              ? [...resources, ...connections.resources]
+              : [...apps, ...connections.apps],
             workloadFilters.parse(query),
           );
           writeJson(response, 200, {
@@ -1460,9 +1470,25 @@ export function createFixtureApiServer() {
       if (awsCredential) awsCredential.lastVerifiedAt = checkedAt;
       return writeJson(response, 200, fixtureSystemHealth());
     }
+    if (request.method === "POST" && path === "/v1/core/sources/connect") {
+      void readRequestJson(request)
+        .then((body) => writeJson(response, 201, connections.connect(body)))
+        .catch((error) =>
+          writeJson(response, 400, {
+            error:
+              error instanceof Error
+                ? error.message
+                : "Invalid connection request",
+          }),
+        );
+      return;
+    }
     if (request.method === "POST" && path === "/v1/core/sources/discover") {
       void readRequestJson(request)
-        .then((input) => {
+        .then((body) => {
+          if (!body || typeof body !== "object" || Array.isArray(body))
+            throw new Error("Invalid discovery request");
+          const input = body as Record<string, unknown>;
           if (input.githubInstallationId !== githubConnection.id)
             return writeJson(response, 404, {
               error: "GitHub installation was not found",
@@ -2152,7 +2178,9 @@ export function createFixtureApiServer() {
     }
 
     if (request.method !== "GET") return writeNotFound(response);
-    const payload = getFixturePayload(path, requestUrl.searchParams);
+    const payload =
+      connections.read(path) ??
+      getFixturePayload(path, requestUrl.searchParams);
     if (payload === undefined) return writeNotFound(response);
     writeJson(response, 200, payload);
   });
