@@ -38,7 +38,16 @@ export type AutoDeployControlResponse = {
   canManageAutoDeploy: boolean;
 };
 
+export type InstanceEnvironment = {
+  id: string;
+  name: string;
+  branch: string;
+  disconnectedAt: string | null;
+};
+
 export type App = {
+  entityId: string | null;
+  environment: InstanceEnvironment | null;
   archivedAt: string | null;
   config: {
     autoDeploy?: boolean;
@@ -161,6 +170,8 @@ export type NotificationEvent = {
 };
 
 export type Resource = {
+  entityId: string | null;
+  environment: InstanceEnvironment | null;
   archivedAt: string | null;
   config: {
     access?: { sshTunnel: { hostPort: number } };

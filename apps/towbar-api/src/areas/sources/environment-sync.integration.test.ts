@@ -168,6 +168,16 @@ void test(
       const stage = instances.find(
         (row) => row.sourceEnvironmentId === staging!.id,
       )!;
+      await t.test("instance queries expose environment identity", async () => {
+        const { assertInstanceQueryIdentity } =
+          await import("./environment-query-tests.js");
+        await assertInstanceQueryIdentity({
+          workspaceId,
+          sourceId,
+          prod,
+          stage,
+        });
+      });
       const slot = {
         type: "app" as const,
         id: stage.id,

@@ -1,6 +1,7 @@
 "use client";
 import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import { DeployableVulnerabilities } from "./deployable-vulnerabilities";
+import { InstanceEnvironmentChoice } from "./instance-environment-choice";
 import { ScoutPanel } from "./scout-panel";
 
 import {
@@ -369,6 +370,7 @@ export function ResourceDetail() {
       breadcrumbAncestors={breadcrumbAncestors}
       title={item.name}
     >
+      <InstanceEnvironmentChoice item={item} kind="resources" />
       <PageTabs defaultValue="overview" tabs={tabs} />
     </DashboardPage>
   );

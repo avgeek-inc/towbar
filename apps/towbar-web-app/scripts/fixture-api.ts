@@ -2725,6 +2725,8 @@ function createAppFixture(
   healthStatus: App["runtimeState"]["healthStatus"] = "healthy",
 ): FixtureApp {
   return {
+    entityId: null,
+    environment: null,
     archivedAt: null,
     config: {
       autoDeploy: true,
@@ -2774,6 +2776,8 @@ function createResourceFixture(
   server: Server,
 ): FixtureResource {
   return {
+    entityId: null,
+    environment: null,
     archivedAt: null,
     config: {
       access:
