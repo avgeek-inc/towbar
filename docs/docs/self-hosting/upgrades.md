@@ -23,6 +23,12 @@ docker compose logs --tail 200 migrate api worker
 
 A previous image alone is not a recovery plan for a database migration. Review migration compatibility before reverting a release. Do not replace `TOWBAR_CREDENTIALS_KEY`: existing encrypted records require the matching key.
 
+## Upgrading to 1.7.0
+
+Migration `0050` adds encrypted workspace credential storage for Google Cloud and Azure. Back up the Towbar database and preserve `TOWBAR_CREDENTIALS_KEY` before upgrading. Existing S3 backup policies remain supported. No Scout Agent reinstall or workload redeployment is required.
+
+Connect the relevant provider under **Manage → Integrations** before adding a GCS or Azure Blob backup destination. Retained recovery points keep their original provider and location, even if the manifest changes later. Keep those provider credentials available until the backups expire. See [Backups](/docs/backups) and [Restores](/docs/restores).
+
 ## Upgrading from before 1.6.4
 
 Shared secrets are no longer injected into Sources, apps, or resources automatically. Before the next workload deployment, add explicit `{{globals.ENV_KEY}}` or `{{source.ENV_KEY}}` references for the shared values it needs, in the matching environment and stage. Existing containers keep their current environment, and shared values remain stored. See [Shared secrets](/docs/secrets) for the reference rules.
