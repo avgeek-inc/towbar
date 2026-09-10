@@ -22,7 +22,7 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "hono": "^4.13.5"
+    "hono": "^4.13.7"
   },
   "peerDependenciesMeta": {
     "hono": {
@@ -34,7 +34,7 @@
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "eslint": "catalog:",
-    "hono": "^4.13.5",
+    "hono": "^4.13.7",
     "typescript": "catalog:"
   }
 }
