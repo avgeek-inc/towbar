@@ -78,6 +78,12 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
     className: "min-w-56",
   },
   {
+    key: "environment",
+    header: "Environment",
+    cell: (item) => item.targetEnvironment?.name ?? "—",
+    className: "whitespace-nowrap",
+  },
+  {
     key: "trigger",
     header: "Trigger",
     cell: (item) => <DeploymentTriggerChip trigger={item.trigger} />,
@@ -110,6 +116,7 @@ export function DeploymentsIndex() {
   const filters = [
     "type",
     "environment",
+    "targetEnvironment",
     "state",
     "trigger",
     "serverId",
@@ -161,11 +168,23 @@ export function DeploymentsIndex() {
           />
           <ScoutSelect
             label="Environment"
+            value={search.get("targetEnvironment") ?? "all"}
+            onChange={(v) => setFilter("targetEnvironment", v)}
+            options={[
+              { id: "all", label: "All environments" },
+              ...(query.data?.environments ?? []).map((name) => ({
+                id: name,
+                label: name,
+              })),
+            ]}
+          />
+          <ScoutSelect
+            label="Deployment kind"
             value={search.get("environment") ?? "all"}
             onChange={(v) => setFilter("environment", v)}
             options={[
-              { id: "all", label: "All environments" },
-              { id: "production", label: "Production" },
+              { id: "all", label: "All deployments" },
+              { id: "production", label: "Persistent" },
               { id: "preview", label: "Preview" },
             ]}
           />

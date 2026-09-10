@@ -1,6 +1,11 @@
 import { and, asc, count, desc, eq, isNotNull, isNull, ne } from "drizzle-orm";
 
-import { apps, deployments } from "@workspace/towbar-database/schema";
+import {
+  apps,
+  deployments,
+  sourceEnvironments,
+  sources,
+} from "@workspace/towbar-database/schema";
 
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { publicDeploymentSelection } from "../deployment-selection.js";
@@ -14,6 +19,7 @@ export async function listDeploymentHistory({
   page,
   workspaceId,
   environment,
+  targetEnvironment,
   type,
   state,
   trigger,
@@ -27,6 +33,9 @@ export async function listDeploymentHistory({
   const filter = and(
     eq(deployments.workspaceId, workspaceId),
     environment ? eq(deployments.environment, environment) : undefined,
+    targetEnvironment
+      ? eq(sourceEnvironments.name, targetEnvironment)
+      : undefined,
     type === "app"
       ? eq(deployments.deployableKind, "app")
       : type === "resource"
@@ -53,13 +62,27 @@ export async function listDeploymentHistory({
         : sort === "name_desc"
           ? [desc(apps.name), desc(deployments.createdAt), desc(deployments.id)]
           : [desc(deployments.createdAt), desc(deployments.id)];
-  const [items, totalRows] = await Promise.all([
+  const [items, totalRows, environmentRows] = await Promise.all([
     database
-      .select({ ...publicDeploymentSelection, deployableName: apps.name })
+      .select({
+        ...publicDeploymentSelection,
+        deployableName: apps.name,
+        targetEnvironment: {
+          id: sourceEnvironments.id,
+          name: sourceEnvironments.name,
+        },
+      })
       .from(deployments)
       .innerJoin(
         apps,
         and(eq(apps.id, deployments.appId), eq(apps.workspaceId, workspaceId)),
+      )
+      .leftJoin(
+        sourceEnvironments,
+        and(
+          eq(sourceEnvironments.id, apps.sourceEnvironmentId),
+          eq(sourceEnvironments.sourceId, apps.sourceId),
+        ),
       )
       .where(filter)
       .orderBy(...order)
@@ -72,10 +95,24 @@ export async function listDeploymentHistory({
         apps,
         and(eq(apps.id, deployments.appId), eq(apps.workspaceId, workspaceId)),
       )
+      .leftJoin(
+        sourceEnvironments,
+        and(
+          eq(sourceEnvironments.id, apps.sourceEnvironmentId),
+          eq(sourceEnvironments.sourceId, apps.sourceId),
+        ),
+      )
       .where(filter),
+    database
+      .selectDistinct({ name: sourceEnvironments.name })
+      .from(sourceEnvironments)
+      .innerJoin(sources, eq(sources.id, sourceEnvironments.sourceId))
+      .where(eq(sources.workspaceId, workspaceId))
+      .orderBy(sourceEnvironments.name),
   ]);
   const total = Number(totalRows[0]?.total ?? 0);
   return {
+    environments: environmentRows.map((row) => row.name),
     deployments: await attachDeploymentQueueBlockers(items),
     pagination: { limit, page, total, totalPages: Math.ceil(total / limit) },
   };

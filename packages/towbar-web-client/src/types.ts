@@ -657,9 +657,13 @@ export type PaginationMetadata = {
   totalPages: number;
 };
 
-export type DeploymentHistoryItem = Deployment & { deployableName: string };
+export type DeploymentHistoryItem = Deployment & {
+  deployableName: string;
+  targetEnvironment: { id: string; name: string } | null;
+};
 
 export type DeploymentHistoryPage = {
+  environments: string[];
   deployments: DeploymentHistoryItem[];
   pagination: PaginationMetadata;
 };
