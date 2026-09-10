@@ -2,11 +2,9 @@ import { and, eq } from "drizzle-orm";
 import { digestValue } from "@workspace/towbar-core";
 import type {
   servers,
-  sourceEnvironments} from "@workspace/towbar-database/schema";
-import {
-  apps,
-  sourceEntities
+  sourceEnvironments,
 } from "@workspace/towbar-database/schema";
+import { apps, sourceEntities } from "@workspace/towbar-database/schema";
 import { conflict } from "../../http/errors.js";
 import type { getTowbarDatabase } from "../../infrastructure/database.js";
 import { reconcileInstanceSecretDeclarations } from "../secrets/declarations.js";

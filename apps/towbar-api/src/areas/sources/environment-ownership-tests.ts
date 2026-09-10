@@ -41,13 +41,11 @@ export async function assertEnvironmentOwnership(
       );
     });
   };
-  await db
-    .insert(workspaces)
-    .values({
-      id: otherWorkspaceId,
-      name: "Ownership test",
-      slug: otherWorkspaceId,
-    });
+  await db.insert(workspaces).values({
+    id: otherWorkspaceId,
+    name: "Ownership test",
+    slug: otherWorkspaceId,
+  });
   try {
     await db
       .insert(sources)

@@ -1,3 +1,4 @@
+import { seedConnectedEnvironment } from "./environment-test-helper.js";
 import {
   assertPublicOperationNames,
   expectedBrowserOnlyRoutes,
@@ -124,11 +125,12 @@ void test(
       });
     const connect = (token: string) =>
       connectTestMcpClient(token, (request) => app.fetch(request));
-    t.beforeEach(async () => {
+    const clearRateBucket = async () => {
       await db
         .delete(authRateLimitBuckets)
         .where(eq(authRateLimitBuckets.keyHash, bucketHash));
-    });
+    };
+    t.beforeEach(clearRateBucket);
     try {
       await t.test(
         "public operations have REST schemas and unique operation IDs; browser-only routes are excluded",
@@ -329,6 +331,7 @@ void test(
               "post_github_actions_complete_installation",
             ],
           ];
+          await seedConnectedEnvironment(workspaceId);
           const client = await connect(write.token);
           try {
             const tools = await client.listTools();
@@ -590,9 +593,7 @@ void test(
       await db.delete(workspaces).where(eq(workspaces.id, workspaceId));
       await db.delete(workspaces).where(eq(workspaces.id, otherId));
       await db.delete(users).where(eq(users.id, userId));
-      await db
-        .delete(authRateLimitBuckets)
-        .where(eq(authRateLimitBuckets.keyHash, bucketHash));
+      await clearRateBucket();
       await closeDatabase();
     }
   },

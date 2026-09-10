@@ -44,77 +44,87 @@ Status: in progress. Release as 2.0.0 after review and merge; do not publish dur
 - [ ] End-to-end Production/Staging app/database and PR preview proof; failed-sync/secret-isolation checks.
 - [ ] Full local verification, PR, remote CI. Publish 2.0.0 only after merge.
 
-## Implementation checkpoint
+## Current implementation
 
-The implementation branch is `feat/manifest-v2-environments` in the main checkout.
+The branch is `feat/manifest-v2-environments` in the main checkout. The checklist
+above tracks complete delivery areas, including final integration proof; it is
+not a list of untouched work.
 
-Implemented foundations:
+- Core: the repository parser resolves immutable v2 root/entity files, validates
+  explicit membership and merged overrides, and separates required keys from
+  runtime configuration. The production v1 single-file parser and published v1
+  schema are removed. Root/app/resource JSON schemas are generated with a drift
+  check. Starter files and configuration documentation use v2.
+- Storage: environments, mapping revisions, logical entities, instance links,
+  required keys and server slugs exist. Composite foreign keys guard instance,
+  source, server and workspace ownership. Nullable legacy scaffolding and Source
+  branch/revision columns remain; database cleanup is not complete.
+- Sources: discovery/connect, selected environment subsets, initial sync without
+  deployment, explicit add/edit/disconnect/reconnect, per-environment snapshots,
+  mapped push routing and sync history are implemented. Immutable GitHub loading
+  and atomic reconciliation reject stale mappings and preserve failed-sync data.
+- Deployment: admission locks environments before instances, validates required
+  secrets, and rejects disconnected/stale targets. Resume scheduling uses each
+  environment's own revision. History exposes and filters target environments;
+  the underlying deployment kind still uses production/preview terminology.
+- Secrets: app/resource reads and writes require mapping identity. Declared keys
+  are edited as values, with isolated named and preview scopes. Shared-secret
+  choices no longer invent production when there are no connected environments.
+- Previews: mapped base-branch eligibility, target and app opt-in, immutable PR
+  head resolution, isolated PR declarations, target admission guards and cleanup
+  selection are implemented. Lifecycle locking protects reconciliation and
+  manual redeploy. Real end-to-end PR execution remains unproven.
+- UI: server slugs, Source environment controls, instance environment switching,
+  inventory environment filters, deployment history filters and URL navigation
+  exist. Inventory still presents instance rows rather than grouping logical
+  entities. Other monitoring/deployment labels need an environment audit.
+- Fixtures: production/staging sibling app and resource instances and history
+  filters exist. Browser checks proved a staging history permalink, opening its
+  app instance, switching to production, and Back restoring staging. Onboarding,
+  secrets and manifest snapshot fixture handlers still need v2 conversion.
+- API/MCP: current catalogue has 140 operations and 55 curated tools. Generated
+  contracts and owner/read-only boundaries are checked. The MCP integration
+  fixture now explicitly connects an environment before editing shared secrets.
 
-- `manifest-v2.ts`: v2 root validation, fixed-path discovery, one-entity files, explicit membership, recursive overrides, server slug validation, required-secret declarations, deterministic per-environment digests.
-- `environment-snapshot.ts`: immutable GitHub tree/blob loading, bounded requests/file sizes, rejects truncated trees, symbolic links and partial fetches.
-- Schema and migration 0051: environment mappings/revisions, logical entities, instance links, server slugs, named secret scopes.
-- `environments.ts` and source-environment routes: connect, list, edit branch with revision checks, disconnect and queue per-environment sync. Mutation routes enforce workspace-owner access.
-- `environment-sync.ts` and materialization: transactional environment reconciliation, workspace domain locking, mapping-revision/stale-sync checks, instance identity, missing-directory preservation, secret reconciliation.
-- Secret store rejects cross-instance environment access and undeclared key edits for v2 instances; metadata exposes missing versus set keys.
+## Latest verification
 
-Verified: 14 core tests, 5 GitHub loader tests, and a real PostgreSQL integration suite with 5 subtests (6 reported tests). The database suite proves distinct instances sharing logical identity, unset slots, environment secret isolation, preservation/removal semantics, failed-sync rollback and stale-mapping rejection.
+- `pnpm verify` passed: docs, formatting, lint, typechecks, standard tests and
+  builds. The default test run contains environment-gated skips; this is not
+  proof of Docker, Temporal or all database execution.
+- Full API suite against the dedicated PostgreSQL database: 228 passed, no skips.
+  After the final test-helper refactor, the focused API/MCP database suite also
+  passed all nine tests.
+- Core: 111 passed. API/worker typechecks pass. Both focused environment and
+  secret database suites pass 30 tests combined. Fixture suite: 24 passed.
+- Documentation metadata, navigation, redirects and internal links pass for
+  180 pages. Published schemas/examples are synchronized.
+- HeroUI 3.2.4 imports `@internationalized/date` without declaring it. A scoped
+  pnpm package extension fixes the dependency; the brand-rendering test and full
+  verification pass with this installed graph.
 
-The work is not feature-complete. Important next steps:
+The disposable database is `towbar_v2_test` on 127.0.0.1:32768, provided by the
+`towbar-v2-tests` Docker container. Use `TOWBAR_TEST_DATABASE_URL` for integration
+tests. Do not reset the hosted installation or use its database.
 
-1. Complete server slug create/edit UI and API. Tighten nullable schema scaffolding after converting all fixtures/callers; add source-ownership composite FKs. Source still has legacy branch fields/index and the old parser/sync remains temporarily reachable. Remove these rather than ship a permanent v1 compatibility path.
-2. Implement repository discovery/review and atomic repository-level connection; connect the SourceCreate UI and environment overview/actions. Add sync-all orchestration and mapped-branch webhooks.
-3. Automatic deployments currently skip initial v2 sync, but the rest of scheduling/admission still assumes Source-level commit and production/preview runtime kind. Replace these assumptions with environment state and validate required secrets before queuing. Resume/deferred operations must also be scoped.
-4. Preview services still use the old manifest fetch and source branch model. Switch to v2 snapshots, mapped environment eligibility and `preview:<environment>` secret scopes; never reconcile persistent slots from PRs.
-5. Named secret scopes are present in storage; execution inheritance, API resource restrictions, shared-secret filtering, and Form/File UI still need completion. The deployment-history query in apps/secrets.ts still maps named scopes to legacy runtime kind and must be replaced during deployment model work.
-6. Complete logical-entity UI, instance-aware routes/filters/API/MCP, resource operations, monitoring/alerts/scanning labels, examples/docs/screenshots and v2-only schema generation.
-7. Extend integration proof for newer-sync ordering, concurrent domain conflicts, concurrent mapping edits, missing directories, auto-deploy readiness, stage isolation, previews and resource state. Run full verification and remote CI before handing off a PR.
+## Remaining delivery work
 
-Local dedicated database: Docker container `towbar-v2-tests`, PostgreSQL exposed on 127.0.0.1:32768, database `towbar_v2_test`, disposable test user/password `towbar_test`. Run `environment-sync.integration.test.ts` with `TOWBAR_TEST_DATABASE_URL` pointing there. Production and existing previews were not reset. Migration 0051 required dropping/recreating the managed-secret stage check around the enum-to-text conversion; this was verified on the test database.
-
-## Follow-up implementation checkpoint
-
-The working tree now also contains repository discovery/connection endpoints and UI, an environment table with branch editing and per-environment/sync-all actions, server slug create/edit controls, mapped-branch push routing, and named secret lookup during deployment execution. These paths still need the broader integration and rendered-route review listed above. They are not evidence that the full checklist is complete.
-
-Deployment admission now locks the environment before the instance, matching reconciliation lock order. It rejects changed mapping revisions or commits, disconnected environments, and instances archived since the initial admission check. The PostgreSQL suite now reports eight passing tests, including a concurrent branch edit blocked by the admission lock and rejection of stale mapping revisions. API and web typechecks pass.
-
-Branch edits queue configuration sync with `deployAfterSync: false`; the UI describes that behavior. Explicit Sync all retains automatic deployment eligibility and reports partial queue failures instead of a blanket success. Required remaining work includes preview integration, deployment environment modeling and deferred operations, secret editing UX, logical entity navigation, removal of temporary v1 paths, API/MCP/schema generation, fixtures/docs, end-to-end verification and PR/CI.
-
-Automatic/deferred scheduling now requires an environment identity, selects its own synced commit, and rejects mappings changed since that sync. The maintenance resume scan scopes work to environments with deferred instances and skips disconnected or paused environments. Release lookup excludes PR preview releases. The database suite additionally proves production and staging select distinct commits, a staging-only resume leaves production untouched, and an unsynced branch edit skips staging while production remains eligible. Old source-level automatic/preview scheduling calls were removed from this path; v2 preview reconciliation must be wired back through the environment-aware preview implementation before completion.
-
-Preview routing follow-up: reconciliation now discovers PRs against connected, synced, preview-enabled environment branches and still revisits existing reports when no environment enables previews. Successful explicit environment syncs invoke this scheduler again. Event handling filters app instances by the target environment branch and current mapping revision; manual redeploy validates the instance's environment instead of Source.branch. Preview hostname/runtime identity now uses the instance UUID. Sixteen targeted PR-policy/database tests pass, including mapped staging discovery and cleanup discovery after disabling previews. Exact PR-commit entity configuration loading, preview admission concurrency guards, required-secret validation against PR declarations, and retarget cleanup remain incomplete; this is not end-to-end preview proof.
-
-PR configuration follow-up: automatic and manual preview requests fetch the immutable head SHA with the v2 repository loader and resolve the selected environment's entity files. Build configuration comes from that snapshot; server and preview domain/TTL remain pinned to the connected target. Both target and PR must enable the app preview. PR declarations are checked against isolated preview secret values without reconciling saved slots. Twenty loader/configuration/database tests pass, including immutable loading, PR build changes, target preservation, disabled/removed apps and secret isolation. API typecheck and scoped lint pass. Preview admission still needs transaction-level mapping/instance guards, execution-time enforcement of PR declarations, and retarget/removed-app cleanup; no end-to-end preview deployment has been proven yet.
-
-Preview lifecycle follow-up: cleanup selection now compares existing previews with target environment IDs and evaluated PR app IDs. Retargeted, removed, disabled and input-mismatched apps are selected; previews whose matching target cannot be evaluated because of an unsynced mapping or unready server are preserved. Failed snapshot loading still prevents cleanup. V2 preview admission locks the target environment and instance and rejects changed mapping/configuration, archived/disabled apps and changed server assignment. Sixteen cleanup-selection/database tests pass, including stale admission rejection. The test suite's preview admission checks were extracted into `environment-preview-tests.ts` to stay within the repository file-size gate. Execution-time declaration enforcement, cleanup/admission races across PR head changes and full workflow proof remain outstanding. Legacy unlinked fixture instances still bypass the environment guard and must be removed during the v1 fixture/schema conversion.
-
-Execution follow-up: migration 0052 adds a required-secret declaration snapshot to deployments. Normal deployment, rollback and preview admissions populate it; worker resolution validates required keys for executed stages against current isolated secret values. PR declarations therefore survive queuing independently of the target manifest's declarations. The real database suite passes thirteen tests, including worker rejection of unset/PR-only keys and acceptance of an intentionally empty preview value. Migration application, database build, API typecheck and scoped lint passed. The new column is temporarily nullable for unconverted fixtures/callers and must be tightened with the final v2 schema. Full workflow execution and API/MCP contract generation remain outstanding.
-
-PR ordering follow-up: automatic reconciliation and manual preview redeploy share a per-source/PR PostgreSQL advisory lock. Overlapping activity retries/manual requests are rejected with a retryable conflict instead of applying competing plans. Automatic reconciliation re-fetches the PR before recording the plan or requesting cleanup; a changed revision returns `retry: true`. Manual redeploy similarly rechecks before admission. Twenty PR-policy/database tests pass, including lock exclusion, distinct PR independence, release after success/failure, and detection of head/target/state changes during loading. API typecheck, scoped lint and diff checks pass. GitHub state cannot be transactionally locked; updates after the final read still rely on subsequent reconciliation. Worker workflow/cleanup/reporting delivery integration remains to be exercised end to end.
-
-Environment controls follow-up: the table now exposes Add environment, revision-checked Disconnect with confirmation, and Reconnect. The connect form validates the supplied environment name and mapped branch through the existing server endpoint and presents errors inline. Disconnect copy states that running workloads and data remain; disconnected rows show previews disabled. The web client now supports a JSON DELETE body for mapping revision checks. Reconnection clears the pause flag introduced by disconnect, while initial sync remains non-deploying. Rendered fixture QA, branch discovery selection and richer pre-connection review are still pending.
-
-Source navigation follow-up: the catch-all route allowlist now accepts `environments`, fixing the default-view redirect to a 404. Environments has an entity icon in page/sidebar navigation. The Source manifest view now selects an environment and individual YAML file, using an owner-scoped read endpoint for the last successful environment snapshot. Environment/file selections are permalink query values. The shared responsive selector was extracted from Secrets to preserve mobile dropdowns and desktop tabs. The legacy Source-wide manifest request no longer gates the Source page. Database checks verify distinct production/staging snapshot commits, YAML file retrieval and cross-workspace rejection. Rendered route verification remains pending fixture conversion.
-
-Secrets UI follow-up: GET secret bindings returns available named environments and defaults app/resource requests to their instance environment. Workspace/source choices are derived from connected repository environment names. Resource reveal no longer requires the literal production scope. The UI consumes these choices, hides key add/remove controls for declared bindings, rejects file-mode key changes, and treats unset fields as unconfigured. File mode includes required unset keys as blank assignments and explains that an explicit save sets blank values to intentionally empty strings. The database suite verifies staging choices and preview scope isolation; thirteen database tests, API/web typechecks and scoped lint pass. Full fixture conversion and rendered Form/File verification remain pending; temporary legacy default choices still need removal with the v1 paths.
-
-Shared-secret scope verification: affected deployables are filtered to the selected environment and preview scopes exclude resources/disabled apps. Preview detection uses the exact preview scope or `preview:` prefix, avoiding misclassification of ordinary environment names. The full API test command reports 136 passes and 11 skips; the separate PostgreSQL environment suite reports thirteen passes, including distinct production/staging affected-instance lists. API/web typechecks and scoped lint pass. These checks do not replace skipped integration suites or full workflow/browser verification.
-
-Instance navigation follow-up: app/resource list and detail queries now expose logical entity IDs and environment identity, branch and disconnected status. The web client requires these fields (temporarily nullable for unconverted v1 fixtures). App/resource detail pages offer an environment selector that resolves sibling instances by source and logical entity, keeps the section path and clears instance-specific query parameters. The PostgreSQL suite reports fourteen passes, including list/detail identity consistency, workspace isolation and app/resource kind separation. API/web typechecks and scoped lint pass. The selector has not yet been verified in a rendered v2 fixture; logical list grouping, full v2 fixtures and non-null schema conversion remain outstanding.
-
-Inventory environment follow-up: workload list filters now accept an environment name and return source-scoped environment options independently of the current health/server/search filters. Workspace app/resource sidebars persist that choice in the URL. Workspace and source tables show environment, mapped branch and disconnection state alongside each instance's own health and capacity. Five inventory tests pass, including intersected filters, missing-environment exclusion and stable options. Core build, API/web typechecks and scoped lint pass. Logical entity grouping and rendered v2-fixture verification are still outstanding; the current rows remain instance rows so per-environment capacity and health are not conflated.
-
-Webhook v2-only follow-up: push routing no longer falls back to Source.branch or source-level sync when no connected environments exist. It selects connected mappings for the pushed branch and passes their mapping revision to queue admission, which rejects stale revisions under the environment row lock. Suspended installations are excluded from push/PR routing. The PostgreSQL suite reports fourteen passes, with webhook coverage for production/staging selection, branch changes, unmapped/deleted branches, disconnected/absent mappings, suspended installations and stale queue revisions. API typecheck and scoped lint pass. This removes one legacy path; v1 parser/source creation and other temporary compatibility paths remain to be removed.
-
-Source sync removal follow-up: removed the legacy source create, source manifest, preview-sync and source-sync routes and their v1 reconciliation implementation. The worker requires an environment link and marks unscoped jobs failed without reading a repository or reconciling inventory. MCP source discovery/connection uses the v2 routes; source inspection reads mappings; the sync tool accepts an optional environment ID or queues all connected environments. Regenerated response schemas, OpenAPI, MCP reference and route pages; updated workflow prose. Verification: 137 API tests pass with 11 database-dependent skips, fourteen separate PostgreSQL environment tests pass (including unscoped-job rejection), scoped lint and docs:api:check pass. V1 core parser/dead materialization helpers, database legacy columns, fixtures and remaining runtime compatibility still need removal.
-
-Dead v1 helper removal: deleted the old GitHub `.towbar/deployment.yml` loader, source-wide inventory helper, IP-based server resolver, v1 materializer and legacy release backfill. Digest tests now exercise the single-deployable helper used by v2 materialization. The secrets storage test checks archival/restoration directly; v2 sync reconciliation remains covered by the environment suite. Verification: both dedicated PostgreSQL suites pass (29 tests, no skips), eight digest/immutable-loader tests pass, API typecheck and scoped lint pass. This does not finish core parser/schema or fixture conversion; those remain explicit v2 delivery requirements.
-
-Sync history identity: list/detail responses now include the environment ID/name and the job's captured mapping revision. History tables show the environment, and detail attributes show the captured revision. Queued/running rows say Pending validation instead of Manifest accepted. PostgreSQL environment suite passes all fourteen tests, including production/staging history consistency and cross-workspace rejection; web typecheck and scoped API/web lint pass. API response/OpenAPI generation succeeds with the updated fields. Rendered history and full v2 fixture conversion remain pending.
-
-Strict instance environment checkpoint (fixture conversion unfinished): deployment admission and execution secret lookup now reject missing environment mappings instead of falling back to production; app secret environment discovery also rejects missing mappings. Environment joins require matching source ownership. Deployment admission always locks its required mapping and no longer reads legacy source commit/digest fields. The v2 PostgreSQL environment suite passes fourteen tests, including missing-mapping deployment and secret rejection. API typecheck and scoped lint pass; the broad API suite passes 137 tests with 11 skips. The older managed-secret integration fixture was linked to production and now fails eight subtests because it still adds/deletes arbitrary app keys, uses legacy preview scopes and lacks declared-key setup. Its conversion is deliberately unfinished, not a passing gate: next update inheritance/execution/bulk-reveal fixtures to v2 declarations and preview:production, then rerun both PostgreSQL suites. Do not restore runtime fallbacks to satisfy v1 fixtures.
-
-Secrets fixture correction: the previously failing suite now declares its app keys, rejects manual deletion of declared keys, uses preview:production for secret slots, and seeds a synced preview-enabled target mapping. Preview admission carries the target mapping/configuration digest and explicit PR required-secret snapshot. Both PostgreSQL suites pass together (29 tests, zero failures/skips); API typecheck and scoped lint pass. This resolves the eight subtest failures from the prior checkpoint. The fixture still constructs normalized configuration with the older normalizer; full v2-only core and fixture conversion is not yet complete.
-
-Preview admission strictness: target environment, target configuration digest and required-secret declarations are now required admission inputs. Unmapped instances fail instead of bypassing target validation. Admission verifies source ownership and rechecks preview eligibility from the locked environment row. Both PostgreSQL suites pass (29 tests, no skips), including missing-mapping and wrong-source rejection; API typecheck and scoped lint pass. Full preview workflow execution and remaining schema/fixture conversion still need completion.
-
-Database ownership constraints: migration 0053 adds composite foreign keys enforcing app/resource instance ownership for source/workspace, server/workspace, logical entity/source and environment/source, plus sync/environment source ownership. The migration applied to the dedicated test database. Regression checks verify PostgreSQL constraint violations for each mismatched association. Both PostgreSQL suites pass (29 tests, no skips), database build, API typecheck and scoped lint pass. Nullable legacy columns and v2-only fixture/schema cleanup remain outstanding; these constraints do not claim that conversion is complete.
+1. Finish the database model: remove legacy Source branch/revision fields and
+   indexes, tighten required instance/environment/entity/slug links after
+   converting callers, and distinguish named environment identity from preview
+   deployment kind throughout stored/public deployment state.
+2. Audit resource operations, backups/restores, monitoring, alerts and scanning
+   for instance/environment scope and labels. Validate that resource secret
+   stage declarations match stages the resource editor and execution support.
+3. Complete logical-entity inventory presentation and verify all environment
+   controls, readiness, validation failures and permalinks in rendered pages.
+4. Convert remaining fixture handlers for connection/discovery, declared secrets
+   and per-environment manifest files. Remove obsolete source-manifest fixtures.
+   Exercise Form/File editing, reveal, missing/empty values and branch changes.
+5. Prove complete local production/staging app/database and PR workflows,
+   including failure isolation, stale jobs, cleanup, resource data separation and
+   worker execution. Run relevant Docker/Temporal tests in supported isolated
+   environments; do not treat their default skips as success.
+6. Finish user documentation, README/screenshots, examples and release notes;
+   audit generated schemas/contracts after remaining model changes.
+7. Review the full diff, open the PR, resolve remote CI and complete the delivery
+   checklist. Publish 2.0.0 only after merge. No v2 PR or release is complete yet.

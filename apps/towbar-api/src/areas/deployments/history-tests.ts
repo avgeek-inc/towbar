@@ -46,14 +46,12 @@ export async function testDeploymentHistory({
     async () => {
       const resourceId = randomUUID();
       const environmentId = randomUUID();
-      await db
-        .insert(sourceEnvironments)
-        .values({
-          id: environmentId,
-          sourceId,
-          name: "staging",
-          branch: "develop",
-        });
+      await db.insert(sourceEnvironments).values({
+        id: environmentId,
+        sourceId,
+        name: "staging",
+        branch: "develop",
+      });
       const ids = [randomUUID(), randomUUID(), randomUUID()];
       await db.insert(apps).values({
         id: resourceId,

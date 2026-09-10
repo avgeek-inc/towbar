@@ -64,3 +64,8 @@ catalog:
   typescript: ^5.9.3
   yaml: ^2.8.3
   zod: ^4.5.4
+
+packageExtensions:
+  "@heroui/react@3.2.4":
+    dependencies:
+      "@internationalized/date": "^3.12.4"
