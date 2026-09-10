@@ -88,7 +88,7 @@ export function WorkspaceVulnerabilities() {
       cell: (finding) => (
         <Link
           className="focus-visible:ring-focus inline-flex items-center rounded-sm text-muted outline-none hover:text-foreground focus-visible:ring-2"
-          href={`/sources/${finding.sourceId}/deployments/${finding.deploymentId}`}
+          href={`/sources/${finding.sourceId}/deployments/${finding.deploymentId}/vulnerabilities`}
         >
           {finding.appName}
         </Link>
@@ -153,7 +153,7 @@ export function WorkspaceVulnerabilities() {
             <ResourceTable
               ariaLabel="Workspace vulnerability findings"
               columns={columns}
-              getRowKey={(finding) => `${finding.appId}:${finding.id}`}
+              getRowKey={(finding) => finding.id}
               items={query.data.findings}
               emptyTitle="No advisories in this view"
               emptyDescription="Findings from the latest scan of each App's production image appear here ranked by severity. Resources are not image-scanned."

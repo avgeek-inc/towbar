@@ -117,7 +117,7 @@ export function DeployableVulnerabilities({
       <ResourceTable
         ariaLabel="App vulnerability findings"
         columns={columns}
-        getRowKey={(finding) => `${finding.appId}:${finding.id}`}
+        getRowKey={(finding) => finding.id}
         items={query.data.findings}
         emptyTitle="No advisories"
         emptyDescription="Findings from the latest scan of this App's production image appear here ranked by severity."

@@ -428,6 +428,7 @@
           "fixedVersion": {
             "anyOf": [{ "type": "null" }, { "type": "string" }]
           },
+          "id": { "type": "string" },
           "imageDigest": { "type": "string" },
           "installedVersion": { "type": "string" },
           "packageName": { "type": "string" },
@@ -463,6 +464,7 @@
           "appName",
           "deploymentId",
           "fixedVersion",
+          "id",
           "imageDigest",
           "installedVersion",
           "packageName",
