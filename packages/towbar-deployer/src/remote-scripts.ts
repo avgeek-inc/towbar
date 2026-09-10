@@ -489,6 +489,10 @@ for ((index = 0; index < container_count; index += 1)); do
   fi
   shift
 done
+orphan_containers="$(docker container ls --all --filter "label=towbar.app=$runtime_id" --format '{{.Names}}')"
+while IFS= read -r name; do
+  if test -n "$name"; then docker rm -f "$name" >/dev/null; fi
+done <<<"$orphan_containers"
 image_count="$1"
 shift
 for ((index = 0; index < image_count; index += 1)); do
@@ -498,6 +502,12 @@ for ((index = 0; index < image_count; index += 1)); do
   fi
   shift
 done
+orphan_images="$(docker image ls --filter "label=towbar.app=$runtime_id" --no-trunc --format '{{.ID}}')"
+while IFS= read -r image; do
+  if test -n "$image"; then
+    docker image rm "$image" >/dev/null
+  fi
+done <<<"$orphan_images"
 sudo rm -f "/etc/caddy/towbar/$runtime_id.caddy"
 validate_args=(--config /etc/caddy/Caddyfile)
 if sudo test -s /etc/caddy/towbar/cloudflare.env; then

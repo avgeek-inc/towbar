@@ -325,3 +325,11 @@ the fix and now pass for container, image and daemon failures plus absent/presen
 objects. All 18 related tests, deployer typecheck and scoped lint pass. The tests
 simulate Docker and routing commands; full PR cleanup against a prepared public
 server remains unproven.
+
+Preview cleanup now also discovers containers and images by the preview runtime
+label, covering uncommitted candidates absent from release records. Containers
+are removed before images; image IDs include untagged leftovers. The label uses
+the unique preview runtime ID, not the logical app ID. The new executable-shell
+regression failed before the change and now passes with the other 18 related
+tests. Scoped lint also passes after fixing import ordering and documenting the
+test-only PATH shim. Full remote routing cleanup remains a separate requirement.
