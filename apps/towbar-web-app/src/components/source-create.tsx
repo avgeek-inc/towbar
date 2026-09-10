@@ -21,6 +21,7 @@ import {
 } from "@workspace/web-design-system/buttons/button";
 import { ListBox } from "@workspace/web-design-system/collections/list-box";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
+import { Checkbox } from "@workspace/web-design-system/forms/checkbox";
 import { Description } from "@workspace/web-design-system/forms/description";
 import { Input } from "@workspace/web-design-system/forms/input";
 import { Label } from "@workspace/web-design-system/forms/label";
@@ -51,6 +52,9 @@ export function SourceCreate() {
   const [discovered, setDiscovered] = useState<
     { name: string; previewsEnabled: boolean }[] | null
   >(null);
+  const [selectedEnvironments, setSelectedEnvironments] = useState<string[]>(
+    [],
+  );
   const [mappings, setMappings] = useState<Record<string, string>>({});
   if (connection.error && !connection.data)
     return (
@@ -141,6 +145,16 @@ export function SourceCreate() {
   const selected = repositories.data.repositories.find(
     (repo) => repo.fullName === fullName,
   );
+  const environmentsToConnect = (discovered ?? []).filter((environment) =>
+    selectedEnvironments.includes(environment.name),
+  );
+  const invalidSelection = Boolean(
+    discovered &&
+    (!environmentsToConnect.length ||
+      environmentsToConnect.some(
+        (environment) => !mappings[environment.name]?.trim(),
+      )),
+  );
   return (
     <DashboardPage
       icon={GitBranchIcon}
@@ -182,7 +196,7 @@ export function SourceCreate() {
             className="content-grid max-w-xl pt-2"
             onSubmit={async (event) => {
               event.preventDefault();
-              if (!selected) return;
+              if (!selected || busy || invalidSelection) return;
               setBusy(true);
               try {
                 const repository = {
@@ -196,6 +210,9 @@ export function SourceCreate() {
                     environments: { name: string; previewsEnabled: boolean }[];
                   }>("/v1/core/sources/discover", repository);
                   setDiscovered(result.environments);
+                  setSelectedEnvironments(
+                    result.environments.map((environment) => environment.name),
+                  );
                   setMappings(
                     Object.fromEntries(
                       result.environments.map((environment) => [
@@ -213,7 +230,7 @@ export function SourceCreate() {
                   syncs: { error: string | null }[];
                 }>("/v1/core/sources/connect", {
                   ...repository,
-                  environments: discovered.map((environment) => ({
+                  environments: environmentsToConnect.map((environment) => ({
                     environment: environment.name,
                     branch: mappings[environment.name]?.trim(),
                   })),
@@ -245,6 +262,7 @@ export function SourceCreate() {
             <ComboBox
               className="gap-3"
               fullWidth
+              isDisabled={busy}
               selectedKey={fullName || null}
               variant="secondary"
               onSelectionChange={(value) => {
@@ -297,18 +315,52 @@ export function SourceCreate() {
             </div>
             {discovered ? (
               <div className="grid gap-4">
-                <p>Choose the branch for each environment.</p>
+                <p>
+                  Select the environments to connect and their deployment
+                  branches.
+                </p>
+                <p className="text-xs text-muted">
+                  You can connect other environments later.
+                </p>
                 {discovered.map((environment) => (
                   <div key={environment.name} className="grid gap-2">
-                    <Label htmlFor={`branch-${environment.name}`}>
-                      {environment.name}
+                    <Checkbox
+                      variant="secondary"
+                      isDisabled={busy}
+                      isSelected={selectedEnvironments.includes(
+                        environment.name,
+                      )}
+                      onChange={(checked) =>
+                        setSelectedEnvironments((current) =>
+                          checked
+                            ? [...current, environment.name]
+                            : current.filter(
+                                (name) => name !== environment.name,
+                              ),
+                        )
+                      }
+                    >
+                      <Checkbox.Content>
+                        <Checkbox.Control className="border border-muted">
+                          <Checkbox.Indicator />
+                        </Checkbox.Control>
+                        <Label>{environment.name}</Label>
+                      </Checkbox.Content>
+                    </Checkbox>
+                    <Label
+                      className="sr-only"
+                      htmlFor={`branch-${environment.name}`}
+                    >
+                      {environment.name} deployment branch
                     </Label>
                     <Input
                       id={`branch-${environment.name}`}
-                      required
+                      required={selectedEnvironments.includes(environment.name)}
                       variant="secondary"
                       value={mappings[environment.name] ?? ""}
-                      disabled={busy}
+                      disabled={
+                        busy || !selectedEnvironments.includes(environment.name)
+                      }
                       placeholder="Choose a deployment branch"
                       onChange={(event) =>
                         setMappings((current) => ({
@@ -332,15 +384,7 @@ export function SourceCreate() {
             ) : null}
             <Button
               className="w-fit"
-              isDisabled={
-                !selected ||
-                busy ||
-                Boolean(
-                  discovered?.some(
-                    (environment) => !mappings[environment.name]?.trim(),
-                  ),
-                )
-              }
+              isDisabled={!selected || busy || invalidSelection}
               type="submit"
             >
               <HugeiconsIcon
