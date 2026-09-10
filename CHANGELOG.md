@@ -5,6 +5,52 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-09-10
+
+### Added
+
+- Secondary sidebars organize entity pages, settings, integrations, and monitoring.
+  Inventory and deployment filters, sorting, and selected monitoring entities are
+  restored from permalinks and browser history. Profile and Sessions have separate
+  settings routes, and Incidents supports entity filters.
+- PostgreSQL and Redis backups support Google Cloud Storage and Azure Blob Storage
+  alongside S3. Policies can target multiple providers and select a restore source;
+  Backup and Restore have dedicated settings pages.
+- Workspace, app, and deployment vulnerability views expose severity totals,
+  package findings, available fixes, and links to the scanned deployment. Sidebar
+  counts surface critical and high findings.
+
+### Changed
+
+- Secrets File mode loads the selected scope and stage with one bulk-reveal request.
+- Tables use regular-weight values and smaller, consistently spaced secondary text.
+  Code and standalone numeric values use Geist Mono; chips containing words retain
+  the interface font.
+- Shared timestamps show relative time above the local date and time, formatted as
+  `15:26, 10 Sept 2026`, with the timezone available on hover or keyboard focus.
+- The homepage introduces monitoring, alerting, and vulnerability scanning below
+  Scout Agent. Documentation includes a scanning guide, refreshed light and dark
+  screenshots, and current navigation, secrets, and backup/restore instructions.
+- Updated JavaScript dependencies from the merged dependency group.
+
+### Fixed
+
+- Azure single and chunked backup uploads use valid metadata names. Restores use
+  the retained backup's original provider and S3 region after manifest changes.
+- Retention retries partially deleted backups instead of forgetting remaining
+  copies. GCS backups preserve verified customer-managed encryption metadata.
+- Vulnerability queries and links respect workspace scoping and archived server
+  state, and app findings are paginated.
+
+### Upgrade notes
+
+- Migration `0050` adds workspace Google Cloud and Azure credential tables. Back up
+  the Towbar database and preserve `TOWBAR_CREDENTIALS_KEY` before upgrading.
+- Existing S3 policies remain supported. Connect the required workspace cloud
+  integrations before enabling new backup destinations. Keep credentials for the
+  original provider while retaining backups created before a policy change.
+- No Scout Agent reinstall or workload redeployment is required for this release.
+
 ## [1.6.5] - 2026-09-09
 
 ### Added
@@ -540,7 +586,8 @@ before resuming deployments:
 - Source-scoped AWS Secrets Manager integration and environment editors.
 - A same-domain owner setup, authentication, and operations dashboard.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.6.5...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/avgeek-inc/towbar/compare/v1.6.5...v1.7.0
 [1.6.5]: https://github.com/avgeek-inc/towbar/compare/v1.6.4...v1.6.5
 [1.6.4]: https://github.com/avgeek-inc/towbar/compare/v1.6.3...v1.6.4
 [1.6.3]: https://github.com/avgeek-inc/towbar/compare/v1.6.2...v1.6.3
