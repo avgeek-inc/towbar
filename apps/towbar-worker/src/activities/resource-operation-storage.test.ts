@@ -22,7 +22,7 @@ void test("Azure single and chunked uploads use valid metadata and round-trip ve
     globalThis,
     "fetch",
     async (url: string, options: RequestInit) => {
-      if (url.includes("login.microsoftonline.com"))
+      if (new URL(url).hostname === "login.microsoftonline.com")
         return Response.json({ access_token: "token" });
       const headers = new Headers(options.headers);
       if (options.method === "HEAD") {
