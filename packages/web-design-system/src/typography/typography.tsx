@@ -131,7 +131,10 @@ export function TypographyCode({
     <TooltipText
       as="code"
       tooltip={title}
-      className={cn("rounded-md bg-default px-1 py-0.25 text-sm", className)}
+      className={cn(
+        "rounded-md bg-[var(--default-soft)] px-1 py-0.25 text-sm",
+        className,
+      )}
       {...props}
     />
   );
