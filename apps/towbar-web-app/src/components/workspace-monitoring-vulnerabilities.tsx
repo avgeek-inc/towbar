@@ -87,7 +87,7 @@ export function WorkspaceVulnerabilities() {
       header: "Entity",
       cell: (finding) => (
         <Link
-          className="focus-visible:ring-focus hover:font-medium inline-flex items-center rounded-sm outline-none focus-visible:ring-2"
+          className="focus-visible:ring-focus inline-flex items-center rounded-sm text-muted outline-none hover:text-foreground focus-visible:ring-2"
           href={`/sources/${finding.sourceId}/deployments/${finding.deploymentId}`}
         >
           {finding.appName}
