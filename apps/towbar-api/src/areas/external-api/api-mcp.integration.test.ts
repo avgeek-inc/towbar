@@ -1,4 +1,7 @@
-import { seedConnectedEnvironment } from "./environment-test-helper.js";
+import {
+  seedApiServers,
+  seedConnectedEnvironment,
+} from "./environment-test-helper.js";
 import {
   assertPublicOperationNames,
   expectedBrowserOnlyRoutes,
@@ -16,7 +19,6 @@ import {
   apiKeys,
   auditEvents,
   authRateLimitBuckets,
-  servers,
   sessions,
   users,
   workspaceMembers,
@@ -83,22 +85,10 @@ void test(
     };
     const ownedServerId = randomUUID(),
       foreignServerId = randomUUID();
-    await db.insert(servers).values(
-      [
-        { id: ownedServerId, workspaceId, ip: "192.0.2.10" },
-        { id: foreignServerId, workspaceId: otherId, ip: "192.0.2.11" },
-      ].map(({ id, workspaceId, ip }) => ({
-        id,
-        workspaceId,
-        canonicalIp: ip,
-        configDigest: "test-digest",
-        config: {
-          ip,
-          ssh: { host: ip, port: 22, username: "ubuntu" },
-          buildConcurrency: 1,
-        },
-      })),
-    );
+    await seedApiServers([
+      { id: ownedServerId, workspaceId, ip: "192.0.2.10" },
+      { id: foreignServerId, workspaceId: otherId, ip: "192.0.2.11" },
+    ]);
     const write = await createApiKey(user, {
       name: "Automation",
       access: "write",

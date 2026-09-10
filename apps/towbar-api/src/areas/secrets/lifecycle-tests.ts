@@ -75,6 +75,7 @@ export async function testSecretLifecycle({
         /^[a-f0-9]{64}$/u,
       );
       const newServer = await createServer({
+        slug: "new-host",
         config: { ...serverConfig, ip: "192.0.2.11" },
         workspaceId,
       });

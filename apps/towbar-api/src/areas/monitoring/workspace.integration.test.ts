@@ -68,6 +68,7 @@ void test(
           { id: foreignServer, workspaceId: foreignWorkspace },
         ].map((s, i) => ({
           ...s,
+          slug: `server-${s.id}`,
           canonicalIp: `192.0.2.${240 + i}`,
           config: normalizeServerConfiguration({
             ip: `192.0.2.${240 + i}`,

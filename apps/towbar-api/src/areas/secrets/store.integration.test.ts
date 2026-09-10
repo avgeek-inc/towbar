@@ -183,6 +183,7 @@ void test(
         repositoryName: "test",
       });
       await db.insert(servers).values({
+        slug: `server-${serverId}`,
         id: serverId,
         workspaceId,
         canonicalIp: serverConfig.ip,
@@ -253,7 +254,7 @@ void test(
             [sourceId, secondSourceId].sort(),
           );
           await assert.rejects(
-            createServer({ config: serverConfig, workspaceId }),
+            createServer({ config: serverConfig, workspaceId, slug: "host" }),
             /already configured/u,
           );
           await db.delete(sources).where(eq(sources.id, secondSourceId));

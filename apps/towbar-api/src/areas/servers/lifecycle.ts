@@ -31,7 +31,7 @@ import type { NormalizedServer } from "@workspace/towbar-core";
 
 export async function createServer(input: {
   config: NormalizedServer;
-  slug?: string;
+  slug: string;
   workspaceId: string;
 }) {
   return await getTowbarDatabase().transaction(async (transaction) => {
@@ -52,28 +52,26 @@ export async function createServer(input: {
         "SERVER_ALREADY_EXISTS",
       );
     }
-    if (input.slug !== undefined) {
-      serverSlugSchema.parse(input.slug);
-      await transaction.execute(
-        sql`select pg_advisory_xact_lock(hashtextextended(${`server-slugs:${input.workspaceId}`}, 0))`,
+    serverSlugSchema.parse(input.slug);
+    await transaction.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${`server-slugs:${input.workspaceId}`}, 0))`,
+    );
+    const [duplicate] = await transaction
+      .select({ id: servers.id })
+      .from(servers)
+      .where(
+        and(
+          eq(servers.workspaceId, input.workspaceId),
+          eq(servers.slug, input.slug),
+          ne(servers.canonicalIp, input.config.ip),
+        ),
+      )
+      .limit(1);
+    if (duplicate)
+      throw conflict(
+        `Server slug '${input.slug}' is already in use`,
+        "SERVER_SLUG_IN_USE",
       );
-      const [duplicate] = await transaction
-        .select({ id: servers.id })
-        .from(servers)
-        .where(
-          and(
-            eq(servers.workspaceId, input.workspaceId),
-            eq(servers.slug, input.slug),
-            ne(servers.canonicalIp, input.config.ip),
-          ),
-        )
-        .limit(1);
-      if (duplicate)
-        throw conflict(
-          `Server slug '${input.slug}' is already in use`,
-          "SERVER_SLUG_IN_USE",
-        );
-    }
     const configDigest = digestValue(input.config);
     const [server] = existing
       ? await transaction

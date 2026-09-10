@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   githubInstallations,
+  servers,
   sourceEnvironments,
   sources,
 } from "@workspace/towbar-database/schema";
@@ -29,4 +30,25 @@ export async function seedConnectedEnvironment(workspaceId: string) {
     name: "production",
     branch: "main",
   });
+}
+
+export async function seedApiServers(
+  rows: { id: string; workspaceId: string; ip: string }[],
+) {
+  await getTowbarDatabase()
+    .insert(servers)
+    .values(
+      rows.map(({ id, workspaceId, ip }) => ({
+        id,
+        workspaceId,
+        slug: `server-${id}`,
+        canonicalIp: ip,
+        configDigest: "test-digest",
+        config: {
+          ip,
+          ssh: { host: ip, port: 22, username: "ubuntu" },
+          buildConcurrency: 1,
+        },
+      })),
+    );
 }

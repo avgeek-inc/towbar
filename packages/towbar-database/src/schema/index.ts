@@ -781,7 +781,7 @@ export const servers = pgTable(
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
-    slug: varchar("slug", { length: 63 }),
+    slug: varchar("slug", { length: 63 }).notNull(),
     canonicalIp: varchar("canonical_ip", { length: 64 }).notNull(),
     config: jsonb("config").$type<NormalizedServer>().notNull(),
     configDigest: varchar("config_digest", { length: 64 }).notNull(),

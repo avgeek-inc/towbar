@@ -234,7 +234,7 @@ export type Resource = {
 };
 
 export type Server = {
-  slug?: string | null;
+  slug: string;
   scout?: import("@workspace/towbar-core").ServerMonitoringSummary;
   hardware?: import("@workspace/towbar-core").ServerHardware | null;
   archivedAt: string | null;

@@ -68,7 +68,7 @@ void test(
         email: `${userId}@example.com`,
         displayName: "Test",
       });
-      const server = await createServer({ config, workspaceId });
+      const server = await createServer({ config, workspaceId, slug: "host" });
       serverId = server.id;
       const removal = { serverId, workspaceId, requestedBy: userId };
       const [installation] = await db
@@ -349,7 +349,11 @@ void test(
               .insert(serverPreparations)
               .values({ serverId, configDigest: "test", steps: [] }),
           );
-          const revived = await createServer({ config, workspaceId });
+          const revived = await createServer({
+            config,
+            workspaceId,
+            slug: "host",
+          });
           assert.equal(revived.id, serverId);
           assert.equal(revived.setupStatus, "pending");
         },

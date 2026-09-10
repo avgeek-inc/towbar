@@ -65,6 +65,7 @@ void test(
         displayName: "Tester",
       });
       await db.insert(servers).values({
+        slug: `server-${serverId}`,
         id: serverId,
         workspaceId,
         canonicalIp: "192.0.2.209",

@@ -2783,6 +2783,7 @@ function createServerFixture(
   return {
     archivedAt: null,
     canonicalIp,
+    slug: `server-${id}`,
     hardware:
       id === fixtureIds.server
         ? {
