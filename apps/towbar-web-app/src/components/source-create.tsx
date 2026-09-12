@@ -1,6 +1,8 @@
 "use client";
 import {
   Add01Icon,
+  Delete02Icon,
+  Shield01Icon,
   GitBranchIcon,
   GithubIcon,
 } from "@hugeicons/core-free-icons";
@@ -47,6 +49,7 @@ export function SourceCreate() {
   );
   const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [customNames, setCustomNames] = useState<string[]>([]);
   const [customEnvironment, setCustomEnvironment] = useState("");
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
   const [discovered, setDiscovered] = useState<
@@ -193,7 +196,7 @@ export function SourceCreate() {
           title="Source details"
         >
           <form
-            className="content-grid max-w-xl pt-2"
+            className="grid gap-6 pt-2"
             onSubmit={async (event) => {
               event.preventDefault();
               if (!selected || busy || invalidSelection) return;
@@ -238,219 +241,308 @@ export function SourceCreate() {
               }
             }}
           >
-            <ComboBox
-              className="gap-3"
-              fullWidth
-              isDisabled={busy}
-              selectedKey={fullName || null}
-              variant="secondary"
-              onSelectionChange={async (value) => {
-                const name = String(value ?? "");
-                setFullName(name);
-                setDiscovered(null);
-                setSelectedEnvironments([]);
-                setMappings({});
-                setCustomEnvironment("");
-                setDiscoveryError(null);
-                const repository = repositories.data?.repositories.find(
-                  (repo) => repo.fullName === name,
-                );
-                if (!repository) return;
-                setBusy(true);
-                try {
-                  const result = await api.post<{
-                    environments: { name: string; previewsEnabled: boolean }[];
-                  }>("/v1/core/sources/discover", {
-                    githubInstallationId,
-                    repositoryOwner: repository.owner,
-                    repositoryName: repository.name,
-                    discoveryBranch: repository.defaultBranch,
-                  });
-                  setDiscovered(result.environments);
-                  setSelectedEnvironments(
-                    result.environments.map((environment) => environment.name),
-                  );
-                  setMappings(
-                    Object.fromEntries(
-                      result.environments.map((environment) => [
-                        environment.name,
-                        environment.name === "production"
-                          ? repository.defaultBranch
-                          : "",
-                      ]),
-                    ),
-                  );
-                } catch (error) {
-                  setDiscovered([]);
-                  setDiscoveryError(
-                    error instanceof Error
-                      ? error.message
-                      : "Could not read the default branch.",
-                  );
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              <Label>Repository</Label>
-              <ComboBox.InputGroup>
-                <Input placeholder="Search repositories…" />
-                <ComboBox.Trigger />
-              </ComboBox.InputGroup>
-              <ComboBox.Popover>
-                <ListBox>
-                  {repositories.data.repositories.map((repo) => (
-                    <ListBox.Item
-                      key={repo.id}
-                      id={repo.fullName}
-                      textValue={`${repo.fullName}${repo.private ? " private" : ""}`}
-                    >
-                      {repo.fullName}
-                      {repo.private ? " · private" : ""}
-                      <ListBox.ItemIndicator />
-                    </ListBox.Item>
-                  ))}
-                </ListBox>
-              </ComboBox.Popover>
-              <Description>
-                Towbar reads towbar.yml to discover environments. Deployment
-                branches are managed here, not in YAML.
-              </Description>
-            </ComboBox>
-            {discovered ? (
-              <div className="grid gap-4">
-                <p>
-                  Select the environments to connect and their deployment
-                  branches.
-                </p>
-                <p className="text-xs text-muted">
-                  You can connect other environments later.
-                </p>
-                {discoveryError ? (
-                  <p className="text-xs text-muted">
-                    Could not suggest environments from the default branch:{" "}
-                    {discoveryError} Add a mapping below; Towbar will validate
-                    its selected branch.
-                  </p>
-                ) : null}
-                {discovered.map((environment) => (
-                  <div key={environment.name} className="grid gap-2">
-                    <Checkbox
-                      variant="secondary"
-                      isDisabled={busy}
-                      isSelected={selectedEnvironments.includes(
-                        environment.name,
-                      )}
-                      onChange={(checked) =>
-                        setSelectedEnvironments((current) =>
-                          checked
-                            ? [...current, environment.name]
-                            : current.filter(
-                                (name) => name !== environment.name,
-                              ),
-                        )
-                      }
-                    >
-                      <Checkbox.Content>
-                        <Checkbox.Control className="border border-muted">
-                          <Checkbox.Indicator />
-                        </Checkbox.Control>
-                        <Label>{environment.name}</Label>
-                      </Checkbox.Content>
-                    </Checkbox>
-                    <Label
-                      className="sr-only"
-                      htmlFor={`branch-${environment.name}`}
-                    >
-                      {environment.name} deployment branch
-                    </Label>
+            <div className="grid items-start gap-8 lg:grid-cols-2">
+              <div className="grid min-w-0 gap-6">
+                <ComboBox
+                  className="gap-3"
+                  fullWidth
+                  isDisabled={busy}
+                  selectedKey={fullName || null}
+                  variant="secondary"
+                  onSelectionChange={async (value) => {
+                    const name = String(value ?? "");
+                    setFullName(name);
+                    setDiscovered(null);
+                    setSelectedEnvironments([]);
+                    setMappings({});
+                    setCustomEnvironment("");
+                    setCustomNames([]);
+                    setDiscoveryError(null);
+                    const repository = repositories.data?.repositories.find(
+                      (repo) => repo.fullName === name,
+                    );
+                    if (!repository) return;
+                    setBusy(true);
+                    try {
+                      const result = await api.post<{
+                        environments: {
+                          name: string;
+                          previewsEnabled: boolean;
+                        }[];
+                      }>("/v1/core/sources/discover", {
+                        githubInstallationId,
+                        repositoryOwner: repository.owner,
+                        repositoryName: repository.name,
+                        discoveryBranch: repository.defaultBranch,
+                      });
+                      setDiscovered(result.environments);
+                      setSelectedEnvironments(
+                        result.environments.map(
+                          (environment) => environment.name,
+                        ),
+                      );
+                      setMappings(
+                        Object.fromEntries(
+                          result.environments.map((environment) => [
+                            environment.name,
+                            environment.name === "production"
+                              ? repository.defaultBranch
+                              : "",
+                          ]),
+                        ),
+                      );
+                    } catch (error) {
+                      setDiscovered([]);
+                      setDiscoveryError(
+                        error instanceof Error
+                          ? error.message
+                          : "Could not read the default branch.",
+                      );
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  <Label>Repository</Label>
+                  <ComboBox.InputGroup className="relative">
                     <Input
-                      id={`branch-${environment.name}`}
-                      required={selectedEnvironments.includes(environment.name)}
-                      variant="secondary"
-                      value={mappings[environment.name] ?? ""}
-                      disabled={
-                        busy || !selectedEnvironments.includes(environment.name)
+                      className={
+                        selected?.private ? "min-w-0 pr-16 sm:pr-28" : "min-w-0"
                       }
-                      placeholder="Choose a deployment branch"
-                      onChange={(event) =>
-                        setMappings((current) => ({
-                          ...current,
-                          [environment.name]: event.target.value,
-                        }))
-                      }
+                      placeholder="Search repositories…"
                     />
-                  </div>
-                ))}
-                <div className="grid gap-2">
-                  <Label htmlFor="new-environment">Environment name</Label>
-                  <div className="flex flex-wrap gap-2">
-                    <Input
-                      id="new-environment"
-                      className="min-w-0 flex-1"
-                      variant="secondary"
-                      value={customEnvironment}
-                      disabled={busy}
-                      placeholder="e.g. qa"
-                      onChange={(event) =>
-                        setCustomEnvironment(event.target.value)
-                      }
-                    />
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      isDisabled={
-                        busy ||
-                        !customEnvironment.trim() ||
-                        discovered.some(
-                          (item) => item.name === customEnvironment.trim(),
-                        )
-                      }
-                      onPress={() => {
-                        const name = customEnvironment.trim();
-                        setDiscovered([
-                          ...discovered,
-                          { name, previewsEnabled: false },
-                        ]);
-                        setSelectedEnvironments([
-                          ...selectedEnvironments,
-                          name,
-                        ]);
-                        setCustomEnvironment("");
-                      }}
-                    >
-                      <HugeiconsIcon
-                        icon={Add01Icon}
-                        className="size-4"
-                        aria-hidden="true"
+                    {selected?.private ? (
+                      <span
+                        className="pointer-events-none absolute inset-y-0 right-10 flex items-center gap-1.5 text-xs text-muted"
+                        title="Private repository"
+                      >
+                        <HugeiconsIcon
+                          icon={Shield01Icon}
+                          className="size-4"
+                          aria-hidden="true"
+                        />
+                        <span className="hidden sm:inline">Private</span>
+                      </span>
+                    ) : null}
+                    <ComboBox.Trigger />
+                  </ComboBox.InputGroup>
+                  <ComboBox.Popover>
+                    <ListBox>
+                      {repositories.data.repositories.map((repo) => (
+                        <ListBox.Item
+                          key={repo.id}
+                          id={repo.fullName}
+                          textValue={repo.fullName}
+                        >
+                          <span className="min-w-0 flex-1 truncate">
+                            {repo.fullName}
+                          </span>
+                          {repo.private ? (
+                            <span className="ml-auto flex shrink-0 items-center gap-1.5 text-xs text-muted">
+                              <HugeiconsIcon
+                                icon={Shield01Icon}
+                                className="size-4"
+                                aria-hidden="true"
+                              />
+                              Private
+                            </span>
+                          ) : null}
+                          <ListBox.ItemIndicator />
+                        </ListBox.Item>
+                      ))}
+                    </ListBox>
+                  </ComboBox.Popover>
+                  <Description>
+                    Towbar reads towbar.yml to discover environments. Deployment
+                    branches are managed here, not in YAML.
+                  </Description>
+                </ComboBox>
+                {discovered ? (
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-environment">Environment name</Label>
+                    <div className="flex flex-wrap gap-2">
+                      <Input
+                        id="new-environment"
+                        className="min-w-0 flex-1"
+                        variant="secondary"
+                        value={customEnvironment}
+                        disabled={busy}
+                        placeholder="e.g. qa"
+                        onChange={(event) =>
+                          setCustomEnvironment(event.target.value)
+                        }
                       />
-                      Add environment
-                    </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        isDisabled={
+                          busy ||
+                          !customEnvironment.trim() ||
+                          discovered.some(
+                            (item) => item.name === customEnvironment.trim(),
+                          )
+                        }
+                        onPress={() => {
+                          const name = customEnvironment.trim();
+                          setDiscovered([
+                            ...discovered,
+                            { name, previewsEnabled: false },
+                          ]);
+                          setSelectedEnvironments([
+                            ...selectedEnvironments,
+                            name,
+                          ]);
+                          setCustomNames([...customNames, name]);
+                          setCustomEnvironment("");
+                        }}
+                      >
+                        <HugeiconsIcon
+                          icon={Add01Icon}
+                          className="size-4"
+                          aria-hidden="true"
+                        />
+                        Add environment
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted">
+                      Each environment must be declared in towbar.yml on its
+                      selected branch. You can add more environments after
+                      connecting.
+                    </p>
                   </div>
-                  <p className="text-xs text-muted">
-                    Each environment must be declared in towbar.yml on its
-                    selected branch. You can add more environments after
-                    connecting.
-                  </p>
-                </div>
-                <p className="text-xs text-muted">
-                  Connecting imports configuration and creates required secret
-                  fields. It does not deploy workloads.
-                </p>
+                ) : null}
               </div>
-            ) : null}
-            <Button
-              className="w-fit"
-              isDisabled={!selected || !discovered || busy || invalidSelection}
-              type="submit"
-            >
-              <HugeiconsIcon
-                aria-hidden="true"
-                icon={Add01Icon}
-                className="size-4 shrink-0"
-              />
-              {busy ? "Loading…" : "Connect source"}
-            </Button>
+              {discovered ? (
+                <div className="grid min-w-0 gap-4">
+                  <div className="grid gap-2">
+                    <p className="text-sm">Environment mappings</p>
+                    <p className="text-xs text-muted">
+                      Select the environments to connect and assign their
+                      deployment branches.
+                    </p>
+                  </div>
+                  {discoveryError ? (
+                    <p className="text-xs text-muted">
+                      Could not suggest environments from the default branch:{" "}
+                      {discoveryError} Add a mapping below; Towbar will validate
+                      its selected branch.
+                    </p>
+                  ) : null}
+                  {discovered.map((environment) => (
+                    <div key={environment.name} className="grid gap-2">
+                      <div className="flex min-h-9 items-center justify-between gap-3">
+                        <Checkbox
+                          variant="secondary"
+                          isDisabled={busy}
+                          isSelected={selectedEnvironments.includes(
+                            environment.name,
+                          )}
+                          onChange={(checked) =>
+                            setSelectedEnvironments((current) =>
+                              checked
+                                ? [...current, environment.name]
+                                : current.filter(
+                                    (name) => name !== environment.name,
+                                  ),
+                            )
+                          }
+                        >
+                          <Checkbox.Content>
+                            <Checkbox.Control className="border border-muted">
+                              <Checkbox.Indicator />
+                            </Checkbox.Control>
+                            <Label>{environment.name}</Label>
+                          </Checkbox.Content>
+                        </Checkbox>
+                        {customNames.includes(environment.name) ? (
+                          <Button
+                            type="button"
+                            isIconOnly
+                            variant="ghost"
+                            isDisabled={busy}
+                            aria-label={`Remove ${environment.name} environment`}
+                            onPress={() => {
+                              const name = environment.name;
+                              setDiscovered(
+                                discovered.filter((item) => item.name !== name),
+                              );
+                              setSelectedEnvironments(
+                                selectedEnvironments.filter(
+                                  (item) => item !== name,
+                                ),
+                              );
+                              setCustomNames(
+                                customNames.filter((item) => item !== name),
+                              );
+                              setMappings((current) => {
+                                const next = { ...current };
+                                delete next[name];
+                                return next;
+                              });
+                            }}
+                          >
+                            <HugeiconsIcon
+                              icon={Delete02Icon}
+                              className="size-4 text-danger"
+                              aria-hidden="true"
+                            />
+                          </Button>
+                        ) : null}
+                      </div>
+                      <Label
+                        className="sr-only"
+                        htmlFor={`branch-${environment.name}`}
+                      >
+                        {environment.name} deployment branch
+                      </Label>
+                      <Input
+                        id={`branch-${environment.name}`}
+                        required={selectedEnvironments.includes(
+                          environment.name,
+                        )}
+                        variant="secondary"
+                        value={mappings[environment.name] ?? ""}
+                        disabled={
+                          busy ||
+                          !selectedEnvironments.includes(environment.name)
+                        }
+                        placeholder="Choose a deployment branch"
+                        onChange={(event) =>
+                          setMappings((current) => ({
+                            ...current,
+                            [environment.name]: event.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted lg:pt-8">
+                  Choose a repository to configure its environments.
+                </p>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-separator pt-5">
+              <p className="text-xs text-muted">
+                Validates each branch, imports configuration and creates
+                required secret fields. Workloads are not deployed.
+              </p>
+              <Button
+                className="w-fit shrink-0"
+                isDisabled={
+                  !selected || !discovered || busy || invalidSelection
+                }
+                type="submit"
+              >
+                <HugeiconsIcon
+                  aria-hidden="true"
+                  icon={Add01Icon}
+                  className="size-4 shrink-0"
+                />
+                {busy ? "Loading…" : "Connect and validate"}
+              </Button>
+            </div>
           </form>
         </FormCard>
       </div>
