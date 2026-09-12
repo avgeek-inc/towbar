@@ -1,7 +1,6 @@
 "use client";
 import {
   Add01Icon,
-  Delete02Icon,
   Shield01Icon,
   GitBranchIcon,
   GithubIcon,
@@ -23,7 +22,6 @@ import {
 import { ListBox } from "@workspace/web-design-system/collections/list-box";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Checkbox } from "@workspace/web-design-system/forms/checkbox";
-import { Description } from "@workspace/web-design-system/forms/description";
 import { Input } from "@workspace/web-design-system/forms/input";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { Modal } from "@workspace/web-design-system/overlays/modal";
@@ -86,7 +84,6 @@ function SourceCreate({
     connection.data?.connection ? "/v1/core/github/repositories" : null,
   );
   const [fullName, setFullName] = useState("");
-  const [customNames, setCustomNames] = useState<string[]>([]);
   const [customEnvironment, setCustomEnvironment] = useState("");
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
   const [discovered, setDiscovered] = useState<
@@ -231,7 +228,6 @@ function SourceCreate({
               setSelectedEnvironments([]);
               setMappings({});
               setCustomEnvironment("");
-              setCustomNames([]);
               setDiscoveryError(null);
               const repository = repositories.data?.repositories.find(
                 (repo) => repo.fullName === name,
@@ -325,21 +321,10 @@ function SourceCreate({
                 ))}
               </ListBox>
             </ComboBox.Popover>
-            <Description>
-              Environments are suggested from this repository. Choose their
-              branches below.
-            </Description>
           </ComboBox>
         </div>
         {discovered ? (
           <div className="grid min-w-0 gap-4">
-            <div className="grid gap-2">
-              <Label id="source-environments-label">Environments</Label>
-              <p className="text-xs text-muted">
-                Choose which environments to connect, then set a branch for
-                each.
-              </p>
-            </div>
             {discoveryError ? (
               <p className="text-xs text-muted">
                 Could not suggest environments from the default branch:{" "}
@@ -348,7 +333,7 @@ function SourceCreate({
               </p>
             ) : null}
             <div
-              className="hidden gap-4 text-xs text-muted sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_2.25rem]"
+              className="hidden gap-4 text-xs text-muted sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
               aria-hidden="true"
             >
               <span>Environment</span>
@@ -357,20 +342,36 @@ function SourceCreate({
             {discovered.map((environment) => (
               <div
                 key={environment.name}
-                className="grid grid-cols-[minmax(0,1fr)_2.25rem] items-center gap-x-4 gap-y-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_2.25rem]"
+                className="grid grid-cols-1 items-center gap-x-4 gap-y-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
               >
                 <div className="col-start-1 row-start-1 flex min-h-9 min-w-0 items-center">
                   <Checkbox
                     variant="secondary"
                     isDisabled={busy}
                     isSelected={selectedEnvironments.includes(environment.name)}
-                    onChange={(checked) =>
+                    onChange={(checked) => {
+                      const name = environment.name;
                       setSelectedEnvironments((current) =>
                         checked
-                          ? [...current, environment.name]
-                          : current.filter((name) => name !== environment.name),
-                      )
-                    }
+                          ? [...current, name]
+                          : current.filter((item) => item !== name),
+                      );
+                      if (
+                        !checked &&
+                        name !== "production" &&
+                        name !== "staging"
+                      ) {
+                        setDiscovered(
+                          (current) =>
+                            current?.filter((item) => item.name !== name) ?? [],
+                        );
+                        setMappings((current) => {
+                          const next = { ...current };
+                          delete next[name];
+                          return next;
+                        });
+                      }
+                    }}
                   >
                     <Checkbox.Content>
                       <Checkbox.Control className="border border-muted">
@@ -380,16 +381,21 @@ function SourceCreate({
                     </Checkbox.Content>
                   </Checkbox>
                 </div>
-                <div className="col-span-2 row-start-2 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1">
+                <div className="relative row-start-2 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1">
                   <Label
                     className="sr-only"
                     htmlFor={`branch-${environment.name}`}
                   >
                     {environment.name} deployment branch
                   </Label>
+                  <HugeiconsIcon
+                    icon={GitBranchIcon}
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted"
+                  />
                   <Input
                     id={`branch-${environment.name}`}
-                    className="w-full"
+                    className="w-full pl-10"
                     required={selectedEnvironments.includes(environment.name)}
                     variant="secondary"
                     value={mappings[environment.name] ?? ""}
@@ -405,39 +411,6 @@ function SourceCreate({
                     }
                   />
                 </div>
-                {customNames.includes(environment.name) ? (
-                  <Button
-                    className="col-start-2 row-start-1 sm:col-start-3"
-                    type="button"
-                    isIconOnly
-                    variant="ghost"
-                    isDisabled={busy}
-                    aria-label={`Remove ${environment.name} environment`}
-                    onPress={() => {
-                      const name = environment.name;
-                      setDiscovered(
-                        discovered.filter((item) => item.name !== name),
-                      );
-                      setSelectedEnvironments(
-                        selectedEnvironments.filter((item) => item !== name),
-                      );
-                      setCustomNames(
-                        customNames.filter((item) => item !== name),
-                      );
-                      setMappings((current) => {
-                        const next = { ...current };
-                        delete next[name];
-                        return next;
-                      });
-                    }}
-                  >
-                    <HugeiconsIcon
-                      icon={Delete02Icon}
-                      className="size-4 text-danger"
-                      aria-hidden="true"
-                    />
-                  </Button>
-                ) : null}
               </div>
             ))}
             {discovered ? (
@@ -472,7 +445,6 @@ function SourceCreate({
                         { name, previewsEnabled: false },
                       ]);
                       setSelectedEnvironments([...selectedEnvironments, name]);
-                      setCustomNames([...customNames, name]);
                       setCustomEnvironment("");
                     }}
                   >
@@ -504,7 +476,7 @@ function SourceCreate({
           secret fields. Workloads are not deployed.
         </p>
         <Button
-          className="w-fit shrink-0"
+          className="ml-auto w-fit shrink-0"
           isDisabled={!selected || !discovered || busy || invalidSelection}
           type="submit"
         >
@@ -513,7 +485,7 @@ function SourceCreate({
             icon={Add01Icon}
             className="size-4 shrink-0"
           />
-          {busy ? "Loading…" : "Connect and validate"}
+          {busy ? "Loading…" : "Connect and Validate"}
         </Button>
       </div>
     </form>
