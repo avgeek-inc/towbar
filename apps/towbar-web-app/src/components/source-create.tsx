@@ -338,7 +338,7 @@ export function SourceCreate() {
                             {repo.fullName}
                           </span>
                           {repo.private ? (
-                            <span className="ml-auto flex shrink-0 items-center gap-1.5 text-xs text-muted">
+                            <span className="ml-auto mr-6 flex shrink-0 items-center gap-1.5 text-xs text-muted">
                               <HugeiconsIcon
                                 icon={Shield01Icon}
                                 className="size-4"
