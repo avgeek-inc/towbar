@@ -84,6 +84,13 @@ function SourceCreate({
     connection.data?.connection ? "/v1/core/github/repositories" : null,
   );
   const [fullName, setFullName] = useState("");
+  const [owner, repository] = fullName.split("/");
+  const branches = useApiQuery<{ branches: string[] }>(
+    fullName
+      ? `/v1/core/github/branches?${new URLSearchParams({ owner: owner ?? "", repository: repository ?? "" })}`
+      : null,
+  );
+
   const [customEnvironment, setCustomEnvironment] = useState("");
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
   const [discovered, setDiscovered] = useState<
@@ -332,6 +339,12 @@ function SourceCreate({
                 selected branch.
               </p>
             ) : null}
+            {branches.error ? (
+              <p className="text-xs text-muted">
+                Branch suggestions are unavailable. You can still enter a branch
+                name.
+              </p>
+            ) : null}
             <div
               className="hidden gap-4 text-xs text-muted sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
               aria-hidden="true"
@@ -388,28 +401,67 @@ function SourceCreate({
                   >
                     {environment.name} deployment branch
                   </Label>
-                  <HugeiconsIcon
-                    icon={GitBranchIcon}
-                    aria-hidden="true"
-                    className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted"
-                  />
-                  <Input
-                    id={`branch-${environment.name}`}
-                    className="w-full pl-10"
-                    required={selectedEnvironments.includes(environment.name)}
+                  <ComboBox
+                    aria-label={`${environment.name} deployment branch`}
+                    allowsCustomValue
+                    fullWidth
                     variant="secondary"
-                    value={mappings[environment.name] ?? ""}
-                    disabled={
+                    isDisabled={
                       busy || !selectedEnvironments.includes(environment.name)
                     }
-                    placeholder="Choose a deployment branch"
-                    onChange={(event) =>
+                    inputValue={mappings[environment.name] ?? ""}
+                    onInputChange={(value) =>
                       setMappings((current) => ({
                         ...current,
-                        [environment.name]: event.target.value,
+                        [environment.name]: value,
                       }))
                     }
-                  />
+                    onSelectionChange={(key) => {
+                      if (key !== null)
+                        setMappings((current) => ({
+                          ...current,
+                          [environment.name]: String(key),
+                        }));
+                    }}
+                  >
+                    <ComboBox.InputGroup className="relative">
+                      <HugeiconsIcon
+                        icon={GitBranchIcon}
+                        aria-hidden="true"
+                        className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted"
+                      />
+                      <Input
+                        id={`branch-${environment.name}`}
+                        className="w-full pl-10"
+                        placeholder="Choose a branch"
+                        required={selectedEnvironments.includes(
+                          environment.name,
+                        )}
+                      />
+                      <ComboBox.Trigger />
+                    </ComboBox.InputGroup>
+                    <ComboBox.Popover>
+                      <ListBox>
+                        {(branches.data?.branches ?? []).map((branch) => (
+                          <ListBox.Item
+                            key={branch}
+                            id={branch}
+                            textValue={branch}
+                          >
+                            <HugeiconsIcon
+                              icon={GitBranchIcon}
+                              className="size-4 text-muted"
+                              aria-hidden="true"
+                            />
+                            <span className="min-w-0 flex-1 truncate">
+                              {branch}
+                            </span>
+                            <ListBox.ItemIndicator />
+                          </ListBox.Item>
+                        ))}
+                      </ListBox>
+                    </ComboBox.Popover>
+                  </ComboBox>
                 </div>
               </div>
             ))}

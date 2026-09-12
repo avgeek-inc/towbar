@@ -1,3 +1,4 @@
+import { getWorkspaceRepositoryBranches } from "../../../areas/github/branches.js";
 import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -112,6 +113,33 @@ githubRoutes.get(
       context.get("user").workspaceId,
     );
     return context.json({ repositories });
+  },
+);
+
+const branchesQuery = z
+  .object({
+    owner: z.string().trim().min(1).max(255),
+    repository: z.string().trim().min(1).max(255),
+  })
+  .strict();
+
+githubRoutes.get(
+  "/branches",
+  operation({
+    responseSchema: 'github.ts:get:"/branches"',
+    summary: "List repository branches",
+    query: branchesQuery,
+    response:
+      "Repository branch names available to the workspace GitHub installation.",
+    status: 200,
+  }),
+  async (context) => {
+    const input = branchesQuery.parse(context.req.query());
+    const branches = await getWorkspaceRepositoryBranches(
+      context.get("user").workspaceId,
+      input,
+    );
+    return context.json({ branches });
   },
 );
 

@@ -437,6 +437,7 @@
                   "api-reference/get_github",
                   "api-reference/post_github_actions_retry_preview_reporting",
                   "api-reference/get_github_repositories",
+                  "api-reference/get_github_branches",
                   "api-reference/delete_github"
                 ]
               },

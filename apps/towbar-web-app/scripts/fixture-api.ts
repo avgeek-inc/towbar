@@ -1186,6 +1186,21 @@ export function createFixtureApiServer() {
 
     const requestUrl = new URL(request.url ?? "/", "http://localhost");
     const path = requestUrl.pathname;
+    if (request.method === "GET" && path === "/v1/core/github/branches") {
+      const owner = requestUrl.searchParams.get("owner");
+      const repository = requestUrl.searchParams.get("repository");
+      if (
+        !githubRepositories.some(
+          (repo) => repo.owner === owner && repo.name === repository,
+        )
+      ) {
+        writeNotFound(response);
+        return;
+      }
+      writeJson(response, 200, { branches: ["develop", "main", "release/qa"] });
+      return;
+    }
+
     if (scoutFixture(request, response, requestUrl)) return;
     if (
       request.method === "GET" &&
