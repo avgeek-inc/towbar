@@ -10,6 +10,7 @@ import {
   sshHostKeys,
 } from "@workspace/towbar-database/schema";
 
+import { conflict } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueuePreviewCleanup } from "../../infrastructure/temporal.js";
 import {
@@ -77,7 +78,7 @@ export async function requestPreviewPullRequestCleanup(input: {
   };
 }
 
-export async function requestPreviewInputMismatchCleanups(input: {
+export async function requestObsoletePreviewCleanups(input: {
   appIds: string[];
   pullRequestNumber: number;
   sourceId: string;
@@ -85,7 +86,7 @@ export async function requestPreviewInputMismatchCleanups(input: {
   if (input.appIds.length === 0) return { cleanupIds: [] as string[] };
   const now = new Date();
   const reason =
-    "Pull request changes no longer match this App's deployment inputs";
+    "This app is no longer eligible for the pull request target or configuration";
   const environments = await getTowbarDatabase()
     .update(previewEnvironments)
     .set({
@@ -358,6 +359,8 @@ async function markPreviewCleanupAdmissionFailed(
 export async function getPreviewCleanupContext(previewEnvironmentId: string) {
   const [environment] = await getTowbarDatabase()
     .select({
+      status: previewEnvironments.status,
+      cleanupAttempt: previewEnvironments.cleanupAttempts,
       hostname: previewEnvironments.hostname,
       id: previewEnvironments.id,
       latestDeploymentId: previewEnvironments.latestDeploymentId,
@@ -370,6 +373,8 @@ export async function getPreviewCleanupContext(previewEnvironmentId: string) {
     .where(eq(previewEnvironments.id, previewEnvironmentId))
     .limit(1);
   if (!environment) throw new Error("Preview environment was not found");
+  if (environment.status !== "deleting")
+    throw conflict("Preview is not awaiting cleanup", "PREVIEW_CLEANUP_STALE");
   const [releaseRows, trustedHostKeys] = await Promise.all([
     getTowbarDatabase()
       .select({
@@ -398,6 +403,7 @@ export async function getPreviewCleanupContext(previewEnvironmentId: string) {
       ),
   ]);
   return {
+    cleanupAttempt: environment.cleanupAttempt,
     context: {
       containerNames: releaseRows.map((release) => release.containerName),
       hostname: environment.hostname,
@@ -427,40 +433,46 @@ export async function resolvePreviewCleanupSecrets(
 
 export async function recordPreviewCleanupResult(
   previewEnvironmentId: string,
-  input: { errorMessage?: string; succeeded: boolean },
+  input: { cleanupAttempt: number; errorMessage?: string; succeeded: boolean },
 ) {
   const now = new Date();
-  const [environment] = await getTowbarDatabase()
-    .select({
-      cleanupAttempts: previewEnvironments.cleanupAttempts,
-      latestDeploymentId: previewEnvironments.latestDeploymentId,
-      pullRequestNumber: previewEnvironments.pullRequestNumber,
-      sourceId: previewEnvironments.sourceId,
-    })
-    .from(previewEnvironments)
-    .where(eq(previewEnvironments.id, previewEnvironmentId))
-    .limit(1);
-  await getTowbarDatabase().transaction(async (transaction) => {
-    await transaction
-      .update(previewEnvironments)
-      .set({
-        deletedAt: input.succeeded ? now : null,
-        errorMessage: input.errorMessage?.slice(0, 1_000) ?? null,
-        nextCleanupAttemptAt: input.succeeded
-          ? null
-          : nextPreviewCleanupAttemptAt(environment?.cleanupAttempts ?? 1, now),
-        status: input.succeeded ? "deleted" : "cleanup_failed",
-        updatedAt: now,
-      })
-      .where(eq(previewEnvironments.id, previewEnvironmentId));
-    if (input.succeeded) {
-      await transaction
-        .update(releases)
-        .set({ status: "superseded", supersededAt: now })
-        .where(eq(releases.previewEnvironmentId, previewEnvironmentId));
-    }
-  });
-  if (input.succeeded && environment?.latestDeploymentId) {
+  const environment = await getTowbarDatabase().transaction(
+    async (transaction) => {
+      const [updated] = await transaction
+        .update(previewEnvironments)
+        .set({
+          deletedAt: input.succeeded ? now : null,
+          errorMessage: input.errorMessage?.slice(0, 1_000) ?? null,
+          nextCleanupAttemptAt: input.succeeded
+            ? null
+            : nextPreviewCleanupAttemptAt(input.cleanupAttempt, now),
+          status: input.succeeded ? "deleted" : "cleanup_failed",
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(previewEnvironments.id, previewEnvironmentId),
+            eq(previewEnvironments.status, "deleting"),
+            eq(previewEnvironments.cleanupAttempts, input.cleanupAttempt),
+          ),
+        )
+        .returning({
+          latestDeploymentId: previewEnvironments.latestDeploymentId,
+          pullRequestNumber: previewEnvironments.pullRequestNumber,
+          sourceId: previewEnvironments.sourceId,
+        });
+      if (!updated) return null;
+      if (input.succeeded) {
+        await transaction
+          .update(releases)
+          .set({ status: "superseded", supersededAt: now })
+          .where(eq(releases.previewEnvironmentId, previewEnvironmentId));
+      }
+      return updated;
+    },
+  );
+  if (!environment) return { accepted: false };
+  if (input.succeeded && environment.latestDeploymentId) {
     await publishPreviewDeploymentStatus(
       environment.latestDeploymentId,
       "inactive",
@@ -472,9 +484,7 @@ export async function recordPreviewCleanupResult(
       "preview.cleaned_up",
     ).catch(() => undefined);
   }
-  if (environment) {
-    await publishPreviewPullRequestComment(environment).catch(() => undefined);
-  }
+  await publishPreviewPullRequestComment(environment).catch(() => undefined);
   return { accepted: true };
 }
 

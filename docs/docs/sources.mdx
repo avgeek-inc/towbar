@@ -3,14 +3,14 @@ title: "Sources"
 description: "Connect a repository and keep its deployable inventory in sync with Git."
 ---
 
-A Source connects a GitHub repository to Towbar. Its `.towbar/deployment.yml` defines the apps and resources Towbar can deploy, and `source.branch` identifies the production branch.
+A Source connects a GitHub repository to Towbar. Its `towbar.yml` declares environments, and files under `.towbar/apps` and `.towbar/resources` define workloads. Each connected environment follows a branch selected in Towbar.
 
 ## Add a Source
 
 1. [Connect the GitHub App](/docs/integrations/github) and grant access to the repository.
-2. Add every target IP under [Servers](/docs/servers).
+2. Register each target under [Servers](/docs/servers) and assign a unique slug.
 3. Commit a valid [manifest](/docs/reference/deployment-manifest) to the repository.
-4. Open **Sources → Add source** and select the repository.
+4. Open **Sources → Add source**, select the repository, then choose or add environments and map their deployment branches.
 5. Open the sync result and confirm it succeeded. The imported apps and resources should now appear under the Source.
 
 Manifest validation is atomic. Invalid configuration or a reference to an unregistered server fails the sync without partially changing inventory.
@@ -20,8 +20,8 @@ Manifest validation is atomic. Invalid configuration or a reference to an unregi
     <img
       src="/assets/features/sources-light.webp"
       alt="Example Sources inventory. The icon counts show active apps, resources, and distinct servers for each repository."
-      width="2160"
-      height="904"
+      width="2176"
+      height="1054"
       loading="lazy"
     />
   </div>
@@ -29,8 +29,8 @@ Manifest validation is atomic. Invalid configuration or a reference to an unregi
     <img
       src="/assets/features/sources-dark.webp"
       alt="Example Sources inventory. The icon counts show active apps, resources, and distinct servers for each repository."
-      width="2160"
-      height="904"
+      width="2176"
+      height="1054"
       loading="lazy"
     />
   </div>
@@ -40,9 +40,44 @@ Manifest validation is atomic. Invalid configuration or a reference to an unregi
   </p>
 </div>
 
+## Map environments to branches
+
+Open **Environments** inside the Source to see its branch mappings and sync
+status. **Edit branch** changes a mapping in Towbar; branch names do not belong
+in `towbar.yml`. Saving validates and syncs the selected branch without deploying.
+If that branch cannot be read or its configuration is invalid, Towbar preserves
+the last valid configuration and existing secret values.
+
+PR previews follow the branch mapped to an environment with previews enabled.
+For example, staging mapped to `develop` accepts eligible PRs targeting `develop`.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/features/source-environments-light.webp"
+      alt="Source environment mappings: staging follows develop with PR previews enabled, and production follows main. Both environments are synced."
+      width="2176"
+      height="676"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/features/source-environments-dark.webp"
+      alt="Source environment mappings: staging follows develop with PR previews enabled, and production follows main. Both environments are synced."
+      width="2176"
+      height="676"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Branch mappings are managed in Towbar, independently for each environment.
+  </p>
+</div>
+
 ## Change configuration
 
-Edit the manifest in Git and merge it into the production branch. A push webhook starts reconciliation; **Sync now** lets you request it explicitly. Review the sync's commit and issues before expecting a deployment.
+Edit the entity files in Git and merge into the affected environment's mapped branch. A push webhook starts reconciliation; **Sync now** lets you request it explicitly. Review the sync's commit and issues before expecting a deployment.
 
 Rename the display `name` freely, but preserve each workload's `id`. Removing an ID archives that workload. Reintroducing the same ID and kind restores its identity and history.
 
@@ -54,10 +89,12 @@ Manual deployment is still a separate action. See [Deployments and releases](/do
 
 ## Source settings
 
-Use **Settings → Secrets** for values shared by this Source's workloads, with separate production and preview environments. Use **Settings → Notifications** to choose destinations and event categories. SSH and Cloudflare credentials belong to the workspace server rather than the Source.
+Use **Settings → Secrets** for values shared by this Source's workloads, with separate named environments and isolated preview values. Use **Settings → Notifications** to choose destinations and event categories. SSH and Cloudflare credentials belong to the workspace server rather than the Source.
 
 If a repository is missing or a webhook stops arriving, start with [GitHub troubleshooting](/docs/integrations/github#maintain-the-connection).
 
 ## Delete a source
 
 Deleting a source removes its imported apps, resources, and operational history from Towbar. Running services and Docker data remain on their servers. After deletion, run **Check server** on each affected server and open **Settings → Cleanup** to review leftovers and remove them on demand. Volume deletion is a separate, permanent action. See [server cleanup](/docs/servers#clean-up-leftover-workloads).
+
+Towbar suggests environments from the repository default branch when its configuration is available. You can add other environment names directly, even when the default branch has no manifest. Each selected environment is validated against `towbar.yml` on its mapped branch. Environment names must be unique within a Source; there is no fixed environment-count limit. Server capacity and repository size still constrain what can run.

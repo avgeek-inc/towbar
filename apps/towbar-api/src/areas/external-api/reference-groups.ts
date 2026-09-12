@@ -30,6 +30,7 @@ const categoryByRoot: Record<string, string> = {
 export const sectionOrder = [
   "Overview",
   "Sync & manifest",
+  "Environments",
   "Auto-deploy",
   "Deployments",
   "Runtime & logs",
@@ -67,6 +68,8 @@ const rules: Record<string, Array<[string, RegExp]>> = {
     ],
   ],
   sources: [
+    ["Environments", /\/environments(?:\/|$)/],
+    ["Sync & manifest", /^\/sources\/(discover|connect)$/],
     ["Secrets", /\/secrets(?:\/|$)/],
     ["Auto-deploy", /\/auto-deploy-control$/],
     ["Sync & manifest", /\/(manifest|syncs|actions)(?:\/|$)/],

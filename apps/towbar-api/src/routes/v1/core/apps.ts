@@ -52,7 +52,11 @@ appRoutes.get(
       await listApps(context.get("user").workspaceId),
       workloadFilters.parse(context.req.query()),
     );
-    return context.json({ apps: result.items, counts: result.counts });
+    return context.json({
+      apps: result.items,
+      counts: result.counts,
+      environments: result.environments,
+    });
   },
 );
 

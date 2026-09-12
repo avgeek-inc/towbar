@@ -1,3 +1,4 @@
+import { testInstanceLinks } from "../sources/instance-test-helper.js";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
@@ -37,10 +38,9 @@ export async function assertScoutWorkloadLinks(
     githubInstallationId: installation!.id,
     repositoryOwner: "example",
     repositoryName: "links",
-    branch: "main",
   });
   const manifest = normalizeDeploymentManifest({
-    version: 1,
+    version: 2,
     apps: [
       {
         id: "app",
@@ -66,6 +66,11 @@ export async function assertScoutWorkloadLinks(
   for (const [index, kind] of ["app", "postgres"].entries()) {
     const id = ids[index]!;
     await db.insert(apps).values({
+      ...(await testInstanceLinks(
+        sourceId,
+        kind,
+        kind === "app" ? "app" : "resource",
+      )),
       id,
       kind: kind as "app" | "postgres",
       workspaceId: scope.workspaceId,

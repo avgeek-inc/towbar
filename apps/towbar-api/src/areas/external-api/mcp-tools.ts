@@ -78,8 +78,8 @@ export const mcpTools: McpTool[] = [
   ),
   tool(
     "source_inspect",
-    "Inspect source and manifest",
-    "Inspect a connected repository, its manifest, auto-deploy control, and server capacity together. Find the sourceId with towbar_inventory_search. Use towbar_source_preview_sync before reconciling changes.",
+    "Inspect source and environments",
+    "Inspect a connected repository, its environment branch mappings, auto-deploy control and server capacity. Find the sourceId with towbar_inventory_search.",
     z.object(sourceId).strict(),
     async (a, c) => ({
       source: await c.call({
@@ -87,9 +87,9 @@ export const mcpTools: McpTool[] = [
         route: "/sources/:sourceId",
         path: a,
       }),
-      manifest: await c.call({
+      environments: await c.call({
         method: "GET",
-        route: "/sources/:sourceId/manifest",
+        route: "/sources/:sourceId/environments",
         path: a,
       }),
       autoDeploy: await c.call({
@@ -107,9 +107,9 @@ export const mcpTools: McpTool[] = [
   action(
     "source_connect",
     "Connect repository",
-    "Connect a repository from towbar_repository_search using its installation ID and production branch. Then preview and sync its manifest; connecting does not prove deployment success.",
+    "Connect a repository after discovery, mapping its selected environments to branches. Initial sync does not deploy. Inspect each returned environment sync outcome.",
     "POST",
-    "/sources",
+    "/sources/connect",
     {},
     { destructive: false },
   ),
@@ -122,21 +122,33 @@ export const mcpTools: McpTool[] = [
     sourceId,
   ),
   action(
-    "source_preview_sync",
-    "Preview manifest changes",
-    "Compare a repository manifest with current inventory before requesting reconciliation. Returns proposed changes and validation errors; does not deploy the proposed changes.",
+    "source_discover",
+    "Discover repository environments",
+    "Read towbar.yml on a discovery branch to find declared environments before connecting. Does not create a source or deploy.",
     "POST",
-    "/sources/:sourceId/actions/preview-sync",
-    sourceId,
+    "/sources/discover",
+    {},
     { destructive: false },
   ),
-  action(
+  tool(
     "source_sync",
-    "Sync repository manifest",
-    "Reconcile a source with its production branch after reviewing towbar_source_preview_sync. May update inventory and trigger deployments. Returns a sync ID; use towbar_source_sync_inspect to check the outcome.",
-    "POST",
-    "/sources/:sourceId/actions/sync",
-    sourceId,
+    "Sync connected environments",
+    "Sync one environment when environmentId is supplied, or all connected environments otherwise. Uses mapped branches and may trigger eligible auto-deployments. Inspect each returned sync ID for completion.",
+    z
+      .object({ ...sourceId, environmentId: id("Environment").optional() })
+      .strict(),
+    async (a, c) =>
+      await c.call({
+        method: "POST",
+        route: a.environmentId
+          ? "/sources/:sourceId/environments/:environmentId/syncs"
+          : "/sources/:sourceId/environments/syncs",
+        path: {
+          sourceId: a.sourceId,
+          ...(a.environmentId ? { environmentId: a.environmentId } : {}),
+        },
+      }),
+    { readOnly: false, ownerOnly: true, destructive: true, idempotent: false },
   ),
   tool(
     "source_sync_inspect",

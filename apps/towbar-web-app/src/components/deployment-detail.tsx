@@ -1,4 +1,5 @@
 "use client";
+import { DeploymentEnvironmentChip } from "./deployment-environment-chip";
 import {
   Activity01Icon,
   Cancel01Icon,
@@ -311,7 +312,7 @@ export function DeploymentDetail() {
                       {item.kind === "rollback" ? "Rollback" : "Deploy"}
                     </Attributes.Item>
                     <Attributes.Item label="Environment">
-                      <StatusBadge status={item.environment} />
+                      <DeploymentEnvironmentChip deployment={item} />
                     </Attributes.Item>
                     <Attributes.Item label="Trigger">
                       <DeploymentTriggerChip trigger={item.trigger} />

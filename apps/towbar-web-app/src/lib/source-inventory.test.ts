@@ -33,3 +33,28 @@ void test("source inventory excludes archived workloads and deduplicates servers
   });
   assert.equal(countSourceInventory([], []).size, 0);
 });
+
+void test("source counts deduplicate environment instances but retain their servers", () => {
+  const production = {
+    sourceId: "source",
+    entityId: "website",
+    serverIp: "192.0.2.1",
+    archivedAt: null,
+  };
+  const staging = { ...production, serverIp: "192.0.2.2" };
+  assert.deepEqual(
+    countSourceInventory(
+      [
+        production,
+        staging,
+        { ...staging, entityId: "removed", archivedAt: "2026-09-11" },
+      ],
+      [],
+    ).get("source"),
+    {
+      apps: 1,
+      resources: 0,
+      servers: new Set(["192.0.2.1", "192.0.2.2"]),
+    },
+  );
+});

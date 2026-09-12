@@ -1,0 +1,600 @@
+---
+title: "Manifest v2 implementation plan"
+description: "Delivery requirements and verification checkpoints for environment-scoped configuration."
+---
+
+# Manifest v2 implementation
+
+Status: implementation and local verification complete; final remote verification and PR review remain. Release as 2.0.0 after review and merge; do not publish during implementation.
+
+## Contract
+
+- `towbar.yml` declares version 2 and named environments. Branch mappings live in Towbar, not Git.
+- Discover one entity per `*.app.yml` in `.towbar/apps/` and `*.resource.yml` in `.towbar/resources/`, recursively.
+- Entity files contain shared settings, required secrets, and explicit environment overrides. Objects merge; arrays replace. Identity and resource type cannot be overridden.
+- Repository-level Sources own logical entities. Environment instances own configuration, servers, operations, volumes, backups, secrets, and monitoring.
+- Servers have stable workspace-unique slugs referenced in manifests.
+- Root environment preview eligibility and app opt-in must both be enabled. PRs never reconcile persistent configuration or secret slots.
+- Required secret declarations reconcile per instance: add unset slots, preserve existing values/references, remove deleted declarations. Missing secrets block deployment, not sync. Preserve empty versus unset.
+- No permanent v1 compatibility or user-data migration is required. Do not reset production data as part of implementation.
+
+## Connection and sync
+
+- Select a repository, optionally suggest environments from its default branch, add or select named environments and map their branches. Connect and initially sync without deploying.
+- Explicit Add environment connects a discovered environment. Git declarations alone do not activate it.
+- Each sync reads only the mapped branch at an immutable commit and resolves the selected environment.
+- Validate the complete environment before atomic reconciliation. Failed fetches, missing branches/directories, and invalid declarations preserve previous configuration and secrets.
+- Sync all reports independent environment outcomes. Enforce workspace domain ownership across commits.
+- Mapping changes invalidate older jobs. Serialize instance reconciliation and prevent stale jobs from overwriting current state.
+- Removed entities/environments stop automatic operations but do not implicitly destroy workload data.
+- UI shows configuration sync separately from deployment readiness; environment selection survives permalinks and browser navigation.
+
+## Delivery checklist
+
+- [x] Core v2 schemas, file discovery, overrides, secret declarations, deterministic resolved configuration.
+- [x] Repository/environment/logical-entity/instance schema and server slugs.
+- [x] GitHub discovery and immutable file loading; API connection and environment mapping endpoints.
+- [x] Environment-specific atomic sync, stale-job guards, webhooks, initial sync without deployment.
+- [x] Secret reconciliation and validation in Form/File modes, bulk reveal, shared references and deployment admission.
+- [x] App/resource deployment, resource operations/backups, monitoring and vulnerability scope.
+- [x] Preview mapping, PR configuration isolation, hostname and secret scope, cleanup.
+- [x] Source connection/review and environment UI; entity pages, filters, permalinks.
+- [x] API/MCP contracts and generated docs.
+- [x] Fixtures, examples, screenshots, user documentation and release notes.
+- [x] End-to-end Production/Staging app/database and PR preview proof; failed-sync/secret-isolation checks.
+- [x] Full local verification and draft PR #112.
+- [ ] Final-head remote CI and PR review.
+- [ ] Merge and publish 2.0.0.
+
+## Current implementation
+
+The branch is `feat/manifest-v2-environments` in the main checkout. The checklist
+above tracks complete delivery areas, including final integration proof; it is
+not a list of untouched work.
+
+- Core: the repository parser resolves immutable v2 root/entity files, validates
+  explicit membership and merged overrides, and separates required keys from
+  runtime configuration. The production v1 single-file parser and published v1
+  schema are removed. Root/app/resource JSON schemas are generated with a drift
+  check. Starter files and configuration documentation use v2.
+- Storage: environments, mapping revisions, logical entities, instance links,
+  required keys and server slugs exist. Composite foreign keys guard instance,
+  source, server and workspace ownership. Source-level branch storage and its
+  public field are removed; each workspace connects a repository once. App and
+  resource entity/environment links, server slugs and instance secret declarations
+  are required by PostgreSQL. Deployment secret declarations are also required
+  snapshots; execution always checks their required keys. Source commit, digest
+  and successful-sync fields are removed; environments own these snapshots.
+- Sources: discovery/connect, selected environment subsets, initial sync without
+  deployment, explicit add/edit/disconnect/reconnect, per-environment snapshots,
+  mapped push routing and sync history are implemented. Immutable GitHub loading
+  and atomic reconciliation reject stale mappings and preserve failed-sync data.
+- Deployment: admission locks environments before instances, validates required
+  secrets, and rejects disconnected/stale targets. Resume scheduling uses each
+  environment's own revision. History exposes and filters target environments;
+  the underlying deployment kind still uses production/preview terminology.
+- Secrets: app/resource reads and writes require mapping identity. Declared keys
+  are edited as values, with isolated named and preview scopes. Shared-secret
+  choices no longer invent production when there are no connected environments.
+- Previews: mapped base-branch eligibility, target and app opt-in, immutable PR
+  head resolution, isolated PR declarations, target admission guards and cleanup
+  selection are implemented. Lifecycle locking protects reconciliation and
+  manual redeploy. The connected PR lifecycle below proves deployment, update and
+  cleanup through the real API, worker and disposable Docker target.
+- UI: server slugs, Source environment controls, instance environment switching,
+  inventory environment filters, deployment history filters and URL navigation
+  exist. Workspace and Source inventories group instances by logical entity,
+  retaining each environment row and direct instance link. Deployment chips show the recorded environment name. Monitoring
+  entity search and alert/incident identities include environment names; kind
+  filters distinguish persistent deployments from previews.
+- Fixtures: production/staging sibling app and resource instances and history
+  filters exist. Browser checks proved a staging history permalink, opening its
+  app instance, switching to production, and Back restoring staging. Per-environment v2 manifest snapshot fixtures are validated through the parser;
+  the obsolete source manifest endpoint returns 404. Discovery returns v2
+  environment declarations and rejects unavailable branches/installations.
+  Unsupported writes fail rather than returning cached read data. The obsolete
+  v1 creation fixture/test are removed. Stateful connection, initial sync and
+  declared-secret handlers exist. Newly connected sources expose v2 manifest
+  files; configuration and required keys both come from the production parser.
+- API/MCP: current catalogue has 140 operations and 55 curated tools. Generated
+  contracts and owner/read-only boundaries are checked. The MCP integration
+  fixture now explicitly connects an environment before editing shared secrets.
+
+## Latest verification
+
+- All 25 fixture tests pass, including stateful v2 connection/initial sync,
+  environment edits, isolated declared-secret values, and manifest/configuration
+  fidelity. Web typecheck and lint pass for the parser-backed connection fixtures.
+
+- Rollback admission now locks the environment, instance/server and selected
+  retained release before insertion. It rejects changed configuration, archival,
+  unavailable releases and releases from another server, and only selects
+  persistent releases. The database regression observes a real row-lock wait,
+  archives the instance, then verifies no rollback is admitted; it also rejects
+  a preview release. All 14 environment tests and the full 228-test API database
+  suite pass without skips. API typecheck and scoped lint pass.
+
+- Final identity pass: persistent API execution contexts and deployer defaults
+  use the instance UUID, not the shared manifest ID. Resource image cleanup
+  labels use that same identity. The database execution-context regression and
+  all 16 secrets/inventory tests pass; deployer defaults pass 122 tests with two
+  explicit Docker skips. `pnpm verify` passed after these changes, including
+  docs, formatting, lint, types, standard tests and builds. Real Docker and
+  Temporal results below remain separate from this default gate.
+
+- Resource ownership audit: backup, runtime actions and restore preflight now
+  require the exact instance label. Removed the legacy manifest-label fallback
+  and its positional arguments. A shell regression rejects sibling and missing
+  instance owners before Docker operations, and accepts the exact owner for log
+  capture. All 34 focused resource tests, deployer typecheck and scoped lint pass.
+  Volume paths use instance IDs; complete database data/backup isolation still
+  needs complete execution proof. Restored-container cleanup labels now use
+  the instance ID, matching normal resource deployments. The opt-in Redis Docker
+  promotion test proves new-volume activation, previous-volume retention, correct
+  ownership labels and unchanged sibling environment data. Test containers and
+  volumes were cleaned up; archive download/import is outside this test.
+
+- Opt-in Docker execution: the alias integration test passed with real
+  containers, checking replacement, collision rejection, rollback and independent
+  responses from the same alias in separate production/staging networks. Cleanup
+  left no test containers. These are explicitly separate configured networks;
+  this does not prove complete API-to-worker environment deployment.
+- Opt-in Temporal execution: the Scout loop passed worker restart, queued wake
+  signal and persisted-history replay against a disposable local Temporal server.
+  Its evaluation activity is a test stub, so database evaluation and deployment
+  execution require their own proof. The disposable server was stopped afterward.
+- Trivy's private-archive permission regression requires native non-root Linux;
+  it has not been executed on this macOS host.
+
+- Inventory grouping: focused identity/scope regression, web typecheck and
+  scoped lint pass. Rendered Apps and Resources show production/staging siblings
+  in one logical group; staging filtering, opening its instance and browser Back
+  restoring the filtered list were verified. Sidebar, overview, Source and API
+  inventory counts now deduplicate logical entities. Overview running chips
+  explicitly count instances; server workloads retain instance counts. Core
+  filter/count and Source count regressions pass, as do all 24 fixture tests
+  and the 16-test secrets/inventory database suite.
+
+- Monitoring environment labels: the database regression verifies staging-only
+  entity search and environment identity on alerts/incidents. All 22 fixture API
+  tests pass, including staging monitoring search. API/web typechecks, scoped
+  lint and generated documentation checks pass.
+
+- `pnpm verify` passed: docs, formatting, lint, typechecks, standard tests and
+  builds. The default test run contains environment-gated skips; this is not
+  proof of Docker, Temporal or all database execution.
+- Full API suite against the dedicated PostgreSQL database: 228 passed, no skips.
+  After the final test-helper refactor, the focused API/MCP database suite also
+  passed all nine tests.
+- Core: 111 passed. API/worker typechecks pass. Both focused environment and
+  secret database suites pass 30 tests combined. Fixture suite: 24 passed.
+- Documentation metadata, navigation, redirects and internal links pass for
+  180 pages. Published schemas/examples are synchronized.
+- HeroUI 3.2.4 imports `@internationalized/date` without declaring it. A scoped
+  pnpm package extension fixes the dependency; the brand-rendering test and full
+  verification pass with this installed graph.
+
+The disposable database is `towbar_v2_test` on 127.0.0.1:32768, provided by the
+`towbar-v2-tests` Docker container. Use `TOWBAR_TEST_DATABASE_URL` for integration
+tests. Do not reset the hosted installation or use its database.
+
+## Remaining delivery work
+
+The checklist above is the current delivery status. The checkpoints below are
+chronological evidence; their earlier pending-work statements are superseded by
+later results and this section.
+
+1. Confirm final-head remote CI and complete PR review. The current implementation
+   has passed the full local gate with PostgreSQL, and the final rendered review
+   covers Source inventories, environment controls, readiness, Form/File secrets,
+   mobile layout and navigation.
+2. Merge, then prepare and publish 2.0.0 through the release pipeline. Do not reset
+   or modify the hosted installation as part of this implementation.
+
+Verification boundaries: GitHub payloads and archive responses are controlled in
+the connected PR harness; webhook dispatch has separate integration coverage.
+Backup bytes use a local storage adapter, with cloud transport covered separately.
+These tests do not claim a live GitHub installation or hosted deployment run.
+
+### Current verification checkpoint
+
+At `ed6050e`, `TOWBAR_TEST_DATABASE_URL=... pnpm verify` passed docs, formatting,
+lint, typechecks, all standard tests and builds. The API suite ran 228 tests
+against the disposable PostgreSQL database with zero skips. Docker/Temporal
+proof remains the explicit opt-in lifecycle evidence below; the default gate
+still contains unrelated environment-gated skips.
+
+The resource operation audit confirmed instance-scoped backup/restore selection
+in `resource-operations/service.ts`, execution-time ownership checks in
+`resource-operations/execution.ts`, and exact instance labels in the remote
+backup/restore scripts. This code review is not archive import execution proof.
+
+### Onboarding browser verification
+
+The local fixture-backed browser verified repository discovery, connecting only
+staging from `develop`, changing its branch to `main`, disconnect confirmation,
+disconnected state and preview disabling, reconnect confirmation, and sync detail
+navigation. The sync detail breadcrumb now leads to `/sync-history` instead of
+the obsolete `?section=info` route. Fixture sync records are readable by ID and
+scoped to their source; all 25 fixture tests, web typecheck and targeted lint pass.
+This is UI/fixture evidence, not proof of real GitHub fetch or worker execution.
+
+### Declared-secret editor browser verification
+
+For a newly connected staging app, the browser opened File mode with an unset
+`NPM_TOKEN`, saved an intentionally empty string, reopened bulk reveal, and
+rejected replacing the declared key with an undeclared key while retaining the
+draft. A corrected file edit survived switching to Form and saved successfully.
+Fixture API readback verified the saved staging value and that the production
+instance's key remained unset. App/resource breadcrumbs now use the corresponding
+source inventory page paths. This verifies editor behavior against fixture
+bindings; real secret reconciliation and deployment admission still require their
+API/database and workflow checks.
+
+### Worker self-deployment identity audit
+
+The full API suite passed against the isolated PostgreSQL database: 228 tests,
+zero skips. Auditing execution found the worker still compared `TOWBAR_APP_ID`
+(the runtime instance identity) with the logical manifest app ID when deciding
+whether to defer cleanup of its own container. It now uses the deployer's runtime
+identity function. A regression covers persistent self-deployment, staging
+siblings, preview identity, and a worker without a runtime ID. Worker typecheck
+and lint pass; its suite reports 29 passed and two opt-in integration tests skipped.
+A real self-deployment remains part of workflow verification, not proven by this
+identity-selection test.
+
+### Real resource deployer lifecycle
+
+`tools/e2e/resource-lifecycle.mjs` passed against a disposable Ubuntu target with
+non-root SSH and a separate nested Docker daemon. It ran the production deployer
+through two same-logical-ID Redis instances, independent data writes, a staging
+redeployment, and a staging candidate that failed its health check. Assertions
+verified both data sets survived, production's container stayed unchanged, the
+old staging container was removed after successful promotion, and failure
+restored the retained staging runtime without leaving a failed candidate.
+The target and temporary credentials were removed after the run. Configuration,
+secrets and release commit callbacks are supplied by this runner; API/database
+admission and Temporal execution are still separate outstanding checks.
+
+The database-backed mode also passed against the isolated test PostgreSQL
+instance. It seeds environment mappings and encrypted secrets, resolves execution
+context through production API services, and commits actual release transactions.
+Assertions verified two current releases matching the running containers, one
+previous release, three successful deployments with secret revision snapshots,
+and no release for the unhealthy candidate. The runner removes its workspace
+rows and target afterward. HTTP admission and Temporal delivery are not exercised;
+the failed attempt stays at checking_health until cleanup because workflow
+failure handling is outside this direct-service harness.
+
+### Temporal resource execution
+
+The resource lifecycle passed with the production deployment workflow and
+activities on a disposable local Temporal server. Activities called the real
+signed internal HTTP API, which resolved encrypted secrets and committed release
+transactions in the isolated PostgreSQL database. Three workflows completed;
+the unhealthy candidate produced a failed workflow and terminal failed database
+state while preserving the previous runtime. All four histories replayed
+successfully. The worker, API listener, workspace rows and Docker target were
+cleaned up. Requests remain seeded directly: user-facing admission and server
+queue coordination are not proven by this execution test.
+
+### Resource admission and server coordinator
+
+The Temporal resource lifecycle now uses `requestAppDeployment` instead of
+inserting deployment rows. With seeded successful sync snapshots and server
+readiness, it passed production/staging admission, idempotent request replay,
+real server-coordinator delivery, signed worker API calls, release commits,
+failed-candidate recovery and workflow replay. Each run uses its own Temporal
+namespace. API typecheck and scoped lint pass. API shutdown now closes its cached
+Temporal client as well as PostgreSQL; test cleanup also closes that connection.
+This does not prove public request authentication or GitHub synchronization,
+because the runner calls admission directly and seeds the source snapshots.
+
+### Full gate after admission integration
+
+`pnpm verify` passed at `08aaadb`, including docs, formatting, lint, typecheck,
+tests and builds. Default test execution still skips opt-in integration suites:
+API reported 137 passed/11 skipped, deployer 122 passed/2 skipped, worker
+29 passed/2 skipped. These skips do not replace the separately recorded real
+PostgreSQL, Docker and Temporal runs. The subsequent README update documents v2
+file paths, environment mappings, required-secret setup and repository examples;
+docs checks and formatting pass after that change. Screenshots still need a v2
+refresh.
+
+### Linux non-root vulnerability scanning
+
+`node tools/e2e/trivy-lifecycle.mjs` passed on the disposable Ubuntu target over
+SSH as `deploy`. The production Trivy script scanned Alpine successfully with
+its sandbox restrictions. The previous private-directory mount failed with
+permission denied under the same Linux identity and restrictions, confirming
+the archive-only mount fixes the non-root regression. Successful scans and both
+permission/missing-image failures removed temporary archives. The Docker target
+and nested scanner cache were removed afterward. This supplies actual Linux
+scanner evidence rather than counting the default opt-in skip as a pass; scan
+scheduling and findings presentation are outside this runner.
+
+### Application Docker build and runtime isolation
+
+`node tools/e2e/app-lifecycle.mjs` passed using the production deployer over SSH
+against the isolated Linux target. It built a Python HTTP application using a
+BuildKit secret mount and started production, staging and preview runtime IDs
+for the same logical app. HTTP assertions verified independent runtime values,
+staging replacement at a new immutable source revision, and preservation of
+production and the previous preview after an unhealthy preview candidate.
+Only the three retained containers remained; the target was removed afterward.
+GitHub archive responses and release commits are simulated in this runner.
+It does not establish public TLS, real GitHub authentication, API admission for
+apps, or PR lifecycle reconciliation and cleanup.
+
+### Preview cleanup failure reporting
+
+Cleanup previously ignored every Docker container/image removal error, allowing
+a later routing reload to mark cleanup successful with workloads still present.
+The script now lists existing objects, skips already absent objects for retries,
+and propagates inventory/removal failures to the worker's existing cleanup
+failure handling. Executable shell regressions reproduced false success before
+the fix and now pass for container, image and daemon failures plus absent/present
+objects. All 18 related tests, deployer typecheck and scoped lint pass. The tests
+simulate Docker and routing commands; full PR cleanup against a prepared public
+server remains unproven.
+
+Preview cleanup now also discovers containers and images by the preview runtime
+label, covering uncommitted candidates absent from release records. Containers
+are removed before images; image IDs include untagged leftovers. The label uses
+the unique preview runtime ID, not the logical app ID. The new executable-shell
+regression failed before the change and now passes with the other 18 related
+tests. Scoped lint also passes after fixing import ordering and documenting the
+test-only PATH shim. Full remote routing cleanup remains a separate requirement.
+
+### Self-contained starter application
+
+The repository examples now include a dependency-free Node HTTP app, Dockerfile
+and Docker ignore rules. The Hello app declaration watches its actual source
+file and no longer requires an unused database secret. The getting-started guide
+uses these files, control-plane branch mappings and YAML-declared secret keys.
+The Docker image built and served `/` and `/health` as a non-root user; its test
+container/image were removed. The example parser test passed for production and
+staging, and published example synchronization plus all docs checks passed.
+
+### Branch-edit validation UX
+
+A browser check rejected an unavailable branch while retaining staging's develop
+mapping and the edit draft. Branch-save failures now remain inline beside the
+form and clear when the branch changes or another mapping is opened. Rendered
+verification used the refreshed local web build; the running fixture retained
+its older generic error payload. The updated fixture response matches the API's
+structured error shape, and its regression verifies `Branch was not found`.
+All 23 fixture API tests, web typecheck, scoped lint and web build passed.
+
+### Cleanup attempt guards and CI database verification
+
+Preview cleanup results now require the attempt number returned by cleanup
+context. The database update accepts only the same attempt while the preview is
+still deleting; rejected callbacks cannot supersede release records or publish
+cleanup notifications. The worker includes the attempt in both result paths.
+The PostgreSQL regression exercises a healthy preview, an older attempt, an
+accepted failure, and a late success after that failure.
+
+CI at 4372d9d exposed a historical migration test applying the full v2 schema to
+populated 1.x rows. That test now stops at its workspace-cleanup migration. A
+separate fresh-install test applies all migrations twice and checks the required
+v2 columns. This does not add support for upgrading populated 1.x installations.
+
+Validation: API/worker typecheck and lint passed; the environment integration
+suite passed 14 tests. Repository `pnpm test` with the dedicated PostgreSQL URL
+passed all 11 tasks, including 228 API tests without skips. Optional native Docker
+tests remain separate from this gate. Full PR lifecycle and screenshot work
+listed above are still outstanding.
+
+### Real preview cleanup and Caddy reload
+
+The disposable Linux target now has an optional real systemd mode. The preview
+cleanup lifecycle runner creates production, preview and orphan candidate
+containers plus local Caddy HTTP routes, then invokes production cleanup over
+non-root SSH. It verified removal of preview containers/images and the route,
+production availability, and idempotent repetition. Real `systemctl reload
+caddy` succeeds. The target and nested Docker volumes were removed afterward.
+This closes the remote-cleanup/service-reload gap; PR webhook/admission and
+public DNS/TLS coverage remain separate requirements. Server preparation itself
+is not exercised by this target's preinstalled services.
+
+### Environment mapping screenshots
+
+Captured and visually inspected the fixture-backed Source Environments page in
+light and dark themes at 2x resolution (2176 by 676). The captures retain 32 CSS
+pixels of horizontal content padding. The source guide now shows production/main
+and staging/develop mappings and describes editing branches in the control plane.
+The rendered review also exposed a neutral Synced table badge; the shared badge
+now treats synced as a success state, matching the source header. Documentation
+checks passed for all 180 pages and shared UI lint passed. These are fixture UI
+captures, not evidence of GitHub or hosted deployment behavior. Other screenshots
+and the full PR lifecycle audit remain outstanding.
+
+### Persistent app admission and worker execution
+
+The app lifecycle runner now has a PostgreSQL/Temporal mode using the shared
+resource harness. It exercises real admission and idempotent request replay,
+server coordinator delivery, signed internal API calls, encrypted build/runtime
+secret resolution, source archive builds and database release commits. Production
+and staging deploy revision A; staging replaces it with revision B. An unhealthy
+staging candidate fails without replacing the healthy release or changing
+production. Current release records match the running containers. Three workflows
+completed and one failed, and all four histories replayed successfully.
+
+GitHub installation token and archive responses are controlled test responses;
+all other external fetches are rejected. Source sync state and server readiness
+are seeded. This closes persistent app API-to-worker execution coverage but does
+not prove PR reconciliation, browser authentication or public TLS. The worker,
+API listener, test rows and Docker target were cleaned up after the run.
+
+The original deployer-only app mode also passed after the shared harness changes,
+including production/staging/preview isolation and failed preview-candidate
+recovery. Both runs removed their disposable Docker targets. The dedicated
+Temporal development server was stopped after the integrated run.
+
+### Core documentation screenshot refresh
+
+Refreshed light/dark fixture captures for the overview (also used by README),
+Sources inventory, app detail and resource detail. App/resource captures include
+production/staging selection. Images retain surrounding padding and 2x resolution;
+all affected documentation dimensions and captions match the new assets. The
+resource feature now uses its detail view because the inventory's horizontally
+scrolling table cannot show every column inside its fixed content width. No
+screenshot-only layout changes were applied. Documentation checks pass for all
+180 pages. These screenshots demonstrate fixture UI, not hosted deployment.
+
+### Local HTTPS lifecycle verification
+
+The isolated systemd target now supports loopback HTTPS with Caddy's local CA.
+The origin curl check and Node hostname check retain certificate validation;
+trust is scoped to the runner process and removed with the disposable target.
+No host trust-store changes or public ACME requests are involved.
+
+`TOWBAR_TEST_HTTPS=1 node tools/e2e/app-lifecycle.mjs` passed with real app builds,
+SSH, Caddy routing and HTTPS reads. Production retained revision A, staging
+served revision B, and a failed preview candidate retained the healthy preview
+revision A. The target was removed on completion. GitHub token/archive responses
+and release commits remain simulated in this run. Full PR reconciliation through
+API admission, Temporal delivery and cleanup is still a separate unproven gate.
+
+The combined HTTPS + PostgreSQL + Temporal app run also passed: three completed
+deployments, one intentional failed staging candidate, matching runtime/database
+releases and four replayed workflow histories. Production remained on A and
+staging on healthy B through the failure. The dedicated Temporal server and
+Docker target were stopped afterward. This mode seeds source snapshots and
+server readiness; it does not cover PR event reconciliation.
+
+### Connected PR reconciliation lifecycle
+
+The opt-in `TOWBAR_TEST_PR=1 TOWBAR_TEST_HTTPS=1` app lifecycle passed against
+rebuilt API/worker output, a dedicated Temporal server and disposable PostgreSQL
+workspace/SSH target. Controlled GitHub PR and immutable blob/archive responses
+fed the production reconciliation service. Two PR revisions deployed through
+admission, server coordination, signed internal API calls, Docker and real HTTPS.
+Duplicate reconciliation reused deployment IDs. Closing the PR removed its
+containers, images and Caddy file; repeated closure was harmless. Production A
+and staging B stayed available, and persistent app configuration and secret
+key declarations remained unchanged. Preview builds used separate preview values.
+All six deployment workflow histories replayed successfully.
+
+The app negative case now returns HTTP 503 at `/unhealthy`, replacing an invalid
+command-health configuration that previously failed app health validation. The
+complete rerun passed with this actual HTTP failure and retained the healthy
+staging release. Temporary Docker workloads were removed and the dedicated
+Temporal server stopped afterward.
+
+This closes the combined reconciliation/deployment/cleanup runtime gap. The test
+calls the reconciliation service directly, with GitHub transport simulated;
+webhook authentication and event-workflow dispatch still rely on their separate
+coverage. Server preparation and source synchronization are seeded prerequisites,
+not runtime assertions in this harness. Final scope audit remains outstanding.
+
+The final generated API response/catalogue check (`pnpm docs:api:check`) also
+passed at the `ed6050e` implementation checkpoint.
+
+### Backup/restore runtime result and Redis fix
+
+The isolated backup lifecycle exposed a real Redis restore defect: managed Redis
+starts with AOF enabled, so copying an RDB and starting the candidate with that
+configuration produced an empty database even though health checks passed.
+The restore now loads the snapshot with AOF disabled, enables AOF and waits for
+its rewrite to complete before promoting the candidate volume.
+
+`TOWBAR_TEST_BACKUP=1 node tools/e2e/resource-lifecycle.mjs` now passes real Redis
+export, SSH archive transfer, corrupted-download checksum rejection, candidate
+import and promotion. Staging recovers its backed-up value; production retains
+its own value. Previous volume retention, instance ownership and removal of
+candidate containers are asserted. The temporary target was removed afterward.
+The deployer suite passed 128 tests, with its two explicit Docker opt-ins skipped;
+the lifecycle run is separate actual Docker evidence.
+
+The adapter keeps actual backup bytes/metadata in memory instead of calling a
+cloud provider. Cloud SDK transport, operation API admission and database result
+persistence remain separate coverage; this result closes the archive/import
+runtime gap, not those boundaries.
+
+### Current-fixture secrets navigation review
+
+Restarted the local fixture API from current code before the rendered check;
+the previous process still held older connected-source configurations. A new
+fixture connection mapped production/main and staging/develop using the current
+parser-backed manifest. In the staging app's Secrets page, the UI showed the
+correct `Staging` / `Staging previews` scopes and declared `NPM_TOKEN` build key.
+The browser saved a fixture-only value through File mode, switched to production
+and verified that value was absent, then used Back to restore the staging route
+and revealed saved value. File mode has the accessible editor name
+`Secrets .env file`; the unprepared server kept Deploy disabled.
+
+These are fixture-backed UI results, separate from real PostgreSQL secret and
+runtime deployment tests. The fixture API remains available locally on 4423
+with the new sample connection; no hosted source or secrets were changed.
+
+Remote CI passed for implementation commit `85487ab`: verify, docs, compose,
+monitoring-agent and all CodeQL analyses. Mintlify deployment/link checks passed;
+its optional spelling check was skipped.
+
+### Sync retry completion race
+
+The final sync audit found that a delayed retry could overwrite `succeeded` with
+`running` after another worker completed the same sync. The start update now
+atomically excludes successful jobs and returns the completed record when no row
+is updated, without fetching or reconciling again.
+
+A PostgreSQL regression locks the sync row, observes the retry waiting on its
+status update, marks the job complete in the winning transaction, then releases
+the lock. It requires the retry to return success without a repository fetch and
+checks the persisted status. All 229 API tests passed against PostgreSQL without
+skips. After extracting the shared snapshot fixture to keep the test file within
+its lint limit, all 15 environment integration tests, API lint and typecheck
+passed. This correction needs current-head CI before review readiness.
+
+### Uncertain sync enqueue response
+
+The enqueue-error fallback now updates only jobs still queued. A lost Temporal
+response must not replace a running or successful sync with failed. The database
+retry regression now covers all three states: an untouched queued job records the
+enqueue failure, while running/successful jobs retain their worker-owned status.
+All 15 environment integration tests, API lint and typecheck pass after the
+change. The enqueue function is injectable for this controlled transport-failure
+test; production continues to use `enqueueSourceSync` by default.
+
+### Mobile resource environment review
+
+At a 390px mobile viewport, switching the current fixture resource from staging
+to production and using browser Back preserved the Secrets section and restored
+the staging instance route. Document width matched the viewport. The review found
+that declared keys squeezed the value field into half the card, so declared
+secret rows now stack key/value below the small breakpoint while retaining the
+desktop columns. The rendered value field uses the full mobile card width after
+the fix. Web lint/typecheck and diff whitespace checks pass. This is local
+fixture/browser evidence; no hosted state was changed.
+
+### Final implementation verification checkpoint
+
+`TOWBAR_TEST_DATABASE_URL=... pnpm verify` passed at `81fcbb0`, including all
+229 API tests against PostgreSQL, documentation, formatting, lint, typechecks and
+builds. Opt-in runtime coverage remains the separate evidence recorded above.
+The release notes now include Redis AOF restore recovery, sync retry/enqueue
+races and mobile declared-secret layout. Light/dark File-mode screenshots were
+recaptured from the current staging fixture, with matching intrinsic dimensions
+and horizontal padding. They show a synthetic value, not a real credential.
+
+### Final Source inventory and monitoring review
+
+The current fixture Source Apps and Resources permalinks both render one logical
+entity group with separate production and staging rows. Resource rows link to
+different instance UUIDs, display main/develop beneath their environment names,
+and retain the shared logical-entity count in the sidebar. The desktop capture
+was visually inspected after the route assertions passed.
+
+The monitoring diff retains instance UUID identity while exposing environment
+names in entity search and alert/incident labels. Its PostgreSQL regression
+creates same-name sibling instances, searches staging and verifies the returned
+instance and alert/incident environment labels. Deployment comparison responses
+include the recorded target environment, and deployment chips display that name
+with a Preview suffix where applicable.
+
+At implementation head `3d81a91`, the complete remote CI run passed: verify
+(including generated contracts, PostgreSQL tests and builds), CodeQL, docs,
+Compose and monitoring-agent. The subsequent checklist-only commit will receive
+its own final-head checks before merge.

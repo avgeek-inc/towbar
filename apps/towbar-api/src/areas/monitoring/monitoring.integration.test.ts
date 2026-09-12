@@ -1,3 +1,5 @@
+import { testDeploymentEnvironment } from "../sources/instance-test-helper.js";
+import { testInstanceLinks } from "../sources/instance-test-helper.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -65,6 +67,7 @@ void test(
         name: "Monitoring test",
       });
       await db.insert(servers).values({
+        slug: `server-${serverId}`,
         id: serverId,
         workspaceId,
         canonicalIp: "192.0.2.201",
@@ -335,10 +338,9 @@ void test(
             githubInstallationId: installation!.id,
             repositoryOwner: "example",
             repositoryName: "metrics",
-            branch: "main",
           });
           const config = normalizeDeploymentManifest({
-            version: 1,
+            version: 2,
             apps: [
               {
                 id: "app",
@@ -352,6 +354,7 @@ void test(
             ],
           }).apps[0]!;
           await db.insert(apps).values({
+            ...(await testInstanceLinks(sourceId, "app")),
             id: appId,
             workspaceId,
             sourceId,
@@ -381,6 +384,13 @@ void test(
           const deploymentIds = [randomUUID(), randomUUID(), randomUUID()];
           for (const [i, id] of deploymentIds.entries())
             await db.insert(deployments).values({
+              targetEnvironment: await testDeploymentEnvironment(appId),
+              requiredSecrets: {
+                build: [],
+                runtime: [],
+                preDeploy: [],
+                postDeploy: [],
+              },
               id,
               workspaceId,
               sourceId,

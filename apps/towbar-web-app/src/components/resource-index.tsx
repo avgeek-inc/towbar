@@ -1,4 +1,6 @@
 "use client";
+import { useState } from "react";
+import { SourceCreateModal } from "./source-create";
 import {
   InventorySidebar,
   useInventoryQuery,
@@ -8,8 +10,8 @@ import {
   Add01Icon,
   DashboardCircleIcon,
   DatabaseIcon,
-  GitBranchIcon,
   GithubIcon,
+  GitBranchIcon,
   ServerStack01Icon,
 } from "@hugeicons/core-free-icons";
 
@@ -18,7 +20,7 @@ import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
 import type { App, Resource, Source } from "@workspace/towbar-web-client";
-import { ButtonLink } from "@workspace/web-design-system/buttons/button";
+import { Button } from "@workspace/web-design-system/buttons/button";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
@@ -33,6 +35,7 @@ import { LastSyncedTime } from "./last-synced-time";
 
 export function SourceIndex() {
   const router = useRouter();
+  const [addingSource, setAddingSource] = useState(false);
   const filtered = useInventoryQuery("sources").includes("?");
   const query = useApiQuery<{ sources: Source[]; counts: InventoryCounts }>(
     useInventoryQuery("sources"),
@@ -124,21 +127,6 @@ export function SourceIndex() {
       },
     },
     {
-      key: "branch",
-      header: "Prod Branch",
-      cell: (source) => (
-        <span className="inline-flex items-center gap-2">
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-4 shrink-0 text-muted-foreground"
-            icon={GitBranchIcon}
-          />
-          {source.branch}
-        </span>
-      ),
-      className: "min-w-32 whitespace-nowrap",
-    },
-    {
       key: "last-synced",
       header: "Last synced",
       cell: (source) => <LastSyncedTime value={source.updatedAt} />,
@@ -155,17 +143,20 @@ export function SourceIndex() {
     <DashboardPage
       icon={GitBranchIcon}
       actions={
-        <ButtonLink href="/sources/new">
+        <Button onPress={() => setAddingSource(true)}>
           <HugeiconsIcon
             aria-hidden="true"
             icon={Add01Icon}
             className="size-4 shrink-0"
           />
           Add source
-        </ButtonLink>
+        </Button>
       }
       title="Sources"
     >
+      {addingSource ? (
+        <SourceCreateModal onClose={() => setAddingSource(false)} />
+      ) : null}
       <InventorySidebar kind="sources" counts={query.data?.counts} />
       {error ? (
         <QueryError message={error} />
@@ -176,14 +167,14 @@ export function SourceIndex() {
           ariaLabel="Sources"
           columns={columns}
           emptyAction={
-            <ButtonLink href="/sources/new">
+            <Button onPress={() => setAddingSource(true)}>
               <HugeiconsIcon
                 aria-hidden="true"
                 icon={Add01Icon}
                 className="size-4 shrink-0"
               />
               Add source
-            </ButtonLink>
+            </Button>
           }
           emptyDescription={
             filtered

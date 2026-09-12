@@ -1,7 +1,8 @@
+import { testInstanceLinks } from "../sources/instance-test-helper.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import {
   normalizeDeploymentManifest,
@@ -12,7 +13,6 @@ import {
   auditEvents,
   deployments,
   githubInstallations,
-  managedSecrets,
   releases,
   servers,
   sources,
@@ -46,12 +46,8 @@ void test(
     });
     const { getTowbarDatabase, closeDatabase } =
       await import("../../infrastructure/database.js");
-    const {
-      mutateSecret,
-      readSecretValues,
-      readSecretMetadata,
-      resolveServerCredentials,
-    } = await import("./store.js");
+    const { mutateSecret, readSecretMetadata, resolveServerCredentials } =
+      await import("./store.js");
     const { listEnvironmentSecrets } = await import("../apps/secrets.js");
     const { environmentSecretRoutes } =
       await import("../../routes/v1/core/environment-secrets.js");
@@ -61,10 +57,7 @@ void test(
       getNotificationProviderConfiguration,
       notificationProviderAvailability,
     } = await import("../notifications/configuration.js");
-    const { applyDeployableAction } =
-      await import("../sources/materialization.js");
-    const { createServer, updateServer } =
-      await import("../servers/lifecycle.js");
+    const { createServer } = await import("../servers/lifecycle.js");
     const { listServerApps } = await import("../servers/service.js");
     const { HttpError } = await import("../../http/errors.js");
     const db = getTowbarDatabase();
@@ -75,7 +68,7 @@ void test(
       serverId = randomUUID(),
       appId = randomUUID();
     const manifest = normalizeDeploymentManifest({
-      version: 1,
+      version: 2,
       apps: [
         {
           id: "app",
@@ -84,6 +77,13 @@ void test(
           dockerfile: "Dockerfile",
           context: ".",
           container: { port: 3000 },
+          domains: { primary: "app.example.com" },
+          tls: { mode: "cloudflare-dns" },
+          preview: {
+            enabled: true,
+            domain: "preview.example.com",
+            ttlHours: 24,
+          },
           hooks: {
             preDeploy: { command: ["echo", "pre"] },
             postDeploy: { command: ["echo", "post"] },
@@ -181,17 +181,36 @@ void test(
         githubInstallationId: installation!.id,
         repositoryOwner: "test",
         repositoryName: "test",
-        branch: "main",
       });
       await db.insert(servers).values({
+        slug: `server-${serverId}`,
         id: serverId,
         workspaceId,
         canonicalIp: serverConfig.ip,
         config: serverConfig,
         configDigest: "digest",
       });
+      const { createSecretTestEnvironment } =
+        await import("./execution-tests.js");
+      const environment = await createSecretTestEnvironment(db, sourceId);
       await db.insert(apps).values({
         id: appId,
+        ...(await testInstanceLinks(sourceId, "app")),
+        sourceEnvironmentId: environment!.id,
+        requiredSecrets: {
+          build: ["BUILD", "PREVIEW_ONLY"],
+          runtime: [
+            "TOKEN",
+            "MULTILINE",
+            "EMPTY",
+            "COMMON",
+            "GLOBAL_ONLY",
+            "PREVIEW_ONLY",
+            "GLOBAL_PREVIEW",
+          ],
+          preDeploy: ["MIGRATION", "PREVIEW_ONLY", "SOURCE_PREVIEW"],
+          postDeploy: ["PREVIEW_ONLY"],
+        },
         workspaceId,
         sourceId,
         serverId,
@@ -214,10 +233,10 @@ void test(
             githubInstallationId: installation!.id,
             repositoryOwner: "test",
             repositoryName: "second",
-            branch: "main",
           });
           await db.insert(apps).values({
             id: secondAppId,
+            ...(await testInstanceLinks(secondSourceId, "app")),
             workspaceId,
             sourceId: secondSourceId,
             serverId,
@@ -235,7 +254,7 @@ void test(
             [sourceId, secondSourceId].sort(),
           );
           await assert.rejects(
-            createServer({ config: serverConfig, workspaceId }),
+            createServer({ config: serverConfig, workspaceId, slug: "host" }),
             /already configured/u,
           );
           await db.delete(sources).where(eq(sources.id, secondSourceId));
@@ -252,6 +271,36 @@ void test(
             resolveServerCredentials({ workspaceId, serverId }),
             /Server → Settings → Configuration/u,
           );
+        },
+      );
+      await t.test(
+        "secret environments reflect connected mappings without a production fallback",
+        async () => {
+          const connected = await api.request("/settings/secrets");
+          assert.equal(connected.status, 200);
+          const connectedBody = (await connected.json()) as {
+            environments: string[];
+          };
+          assert.deepEqual(connectedBody.environments, [
+            "production",
+            "preview:production",
+          ]);
+          const unknown = await api.request(
+            "/settings/secrets?environment=staging",
+          );
+          assert.equal(unknown.status, 422);
+          requestWorkspace = otherWorkspaceId;
+          try {
+            const empty = await api.request("/settings/secrets");
+            assert.equal(empty.status, 200);
+            assert.deepEqual(await empty.json(), {
+              environments: [],
+              bindings: [],
+              canManageSecrets: true,
+            });
+          } finally {
+            requestWorkspace = workspaceId;
+          }
         },
       );
       const { testManagedSecretInheritance } =
@@ -444,152 +493,18 @@ void test(
           );
         },
       );
-      await t.test(
-        "archival and sync preserve secrets; tampering fails closed; deletion cascades",
-        async () => {
-          const syncInput = {
-            commitSha: "7654321",
-            sourceId,
-            workspaceId,
-            deploymentDigests: new Map([
-              [
-                appConfig.id,
-                { deploymentDigest: "new-digest", sourceInputDigest: null },
-              ],
-            ]),
-            serverIds: new Map([[serverConfig.ip, serverId]]),
-          };
-          await db.transaction(async (transaction) => {
-            await applyDeployableAction(transaction, {
-              ...syncInput,
-              action: {
-                action: "archive",
-                id: appConfig.id,
-                current: {
-                  id: appId,
-                  config: appConfig,
-                  configDigest: "digest",
-                  identity: appConfig.id,
-                  archivedAt: null,
-                },
-              },
-            });
-          });
-          const retained = await readSecretValues(slot);
-          assert.equal(retained.values.MULTILINE, "line one\nline two");
-          await db.transaction(async (transaction) => {
-            await applyDeployableAction(transaction, {
-              ...syncInput,
-              action: {
-                action: "restore",
-                id: appConfig.id,
-                desired: { ...appConfig, name: "Renamed" },
-              },
-            });
-          });
-          assert.equal(
-            (
-              await updateServer({
-                config: { ...serverConfig, buildConcurrency: 2 },
-                serverId,
-                workspaceId,
-              })
-            ).id,
-            serverId,
-          );
-          assert.match(
-            (
-              await db
-                .select({ deploymentDigest: apps.deploymentDigest })
-                .from(apps)
-                .where(eq(apps.id, appId))
-                .limit(1)
-            )[0]!.deploymentDigest!,
-            /^[a-f0-9]{64}$/u,
-          );
-          const newServer = await createServer({
-            config: { ...serverConfig, ip: "192.0.2.11" },
-            workspaceId,
-          });
-          assert.equal(
-            (
-              await readSecretMetadata({
-                type: "server",
-                id: newServer.id,
-                workspaceId,
-                environment: "production",
-                stage: "credentials",
-              })
-            ).revision,
-            null,
-          );
-          assert.equal(
-            (await readSecretValues(slot)).revision,
-            retained.revision,
-          );
-          const [row] = await db
-            .select()
-            .from(managedSecrets)
-            .where(
-              and(
-                eq(managedSecrets.owner, `app:${appId}`),
-                eq(managedSecrets.stage, "deployment"),
-                eq(managedSecrets.environment, "production"),
-              ),
-            );
-          assert(row);
-          // Database ownership cannot be reassigned across a workspace even by a direct write.
-          await assert.rejects(
-            db
-              .update(managedSecrets)
-              .set({ workspaceId: otherWorkspaceId })
-              .where(eq(managedSecrets.id, row.id)),
-          );
-          const [another] = await db
-            .select()
-            .from(managedSecrets)
-            .where(
-              and(
-                eq(managedSecrets.owner, `source:${sourceId}`),
-                eq(managedSecrets.stage, "deployment"),
-              ),
-            );
-          assert(another);
-          await db
-            .update(managedSecrets)
-            .set({ encryptedPayload: another.encryptedPayload })
-            .where(eq(managedSecrets.id, row.id));
-          await assert.rejects(
-            readSecretValues(slot),
-            /could not be unlocked/u,
-          );
-          await db
-            .update(managedSecrets)
-            .set({ encryptedPayload: row.encryptedPayload })
-            .where(eq(managedSecrets.id, row.id));
-          await db
-            .update(managedSecrets)
-            .set({
-              encryptedPayload: {
-                ...row.encryptedPayload,
-                authenticationTag: randomBytes(16).toString("base64url"),
-              },
-            })
-            .where(eq(managedSecrets.id, row.id));
-          await assert.rejects(
-            readSecretValues(slot),
-            /could not be unlocked/u,
-          );
-          const audit = await db
-            .select()
-            .from(auditEvents)
-            .where(eq(auditEvents.workspaceId, workspaceId));
-          assert(!JSON.stringify(audit).includes("shared-value"));
-          assert(!JSON.stringify(audit).includes("test-slack-token"));
-          await db.delete(apps).where(eq(apps.id, appId));
-          assert.equal((await readSecretMetadata(slot)).revision, null);
-        },
-      );
+      const { testSecretLifecycle } = await import("./lifecycle-tests.js");
+      await testSecretLifecycle({
+        t,
+        db,
+        appId,
+        workspaceId,
+        otherWorkspaceId,
+        sourceId,
+        serverId,
+        serverConfig,
+        slot,
+      });
     } finally {
       await db.delete(releases).where(eq(releases.appId, appId));
       await db

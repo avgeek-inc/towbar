@@ -52,20 +52,17 @@ The details vary by workload and configured hooks. Use the operation's actual st
 
 ## Automatic deployments
 
-Apps and resources are manual unless `autoDeploy` is enabled. `autoDeploy: true` treats commits as deployment inputs. Apps can narrow their inputs with named groups and repository globs:
+Apps and resources are manual unless `autoDeploy` is enabled. `autoDeploy: true` treats commits as deployment inputs. Apps can narrow their inputs with repository globs:
 
-```yaml
-deploymentInputs:
-  shared:
+```yaml title=".towbar/apps/web.app.yml"
+id: web
+autoDeploy:
+  inputs:
     - package.json
     - pnpm-lock.yaml
-apps:
-  - id: web
-    # Add the remaining app fields from your manifest.
-    autoDeploy:
-      inputs:
-        - $shared
-        - apps/web/**
+    - apps/web/**
+environments:
+  production: {}
 ```
 
 This is a fragment, not a complete manifest. Towbar compares selected file identities and configuration to decide whether to queue work. An incomplete Git tree is treated as changed. Include every file that can affect the built app, including shared libraries and build configuration.

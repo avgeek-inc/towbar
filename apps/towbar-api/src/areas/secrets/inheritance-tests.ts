@@ -106,12 +106,14 @@ export async function testManagedSecretInheritance({
         .where(eq(managedSecrets.owner, `app:${appId}`));
       assert(stored);
       assert(!JSON.stringify(stored).includes("local-value"));
-      const deleted = await mutateSecret(
-        slot,
-        { expectedRevision: saved.revision, set: {}, delete: ["TOKEN"] },
-        actorUserId,
+      await assert.rejects(
+        mutateSecret(
+          slot,
+          { expectedRevision: saved.revision, set: {}, delete: ["TOKEN"] },
+          actorUserId,
+        ),
+        /declared|required|managed/i,
       );
-      assert.notEqual(deleted.revision, saved.revision);
       assert.equal(
         (
           await resolveEnvironmentStage({
@@ -122,7 +124,7 @@ export async function testManagedSecretInheritance({
             stage: "deployment",
           })
         ).values.TOKEN,
-        undefined,
+        "local-value",
       );
       const shared = await readSecretMetadata(sharedSlot);
       await mutateSecret(
@@ -144,7 +146,7 @@ export async function testManagedSecretInheritance({
             stage: "deployment",
           })
         ).values.TOKEN,
-        undefined,
+        "local-value",
       );
       await mutateSecret(
         sharedSlot,
@@ -158,7 +160,7 @@ export async function testManagedSecretInheritance({
       await mutateSecret(
         slot,
         {
-          expectedRevision: deleted.revision,
+          expectedRevision: saved.revision,
           set: {
             TOKEN: "{{source.TOKEN}}",
             COMMON: "{{source.COMMON}}",
@@ -207,7 +209,7 @@ export async function testManagedSecretInheritance({
       await mutateSecret(
         {
           ...workspaceOwner,
-          environment: "preview",
+          environment: "preview:production",
           stage: "deployment",
         },
         {
@@ -220,7 +222,7 @@ export async function testManagedSecretInheritance({
       await mutateSecret(
         {
           ...sourceOwner,
-          environment: "preview",
+          environment: "preview:production",
           stage: "pre_deploy",
         },
         {
@@ -234,7 +236,7 @@ export async function testManagedSecretInheritance({
         workspaceId,
         sourceId,
         appId,
-        environment: "preview",
+        environment: "preview:production",
         stage: "deployment",
       });
       assert.deepEqual(preview.values, {});
@@ -244,7 +246,7 @@ export async function testManagedSecretInheritance({
             workspaceId,
             sourceId,
             appId,
-            environment: "preview",
+            environment: "preview:production",
             stage: "pre_deploy",
           })
         ).values,

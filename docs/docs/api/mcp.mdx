@@ -142,7 +142,7 @@ Keep the same idempotency key if retrying an uncertain response. The tool return
 
 | Task                      | Tools                                                                                                         |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Review repository changes | `towbar_source_inspect` → `towbar_source_preview_sync` → `towbar_source_sync` → `towbar_source_sync_inspect`  |
+| Review repository changes | `towbar_source_inspect` → `towbar_source_sync` → `towbar_source_sync_inspect`                                 |
 | Roll back a release       | `towbar_workload_inspect` → `towbar_workload_rollback` → `towbar_deployment_inspect`                          |
 | Diagnose server readiness | `towbar_server_inspect` combines settings, capacity, checks, preparation, host trust, and credential metadata |
 | Update secrets            | `towbar_secrets_inspect` → `towbar_secrets_update`, carrying the current revision                             |

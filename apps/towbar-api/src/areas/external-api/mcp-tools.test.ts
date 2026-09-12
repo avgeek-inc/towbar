@@ -206,6 +206,50 @@ void test("secret scopes are explicit and revision/conflicting-key checks are pr
       z.ZodError,
     );
 });
+void test("source tools use v2 discovery, branch mappings and environment sync routes", async () => {
+  const h = harness();
+  const repository = {
+    githubInstallationId: uuid,
+    repositoryOwner: "example",
+    repositoryName: "app",
+  };
+  await get("source_discover").run(
+    { ...repository, discoveryBranch: "main" },
+    h.context,
+  );
+  assert.equal(h.calls.at(-1)!.route, "/sources/discover");
+  await get("source_connect").run(
+    {
+      ...repository,
+      environments: [
+        { environment: "production", branch: "main" },
+        { environment: "staging", branch: "develop" },
+      ],
+    },
+    h.context,
+  );
+  assert.equal(h.calls.at(-1)!.route, "/sources/connect");
+  await get("source_sync").run({ sourceId: uuid }, h.context);
+  assert.equal(h.calls.at(-1)!.route, "/sources/:sourceId/environments/syncs");
+  await get("source_sync").run(
+    { sourceId: uuid, environmentId: otherUuid },
+    h.context,
+  );
+  assert.equal(
+    h.calls.at(-1)!.route,
+    "/sources/:sourceId/environments/:environmentId/syncs",
+  );
+  assert.deepEqual(h.calls.at(-1)!.path, {
+    sourceId: uuid,
+    environmentId: otherUuid,
+  });
+  assert(
+    !operations.some((op) => op.path === "/sources/:sourceId/actions/sync"),
+  );
+  assert(
+    !operations.some((op) => op.path === "/sources" && op.method === "POST"),
+  );
+});
 void test("server inspection, scoped inventories and previews use valid bounded read recipes", async () => {
   const h = harness();
   await get("server_inspect").run({ serverId: uuid }, h.context);

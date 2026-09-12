@@ -159,10 +159,10 @@ export function ScoutRuleEditor({
                   />
                   {draft.deployableId ? (
                     <ScoutSelect
-                      label="Environment"
+                      label="Deployment kind"
                       value={draft.environment}
                       options={[
-                        { id: "production", label: "Production" },
+                        { id: "production", label: "Persistent" },
                         { id: "preview", label: "Previews" },
                       ]}
                       onChange={(environment) =>

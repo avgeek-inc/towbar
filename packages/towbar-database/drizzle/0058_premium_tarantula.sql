@@ -1,0 +1,1 @@
+ALTER TABLE "towbar_apps" ALTER COLUMN "required_secrets" SET NOT NULL;

@@ -7,11 +7,8 @@ export type TowbarUser = {
 };
 
 export type Source = {
-  branch: string;
   createdAt: string;
   id: string;
-  latestCommitSha: string | null;
-  latestManifestDigest: string | null;
   repositoryName: string;
   repositoryOwner: string;
   status: "active" | "archived";
@@ -38,7 +35,16 @@ export type AutoDeployControlResponse = {
   canManageAutoDeploy: boolean;
 };
 
+export type InstanceEnvironment = {
+  id: string;
+  name: string;
+  branch: string;
+  disconnectedAt: string | null;
+};
+
 export type App = {
+  entityId: string | null;
+  environment: InstanceEnvironment | null;
   archivedAt: string | null;
   config: {
     autoDeploy?: boolean;
@@ -93,7 +99,9 @@ export type App = {
 export type AppSecretStage =
   "build" | "deployment" | "pre_deploy" | "post_deploy";
 export type AppSecretBinding = {
-  environment: "production" | "preview";
+  declared?: boolean;
+  missingKeys?: string[];
+  environment: string;
   stage: AppSecretStage;
   keys: string[];
   inheritedKeys: string[];
@@ -113,6 +121,7 @@ export type AppSecretBinding = {
   }>;
 };
 export type AppSecretsResponse = {
+  environments: string[];
   bindings: AppSecretBinding[];
   canManageSecrets: boolean;
 };
@@ -158,6 +167,8 @@ export type NotificationEvent = {
 };
 
 export type Resource = {
+  entityId: string | null;
+  environment: InstanceEnvironment | null;
   archivedAt: string | null;
   config: {
     access?: { sshTunnel: { hostPort: number } };
@@ -223,6 +234,7 @@ export type Resource = {
 };
 
 export type Server = {
+  slug: string;
   scout?: import("@workspace/towbar-core").ServerMonitoringSummary;
   hardware?: import("@workspace/towbar-core").ServerHardware | null;
   archivedAt: string | null;
@@ -402,6 +414,12 @@ export type DeploymentState =
   | "cancelled";
 
 export type Deployment = {
+  targetEnvironment: {
+    id: string;
+    name: string;
+    branch: string;
+    mappingRevision: string;
+  };
   appId: string;
   commitSha: string;
   createdAt: string;
@@ -611,6 +629,8 @@ export type AzureCredentialMetadata = {
 };
 
 export type SourceSync = {
+  environment: { id: string; name: string } | null;
+  mappingRevision: string | null;
   commitSha: string | null;
   createdAt: string;
   finishedAt: string | null;
@@ -640,9 +660,12 @@ export type PaginationMetadata = {
   totalPages: number;
 };
 
-export type DeploymentHistoryItem = Deployment & { deployableName: string };
+export type DeploymentHistoryItem = Deployment & {
+  deployableName: string;
+};
 
 export type DeploymentHistoryPage = {
+  environments: string[];
   deployments: DeploymentHistoryItem[];
   pagination: PaginationMetadata;
 };

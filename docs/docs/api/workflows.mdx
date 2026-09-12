@@ -37,7 +37,7 @@ Read `/apps/{appId}/releases`, then `POST /apps/{appId}/actions/rollback` with a
 
 ## Reconcile a source
 
-Create a source with `POST /sources` using the connected GitHub installation and repository details from `/github/repositories`. After committing your manifest, call `POST /sources/{sourceId}/actions/preview-sync` to inspect changes, then `/actions/sync` to request reconciliation. Read `/sources/{sourceId}/syncs` and the returned sync ID for progress and manifest validation errors.
+Optionally discover declared environments with `POST /sources/discover`, using repository details from `/github/repositories` and the repository default branch as `discoveryBranch`. Discovery is only a suggestion step; connection does not require it. Connect the repository with `POST /sources/connect`, mapping each selected environment to its branch. Initial sync imports configuration without deploying. For later reconciliation, call `POST /sources/{sourceId}/environments/{environmentId}/syncs`, or `/sources/{sourceId}/environments/syncs` for all connected environments. These explicit syncs may trigger eligible auto-deployments. Inspect each queue outcome and read `/sources/{sourceId}/syncs/{syncId}` for completion and validation errors.
 
 Automatic deployment controls can be read or changed at `/sources/{sourceId}/auto-deploy-control`, `/apps/{appId}/auto-deploy-control`, and `/resources/{resourceId}/auto-deploy-control`. Source-level and workload-level controls combine as they do in the UI.
 

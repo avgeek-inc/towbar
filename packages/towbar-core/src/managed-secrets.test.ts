@@ -1,3 +1,4 @@
+import { parseResolvedManifest } from "./manifest-test-helper.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
@@ -7,7 +8,6 @@ import {
   secretReferenceDependencies,
   validateSecretReferences,
 } from "./managed-secrets.js";
-import { parseDeploymentManifest } from "./manifest.js";
 
 void test("write-only mutations preserve unspecified keys, allow empty values, and remove keys without restoring inheritance", () => {
   const shared = { TOKEN: "shared", COMMON: "common" };
@@ -55,8 +55,8 @@ void test("prototype-shaped keys cannot alter object prototypes or silently disa
 });
 void test("manifests reject secret assignments at every former scope", () => {
   const base =
-    "version: 1\napps:\n  - id: demo\n    name: Demo\n    server: 192.0.2.10\n    dockerfile: Dockerfile\n    context: .\n    container:\n      port: 3000\n";
-  assert.doesNotThrow(() => parseDeploymentManifest(base));
+    "version: 2\napps:\n  - id: demo\n    name: Demo\n    server: 192.0.2.10\n    dockerfile: Dockerfile\n    context: .\n    container:\n      port: 3000\n";
+  assert.doesNotThrow(() => parseResolvedManifest(base));
   for (const manifest of [
     `${base}secrets:\n  build: [aws:old]\n`,
     `${base}servers:\n  - ip: 192.0.2.10\n    ssh:\n      username: deploy\n    secrets:\n      login: aws:old\n`,
@@ -64,7 +64,7 @@ void test("manifests reject secret assignments at every former scope", () => {
     `${base}    hooks:\n      preDeploy:\n        command: [node, migrate.js]\n        secrets: aws:old\n`,
     `${base}    preview:\n      enabled: true\n      domain: preview.example.com\n      secrets: {}\n`,
   ])
-    assert.throws(() => parseDeploymentManifest(manifest));
+    assert.throws(() => parseResolvedManifest(manifest));
 });
 
 void test("only explicit references add shared values, including embedded and chained references", () => {

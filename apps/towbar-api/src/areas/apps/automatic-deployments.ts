@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, notInArray } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, notInArray } from "drizzle-orm";
 import {
   evaluateAutoDeployPause,
   isNormalizedResource,
@@ -8,16 +8,19 @@ import {
   apps,
   releases,
   servers,
+  sourceEnvironments,
   sourceSyncs,
   sources,
 } from "@workspace/towbar-database/schema";
 
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { selectAutomaticDeploymentCandidates } from "./automatic-deployment-selection.js";
+import { assertRequiredInstanceSecrets } from "./secrets.js";
+import { HttpError } from "../../http/errors.js";
 import { requestAppDeployment } from "./service.js";
 import { createDeferredAutomaticDeployment } from "../auto-deploy-controls/service.js";
+import { scheduleSourcePreviewReconciliations } from "../previews/reconciliation-scheduler.js";
 import { requestDisabledPreviewCleanups } from "../previews/cleanup.js";
-import { scheduleSourcePreviewReconciliations } from "../previews/service.js";
 
 type SourceSyncAdmission = {
   commitSha: string | null;
@@ -44,6 +47,8 @@ export function sourceSyncDeploymentIdempotencyKey(input: {
 export async function scheduleSourceAutomaticDeployments(syncId: string) {
   const [sync] = await getTowbarDatabase()
     .select({
+      sourceEnvironmentId: sourceSyncs.sourceEnvironmentId,
+      deployAfterSync: sourceSyncs.deployAfterSync,
       commitSha: sourceSyncs.commitSha,
       requestedBy: sourceSyncs.requestedBy,
       sourceId: sourceSyncs.sourceId,
@@ -54,12 +59,18 @@ export async function scheduleSourceAutomaticDeployments(syncId: string) {
     .innerJoin(sources, eq(sources.id, sourceSyncs.sourceId))
     .where(eq(sourceSyncs.id, syncId))
     .limit(1);
-  if (!sync || !isSourceSyncEligibleForAutomaticDeployments(sync)) {
+  if (
+    !sync ||
+    !sync.sourceEnvironmentId ||
+    !sync.deployAfterSync ||
+    !isSourceSyncEligibleForAutomaticDeployments(sync)
+  ) {
     return { deploymentIds: [] };
   }
   const result = await scheduleEligibleAutomaticDeployments({
     commitSha: sync.commitSha,
     sourceId: sync.sourceId,
+    sourceEnvironmentId: sync.sourceEnvironmentId,
     syncId,
     workspaceId: sync.workspaceId,
   });
@@ -76,36 +87,59 @@ export function continueAutomaticDeployments(deploymentId: string) {
 }
 
 export async function scheduleLatestAutomaticDeploymentsForSource(input: {
+  sourceEnvironmentId?: string;
   sourceId: string;
   workspaceId: string;
 }) {
-  const [source] = await getTowbarDatabase()
-    .select({ latestCommitSha: sources.latestCommitSha })
-    .from(sources)
+  const environments = await getTowbarDatabase()
+    .select({
+      id: sourceEnvironments.id,
+      commitSha: sourceEnvironments.latestCommitSha,
+    })
+    .from(sourceEnvironments)
+    .innerJoin(sources, eq(sources.id, sourceEnvironments.sourceId))
     .where(
       and(
         eq(sources.id, input.sourceId),
         eq(sources.workspaceId, input.workspaceId),
         eq(sources.status, "active"),
+        isNull(sourceEnvironments.disconnectedAt),
+        ...(input.sourceEnvironmentId
+          ? [eq(sourceEnvironments.id, input.sourceEnvironmentId)]
+          : []),
       ),
-    )
-    .limit(1);
-  if (!source?.latestCommitSha) return { deploymentIds: [] };
-  return await scheduleEligibleAutomaticDeployments({
-    commitSha: source.latestCommitSha,
-    sourceId: input.sourceId,
-    workspaceId: input.workspaceId,
-  });
+    );
+  const deploymentIds: string[] = [];
+  for (const environment of environments) {
+    if (!environment.commitSha) continue;
+    const result = await scheduleEligibleAutomaticDeployments({
+      ...input,
+      sourceEnvironmentId: environment.id,
+      commitSha: environment.commitSha,
+    });
+    deploymentIds.push(...result.deploymentIds);
+  }
+  return { deploymentIds };
 }
 
 export async function admitResumedAutomaticDeployments() {
   const sourceRows = await getTowbarDatabase()
-    .selectDistinct({ sourceId: apps.sourceId, workspaceId: apps.workspaceId })
+    .selectDistinct({
+      sourceId: apps.sourceId,
+      workspaceId: apps.workspaceId,
+      sourceEnvironmentId: sourceEnvironments.id,
+    })
     .from(apps)
     .innerJoin(sources, eq(sources.id, apps.sourceId))
+    .innerJoin(
+      sourceEnvironments,
+      eq(sourceEnvironments.id, apps.sourceEnvironmentId),
+    )
     .where(
       and(
         isNotNull(apps.deferredAutomaticDeployment),
+        isNull(sourceEnvironments.disconnectedAt),
+        eq(sourceEnvironments.autoDeployPaused, false),
         eq(apps.autoDeployPaused, false),
         eq(sources.autoDeployPaused, false),
         eq(sources.status, "active"),
@@ -122,6 +156,7 @@ export async function admitResumedAutomaticDeployments() {
 export async function scheduleEligibleAutomaticDeployments(input: {
   commitSha: string;
   sourceId: string;
+  sourceEnvironmentId: string;
   syncId?: string;
   workspaceId: string;
 }) {
@@ -129,7 +164,6 @@ export async function scheduleEligibleAutomaticDeployments(input: {
   const [source] = await database
     .select({
       autoDeployPaused: sources.autoDeployPaused,
-      latestCommitSha: sources.latestCommitSha,
     })
     .from(sources)
     .where(
@@ -140,7 +174,32 @@ export async function scheduleEligibleAutomaticDeployments(input: {
       ),
     )
     .limit(1);
-  if (source?.latestCommitSha !== input.commitSha) {
+  const [environment] = await database
+    .select({
+      latestCommitSha: sourceEnvironments.latestCommitSha,
+      autoDeployPaused: sourceEnvironments.autoDeployPaused,
+      mappingRevision: sourceEnvironments.mappingRevision,
+      syncedMappingRevision: sourceSyncs.mappingRevision,
+    })
+    .from(sourceEnvironments)
+    .innerJoin(
+      sourceSyncs,
+      eq(sourceSyncs.id, sourceEnvironments.latestSuccessfulSyncId),
+    )
+    .where(
+      and(
+        eq(sourceEnvironments.id, input.sourceEnvironmentId),
+        eq(sourceEnvironments.sourceId, input.sourceId),
+        isNull(sourceEnvironments.disconnectedAt),
+      ),
+    )
+    .limit(1);
+  if (
+    !source ||
+    !environment ||
+    environment.latestCommitSha !== input.commitSha ||
+    environment.mappingRevision !== environment.syncedMappingRevision
+  ) {
     return { deploymentIds: [] };
   }
 
@@ -151,7 +210,7 @@ export async function scheduleEligibleAutomaticDeployments(input: {
       autoDeployPaused: apps.autoDeployPaused,
       config: apps.config,
       deploymentDigest: apps.deploymentDigest,
-      manifestId: apps.manifestId,
+      manifestId: apps.id,
       kind: apps.kind,
       sourceRevision: apps.sourceRevision,
       serverConfigDigest: servers.configDigest,
@@ -163,22 +222,28 @@ export async function scheduleEligibleAutomaticDeployments(input: {
     .where(
       and(
         eq(apps.sourceId, input.sourceId),
+        eq(apps.sourceEnvironmentId, input.sourceEnvironmentId),
         eq(apps.workspaceId, input.workspaceId),
       ),
     );
   const releaseStates = await database
     .select({
       currentDeploymentDigest: releases.deploymentDigest,
-      manifestId: apps.manifestId,
+      manifestId: apps.id,
     })
     .from(apps)
     .leftJoin(
       releases,
-      and(eq(releases.appId, apps.id), eq(releases.status, "current")),
+      and(
+        eq(releases.appId, apps.id),
+        eq(releases.status, "current"),
+        eq(releases.environment, "production"),
+      ),
     )
     .where(
       and(
         eq(apps.sourceId, input.sourceId),
+        eq(apps.sourceEnvironmentId, input.sourceEnvironmentId),
         eq(apps.workspaceId, input.workspaceId),
       ),
     );
@@ -200,6 +265,7 @@ export async function scheduleEligibleAutomaticDeployments(input: {
     .where(
       and(
         eq(apps.sourceId, input.sourceId),
+        eq(apps.sourceEnvironmentId, input.sourceEnvironmentId),
         isNotNull(apps.deferredAutomaticDeployment),
         ...(eligibleIds.length ? [notInArray(apps.id, eligibleIds)] : []),
       ),
@@ -210,9 +276,26 @@ export async function scheduleEligibleAutomaticDeployments(input: {
       if (!candidate.deploymentDigest) {
         throw new Error("Automatic deployment candidate is not materialized");
       }
+      try {
+        await assertRequiredInstanceSecrets({
+          appId: candidate.appId,
+          sourceId: input.sourceId,
+          workspaceId: input.workspaceId,
+        });
+      } catch (error) {
+        if (
+          error instanceof HttpError &&
+          ["REQUIRED_SECRETS_MISSING", "SECRET_REFERENCE_INVALID"].includes(
+            error.code,
+          )
+        )
+          return null;
+        throw error;
+      }
       const gate = evaluateAutoDeployPause({
         deployablePaused: candidate.autoDeployPaused,
-        sourcePaused: source.autoDeployPaused,
+        sourcePaused:
+          source.autoDeployPaused || Boolean(environment?.autoDeployPaused),
       });
       if (gate.paused) {
         await database

@@ -7,7 +7,10 @@ export const secretStages = [
   "post_deploy",
 ] as const;
 export type SecretStage = (typeof secretStages)[number];
-export const secretEnvironmentSchema = z.enum(["production", "preview"]);
+export const secretEnvironmentSchema = z
+  .string()
+  .max(80)
+  .regex(/^(?:preview:)?[a-z][a-z0-9-]{0,62}$/);
 export const secretStageSchema = z.enum(secretStages);
 export const secretKeySchema = z
   .string()

@@ -44,14 +44,17 @@ import {
 import { formatBytes } from "./runtime-operations";
 import { LastSyncedTime, RelativeTime } from "./last-synced-time";
 import { ScoutServerSummary } from "./scout-server-summary";
+import { InstanceEnvironmentLabel } from "./instance-environment-label";
 import { ServerIpLink } from "./source-inventory";
+import { DeployableInventoryTable as GroupedDeployableTable } from "./deployable-inventory-table";
 import { AppIdentity, ResourceIdentity } from "./deployable-identity";
 
 export function AppsIndex() {
-  const apps = useApiQuery<{ apps: App[]; counts: InventoryCounts }>(
-    useInventoryQuery("apps"),
-    5_000,
-  );
+  const apps = useApiQuery<{
+    apps: App[];
+    counts: InventoryCounts;
+    environments: string[];
+  }>(useInventoryQuery("apps"), 5_000);
   const deployments = useApiQuery<{ deployments: Deployment[] }>(
     "/v1/core/deployments",
     5_000,
@@ -66,6 +69,7 @@ export function AppsIndex() {
       <InventorySidebar
         kind="apps"
         counts={apps.data?.counts}
+        environments={apps.data?.environments}
         sources={sources.data?.sources}
         servers={servers.data?.servers}
       />
@@ -94,6 +98,7 @@ export function ResourcesIndex() {
   const resources = useApiQuery<{
     resources: Resource[];
     counts: InventoryCounts;
+    environments: string[];
   }>(useInventoryQuery("resources"), 5_000);
   const sources = useApiQuery<{ sources: Source[] }>("/v1/core/sources");
   const servers = useApiQuery<{ servers: Server[] }>("/v1/core/servers");
@@ -105,6 +110,7 @@ export function ResourcesIndex() {
       <InventorySidebar
         kind="resources"
         counts={resources.data?.counts}
+        environments={resources.data?.environments}
         sources={sources.data?.sources}
         servers={servers.data?.servers}
       />
@@ -221,6 +227,14 @@ function DeployableInventoryTable({
       key: "name",
     },
     {
+      cell: (item) => (
+        <InstanceEnvironmentLabel environment={item.environment} />
+      ),
+      className: "min-w-40",
+      header: "Environment",
+      key: "environment",
+    },
+    {
       cell: (item) => <SourceLink source={sourcesById.get(item.sourceId)} />,
       className: "min-w-40",
       header: "Source",
@@ -284,7 +298,7 @@ function DeployableInventoryTable({
   ];
 
   return (
-    <ResourceTable
+    <GroupedDeployableTable
       ariaLabel={kind === "app" ? "Apps" : "Resources"}
       columns={columns}
       emptyDescription={

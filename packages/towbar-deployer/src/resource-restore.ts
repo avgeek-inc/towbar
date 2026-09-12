@@ -200,7 +200,6 @@ export async function executeManagedRestore(input: ManagedRestoreInput) {
     [
       release.containerName,
       deployableId,
-      resource.id,
       volume.name,
       String(result.sizeBytes),
       resource.kind,

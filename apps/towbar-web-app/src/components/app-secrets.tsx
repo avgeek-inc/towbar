@@ -24,8 +24,7 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import dynamic from "next/dynamic";
-import { Select, ListBox } from "@workspace/web-design-system/forms/select";
-import { Label } from "@workspace/web-design-system/forms/label";
+import { ResponsiveChoice } from "./responsive-choice";
 import { Tabs } from "@workspace/web-design-system/navigation/tabs";
 import { parseSecretEnv, serializeSecretEnv } from "@/lib/secret-env";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -118,15 +117,18 @@ function EnvironmentSecretSettings({
   endpoint: string;
   scope: "global" | "source" | "app";
 }) {
-  const [environment] = useQueryChoice(
-    "environment",
-    ["production", "preview"],
-    "production",
+  const { search, update } = usePageQuery();
+  const defaults = useApiQuery<AppSecretsResponse>(active ? endpoint : null);
+  const environments = defaults.data?.environments ?? [];
+  const requested = search.get("environment");
+  const environment =
+    environments.find((name) => name === requested) ?? environments[0];
+  const selectedQuery = useApiQuery<AppSecretsResponse>(
+    active && environment && environment !== environments[0]
+      ? `${endpoint}?environment=${encodeURIComponent(environment)}`
+      : null,
   );
-  const { update } = usePageQuery();
-  const query = useApiQuery<AppSecretsResponse>(
-    active ? `${endpoint}?environment=${environment}` : null,
-  );
+  const query = environment === environments[0] ? defaults : selectedQuery;
   if (!active) return null;
   return (
     <div className={scope === "global" ? "w-full" : "max-w-5xl"}>
@@ -135,32 +137,39 @@ function EnvironmentSecretSettings({
           icon={
             <HugeiconsIcon
               icon={
-                environment === "production" ? ServerStack01Icon : Rocket01Icon
+                environment === "preview" || environment?.startsWith("preview:")
+                  ? Rocket01Icon
+                  : ServerStack01Icon
               }
             />
           }
-          label={`${environment === "production" ? "Production" : "Preview"} shared secrets`}
+          label={
+            environment
+              ? `${secretEnvironmentLabel(environment)} shared secrets`
+              : "Shared secrets"
+          }
         />
       ) : null}
       {scope === "global" ? (
         <SecondaryItems
           title="Environment"
-          selected={environment}
+          selected={environment ?? ""}
           onSelect={(value) =>
-            update({ environment: value === "production" ? null : value })
+            update({ environment: value === environments[0] ? null : value })
           }
-          items={[
-            {
-              id: "production",
-              label: "Production",
-              icon: <HugeiconsIcon icon={ServerStack01Icon} />,
-            },
-            {
-              id: "preview",
-              label: "Preview",
-              icon: <HugeiconsIcon icon={Rocket01Icon} />,
-            },
-          ]}
+          items={environments.map((name) => ({
+            id: name,
+            label: secretEnvironmentLabel(name),
+            icon: (
+              <HugeiconsIcon
+                icon={
+                  name === "preview" || name.startsWith("preview:")
+                    ? Rocket01Icon
+                    : ServerStack01Icon
+                }
+              />
+            ),
+          }))}
         />
       ) : null}
       <EnvironmentEditors
@@ -168,12 +177,19 @@ function EnvironmentSecretSettings({
         endpoint={endpoint}
         query={query}
         environment={scope !== "global" ? environment : undefined}
+        environments={environments}
         onEnvironmentChange={(value) =>
-          update({ environment: value === "production" ? null : value })
+          update({ environment: value === environments[0] ? null : value })
         }
       />
     </div>
   );
+}
+
+function secretEnvironmentLabel(name: string) {
+  const preview = name.startsWith("preview:");
+  const label = preview ? name.slice(8) : name;
+  return `${label.charAt(0).toUpperCase()}${label.slice(1)}${preview ? " previews" : ""}`;
 }
 
 const stageIcons = {
@@ -183,105 +199,17 @@ const stageIcons = {
   post_deploy: ArrowRight01Icon,
 };
 
-function SecretSelector({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: Array<{ value: string; label: string; icon: typeof PackageIcon }>;
-  onChange: (value: string) => void;
-}) {
-  const selected = options.find((option) => option.value === value);
-  return (
-    <>
-      <Select
-        className="md:hidden"
-        fullWidth
-        variant="secondary"
-        selectedKey={value}
-        onSelectionChange={(key) => {
-          if (key !== null) onChange(String(key));
-        }}
-      >
-        <Label className="sr-only">{label}</Label>
-        <Select.Trigger>
-          <Select.Value>
-            <span className="inline-flex min-w-0 items-center gap-2">
-              <HugeiconsIcon
-                aria-hidden="true"
-                icon={selected?.icon ?? PackageIcon}
-                className="size-4 shrink-0"
-              />
-              <span className="truncate">{selected?.label}</span>
-            </span>
-          </Select.Value>
-          <Select.Indicator />
-        </Select.Trigger>
-        <Select.Popover>
-          <ListBox>
-            {options.map((option) => (
-              <ListBox.Item
-                key={option.value}
-                id={option.value}
-                textValue={option.label}
-              >
-                <span className="inline-flex items-center gap-2">
-                  <HugeiconsIcon
-                    aria-hidden="true"
-                    icon={option.icon}
-                    className="size-4 shrink-0"
-                  />
-                  {option.label}
-                </span>
-                <ListBox.ItemIndicator />
-              </ListBox.Item>
-            ))}
-          </ListBox>
-        </Select.Popover>
-      </Select>
-      <Tabs
-        className="hidden min-w-0 md:block"
-        selectedKey={value}
-        onSelectionChange={(key) => {
-          if (key !== null) onChange(String(key));
-        }}
-      >
-        <Tabs.ListContainer className="w-fit max-w-full overflow-x-auto">
-          <Tabs.List aria-label={label} className="min-w-max">
-            {options.map((option) => (
-              <Tabs.Tab
-                key={option.value}
-                id={option.value}
-                className="w-auto shrink-0 gap-2 whitespace-nowrap"
-              >
-                <HugeiconsIcon
-                  aria-hidden="true"
-                  icon={option.icon}
-                  className="size-4 shrink-0"
-                />
-                {option.label}
-                <Tabs.Indicator />
-              </Tabs.Tab>
-            ))}
-          </Tabs.List>
-        </Tabs.ListContainer>
-      </Tabs>
-    </>
-  );
-}
-
 function EnvironmentEditors({
   query,
   endpoint,
   environment,
   onEnvironmentChange,
+  environments = [],
 }: {
   query: Query;
   endpoint: string;
-  environment?: "production" | "preview";
+  environment?: string;
+  environments?: string[];
   onEnvironmentChange?: (value: string) => void;
 }) {
   const [stage, setStage] = useQueryChoice(
@@ -292,6 +220,17 @@ function EnvironmentEditors({
   const data = query.data;
   const binding =
     data?.bindings.find((item) => item.stage === stage) ?? data?.bindings[0];
+  if (data && !data.environments.length)
+    return (
+      <EmptyState>
+        <EmptyState.Header>
+          <EmptyState.Title>No connected environments</EmptyState.Title>
+          <EmptyState.Description>
+            Connect a source environment to configure its shared secrets.
+          </EmptyState.Description>
+        </EmptyState.Header>
+      </EmptyState>
+    );
   return (
     <div className="grid min-w-0 gap-4">
       <div
@@ -302,22 +241,22 @@ function EnvironmentEditors({
         }
       >
         {environment && onEnvironmentChange ? (
-          <SecretSelector
+          <ResponsiveChoice
             label="Secret environment"
             value={environment}
             onChange={onEnvironmentChange}
-            options={[
-              {
-                value: "production",
-                label: "Production",
-                icon: ServerStack01Icon,
-              },
-              { value: "preview", label: "Preview", icon: Rocket01Icon },
-            ]}
+            options={environments.map((name) => ({
+              value: name,
+              label: secretEnvironmentLabel(name),
+              icon:
+                name === "preview" || name.startsWith("preview:")
+                  ? Rocket01Icon
+                  : ServerStack01Icon,
+            }))}
           />
         ) : null}
         {binding && data ? (
-          <SecretSelector
+          <ResponsiveChoice
             label="Secret stage"
             value={binding.stage}
             options={data.bindings.map((item) => ({
@@ -377,12 +316,21 @@ function SecretVariablesEditor({
   );
   const keys = [...binding.keys].sort();
   const hasChanges =
-    (fileMode && fileText !== initialFile) ||
+    (fileMode &&
+      (fileText !== initialFile || Boolean(binding.missingKeys?.length))) ||
     Object.keys(replacements).length > 0 ||
     deleted.length > 0 ||
     newKeys.length > 0;
   function fileChanges() {
     const values = parseSecretEnv(fileText);
+    if (
+      binding.declared &&
+      (keys.some((key) => !values.has(key)) ||
+        [...values.keys()].some((key) => !keys.includes(key)))
+    )
+      throw new Error(
+        "Secret keys are managed in YAML. Keep the declared keys and edit only their values.",
+      );
     const replacement: Record<string, string> = Object.create(null);
     const added: Array<{ id: string; key: string; value: string }> = [];
     for (const [key, value] of values) {
@@ -426,16 +374,20 @@ function SecretVariablesEditor({
               "Secrets changed. Refresh before opening file mode.",
             );
           for (const key of retained) {
-            if (!Object.hasOwn(result.values, key))
+            if (
+              !Object.hasOwn(result.values, key) &&
+              !binding.missingKeys?.includes(key)
+            )
               throw new Error(
                 "Secrets changed. Refresh before opening file mode.",
               );
-            stored.set(key, result.values[key]!);
+            if (Object.hasOwn(result.values, key))
+              stored.set(key, result.values[key]!);
             entries.push([
               key,
               Object.hasOwn(replacements, key)
                 ? replacements[key]!
-                : result.values[key]!,
+                : (result.values[key] ?? ""),
             ]);
           }
         }
@@ -530,6 +482,12 @@ function SecretVariablesEditor({
           </Widget.Title>
         </Widget.Header>
         <Widget.Content className="content-grid min-w-0">
+          {fileMode && binding.declared && binding.missingKeys?.length ? (
+            <p className="text-xs text-muted">
+              Required keys without saved values appear blank. Saving a blank
+              value sets it to an intentionally empty string.
+            </p>
+          ) : null}
           <Tabs
             selectedKey={fileMode ? "file" : "form"}
             onSelectionChange={(key) => {
@@ -583,10 +541,12 @@ function SecretVariablesEditor({
                       No {stageLabel.toLowerCase()} secrets
                     </EmptyState.Title>
                     <EmptyState.Description className="max-w-sm text-pretty">
-                      Add a variable to make it available at this stage.
+                      {binding.declared
+                        ? "Declare required keys in the entity YAML and sync this environment."
+                        : "Add a variable to make it available at this stage."}
                     </EmptyState.Description>
                   </EmptyState.Header>
-                  {canManage ? (
+                  {canManage && !binding.declared ? (
                     <EmptyState.Content>
                       <Button
                         onPress={() =>
@@ -613,9 +573,15 @@ function SecretVariablesEditor({
                     return (
                       <div
                         key={key}
-                        className="grid grid-cols-[repeat(8,minmax(0,1fr))_2.5rem] sm:grid-cols-[repeat(8,minmax(0,1fr))_2.25rem] items-center gap-2 md:gap-3"
+                        className={
+                          binding.declared
+                            ? "grid grid-cols-8 items-center gap-2 md:gap-3"
+                            : "grid grid-cols-[repeat(8,minmax(0,1fr))_2.5rem] sm:grid-cols-[repeat(8,minmax(0,1fr))_2.25rem] items-center gap-2 md:gap-3"
+                        }
                       >
-                        <div className="col-span-4 flex min-h-10 min-w-0 items-center gap-2">
+                        <div
+                          className={`${binding.declared ? "col-span-full sm:col-span-4" : "col-span-4"} flex min-h-10 min-w-0 items-center gap-2`}
+                        >
                           <span
                             className={`break-all font-mono text-sm ${
                               removed ? "text-muted line-through" : ""
@@ -624,11 +590,16 @@ function SecretVariablesEditor({
                             {key}
                           </span>
                         </div>
-                        <div className="col-span-4 min-w-0">
+                        <div
+                          className={`${binding.declared ? "col-span-full sm:col-span-4" : "col-span-4"} min-w-0`}
+                        >
                           <SecretValueInput
                             label={`Value for ${key}`}
                             value={replacements[key] ?? ""}
-                            configured={!Object.hasOwn(replacements, key)}
+                            configured={
+                              !Object.hasOwn(replacements, key) &&
+                              !binding.missingKeys?.includes(key)
+                            }
                             disabled={!canManage || busy || removed}
                             reveal={async () => {
                               const result = await api.post<{
@@ -652,7 +623,7 @@ function SecretVariablesEditor({
                             }
                           />
                         </div>
-                        {canManage ? (
+                        {canManage && !binding.declared ? (
                           <Button
                             aria-label={
                               removed ? `Keep ${key}` : `Remove ${key}`
@@ -763,7 +734,7 @@ function SecretVariablesEditor({
               {canManage &&
               (fileMode || keys.length > 0 || newKeys.length > 0) ? (
                 <div className="flex flex-wrap gap-2">
-                  {!fileMode ? (
+                  {!fileMode && !binding.declared ? (
                     <Button
                       variant="secondary"
                       isDisabled={busy || newKeys.length >= 200}

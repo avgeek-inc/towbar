@@ -4,6 +4,7 @@ import {
   apps,
   deployableRuntimeStates,
   servers,
+  sourceEnvironments,
 } from "@workspace/towbar-database/schema";
 
 import { notFound } from "../../http/errors.js";
@@ -28,6 +29,13 @@ async function listDeployables(
       config: apps.config,
       createdAt: apps.createdAt,
       description: apps.description,
+      entityId: apps.entityId,
+      environment: {
+        id: sourceEnvironments.id,
+        name: sourceEnvironments.name,
+        branch: sourceEnvironments.branch,
+        disconnectedAt: sourceEnvironments.disconnectedAt,
+      },
       id: apps.id,
       kind: apps.kind,
       manifestId: apps.manifestId,
@@ -52,6 +60,13 @@ async function listDeployables(
     })
     .from(apps)
     .innerJoin(servers, eq(servers.id, apps.serverId))
+    .leftJoin(
+      sourceEnvironments,
+      and(
+        eq(sourceEnvironments.id, apps.sourceEnvironmentId),
+        eq(sourceEnvironments.sourceId, apps.sourceId),
+      ),
+    )
     .leftJoin(
       deployableRuntimeStates,
       eq(deployableRuntimeStates.appId, apps.id),
@@ -104,6 +119,13 @@ async function getDeployable(
       config: apps.config,
       createdAt: apps.createdAt,
       description: apps.description,
+      entityId: apps.entityId,
+      environment: {
+        id: sourceEnvironments.id,
+        name: sourceEnvironments.name,
+        branch: sourceEnvironments.branch,
+        disconnectedAt: sourceEnvironments.disconnectedAt,
+      },
       id: apps.id,
       kind: apps.kind,
       manifestId: apps.manifestId,
@@ -130,6 +152,13 @@ async function getDeployable(
     })
     .from(apps)
     .innerJoin(servers, eq(servers.id, apps.serverId))
+    .leftJoin(
+      sourceEnvironments,
+      and(
+        eq(sourceEnvironments.id, apps.sourceEnvironmentId),
+        eq(sourceEnvironments.sourceId, apps.sourceId),
+      ),
+    )
     .leftJoin(
       deployableRuntimeStates,
       eq(deployableRuntimeStates.appId, apps.id),

@@ -2,15 +2,13 @@ export const preflightRestoreScript = String.raw`
 set -euo pipefail
 container="$1"
 deployable_id="$2"
-manifest_id="$3"
-logical_name="$4"
-backup_size="$5"
-kind="$6"
-expected_major="$7"
+logical_name="$3"
+backup_size="$4"
+kind="$5"
+expected_major="$6"
 test "$(docker inspect --format '{{index .Config.Labels "towbar.managed"}}' "$container")" = true
 owned="$(docker inspect --format '{{index .Config.Labels "towbar.deployable"}}' "$container")"
-legacy="$(docker inspect --format '{{index .Config.Labels "towbar.app"}}' "$container")"
-test "$owned" = "$deployable_id" || test "$legacy" = "$manifest_id"
+test "$owned" = "$deployable_id"
 state_dir="/var/lib/towbar/resources/$deployable_id/volumes"
 sudo install -d -m 0755 -o "$(id -u)" -g "$(id -g)" "$state_dir"
 pointer="$state_dir/$logical_name.active"
@@ -94,8 +92,11 @@ if test "$kind" = redis; then
     --mount "type=bind,src=$backup_path,dst=/tmp/towbar-restore.rdb,readonly" \
     --mount "type=volume,src=$volume,dst=$mount_path" \
     --entrypoint sh "$image" -c "cp /tmp/towbar-restore.rdb '$mount_path/dump.rdb'"
+  # Load the RDB before enabling AOF; starting with AOF enabled ignores the snapshot.
+  run_candidate sh -c 'exec redis-server --appendonly no --requirepass "$REDIS_PASSWORD"'
+else
+  run_candidate "$@"
 fi
-run_candidate "$@"
 deadline=$((SECONDS + 120))
 while true; do
   if test "$kind" = postgres && docker exec "$container" sh -c 'pg_isready -U "${"$"}{POSTGRES_USER:-postgres}" -d "${"$"}{POSTGRES_DB:-postgres}"' >/dev/null 2>&1; then break; fi
@@ -113,6 +114,14 @@ else
   docker exec "$container" redis-check-rdb "$mount_path/dump.rdb" >/dev/null
   docker exec "$container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning PING' | grep -Fxq PONG
   docker exec "$container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning DBSIZE' | grep -Eq '^[0-9]+$'
+  docker exec "$container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning CONFIG SET appendonly yes' | grep -Fxq OK
+  deadline=$((SECONDS + 120))
+  while true; do
+    persistence="$(docker exec "$container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning INFO persistence' | tr -d '\r')"
+    if grep -Fxq 'aof_enabled:1' <<<"$persistence" && grep -Fxq 'aof_rewrite_in_progress:0' <<<"$persistence" && grep -Fxq 'aof_rewrite_scheduled:0' <<<"$persistence" && grep -Fxq 'aof_last_bgrewrite_status:ok' <<<"$persistence"; then break; fi
+    if (( SECONDS >= deadline )); then exit 68; fi
+    sleep 1
+  done
 fi
 `;
 
@@ -162,7 +171,7 @@ run_runtime() {
     --env "TOWBAR_COMMIT_SHA=$commit_sha" \
     --env "TOWBAR_DEPLOYMENT_ID=$deployment_id" \
     --label towbar.managed=true \
-    --label "towbar.app=$manifest_id" \
+    --label "towbar.app=$deployable_id" \
     --label "towbar.resource=$deployable_id" \
     --label "towbar.deployable=$deployable_id" \
     --label "towbar.source=$source_id" \

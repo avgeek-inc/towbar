@@ -6,6 +6,7 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import type { ScoutIncident, ScoutRule } from "./scout-controls";
 
 export type MonitoringEntity = {
+  environmentName: string | null;
   id: string;
   key: string;
   name: string;
@@ -17,6 +18,7 @@ export type MonitoringEntity = {
 export type ScoutOverviewIdentity = {
   serverName: string;
   workload: {
+    environmentName: string;
     name: string;
     kind: string;
     sourceId: string;
@@ -43,7 +45,9 @@ export function entityLabel(
   owner: { deployableId: string | null },
 ) {
   return owner.deployableId
-    ? (row.workload?.name ?? "Removed workload")
+    ? row.workload
+      ? `${row.workload.name} · ${row.workload.environmentName}`
+      : "Removed workload"
     : row.serverName;
 }
 export function useMonitoringOverview<T>(

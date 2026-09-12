@@ -1,0 +1,1 @@
+ALTER TABLE "towbar_servers" ALTER COLUMN "slug" SET NOT NULL;

@@ -1,3 +1,8 @@
+import { createDeclaredSecretsFixture } from "./declared-secrets-fixture.ts";
+import {
+  createSourceConnectionFixture,
+  FixtureEnvironmentError,
+} from "./source-connection-fixture.ts";
 import {
   workloadFilters,
   serverFilters,
@@ -61,6 +66,8 @@ import type {
 } from "@workspace/towbar-web-client";
 
 export const fixtureIds = {
+  stagingApp: "31111111-1111-4111-8111-666666666666",
+  stagingResource: "41111111-1111-4111-8111-666666666666",
   app: "31111111-1111-4111-8111-222222222222",
   deployment: "61111111-1111-4111-8111-111111111111",
   preview: "b1111111-1111-4111-8111-111111111111",
@@ -107,11 +114,8 @@ const user: TowbarUser = {
 };
 
 const source: Source = {
-  branch: "main",
   createdAt: fixtureNow,
   id: fixtureIds.source,
-  latestCommitSha: commitSha,
-  latestManifestDigest: manifestDigest,
   repositoryName: "platform",
   repositoryOwner: "example-inc",
   status: "active",
@@ -124,21 +128,16 @@ const sources: Source[] = [
     ...source,
     id: fixtureIds.docsSource,
     repositoryName: "documentation",
-    branch: "production",
   },
   {
     ...source,
     id: fixtureIds.analyticsSource,
     repositoryName: "analytics",
-    branch: "main",
   },
   {
     ...source,
     id: fixtureIds.sandboxSource,
     repositoryName: "sandbox",
-    branch: "develop",
-    latestCommitSha: null,
-    latestManifestDigest: null,
   },
 ];
 
@@ -226,6 +225,49 @@ resources.push({
   sourceId: fixtureIds.analyticsSource,
 });
 
+const environmentMappings = sources
+  .filter((item) => item.id !== fixtureIds.sandboxSource)
+  .flatMap((item) =>
+    (item.id === fixtureIds.source
+      ? ["production", "staging"]
+      : ["production"]
+    ).map((name) => ({
+      id: `${name === "staging" ? "a" : "c"}${item.id.slice(1)}`,
+      sourceId: item.id,
+      name,
+      branch: name === "staging" ? "develop" : "main",
+      mappingRevision: `${name === "staging" ? "a" : "c"}${item.id.slice(1)}`,
+      previewsEnabled: name === "staging",
+      latestSyncStatus: "succeeded" as const,
+      latestSyncFinishedAt: fixtureNow,
+      latestSuccessfulSyncId: fixtureIds.sync,
+      disconnectedAt: null,
+    })),
+  );
+for (const item of [...apps, ...resources]) {
+  item.entityId = item.id;
+  item.environment = environmentMappings.find(
+    (environment) =>
+      environment.sourceId === item.sourceId &&
+      environment.name === "production",
+  )!;
+}
+const stagingEnvironment = environmentMappings.find(
+  (environment) =>
+    environment.sourceId === fixtureIds.source &&
+    environment.name === "staging",
+)!;
+apps.push({
+  ...apps.find((item) => item.id === fixtureIds.app)!,
+  id: fixtureIds.stagingApp,
+  environment: stagingEnvironment,
+});
+resources.push({
+  ...resources.find((item) => item.id === fixtureIds.resource)!,
+  id: fixtureIds.stagingResource,
+  environment: stagingEnvironment,
+});
+
 const fixtureSecretKeys = new Map<string, string[]>();
 const fixtureSecretVersions = new Map<string, string>();
 const fixtureSecretValues = new Map<string, Record<string, string>>();
@@ -260,7 +302,9 @@ fixtureSecretVersions.set(
 fixtureSecretKeys.set(`${source.id}:preview:build`, ["SOURCE_PREVIEW_TOKEN"]);
 fixtureSecretVersions.set(`${source.id}:preview:build`, crypto.randomUUID());
 
-const platformApps = apps.filter((app) => app.sourceId === source.id);
+const platformApps = apps.filter(
+  (app) => app.sourceId === source.id && app.environment?.name === "production",
+);
 
 const deploymentFixtureNow = Date.now();
 const deploymentDayOffsets = [6, 6, 5, 5, 5, 4, 3, 3, 2, 2, 2, 1, 0, 0];
@@ -315,6 +359,21 @@ const deployments: Deployment[] = [
     );
   }),
 ];
+
+deployments.push(
+  createDeploymentFixture(
+    "61111111-1111-4111-8111-666666666666",
+    apps.find((item) => item.id === fixtureIds.stagingApp)!,
+    servers[1]!,
+    "queued",
+  ),
+  createDeploymentFixture(
+    "62111111-1111-4111-8111-666666666666",
+    resources.find((item) => item.id === fixtureIds.stagingResource)!,
+    servers[0]!,
+    "queued",
+  ),
+);
 
 const previewDeployment: Deployment = {
   ...createDeploymentFixture(
@@ -637,6 +696,8 @@ const releases: Release[] = [...apps, ...resources].map(
 );
 
 const sourceSync: SourceSync = {
+  environment: null,
+  mappingRevision: null,
   commitSha,
   createdAt: fixtureNow,
   finishedAt: fixtureNow,
@@ -1080,6 +1141,13 @@ const workflowStates: DeploymentState[] = [
 ];
 
 export function createFixtureApiServer() {
+  const connections = createSourceConnectionFixture({
+    existing: sources,
+    installationId: githubConnection.id,
+    app: apps[0]!,
+    resource: resources[0]!,
+  });
+  const declaredSecrets = createDeclaredSecretsFixture(connections);
   const scoutFixture = createScoutFixture(
     servers.map((s) => s.id),
     [...apps, ...resources],
@@ -1118,6 +1186,21 @@ export function createFixtureApiServer() {
 
     const requestUrl = new URL(request.url ?? "/", "http://localhost");
     const path = requestUrl.pathname;
+    if (request.method === "GET" && path === "/v1/core/github/branches") {
+      const owner = requestUrl.searchParams.get("owner");
+      const repository = requestUrl.searchParams.get("repository");
+      if (
+        !githubRepositories.some(
+          (repo) => repo.owner === owner && repo.name === repository,
+        )
+      ) {
+        writeNotFound(response);
+        return;
+      }
+      writeJson(response, 200, { branches: ["develop", "main", "release/qa"] });
+      return;
+    }
+
     if (scoutFixture(request, response, requestUrl)) return;
     if (
       request.method === "GET" &&
@@ -1149,9 +1232,12 @@ export function createFixtureApiServer() {
           });
         } else if (path.endsWith("/sources")) {
           const result = filterSources(
-            sources.map((source) => ({
+            [...sources, ...connections.sources].map((source) => ({
               ...source,
-              latestSyncStatus: source.latestManifestDigest
+              latestSyncStatus: [
+                ...environmentMappings,
+                ...connections.mappings,
+              ].some((item) => item.sourceId === source.id)
                 ? "succeeded"
                 : "never",
               autoDeployPaused: false,
@@ -1165,12 +1251,15 @@ export function createFixtureApiServer() {
         } else {
           const resource = path.endsWith("/resources");
           const result = filterWorkloads<FixtureApp | FixtureResource>(
-            resource ? resources : apps,
+            resource
+              ? [...resources, ...connections.resources]
+              : [...apps, ...connections.apps],
             workloadFilters.parse(query),
           );
           writeJson(response, 200, {
             [resource ? "resources" : "apps"]: result.items,
             counts: result.counts,
+            environments: result.environments,
           });
         }
       } catch {
@@ -1401,8 +1490,58 @@ export function createFixtureApiServer() {
       if (awsCredential) awsCredential.lastVerifiedAt = checkedAt;
       return writeJson(response, 200, fixtureSystemHealth());
     }
-    if (request.method === "POST" && path === "/v1/core/sources") {
-      return writeJson(response, 201, { source });
+    if (request.method === "POST" && path === "/v1/core/sources/connect") {
+      void readRequestJson(request)
+        .then((body) => writeJson(response, 201, connections.connect(body)))
+        .catch((error) =>
+          writeJson(response, 400, {
+            error:
+              error instanceof Error
+                ? error.message
+                : "Invalid connection request",
+          }),
+        );
+      return;
+    }
+    if (request.method === "POST" && path === "/v1/core/sources/discover") {
+      void readRequestJson(request)
+        .then((body) => {
+          if (!body || typeof body !== "object" || Array.isArray(body))
+            throw new Error("Invalid discovery request");
+          const input = body as Record<string, unknown>;
+          if (input.githubInstallationId !== githubConnection.id)
+            return writeJson(response, 404, {
+              error: "GitHub installation was not found",
+            });
+          const repository = githubRepositories.find(
+            (item) =>
+              item.owner === input.repositoryOwner &&
+              item.name === input.repositoryName,
+          );
+          if (!repository)
+            return writeJson(response, 404, {
+              error: "Repository was not found",
+            });
+          if (
+            ![repository.defaultBranch, "develop"].includes(
+              String(input.discoveryBranch),
+            )
+          )
+            return writeJson(response, 404, {
+              error: "Discovery branch was not found",
+            });
+          return writeJson(response, 200, {
+            commitSha,
+            environments: [
+              { name: "production", previewsEnabled: false },
+              { name: "staging", previewsEnabled: true },
+            ],
+          });
+        })
+        .catch(() =>
+          writeJson(response, 400, { error: "Invalid discovery request" }),
+        );
+      return;
     }
     if (request.method === "POST" && path === "/v1/core/servers") {
       void readRequestJson(request)
@@ -1596,6 +1735,51 @@ export function createFixtureApiServer() {
       notificationDestinations.splice(index, 1);
       response.writeHead(204);
       response.end();
+      return;
+    }
+    if (declaredSecrets.owns(path)) {
+      if (request.method === "GET") {
+        try {
+          const payload = declaredSecrets.read(
+            path,
+            requestUrl.searchParams.get("environment"),
+          );
+          return payload
+            ? writeJson(response, 200, payload)
+            : writeNotFound(response);
+        } catch (error) {
+          return writeJson(
+            response,
+            error instanceof FixtureEnvironmentError ? error.status : 400,
+            {
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Invalid secret request",
+            },
+          );
+        }
+      }
+      response.setHeader("Cache-Control", "no-store");
+      void readRequestJson(request)
+        .then((body) => {
+          const payload = declaredSecrets.mutate(request.method!, path, body);
+          return payload
+            ? writeJson(response, 200, payload)
+            : writeNotFound(response);
+        })
+        .catch((error) =>
+          writeJson(
+            response,
+            error instanceof FixtureEnvironmentError ? error.status : 400,
+            {
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Invalid secret request",
+            },
+          ),
+        );
       return;
     }
     const revealMatch = path.match(
@@ -2058,7 +2242,48 @@ export function createFixtureApiServer() {
       return writeDeploymentEvents(response, deployment);
     }
 
-    const payload = getFixturePayload(path, requestUrl.searchParams);
+    if (
+      request.method !== "GET" &&
+      /^\/v1\/core\/sources\/[^/]+\/environments(?:\/|$)/.test(path)
+    ) {
+      if (
+        !connections.sources.some((source) => source.id === path.split("/")[4])
+      )
+        return writeNotFound(response);
+      void (
+        path.endsWith("/syncs") ? Promise.resolve({}) : readRequestJson(request)
+      )
+        .then((body) => {
+          const result = connections.mutateEnvironment(
+            request.method!,
+            path,
+            body,
+          );
+          if (!result) return writeNotFound(response);
+          writeJson(response, result.status, result.body);
+        })
+        .catch((error) =>
+          writeJson(
+            response,
+            error instanceof FixtureEnvironmentError ? error.status : 400,
+            {
+              error: {
+                code: "INVALID_ENVIRONMENT_REQUEST",
+                message:
+                  error instanceof Error
+                    ? error.message
+                    : "Invalid environment request",
+              },
+            },
+          ),
+        );
+      return;
+    }
+
+    if (request.method !== "GET") return writeNotFound(response);
+    const payload =
+      connections.read(path) ??
+      getFixturePayload(path, requestUrl.searchParams);
     if (payload === undefined) return writeNotFound(response);
     writeJson(response, 200, payload);
   });
@@ -2068,6 +2293,77 @@ function getFixturePayload(
   path: string,
   searchParams: URLSearchParams,
 ): unknown {
+  const environmentSource = path.match(
+    /^\/v1\/core\/sources\/([^/]+)\/environments$/,
+  );
+  if (
+    environmentSource &&
+    sources.some((item) => item.id === environmentSource[1])
+  )
+    return {
+      environments: environmentMappings.filter(
+        (item) => item.sourceId === environmentSource[1],
+      ),
+    };
+  const manifestMatch = path.match(
+    /^\/v1\/core\/sources\/([^/]+)\/environments\/([^/]+)\/manifest$/,
+  );
+  if (manifestMatch) {
+    const mapping = environmentMappings.find(
+      (item) =>
+        item.sourceId === manifestMatch[1] && item.id === manifestMatch[2],
+    );
+    if (!mapping) return undefined;
+    const mappings = environmentMappings.filter(
+      (item) => item.sourceId === mapping.sourceId,
+    );
+    const files = [...apps, ...resources]
+      .filter((item) => item.sourceId === mapping.sourceId)
+      .filter(
+        (item, index, all) =>
+          all.findIndex((other) => other.entityId === item.entityId) === index,
+      )
+      .map((item) => {
+        const isApp = item.kind === "app";
+        const members = [...apps, ...resources].filter(
+          (other) => other.entityId === item.entityId,
+        );
+        const content = [
+          `id: ${item.manifestId}`,
+          `name: ${JSON.stringify(item.name)}`,
+          ...(isApp
+            ? ["dockerfile: Dockerfile", "container:", "  port: 3000"]
+            : [
+                `type: ${item.kind}`,
+                ...(item.kind === "image"
+                  ? ["image: axllent/mailpit:v1.27"]
+                  : []),
+              ]),
+          "environments:",
+          ...members.flatMap((member) => [
+            `  ${member.environment!.name}:`,
+            `    server: server-${member.serverId}`,
+          ]),
+          "",
+        ].join("\n");
+        return {
+          path: `.towbar/${isApp ? "apps" : "resources"}/${item.manifestId}.${isApp ? "app" : "resource"}.yml`,
+          content,
+        };
+      });
+    return {
+      manifest: {
+        commitSha,
+        files: [
+          {
+            path: "towbar.yml",
+            content: `version: 2\nenvironments:\n${mappings.map((item) => (item.previewsEnabled ? `  ${item.name}:\n    previews:\n      enabled: true` : `  ${item.name}: {}`)).join("\n")}\n`,
+          },
+          ...files,
+        ],
+      },
+    };
+  }
   if (path === "/v1/core/deployments/history") {
     const page = readPositiveInteger(searchParams.get("page"), 1);
     const limit = Math.min(
@@ -2081,6 +2377,9 @@ function getFixturePayload(
       .filter((item) => {
         const type = searchParams.get("type");
         return (
+          (!searchParams.get("targetEnvironment") ||
+            item.targetEnvironment.name ===
+              searchParams.get("targetEnvironment")) &&
           (!type ||
             (type === "app"
               ? item.deployableKind === "app"
@@ -2107,6 +2406,9 @@ function getFixturePayload(
         return sort === "oldest" ? -newest : newest;
       });
     return {
+      environments: [
+        ...new Set(environmentMappings.map((item) => item.name)),
+      ].sort(),
       deployments: ordered
         .slice((page - 1) * limit, page * limit)
         .map((item) => ({
@@ -2137,7 +2439,6 @@ function getFixturePayload(
     if (!child) return { canManageSource: true, source: extraSource };
     if (child === "apps") return { apps: sourceApps };
     if (child === "resources") return { resources: sourceResources };
-    if (child === "manifest") return { manifest: null };
     if (child === "syncs") return { syncs: [] };
     if (child === "deployments") return { deployments: [] };
     if (child === "previews") return { previews: [] };
@@ -2196,17 +2497,6 @@ function getFixturePayload(
       },
     ],
     [`/v1/core/sources/${source.id}`, { canManageSource: true, source }],
-    [
-      `/v1/core/sources/${source.id}/manifest`,
-      {
-        manifest: {
-          commitSha,
-          manifest: { apps: [], resources: [], version: 1 },
-          manifestDigest,
-          rawManifest: "version: 1\napps: []\nresources: []\n",
-        },
-      },
-    ],
     [`/v1/core/sources/${source.id}/syncs`, { syncs: [sourceSync] }],
     ["/v1/core/aws", { canManage: true, credential: awsCredential }],
     ["/v1/core/azure", { canManage: true, credential: azureCredential }],
@@ -2563,6 +2853,7 @@ function getFixtureSecretsResponse(
     ? ["deployment" as const]
     : (["build", "deployment", "pre_deploy", "post_deploy"] as const);
   return {
+    environments: resource ? ["production"] : ["production", "preview"],
     canManageSecrets: true,
     bindings: stages.map((stage) => {
       const local = fixtureMetadata(`${id}:${environment}:${stage}`);
@@ -2657,6 +2948,7 @@ function createServerFixture(
   return {
     archivedAt: null,
     canonicalIp,
+    slug: `server-${id}`,
     hardware:
       id === fixtureIds.server
         ? {
@@ -2724,6 +3016,8 @@ function createAppFixture(
   healthStatus: App["runtimeState"]["healthStatus"] = "healthy",
 ): FixtureApp {
   return {
+    entityId: null,
+    environment: null,
     archivedAt: null,
     config: {
       autoDeploy: true,
@@ -2773,6 +3067,8 @@ function createResourceFixture(
   server: Server,
 ): FixtureResource {
   return {
+    entityId: null,
+    environment: null,
     archivedAt: null,
     config: {
       access:
@@ -3026,6 +3322,10 @@ function createDeploymentFixture(
   createdAt = fixtureNow,
   trigger: Deployment["trigger"] = "manual",
 ): Deployment {
+  const mapping = environmentMappings.find(
+    (item) => item.id === deployable.environment?.id,
+  );
+  if (!mapping) throw new Error("Fixture deployment requires an environment");
   const terminal = terminalStates.has(state);
   const scanCompletedAt = new Date(
     new Date(createdAt).getTime() + 102_000,
@@ -3033,6 +3333,12 @@ function createDeploymentFixture(
   const startedAt = state === "queued" ? null : createdAt;
   const imageDigest = `sha256:${id.replaceAll("-", "").repeat(2)}`;
   return {
+    targetEnvironment: {
+      id: mapping.id,
+      name: mapping.name,
+      branch: mapping.branch,
+      mappingRevision: mapping.mappingRevision,
+    },
     appId: deployable.id,
     commitSha,
     createdAt,

@@ -3,6 +3,7 @@ import {
   createPreviewAppSnapshot,
   isNormalizedResource,
   previewHostname,
+  resolveRepositoryEnvironment,
 } from "@workspace/towbar-core";
 import {
   apps,
@@ -12,6 +13,10 @@ import {
   sources,
 } from "@workspace/towbar-database/schema";
 import { conflict, notFound } from "../../http/errors.js";
+import { fetchGitHubEnvironmentSnapshot } from "../github/environment-snapshot.js";
+import { resolvePreviewConfiguration } from "./configuration.js";
+import { assertRequiredInstanceSecrets } from "../apps/secrets.js";
+import { getInstanceEnvironment } from "../apps/instance-environment.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueueDeployment } from "../../infrastructure/temporal.js";
 import {
@@ -21,12 +26,45 @@ import {
 import { publishPreviewDeploymentStatus } from "../deployments/preview-status.js";
 import { emitDeploymentNotification } from "../notifications/events.js";
 import { calculateReleaseDeploymentDigest } from "../sources/deployment-digests.js";
-import { previewPullRequestDisposition } from "./pull-request.js";
+import { withPreviewLifecycleLock } from "./lifecycle-lock.js";
+import {
+  previewPullRequestDisposition,
+  samePreviewPullRequestRevision,
+} from "./pull-request.js";
 import { admitPreviewDeployment } from "./admission.js";
 
 // Explicit editor action: revalidate the PR and use current manifest-owned
 // infrastructure, while secret assignments remain owned by the persisted app ID.
 export async function requestPreviewDeployment(input: {
+  previewEnvironmentId: string;
+  workspaceId: string;
+  requestedBy: string;
+}) {
+  const database = getTowbarDatabase();
+  const [row] = await database
+    .select({
+      sourceId: previewEnvironments.sourceId,
+      pullRequestNumber: previewEnvironments.pullRequestNumber,
+    })
+    .from(previewEnvironments)
+    .where(
+      and(
+        eq(previewEnvironments.id, input.previewEnvironmentId),
+        eq(previewEnvironments.workspaceId, input.workspaceId),
+      ),
+    )
+    .limit(1);
+  if (!row) throw notFound("Preview");
+  return withPreviewLifecycleLock(
+    {
+      sourceId: row.sourceId,
+      pullRequestNumber: row.pullRequestNumber,
+    },
+    () => deployCurrentPreview(input),
+  );
+}
+
+async function deployCurrentPreview(input: {
   previewEnvironmentId: string;
   workspaceId: string;
   requestedBy: string;
@@ -66,8 +104,20 @@ export async function requestPreviewDeployment(input: {
     throw conflict("Preview is no longer enabled for this app");
   if (!server.preparedAt || server.preparedConfigDigest !== server.configDigest)
     throw conflict("Prepare the server before deploying this preview");
-  if (!source.latestManifestDigest)
-    throw conflict("Sync the Source before deploying");
+  const environment = await getInstanceEnvironment({
+    appId: app.id,
+    workspaceId: input.workspaceId,
+  });
+  if (
+    !environment ||
+    environment.disconnectedAt ||
+    !environment.previewsEnabled ||
+    environment.mappingRevision !== environment.syncedMappingRevision ||
+    !environment.latestManifestDigest
+  )
+    throw conflict(
+      "Sync a connected environment with previews enabled before deploying",
+    );
   const pullRequest = await fetchGitHubPullRequest({
     installationId: row.installationId,
     pullRequestNumber: preview.pullRequestNumber,
@@ -79,12 +129,28 @@ export async function requestPreviewDeployment(input: {
       pullRequest,
       repositoryName: source.repositoryName,
       repositoryOwner: source.repositoryOwner,
-      sourceBranch: source.branch,
+      sourceBranches: [environment.branch],
     }).action !== "deploy"
   )
     throw conflict("This pull request is no longer eligible for previews");
+  const repositorySnapshot = await fetchGitHubEnvironmentSnapshot({
+    installationId: row.installationId,
+    repositoryName: source.repositoryName,
+    repositoryOwner: source.repositoryOwner,
+    commitSha: pullRequest.headSha,
+  });
+  const configuration = resolvePreviewConfiguration({
+    resolved: resolveRepositoryEnvironment({
+      ...repositorySnapshot,
+      environment: environment.name,
+      branch: environment.branch,
+    }),
+    target: app.config,
+  });
+  if (!configuration)
+    throw conflict("This app does not enable previews in the PR configuration");
   const hostname = previewHostname({
-    appId: app.manifestId,
+    appId: app.id,
     domain: app.config.preview.domain,
     pullRequestNumber: preview.pullRequestNumber,
     sourceId: source.id,
@@ -93,11 +159,11 @@ export async function requestPreviewDeployment(input: {
     throw conflict(
       "Preview infrastructure changed. Remove this preview before recreating it.",
     );
-  const config = createPreviewAppSnapshot(app.config, {
+  const config = createPreviewAppSnapshot(configuration.config, {
     branch: pullRequest.headBranch,
     hostname,
   });
-  const repositoryTree = app.config.deploymentInputs.length
+  const repositoryTree = configuration.config.deploymentInputs.length
     ? await fetchGitHubRepositoryTree({
         commitSha: pullRequest.headSha,
         installationId: row.installationId,
@@ -108,18 +174,39 @@ export async function requestPreviewDeployment(input: {
   const digests = calculateReleaseDeploymentDigest({
     commitSha: pullRequest.headSha,
     deployable: config,
-    deploymentInputs: app.config.deploymentInputs,
+    deploymentInputs: configuration.config.deploymentInputs,
     repositoryTree,
     server: server.config,
   });
+  await assertRequiredInstanceSecrets({
+    appId: app.id,
+    sourceId: source.id,
+    workspaceId: input.workspaceId,
+    preview: true,
+    declarations: configuration.requiredSecrets,
+  });
+  const latestPullRequest = await fetchGitHubPullRequest({
+    installationId: row.installationId,
+    pullRequestNumber: preview.pullRequestNumber,
+    repositoryName: source.repositoryName,
+    repositoryOwner: source.repositoryOwner,
+  });
+  if (!samePreviewPullRequestRevision(pullRequest, latestPullRequest))
+    throw conflict(
+      "The pull request changed. Retry against its latest revision.",
+      "PREVIEW_REVISION_CHANGED",
+    );
   const admission = await admitPreviewDeployment({
+    requiredSecrets: configuration.requiredSecrets,
+    targetEnvironment: environment,
+    targetConfigDigest: app.configDigest,
     appId: app.id,
     branch: pullRequest.headBranch,
     commitSha: pullRequest.headSha,
     config,
     ...digests,
     hostname,
-    manifestDigest: source.latestManifestDigest,
+    manifestDigest: configuration.manifestDigest,
     pullRequestNumber: preview.pullRequestNumber,
     server: server.config,
     serverId: server.id,

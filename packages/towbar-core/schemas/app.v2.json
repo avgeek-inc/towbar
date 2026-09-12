@@ -1,0 +1,392 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "autoDeploy": {
+      "anyOf": [
+        { "type": "boolean" },
+        {
+          "type": "object",
+          "properties": {
+            "inputs": {
+              "minItems": 1,
+              "maxItems": 200,
+              "type": "array",
+              "items": { "type": "string", "minLength": 1, "maxLength": 1024 }
+            }
+          },
+          "required": ["inputs"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "vulnerabilityScanning": { "type": "boolean" },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+    },
+    "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "description": { "type": "string", "maxLength": 500 },
+    "server": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "string",
+      "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+    },
+    "dockerfile": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "context": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "container": {
+      "type": "object",
+      "properties": {
+        "network": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+        },
+        "networkAlias": {
+          "type": "string",
+          "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+        },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "cpus": { "type": "number", "exclusiveMinimum": 0, "maximum": 128 },
+            "memory": {
+              "type": "string",
+              "pattern": "^\\d+(?:\\.\\d+)?[bkmg]$"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "health": {
+      "type": "object",
+      "properties": {
+        "path": { "type": "string", "maxLength": 1024, "pattern": "^\\/.*" },
+        "timeoutSeconds": { "type": "integer", "minimum": 5, "maximum": 600 }
+      },
+      "additionalProperties": false
+    },
+    "hooks": {
+      "type": "object",
+      "properties": {
+        "postDeploy": {
+          "type": "object",
+          "properties": {
+            "command": {
+              "minItems": 1,
+              "maxItems": 64,
+              "type": "array",
+              "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
+            },
+            "timeoutSeconds": {
+              "type": "integer",
+              "minimum": 5,
+              "maximum": 1800
+            }
+          },
+          "additionalProperties": false
+        },
+        "preDeploy": {
+          "type": "object",
+          "properties": {
+            "command": {
+              "minItems": 1,
+              "maxItems": 64,
+              "type": "array",
+              "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
+            },
+            "timeoutSeconds": {
+              "type": "integer",
+              "minimum": 5,
+              "maximum": 1800
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "domains": {
+      "type": "object",
+      "properties": {
+        "primary": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "redirects": {
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "host": { "type": "string", "minLength": 1, "maxLength": 253 },
+              "status": {
+                "anyOf": [
+                  { "type": "number", "const": 301 },
+                  { "type": "number", "const": 302 }
+                ]
+              }
+            },
+            "required": ["host"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "tls": {
+      "type": "object",
+      "properties": {
+        "mode": { "type": "string", "enum": ["direct", "cloudflare-dns"] }
+      },
+      "additionalProperties": false
+    },
+    "preview": {
+      "type": "object",
+      "properties": {
+        "domain": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "enabled": { "type": "boolean", "const": true },
+        "ttlHours": { "type": "integer", "minimum": 1, "maximum": 720 }
+      },
+      "additionalProperties": false
+    },
+    "secrets": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "build": {
+          "default": [],
+          "maxItems": 200,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          }
+        },
+        "runtime": {
+          "default": [],
+          "maxItems": 200,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          }
+        },
+        "preDeploy": {
+          "default": [],
+          "maxItems": 200,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          }
+        },
+        "postDeploy": {
+          "default": [],
+          "maxItems": 200,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "environments": {
+      "type": "object",
+      "propertyNames": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]{0,62}$",
+        "not": {
+          "enum": [
+            "preview",
+            "previews",
+            "__proto__",
+            "constructor",
+            "prototype"
+          ]
+        }
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "autoDeploy": {
+            "anyOf": [
+              { "type": "boolean" },
+              {
+                "type": "object",
+                "properties": {
+                  "inputs": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024
+                    }
+                  }
+                },
+                "required": ["inputs"],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "vulnerabilityScanning": { "type": "boolean" },
+          "description": { "type": "string", "maxLength": 500 },
+          "server": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+          },
+          "dockerfile": { "type": "string", "minLength": 1, "maxLength": 1024 },
+          "context": { "type": "string", "minLength": 1, "maxLength": 1024 },
+          "container": {
+            "type": "object",
+            "properties": {
+              "network": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+              },
+              "networkAlias": {
+                "type": "string",
+                "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+              },
+              "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+              "resources": {
+                "type": "object",
+                "properties": {
+                  "cpus": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 128
+                  },
+                  "memory": {
+                    "type": "string",
+                    "pattern": "^\\d+(?:\\.\\d+)?[bkmg]$"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "health": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "maxLength": 1024,
+                "pattern": "^\\/.*"
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "minimum": 5,
+                "maximum": 600
+              }
+            },
+            "additionalProperties": false
+          },
+          "hooks": {
+            "type": "object",
+            "properties": {
+              "postDeploy": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "minItems": 1,
+                    "maxItems": 64,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    }
+                  },
+                  "timeoutSeconds": {
+                    "type": "integer",
+                    "minimum": 5,
+                    "maximum": 1800
+                  }
+                },
+                "additionalProperties": false
+              },
+              "preDeploy": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "minItems": 1,
+                    "maxItems": 64,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    }
+                  },
+                  "timeoutSeconds": {
+                    "type": "integer",
+                    "minimum": 5,
+                    "maximum": 1800
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "domains": {
+            "type": "object",
+            "properties": {
+              "primary": { "type": "string", "minLength": 1, "maxLength": 253 },
+              "redirects": {
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "host": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 253
+                    },
+                    "status": {
+                      "anyOf": [
+                        { "type": "number", "const": 301 },
+                        { "type": "number", "const": 302 }
+                      ]
+                    }
+                  },
+                  "required": ["host"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          "tls": {
+            "type": "object",
+            "properties": {
+              "mode": { "type": "string", "enum": ["direct", "cloudflare-dns"] }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": ["id", "name", "environments"],
+  "description": "Entity defaults are merged with the selected environment before full validation during sync. Branch mappings and secret values are managed in Towbar.",
+  "$id": "https://www.towbar.dev/schemas/app.v2.json"
+}

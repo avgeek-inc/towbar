@@ -1,3 +1,4 @@
+import { parseResolvedManifest } from "./manifest-test-helper.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -5,14 +6,13 @@ import test from "node:test";
 import {
   ManifestValidationError,
   getLatestBackupScheduleOccurrence,
-  parseDeploymentManifest,
   validateBackupCron,
   validateSecretObject,
   validateServerLoginSecret,
 } from "./manifest.js";
 
 const manifest = `
-version: 1
+version: 2
 source:
   branch: release
 deploymentInputs:
@@ -54,14 +54,11 @@ apps:
 `;
 
 const deploymentJsonSchema = JSON.parse(
-  readFileSync(
-    new URL("../schemas/deployment.v1.json", import.meta.url),
-    "utf8",
-  ),
+  readFileSync(new URL("../schemas/app.v2.json", import.meta.url), "utf8"),
 ) as unknown;
 
-void test("parses and canonicalizes a version 1 manifest", () => {
-  const result = parseDeploymentManifest(manifest);
+void test("parses and canonicalizes a version 2 resolved manifest", () => {
+  const result = parseResolvedManifest(manifest);
   assert.match(result.digest, /^[a-f0-9]{64}$/);
   assert.deepEqual(result.manifest.source, { branch: "release" });
   assert.equal("secrets" in result.manifest, false);
@@ -101,12 +98,12 @@ void test("parses and canonicalizes a version 1 manifest", () => {
 
 void test("rejects unknown deployment input groups and unsafe globs", () => {
   assert.throws(
-    () => parseDeploymentManifest(manifest.replace("$shared-web", "$missing")),
+    () => parseResolvedManifest(manifest.replace("$shared-web", "$missing")),
     /Towbar deployment manifest is invalid/u,
   );
   assert.throws(
     () =>
-      parseDeploymentManifest(
+      parseResolvedManifest(
         manifest.replace(
           "    - packages/web-design-system/**",
           "    - ../outside/**",
@@ -116,7 +113,7 @@ void test("rejects unknown deployment input groups and unsafe globs", () => {
   );
   assert.throws(
     () =>
-      parseDeploymentManifest(
+      parseResolvedManifest(
         manifest.replace(
           "    - packages/web-design-system/**",
           "    - packages/../apps/**",
@@ -126,7 +123,7 @@ void test("rejects unknown deployment input groups and unsafe globs", () => {
   );
   assert.throws(
     () =>
-      parseDeploymentManifest(
+      parseResolvedManifest(
         manifest.replace(
           "    - packages/web-design-system/**",
           "    - packages/web-design-system/**\n    - packages/web-design-system/**",
@@ -136,96 +133,44 @@ void test("rejects unknown deployment input groups and unsafe globs", () => {
   );
 });
 
-void test("publishes container resource limits in the JSON schema", () => {
-  const containerProperties = schemaObject(
-    deploymentJsonSchema,
-    "properties",
-    "apps",
-    "items",
-    "properties",
-    "container",
-    "properties",
-  );
-  assert.deepEqual(
-    schemaObject(containerProperties.resources, "properties").memory,
-    {
-      pattern: "^\\d+(?:\\.\\d+)?[bBkKmMgG]$",
-      type: "string",
-    },
-  );
-});
-
-void test("publishes app hooks without server configuration in the JSON schema", () => {
-  const rootProperties = schemaObject(deploymentJsonSchema, "properties");
-  const appProperties = schemaObject(
-    deploymentJsonSchema,
-    "properties",
-    "apps",
-    "items",
-    "properties",
-  );
-  assert.equal(rootProperties.servers, undefined);
-  assert.deepEqual(schemaObject(appProperties.preview).required, [
-    "enabled",
-    "domain",
+void test("publishes v2 entity identity, overrides and required secret keys", () => {
+  const properties = schemaObject(deploymentJsonSchema, "properties");
+  assert.equal(properties.source, undefined);
+  assert.equal(properties.servers, undefined);
+  assert.equal(properties.dependsOn, undefined);
+  assert.deepEqual(schemaObject(deploymentJsonSchema).required, [
+    "id",
+    "name",
+    "environments",
   ]);
-  assert.equal(appProperties.dependsOn, undefined);
-  assert.equal(schemaObject(appProperties.hooks).minProperties, 1);
-  assert.deepEqual(schemaObject(rootProperties.source, "properties").branch, {
-    default: "main",
-    maxLength: 255,
-    minLength: 1,
-    type: "string",
-  });
-  assert.equal(schemaObject(appProperties.autoDeploy).default, false);
-  assert.deepEqual(appProperties.vulnerabilityScanning, {
-    default: false,
-    type: "boolean",
-  });
-  const autoDeployVariants = schemaObject(appProperties.autoDeploy).oneOf;
-  assert.ok(Array.isArray(autoDeployVariants));
-  assert.equal(autoDeployVariants.length, 2);
   assert.equal(
-    schemaObject(rootProperties.deploymentInputs, "additionalProperties")
-      .uniqueItems,
-    true,
+    schemaObject(properties.environments, "additionalProperties")
+      .additionalProperties,
+    false,
   );
-  assert.equal(rootProperties.secrets, undefined);
-  assert.deepEqual(
-    schemaObject(rootProperties.resources, "items", "properties").type,
-    { enum: ["image", "postgres", "redis"] },
-  );
-  assert.deepEqual(
-    schemaObject(rootProperties.resources, "items", "properties").backup,
-    { $ref: "#/$defs/resourceBackup" },
-  );
-  const resourceProperties = schemaObject(
-    rootProperties.resources,
-    "items",
+  const overrides = schemaObject(
+    properties.environments,
+    "additionalProperties",
     "properties",
   );
-  assert.equal(resourceProperties.dependsOn, undefined);
-  assert.deepEqual(
+  for (const key of ["id", "name", "type", "preview", "secrets"])
+    assert.equal(overrides[key], undefined);
+  assert.equal(schemaObject(properties.secrets).additionalProperties, false);
+  assert.equal(
     schemaObject(
-      resourceProperties.access,
+      properties.container,
       "properties",
-      "sshTunnel",
+      "resources",
       "properties",
-    ).hostPort,
-    { maximum: 65_535, minimum: 1_024, type: "integer" },
-  );
-  assert.deepEqual(
-    schemaObject(resourceProperties.container, "properties").networkAlias,
-    {
-      pattern: "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$",
-      type: "string",
-    },
+      "memory",
+    ).type,
+    "string",
   );
 });
 
 void test("normalizes image, PostgreSQL, and Redis resources", () => {
   const source = `${manifest}\nresources:\n  - id: metrics\n    name: Metrics\n    type: image\n    image: prom/prometheus:v3.5.0\n    server: 203.0.113.10\n    container:\n      port: 9090\n      volumes:\n        - name: config\n          mountPath: /prometheus\n    health:\n      type: http\n      path: /-/healthy\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    access:\n      sshTunnel:\n        hostPort: 15432\n    backup:\n      schedule:\n        cron: "0 3 * * *"\n      retention:\n        keepLast: 14\n      s3:\n        bucket: example-production-backups\n        prefix: databases\n    container:\n      network: towbar-platform\n  - id: cache\n    name: Cache\n    type: redis\n    server: 203.0.113.10\n`;
-  const parsed = parseDeploymentManifest(source).manifest;
+  const parsed = parseResolvedManifest(source).manifest;
   const [cache, database, metrics] = parsed.resources ?? [];
   assert.equal(cache?.image, "redis:8-alpine");
   assert.equal(cache?.container.port, 6_379);
@@ -256,7 +201,7 @@ void test("normalizes image, PostgreSQL, and Redis resources", () => {
 });
 
 void test("uses the PostgreSQL 18 data root for managed volumes", () => {
-  const parsed = parseDeploymentManifest(
+  const parsed = parseResolvedManifest(
     `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    image: postgres:18-alpine\n    server: 203.0.113.10\n`,
   ).manifest;
 
@@ -284,7 +229,7 @@ void test("validates hourly-or-slower UTC backup cron schedules", () => {
 void test("rejects removed terminal declarations", () => {
   assert.throws(
     () =>
-      parseDeploymentManifest(
+      parseResolvedManifest(
         manifest.replace(
           "    tls:\n      mode: cloudflare-dns",
           "    terminal:\n      enabled: true\n    tls:\n      mode: cloudflare-dns",
@@ -296,52 +241,43 @@ void test("rejects removed terminal declarations", () => {
 
 void test("rejects mutable resource images and duplicate deployable ids", () => {
   const mutable = `${manifest}\nresources:\n  - id: metrics\n    name: Metrics\n    type: image\n    image: prom/prometheus:latest\n    server: 203.0.113.10\n`;
+  assert.throws(() => parseResolvedManifest(mutable), ManifestValidationError);
+  const separateKinds = `${manifest}\nresources:\n  - id: towbar-web-app\n    name: Redis\n    type: redis\n    server: 203.0.113.10\n`;
+  assert.doesNotThrow(() => parseResolvedManifest(separateKinds));
+  const duplicate = `${separateKinds}  - id: towbar-web-app\n    name: Duplicate\n    type: redis\n    server: 203.0.113.11\n`;
   assert.throws(
-    () => parseDeploymentManifest(mutable),
+    () => parseResolvedManifest(duplicate),
     ManifestValidationError,
-  );
-  const duplicate = `${manifest}\nresources:\n  - id: towbar-web-app\n    name: Duplicate\n    type: redis\n    server: 203.0.113.10\n`;
-  assert.throws(
-    () => parseDeploymentManifest(duplicate),
-    (error) => {
-      assert.ok(error instanceof ManifestValidationError);
-      assert.ok(
-        error.issues.some((issue) =>
-          issue.message.includes("Deployable id 'towbar-web-app'"),
-        ),
-      );
-      return true;
-    },
   );
 });
 
 void test("rejects unsafe or conflicting Resource connectivity declarations", () => {
   const resource = `\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    access:\n      sshTunnel:\n        hostPort: 15432\n    container:\n      network: towbar-platform\n      networkAlias: shared-database\n`;
-  assert.doesNotThrow(() => parseDeploymentManifest(`${manifest}${resource}`));
+  assert.doesNotThrow(() => parseResolvedManifest(`${manifest}${resource}`));
   assert.throws(
     () =>
-      parseDeploymentManifest(
+      parseResolvedManifest(
         `${manifest}${resource.replace("      network: towbar-platform\n", "")}`,
       ),
     ManifestValidationError,
   );
   assert.throws(
     () =>
-      parseDeploymentManifest(
+      parseResolvedManifest(
         `${manifest}\nresources:\n  - id: metrics\n    name: Metrics\n    type: image\n    image: prom/prometheus:v3.5.0\n    server: 203.0.113.10\n    access:\n      sshTunnel:\n        hostPort: 15432\n`,
       ),
     ManifestValidationError,
   );
   assert.throws(
     () =>
-      parseDeploymentManifest(
+      parseResolvedManifest(
         `${manifest}${resource}  - id: analytics\n    name: Analytics\n    type: postgres\n    server: 203.0.113.10\n    access:\n      sshTunnel:\n        hostPort: 15432\n    container:\n      network: towbar-platform\n      networkAlias: analytics\n`,
       ),
     ManifestValidationError,
   );
   assert.throws(
     () =>
-      parseDeploymentManifest(
+      parseResolvedManifest(
         `${manifest}${resource}  - id: analytics\n    name: Analytics\n    type: postgres\n    server: 203.0.113.10\n    container:\n      network: towbar-platform\n      networkAlias: shared-database\n`,
       ),
     ManifestValidationError,
@@ -349,7 +285,7 @@ void test("rejects unsafe or conflicting Resource connectivity declarations", ()
 });
 
 void test("normalizes Resource image, command, health, volumes, and shared runtime secrets", () => {
-  const parsed = parseDeploymentManifest(
+  const parsed = parseResolvedManifest(
     `${manifest}\nresources:\n  - id: metrics\n    name: Metrics\n    type: image\n    image: prom/prometheus:v3.5.0\n    server: 203.0.113.10\n    container:\n      command: [--config.file=/etc/prometheus/prometheus.yml]\n      port: 9090\n      volumes:\n        - name: data\n          mountPath: /prometheus\n    health:\n      type: http\n      path: /-/healthy\n`,
   ).manifest;
   const resource = parsed.resources?.[0];
@@ -370,14 +306,14 @@ void test("normalizes Resource image, command, health, volumes, and shared runti
 });
 
 void test("defaults to main and rejects unsafe branch names", () => {
-  const defaulted = parseDeploymentManifest(
+  const defaulted = parseResolvedManifest(
     manifest.replace("source:\n  branch: release\n", ""),
   );
   assert.deepEqual(defaulted.manifest.source, { branch: "main" });
   assert.equal(defaulted.manifest.apps[0]?.sourceBranch, "main");
   assert.throws(
     () =>
-      parseDeploymentManifest(
+      parseResolvedManifest(
         manifest.replace("branch: release", "branch: ../main"),
       ),
     ManifestValidationError,
@@ -387,7 +323,7 @@ void test("defaults to main and rejects unsafe branch names", () => {
 void test("rejects server configuration in the manifest", () => {
   assert.throws(
     () =>
-      parseDeploymentManifest(
+      parseResolvedManifest(
         `${manifest}\nservers:\n  - ip: 203.0.113.10\n    ssh:\n      username: deploy\n`,
       ),
     ManifestValidationError,
@@ -396,7 +332,7 @@ void test("rejects server configuration in the manifest", () => {
 
 void test("rejects duplicate YAML keys before reconciliation", () => {
   assert.throws(
-    () => parseDeploymentManifest("version: 1\nversion: 1\napps: []"),
+    () => parseResolvedManifest("version: 2\nversion: 2\napps: []"),
     ManifestValidationError,
   );
 });
@@ -407,7 +343,7 @@ void test("rejects duplicate app ids and domain claims", () => {
     `    tls:\n      mode: cloudflare-dns\n  - id: towbar-web-app\n    name: Duplicate\n    server: 203.0.113.10\n    dockerfile: Dockerfile\n    container:\n      port: 3000\n    domains:\n      primary: app.towbar.dev`,
   );
   assert.throws(
-    () => parseDeploymentManifest(duplicate),
+    () => parseResolvedManifest(duplicate),
     (error) => {
       assert.ok(error instanceof ManifestValidationError);
       assert.ok(
@@ -428,10 +364,7 @@ void test("rejects a Dockerfile that escapes its build context", () => {
     "dockerfile: apps/towbar-web-app/Dockerfile",
     "dockerfile: ../Dockerfile",
   );
-  assert.throws(
-    () => parseDeploymentManifest(invalid),
-    ManifestValidationError,
-  );
+  assert.throws(() => parseResolvedManifest(invalid), ManifestValidationError);
 });
 
 void test("rejects an unsafe Docker network name", () => {
@@ -439,18 +372,12 @@ void test("rejects an unsafe Docker network name", () => {
     "network: towbar-platform",
     "network: --network=host",
   );
-  assert.throws(
-    () => parseDeploymentManifest(invalid),
-    ManifestValidationError,
-  );
+  assert.throws(() => parseResolvedManifest(invalid), ManifestValidationError);
 });
 
 void test("rejects invalid container resource limits", () => {
   const invalid = manifest.replace("memory: 1G", "memory: unlimited");
-  assert.throws(
-    () => parseDeploymentManifest(invalid),
-    ManifestValidationError,
-  );
+  assert.throws(() => parseResolvedManifest(invalid), ManifestValidationError);
 });
 
 void test("rejects the removed dependsOn manifest field", () => {
@@ -459,7 +386,7 @@ void test("rejects the removed dependsOn manifest field", () => {
     "    context: .\n    dependsOn: [api]\n",
   );
   assert.throws(
-    () => parseDeploymentManifest(invalid),
+    () => parseResolvedManifest(invalid),
     (error) => {
       assert.ok(error instanceof ManifestValidationError);
       assert.ok(
@@ -501,7 +428,7 @@ function schemaObject(value: unknown, ...path: string[]) {
 }
 
 void test("normalizes an explicit App alias and rejects unsafe sharing", () => {
-  const base = `version: 1
+  const base = `version: 2
 apps:
   - id: api
     name: API
@@ -513,12 +440,12 @@ apps:
       port: 4013
 `;
   assert.equal(
-    parseDeploymentManifest(base).manifest.apps[0]?.container.networkAlias,
+    parseResolvedManifest(base).manifest.apps[0]?.container.networkAlias,
     "api",
   );
   assert.throws(
     () =>
-      parseDeploymentManifest(base.replace("      network: private-app\n", "")),
+      parseResolvedManifest(base.replace("      network: private-app\n", "")),
     (error: unknown) =>
       error instanceof ManifestValidationError &&
       error.issues.some((issue) =>
@@ -527,14 +454,14 @@ apps:
   );
   assert.throws(
     () =>
-      parseDeploymentManifest(
+      parseResolvedManifest(
         base.replace("networkAlias: api", "networkAlias: --invalid"),
       ),
     ManifestValidationError,
   );
   assert.throws(
     () =>
-      parseDeploymentManifest(
+      parseResolvedManifest(
         `${base}    domains:\n      primary: api.example.com\n    tls:\n      mode: direct\n    preview:\n      enabled: true\n      domain: preview.example.com\n`,
       ),
     (error: unknown) =>
@@ -545,7 +472,7 @@ apps:
   );
   assert.throws(
     () =>
-      parseDeploymentManifest(
+      parseResolvedManifest(
         `${base}resources:\n  - id: database\n    name: Database\n    server: 203.0.113.10\n    type: postgres\n    container:\n      network: private-app\n      networkAlias: api\n`,
       ),
     (error: unknown) =>
@@ -554,7 +481,7 @@ apps:
   );
   assert.throws(
     () =>
-      parseDeploymentManifest(
+      parseResolvedManifest(
         `${base}  - id: other\n    name: Other API\n    server: 203.0.113.10\n    dockerfile: Dockerfile\n    container:\n      network: private-app\n      networkAlias: api\n      port: 4013\n`,
       ),
     (error: unknown) =>

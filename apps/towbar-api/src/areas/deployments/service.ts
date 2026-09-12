@@ -12,7 +12,7 @@ import {
   deploymentStateSchema,
   terminalDeploymentStates,
 } from "@workspace/towbar-core/temporal";
-import { digestValue } from "@workspace/towbar-core";
+import { digestValue, isNormalizedResource } from "@workspace/towbar-core";
 import {
   apps,
   deployableRuntimeStates,
@@ -267,9 +267,9 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
     runtimeId:
       context.environment === "preview"
         ? await getPreviewRuntimeId(context.previewEnvironmentId!)
-        : context.app.id,
+        : appId,
     githubToken:
-      context.kind === "deploy"
+      context.kind === "deploy" && !isNormalizedResource(context.app)
         ? await createInstallationToken(context.installationId)
         : null,
     trustedHostKeys,

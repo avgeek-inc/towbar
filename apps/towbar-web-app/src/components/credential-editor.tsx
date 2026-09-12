@@ -87,6 +87,7 @@ function ServerCredentialForm({
 
   async function saveServerConfiguration(enabled: boolean) {
     await api.patch(`/v1/core/servers/${server.id}`, {
+      slug: server.slug,
       buildConcurrency: server.config.buildConcurrency,
       previewBuildConcurrency: server.config.previewBuildConcurrency,
       ip: server.canonicalIp,

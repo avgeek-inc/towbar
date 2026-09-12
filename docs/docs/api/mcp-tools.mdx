@@ -773,11 +773,11 @@ Read only. Available to workspace members and owners.
 ## Sources
 
 <AccordionGroup>
-<Accordion title="Inspect source and manifest">
+<Accordion title="Inspect source and environments">
 
 `towbar_source_inspect`
 
-Inspect a connected repository, its manifest, auto-deploy control, and server capacity together. Find the sourceId with towbar_inventory_search. Use towbar_source_preview_sync before reconciling changes.
+Inspect a connected repository, its environment branch mappings, auto-deploy control and server capacity. Find the sourceId with towbar_inventory_search.
 
 Read only. Available to workspace members and owners.
 
@@ -806,9 +806,9 @@ Read only. Available to workspace members and owners.
 
 `towbar_source_connect`
 
-Connect a repository from towbar_repository_search using its installation ID and production branch. Then preview and sync its manifest; connecting does not prove deployment success.
+Connect a repository after discovery, mapping its selected environments to branches. Initial sync does not deploy. Inspect each returned environment sync outcome.
 
-Full-access key required. Available to workspace members and owners.
+Full-access key required. Workspace owner required.
 
 **Arguments**
 
@@ -817,32 +817,47 @@ Full-access key required. Available to workspace members and owners.
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
-    "branch": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 255
-    },
     "githubInstallationId": {
       "type": "string",
       "format": "uuid",
       "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "repositoryOwner": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
     },
     "repositoryName": {
       "type": "string",
       "minLength": 1,
       "maxLength": 255
     },
-    "repositoryOwner": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 255
+    "environments": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "environment": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,62}$"
+          },
+          "branch": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "required": ["environment", "branch"],
+        "additionalProperties": false
+      }
     }
   },
   "required": [
-    "branch",
     "githubInstallationId",
+    "repositoryOwner",
     "repositoryName",
-    "repositoryOwner"
+    "environments"
   ],
   "additionalProperties": false
 }
@@ -879,13 +894,13 @@ Full-access key required. Workspace owner required.
 
 </Accordion>
 
-<Accordion title="Preview manifest changes">
+<Accordion title="Discover repository environments">
 
-`towbar_source_preview_sync`
+`towbar_source_discover`
 
-Compare a repository manifest with current inventory before requesting reconciliation. Returns proposed changes and validation errors; does not deploy the proposed changes.
+Read towbar.yml on a discovery branch to find declared environments before connecting. Does not create a source or deploy.
 
-Full-access key required. Available to workspace members and owners.
+Full-access key required. Workspace owner required.
 
 **Arguments**
 
@@ -894,27 +909,46 @@ Full-access key required. Available to workspace members and owners.
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
-    "sourceId": {
+    "githubInstallationId": {
       "type": "string",
       "format": "uuid",
-      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-      "description": "Source UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "repositoryOwner": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "repositoryName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "discoveryBranch": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
     }
   },
-  "required": ["sourceId"],
+  "required": [
+    "githubInstallationId",
+    "repositoryOwner",
+    "repositoryName",
+    "discoveryBranch"
+  ],
   "additionalProperties": false
 }
 ```
 
 </Accordion>
 
-<Accordion title="Sync repository manifest">
+<Accordion title="Sync connected environments">
 
 `towbar_source_sync`
 
-Reconcile a source with its production branch after reviewing towbar_source_preview_sync. May update inventory and trigger deployments. Returns a sync ID; use towbar_source_sync_inspect to check the outcome.
+Sync one environment when environmentId is supplied, or all connected environments otherwise. Uses mapped branches and may trigger eligible auto-deployments. Inspect each returned sync ID for completion.
 
-Full-access key required. Available to workspace members and owners.
+Full-access key required. Workspace owner required.
 
 **Arguments**
 
@@ -928,6 +962,12 @@ Full-access key required. Available to workspace members and owners.
       "format": "uuid",
       "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
       "description": "Source UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "environmentId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Environment UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
     }
   },
   "required": ["sourceId"],
@@ -1559,9 +1599,13 @@ Full-access key required. Workspace owner required.
         }
       },
       "additionalProperties": false
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
     }
   },
-  "required": ["ip", "ssh"],
+  "required": ["ip", "ssh", "slug"],
   "additionalProperties": false
 }
 ```
@@ -1666,9 +1710,13 @@ Full-access key required. Workspace owner required.
         }
       },
       "additionalProperties": false
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
     }
   },
-  "required": ["serverId", "ip", "ssh"],
+  "required": ["serverId", "ip", "ssh", "slug"],
   "additionalProperties": false
 }
 ```
@@ -1965,7 +2013,8 @@ Read only. Available to workspace members and owners.
     },
     "environment": {
       "type": "string",
-      "enum": ["production", "preview"]
+      "maxLength": 80,
+      "pattern": "^(?:preview:)?[a-z][a-z0-9-]{0,62}$"
     }
   },
   "required": ["scope"],
@@ -2002,7 +2051,8 @@ Full-access key required. Workspace owner required.
     },
     "environment": {
       "type": "string",
-      "enum": ["production", "preview"]
+      "maxLength": 80,
+      "pattern": "^(?:preview:)?[a-z][a-z0-9-]{0,62}$"
     },
     "stage": {
       "type": "string",

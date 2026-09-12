@@ -101,7 +101,7 @@ export function ScoutAlerts({
                 "Workload")
               : "Server"}
             {r.deployableId
-              ? ` · ${r.environment === "preview" ? "Previews" : "Production"}`
+              ? ` · ${r.environment === "preview" ? "Previews" : "Persistent"}`
               : ""}
           </span>
         </div>

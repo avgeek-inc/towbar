@@ -20,13 +20,13 @@ do not own, and do not include live credentials in the report.
 
 ## Supported versions
 
-Security fixes are provided for the latest `1.x` release. Production operators
+Security fixes are provided for the latest stable release. Production operators
 should pin a reviewed release and subscribe to repository security advisories.
 
 ## Security assumptions
 
-- The configured production branch is trusted deployment input and is protected
-  by the repository owner.
+- Branches mapped to connected environments are trusted deployment input and
+  are protected by the repository owner.
 - Same-repository branches are trusted executable input for Apps with Preview
   enabled. Preview deployments use separate, least-privilege, non-production
   credentials. Fork pull requests are not Preview input.
@@ -44,7 +44,7 @@ should pin a reviewed release and subscribe to repository security advisories.
 - Installation secrets are unique, randomly generated, and never committed.
 
 Towbar does not provide a security boundary against a malicious contributor who
-is authorized to modify a deployed production or Preview branch. Review, branch
+is authorized to modify a deployed environment branch or Preview branch. Review, branch
 protection, secret separation, and the decision to enable Preview are part of
 the trust model.
 

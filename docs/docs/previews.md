@@ -18,18 +18,18 @@ Preview environments let you review an app before merging a pull request. Each e
 ## Enable previews
 
 Previews are opt-in per app. Opening a same-repository pull request
-that targets `source.branch` builds its immutable head commit and promotes it
+that targets a connected environment's mapped branch with previews enabled builds its immutable head commit and promotes it
 to one stable PR URL. Draft pull requests are supported. Resources are not
 cloned, and production shared or App secrets are never inherited.
 
-```yaml
-apps:
-  - id: hello-towbar
-    # Existing production configuration omitted.
-    preview:
-      enabled: true
-      domain: preview.example.com
-      ttlHours: 72
+```yaml title=".towbar/apps/hello-towbar.app.yml"
+id: hello-towbar
+preview:
+  enabled: true
+  domain: preview.example.com
+  ttlHours: 72
+environments:
+  production: {}
 ```
 
 ## Set up DNS
@@ -52,7 +52,7 @@ concurrency, and is capped at `4`. Preview builds have lower queue priority
 than production, Resource, cleanup, and server operations. A newer PR commit supersedes only
 queued work for that App and PR. A failed build leaves the last healthy Preview
 live. Merging or closing the pull request, retargeting it away from
-`source.branch`, disabling Preview in the next successful Source sync,
+the target environment's branch mapping, disabling Preview in the next successful Source sync,
 manually deleting it in Towbar, or reaching `ttlHours` queues targeted
 container, image, route, and DNS cleanup; persistent volumes and Resources are
 never removed. Reopening an eligible pull request recreates its Preview.
@@ -96,7 +96,7 @@ configuration remain controlled by the production manifest. Secret assignments a
 
 ## Verify a preview
 
-1. Create a same-repository pull request against the Source's production branch.
+1. Create a same-repository pull request against the preview-enabled environment's mapped branch.
 2. Change a file included by the app's deployment inputs.
 3. Open the preview in Towbar and wait for deployment to succeed.
 4. Open its URL and verify the expected change.

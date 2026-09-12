@@ -3,7 +3,7 @@ title: "Your first deployment"
 description: "Take a Dockerfile app from a GitHub repository to a verified deployment on your Ubuntu server."
 ---
 
-This guide takes one app through Source sync, server preparation, deployment, and route verification. Use the [Hello Towbar example](https://github.com/avgeek-inc/towbar-example) for a working Dockerfile app and health endpoint, or bring your own app.
+This guide takes one app through Source sync, server preparation, deployment, and route verification. Use the [example files in this repository](https://github.com/avgeek-inc/towbar/tree/main/examples) for a small HTTP app and health endpoint, or bring your own app.
 
 ## Before you begin
 
@@ -13,55 +13,64 @@ Use a domain you control for a public app. The examples use documentation-only I
 
 ## 1. Create your app repository
 
-[Use the Hello Towbar template](https://github.com/avgeek-inc/towbar-example/generate)
-or fork the [example repository](https://github.com/avgeek-inc/towbar-example).
-Grant the connected GitHub App access to your copy. The example needs no package
-installation or application secrets and can be checked locally with `npm test`
-and `npm start` on Node.js 24 or newer.
+Create a GitHub repository and copy `server.mjs`, `Dockerfile`, and
+`.dockerignore` from the example directory into its root. Grant the connected
+GitHub App access to your repository. The app needs no dependencies or secrets.
+Run it locally with Node.js 24 or newer:
 
-Edit the included `.towbar/deployment.yml`, replacing the server IP and domain.
-If you are bringing your own app, create the file with this configuration:
-
-```yaml
-version: 1
-source:
-  branch: main
-apps:
-  - id: hello-towbar
-    name: Hello Towbar
-    server: 203.0.113.10
-    dockerfile: Dockerfile
-    context: .
-    container:
-      port: 3000
-      resources:
-        cpus: 0.5
-        memory: 256m
-    health:
-      path: /health
-      timeoutSeconds: 60
-    domains:
-      primary: hello.example.com
-    tls:
-      mode: direct
+```sh
+node server.mjs
 ```
 
-Use the server IP registered in Towbar. Match the Dockerfile path, port, and health endpoint to your app. Point the domain at the target server and allow the traffic required by [Caddy and TLS](/docs/domains-tls).
+Open `http://localhost:3000` and check `http://localhost:3000/health`.
 
-Commit this file to the branch in `source.branch`. Automatic deployment is deliberately omitted so you can verify the first release manually.
+Create `towbar.yml` and `.towbar/apps/hello-towbar.app.yml`, replacing the server slug and domain.
+For a first deployment to production, use:
+
+```yaml title="towbar.yml"
+version: 2
+environments:
+  production: {}
+```
+
+```yaml title=".towbar/apps/hello-towbar.app.yml"
+id: hello-towbar
+name: Hello Towbar
+server: production-server
+dockerfile: Dockerfile
+context: .
+container:
+  port: 3000
+  resources:
+    cpus: 0.5
+    memory: 256m
+health:
+  path: /health
+  timeoutSeconds: 60
+domains:
+  primary: hello.example.com
+tls:
+  mode: direct
+environments:
+  production: {}
+```
+
+Use the server slug registered in Towbar. Match the Dockerfile path, port, and health endpoint to your app. Point the domain at the target server and allow the traffic required by [Caddy and TLS](/docs/domains-tls).
+
+Commit these files to the branch you will map to production in Towbar. Automatic deployment is deliberately omitted so you can verify the first release manually.
 
 ## 2. Add and sync the Source
 
-Open **Sources → Add source** and select the repository. Wait for the initial sync, then open its result.
+Open **Sources → Add source**, select the repository, then select production and map it to your branch. Wait for the initial sync, then open its result.
 
 A successful sync imports **Hello Towbar** into the Source's Apps list. If it fails, correct the reported manifest field or missing server reference and sync again. A successful sync accepts configuration; it does not mean the app is running.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/features/sources-light.webp" alt="Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result." width="2160" height="904" loading="lazy" />
+    <img src="/assets/features/sources-light.webp" alt="Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result." width="2176" height="1054" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/features/sources-dark.webp" alt="Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result." width="2160" height="904" loading="lazy" />
+    <img src="/assets/features/sources-dark.webp" alt="Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result." width="2176" height="1054" loading="lazy" />
   </div>
   <p>Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result.</p>
 </div>
@@ -74,7 +83,7 @@ Choose **Prepare Server** and follow the steps until the host is **Ready**. If p
 
 ## 4. Save application secrets
 
-Open **App → Settings → Secrets** and select Production. Add build, runtime, or hook values as needed, then save. To reuse a shared value, set the app variable to `{{globals.KEY}}` or `{{source.KEY}}`. Shared values are not injected automatically.
+If your app needs secrets, declare their keys in the entity file’s top-level `secrets` field and sync the production environment. Open the production app instance’s **Settings → Secrets** page and fill the declared build, runtime, or hook values, then save. New required keys appear as unset; missing values block deployment, but do not block sync. To reuse a shared value, set the app variable to `{{globals.KEY}}` or `{{source.KEY}}`. Shared values are not injected automatically.
 
 The Hello Towbar example needs no secrets, so you can skip this step for your first deployment.
 
@@ -109,8 +118,8 @@ For an app without a public domain, verify it through its intended private clien
 
 ## Next steps
 
-For your second deployment, edit the heading in `src/index.html`, commit to
-`main`, and deploy again. Reload the public page to verify that your new code is
+For your second deployment, edit the response in `server.mjs`, commit to the
+branch mapped to production, and deploy again. Reload the public page to verify that your new code is
 running.
 
 Enable [automatic deployment](/docs/deployments#automatic-deployments), add [pull request previews](/docs/previews), or connect a [database resource](/docs/resources). Configure [notifications](/docs/integrations/notifications) so failed operations reach the people who need to act.

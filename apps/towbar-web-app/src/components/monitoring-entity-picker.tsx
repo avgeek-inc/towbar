@@ -82,7 +82,7 @@ export function MonitoringEntityPicker({
     } else onResolve(null);
   }, [kind, result, entities, entityKey, allowAll, onSelect, onResolve]);
   const filtered = entities.filter((entity) =>
-    `${entity.name} ${entity.serverName}`
+    `${entity.name} ${entity.serverName} ${entity.environmentName ?? ""}`
       .toLowerCase()
       .includes(search.toLowerCase()),
   );
@@ -146,7 +146,7 @@ export function MonitoringEntityPicker({
                 <span>{entity.name}</span>
                 {entity.kind !== "server" ? (
                   <span className="text-xs font-normal">
-                    {entity.serverName}
+                    {entity.environmentName} · {entity.serverName}
                   </span>
                 ) : null}
               </span>

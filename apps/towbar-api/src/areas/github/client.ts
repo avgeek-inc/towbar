@@ -4,7 +4,6 @@ import { SignJWT } from "jose";
 import { z } from "zod";
 
 import { requireGitHubEnv } from "../../env.js";
-import { HttpError } from "../../http/errors.js";
 import { githubRequest } from "./request.js";
 
 const installationSchema = z.object({
@@ -34,22 +33,6 @@ const repositoriesSchema = z.object({
     }),
   ),
   total_count: z.number().int().nonnegative(),
-});
-
-const referenceSchema = z.object({
-  object: z.object({
-    sha: z.string().regex(/^[a-f0-9]{40}$/u),
-    type: z.literal("commit"),
-  }),
-});
-
-const contentSchema = z.object({
-  content: z.string(),
-  encoding: z.literal("base64"),
-  path: z.literal(".towbar/deployment.yml"),
-  sha: z.string(),
-  size: z.number().int().nonnegative(),
-  type: z.literal("file"),
 });
 
 const gitCommitSchema = z.object({
@@ -167,76 +150,6 @@ export async function listGitHubRepositories(installationId: string) {
   }));
 }
 
-export async function fetchGitHubSourceSnapshot(input: {
-  branch: string;
-  installationId: string;
-  repositoryName: string;
-  repositoryOwner: string;
-}) {
-  const token = await createInstallationToken(input.installationId);
-  const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
-  let referenceValue: unknown;
-  try {
-    referenceValue = await githubRequest(
-      `/repos/${repository}/git/ref/heads/${encodeURIComponent(input.branch)}`,
-      { token },
-    );
-  } catch (error) {
-    if (isGitHubReferenceUnavailable(error)) {
-      throw new HttpError(
-        422,
-        "SOURCE_BRANCH_NOT_FOUND",
-        `Branch '${input.branch}' was not found in ${input.repositoryOwner}/${input.repositoryName}. Push the branch or update this Source, then sync again.`,
-      );
-    }
-    throw error;
-  }
-  const reference = referenceSchema.parse(referenceValue);
-  const commitSha = reference.object.sha;
-  return await fetchGitHubManifestSnapshot({ ...input, commitSha });
-}
-
-export async function fetchGitHubManifestSnapshot(input: {
-  commitSha: string;
-  installationId: string;
-  repositoryName: string;
-  repositoryOwner: string;
-}) {
-  const token = await createInstallationToken(input.installationId);
-  const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
-  let contentValue: unknown;
-  try {
-    contentValue = await githubRequest(
-      `/repos/${repository}/contents/.towbar/deployment.yml?ref=${input.commitSha}`,
-      { token },
-    );
-  } catch (error) {
-    if (isGitHubNotFound(error)) {
-      throw new HttpError(
-        422,
-        "MANIFEST_NOT_FOUND",
-        `Add .towbar/deployment.yml to commit '${input.commitSha.slice(0, 12)}' in ${input.repositoryOwner}/${input.repositoryName}.`,
-      );
-    }
-    throw error;
-  }
-  const content = contentSchema.parse(contentValue);
-  if (content.size > 256 * 1_024) {
-    throw new HttpError(
-      422,
-      "MANIFEST_TOO_LARGE",
-      "The Towbar deployment manifest exceeds 256 KiB",
-    );
-  }
-  return {
-    commitSha: input.commitSha,
-    manifestSource: Buffer.from(
-      content.content.replaceAll("\n", ""),
-      "base64",
-    ).toString("utf8"),
-  };
-}
-
 export async function fetchGitHubRepositoryTree(input: {
   commitSha: string;
   installationId: string;
@@ -350,16 +263,6 @@ export async function listOpenGitHubPullRequestNumbers(input: {
     if (pullRequests.length < 100) break;
   }
   return pullRequestNumbers;
-}
-
-function isGitHubNotFound(error: unknown): error is HttpError {
-  return error instanceof HttpError && error.status === 404;
-}
-
-function isGitHubReferenceUnavailable(error: unknown): error is HttpError {
-  return (
-    error instanceof HttpError && (error.status === 404 || error.status === 409)
-  );
 }
 
 export async function createInstallationToken(installationId: string) {

@@ -52,6 +52,7 @@ void test(
       await db.insert(servers).values(
         [online, offline, disabled, archived, foreign].map((id, index) => ({
           id,
+          slug: `server-${id}`,
           workspaceId: id === foreign ? foreignWorkspace : workspaceId,
           canonicalIp: `192.0.2.${210 + index}`,
           config: normalizeServerConfiguration({

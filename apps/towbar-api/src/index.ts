@@ -6,6 +6,7 @@ import { getEnv } from "./env.js";
 import { clearPasswordLoginAccountRateLimit } from "./http/rate-limit.js";
 import { closeDatabase } from "./infrastructure/database.js";
 import {
+  closeTemporalClient,
   wakeMaintenanceWorkflow,
   wakeScoutAlertsWorkflow,
 } from "./infrastructure/temporal.js";
@@ -57,6 +58,7 @@ void wakeScoutAlertsWorkflow().catch((error: unknown) => {
 async function shutdown() {
   server.close();
   internalServer.close();
+  await closeTemporalClient();
   await closeDatabase();
 }
 

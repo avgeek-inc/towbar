@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   previewPullRequestDisposition,
   previewPullRequestsToReconcile,
+  samePreviewPullRequestRevision,
 } from "./pull-request.js";
 
 import type { GitHubPullRequest } from "../github/client.js";
@@ -24,7 +25,7 @@ const pullRequest: GitHubPullRequest = {
 const source = {
   repositoryName: "example",
   repositoryOwner: "avgeek-inc",
-  sourceBranch: "main",
+  sourceBranches: ["main"],
 };
 
 void test("deploys open same-repository pull requests targeting the Source branch", () => {
@@ -103,7 +104,8 @@ void test("rejects fork pull requests and retargeted pull requests", () => {
     }),
     {
       action: "cleanup",
-      reason: "The pull request no longer targets 'main'",
+      reason:
+        "The pull request no longer targets a connected environment with previews enabled",
     },
   );
 });
@@ -127,4 +129,45 @@ void test("reconciles open pull requests and existing environments once", () => 
     previewPullRequestsToReconcile([42, 43], [41, 42]),
     [42, 43, 41],
   );
+});
+
+void test("uses control-plane target branches for staging previews", () => {
+  assert.deepEqual(
+    previewPullRequestDisposition({
+      ...source,
+      sourceBranches: ["develop"],
+      pullRequest: { ...pullRequest, baseBranch: "develop" },
+    }),
+    { action: "deploy" },
+  );
+  assert.equal(
+    previewPullRequestDisposition({
+      ...source,
+      sourceBranches: [],
+      pullRequest,
+    }).action,
+    "cleanup",
+  );
+});
+
+void test("detects PR changes during configuration loading", () => {
+  assert.equal(
+    samePreviewPullRequestRevision(pullRequest, { ...pullRequest }),
+    true,
+  );
+  for (const change of [
+    { headSha: "b".repeat(40) },
+    { baseBranch: "develop" },
+    { state: "closed" as const },
+    { headRepository: null },
+    { draft: !pullRequest.draft },
+  ]) {
+    assert.equal(
+      samePreviewPullRequestRevision(pullRequest, {
+        ...pullRequest,
+        ...change,
+      }),
+      false,
+    );
+  }
 });

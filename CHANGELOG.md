@@ -5,6 +5,66 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+### Added
+
+- Named environments for apps and resources, including production and staging.
+  Each instance has its own configuration, server assignment, deployment history,
+  secret values, volumes, backups, and monitoring identity.
+- Source onboarding discovers declared environments and lets owners select which
+  to connect. Branch mappings, branch changes, disconnects, and reconnects are
+  managed in Towbar. Initial connection and mapping changes sync without deploying.
+- Required secret declarations create unset editor slots during successful sync.
+  Existing values and shared references are preserved for unchanged keys; removed
+  declarations remove their saved values. Missing values block deployment while
+  allowing configuration sync.
+- Environment controls and filters across Source inventories, entity pages,
+  deployments, and monitoring, with environment selection retained in permalinks.
+- Separate editor schemas and runnable examples for the v2 repository, app, and
+  resource configuration files.
+
+### Changed
+
+- **Breaking:** replace the v1 deployment manifest with root `towbar.yml`
+  (`version: 2`) and one entity per `*.app.yml` or `*.resource.yml` under
+  `.towbar/apps/` and `.towbar/resources/`. Entity files declare shared settings
+  and explicit environment overrides. Objects merge; arrays replace.
+- **Breaking:** branch names belong to Source environment mappings in Towbar.
+  They are no longer configured in YAML or stored as one branch per Source.
+- **Breaking:** workloads reference workspace-unique server slugs. Server IPs,
+  credentials, and preparation remain in Towbar.
+- **Breaking:** secret keys for app/resource instances are declared in YAML;
+  Form and File modes edit their values. Preview secrets are isolated by target
+  environment and do not fall back to persistent environment values.
+- Preview eligibility follows the PR base branch's mapped environment and requires
+  both environment-level enablement and app opt-in. PR configuration does not
+  reconcile persistent instance settings or required-secret slots.
+- Environment sync resolves one immutable commit, validates the complete effective
+  configuration, and reconciles atomically. Invalid or unavailable configuration
+  preserves prior state; mapping revisions prevent stale jobs from overwriting it.
+- Version 1 manifest compatibility and existing-user data migration are not part
+  of this major release. Use a fresh v2 installation and convert repository
+  configuration before connecting Sources.
+
+### Fixed
+
+- Redis restores load RDB snapshots before enabling append-only persistence,
+  preventing an empty database from passing restore health checks.
+- Completed environment syncs remain successful when delayed retries or lost
+  queue responses arrive after the worker has progressed.
+- Declared secret inputs use the full card width on mobile.
+- Deployment and rollback admission reject disconnected, stale, archived, or
+  unprepared targets, and retain the selected environment in deployment snapshots.
+- Runtime identities use instance IDs, preventing sibling environments from
+  sharing deployment cleanup or resource-operation identity.
+- Resource deployment execution no longer requests GitHub build credentials when
+  it only needs to pull an image.
+- Preview cleanup reports Docker failures and also removes runtime-labeled
+  candidates that have no committed release record.
+- Non-root Trivy execution mounts the readable image archive without exposing its
+  private parent directory to the scanner container.
+- Branch mapping errors remain visible beside the edit form while preserving
+  the entered branch and previous mapping.
+
 ## [1.7.0] - 2026-09-10
 
 ### Added

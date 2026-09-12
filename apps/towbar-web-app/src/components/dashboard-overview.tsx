@@ -1,5 +1,6 @@
 "use client";
 
+import { groupDeployableInstances } from "@/lib/deployable-groups";
 import {
   Activity01Icon,
   DashboardCircleIcon,
@@ -81,8 +82,8 @@ export function DashboardOverview() {
       detailCount: activeApps.filter(
         (item) => item.runtimeState.observedState === "running",
       ).length,
-      detailLabel: "running",
-      value: activeApps.length,
+      detailLabel: "instances running",
+      value: groupDeployableInstances(activeApps).length,
     },
     {
       icon: DatabaseIcon,
@@ -93,8 +94,8 @@ export function DashboardOverview() {
       detailCount: activeResources.filter(
         (item) => item.runtimeState.observedState === "running",
       ).length,
-      detailLabel: "running",
-      value: activeResources.length,
+      detailLabel: "instances running",
+      value: groupDeployableInstances(activeResources).length,
     },
     {
       icon: ServerStack01Icon,

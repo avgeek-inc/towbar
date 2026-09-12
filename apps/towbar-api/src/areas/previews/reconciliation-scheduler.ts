@@ -6,6 +6,8 @@ import {
   githubInstallations,
   previewEnvironments,
   previewPullRequestReports,
+  sourceEnvironments,
+  sourceSyncs,
   sources,
 } from "@workspace/towbar-database/schema";
 
@@ -14,12 +16,17 @@ import { enqueuePreviewPullRequestEvent } from "../../infrastructure/temporal.js
 import { listOpenGitHubPullRequestNumbers } from "../github/client.js";
 import { previewPullRequestsToReconcile } from "./pull-request.js";
 
-export async function scheduleSourcePreviewReconciliations(sourceId: string) {
+export async function scheduleSourcePreviewReconciliations(
+  sourceId: string,
+  dependencies = {
+    listPullRequests: listOpenGitHubPullRequestNumbers,
+    enqueue: enqueuePreviewPullRequestEvent,
+  },
+) {
   const database = getTowbarDatabase();
   const [[source], appRows] = await Promise.all([
     database
       .select({
-        branch: sources.branch,
         installationId: githubInstallations.installationId,
         repositoryName: sources.repositoryName,
         repositoryOwner: sources.repositoryOwner,
@@ -33,36 +40,52 @@ export async function scheduleSourcePreviewReconciliations(sourceId: string) {
       .where(eq(sources.id, sourceId))
       .limit(1),
     database
-      .select({ config: apps.config })
+      .select({ config: apps.config, branch: sourceEnvironments.branch })
       .from(apps)
+      .innerJoin(
+        sourceEnvironments,
+        eq(sourceEnvironments.id, apps.sourceEnvironmentId),
+      )
+      .innerJoin(
+        sourceSyncs,
+        eq(sourceSyncs.id, sourceEnvironments.latestSuccessfulSyncId),
+      )
       .where(
         and(
           eq(apps.sourceId, sourceId),
           eq(apps.kind, "app"),
           isNull(apps.archivedAt),
+          isNull(sourceEnvironments.disconnectedAt),
+          eq(sourceEnvironments.previewsEnabled, true),
+          eq(sourceEnvironments.mappingRevision, sourceSyncs.mappingRevision),
         ),
       ),
   ]);
-  if (
-    !source ||
-    source.status !== "active" ||
-    !appRows.some(
-      (app) =>
-        !isNormalizedResource(app.config) &&
-        app.config.preview?.enabled === true,
-    )
-  ) {
-    return { pullRequestNumbers: [] };
-  }
+  if (!source || source.status !== "active") return { pullRequestNumbers: [] };
+  const branches = [
+    ...new Set(
+      appRows
+        .filter(
+          (app) =>
+            !isNormalizedResource(app.config) &&
+            app.config.preview?.enabled === true,
+        )
+        .map((app) => app.branch),
+    ),
+  ];
 
   const [openPullRequestNumbers, existingEnvironments, existingReports] =
     await Promise.all([
-      listOpenGitHubPullRequestNumbers({
-        baseBranch: source.branch,
-        installationId: source.installationId,
-        repositoryName: source.repositoryName,
-        repositoryOwner: source.repositoryOwner,
-      }),
+      Promise.all(
+        branches.map((branch) =>
+          dependencies.listPullRequests({
+            baseBranch: branch,
+            installationId: source.installationId,
+            repositoryName: source.repositoryName,
+            repositoryOwner: source.repositoryOwner,
+          }),
+        ),
+      ).then((results) => results.flat()),
       database
         .selectDistinct({
           pullRequestNumber: previewEnvironments.pullRequestNumber,
@@ -100,7 +123,7 @@ export async function scheduleSourcePreviewReconciliations(sourceId: string) {
       pullRequestNumbers
         .slice(index, index + 10)
         .map((pullRequestNumber) =>
-          enqueuePreviewPullRequestEvent({ pullRequestNumber, sourceId }),
+          dependencies.enqueue({ pullRequestNumber, sourceId }),
         ),
     );
   }

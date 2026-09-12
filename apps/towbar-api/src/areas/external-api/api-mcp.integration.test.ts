@@ -1,4 +1,8 @@
 import {
+  seedApiServers,
+  seedConnectedEnvironment,
+} from "./environment-test-helper.js";
+import {
   assertPublicOperationNames,
   expectedBrowserOnlyRoutes,
 } from "./browser-only-routes.test-helper.js";
@@ -15,7 +19,6 @@ import {
   apiKeys,
   auditEvents,
   authRateLimitBuckets,
-  servers,
   sessions,
   users,
   workspaceMembers,
@@ -82,22 +85,10 @@ void test(
     };
     const ownedServerId = randomUUID(),
       foreignServerId = randomUUID();
-    await db.insert(servers).values(
-      [
-        { id: ownedServerId, workspaceId, ip: "192.0.2.10" },
-        { id: foreignServerId, workspaceId: otherId, ip: "192.0.2.11" },
-      ].map(({ id, workspaceId, ip }) => ({
-        id,
-        workspaceId,
-        canonicalIp: ip,
-        configDigest: "test-digest",
-        config: {
-          ip,
-          ssh: { host: ip, port: 22, username: "ubuntu" },
-          buildConcurrency: 1,
-        },
-      })),
-    );
+    await seedApiServers([
+      { id: ownedServerId, workspaceId, ip: "192.0.2.10" },
+      { id: foreignServerId, workspaceId: otherId, ip: "192.0.2.11" },
+    ]);
     const write = await createApiKey(user, {
       name: "Automation",
       access: "write",
@@ -124,11 +115,12 @@ void test(
       });
     const connect = (token: string) =>
       connectTestMcpClient(token, (request) => app.fetch(request));
-    t.beforeEach(async () => {
+    const clearRateBucket = async () => {
       await db
         .delete(authRateLimitBuckets)
         .where(eq(authRateLimitBuckets.keyHash, bucketHash));
-    });
+    };
+    t.beforeEach(clearRateBucket);
     try {
       await t.test(
         "public operations have REST schemas and unique operation IDs; browser-only routes are excluded",
@@ -329,6 +321,7 @@ void test(
               "post_github_actions_complete_installation",
             ],
           ];
+          await seedConnectedEnvironment(workspaceId);
           const client = await connect(write.token);
           try {
             const tools = await client.listTools();
@@ -590,9 +583,7 @@ void test(
       await db.delete(workspaces).where(eq(workspaces.id, workspaceId));
       await db.delete(workspaces).where(eq(workspaces.id, otherId));
       await db.delete(users).where(eq(users.id, userId));
-      await db
-        .delete(authRateLimitBuckets)
-        .where(eq(authRateLimitBuckets.keyHash, bucketHash));
+      await clearRateBucket();
       await closeDatabase();
     }
   },

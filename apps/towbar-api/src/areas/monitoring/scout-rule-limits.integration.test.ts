@@ -1,3 +1,4 @@
+import { testInstanceLinks } from "../sources/instance-test-helper.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -64,6 +65,7 @@ void test(
         displayName: "Tester",
       });
       await db.insert(servers).values({
+        slug: `server-${serverId}`,
         id: serverId,
         workspaceId,
         canonicalIp: "192.0.2.209",
@@ -88,10 +90,9 @@ void test(
         githubInstallationId: installation!.id,
         repositoryOwner: "example",
         repositoryName: "limits",
-        branch: "main",
       });
       const manifest = normalizeDeploymentManifest({
-        version: 1,
+        version: 2,
         resources: [
           {
             id: "database",
@@ -117,6 +118,11 @@ void test(
         [resourceId, "postgres"],
       ] as const) {
         await db.insert(apps).values({
+          ...(await testInstanceLinks(
+            sourceId,
+            kind,
+            kind === "app" ? "app" : "resource",
+          )),
           id,
           kind,
           workspaceId,

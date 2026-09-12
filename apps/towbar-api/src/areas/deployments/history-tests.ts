@@ -1,7 +1,13 @@
+import { testDeploymentEnvironment } from "../sources/instance-test-helper.js";
+import { testInstanceLinks } from "../sources/instance-test-helper.js";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
-import { apps, deployments } from "@workspace/towbar-database/schema";
+import {
+  apps,
+  deployments,
+  sourceEnvironments,
+} from "@workspace/towbar-database/schema";
 import type {
   NormalizedApp,
   NormalizedResource,
@@ -41,12 +47,21 @@ export async function testDeploymentHistory({
     "deployment history filters before pagination and sorts within its workspace",
     async () => {
       const resourceId = randomUUID();
+      const environmentId = randomUUID();
+      await db.insert(sourceEnvironments).values({
+        id: environmentId,
+        sourceId,
+        name: "staging",
+        branch: "develop",
+      });
       const ids = [randomUUID(), randomUUID(), randomUUID()];
       await db.insert(apps).values({
+        ...(await testInstanceLinks(sourceId, "history-resource", "resource")),
         id: resourceId,
         workspaceId,
         sourceId,
         serverId,
+        sourceEnvironmentId: environmentId,
         manifestId: "history-resource",
         name: "Z Database",
         kind: "postgres",
@@ -54,6 +69,8 @@ export async function testDeploymentHistory({
         configDigest: "history",
         sourceRevision: "1234567",
       });
+      const appEnvironment = await testDeploymentEnvironment(appId);
+      const resourceEnvironment = await testDeploymentEnvironment(resourceId);
       try {
         await db.insert(deployments).values(
           ids.map((id, index) => ({
@@ -62,6 +79,14 @@ export async function testDeploymentHistory({
             sourceId,
             serverId,
             appId: index === 2 ? resourceId : appId,
+            targetEnvironment:
+              index === 2 ? resourceEnvironment : appEnvironment,
+            requiredSecrets: {
+              build: [],
+              runtime: [],
+              preDeploy: [],
+              postDeploy: [],
+            },
             idempotencyKey: id,
             temporalWorkflowId: id,
             commitSha: "1234567",
@@ -86,12 +111,62 @@ export async function testDeploymentHistory({
                 : null,
           })),
         );
+        const { getDeploymentExecutionContext } = await import("./service.js");
+        const execution = await getDeploymentExecutionContext(ids[2]!);
+        assert.equal(execution.runtimeId, resourceId);
+        assert.notEqual(execution.runtimeId, resourceConfig.id);
+        await db
+          .update(deployments)
+          .set({ kind: "deploy", rollbackReleaseSnapshot: null })
+          .where(eq(deployments.id, ids[2]!));
+        const resourceExecution = await getDeploymentExecutionContext(ids[2]!);
+        assert.equal(resourceExecution.githubToken, null);
+        assert.equal(resourceExecution.runtimeId, resourceId);
+        await db
+          .update(deployments)
+          .set({
+            kind: "rollback",
+            rollbackReleaseSnapshot: execution.rollbackRelease,
+          })
+          .where(eq(deployments.id, ids[2]!));
+
         const query = (input: Record<string, unknown> = {}) =>
           listDeploymentHistory({
             ...historyQuerySchema.parse(input),
             workspaceId,
           });
+        await db
+          .update(sourceEnvironments)
+          .set({ branch: "release/staging", mappingRevision: randomUUID() })
+          .where(eq(sourceEnvironments.id, environmentId));
         const all = await query({ limit: 1 });
+        assert.deepEqual(all.environments, ["production", "staging"]);
+        assert.deepEqual(
+          all.deployments[0]?.targetEnvironment,
+          resourceEnvironment,
+        );
+        const staging = await query({ targetEnvironment: "staging", limit: 1 });
+        assert.equal(staging.pagination.total, 1);
+        assert.equal(staging.deployments[0]?.id, ids[2]);
+        assert.deepEqual(staging.environments, all.environments);
+        assert.equal(
+          (await query({ targetEnvironment: "production" })).pagination.total,
+          2,
+        );
+        assert.equal(
+          (await query({ targetEnvironment: "missing" })).pagination.total,
+          0,
+        );
+        assert.deepEqual(
+          (
+            await listDeploymentHistory({
+              workspaceId: otherWorkspaceId,
+              page: 1,
+              limit: 10,
+            })
+          ).environments,
+          [],
+        );
         assert.equal(all.pagination.total, 3);
         assert.equal(all.pagination.totalPages, 3);
         assert.equal(all.deployments[0]?.id, ids[2]);
@@ -155,6 +230,9 @@ export async function testDeploymentHistory({
       } finally {
         await db.delete(deployments).where(inArray(deployments.id, ids));
         await db.delete(apps).where(eq(apps.id, resourceId));
+        await db
+          .delete(sourceEnvironments)
+          .where(eq(sourceEnvironments.id, environmentId));
       }
     },
   );

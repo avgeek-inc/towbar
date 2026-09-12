@@ -1,6 +1,7 @@
 "use client";
 import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import { DeployableVulnerabilities } from "./deployable-vulnerabilities";
+import { InstanceEnvironmentChoice } from "./instance-environment-choice";
 import { ScoutPanel } from "./scout-panel";
 
 import {
@@ -51,7 +52,7 @@ export function AppDetail() {
     `/v1/core/apps/${appId}`,
   );
   const breadcrumbAncestors = useSourceBreadcrumbs(sourceId, {
-    href: `/sources/${sourceId}?section=apps`,
+    href: `/sources/${sourceId}/apps`,
     label: "Apps",
   });
   const deployments = useApiQuery<{ deployments: Deployment[] }>(
@@ -167,6 +168,7 @@ export function AppDetail() {
       breadcrumbAncestors={breadcrumbAncestors}
       title={item.name}
     >
+      <InstanceEnvironmentChoice item={item} kind="apps" />
       <PageTabs
         defaultValue="overview"
         tabs={[

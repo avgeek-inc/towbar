@@ -25,6 +25,7 @@ const cleanupResultSchema = z
   .object({
     errorMessage: z.string().max(1_000).optional(),
     succeeded: z.boolean(),
+    cleanupAttempt: z.number().int().min(1),
   })
   .strict();
 const environmentId = (value: string) =>

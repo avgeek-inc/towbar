@@ -55,7 +55,7 @@ export function WorkspaceAlerts() {
           <span>{entityLabel(row, row.rule)}</span>
           <span className="text-xs text-muted">
             {row.rule.deployableId
-              ? `${row.serverName} · ${row.rule.environment === "preview" ? "Previews" : "Production"}`
+              ? `${row.serverName} · ${row.rule.environment === "preview" ? "Previews" : "Persistent"}`
               : "Server"}
           </span>
         </div>

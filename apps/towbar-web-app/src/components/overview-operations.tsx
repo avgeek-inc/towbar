@@ -1,4 +1,5 @@
 "use client";
+import { DeploymentEnvironmentChip } from "./deployment-environment-chip";
 
 import { deploymentSubtitle } from "@/lib/overview";
 import Image from "next/image";
@@ -119,7 +120,7 @@ function deploymentColumns(
       key: "environment",
       header: "Environment",
       className: "whitespace-nowrap",
-      cell: (item) => <StatusBadge status={item.environment} />,
+      cell: (item) => <DeploymentEnvironmentChip deployment={item} />,
     },
     {
       key: "id",

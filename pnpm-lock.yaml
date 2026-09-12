@@ -129,6 +129,8 @@ overrides:
   websocket-driver@0.7.4: 0.7.5
   ws@8.19.0: 8.21.0
 
+packageExtensionsChecksum: sha256-WejKyr6zvoDpFmj1i33Xcbcv9+JkaWcD4QiWJn/qGf8=
+
 importers:
   .:
     devDependencies:
@@ -467,6 +469,9 @@ importers:
       eslint:
         specifier: "catalog:"
         version: 9.39.5(jiti@2.7.0)
+      prettier:
+        specifier: "catalog:"
+        version: 3.9.6
       tsx:
         specifier: ^4.23.13
         version: 4.23.13
@@ -8248,6 +8253,7 @@ snapshots:
   "@heroui/react@3.2.4(@react-aria/i18n@3.13.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@react-aria/ssr@3.10.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@react-aria/utils@3.34.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@react-spectrum/provider@3.11.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-aria-components@1.21.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-aria@3.52.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tailwindcss@4.3.3)":
     dependencies:
       "@heroui/styles": 3.2.4(tailwind-merge@3.4.0)(tailwindcss@4.3.3)
+      "@internationalized/date": 3.12.4
       "@radix-ui/react-avatar": 1.1.11(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       "@react-aria/i18n": 3.13.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       "@react-aria/ssr": 3.10.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)

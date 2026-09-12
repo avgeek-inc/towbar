@@ -14,6 +14,7 @@ import {
 import type { ComparisonPoint } from "@workspace/towbar-web-client";
 
 type Workload = {
+  environment: { id: string; name: string } | null;
   id: string;
   name: string;
   serverId: string;
@@ -103,6 +104,7 @@ export function createScoutFixture(
     Array.from({ length: 3 }, (_, index) => ({
       id: randomUUID(),
       deployableId: w.id,
+      targetEnvironment: w.environment,
       commitSha: [
         "ad92c1b48bd78f920ddd",
         "c88b05a41bb93c9f411a",
@@ -157,6 +159,7 @@ export function createScoutFixture(
             id,
             key: `server:${id}`,
             name: serverName(id),
+            environmentName: null,
             kind: "server",
             serverId: id,
             serverName: serverName(id),
@@ -166,6 +169,7 @@ export function createScoutFixture(
             id: w.id,
             key: `${!w.kind || w.kind === "app" ? "app" : "resource"}:${w.id}`,
             name: w.name,
+            environmentName: w.environment?.name ?? null,
             kind: !w.kind || w.kind === "app" ? "app" : "resource",
             serverId: w.serverId,
             serverName: serverName(w.serverId),
@@ -176,7 +180,8 @@ export function createScoutFixture(
             (e) =>
               (kind === "all" || kind === e.kind) &&
               (e.name.toLowerCase().includes(search) ||
-                e.serverName.includes(search)) &&
+                e.serverName.includes(search) ||
+                e.environmentName?.toLowerCase().includes(search)) &&
               e.key > after,
           )
           .sort((a, b) => a.key.localeCompare(b.key));
@@ -191,15 +196,19 @@ export function createScoutFixture(
         const identity = (owner: {
           serverId: string;
           deployableId: string | null;
-        }) => ({
-          serverName: serverName(owner.serverId),
-          workload: owner.deployableId
-            ? {
-                ...workloads.find((w) => w.id === owner.deployableId),
-                archivedAt: null,
-              }
-            : null,
-        });
+        }) => {
+          const workload = workloads.find((w) => w.id === owner.deployableId);
+          return {
+            serverName: serverName(owner.serverId),
+            workload: workload
+              ? {
+                  ...workload,
+                  environmentName: workload.environment?.name,
+                  archivedAt: null,
+                }
+              : null,
+          };
+        };
         const items =
           globalMatch[1] === "alerts"
             ? rules.map((rule) => ({

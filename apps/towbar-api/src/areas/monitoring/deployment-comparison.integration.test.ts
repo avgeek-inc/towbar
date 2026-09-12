@@ -1,3 +1,5 @@
+import { testDeploymentEnvironment } from "../sources/instance-test-helper.js";
+import { testInstanceLinks } from "../sources/instance-test-helper.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -50,7 +52,7 @@ void test(
       ssh: { username: "deploy" },
     });
     const appConfig = normalizeDeploymentManifest({
-      version: 1,
+      version: 2,
       apps: [
         {
           id: "app",
@@ -80,6 +82,7 @@ void test(
         name: "Comparison fixture",
       });
       await db.insert(servers).values({
+        slug: `server-${serverId}`,
         id: serverId,
         workspaceId,
         canonicalIp: "192.0.2.202",
@@ -104,9 +107,9 @@ void test(
         githubInstallationId: installation!.id,
         repositoryOwner: "example",
         repositoryName: "comparison",
-        branch: "main",
       });
       await db.insert(apps).values({
+        ...(await testInstanceLinks(sourceId, "app")),
         id: appId,
         workspaceId,
         sourceId,
@@ -120,6 +123,13 @@ void test(
       for (const [i, id] of [baselineId, candidateId].entries()) {
         const finishedAt = new Date(now.getTime() - (2 - i) * 3600_000);
         await db.insert(deployments).values({
+          targetEnvironment: await testDeploymentEnvironment(appId),
+          requiredSecrets: {
+            build: [],
+            runtime: [],
+            preDeploy: [],
+            postDeploy: [],
+          },
           id,
           workspaceId,
           sourceId,

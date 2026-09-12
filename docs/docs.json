@@ -106,7 +106,6 @@
                 "group": "Overview",
                 "pages": [
                   "api-reference/get_sources",
-                  "api-reference/post_sources",
                   "api-reference/get_sources_by_id",
                   "api-reference/delete_sources_by_id"
                 ]
@@ -114,11 +113,22 @@
               {
                 "group": "Sync & manifest",
                 "pages": [
-                  "api-reference/get_sources_by_id_manifest",
-                  "api-reference/post_sources_by_id_actions_preview_sync",
-                  "api-reference/post_sources_by_id_actions_sync",
+                  "api-reference/post_sources_discover",
+                  "api-reference/post_sources_connect",
                   "api-reference/get_sources_by_id_syncs",
                   "api-reference/get_sources_by_id_syncs_by_id"
+                ]
+              },
+              {
+                "group": "Environments",
+                "pages": [
+                  "api-reference/get_sources_by_id_environments",
+                  "api-reference/post_sources_by_id_environments",
+                  "api-reference/patch_sources_by_id_environments_by_id",
+                  "api-reference/post_sources_by_id_environments_by_id_syncs",
+                  "api-reference/delete_sources_by_id_environments_by_id",
+                  "api-reference/post_sources_by_id_environments_syncs",
+                  "api-reference/get_sources_by_id_environments_by_id_manifest"
                 ]
               },
               {
@@ -427,6 +437,7 @@
                   "api-reference/get_github",
                   "api-reference/post_github_actions_retry_preview_reporting",
                   "api-reference/get_github_repositories",
+                  "api-reference/get_github_branches",
                   "api-reference/delete_github"
                 ]
               },

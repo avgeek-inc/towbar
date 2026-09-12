@@ -69,14 +69,14 @@ export async function testBulkReveal({
         assert.deepEqual(await response.json(), expected);
       }
       const empty = await revealAll(
-        `/apps/${appId}/secrets/preview/post_deploy`,
+        `/apps/${appId}/secrets/preview:production/post_deploy`,
       );
       assert.equal(empty.status, 200);
       assert.deepEqual(
         await empty.json(),
         await readSecretValues({
           ...slot,
-          environment: "preview",
+          environment: "preview:production",
           stage: "post_deploy",
         }),
       );
@@ -96,8 +96,11 @@ export async function testBulkReveal({
         .where(eq(apps.id, appId));
       try {
         assert.equal(
-          (await revealAll(`/resources/${appId}/secrets/preview/deployment`))
-            .status,
+          (
+            await revealAll(
+              `/resources/${appId}/secrets/preview:production/deployment`,
+            )
+          ).status,
           422,
         );
         assert.equal(

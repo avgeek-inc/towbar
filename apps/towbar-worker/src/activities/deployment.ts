@@ -1,3 +1,4 @@
+import { isWorkerSelfDeployment } from "./self-deployment.js";
 import { ApplicationFailure, Context } from "@temporalio/activity";
 
 import {
@@ -49,7 +50,10 @@ export async function executeDeploymentActivity(deploymentId: string) {
     ]);
     await executeDeployment({
       context: contextResponse.context,
-      deferCleanup: getEnv().TOWBAR_APP_ID === contextResponse.context.app.id,
+      deferCleanup: isWorkerSelfDeployment(
+        getEnv().TOWBAR_APP_ID,
+        contextResponse.context,
+      ),
       hooks: {
         commitRelease: async (result: DeploymentResult) => {
           return await signedApiRequest<ReleaseCommitResult>(

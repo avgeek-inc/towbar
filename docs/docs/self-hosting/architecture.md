@@ -34,7 +34,7 @@ flowchart LR
   SSH --> Host[Ubuntu: Docker and Caddy]
 ```
 
-Each Source is a GitHub repository with a `.towbar/deployment.yml`. Successful
+Each Source is a GitHub repository with a `towbar.yml` and the entity files under `.towbar/`. Successful
 syncs normalize Apps and Resources into Source-scoped database records. Servers
 are workspace-owned physical hosts and may run workloads from multiple Sources.
 The optional AWS credential is workspace-scoped. Deployment history and
@@ -73,16 +73,16 @@ App has deployment and pull-request write permission.
 
 ## Secret resolution
 
-Secrets are editor-owned database records, separate from manifest snapshots. Owners can add, reveal, replace, and delete values. Shared values are not inherited automatically: child variables explicitly reference `{{globals.ENV_KEY}}` or `{{source.ENV_KEY}}` in the same environment and stage. Resources support Production runtime values only. Preview values and references never resolve Production secrets. The owner-only reveal operation returns a stored value or reference expression without resolving it and disables caching. File mode uses the bulk-reveal endpoint to load all configured values in the selected scope, environment, and stage with one request.
+Secret values are encrypted database records, separate from manifest snapshots. Entity files declare required keys; successful sync adds unset slots, preserves existing values and references, and removes deleted declarations. Owners edit and reveal values in Towbar. Missing required values block deployment, not sync. Shared values are not inherited automatically: child variables explicitly reference `{{globals.ENV_KEY}}` or `{{source.ENV_KEY}}` in the same environment and stage. Resources support runtime values in each named environment. Preview values and references never fall back to the target environment’s persistent secrets. The owner-only reveal operation returns a stored value or reference expression without resolving it and disables caching. File mode uses the bulk-reveal endpoint to load all configured values in the selected scope, environment, and stage with one request.
 
 The API encrypts each record with AES-256-GCM using `TOWBAR_CREDENTIALS_KEY`, binding ciphertext to workspace, owner, environment, stage, and record identity. An advisory transaction lock and expected revision protect both first writes and updates. Audit events contain metadata only. Deployment execution reads a consistent database snapshot and records only the revisions used; plaintext stays in execution memory and protected transfer files, outside Temporal history. Saving does not enqueue work. Image rollback resolves current runtime credentials.
 
 ## Repository trust
 
 Repository contents are trusted deployment input. Anyone who can change the
-configured production branch or an enabled Preview pull request can execute its
+branch mapped to a connected environment or an enabled Preview pull request can execute its
 build and runtime behavior with the secrets assigned to that environment.
-Protect production and restrict Preview credentials accordingly.
+Protect mapped branches and restrict Preview credentials accordingly.
 
 ## Trust boundaries
 

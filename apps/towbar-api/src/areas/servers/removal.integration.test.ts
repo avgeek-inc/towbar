@@ -1,3 +1,4 @@
+import { testInstanceLinks } from "../sources/instance-test-helper.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -67,7 +68,7 @@ void test(
         email: `${userId}@example.com`,
         displayName: "Test",
       });
-      const server = await createServer({ config, workspaceId });
+      const server = await createServer({ config, workspaceId, slug: "host" });
       serverId = server.id;
       const removal = { serverId, workspaceId, requestedBy: userId };
       const [installation] = await db
@@ -85,10 +86,9 @@ void test(
         githubInstallationId: installation!.id,
         repositoryOwner: "example",
         repositoryName: "platform",
-        branch: "main",
       });
       const manifest = normalizeDeploymentManifest({
-        version: 1,
+        version: 2,
         apps: [
           {
             id: "app",
@@ -102,6 +102,7 @@ void test(
         ],
       });
       const values = {
+        ...(await testInstanceLinks(sourceId, "app")),
         id: appId,
         workspaceId,
         sourceId,
@@ -171,13 +172,14 @@ void test(
         async () => {
           await db.delete(apps).where(eq(apps.id, appId));
           const resource = normalizeDeploymentManifest({
-            version: 1,
+            version: 2,
             resources: [
               { id: "db", name: "DB", type: "postgres", server: config.ip },
             ],
           }).resources![0]!;
           await db.insert(apps).values({
             ...values,
+            ...(await testInstanceLinks(sourceId, "db", "resource")),
             id: resourceId,
             kind: "postgres",
             config: resource,
@@ -347,7 +349,11 @@ void test(
               .insert(serverPreparations)
               .values({ serverId, configDigest: "test", steps: [] }),
           );
-          const revived = await createServer({ config, workspaceId });
+          const revived = await createServer({
+            config,
+            workspaceId,
+            slug: "host",
+          });
           assert.equal(revived.id, serverId);
           assert.equal(revived.setupStatus, "pending");
         },

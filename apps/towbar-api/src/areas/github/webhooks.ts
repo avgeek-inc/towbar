@@ -1,12 +1,13 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { digestValue } from "@workspace/towbar-core";
 import {
   githubInstallations,
   githubWebhookDeliveries,
+  sourceEnvironments,
   sources,
 } from "@workspace/towbar-database/schema";
 
@@ -14,7 +15,7 @@ import { requireGitHubEnv } from "../../env.js";
 import { badRequest, unauthorized } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueuePreviewPullRequestEvent } from "../../infrastructure/temporal.js";
-import { requestSourceSync } from "../sources/service.js";
+import { requestEnvironmentSync } from "../sources/environments.js";
 import { shouldReconcilePreviewPullRequest } from "./webhook-events.js";
 
 const pushSchema = z.object({
@@ -76,7 +77,7 @@ export async function processGitHubWebhook(input: {
   try {
     const sourceId =
       input.eventName === "push"
-        ? await processPush(payload)
+        ? await processGitHubPush(payload)
         : input.eventName === "pull_request"
           ? await processPullRequest(payload)
           : input.eventName === "installation"
@@ -95,7 +96,12 @@ export async function processGitHubWebhook(input: {
   }
 }
 
-async function processPush(payload: unknown) {
+export async function processGitHubPush(
+  payload: unknown,
+  enqueue: (
+    input: Parameters<typeof requestEnvironmentSync>[0],
+  ) => Promise<unknown> = requestEnvironmentSync,
+) {
   const push = pushSchema.parse(payload);
   const branch = push.ref.startsWith("refs/heads/")
     ? push.ref.slice("refs/heads/".length)
@@ -108,12 +114,27 @@ async function processPush(payload: unknown) {
   });
   const deleted = isDeletedPush(push);
   for (const source of matchingSources) {
-    if (source.branch !== branch || deleted) continue;
-    await requestSourceSync({
-      requestedBy: null,
-      sourceId: source.id,
-      workspaceId: source.workspaceId,
-    });
+    if (deleted) continue;
+    const environments = await getTowbarDatabase()
+      .select()
+      .from(sourceEnvironments)
+      .where(
+        and(
+          eq(sourceEnvironments.sourceId, source.id),
+          eq(sourceEnvironments.branch, branch),
+          isNull(sourceEnvironments.disconnectedAt),
+        ),
+      );
+    for (const environment of environments) {
+      await enqueue({
+        sourceId: source.id,
+        environmentId: environment.id,
+        expectedMappingRevision: environment.mappingRevision,
+        workspaceId: source.workspaceId,
+        requestedBy: null,
+        deployAfterSync: true,
+      });
+    }
   }
   return matchingSources[0]?.id ?? null;
 }
@@ -142,7 +163,6 @@ async function findActiveSources(input: {
 }) {
   return await getTowbarDatabase()
     .select({
-      branch: sources.branch,
       id: sources.id,
       workspaceId: sources.workspaceId,
     })
@@ -157,6 +177,7 @@ async function findActiveSources(input: {
         eq(sources.repositoryOwner, input.repositoryOwner),
         eq(sources.repositoryName, input.repositoryName),
         eq(sources.status, "active"),
+        isNull(githubInstallations.suspendedAt),
       ),
     )
     .orderBy(sources.createdAt);

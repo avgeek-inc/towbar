@@ -11,33 +11,20 @@ pnpm --filter @workspace/towbar-core typecheck
 pnpm --filter @workspace/towbar-core build
 ```
 
-The public deployment schema is stored in
-[`schemas/deployment.v1.json`](schemas/deployment.v1.json). Keep the JSON Schema,
-Zod schema, fixtures, and parser tests in lockstep.
+Towbar v2 declares environments in `towbar.yml` and entities in
+`.towbar/apps/**/*.app.yml` and `.towbar/resources/**/*.resource.yml`.
+Branch mappings belong to the control plane. Entities reference workspace
+servers by slug, with separate instances and secrets for each environment.
 
-Sources declare one authoritative `branch` (default `main`). Apps and Resources
-reference a workspace server by canonical IP. Server SSH, proxy, and bounded
-build-concurrency settings are configured through Towbar. A successful sync
-archives deployables missing from the manifest and restores them when their
-stable identity reappears.
-Apps may opt into `autoDeploy`, declare named root
-`deploymentInputs`, select those groups plus repository globs through
-`autoDeploy.inputs`, and run image-scoped `preDeploy`/`postDeploy` hooks. Plain
-`autoDeploy: true` intentionally treats every Source commit as changed for
-backward compatibility. Towbar does not impose deployment ordering between
-deployables. Operators who require ordering can disable automatic deployment
-for the downstream deployable and admit it manually after its prerequisite.
-Apps may also set `vulnerabilityScanning: true` when the Towbar installation
-enables the scanner capability. This control-plane policy does not change the
-runtime deployment digest. Normalized snapshots expand input groups and
-include their security-sensitive and automatic-deployment configuration.
+The public schemas are generated from the validation contracts with
+`pnpm --filter @workspace/towbar-core schemas`. Tests check that the committed
+schemas remain current. The repository parser resolves one environment at an
+immutable commit, validates merged defaults and overrides, and returns required
+secret declarations separately from runtime configuration. Version 1 is rejected.
 
-Apps may also opt into Preview deployments for same-repository pull requests
-targeting the Source branch. The normalized contract supplies an isolated
-Preview domain and TTL. Secret assignment remains editor-owned and outside
-normalized manifest snapshots. Server settings bound lower-priority Preview
-work with `previewBuildConcurrency` independently of
-their total `buildConcurrency`.
+Preview-enabled environments admit same-repository PRs targeting their mapped
+branches. Apps must also opt in. Preview values are isolated from persistent
+environments; secret values never enter repository snapshots.
 
 Towbar hashes the path, Git mode, object type, and object SHA of every matched
 file. That source-input digest is combined with runtime and server configuration

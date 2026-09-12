@@ -1,47 +1,26 @@
-import { and, desc, eq, inArray, isNull, ne, notInArray } from "drizzle-orm";
-
 import {
-  ManifestValidationError,
-  parseDeploymentManifest,
-  reconcileManifest,
-} from "@workspace/towbar-core";
+  environmentSyncStatuses,
+  summarizeSyncStatus,
+} from "./environment-status.js";
+import { and, desc, eq, inArray, notInArray } from "drizzle-orm";
 import {
   apps,
   deployments,
-  githubInstallations,
   githubWebhookDeliveries,
   imageVulnerabilityScans,
   releases,
   resourceOperations,
+  sourceEnvironments,
   sourceSyncs,
   sources,
 } from "@workspace/towbar-database/schema";
-
+import { executeEnvironmentSync } from "./environment-sync.js";
 import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
-import {
-  enqueueSourceSync,
-  wakeMaintenanceWorkflow,
-} from "../../infrastructure/temporal.js";
-import { fetchGitHubSourceSnapshot } from "../github/client.js";
-import { getGitHubInstallationForSource } from "../github/service.js";
 import {
   publicSourceSelection,
   publicSourceSyncSelection,
 } from "./public-selections.js";
-import {
-  assertStableDeployableKinds,
-  loadCurrentInventory,
-} from "./inventory.js";
-import {
-  calculateDesiredDeploymentDigests,
-  calculateLegacyReleaseDigests,
-  fetchRepositoryTreeForDeploymentInputs,
-} from "./deployment-digests.js";
-import { applyDeployableAction } from "./materialization.js";
-import { resolveWorkspaceServers } from "../servers/references.js";
-
-import type { ManifestIssue } from "@workspace/towbar-core";
 
 export async function listSources(workspaceId: string) {
   const database = getTowbarDatabase();
@@ -54,44 +33,18 @@ export async function listSources(workspaceId: string) {
     .where(eq(sources.workspaceId, workspaceId))
     .orderBy(desc(sources.updatedAt));
   const ids = rows.map((source) => source.id);
-  const syncs = ids.length
-    ? await database
-        .selectDistinctOn([sourceSyncs.sourceId], {
-          sourceId: sourceSyncs.sourceId,
-          status: sourceSyncs.status,
-        })
-        .from(sourceSyncs)
-        .where(inArray(sourceSyncs.sourceId, ids))
-        .orderBy(
-          sourceSyncs.sourceId,
-          desc(sourceSyncs.createdAt),
-          desc(sourceSyncs.id),
-        )
-    : [];
-  const statuses = new Map(syncs.map((sync) => [sync.sourceId, sync.status]));
+  const environments = await environmentSyncStatuses(ids);
   return rows.map((source) => ({
     ...source,
-    latestSyncStatus: statuses.get(source.id) ?? "never",
+    latestSyncStatus: summarizeSyncStatus(
+      environments
+        .filter(
+          (environment) =>
+            environment.sourceId === source.id && !environment.disconnectedAt,
+        )
+        .map((environment) => environment.latestSyncStatus),
+    ),
   }));
-}
-
-export async function createSource(input: {
-  branch: string;
-  githubInstallationId: string;
-  repositoryName: string;
-  repositoryOwner: string;
-  workspaceId: string;
-}) {
-  await getGitHubInstallationForSource({
-    installationId: input.githubInstallationId,
-    workspaceId: input.workspaceId,
-  });
-  const [source] = await getTowbarDatabase()
-    .insert(sources)
-    .values(input)
-    .returning(publicSourceSelection);
-  if (!source) throw new Error("Unable to create Source");
-  return source;
 }
 
 export async function getSource(sourceId: string, workspaceId: string) {
@@ -204,61 +157,11 @@ export async function deleteSource(sourceId: string, workspaceId: string) {
   });
 }
 
-export async function previewSourceSync(sourceId: string, workspaceId: string) {
-  const source = await getSourceWithInstallation(sourceId, workspaceId);
-  const { parsed, repositoryTree, snapshot } =
-    await fetchConfiguredSourceSnapshot(source);
-  const workspaceServers = await resolveWorkspaceServers(
-    workspaceId,
-    parsed.manifest,
-  );
-  calculateDesiredDeploymentDigests({
-    commitSha: snapshot.commitSha,
-    manifest: parsed.manifest,
-    repositoryTree,
-    servers: workspaceServers.map((server) => server.config),
-  });
-  const current = await loadCurrentInventory(sourceId);
-  assertStableDeployableKinds(current, parsed.manifest);
-  return {
-    commitSha: snapshot.commitSha,
-    manifest: parsed.manifest,
-    manifestDigest: parsed.digest,
-    reconciliation: reconcileManifest({
-      currentApps: current.apps,
-      currentResources: current.resources,
-      desired: parsed.manifest,
-    }),
-  };
-}
-
-export async function requestSourceSync(input: {
-  requestedBy: string | null;
-  sourceId: string;
-  workspaceId: string;
-}) {
-  await getSource(input.sourceId, input.workspaceId);
-  const [sync] = await getTowbarDatabase()
-    .insert(sourceSyncs)
-    .values({ requestedBy: input.requestedBy, sourceId: input.sourceId })
-    .returning({ id: sourceSyncs.id });
-  if (!sync) throw new Error("Unable to create Source sync");
-  try {
-    await enqueueSourceSync({
-      sourceId: input.sourceId,
-      syncId: sync.id,
-    });
-    return sync;
-  } catch (error) {
-    await markSyncFailed(sync.id, error);
-    throw error;
-  }
-}
-
 export async function executeSourceSync(syncId: string) {
   const [sync] = await getTowbarDatabase()
     .select({
       sourceId: sourceSyncs.sourceId,
+      sourceEnvironmentId: sourceSyncs.sourceEnvironmentId,
       workspaceId: sources.workspaceId,
     })
     .from(sourceSyncs)
@@ -266,20 +169,19 @@ export async function executeSourceSync(syncId: string) {
     .where(eq(sourceSyncs.id, syncId))
     .limit(1);
   if (!sync) throw notFound("Source sync");
-  return await applySourceSync({ ...sync, syncId });
-}
-
-export async function synchronizeSourceNow(
-  sourceId: string,
-  workspaceId: string,
-  requestedBy: string,
-) {
-  const [sync] = await getTowbarDatabase()
-    .insert(sourceSyncs)
-    .values({ requestedBy, sourceId })
-    .returning({ id: sourceSyncs.id });
-  if (!sync) throw new Error("Unable to create Source sync");
-  return await applySourceSync({ sourceId, syncId: sync.id, workspaceId });
+  if (!sync.sourceEnvironmentId) {
+    const message = "Source sync requires an environment mapping.";
+    await getTowbarDatabase()
+      .update(sourceSyncs)
+      .set({
+        status: "failed",
+        finishedAt: new Date(),
+        issues: [{ path: [], message }],
+      })
+      .where(eq(sourceSyncs.id, syncId));
+    throw conflict(message, "ENVIRONMENT_REQUIRED");
+  }
+  return executeEnvironmentSync(syncId, sync.workspaceId);
 }
 
 export async function listSourceSyncs(sourceId: string, workspaceId: string) {
@@ -287,6 +189,13 @@ export async function listSourceSyncs(sourceId: string, workspaceId: string) {
   return await getTowbarDatabase()
     .select(publicSourceSyncSelection)
     .from(sourceSyncs)
+    .leftJoin(
+      sourceEnvironments,
+      and(
+        eq(sourceEnvironments.id, sourceSyncs.sourceEnvironmentId),
+        eq(sourceEnvironments.sourceId, sourceSyncs.sourceId),
+      ),
+    )
     .where(eq(sourceSyncs.sourceId, sourceId))
     .orderBy(desc(sourceSyncs.createdAt));
 }
@@ -300,267 +209,15 @@ export async function getSourceSync(
   const [sync] = await getTowbarDatabase()
     .select(publicSourceSyncSelection)
     .from(sourceSyncs)
+    .leftJoin(
+      sourceEnvironments,
+      and(
+        eq(sourceEnvironments.id, sourceSyncs.sourceEnvironmentId),
+        eq(sourceEnvironments.sourceId, sourceSyncs.sourceId),
+      ),
+    )
     .where(and(eq(sourceSyncs.id, syncId), eq(sourceSyncs.sourceId, sourceId)))
     .limit(1);
   if (!sync) throw notFound("Source sync");
   return sync;
-}
-
-export async function getSourceManifest(sourceId: string, workspaceId: string) {
-  const [source] = await getTowbarDatabase()
-    .select({ latestSuccessfulSyncId: sources.latestSuccessfulSyncId })
-    .from(sources)
-    .where(and(eq(sources.id, sourceId), eq(sources.workspaceId, workspaceId)))
-    .limit(1);
-  if (!source) throw notFound("Source");
-  if (!source.latestSuccessfulSyncId) return null;
-  const [sync] = await getTowbarDatabase()
-    .select({
-      commitSha: sourceSyncs.commitSha,
-      manifest: sourceSyncs.normalizedManifest,
-      manifestDigest: sourceSyncs.manifestDigest,
-      rawManifest: sourceSyncs.rawManifest,
-    })
-    .from(sourceSyncs)
-    .where(eq(sourceSyncs.id, source.latestSuccessfulSyncId))
-    .limit(1);
-  return sync ?? null;
-}
-
-async function applySourceSync(input: {
-  sourceId: string;
-  syncId: string;
-  workspaceId: string;
-}) {
-  await getTowbarDatabase()
-    .update(sourceSyncs)
-    .set({ startedAt: new Date(), status: "running" })
-    .where(eq(sourceSyncs.id, input.syncId));
-  try {
-    const source = await getSourceWithInstallation(
-      input.sourceId,
-      input.workspaceId,
-    );
-    const { parsed, repositoryTree, snapshot } =
-      await fetchConfiguredSourceSnapshot(source);
-    const current = await loadCurrentInventory(input.sourceId);
-    const workspaceServers = await resolveWorkspaceServers(
-      input.workspaceId,
-      parsed.manifest,
-    );
-    assertStableDeployableKinds(current, parsed.manifest);
-    const reconciliation = reconcileManifest({
-      currentApps: current.apps,
-      currentResources: current.resources,
-      desired: parsed.manifest,
-    });
-    const desiredDeploymentDigests = calculateDesiredDeploymentDigests({
-      commitSha: snapshot.commitSha,
-      manifest: parsed.manifest,
-      repositoryTree,
-      servers: workspaceServers.map((server) => server.config),
-    });
-    const legacyReleaseDigests = await calculateLegacyReleaseDigests({
-      commitSha: snapshot.commitSha,
-      manifest: parsed.manifest,
-      repositoryTree,
-      repository: source,
-      sourceId: input.sourceId,
-    });
-    await getTowbarDatabase().transaction(async (transaction) => {
-      const desiredDomains = new Map(
-        [...parsed.manifest.apps, ...(parsed.manifest.resources ?? [])].flatMap(
-          (app) =>
-            app.domains
-              ? [
-                  [app.domains.primary, app.id] as const,
-                  ...app.domains.redirects.map(
-                    (redirect) => [redirect.host, app.id] as const,
-                  ),
-                ]
-              : [],
-        ),
-      );
-      if (desiredDomains.size > 0) {
-        const otherApps = await transaction
-          .select({ config: apps.config, manifestId: apps.manifestId })
-          .from(apps)
-          .where(
-            and(
-              eq(apps.workspaceId, input.workspaceId),
-              ne(apps.sourceId, input.sourceId),
-              isNull(apps.archivedAt),
-            ),
-          );
-        for (const otherApp of otherApps) {
-          const domains = otherApp.config.domains
-            ? [
-                otherApp.config.domains.primary,
-                ...otherApp.config.domains.redirects.map(
-                  (redirect) => redirect.host,
-                ),
-              ]
-            : [];
-          for (const domain of domains) {
-            const owner = desiredDomains.get(domain);
-            if (owner) {
-              throw conflict(
-                `Domain '${domain}' for app '${owner}' is already claimed by app '${otherApp.manifestId}'`,
-                "DOMAIN_CONFLICT",
-              );
-            }
-          }
-        }
-      }
-
-      const serverIds = new Map(
-        workspaceServers.map((server) => [server.ip, server.id] as const),
-      );
-      for (const [releaseId, digest] of legacyReleaseDigests) {
-        await transaction
-          .update(releases)
-          .set(digest)
-          .where(eq(releases.id, releaseId));
-      }
-      for (const action of reconciliation.apps) {
-        await applyDeployableAction(transaction, {
-          action,
-          commitSha: snapshot.commitSha,
-          deploymentDigests: desiredDeploymentDigests,
-          serverIds,
-          sourceId: input.sourceId,
-          workspaceId: input.workspaceId,
-        });
-      }
-      for (const action of reconciliation.resources) {
-        await applyDeployableAction(transaction, {
-          action,
-          commitSha: snapshot.commitSha,
-          deploymentDigests: desiredDeploymentDigests,
-          serverIds,
-          sourceId: input.sourceId,
-          workspaceId: input.workspaceId,
-        });
-      }
-
-      const now = new Date();
-      await transaction
-        .update(sourceSyncs)
-        .set({
-          commitSha: snapshot.commitSha,
-          finishedAt: now,
-          issues: [],
-          manifestDigest: parsed.digest,
-          normalizedManifest: parsed.manifest,
-          rawManifest: snapshot.manifestSource,
-          reconciliation,
-          status: "succeeded",
-        })
-        .where(eq(sourceSyncs.id, input.syncId));
-      await transaction
-        .update(sources)
-        .set({
-          branch: parsed.manifest.source.branch,
-          latestCommitSha: snapshot.commitSha,
-          latestManifestDigest: parsed.digest,
-          latestSuccessfulSyncId: input.syncId,
-          updatedAt: now,
-        })
-        .where(eq(sources.id, input.sourceId));
-    });
-    void wakeMaintenanceWorkflow().catch(() => undefined);
-    return {
-      commitSha: snapshot.commitSha,
-      manifest: parsed.manifest,
-      manifestDigest: parsed.digest,
-      reconciliation,
-      syncId: input.syncId,
-    };
-  } catch (error) {
-    await markSyncFailed(input.syncId, error);
-    throw error;
-  }
-}
-
-async function getSourceWithInstallation(
-  sourceId: string,
-  workspaceId: string,
-) {
-  const [source] = await getTowbarDatabase()
-    .select({
-      branch: sources.branch,
-      installationId: githubInstallations.installationId,
-      repositoryName: sources.repositoryName,
-      repositoryOwner: sources.repositoryOwner,
-      status: sources.status,
-    })
-    .from(sources)
-    .innerJoin(
-      githubInstallations,
-      eq(githubInstallations.id, sources.githubInstallationId),
-    )
-    .where(and(eq(sources.id, sourceId), eq(sources.workspaceId, workspaceId)))
-    .limit(1);
-  if (!source) throw notFound("Source");
-  if (source.status === "archived") {
-    throw conflict("Archived Sources cannot be synchronized");
-  }
-  return source;
-}
-
-async function fetchConfiguredSourceSnapshot(
-  source: Awaited<ReturnType<typeof getSourceWithInstallation>>,
-) {
-  let snapshot = await fetchGitHubSourceSnapshot(source);
-  let parsed = parseDeploymentManifest(snapshot.manifestSource);
-  const configuredBranch = parsed.manifest.source.branch;
-  if (configuredBranch === source.branch) {
-    return {
-      parsed,
-      repositoryTree: await fetchRepositoryTreeForDeploymentInputs({
-        commitSha: snapshot.commitSha,
-        manifestApps: parsed.manifest.apps,
-        repository: source,
-      }),
-      snapshot,
-    };
-  }
-
-  snapshot = await fetchGitHubSourceSnapshot({
-    ...source,
-    branch: configuredBranch,
-  });
-  parsed = parseDeploymentManifest(snapshot.manifestSource);
-  if (parsed.manifest.source.branch !== configuredBranch) {
-    throw conflict(
-      `Branch '${configuredBranch}' must declare itself as source.branch`,
-      "SOURCE_BRANCH_REDIRECT",
-    );
-  }
-  return {
-    parsed,
-    repositoryTree: await fetchRepositoryTreeForDeploymentInputs({
-      commitSha: snapshot.commitSha,
-      manifestApps: parsed.manifest.apps,
-      repository: source,
-    }),
-    snapshot,
-  };
-}
-
-async function markSyncFailed(syncId: string, error: unknown) {
-  const issues: ManifestIssue[] =
-    error instanceof ManifestValidationError
-      ? error.issues
-      : [
-          {
-            message:
-              error instanceof Error ? error.message : "Source sync failed",
-            path: [],
-          },
-        ];
-  await getTowbarDatabase()
-    .update(sourceSyncs)
-    .set({ finishedAt: new Date(), issues, status: "failed" })
-    .where(eq(sourceSyncs.id, syncId));
 }

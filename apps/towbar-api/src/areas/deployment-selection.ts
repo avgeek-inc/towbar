@@ -6,6 +6,7 @@ type PublicDeploymentTrigger = "auto_deploy" | "manual" | "rollback";
 /** Fields safe and useful for authenticated dashboard responses. */
 export const publicDeploymentSelection = {
   appId: deployments.appId,
+  targetEnvironment: deployments.targetEnvironment,
   commitSha: deployments.commitSha,
   deployableKind: deployments.deployableKind,
   environment: deployments.environment,

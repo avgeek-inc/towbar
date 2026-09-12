@@ -28,6 +28,7 @@ import { formatMetric } from "./monitoring-metric-chart";
 import { formatDate } from "./dashboard-overview";
 
 type DeploymentChoice = {
+  targetEnvironment: { id: string; name: string };
   id: string;
   commitSha: string | null;
   finishedAt: string | null;
@@ -104,6 +105,7 @@ export function ScoutComparison({ deployableId }: { deployableId: string }) {
   const compatible = rows.filter(
     (d) =>
       d.id !== selectedCandidate?.id &&
+      d.targetEnvironment.id === selectedCandidate?.targetEnvironment.id &&
       d.environment === selectedCandidate?.environment &&
       d.previewId === selectedCandidate?.previewId,
   );
@@ -118,7 +120,7 @@ export function ScoutComparison({ deployableId }: { deployableId: string }) {
     compatible[0];
   const choice = (d: DeploymentChoice) => ({
     id: d.id,
-    label: `${d.commitSha?.slice(0, 7) ?? d.id.slice(0, 8)} · ${d.environment === "preview" ? "Preview" : "Production"} · ${d.finishedAt ? formatDate(d.finishedAt) : "Unknown time"}`,
+    label: `${d.commitSha?.slice(0, 7) ?? d.id.slice(0, 8)} · ${d.targetEnvironment.name}${d.environment === "preview" ? " · Preview" : ""} · ${d.finishedAt ? formatDate(d.finishedAt) : "Unknown time"}`,
   });
   function compare(event: FormEvent) {
     event.preventDefault();
