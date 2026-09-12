@@ -464,11 +464,7 @@ function SourceCreate({
               </div>
             ) : null}
           </div>
-        ) : (
-          <p className="text-sm text-muted lg:pt-8">
-            Choose a repository to configure its environments.
-          </p>
-        )}
+        ) : null}
       </div>
       <div className="flex flex-wrap items-center justify-between gap-4 border-t border-separator pt-5">
         <p className="text-xs text-muted">
