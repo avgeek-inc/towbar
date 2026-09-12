@@ -61,7 +61,7 @@ Commit these files to the branch you will map to production in Towbar. Automatic
 
 ## 2. Add and sync the Source
 
-Open **Sources → Add source**, select the repository and discovery branch, then select production and map it to your branch. Wait for the initial sync, then open its result.
+Open **Sources → Add source**, select the repository, then select production and map it to your branch. Wait for the initial sync, then open its result.
 
 A successful sync imports **Hello Towbar** into the Source's Apps list. If it fails, correct the reported manifest field or missing server reference and sync again. A successful sync accepts configuration; it does not mean the app is running.
 

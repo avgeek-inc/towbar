@@ -24,18 +24,19 @@ export const sourceDiscoverySchema = z
     discoveryBranch: sourceEnvironmentMappingSchema.shape.branch,
   })
   .strict();
-export const sourceConnectionSchema = sourceDiscoverySchema.extend({
-  environments: z
-    .array(sourceEnvironmentMappingSchema)
-    .min(1)
-    .max(20)
-    .refine(
-      (mappings) =>
-        new Set(mappings.map((mapping) => mapping.environment)).size ===
-        mappings.length,
-      "An environment can only be connected once",
-    ),
-});
+export const sourceConnectionSchema = sourceDiscoverySchema
+  .omit({ discoveryBranch: true })
+  .extend({
+    environments: z
+      .array(sourceEnvironmentMappingSchema)
+      .min(1)
+      .refine(
+        (mappings) =>
+          new Set(mappings.map((mapping) => mapping.environment)).size ===
+          mappings.length,
+        "An environment can only be connected once",
+      ),
+  });
 
 export async function discoverSource(
   input: z.infer<typeof sourceDiscoverySchema> & { workspaceId: string },
@@ -71,23 +72,12 @@ export async function connectRepositorySource(
     installationId: input.githubInstallationId,
     workspaceId: input.workspaceId,
   });
-  const discovered = await discoverSource(input);
   const resolved: {
     environment: string;
     branch: string;
     previewsEnabled: boolean;
   }[] = [];
   for (const mapping of input.environments) {
-    if (
-      !discovered.environments.some(
-        (environment) => environment.name === mapping.environment,
-      )
-    ) {
-      throw conflict(
-        `Environment '${mapping.environment}' is not declared on the discovery branch`,
-        "ENVIRONMENT_NOT_DECLARED",
-      );
-    }
     const snapshot = await fetchGitHubEnvironmentSnapshot({
       installationId: installation.installationId,
       repositoryName: input.repositoryName,

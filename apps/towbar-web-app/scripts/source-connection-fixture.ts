@@ -131,8 +131,6 @@ export function createSourceConnectionFixture(input: {
       request.repositoryName !== "example-service"
     )
       throw new Error("Repository installation was not found");
-    if (!["main", "develop"].includes(String(request.discoveryBranch)))
-      throw new Error("Discovery branch was not found");
     if (
       [...input.existing, ...sources].some(
         (source) =>

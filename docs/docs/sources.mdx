@@ -10,7 +10,7 @@ A Source connects a GitHub repository to Towbar. Its `towbar.yml` declares envir
 1. [Connect the GitHub App](/docs/integrations/github) and grant access to the repository.
 2. Register each target under [Servers](/docs/servers) and assign a unique slug.
 3. Commit a valid [manifest](/docs/reference/deployment-manifest) to the repository.
-4. Open **Sources → Add source**, select the repository and discovery branch, then choose environments and map their deployment branches.
+4. Open **Sources → Add source**, select the repository, then choose or add environments and map their deployment branches.
 5. Open the sync result and confirm it succeeded. The imported apps and resources should now appear under the Source.
 
 Manifest validation is atomic. Invalid configuration or a reference to an unregistered server fails the sync without partially changing inventory.
@@ -96,3 +96,5 @@ If a repository is missing or a webhook stops arriving, start with [GitHub troub
 ## Delete a source
 
 Deleting a source removes its imported apps, resources, and operational history from Towbar. Running services and Docker data remain on their servers. After deletion, run **Check server** on each affected server and open **Settings → Cleanup** to review leftovers and remove them on demand. Volume deletion is a separate, permanent action. See [server cleanup](/docs/servers#clean-up-leftover-workloads).
+
+Towbar suggests environments from the repository default branch when its configuration is available. You can add other environment names directly, even when the default branch has no manifest. Each selected environment is validated against `towbar.yml` on its mapped branch. Environment names must be unique within a Source; there is no fixed environment-count limit. Server capacity and repository size still constrain what can run.

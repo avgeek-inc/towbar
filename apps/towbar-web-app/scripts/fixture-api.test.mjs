@@ -1142,7 +1142,6 @@ test("connecting a selected environment persists isolated instances without depl
       githubInstallationId: connection.id,
       repositoryOwner: "example-inc",
       repositoryName: "example-service",
-      discoveryBranch: "main",
       environments: [{ environment: "staging", branch: "develop" }],
     };
     const before = await get("/sources");

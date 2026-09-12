@@ -10268,14 +10268,8 @@
                     "minLength": 1,
                     "maxLength": 255
                   },
-                  "discoveryBranch": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 255
-                  },
                   "environments": {
                     "minItems": 1,
-                    "maxItems": 20,
                     "type": "array",
                     "items": {
                       "type": "object",
@@ -10299,7 +10293,6 @@
                   "githubInstallationId",
                   "repositoryOwner",
                   "repositoryName",
-                  "discoveryBranch",
                   "environments"
                 ],
                 "additionalProperties": false

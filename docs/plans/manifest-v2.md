@@ -20,7 +20,7 @@ Status: implementation and local verification complete; final remote verificatio
 
 ## Connection and sync
 
-- Select repository and discovery branch, inspect environments, map branches, connect and initially sync without deploying.
+- Select a repository, optionally suggest environments from its default branch, add or select named environments and map their branches. Connect and initially sync without deploying.
 - Explicit Add environment connects a discovered environment. Git declarations alone do not activate it.
 - Each sync reads only the mapped branch at an immutable commit and resolves the selected environment.
 - Validate the complete environment before atomic reconciliation. Failed fetches, missing branches/directories, and invalid declarations preserve previous configuration and secrets.

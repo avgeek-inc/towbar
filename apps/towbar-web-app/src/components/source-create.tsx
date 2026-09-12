@@ -1,7 +1,6 @@
 "use client";
 import {
   Add01Icon,
-  Search01Icon,
   GitBranchIcon,
   GithubIcon,
 } from "@hugeicons/core-free-icons";
@@ -48,7 +47,8 @@ export function SourceCreate() {
   );
   const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
-  const [discoveryBranch, setDiscoveryBranch] = useState("");
+  const [customEnvironment, setCustomEnvironment] = useState("");
+  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
   const [discovered, setDiscovered] = useState<
     { name: string; previewsEnabled: boolean }[] | null
   >(null);
@@ -200,31 +200,10 @@ export function SourceCreate() {
               setBusy(true);
               try {
                 const repository = {
-                  discoveryBranch: discoveryBranch || selected.defaultBranch,
                   githubInstallationId,
                   repositoryName: selected.name,
                   repositoryOwner: selected.owner,
                 };
-                if (!discovered) {
-                  const result = await api.post<{
-                    environments: { name: string; previewsEnabled: boolean }[];
-                  }>("/v1/core/sources/discover", repository);
-                  setDiscovered(result.environments);
-                  setSelectedEnvironments(
-                    result.environments.map((environment) => environment.name),
-                  );
-                  setMappings(
-                    Object.fromEntries(
-                      result.environments.map((environment) => [
-                        environment.name,
-                        environment.name === "production"
-                          ? selected.defaultBranch
-                          : "",
-                      ]),
-                    ),
-                  );
-                  return;
-                }
                 const result = await api.post<{
                   source: Source;
                   syncs: { error: string | null }[];
@@ -265,10 +244,52 @@ export function SourceCreate() {
               isDisabled={busy}
               selectedKey={fullName || null}
               variant="secondary"
-              onSelectionChange={(value) => {
-                setFullName(String(value ?? ""));
-                setDiscoveryBranch("");
+              onSelectionChange={async (value) => {
+                const name = String(value ?? "");
+                setFullName(name);
                 setDiscovered(null);
+                setSelectedEnvironments([]);
+                setMappings({});
+                setCustomEnvironment("");
+                setDiscoveryError(null);
+                const repository = repositories.data?.repositories.find(
+                  (repo) => repo.fullName === name,
+                );
+                if (!repository) return;
+                setBusy(true);
+                try {
+                  const result = await api.post<{
+                    environments: { name: string; previewsEnabled: boolean }[];
+                  }>("/v1/core/sources/discover", {
+                    githubInstallationId,
+                    repositoryOwner: repository.owner,
+                    repositoryName: repository.name,
+                    discoveryBranch: repository.defaultBranch,
+                  });
+                  setDiscovered(result.environments);
+                  setSelectedEnvironments(
+                    result.environments.map((environment) => environment.name),
+                  );
+                  setMappings(
+                    Object.fromEntries(
+                      result.environments.map((environment) => [
+                        environment.name,
+                        environment.name === "production"
+                          ? repository.defaultBranch
+                          : "",
+                      ]),
+                    ),
+                  );
+                } catch (error) {
+                  setDiscovered([]);
+                  setDiscoveryError(
+                    error instanceof Error
+                      ? error.message
+                      : "Could not read the default branch.",
+                  );
+                } finally {
+                  setBusy(false);
+                }
               }}
             >
               <Label>Repository</Label>
@@ -296,23 +317,6 @@ export function SourceCreate() {
                 branches are managed here, not in YAML.
               </Description>
             </ComboBox>
-            <div className="grid gap-2">
-              <Label htmlFor="source-discovery-branch">Discovery branch</Label>
-              <Input
-                id="source-discovery-branch"
-                value={discoveryBranch || selected?.defaultBranch || ""}
-                variant="secondary"
-                disabled={!selected || busy}
-                onChange={(event) => {
-                  setDiscoveryBranch(event.target.value);
-                  setDiscovered(null);
-                }}
-              />
-              <p className="text-xs text-muted">
-                Used to discover environments during connection. Each
-                environment follows its own branch after connecting.
-              </p>
-            </div>
             {discovered ? (
               <div className="grid gap-4">
                 <p>
@@ -322,6 +326,13 @@ export function SourceCreate() {
                 <p className="text-xs text-muted">
                   You can connect other environments later.
                 </p>
+                {discoveryError ? (
+                  <p className="text-xs text-muted">
+                    Could not suggest environments from the default branch:{" "}
+                    {discoveryError} Add a mapping below; Towbar will validate
+                    its selected branch.
+                  </p>
+                ) : null}
                 {discovered.map((environment) => (
                   <div key={environment.name} className="grid gap-2">
                     <Checkbox
@@ -369,13 +380,59 @@ export function SourceCreate() {
                         }))
                       }
                     />
-                    <p className="text-xs text-muted">
-                      {environment.previewsEnabled
-                        ? "PR previews enabled for this target branch"
-                        : "PR previews disabled"}
-                    </p>
                   </div>
                 ))}
+                <div className="grid gap-2">
+                  <Label htmlFor="new-environment">Environment name</Label>
+                  <div className="flex flex-wrap gap-2">
+                    <Input
+                      id="new-environment"
+                      className="min-w-0 flex-1"
+                      variant="secondary"
+                      value={customEnvironment}
+                      disabled={busy}
+                      placeholder="e.g. qa"
+                      onChange={(event) =>
+                        setCustomEnvironment(event.target.value)
+                      }
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      isDisabled={
+                        busy ||
+                        !customEnvironment.trim() ||
+                        discovered.some(
+                          (item) => item.name === customEnvironment.trim(),
+                        )
+                      }
+                      onPress={() => {
+                        const name = customEnvironment.trim();
+                        setDiscovered([
+                          ...discovered,
+                          { name, previewsEnabled: false },
+                        ]);
+                        setSelectedEnvironments([
+                          ...selectedEnvironments,
+                          name,
+                        ]);
+                        setCustomEnvironment("");
+                      }}
+                    >
+                      <HugeiconsIcon
+                        icon={Add01Icon}
+                        className="size-4"
+                        aria-hidden="true"
+                      />
+                      Add environment
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted">
+                    Each environment must be declared in towbar.yml on its
+                    selected branch. You can add more environments after
+                    connecting.
+                  </p>
+                </div>
                 <p className="text-xs text-muted">
                   Connecting imports configuration and creates required secret
                   fields. It does not deploy workloads.
@@ -384,19 +441,15 @@ export function SourceCreate() {
             ) : null}
             <Button
               className="w-fit"
-              isDisabled={!selected || busy || invalidSelection}
+              isDisabled={!selected || !discovered || busy || invalidSelection}
               type="submit"
             >
               <HugeiconsIcon
                 aria-hidden="true"
-                icon={discovered ? Add01Icon : Search01Icon}
+                icon={Add01Icon}
                 className="size-4 shrink-0"
               />
-              {busy
-                ? "Loading…"
-                : discovered
-                  ? "Connect source"
-                  : "Review configuration"}
+              {busy ? "Loading…" : "Connect source"}
             </Button>
           </form>
         </FormCard>

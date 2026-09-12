@@ -212,9 +212,11 @@ void test("source tools use v2 discovery, branch mappings and environment sync r
     githubInstallationId: uuid,
     repositoryOwner: "example",
     repositoryName: "app",
-    discoveryBranch: "main",
   };
-  await get("source_discover").run(repository, h.context);
+  await get("source_discover").run(
+    { ...repository, discoveryBranch: "main" },
+    h.context,
+  );
   assert.equal(h.calls.at(-1)!.route, "/sources/discover");
   await get("source_connect").run(
     {
