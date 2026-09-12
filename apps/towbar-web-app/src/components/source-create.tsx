@@ -241,7 +241,7 @@ export function SourceCreate() {
               }
             }}
           >
-            <div className="grid items-start gap-8 lg:grid-cols-2">
+            <div className="grid gap-6">
               <div className="grid min-w-0 gap-6">
                 <ComboBox
                   className="gap-3"
@@ -353,72 +353,18 @@ export function SourceCreate() {
                     </ListBox>
                   </ComboBox.Popover>
                   <Description>
-                    Towbar reads towbar.yml to discover environments. Deployment
-                    branches are managed here, not in YAML.
+                    Environments are suggested from this repository. Choose
+                    their branches below.
                   </Description>
                 </ComboBox>
-                {discovered ? (
-                  <div className="grid gap-2">
-                    <Label htmlFor="new-environment">Environment name</Label>
-                    <div className="flex flex-wrap gap-2">
-                      <Input
-                        id="new-environment"
-                        className="min-w-0 flex-1"
-                        variant="secondary"
-                        value={customEnvironment}
-                        disabled={busy}
-                        placeholder="e.g. qa"
-                        onChange={(event) =>
-                          setCustomEnvironment(event.target.value)
-                        }
-                      />
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        isDisabled={
-                          busy ||
-                          !customEnvironment.trim() ||
-                          discovered.some(
-                            (item) => item.name === customEnvironment.trim(),
-                          )
-                        }
-                        onPress={() => {
-                          const name = customEnvironment.trim();
-                          setDiscovered([
-                            ...discovered,
-                            { name, previewsEnabled: false },
-                          ]);
-                          setSelectedEnvironments([
-                            ...selectedEnvironments,
-                            name,
-                          ]);
-                          setCustomNames([...customNames, name]);
-                          setCustomEnvironment("");
-                        }}
-                      >
-                        <HugeiconsIcon
-                          icon={Add01Icon}
-                          className="size-4"
-                          aria-hidden="true"
-                        />
-                        Add environment
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted">
-                      Each environment must be declared in towbar.yml on its
-                      selected branch. You can add more environments after
-                      connecting.
-                    </p>
-                  </div>
-                ) : null}
               </div>
               {discovered ? (
                 <div className="grid min-w-0 gap-4">
                   <div className="grid gap-2">
-                    <p className="text-sm">Environment mappings</p>
+                    <Label id="source-environments-label">Environments</Label>
                     <p className="text-xs text-muted">
-                      Select the environments to connect and assign their
-                      deployment branches.
+                      Choose which environments to connect, then set a branch
+                      for each.
                     </p>
                   </div>
                   {discoveryError ? (
@@ -428,9 +374,19 @@ export function SourceCreate() {
                       its selected branch.
                     </p>
                   ) : null}
+                  <div
+                    className="hidden gap-4 text-xs text-muted sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_2.25rem]"
+                    aria-hidden="true"
+                  >
+                    <span>Environment</span>
+                    <span>Deployment branch</span>
+                  </div>
                   {discovered.map((environment) => (
-                    <div key={environment.name} className="grid gap-2">
-                      <div className="flex min-h-9 items-center justify-between gap-3">
+                    <div
+                      key={environment.name}
+                      className="grid grid-cols-[minmax(0,1fr)_2.25rem] items-center gap-x-4 gap-y-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_2.25rem]"
+                    >
+                      <div className="col-start-1 row-start-1 flex min-h-9 min-w-0 items-center">
                         <Checkbox
                           variant="secondary"
                           isDisabled={busy}
@@ -454,68 +410,128 @@ export function SourceCreate() {
                             <Label>{environment.name}</Label>
                           </Checkbox.Content>
                         </Checkbox>
-                        {customNames.includes(environment.name) ? (
-                          <Button
-                            type="button"
-                            isIconOnly
-                            variant="ghost"
-                            isDisabled={busy}
-                            aria-label={`Remove ${environment.name} environment`}
-                            onPress={() => {
-                              const name = environment.name;
-                              setDiscovered(
-                                discovered.filter((item) => item.name !== name),
-                              );
-                              setSelectedEnvironments(
-                                selectedEnvironments.filter(
-                                  (item) => item !== name,
-                                ),
-                              );
-                              setCustomNames(
-                                customNames.filter((item) => item !== name),
-                              );
-                              setMappings((current) => {
-                                const next = { ...current };
-                                delete next[name];
-                                return next;
-                              });
-                            }}
-                          >
-                            <HugeiconsIcon
-                              icon={Delete02Icon}
-                              className="size-4 text-danger"
-                              aria-hidden="true"
-                            />
-                          </Button>
-                        ) : null}
                       </div>
-                      <Label
-                        className="sr-only"
-                        htmlFor={`branch-${environment.name}`}
-                      >
-                        {environment.name} deployment branch
-                      </Label>
-                      <Input
-                        id={`branch-${environment.name}`}
-                        required={selectedEnvironments.includes(
-                          environment.name,
-                        )}
-                        variant="secondary"
-                        value={mappings[environment.name] ?? ""}
-                        disabled={
-                          busy ||
-                          !selectedEnvironments.includes(environment.name)
-                        }
-                        placeholder="Choose a deployment branch"
-                        onChange={(event) =>
-                          setMappings((current) => ({
-                            ...current,
-                            [environment.name]: event.target.value,
-                          }))
-                        }
-                      />
+                      <div className="col-span-2 row-start-2 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1">
+                        <Label
+                          className="sr-only"
+                          htmlFor={`branch-${environment.name}`}
+                        >
+                          {environment.name} deployment branch
+                        </Label>
+                        <Input
+                          id={`branch-${environment.name}`}
+                          className="w-full"
+                          required={selectedEnvironments.includes(
+                            environment.name,
+                          )}
+                          variant="secondary"
+                          value={mappings[environment.name] ?? ""}
+                          disabled={
+                            busy ||
+                            !selectedEnvironments.includes(environment.name)
+                          }
+                          placeholder="Choose a deployment branch"
+                          onChange={(event) =>
+                            setMappings((current) => ({
+                              ...current,
+                              [environment.name]: event.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                      {customNames.includes(environment.name) ? (
+                        <Button
+                          className="col-start-2 row-start-1 sm:col-start-3"
+                          type="button"
+                          isIconOnly
+                          variant="ghost"
+                          isDisabled={busy}
+                          aria-label={`Remove ${environment.name} environment`}
+                          onPress={() => {
+                            const name = environment.name;
+                            setDiscovered(
+                              discovered.filter((item) => item.name !== name),
+                            );
+                            setSelectedEnvironments(
+                              selectedEnvironments.filter(
+                                (item) => item !== name,
+                              ),
+                            );
+                            setCustomNames(
+                              customNames.filter((item) => item !== name),
+                            );
+                            setMappings((current) => {
+                              const next = { ...current };
+                              delete next[name];
+                              return next;
+                            });
+                          }}
+                        >
+                          <HugeiconsIcon
+                            icon={Delete02Icon}
+                            className="size-4 text-danger"
+                            aria-hidden="true"
+                          />
+                        </Button>
+                      ) : null}
                     </div>
                   ))}
+                  {discovered ? (
+                    <div className="grid gap-2 border-t border-separator pt-4">
+                      <Label htmlFor="new-environment">
+                        Add another environment
+                      </Label>
+                      <div className="flex max-w-xl flex-wrap gap-2">
+                        <Input
+                          id="new-environment"
+                          className="min-w-0 flex-1"
+                          variant="secondary"
+                          value={customEnvironment}
+                          disabled={busy}
+                          placeholder="e.g. qa"
+                          onChange={(event) =>
+                            setCustomEnvironment(event.target.value)
+                          }
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          isDisabled={
+                            busy ||
+                            !customEnvironment.trim() ||
+                            discovered.some(
+                              (item) => item.name === customEnvironment.trim(),
+                            )
+                          }
+                          onPress={() => {
+                            const name = customEnvironment.trim();
+                            setDiscovered([
+                              ...discovered,
+                              { name, previewsEnabled: false },
+                            ]);
+                            setSelectedEnvironments([
+                              ...selectedEnvironments,
+                              name,
+                            ]);
+                            setCustomNames([...customNames, name]);
+                            setCustomEnvironment("");
+                          }}
+                        >
+                          <HugeiconsIcon
+                            icon={Add01Icon}
+                            className="size-4"
+                            aria-hidden="true"
+                          />
+                          Add environment
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted">
+                        Each environment must be declared in towbar.yml on its
+                        selected branch. You can add more environments after
+                        connecting.
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <p className="text-sm text-muted lg:pt-8">
