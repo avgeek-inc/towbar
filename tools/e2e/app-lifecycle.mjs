@@ -271,6 +271,19 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
     assert.equal(response(name), `${name}:a`);
   const productionContainer = instances.get("production").current.containerName;
   await deploy("staging", "b");
+  const stagingRelease = instances.get("staging").current;
+  assert.equal(stagingRelease.commitSha, "b".repeat(40));
+  assert.equal(fetched.at(-1), "b".repeat(40));
+  assert.equal(
+    target.ssh(
+      `docker inspect --format '{{index .Config.Labels "towbar.commit"}}' ${stagingRelease.containerName}`,
+    ),
+    "b".repeat(40),
+  );
+  assert.equal(
+    target.ssh(`docker exec ${stagingRelease.containerName} cat /app/revision`),
+    "b",
+  );
   assert.equal(response("staging"), "staging:b");
   assert.equal(response("production"), "production:a");
   if (!integrated) assert.equal(response("preview"), "preview:a");

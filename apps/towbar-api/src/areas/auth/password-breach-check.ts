@@ -4,7 +4,7 @@ import { APIError } from "better-auth/api";
 export function pwnedPasswordRangeDigest(candidate: string) {
   // HIBP's k-anonymity range protocol requires SHA-1. This digest is never used
   // to store or verify Towbar credentials.
-  // lgtm[js/insufficient-password-hash]
+  // codeql[js/insufficient-password-hash]
   return createHash("sha1").update(candidate).digest("hex").toUpperCase();
 }
 

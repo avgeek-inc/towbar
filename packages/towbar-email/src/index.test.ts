@@ -16,10 +16,19 @@ for (const template of transactionalTemplates) {
     assert(!mail.html.includes("<script>"));
     assert(!mail.html.includes("<img src=x"));
     assert(mail.text.includes("Product & <Research>"));
-    assert(
-      mail.text
-        .split(/\s+/u)
-        .includes("https://towbar.example.test/invite/a-safe-example"),
+    const actionUrl = mail.text
+      .split(/\s+/u)
+      .filter((value) => URL.canParse(value))
+      .map((value) => new URL(value))
+      .find(
+        (value) =>
+          value.protocol === "https:" &&
+          value.hostname === "towbar.example.test" &&
+          value.pathname === "/invite/a-safe-example",
+      );
+    assert.equal(
+      actionUrl?.href,
+      "https://towbar.example.test/invite/a-safe-example",
     );
   });
 }
