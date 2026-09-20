@@ -66,16 +66,20 @@ const configureDockerBuildCacheScript = String.raw`
 cache_image="towbar/build-cache-$cache_scope:current"
 cache_marker="/var/lib/towbar/build-cache/$cache_scope"
 cached_commit="$(cat "$cache_marker" 2>/dev/null || true)"
+cache_mode=disabled
 if test "$cache_enabled" = true; then
   build_args+=(--build-arg BUILDKIT_INLINE_CACHE=1)
   if test "$cached_commit" = "$TOWBAR_COMMIT_SHA" && docker image inspect "$cache_image" >/dev/null 2>&1; then
     build_args+=(--cache-from "$cache_image")
+    cache_mode=reuse
   else
     build_args+=(--no-cache)
+    cache_mode=clean
   fi
 else
   build_args+=(--no-cache)
 fi
+context_digest="$(sha256sum "$remote_dir/context.tar.gz" | awk '{print $1}')"
 `;
 
 export const prepareRemoteScript = String.raw`
@@ -135,6 +139,8 @@ DOCKER_BUILDKIT=1 docker build "${"$"}{build_args[@]}" \
   --label "towbar.deployable=$TOWBAR_DEPLOYABLE_ID" \
   --label "towbar.source=$TOWBAR_SOURCE_ID" \
   --label "towbar.commit=$TOWBAR_COMMIT_SHA" \
+  --label "towbar.build-cache-mode=$cache_mode" \
+  --label "towbar.context-digest=$context_digest" \
   --label towbar.build-cache=true \
   -f "$remote_dir/context/$dockerfile" \
   -t "$image_tag" \
@@ -305,6 +311,8 @@ DOCKER_BUILDKIT=1 docker build "${"$"}{build_args[@]}" \
   --label "towbar.deployable=$TOWBAR_DEPLOYABLE_ID" \
   --label "towbar.source=$TOWBAR_SOURCE_ID" \
   --label "towbar.commit=$TOWBAR_COMMIT_SHA" \
+  --label "towbar.build-cache-mode=$cache_mode" \
+  --label "towbar.context-digest=$context_digest" \
   --label towbar.build-cache=true \
   -f "$remote_dir/context/.towbar-static.Dockerfile" \
   -t "$image_tag" "$remote_dir/context"

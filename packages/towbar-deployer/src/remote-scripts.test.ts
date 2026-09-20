@@ -80,6 +80,8 @@ void describe("remote deployment scripts", () => {
       assert.match(script, /cached_commit=.*cache_marker/);
       assert.match(script, /cached_commit.*TOWBAR_COMMIT_SHA/);
       assert.match(script, /build_args\+=\(--no-cache\)/);
+      assert.match(script, /towbar\.build-cache-mode=\$cache_mode/);
+      assert.match(script, /towbar\.context-digest=\$context_digest/);
       assert.match(
         script,
         /printf '%s\\n' "\$TOWBAR_COMMIT_SHA" >"\$cache_state\/\$cache_scope"/,

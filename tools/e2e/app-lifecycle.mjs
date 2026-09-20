@@ -270,6 +270,10 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
   for (const name of instances.keys())
     assert.equal(response(name), `${name}:a`);
   const productionContainer = instances.get("production").current.containerName;
+  const firstStagingContainer = instances.get("staging").current.containerName;
+  const firstStagingContext = target.ssh(
+    `docker inspect --format '{{index .Config.Labels "towbar.context-digest"}}' ${firstStagingContainer}`,
+  );
   await deploy("staging", "b");
   const stagingRelease = instances.get("staging").current;
   assert.equal(stagingRelease.commitSha, "b".repeat(40));
@@ -279,6 +283,18 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
       `docker inspect --format '{{index .Config.Labels "towbar.commit"}}' ${stagingRelease.containerName}`,
     ),
     "b".repeat(40),
+  );
+  assert.equal(
+    target.ssh(
+      `docker inspect --format '{{index .Config.Labels "towbar.build-cache-mode"}}' ${stagingRelease.containerName}`,
+    ),
+    "clean",
+  );
+  assert.notEqual(
+    target.ssh(
+      `docker inspect --format '{{index .Config.Labels "towbar.context-digest"}}' ${stagingRelease.containerName}`,
+    ),
+    firstStagingContext,
   );
   assert.equal(
     target.ssh(`docker exec ${stagingRelease.containerName} cat /app/revision`),
