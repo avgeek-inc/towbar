@@ -1,11 +1,11 @@
-import { createHash } from "node:crypto";
+import { sha1 } from "@noble/hashes/legacy.js";
+import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
 import { APIError } from "better-auth/api";
 
 export function pwnedPasswordRangeDigest(candidate: string) {
   // HIBP's k-anonymity range protocol requires SHA-1. This digest is never used
   // to store or verify Towbar credentials.
-  // codeql[js/insufficient-password-hash]
-  return createHash("sha1").update(candidate).digest("hex").toUpperCase();
+  return bytesToHex(sha1(utf8ToBytes(candidate))).toUpperCase();
 }
 
 export async function isPasswordCompromised(password: string, request = fetch) {

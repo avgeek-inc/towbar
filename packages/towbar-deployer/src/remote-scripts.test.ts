@@ -75,6 +75,18 @@ void describe("remote deployment scripts", () => {
     }
   });
 
+  void it("only reuses Docker build cache for the same source commit", () => {
+    for (const script of [buildRemoteScript, staticBuildRemoteScript]) {
+      assert.match(script, /cached_commit=.*cache_marker/);
+      assert.match(script, /cached_commit.*TOWBAR_COMMIT_SHA/);
+      assert.match(script, /build_args\+=\(--no-cache\)/);
+      assert.match(
+        script,
+        /printf '%s\\n' "\$TOWBAR_COMMIT_SHA" >"\$cache_state\/\$cache_scope"/,
+      );
+    }
+  });
+
   void it("applies declared resource limits to both static build stages", () => {
     assert.match(staticBuildRemoteScript, /"--cpus", build_cpus/);
     assert.match(staticBuildRemoteScript, /"--memory", build_memory/);

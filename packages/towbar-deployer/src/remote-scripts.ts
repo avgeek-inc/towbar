@@ -38,7 +38,7 @@ cache_usage_bytes() {
   printf '%s' "$total"
 }
 if test "$cache_enabled" = true; then
-  touch "$cache_state/$cache_scope"
+  printf '%s\n' "$TOWBAR_COMMIT_SHA" >"$cache_state/$cache_scope"
 else
   remove_cache_scope "$cache_scope"
 fi
@@ -59,6 +59,22 @@ if test "$cache_usage" -gt "$cache_budget_bytes"; then
     cache_usage="$(cache_usage_bytes)"
     test "$cache_usage" -le "$cache_budget_bytes" && break
   done < <(find "$cache_state" -maxdepth 1 -type f -printf '%T@ %f\n' | sort -n)
+fi
+`;
+
+const configureDockerBuildCacheScript = String.raw`
+cache_image="towbar/build-cache-$cache_scope:current"
+cache_marker="/var/lib/towbar/build-cache/$cache_scope"
+cached_commit="$(cat "$cache_marker" 2>/dev/null || true)"
+if test "$cache_enabled" = true; then
+  build_args+=(--build-arg BUILDKIT_INLINE_CACHE=1)
+  if test "$cached_commit" = "$TOWBAR_COMMIT_SHA" && docker image inspect "$cache_image" >/dev/null 2>&1; then
+    build_args+=(--cache-from "$cache_image")
+  else
+    build_args+=(--no-cache)
+  fi
+else
+  build_args+=(--no-cache)
 fi
 `;
 
@@ -109,13 +125,7 @@ for secret_path in "$remote_dir"/secrets/build/*; do
 done
 if test -n "$target"; then build_args+=(--target "$target"); fi
 if test -n "$architecture"; then build_args+=(--platform "linux/$architecture"); fi
-cache_image="towbar/build-cache-$cache_scope:current"
-if test "$cache_enabled" = true; then
-  build_args+=(--build-arg BUILDKIT_INLINE_CACHE=1)
-  if docker image inspect "$cache_image" >/dev/null 2>&1; then build_args+=(--cache-from "$cache_image"); fi
-else
-  build_args+=(--no-cache)
-fi
+${configureDockerBuildCacheScript}
 DOCKER_BUILDKIT=1 docker build "${"$"}{build_args[@]}" \
   --cpu-period 100000 \
   --cpu-quota "$(python3 -c 'import sys; print(round(float(sys.argv[1]) * 100000))' "$build_cpus")" \
@@ -285,13 +295,7 @@ lines.append("}")
 PYTHON
 build_args=()
 if test -n "$architecture"; then build_args+=(--platform "linux/$architecture"); fi
-cache_image="towbar/build-cache-$cache_scope:current"
-if test "$cache_enabled" = true; then
-  build_args+=(--build-arg BUILDKIT_INLINE_CACHE=1)
-  if docker image inspect "$cache_image" >/dev/null 2>&1; then build_args+=(--cache-from "$cache_image"); fi
-else
-  build_args+=(--no-cache)
-fi
+${configureDockerBuildCacheScript}
 DOCKER_BUILDKIT=1 docker build "${"$"}{build_args[@]}" \
   --cpu-period 100000 \
   --cpu-quota "$(python3 -c 'import sys; print(round(float(sys.argv[1]) * 100000))' "$build_cpus")" \
