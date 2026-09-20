@@ -70,6 +70,12 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
     execFileSync("tar", ["-czf", archive, "-C", target.directory, "checkout"], {
       env: { ...process.env, COPYFILE_DISABLE: "1" },
     });
+    assert.equal(
+      execFileSync("tar", ["-xOzf", archive, "checkout/revision"], {
+        encoding: "utf8",
+      }),
+      revision,
+    );
     archives.set(revision.repeat(40), readFileSync(archive));
   }
   const fetched = [];

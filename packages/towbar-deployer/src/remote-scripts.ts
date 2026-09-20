@@ -79,7 +79,8 @@ if test "$cache_enabled" = true; then
 else
   build_args+=(--no-cache)
 fi
-context_digest="$(sha256sum "$remote_dir/context.tar.gz" | awk '{print $1}')"
+context_digest="$(tar --sort=name --mtime='@0' --owner=0 --group=0 --numeric-owner \
+  -cf - -C "$remote_dir/context" . | sha256sum | awk '{print $1}')"
 `;
 
 export const prepareRemoteScript = String.raw`
