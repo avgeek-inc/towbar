@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import test from "node:test";
-import { isPasswordCompromised } from "./password-breach-check.js";
+import {
+  isPasswordCompromised,
+  pwnedPasswordRangeDigest,
+} from "./password-breach-check.js";
 void test("password corpus requests use only a padded hash prefix with a deadline", async () => {
   const password = "Synthetic security test passphrase";
-  const hash = createHash("sha1").update(password).digest("hex").toUpperCase();
+  const hash = pwnedPasswordRangeDigest(password);
   const request: typeof fetch = (input, init) => {
     assert.equal(
       input,

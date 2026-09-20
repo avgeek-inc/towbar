@@ -2,7 +2,7 @@ import { desc, eq } from "drizzle-orm";
 import { authPasskeys } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 
-export async function listPersonalPasskeys(userId: string) {
+export function listPersonalPasskeys(userId: string) {
   return getTowbarDatabase()
     .select({
       id: authPasskeys.id,

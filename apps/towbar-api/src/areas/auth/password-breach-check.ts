@@ -1,11 +1,15 @@
 import { createHash } from "node:crypto";
 import { APIError } from "better-auth/api";
 
+export function pwnedPasswordRangeDigest(candidate: string) {
+  // HIBP's k-anonymity range protocol requires SHA-1. This digest is never used
+  // to store or verify Towbar credentials.
+  // lgtm[js/insufficient-password-hash]
+  return createHash("sha1").update(candidate).digest("hex").toUpperCase();
+}
+
 export async function isPasswordCompromised(password: string, request = fetch) {
-  const digest = createHash("sha1")
-    .update(password)
-    .digest("hex")
-    .toUpperCase();
+  const digest = pwnedPasswordRangeDigest(password);
   try {
     const response = await request(
       `https://api.pwnedpasswords.com/range/${digest.slice(0, 5)}`,

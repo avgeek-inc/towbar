@@ -68,19 +68,33 @@ export const logDrainEndpointSchema = z
       !/[\s\\{}]/.test(value)
     );
   }, "Enter an HTTPS URL without credentials, a query, or a fragment");
+
+function isCertificateChain(value: string) {
+  if (!value) return true;
+  const begin = "-----BEGIN CERTIFICATE-----";
+  const end = "-----END CERTIFICATE-----";
+  let remainder = value;
+  let certificateCount = 0;
+  while (remainder) {
+    if (!remainder.startsWith(begin)) return false;
+    const endIndex = remainder.indexOf(end, begin.length);
+    if (endIndex < 0) return false;
+    const body = remainder.slice(begin.length, endIndex).replace(/\s/gu, "");
+    if (!body || body.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/u.test(body))
+      return false;
+    certificateCount += 1;
+    if (certificateCount > 8) return false;
+    remainder = remainder.slice(endIndex + end.length).trim();
+  }
+  return certificateCount > 0;
+}
+
 const caCertificate = z
   .string()
   .trim()
   .max(32768)
   .default("")
-  .refine(
-    (value) =>
-      !value ||
-      /^(?:-----BEGIN CERTIFICATE-----\s+[A-Za-z0-9+/=\s]+-----END CERTIFICATE-----\s*)+$/.test(
-        value,
-      ),
-    "Enter a PEM CA certificate",
-  );
+  .refine(isCertificateChain, "Enter a PEM CA certificate");
 const destinationText = z
   .string()
   .trim()

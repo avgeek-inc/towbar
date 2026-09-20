@@ -108,6 +108,20 @@ void test("custom destinations require HTTPS and validate authentication and hea
     auth: "none",
   };
   assert.equal(logDrainCredentialSchema.parse(base).provider, "otlp");
+  const certificate = [
+    "-----BEGIN CERTIFICATE-----",
+    "QUJDRA==",
+    "-----END CERTIFICATE-----",
+  ].join("\n");
+  assert.doesNotThrow(() =>
+    logDrainCredentialSchema.parse({ ...base, caCertificate: certificate }),
+  );
+  assert.doesNotThrow(() =>
+    logDrainCredentialSchema.parse({
+      ...base,
+      caCertificate: `${certificate}\n${certificate}`,
+    }),
+  );
   for (const endpoint of [
     "http://collector/v1/logs",
     "file:///etc/passwd",
@@ -146,6 +160,10 @@ void test("custom destinations require HTTPS and validate authentication and hea
       ],
     },
     { caCertificate: "/etc/passwd" },
+    {
+      caCertificate:
+        "-----BEGIN CERTIFICATE-----\nnot base64!\n-----END CERTIFICATE-----",
+    },
   ])
     assert.throws(() => logDrainCredentialSchema.parse({ ...base, ...change }));
   for (const name of [

@@ -21,7 +21,7 @@ function recoveryCodes() {
     return `${code.slice(0, 5)}-${code.slice(5)}`;
   });
 }
-export async function setupAuthenticator(userId: string) {
+export function setupAuthenticator(userId: string) {
   return getTowbarDatabase().transaction(async (tx) => {
     const [user] = await tx
       .select()

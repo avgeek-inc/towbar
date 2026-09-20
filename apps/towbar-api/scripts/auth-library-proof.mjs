@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { performance } from "node:perf_hooks";
 import { betterAuth } from "better-auth";
 import { getAuthTables } from "better-auth/db";
 import { organization, twoFactor } from "better-auth/plugins";
@@ -118,12 +117,10 @@ try {
     }),
   });
   const password = "correct horse battery staple for auth proof";
-  const start = performance.now();
   const signedUp = await auth.api.signUpEmail({
     body: { email: "admin@example.test", name: "Test admin", password },
   });
   assert.ok(signedUp.user.id);
-  const elapsed = Math.round(performance.now() - start);
   const workspace = await auth.api.createOrganization({
     body: { name: "Proof team", slug: "proof", userId: signedUp.user.id },
   });
@@ -216,7 +213,6 @@ try {
   console.log(
     JSON.stringify({
       version: "1.7.5",
-      passwordAndSignupMs: elapsed,
       checks: [
         "schema",
         "sign-in cookies",

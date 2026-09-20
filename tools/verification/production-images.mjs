@@ -5,54 +5,69 @@ const scanner =
 
 export async function verifyProductionImages(run, images) {
   const failures = [];
-  for (const [service, tag] of Object.entries(images)) {
-    const container = `towbar-image-scan-${run.id}-${service}`;
-    try {
-      await run.step(`image-security-${service}`, "docker", [
-        "run",
-        "--rm",
-        "--name",
-        container,
-        "--label",
-        `com.towbar.verification.run=${run.id}`,
-        "--cpus",
-        "2",
-        "--memory",
-        "2g",
-        "--volume",
-        "/var/run/docker.sock:/var/run/docker.sock:ro",
-        "--volume",
-        `${run.directory}:/scan`,
-        scanner,
-        "image",
-        "--cache-dir",
-        "/scan/trivy-cache",
-        "--scanners",
-        "vuln",
-        "--severity",
-        "HIGH,CRITICAL",
-        "--exit-code",
-        "1",
-        "--format",
-        "json",
-        "--output",
-        `/scan/image-security-${service}.json`,
-        tag,
-      ]);
-    } catch (error) {
-      failures.push(error);
-    } finally {
-      const remaining = await run.capture("docker", [
-        "ps",
-        "--all",
-        "--quiet",
-        "--filter",
-        `name=^/${container}$`,
-        "--filter",
-        `label=com.towbar.verification.run=${run.id}`,
-      ]);
-      if (remaining) await run.capture("docker", ["rm", "--force", container]);
+  const cacheVolume = `towbar-image-scan-cache-${run.id}`;
+  try {
+    for (const [service, tag] of Object.entries(images)) {
+      const container = `towbar-image-scan-${run.id}-${service}`;
+      try {
+        await run.step(`image-security-${service}`, "docker", [
+          "run",
+          "--rm",
+          "--name",
+          container,
+          "--label",
+          `com.towbar.verification.run=${run.id}`,
+          "--cpus",
+          "2",
+          "--memory",
+          "2g",
+          "--volume",
+          "/var/run/docker.sock:/var/run/docker.sock:ro",
+          "--volume",
+          `${run.directory}:/scan`,
+          "--volume",
+          `${cacheVolume}:/root/.cache/trivy`,
+          scanner,
+          "image",
+          "--cache-dir",
+          "/root/.cache/trivy",
+          "--scanners",
+          "vuln",
+          "--severity",
+          "HIGH,CRITICAL",
+          "--exit-code",
+          "1",
+          "--format",
+          "json",
+          "--output",
+          `/scan/image-security-${service}.json`,
+          tag,
+        ]);
+      } catch (error) {
+        failures.push(error);
+      } finally {
+        const remaining = await run.capture("docker", [
+          "ps",
+          "--all",
+          "--quiet",
+          "--filter",
+          `name=^/${container}$`,
+          "--filter",
+          `label=com.towbar.verification.run=${run.id}`,
+        ]);
+        if (remaining)
+          await run.capture("docker", ["rm", "--force", container]);
+      }
     }
+  } finally {
+    const cacheExists = await run.capture("docker", [
+      "volume",
+      "ls",
+      "--quiet",
+      "--filter",
+      `name=^${cacheVolume}$`,
+    ]);
+    if (cacheExists) await run.capture("docker", ["volume", "rm", cacheVolume]);
   }
   if (failures.length)
     throw new AggregateError(

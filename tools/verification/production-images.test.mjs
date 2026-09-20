@@ -20,6 +20,12 @@ test("image gate checks every artifact and rejects findings or scanner errors", 
     async step(name, command, args) {
       checked.push(args.at(-1));
       assert.equal(command, "docker");
+      assert.ok(
+        args.includes(
+          "towbar-image-scan-cache-isolated-run:/root/.cache/trivy",
+        ),
+      );
+      assert.equal(args[args.indexOf("--cache-dir") + 1], "/root/.cache/trivy");
       assert.equal(args[args.indexOf("--exit-code") + 1], "1");
       assert.equal(args[args.indexOf("--severity") + 1], "HIGH,CRITICAL");
       assert.ok(!args.includes("--ignore-unfixed"));
@@ -46,7 +52,10 @@ test("interrupted scanner cleanup is limited to the named run-owned container", 
     },
     async capture(command, args) {
       captured.push({ command, args });
-      return args[0] === "ps" ? "owned-container-id" : "";
+      if (args[0] === "ps") return "owned-container-id";
+      if (args[0] === "volume" && args[1] === "ls")
+        return "towbar-image-scan-cache-isolated-run";
+      return "";
     },
   };
   await assert.rejects(verifyProductionImages(run, { api: images.api }));
@@ -59,5 +68,19 @@ test("interrupted scanner cleanup is limited to the named run-owned container", 
   assert.deepEqual(captured[1], {
     command: "docker",
     args: ["rm", "--force", "towbar-image-scan-isolated-run-api"],
+  });
+  assert.deepEqual(captured[2], {
+    command: "docker",
+    args: [
+      "volume",
+      "ls",
+      "--quiet",
+      "--filter",
+      "name=^towbar-image-scan-cache-isolated-run$",
+    ],
+  });
+  assert.deepEqual(captured[3], {
+    command: "docker",
+    args: ["volume", "rm", "towbar-image-scan-cache-isolated-run"],
   });
 });

@@ -17,7 +17,9 @@ for (const template of transactionalTemplates) {
     assert(!mail.html.includes("<img src=x"));
     assert(mail.text.includes("Product & <Research>"));
     assert(
-      mail.text.includes("https://towbar.example.test/invite/a-safe-example"),
+      mail.text
+        .split(/\s+/u)
+        .includes("https://towbar.example.test/invite/a-safe-example"),
     );
   });
 }

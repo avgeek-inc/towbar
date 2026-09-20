@@ -38,6 +38,15 @@ try {
     "--filter=towbar-api",
     "--filter=towbar-worker",
   ]);
+  if (group === "api")
+    await run.step("build-e2e-target", "docker", [
+      "build",
+      "--tag",
+      "towbar-v2-e2e-target:local",
+      "--file",
+      "tools/e2e/target.Dockerfile",
+      ".",
+    ]);
   if (["api", "app", "resources"].includes(group))
     await infrastructure.provision();
   if (group === "api") {
