@@ -1,3 +1,4 @@
+import { APIError } from "better-auth/api";
 import { ZodError } from "zod";
 import { ManifestValidationError } from "@workspace/towbar-core";
 import { HttpError } from "./errors.js";
@@ -14,6 +15,16 @@ export function normalizeError(error: Error): {
       headers: error.responseHeaders,
       message: error.publicMessage,
       status: error.status,
+    };
+  }
+  if (
+    error instanceof APIError &&
+    [400, 401, 403, 404, 409, 422, 429].includes(error.statusCode)
+  ) {
+    return {
+      code: String(error.body?.code ?? "AUTH_ERROR"),
+      message: String(error.body?.message ?? "Authentication request failed"),
+      status: error.statusCode as HttpErrorStatus,
     };
   }
   if (error instanceof ZodError) {

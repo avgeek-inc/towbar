@@ -1,3 +1,4 @@
+import { captureQueuedActor } from "../auth/actor-context.js";
 import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
@@ -30,6 +31,7 @@ export async function assertCompletedSyncRetry(input: {
       sourceId,
       sourceEnvironmentId: staging.id,
       mappingRevision: staging.mappingRevision,
+      ...captureQueuedActor(workspaceId, ["repository.sync"]),
     })
     .returning();
   assert(job);

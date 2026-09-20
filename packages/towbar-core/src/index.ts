@@ -20,3 +20,10 @@ export * from "./scout-alerts.js";
 export * from "./deployment-comparison.js";
 export * from "./manifest-v2.js";
 export * from "./required-secrets.js";
+
+export * from "./app-jobs.js";
+
+export * from "./log-drains.js";
+export * from "./audit.js";
+export * from "./integrations.js";
+export * from "./platform-expansion.js";

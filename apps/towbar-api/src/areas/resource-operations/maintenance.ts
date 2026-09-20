@@ -1,17 +1,11 @@
+import { wakeAppJobsWorkflow } from "../../infrastructure/temporal.js";
+import { enqueueDueTransactionalEmails } from "../team/email-delivery.js";
+import { withActor } from "../auth/actor-context.js";
 import { recoverMonitoringOperations } from "../monitoring/lifecycle.js";
 import { maintainMonitoringMetrics } from "../monitoring/retention.js";
 import { maintainScoutAlertHistory } from "../monitoring/alert-retention.js";
 import { wakeScoutAlertsWorkflow } from "../../infrastructure/temporal.js";
-import {
-  and,
-  desc,
-  eq,
-  gte,
-  inArray,
-  isNull,
-  ne,
-  notInArray,
-} from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, notInArray } from "drizzle-orm";
 
 import {
   getLatestBackupScheduleOccurrence,
@@ -27,6 +21,8 @@ import {
   serverChecks,
   serverPreparations,
   servers,
+  sourceEnvironments,
+  sources,
 } from "@workspace/towbar-database/schema";
 
 import { getTowbarDatabase } from "../../infrastructure/database.js";
@@ -45,6 +41,7 @@ import { enqueueDueVulnerabilityScans } from "../vulnerability-scans/service.js"
 export async function runMaintenanceSweep() {
   // Retry startup after a Temporal outage; the dedicated Scout loop has its own cadence.
   await wakeScoutAlertsWorkflow().catch(() => undefined);
+  await wakeAppJobsWorkflow().catch(() => undefined);
   // Scheduled deployable work has priority; health checks are maintenance and
   // should enter a server coordinator only after its queue becomes idle.
   const automaticDeploymentsQueued = await admitResumedAutomaticDeployments();
@@ -52,6 +49,7 @@ export async function runMaintenanceSweep() {
   const backupsAssured = await assureConfiguredResourceBackups();
   const restoreCleanupsQueued = await queueExpiredRestoreCleanups();
   const previewCleanupsQueued = await requestExpiredPreviewCleanups();
+  const transactionalEmailsQueued = await enqueueDueTransactionalEmails();
   const notificationDeliveriesQueued = await enqueueDueNotificationDeliveries();
   const vulnerabilityScansQueued = await enqueueDueVulnerabilityScans();
   const activeServers = await getTowbarDatabase()
@@ -79,11 +77,20 @@ export async function runMaintenanceSweep() {
         now: new Date(),
       })
     ) {
-      const queued = await requestServerCheck({
-        requestedBy: null,
-        serverId: server.id,
-        workspaceId: server.workspaceId,
-      }).catch(() => undefined);
+      const queued = await withActor(
+        {
+          kind: "system",
+          source: "worker",
+          workspaceId: server.workspaceId,
+          grants: ["server.credentials"],
+        },
+        () =>
+          requestServerCheck({
+            requestedBy: null,
+            serverId: server.id,
+            workspaceId: server.workspaceId,
+          }),
+      ).catch(() => undefined);
       if (queued) checksQueued += 1;
     }
   }
@@ -102,6 +109,7 @@ export async function runMaintenanceSweep() {
     backupsQueued,
     checksQueued,
     notificationDeliveriesQueued,
+    transactionalEmailsQueued,
     previewCleanupsQueued,
     restoreCleanupsQueued,
     vulnerabilityScansQueued,
@@ -137,13 +145,22 @@ async function queueExpiredRestoreCleanups() {
     ) {
       continue;
     }
-    await requestRestoreCleanup({
-      idempotencyKey: `expired-restore-cleanup:${restore.id}`,
-      requestedBy: null,
-      resourceId: restore.resourceId,
-      restoreId: restore.id,
-      workspaceId: restore.workspaceId,
-    })
+    await withActor(
+      {
+        kind: "system",
+        source: "worker",
+        workspaceId: restore.workspaceId,
+        grants: ["resource.restore"],
+      },
+      () =>
+        requestRestoreCleanup({
+          idempotencyKey: `expired-restore-cleanup:${restore.id}`,
+          requestedBy: null,
+          resourceId: restore.resourceId!,
+          restoreId: restore.id,
+          workspaceId: restore.workspaceId,
+        }),
+    )
       .then((admission) => {
         if (!admission.replayed) queued += 1;
       })
@@ -156,7 +173,20 @@ async function queueScheduledBackups() {
   const resources = await getTowbarDatabase()
     .select({ id: apps.id, config: apps.config, workspaceId: apps.workspaceId })
     .from(apps)
-    .where(and(ne(apps.kind, "app"), isNull(apps.archivedAt)));
+    .innerJoin(sources, eq(sources.id, apps.sourceId))
+    .innerJoin(
+      sourceEnvironments,
+      eq(sourceEnvironments.id, apps.sourceEnvironmentId),
+    )
+    .where(
+      and(
+        isNull(apps.archivedAt),
+        eq(sources.status, "active"),
+        eq(sources.autoDeployPaused, false),
+        eq(sourceEnvironments.autoDeployPaused, false),
+        isNull(sourceEnvironments.disconnectedAt),
+      ),
+    );
   let backupsQueued = 0;
   const now = new Date();
   for (const resource of resources) {
@@ -165,13 +195,22 @@ async function queueScheduledBackups() {
     if (!schedule) continue;
     const occurrence = getLatestBackupScheduleOccurrence(schedule.cron, now);
     if (!occurrence) continue;
-    await requestDeployableOperation({
-      deployableId: resource.id,
-      idempotencyKey: `scheduled-backup:${resource.id}:${occurrence.toISOString()}`,
-      requestedBy: null,
-      request: { type: "backup" },
-      workspaceId: resource.workspaceId,
-    })
+    await withActor(
+      {
+        kind: "system",
+        source: "worker",
+        workspaceId: resource.workspaceId,
+        grants: ["resource.backup"],
+      },
+      () =>
+        requestDeployableOperation({
+          deployableId: resource.id,
+          idempotencyKey: `scheduled-backup:${resource.id}:${occurrence.toISOString()}`,
+          requestedBy: null,
+          request: { type: "backup" },
+          workspaceId: resource.workspaceId,
+        }),
+    )
       .then((result) => {
         if (!result.replayed) backupsQueued += 1;
       })

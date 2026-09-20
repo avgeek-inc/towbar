@@ -30,11 +30,17 @@ if (( available < required )); then
   printf 'INSUFFICIENT_DISK:%s:%s\n' "$available" "$required" >&2
   exit 67
 fi
-if test "$kind" = postgres; then
-  actual_major="$(docker exec "$container" postgres --version | sed -E 's/.* ([0-9]+)(\..*)?$/\1/')"
-else
-  actual_major="$(docker exec "$container" redis-server --version | sed -E 's/.*v=([0-9]+)(\..*)?.*/\1/')"
-fi
+case "$kind" in
+  postgres) actual_major="$(docker exec "$container" postgres --version | sed -E 's/.* ([0-9]+)(\..*)?$/\1/')" ;;
+  mysql) actual_major="$(docker exec "$container" mysqld --version | sed -E 's/.*Ver ([0-9]+)(\..*)?.*/\1/')" ;;
+  mariadb) actual_major="$(docker exec "$container" mariadb --version | sed -E 's/.*Distrib ([0-9]+)(\..*)?.*/\1/')" ;;
+  mongodb) actual_major="$(docker exec "$container" mongod --version | awk '/db version/ {sub(/^v/, "", $3); split($3,v,"."); print v[1]; exit}')" ;;
+  redis) actual_major="$(docker exec "$container" redis-server --version | sed -E 's/.*v=([0-9]+)(\..*)?.*/\1/')" ;;
+  dragonfly) actual_major="$(docker exec "$container" dragonfly --version | grep -Eo '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1 | cut -d. -f1)" ;;
+  keydb) actual_major="$(docker exec "$container" keydb-server --version | sed -E 's/.*v=([0-9]+)(\..*)?.*/\1/')" ;;
+  clickhouse) actual_major="$(docker exec "$container" clickhouse-server --version | awk '{for (i=1;i<=NF;i++) if ($i ~ /^[0-9]+\./) {split($i,v,"."); print v[1]; exit}}')" ;;
+  *) exit 64 ;;
+esac
 test "$actual_major" = "$expected_major"
 printf '%s\n%s\n%s\n' "$active_volume" "$available" "$actual_major"
 `;
@@ -87,42 +93,93 @@ command[3:3] = runtime_arguments
 os.execve(command[0], command, os.environ)
 PYTHON
 }
-if test "$kind" = redis; then
+if test "$kind" = redis || test "$kind" = dragonfly || test "$kind" = keydb; then
   docker run --rm --user 0 \
     --mount "type=bind,src=$backup_path,dst=/tmp/towbar-restore.rdb,readonly" \
     --mount "type=volume,src=$volume,dst=$mount_path" \
     --entrypoint sh "$image" -c "cp /tmp/towbar-restore.rdb '$mount_path/dump.rdb'"
-  # Load the RDB before enabling AOF; starting with AOF enabled ignores the snapshot.
-  run_candidate sh -c 'exec redis-server --appendonly no --requirepass "$REDIS_PASSWORD"'
+  if test "$kind" = redis; then
+    run_candidate sh -c 'exec redis-server --appendonly no --requirepass "$REDIS_PASSWORD"'
+  elif test "$kind" = keydb; then
+    run_candidate sh -c 'exec keydb-server --appendonly no --requirepass "$REDIS_PASSWORD"'
+  else
+    run_candidate sh -c 'exec dragonfly --dir=/data --dbfilename=dump.rdb --requirepass="$REDIS_PASSWORD"'
+  fi
 else
   run_candidate "$@"
 fi
+candidate_ready() {
+  case "$kind" in
+    postgres) docker exec "$container" sh -c 'pg_isready -U "${"$"}{POSTGRES_USER:-postgres}" -d "${"$"}{POSTGRES_DB:-postgres}"' >/dev/null 2>&1 ;;
+    mysql) docker exec "$container" sh -c 'mysqladmin ping -h 127.0.0.1 -u root -p"$MYSQL_ROOT_PASSWORD" --silent' >/dev/null 2>&1 ;;
+    mariadb) docker exec "$container" sh -c 'mariadb-admin ping -h 127.0.0.1 -u root -p"$MYSQL_ROOT_PASSWORD" --silent' >/dev/null 2>&1 ;;
+    mongodb) docker exec "$container" sh -c 'mongosh --quiet --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "quit(db.adminCommand({ping:1}).ok ? 0 : 1)"' >/dev/null 2>&1 ;;
+    redis|dragonfly|keydb) docker exec "$container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning PING' | grep -Fxq PONG ;;
+    clickhouse) docker exec "$container" sh -c 'clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --query "SELECT 1"' | grep -Fxq 1 ;;
+    *) return 1 ;;
+  esac
+}
 deadline=$((SECONDS + 120))
 while true; do
-  if test "$kind" = postgres && docker exec "$container" sh -c 'pg_isready -U "${"$"}{POSTGRES_USER:-postgres}" -d "${"$"}{POSTGRES_DB:-postgres}"' >/dev/null 2>&1; then break; fi
-  if test "$kind" = redis && docker exec "$container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning PING' | grep -Fxq PONG; then break; fi
+  if candidate_ready; then break; fi
   if (( SECONDS >= deadline )); then exit 68; fi
   sleep 2
 done
-if test "$kind" = postgres; then
-  docker cp "$backup_path" "$container:/tmp/towbar-restore.dump"
-  docker exec "$container" sh -c 'exec pg_restore -U "${"$"}{POSTGRES_USER:-postgres}" -d "${"$"}{POSTGRES_DB:-postgres}" --clean --if-exists --no-owner --no-privileges /tmp/towbar-restore.dump'
-  docker exec "$container" rm -f /tmp/towbar-restore.dump
-  docker exec "$container" sh -c 'psql -U "${"$"}{POSTGRES_USER:-postgres}" -d "${"$"}{POSTGRES_DB:-postgres}" -v ON_ERROR_STOP=1 -c "SELECT 1" >/dev/null'
-  docker exec "$container" sh -c 'psql -U "${"$"}{POSTGRES_USER:-postgres}" -d postgres -Atqc "SELECT 1 FROM pg_database WHERE datname = '\''${"$"}{POSTGRES_DB:-postgres}'\''"' | grep -Fxq 1
-else
-  docker exec "$container" redis-check-rdb "$mount_path/dump.rdb" >/dev/null
-  docker exec "$container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning PING' | grep -Fxq PONG
-  docker exec "$container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning DBSIZE' | grep -Eq '^[0-9]+$'
-  docker exec "$container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning CONFIG SET appendonly yes' | grep -Fxq OK
-  deadline=$((SECONDS + 120))
-  while true; do
-    persistence="$(docker exec "$container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning INFO persistence' | tr -d '\r')"
-    if grep -Fxq 'aof_enabled:1' <<<"$persistence" && grep -Fxq 'aof_rewrite_in_progress:0' <<<"$persistence" && grep -Fxq 'aof_rewrite_scheduled:0' <<<"$persistence" && grep -Fxq 'aof_last_bgrewrite_status:ok' <<<"$persistence"; then break; fi
-    if (( SECONDS >= deadline )); then exit 68; fi
-    sleep 1
-  done
-fi
+case "$kind" in
+  postgres)
+    docker cp "$backup_path" "$container:/tmp/towbar-restore.dump"
+    docker exec "$container" sh -c 'exec pg_restore -U "${"$"}{POSTGRES_USER:-postgres}" -d "${"$"}{POSTGRES_DB:-postgres}" --clean --if-exists --no-owner --no-privileges /tmp/towbar-restore.dump'
+    docker exec "$container" rm -f /tmp/towbar-restore.dump
+    ;;
+  mysql)
+    docker cp "$backup_path" "$container:/tmp/towbar-restore.sql"
+    docker exec "$container" sh -c 'exec mysql -u root -p"$MYSQL_ROOT_PASSWORD" < /tmp/towbar-restore.sql'
+    docker exec "$container" rm -f /tmp/towbar-restore.sql
+    ;;
+  mariadb)
+    docker cp "$backup_path" "$container:/tmp/towbar-restore.sql"
+    docker exec "$container" sh -c 'exec mariadb -u root -p"$MYSQL_ROOT_PASSWORD" < /tmp/towbar-restore.sql'
+    docker exec "$container" rm -f /tmp/towbar-restore.sql
+    ;;
+  mongodb)
+    docker cp "$backup_path" "$container:/tmp/towbar-restore.archive.gz"
+    docker exec "$container" sh -c 'exec mongorestore --drop --archive=/tmp/towbar-restore.archive.gz --gzip --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin'
+    docker exec "$container" rm -f /tmp/towbar-restore.archive.gz
+    ;;
+  redis|keydb)
+    if docker exec "$container" command -v redis-check-rdb >/dev/null 2>&1; then docker exec "$container" redis-check-rdb "$mount_path/dump.rdb" >/dev/null; fi
+    docker exec "$container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning DBSIZE' | grep -Eq '^[0-9]+$'
+    # The managed Redis and KeyDB runtimes use AOF. Convert the imported RDB
+    # while the isolated candidate is running; otherwise enabling AOF during
+    # promotion creates an empty base file instead of loading dump.rdb.
+    docker exec "$container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning CONFIG SET appendonly yes' | grep -Fxq OK
+    aof_deadline=$((SECONDS + 120))
+    while true; do
+      persistence="$(docker exec "$container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning INFO persistence' | tr -d '\r')"
+      if grep -Fxq 'aof_enabled:1' <<<"$persistence" && grep -Fxq 'aof_rewrite_in_progress:0' <<<"$persistence" && ! grep -Fxq 'aof_last_bgrewrite_status:err' <<<"$persistence"; then break; fi
+      if (( SECONDS >= aof_deadline )); then exit 69; fi
+      sleep 2
+    done
+    ;;
+  dragonfly)
+    if docker exec "$container" command -v redis-check-rdb >/dev/null 2>&1; then docker exec "$container" redis-check-rdb "$mount_path/dump.rdb" >/dev/null; fi
+    docker exec "$container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning DBSIZE' | grep -Eq '^[0-9]+$'
+    ;;
+  clickhouse)
+    docker cp "$backup_path" "$container:/var/lib/clickhouse/backups/towbar-restore.zip"
+    docker exec "$container" sh -c 'clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --query "RESTORE ALL EXCEPT DATABASES system, INFORMATION_SCHEMA, information_schema FROM File('\''towbar-restore.zip'\'')"'
+    docker exec "$container" rm -f /var/lib/clickhouse/backups/towbar-restore.zip
+    ;;
+esac
+case "$kind" in
+  postgres) docker exec "$container" sh -c 'psql -U "${"$"}{POSTGRES_USER:-postgres}" -d "${"$"}{POSTGRES_DB:-postgres}" -v ON_ERROR_STOP=1 -Atqc "SELECT 1"' | grep -Fxq 1 ;;
+  mysql) docker exec "$container" sh -c 'mysql -N -B -u root -p"$MYSQL_ROOT_PASSWORD" -e "SELECT 1"' | grep -Fxq 1 ;;
+  mariadb) docker exec "$container" sh -c 'mariadb -N -B -u root -p"$MYSQL_ROOT_PASSWORD" -e "SELECT 1"' | grep -Fxq 1 ;;
+  mongodb) docker exec "$container" sh -c 'mongosh --quiet --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "quit(db.getMongo().getDBNames().length >= 0 ? 0 : 1)"' >/dev/null ;;
+  redis|dragonfly|keydb) docker exec "$container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning DBSIZE' | grep -Eq '^[0-9]+$' ;;
+  clickhouse) docker exec "$container" sh -c 'clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --query "SELECT count() >= 0 FROM system.databases"' | grep -Fxq 1 ;;
+  *) exit 64 ;;
+esac
 `;
 
 export const promoteCandidateScript = String.raw`
@@ -197,8 +254,14 @@ PYTHON
 validate_runtime() {
   deadline=$((SECONDS + 120))
   while true; do
-    if test "$kind" = postgres && docker exec "$current_container" sh -c 'pg_isready -U "${"$"}{POSTGRES_USER:-postgres}" -d "${"$"}{POSTGRES_DB:-postgres}"' >/dev/null 2>&1 && docker exec "$current_container" sh -c 'psql -U "${"$"}{POSTGRES_USER:-postgres}" -d "${"$"}{POSTGRES_DB:-postgres}" -v ON_ERROR_STOP=1 -c "SELECT 1" >/dev/null'; then return 0; fi
-    if test "$kind" = redis && docker exec "$current_container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning PING' | grep -Fxq PONG; then return 0; fi
+    case "$kind" in
+      postgres) docker exec "$current_container" sh -c 'pg_isready -U "${"$"}{POSTGRES_USER:-postgres}" -d "${"$"}{POSTGRES_DB:-postgres}" && psql -U "${"$"}{POSTGRES_USER:-postgres}" -d "${"$"}{POSTGRES_DB:-postgres}" -v ON_ERROR_STOP=1 -c "SELECT 1" >/dev/null' && return 0 ;;
+      mysql) docker exec "$current_container" sh -c 'mysqladmin ping -h 127.0.0.1 -u root -p"$MYSQL_ROOT_PASSWORD" --silent && mysql -N -B -u root -p"$MYSQL_ROOT_PASSWORD" -e "SELECT 1"' | grep -Fxq 1 && return 0 ;;
+      mariadb) docker exec "$current_container" sh -c 'mariadb-admin ping -h 127.0.0.1 -u root -p"$MYSQL_ROOT_PASSWORD" --silent && mariadb -N -B -u root -p"$MYSQL_ROOT_PASSWORD" -e "SELECT 1"' | grep -Fxq 1 && return 0 ;;
+      mongodb) docker exec "$current_container" sh -c 'mongosh --quiet --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "quit(db.adminCommand({ping:1}).ok ? 0 : 1)"' >/dev/null 2>&1 && return 0 ;;
+      redis|dragonfly|keydb) docker exec "$current_container" sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning PING' | grep -Fxq PONG && return 0 ;;
+      clickhouse) docker exec "$current_container" sh -c 'clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --query "SELECT 1"' | grep -Fxq 1 && return 0 ;;
+    esac
     if (( SECONDS >= deadline )); then return 1; fi
     sleep 2
   done

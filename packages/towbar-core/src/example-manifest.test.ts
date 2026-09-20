@@ -30,8 +30,8 @@ void test("the starter repository resolves production and staging separately", (
     environment: "staging",
     branch: "develop",
   });
-  assert.equal(production.manifest.apps[0]?.server, "production-server");
-  assert.equal(staging.manifest.apps[0]?.server, "staging-server");
+  assert.equal(production.manifest.apps[0]?.server, "192.0.2.10");
+  assert.equal(staging.manifest.apps[0]?.server, "192.0.2.11");
   assert.equal(production.manifest.apps[0]?.preview, undefined);
   assert.equal(staging.manifest.apps[0]?.preview?.enabled, true);
 });

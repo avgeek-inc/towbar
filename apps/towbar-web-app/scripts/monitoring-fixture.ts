@@ -39,7 +39,6 @@ export function fixtureMonitoringHistory(
   const bucketStart = Math.floor(start / step / 1000) * step * 1000;
   const duration = (end - bucketStart) / 1000;
   const intervals = Math.ceil(duration / step);
-  const preview = query.get("environment") === "preview";
   const id = "a".repeat(64);
   const points = Array.from({ length: intervals }, (_, bucket) => {
     const index = (bucket / intervals) * 180;
@@ -99,7 +98,7 @@ export function fixtureMonitoringHistory(
             deploymentId: workload
               ? "61111111-1111-4111-8111-111111111111"
               : null,
-            previewId: preview ? "b1111111-1111-4111-8111-111111111111" : null,
+            previewId: null,
             points,
           },
         ]

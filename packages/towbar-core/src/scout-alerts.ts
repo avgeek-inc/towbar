@@ -120,9 +120,7 @@ export const scoutAlertRuleSchema = z
     enabled: z.boolean().default(true),
     severity: z.enum(["warning", "critical"]).default("warning"),
     deployableId: z.string().uuid().nullable().default(null),
-    environment: z.enum(["production", "preview"]).default("production"),
     condition: scoutAlertConditionSchema,
-    notifyRecovery: z.boolean().default(true),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -142,20 +140,6 @@ export const scoutAlertRuleSchema = z
       });
   });
 export type ScoutAlertRuleInput = z.infer<typeof scoutAlertRuleSchema>;
-
-export const scoutMuteSchema = z
-  .object({
-    durationSeconds: z.union([
-      z.literal(0),
-      z
-        .number()
-        .int()
-        .min(60)
-        .max(7 * 86400),
-    ]),
-    reason: z.string().trim().max(240).default(""),
-  })
-  .strict();
 export const scoutIncidentQuerySchema = z
   .object({
     state: z.enum(["active", "resolved", "all"]).default("active"),

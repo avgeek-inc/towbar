@@ -9,11 +9,7 @@ import {
   scoutHttpChecks,
 } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
-import {
-  type ScoutScope,
-  muteScoutAlerts,
-  saveScoutAlertRule,
-} from "./alert-rules.js";
+import { type ScoutScope, saveScoutAlertRule } from "./alert-rules.js";
 export async function assertScoutHttpChecks(
   scope: ScoutScope & { requestedBy: string },
   sweep: (at: Date) => Promise<{ errors: number }>,
@@ -112,21 +108,5 @@ export async function assertScoutHttpChecks(
     .from(scoutAlertRules)
     .where(eq(scoutAlertRules.id, saved.id));
   assert.equal(recovered?.evaluationState, "healthy");
-  await muteScoutAlerts({
-    ...scope,
-    ruleId: saved.id,
-    durationSeconds: 3600,
-    reason: "Test mute",
-  });
-  await sweep(new Date(at.getTime() + 121_000));
-  const [muted] = await db
-    .select()
-    .from(scoutAlertRules)
-    .where(eq(scoutAlertRules.id, saved.id));
-  assert.equal(
-    muted?.evaluationState,
-    "healthy",
-    "Muting must not discard valid HTTP history",
-  );
   await assertDueHttpChecksAreNotStarved(scope.workspaceId);
 }

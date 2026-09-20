@@ -35,7 +35,7 @@ workloads in a manifest. Towbar builds and runs them on your infrastructure.
 | Separate environments  | Map production, staging, and other environments to branches in Towbar. Keep instance configuration, secrets, containers, and data separate.                                    |
 | Run apps and databases | Build Dockerfile apps on your servers. Run PostgreSQL, Redis, and container images with persistent storage.                                                                    |
 | Preview pull requests  | Share a stable preview URL with separate secrets. Environments are cleaned up when pull requests close or merge.                                                               |
-| Manage secrets         | Edit encrypted values in Form or .env File mode, with owner-only reveal and explicit shared references.                                                                        |
+| Manage secrets         | Edit encrypted values in Form or .env File mode, with Admin-only reveal and explicit shared references.                                                                        |
 | Monitor performance    | Track server and workload history with Scout Agent, configure alerts and public uptime checks, and compare deployments for changes in resource usage.                          |
 | Back up and restore    | Schedule PostgreSQL and Redis backups to S3, Google Cloud Storage, or Azure Blob Storage, check restore readiness, and restore through an isolated candidate before promotion. |
 | Stay informed          | Send deployment, preview, health, backup, and restore events to Slack or email.                                                                                                |
@@ -59,9 +59,9 @@ Read the [monitoring guide](https://www.towbar.dev/docs/monitoring), [Scout Aler
 
 ## How it works
 
-1. **Register a server:** add an Ubuntu host, choose its server slug, verify its
-   SSH identity, and prepare Docker and Caddy. Multiple Sources can share one server.
-2. **Connect a Source:** select a GitHub repository containing `towbar.yml` and
+1. **Register a server:** add an Ubuntu host by IP address, verify its
+   SSH identity, and prepare Docker and Caddy. Multiple Repositories can share one server.
+2. **Connect a Repository:** select a GitHub repository containing `towbar.yml` and
    entity files under `.towbar/apps/` and `.towbar/resources/`. Map each environment
    to a branch in Towbar and sync its configuration.
 3. **Set required secrets:** fill the keys declared by each environment’s apps
@@ -83,13 +83,13 @@ environments:
       enabled: true
 ```
 
-Map production to `main` and staging to `develop`, for example, in Source
+Map production to `main` and staging to `develop`, for example, in Repository
 settings. Branch names stay in Towbar so you can change them without editing
 Git configuration. Connecting or changing a mapping syncs without deploying.
 
 Each `*.app.yml` or `*.resource.yml` file defines one logical workload, with
 shared settings and explicit environment overrides. Those overrides can select
-different server slugs, domains, and container settings. Each environment has
+different server IPs, domains, and container settings. Each environment has
 its own workload instances and secret values. PRs targeting a preview-enabled
 environment’s branch can deploy previews for opted-in apps, using isolated
 preview secrets.

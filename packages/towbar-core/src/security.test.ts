@@ -5,17 +5,8 @@ import {
   decryptCredential,
   encryptCredential,
   hashOpaqueToken,
-  hashPassword,
   parseCredentialsMasterKey,
-  verifyPassword,
 } from "./security.js";
-
-void test("hashes passwords with Argon2id and verifies without exposing the password", async () => {
-  const encoded = await hashPassword("a-long-test-password");
-  assert.match(encoded, /^\$towbar\$argon2id\$/u);
-  assert.equal(await verifyPassword("a-long-test-password", encoded), true);
-  assert.equal(await verifyPassword("a-different-password", encoded), false);
-});
 
 void test("binds encrypted credentials to authenticated record context", () => {
   const masterKey = Buffer.alloc(32, 7);

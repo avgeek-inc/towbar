@@ -15,6 +15,7 @@ import {
   ChartIncreaseIcon,
   CheckmarkCircle01Icon,
   Clock01Icon,
+  CubeIcon,
   DashboardCircleIcon,
   DatabaseIcon,
   Delete02Icon,
@@ -37,6 +38,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { MonitoringMetricIcon } from "./monitoring-metric-icon";
+import { EnvironmentIcon } from "./environment-icon";
 
 const icons = {
   healthy: CheckmarkCircle01Icon,
@@ -96,7 +98,7 @@ const icons = {
   preview: Rocket01Icon,
   server: ServerStack01Icon,
   app: DashboardCircleIcon,
-  resource: DatabaseIcon,
+  resource: CubeIcon,
   all: Layers01Icon,
   active: AlertCircleIcon,
   resolved: CheckmarkCircle01Icon,
@@ -121,6 +123,7 @@ export function ScoutOptionIcon({
   value: string;
   label: string;
 }) {
+  if (label === "Environment") return <EnvironmentIcon name={value} />;
   if (label === "Metric") {
     if (value === "httpAvailability") return <ScoutIcon name="http" />;
     if (value === "missingReports") return <ScoutIcon name="time" />;
@@ -132,7 +135,8 @@ export function ScoutOptionIcon({
     return <ScoutIcon name="time" />;
   if (label === "Baseline" || label === "Compare with")
     return <ScoutIcon name="preview" />;
-  if (value !== "all" && label === "Source") return <ScoutIcon name="source" />;
+  if (value !== "all" && label === "Repository")
+    return <ScoutIcon name="source" />;
   if (value !== "all" && label === "Server") return <ScoutIcon name="server" />;
   const key = value.split(":")[0]!;
   return (

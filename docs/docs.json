@@ -25,10 +25,12 @@
           {
             "group": "Deploy",
             "pages": [
-              "docs/sources",
+              "docs/repositories",
               "docs/servers",
               "docs/apps",
+              "docs/platform-deployments",
               "docs/resources",
+              "docs/managed-databases",
               "docs/deployments",
               "docs/previews",
               "docs/domains-tls",
@@ -42,6 +44,7 @@
               "docs/scout",
               "docs/scout-alerts",
               "docs/deployment-comparisons",
+              "docs/observability-routing",
               "docs/vulnerability-scanning",
               "docs/backups",
               "docs/restores",
@@ -52,10 +55,20 @@
             "group": "Integrations",
             "pages": [
               "docs/integrations/github",
+              "docs/integrations/gitlab",
               "docs/integrations/aws",
               "docs/integrations/gcp",
               "docs/integrations/azure",
-              "docs/integrations/notifications"
+              "docs/integrations/notifications",
+              "docs/integrations/log-drains"
+            ]
+          },
+          {
+            "group": "Workspace",
+            "pages": [
+              "docs/team-settings",
+              "docs/personal-settings",
+              "docs/ssh-keys"
             ]
           }
         ]
@@ -67,7 +80,10 @@
             "group": "Run Towbar",
             "pages": [
               "docs/self-hosting/installation",
+              "docs/self-hosting/team-access",
               "docs/self-hosting/upgrades",
+              "docs/self-hosting/account-recovery",
+              "docs/self-hosting/uninstall",
               "docs/self-hosting/architecture",
               "docs/self-hosting/security"
             ]
@@ -100,7 +116,7 @@
             ]
           },
           {
-            "group": "Sources",
+            "group": "Repositories",
             "pages": [
               {
                 "group": "Overview",
@@ -115,6 +131,7 @@
                 "pages": [
                   "api-reference/post_sources_discover",
                   "api-reference/post_sources_connect",
+                  "api-reference/get_sources_by_id_branches",
                   "api-reference/get_sources_by_id_syncs",
                   "api-reference/get_sources_by_id_syncs_by_id"
                 ]
@@ -128,7 +145,8 @@
                   "api-reference/post_sources_by_id_environments_by_id_syncs",
                   "api-reference/delete_sources_by_id_environments_by_id",
                   "api-reference/post_sources_by_id_environments_syncs",
-                  "api-reference/get_sources_by_id_environments_by_id_manifest"
+                  "api-reference/get_sources_by_id_environments_by_id_manifest",
+                  "api-reference/patch_sources_by_id_environments_by_id_auto_deploy_control"
                 ]
               },
               {
@@ -153,9 +171,7 @@
                 "group": "Secrets",
                 "pages": [
                   "api-reference/get_sources_by_id_secrets",
-                  "api-reference/patch_sources_by_id_secrets_by_environment_by_stage",
-                  "api-reference/post_sources_by_id_secrets_by_environment_by_stage_reveal",
-                  "api-reference/post_sources_by_id_secrets_by_environment_by_stage_reveal_all"
+                  "api-reference/patch_sources_by_id_secrets_by_environment_by_stage"
                 ]
               }
             ]
@@ -185,10 +201,23 @@
                 "group": "Runtime & logs",
                 "pages": [
                   "api-reference/get_apps_by_id_operations",
+                  "api-reference/get_apps_by_id_operations_by_id_events",
+                  "api-reference/post_apps_by_id_actions_refresh_external_secrets",
                   "api-reference/post_apps_by_id_actions_restart",
                   "api-reference/post_apps_by_id_actions_start",
                   "api-reference/post_apps_by_id_actions_stop",
                   "api-reference/post_apps_by_id_actions_logs"
+                ]
+              },
+              {
+                "group": "Storage",
+                "pages": ["api-reference/get_apps_by_id_storage"]
+              },
+              {
+                "group": "Scheduled jobs",
+                "pages": [
+                  "api-reference/get_apps_by_id_jobs",
+                  "api-reference/post_apps_by_id_actions_run_job"
                 ]
               },
               {
@@ -203,9 +232,7 @@
                 "group": "Secrets",
                 "pages": [
                   "api-reference/get_apps_by_id_secrets",
-                  "api-reference/patch_apps_by_id_secrets_by_environment_by_stage",
-                  "api-reference/post_apps_by_id_secrets_by_environment_by_stage_reveal",
-                  "api-reference/post_apps_by_id_secrets_by_environment_by_stage_reveal_all"
+                  "api-reference/patch_apps_by_id_secrets_by_environment_by_stage"
                 ]
               }
             ]
@@ -235,6 +262,7 @@
                 "group": "Runtime & logs",
                 "pages": [
                   "api-reference/get_resources_by_id_operations",
+                  "api-reference/post_resources_by_id_actions_refresh_external_secrets",
                   "api-reference/post_resources_by_id_actions_restart",
                   "api-reference/post_resources_by_id_actions_start",
                   "api-reference/post_resources_by_id_actions_stop",
@@ -260,9 +288,7 @@
                 "group": "Secrets",
                 "pages": [
                   "api-reference/get_resources_by_id_secrets",
-                  "api-reference/patch_resources_by_id_secrets_by_environment_by_stage",
-                  "api-reference/post_resources_by_id_secrets_by_environment_by_stage_reveal",
-                  "api-reference/post_resources_by_id_secrets_by_environment_by_stage_reveal_all"
+                  "api-reference/patch_resources_by_id_secrets_by_environment_by_stage"
                 ]
               }
             ]
@@ -270,6 +296,13 @@
           {
             "group": "Servers",
             "pages": [
+              {
+                "group": "Cleanup",
+                "pages": [
+                  "api-reference/get_servers_by_id_orphans",
+                  "api-reference/post_servers_by_id_actions_cleanup_orphans"
+                ]
+              },
               {
                 "group": "Overview",
                 "pages": [
@@ -309,8 +342,6 @@
                   "api-reference/post_servers_by_id_scout_alerts_rules",
                   "api-reference/put_servers_by_id_scout_alerts_rules_by_id",
                   "api-reference/delete_servers_by_id_scout_alerts_rules_by_id",
-                  "api-reference/post_servers_by_id_scout_alerts_mute",
-                  "api-reference/post_servers_by_id_scout_alerts_rules_by_id_mute",
                   "api-reference/get_servers_by_id_scout_alerts_incidents",
                   "api-reference/get_servers_by_id_scout_alerts_incidents_by_id"
                 ]
@@ -329,16 +360,11 @@
                 "pages": [
                   "api-reference/get_servers_by_id_credentials",
                   "api-reference/patch_servers_by_id_credentials",
+                  "api-reference/post_servers_by_id_credentials_actions_verify_private_key",
+                  "api-reference/get_servers_by_id_credentials_verifications_by_id",
                   "api-reference/get_servers_by_id_host_keys",
                   "api-reference/post_servers_by_id_host_keys_actions_trust",
                   "api-reference/delete_servers_by_id_host_keys_by_id"
-                ]
-              },
-              {
-                "group": "Maintenance",
-                "pages": [
-                  "api-reference/get_servers_by_id_orphans",
-                  "api-reference/post_servers_by_id_actions_cleanup_orphans"
                 ]
               }
             ]
@@ -403,8 +429,6 @@
               {
                 "group": "Monitoring",
                 "pages": [
-                  "api-reference/get_monitoring_entities",
-                  "api-reference/get_monitoring_alerts",
                   "api-reference/get_monitoring_incidents",
                   "api-reference/get_monitoring_vulnerabilities"
                 ]
@@ -413,9 +437,7 @@
                 "group": "Shared secrets",
                 "pages": [
                   "api-reference/get_settings_secrets",
-                  "api-reference/patch_settings_secrets_by_environment_by_stage",
-                  "api-reference/post_settings_secrets_by_environment_by_stage_reveal",
-                  "api-reference/post_settings_secrets_by_environment_by_stage_reveal_all"
+                  "api-reference/patch_settings_secrets_by_environment_by_stage"
                 ]
               },
               {
@@ -425,12 +447,16 @@
                   "api-reference/post_system_health_actions_check"
                 ]
               },
-              { "group": "Identity", "pages": ["api-reference/get_profile"] }
+              { "group": "Identity", "pages": ["api-reference/get_identity"] }
             ]
           },
           {
             "group": "Integrations",
             "pages": [
+              {
+                "group": "Connections",
+                "pages": ["api-reference/get_integrations"]
+              },
               {
                 "group": "GitHub",
                 "pages": [
@@ -438,31 +464,17 @@
                   "api-reference/post_github_actions_retry_preview_reporting",
                   "api-reference/get_github_repositories",
                   "api-reference/get_github_branches",
-                  "api-reference/delete_github"
+                  "api-reference/delete_github",
+                  "api-reference/get_github_installation"
                 ]
               },
               {
-                "group": "AWS",
+                "group": "GitLab",
                 "pages": [
-                  "api-reference/get_aws",
-                  "api-reference/put_aws",
-                  "api-reference/delete_aws"
-                ]
-              },
-              {
-                "group": "Azure",
-                "pages": [
-                  "api-reference/get_azure",
-                  "api-reference/put_azure",
-                  "api-reference/delete_azure"
-                ]
-              },
-              {
-                "group": "GCP",
-                "pages": [
-                  "api-reference/get_gcp",
-                  "api-reference/put_gcp",
-                  "api-reference/delete_gcp"
+                  "api-reference/get_gitlab_connections",
+                  "api-reference/get_gitlab_repositories",
+                  "api-reference/get_gitlab_groups",
+                  "api-reference/get_gitlab_branches"
                 ]
               }
             ]

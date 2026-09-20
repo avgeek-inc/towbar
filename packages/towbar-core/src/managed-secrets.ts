@@ -38,6 +38,10 @@ export const secretMutationSchema = z
             .string()
             .max(65_536)
             .refine(
+              (value) => value !== "••••••••" && value !== "********",
+              "Enter a new value instead of a masked placeholder",
+            )
+            .refine(
               (value) => !value.includes("\0"),
               "Values cannot contain null bytes",
             ),

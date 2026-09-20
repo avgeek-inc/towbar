@@ -141,7 +141,7 @@ export async function listEnvironmentSecrets(
           ? await readSecretMetadata({
               workspaceId: owner.workspaceId,
               type: "workspace",
-              environment,
+              environment: "production",
               stage,
             })
           : { keys: [], revision: null, updatedAt: null };
@@ -248,7 +248,7 @@ export async function updateEnvironmentSecrets(input: {
   environment: string;
   stage: SecretStage;
   mutation: SecretMutation;
-  actorUserId: string;
+  actorUserId: string | null;
 }) {
   const ownership = await getEnvironmentSecretOwner(input.owner);
   if (
@@ -307,7 +307,10 @@ export async function resolveEnvironmentStage(
     : empty;
   const dependencies = secretReferenceDependencies(local.values, shared.values);
   const global = dependencies.global
-    ? await readSecretValues({ ...slot, type: "workspace" }, database)
+    ? await readSecretValues(
+        { ...slot, type: "workspace", environment: "production" },
+        database,
+      )
     : empty;
   return {
     values: resolveValues(local.values, global.values, shared.values),
@@ -388,6 +391,7 @@ export async function assertRequiredInstanceSecrets(
 
 export async function listSecretEnvironments(owner: SecretOwner) {
   const ownership = await getEnvironmentSecretOwner(owner);
+  if (owner.type === "workspace") return ["production"];
   if (owner.type === "app") {
     const environment = await getInstanceEnvironment({
       appId: owner.id,

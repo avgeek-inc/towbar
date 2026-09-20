@@ -5,7 +5,7 @@ description: "Declare environments in towbar.yml and configure apps and resource
 
 Towbar v2 reads `towbar.yml` and recursively discovers `.towbar/apps/**/*.app.yml`
 and `.towbar/resources/**/*.resource.yml`. Each file declares one entity.
-Branch mappings are configured in **Source → Environments**, not in YAML.
+Branch mappings are configured in **Repository → Environments**, not in YAML.
 
 Download the [root example](/examples/towbar.yaml) and
 [app example](/examples/hello-towbar.app.yaml). Editor schemas are available for
@@ -38,24 +38,23 @@ secrets:
     - DATABASE_URL
 environments:
   production:
-    server: production-server
+    server: 192.0.2.10
     domains:
       primary: app.example.com
   staging:
-    server: staging-server
+    server: 192.0.2.11
     domains:
       primary: staging.example.com
 ```
 
-Register both servers in Towbar and set their slugs to `production-server` and
-`staging-server`. Their IP addresses, SSH credentials, and preparation settings
+Register both IP addresses in Towbar. SSH credentials and preparation settings
 stay in the control plane. Map production to `main` and staging to `develop`
-when connecting the source.
+when connecting the repository.
 
 ## Stable identity
 
 An entity's `id` is stable across file moves and display-name changes. IDs must
-be unique within the app or resource namespace in a source. Each environment
+be unique within the app or resource namespace in a repository. Each environment
 gets a separate instance with its own deployment history, secrets, server,
 volumes, and operations. A resource cannot change its type under the same ID.
 
@@ -103,9 +102,12 @@ for reference syntax and reveal controls.
 
 ## Apps and Resources
 
-Apps build a Dockerfile. Resource files declare `type: image`, `postgres`, or
-`redis`. Image resources require an explicit non-latest tag or digest.
-See [Apps](/docs/apps), [Resources](/docs/resources), and [Backups](/docs/backups).
+Apps declare an explicit `deployment.type`: `dockerfile`, `static`, `image`,
+`railpack`, `nixpacks`, or `buildpack`. Compose projects use their own manifest
+kind. Resource files declare `type: image`, `postgres`, `mysql`, `mariadb`,
+`mongodb`, `redis`, `dragonfly`, `keydb`, or `clickhouse`. Image deployments
+require an explicit non-latest tag or digest. See [Deployment modes](/docs/platform-deployments),
+[Resources](/docs/resources), and [Backups](/docs/backups).
 
 ## Private networks and operator access
 
@@ -148,8 +150,9 @@ and vulnerability scanning.
 ### Resource fields
 
 `id`, `name`, `type`, and `environments` identify the entity. The effective
-configuration requires a server slug and settings appropriate to its type.
-Backup destinations and schedules are supported for PostgreSQL and Redis.
+configuration requires a registered server IP and settings appropriate to its
+type.
+Backup destinations and schedules are supported for all eight managed engines.
 
 ## Validate locally
 
@@ -157,3 +160,104 @@ Associate the matching JSON Schema with each file in your editor. Schemas check
 file structure; Towbar sync also checks merged configuration, server ownership,
 entity identity, and cross-entity conflicts at an immutable Git commit.
 Version 1 single-file manifests are not supported.
+
+## Persistent app storage
+
+Declare Docker-managed named volumes under `container.volumes` in an app file:
+
+```yaml
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: The app uses a single-writer managed volume
+container:
+  port: 3000
+  volumes:
+    - name: uploads
+      mountPath: /app/uploads
+```
+
+A volume is a directory, so files stored underneath the mount path survive
+container restarts, redeployments, and app code rollbacks. Its stable identity
+belongs to the app's environment instance and volume name. Staging and PR
+previews never share production volumes. Environment overrides replace the
+entire volume list. Names must be unique and mount paths must be absolute,
+canonical application directories without overlapping paths or system mounts.
+Host-directory bind mounts are not accepted.
+
+Create the mount directory in the Dockerfile with ownership for the runtime
+user, for example `RUN mkdir /app/uploads && chown node:node /app/uploads` before
+`USER node`. A new volume is initialized from the image directory once. Later
+images never overwrite existing files. See `examples/persistent-files` in the
+repository for a runnable upload example.
+
+When adding storage to an already deployed app, explicitly choose where the
+initial data comes from:
+
+```yaml
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: The app uses a single-writer managed volume
+container:
+  port: 3000
+  volumes:
+    - name: uploads
+      mountPath: /app/uploads
+      initialData: previous-container
+```
+
+`previous-container` imports that directory from the previous container while
+it is stopped, preserving file ownership and permissions. `image` initializes
+from the image instead. Without an explicit choice, attaching a new volume to
+an existing app is blocked. The setting only applies when initializing a new
+volume; existing volumes are reused. New PR previews initialize from their own image even when the base app declares
+`previous-container`; production files are never copied to previews.
+An interrupted import never becomes a ready volume. A retry discards only the
+verified, uncommitted initializer and restarts the import from the previous
+container. Unrecognized volumes are retained and block initialization. A missing previously initialized volume blocks deployment
+rather than silently creating empty storage.
+
+For apps with persistent storage, Towbar builds the candidate first, stops the
+previous container, initializes storage, runs pre-deploy hooks, and starts the
+candidate. This prevents concurrent writers and creates a brief interruption.
+Pre- and post-deploy hooks see the same volumes. If candidate startup or its
+health check fails, Towbar attempts to restart the previous container. Data
+changes made by hooks or the candidate are retained; app rollback is not a data
+restore. The self-managed Towbar worker cannot use this stop/start strategy.
+
+The app's **Storage** page lists configured and retained volumes. Mount status
+comes from the latest server check, which also detects missing or incorrect
+mounts. Removing a declaration, expiring a preview, or archiving an app does not
+remove its volumes. Explicit, confirmed server orphan cleanup can delete volumes
+belonging to removed apps; ordinary deployment cleanup does not delete data.
+
+Storage is local to its server. Repository sync and deployment execution block
+reassigning an app with storage history to another server. Cross-server transfer
+requires a separate, deliberate migration; Towbar does not copy files between
+servers automatically. Local persistence does not protect against disk or server
+loss. Back up persistent application files with storage or infrastructure tooling
+appropriate for the server; Towbar does not back up or restore app volumes.
+
+## Scheduled application jobs
+
+Apps accept an optional `jobs` list with at most 20 unique names. Each job has
+`name`, `command`, and `schedule.cron`; optional fields are `description`,
+`schedule.timezone` (only `UTC`), `enabled` (default `true`), and `timeoutSeconds`
+(default 300, range 5–3600). Names contain lowercase letters, digits and hyphens,
+start with a letter, and are limited to 63 characters.
+
+Jobs inherit the deployed app image, runtime secret values, container resources,
+network and persistent volumes. The manifest contains no credential values.
+Environment overrides replace the entire `jobs` list. See
+[Scheduled jobs](/docs/apps#scheduled-jobs) for timing, concurrency, interruption,
+preview and manual-run behavior.
+
+## Log forwarding
+
+Apps and resources accept a `logDrains` list of team integration names:
+`newrelic`, `axiom`, `betterstack`, `datadog`, `otlp`, and `loki`. Environment
+overrides replace the list; use `[]` to disable it for an environment. Credentials
+stay in Towbar. Forwarding changes take effect after deployment. See
+[Log forwarding](/docs/integrations/log-drains) for provider setup and delivery
+limits.

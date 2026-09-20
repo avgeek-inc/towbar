@@ -1,1 +1,0 @@
-ALTER TABLE "towbar_deployments" ADD COLUMN "target_environment" jsonb NOT NULL;

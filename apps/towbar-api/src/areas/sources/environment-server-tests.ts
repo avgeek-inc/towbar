@@ -1,40 +1,93 @@
-import { sql } from "drizzle-orm";
-import { getTowbarDatabase } from "../../infrastructure/database.js";
+import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
-import { normalizeServerConfiguration } from "@workspace/towbar-core";
-import { createServer, updateServer } from "../servers/lifecycle.js";
-export async function assertServerSlugEditing(workspaceId: string) {
-  const extraConfig = normalizeServerConfiguration({
-    ip: "192.0.2.11",
-    ssh: { username: "deploy" },
+import { eq } from "drizzle-orm";
+import {
+  apps,
+  integrationInstallations,
+  servers,
+  sources,
+  users,
+  workspaceMembers,
+  workspaces,
+} from "@workspace/towbar-database/schema";
+import { getTowbarDatabase } from "../../infrastructure/database.js";
+export async function assertRemovedServerAdmission({
+  workspaceId,
+  prod,
+  config,
+  syncProduction,
+  syncStaging,
+}: {
+  workspaceId: string;
+  prod: typeof apps.$inferSelect;
+  config: (typeof servers.$inferSelect)["config"];
+  syncProduction: () => Promise<void>;
+  syncStaging: () => Promise<void>;
+}) {
+  const database = getTowbarDatabase();
+  const removedAt = new Date();
+  await database
+    .update(apps)
+    .set({ archivedAt: removedAt })
+    .where(eq(apps.serverId, prod.serverId));
+  await database
+    .update(servers)
+    .set({ archivedAt: removedAt, preparedAt: null })
+    .where(eq(servers.id, prod.serverId));
+  await assert.rejects(syncProduction(), /Register server/);
+  const [restoredServer] = await database
+    .select()
+    .from(servers)
+    .where(eq(servers.id, prod.serverId));
+  const [restoredApp] = await database
+    .select()
+    .from(apps)
+    .where(eq(apps.id, prod.id));
+  assert.equal(restoredServer?.archivedAt?.getTime(), removedAt.getTime());
+  assert.equal(restoredServer?.preparedAt, null);
+  assert.equal(restoredApp?.archivedAt?.getTime(), removedAt.getTime());
+  const { createServer } = await import("../servers/lifecycle.js");
+  await createServer({ workspaceId, config });
+  await syncProduction();
+  await syncStaging();
+}
+
+export async function seedEnvironmentTeam({
+  workspaceId,
+  userId,
+  sourceId,
+}: {
+  workspaceId: string;
+  userId: string;
+  sourceId: string;
+}) {
+  const database = getTowbarDatabase();
+  await database
+    .insert(workspaces)
+    .values({ id: workspaceId, slug: workspaceId, name: "V2 test" });
+  await database.insert(users).values({
+    id: userId,
+    email: `${userId}@example.com`,
+    displayName: "Test",
   });
-  const extra = await createServer({
-    workspaceId,
-    slug: "extra-host",
-    config: extraConfig,
-  });
-  await assert.rejects(
-    updateServer({
+  await database
+    .insert(workspaceMembers)
+    .values({ workspaceId, userId, role: "admin" });
+  const [installation] = await database
+    .insert(integrationInstallations)
+    .values({
+      provider: "github",
       workspaceId,
-      serverId: extra.id,
-      slug: "host",
-      config: extraConfig,
-    }),
-    /already in use/,
-  );
-  const renamed = await updateServer({
+      externalId: randomUUID(),
+      principalName: "test",
+      principalType: "Organization",
+    })
+    .returning();
+  await database.insert(sources).values({
+    id: sourceId,
     workspaceId,
-    serverId: extra.id,
-    slug: "renamed-host",
-    config: extraConfig,
+    integrationInstallationId: installation!.id,
+    repositoryOwner: "test",
+    repositoryName: "test",
   });
-  await assert.rejects(
-    getTowbarDatabase().execute(
-      sql`update towbar_servers set slug = null where id = ${extra.id}`,
-    ),
-    (error: unknown) =>
-      (error as { cause?: { code?: string } }).cause?.code === "23502",
-  );
-  assert.equal(renamed.slug, "renamed-host");
-  assert.deepEqual(renamed.config, extraConfig);
 }

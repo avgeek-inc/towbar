@@ -5,15 +5,19 @@ import {
   ManifestValidationError,
   appSchema,
   digestValue,
+  ipAddressSchema,
   normalizeDeploymentManifest,
   resourceSchema,
-  serverSlugSchema,
 } from "./manifest.js";
 import {
   isValidBranchName,
   normalizeRepositoryPath,
 } from "./manifest-values.js";
 import { secretKeySchema } from "./managed-secrets.js";
+import {
+  buildServerSelectionSchema,
+  composeWorkloadSchema,
+} from "./platform-expansion.js";
 
 export const environmentNameSchema = z
   .string()
@@ -44,11 +48,13 @@ export const sourceEnvironmentMappingSchema = z
 export const repositoryManifestSchema = z
   .object({
     version: z.literal(2),
+    buildServer: buildServerSelectionSchema.nullable().optional(),
     environments: z
       .record(
         environmentNameSchema,
         z
           .object({
+            buildServer: buildServerSelectionSchema.nullable().optional(),
             previews: z.object({ enabled: z.boolean() }).strict().optional(),
           })
           .strict(),
@@ -135,7 +141,7 @@ export function parseRepositoryManifest(content: string): RepositoryManifest {
 
 export function entityFileKind(
   filePath: string,
-): "app" | "resource" | undefined {
+): "app" | "compose" | "resource" | undefined {
   if (normalizeRepositoryPath(filePath) !== filePath)
     throw new Error("Entity paths must be canonical repository-relative paths");
   if (filePath.startsWith(".towbar/apps/") && filePath.endsWith(".app.yml"))
@@ -145,6 +151,11 @@ export function entityFileKind(
     filePath.endsWith(".resource.yml")
   )
     return "resource";
+  if (
+    filePath.startsWith(".towbar/compose/") &&
+    filePath.endsWith(".compose.yml")
+  )
+    return "compose";
   return undefined;
 }
 
@@ -183,6 +194,7 @@ export function mergeEnvironmentConfiguration(
 }
 
 /** Resolve one environment only; other environment settings never enter its digest. */
+// eslint-disable-next-line complexity -- The branches mirror the three versioned entity schemas and their fail-closed validation rules.
 export function resolveRepositoryEnvironment(input: {
   root: string;
   files: RepositoryFile[];
@@ -199,6 +211,7 @@ export function resolveRepositoryEnvironment(input: {
   if (!environment)
     invalid("towbar.yml", `Environment '${input.environment}' is not declared`);
   const apps: z.input<typeof appSchema>[] = [];
+  const compose: z.input<typeof composeWorkloadSchema>[] = [];
   const resources: z.input<typeof resourceSchema>[] = [];
   const declarations: Record<string, RequiredSecrets> = Object.create(null);
   const paths = new Set<string>();
@@ -258,7 +271,7 @@ export function resolveRepositoryEnvironment(input: {
     identities.add(identity);
     const required = requiredSecretsSchema.parse(
       validate(
-        kind === "resource"
+        kind === "resource" || kind === "compose"
           ? resourceRequiredSecretsSchema
           : requiredSecretsSchema,
         secrets ?? {},
@@ -268,13 +281,24 @@ export function resolveRepositoryEnvironment(input: {
     const selected = overrides[input.environment];
     if (!selected) continue;
     const resolved = mergeEnvironmentConfiguration(defaults, selected);
-    validate(serverSlugSchema, resolved.server, file.path);
+    if (kind === "app") {
+      if (!Object.hasOwn(resolved, "buildServer")) {
+        const inherited = Object.hasOwn(environment, "buildServer")
+          ? environment.buildServer
+          : root.buildServer;
+        if (inherited !== undefined) resolved.buildServer = inherited;
+      }
+      if (resolved.buildServer === null) delete resolved.buildServer;
+    }
+    validate(ipAddressSchema, resolved.server, file.path);
     if (kind === "app") {
       const app = validate(appSchema, resolved, file.path);
       if (!environment.previews?.enabled) delete app.preview;
       apps.push(app);
-    } else {
+    } else if (kind === "resource") {
       resources.push(validate(resourceSchema, resolved, file.path));
+    } else {
+      compose.push(validate(composeWorkloadSchema, resolved, file.path));
     }
     declarations[identity] = required;
   }
@@ -283,6 +307,7 @@ export function resolveRepositoryEnvironment(input: {
     version: 2,
     source: { branch: input.branch },
     apps,
+    compose,
     resources,
   });
   const manifest = {

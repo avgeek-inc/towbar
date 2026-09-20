@@ -1,8 +1,11 @@
 import { S3Client } from "@aws-sdk/client-s3";
+import { NodeHttpHandler } from "@smithy/node-http-handler";
+import { rootCertificates } from "node:tls";
 import { ApplicationFailure, Context } from "@temporalio/activity";
 
 import { executeResourceOperation } from "@workspace/towbar-deployer";
 import { isNormalizedResource } from "@workspace/towbar-core";
+import { createPolicyHttpsAgent } from "@workspace/towbar-core/network-policy";
 
 import { signedApiRequest } from "../infrastructure/towbar-api.js";
 import { getEnv } from "../env.js";
@@ -71,12 +74,15 @@ export async function executeResourceOperationActivity(operationId: string) {
   }
 }
 
+// eslint-disable-next-line complexity -- This boundary maps each supported provider to the matching integrity-aware storage adapter.
 export function initializeBackupStorages(
   context: Pick<
     ResourceOperationExecutionContext,
     "deployable" | "restoreBackup" | "request"
   >,
-  secrets: Pick<ResourceOperationSecrets, "aws" | "gcp" | "azure">,
+  secrets: Pick<ResourceOperationSecrets, "aws" | "gcp" | "azure"> & {
+    namedStorage?: ResourceOperationSecrets["namedStorage"];
+  },
 ) {
   const backup =
     context.deployable && isNormalizedResource(context.deployable)
@@ -93,6 +99,54 @@ export function initializeBackupStorages(
       : (backup?.restoreFrom ?? "s3");
   let client: S3Client | undefined;
   const storages: Partial<Record<BackupProvider, BackupStorage>> = {};
+  if (secrets.namedStorage) {
+    const named = secrets.namedStorage;
+    if (named.provider === "s3" || named.provider === "r2") {
+      client = new S3Client({
+        credentials: named.credentials,
+        endpoint: named.configuration.endpoint,
+        forcePathStyle: named.configuration.addressingStyle === "path",
+        region: named.configuration.region,
+        maxAttempts: 4,
+        requestHandler: new NodeHttpHandler({
+          httpsAgent: createPolicyHttpsAgent({
+            allowPrivateNetwork: named.configuration.allowPrivateNetwork,
+            ...(named.configuration.customCa
+              ? { ca: [...rootCertificates, named.configuration.customCa] }
+              : {}),
+          }),
+        }),
+      });
+      return {
+        client,
+        storage: s3Storage(
+          client,
+          named.provider === "r2" ? "R2-managed" : undefined,
+        ),
+        storages,
+      };
+    }
+    if (named.provider === "gcs") {
+      return {
+        client,
+        storage: gcsStorage(JSON.parse(named.credentials.serviceAccountJson)),
+        storages,
+      };
+    }
+    const azure = named as Extract<typeof named, { provider: "azureBlob" }>;
+    return {
+      client,
+      storage: azureBlobStorage(
+        azure.credentials as {
+          clientId: string;
+          clientSecret: string;
+          tenantId: string;
+        },
+        (azure.configuration as { storageAccount: string }).storageAccount,
+      ),
+      storages,
+    };
+  }
   if (secrets.aws) {
     client = new S3Client({
       credentials: {
@@ -118,7 +172,11 @@ export function initializeBackupStorages(
       retained?.storageAccount ?? backup?.azureBlob?.storageAccount,
     );
   }
-  return { client, storage: storages[provider], storages };
+  return {
+    client,
+    storage: provider === "r2" ? storages.s3 : storages[provider],
+    storages,
+  };
 }
 
 async function handleResourceOperationError(
@@ -164,6 +222,8 @@ export async function runMaintenanceSweepActivity() {
 }
 
 function restoreFailureResult(error: unknown) {
+  if (typeof error === "object" && error !== null && "jobResult" in error)
+    return error.jobResult;
   if (typeof error === "object" && error !== null && "restoreResult" in error) {
     return (error as { restoreResult: unknown }).restoreResult;
   }

@@ -2,7 +2,10 @@ import { testDeploymentEnvironment } from "./instance-test-helper.js";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
-import { isNormalizedResource } from "@workspace/towbar-core";
+import {
+  isNormalizedCompose,
+  isNormalizedResource,
+} from "@workspace/towbar-core";
 import { sourceEnvironments } from "@workspace/towbar-database/schema";
 import type { apps, servers } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
@@ -52,7 +55,10 @@ export async function assertPreviewAdmissionGuards({
     workspaceId,
   });
   assert(
-    environment && stage.requiredSecrets && !isNormalizedResource(stage.config),
+    environment &&
+      stage.requiredSecrets &&
+      !isNormalizedResource(stage.config) &&
+      !isNormalizedCompose(stage.config),
   );
   const input = {
     appId: stage.id,
@@ -231,7 +237,16 @@ export async function assertDeploymentSecretSnapshot({
     );
     await database
       .update(previewEnvironments)
-      .set({ status: "deleting", cleanupAttempts: 2 })
+      .set({
+        status: "deleting",
+        cleanupAttempts: 2,
+        cleanupRequestedByActor: {
+          kind: "session",
+          userId,
+          workspaceId,
+          grants: ["workload.operate"],
+        },
+      })
       .where(eq(previewEnvironments.id, previewId));
     assert.equal((await getPreviewCleanupContext(previewId)).cleanupAttempt, 2);
     assert.deepEqual(

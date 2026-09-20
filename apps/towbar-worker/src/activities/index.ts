@@ -8,3 +8,9 @@ export * from "./source-sync.js";
 export * from "./vulnerability-scan.js";
 export * from "./monitoring-agent.js";
 export * from "./scout-alerts.js";
+
+export * from "./transactional-email.js";
+
+export * from "./app-jobs.js";
+
+export * from "./log-drains.js";

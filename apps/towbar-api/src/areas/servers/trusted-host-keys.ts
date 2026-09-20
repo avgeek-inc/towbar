@@ -29,8 +29,9 @@ export async function trustServerHostKey(input: {
   algorithm: string;
   fingerprint: string;
   publicKey: string;
+  replaceExisting?: boolean;
   serverId: string;
-  trustedBy: string;
+  trustedBy: string | null;
   workspaceId: string;
 }) {
   await getServer(input.serverId, input.workspaceId);
@@ -43,19 +44,33 @@ export async function trustServerHostKey(input: {
       "INVALID_HOST_KEY",
     );
   }
-  const [key] = await getTowbarDatabase()
-    .insert(sshHostKeys)
-    .values({ ...input, ...hostKey })
-    .onConflictDoUpdate({
-      target: [sshHostKeys.serverId, sshHostKeys.fingerprint],
-      set: { publicKey: hostKey.publicKey, revokedAt: null },
-    })
-    .returning({
-      algorithm: sshHostKeys.algorithm,
-      fingerprint: sshHostKeys.fingerprint,
-      id: sshHostKeys.id,
-    });
-  return key;
+  return await getTowbarDatabase().transaction(async (transaction) => {
+    if (input.replaceExisting) {
+      await transaction
+        .update(sshHostKeys)
+        .set({ revokedAt: new Date() })
+        .where(
+          and(
+            eq(sshHostKeys.serverId, input.serverId),
+            isNull(sshHostKeys.revokedAt),
+          ),
+        );
+    }
+    const { replaceExisting: _replaceExisting, ...values } = input;
+    const [key] = await transaction
+      .insert(sshHostKeys)
+      .values({ ...values, ...hostKey })
+      .onConflictDoUpdate({
+        target: [sshHostKeys.serverId, sshHostKeys.fingerprint],
+        set: { publicKey: hostKey.publicKey, revokedAt: null },
+      })
+      .returning({
+        algorithm: sshHostKeys.algorithm,
+        fingerprint: sshHostKeys.fingerprint,
+        id: sshHostKeys.id,
+      });
+    return key;
+  });
 }
 
 export async function revokeServerHostKey(input: {

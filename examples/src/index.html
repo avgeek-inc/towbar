@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="A small app for your first Towbar deployment."
+    />
+    <title>Hello Towbar</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --background: #faf9f6;
+        --text: #24221c;
+        --muted: #69665e;
+        --border: #dedbd2;
+        --gold: #b08505;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --background: #171612;
+          --text: #f4f2ec;
+          --muted: #b5b1a5;
+          --border: #39362e;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--background);
+        color: var(--text);
+        font:
+          17px/1.65 system-ui,
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: clamp(40px, 10vh, 100px) 24px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 16px;
+        font-weight: 650;
+      }
+      .mark {
+        width: 12px;
+        height: 12px;
+        background: var(--gold);
+        border-radius: 3px;
+      }
+      h1 {
+        font-size: clamp(42px, 8vw, 68px);
+        line-height: 1.08;
+        letter-spacing: -0.045em;
+        margin: 56px 0 24px;
+        text-wrap: balance;
+      }
+      .intro {
+        font-size: 21px;
+        max-width: 48ch;
+      }
+      p {
+        color: var(--muted);
+        margin: 0 0 24px;
+      }
+      section {
+        margin-top: 40px;
+        padding-top: 28px;
+        border-top: 1px solid var(--border);
+      }
+      h2 {
+        font-size: 20px;
+        margin: 0 0 12px;
+        letter-spacing: -0.02em;
+      }
+      code {
+        font-size: 0.85em;
+        overflow-wrap: anywhere;
+        color: var(--text);
+      }
+      a {
+        color: var(--text);
+        text-underline-offset: 4px;
+        text-decoration-color: var(--gold);
+      }
+      a:hover {
+        text-decoration-thickness: 2px;
+      }
+      a:focus-visible {
+        outline: 2px solid var(--gold);
+        outline-offset: 5px;
+        border-radius: 2px;
+      }
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 24px;
+        margin-top: 32px;
+      }
+      footer {
+        margin-top: 48px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="brand">
+        <span class="mark" aria-hidden="true"></span>Hello Towbar
+      </div>
+      <h1>Your app is running.</h1>
+      <p class="intro">
+        A small start. Your code, a Docker container, and a server you own.
+      </p>
+      <section aria-labelledby="next">
+        <h2 id="next">Make it yours</h2>
+        <p>
+          Edit the heading in <code>src/index.html</code>, commit to
+          <code>main</code>, then deploy again in Towbar. Reload this page to
+          see your change.
+        </p>
+        <nav aria-label="Next steps">
+          <a href="/health">Check app health</a>
+          <a href="https://www.towbar.dev/docs/getting-started"
+            >Deployment guide</a
+          >
+          <a href="https://www.towbar.dev/docs/previews">Add previews</a>
+        </nav>
+      </section>
+      <footer>Built with Node.js. Ready for Towbar.</footer>
+    </main>
+  </body>
+</html>

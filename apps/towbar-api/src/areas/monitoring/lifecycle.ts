@@ -1,13 +1,19 @@
+import { recordAuditEvent } from "../../infrastructure/audit.js";
+import { auditAttribution } from "../auth/actor-context.js";
+import {
+  authorizeQueuedEffect,
+  captureQueuedActor,
+  withActor,
+} from "../auth/actor-context.js";
 import { removeServer } from "../servers/lifecycle.js";
 import { randomBytes, randomUUID } from "node:crypto";
-import { and, eq, inArray, isNotNull, isNull, lt } from "drizzle-orm";
+import { and, eq, inArray, isNull, lt } from "drizzle-orm";
 import {
   decryptCredential,
   encryptCredential,
   parseCredentialsMasterKey,
 } from "@workspace/towbar-core";
 import {
-  auditEvents,
   monitoringAgents,
   servers,
   sshHostKeys,
@@ -44,14 +50,14 @@ export async function getMonitoringAgent(
     diagnostics: agent?.diagnostics ?? null,
     errorMessage: agent?.errorMessage ?? null,
     sampleIntervalSeconds: 30,
-    removingServer: Boolean(agent?.removalRequestedBy),
+    removingServer: Boolean(agent?.removalRequested),
   };
 }
 export async function updateMonitoringRetention(input: {
   serverId: string;
   workspaceId: string;
   retentionDays: number;
-  requestedBy: string;
+  requestedBy: string | null;
 }) {
   await getServer(input.serverId, input.workspaceId);
   await getTowbarDatabase().transaction(async (tx) => {
@@ -69,13 +75,14 @@ export async function updateMonitoringRetention(input: {
         target: monitoringAgents.serverId,
         set: { retentionDays: input.retentionDays, updatedAt: new Date() },
       });
-    await tx.insert(auditEvents).values({
+    await recordAuditEvent(tx, {
       workspaceId: input.workspaceId,
       actorUserId: input.requestedBy,
       action: "monitoring.retention_updated",
       targetType: "server",
       targetId: input.serverId,
       metadata: { retentionDays: input.retentionDays },
+      ...auditAttribution(),
     });
   });
   return getMonitoringAgent(input.serverId, input.workspaceId);
@@ -83,7 +90,7 @@ export async function updateMonitoringRetention(input: {
 export async function requestMonitoringAgent(input: {
   serverId: string;
   workspaceId: string;
-  requestedBy: string;
+  requestedBy: string | null;
   desiredState: "enabled" | "disabled";
   retentionDays?: number;
 }) {
@@ -145,7 +152,9 @@ export async function requestMonitoringAgent(input: {
         : null,
       errorMessage: null,
       requestedBy: input.requestedBy,
+      ...captureQueuedActor(input.workspaceId, ["scout.configure"]),
       operationStartedAt: null,
+      removalRequested: false,
       removalRequestedBy: null,
       updatedAt: new Date(),
     };
@@ -153,7 +162,7 @@ export async function requestMonitoringAgent(input: {
       .insert(monitoringAgents)
       .values(values)
       .onConflictDoUpdate({ target: monitoringAgents.serverId, set: values });
-    await tx.insert(auditEvents).values({
+    await recordAuditEvent(tx, {
       workspaceId: input.workspaceId,
       actorUserId: input.requestedBy,
       action:
@@ -163,6 +172,7 @@ export async function requestMonitoringAgent(input: {
       targetType: "server",
       targetId: server.id,
       metadata: { generation },
+      ...auditAttribution(),
     });
   });
   try {
@@ -190,6 +200,12 @@ export async function getMonitoringExecutionContext(
     )
     .limit(1);
   if (!row) throw conflict("Monitoring operation is no longer active");
+  if (row.agent.status === "queued")
+    await authorizeQueuedEffect(
+      row.agent.requestedByActor,
+      row.server.workspaceId,
+      [row.agent.removalRequested ? "server.remove" : "scout.configure"],
+    );
   if (["waiting", "online", "disabled"].includes(row.agent.status)) return null;
   if (!busyStates.has(row.agent.status))
     throw conflict("Monitoring operation is no longer active");
@@ -344,13 +360,14 @@ export async function finishPendingServerRemovals() {
       serverId: servers.id,
       workspaceId: servers.workspaceId,
       requestedBy: monitoringAgents.removalRequestedBy,
+      requestedByActor: monitoringAgents.requestedByActor,
     })
     .from(monitoringAgents)
     .innerJoin(servers, eq(servers.id, monitoringAgents.serverId))
     .where(
       and(
         eq(monitoringAgents.status, "disabled"),
-        isNotNull(monitoringAgents.removalRequestedBy),
+        eq(monitoringAgents.removalRequested, true),
         isNull(servers.archivedAt),
       ),
     )
@@ -358,14 +375,20 @@ export async function finishPendingServerRemovals() {
   for (const row of pending)
     if (row.requestedBy) {
       try {
-        await removeServer({ ...row, requestedBy: row.requestedBy });
+        await withActor(
+          await authorizeQueuedEffect(row.requestedByActor, row.workspaceId, [
+            "server.remove",
+          ]),
+          () => removeServer({ ...row, requestedBy: row.requestedBy }),
+        );
       } catch {
         await db
           .update(monitoringAgents)
           .set({
+            removalRequested: false,
             removalRequestedBy: null,
             errorMessage:
-              "The agent was removed, but the server now has assigned workloads or active operations. Remove the server again when it is no longer in use.",
+              "The agent was removed, but the server has an active operation. Remove the server again when it finishes.",
           })
           .where(eq(monitoringAgents.serverId, row.serverId));
       }

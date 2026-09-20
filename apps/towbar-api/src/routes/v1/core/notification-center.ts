@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
 
-import { notificationProviderAvailability } from "../../../areas/notifications/configuration.js";
+import { getNotificationProviderState } from "../../../areas/notifications/configuration.js";
 import { listNotificationEvents } from "../../../areas/notifications/service.js";
+import { operation } from "../../../http/operation.js";
 
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
@@ -12,21 +12,25 @@ export const notificationCenterRoutes = new Hono<TowbarHonoEnvironment>();
 notificationCenterRoutes.get(
   "/providers",
   operation({
+    permissions: ["notification.manage"],
     browserOnly: true,
     responseSchema: 'notification-center.ts:get:"/providers"',
-    summary: "Get notification provider availability",
-    response: "JSON object containing providers.",
+    summary: "Get environment-configured notification providers",
+    response: "Configured providers without environment values or secrets.",
     status: 200,
   }),
-  (context) => {
+  async (context) => {
     context.header("Cache-Control", "no-store");
-    return context.json({ providers: notificationProviderAvailability() });
+    return context.json(
+      await getNotificationProviderState(context.get("user").workspaceId),
+    );
   },
 );
 
 notificationCenterRoutes.get(
   "/",
   operation({
+    permissions: ["inbox.read"],
     browserOnly: true,
     responseSchema: 'notification-center.ts:get:"/"',
     summary: "List notification events",

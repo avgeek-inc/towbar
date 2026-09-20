@@ -1,10 +1,7 @@
 import { Hono } from "hono";
 import { getWorkspaceMonitoringSummary } from "../../../areas/monitoring/workspace-summary.js";
 import {
-  listMonitoringEntities,
-  listWorkspaceAlerts,
   listWorkspaceIncidents,
-  monitoringEntitiesQuery,
   monitoringOverviewQuery,
 } from "../../../areas/monitoring/workspace.js";
 import {
@@ -16,44 +13,9 @@ import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
 export const monitoringOverviewRoutes = new Hono<TowbarHonoEnvironment>();
 monitoringOverviewRoutes.get(
-  "/entities",
-  operation({
-    responseSchema: 'monitoring-overview.ts:get:"/entities"',
-    summary: "List monitoring entities",
-    query: monitoringEntitiesQuery,
-    response:
-      "Searchable, paginated servers, apps, and resources in the current workspace.",
-    status: 200,
-  }),
-  async (context) =>
-    context.json(
-      await listMonitoringEntities(
-        context.get("user").workspaceId,
-        monitoringEntitiesQuery.parse(context.req.query()),
-      ),
-    ),
-);
-monitoringOverviewRoutes.get(
-  "/alerts",
-  operation({
-    responseSchema: 'monitoring-overview.ts:get:"/alerts"',
-    summary: "List workspace Scout alerts",
-    query: monitoringOverviewQuery,
-    response:
-      "Read-only paginated overview of configured rules with their server and workload identity.",
-    status: 200,
-  }),
-  async (context) =>
-    context.json(
-      await listWorkspaceAlerts(
-        context.get("user").workspaceId,
-        monitoringOverviewQuery.parse(context.req.query()),
-      ),
-    ),
-);
-monitoringOverviewRoutes.get(
   "/incidents",
   operation({
+    permissions: ["alert.read"],
     responseSchema: 'monitoring-overview.ts:get:"/incidents"',
     summary: "List workspace Scout incidents",
     query: monitoringOverviewQuery,
@@ -73,6 +35,7 @@ monitoringOverviewRoutes.get(
 monitoringOverviewRoutes.get(
   "/vulnerabilities",
   operation({
+    permissions: ["alert.read"],
     responseSchema: 'monitoring-overview.ts:get:"/vulnerabilities"',
     summary: "List workspace vulnerability findings",
     query: vulnerabilityFindingsQuery,
@@ -92,11 +55,12 @@ monitoringOverviewRoutes.get(
 monitoringOverviewRoutes.get(
   "/summary",
   operation({
+    permissions: ["alert.read"],
     responseSchema: 'monitoring-overview.ts:get:"/summary"',
     summary: "Read workspace monitoring counts",
     browserOnly: true,
     response:
-      "Active incidents, distinct entities with fresh resource usage above 80%, and critical or high findings from the latest scan of each App, independent of alert rules.",
+      "Active incidents and critical or high findings from the latest scan of each App.",
     status: 200,
   }),
   async (context) =>

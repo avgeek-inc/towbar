@@ -47,7 +47,6 @@ export const monitoringEntitySchema = z
     id: z.union([z.literal("host"), z.string().regex(/^[a-f0-9]{64}$/u)]),
     deployableId: z.string().uuid().optional(),
     deploymentId: z.string().uuid().optional(),
-    previewId: z.string().uuid().optional(),
     containerId: z
       .string()
       .regex(/^[a-f0-9]{64}$/u)
@@ -102,10 +101,7 @@ export const monitoringSampleSchema = z
       }
       if (
         entity.id === "host" &&
-        (entity.deployableId ||
-          entity.deploymentId ||
-          entity.containerId ||
-          entity.previewId)
+        (entity.deployableId || entity.deploymentId || entity.containerId)
       ) {
         context.addIssue({
           code: "custom",
@@ -169,8 +165,6 @@ export const monitoringQuerySchema = z
       .describe(
         "Exclusive ISO 8601 end with time-zone offset; required for range=custom, at least 30 seconds after start and not in the future.",
       ),
-    environment: z.enum(["production", "preview"]).default("production"),
-    previewId: z.string().uuid().optional(),
   })
   .strict();
 export type MonitoringQuery = z.infer<typeof monitoringQuerySchema>;

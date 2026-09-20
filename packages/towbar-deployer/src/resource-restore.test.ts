@@ -29,7 +29,106 @@ const restoreId = "61111111-1111-4111-8111-111111111111";
 const backupBody = Buffer.from("verified Towbar backup fixture", "utf8");
 const checksum = createHash("sha256").update(backupBody).digest("hex");
 
-type Engine = "postgres" | "redis";
+type Engine =
+  | "postgres"
+  | "mysql"
+  | "mariadb"
+  | "mongodb"
+  | "redis"
+  | "dragonfly"
+  | "keydb"
+  | "clickhouse";
+const engineFixtures = {
+  postgres: {
+    format: "postgres-custom",
+    image: "postgres:17-alpine@sha256:fixture",
+    major: 17,
+    mountPath: "/var/lib/postgresql/data",
+    name: "PostgreSQL",
+    runtime: { POSTGRES_DB: "towbar", POSTGRES_PASSWORD: "fixture" },
+  },
+  mysql: {
+    format: "mysql-sql",
+    image: "mysql:8.4@sha256:fixture",
+    major: 8,
+    mountPath: "/var/lib/mysql",
+    name: "MySQL",
+    runtime: { MYSQL_ROOT_PASSWORD: "fixture" },
+  },
+  mariadb: {
+    format: "mariadb-sql",
+    image: "mariadb:11.8@sha256:fixture",
+    major: 11,
+    mountPath: "/var/lib/mysql",
+    name: "MariaDB",
+    runtime: { MYSQL_ROOT_PASSWORD: "fixture" },
+  },
+  mongodb: {
+    format: "mongodb-archive",
+    image: "mongo:8.0@sha256:fixture",
+    major: 8,
+    mountPath: "/data/db",
+    name: "MongoDB",
+    runtime: {
+      MONGO_INITDB_ROOT_PASSWORD: "fixture",
+      MONGO_INITDB_ROOT_USERNAME: "towbar",
+    },
+  },
+  redis: {
+    format: "redis-rdb",
+    image: "redis:8-alpine@sha256:fixture",
+    major: 8,
+    mountPath: "/data",
+    name: "Redis",
+    runtime: { REDIS_PASSWORD: "fixture" },
+  },
+  dragonfly: {
+    format: "dragonfly-rdb",
+    image: "dragonflydb/dragonfly:v1.33.1@sha256:fixture",
+    major: 1,
+    mountPath: "/data",
+    name: "Dragonfly",
+    runtime: { REDIS_PASSWORD: "fixture" },
+  },
+  keydb: {
+    format: "keydb-rdb",
+    image: "eqalpha/keydb:x86_64_v6.3.4@sha256:fixture",
+    major: 6,
+    mountPath: "/data",
+    name: "KeyDB",
+    runtime: { REDIS_PASSWORD: "fixture" },
+  },
+  clickhouse: {
+    format: "clickhouse-backup",
+    image: "clickhouse/clickhouse-server:25.8-alpine@sha256:fixture",
+    major: 25,
+    mountPath: "/var/lib/clickhouse",
+    name: "ClickHouse",
+    runtime: {
+      CLICKHOUSE_PASSWORD: "fixture",
+      CLICKHOUSE_USER: "towbar",
+    },
+  },
+} as const satisfies Record<
+  Engine,
+  {
+    format:
+      | "postgres-custom"
+      | "mysql-sql"
+      | "mariadb-sql"
+      | "mongodb-archive"
+      | "redis-rdb"
+      | "dragonfly-rdb"
+      | "keydb-rdb"
+      | "clickhouse-backup";
+    image: string;
+    major: number;
+    mountPath: string;
+    name: string;
+    runtime: Record<string, string>;
+  }
+>;
+const engines = Object.keys(engineFixtures) as Engine[];
 type Failure =
   | "corrupt"
   | "health"
@@ -39,6 +138,7 @@ type Failure =
   | null;
 
 function resourceFixture(engine: Engine): NormalizedResource {
+  const fixture = engineFixtures[engine];
   return {
     autoDeploy: true,
     backup: {
@@ -55,27 +155,25 @@ function resourceFixture(engine: Engine): NormalizedResource {
       resources: { cpus: 1, memory: "1g" },
       volumes: [
         {
-          mountPath: engine === "postgres" ? "/var/lib/postgresql" : "/data",
+          mountPath: fixture.mountPath,
           name: "data",
         },
       ],
     },
     health: { timeoutSeconds: 30, type: "container" },
     id: `primary-${engine}`,
-    image:
-      engine === "postgres"
-        ? "postgres:18-alpine@sha256:fixture"
-        : "redis:8-alpine@sha256:fixture",
+    image: fixture.image,
     kind: engine,
-    name: engine === "postgres" ? "Primary PostgreSQL" : "Primary Redis",
+    name: `Primary ${fixture.name}`,
 
-    server: "production",
+    server: "192.0.2.10",
 
     sourceBranch: "main",
   };
 }
 
 function restoreContext(engine: Engine): ResourceOperationExecutionContext {
+  const fixture = engineFixtures[engine];
   const release = {
     containerName: `towbar-${engine}`,
     imageTag: resourceFixture(engine).image,
@@ -102,8 +200,8 @@ function restoreContext(engine: Engine): ResourceOperationExecutionContext {
         deletedBackupIds: [],
         encryption: "AES256",
         engine,
-        engineMajorVersion: engine === "postgres" ? 18 : 8,
-        format: engine === "postgres" ? "postgres-custom" : "redis-rdb",
+        engineMajorVersion: fixture.major,
+        format: fixture.format,
         key: `fixtures/${engine}.backup`,
         metadataVersion: 1,
         region: "ap-south-1",
@@ -138,11 +236,9 @@ function restoreSecrets(engine: Engine): ResourceOperationSecrets {
     },
     azure: null,
     gcp: null,
+    namedStorage: null,
     login: { privateKey: "fixture" },
-    runtime:
-      engine === "postgres"
-        ? { POSTGRES_DB: "towbar", POSTGRES_PASSWORD: "fixture" }
-        : { REDIS_PASSWORD: "fixture" },
+    runtime: engineFixtures[engine].runtime,
     sensitiveValues: ["fixture"],
   };
 }
@@ -188,7 +284,7 @@ function sessionFixture(engine: Engine, failure: Failure) {
         }
         return Promise.resolve({
           stderr: "",
-          stdout: `towbar-${deployableId}-data\n10737418240\n${engine === "postgres" ? 18 : 8}\n`,
+          stdout: `towbar-${deployableId}-data\n10737418240\n${engineFixtures[engine].major}\n`,
         });
       }
       if (script === restoreScripts.restoreCandidate && failure === "health") {
@@ -218,8 +314,8 @@ async function runRestoreFixture(engine: Engine, failure: Failure) {
       return {
         ...metadata,
         engine,
-        engineMajorVersion: engine === "postgres" ? 18 : 8,
-        format: engine === "postgres" ? "postgres-custom" : "redis-rdb",
+        engineMajorVersion: engineFixtures[engine].major,
+        format: engineFixtures[engine].format,
       };
     },
   };
@@ -251,34 +347,36 @@ void describe("managed database restore scripts", () => {
     assert.match(restoreScripts.preflight, /redis-server --version/);
   });
 
-  void it("restores PostgreSQL and Redis only inside an isolated candidate", () => {
+  void it("restores every managed engine only inside an isolated candidate", () => {
     assert.match(restoreScripts.restoreCandidate, /pg_restore/);
+    assert.match(restoreScripts.restoreCandidate, /mysql -u root/);
+    assert.match(restoreScripts.restoreCandidate, /mariadb -u root/);
+    assert.match(restoreScripts.restoreCandidate, /mongorestore/);
     assert.match(restoreScripts.restoreCandidate, /redis-check-rdb/);
+    assert.match(restoreScripts.restoreCandidate, /CONFIG SET appendonly yes/);
+    assert.match(restoreScripts.restoreCandidate, /aof_rewrite_in_progress:0/);
+    assert.match(
+      restoreScripts.restoreCandidate,
+      /RESTORE ALL EXCEPT DATABASES/,
+    );
     assert.match(restoreScripts.restoreCandidate, /psql.*SELECT 1/su);
     assert.match(restoreScripts.restoreCandidate, /redis-cli.*PING/su);
     assert.match(restoreScripts.prepareCandidate, /restore-candidate/);
   });
 
-  for (const engine of ["PostgreSQL", "Redis"] as const) {
-    void it(`${engine} exposes explicit corrupt-backup and health-failure gates`, () => {
-      if (engine === "PostgreSQL") {
-        assert.match(restoreScripts.restoreCandidate, /pg_restore/);
-        assert.match(restoreScripts.restoreCandidate, /pg_isready/);
-      } else {
-        assert.match(restoreScripts.restoreCandidate, /redis-check-rdb/);
-        assert.match(restoreScripts.restoreCandidate, /redis-cli.*PING/su);
-      }
+  for (const engine of engines) {
+    void it(`${engineFixtures[engine].name} exposes explicit corrupt-backup and health-failure gates`, () => {
       assert.match(restoreScripts.restoreCandidate, /exit 68/);
     });
 
-    void it(`${engine} refuses incompatible engine versions and insufficient disk`, () => {
+    void it(`${engineFixtures[engine].name} refuses incompatible engine versions and insufficient disk`, () => {
       assert.match(restoreScripts.preflight, /actual_major/);
       assert.match(restoreScripts.preflight, /expected_major/);
       assert.match(restoreScripts.preflight, /INSUFFICIENT_DISK/);
       assert.match(restoreScripts.preflight, /exit 67/);
     });
 
-    void it(`${engine} retains rollback data and supports bounded cleanup`, () => {
+    void it(`${engineFixtures[engine].name} retains rollback data and supports bounded cleanup`, () => {
       assert.match(restoreScripts.promote, /ROLLED_BACK/);
       assert.match(restoreScripts.cleanup, /docker volume rm/);
     });
@@ -298,7 +396,7 @@ void describe("managed database restore scripts", () => {
   });
 });
 
-for (const engine of ["postgres", "redis"] as const) {
+for (const engine of engines) {
   void describe(`${engine} managed restore fixture`, () => {
     void it("restores, validates, and promotes an isolated candidate", async () => {
       const execution = await runRestoreFixture(engine, null);

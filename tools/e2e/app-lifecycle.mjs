@@ -14,6 +14,7 @@ import {
 import { startTestTarget } from "./target.mjs";
 import { startHttpsTarget } from "./https-target.mjs";
 
+const persistentFiles = process.env.TOWBAR_TEST_STORAGE === "1";
 const previewLifecycle = process.env.TOWBAR_TEST_PR === "1";
 assert(
   !previewLifecycle ||
@@ -26,16 +27,18 @@ const target = routed ? await startHttpsTarget() : await startTestTarget();
 const originalFetch = globalThis.fetch;
 let database, temporal;
 const integrated = Boolean(process.env.TOWBAR_TEST_TEMPORAL_ADDRESS);
-if (integrated) {
-  process.env.GITHUB_APP_ID = "1001";
-  process.env.GITHUB_APP_SLUG = "towbar-test";
-  process.env.GITHUB_APP_PRIVATE_KEY = generateKeyPairSync("rsa", {
-    modulusLength: 2048,
-  })
-    .privateKey.export({ type: "pkcs8", format: "pem" })
-    .toString();
-  process.env.GITHUB_WEBHOOK_SECRET = "test-webhook-secret";
-}
+const githubConfiguration = integrated
+  ? {
+      appId: "1001",
+      appSlug: "towbar-test",
+      privateKey: generateKeyPairSync("rsa", {
+        modulusLength: 2048,
+      })
+        .privateKey.export({ type: "pkcs8", format: "pem" })
+        .toString(),
+      webhookSecret: "test-webhook-secret",
+    }
+  : undefined;
 try {
   const checkout = path.join(target.directory, "checkout");
   mkdirSync(checkout);
@@ -44,8 +47,8 @@ try {
     `FROM python:3.12-alpine
 WORKDIR /app
 COPY . .
-RUN --mount=type=secret,id=BUILD_MARKER test -s /run/secrets/BUILD_MARKER && test -z "$BUILD_MARKER"
-CMD ["python", "app.py"]
+${persistentFiles ? "RUN mkdir /data && chown 1000:1000 /data\n" : ""}RUN --mount=type=secret,id=BUILD_MARKER test -s /run/secrets/BUILD_MARKER && test -z "$BUILD_MARKER"
+${persistentFiles ? "USER 1000:1000\n" : ""}CMD ["python", "app.py"]
 `,
   );
   writeFileSync(
@@ -126,6 +129,7 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
     const { createResourceLifecycleDatabase } =
       await import("./resource-database.mjs");
     database = await createResourceLifecycleDatabase({
+      githubConfiguration,
       server,
       trustedHostKeys,
       key: target.key,
@@ -135,11 +139,19 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
     temporal = await startResourceTemporal({ serverIp: server.ip });
   }
   const sourceId = randomUUID();
+  const serverId = randomUUID();
+  const workspaceId = randomUUID();
   const instances = new Map(
     (integrated
       ? ["production", "staging"]
       : ["production", "staging", "preview"]
-    ).map((name) => [name, { id: randomUUID(), current: null }]),
+    ).map((name) => [
+      name,
+      {
+        id: database?.previewContext.instances.get(name).id ?? randomUUID(),
+        current: null,
+      },
+    ]),
   );
   const deploy = async (name, revision = "a", failHealth = false) => {
     const instance = instances.get(name);
@@ -150,8 +162,14 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
         {
           id: "website",
           name: "Website",
-          server: "test",
+          server: "127.0.0.1",
           dockerfile: "Dockerfile",
+          rollout: {
+            type: "recreate",
+            reason:
+              "The lifecycle fixture uses a singleton network alias and may use a managed volume",
+            maintenanceMode: true,
+          },
           ...(routed
             ? {
                 domains: { primary: `${name}.127.0.0.1.nip.io` },
@@ -162,6 +180,9 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
             port: 8080,
             network: `e2e-${name}`,
             networkAlias: "website",
+            ...(persistentFiles
+              ? { volumes: [{ name: "uploads", mountPath: "/data" }] }
+              : {}),
           },
           health: { path: "/", timeoutSeconds: 10 },
         },
@@ -191,12 +212,19 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
         deploymentId: randomUUID(),
         commitSha: revision.repeat(40),
         environment: name === "preview" ? "preview" : "production",
+        environmentName: name,
         kind: "deploy",
-        githubToken: "test-archive-token",
+        sourceCredential: {
+          apiUrl: "https://api.github.com",
+          provider: "github",
+          token: "test-archive-token",
+        },
         repositoryName: "test",
         repositoryOwner: "test",
         rollbackRelease: null,
         currentRelease: previous,
+        serverId,
+        workspaceId,
       },
       secrets: {
         build: { BUILD_MARKER: "test-build-value" },
@@ -206,6 +234,8 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
         login: { privateKey: readFileSync(target.key, "utf8") },
       },
       hooks: {
+        log: async (content, stream) =>
+          console.log(`${name} ${stream}: ${content.trimEnd()}`),
         transition: async (state) => console.log(`${name}: ${state}`),
         commitRelease: async (candidate) => ({
           retainedImageTags: [
@@ -223,9 +253,20 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
       `docker port ${instances.get(name).current.containerName} 8080/tcp`,
     );
     assert.match(address, /^127\.0\.0\.1:\d+$/);
-    return target.ssh(`curl --fail --silent http://${address}/`);
+    return target.ssh(
+      `curl --fail --silent --retry 10 --retry-delay 1 --retry-all-errors http://${address}/`,
+    );
   };
-  for (const name of instances.keys()) await deploy(name);
+  for (const name of instances.keys()) {
+    await deploy(name);
+    if (persistentFiles) {
+      const container = instances.get(name).current.containerName;
+      assert.equal(target.ssh(`docker exec ${container} id -u`), "1000");
+      target.ssh(
+        `docker exec ${container} sh -c 'printf ${name} > /data/upload.txt'`,
+      );
+    }
+  }
   for (const name of instances.keys())
     assert.equal(response(name), `${name}:a`);
   const productionContainer = instances.get("production").current.containerName;
@@ -248,6 +289,33 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
       (value) => value.repeat(40),
     ),
   );
+  if (persistentFiles) {
+    for (const [name, instance] of instances) {
+      const container = instance.current.containerName;
+      assert.equal(
+        target.ssh(`docker exec ${container} cat /data/upload.txt`),
+        name,
+      );
+      target.ssh(`docker restart ${container}`);
+      assert.equal(
+        target.ssh(`docker exec ${container} cat /data/upload.txt`),
+        name,
+      );
+      const mounts = JSON.parse(
+        target.ssh(`docker inspect -f '{{json .Mounts}}' ${container}`),
+      );
+      assert(
+        mounts.some(
+          (mount) =>
+            mount.Name === `towbar-${instance.id}-uploads` &&
+            mount.Destination === "/data",
+        ),
+      );
+    }
+    console.log(
+      "Persistent files survive non-root SSH redeploy, candidate failure and restart, with isolated environment and preview volumes.",
+    );
+  }
   const running = target
     .ssh("docker ps --format '{{.Names}}'")
     .split("\n")

@@ -6,8 +6,8 @@ import { safeNextPath } from "./safe-next-path.js";
 describe("safeNextPath", () => {
   it("preserves application-local paths, queries, and fragments", () => {
     assert.equal(
-      safeNextPath("/sources/123?section=apps#activity"),
-      "/sources/123?section=apps#activity",
+      safeNextPath("/repositories/123?section=apps#activity"),
+      "/repositories/123?section=apps#activity",
     );
   });
 
@@ -27,7 +27,7 @@ describe("safeNextPath", () => {
 
   it("keeps authentication transitions from redirecting to themselves", () => {
     assert.equal(safeNextPath("/login"), "/");
-    assert.equal(safeNextPath("/login?next=/sources"), "/");
+    assert.equal(safeNextPath("/login?next=/repositories"), "/");
     assert.equal(safeNextPath("/logout"), "/");
     assert.equal(safeNextPath("/logout#complete"), "/");
   });

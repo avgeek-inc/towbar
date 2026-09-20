@@ -1,3 +1,7 @@
+import { recordAuditEvent } from "../../infrastructure/audit.js";
+import { auditAttribution } from "../auth/actor-context.js";
+import { actorAllows } from "@workspace/towbar-access";
+import { captureQueuedActor, requireActor } from "../auth/actor-context.js";
 import { environmentSyncStatuses } from "./environment-status.js";
 import { randomUUID } from "node:crypto";
 import { and, eq, isNull, sql } from "drizzle-orm";
@@ -6,8 +10,7 @@ import {
   sourceEnvironmentMappingSchema,
 } from "@workspace/towbar-core";
 import {
-  auditEvents,
-  githubInstallations,
+  integrationInstallations,
   sourceEnvironments,
   sourceSyncs,
   sources,
@@ -15,7 +18,7 @@ import {
 import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueueSourceSync } from "../../infrastructure/temporal.js";
-import { fetchGitHubEnvironmentSnapshot } from "../github/environment-snapshot.js";
+import { fetchRepositoryEnvironmentSnapshot } from "./repository-provider.js";
 
 export async function sourceRepository(sourceId: string, workspaceId: string) {
   const [source] = await getTowbarDatabase()
@@ -23,17 +26,38 @@ export async function sourceRepository(sourceId: string, workspaceId: string) {
       id: sources.id,
       repositoryName: sources.repositoryName,
       repositoryOwner: sources.repositoryOwner,
-      installationId: githubInstallations.installationId,
+      provider: sources.provider,
+      installationId: integrationInstallations.externalId,
+      connectionId: sources.integrationAuthorizationId,
+      projectId: sources.providerRepositoryId,
     })
     .from(sources)
-    .innerJoin(
-      githubInstallations,
-      eq(githubInstallations.id, sources.githubInstallationId),
+    .leftJoin(
+      integrationInstallations,
+      eq(integrationInstallations.id, sources.integrationInstallationId),
     )
     .where(and(eq(sources.id, sourceId), eq(sources.workspaceId, workspaceId)))
     .limit(1);
   if (!source) throw notFound("Source");
-  return source;
+  if (source.provider === "github" && source.installationId)
+    return {
+      id: source.id,
+      provider: "github" as const,
+      installationId: source.installationId,
+      repositoryName: source.repositoryName,
+      repositoryOwner: source.repositoryOwner,
+    };
+  if (source.provider === "gitlab" && source.connectionId && source.projectId)
+    return {
+      id: source.id,
+      provider: "gitlab" as const,
+      connectionId: source.connectionId,
+      projectId: source.projectId,
+      repositoryName: source.repositoryName,
+      repositoryOwner: source.repositoryOwner,
+      workspaceId,
+    };
+  throw new Error("Repository provider connection is incomplete");
 }
 
 export async function listSourceEnvironments(
@@ -49,14 +73,14 @@ export async function connectSourceEnvironment(input: {
   workspaceId: string;
   environment: string;
   branch: string;
-  actorUserId: string;
+  actorUserId: string | null;
 }) {
   const mapping = sourceEnvironmentMappingSchema.parse({
     environment: input.environment,
     branch: input.branch,
   });
   const source = await sourceRepository(input.sourceId, input.workspaceId);
-  const snapshot = await fetchGitHubEnvironmentSnapshot({
+  const snapshot = await fetchRepositoryEnvironmentSnapshot({
     ...source,
     branch: mapping.branch,
   });
@@ -84,7 +108,10 @@ export async function connectSourceEnvironment(input: {
       previewsEnabled: resolved.manifest.previewsEnabled,
       mappingRevision: randomUUID(),
       disconnectedAt: null,
-      autoDeployPaused: false,
+      autoDeployPaused: !actorAllows(
+        requireActor(input.workspaceId, ["repository.connect"]),
+        ["deployment.create"],
+      ),
       updatedAt: new Date(),
     };
     const [environment] = existing
@@ -95,13 +122,14 @@ export async function connectSourceEnvironment(input: {
           .returning()
       : await transaction.insert(sourceEnvironments).values(values).returning();
     if (!environment) throw new Error("Unable to connect environment");
-    await transaction.insert(auditEvents).values({
+    await recordAuditEvent(transaction, {
       workspaceId: input.workspaceId,
       actorUserId: input.actorUserId,
       action: "source.environment.connected",
       targetType: "source",
       targetId: source.id,
       metadata: { environment: mapping.environment, branch: mapping.branch },
+      ...auditAttribution(),
     });
     return environment;
   });
@@ -113,7 +141,7 @@ export async function updateEnvironmentBranch(input: {
   workspaceId: string;
   branch: string;
   expectedRevision: string;
-  actorUserId: string;
+  actorUserId: string | null;
 }) {
   const source = await sourceRepository(input.sourceId, input.workspaceId);
   const [environment] = await getTowbarDatabase()
@@ -131,7 +159,7 @@ export async function updateEnvironmentBranch(input: {
     environment: environment.name,
     branch: input.branch,
   });
-  const snapshot = await fetchGitHubEnvironmentSnapshot({
+  const snapshot = await fetchRepositoryEnvironmentSnapshot({
     ...source,
     branch: mapping.branch,
   });
@@ -141,6 +169,7 @@ export async function updateEnvironmentBranch(input: {
       .update(sourceEnvironments)
       .set({
         branch: mapping.branch,
+        autoDeployPaused: true,
         mappingRevision: randomUUID(),
         updatedAt: new Date(),
       })
@@ -157,7 +186,7 @@ export async function updateEnvironmentBranch(input: {
         "The environment mapping changed. Refresh before saving.",
         "ENVIRONMENT_MAPPING_CHANGED",
       );
-    await transaction.insert(auditEvents).values({
+    await recordAuditEvent(transaction, {
       workspaceId: input.workspaceId,
       actorUserId: input.actorUserId,
       action: "source.environment.branch_updated",
@@ -168,6 +197,7 @@ export async function updateEnvironmentBranch(input: {
         previousBranch: environment.branch,
         branch: mapping.branch,
       },
+      ...auditAttribution(),
     });
     return updated;
   });
@@ -207,6 +237,16 @@ export async function requestEnvironmentSync(
         "ENVIRONMENT_MAPPING_CHANGED",
       );
     }
+    if (
+      !actorAllows(requireActor(input.workspaceId, ["repository.sync"]), [
+        "deployment.create",
+      ])
+    ) {
+      await transaction
+        .update(sourceEnvironments)
+        .set({ autoDeployPaused: true, updatedAt: new Date() })
+        .where(eq(sourceEnvironments.id, environment.id));
+    }
     const [row] = await transaction
       .insert(sourceSyncs)
       .values({
@@ -214,6 +254,12 @@ export async function requestEnvironmentSync(
         sourceEnvironmentId: environment.id,
         mappingRevision: environment.mappingRevision,
         requestedBy: input.requestedBy,
+        ...captureQueuedActor(
+          input.workspaceId,
+          input.deployAfterSync
+            ? ["repository.sync", "deployment.create"]
+            : ["repository.sync"],
+        ),
         deployAfterSync: input.deployAfterSync,
       })
       .returning();
@@ -248,7 +294,7 @@ export async function disconnectSourceEnvironment(input: {
   environmentId: string;
   workspaceId: string;
   expectedRevision: string;
-  actorUserId: string;
+  actorUserId: string | null;
 }) {
   await sourceRepository(input.sourceId, input.workspaceId);
   return getTowbarDatabase().transaction(async (transaction) => {
@@ -277,13 +323,14 @@ export async function disconnectSourceEnvironment(input: {
         "The environment mapping changed. Refresh before disconnecting.",
         "ENVIRONMENT_MAPPING_CHANGED",
       );
-    await transaction.insert(auditEvents).values({
+    await recordAuditEvent(transaction, {
       workspaceId: input.workspaceId,
       actorUserId: input.actorUserId,
       action: "source.environment.disconnected",
       targetType: "source",
       targetId: input.sourceId,
       metadata: { environment: environment.name },
+      ...auditAttribution(),
     });
     return environment;
   });

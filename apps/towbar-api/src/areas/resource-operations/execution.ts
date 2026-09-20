@@ -1,10 +1,16 @@
+import { validateQueuedAppJob } from "../apps/jobs.js";
+import { requireActiveAutomation } from "../auth/automation-authority.js";
+import { authorizeQueuedEffect } from "../auth/actor-context.js";
+import { operationPermissions } from "./permissions.js";
 import { resolveServerCredentials } from "../secrets/store.js";
 import type { SecretDatabase } from "../secrets/store.js";
 import { and, eq, isNull } from "drizzle-orm";
 
 import { backupOperationResultSchema } from "@workspace/towbar-core";
 import {
+  apps,
   resourceOperations,
+  sourceEnvironments,
   sshHostKeys,
 } from "@workspace/towbar-database/schema";
 
@@ -19,6 +25,7 @@ import {
 } from "../deployments/deployment-secrets.js";
 import { sshLoginSecretSchema } from "../servers/service.js";
 import { getCleanupExpected, getRetentionBackups } from "./queries.js";
+import { resolveIntegration } from "../integrations/service.js";
 
 export async function getOperationExecutionContext(operationId: string) {
   const [operation] = await getTowbarDatabase()
@@ -27,8 +34,25 @@ export async function getOperationExecutionContext(operationId: string) {
     .where(eq(resourceOperations.id, operationId))
     .limit(1);
   if (!operation) throw notFound("Resource operation");
+  if (operation.request.type === "run_job")
+    await validateQueuedAppJob({ ...operation, request: operation.request });
   if (operation.state === "queued") {
-    await getTowbarDatabase()
+    const actor = await authorizeQueuedEffect(
+      operation.requestedByActor,
+      operation.workspaceId,
+      operationPermissions(operation.request),
+    );
+    if (
+      actor.kind === "system" &&
+      operation.request.type === "backup" &&
+      operation.resourceId
+    )
+      await requireActiveAutomation({
+        workspaceId: operation.workspaceId,
+        deployableId: operation.resourceId,
+        config: operation.appSnapshot,
+      });
+    const claimed = await getTowbarDatabase()
       .update(resourceOperations)
       .set({ startedAt: new Date(), state: "running", updatedAt: new Date() })
       .where(
@@ -36,8 +60,17 @@ export async function getOperationExecutionContext(operationId: string) {
           eq(resourceOperations.id, operationId),
           eq(resourceOperations.state, "queued"),
         ),
+      )
+      .returning({ id: resourceOperations.id });
+    if (!claimed.length && operation.request.type === "run_job")
+      throw conflict(
+        "This job run was already claimed",
+        "APP_JOB_ALREADY_STARTED",
       );
-  } else if (operation.state !== "running") {
+  } else if (
+    operation.state !== "running" ||
+    operation.request.type === "run_job"
+  ) {
     throw conflict("Resource operation is already complete");
   }
   const trustedHostKeys = await getTowbarDatabase()
@@ -62,6 +95,17 @@ export async function getOperationExecutionContext(operationId: string) {
       ? null
       : requireOperationSource(operation.sourceId);
   const cleanupExpected = await getCleanupExpected(operation.serverId);
+  const [environment] = operation.resourceId
+    ? await getTowbarDatabase()
+        .select({ name: sourceEnvironments.name })
+        .from(apps)
+        .innerJoin(
+          sourceEnvironments,
+          eq(sourceEnvironments.id, apps.sourceEnvironmentId),
+        )
+        .where(eq(apps.id, operation.resourceId))
+        .limit(1)
+    : [];
   const restoreBackup =
     operation.request.type === "restore" && operation.resourceId
       ? await getRestoreBackup({
@@ -76,6 +120,7 @@ export async function getOperationExecutionContext(operationId: string) {
     currentRelease,
     deployable: operation.appSnapshot,
     deployableId: operation.resourceId,
+    environment: environment?.name ?? null,
     operationId: operation.id,
     request: operation.request,
     retentionBackups:
@@ -101,17 +146,31 @@ export async function resolveOperationSecrets(operationId: string) {
           serverId: resourceOperations.serverId,
           sourceId: resourceOperations.sourceId,
           workspaceId: resourceOperations.workspaceId,
+          requestedByActor: resourceOperations.requestedByActor,
         })
         .from(resourceOperations)
         .where(eq(resourceOperations.id, operationId))
         .limit(1);
       if (!operation) throw notFound("Resource operation");
+      if (operation.request.type === "run_job") {
+        await authorizeQueuedEffect(
+          operation.requestedByActor,
+          operation.workspaceId,
+          ["workload.operate"],
+        );
+        await validateQueuedAppJob({
+          ...operation,
+          request: operation.request,
+        });
+      }
       const credentials = await resolveServerCredentials(operation, database);
       const login = sshLoginSecretSchema.parse({
         privateKey: credentials.values.privateKey,
       });
       const runtime =
-        ["capture_logs", "restore"].includes(operation.request.type) &&
+        ["capture_logs", "restore", "run_job"].includes(
+          operation.request.type,
+        ) &&
         operation.app &&
         operation.resourceId
           ? await resolveRuntimeEnvironmentSecrets(
@@ -128,22 +187,83 @@ export async function resolveOperationSecrets(operationId: string) {
 
       const { aws, azure, gcp, sensitiveStorageValues } =
         await resolveCloudStorageSecrets(operation, database);
+      const namedStorage = await resolveNamedStorage(operation, database);
 
       return {
         aws,
         azure,
         gcp,
         login,
+        namedStorage,
         runtime,
         sensitiveValues: [
           login.privateKey,
           ...sensitiveStorageValues,
+          ...namedStorageSensitiveValues(namedStorage),
           ...Object.values(runtime),
         ],
       };
     },
     { isolationLevel: "repeatable read" },
   );
+}
+
+async function resolveNamedStorage(
+  operation: {
+    app: unknown;
+    request: { type: string; policyIndex?: number };
+    resourceId: string | null;
+    sourceId: string | null;
+    workspaceId: string;
+  },
+  database: SecretDatabase,
+) {
+  if (!["backup", "restore"].includes(operation.request.type)) return null;
+  if (!operation.app || typeof operation.app !== "object")
+    throw conflict("Backup operation is missing its Resource snapshot");
+  const integration =
+    "backup" in operation.app
+      ? (operation.app as { backup?: { integration?: string } }).backup
+          ?.integration
+      : undefined;
+  if (!integration) return null;
+  if (!operation.sourceId || !operation.resourceId)
+    throw conflict("Backup integration scope could not be resolved");
+  const [environment] = await database
+    .select({ name: sourceEnvironments.name })
+    .from(apps)
+    .innerJoin(
+      sourceEnvironments,
+      eq(sourceEnvironments.id, apps.sourceEnvironmentId),
+    )
+    .where(eq(apps.id, operation.resourceId))
+    .limit(1);
+  const resolved = await resolveIntegration({
+    workspaceId: operation.workspaceId,
+    slug: integration,
+    providers: ["s3", "r2", "gcs", "azureBlob"],
+    target: {
+      kind: "repository",
+      purpose: "backup",
+      repositoryId: operation.sourceId,
+      environment: environment?.name ?? "production",
+    },
+  });
+  const input = resolved.connectionInput;
+  if (!["s3", "r2", "gcs", "azureBlob"].includes(input.provider))
+    throw conflict("Backup integration is not object storage");
+  return input as import("@workspace/towbar-core").NamedBackupStorageConnection;
+}
+
+function namedStorageSensitiveValues(
+  storage: import("@workspace/towbar-core").NamedBackupStorageConnection | null,
+) {
+  if (!storage) return [];
+  if (storage.provider === "s3" || storage.provider === "r2")
+    return [storage.credentials.secretAccessKey];
+  if (storage.provider === "gcs")
+    return [storage.credentials.serviceAccountJson];
+  return [(storage.credentials as { clientSecret: string }).clientSecret];
 }
 
 function extractBackupConfig(
@@ -181,9 +301,10 @@ async function resolveTargetRestoreProvider(
   if (!parsed.success) {
     return undefined;
   }
-  return (
-    parsed.data.restoreFrom ?? (parsed.data.storageAccount ? "azureBlob" : "s3")
-  );
+  const provider =
+    parsed.data.restoreFrom ??
+    (parsed.data.storageAccount ? "azureBlob" : "s3");
+  return provider === "r2" ? undefined : provider;
 }
 
 function determineRequiredProviders(

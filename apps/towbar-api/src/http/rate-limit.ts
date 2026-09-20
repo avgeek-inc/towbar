@@ -181,3 +181,9 @@ function rateLimitError(retryAfter: number) {
     { responseHeaders: { "retry-after": String(retryAfter) } },
   );
 }
+
+export async function clearPersistentBucket(subject: string) {
+  await getTowbarDatabase()
+    .delete(authRateLimitBuckets)
+    .where(eq(authRateLimitBuckets.keyHash, hashSubject(subject)));
+}

@@ -1,20 +1,9 @@
 import {
-  argon2,
   createCipheriv,
   createDecipheriv,
   createHash,
   randomBytes,
-  timingSafeEqual,
 } from "node:crypto";
-import { promisify } from "node:util";
-
-const deriveArgon2 = promisify(argon2);
-const passwordParameters = {
-  memory: 65_536,
-  parallelism: 4,
-  passes: 3,
-  tagLength: 32,
-} as const;
 
 export type EncryptedCredential = {
   algorithm: "aes-256-gcm";
@@ -23,47 +12,6 @@ export type EncryptedCredential = {
   keyVersion: 1;
   nonce: string;
 };
-
-export async function hashPassword(password: string) {
-  assertPasswordLength(password);
-  const nonce = randomBytes(16);
-  const derivedKey = await deriveArgon2("argon2id", {
-    message: password,
-    nonce,
-    ...passwordParameters,
-  });
-  return [
-    "$towbar$argon2id$v=1",
-    `m=${passwordParameters.memory},t=${passwordParameters.passes},p=${passwordParameters.parallelism}`,
-    nonce.toString("base64url"),
-    derivedKey.toString("base64url"),
-  ].join("$");
-}
-
-export async function verifyPassword(password: string, encoded: string) {
-  assertPasswordLength(password);
-  const parts = encoded.split("$");
-  if (
-    parts.length !== 7 ||
-    parts[1] !== "towbar" ||
-    parts[2] !== "argon2id" ||
-    parts[3] !== "v=1"
-  ) {
-    return false;
-  }
-  const parameters = parsePasswordParameters(parts[4] ?? "");
-  const nonce = Buffer.from(parts[5] ?? "", "base64url");
-  const expected = Buffer.from(parts[6] ?? "", "base64url");
-  if (nonce.length !== 16 || expected.length !== parameters.tagLength) {
-    return false;
-  }
-  const actual = await deriveArgon2("argon2id", {
-    message: password,
-    nonce,
-    ...parameters,
-  });
-  return timingSafeEqual(actual, expected);
-}
 
 export function encryptCredential(input: {
   associatedData: string;
@@ -133,27 +81,4 @@ function assertMasterKey(key: Buffer) {
   if (key.length !== 32) {
     throw new Error("TOWBAR_CREDENTIALS_KEY must decode to exactly 32 bytes");
   }
-}
-
-function assertPasswordLength(password: string) {
-  if (password.length < 12 || password.length > 1_024) {
-    throw new Error("Password must contain between 12 and 1024 characters");
-  }
-}
-
-function parsePasswordParameters(value: string) {
-  const entries = Object.fromEntries(
-    value.split(",").map((part) => part.split("=", 2)),
-  );
-  const memory = Number(entries.m);
-  const passes = Number(entries.t);
-  const parallelism = Number(entries.p);
-  if (
-    memory !== passwordParameters.memory ||
-    passes !== passwordParameters.passes ||
-    parallelism !== passwordParameters.parallelism
-  ) {
-    throw new Error("Unsupported password hash parameters");
-  }
-  return { ...passwordParameters };
 }

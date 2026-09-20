@@ -147,3 +147,14 @@ void test("reference syntax respects scope and errors do not contain values", ()
     /size limit/,
   );
 });
+
+void test("masked placeholders cannot replace stored secrets", () => {
+  for (const value of ["••••••••", "********"])
+    assert.equal(
+      secretMutationSchema.safeParse({
+        expectedRevision: null,
+        set: { TOKEN: value },
+      }).success,
+      false,
+    );
+});

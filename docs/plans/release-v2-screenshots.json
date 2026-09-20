@@ -1,0 +1,547 @@
+{
+  "capturedAt": "2026-09-20T17:50:07.985Z",
+  "environment": "Local Towbar fixture on localhost:4021; examples are not production results",
+  "viewport": "1280 × 720 CSS pixels; full-page capture capped at 8,000 pixels",
+  "screenshots": [
+    {
+      "name": "app-overview",
+      "route": "/apps/31111111-1111-4111-8111-222222222222/overview",
+      "guides": ["docs/docs/apps.mdx", "docs/index.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/app-overview-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/app-overview-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "aws-setup",
+      "route": "/manage/integrations/aws",
+      "guides": ["docs/docs/integrations/aws.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/aws-setup-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/aws-setup-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "backups",
+      "route": "/resources/41111111-1111-4111-8111-111111111111/settings/backup",
+      "guides": ["docs/docs/backups.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/backups-light.jpg",
+          "width": 1280,
+          "height": 919
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/backups-dark.jpg",
+          "width": 1280,
+          "height": 919
+        }
+      ]
+    },
+    {
+      "name": "deployment-comparison",
+      "route": "/apps/31111111-1111-4111-8111-222222222222/compare-deployments",
+      "guides": ["docs/docs/deployment-comparisons.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/deployment-comparison-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/deployment-comparison-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "deployment-vulnerabilities",
+      "route": "/apps/31111111-1111-4111-8111-222222222222/deployments/51111111-1111-4111-8111-000000000013/vulnerabilities",
+      "guides": ["docs/docs/vulnerability-scanning.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/deployment-vulnerabilities-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/deployment-vulnerabilities-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "deployments",
+      "route": "/deployments",
+      "guides": ["docs/docs/deployments.mdx", "docs/docs/getting-started.md"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/deployments-light.jpg",
+          "width": 1280,
+          "height": 1210
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/deployments-dark.jpg",
+          "width": 1280,
+          "height": 1210
+        }
+      ]
+    },
+    {
+      "name": "email-password",
+      "route": "/settings/email-password",
+      "guides": ["docs/docs/personal-settings.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/email-password-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/email-password-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "github-setup",
+      "route": "/manage/integrations/github",
+      "guides": ["docs/docs/integrations/github.md"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/github-setup-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/github-setup-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "incident-detail",
+      "route": "/monitoring/incidents",
+      "guides": ["docs/docs/scout-alerts.mdx", "docs/index.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/incident-detail-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/incident-detail-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "notifications-slack",
+      "route": "/manage/integrations/slack",
+      "guides": ["docs/docs/integrations/notifications.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/notifications-slack-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/notifications-slack-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "overview",
+      "route": "/",
+      "guides": ["docs/index.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/overview-light.jpg",
+          "width": 1280,
+          "height": 1154
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/overview-dark.jpg",
+          "width": 1280,
+          "height": 1154
+        }
+      ]
+    },
+    {
+      "name": "performance",
+      "route": "/servers/21111111-1111-4111-8111-111111111111/performance",
+      "guides": ["docs/docs/scout.mdx", "docs/index.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/performance-light.jpg",
+          "width": 1280,
+          "height": 1502
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/performance-dark.jpg",
+          "width": 1280,
+          "height": 1502
+        }
+      ]
+    },
+    {
+      "name": "previews",
+      "route": "/apps/31111111-1111-4111-8111-222222222222/previews",
+      "guides": [
+        "docs/docs/domains-tls.mdx",
+        "docs/docs/previews.md",
+        "docs/index.mdx"
+      ],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/previews-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/previews-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "repositories",
+      "route": "/repositories",
+      "guides": [
+        "docs/docs/getting-started.md",
+        "docs/docs/repositories.mdx",
+        "docs/index.mdx"
+      ],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/repositories-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/repositories-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "repository-environments",
+      "route": "/repositories/11111111-1111-4111-8111-111111111111/environments",
+      "guides": ["docs/docs/repositories.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/repository-environments-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/repository-environments-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "resource-overview",
+      "route": "/resources/41111111-1111-4111-8111-111111111111/overview",
+      "guides": ["docs/docs/resources.mdx", "docs/index.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/resource-overview-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/resource-overview-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "restore-source",
+      "route": "/resources/41111111-1111-4111-8111-111111111111/settings/restore",
+      "guides": ["docs/docs/restores.md"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/restore-source-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/restore-source-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "scout-alerts",
+      "route": "/servers/21111111-1111-4111-8111-111111111111/alerts",
+      "guides": ["docs/docs/scout-alerts.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/scout-alerts-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/scout-alerts-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "scout-settings",
+      "route": "/servers/21111111-1111-4111-8111-222222222222/settings/monitoring",
+      "guides": ["docs/docs/scout.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/scout-settings-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/scout-settings-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "server-credentials",
+      "route": "/servers/21111111-1111-4111-8111-222222222222/settings/credentials",
+      "guides": ["docs/docs/servers.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/server-credentials-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/server-credentials-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "server-overview",
+      "route": "/servers/21111111-1111-4111-8111-111111111111/overview",
+      "guides": ["docs/docs/servers.mdx", "docs/index.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/server-overview-light.jpg",
+          "width": 1280,
+          "height": 951
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/server-overview-dark.jpg",
+          "width": 1280,
+          "height": 951
+        }
+      ]
+    },
+    {
+      "name": "server-preparation",
+      "route": "/servers/21111111-1111-4111-8111-222222222222/preparation",
+      "guides": ["docs/docs/servers.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/server-preparation-light.jpg",
+          "width": 1280,
+          "height": 821
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/server-preparation-dark.jpg",
+          "width": 1280,
+          "height": 821
+        }
+      ]
+    },
+    {
+      "name": "server-workloads",
+      "route": "/servers/21111111-1111-4111-8111-111111111111/apps",
+      "guides": ["docs/docs/monitoring.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/server-workloads-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/server-workloads-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "shared-secrets",
+      "route": "/manage/shared-secrets",
+      "guides": ["docs/docs/secrets.md", "docs/index.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/shared-secrets-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/shared-secrets-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "ssh-keys",
+      "route": "/team-settings/ssh-keys",
+      "guides": ["docs/docs/ssh-keys.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/ssh-keys-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/ssh-keys-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "system-health",
+      "route": "/system-health",
+      "guides": ["docs/docs/monitoring.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/system-health-light.jpg",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/system-health-dark.jpg",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "name": "team-members",
+      "route": "/team-settings/members",
+      "guides": ["docs/docs/team-settings.mdx", "docs/index.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/team-members-light.jpg",
+          "width": 1280,
+          "height": 882
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/team-members-dark.jpg",
+          "width": 1280,
+          "height": 882
+        }
+      ]
+    },
+    {
+      "name": "vulnerabilities",
+      "route": "/monitoring/vulnerabilities",
+      "guides": ["docs/docs/vulnerability-scanning.mdx", "docs/index.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/vulnerabilities-light.jpg",
+          "width": 1280,
+          "height": 1494
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/vulnerabilities-dark.jpg",
+          "width": 1280,
+          "height": 1494
+        }
+      ]
+    }
+  ]
+}

@@ -8,7 +8,9 @@ void describe("release commit payload", () => {
     assert.deepEqual(
       releaseCommitPayload({
         candidatePort: 32_768,
+        candidatePorts: [32_768],
         containerName: "towbar-internal-ds-1234",
+        containerNames: ["towbar-internal-ds-1234"],
         imageDigest: `sha256:${"a".repeat(64)}`,
         imagePlatform: "linux/arm64",
         imageTag: "towbar/internal-ds:commit-deployment",
@@ -16,6 +18,7 @@ void describe("release commit payload", () => {
       }),
       {
         containerName: "towbar-internal-ds-1234",
+        containerNames: ["towbar-internal-ds-1234"],
         imageDigest: `sha256:${"a".repeat(64)}`,
         imagePlatform: "linux/arm64",
         imageTag: "towbar/internal-ds:commit-deployment",

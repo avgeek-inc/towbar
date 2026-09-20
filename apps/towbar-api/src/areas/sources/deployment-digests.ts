@@ -2,6 +2,7 @@ import {
   ManifestValidationError,
   getDeployableDeploymentDigest,
   getSourceInputDigest,
+  isNormalizedCompose,
   isNormalizedResource,
 } from "@workspace/towbar-core";
 
@@ -55,20 +56,27 @@ export function calculateDesiredDeploymentDigest(input: {
       }),
     };
   }
+  const deploymentInputs = isNormalizedCompose(input.deployable)
+    ? [input.deployable.file, ...input.deployable.overrides]
+    : input.deployable.deploymentInputs;
   const source = getSourceInputDigest({
     commitSha: input.commitSha,
-    deploymentInputs: input.deployable.deploymentInputs,
+    deploymentInputs,
     tree: input.repositoryTree,
   });
   if (
-    input.deployable.deploymentInputs.length > 0 &&
+    deploymentInputs.length > 0 &&
     !source.fallback &&
     source.matchedPaths.length === 0
   ) {
     throw new ManifestValidationError([
       {
-        message: `App '${input.deployable.id}' deployment inputs do not match any repository files`,
-        path: ["apps", input.deployable.id, "autoDeploy", "inputs"],
+        message: `${isNormalizedCompose(input.deployable) ? "Compose workload" : "App"} '${input.deployable.id}' deployment inputs do not match any repository files`,
+        path: [
+          isNormalizedCompose(input.deployable) ? "compose" : "apps",
+          input.deployable.id,
+          isNormalizedCompose(input.deployable) ? "file" : "autoDeploy",
+        ],
       },
     ]);
   }

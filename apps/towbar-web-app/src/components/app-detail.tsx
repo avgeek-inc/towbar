@@ -1,15 +1,28 @@
 "use client";
+import { AppJobs } from "./app-jobs";
+import { AppStorage } from "./app-storage";
+import { useAccess } from "./access-context";
+import { IntegrationProviderLogo } from "./integration-provider-logo";
 import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import { DeployableVulnerabilities } from "./deployable-vulnerabilities";
 import { InstanceEnvironmentChoice } from "./instance-environment-choice";
-import { ScoutPanel } from "./scout-panel";
+import {
+  ScoutAlertRules,
+  ScoutCompareDeployments,
+  ScoutIncidents,
+  ScoutPerformance,
+} from "./scout-panel";
 
 import {
   Activity01Icon,
+  Clock01Icon,
+  Alert02Icon,
+  AlertCircleIcon,
   SecurityCheckIcon,
   DashboardCircleIcon,
   FileViewIcon,
   GitBranchIcon,
+  GitCompareIcon,
   PackageIcon,
   Rocket01Icon,
   ServerStack01Icon,
@@ -19,42 +32,72 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import type { App, Deployment, Release } from "@workspace/towbar-web-client";
+import type {
+  App,
+  Deployment,
+  Release,
+  RuntimeState,
+  Source,
+} from "@workspace/towbar-web-client";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
+import { deploymentHref } from "@/lib/deployment-route";
 
-import { ActionButton, DashboardPage, PageTabs } from "@/components/page-parts";
+import {
+  ActionButton,
+  appsBreadcrumb,
+  DashboardPage,
+  InlineLink,
+  PageTabs,
+} from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { formatDate } from "./dashboard-overview";
-import { DeploymentTable } from "./deployment-table";
+import { DeploymentTable, deploymentStatusTooltip } from "./deployment-table";
 import { AppSecrets } from "./app-secrets";
 import { PreviewEnvironments } from "./preview-environments";
 import { ResponsiveSubtabs } from "./responsive-subtabs";
-import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 import { DeployableActionsMenu, RuntimeLogs } from "./runtime-operations";
 import { AutoDeployControlEditor } from "./auto-deploy-control";
+import { DomainLink } from "./domain-link";
+import { DeployableReadiness } from "./deployable-readiness";
+import { AppLogo } from "./deployable-identity";
 
 type AppRecord = App & {
   serverId: string;
 };
 
+function tunnelStatusTooltip(runtime: RuntimeState) {
+  const details = [
+    runtime.ingressContainerName
+      ? `Runtime ${runtime.ingressContainerName}.`
+      : null,
+    runtime.ingressImage ? `Image ${runtime.ingressImage}.` : null,
+    runtime.ingressRestartCount !== null
+      ? `${runtime.ingressRestartCount} restart${runtime.ingressRestartCount === 1 ? "" : "s"} observed.`
+      : null,
+  ].filter(Boolean);
+  return details.length
+    ? details.join(" ")
+    : "Run a server check to inspect the managed Cloudflare Tunnel runtime.";
+}
+
 export function AppDetail() {
-  const { appId, sourceId } = useParams<{
+  const detailNavigation = useDetailNavigation();
+  const { appId } = useParams<{
     appId: string;
-    sourceId: string;
   }>();
   const router = useRouter();
+  const { can } = useAccess();
   const app = useApiQuery<{ app: App & { serverId: string } }>(
     `/v1/core/apps/${appId}`,
   );
-  const breadcrumbAncestors = useSourceBreadcrumbs(sourceId, {
-    href: `/sources/${sourceId}/apps`,
-    label: "Apps",
-  });
+  const source = useApiQuery<{ source: Source }>(
+    app.data?.app.sourceId ? `/v1/core/sources/${app.data.app.sourceId}` : null,
+  );
   const deployments = useApiQuery<{ deployments: Deployment[] }>(
     `/v1/core/apps/${appId}/deployments`,
     5_000,
@@ -62,22 +105,23 @@ export function AppDetail() {
   const releases = useApiQuery<{ releases: Release[] }>(
     `/v1/core/apps/${appId}/releases`,
   );
-  const error = app.error ?? deployments.error ?? releases.error;
+  const error =
+    app.error ?? deployments.error ?? releases.error ?? source.error;
   if (error)
     return (
       <DashboardPage
         icon={DashboardCircleIcon}
-        breadcrumbAncestors={breadcrumbAncestors}
+        breadcrumbAncestors={appsBreadcrumb}
         title="App"
       >
         <QueryError message={error} />
       </DashboardPage>
     );
-  if (!app.data || !deployments.data || !releases.data)
+  if (!app.data || !deployments.data || !releases.data || !source.data)
     return (
       <DashboardPage
         icon={DashboardCircleIcon}
-        breadcrumbAncestors={breadcrumbAncestors}
+        breadcrumbAncestors={appsBreadcrumb}
         title="App"
       >
         <QueryLoading />
@@ -85,20 +129,12 @@ export function AppDetail() {
     );
 
   const item = app.data.app;
-  if (item.sourceId !== sourceId) {
-    return (
-      <DashboardPage
-        icon={DashboardCircleIcon}
-        breadcrumbAncestors={breadcrumbAncestors}
-        title="App"
-      >
-        <QueryError
-          message="This App does not belong to the selected Source."
-          retryable={false}
-        />
-      </DashboardPage>
-    );
-  }
+  const usesCloudflareTunnel =
+    item.config.kind === "compose"
+      ? Object.values(item.config.services).some(
+          (service) => service.ingress?.type === "cloudflare-tunnel",
+        )
+      : item.config.ingress?.type === "cloudflare-tunnel";
   const previous = releases.data.releases.find(
     (release) => release.status === "previous",
   );
@@ -108,20 +144,67 @@ export function AppDetail() {
   );
   const latestDeployment = orderedDeployments[0];
   const lifecycleStatus = getAppLifecycleStatus(item);
+  const faviconDomain =
+    item.config.domains?.primary ?? item.config.domains?.redirects[0]?.host;
+  const appLogo = (
+    <AppLogo
+      key={faviconDomain ?? "no-domain"}
+      domain={faviconDomain}
+      size="small"
+    />
+  );
   return (
     <DashboardPage
       icon={DashboardCircleIcon}
       actions={
-        !item.archivedAt ? (
+        detailNavigation.section === "overview" &&
+        !item.archivedAt &&
+        can("deployment.create") ? (
           <div className="flex flex-wrap justify-end gap-2">
             <DeployableActionsMenu
               active={item.serverReady}
               deployableId={appId}
               previousReleaseId={previous?.id}
               runtimeState={item.runtimeState}
-              sourceId={item.sourceId}
+              services={
+                item.config.kind === "compose"
+                  ? (releases.data.releases.find(
+                      (release) => release.status === "current",
+                    )?.composeServices ?? Object.keys(item.config.services))
+                  : undefined
+              }
               type="app"
             />
+            {Object.keys(item.config.externalSecrets ?? {}).length > 0 ? (
+              <ActionButton
+                confirm={{
+                  title: "Refresh external secrets?",
+                  description:
+                    "Queue a new deployment that resolves one consistent snapshot of the current external secret versions. A retry of the existing deployment keeps its original snapshot.",
+                  actionLabel: "Refresh and deploy",
+                }}
+                action={() =>
+                  api.post<{ deployment: Deployment }>(
+                    `/v1/core/apps/${appId}/actions/refresh-external-secrets`,
+                    undefined,
+                    { "Idempotency-Key": crypto.randomUUID() },
+                  )
+                }
+                onSuccess={(result) =>
+                  router.push(deploymentHref(result.deployment))
+                }
+                pendingLabel="Queueing…"
+                isDisabled={!item.serverReady}
+                success="External secret refresh queued"
+              >
+                <HugeiconsIcon
+                  aria-hidden="true"
+                  icon={Key01Icon}
+                  className="size-3.5 shrink-0"
+                />
+                Refresh secrets
+              </ActionButton>
+            ) : null}
             <ActionButton
               confirm={{
                 title: "Deploy this app?",
@@ -137,9 +220,7 @@ export function AppDetail() {
                 )
               }
               onSuccess={(result) =>
-                router.push(
-                  `/sources/${item.sourceId}/deployments/${result.deployment.id}`,
-                )
+                router.push(deploymentHref(result.deployment))
               }
               pendingLabel="Queueing…"
               isDisabled={!item.serverReady}
@@ -165,10 +246,18 @@ export function AppDetail() {
           }
         />
       }
-      breadcrumbAncestors={breadcrumbAncestors}
+      breadcrumbAncestors={appsBreadcrumb}
       title={item.name}
+      titleIcon={appLogo}
     >
       <InstanceEnvironmentChoice item={item} kind="apps" />
+      {detailNavigation.section === "overview" ? (
+        <DeployableReadiness
+          ready={item.serverReady}
+          serverId={item.serverId}
+          serverIp={item.serverIp}
+        />
+      ) : null}
       <PageTabs
         defaultValue="overview"
         tabs={[
@@ -181,22 +270,23 @@ export function AppDetail() {
                 <Attributes
                   icon={<HugeiconsIcon icon={DashboardCircleIcon} />}
                   columns={2}
-                  title="App status"
+                  title="Current state"
                   variant="card"
                 >
-                  <Attributes.Item label="App status">
-                    <StatusBadge status={lifecycleStatus} />
-                  </Attributes.Item>
-                  <Attributes.Item label="Health">
+                  <Attributes.Item label="Lifecycle">
                     <StatusBadge
-                      status={
-                        item.serverReady
-                          ? item.runtimeState.healthStatus
-                          : "server_setup_pending"
-                      }
+                      status={lifecycleStatus}
+                      label={item.serverReady ? undefined : "Setup pending"}
                     />
                   </Attributes.Item>
-                  <Attributes.Item label="Running state">
+                  <Attributes.Item label="Health">
+                    {item.serverReady ? (
+                      <StatusBadge status={item.runtimeState.healthStatus} />
+                    ) : (
+                      "Not checked"
+                    )}
+                  </Attributes.Item>
+                  <Attributes.Item label="Runtime">
                     <StatusBadge
                       context="runtime"
                       status={item.runtimeState.observedState}
@@ -205,10 +295,18 @@ export function AppDetail() {
                   <Attributes.Item label="Configuration">
                     <StatusBadge status={item.runtimeState.driftStatus} />
                   </Attributes.Item>
-                  <Attributes.Item label="Server setup">
-                    <StatusBadge
-                      status={item.serverReady ? "ready" : "pending"}
-                    />
+                  {usesCloudflareTunnel ? (
+                    <Attributes.Item label="Cloudflare Tunnel">
+                      <StatusBadge
+                        status={item.runtimeState.ingressStatus}
+                        tooltip={tunnelStatusTooltip(item.runtimeState)}
+                      />
+                    </Attributes.Item>
+                  ) : null}
+                  <Attributes.Item label="Environment">
+                    <TypographyCode>
+                      {item.environment?.name ?? "Unmapped"}
+                    </TypographyCode>
                   </Attributes.Item>
                   <Attributes.Item
                     icon={<HugeiconsIcon icon={ServerStack01Icon} />}
@@ -222,19 +320,34 @@ export function AppDetail() {
                       : "Not checked yet"}
                   </Attributes.Item>
                   <Attributes.Item label="Domain">
-                    {item.config.domains?.primary ?? "Not configured"}
+                    {item.config.domains?.primary ? (
+                      <DomainLink domain={item.config.domains.primary}>
+                        {item.config.domains.primary}
+                      </DomainLink>
+                    ) : (
+                      "Not configured"
+                    )}
+                  </Attributes.Item>
+                  <Attributes.Item
+                    icon={<IntegrationProviderLogo provider="github" />}
+                    label="Repository"
+                  >
+                    <InlineLink href={`/repositories/${item.sourceId}`}>
+                      {source.data.source.repositoryName}
+                    </InlineLink>
                   </Attributes.Item>
                 </Attributes>
                 <Attributes
                   icon={<HugeiconsIcon icon={Rocket01Icon} />}
                   columns={2}
-                  title="Latest deployment"
+                  title="Last deployment attempt"
                   variant="card"
                 >
                   <Attributes.Item label="Status">
                     {latestDeployment ? (
                       <StatusBadge
                         status={getDeploymentDisplayStatus(latestDeployment)}
+                        tooltip={deploymentStatusTooltip(latestDeployment)}
                       />
                     ) : (
                       "Not deployed"
@@ -262,22 +375,48 @@ export function AppDetail() {
             ),
           },
           {
-            value: "monitoring",
-            label: "Scout Agent",
-            group: "Monitoring",
+            value: "performance",
+            label: "Performance",
+            group: "Monitor",
             icon: <HugeiconsIcon icon={Activity01Icon} />,
             content: (
-              <ScoutPanel
+              <ScoutPerformance
                 path={`/v1/core/apps/${appId}/metrics`}
                 serverId={item.serverId}
-                deployableId={appId}
+                workload
               />
             ),
           },
           {
+            value: "alerts",
+            label: "Alerts",
+            contentOwnsTitle: true,
+            group: "Monitor",
+            icon: <HugeiconsIcon icon={Alert02Icon} />,
+            content: (
+              <ScoutAlertRules serverId={item.serverId} deployableId={appId} />
+            ),
+          },
+          {
+            value: "incidents",
+            label: "Incidents",
+            group: "Monitor",
+            icon: <HugeiconsIcon icon={AlertCircleIcon} />,
+            content: (
+              <ScoutIncidents serverId={item.serverId} deployableId={appId} />
+            ),
+          },
+          {
+            value: "compare-deployments",
+            label: "Compare deployments",
+            group: "Monitor",
+            icon: <HugeiconsIcon icon={GitCompareIcon} />,
+            content: <ScoutCompareDeployments deployableId={appId} />,
+          },
+          {
             value: "vulnerabilities",
             label: "Vulnerabilities",
-            group: "Monitoring",
+            group: "Monitor",
             icon: <HugeiconsIcon icon={SecurityCheckIcon} className="size-4" />,
             content: <DeployableVulnerabilities appId={appId} kind="app" />,
           },
@@ -304,7 +443,10 @@ export function AppDetail() {
                   label: "Previews",
                   icon: <HugeiconsIcon icon={GitBranchIcon} />,
                   content: (
-                    <PreviewEnvironments appId={appId} sourceId={sourceId} />
+                    <PreviewEnvironments
+                      appId={appId}
+                      sourceId={item.sourceId}
+                    />
                   ),
                 },
               ]
@@ -317,9 +459,29 @@ export function AppDetail() {
               <RuntimeLogs
                 active={!item.archivedAt && item.serverReady}
                 deployableId={appId}
+                hasIngress={usesCloudflareTunnel}
+                services={
+                  item.config.kind === "compose"
+                    ? (releases.data.releases.find(
+                        (release) => release.status === "current",
+                      )?.composeServices ?? Object.keys(item.config.services))
+                    : undefined
+                }
                 type="app"
               />
             ),
+          },
+          {
+            value: "jobs",
+            label: "Scheduled jobs",
+            icon: <HugeiconsIcon icon={Clock01Icon} />,
+            content: <AppJobs appId={appId} />,
+          },
+          {
+            value: "storage",
+            label: "Storage",
+            icon: <HugeiconsIcon icon={PackageIcon} />,
+            content: <AppStorage appId={appId} />,
           },
           {
             value: "settings",
@@ -361,7 +523,9 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
                 variant="card"
               >
                 <Attributes.Item label="Base domain">
-                  {item.config.preview.domain}
+                  <DomainLink domain={item.config.preview.domain}>
+                    {item.config.preview.domain}
+                  </DomainLink>
                 </Attributes.Item>
                 <Attributes.Item label="Time to live">
                   {item.config.preview.ttlHours} hours
@@ -398,22 +562,36 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
 
 function AppConfiguration({ item }: { item: AppRecord }) {
   return (
-    <div className="content-grid">
+    <div className="content-grid lg:grid-cols-2 lg:items-start">
       <Attributes
         icon={<HugeiconsIcon icon={PackageIcon} />}
         columns={2}
         title="Build configuration"
         variant="card"
       >
-        <Attributes.Item label="Dockerfile">
-          <TypographyCode className="break-all">
-            {item.config.dockerfile}
-          </TypographyCode>
-        </Attributes.Item>
-        <Attributes.Item label="Source branch">
+        {item.config.kind === "compose" ? (
+          <>
+            <Attributes.Item label="Compose file">
+              <TypographyCode className="break-all">
+                {item.config.file}
+              </TypographyCode>
+            </Attributes.Item>
+            <Attributes.Item label="Strategy">
+              {item.config.strategy}
+            </Attributes.Item>
+            <Attributes.Item label="Profiles">
+              {item.config.profiles.join(", ") || "Default"}
+            </Attributes.Item>
+          </>
+        ) : (
+          <Attributes.Item label="Build mode">
+            {item.config.deployment?.type ?? "dockerfile"}
+          </Attributes.Item>
+        )}
+        <Attributes.Item label="Repository branch">
           {item.config.sourceBranch ?? "main"}
         </Attributes.Item>
-        <Attributes.Item label="Source revision">
+        <Attributes.Item label="Repository revision">
           <TypographyCode title={item.sourceRevision}>
             {item.sourceRevision.slice(0, 12)}
           </TypographyCode>
@@ -461,17 +639,26 @@ function AppConfiguration({ item }: { item: AppRecord }) {
           {item.config.autoDeploy
             ? item.config.deploymentInputs?.length
               ? renderCodeList(item.config.deploymentInputs)
-              : "Every Source commit"
+              : "Every Repository commit"
             : "Not used"}
         </Attributes.Item>
         <Attributes.Item label="Primary domain">
-          {item.config.domains?.primary ?? "Not configured"}
+          {item.config.domains?.primary ? (
+            <DomainLink domain={item.config.domains.primary}>
+              {item.config.domains.primary}
+            </DomainLink>
+          ) : (
+            "Not configured"
+          )}
         </Attributes.Item>
         <Attributes.Item label="Redirects">
           {item.config.domains?.redirects.length
             ? item.config.domains.redirects.map((redirect) => (
-                <span className="block" key={redirect.host}>
-                  {redirect.host} · {redirect.status}
+                <span className="flex items-center gap-1" key={redirect.host}>
+                  <DomainLink domain={redirect.host}>
+                    {redirect.host}
+                  </DomainLink>
+                  <span>· {redirect.status}</span>
                 </span>
               ))
             : "None"}

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { describe, it } from "node:test";
 
 import { backupOperationResultSchema } from "@workspace/towbar-core";
@@ -8,13 +9,45 @@ import {
 } from "./resource-operations.js";
 
 void describe("Resource operation scripts", () => {
+  void it("parses every remote script with Bash", () => {
+    for (const [name, script] of Object.entries(resourceOperationScripts)) {
+      const result = spawnSync("bash", ["-n"], {
+        encoding: "utf8",
+        input: script,
+      });
+      assert.equal(
+        result.status,
+        0,
+        `${name} is not valid Bash: ${result.stderr}`,
+      );
+    }
+  });
+
   void it("uses database-native archives and validates them before upload", () => {
     assert.match(resourceOperationScripts.createBackup, /pg_dump/);
     assert.match(resourceOperationScripts.createBackup, /pg_restore --list/);
+    assert.match(resourceOperationScripts.createBackup, /mysqldump/);
+    assert.match(resourceOperationScripts.createBackup, /mariadb-dump/);
+    assert.match(resourceOperationScripts.createBackup, /mongodump/);
     assert.match(resourceOperationScripts.createBackup, /redis-cli/);
     assert.match(resourceOperationScripts.createBackup, /redis-check-rdb/);
+    assert.match(
+      resourceOperationScripts.createBackup,
+      /BACKUP ALL EXCEPT DATABASES/,
+    );
     assert.match(resourceOperationScripts.createBackup, /test -s/);
     assert.match(resourceOperationScripts.createBackup, /stat -c %s/);
+  });
+
+  void it("captures only the exact owned Cloudflare Tunnel runtime", () => {
+    assert.match(resourceOperationScripts.ingressLogs, /towbar\.managed/);
+    assert.match(resourceOperationScripts.ingressLogs, /towbar\.ingress/);
+    assert.match(resourceOperationScripts.ingressLogs, /cloudflare-tunnel/);
+    assert.match(resourceOperationScripts.ingressLogs, /towbar\.app/);
+    assert.match(
+      resourceOperationScripts.ingressLogs,
+      /docker logs --timestamps --tail/,
+    );
   });
 
   void it("binds backup and runtime operations to the retained deployable", () => {

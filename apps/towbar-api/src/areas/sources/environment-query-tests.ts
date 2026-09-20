@@ -60,6 +60,10 @@ export async function assertInstanceQueryIdentity({
     "production",
     "staging",
   ]);
+  assert.deepEqual(history.map((sync) => sync.environment?.branch).sort(), [
+    "develop",
+    "main",
+  ]);
   for (const sync of history) {
     assert(sync.mappingRevision);
     assert.deepEqual(await getSourceSync(sourceId, sync.id, workspaceId), sync);

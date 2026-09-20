@@ -1,4 +1,4 @@
-export type AutoDeployPauseScope = "deployable" | "source";
+export type AutoDeployPauseScope = "deployable" | "environment" | "source";
 
 export type DeferredAutomaticDeployment = {
   commitSha: string;
@@ -15,9 +15,11 @@ export type AutoDeployPauseGate =
 
 export function evaluateAutoDeployPause(input: {
   deployablePaused?: boolean;
+  environmentPaused?: boolean;
   sourcePaused: boolean;
 }): AutoDeployPauseGate {
   if (input.sourcePaused) return { paused: true, scope: "source" };
+  if (input.environmentPaused) return { paused: true, scope: "environment" };
   if (input.deployablePaused) return { paused: true, scope: "deployable" };
   return { paused: false, scope: null };
 }

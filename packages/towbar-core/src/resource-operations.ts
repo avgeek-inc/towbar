@@ -1,8 +1,21 @@
+import { type AppJob, appJobResultSchema } from "./app-jobs.js";
 import { z } from "zod";
+
+const managedBackupEngines = [
+  "postgres",
+  "mysql",
+  "mariadb",
+  "mongodb",
+  "redis",
+  "dragonfly",
+  "keydb",
+  "clickhouse",
+] as const;
 
 export const resourceOperationTypes = [
   "backup",
   "capture_logs",
+  "run_job",
   "cleanup_orphans",
   "restart",
   "restore",
@@ -62,6 +75,7 @@ export const orphanItemSchema = z
 export type OrphanItem = z.infer<typeof orphanItemSchema>;
 
 export type RuntimeExpectation = {
+  volumes?: Array<{ name: string; mountPath: string }>;
   connectivity: {
     containerPort: number;
     hostPort: number | null;
@@ -75,7 +89,12 @@ export type RuntimeExpectation = {
     | { command: string[]; timeoutSeconds: number; type: "command" }
     | { path: string; timeoutSeconds: number; type: "http" }
     | { timeoutSeconds: number; type: "container" };
-  release: { containerName: string; imageTag: string } | null;
+  ingress: { type: "cloudflare-tunnel" } | null;
+  release: {
+    containerName: string;
+    imageTag: string;
+    kind?: "compose" | "container";
+  } | null;
 };
 
 export type RuntimeInspection = {
@@ -84,6 +103,11 @@ export type RuntimeInspection = {
   driftReasons: string[];
   driftStatus: RuntimeDriftState;
   healthStatus: RuntimeHealthState;
+  ingressContainerName: string | null;
+  ingressImage: string | null;
+  ingressRestartCount: number | null;
+  ingressStatus:
+    "disabled" | "missing" | "ready" | "reconnecting" | "stopped" | "unknown";
   memoryLimitBytes: number | null;
   memoryUsageBytes: number | null;
   observedContainerName: string | null;
@@ -121,8 +145,20 @@ export const restoreOperationPhaseSchema = z.enum(restoreOperationPhases);
 export type RestoreOperationPhase = z.infer<typeof restoreOperationPhaseSchema>;
 
 export type ResourceOperationRequest =
+  | {
+      release: ResourceReleaseSnapshot;
+      type: "run_job";
+      job: AppJob;
+      scheduledAt: string | null;
+    }
   | { release: ResourceReleaseSnapshot; type: "backup" }
-  | { release: ResourceReleaseSnapshot; tail: number; type: "capture_logs" }
+  | {
+      release: ResourceReleaseSnapshot;
+      runtime?: "workload" | "ingress";
+      service?: string;
+      tail: number;
+      type: "capture_logs";
+    }
   | { items: OrphanItem[]; type: "cleanup_orphans" }
   | {
       backupId: string;
@@ -136,7 +172,11 @@ export type ResourceOperationRequest =
       type: "restore_cleanup";
       volumes: string[];
     }
-  | { release: ResourceReleaseSnapshot; type: "restart" | "start" | "stop" };
+  | {
+      release: ResourceReleaseSnapshot;
+      service?: string;
+      type: "restart" | "start" | "stop";
+    };
 
 export type PersistedResourceOperationRequest = ResourceOperationRequest;
 
@@ -145,26 +185,35 @@ export type BackupDestinationResult = {
   encryption?: string;
   key: string;
   objectVersion?: string;
-  provider: "azureBlob" | "gcs" | "s3";
+  provider: "azureBlob" | "gcs" | "r2" | "s3";
   region?: string;
   storageAccount?: string;
 };
 
 export type BackupOperationResult = {
+  backupClass?: "database";
   backupId: string;
   bucket: string;
   checksum: string;
   deletedBackupIds: string[];
   destinations?: BackupDestinationResult[];
   encryption: "AES256" | "aws:kms" | string;
-  engine?: "postgres" | "redis";
+  engine?: (typeof managedBackupEngines)[number];
   engineMajorVersion?: number;
-  format?: "postgres-custom" | "redis-rdb";
+  format?:
+    | "postgres-custom"
+    | "mysql-sql"
+    | "mariadb-sql"
+    | "mongodb-archive"
+    | "redis-rdb"
+    | "dragonfly-rdb"
+    | "keydb-rdb"
+    | "clickhouse-backup";
   key: string;
   metadataVersion?: 1;
   objectVersionId?: string;
   region?: string;
-  restoreFrom?: "azureBlob" | "gcs" | "s3";
+  restoreFrom?: "azureBlob" | "gcs" | "r2" | "s3";
   sizeBytes: number;
   storageAccount?: string;
   verifiedAt: string;
@@ -175,7 +224,7 @@ export function normalizeBackupOperationResult(
   result: BackupOperationResult,
 ): BackupOperationResult & {
   destinations: BackupDestinationResult[];
-  restoreFrom: "azureBlob" | "gcs" | "s3";
+  restoreFrom: "azureBlob" | "gcs" | "r2" | "s3";
 } {
   const destinations =
     result.destinations && result.destinations.length > 0
@@ -205,6 +254,7 @@ export const maximumBackupBytes = 20 * 1_024 * 1_024 * 1_024;
 export const backupOperationResultSchema = z
   .object({
     backupId: z.string().uuid(),
+    backupClass: z.literal("database").optional(),
     bucket: z.string().trim().min(1).max(255),
     checksum: z.string().regex(/^[a-f0-9]{64}$/u),
     deletedBackupIds: z.array(z.string().uuid()),
@@ -216,7 +266,7 @@ export const backupOperationResultSchema = z
             encryption: z.string().trim().max(128).optional(),
             key: z.string().trim().min(1).max(2_048),
             objectVersion: z.string().trim().min(1).max(1_024).optional(),
-            provider: z.enum(["s3", "gcs", "azureBlob"]),
+            provider: z.enum(["s3", "r2", "gcs", "azureBlob"]),
             region: z.string().trim().min(1).max(64).optional(),
             storageAccount: z.string().trim().min(1).max(128).optional(),
           })
@@ -224,14 +274,25 @@ export const backupOperationResultSchema = z
       )
       .optional(),
     encryption: z.string().trim().min(1).max(64),
-    engine: z.enum(["postgres", "redis"]).optional(),
+    engine: z.enum(managedBackupEngines).optional(),
     engineMajorVersion: z.number().int().positive().max(1_000).optional(),
-    format: z.enum(["postgres-custom", "redis-rdb"]).optional(),
+    format: z
+      .enum([
+        "postgres-custom",
+        "mysql-sql",
+        "mariadb-sql",
+        "mongodb-archive",
+        "redis-rdb",
+        "dragonfly-rdb",
+        "keydb-rdb",
+        "clickhouse-backup",
+      ])
+      .optional(),
     key: z.string().trim().min(1).max(2_048),
     metadataVersion: z.literal(1).optional(),
     objectVersionId: z.string().trim().min(1).max(1_024).optional(),
     region: z.string().trim().min(1).max(64).optional(),
-    restoreFrom: z.enum(["s3", "gcs", "azureBlob"]).optional(),
+    restoreFrom: z.enum(["s3", "r2", "gcs", "azureBlob"]).optional(),
     sizeBytes: z.number().int().nonnegative().max(maximumBackupBytes),
     storageAccount: z.string().trim().min(1).max(128).optional(),
     verifiedAt: z.string().datetime(),
@@ -249,7 +310,7 @@ export const restoreVolumeSchema = z
 export const restoreValidationSchema = z
   .object({
     databaseName: z.string().trim().min(1).max(255).nullable(),
-    engine: z.enum(["postgres", "redis"]),
+    engine: z.enum(managedBackupEngines),
     engineMajorVersion: z.number().int().positive().max(1_000),
     healthVerified: z.boolean(),
     readable: z.boolean(),
@@ -280,13 +341,14 @@ export type RestoreOperationResult = z.infer<
 
 export const restoreCleanupResultSchema = z
   .object({
-    cleanedVolumes: z.array(z.string().trim().min(1).max(255)).max(20),
+    cleanedVolumes: z.array(z.string().trim().min(1).max(255)).max(100),
     restoreId: z.string().uuid(),
-    skippedVolumes: z.array(z.string().trim().min(1).max(255)).max(20),
+    skippedVolumes: z.array(z.string().trim().min(1).max(255)).max(100),
   })
   .strict();
 
 export const resourceOperationResultSchema = z.union([
+  appJobResultSchema,
   backupOperationResultSchema,
   z
     .object({
@@ -306,6 +368,7 @@ export const resourceOperationResultSchema = z.union([
 ]);
 
 export type ResourceOperationResult =
+  | z.infer<typeof appJobResultSchema>
   | BackupOperationResult
   | { cleaned: OrphanItem[]; skipped: OrphanItem[] }
   | { logs: string; truncated: boolean }

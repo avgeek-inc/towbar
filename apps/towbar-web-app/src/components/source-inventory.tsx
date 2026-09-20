@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  TableCellStack,
+  TableCellDescription,
+} from "@workspace/towbar-web-ui/table-cell-text";
+
 import { ServerStack01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
@@ -38,13 +43,13 @@ function appColumns(
     {
       cell: (app) => <AppIdentity app={app} />,
       wrapRowLink: false,
-      className: "min-w-88",
+      className: "min-w-64",
       header: "App Name",
       key: "name",
     },
     {
       cell: (app) => <InstanceEnvironmentLabel environment={app.environment} />,
-      className: "min-w-40",
+      className: "min-w-32",
       header: "Environment",
       key: "environment",
     },
@@ -56,7 +61,8 @@ function appColumns(
           hardware={serversByIp.get(app.serverIp)?.hardware}
         />
       ),
-      className: "min-w-52 tabular-nums",
+      className: "hidden min-w-52 tabular-nums 2xl:table-cell",
+      headerClassName: "hidden 2xl:table-cell",
       header: "Server",
       key: "server",
     },
@@ -67,7 +73,8 @@ function appColumns(
           runtime={runtimeById.get(app.id)}
         />
       ),
-      className: "min-w-40",
+      className: "hidden min-w-40 2xl:table-cell",
+      headerClassName: "hidden 2xl:table-cell",
       header: "Allocated CPU",
       key: "cpu",
     },
@@ -78,7 +85,8 @@ function appColumns(
           runtime={runtimeById.get(app.id)}
         />
       ),
-      className: "min-w-56",
+      className: "hidden min-w-56 2xl:table-cell",
+      headerClassName: "hidden 2xl:table-cell",
       header: "Allocated Memory",
       key: "memory",
     },
@@ -114,7 +122,7 @@ function resourceColumns(
   return [
     {
       cell: (resource) => <ResourceIdentity resource={resource} />,
-      className: "min-w-88",
+      className: "min-w-64",
       wrapRowLink: false,
       header: "Resource Name",
       key: "name",
@@ -123,7 +131,7 @@ function resourceColumns(
       cell: (resource) => (
         <InstanceEnvironmentLabel environment={resource.environment} />
       ),
-      className: "min-w-40",
+      className: "min-w-32",
       header: "Environment",
       key: "environment",
     },
@@ -135,7 +143,8 @@ function resourceColumns(
           hardware={serversByIp.get(resource.serverIp)?.hardware}
         />
       ),
-      className: "min-w-52 tabular-nums",
+      className: "hidden min-w-52 tabular-nums 2xl:table-cell",
+      headerClassName: "hidden 2xl:table-cell",
       header: "Server",
       key: "server",
     },
@@ -146,7 +155,8 @@ function resourceColumns(
           runtime={runtimeById.get(resource.id)}
         />
       ),
-      className: "min-w-40",
+      className: "hidden min-w-40 2xl:table-cell",
+      headerClassName: "hidden 2xl:table-cell",
       header: "Allocated CPU",
       key: "cpu",
     },
@@ -157,7 +167,8 @@ function resourceColumns(
           runtime={runtimeById.get(resource.id)}
         />
       ),
-      className: "min-w-56",
+      className: "hidden min-w-56 2xl:table-cell",
+      headerClassName: "hidden 2xl:table-cell",
       header: "Allocated Memory",
       key: "memory",
     },
@@ -191,14 +202,12 @@ export function SourceApps({
   deployments,
   error,
   servers,
-  sourceId,
 }: {
   apps?: App[];
   capacities?: RuntimeCapacity[];
   deployments?: Deployment[];
   error?: string;
   servers?: Server[];
-  sourceId: string;
 }) {
   if (error) return <QueryError message={error} />;
   if (!apps || !capacities || !deployments || !servers)
@@ -208,14 +217,14 @@ export function SourceApps({
   const serversByIp = getServersByIp(servers);
   return (
     <DeployableInventoryTable
-      ariaLabel="Source apps"
+      ariaLabel="Repository apps"
       columns={appColumns(activeDeploymentStates, runtimeById, serversByIp)}
-      emptyDescription="A successful manifest sync imports this Source's apps."
-      emptyTitle="No apps in this Source"
-      getRowHref={(app) => `/sources/${sourceId}/apps/${app.id}`}
+      emptyDescription="A successful manifest sync imports this Repository's apps."
+      emptyTitle="No apps in this Repository"
+      getRowHref={(app) => `/apps/${app.id}`}
       getRowKey={(app) => app.id}
       items={apps}
-      tableClassName="min-w-[1040px]"
+      tableClassName="min-w-[640px] 2xl:min-w-[1040px]"
     />
   );
 }
@@ -226,14 +235,12 @@ export function SourceResources({
   error,
   resources,
   servers,
-  sourceId,
 }: {
   capacities?: RuntimeCapacity[];
   deployments?: Deployment[];
   error?: string;
   resources?: Resource[];
   servers?: Server[];
-  sourceId: string;
 }) {
   if (error) return <QueryError message={error} />;
   if (!resources || !capacities || !deployments || !servers)
@@ -243,18 +250,18 @@ export function SourceResources({
   const serversByIp = getServersByIp(servers);
   return (
     <DeployableInventoryTable
-      ariaLabel="Source resources"
+      ariaLabel="Repository resources"
       columns={resourceColumns(
         activeDeploymentStates,
         runtimeById,
         serversByIp,
       )}
-      emptyDescription="Declare an image, PostgreSQL, or Redis resource in this Source's manifest."
-      emptyTitle="No resources in this Source"
-      getRowHref={(resource) => `/sources/${sourceId}/resources/${resource.id}`}
+      emptyDescription="Declare an image, PostgreSQL, or Redis resource in this Repository's manifest."
+      emptyTitle="No resources in this Repository"
+      getRowHref={(resource) => `/resources/${resource.id}`}
       getRowKey={(resource) => resource.id}
       items={resources}
-      tableClassName="min-w-[1160px]"
+      tableClassName="min-w-[640px] 2xl:min-w-[1160px]"
     />
   );
 }
@@ -269,7 +276,7 @@ export function ServerIpLink({
   serverId?: string;
 }) {
   const label = (
-    <span className="grid min-w-0 gap-0.5">
+    <TableCellStack>
       <span className="inline-flex items-center gap-2 whitespace-nowrap tabular-nums">
         <HugeiconsIcon
           aria-hidden="true"
@@ -278,10 +285,10 @@ export function ServerIpLink({
         />
         <span>{ip}</span>
       </span>
-      <span className="text-xs font-normal text-muted">
+      <TableCellDescription>
         <ServerHardwareDescription hardware={hardware} />
-      </span>
-    </span>
+      </TableCellDescription>
+    </TableCellStack>
   );
   return serverId ? (
     <InlineLink href={`/servers/${serverId}`}>{label}</InlineLink>

@@ -1,0 +1,82 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { roleActions, type WorkspaceRole } from "@workspace/towbar-access";
+import type { TowbarUser } from "@workspace/towbar-web-client";
+
+import { routePermission } from "../components/access-context";
+import { createApplicationSidebar } from "./application-layout";
+
+function fixtureUser(role: WorkspaceRole): TowbarUser {
+  return {
+    capabilities: roleActions(role),
+    email: `${role}@example.com`,
+    emailVerified: true,
+    id: role,
+    mustChangePassword: false,
+    name: role,
+    passwordSetupRequired: false,
+    teamName: "Platform team",
+    twoFactorEnabled: false,
+    workspaceId: "workspace",
+    workspaceRole: role,
+  };
+}
+
+test("manage navigation exposes each feature at its primary destination", () => {
+  const admin = createApplicationSidebar({}, undefined, fixtureUser("admin"));
+  assert.equal(
+    admin.groups.some((group) => group.id === "manage"),
+    false,
+  );
+  const adminWorkspace = admin.groups.find((group) => group.id === "workspace");
+  assert.equal(adminWorkspace?.label, "Manage");
+  assert.deepEqual(
+    adminWorkspace?.items.map((item) => item.id),
+    ["settings", "team-settings", "integrations", "shared-secrets", "health"],
+  );
+
+  const member = createApplicationSidebar({}, undefined, fixtureUser("member"));
+  const memberWorkspace = member.groups.find(
+    (group) => group.id === "workspace",
+  );
+  assert.deepEqual(
+    memberWorkspace?.items.map((item) => item.id),
+    ["settings", "shared-secrets"],
+  );
+  const memberSharedSecrets = memberWorkspace?.items.find(
+    (item) => item.id === "shared-secrets",
+  );
+  assert(
+    memberSharedSecrets && "href" in memberSharedSecrets,
+    "member Shared Secrets must remain navigable",
+  );
+  assert.equal(memberSharedSecrets.href, "/manage/shared-secrets");
+
+  const viewer = createApplicationSidebar({}, undefined, fixtureUser("viewer"));
+  assert.deepEqual(
+    viewer.groups
+      .find((group) => group.id === "workspace")
+      ?.items.map((item) => item.id),
+    ["settings"],
+  );
+});
+
+test("management routes preserve their specific permission boundaries", () => {
+  assert.equal(
+    routePermission("/manage/integrations/github"),
+    "integration.manage",
+  );
+  assert.equal(routePermission("/team-settings/ssh-keys"), "privateKey.manage");
+  assert.equal(routePermission("/manage/shared-secrets"), "sharedSecret.list");
+  assert.equal(
+    routePermission("/team-settings/integrations/github"),
+    "integration.manage",
+  );
+  assert.equal(
+    routePermission("/team-settings/shared-secrets"),
+    "sharedSecret.list",
+  );
+  assert.equal(routePermission("/team-settings/members"), "team.read");
+  assert.equal(routePermission("/system-health"), "system.read");
+});

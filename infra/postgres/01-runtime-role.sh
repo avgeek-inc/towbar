@@ -20,4 +20,8 @@ ALTER DEFAULT PRIVILEGES FOR ROLE towbar IN SCHEMA public
   GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO towbar_app;
 ALTER DEFAULT PRIVILEGES FOR ROLE towbar IN SCHEMA public
   GRANT USAGE, SELECT ON SEQUENCES TO towbar_app;
+SELECT 'CREATE DATABASE temporal OWNER towbar'
+WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'temporal') \gexec
+SELECT 'CREATE DATABASE temporal_visibility OWNER towbar'
+WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'temporal_visibility') \gexec
 SQL

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
-  githubInstallations,
+  integrationInstallations,
   servers,
   sourceEnvironments,
   sources,
@@ -11,17 +11,18 @@ export async function seedConnectedEnvironment(workspaceId: string) {
   const database = getTowbarDatabase();
   const installationId = randomUUID();
   const sourceId = randomUUID();
-  await database.insert(githubInstallations).values({
+  await database.insert(integrationInstallations).values({
+    provider: "github",
     id: installationId,
     workspaceId,
-    installationId,
-    accountLogin: "api-test",
-    accountType: "Organization",
+    externalId: installationId,
+    principalName: "api-test",
+    principalType: "Organization",
   });
   await database.insert(sources).values({
     id: sourceId,
     workspaceId,
-    githubInstallationId: installationId,
+    integrationInstallationId: installationId,
     repositoryOwner: "api-test",
     repositoryName: "platform",
   });
@@ -41,7 +42,6 @@ export async function seedApiServers(
       rows.map(({ id, workspaceId, ip }) => ({
         id,
         workspaceId,
-        slug: `server-${id}`,
         canonicalIp: ip,
         configDigest: "test-digest",
         config: {

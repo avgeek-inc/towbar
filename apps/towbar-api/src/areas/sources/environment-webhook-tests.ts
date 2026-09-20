@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomInt, randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import {
-  githubInstallations,
+  integrationInstallations,
   sourceEnvironments,
   sources,
   workspaces,
@@ -19,12 +19,13 @@ export async function assertEnvironmentPushRouting() {
     .values({ id: workspaceId, slug: workspaceId, name: "Webhook test" });
   const installationId = randomInt(1, 2_000_000_000);
   const [installation] = await database
-    .insert(githubInstallations)
+    .insert(integrationInstallations)
     .values({
+      provider: "github",
       workspaceId,
-      installationId: String(installationId),
-      accountLogin: "push-test",
-      accountType: "Organization",
+      externalId: String(installationId),
+      principalName: "push-test",
+      principalType: "Organization",
     })
     .returning();
   const sourceId = randomUUID();
@@ -32,7 +33,7 @@ export async function assertEnvironmentPushRouting() {
     await database.insert(sources).values({
       id: sourceId,
       workspaceId,
-      githubInstallationId: installation!.id,
+      integrationInstallationId: installation!.id,
       repositoryOwner: "push-test",
       repositoryName: "example",
     });
@@ -92,14 +93,14 @@ export async function assertEnvironmentPushRouting() {
     assert.deepEqual(await push("develop"), []);
     assert.deepEqual(await push("release/staging"), [staging!.id]);
     await database
-      .update(githubInstallations)
+      .update(integrationInstallations)
       .set({ suspendedAt: new Date() })
-      .where(eq(githubInstallations.id, installation!.id));
+      .where(eq(integrationInstallations.id, installation!.id));
     assert.deepEqual(await push("main"), []);
     await database
-      .update(githubInstallations)
+      .update(integrationInstallations)
       .set({ suspendedAt: null })
-      .where(eq(githubInstallations.id, installation!.id));
+      .where(eq(integrationInstallations.id, installation!.id));
     await database
       .update(sourceEnvironments)
       .set({ disconnectedAt: new Date() })
@@ -113,8 +114,8 @@ export async function assertEnvironmentPushRouting() {
   } finally {
     await database.delete(sources).where(eq(sources.id, sourceId));
     await database
-      .delete(githubInstallations)
-      .where(eq(githubInstallations.id, installation!.id));
+      .delete(integrationInstallations)
+      .where(eq(integrationInstallations.id, installation!.id));
     await database.delete(workspaces).where(eq(workspaces.id, workspaceId));
   }
 }

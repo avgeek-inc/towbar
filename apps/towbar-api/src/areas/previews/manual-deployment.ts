@@ -1,31 +1,32 @@
 import { and, eq } from "drizzle-orm";
 import {
   createPreviewAppSnapshot,
+  isNormalizedCompose,
   isNormalizedResource,
   previewHostname,
   resolveRepositoryEnvironment,
 } from "@workspace/towbar-core";
 import {
   apps,
-  githubInstallations,
   previewEnvironments,
   servers,
   sources,
 } from "@workspace/towbar-database/schema";
 import { conflict, notFound } from "../../http/errors.js";
-import { fetchGitHubEnvironmentSnapshot } from "../github/environment-snapshot.js";
 import { resolvePreviewConfiguration } from "./configuration.js";
 import { assertRequiredInstanceSecrets } from "../apps/secrets.js";
 import { getInstanceEnvironment } from "../apps/instance-environment.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueueDeployment } from "../../infrastructure/temporal.js";
-import {
-  fetchGitHubPullRequest,
-  fetchGitHubRepositoryTree,
-} from "../github/client.js";
 import { publishPreviewDeploymentStatus } from "../deployments/preview-status.js";
 import { emitDeploymentNotification } from "../notifications/events.js";
 import { calculateReleaseDeploymentDigest } from "../sources/deployment-digests.js";
+import {
+  fetchRepositoryEnvironmentSnapshot,
+  fetchRepositoryPullRequest,
+  fetchRepositoryTree,
+  sourceProviderClient,
+} from "../sources/repository-provider.js";
 import { withPreviewLifecycleLock } from "./lifecycle-lock.js";
 import {
   previewPullRequestDisposition,
@@ -38,7 +39,7 @@ import { admitPreviewDeployment } from "./admission.js";
 export async function requestPreviewDeployment(input: {
   previewEnvironmentId: string;
   workspaceId: string;
-  requestedBy: string;
+  requestedBy: string | null;
 }) {
   const database = getTowbarDatabase();
   const [row] = await database
@@ -67,7 +68,7 @@ export async function requestPreviewDeployment(input: {
 async function deployCurrentPreview(input: {
   previewEnvironmentId: string;
   workspaceId: string;
-  requestedBy: string;
+  requestedBy: string | null;
 }) {
   const database = getTowbarDatabase();
   const [row] = await database
@@ -76,16 +77,11 @@ async function deployCurrentPreview(input: {
       app: apps,
       server: servers,
       source: sources,
-      installationId: githubInstallations.installationId,
     })
     .from(previewEnvironments)
     .innerJoin(apps, eq(apps.id, previewEnvironments.appId))
     .innerJoin(servers, eq(servers.id, apps.serverId))
     .innerJoin(sources, eq(sources.id, apps.sourceId))
-    .innerJoin(
-      githubInstallations,
-      eq(githubInstallations.id, sources.githubInstallationId),
-    )
     .where(
       and(
         eq(previewEnvironments.id, input.previewEnvironmentId),
@@ -99,6 +95,7 @@ async function deployCurrentPreview(input: {
     app.archivedAt ||
     source.status !== "active" ||
     isNormalizedResource(app.config) ||
+    isNormalizedCompose(app.config) ||
     !app.config.preview?.enabled
   )
     throw conflict("Preview is no longer enabled for this app");
@@ -118,12 +115,11 @@ async function deployCurrentPreview(input: {
     throw conflict(
       "Sync a connected environment with previews enabled before deploying",
     );
-  const pullRequest = await fetchGitHubPullRequest({
-    installationId: row.installationId,
-    pullRequestNumber: preview.pullRequestNumber,
-    repositoryName: source.repositoryName,
-    repositoryOwner: source.repositoryOwner,
-  });
+  const provider = await sourceProviderClient(source.id);
+  const pullRequest = await fetchRepositoryPullRequest(
+    provider,
+    preview.pullRequestNumber,
+  );
   if (
     previewPullRequestDisposition({
       pullRequest,
@@ -133,10 +129,8 @@ async function deployCurrentPreview(input: {
     }).action !== "deploy"
   )
     throw conflict("This pull request is no longer eligible for previews");
-  const repositorySnapshot = await fetchGitHubEnvironmentSnapshot({
-    installationId: row.installationId,
-    repositoryName: source.repositoryName,
-    repositoryOwner: source.repositoryOwner,
+  const repositorySnapshot = await fetchRepositoryEnvironmentSnapshot({
+    ...provider,
     commitSha: pullRequest.headSha,
   });
   const configuration = resolvePreviewConfiguration({
@@ -164,12 +158,7 @@ async function deployCurrentPreview(input: {
     hostname,
   });
   const repositoryTree = configuration.config.deploymentInputs.length
-    ? await fetchGitHubRepositoryTree({
-        commitSha: pullRequest.headSha,
-        installationId: row.installationId,
-        repositoryName: source.repositoryName,
-        repositoryOwner: source.repositoryOwner,
-      })
+    ? await fetchRepositoryTree(provider, pullRequest.headSha)
     : undefined;
   const digests = calculateReleaseDeploymentDigest({
     commitSha: pullRequest.headSha,
@@ -185,12 +174,10 @@ async function deployCurrentPreview(input: {
     preview: true,
     declarations: configuration.requiredSecrets,
   });
-  const latestPullRequest = await fetchGitHubPullRequest({
-    installationId: row.installationId,
-    pullRequestNumber: preview.pullRequestNumber,
-    repositoryName: source.repositoryName,
-    repositoryOwner: source.repositoryOwner,
-  });
+  const latestPullRequest = await fetchRepositoryPullRequest(
+    provider,
+    preview.pullRequestNumber,
+  );
   if (!samePreviewPullRequestRevision(pullRequest, latestPullRequest))
     throw conflict(
       "The pull request changed. Retry against its latest revision.",

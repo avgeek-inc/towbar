@@ -9,7 +9,7 @@ import {
 } from "@workspace/towbar-core";
 import {
   apps,
-  githubInstallations,
+  integrationInstallations,
   monitoringSamples,
   notificationEvents,
   sources,
@@ -24,18 +24,19 @@ export async function assertScoutWorkloadLinks(
   const db = getTowbarDatabase();
   const sourceId = randomUUID();
   const [installation] = await db
-    .insert(githubInstallations)
+    .insert(integrationInstallations)
     .values({
+      provider: "github",
       workspaceId: scope.workspaceId,
-      installationId: randomUUID(),
-      accountLogin: "example",
-      accountType: "Organization",
+      externalId: randomUUID(),
+      principalName: "example",
+      principalType: "Organization",
     })
     .returning();
   await db.insert(sources).values({
     id: sourceId,
     workspaceId: scope.workspaceId,
-    githubInstallationId: installation!.id,
+    integrationInstallationId: installation!.id,
     repositoryOwner: "example",
     repositoryName: "links",
   });
@@ -108,7 +109,7 @@ export async function assertScoutWorkloadLinks(
     const event = events.find((entry) => entry.payload.entity.id === id);
     assert(event, "The workload alert should produce a notification");
     const target = new URL(String(event.payload.details.performance));
-    assert.equal(target.pathname, `/sources/${sourceId}/${segment}/${id}`);
+    assert.equal(target.pathname, `/${segment}/${id}`);
     assert.equal(target.searchParams.get("section"), "monitoring");
   }
 }

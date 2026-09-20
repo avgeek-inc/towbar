@@ -5,8 +5,11 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./date-time": "./dist/date-time.js",
+    "./date-time-range": "./dist/date-time-range.js",
     ".": "./dist/index.js",
     "./manifest": "./dist/manifest.js",
+    "./network-policy": "./dist/network-policy.js",
     "./preview": "./dist/preview.js",
     "./reconciliation": "./dist/reconciliation.js",
     "./request-signing": "./dist/request-signing.js",
@@ -18,6 +21,7 @@
     "./deployment-comparison": "./dist/deployment-comparison.js",
     "./inventory": "./dist/inventory.js",
     "./schema/app": "./schemas/app.v2.json",
+    "./schema/compose": "./schemas/compose.v2.json",
     "./schema/resource": "./schemas/resource.v2.json"
   },
   "scripts": {
@@ -29,6 +33,7 @@
     "schemas:check": "tsx scripts/export-manifest-schemas.ts --check"
   },
   "dependencies": {
+    "@js-temporal/polyfill": "0.5.1",
     "croner": "^10.0.1",
     "minimatch": "10.2.6",
     "yaml": "catalog:",
@@ -39,8 +44,8 @@
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "eslint": "catalog:",
+    "prettier": "catalog:",
     "tsx": "^4.23.13",
-    "typescript": "catalog:",
-    "prettier": "catalog:"
+    "typescript": "catalog:"
   }
 }

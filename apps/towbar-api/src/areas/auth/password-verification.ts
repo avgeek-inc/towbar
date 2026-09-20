@@ -1,5 +1,3 @@
-import { verifyPassword } from "@workspace/towbar-core/security";
-
 import { getEnv } from "../../env.js";
 import { HttpError } from "../../http/errors.js";
 
@@ -46,15 +44,6 @@ export class PasswordVerificationGate {
 }
 
 let gate: PasswordVerificationGate | undefined;
-
-export async function verifyPasswordWithCapacityLimit(
-  password: string,
-  encodedHash: string,
-) {
-  return await runPasswordOperationWithCapacityLimit(() =>
-    verifyPassword(password, encodedHash),
-  );
-}
 
 export async function runPasswordOperationWithCapacityLimit<T>(
   operation: () => Promise<T>,

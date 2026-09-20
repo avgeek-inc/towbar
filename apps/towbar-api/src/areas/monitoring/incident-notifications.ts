@@ -2,7 +2,6 @@ import { and, desc, eq, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   notificationDeliveries,
-  notificationDestinations,
   notificationEvents,
   scoutAlertIncidents,
 } from "@workspace/towbar-database/schema";
@@ -46,8 +45,8 @@ export async function listIncidentNotifications(
       id: notificationDeliveries.id,
       state: notificationDeliveries.state,
       type: notificationEvents.type,
-      provider: notificationDestinations.provider,
-      config: notificationDestinations.config,
+      provider: notificationDeliveries.provider,
+      destination: notificationDeliveries.destinationKey,
       createdAt: notificationDeliveries.createdAt,
       deliveredAt: notificationDeliveries.deliveredAt,
       attemptCount: notificationDeliveries.attemptCount,
@@ -60,14 +59,6 @@ export async function listIncidentNotifications(
         eq(notificationEvents.id, notificationDeliveries.eventId),
         eq(notificationEvents.workspaceId, input.workspaceId),
         eq(notificationEvents.serverId, input.serverId),
-      ),
-    )
-    .innerJoin(
-      notificationDestinations,
-      and(
-        eq(notificationDestinations.id, notificationDeliveries.destinationId),
-        eq(notificationDestinations.workspaceId, input.workspaceId),
-        eq(notificationDestinations.serverId, input.serverId),
       ),
     )
     .where(
@@ -90,11 +81,7 @@ export async function listIncidentNotifications(
       desc(notificationDeliveries.id),
     )
     .limit(input.limit + 1);
-  const items = rows.slice(0, input.limit).map(({ config, ...row }) => ({
-    ...row,
-    destination:
-      "recipients" in config ? config.recipients.join(", ") : config.channelId,
-  }));
+  const items = rows.slice(0, input.limit);
   return {
     items,
     nextBefore:

@@ -38,11 +38,11 @@ export async function testBulkReveal({
   globalSlot: SecretSlot;
   manifest: Manifest;
   appConfig: NonNullable<Manifest["apps"]>[number];
-  setRole: (role: "owner" | "member") => void;
+  setRole: (role: "admin" | "member") => void;
   setWorkspace: (id: string) => void;
 }) {
   await t.test(
-    "bulk reveal is scoped, owner-only, uncached, and value-free in audits",
+    "bulk reveal is scoped, admin-only, uncached, and value-free in audits",
     async () => {
       const revealAll = (path: string) =>
         api.request(`${path}/reveal-all`, {
@@ -53,7 +53,7 @@ export async function testBulkReveal({
       const path = `/apps/${appId}/secrets/production/deployment`;
       setRole("member");
       assert.equal((await revealAll(path)).status, 403);
-      setRole("owner");
+      setRole("admin");
       setWorkspace(otherWorkspaceId);
       assert.equal((await revealAll(path)).status, 404);
       setWorkspace(workspaceId);

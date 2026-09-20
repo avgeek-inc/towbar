@@ -1,15 +1,14 @@
+import { actorAllows } from "@workspace/towbar-access";
 import { Hono } from "hono";
 import {
   deploymentComparisonQuerySchema,
   scoutAlertRuleSchema,
   scoutIncidentQuerySchema,
-  scoutMuteSchema,
 } from "@workspace/towbar-core";
 import {
   deleteScoutAlertRule,
   listScoutAlertRules,
   listScoutIncidents,
-  muteScoutAlerts,
   saveScoutAlertRule,
 } from "../../../areas/monitoring/alert-rules.js";
 import {
@@ -23,23 +22,23 @@ import {
 import { getScoutIncident } from "../../../areas/monitoring/incident-history.js";
 import { operation } from "../../../http/operation.js";
 import { readJson } from "../../../http/requests.js";
-import { forbidden } from "../../../http/errors.js";
+
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
 export const scoutAlertRoutes = new Hono<TowbarHonoEnvironment>();
 scoutAlertRoutes.get(
   "/",
   operation({
+    permissions: ["alert.read"],
     responseSchema: 'scout-alerts.ts:get:"/"',
     summary: "Inspect Scout alert rules",
     query: scoutIncidentQuerySchema.pick({ deployableId: true }),
-    response:
-      "Rules, evaluation status, maintenance mute, and available destinations.",
+    response: "Rules, evaluation status, and available destinations.",
     status: 200,
   }),
   async (context) => {
     return context.json({
-      canManage: context.get("user").workspaceRole === "owner",
+      canManage: actorAllows(context.get("actor"), ["alert.configure"]),
       ...(await listScoutAlertRules({
         ...scoutIncidentQuerySchema
           .pick({ deployableId: true })
@@ -53,17 +52,16 @@ scoutAlertRoutes.get(
 scoutAlertRoutes.post(
   "/rules",
   operation({
+    permissions: ["alert.configure"],
     responseSchema: 'scout-alerts.ts:post:"/rules"',
     summary: "Create Scout alert rule",
     body: scoutAlertRuleSchema,
-    ownerOnly: true,
     response:
       "The saved rule; notifications start only after the condition is satisfied.",
     status: 201,
   }),
   async (context) => {
     const user = context.get("user");
-    requireOwner(user.workspaceRole);
     return context.json(
       {
         rule: await saveScoutAlertRule({
@@ -80,17 +78,16 @@ scoutAlertRoutes.post(
 scoutAlertRoutes.put(
   "/rules/:ruleId",
   operation({
+    permissions: ["alert.configure"],
     responseSchema: 'scout-alerts.ts:put:"/rules/:ruleId"',
     summary: "Update Scout alert rule",
     body: scoutAlertRuleSchema,
-    ownerOnly: true,
     response:
       "Updated rule. Changing its condition closes the prior incident without claiming recovery.",
     status: 200,
   }),
   async (context) => {
     const user = context.get("user");
-    requireOwner(user.workspaceRole);
     return context.json({
       rule: await saveScoutAlertRule({
         serverId: context.req.param("serverId")!,
@@ -105,15 +102,14 @@ scoutAlertRoutes.put(
 scoutAlertRoutes.delete(
   "/rules/:ruleId",
   operation({
+    permissions: ["alert.configure"],
     responseSchema: 'scout-alerts.ts:delete:"/rules/:ruleId"',
     summary: "Delete Scout alert rule",
-    ownerOnly: true,
     response: "Stops evaluation and preserves incident history.",
     status: 204,
   }),
   async (context) => {
     const user = context.get("user");
-    requireOwner(user.workspaceRole);
     await deleteScoutAlertRule({
       serverId: context.req.param("serverId")!,
       ruleId: context.req.param("ruleId"),
@@ -123,57 +119,10 @@ scoutAlertRoutes.delete(
     return context.body(null, 204);
   },
 );
-scoutAlertRoutes.post(
-  "/mute",
-  operation({
-    responseSchema: 'scout-alerts.ts:post:"/mute"',
-    summary: "Mute server Scout alerts",
-    body: scoutMuteSchema,
-    ownerOnly: true,
-    response:
-      "Mutes notifications temporarily while continuing incident evaluation. Zero removes the mute.",
-    status: 200,
-  }),
-  async (context) => {
-    const user = context.get("user");
-    requireOwner(user.workspaceRole);
-    return context.json(
-      await muteScoutAlerts({
-        serverId: context.req.param("serverId")!,
-        workspaceId: user.workspaceId,
-        requestedBy: user.id,
-        ...(await readJson(context, scoutMuteSchema)),
-      }),
-    );
-  },
-);
-scoutAlertRoutes.post(
-  "/rules/:ruleId/mute",
-  operation({
-    responseSchema: 'scout-alerts.ts:post:"/rules/:ruleId/mute"',
-    summary: "Mute a Scout alert rule",
-    body: scoutMuteSchema,
-    ownerOnly: true,
-    response: "Temporarily mutes one rule. Zero removes the mute.",
-    status: 200,
-  }),
-  async (context) => {
-    const user = context.get("user");
-    requireOwner(user.workspaceRole);
-    return context.json(
-      await muteScoutAlerts({
-        serverId: context.req.param("serverId")!,
-        ruleId: context.req.param("ruleId"),
-        workspaceId: user.workspaceId,
-        requestedBy: user.id,
-        ...(await readJson(context, scoutMuteSchema)),
-      }),
-    );
-  },
-);
 scoutAlertRoutes.get(
   "/incidents",
   operation({
+    permissions: ["alert.read"],
     responseSchema: 'scout-alerts.ts:get:"/incidents"',
     summary: "List Scout incidents",
     query: scoutIncidentQuerySchema,
@@ -195,6 +144,7 @@ scoutAlertRoutes.get(
 scoutAlertRoutes.get(
   "/incidents/:incidentId",
   operation({
+    permissions: ["alert.read"],
     responseSchema: 'scout-alerts.ts:get:"/incidents/:incidentId"',
     summary: "Inspect Scout incident",
     response:
@@ -214,6 +164,7 @@ scoutAlertRoutes.get(
 scoutAlertRoutes.get(
   "/incidents/:incidentId/notifications",
   operation({
+    permissions: ["alert.read"],
     responseSchema:
       'scout-alerts.ts:get:"/incidents/:incidentId/notifications"',
     summary: "List incident notification deliveries",
@@ -238,6 +189,7 @@ export const scoutComparisonRoutes = new Hono<TowbarHonoEnvironment>();
 scoutComparisonRoutes.get(
   "/workloads/:deployableId/comparison-deployments",
   operation({
+    permissions: ["alert.read"],
     responseSchema:
       'scout-alerts.ts:get:"/workloads/:deployableId/comparison-deployments"',
     summary: "List deployments available for comparison",
@@ -257,6 +209,7 @@ scoutComparisonRoutes.get(
 scoutComparisonRoutes.get(
   "/workloads/:deployableId/deployment-comparison",
   operation({
+    permissions: ["alert.read"],
     responseSchema:
       'scout-alerts.ts:get:"/workloads/:deployableId/deployment-comparison"',
     summary: "Compare deployment performance",
@@ -275,7 +228,3 @@ scoutComparisonRoutes.get(
     );
   },
 );
-function requireOwner(role: string) {
-  if (role !== "owner")
-    throw forbidden("Only the owner can configure Scout alerts");
-}

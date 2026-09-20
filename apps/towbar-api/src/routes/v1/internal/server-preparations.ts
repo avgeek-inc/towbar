@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import {
   serverPreparationStepDefinitions,
+  serverPreparationStepLogMaxLength,
   serverPreparationStepMessageMaxLength,
 } from "@workspace/towbar-core";
 
@@ -23,6 +24,8 @@ const stepSchema = z
   .object({
     finishedAt: z.string().datetime().nullable(),
     id: z.enum(stepIds),
+    log: z.string().max(serverPreparationStepLogMaxLength).optional(),
+    logTruncated: z.boolean().optional(),
     message: z.string().max(serverPreparationStepMessageMaxLength).nullable(),
     startedAt: z.string().datetime().nullable(),
     status: z.enum(["waiting", "running", "succeeded", "failed"]),

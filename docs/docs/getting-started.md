@@ -3,11 +3,11 @@ title: "Your first deployment"
 description: "Take a Dockerfile app from a GitHub repository to a verified deployment on your Ubuntu server."
 ---
 
-This guide takes one app through Source sync, server preparation, deployment, and route verification. Use the [example files in this repository](https://github.com/avgeek-inc/towbar/tree/main/examples) for a small HTTP app and health endpoint, or bring your own app.
+This guide takes one app through Repository sync, server preparation, deployment, and route verification. Use the [example files in this repository](https://github.com/avgeek-inc/towbar/tree/main/examples) for a small HTTP app and health endpoint, or bring your own app.
 
 ## Before you begin
 
-You need a running Towbar installation with an owner account, a connected GitHub App, and an Ubuntu target you can administer. If those are not ready, follow [Install Towbar](/docs/self-hosting/installation), [Connect GitHub](/docs/integrations/github), and [Register a server](/docs/servers) first.
+You need a running Towbar installation with an Admin account, a connected GitHub App, and an Ubuntu target you can administer. If those are not ready, follow [Install Towbar](/docs/self-hosting/installation), [Connect GitHub](/docs/integrations/github), and [Register a server](/docs/servers) first.
 
 Use a domain you control for a public app. The examples use documentation-only IPs and hostnames; replace them with your own values.
 
@@ -24,7 +24,7 @@ node server.mjs
 
 Open `http://localhost:3000` and check `http://localhost:3000/health`.
 
-Create `towbar.yml` and `.towbar/apps/hello-towbar.app.yml`, replacing the server slug and domain.
+Create `towbar.yml` and `.towbar/apps/hello-towbar.app.yml`, replacing the server IP and domain.
 For a first deployment to production, use:
 
 ```yaml title="towbar.yml"
@@ -36,7 +36,7 @@ environments:
 ```yaml title=".towbar/apps/hello-towbar.app.yml"
 id: hello-towbar
 name: Hello Towbar
-server: production-server
+server: 192.0.2.10
 dockerfile: Dockerfile
 context: .
 container:
@@ -55,29 +55,29 @@ environments:
   production: {}
 ```
 
-Use the server slug registered in Towbar. Match the Dockerfile path, port, and health endpoint to your app. Point the domain at the target server and allow the traffic required by [Caddy and TLS](/docs/domains-tls).
+Use the server IP registered in Towbar. Match the Dockerfile path, port, and health endpoint to your app. Point the domain at the target server and allow the traffic required by [Caddy and TLS](/docs/domains-tls).
 
 Commit these files to the branch you will map to production in Towbar. Automatic deployment is deliberately omitted so you can verify the first release manually.
 
-## 2. Add and sync the Source
+## 2. Add and sync the Repository
 
-Open **Sources → Add source**, select the repository, then select production and map it to your branch. Wait for the initial sync, then open its result.
+Open **Repositories → Add repository**, select the repository, then select production and map it to your branch. Wait for the initial sync, then open its result.
 
-A successful sync imports **Hello Towbar** into the Source's Apps list. If it fails, correct the reported manifest field or missing server reference and sync again. A successful sync accepts configuration; it does not mean the app is running.
+A successful sync imports **Hello Towbar** into the Repository's Apps list. If it fails, correct the reported manifest field or missing server reference and sync again. A successful sync accepts configuration; it does not mean the app is running.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/features/sources-light.webp" alt="Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result." width="2176" height="1054" loading="lazy" />
+    <img src="/assets/release-v2/repositories-light.jpg" alt="Repositories show their imported app and resource inventories and latest sync time." width="1280" height="720" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/features/sources-dark.webp" alt="Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result." width="2176" height="1054" loading="lazy" />
+    <img src="/assets/release-v2/repositories-dark.jpg" alt="Repositories show their imported app and resource inventories and latest sync time." width="1280" height="720" loading="lazy" />
   </div>
-  <p>Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result.</p>
+  <p>Repositories show their imported app and resource inventories and latest sync time.</p>
 </div>
 
 ## 3. Verify the server
 
-Open the target under **Servers**. Save its SSH private key in **Settings → Configuration**, then run a server check. Compare the discovered SSH fingerprint with the host's console through an independent channel before trusting it.
+Open the target under **Servers → Settings → Credentials** and select a stored [SSH key](/docs/ssh-keys). You can choose **Add private key** inside the dropdown to generate or import one. Install its public key on the server before verifying access. Choose **Save**, compare the discovered host fingerprint with the server console through an independent channel, and trust it only if it matches. Towbar attaches the selected key after SSH authentication succeeds.
 
 Choose **Prepare Server** and follow the steps until the host is **Ready**. If preparation fails, inspect the reported step instead of repeatedly requesting deployment.
 
@@ -87,7 +87,7 @@ If your app needs secrets, declare their keys in the entity file’s top-level `
 
 The Hello Towbar example needs no secrets, so you can skip this step for your first deployment.
 
-Saved values are hidden until an owner reveals them with the eye icon. Leaving a replacement field untouched preserves its value. Saving does not start a deployment. See [Shared secrets](/docs/secrets) for references and rotation.
+Saved values are hidden until an Admin reveals them with the eye icon. Leaving a replacement field untouched preserves its value. Saving does not start a deployment. See [Shared secrets](/docs/secrets) for references and rotation.
 
 ## 5. Deploy
 
@@ -97,19 +97,19 @@ If a stage fails, open its output and correct that failure before retrying. The 
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/deployments-light.webp" alt="Example deployment history showing queued, active, successful, and failed attempts." width="3200" height="2100" loading="lazy" />
+    <img src="/assets/release-v2/deployments-light.jpg" alt="Filter deployment history by status, trigger, and workload." width="1280" height="1210" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/deployments-dark.webp" alt="Example deployment history showing queued, active, successful, and failed attempts." width="3200" height="2100" loading="lazy" />
+    <img src="/assets/release-v2/deployments-dark.jpg" alt="Filter deployment history by status, trigger, and workload." width="1280" height="1210" loading="lazy" />
   </div>
-  <p>Example deployment history showing queued, active, successful, and failed attempts.</p>
+  <p>Filter deployment history by status, trigger, and workload.</p>
 </div>
 
 ## 6. Verify the result
 
 Confirm all four conditions:
 
-- The Source sync succeeded at the intended commit.
+- The Repository sync succeeded at the intended commit.
 - The target server is Ready.
 - The deployment reached Succeeded.
 - The configured HTTPS domain serves the expected app version.

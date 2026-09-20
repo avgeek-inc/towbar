@@ -6,8 +6,8 @@ import { and, desc, eq, inArray, notInArray } from "drizzle-orm";
 import {
   apps,
   deployments,
-  githubWebhookDeliveries,
   imageVulnerabilityScans,
+  integrationWebhookDeliveries,
   releases,
   resourceOperations,
   sourceEnvironments,
@@ -17,6 +17,7 @@ import {
 import { executeEnvironmentSync } from "./environment-sync.js";
 import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
+import { requireGitLabRuntimeConfiguration } from "../../infrastructure/runtime-integrations.js";
 import {
   publicSourceSelection,
   publicSourceSyncSelection,
@@ -49,12 +50,28 @@ export async function listSources(workspaceId: string) {
 
 export async function getSource(sourceId: string, workspaceId: string) {
   const [source] = await getTowbarDatabase()
-    .select(publicSourceSelection)
+    .select({
+      ...publicSourceSelection,
+    })
     .from(sources)
     .where(and(eq(sources.id, sourceId), eq(sources.workspaceId, workspaceId)))
     .limit(1);
   if (!source) throw notFound("Source");
-  return source;
+  const metadata = source;
+  const path = [metadata.repositoryOwner, metadata.repositoryName]
+    .flatMap((part) => part.split("/"))
+    .map(encodeURIComponent)
+    .join("/");
+  return {
+    ...metadata,
+    repositoryUrl:
+      metadata.provider === "github"
+        ? `https://github.com/${path}`
+        : new URL(
+            path,
+            `${requireGitLabRuntimeConfiguration().baseUrl.replace(/\/$/u, "")}/`,
+          ).toString(),
+  };
 }
 
 export async function deleteSource(sourceId: string, workspaceId: string) {
@@ -149,8 +166,8 @@ export async function deleteSource(sourceId: string, workspaceId: string) {
       .where(eq(deployments.sourceId, sourceId));
     await transaction.delete(apps).where(eq(apps.sourceId, sourceId));
     await transaction
-      .delete(githubWebhookDeliveries)
-      .where(eq(githubWebhookDeliveries.sourceId, sourceId));
+      .delete(integrationWebhookDeliveries)
+      .where(eq(integrationWebhookDeliveries.sourceId, sourceId));
     await transaction.delete(sources).where(eq(sources.id, sourceId));
 
     return { id: source.id };

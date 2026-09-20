@@ -1,7 +1,8 @@
 "use client";
+import { FieldDescription } from "@workspace/web-design-system/forms/field";
 import {
-  Cancel01Icon,
   Key01Icon,
+  Logout01Icon,
   UserAccountIcon,
 } from "@hugeicons/core-free-icons";
 
@@ -9,6 +10,8 @@ import { HugeiconsIcon } from "@hugeicons/react";
 
 import type { TowbarUser, UserSession } from "@workspace/towbar-web-client";
 import { Button } from "@workspace/web-design-system/buttons/button";
+import { Avatar } from "@workspace/web-design-system/data-display/avatar";
+import { NewTabIndicator } from "@workspace/web-design-system/navigation/new-tab-indicator";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
@@ -20,6 +23,7 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { ActionButton, FormCard, SimpleForm } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
+import { EmailSettings } from "./email-settings";
 import { RelativeTime } from "./last-synced-time";
 
 export function ProfileSettings() {
@@ -31,34 +35,60 @@ export function ProfileSettings() {
     <div className="content-grid min-w-0 lg:grid-cols-2 lg:items-start">
       <FormCard
         icon={<HugeiconsIcon icon={UserAccountIcon} />}
-        title="Profile details"
+        title="Appearance"
       >
-        <SimpleForm
-          fields={[
-            {
-              label: "Email",
-              name: "email",
-              defaultValue: profile.data.user.email,
-              disabled: true,
-              type: "email",
-              variant: "secondary",
-            },
-            {
-              label: "Display name",
-              maxLength: 120,
-              name: "displayName",
-              defaultValue: profile.data.user.name,
-              required: true,
-              variant: "secondary",
-            },
-          ]}
-          onSubmit={async (values) => {
-            await api.patch("/v1/core/profile", values);
-          }}
-          successMessage="Profile updated"
-          submitLabel="Update profile"
-        />
+        <div className="grid gap-5">
+          <div className="grid gap-3">
+            <div className="grid gap-0.5">
+              <span className="text-sm font-medium">Gravatar Image</span>
+              <FieldDescription>
+                Click the image to update it on Gravatar.
+              </FieldDescription>
+            </div>
+            <a
+              aria-label="Edit Gravatar image (opens in a new tab)"
+              className="inline-flex w-fit items-center rounded-lg transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+              href="https://gravatar.com/profile/avatars"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              <Avatar
+                aria-hidden="true"
+                email={profile.data.user.email}
+                name={profile.data.user.name}
+                size="md"
+              />
+              <NewTabIndicator />
+            </a>
+          </div>
+          <SimpleForm
+            fields={[
+              {
+                label: "Full name",
+                maxLength: 120,
+                name: "displayName",
+                defaultValue: profile.data.user.name,
+                required: true,
+                variant: "secondary",
+              },
+            ]}
+            onSubmit={async (values) => {
+              await api.patch("/v1/core/profile", values);
+              window.dispatchEvent(new Event("towbar:identity-changed"));
+            }}
+            successMessage="Profile updated"
+            submitLabel="Update"
+          />
+        </div>
       </FormCard>
+    </div>
+  );
+}
+
+export function EmailPasswordSettings() {
+  return (
+    <div className="content-grid min-w-0 lg:grid-cols-2 lg:items-start">
+      <EmailSettings />
       <FormCard
         icon={<HugeiconsIcon icon={Key01Icon} />}
         title="Change password"
@@ -69,7 +99,7 @@ export function ProfileSettings() {
               autoComplete: "current-password",
               label: "Current password",
               maxLength: 1_024,
-              minLength: 12,
+              minLength: 15,
               name: "currentPassword",
               required: true,
               type: "password",
@@ -77,10 +107,10 @@ export function ProfileSettings() {
             },
             {
               autoComplete: "new-password",
-              description: "Use at least 12 characters.",
+              description: "Use at least 15 characters.",
               label: "New password",
               maxLength: 1_024,
-              minLength: 12,
+              minLength: 15,
               name: "newPassword",
               required: true,
               type: "password",
@@ -90,7 +120,7 @@ export function ProfileSettings() {
               autoComplete: "new-password",
               label: "Confirm new password",
               maxLength: 1_024,
-              minLength: 12,
+              minLength: 15,
               name: "confirmPassword",
               required: true,
               type: "password",
@@ -175,8 +205,8 @@ export function SessionSettings() {
           <Button isDisabled variant="danger">
             <HugeiconsIcon
               aria-hidden="true"
-              icon={Cancel01Icon}
-              className="size-4 shrink-0"
+              icon={Logout01Icon}
+              className="shrink-0"
             />
             Revoke
           </Button>
@@ -194,8 +224,8 @@ export function SessionSettings() {
           >
             <HugeiconsIcon
               aria-hidden="true"
-              icon={Cancel01Icon}
-              className="size-4 shrink-0"
+              icon={Logout01Icon}
+              className="shrink-0"
             />
             Revoke
           </ActionButton>

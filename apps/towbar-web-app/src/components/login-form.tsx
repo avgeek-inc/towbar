@@ -10,6 +10,7 @@ import { Button } from "@workspace/web-design-system/buttons/button";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { Skeleton } from "@workspace/web-design-system/feedback/skeleton";
 import {
+  FieldDescription,
   Field,
   FieldError,
   FieldGroup,
@@ -18,6 +19,9 @@ import { Input } from "@workspace/web-design-system/forms/input";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { PasswordInput } from "@workspace/web-design-system/forms/password-input";
 
+import Link from "next/link";
+import { SecondFactorChallenge } from "./second-factor-challenge";
+import type { SecondFactorMethod } from "@/lib/second-factor";
 import { AuthFrame } from "@/components/auth-frame";
 import { api } from "@/lib/api";
 import { safeNextPath } from "@/lib/safe-next-path";
@@ -26,6 +30,7 @@ export function LoginForm() {
   const params = useSearchParams();
   const next = safeNextPath(params.get("next"));
   const [setupRequired, setSetupRequired] = useState<boolean>();
+  const [twoFactor, setTwoFactor] = useState<SecondFactorMethod[] | null>(null);
   const [statusError, setStatusError] = useState<string>();
 
   useEffect(() => {
@@ -69,11 +74,17 @@ export function LoginForm() {
       />
     );
   }
-  if (setupRequired) return <InitialOwnerSetup />;
+  if (setupRequired) return <InitialTeamSetup />;
 
+  if (twoFactor)
+    return <SecondFactorChallenge methods={twoFactor} next={next} />;
   return (
-    <AuthFrame description="Use your Towbar owner account." title="Sign in">
+    <AuthFrame
+      description="Sign in to your team’s Towbar instance."
+      title="Sign in"
+    >
       <IdentityCredentialsForm
+        errorPresentation="toast"
         submitIcon={
           <HugeiconsIcon
             aria-hidden="true"
@@ -83,11 +94,30 @@ export function LoginForm() {
         }
         identifierLabel="Email"
         identifierType="email"
+        passwordAction={
+          <Link
+            className="text-sm underline underline-offset-4"
+            href="/forgot-password"
+          >
+            Forgot password?
+          </Link>
+        }
         onSubmit={async ({ identifier, password }) => {
-          await api.post("/v1/public/auth/login-email", {
+          const result = await api.post<{
+            twoFactorRequired: boolean;
+            twoFactorMethods: SecondFactorMethod[];
+          }>("/v1/public/auth/login-email", {
             email: identifier,
             password,
           });
+          if (result.twoFactorRequired) {
+            if (!result.twoFactorMethods?.length)
+              throw new Error(
+                "Your verification methods could not be loaded. Sign in again.",
+              );
+            setTwoFactor(result.twoFactorMethods);
+            return;
+          }
           window.location.replace(next);
         }}
       />
@@ -95,7 +125,17 @@ export function LoginForm() {
   );
 }
 
-function InitialOwnerSetup() {
+function InitialTeamSetup() {
+  const teamId = useId();
+  const codeId = useId();
+  const [setupCode, setSetupCode] = useState("");
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.hash.slice(1)).get("code");
+    if (code) {
+      setSetupCode(code);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
   const nameId = useId();
   const emailId = useId();
   const passwordId = useId();
@@ -108,17 +148,21 @@ function InitialOwnerSetup() {
     event.preventDefault();
     if (isSubmitting) return;
     const data = new FormData(event.currentTarget);
+    const teamName = String(data.get("teamName") ?? "").trim();
     const displayName = String(data.get("displayName") ?? "").trim();
     const email = String(data.get("email") ?? "").trim();
     const password = String(data.get("password") ?? "");
     const confirmPassword = String(data.get("confirmPassword") ?? "");
     const nextErrors: Record<string, string> = {};
+    if (!teamName) nextErrors.teamName = "Team name is required";
+    if (!setupCode)
+      nextErrors.setupCode = "Enter the setup code from your installer";
     if (!displayName) nextErrors.displayName = "Name is required";
     if (!/^\S+@\S+\.\S+$/u.test(email)) {
       nextErrors.email = "Enter a valid email address";
     }
-    if (password.length < 12) {
-      nextErrors.password = "Use at least 12 characters";
+    if (password.length < 15) {
+      nextErrors.password = "Use at least 15 characters";
     }
     if (confirmPassword !== password) {
       nextErrors.confirmPassword = "Passwords do not match";
@@ -131,6 +175,8 @@ function InitialOwnerSetup() {
     try {
       await api.post("/v1/public/auth/setup", {
         confirmPassword,
+        teamName,
+        setupCode,
         displayName,
         email,
         password,
@@ -146,18 +192,52 @@ function InitialOwnerSetup() {
 
   return (
     <AuthFrame
-      description="Create the first owner account. Setup locks after this step."
+      description="Create your team and its first Admin account."
       title="Set up Towbar"
     >
       <form className="content-grid" method="post" onSubmit={submit}>
         <FieldGroup>
           <Field>
-            <Label htmlFor={nameId}>Name</Label>
+            <Label htmlFor={teamId} isRequired>
+              Team name
+            </Label>
+            <Input
+              id={teamId}
+              name="teamName"
+              autoComplete="organization"
+              maxLength={120}
+              required
+            />
+            {errors.teamName ? (
+              <FieldError>{errors.teamName}</FieldError>
+            ) : null}
+          </Field>
+          <Field>
+            <Label htmlFor={codeId} isRequired>
+              Setup code
+            </Label>
+            <PasswordInput
+              id={codeId}
+              name="setupCode"
+              value={setupCode}
+              onChange={(event) => setSetupCode(event.target.value)}
+              autoComplete="off"
+              required
+            />
+            {errors.setupCode ? (
+              <FieldError>{errors.setupCode}</FieldError>
+            ) : null}
+          </Field>
+          <Field>
+            <Label htmlFor={nameId} isRequired>
+              Name
+            </Label>
             <Input
               aria-invalid={Boolean(errors.displayName)}
               autoComplete="name"
               id={nameId}
               name="displayName"
+              required
               type="text"
             />
             {errors.displayName ? (
@@ -165,35 +245,44 @@ function InitialOwnerSetup() {
             ) : null}
           </Field>
           <Field>
-            <Label htmlFor={emailId}>Email</Label>
+            <Label htmlFor={emailId} isRequired>
+              Email
+            </Label>
             <Input
               aria-invalid={Boolean(errors.email)}
               autoComplete="email"
               id={emailId}
               name="email"
+              required
               type="email"
             />
             {errors.email ? <FieldError>{errors.email}</FieldError> : null}
           </Field>
           <Field>
-            <Label htmlFor={passwordId}>Password</Label>
+            <Label htmlFor={passwordId} isRequired>
+              Password
+            </Label>
             <PasswordInput
               aria-invalid={Boolean(errors.password)}
               autoComplete="new-password"
               id={passwordId}
               name="password"
+              required
             />
             {errors.password ? (
               <FieldError>{errors.password}</FieldError>
             ) : null}
           </Field>
           <Field>
-            <Label htmlFor={confirmPasswordId}>Confirm password</Label>
+            <Label htmlFor={confirmPasswordId} isRequired>
+              Confirm password
+            </Label>
             <PasswordInput
               aria-invalid={Boolean(errors.confirmPassword)}
               autoComplete="new-password"
               id={confirmPasswordId}
               name="confirmPassword"
+              required
             />
             {errors.confirmPassword ? (
               <FieldError>{errors.confirmPassword}</FieldError>
@@ -214,12 +303,13 @@ function InitialOwnerSetup() {
             icon={UserAdd01Icon}
             className="size-4 shrink-0"
           />
-          {isSubmitting ? "Creating owner…" : "Create owner"}
+          {isSubmitting ? "Creating team…" : "Create team"}
         </Button>
       </form>
-      <p className="text-muted typography--body-sm">
-        Complete this step before exposing Towbar through a public proxy.
-      </p>
+      <FieldDescription>
+        Use the single-use setup code from the installer. Your password must
+        contain at least 15 characters.
+      </FieldDescription>
     </AuthFrame>
   );
 }

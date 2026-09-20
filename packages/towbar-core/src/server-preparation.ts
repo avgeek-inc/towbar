@@ -38,6 +38,8 @@ export type ServerPreparationStepStatus =
 export type ServerPreparationStep = {
   finishedAt: string | null;
   id: ServerPreparationStepId;
+  log?: string;
+  logTruncated?: boolean;
   message: string | null;
   startedAt: string | null;
   status: ServerPreparationStepStatus;
@@ -45,6 +47,7 @@ export type ServerPreparationStep = {
 };
 
 export const serverPreparationStepMessageMaxLength = 1_000;
+export const serverPreparationStepLogMaxLength = 32_768;
 
 export function limitServerPreparationStepMessage(message: string) {
   return message.slice(0, serverPreparationStepMessageMaxLength);
@@ -54,6 +57,8 @@ export function createServerPreparationSteps(): ServerPreparationStep[] {
   return serverPreparationStepDefinitions.map((step) => ({
     ...step,
     finishedAt: null,
+    log: "",
+    logTruncated: false,
     message: null,
     startedAt: null,
     status: "waiting",

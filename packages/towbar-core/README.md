@@ -13,8 +13,8 @@ pnpm --filter @workspace/towbar-core build
 
 Towbar v2 declares environments in `towbar.yml` and entities in
 `.towbar/apps/**/*.app.yml` and `.towbar/resources/**/*.resource.yml`.
-Branch mappings belong to the control plane. Entities reference workspace
-servers by slug, with separate instances and secrets for each environment.
+Branch mappings belong to the control plane. Entities reference registered
+servers by IP address, with separate instances and secrets for each environment.
 
 The public schemas are generated from the validation contracts with
 `pnpm --filter @workspace/towbar-core schemas`. Tests check that the committed

@@ -3,7 +3,6 @@ import { and, eq, isNull, ne } from "drizzle-orm";
 import { isNormalizedResource } from "@workspace/towbar-core";
 import {
   apps,
-  githubInstallations,
   previewEnvironments,
   previewPullRequestReports,
   sourceEnvironments,
@@ -13,13 +12,23 @@ import {
 
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueuePreviewPullRequestEvent } from "../../infrastructure/temporal.js";
-import { listOpenGitHubPullRequestNumbers } from "../github/client.js";
+import {
+  listOpenRepositoryPullRequestNumbers,
+  sourceProviderClient,
+} from "../sources/repository-provider.js";
 import { previewPullRequestsToReconcile } from "./pull-request.js";
 
 export async function scheduleSourcePreviewReconciliations(
   sourceId: string,
   dependencies = {
-    listPullRequests: listOpenGitHubPullRequestNumbers,
+    listPullRequests: null as
+      | null
+      | ((input: {
+          baseBranch: string;
+          installationId: string;
+          repositoryName: string;
+          repositoryOwner: string;
+        }) => Promise<number[]>),
     enqueue: enqueuePreviewPullRequestEvent,
   },
 ) {
@@ -27,16 +36,11 @@ export async function scheduleSourcePreviewReconciliations(
   const [[source], appRows] = await Promise.all([
     database
       .select({
-        installationId: githubInstallations.installationId,
         repositoryName: sources.repositoryName,
         repositoryOwner: sources.repositoryOwner,
         status: sources.status,
       })
       .from(sources)
-      .innerJoin(
-        githubInstallations,
-        eq(githubInstallations.id, sources.githubInstallationId),
-      )
       .where(eq(sources.id, sourceId))
       .limit(1),
     database
@@ -62,6 +66,7 @@ export async function scheduleSourcePreviewReconciliations(
       ),
   ]);
   if (!source || source.status !== "active") return { pullRequestNumbers: [] };
+  const provider = await sourceProviderClient(sourceId);
   const branches = [
     ...new Set(
       appRows
@@ -78,12 +83,14 @@ export async function scheduleSourcePreviewReconciliations(
     await Promise.all([
       Promise.all(
         branches.map((branch) =>
-          dependencies.listPullRequests({
-            baseBranch: branch,
-            installationId: source.installationId,
-            repositoryName: source.repositoryName,
-            repositoryOwner: source.repositoryOwner,
-          }),
+          dependencies.listPullRequests && provider.provider === "github"
+            ? dependencies.listPullRequests({
+                baseBranch: branch,
+                installationId: provider.installationId,
+                repositoryName: source.repositoryName,
+                repositoryOwner: source.repositoryOwner,
+              })
+            : listOpenRepositoryPullRequestNumbers(provider, branch),
         ),
       ).then((results) => results.flat()),
       database

@@ -3,7 +3,7 @@ title: "Servers"
 description: "Register an Ubuntu host, verify its identity, and prepare it for deployments."
 ---
 
-A server is a workspace-owned Ubuntu host. Towbar uses SSH to build and run workloads on it. Multiple Sources can share the same server without duplicating credentials or competing server configurations.
+A server is a workspace-owned Ubuntu host. Towbar uses SSH to build and run workloads on it. Multiple Repositories can share the same server without duplicating credentials or competing server configurations.
 
 ## Requirements
 
@@ -14,10 +14,10 @@ Preparation installs or validates Docker Engine 28 or newer, Caddy, `python3`, G
 ## Register and trust the host
 
 1. Open **Servers → Add server**. Enter the canonical IP, SSH connection, and concurrency settings.
-2. Open **Settings → Configuration** on the server and save its SSH private key.
-3. Choose **Check server** to discover its SSH host key.
-4. Compare the fingerprint with the server console or another independent, trusted channel.
-5. Open **Settings → Host Keys** and trust the key only after it matches.
+2. Open **Settings → Credentials** and select a stored [SSH key](/docs/ssh-keys). Choose **Add private key** inside the dropdown to create one without leaving the server.
+3. Install the public key in the SSH user's `~/.ssh/authorized_keys`, then choose **Save**. Towbar checks the connection and discovers the server's host key.
+4. Compare its fingerprint with the server console or another independent, trusted channel before accepting it.
+5. Towbar attaches the selected private key only after SSH authentication succeeds. The **Host verified** badge appears in the credentials widget; hover or focus it to see when trust was recorded.
 
 <Warning>
   Docker access is root-equivalent. Do not share the deployment account with
@@ -28,33 +28,100 @@ Preparation installs or validates Docker Engine 28 or newer, Caddy, `python3`, G
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
     <img
-      src="/assets/guides/server-host-keys-light.webp"
-      alt="Example Host Keys view. Compare the fingerprint independently before trusting a discovered key."
-      width="2160"
-      height="418"
+      src="/assets/release-v2/server-credentials-light.jpg"
+      alt="Select a stored SSH key under Credentials. Host verified records the server identity check."
+      width="1280"
+      height="720"
       loading="lazy"
     />
   </div>
   <div className="towbar-product-dark">
     <img
-      src="/assets/guides/server-host-keys-dark.webp"
-      alt="Example Host Keys view. Compare the fingerprint independently before trusting a discovered key."
-      width="2160"
-      height="418"
+      src="/assets/release-v2/server-credentials-dark.jpg"
+      alt="Select a stored SSH key under Credentials. Host verified records the server identity check."
+      width="1280"
+      height="720"
       loading="lazy"
     />
   </div>
   <p>
-    Example Host Keys view. Compare the fingerprint independently before
-    trusting a discovered key.
+    Select a stored SSH key under Credentials. Host verified records the server
+    identity check.
   </p>
 </div>
 
 ## Prepare the runtime
 
-Choose **Prepare Server** from the server's Overview page and follow the recorded steps until the server is **Ready**. Workloads remain **Server Setup Pending** until preparation succeeds.
+Choose **Prepare server** from the server's Overview or **Server Preparation** page. The checklist groups connection and host checks under **Server Inspection**, followed by the installation and verification steps under **Prerequisites**. Progress updates automatically; expand a step to see the connection result, inspection findings, installed services, and captured terminal output. Terminal output is redacted and retained up to the most recent 32,768 characters per step. Workloads remain **Server Setup Pending** until preparation succeeds.
 
-Towbar reuses compatible installations. It does not remove conflicting packages or overwrite an unmanaged Caddy binary. If a step fails, read its command and error before changing the host. Retry after resolving the conflict; use a fresh host when ownership of existing services is unclear.
+Overview shows a preparation prompt before preparation starts or when a failed attempt needs a retry. The full checklist and recorded output remain available under **Server Preparation**, next to Overview in the server sidebar. A yellow warning marks a server that needs preparation; a spinner marks a queued or running preparation. If preparation fails, the failed step opens with its details so you can resolve the issue and retry.
+
+Towbar reuses compatible installations. It does not remove conflicting packages or overwrite an unmanaged Caddy binary. If a step fails, read its output and error before changing the host. Retry after resolving the conflict; use a fresh host when ownership of existing services is unclear.
+
+If the server presents a different host key, Towbar pauses the connection and asks you to verify the new fingerprint. A server rebuild can cause this, but so can an intercepted connection. Update trust only after confirming the new identity independently.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/server-preparation-light.jpg"
+      alt="Server Preparation keeps the complete inspection and prerequisites checklist available after setup finishes."
+      width="1280"
+      height="821"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/server-preparation-dark.jpg"
+      alt="Server Preparation keeps the complete inspection and prerequisites checklist available after setup finishes."
+      width="1280"
+      height="821"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Server Preparation keeps the complete inspection and prerequisites checklist
+    available after setup finishes.
+  </p>
+</div>
+
+## Interactive terminal
+
+Admins can open **Terminal** in a server's sidebar and choose **Connect**. Towbar
+uses the SSH username, port, private key and trusted host keys configured under
+Credentials. The server does not need to be prepared first. If no verified key
+is connected, the page links to Credentials.
+
+The shell has the same permissions as that SSH user. Commands run directly on
+the host and can change running workloads outside the deployment scheduler.
+Use the terminal for inspection and deliberate maintenance; use deployments
+and resource operations when Towbar should track and coordinate the change.
+
+A recent sign-in is required. Terminal access is unavailable to Members,
+Viewers, personal API keys, team API keys and MCP. Connection tickets expire
+after 30 seconds, work once, and are bound to the issuing browser session.
+Private keys remain on the API. A changed or untrusted host identity prevents
+connection; resolve it through Credentials.
+
+Connections close when you disconnect, leave the page, lose the browser
+connection, reach one hour, or provide no input for 15 minutes. Towbar rechecks
+session, role, server configuration and credentials every five seconds and
+closes the shell when they change. Up to three sessions per user and 20 per API
+process are allowed. There is no automatic reconnect or command replay.
+
+Connection open/close events are audited. Towbar does not store terminal input
+or output; the remote shell may keep its own history. Terminal output is shown
+as received and is not subject to deployment-log secret redaction.
+
+Expose the app and API over HTTPS and allow WebSocket upgrades on
+`/v1/terminal` through your reverse proxy. The API process needs network access
+to the target's SSH port, in addition to the worker's existing access. The
+standard Compose installation has one API process. If you run multiple API
+replicas, use connection affinity so the ticket request and WebSocket reach
+the same process; restarting that process disconnects its shells.
+
+The local fixture terminal is clearly marked and supports a few demonstration
+commands. It does not connect to a target server.
 
 ## Set concurrency
 
@@ -90,25 +157,25 @@ Capacity comes from server checks. A displayed value is an observation, not a gu
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
     <img
-      src="/assets/features/servers-light.webp"
-      alt="Example host capacity. Check the observation timestamp alongside CPU, memory, and disk usage."
-      width="2160"
-      height="1632"
+      src="/assets/release-v2/server-overview-light.jpg"
+      alt="Host capacity, connection details, and recent operations appear on the server Overview."
+      width="1280"
+      height="951"
       loading="lazy"
     />
   </div>
   <div className="towbar-product-dark">
     <img
-      src="/assets/features/servers-dark.webp"
-      alt="Example host capacity. Check the observation timestamp alongside CPU, memory, and disk usage."
-      width="2160"
-      height="1632"
+      src="/assets/release-v2/server-overview-dark.jpg"
+      alt="Host capacity, connection details, and recent operations appear on the server Overview."
+      width="1280"
+      height="951"
       loading="lazy"
     />
   </div>
   <p>
-    Example host capacity. Check the observation timestamp alongside CPU,
-    memory, and disk usage.
+    Host capacity, connection details, and recent operations appear on the
+    server Overview.
   </p>
 </div>
 
@@ -116,19 +183,19 @@ For public routes, continue with [Domains and TLS](/docs/domains-tls). For priva
 
 ## Clean up leftover workloads
 
-Deleting a source removes its imported inventory and history from Towbar. It does not stop running services or delete Docker data. Choose **Check server**, wait for a successful check, then open **Settings → Cleanup** to review leftover containers, images, and volumes.
+Deleting a repository removes its imported inventory and history from Towbar. It does not stop running services or delete Docker data. Choose **Check server**, wait for a successful check, then open **Settings → Cleanup** to review leftover containers, images, and volumes.
 
-Towbar retains workload ownership separately from sources. Cleanup lists only objects whose ownership is known to this server. Existing installations recover ownership from retained server-check history; objects with no surviving ownership evidence are excluded.
+Towbar retains workload ownership separately from repositories. Cleanup lists only objects whose ownership is known to this server. Existing installations recover ownership from retained server-check history; objects with no surviving ownership evidence are excluded.
 
 Container and image cleanup is separate from permanent volume deletion. Towbar checks ownership and current release references again before removing each selected object. Objects that are now in use are skipped. Volumes are never deleted automatically.
 
 ## Remove a server
 
-Workspace owners see **Settings → Configuration → Remove server** only when no source-backed apps, resources, or remaining previews are assigned. Archived apps and resources also prevent removal because a source sync can restore them. Orphaned Docker objects do not prevent removal. The API enforces the same assignment check and also blocks removal while operations are active.
+Admins can remove a server from **Danger zone → Remove server**, including a server still referenced by app and resource manifests. Active checks, preparations, deployments, resource operations, and vulnerability scans must finish first.
 
-Removing a server stops Towbar management and scheduled checks, deletes its stored SSH and Cloudflare credentials, and revokes its trusted host keys. It does not terminate the cloud instance, stop services, or erase Docker data. Use **Cleanup** first if you want to remove leftovers from the host.
+Removing a server stops Towbar management and scheduled checks, archives its assigned inventory, deletes its stored SSH and Cloudflare credentials, revokes its trusted host keys, and closes remaining Preview records. It does not terminate the cloud instance, stop services, or erase Docker data.
 
-You can register the same IP again later. Configure credentials and verify host-key trust again before preparing it. Historical records and workload ownership remain available.
+When a later Repository sync finds the same IP in a manifest, Towbar restores the archived server automatically in **Server Setup Pending**. Configure credentials and verify host-key trust again before preparing it. During that first preparation, Towbar makes a best-effort attempt to remove old Towbar-managed app containers for the restored manifest inventory. Resource volumes and other data are not removed. Historical records and workload ownership remain available.
 
 ## Scout Agent
 

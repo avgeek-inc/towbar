@@ -17,8 +17,6 @@ import type {
 
 export type ScoutRule = ScoutAlertRuleInput & {
   id: string;
-  mutedUntil: string | null;
-  muteReason: string;
   evaluationState: string;
   evaluatedAt: string | null;
   observedValue: number | null;
@@ -52,9 +50,14 @@ export type ScoutRulesResponse = {
     sourceId: string;
     kind: string;
   }>;
-  settings: { mutedUntil: string | null; muteReason: string };
   destinations: NotificationDestination[];
-  providers: { slack: boolean; smtp: boolean };
+  providers: {
+    discord: boolean;
+    slack: boolean;
+    smtp: boolean;
+    telegram: boolean;
+    webhook: boolean;
+  };
 };
 export const scoutMetrics = [
   {
@@ -142,14 +145,17 @@ export function ScoutSelect({
   onChange,
   disabled = false,
   hideLabel = false,
+  required = false,
 }: {
   label: string;
   value: string;
-  options: Array<{ id: string; label: string }>;
+  options: Array<{ id: string; label: string; detail?: string }>;
   onChange: (value: string) => void;
   disabled?: boolean;
   hideLabel?: boolean;
+  required?: boolean;
 }) {
+  const selectedOption = options.find((option) => option.id === value);
   return (
     <Select
       aria-label={label}
@@ -157,9 +163,11 @@ export function ScoutSelect({
       onSelectionChange={(key) => key !== null && onChange(String(key))}
       variant="secondary"
       isDisabled={disabled}
+      isRequired={required}
       className="min-w-0"
     >
       <Label
+        isRequired={required}
         className={
           hideLabel
             ? "sr-only"
@@ -170,11 +178,14 @@ export function ScoutSelect({
       </Label>
       <Select.Trigger>
         <Select.Value className="flex min-w-0 flex-1 items-center overflow-hidden">
-          <span className="flex min-w-0 items-center gap-2">
+          <span className="flex min-w-0 flex-1 items-center gap-2">
             <ScoutOptionIcon value={value} label={label} />
-            <span className="truncate">
-              {options.find((option) => option.id === value)?.label}
-            </span>
+            <span className="truncate">{selectedOption?.label}</span>
+            {selectedOption?.detail ? (
+              <span className="ml-auto shrink-0 text-muted">
+                {selectedOption.detail}
+              </span>
+            ) : null}
           </span>
         </Select.Value>
         <Select.Indicator />
@@ -187,9 +198,14 @@ export function ScoutSelect({
               key={option.id}
               textValue={option.label}
             >
-              <span className="flex min-w-0 items-center gap-2">
+              <span className="flex min-w-0 flex-1 items-center gap-2">
                 <ScoutOptionIcon value={option.id} label={label} />
-                {option.label}
+                <span className="truncate">{option.label}</span>
+                {option.detail ? (
+                  <span className="ml-auto shrink-0 text-muted">
+                    {option.detail}
+                  </span>
+                ) : null}
               </span>
               <ListBox.ItemIndicator />
             </ListBox.Item>
@@ -219,7 +235,9 @@ export function ScoutNumber({
   const id = useId();
   return (
     <Field>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <FieldLabel htmlFor={id} isRequired>
+        {label}
+      </FieldLabel>
       <Input
         id={id}
         type="number"

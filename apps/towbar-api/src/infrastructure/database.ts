@@ -20,3 +20,9 @@ export async function closeDatabase() {
   connection = undefined;
   await current.close();
 }
+
+export type AuthDatabase =
+  | ReturnType<typeof getTowbarDatabase>
+  | Parameters<
+      Parameters<ReturnType<typeof getTowbarDatabase>["transaction"]>[0]
+    >[0];

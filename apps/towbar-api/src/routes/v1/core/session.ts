@@ -1,22 +1,80 @@
+import { z } from "zod";
+import { reauthenticate } from "../../../areas/auth/recent-authentication.js";
+import { sessionUser } from "../../../http/session-user.js";
+import { readJson } from "../../../http/requests.js";
+import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
-import { deleteCookie, getCookie } from "hono/cookie";
-
-import { revokeSessionByToken } from "../../../areas/auth/service.js";
-import { sessionCookieName } from "../../../http/authentication.js";
-
+import { getIdentityAuth } from "../../../areas/auth/identity.js";
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
-
 export const sessionRoutes = new Hono<TowbarHonoEnvironment>();
-
-sessionRoutes.get("/", (context) =>
-  context.json({ user: context.get("user") }),
+sessionRoutes.get(
+  "/",
+  operation({
+    permissions: ["personal.manage"],
+    browserOnly: true,
+    responseSchema: 'session.ts:get:"/"',
+    summary: "Read current session",
+    response: "Current user and capabilities.",
+  }),
+  (context) => context.json({ user: context.get("user") }),
+);
+sessionRoutes.delete(
+  "/",
+  operation({
+    permissions: ["personal.manage"],
+    browserOnly: true,
+    responseSchema: 'session.ts:delete:"/"',
+    summary: "Sign out",
+    response: "No response body.",
+    status: 204,
+  }),
+  async (context) => {
+    const response = await getIdentityAuth().api.signOut({
+      headers: context.req.raw.headers,
+      asResponse: true,
+    });
+    return new Response(null, { status: 204, headers: response.headers });
+  },
 );
 
-sessionRoutes.delete("/", async (context) => {
-  const token = getCookie(context, sessionCookieName);
-  if (token) {
-    await revokeSessionByToken(context.get("user").id, token);
-  }
-  deleteCookie(context, sessionCookieName, { path: "/" });
-  return context.body(null, 204);
-});
+sessionRoutes.post(
+  "/reauthenticate",
+  operation({
+    permissions: ["personal.manage"],
+    browserOnly: true,
+    responseSchema: 'session.ts:post:"/reauthenticate"',
+    summary: "Confirm recent authentication",
+    response: "Authentication confirmed.",
+    body: z
+      .object({
+        password: z.string().min(1).max(1024),
+        code: z
+          .string()
+          .regex(/^\d{6}$/)
+          .optional(),
+      })
+      .strict(),
+  }),
+  async (context) => {
+    const user = sessionUser(context);
+    const input = await readJson(
+      context,
+      z
+        .object({
+          password: z.string().min(1).max(1024),
+          code: z
+            .string()
+            .regex(/^\d{6}$/)
+            .optional(),
+        })
+        .strict(),
+    );
+    await reauthenticate({
+      ...input,
+      userId: user.id,
+      sessionId: context.get("currentSessionId")!,
+      headers: context.req.raw.headers,
+    });
+    return context.json({ authenticated: true });
+  },
+);

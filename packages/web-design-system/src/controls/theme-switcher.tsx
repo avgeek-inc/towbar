@@ -1,31 +1,15 @@
 "use client";
 
 import * as React from "react";
-import {
-  ComputerIcon,
-  Moon02Icon,
-  Sun03Icon,
-} from "@hugeicons/core-free-icons";
+import { Moon02Icon, Sun03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { cn } from "../lib/utils";
-import type { ThemeMode } from "../lib/theme";
-import { Tabs } from "../navigation/tabs";
 import { useTheme } from "../utilities/providers";
 
-const themeOptions = [
-  { icon: ComputerIcon, label: "System", value: "system" },
-  { icon: Sun03Icon, label: "Light", value: "light" },
-  { icon: Moon02Icon, label: "Dark", value: "dark" },
-] satisfies Array<{
-  icon: typeof ComputerIcon;
-  label: string;
-  value: ThemeMode;
-}>;
-
 export interface ThemeSwitcherProps extends Omit<
-  React.ComponentProps<"div">,
-  "children"
+  React.ComponentProps<"button">,
+  "children" | "onClick" | "type"
 > {
   label?: string;
   size?: "default" | "small";
@@ -37,44 +21,27 @@ export function ThemeSwitcher({
   size = "default",
   ...props
 }: ThemeSwitcherProps) {
-  const { isHydrated, setThemeMode, themeMode } = useTheme();
+  const { isHydrated, resolvedTheme, setThemeMode } = useTheme();
+  const nextTheme = resolvedTheme === "dark" ? "light" : "dark";
+  const icon = nextTheme === "light" ? Sun03Icon : Moon02Icon;
+  const actionLabel = `${label}: switch to ${nextTheme} theme`;
+
   return (
-    <div
-      className={cn("inline-flex w-fit", !isHydrated && "invisible", className)}
+    <button
+      aria-label={actionLabel}
+      className={cn(
+        "relative isolate grid shrink-0 cursor-pointer touch-manipulation place-items-center rounded-full bg-default text-muted outline-none transition-[color,background-color,transform] hover:bg-default/80 hover:text-foreground active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none",
+        size === "small" ? "size-8" : "size-10",
+        !isHydrated && "invisible",
+        className,
+      )}
       data-slot="theme-switcher"
+      title={`Switch to ${nextTheme} theme`}
+      type="button"
+      onClick={() => setThemeMode(nextTheme)}
       {...props}
     >
-      <Tabs
-        className={cn(
-          size === "small" &&
-            "[&_[data-slot=tabs-list]]:p-0.5 [&_[data-slot=tabs-tab]]:h-7 [&_[data-slot=tabs-tab]]:px-3",
-        )}
-        onSelectionChange={(key) => {
-          if (key === "system" || key === "light" || key === "dark") {
-            setThemeMode(key);
-          }
-        }}
-        selectedKey={themeMode}
-      >
-        <Tabs.ListContainer>
-          <Tabs.List aria-label={label}>
-            {themeOptions.map((option) => (
-              <Tabs.Tab
-                aria-label={`${option.label} theme`}
-                id={option.value}
-                key={option.value}
-              >
-                <HugeiconsIcon
-                  aria-hidden="true"
-                  className="size-4"
-                  icon={option.icon}
-                />
-                <Tabs.Indicator />
-              </Tabs.Tab>
-            ))}
-          </Tabs.List>
-        </Tabs.ListContainer>
-      </Tabs>
-    </div>
+      <HugeiconsIcon aria-hidden="true" className="size-4" icon={icon} />
+    </button>
   );
 }

@@ -9,11 +9,9 @@ import {
   monitoringAgents,
   monitoringSamples,
   notificationDeliveries,
-  notificationDestinations,
   notificationEvents,
   scoutAlertIncidents,
   scoutAlertRules,
-  scoutAlertSettings,
   scoutHttpChecks,
   servers,
   sources,
@@ -22,6 +20,7 @@ import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { getEnv } from "../../env.js";
 import { enqueueDeliveries } from "../notifications/delivery-service.js";
 import { type ScoutTransaction, resolveRuleIncidents } from "./alert-rules.js";
+import { getRuntimeNotifications } from "../../infrastructure/runtime-notifications.js";
 
 /** Bounded, oldest-first work selection. A rule lock makes concurrent sweeps idempotent. */
 export async function evaluateScoutAlerts(
@@ -206,24 +205,17 @@ async function queueScoutNotification(
   type: "scout.firing" | "scout.recovered",
   now: Date,
 ) {
-  const destinations = await tx
-    .select({ id: notificationDestinations.id })
-    .from(notificationDestinations)
-    .where(
-      and(
-        eq(notificationDestinations.workspaceId, rule.workspaceId),
-        isNull(notificationDestinations.deletedAt),
-        eq(notificationDestinations.serverId, rule.serverId),
-      ),
-    );
+  const destinations = getRuntimeNotifications().routes.filter((route) =>
+    route.categories.includes("scout"),
+  );
   if (!destinations.length) return [];
   let eligible = destinations;
   if (type === "scout.recovered") {
-    const sent = await tx.execute<{ destination_id: string }>(sql`
-      select distinct d.destination_id from towbar_notification_deliveries d join towbar_notification_events e on e.id=d.event_id
+    const sent = await tx.execute<{ destination_key: string }>(sql`
+      select distinct d.destination_key from towbar_notification_deliveries d join towbar_notification_events e on e.id=d.event_id
       where e.workspace_id=${rule.workspaceId}::uuid and e.payload->'details'->>'incidentId'=${incident.id}
         and e.type in ('scout.firing','scout.reminder') and d.state='succeeded'`);
-    const ids = new Set(sent.map((row) => row.destination_id));
+    const ids = new Set(sent.map((row) => row.destination_key));
     eligible = destinations.filter((destination) => ids.has(destination.id));
     if (!eligible.length) return [];
   }
@@ -235,7 +227,7 @@ async function queueScoutNotification(
         .limit(1)
     : [];
   const target = context.workload
-    ? `sources/${context.workload.sourceId}/${context.workload.kind === "app" ? "apps" : "resources"}/${context.workload.id}`
+    ? `${context.workload.kind === "app" ? "apps" : "resources"}/${context.workload.id}`
     : `servers/${rule.serverId}`;
   const sequence = incident.notificationSequence + 1;
   const status = type === "scout.recovered" ? "Recovered" : "Alert";
@@ -267,7 +259,7 @@ async function queueScoutNotification(
           incidentId: incident.id,
           ruleId: rule.id,
           severity: rule.severity,
-          environment: rule.environment,
+          environment: "production",
           metric: rule.condition.metric,
           threshold: rule.condition.threshold,
           value: incident.lastValue,
@@ -285,8 +277,9 @@ async function queueScoutNotification(
     .insert(notificationDeliveries)
     .values(
       eligible.map((destination) => ({
-        destinationId: destination.id,
+        destinationKey: destination.id,
         eventId: event.id,
+        provider: destination.provider,
       })),
     )
     .onConflictDoNothing()
@@ -372,7 +365,7 @@ async function getRuleObservations(
     const historySeconds =
       (condition.metric === "restarts" ? condition.windowSeconds : 0) + 120;
     const scope = rule.deployableId
-      ? sql`${monitoringSamples.deployableId}=${rule.deployableId}::uuid and ${rule.environment === "production" ? sql`${monitoringSamples.previewId} is null` : sql`${monitoringSamples.previewId} is not null`}`
+      ? sql`${monitoringSamples.deployableId}=${rule.deployableId}::uuid and ${monitoringSamples.previewId} is null`
       : condition.metric === "restarts"
         ? sql`${monitoringSamples.entityId}<>'host'`
         : sql`${monitoringSamples.entityId}='host'`;
@@ -423,15 +416,6 @@ async function applyRuleResult(
       observedValue: result.value,
     })
     .where(eq(scoutAlertRules.id, rule.id));
-  const [settings] = await tx
-    .select()
-    .from(scoutAlertSettings)
-    .where(eq(scoutAlertSettings.serverId, rule.serverId))
-    .limit(1);
-  const muted = Boolean(
-    (rule.mutedUntil && rule.mutedUntil > now) ||
-    (settings?.mutedUntil && settings.mutedUntil > now),
-  );
   if (active) {
     await tx
       .update(scoutAlertIncidents)
@@ -439,7 +423,7 @@ async function applyRuleResult(
       .where(eq(scoutAlertIncidents.id, active.id));
     if (result.state === "healthy") {
       await resolveRuleIncidents(tx, rule.id, "recovered", now);
-      if (!muted && rule.notifyRecovery && active.lastNotifiedAt)
+      if (active.lastNotifiedAt)
         return queueScoutNotification(
           tx,
           rule,
@@ -448,7 +432,7 @@ async function applyRuleResult(
           "scout.recovered",
           now,
         );
-    } else if (result.state === "firing" && !muted && !active.lastNotifiedAt) {
+    } else if (result.state === "firing" && !active.lastNotifiedAt) {
       return queueScoutNotification(
         tx,
         rule,
@@ -464,7 +448,7 @@ async function applyRuleResult(
       .values({
         ruleId: rule.id,
         ruleName: rule.name,
-        environment: rule.environment,
+        environment: "production",
         ruleRevision: rule.updatedAt,
         workspaceId: rule.workspaceId,
         serverId: rule.serverId,
@@ -476,7 +460,7 @@ async function applyRuleResult(
         lastValue: result.value,
       })
       .returning();
-    if (incident && !muted)
+    if (incident)
       return queueScoutNotification(
         tx,
         rule,

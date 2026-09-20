@@ -3,8 +3,15 @@ import { createPrivateKey } from "node:crypto";
 import { SignJWT } from "jose";
 import { z } from "zod";
 
-import { requireGitHubEnv } from "../../env.js";
+import {
+  getGitHubAppConfiguration,
+  getGitHubAppConfigurationForInstallation,
+} from "./configuration.js";
 import { githubRequest } from "./request.js";
+
+type GitHubAppConfiguration = Awaited<
+  ReturnType<typeof getGitHubAppConfiguration>
+>;
 
 const installationSchema = z.object({
   account: z.object({
@@ -106,8 +113,11 @@ export type GitHubPullRequest = {
   state: "closed" | "open";
 };
 
-export async function getGitHubInstallation(installationId: string) {
-  const jwt = await createGitHubAppJwt();
+export async function getGitHubInstallation(
+  installationId: string,
+  workspaceId?: string,
+) {
+  const jwt = await createGitHubAppJwt({ installationId, workspaceId });
   const value = await githubRequest(`/app/installations/${installationId}`, {
     token: jwt,
   });
@@ -115,7 +125,7 @@ export async function getGitHubInstallation(installationId: string) {
 }
 
 export async function deleteGitHubInstallation(installationId: string) {
-  const jwt = await createGitHubAppJwt();
+  const jwt = await createGitHubAppJwt({ installationId });
   await githubRequest(`/app/installations/${installationId}`, {
     method: "DELETE",
     token: jwt,
@@ -265,8 +275,11 @@ export async function listOpenGitHubPullRequestNumbers(input: {
   return pullRequestNumbers;
 }
 
-export async function createInstallationToken(installationId: string) {
-  const jwt = await createGitHubAppJwt();
+export async function createInstallationToken(
+  installationId: string,
+  configuration?: GitHubAppConfiguration,
+) {
+  const jwt = await createGitHubAppJwt({ installationId }, configuration);
   const value = installationTokenSchema.parse(
     await githubRequest(`/app/installations/${installationId}/access_tokens`, {
       method: "POST",
@@ -277,16 +290,22 @@ export async function createInstallationToken(installationId: string) {
   return value.token;
 }
 
-export async function createGitHubPreviewDeployment(input: {
-  appName: string;
-  commitSha: string;
-  environmentUrl: string;
-  installationId: string;
-  pullRequestNumber: number;
-  repositoryName: string;
-  repositoryOwner: string;
-}) {
-  const token = await createInstallationToken(input.installationId);
+export async function createGitHubPreviewDeployment(
+  input: {
+    appName: string;
+    commitSha: string;
+    environmentUrl: string;
+    installationId: string;
+    pullRequestNumber: number;
+    repositoryName: string;
+    repositoryOwner: string;
+  },
+  configuration?: GitHubAppConfiguration,
+) {
+  const token = await createInstallationToken(
+    input.installationId,
+    configuration,
+  );
   const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
   const deployment = githubDeploymentSchema.parse(
     await githubRequest(`/repos/${repository}/deployments`, {
@@ -307,16 +326,22 @@ export async function createGitHubPreviewDeployment(input: {
   return String(deployment.id);
 }
 
-export async function updateGitHubPreviewDeployment(input: {
-  deploymentId: string;
-  environmentUrl: string;
-  installationId: string;
-  repositoryName: string;
-  repositoryOwner: string;
-  state:
-    "error" | "failure" | "inactive" | "in_progress" | "queued" | "success";
-}) {
-  const token = await createInstallationToken(input.installationId);
+export async function updateGitHubPreviewDeployment(
+  input: {
+    deploymentId: string;
+    environmentUrl: string;
+    installationId: string;
+    repositoryName: string;
+    repositoryOwner: string;
+    state:
+      "error" | "failure" | "inactive" | "in_progress" | "queued" | "success";
+  },
+  configuration?: GitHubAppConfiguration,
+) {
+  const token = await createInstallationToken(
+    input.installationId,
+    configuration,
+  );
   const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
   await githubRequest(
     `/repos/${repository}/deployments/${encodeURIComponent(input.deploymentId)}/statuses`,
@@ -343,7 +368,9 @@ export async function upsertGitHubPullRequestComment(input: {
 }) {
   const token = await createInstallationToken(input.installationId);
   const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
-  const appId = requireGitHubEnv().appId;
+  const appId = (
+    await getGitHubAppConfigurationForInstallation(input.installationId)
+  ).appId;
   const comments: GitHubIssueComment[] = [];
   for (let page = 1; page <= 10; page += 1) {
     const pageComments = issueCommentListSchema.parse(
@@ -402,8 +429,18 @@ export function classifyGitHubPullRequestComments(input: {
   };
 }
 
-async function createGitHubAppJwt() {
-  const github = requireGitHubEnv();
+async function createGitHubAppJwt(
+  input: {
+    installationId: string;
+    workspaceId?: string;
+  },
+  configuration?: GitHubAppConfiguration,
+) {
+  const github =
+    configuration ??
+    (input.workspaceId
+      ? await getGitHubAppConfiguration(input.workspaceId)
+      : await getGitHubAppConfigurationForInstallation(input.installationId));
   const now = Math.floor(Date.now() / 1_000);
   return await new SignJWT({})
     .setProtectedHeader({ alg: "RS256" })

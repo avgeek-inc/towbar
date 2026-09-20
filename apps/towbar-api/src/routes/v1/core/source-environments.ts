@@ -1,3 +1,5 @@
+import { updateEnvironmentAutomation } from "../../../areas/auto-deploy-controls/service.js";
+import { scheduleLatestAutomaticDeploymentsForSource } from "../../../areas/apps/automatic-deployments.js";
 import { Hono } from "hono";
 import { z } from "zod";
 import { sourceEnvironmentMappingSchema } from "@workspace/towbar-core";
@@ -9,7 +11,7 @@ import {
   requestEnvironmentSync,
   updateEnvironmentBranch,
 } from "../../../areas/sources/environments.js";
-import { forbidden } from "../../../http/errors.js";
+
 import { operation } from "../../../http/operation.js";
 import { readJson, readUuidPathParameter } from "../../../http/requests.js";
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
@@ -22,18 +24,13 @@ const branchSchema = revisionSchema.extend({
 });
 export const sourceEnvironmentRoutes = new Hono<TowbarHonoEnvironment>();
 sourceEnvironmentRoutes.use("*", async (context, next) => {
-  if (
-    context.req.method !== "GET" &&
-    context.get("user").workspaceRole !== "owner"
-  ) {
-    throw forbidden("Only the owner can manage environments");
-  }
   await next();
 });
 
 sourceEnvironmentRoutes.get(
   "/",
   operation({
+    permissions: ["repository.read"],
     responseSchema: 'source-environments.ts:get:"/"',
     summary: "List source environments",
     response: "Connected source environments and branch mappings.",
@@ -51,10 +48,10 @@ sourceEnvironmentRoutes.get(
 sourceEnvironmentRoutes.post(
   "/",
   operation({
+    permissions: ["repository.connect"],
     responseSchema: 'source-environments.ts:post:"/"',
     summary: "Connect source environment",
     body: sourceEnvironmentMappingSchema,
-    ownerOnly: true,
     response: "Connected environment and initial sync.",
     status: 201,
   }),
@@ -85,10 +82,10 @@ sourceEnvironmentRoutes.post(
 sourceEnvironmentRoutes.patch(
   "/:environmentId",
   operation({
+    permissions: ["repository.update"],
     responseSchema: 'source-environments.ts:patch:"/:environmentId"',
     summary: "Change environment branch",
     body: branchSchema,
-    ownerOnly: true,
     response: "Updated mapping and queued sync.",
     status: 200,
   }),
@@ -124,9 +121,9 @@ sourceEnvironmentRoutes.patch(
 sourceEnvironmentRoutes.post(
   "/:environmentId/syncs",
   operation({
+    permissions: ["repository.sync"],
     responseSchema: 'source-environments.ts:post:"/:environmentId/syncs"',
     summary: "Sync environment",
-    ownerOnly: true,
     response: "Queued environment sync.",
     status: 202,
   }),
@@ -143,7 +140,7 @@ sourceEnvironmentRoutes.post(
       ),
       workspaceId: user.workspaceId,
       requestedBy: user.id,
-      deployAfterSync: true,
+      deployAfterSync: false,
     });
     return context.json({ sync }, 202);
   },
@@ -152,9 +149,9 @@ sourceEnvironmentRoutes.post(
 sourceEnvironmentRoutes.delete(
   "/:environmentId",
   operation({
+    permissions: ["repository.disconnect"],
     responseSchema: 'source-environments.ts:delete:"/:environmentId"',
     summary: "Disconnect environment",
-    ownerOnly: true,
     body: revisionSchema,
     response: "Disconnected environment; workload data is preserved.",
     status: 200,
@@ -183,9 +180,9 @@ sourceEnvironmentRoutes.delete(
 sourceEnvironmentRoutes.post(
   "/syncs",
   operation({
+    permissions: ["repository.sync"],
     responseSchema: 'source-environments.ts:post:"/syncs"',
     summary: "Sync all connected environments",
-    ownerOnly: true,
     response: "Independent queue outcomes for each connected environment.",
     status: 202,
   }),
@@ -209,7 +206,7 @@ sourceEnvironmentRoutes.post(
           environmentId: environment.id,
           workspaceId: user.workspaceId,
           requestedBy: user.id,
-          deployAfterSync: true,
+          deployAfterSync: false,
         });
         outcomes.push({
           environmentId: environment.id,
@@ -232,6 +229,7 @@ sourceEnvironmentRoutes.post(
 sourceEnvironmentRoutes.get(
   "/:environmentId/manifest",
   operation({
+    permissions: ["repository.read"],
     responseSchema: 'source-environments.ts:get:"/:environmentId/manifest"',
     summary: "Read an environment manifest snapshot",
     response: "Files from the last successful environment sync.",
@@ -251,4 +249,43 @@ sourceEnvironmentRoutes.get(
         workspaceId: context.get("user").workspaceId,
       }),
     }),
+);
+
+const automationSchema = revisionSchema.extend({ paused: z.boolean() });
+sourceEnvironmentRoutes.patch(
+  "/:environmentId/auto-deploy-control",
+  operation({
+    permissions: ["deployment.create"],
+    body: automationSchema,
+    responseSchema:
+      'source-environments.ts:patch:"/:environmentId/auto-deploy-control"',
+    summary: "Update environment runtime automation",
+    response: "No response body.",
+    status: 204,
+  }),
+  async (context) => {
+    const sourceId = readUuidPathParameter(
+      context.req.param("sourceId")!,
+      "sourceId",
+    );
+    const environmentId = readUuidPathParameter(
+      context.req.param("environmentId"),
+      "environmentId",
+    );
+    const workspaceId = context.get("user").workspaceId;
+    const body = await readJson(context, automationSchema);
+    await updateEnvironmentAutomation({
+      ...body,
+      sourceId,
+      environmentId,
+      workspaceId,
+    });
+    if (!body.paused)
+      await scheduleLatestAutomaticDeploymentsForSource({
+        sourceId,
+        sourceEnvironmentId: environmentId,
+        workspaceId,
+      });
+    return context.body(null, 204);
+  },
 );

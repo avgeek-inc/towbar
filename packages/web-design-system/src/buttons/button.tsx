@@ -1,30 +1,51 @@
 "use client";
 
 import { Button as HeroButton, Link as HeroLink } from "@heroui/react";
-import { buttonVariants } from "@heroui/styles";
+import { buttonVariants as heroButtonVariants } from "@heroui/styles";
 import type { ComponentProps } from "react";
 import { cn } from "../lib/utils";
 
-export type ButtonProps = ComponentProps<typeof HeroButton>;
-export type ButtonVariant = NonNullable<ButtonProps["variant"]>;
-export type ButtonSize = NonNullable<ButtonProps["size"]>;
+export type ButtonVariant =
+  NonNullable<ComponentProps<typeof HeroButton>["variant"]> | "danger-ghost";
+export type ButtonProps = Omit<
+  ComponentProps<typeof HeroButton>,
+  "size" | "variant"
+> & {
+  variant?: ButtonVariant;
+};
 
-export function Button({ type = "button", ...props }: ButtonProps) {
-  return <HeroButton type={type} {...props} />;
+export function Button({
+  className,
+  type = "button",
+  variant,
+  ...props
+}: ButtonProps) {
+  const variantClass = variant === "danger-ghost" && "button--danger-ghost";
+  return (
+    <HeroButton
+      {...props}
+      type={type}
+      size="sm"
+      variant={variant === "danger-ghost" ? "ghost" : variant}
+      className={
+        typeof className === "function"
+          ? (state) => cn(variantClass, className(state))
+          : cn(variantClass, className)
+      }
+    />
+  );
 }
 
 export type ButtonLinkProps = Omit<
   ComponentProps<typeof HeroLink>,
-  "className"
+  "className" | "size"
 > & {
   className?: string;
-  size?: ButtonSize;
   variant?: ButtonVariant;
 };
 
 export function ButtonLink({
   className,
-  size,
   style,
   variant,
   ...props
@@ -33,8 +54,7 @@ export function ButtonLink({
     <HeroLink
       className={buttonVariants({
         // HeroUI resets .link.button to gap-0; restore the normal button spacing.
-        className: cn("gap-2", className),
-        size,
+        className: cn("gap-1.5", className),
         variant,
       })}
       style={{ color: "var(--button-fg)", ...style }}
@@ -43,4 +63,25 @@ export function ButtonLink({
   );
 }
 
-export { buttonVariants };
+type ButtonVariantOptions = Omit<
+  NonNullable<Parameters<typeof heroButtonVariants>[0]>,
+  "size" | "variant"
+> & { variant?: ButtonVariant };
+
+export function buttonVariants({
+  class: classValue,
+  className,
+  variant,
+  ...props
+}: ButtonVariantOptions = {}) {
+  return heroButtonVariants({
+    ...props,
+    size: "sm",
+    variant: variant === "danger-ghost" ? "ghost" : variant,
+    className: cn(
+      variant === "danger-ghost" && "button--danger-ghost",
+      classValue,
+      className,
+    ),
+  });
+}

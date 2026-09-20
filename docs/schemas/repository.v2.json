@@ -3,6 +3,45 @@
   "type": "object",
   "properties": {
     "version": { "type": "number", "const": 2 },
+    "buildServer": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "ip": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "ipv4",
+                  "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$"
+                },
+                {
+                  "type": "string",
+                  "format": "ipv6",
+                  "pattern": "^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$"
+                }
+              ]
+            },
+            "allowRuntimeFallback": { "default": false, "type": "boolean" },
+            "transfer": {
+              "default": "direct",
+              "type": "string",
+              "enum": ["direct", "registry"]
+            },
+            "registry": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+            },
+            "architecture": { "type": "string", "enum": ["amd64", "arm64"] }
+          },
+          "required": ["ip"],
+          "additionalProperties": false
+        },
+        { "type": "null" }
+      ]
+    },
     "environments": {
       "type": "object",
       "propertyNames": {
@@ -22,6 +61,51 @@
       "additionalProperties": {
         "type": "object",
         "properties": {
+          "buildServer": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "ip": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "ipv4",
+                        "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$"
+                      },
+                      {
+                        "type": "string",
+                        "format": "ipv6",
+                        "pattern": "^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$"
+                      }
+                    ]
+                  },
+                  "allowRuntimeFallback": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "transfer": {
+                    "default": "direct",
+                    "type": "string",
+                    "enum": ["direct", "registry"]
+                  },
+                  "registry": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                  },
+                  "architecture": {
+                    "type": "string",
+                    "enum": ["amd64", "arm64"]
+                  }
+                },
+                "required": ["ip"],
+                "additionalProperties": false
+              },
+              { "type": "null" }
+            ]
+          },
           "previews": {
             "type": "object",
             "properties": { "enabled": { "type": "boolean" } },

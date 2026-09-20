@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { z } from "zod";
+import { mcpInputJsonSchema } from "./mcp-schema.js";
 process.env.DATABASE_TOWBAR_URL ??= "postgres://test:test@localhost/mcp_test";
 process.env.TOWBAR_CREDENTIALS_KEY ??= Buffer.alloc(32, 1).toString("base64");
 process.env.TOWBAR_INTERNAL_HMAC_SECRET ??=
@@ -39,7 +40,11 @@ function harness(responses: Record<string, Record<string, unknown>> = {}) {
   };
 }
 void test("MCP catalogue is curated, namespaced, directly typed, and independent of REST IDs", () => {
-  assert(mcpTools.length <= 55);
+  const integrations = [get("integration_list")];
+  assert.equal(integrations.length, 1);
+  assert.equal(mcpTools.length, 53);
+  for (const tool of integrations)
+    assert.deepEqual(tool.permissions, ["integration.manage"]);
   assert(mcpTools.length < operations.length);
   assert.equal(new Set(mcpTools.map((t) => t.name)).size, mcpTools.length);
   for (const tool of mcpTools) {
@@ -51,7 +56,18 @@ void test("MCP catalogue is curated, namespaced, directly typed, and independent
       io: "input",
       unrepresentable: "any",
     });
-    assert.equal(schema.type, "object");
+    assert(
+      schema.type === "object" ||
+        Array.isArray(schema.allOf) ||
+        Array.isArray(schema.anyOf) ||
+        Array.isArray(schema.oneOf),
+      `${tool.name} must expose an object-compatible schema`,
+    );
+    assert.equal(
+      mcpInputJsonSchema(tool.input).type,
+      "object",
+      `${tool.name} must advertise an MCP-compatible object input schema`,
+    );
     for (const field of ["path", "query", "body", "method", "url", "route"])
       assert(!Object.hasOwn(schema.properties ?? {}, field));
     if (tool.readOnly) {
@@ -253,7 +269,14 @@ void test("source tools use v2 discovery, branch mappings and environment sync r
 void test("server inspection, scoped inventories and previews use valid bounded read recipes", async () => {
   const h = harness();
   await get("server_inspect").run({ serverId: uuid }, h.context);
-  assert.equal(h.calls.length, 8);
+  assert.equal(h.calls.length, 6);
+  assert(
+    h.calls.every(
+      (call) =>
+        !call.route.includes("credentials") &&
+        !call.route.includes("host-keys"),
+    ),
+  );
   for (const kind of ["app", "resource"]) {
     await get("inventory_search").run({ kind, sourceId: uuid }, h.context);
     await get("inventory_search").run({ kind, serverId: uuid }, h.context);
@@ -261,6 +284,14 @@ void test("server inspection, scoped inventories and previews use valid bounded 
   for (const scope of ["source", "app"])
     await get("preview_list").run({ scope, targetId: uuid }, h.context);
   await get("source_inspect").run({ sourceId: uuid }, h.context);
+  await get("source_inspect").run(
+    { sourceId: uuid, environmentId: otherUuid },
+    h.context,
+  );
+  assert.equal(
+    h.calls.at(-1)!.route,
+    "/sources/:sourceId/environments/:environmentId/manifest",
+  );
   await get("source_sync_inspect").run(
     { sourceId: uuid, syncId: otherUuid },
     h.context,
@@ -285,7 +316,7 @@ void test("server inspection, scoped inventories and previews use valid bounded 
   );
 });
 
-void test("monitoring requires installation acknowledgement and preserves preview scoping", async () => {
+void test("monitoring requires installation acknowledgement and inspects persistent workloads", async () => {
   const h = harness();
   await assert.rejects(
     get("monitoring_configure").run(
@@ -303,14 +334,12 @@ void test("monitoring requires installation acknowledgement and preserves previe
       kind: "app",
       targetId: uuid,
       range: "7d",
-      environment: "preview",
-      previewId: otherUuid,
     },
     h.context,
   );
   assert.equal(h.calls[1]?.route, "/apps/:appId/metrics");
-  assert.equal(h.calls[1]?.query?.previewId, otherUuid);
-  assert(get("monitoring_configure").ownerOnly);
+  assert.deepEqual(h.calls[1]?.query, { range: "7d" });
+  assert(get("monitoring_configure").permissions.includes("scout.configure"));
 });
 
 void test("Scout tools inspect before mutation and keep comparison output bounded", async () => {
@@ -320,19 +349,6 @@ void test("Scout tools inspect before mutation and keep comparison output bounde
   });
   const result = await get("alerts_inspect").run({ serverId: uuid }, h.context);
   assert.deepEqual(result.rules, [{ id: otherUuid }]);
-  await get("alerts_mute").run(
-    {
-      serverId: uuid,
-      ruleId: otherUuid,
-      durationSeconds: 1800,
-      reason: "Maintenance",
-    },
-    h.context,
-  );
-  assert.equal(
-    h.calls.at(-1)?.route,
-    "/servers/:serverId/scout-alerts/rules/:ruleId/mute",
-  );
   await get("deployment_compare").run({ workloadId: uuid }, h.context);
   assert.equal(
     h.calls.at(-1)?.route,
@@ -365,6 +381,7 @@ void test("Scout tools inspect before mutation and keep comparison output bounde
   );
   assert((detailed.baseline as { points: unknown[] }).points.length <= 24);
   assert(
-    get("alerts_configure").ownerOnly && !get("alerts_configure").readOnly,
+    get("alerts_configure").permissions.includes("alert.configure") &&
+      !get("alerts_configure").readOnly,
   );
 });

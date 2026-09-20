@@ -11,6 +11,10 @@ import type {
 
 import { api } from "@/lib/api";
 import { config } from "@/lib/config";
+import {
+  localizationGeneration,
+  receiveDateTimeLabels,
+} from "@/lib/date-time-display";
 
 type ConnectionState = "complete" | "connecting" | "live" | "reconnecting";
 
@@ -38,7 +42,11 @@ export function useDeploymentStream(deploymentId: string) {
   useEffect(() => {
     const refresh = () => setRevision((value) => value + 1);
     window.addEventListener("towbar:refresh", refresh);
-    return () => window.removeEventListener("towbar:refresh", refresh);
+    window.addEventListener("towbar:clear-private-data", refresh);
+    return () => {
+      window.removeEventListener("towbar:refresh", refresh);
+      window.removeEventListener("towbar:clear-private-data", refresh);
+    };
   }, []);
 
   useEffect(() => {
@@ -52,6 +60,7 @@ export function useDeploymentStream(deploymentId: string) {
     setConnection("connecting");
 
     const connect = () => {
+      const generation = localizationGeneration();
       const target = new URL(
         `/v1/core/deployments/${deploymentId}/events`,
         config.apiBaseUrl,
@@ -66,6 +75,8 @@ export function useDeploymentStream(deploymentId: string) {
         if (!active) return;
         try {
           const snapshot = JSON.parse(event.data) as DeploymentEvent;
+          if (receiveDateTimeLabels(snapshot, generation))
+            window.dispatchEvent(new Event("towbar:preferences-changed"));
           setDeployment(snapshot.deployment);
           setSteps(snapshot.steps);
           setLogs((current) => mergeLogs(current ?? [], snapshot.logs));

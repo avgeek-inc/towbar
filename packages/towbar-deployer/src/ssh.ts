@@ -58,8 +58,13 @@ export class SshSession {
       keyPath,
       knownHostsPath,
     );
-    await session.run("true", [], { timeoutMs: 15_000 });
-    return session;
+    try {
+      await session.run("true", [], { timeoutMs: 15_000 });
+      return session;
+    } catch (error) {
+      await session.close();
+      throw error;
+    }
   }
 
   async run(

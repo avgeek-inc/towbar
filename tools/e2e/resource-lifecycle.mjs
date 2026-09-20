@@ -40,6 +40,8 @@ try {
     temporal = await startResourceTemporal({ serverIp: server.ip });
   }
   const sourceId = randomUUID();
+  const serverId = randomUUID();
+  const workspaceId = randomUUID();
   const instances = new Map(
     ["production", "staging"].map((name) => [
       name,
@@ -56,7 +58,7 @@ try {
           id: "database",
           name: "Database",
           type: "redis",
-          server: "test",
+          server: server.ip,
           container: { network: `e2e-${name}`, networkAlias: "database" },
         },
       ],
@@ -77,12 +79,15 @@ try {
             deploymentId: randomUUID(),
             commitSha: "c".repeat(40),
             environment: "production",
+            environmentName: name,
             kind: "deploy",
-            githubToken: null,
+            sourceCredential: null,
             repositoryName: "test",
             repositoryOwner: "test",
             rollbackRelease: null,
             currentRelease: previous,
+            serverId,
+            workspaceId,
           },
           secrets: {
             build: {},
@@ -92,6 +97,8 @@ try {
             login: { privateKey: readFileSync(target.key, "utf8") },
           },
           hooks: {
+            log: async (content, stream) =>
+              console.log(`${name} ${stream}: ${content.trimEnd()}`),
             transition: async (state) => console.log(`${name}: ${state}`),
             commitRelease: async (candidate) => ({
               retainedImageTags: [

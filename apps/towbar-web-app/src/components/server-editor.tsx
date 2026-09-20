@@ -1,8 +1,8 @@
 "use client";
 import {
-  Delete02Icon,
+  ArrowRight01Icon,
   FloppyDiskIcon,
-  Settings01Icon,
+  Key01Icon,
 } from "@hugeicons/core-free-icons";
 
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -13,22 +13,24 @@ import type { FormEvent } from "react";
 
 import type { Server } from "@workspace/towbar-web-client";
 import { Button } from "@workspace/web-design-system/buttons/button";
-import { Field, FieldLabel } from "@workspace/web-design-system/forms/field";
+import {
+  FieldDescription,
+  Field,
+  FieldLabel,
+} from "@workspace/web-design-system/forms/field";
 import { Input } from "@workspace/web-design-system/forms/input";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 
-import { ActionButton, FormCard } from "@/components/page-parts";
+import { FormCard } from "@/components/page-parts";
 import { refreshApiQueries } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { ServerCredentials } from "./credential-editor";
 
 export function ServerEditor({
   canManage = true,
-  canRemove = false,
   server,
 }: {
   canManage?: boolean;
-  canRemove?: boolean;
   server?: Server;
 }) {
   const router = useRouter();
@@ -46,7 +48,6 @@ export function ServerEditor({
       ? (server!.config.ssh.host ?? server!.canonicalIp)
       : String(values.get("sshHost") ?? "").trim();
     const config = {
-      slug: String(values.get("slug") ?? "").trim(),
       buildConcurrency: Number(values.get("buildConcurrency")),
       previewBuildConcurrency: Number(values.get("previewBuildConcurrency")),
       ip,
@@ -83,35 +84,19 @@ export function ServerEditor({
   return (
     <div className="content-grid">
       <FormCard
-        icon={<HugeiconsIcon icon={Settings01Icon} />}
-        title={editing ? "Server configuration" : "Connection and scheduling"}
+        icon={<HugeiconsIcon icon={Key01Icon} />}
+        title={
+          editing ? "Connection and capacity" : "Server identity and capacity"
+        }
       >
         <form className="content-grid" onSubmit={save}>
-          <Field>
-            <FieldLabel htmlFor="server-slug">Server slug</FieldLabel>
-            <Input
-              id="server-slug"
-              name="slug"
-              defaultValue={server?.slug ?? ""}
-              disabled={!canManage}
-              required
-              maxLength={63}
-              pattern="[a-z0-9]([a-z0-9-]*[a-z0-9])?"
-              placeholder="production-server"
-              variant="secondary"
-              aria-describedby="server-slug-description"
-            />
-            <p id="server-slug-description" className="text-xs text-muted">
-              Unique within this workspace. Use this value in app and resource
-              YAML. Changing it requires updating any manifests that reference
-              it.
-            </p>
-          </Field>
           <div className="content-grid grid-cols-2 lg:grid-cols-4">
             {!editing ? (
               <>
                 <Field>
-                  <FieldLabel htmlFor="server-ip">IP address</FieldLabel>
+                  <FieldLabel htmlFor="server-ip" isRequired>
+                    IP address
+                  </FieldLabel>
                   <Input
                     id="server-ip"
                     disabled={!canManage}
@@ -134,7 +119,7 @@ export function ServerEditor({
               </>
             ) : null}
             <Field>
-              <FieldLabel htmlFor="server-ssh-username">
+              <FieldLabel htmlFor="server-ssh-username" isRequired>
                 SSH username
               </FieldLabel>
               <Input
@@ -148,7 +133,9 @@ export function ServerEditor({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="server-ssh-port">SSH port</FieldLabel>
+              <FieldLabel htmlFor="server-ssh-port" isRequired>
+                SSH port
+              </FieldLabel>
               <Input
                 id="server-ssh-port"
                 defaultValue={String(server?.config.ssh.port ?? 22)}
@@ -162,7 +149,7 @@ export function ServerEditor({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="server-build-concurrency">
+              <FieldLabel htmlFor="server-build-concurrency" isRequired>
                 Concurrent builds
               </FieldLabel>
               <Input
@@ -178,7 +165,7 @@ export function ServerEditor({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="server-preview-concurrency">
+              <FieldLabel htmlFor="server-preview-concurrency" isRequired>
                 Concurrent preview builds
               </FieldLabel>
               <Input
@@ -196,6 +183,10 @@ export function ServerEditor({
               />
             </Field>
           </div>
+          <FieldDescription>
+            Build concurrency limits simultaneous work on this server. Start
+            with 1 until its available CPU and memory are verified.
+          </FieldDescription>
           <Button
             className="w-fit"
             isDisabled={busy || !canManage}
@@ -203,50 +194,15 @@ export function ServerEditor({
           >
             <HugeiconsIcon
               aria-hidden="true"
-              icon={FloppyDiskIcon}
+              icon={editing ? FloppyDiskIcon : ArrowRight01Icon}
               className="size-4 shrink-0"
             />
-            {busy ? "Saving…" : editing ? "Save" : "Add server"}
+            {busy ? "Saving…" : editing ? "Save" : "Continue to credentials"}
           </Button>
         </form>
       </FormCard>
       {server ? (
         <ServerCredentials canManage={canManage} server={server} />
-      ) : null}
-      {server && canManage && canRemove ? (
-        <FormCard
-          icon={<HugeiconsIcon icon={Delete02Icon} />}
-          title="Remove server"
-        >
-          <div className="content-grid">
-            <p className="max-w-3xl text-sm text-muted">
-              Stop managing this server and remove its stored credentials and
-              host-key trust. The machine, running services, and data stay in
-              place. Use Cleanup first if you want to remove leftover Docker
-              objects.
-            </p>
-            <ActionButton
-              action={() => api.delete(`/v1/core/servers/${server.id}`)}
-              confirm={{
-                actionLabel: "Remove server",
-                title: `Remove ${server.canonicalIp} from Towbar?`,
-                description:
-                  "Towbar will stop checking and managing this server and forget its stored credentials and trusted host keys. If monitoring is installed, Towbar removes the agent before forgetting SSH access. The machine and its services keep running. Apps, resources, and previews must be removed or moved first, and active operations must finish. You can register the server again later.",
-              }}
-              onSuccess={() => router.push("/servers")}
-              pendingLabel="Removing…"
-              success="Server removal requested"
-              variant="danger"
-            >
-              <HugeiconsIcon
-                aria-hidden="true"
-                icon={Delete02Icon}
-                className="size-4 shrink-0"
-              />
-              Remove server
-            </ActionButton>
-          </div>
-        </FormCard>
       ) : null}
     </div>
   );

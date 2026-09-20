@@ -42,7 +42,7 @@ export const infrastructureTools: McpTool[] = [
   tool(
     "performance_inspect",
     "Inspect performance over time",
-    "Read server, app, or resource performance with averages, peaks, reporting freshness, and recent deployment/restart events. Production and preview measurements stay separate. Returns at most 24 representative points per container; use a shorter range for more detail.",
+    "Read persistent server, app, or resource performance with averages, peaks, reporting freshness, and recent deployment/restart events. Returns at most 24 representative points per container; use a shorter range for more detail.",
     z
       .object({
         kind: z.enum(["server", "app", "resource"]),
@@ -57,8 +57,8 @@ export const infrastructureTools: McpTool[] = [
         path: { [`${a.kind}Id`]: a.targetId },
         query: {
           range: a.range,
-          environment: a.environment,
-          ...(a.previewId ? { previewId: a.previewId } : {}),
+          ...(a.startAt ? { startAt: a.startAt } : {}),
+          ...(a.endAt ? { endAt: a.endAt } : {}),
         },
       });
       const series = records(result.series).map((instance) => {
@@ -104,6 +104,7 @@ export const infrastructureTools: McpTool[] = [
       });
       return { ...result, series, events: records(result.events).slice(0, 20) };
     },
+    { permissions: ["scout.read"] },
   ),
   tool(
     "monitoring_configure",
@@ -141,13 +142,18 @@ export const infrastructureTools: McpTool[] = [
               },
             }),
       }),
-    { readOnly: false, ownerOnly: true, destructive: true, idempotent: false },
+    {
+      permissions: ["scout.configure"],
+      readOnly: false,
+      destructive: true,
+      idempotent: false,
+    },
   ),
 
   tool(
     "server_inspect",
     "Inspect server readiness and capacity",
-    "Read server settings, capacity, recent checks, preparation attempts, host-key fingerprints, credential metadata, and orphan inventory together. Use before preparation or cleanup. No private credential values are returned.",
+    "Read server settings, capacity, recent checks, preparation attempts, monitoring, and orphan inventory together. Use before preparation or cleanup. No private credential values are returned.",
     z.object({ ...serverId, ...page }).strict(),
     async (a, c) => {
       const path = { serverId: a.serverId };
@@ -163,34 +169,37 @@ export const infrastructureTools: McpTool[] = [
         "monitoring",
         "checks",
         "preparations",
-        "host-keys",
-        "credentials",
         "orphans",
       ]) {
-        const data = await c.call({
-          method: "GET",
-          route: `/servers/:serverId/${section}`,
-          path,
-          ...(section === "checks"
-            ? {
-                query: {
-                  page: Math.floor(a.offset / a.limit) + 1,
-                  limit: a.limit,
-                },
-              }
-            : {}),
-        });
-        result[section] = Object.fromEntries(
-          Object.entries(data).map(([key, value]) => [
-            key,
-            Array.isArray(value) && section !== "checks"
-              ? pageItems(value, a.offset, a.limit)
-              : value,
-          ]),
-        );
+        try {
+          const data = await c.call({
+            method: "GET",
+            route: `/servers/:serverId/${section}`,
+            path,
+            ...(section === "checks"
+              ? {
+                  query: {
+                    page: Math.floor(a.offset / a.limit) + 1,
+                    limit: a.limit,
+                  },
+                }
+              : {}),
+          });
+          result[section] = Object.fromEntries(
+            Object.entries(data).map(([key, value]) => [
+              key,
+              Array.isArray(value) && section !== "checks"
+                ? pageItems(value, a.offset, a.limit)
+                : value,
+            ]),
+          );
+        } catch {
+          result[section] = { unavailable: true };
+        }
       }
       return result;
     },
+    { permissions: ["server.read", "scout.read"] },
   ),
   action(
     "server_register",
@@ -280,6 +289,7 @@ export const infrastructureTools: McpTool[] = [
         path: a.targetId ? { ownerId: a.targetId } : {},
         query: { environment: a.environment },
       }),
+    { permissions: ["secret.list", "sharedSecret.list"] },
   ),
   tool(
     "secrets_update",
@@ -308,7 +318,12 @@ export const infrastructureTools: McpTool[] = [
           delete: a.delete,
         },
       }),
-    { readOnly: false, ownerOnly: true, destructive: true, idempotent: false },
+    {
+      permissions: ["secret.update", "sharedSecret.update"],
+      readOnly: false,
+      destructive: true,
+      idempotent: false,
+    },
   ),
   tool(
     "backup_inspect",
@@ -372,6 +387,7 @@ export const infrastructureTools: McpTool[] = [
           : {}),
       };
     },
+    { permissions: ["repository.read", "resource.read"] },
   ),
   action(
     "backup_create",
@@ -431,6 +447,7 @@ export const infrastructureTools: McpTool[] = [
         a.offset,
         a.limit,
       ),
+    { permissions: ["workload.read", "repository.read"] },
   ),
   action(
     "preview_deploy",

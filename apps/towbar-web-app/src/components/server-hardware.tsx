@@ -67,9 +67,14 @@ export function ServerInstanceDescription({
   instance: NonNullable<NonNullable<Server["hardware"]>["instance"]>;
 }) {
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="inline-flex max-w-full min-w-0 items-center gap-1.5 align-middle">
       <ProviderLogo provider={instance.provider} />
-      <span>{instance.type ?? providerNames[instance.provider]}</span>
+      <TooltipText
+        className="min-w-0 truncate"
+        tooltip={instance.type ?? providerNames[instance.provider]}
+      >
+        {instance.type ?? providerNames[instance.provider]}
+      </TooltipText>
     </span>
   );
 }

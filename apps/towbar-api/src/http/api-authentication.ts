@@ -55,6 +55,7 @@ export function requireApiKey(
       throw unauthorized("Provide a valid, unexpired Towbar API key");
     }
     context.set("user", identity.user);
+    context.set("actor", identity.actor);
     context.set("apiKey", identity.key);
     // A bearer client has no browser session; password changes revoke all browser sessions.
     context.set("currentSessionId", null);

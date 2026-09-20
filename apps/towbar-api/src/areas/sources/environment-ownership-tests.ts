@@ -82,7 +82,6 @@ export async function assertEnvironmentOwnership(
         canonicalIp: server.canonicalIp,
         config: server.config,
         configDigest: server.configDigest,
-        slug: "other-host",
       })
       .returning();
     await rejectsForeignKey(

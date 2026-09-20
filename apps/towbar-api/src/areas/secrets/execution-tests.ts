@@ -9,13 +9,15 @@ import {
   releases,
   sourceEnvironments,
   sourceSyncs,
+  sshHostKeys,
 } from "@workspace/towbar-database/schema";
 import type { TestContext } from "node:test";
 import type { NormalizedApp, NormalizedServer } from "@workspace/towbar-core";
 import type { getTowbarDatabase } from "../../infrastructure/database.js";
 import { resolveDeploymentSecrets } from "../deployments/deployment-secrets.js";
 import { getInstanceEnvironment } from "../apps/instance-environment.js";
-import { admitPreviewDeployment } from "../previews/admission.js";
+import { withActor } from "../auth/actor-context.js";
+import { admitPreviewDeployment as admitPreview } from "../previews/admission.js";
 import { mutateSecret, readSecretMetadata } from "./store.js";
 import type { SecretSlot } from "./store.js";
 
@@ -46,8 +48,13 @@ export async function testManagedSecretExecution({
   serverConfig: NormalizedServer;
   sharedSlot: SecretSlot;
   patch: (path: string, body: unknown) => Promise<Response>;
-  setWorkspaceRole: (role: "owner" | "member") => void;
+  setWorkspaceRole: (role: "admin" | "member") => void;
 }) {
+  const admitPreviewDeployment = (...args: Parameters<typeof admitPreview>) =>
+    withActor(
+      { kind: "session", workspaceId, userId: actorUserId, role: "admin" },
+      () => admitPreview(...args),
+    );
   const appOwner = { type: "app" as const, id: appId, workspaceId };
   await t.test(
     "deployment resolution records only revisions, keeps running values stable, and rollback uses current values",
@@ -64,44 +71,48 @@ export async function testManagedSecretExecution({
       const privateKey = generateKeyPairSync("ed25519")
         .privateKey.export({ type: "pkcs8", format: "pem" })
         .toString();
-      const serverResult = await patch(`/servers/${serverId}/credentials`, {
-        expectedRevision: null,
-        set: {
-          privateKey,
-          apiToken: `cfat_${"test_account_token_".repeat(3)}`,
+      const cloudflareToken = `cfat_${"runtime_account_token_".repeat(3)}`;
+      process.env.TOWBAR_CLOUDFLARE_ENABLED = "true";
+      process.env.TOWBAR_CLOUDFLARE_ACCOUNT_ID = "test-account";
+      process.env.TOWBAR_CLOUDFLARE_API_TOKEN = cloudflareToken;
+      await mutateSecret(
+        {
+          type: "server",
+          id: serverId,
+          workspaceId,
+          environment: "production",
+          stage: "credentials",
         },
-        delete: [],
-      });
-      assert.equal(serverResult.status, 200);
-      assert(!(await serverResult.text()).includes(privateKey));
+        {
+          expectedRevision: null,
+          set: { privateKey },
+          delete: [],
+        },
+        actorUserId,
+      );
       const serverMetadata = (await (
         await api.request(`/servers/${serverId}/credentials`)
       ).json()) as { credential: { keys: string[]; revision: string } };
-      assert.deepEqual(serverMetadata.credential.keys, [
-        "apiToken",
-        "privateKey",
-      ]);
-      for (const rejectedToken of [
-        `cfut_${"personal_token_".repeat(4)}`,
-        "legacy_token_".repeat(4),
-        "cfat_too_short",
-        `cfat_${"a".repeat(257)}`,
-        `cfat_${"a".repeat(40)}\n`,
-      ]) {
-        const rejected = await patch(`/servers/${serverId}/credentials`, {
+      assert.deepEqual(serverMetadata.credential.keys, ["privateKey"]);
+      const unverifiedPrivateKey = await patch(
+        `/servers/${serverId}/credentials`,
+        {
           expectedRevision: serverMetadata.credential.revision,
-          set: { apiToken: rejectedToken },
+          set: { privateKey },
           delete: [],
-        });
-        assert.equal(rejected.status, 422);
-        assert(!(await rejected.text()).includes(rejectedToken));
-      }
-      const replacement = await patch(`/servers/${serverId}/credentials`, {
-        expectedRevision: serverMetadata.credential.revision,
-        set: { apiToken: `cfat_${"replacement_account_token_".repeat(3)}` },
-        delete: [],
-      });
-      assert.equal(replacement.status, 200);
+        },
+      );
+      assert.equal(unverifiedPrivateKey.status, 422);
+      assert(!(await unverifiedPrivateKey.text()).includes(privateKey));
+      const rejectedIntegrationSecret = await patch(
+        `/servers/${serverId}/credentials`,
+        {
+          expectedRevision: serverMetadata.credential.revision,
+          set: { apiToken: "must-not-be-stored-in-the-control-plane" },
+          delete: [],
+        },
+      );
+      assert.equal(rejectedIntegrationSecret.status, 422);
       setWorkspaceRole("member");
       const forbiddenServer = await api.request(
         `/servers/${serverId}/credentials`,
@@ -119,7 +130,7 @@ export async function testManagedSecretExecution({
         },
       );
       assert.equal(forbiddenServer.status, 403);
-      setWorkspaceRole("owner");
+      setWorkspaceRole("admin");
       const deploymentId = randomUUID();
       await db.insert(deployments).values({
         targetEnvironment: await testDeploymentEnvironment(appId),
@@ -142,10 +153,7 @@ export async function testManagedSecretExecution({
         serverSnapshot: serverConfig,
       });
       const resolved = await resolveDeploymentSecrets(deploymentId);
-      assert.equal(
-        resolved.cloudflare?.apiToken,
-        `cfat_${"replacement_account_token_".repeat(3)}`,
-      );
+      assert.equal(resolved.cloudflare?.apiToken, cloudflareToken);
       assert.equal(resolved.runtime.TOKEN, "shared-value");
       assert.equal(resolved.hooks.preDeploy.MIGRATION, "production-only");
       const metadata = await readSecretMetadata(sharedSlot);
@@ -310,6 +318,38 @@ export async function testManagedSecretExecution({
       await db
         .delete(previewEnvironments)
         .where(eq(previewEnvironments.id, initial.environmentId));
+    },
+  );
+  await t.test(
+    "removing the SSH private key forgets every trusted host key",
+    async () => {
+      await db.insert(sshHostKeys).values({
+        algorithm: "ssh-ed25519",
+        fingerprint: "SHA256:test-host-key",
+        publicKey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITestHostKey",
+        serverId,
+        trustedBy: actorUserId,
+      });
+      const before = (await (
+        await api.request(`/servers/${serverId}/credentials`)
+      ).json()) as { credential: { revision: string } };
+      const removed = await patch(`/servers/${serverId}/credentials`, {
+        expectedRevision: before.credential.revision,
+        set: {},
+        delete: ["privateKey"],
+      });
+      assert.equal(removed.status, 200);
+      const metadata = (await removed.json()) as {
+        credential: { keys: string[] };
+      };
+      assert.deepEqual(metadata.credential.keys, []);
+      assert.deepEqual(
+        await db
+          .select({ id: sshHostKeys.id })
+          .from(sshHostKeys)
+          .where(eq(sshHostKeys.serverId, serverId)),
+        [],
+      );
     },
   );
 }

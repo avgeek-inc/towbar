@@ -1,6 +1,6 @@
 import { resolveRepositoryEnvironment } from "@workspace/towbar-core";
 
-export function connectionManifestFiles(serverSlug: string) {
+export function connectionManifestFiles(serverIp: string) {
   return [
     {
       path: "towbar.yml",
@@ -25,11 +25,11 @@ preview:
   ttlHours: 72
 environments:
   production:
-    server: ${serverSlug}
+    server: ${serverIp}
     domains:
       primary: service.example.com
   staging:
-    server: ${serverSlug}
+    server: ${serverIp}
     domains:
       primary: staging.service.example.com
 `,
@@ -43,20 +43,20 @@ secrets:
   runtime: [POSTGRES_PASSWORD]
 environments:
   production:
-    server: ${serverSlug}
+    server: ${serverIp}
   staging:
-    server: ${serverSlug}
+    server: ${serverIp}
 `,
     },
   ];
 }
 
 export function resolveConnectionManifest(
-  serverSlug: string,
+  serverIp: string,
   environment: string,
   branch: string,
 ) {
-  const [root, ...files] = connectionManifestFiles(serverSlug);
+  const [root, ...files] = connectionManifestFiles(serverIp);
   return resolveRepositoryEnvironment({
     root: root!.content,
     files,

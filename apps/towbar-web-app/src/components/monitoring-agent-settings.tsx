@@ -1,5 +1,6 @@
 "use client";
 
+import { FieldDescription } from "@workspace/web-design-system/forms/field";
 import { useState } from "react";
 import type { MonitoringAgentStatus } from "@workspace/towbar-web-client";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
@@ -10,7 +11,6 @@ import { ListBox, Select } from "@workspace/web-design-system/forms/select";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { ScoutIcon } from "./scout-icons";
 import { ScoutMascot } from "./scout-mascot";
-import { MonitoringDocumentation } from "./monitoring-documentation";
 import { ActionButton } from "./page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
@@ -70,13 +70,14 @@ function MonitoringAgentForm({
             <ScoutMascot />
             <div className="grid min-w-0 gap-2">
               <p className="font-medium">
-                {installed
-                  ? "Scout Agent, your monitoring agent."
-                  : "Install Scout Agent for advanced monitoring."}
+                Scout Agent, your monitoring powerhouse.
               </p>
               <p className="max-w-3xl text-sm text-muted">
-                See how this server and its apps and resources perform over
-                time, with updates every 30 seconds.
+                Monitor performance and metrics of the server and its apps and
+                resources with updates every 30 seconds. Scout Agent helps you
+                monitor all the metrics in real time and configure alert and
+                incident thresholds so that you get notified whenever the
+                resources need attention.
               </p>
             </div>
           </div>
@@ -128,68 +129,12 @@ function MonitoringAgentForm({
               dropped. Missing measurements appear as gaps.
             </p>
           ) : null}
-          <div className="grid max-w-sm gap-2">
-            <Select
-              selectedKey={String(days)}
-              onSelectionChange={(value) => {
-                if (value) setRetention(Number(value));
-              }}
-              isDisabled={!canManage || busy}
-              variant="secondary"
-              fullWidth
-            >
-              <Label>Data retention</Label>
-              <Select.Trigger>
-                <Select.Value className="flex min-w-0 items-center" />
-                <Select.Indicator />
-              </Select.Trigger>
-              <Select.Popover>
-                <ListBox>
-                  {[7, 15, 30, 60].map((value) => (
-                    <ListBox.Item
-                      id={String(value)}
-                      key={value}
-                      textValue={`${value} days`}
-                    >
-                      <span className="flex min-w-0 items-center gap-2">
-                        <ScoutIcon name="date" />
-                        {value} days{value === 15 ? " (default)" : ""}
-                      </span>
-                      <ListBox.ItemIndicator />
-                    </ListBox.Item>
-                  ))}
-                </ListBox>
-              </Select.Popover>
-            </Select>
-            <p className="text-xs text-muted">
-              Choose how long to keep performance history. Reducing this period
-              removes older data.
-            </p>
-          </div>
-          {canManage && days !== agent.retentionDays ? (
-            <div>
-              <ActionButton
-                confirm={
-                  days < agent.retentionDays
-                    ? {
-                        title: "Reduce performance retention?",
-                        description: `Performance data older than ${days} days will be removed. This cannot be undone.`,
-                        actionLabel: "Reduce retention",
-                      }
-                    : undefined
-                }
-                action={() => api.patch(endpoint, { retentionDays: days })}
-                onSuccess={() => setRetention(null)}
-                isDisabled={busy}
-                success="Retention updated"
-              >
-                <ScoutIcon name="save" />
-                Save retention
-              </ActionButton>
-            </div>
-          ) : null}
           {canManage && !installed && !busy ? (
-            <Checkbox isSelected={acknowledged} onChange={setAcknowledged}>
+            <Checkbox
+              isSelected={acknowledged}
+              onChange={setAcknowledged}
+              variant="secondary"
+            >
               <Checkbox.Content>
                 <Checkbox.Control>
                   <Checkbox.Indicator />
@@ -249,6 +194,7 @@ function MonitoringAgentForm({
                   }}
                   success="Scout Agent removal queued"
                   pendingLabel="Queuing…"
+                  variant="danger"
                 >
                   <ScoutIcon name="delete" />
                   Uninstall Scout Agent
@@ -256,9 +202,6 @@ function MonitoringAgentForm({
               ) : null}
             </div>
           ) : null}
-          <div>
-            <MonitoringDocumentation />
-          </div>
           {!ready && !installed ? (
             <p className="text-sm text-muted">
               Prepare this server before installing Scout Agent.
@@ -266,6 +209,82 @@ function MonitoringAgentForm({
           ) : null}
         </Widget.Content>
       </Widget>
+      {installed ? (
+        <Widget>
+          <Widget.Header>
+            <Widget.Title>Configure</Widget.Title>
+          </Widget.Header>
+          <Widget.Content className="grid gap-5">
+            {canManage ? (
+              <div className="grid max-w-sm gap-2">
+                <Select
+                  selectedKey={String(days)}
+                  onSelectionChange={(value) => {
+                    if (value) setRetention(Number(value));
+                  }}
+                  isDisabled={!canManage || busy}
+                  variant="secondary"
+                  fullWidth
+                >
+                  <Label>Data retention</Label>
+                  <Select.Trigger>
+                    <Select.Value className="flex min-w-0 items-center" />
+                    <Select.Indicator />
+                  </Select.Trigger>
+                  <Select.Popover>
+                    <ListBox>
+                      {[7, 15, 30, 60].map((value) => (
+                        <ListBox.Item
+                          id={String(value)}
+                          key={value}
+                          textValue={`${value} days`}
+                        >
+                          <span className="flex min-w-0 items-center gap-2">
+                            <ScoutIcon name="date" />
+                            {value} days{value === 15 ? " (default)" : ""}
+                          </span>
+                          <ListBox.ItemIndicator />
+                        </ListBox.Item>
+                      ))}
+                    </ListBox>
+                  </Select.Popover>
+                </Select>
+                <FieldDescription>
+                  Choose how long to keep performance history. Reducing this
+                  period removes older data.
+                </FieldDescription>
+              </div>
+            ) : (
+              <dl className="text-sm">
+                <dt className="text-muted">Data retention</dt>
+                <dd className="mt-0.5">{agent.retentionDays} days</dd>
+              </dl>
+            )}
+            {canManage && days !== agent.retentionDays ? (
+              <div>
+                <ActionButton
+                  confirm={
+                    days < agent.retentionDays
+                      ? {
+                          title: "Reduce performance retention?",
+                          description: `Performance data older than ${days} days will be removed. This cannot be undone.`,
+                          actionLabel: "Reduce retention",
+                        }
+                      : undefined
+                  }
+                  action={() => api.patch(endpoint, { retentionDays: days })}
+                  onSuccess={() => setRetention(null)}
+                  isDisabled={busy}
+                  success="Retention updated"
+                >
+                  <ScoutIcon name="save" />
+                  Save retention
+                </ActionButton>
+              </div>
+            ) : null}
+          </Widget.Content>
+        </Widget>
+      ) : null}
     </div>
   );
 }
@@ -283,6 +302,7 @@ export function MonitoringStatus({ agent }: { agent: MonitoringAgentStatus }) {
   return (
     <Chip
       size="small"
+      tooltip={monitoringStatusTooltip(agent)}
       icon={
         <ScoutIcon
           name={
@@ -308,5 +328,23 @@ export function MonitoringStatus({ agent }: { agent: MonitoringAgentStatus }) {
     >
       {labels[agent.status] ?? agent.status}
     </Chip>
+  );
+}
+
+function monitoringStatusTooltip(agent: MonitoringAgentStatus) {
+  if (agent.errorMessage) return agent.errorMessage;
+  if (agent.lastCollectedAt) {
+    return `Latest sample collected ${formatDate(agent.lastCollectedAt)}.`;
+  }
+  return (
+    {
+      disabled: "Scout Agent is not enabled on this server.",
+      queued: "Installation is waiting for an available worker.",
+      installing: "Towbar is installing Scout Agent on the server.",
+      waiting: "Scout Agent is installed and waiting to send its first report.",
+      offline: "No report arrived within the expected reporting window.",
+      uninstalling: "Towbar is removing Scout Agent from the server.",
+      failed: "The latest Scout Agent operation failed.",
+    }[agent.status] ?? "Scout Agent has not sent a sample yet."
   );
 }

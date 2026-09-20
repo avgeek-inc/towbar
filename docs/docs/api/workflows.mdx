@@ -1,9 +1,9 @@
 ---
 title: Automation workflows
-description: Deploy and roll back apps, reconcile Git sources, manage secrets, and follow asynchronous Towbar operations.
+description: Deploy and roll back apps, reconcile repositories, manage secrets, and follow asynchronous Towbar operations.
 ---
 
-All examples use your own API host and an bearer API key. Use a full-access key for mutations. Owner-only operations require the creator to remain a workspace owner.
+All examples use your own API host and a Bearer API key. Use an Edit key for permitted mutations. Deployment and infrastructure operations require administrative grants. Personal keys remain bounded by the owner’s current team role; team keys retain their explicit service grants.
 
 ## Deploy an app
 
@@ -35,15 +35,15 @@ Read `/apps/{appId}/releases`, then `POST /apps/{appId}/actions/rollback` with a
 
 `POST /deployments/{deploymentId}/actions/cancel` requests cancellation. Poll the deployment to see the final result. A retry uses `/deployments/{deploymentId}/actions/retry` and a fresh idempotency key for the new attempt.
 
-## Reconcile a source
+## Reconcile a repository
 
-Optionally discover declared environments with `POST /sources/discover`, using repository details from `/github/repositories` and the repository default branch as `discoveryBranch`. Discovery is only a suggestion step; connection does not require it. Connect the repository with `POST /sources/connect`, mapping each selected environment to its branch. Initial sync imports configuration without deploying. For later reconciliation, call `POST /sources/{sourceId}/environments/{environmentId}/syncs`, or `/sources/{sourceId}/environments/syncs` for all connected environments. These explicit syncs may trigger eligible auto-deployments. Inspect each queue outcome and read `/sources/{sourceId}/syncs/{syncId}` for completion and validation errors.
+Optionally discover declared environments with `POST /sources/discover`, using repository details from `/github/repositories` and the repository default branch as `discoveryBranch`. Discovery is only a suggestion step; connection does not require it. Connect the repository with `POST /sources/connect`, mapping each selected environment to its branch. Initial sync imports configuration without deploying. For later reconciliation, call `POST /sources/{sourceId}/environments/{environmentId}/syncs`, or `/sources/{sourceId}/environments/syncs` for all connected environments. These explicit syncs import configuration without deploying. Mapped-branch push events can queue opted-in deployments. Inspect each queue outcome and read `/sources/{sourceId}/syncs/{syncId}` for completion and validation errors.
 
-Automatic deployment controls can be read or changed at `/sources/{sourceId}/auto-deploy-control`, `/apps/{appId}/auto-deploy-control`, and `/resources/{resourceId}/auto-deploy-control`. Source-level and workload-level controls combine as they do in the UI.
+Automatic deployment controls can be read or changed at `/sources/{sourceId}/auto-deploy-control`, `/apps/{appId}/auto-deploy-control`, and `/resources/{resourceId}/auto-deploy-control`. Repository-level and workload-level controls combine as they do in the UI.
 
 ## Update secrets safely
 
-Read `/settings/secrets?environment=production` for workspace bindings and their revisions. Source, app, and resource secret routes use the same model. Reads expose names and revision metadata, never plaintext values.
+Read `/settings/secrets` for workspace bindings and their revisions. Repository, app, and resource secret routes use the same model. Reads expose names and revision metadata, never plaintext values.
 
 ```bash
 curl -X PATCH 'https://YOUR_API_HOST/v1/api/settings/secrets/production/deployment' \
@@ -64,11 +64,11 @@ The local `secret-change.json` contains:
 
 Use `null` only when creating a previously empty secret slot. For an existing slot, send its current revision UUID. A stale revision returns `409`; read the latest metadata and reconcile changes. A request changes 1–200 keys, and cannot set and delete the same key. Keep real secret files outside source control.
 
-Valid environments are `production` and `preview`. Stages are `build`, `deployment`, `pre_deploy`, and `post_deploy`. Server credentials use `/servers/{serverId}/credentials` and accept `privateKey` and Cloudflare `apiToken` in the `set` map.
+Workspace values use the `production` storage path and are shared across environments when explicitly referenced. For repository and workload values, use the connected environment name, such as `production` or `staging`. Preview scopes use `preview:<environment>`, such as `preview:staging`. Stages are `build`, `deployment`, `pre_deploy`, and `post_deploy`. Server Cloudflare tokens use `/servers/{serverId}/credentials`. Select an existing stored SSH key with `/servers/{serverId}/credentials/actions/verify-private-key`, passing `privateKeyId` and `expectedRevision`. Creating or revealing private keys requires the Admin dashboard.
 
 ## Servers, backups, and previews
 
-Create a server with `POST /servers`, configure credentials, and trust its SSH host key after verifying the fingerprint. Use `/servers/{serverId}/actions/prepare` and follow `/preparations` until ready. `/actions/check` refreshes runtime health and capacity; inspect `/checks` for the outcome.
+Create a server with `POST /servers`, select its stored SSH key for verification, compare a discovered host-key fingerprint independently, and trust the matching key. Use `/servers/{serverId}/actions/prepare` and follow `/preparations` until ready. `/actions/check` refreshes runtime health and capacity; inspect `/checks` for the outcome.
 
 For resource backups, use `/resources/{resourceId}/actions/backup`. Read `/operations` and `/backup-assurance`. Restore and cleanup operations have explicit request schemas and state constraints in the reference. Restores can overwrite database contents; inspect the backup, target, and required confirmation fields before invoking them.
 

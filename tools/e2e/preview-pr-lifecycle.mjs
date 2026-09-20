@@ -79,7 +79,7 @@ preview:
   domain: ignored.example.com
 environments:
   staging:
-    server: test
+    server: 127.0.0.1
 `;
   let revision = "a",
     closed = false,

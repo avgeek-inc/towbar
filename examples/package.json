@@ -1,0 +1,15 @@
+{
+  "name": "hello-towbar-example",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A small Dockerfile app for your first Towbar deployment.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test"
+  }
+}

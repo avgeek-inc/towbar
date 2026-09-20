@@ -1,7 +1,9 @@
+import { executeAppJob } from "./app-job.js";
 import { requireOperationSource } from "./operation-source.js";
+/* eslint-disable max-lines -- Resource backup and restore providers share one evidence and promotion protocol. */
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { mkdtemp, rm, stat } from "node:fs/promises";
+import { mkdtemp, rm, stat, statfs } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -23,7 +25,9 @@ import type {
 } from "./types.js";
 import type {
   BackupDestinationResult,
+  BackupOperationResult,
   BackupProvider,
+  ManagedResourceType,
   NormalizedResource,
   OrphanItem,
 } from "@workspace/towbar-core";
@@ -31,6 +35,9 @@ import {
   executeManagedRestore,
   executeRestoreCleanup,
 } from "./resource-restore.js";
+
+type BackupEngine = ManagedResourceType;
+type BackupFormat = NonNullable<BackupOperationResult["format"]>;
 
 const createBackupScript = String.raw`
 set -euo pipefail
@@ -40,6 +47,9 @@ remote_dir="$3"
 backup_path="$4"
 deployable_id="$5"
 install -d -m 700 "$remote_dir"
+ulimit -f ${maximumBackupBytes / 512}
+available="$(df -PB1 "$remote_dir" | awk 'NR==2 {print $4}')"
+test "$available" -ge 1073741824
 test "$(docker inspect --format '{{index .Config.Labels "towbar.managed"}}' "$container")" = true
 owned="$(docker inspect --format '{{index .Config.Labels "towbar.deployable"}}' "$container")"
 test "$owned" = "$deployable_id"
@@ -50,17 +60,44 @@ if test "$kind" = postgres; then
   docker exec "$container" pg_restore --list /tmp/towbar-backup.dump >/dev/null
   docker exec "$container" rm -f /tmp/towbar-backup.dump
   docker exec "$container" postgres --version | sed -E 's/.* ([0-9]+)(\..*)?$/\1/'
-elif test "$kind" = redis; then
+elif test "$kind" = mysql; then
+  docker exec "$container" sh -c 'exec mysqldump --all-databases --single-transaction --routines --events --triggers --set-gtid-purged=OFF -u root -p"$MYSQL_ROOT_PASSWORD"' >"$backup_path"
+  test -s "$backup_path"
+  docker exec "$container" mysqld --version | sed -E 's/.*Ver ([0-9]+)(\..*)?.*/\1/'
+elif test "$kind" = mariadb; then
+  docker exec "$container" sh -c 'exec mariadb-dump --all-databases --single-transaction --routines --events -u root -p"$MYSQL_ROOT_PASSWORD"' >"$backup_path"
+  test -s "$backup_path"
+  docker exec "$container" sh -c 'mariadb --version' | sed -E 's/.*Distrib ([0-9]+)(\..*)?.*/\1/'
+elif test "$kind" = mongodb; then
+  docker exec "$container" sh -c 'exec mongodump --archive --gzip --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin' >"$backup_path"
+  test -s "$backup_path"
+  docker exec "$container" mongod --version | awk '/db version/ {sub(/^v/, "", $3); split($3, version, "."); print version[1]; exit}'
+elif test "$kind" = redis || test "$kind" = dragonfly || test "$kind" = keydb; then
   docker exec "$container" sh -c 'rm -f /tmp/towbar-backup.rdb; redis-cli -a "$REDIS_PASSWORD" --no-auth-warning --rdb /tmp/towbar-backup.rdb >/dev/null; test -s /tmp/towbar-backup.rdb'
-  docker exec "$container" redis-check-rdb /tmp/towbar-backup.rdb >/dev/null
+  if docker exec "$container" command -v redis-check-rdb >/dev/null 2>&1; then docker exec "$container" redis-check-rdb /tmp/towbar-backup.rdb >/dev/null; fi
   docker cp "$container:/tmp/towbar-backup.rdb" "$backup_path"
   docker exec "$container" rm -f /tmp/towbar-backup.rdb
-  docker exec "$container" redis-server --version | sed -E 's/.*v=([0-9]+)(\..*)?.*/\1/'
+  if test "$kind" = redis; then
+    docker exec "$container" redis-server --version | sed -E 's/.*v=([0-9]+)(\..*)?.*/\1/'
+  elif test "$kind" = keydb; then
+    docker exec "$container" keydb-server --version | sed -E 's/.*v=([0-9]+)(\..*)?.*/\1/'
+  else
+    docker exec "$container" dragonfly --version | grep -Eo '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1 | cut -d. -f1
+  fi
+elif test "$kind" = clickhouse; then
+  archive="towbar-$deployable_id.zip"
+  docker exec "$container" rm -f "/var/lib/clickhouse/backups/$archive"
+  docker exec "$container" sh -c 'exec clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --query "BACKUP ALL EXCEPT DATABASES system, INFORMATION_SCHEMA, information_schema TO File('\''$1'\'')"' sh "$archive"
+  docker cp "$container:/var/lib/clickhouse/backups/$archive" "$backup_path"
+  docker exec "$container" rm -f "/var/lib/clickhouse/backups/$archive"
+  test -s "$backup_path"
+  docker exec "$container" clickhouse-server --version | awk '{for (i=1;i<=NF;i++) if ($i ~ /^[0-9]+\./) {split($i,v,"."); print v[1]; exit}}'
 else
   exit 64
 fi
 chmod 600 "$backup_path"
 test "$(stat -c %s "$backup_path")" -le ${maximumBackupBytes}
+printf 'TOWBAR_BACKUP_SIZE=%s\n' "$(stat -c %s "$backup_path")"
 `;
 
 const containerOperationScript = String.raw`
@@ -80,6 +117,48 @@ case "$operation" in
   stop) docker stop --time 30 "$container" >/dev/null ;;
   *) exit 64 ;;
 esac
+`;
+
+const composeOperationScript = String.raw`
+set -euo pipefail
+operation="$1"
+project="$2"
+deployable_id="$3"
+tail_lines="$4"
+service="$5"
+filters=(--filter "label=com.docker.compose.project=$project")
+if test -n "$service"; then
+  filters+=(--filter "label=com.docker.compose.service=$service")
+fi
+mapfile -t containers < <(docker ps -a "${"$"}{filters[@]}" --format '{{.Names}}' | sort)
+test "${"#"}{containers[@]}" -gt 0
+for container in "${"$"}{containers[@]}"; do
+  test "$(docker inspect --format '{{index .Config.Labels "towbar.managed"}}' "$container")" = true
+  test "$(docker inspect --format '{{index .Config.Labels "towbar.deployable"}}' "$container")" = "$deployable_id"
+done
+case "$operation" in
+  capture_logs)
+    for container in "${"$"}{containers[@]}"; do
+      printf '==> %s <==\n' "$container"
+      docker logs --timestamps --tail "$tail_lines" "$container" 2>&1
+    done
+    ;;
+  restart) docker restart --time 30 "${"$"}{containers[@]}" >/dev/null ;;
+  start) docker start "${"$"}{containers[@]}" >/dev/null ;;
+  stop) docker stop --time 30 "${"$"}{containers[@]}" >/dev/null ;;
+  *) exit 64 ;;
+esac
+`;
+
+const ingressLogsScript = String.raw`
+set -euo pipefail
+container="$1"
+deployable_id="$2"
+tail_lines="$3"
+test "$(docker inspect --format '{{index .Config.Labels "towbar.managed"}}' "$container")" = true
+test "$(docker inspect --format '{{index .Config.Labels "towbar.ingress"}}' "$container")" = cloudflare-tunnel
+test "$(docker inspect --format '{{index .Config.Labels "towbar.app"}}' "$container")" = "$deployable_id"
+docker logs --timestamps --tail "$tail_lines" "$container" 2>&1
 `;
 
 const cleanupOrphansScript = String.raw`
@@ -197,6 +276,15 @@ export async function executeResourceOperation(input: {
       });
     }
 
+    if (context.request.type === "run_job") {
+      return await executeAppJob({
+        ...input,
+        session,
+        localDirectory,
+        remoteDirectory,
+      });
+    }
+
     const deployable = context.deployable;
     const release = context.currentRelease;
     if (!deployable || !context.deployableId || !release) {
@@ -214,16 +302,32 @@ export async function executeResourceOperation(input: {
         session,
       });
     }
+    const ingressLogCapture =
+      context.request.type === "capture_logs" &&
+      context.request.runtime === "ingress";
+    const logTail =
+      context.request.type === "capture_logs"
+        ? String(context.request.tail)
+        : "0";
     const { stdout } = await session.run(
-      containerOperationScript,
-      [
-        context.request.type,
-        release.containerName,
-        context.deployableId,
-        context.request.type === "capture_logs"
-          ? String(context.request.tail)
-          : "0",
-      ],
+      ingressLogCapture
+        ? ingressLogsScript
+        : deployable.kind === "compose"
+          ? composeOperationScript
+          : containerOperationScript,
+      ingressLogCapture
+        ? [
+            `towbar-cloudflared-${context.deployableId}`,
+            context.deployableId,
+            logTail,
+          ]
+        : [
+            context.request.type,
+            release.containerName,
+            context.deployableId,
+            logTail,
+            "service" in context.request ? (context.request.service ?? "") : "",
+          ],
       { signal, timeoutMs: 2 * 60_000 },
     );
     if (context.request.type === "capture_logs") {
@@ -262,21 +366,19 @@ async function createBackup(input: {
   if (!backup || !release) {
     throw new Error("A current release is required for this operation");
   }
-  if (
-    input.deployable.kind !== "postgres" &&
-    input.deployable.kind !== "redis"
-  ) {
-    throw new Error("Managed backups require a PostgreSQL or Redis resource");
+  if (input.deployable.kind === "image") {
+    throw new Error("Managed backups require a managed database resource");
   }
-  const engine: "postgres" | "redis" = input.deployable.kind;
+  const engine: BackupEngine = input.deployable.kind;
 
   const { availableStorages, configuredProviders } = resolveBackupStorages(
     backup,
     input.storages,
     input.storage,
+    input.secrets.namedStorage,
   );
 
-  const extension = input.deployable.kind === "postgres" ? "dump" : "rdb";
+  const extension = backupExtension(engine);
   const localPath = path.join(input.localDirectory, `backup.${extension}`);
   const remotePath = `${input.remoteDirectory}/backup.${extension}`;
   const { stdout } = await input.session.run(
@@ -290,10 +392,30 @@ async function createBackup(input: {
     ],
     { signal: input.signal, timeoutMs: 30 * 60_000 },
   );
-  const engineMajorVersion = Number(stdout.trim().split(/\s+/u).at(-1));
+  const backupSize = Number(/^TOWBAR_BACKUP_SIZE=(\d+)$/mu.exec(stdout)?.[1]);
+  const engineMajorVersion = Number(
+    stdout
+      .trim()
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => /^\d+$/u.test(line))
+      .at(-1),
+  );
   if (!Number.isSafeInteger(engineMajorVersion) || engineMajorVersion <= 0) {
     throw new Error("Backup engine major version could not be determined");
   }
+  if (
+    !Number.isSafeInteger(backupSize) ||
+    backupSize <= 0 ||
+    backupSize > maximumBackupBytes
+  )
+    throw new Error("Backup size could not be determined safely");
+  const localCapacity = await statfs(input.localDirectory);
+  const localAvailable = localCapacity.bavail * localCapacity.bsize;
+  if (localAvailable < backupSize + 256 * 1_024 * 1_024)
+    throw new Error(
+      "The control plane does not have enough staging capacity for this backup",
+    );
   await input.session.download(remotePath, localPath, {
     signal: input.signal,
     timeoutMs: 30 * 60_000,
@@ -303,11 +425,14 @@ async function createBackup(input: {
   const sourceId = requireOperationSource(input.context.sourceId);
   const checksum = await sha256File(localPath);
   const metadata = await stat(localPath);
+  if (metadata.size !== backupSize)
+    throw new Error(
+      "Downloaded backup size does not match the server artifact",
+    );
   if (metadata.size > maximumBackupBytes) {
     throw new Error("Backup exceeds Towbar's 20 GiB safety limit");
   }
-  const format =
-    input.deployable.kind === "postgres" ? "postgres-custom" : "redis-rdb";
+  const format = backupFormat(engine);
 
   const destinationResults: BackupDestinationResult[] = [];
 
@@ -321,17 +446,22 @@ async function createBackup(input: {
       timestamp,
       extension,
       input.secrets.aws?.region,
+      input.secrets.namedStorage,
     );
     const result = await uploadAndVerifyDestination({
       checksum,
       config,
       engine,
       engineMajorVersion,
-      expectedS3Encryption: backup.s3?.encryption,
+      expectedS3Encryption:
+        provider === "s3" && backup.integration
+          ? "AES256"
+          : backup.s3?.encryption,
       format,
       localPath,
       provider,
       sizeBytes: metadata.size,
+      signal: input.signal,
       storage,
     });
     destinationResults.push(result);
@@ -362,16 +492,24 @@ function resolveBackupStorages(
   backup: NonNullable<NormalizedResource["backup"]>,
   storages?: Partial<Record<BackupProvider, BackupStorage>>,
   singleStorage?: BackupStorage,
+  namedStorage?: ResourceOperationSecrets["namedStorage"],
 ) {
+  const namedProvider = namedStorage?.provider;
   const availableStorages: Partial<Record<BackupProvider, BackupStorage>> = {
     ...storages,
-    ...(singleStorage ? { [backup.restoreFrom]: singleStorage } : {}),
+    ...(singleStorage && namedProvider
+      ? { [namedProvider]: singleStorage }
+      : singleStorage && backup.restoreFrom
+        ? { [backup.restoreFrom]: singleStorage }
+        : {}),
   };
 
-  const configuredProviders: BackupProvider[] = [];
-  if (backup.s3) configuredProviders.push("s3");
-  if (backup.gcs) configuredProviders.push("gcs");
-  if (backup.azureBlob) configuredProviders.push("azureBlob");
+  const configuredProviders: BackupProvider[] = namedProvider
+    ? [namedProvider]
+    : [];
+  if (!namedProvider && backup.s3) configuredProviders.push("s3");
+  if (!namedProvider && backup.gcs) configuredProviders.push("gcs");
+  if (!namedProvider && backup.azureBlob) configuredProviders.push("azureBlob");
 
   if (configuredProviders.length === 0) {
     throw new Error(
@@ -390,6 +528,7 @@ function resolveBackupStorages(
   return { availableStorages, configuredProviders };
 }
 
+// eslint-disable-next-line complexity -- Provider-specific object metadata is normalized at this single storage boundary.
 function getDestinationUploadParams(
   provider: BackupProvider,
   backup: NonNullable<NormalizedResource["backup"]>,
@@ -398,8 +537,70 @@ function getDestinationUploadParams(
   timestamp: string,
   extension: string,
   defaultAwsRegion?: string,
+  namedStorage?: ResourceOperationSecrets["namedStorage"],
 ) {
   const fileKey = `${timestamp}.${extension}`;
+  if (backup.integration) {
+    if (!namedStorage || namedStorage.provider !== provider)
+      throw new Error("Named backup integration is unavailable");
+    if (namedStorage.provider === "s3" || namedStorage.provider === "r2") {
+      const configuration = namedStorage.configuration;
+      if (!configuration.bucket)
+        throw new Error(
+          "Object storage integration must configure a default bucket",
+        );
+      return {
+        bucket: configuration.bucket,
+        encryption: namedStorage.provider === "s3" ? "AES256" : "R2-managed",
+        key: [configuration.prefix || "towbar", sourceId, operationId, fileKey]
+          .filter(Boolean)
+          .join("/"),
+        kmsKeyId: undefined,
+        region: configuration.region,
+        storageAccount: undefined,
+      };
+    }
+    if (namedStorage.provider === "gcs") {
+      if (!namedStorage.configuration.bucket)
+        throw new Error("GCS integration must configure a default bucket");
+      return {
+        bucket: namedStorage.configuration.bucket,
+        encryption: "Google-managed",
+        key: [
+          namedStorage.configuration.prefix || "towbar",
+          sourceId,
+          operationId,
+          fileKey,
+        ]
+          .filter(Boolean)
+          .join("/"),
+        kmsKeyId: undefined,
+        region: undefined,
+        storageAccount: undefined,
+      };
+    }
+    if (namedStorage.provider !== "azureBlob")
+      throw new Error("Named backup integration provider is unsupported");
+    if (!namedStorage.configuration.container)
+      throw new Error(
+        "Azure Blob integration must configure a default container",
+      );
+    return {
+      bucket: namedStorage.configuration.container,
+      encryption: "Microsoft-managed",
+      key: [
+        namedStorage.configuration.prefix || "towbar",
+        sourceId,
+        operationId,
+        fileKey,
+      ]
+        .filter(Boolean)
+        .join("/"),
+      kmsKeyId: undefined,
+      region: undefined,
+      storageAccount: namedStorage.configuration.storageAccount,
+    };
+  }
   if (provider === "s3") {
     const s3Prefix = backup.s3?.prefix || "towbar";
     return {
@@ -440,12 +641,13 @@ function getDestinationUploadParams(
 async function uploadAndVerifyDestination(params: {
   checksum: string;
   config: ReturnType<typeof getDestinationUploadParams>;
-  engine: "postgres" | "redis";
+  engine: BackupEngine;
   engineMajorVersion: number;
   expectedS3Encryption?: string;
-  format: "postgres-custom" | "redis-rdb";
+  format: BackupFormat;
   localPath: string;
   provider: BackupProvider;
+  signal?: AbortSignal;
   sizeBytes: number;
   storage: BackupStorage;
 }): Promise<BackupDestinationResult> {
@@ -463,6 +665,7 @@ async function uploadAndVerifyDestination(params: {
       "towbar-format": params.format,
       "towbar-metadata-version": "1",
     },
+    signal: params.signal,
     sizeBytes: params.sizeBytes,
     ...(config.storageAccount ? { storageAccount: config.storageAccount } : {}),
   });
@@ -476,7 +679,7 @@ async function uploadAndVerifyDestination(params: {
 
   if (
     !verified.exists ||
-    !verified.encryption ||
+    (!verified.encryption && params.provider !== "r2") ||
     verified.checksum !== params.checksum ||
     verified.sizeBytes !== params.sizeBytes ||
     verified.engine !== params.engine ||
@@ -493,7 +696,7 @@ async function uploadAndVerifyDestination(params: {
 
   return {
     bucket: config.bucket,
-    encryption: verified.encryption,
+    encryption: verified.encryption ?? config.encryption,
     key: config.key,
     ...(upload.versionId ? { objectVersion: upload.versionId } : {}),
     provider: params.provider,
@@ -538,6 +741,9 @@ async function cleanupRetentionBackups(
         await storage.deleteObject({
           bucket: dest.bucket,
           key: dest.key,
+          ...("objectVersion" in dest && dest.objectVersion
+            ? { versionId: dest.objectVersion }
+            : {}),
           ...(dest.storageAccount
             ? { storageAccount: dest.storageAccount }
             : {}),
@@ -564,9 +770,9 @@ function buildBackupResult(params: {
   checksum: string;
   deletedBackupIds: string[];
   destinationResults: BackupDestinationResult[];
-  engine: "postgres" | "redis";
+  engine: BackupEngine;
   engineMajorVersion: number;
-  format: "postgres-custom" | "redis-rdb";
+  format: BackupFormat;
   operationId: string;
   region?: string;
   sizeBytes: number;
@@ -596,7 +802,7 @@ function buildBackupResult(params: {
       ? { objectVersionId: primaryDest.objectVersion }
       : {}),
     ...(region ? { region } : {}),
-    restoreFrom: backup.restoreFrom,
+    restoreFrom: primaryDest.provider,
     sizeBytes: params.sizeBytes,
     ...(primaryDest.storageAccount
       ? { storageAccount: primaryDest.storageAccount }
@@ -612,10 +818,37 @@ async function sha256File(filePath: string) {
   return hash.digest("hex");
 }
 
+function backupFormat(engine: BackupEngine): BackupFormat {
+  return {
+    clickhouse: "clickhouse-backup",
+    dragonfly: "dragonfly-rdb",
+    keydb: "keydb-rdb",
+    mariadb: "mariadb-sql",
+    mongodb: "mongodb-archive",
+    mysql: "mysql-sql",
+    postgres: "postgres-custom",
+    redis: "redis-rdb",
+  }[engine] as BackupFormat;
+}
+
+function backupExtension(engine: BackupEngine) {
+  return {
+    clickhouse: "zip",
+    dragonfly: "rdb",
+    keydb: "rdb",
+    mariadb: "sql",
+    mongodb: "archive.gz",
+    mysql: "sql",
+    postgres: "dump",
+    redis: "rdb",
+  }[engine];
+}
+
 export const resourceOperationScripts = {
   cleanupOrphans: cleanupOrphansScript,
   containerOperation: containerOperationScript,
   createBackup: createBackupScript,
+  ingressLogs: ingressLogsScript,
 } as const;
 
 export const resourceOperationInternal = {

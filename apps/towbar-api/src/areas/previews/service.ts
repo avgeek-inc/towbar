@@ -1,3 +1,4 @@
+import { withActor } from "../auth/actor-context.js";
 import { and, desc, eq, isNull, ne } from "drizzle-orm";
 
 import {
@@ -10,7 +11,7 @@ import {
 import { previewPullRequestEventSchema } from "@workspace/towbar-core/temporal";
 import {
   apps,
-  githubInstallations,
+  integrationInstallations,
   previewEnvironments,
   servers,
   sourceEnvironments,
@@ -18,19 +19,21 @@ import {
   sources,
 } from "@workspace/towbar-database/schema";
 
-import { fetchGitHubEnvironmentSnapshot } from "../github/environment-snapshot.js";
+import {
+  fetchRepositoryEnvironmentSnapshot,
+  fetchRepositoryPullRequest,
+  fetchRepositoryPullRequestChangedPaths,
+  fetchRepositoryTree,
+  repositoryProviderClient,
+} from "../sources/repository-provider.js";
 import { withPreviewLifecycleLock } from "./lifecycle-lock.js";
 import { samePreviewPullRequestRevision } from "./pull-request.js";
 import { selectObsoletePreviewApps } from "./cleanup-selection.js";
 import { resolvePreviewConfiguration } from "./configuration.js";
 import { assertRequiredInstanceSecrets } from "../apps/secrets.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
+import { requireGitLabRuntimeConfiguration } from "../../infrastructure/runtime-integrations.js";
 import { enqueueDeployment } from "../../infrastructure/temporal.js";
-import {
-  fetchGitHubPullRequest,
-  fetchGitHubPullRequestChangedPaths,
-  fetchGitHubRepositoryTree,
-} from "../github/client.js";
 import {
   propagatePreviewDeploymentState,
   publishPreviewDeploymentStatus,
@@ -80,6 +83,7 @@ export async function listPreviewEnvironments(input: {
       pullRequestNumber: previewEnvironments.pullRequestNumber,
       repositoryName: sources.repositoryName,
       repositoryOwner: sources.repositoryOwner,
+      repositoryProvider: sources.provider,
       sourceId: previewEnvironments.sourceId,
       status: previewEnvironments.status,
       updatedAt: previewEnvironments.updatedAt,
@@ -98,10 +102,30 @@ export async function listPreviewEnvironments(input: {
       ),
     )
     .orderBy(desc(previewEnvironments.updatedAt));
-  return rows.map(({ repositoryName, repositoryOwner, ...preview }) => ({
-    ...preview,
-    pullRequestUrl: `https://github.com/${repositoryOwner}/${repositoryName}/pull/${preview.pullRequestNumber}`,
-  }));
+  return rows.map(
+    ({ repositoryName, repositoryOwner, repositoryProvider, ...preview }) => {
+      const repositoryPath = [repositoryOwner, repositoryName]
+        .flatMap((part) => part.split("/"))
+        .map(encodeURIComponent)
+        .join("/");
+      const repositoryUrl =
+        repositoryProvider === "github"
+          ? `https://github.com/${repositoryPath}`
+          : new URL(
+              repositoryPath,
+              `${requireGitLabRuntimeConfiguration().baseUrl.replace(/\/$/u, "")}/`,
+            )
+              .toString()
+              .replace(/\/$/u, "");
+      return {
+        ...preview,
+        pullRequestUrl:
+          repositoryProvider === "github"
+            ? `${repositoryUrl}/pull/${preview.pullRequestNumber}`
+            : `${repositoryUrl}/-/merge_requests/${preview.pullRequestNumber}`,
+      };
+    },
+  );
 }
 
 export async function processPreviewPullRequestEvent(
@@ -117,28 +141,55 @@ async function reconcilePreviewPullRequest(event: PreviewPullRequestEvent) {
   const database = getTowbarDatabase();
   const [source] = await database
     .select({
-      installationId: githubInstallations.installationId,
+      installationId: integrationInstallations.externalId,
+      connectionId: sources.integrationAuthorizationId,
+      projectId: sources.providerRepositoryId,
+      provider: sources.provider,
       repositoryName: sources.repositoryName,
       repositoryOwner: sources.repositoryOwner,
       status: sources.status,
+      autoDeployPaused: sources.autoDeployPaused,
       workspaceId: sources.workspaceId,
     })
     .from(sources)
-    .innerJoin(
-      githubInstallations,
-      eq(githubInstallations.id, sources.githubInstallationId),
+    .leftJoin(
+      integrationInstallations,
+      eq(integrationInstallations.id, sources.integrationInstallationId),
     )
     .where(eq(sources.id, event.sourceId))
     .limit(1);
   if (!source || source.status !== "active") {
     return { cleanupIds: [], deploymentIds: [], retry: false };
   }
-  const pullRequest = await fetchGitHubPullRequest({
-    installationId: source.installationId,
-    pullRequestNumber: event.pullRequestNumber,
-    repositoryName: source.repositoryName,
-    repositoryOwner: source.repositoryOwner,
-  });
+  const providerConnection = await repositoryProviderClient(
+    source.provider === "github"
+      ? source.installationId
+        ? {
+            installationId: source.installationId,
+            provider: "github",
+            repositoryName: source.repositoryName,
+            repositoryOwner: source.repositoryOwner,
+          }
+        : (() => {
+            throw new Error("GitHub source is missing its installation");
+          })()
+      : source.connectionId && source.projectId
+        ? {
+            connectionId: source.connectionId,
+            projectId: source.projectId,
+            provider: "gitlab",
+            repositoryName: source.repositoryName,
+            repositoryOwner: source.repositoryOwner,
+            workspaceId: source.workspaceId,
+          }
+        : (() => {
+            throw new Error("GitLab source is missing its integration");
+          })(),
+  );
+  const pullRequest = await fetchRepositoryPullRequest(
+    providerConnection,
+    event.pullRequestNumber,
+  );
   const environments = await database
     .select()
     .from(sourceEnvironments)
@@ -150,6 +201,16 @@ async function reconcilePreviewPullRequest(event: PreviewPullRequestEvent) {
         isNull(sourceEnvironments.disconnectedAt),
       ),
     );
+  // Closing a pull request retires an already admitted preview. Other events
+  // cannot change runtime state while its repository mapping is paused.
+  if (
+    pullRequest.state !== "closed" &&
+    (source.autoDeployPaused ||
+      environments.length === 0 ||
+      environments.some((environment) => environment.autoDeployPaused))
+  ) {
+    return { cleanupIds: [], deploymentIds: [], retry: false };
+  }
   const disposition = previewPullRequestDisposition({
     pullRequest,
     repositoryName: source.repositoryName,
@@ -170,13 +231,13 @@ async function reconcilePreviewPullRequest(event: PreviewPullRequestEvent) {
       retry: false,
     };
   }
-  const changedPaths = await fetchGitHubPullRequestChangedPaths({
-    changedFileCount: pullRequest.changedFileCount,
-    installationId: source.installationId,
-    pullRequestNumber: pullRequest.number,
-    repositoryName: source.repositoryName,
-    repositoryOwner: source.repositoryOwner,
-  });
+  const changedPaths = await fetchRepositoryPullRequestChangedPaths(
+    providerConnection,
+    {
+      changedFileCount: pullRequest.changedFileCount,
+      pullRequestNumber: pullRequest.number,
+    },
+  );
 
   const candidates = await database
     .select({
@@ -224,10 +285,8 @@ async function reconcilePreviewPullRequest(event: PreviewPullRequestEvent) {
       Boolean(candidate.serverPreparedAt) &&
       candidate.serverPreparedConfigDigest === candidate.serverConfigDigest,
   );
-  const repositorySnapshot = await fetchGitHubEnvironmentSnapshot({
-    installationId: source.installationId,
-    repositoryName: source.repositoryName,
-    repositoryOwner: source.repositoryOwner,
+  const repositorySnapshot = await fetchRepositoryEnvironmentSnapshot({
+    ...providerConnection,
     commitSha: pullRequest.headSha,
   });
   const resolved = new Map(
@@ -254,12 +313,10 @@ async function reconcilePreviewPullRequest(event: PreviewPullRequestEvent) {
     }),
   );
   const relevantAppIds = new Set(relevant.map((candidate) => candidate.appId));
-  const latestPullRequest = await fetchGitHubPullRequest({
-    installationId: source.installationId,
-    pullRequestNumber: event.pullRequestNumber,
-    repositoryName: source.repositoryName,
-    repositoryOwner: source.repositoryOwner,
-  });
+  const latestPullRequest = await fetchRepositoryPullRequest(
+    providerConnection,
+    event.pullRequestNumber,
+  );
   if (!samePreviewPullRequestRevision(pullRequest, latestPullRequest)) {
     return { cleanupIds: [], deploymentIds: [], retry: true };
   }
@@ -321,12 +378,7 @@ async function reconcilePreviewPullRequest(event: PreviewPullRequestEvent) {
   const repositoryTree = relevant.some(
     (candidate) => candidate.config.deploymentInputs.length > 0,
   )
-    ? await fetchGitHubRepositoryTree({
-        commitSha: pullRequest.headSha,
-        installationId: source.installationId,
-        repositoryName: source.repositoryName,
-        repositoryOwner: source.repositoryOwner,
-      })
+    ? await fetchRepositoryTree(providerConnection, pullRequest.headSha)
     : undefined;
 
   const admissions = [];
@@ -355,25 +407,34 @@ async function reconcilePreviewPullRequest(event: PreviewPullRequestEvent) {
       repositoryTree,
       server: candidate.server,
     });
-    const admission = await admitPreviewDeployment({
-      requiredSecrets: candidate.requiredSecrets,
-      targetEnvironment: candidate.targetEnvironment,
-      targetConfigDigest: candidate.targetConfigDigest,
-      appId: candidate.appId,
-      branch: pullRequest.headBranch,
-      commitSha: pullRequest.headSha,
-      config: snapshot,
-      deploymentDigest: digests.deploymentDigest,
-      hostname,
-      manifestDigest: candidate.manifestDigest!,
-      pullRequestNumber: pullRequest.number,
-      server: candidate.server,
-      serverId: candidate.serverId,
-      sourceId: event.sourceId,
-      sourceInputDigest: digests.sourceInputDigest,
-      ttlHours: candidate.config.preview!.ttlHours,
-      workspaceId: source.workspaceId,
-    });
+    const admission = await withActor(
+      {
+        kind: "system",
+        source: source.provider,
+        workspaceId: source.workspaceId,
+        grants: ["deployment.create"],
+      },
+      () =>
+        admitPreviewDeployment({
+          requiredSecrets: candidate.requiredSecrets,
+          targetEnvironment: candidate.targetEnvironment,
+          targetConfigDigest: candidate.targetConfigDigest,
+          appId: candidate.appId,
+          branch: pullRequest.headBranch,
+          commitSha: pullRequest.headSha,
+          config: snapshot,
+          deploymentDigest: digests.deploymentDigest,
+          hostname,
+          manifestDigest: candidate.manifestDigest!,
+          pullRequestNumber: pullRequest.number,
+          server: candidate.server,
+          serverId: candidate.serverId,
+          sourceId: event.sourceId,
+          sourceInputDigest: digests.sourceInputDigest,
+          ttlHours: candidate.config.preview!.ttlHours,
+          workspaceId: source.workspaceId,
+        }),
+    );
     admissions.push(admission);
     await Promise.all(
       admission.supersededDeploymentIds.map((deploymentId) =>

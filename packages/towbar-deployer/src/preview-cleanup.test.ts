@@ -63,7 +63,7 @@ esac
         encoding: "utf8",
         env: {
           ...process.env,
-          // eslint-disable-next-line turbo/no-undeclared-env-vars -- Test shims retain host shell utilities on PATH.
+
           PATH: `${directory}:${process.env.PATH}`,
           MODE: mode,
         },

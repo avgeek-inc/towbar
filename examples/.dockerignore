@@ -1,3 +1,4 @@
-*
-!server.mjs
-!Dockerfile
+**
+!package.json
+!src/
+!src/**

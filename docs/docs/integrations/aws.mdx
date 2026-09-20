@@ -1,54 +1,42 @@
 ---
 title: "AWS"
-description: "Connect one workspace credential for managed S3 backups and restores."
+description: "Enable one runtime AWS identity for resource backups and restores."
 ---
 
-AWS is optional. Towbar can deploy to registered Ubuntu servers without an AWS account. Connect AWS when PostgreSQL or Redis resources need managed S3 backups and restores.
+AWS is optional. Enable it only when a resource backup policy uses AWS S3. Configure the API process and restart it:
 
-## Connect credentials
+```dotenv
+TOWBAR_AWS_ENABLED=true
+TOWBAR_AWS_REGION=us-east-1
+TOWBAR_AWS_ACCESS_KEY_ID=<access-key-id>
+TOWBAR_AWS_SECRET_ACCESS_KEY=<secret-access-key>
+```
 
-1. Prepare an AWS identity scoped to the buckets and prefixes your resources will use.
-2. Open **Manage → Integrations → Cloud providers → AWS**.
-3. Choose **Add credentials** and enter the access key ID, secret access key, and default region.
-4. Save. Towbar verifies the identity before storing encrypted credentials.
-
-The workspace has one AWS credential shared by its resource backup policies. The UI exposes metadata and the access-key suffix, not the secret. Updating the credential affects future S3 operations across the workspace.
+Temporary AWS sessions are not supported because they are not maintainable as static installation configuration. Scope the identity to the required buckets, prefixes, object versions, and KMS keys. Towbar shows AWS only when all enabled values pass startup validation and never returns the credential in the UI or API.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
     <img
-      src="/assets/guides/aws-light.webp"
-      alt="Example connected AWS integration. Only credential metadata and the access-key suffix are displayed."
-      width="2160"
-      height="664"
+      src="/assets/release-v2/aws-setup-light.jpg"
+      alt="The AWS integration confirms that its runtime configuration is available without exposing credentials."
+      width="1280"
+      height="720"
       loading="lazy"
     />
   </div>
   <div className="towbar-product-dark">
     <img
-      src="/assets/guides/aws-dark.webp"
-      alt="Example connected AWS integration. Only credential metadata and the access-key suffix are displayed."
-      width="2160"
-      height="664"
+      src="/assets/release-v2/aws-setup-dark.jpg"
+      alt="The AWS integration confirms that its runtime configuration is available without exposing credentials."
+      width="1280"
+      height="720"
       loading="lazy"
     />
   </div>
   <p>
-    Example connected AWS integration. Only credential metadata and the
-    access-key suffix are displayed.
+    Runtime-managed integrations expose availability and documentation without
+    returning their credentials.
   </p>
 </div>
 
-## Grant storage access
-
-The identity needs permissions for backup writes, object inspection and reads, and retention cleanup within the declared bucket/prefix. Restores require `s3:GetObject`; versioned backups also need access to the retained object version. KMS-encrypted backups require suitable key permissions.
-
-An identity check verifies who the credential represents. It does not test all S3 or KMS permissions. Confirm those by completing a [backup](/docs/backups) and checking restore readiness.
-
-## Check and rotate
-
-Open **Manage → System health** and choose **Run checks** to revalidate connected AWS credentials. Failed checks require attention; old verification results become stale.
-
-To rotate, update the integration with the replacement credential, verify a backup, and retire the old key through AWS. Coordinate changes with running operations. Deleting the integration pauses configured backup schedules until replacement credentials are stored.
-
-Cloudflare DNS credentials are configured per [server](/docs/servers) and are separate from this AWS integration.
+Confirm permissions with a real [resource backup and restore](/docs/backups) before relying on the configuration. Rotate the key in `.env`, recreate the API container, verify a backup, and then retire the old key.

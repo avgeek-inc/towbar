@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { formatTableTime } from "./table-time";
+import {
+  defaultDateTimePreferences,
+  localizedResponse,
+} from "@workspace/towbar-core/date-time";
+import {
+  localizationGeneration,
+  receiveDateTimeLabels,
+} from "./date-time-display";
 
 const now = Date.parse("2026-09-05T07:30:00Z");
 
@@ -21,6 +29,13 @@ void test("expiry timestamps describe the future", () => {
   );
 });
 void test("server markup is timezone-explicit and stable until hydration", () => {
+  receiveDateTimeLabels(
+    localizedResponse(
+      { at: "2026-09-05T13:00:00+05:30" },
+      defaultDateTimePreferences,
+    ),
+    localizationGeneration(),
+  );
   assert.deepEqual(formatTableTime("2026-09-05T13:00:00+05:30", 0), {
     absolute: "07:30, 5 Sept 2026",
     timezone: "UTC",

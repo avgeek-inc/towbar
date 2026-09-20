@@ -1,3 +1,5 @@
+/* eslint-disable max-lines -- App lifecycle queries and mutations share one transactional service boundary. */
+import { captureQueuedActor } from "../auth/actor-context.js";
 import {
   lockRollbackInstance,
   requireServerReady,
@@ -8,7 +10,11 @@ import { randomUUID } from "node:crypto";
 import { and, desc, eq, notInArray } from "drizzle-orm";
 
 import { deploymentWorkflowId } from "@workspace/towbar-core/temporal";
-import { isNormalizedResource } from "@workspace/towbar-core";
+import {
+  digestValue,
+  isNormalizedCompose,
+  isNormalizedResource,
+} from "@workspace/towbar-core";
 import {
   apps,
   deployments,
@@ -29,6 +35,8 @@ import {
 } from "./instance-environment.js";
 import { assertRequiredInstanceSecrets } from "./secrets.js";
 import { getApp, getResource } from "./queries.js";
+import { resolveBuildServerAdmission } from "./build-server-admission.js";
+import { admitApplicationImage } from "../deployments/image-admission.js";
 
 export { getApp, getResource, listApps, listResources } from "./queries.js";
 
@@ -121,6 +129,12 @@ export async function requestAppDeployment(input: {
     sourceId: target.sourceId,
     workspaceId: request.workspaceId,
   });
+  const imageAdmission = await admitApplicationImage({
+    deployable: target.config,
+    environment: target.environment.name,
+    sourceId: target.sourceId,
+    workspaceId: request.workspaceId,
+  });
   const commitSha = target.commitSha;
   const deploymentDigest = target.deploymentDigest;
   const manifestDigest = target.manifestDigest;
@@ -167,6 +181,11 @@ export async function requestAppDeployment(input: {
           "SOURCE_REVISION_SUPERSEDED",
         );
       }
+      const buildServer = await resolveBuildServerAdmission(transaction, {
+        deployable: target.config,
+        runtimeServerId: target.serverId,
+        workspaceId: request.workspaceId,
+      });
       if (!request.requestedBy) {
         const [sameDeployment] = await transaction
           .select({ id: deployments.id })
@@ -210,19 +229,24 @@ export async function requestAppDeployment(input: {
         );
       const deploymentValues: typeof deployments.$inferInsert = {
         appId: target.id,
-        appSnapshot: target.config,
+        appSnapshot: imageAdmission.snapshot,
         requiredSecrets: target.requiredSecrets,
         targetEnvironment: deploymentEnvironmentSnapshot(target.environment),
         commitSha,
-        configDigest: target.configDigest,
+        configDigest: digestValue(imageAdmission.snapshot),
         deploymentDigest,
         deployableKind: target.kind,
         id: deploymentId,
         idempotencyKey: request.idempotencyKey,
         manifestDigest,
+        imageDigest: imageAdmission.imageDigest,
+        imageSourceReference: imageAdmission.imageSourceReference,
         requestedBy: request.requestedBy,
+        ...captureQueuedActor(request.workspaceId, ["deployment.create"]),
         serverId: target.serverId,
         serverSnapshot: target.serverConfig,
+        buildServerId: buildServer?.id,
+        buildServerSnapshot: buildServer?.snapshot,
         sourceId: target.sourceId,
         sourceInputDigest: target.sourceInputDigest,
         temporalWorkflowId: deploymentWorkflowId(deploymentId),
@@ -233,7 +257,11 @@ export async function requestAppDeployment(input: {
         .values(deploymentValues)
         .returning();
       if (!created) throw new Error("Unable to admit deployment");
-      return { deploymentId: created.id, replayed: false };
+      return {
+        buildServer,
+        deploymentId: created.id,
+        replayed: false,
+      };
     });
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -258,10 +286,13 @@ export async function requestAppDeployment(input: {
   try {
     await enqueueDeployment({
       appId: target.id,
-      buildConcurrency: target.serverConfig.buildConcurrency ?? 1,
+      buildConcurrency:
+        admission.buildServer?.snapshot.buildConcurrency ??
+        target.serverConfig.buildConcurrency ??
+        1,
       deploymentId,
       previewBuildConcurrency: target.serverConfig.previewBuildConcurrency ?? 1,
-      serverIp: target.serverIp,
+      serverIp: admission.buildServer?.snapshot.ip ?? target.serverIp,
     });
   } catch (error) {
     await database
@@ -292,7 +323,7 @@ export async function requestAppRollback(input: {
   appId: string;
   idempotencyKey: string;
   releaseId?: string;
-  requestedBy: string;
+  requestedBy: string | null;
   workspaceId: string;
   expectedType?: "app" | "resource";
 }) {
@@ -331,6 +362,7 @@ export async function requestAppRollback(input: {
   if (!original) throw notFound("Release deployment");
   if (original.serverId !== app.serverId)
     throw conflict("The rollback release belongs to a different server");
+  const rollbackUsesSource = isNormalizedCompose(original.appSnapshot);
   const deploymentId = randomUUID();
   let deployment;
   try {
@@ -366,18 +398,29 @@ export async function requestAppRollback(input: {
         .insert(deployments)
         .values({
           appId: app.id,
-          appSnapshot: app.config,
-          requiredSecrets: app.requiredSecrets,
+          appSnapshot: rollbackUsesSource ? original.appSnapshot : app.config,
+          requiredSecrets: rollbackUsesSource
+            ? original.requiredSecrets
+            : app.requiredSecrets,
           targetEnvironment: deploymentEnvironmentSnapshot(app.environment),
-          commitSha: app.commitSha ?? original.commitSha,
-          configDigest: app.configDigest,
-          deploymentDigest: app.deploymentDigest ?? original.deploymentDigest,
+          commitSha: rollbackUsesSource
+            ? release.commitSha
+            : (app.commitSha ?? original.commitSha),
+          configDigest: rollbackUsesSource
+            ? original.configDigest
+            : app.configDigest,
+          deploymentDigest: rollbackUsesSource
+            ? original.deploymentDigest
+            : (app.deploymentDigest ?? original.deploymentDigest),
           deployableKind: original.deployableKind,
           id: deploymentId,
           idempotencyKey: request.idempotencyKey,
           kind: "rollback",
-          manifestDigest: app.manifestDigest ?? original.manifestDigest,
+          manifestDigest: rollbackUsesSource
+            ? original.manifestDigest
+            : (app.manifestDigest ?? original.manifestDigest),
           requestedBy: request.requestedBy,
+          ...captureQueuedActor(request.workspaceId, ["deployment.create"]),
           rollbackReleaseSnapshot: {
             commitSha: release.commitSha,
             containerName: release.containerName,
@@ -388,7 +431,9 @@ export async function requestAppRollback(input: {
           serverId: app.serverId,
           serverSnapshot: app.serverConfig,
           sourceId: app.sourceId,
-          sourceInputDigest: app.sourceInputDigest,
+          sourceInputDigest: rollbackUsesSource
+            ? original.sourceInputDigest
+            : app.sourceInputDigest,
           temporalWorkflowId: deploymentWorkflowId(deploymentId),
           workspaceId: request.workspaceId,
         })
@@ -440,7 +485,7 @@ export async function requestAppRollback(input: {
 export async function requestDeploymentRetry(input: {
   deploymentId: string;
   idempotencyKey: string;
-  requestedBy: string;
+  requestedBy: string | null;
   workspaceId: string;
 }) {
   const [original] = await getTowbarDatabase()

@@ -3,6 +3,9 @@ name: towbar
 x-api-image: &api-image
   image: towbar/api:${TOWBAR_IMAGE_TAG:-local}
 
+x-temporal-tools-image: &temporal-tools-image
+  image: temporalio/admin-tools:1.31.1@sha256:0fa94393f6254dea05df1cdacb7a8ee95f6fb51a2ffbde0c6847a73037f788c7
+
 x-backend-environment: &backend-environment
   NODE_ENV: production
   SOURCE_COMMIT: ${SOURCE_COMMIT:-development}
@@ -32,32 +35,66 @@ services:
       - postgres-data:/var/lib/postgresql/data
       - ./infra/postgres/01-runtime-role.sh:/docker-entrypoint-initdb.d/01-runtime-role.sh:ro
 
-  temporal:
-    image: temporalio/auto-setup:1.29.1
-    restart: unless-stopped
+  temporal-schema:
+    <<: *temporal-tools-image
+    restart: "no"
     depends_on:
       postgres:
         condition: service_healthy
+    command: ["sh", "/etc/towbar/temporal-schema.sh"]
+    environment:
+      SQL_PLUGIN: postgres12
+      SQL_HOST: postgres
+      SQL_PORT: 5432
+      SQL_USER: towbar
+      SQL_PASSWORD: ${TOWBAR_POSTGRES_PASSWORD:?set TOWBAR_POSTGRES_PASSWORD}
+    volumes:
+      - ./infra/temporal/schema.sh:/etc/towbar/temporal-schema.sh:ro
+    networks: [platform]
+
+  temporal:
+    image: temporalio/server:1.31.1@sha256:5728db90c9883f5b2a7b8ea0bcdfb84edbc9f6c14479cd3354957aa77d4b8bac
+    restart: unless-stopped
+    depends_on:
+      temporal-schema:
+        condition: service_completed_successfully
     environment:
       DB: postgres12
       DB_PORT: 5432
       POSTGRES_USER: towbar
       POSTGRES_PWD: ${TOWBAR_POSTGRES_PASSWORD:?set TOWBAR_POSTGRES_PASSWORD}
       POSTGRES_SEEDS: postgres
+      BIND_ON_IP: 0.0.0.0
+      DYNAMIC_CONFIG_FILE_PATH: /etc/towbar/temporal-dynamic.yaml
+      # Trusted control-plane network only; neither API port is published.
+      TEMPORAL_ALLOW_NO_AUTH: "true"
     healthcheck:
       test:
         [
           "CMD",
-          "temporal",
-          "operator",
-          "cluster",
-          "health",
-          "--address",
-          "temporal:7233",
+          "wget",
+          "--quiet",
+          "--output-document=/dev/null",
+          "http://127.0.0.1:7243/api/v1/namespaces",
         ]
       interval: 10s
       timeout: 5s
       retries: 18
+    volumes:
+      - ./infra/temporal/dynamic.yaml:/etc/towbar/temporal-dynamic.yaml:ro
+    networks: [platform]
+
+  temporal-namespace:
+    <<: *temporal-tools-image
+    restart: "no"
+    depends_on:
+      temporal:
+        condition: service_healthy
+    command: ["sh", "/etc/towbar/temporal-namespace.sh"]
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    volumes:
+      - ./infra/temporal/namespace.sh:/etc/towbar/temporal-namespace.sh:ro
     networks: [platform]
 
   temporal-ui:
@@ -71,7 +108,7 @@ services:
       TEMPORAL_CORS_ORIGINS: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
     networks: [platform]
     ports:
-      - "${TOWBAR_BIND_ADDRESS:-127.0.0.1}:${TOWBAR_TEMPORAL_UI_PORT:-8233}:8080"
+      - "127.0.0.1:${TOWBAR_TEMPORAL_UI_PORT:-8233}:8080"
 
   migrate:
     <<: *api-image
@@ -94,31 +131,106 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-      temporal:
-        condition: service_healthy
+      temporal-namespace:
+        condition: service_completed_successfully
     environment:
       <<: *backend-environment
       DATABASE_TOWBAR_URL: postgres://towbar_app:${TOWBAR_DATABASE_RUNTIME_PASSWORD:?set TOWBAR_DATABASE_RUNTIME_PASSWORD}@postgres:5432/towbar
       TOWBAR_CREDENTIALS_KEY: ${TOWBAR_CREDENTIALS_KEY:?set TOWBAR_CREDENTIALS_KEY}
+      TOWBAR_PASSWORD_BREACH_CHECK: ${TOWBAR_PASSWORD_BREACH_CHECK:-true}
+      TOWBAR_PASSWORD_VERIFY_CONCURRENCY: ${TOWBAR_PASSWORD_VERIFY_CONCURRENCY:-2}
+      TOWBAR_PASSWORD_VERIFY_QUEUE_LIMIT: ${TOWBAR_PASSWORD_VERIFY_QUEUE_LIMIT:-16}
       TOWBAR_API_RATE_LIMIT_MAX: ${TOWBAR_API_RATE_LIMIT_MAX:-60}
       TOWBAR_API_RATE_LIMIT_WINDOW_SECONDS: ${TOWBAR_API_RATE_LIMIT_WINDOW_SECONDS:-60}
       TOWBAR_TRUSTED_PROXY_HOPS: ${TOWBAR_TRUSTED_PROXY_HOPS:-0}
-      TOWBAR_OWNER_RESET_EMAIL: ${TOWBAR_OWNER_RESET_EMAIL:-}
-      TOWBAR_OWNER_RESET_PASSWORD: ${TOWBAR_OWNER_RESET_PASSWORD:-}
-      GITHUB_APP_ID: ${GITHUB_APP_ID:-}
-      GITHUB_APP_SLUG: ${GITHUB_APP_SLUG:-}
-      GITHUB_APP_PRIVATE_KEY_BASE64: ${GITHUB_APP_PRIVATE_KEY_BASE64:-}
-      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
-      TOWBAR_SLACK_BOT_TOKEN: ${TOWBAR_SLACK_BOT_TOKEN:-}
-      TOWBAR_SMTP_HOST: ${TOWBAR_SMTP_HOST:-}
-      TOWBAR_SMTP_FROM: ${TOWBAR_SMTP_FROM:-}
-      TOWBAR_SMTP_PORT: ${TOWBAR_SMTP_PORT:-}
-      TOWBAR_SMTP_SECURE: ${TOWBAR_SMTP_SECURE:-}
-      TOWBAR_SMTP_USERNAME: ${TOWBAR_SMTP_USERNAME:-}
-      TOWBAR_SMTP_PASSWORD: ${TOWBAR_SMTP_PASSWORD:-}
-      TOWBAR_SMTP_SUBJECT_PREFIX: ${TOWBAR_SMTP_SUBJECT_PREFIX:-}
       TOWBAR_VULNERABILITY_SCANNING_ENABLED: ${TOWBAR_VULNERABILITY_SCANNING_ENABLED:-false}
       TOWBAR_VULNERABILITY_SCAN_MAX_AGE_HOURS: ${TOWBAR_VULNERABILITY_SCAN_MAX_AGE_HOURS:-168}
+      TOWBAR_GITHUB_ENABLED: ${TOWBAR_GITHUB_ENABLED:-false}
+      TOWBAR_GITHUB_APP_ID: ${TOWBAR_GITHUB_APP_ID:-}
+      TOWBAR_GITHUB_APP_SLUG: ${TOWBAR_GITHUB_APP_SLUG:-}
+      TOWBAR_GITHUB_PRIVATE_KEY_BASE64: ${TOWBAR_GITHUB_PRIVATE_KEY_BASE64:-}
+      TOWBAR_GITHUB_WEBHOOK_SECRET: ${TOWBAR_GITHUB_WEBHOOK_SECRET:-}
+      TOWBAR_GITHUB_API_URL: ${TOWBAR_GITHUB_API_URL:-}
+      TOWBAR_GITLAB_ENABLED: ${TOWBAR_GITLAB_ENABLED:-false}
+      TOWBAR_GITLAB_BASE_URL: ${TOWBAR_GITLAB_BASE_URL:-}
+      TOWBAR_GITLAB_ALLOW_PRIVATE_NETWORK: ${TOWBAR_GITLAB_ALLOW_PRIVATE_NETWORK:-false}
+      TOWBAR_GITLAB_OAUTH_CLIENT_ID: ${TOWBAR_GITLAB_OAUTH_CLIENT_ID:-}
+      TOWBAR_GITLAB_OAUTH_CLIENT_SECRET: ${TOWBAR_GITLAB_OAUTH_CLIENT_SECRET:-}
+      TOWBAR_GITLAB_OAUTH_REDIRECT_URI: ${TOWBAR_GITLAB_OAUTH_REDIRECT_URI:-}
+      TOWBAR_GITLAB_WEBHOOK_SECRET: ${TOWBAR_GITLAB_WEBHOOK_SECRET:-}
+      TOWBAR_REGISTRY_ENABLED: ${TOWBAR_REGISTRY_ENABLED:-false}
+      TOWBAR_REGISTRY_HOST: ${TOWBAR_REGISTRY_HOST:-}
+      TOWBAR_REGISTRY_USERNAME: ${TOWBAR_REGISTRY_USERNAME:-}
+      TOWBAR_REGISTRY_PASSWORD: ${TOWBAR_REGISTRY_PASSWORD:-}
+      TOWBAR_REGISTRY_ALLOW_PRIVATE_NETWORK: ${TOWBAR_REGISTRY_ALLOW_PRIVATE_NETWORK:-false}
+      TOWBAR_AWS_ENABLED: ${TOWBAR_AWS_ENABLED:-false}
+      TOWBAR_AWS_REGION: ${TOWBAR_AWS_REGION:-}
+      TOWBAR_AWS_ACCESS_KEY_ID: ${TOWBAR_AWS_ACCESS_KEY_ID:-}
+      TOWBAR_AWS_SECRET_ACCESS_KEY: ${TOWBAR_AWS_SECRET_ACCESS_KEY:-}
+      TOWBAR_S3_ENABLED: ${TOWBAR_S3_ENABLED:-false}
+      TOWBAR_S3_ENDPOINT: ${TOWBAR_S3_ENDPOINT:-}
+      TOWBAR_S3_REGION: ${TOWBAR_S3_REGION:-}
+      TOWBAR_S3_BUCKET: ${TOWBAR_S3_BUCKET:-}
+      TOWBAR_S3_PREFIX: ${TOWBAR_S3_PREFIX:-}
+      TOWBAR_S3_ADDRESSING_STYLE: ${TOWBAR_S3_ADDRESSING_STYLE:-}
+      TOWBAR_S3_ALLOW_PRIVATE_NETWORK: ${TOWBAR_S3_ALLOW_PRIVATE_NETWORK:-false}
+      TOWBAR_S3_CUSTOM_CA_BASE64: ${TOWBAR_S3_CUSTOM_CA_BASE64:-}
+      TOWBAR_S3_ACCESS_KEY_ID: ${TOWBAR_S3_ACCESS_KEY_ID:-}
+      TOWBAR_S3_SECRET_ACCESS_KEY: ${TOWBAR_S3_SECRET_ACCESS_KEY:-}
+      TOWBAR_R2_ENABLED: ${TOWBAR_R2_ENABLED:-false}
+      TOWBAR_R2_ENDPOINT: ${TOWBAR_R2_ENDPOINT:-}
+      TOWBAR_R2_REGION: ${TOWBAR_R2_REGION:-}
+      TOWBAR_R2_BUCKET: ${TOWBAR_R2_BUCKET:-}
+      TOWBAR_R2_PREFIX: ${TOWBAR_R2_PREFIX:-}
+      TOWBAR_R2_ADDRESSING_STYLE: ${TOWBAR_R2_ADDRESSING_STYLE:-}
+      TOWBAR_R2_ALLOW_PRIVATE_NETWORK: ${TOWBAR_R2_ALLOW_PRIVATE_NETWORK:-false}
+      TOWBAR_R2_CUSTOM_CA_BASE64: ${TOWBAR_R2_CUSTOM_CA_BASE64:-}
+      TOWBAR_R2_ACCESS_KEY_ID: ${TOWBAR_R2_ACCESS_KEY_ID:-}
+      TOWBAR_R2_SECRET_ACCESS_KEY: ${TOWBAR_R2_SECRET_ACCESS_KEY:-}
+      TOWBAR_GCS_ENABLED: ${TOWBAR_GCS_ENABLED:-false}
+      TOWBAR_GCS_PROJECT_ID: ${TOWBAR_GCS_PROJECT_ID:-}
+      TOWBAR_GCS_BUCKET: ${TOWBAR_GCS_BUCKET:-}
+      TOWBAR_GCS_PREFIX: ${TOWBAR_GCS_PREFIX:-}
+      TOWBAR_GCS_SERVICE_ACCOUNT_JSON_BASE64: ${TOWBAR_GCS_SERVICE_ACCOUNT_JSON_BASE64:-}
+      TOWBAR_AZURE_ENABLED: ${TOWBAR_AZURE_ENABLED:-false}
+      TOWBAR_AZURE_STORAGE_ACCOUNT: ${TOWBAR_AZURE_STORAGE_ACCOUNT:-}
+      TOWBAR_AZURE_CONTAINER: ${TOWBAR_AZURE_CONTAINER:-}
+      TOWBAR_AZURE_PREFIX: ${TOWBAR_AZURE_PREFIX:-}
+      TOWBAR_AZURE_TENANT_ID: ${TOWBAR_AZURE_TENANT_ID:-}
+      TOWBAR_AZURE_CLIENT_ID: ${TOWBAR_AZURE_CLIENT_ID:-}
+      TOWBAR_AZURE_CLIENT_SECRET: ${TOWBAR_AZURE_CLIENT_SECRET:-}
+      TOWBAR_INFISICAL_ENABLED: ${TOWBAR_INFISICAL_ENABLED:-false}
+      TOWBAR_INFISICAL_BASE_URL: ${TOWBAR_INFISICAL_BASE_URL:-}
+      TOWBAR_INFISICAL_ALLOW_PRIVATE_NETWORK: ${TOWBAR_INFISICAL_ALLOW_PRIVATE_NETWORK:-false}
+      TOWBAR_INFISICAL_CLIENT_ID: ${TOWBAR_INFISICAL_CLIENT_ID:-}
+      TOWBAR_INFISICAL_CLIENT_SECRET: ${TOWBAR_INFISICAL_CLIENT_SECRET:-}
+      TOWBAR_DOPPLER_ENABLED: ${TOWBAR_DOPPLER_ENABLED:-false}
+      TOWBAR_DOPPLER_TOKEN: ${TOWBAR_DOPPLER_TOKEN:-}
+      TOWBAR_CLOUDFLARE_ENABLED: ${TOWBAR_CLOUDFLARE_ENABLED:-false}
+      TOWBAR_CLOUDFLARE_ACCOUNT_ID: ${TOWBAR_CLOUDFLARE_ACCOUNT_ID:-}
+      TOWBAR_CLOUDFLARE_ZONE_ID: ${TOWBAR_CLOUDFLARE_ZONE_ID:-}
+      TOWBAR_CLOUDFLARE_API_TOKEN: ${TOWBAR_CLOUDFLARE_API_TOKEN:-}
+      TOWBAR_CLOUDFLARE_CLOUDFLARED_IMAGE: ${TOWBAR_CLOUDFLARE_CLOUDFLARED_IMAGE:-}
+      TOWBAR_OTLP_ENABLED: ${TOWBAR_OTLP_ENABLED:-false}
+      TOWBAR_OTLP_ENDPOINT: ${TOWBAR_OTLP_ENDPOINT:-}
+      TOWBAR_OTLP_DASHBOARD_URL: ${TOWBAR_OTLP_DASHBOARD_URL:-}
+      TOWBAR_OTLP_PROTOCOL: ${TOWBAR_OTLP_PROTOCOL:-}
+      TOWBAR_OTLP_ALLOW_PRIVATE_NETWORK: ${TOWBAR_OTLP_ALLOW_PRIVATE_NETWORK:-false}
+      TOWBAR_OTLP_HEADERS_JSON: ${TOWBAR_OTLP_HEADERS_JSON:-}
+      TOWBAR_NOTIFICATIONS_ENABLED: ${TOWBAR_NOTIFICATIONS_ENABLED:-false}
+      TOWBAR_NOTIFICATION_CONFIG_JSON: ${TOWBAR_NOTIFICATION_CONFIG_JSON:-}
+      TOWBAR_LOG_DRAIN_NEWRELIC_ENABLED: ${TOWBAR_LOG_DRAIN_NEWRELIC_ENABLED:-false}
+      TOWBAR_LOG_DRAIN_NEWRELIC_CONFIG_JSON: ${TOWBAR_LOG_DRAIN_NEWRELIC_CONFIG_JSON:-}
+      TOWBAR_LOG_DRAIN_AXIOM_ENABLED: ${TOWBAR_LOG_DRAIN_AXIOM_ENABLED:-false}
+      TOWBAR_LOG_DRAIN_AXIOM_CONFIG_JSON: ${TOWBAR_LOG_DRAIN_AXIOM_CONFIG_JSON:-}
+      TOWBAR_LOG_DRAIN_BETTERSTACK_ENABLED: ${TOWBAR_LOG_DRAIN_BETTERSTACK_ENABLED:-false}
+      TOWBAR_LOG_DRAIN_BETTERSTACK_CONFIG_JSON: ${TOWBAR_LOG_DRAIN_BETTERSTACK_CONFIG_JSON:-}
+      TOWBAR_LOG_DRAIN_DATADOG_ENABLED: ${TOWBAR_LOG_DRAIN_DATADOG_ENABLED:-false}
+      TOWBAR_LOG_DRAIN_DATADOG_CONFIG_JSON: ${TOWBAR_LOG_DRAIN_DATADOG_CONFIG_JSON:-}
+      TOWBAR_LOG_DRAIN_OTLP_ENABLED: ${TOWBAR_LOG_DRAIN_OTLP_ENABLED:-false}
+      TOWBAR_LOG_DRAIN_OTLP_CONFIG_JSON: ${TOWBAR_LOG_DRAIN_OTLP_CONFIG_JSON:-}
+      TOWBAR_LOG_DRAIN_LOKI_ENABLED: ${TOWBAR_LOG_DRAIN_LOKI_ENABLED:-false}
+      TOWBAR_LOG_DRAIN_LOKI_CONFIG_JSON: ${TOWBAR_LOG_DRAIN_LOKI_CONFIG_JSON:-}
     networks: [platform]
     ports:
       - "${TOWBAR_BIND_ADDRESS:-127.0.0.1}:${TOWBAR_API_PORT:-4020}:4020"
@@ -132,8 +244,8 @@ services:
     depends_on:
       api:
         condition: service_healthy
-      temporal:
-        condition: service_healthy
+      temporal-namespace:
+        condition: service_completed_successfully
     environment:
       <<: *backend-environment
       TOWBAR_API_BASE_URL: http://api:4023

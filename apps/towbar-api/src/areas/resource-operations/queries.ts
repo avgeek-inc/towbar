@@ -132,7 +132,11 @@ export async function getDeployableTarget(
     .innerJoin(servers, eq(servers.id, apps.serverId))
     .leftJoin(
       releases,
-      and(eq(releases.appId, apps.id), eq(releases.status, "current")),
+      and(
+        eq(releases.appId, apps.id),
+        eq(releases.status, "current"),
+        isNull(releases.previewEnvironmentId),
+      ),
     )
     .where(and(eq(apps.id, deployableId), eq(apps.workspaceId, workspaceId)))
     .limit(1);
@@ -188,12 +192,22 @@ export async function getRetentionBackups(
   resourceId: string,
   snapshot: (typeof apps.$inferSelect)["config"] | null,
 ) {
-  if (!snapshot || !isNormalizedResource(snapshot) || !snapshot.backup) {
+  if (!snapshot) {
     return [];
   }
-  const keepPrevious = Math.max(0, snapshot.backup.retention.keepLast - 1);
+  const retention = isNormalizedResource(snapshot)
+    ? snapshot.backup?.retention
+    : undefined;
+  const keepLast = retention?.keepLast;
+  if (!keepLast) return [];
+  const keepPrevious = Math.max(0, keepLast - 1);
+  const expiresBefore =
+    "days" in retention && retention.days
+      ? Date.now() - Number(retention.days) * 86_400_000
+      : null;
   const backups = await getTowbarDatabase()
     .select({
+      createdAt: resourceOperations.createdAt,
       id: resourceOperations.id,
       result: resourceOperations.result,
     })
@@ -207,19 +221,25 @@ export async function getRetentionBackups(
       ),
     )
     .orderBy(desc(resourceOperations.createdAt));
-  return backups.slice(keepPrevious).map((backup) => {
-    const result = backupOperationResultSchema.parse(backup.result);
-    const normalized = normalizeBackupOperationResult(result);
-    return {
-      bucket: result.bucket,
-      destinations: normalized.destinations,
-      id: backup.id,
-      key: result.key,
-      ...(result.storageAccount
-        ? { storageAccount: result.storageAccount }
-        : {}),
-    };
-  });
+  return backups
+    .filter(
+      (backup, index) =>
+        index >= keepPrevious ||
+        (expiresBefore !== null && backup.createdAt.getTime() < expiresBefore),
+    )
+    .map((backup) => {
+      const result = backupOperationResultSchema.parse(backup.result);
+      const normalized = normalizeBackupOperationResult(result);
+      return {
+        bucket: result.bucket,
+        destinations: normalized.destinations,
+        id: backup.id,
+        key: result.key,
+        ...(result.storageAccount
+          ? { storageAccount: result.storageAccount }
+          : {}),
+      };
+    });
 }
 
 export async function getServerOrphans(serverId: string, workspaceId: string) {

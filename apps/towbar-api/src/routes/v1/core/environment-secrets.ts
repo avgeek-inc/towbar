@@ -1,3 +1,4 @@
+import { sessionUser } from "../../../http/session-user.js";
 import { z } from "zod";
 import { operation } from "../../../http/operation.js";
 import { type Context, Hono } from "hono";
@@ -18,13 +19,15 @@ import {
   revealSecretValue,
   revealSecretValues,
 } from "../../../areas/secrets/store.js";
-import { forbidden, unprocessable } from "../../../http/errors.js";
+import { unprocessable } from "../../../http/errors.js";
 import { readJson, readUuidPathParameter } from "../../../http/requests.js";
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
 export function environmentSecretRoutes(
   kind: "workspace" | "source" | "app" | "resource",
 ) {
+  const environment = (value: string | undefined) =>
+    kind === "workspace" ? "production" : secretEnvironmentSchema.parse(value);
   const routes = new Hono<TowbarHonoEnvironment>();
   routes.use("*", async (context, next) => {
     const id =
@@ -40,6 +43,7 @@ export function environmentSecretRoutes(
   routes.get(
     "/",
     operation({
+      permissions: [kind === "workspace" ? "sharedSecret.list" : "secret.list"],
       responseSchema: 'environment-secrets.ts:get:"/"',
       summary: "List environment secrets",
       query: z
@@ -62,35 +66,40 @@ export function environmentSecretRoutes(
               workspaceId: user.workspaceId,
             } as const);
       const environments = await listSecretEnvironments(owner);
-      const environment = context.req.query("environment") ?? environments[0];
-      if (environment && !environments.includes(environment))
+      const requestedEnvironment =
+        context.req.query("environment") ?? environments[0];
+      const selectedEnvironment = requestedEnvironment
+        ? environment(requestedEnvironment)
+        : undefined;
+      if (selectedEnvironment && !environments.includes(selectedEnvironment))
         throw unprocessable(
           "Connect this environment before managing its secrets",
           "SECRET_ENVIRONMENT_MISMATCH",
         );
       return context.json({
         environments,
-        bindings: environment
-          ? await listEnvironmentSecrets(owner, environment)
+        bindings: selectedEnvironment
+          ? await listEnvironmentSecrets(owner, selectedEnvironment)
           : [],
-        canManageSecrets: user.workspaceRole === "owner",
+        canManageSecrets:
+          user.workspaceRole === "admin" || user.workspaceRole === "member",
       });
     },
   );
   routes.patch(
     "/:environment/:stage",
     operation({
+      permissions: [
+        kind === "workspace" ? "sharedSecret.update" : "secret.update",
+      ],
       responseSchema: 'environment-secrets.ts:patch:"/:environment/:stage"',
       summary: "Update environment secrets",
       body: secretMutationSchema,
-      ownerOnly: true,
       response: "JSON object containing secret.",
       status: 200,
     }),
     async (context) => {
       const user = context.get("user");
-      if (user.workspaceRole !== "owner")
-        throw forbidden("Only the owner can manage secrets");
       return context.json({
         secret: await updateEnvironmentSecrets({
           owner:
@@ -105,9 +114,7 @@ export function environmentSecretRoutes(
                   workspaceId: user.workspaceId,
                 },
           actorUserId: user.id,
-          environment: secretEnvironmentSchema.parse(
-            context.req.param("environment"),
-          ),
+          environment: environment(context.req.param("environment")),
           stage: secretStageSchema.parse(context.req.param("stage")),
           mutation: await readJson(context, secretMutationSchema, 300 * 1024),
         }),
@@ -117,11 +124,13 @@ export function environmentSecretRoutes(
   routes.post(
     "/:environment/:stage/reveal",
     operation({
+      permissions: ["secret.reveal"],
+      freshSession: true,
+      browserOnly: true,
       responseSchema:
         'environment-secrets.ts:post:"/:environment/:stage/reveal"',
       summary: "Reveal an environment secret",
       body: z.object({ key: secretKeySchema }).strict(),
-      ownerOnly: true,
       response: "JSON object containing the stored value and revision.",
       status: 200,
     }),
@@ -138,11 +147,13 @@ export function environmentSecretRoutes(
   routes.post(
     "/:environment/:stage/reveal-all",
     operation({
+      permissions: ["secret.reveal"],
+      freshSession: true,
+      browserOnly: true,
       responseSchema:
         'environment-secrets.ts:post:"/:environment/:stage/reveal-all"',
       summary: "Reveal all environment secrets in a stage",
       body: z.object({}).strict(),
-      ownerOnly: true,
       response: "JSON object containing stored values and their revision.",
       status: 200,
     }),
@@ -153,9 +164,7 @@ export function environmentSecretRoutes(
     },
   );
   async function revealSlot(context: Context<TowbarHonoEnvironment>) {
-    const user = context.get("user");
-    if (user.workspaceRole !== "owner")
-      throw forbidden("Only the owner can reveal secrets");
+    const user = sessionUser(context);
     const owner =
       kind === "workspace"
         ? { type: "workspace" as const, workspaceId: user.workspaceId }
@@ -165,21 +174,22 @@ export function environmentSecretRoutes(
             workspaceId: user.workspaceId,
           };
     const ownership = await getEnvironmentSecretOwner(owner);
-    const environment = secretEnvironmentSchema.parse(
-      context.req.param("environment"),
-    );
+    const selectedEnvironment = environment(context.req.param("environment"));
     const stage = secretStageSchema.parse(context.req.param("stage"));
     if (
       ownership.resource &&
-      (environment === "preview" ||
-        environment.startsWith("preview:") ||
+      (selectedEnvironment === "preview" ||
+        selectedEnvironment.startsWith("preview:") ||
         stage !== "deployment")
     )
       throw unprocessable(
         "Resources only support their environment runtime secrets",
       );
 
-    return { slot: { ...owner, environment, stage }, actorUserId: user.id };
+    return {
+      slot: { ...owner, environment: selectedEnvironment, stage },
+      actorUserId: user.id,
+    };
   }
   return routes;
 }

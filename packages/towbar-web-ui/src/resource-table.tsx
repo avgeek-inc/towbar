@@ -4,6 +4,10 @@ import type { ComponentProps, ReactNode } from "react";
 
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Table } from "@workspace/web-design-system/data-display/table";
+import {
+  TableCellStack,
+  tableCellDescriptionClassName,
+} from "./table-cell-text";
 
 export type ResourceTableColumn<T> = {
   cell: (item: T) => ReactNode;
@@ -83,7 +87,10 @@ export function ResourceTable<T>({
               return (
                 <Table.Row id={key} key={key}>
                   {columns.map((column, index) => (
-                    <Table.Cell className={column.className} key={column.key}>
+                    <Table.Cell
+                      className={`align-middle ${column.className ?? ""}`}
+                      key={column.key}
+                    >
                       {index === 0 && href && column.wrapRowLink !== false ? (
                         <Link
                           className="focus-visible:ring-focus relative inline-flex min-w-0 items-center rounded-lg outline-none underline-offset-4 before:absolute before:inset-x-0 before:-inset-y-3 before:content-[''] pointer-fine:hover:underline focus-visible:ring-2"
@@ -125,7 +132,7 @@ export function ResourceName({
   name: ReactNode;
 }) {
   return (
-    <span className="grid min-w-0 gap-0.5">
+    <TableCellStack>
       <TooltipText
         className="truncate"
         tooltip={typeof name === "string" ? name : undefined}
@@ -134,12 +141,12 @@ export function ResourceName({
       </TooltipText>
       {description ? (
         <TooltipText
-          className="text-muted text-xs truncate font-normal"
+          className={`${tableCellDescriptionClassName} truncate`}
           tooltip={typeof description === "string" ? description : undefined}
         >
           {description}
         </TooltipText>
       ) : null}
-    </span>
+    </TableCellStack>
   );
 }

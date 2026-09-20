@@ -106,7 +106,6 @@ const CopyButton = forwardRef<HTMLButtonElement, CopyButtonProps>(
         data-slot="code-block-copy"
         isIconOnly
         onPress={copyCode}
-        size={props.size ?? "sm"}
         variant={props.variant ?? "ghost"}
       >
         <HugeiconsIcon

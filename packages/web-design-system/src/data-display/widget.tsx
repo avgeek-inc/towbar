@@ -3,6 +3,10 @@
 import { forwardRef, type ComponentPropsWithRef, type ReactNode } from "react";
 import { cn } from "../lib/utils";
 import { WidgetContentContext } from "./widget-context";
+import {
+  HeadingHelp,
+  type HeadingDocumentation,
+} from "../overlays/heading-help";
 
 const Root = forwardRef<HTMLDivElement, ComponentPropsWithRef<"div">>(
   ({ className, ...props }, ref) => (
@@ -39,10 +43,11 @@ const Header = forwardRef<HTMLDivElement, WidgetHeaderProps>(
 
 interface WidgetTitleProps extends ComponentPropsWithRef<"span"> {
   icon?: ReactNode;
+  help?: HeadingDocumentation | false;
 }
 
 const Title = forwardRef<HTMLSpanElement, WidgetTitleProps>(
-  ({ children, className, icon, ...props }, ref) => (
+  ({ children, className, icon, help, ...props }, ref) => (
     <span
       ref={ref}
       className={cn(
@@ -58,6 +63,16 @@ const Title = forwardRef<HTMLSpanElement, WidgetTitleProps>(
         </span>
       ) : null}
       {children}
+      <HeadingHelp
+        title={
+          Array.isArray(children)
+            ? children.filter((child) => typeof child === "string").join("")
+            : typeof children === "string"
+              ? children
+              : ""
+        }
+        help={help}
+      />
     </span>
   ),
 );

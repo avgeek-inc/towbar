@@ -24,6 +24,10 @@ function initialRuntimeState(): App["runtimeState"] {
     driftReasons: [],
     driftStatus: "unknown",
     healthStatus: "unknown",
+    ingressContainerName: null,
+    ingressImage: null,
+    ingressRestartCount: null,
+    ingressStatus: "unknown",
     observedContainerName: null,
     observedImage: null,
     observedState: "unknown",
@@ -83,7 +87,7 @@ export function createSourceConnectionFixture(input: {
   })[] = [];
   const materialize = (source: Source, environment: Mapping) => {
     const resolved = resolveConnectionManifest(
-      `server-${input.app.serverId}`,
+      input.app.serverIp,
       environment.name,
       environment.branch,
     );
@@ -161,6 +165,7 @@ export function createSourceConnectionFixture(input: {
     const now = new Date().toISOString();
     const source: Source = {
       id: randomUUID(),
+      provider: "github",
       repositoryOwner: "example-inc",
       repositoryName: "example-service",
       status: "active",
@@ -272,14 +277,18 @@ export function createSourceConnectionFixture(input: {
       (item) => item.environment?.id === environment.id,
     ))
       app.config = resolveConnectionManifest(
-        `server-${input.app.serverId}`,
+        input.app.serverIp,
         environment.name,
         environment.branch,
       ).apps[0]!;
     const record = {
       id: environment.latestSuccessfulSyncId,
       sourceId: environment.sourceId,
-      environment: { id: environment.id, name: environment.name },
+      environment: {
+        id: environment.id,
+        name: environment.name,
+        branch: environment.branch,
+      },
       branch: environment.branch,
       mappingRevision: environment.mappingRevision,
       status: "succeeded" as const,
@@ -324,7 +333,7 @@ export function createSourceConnectionFixture(input: {
       return {
         manifest: {
           commitSha: "c".repeat(40),
-          files: connectionManifestFiles(`server-${input.app.serverId}`),
+          files: connectionManifestFiles(input.app.serverIp),
         },
       };
     }
@@ -361,7 +370,7 @@ export function createSourceConnectionFixture(input: {
       if (!environment)
         throw new FixtureEnvironmentError("Environment was not found", 404);
       return resolveConnectionManifest(
-        `server-${input.app.serverId}`,
+        input.app.serverIp,
         environment.name,
         environment.branch,
       ).requiredSecrets[

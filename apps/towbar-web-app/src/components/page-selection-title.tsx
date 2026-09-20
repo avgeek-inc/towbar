@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect } from "react";
 import type { Dispatch, SetStateAction, ReactNode } from "react";
 
 export type PageSelection = {
+  actions?: ReactNode;
   label: string;
   keepEntityName?: boolean;
   icon?: ReactNode;
@@ -13,14 +14,15 @@ export const PageSelectionContext = createContext<Dispatch<
 > | null>(null);
 
 export function PageSelectionTitle({
+  actions,
   label,
   icon,
   keepEntityName = false,
 }: PageSelection) {
   const setSelection = useContext(PageSelectionContext);
   useEffect(() => {
-    setSelection?.({ label, keepEntityName, icon });
+    setSelection?.({ actions, label, keepEntityName, icon });
     return () => setSelection?.(null);
-  }, [setSelection, label, keepEntityName, icon]);
+  }, [setSelection, actions, label, keepEntityName, icon]);
   return null;
 }

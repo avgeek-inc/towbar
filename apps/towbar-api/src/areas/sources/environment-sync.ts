@@ -1,3 +1,5 @@
+import { actorAllows } from "@workspace/towbar-access";
+import { authorizeQueuedEffect } from "../auth/actor-context.js";
 import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import {
   ManifestValidationError,
@@ -12,19 +14,24 @@ import {
 } from "@workspace/towbar-database/schema";
 import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
-import { fetchGitHubEnvironmentSnapshot } from "../github/environment-snapshot.js";
+import type { fetchGitHubEnvironmentSnapshot } from "../github/environment-snapshot.js";
 import { fetchGitHubRepositoryTree } from "../github/client.js";
 import { materializeEnvironment } from "./environment-materialization.js";
 import { sourceRepository } from "./environments.js";
+import { fetchRepositoryEnvironmentSnapshot } from "./repository-provider.js";
 
-import type { NormalizedApp, NormalizedResource } from "@workspace/towbar-core";
+import type {
+  NormalizedApp,
+  NormalizedResource,
+  RepositoryTree,
+} from "@workspace/towbar-core";
 
 export async function executeEnvironmentSync(
   syncId: string,
   workspaceId: string,
-  dependencies = {
-    snapshot: fetchGitHubEnvironmentSnapshot,
-    tree: fetchGitHubRepositoryTree,
+  dependencies?: {
+    snapshot: typeof fetchGitHubEnvironmentSnapshot;
+    tree: typeof fetchGitHubRepositoryTree;
   },
 ) {
   const database = getTowbarDatabase();
@@ -41,6 +48,9 @@ export async function executeEnvironmentSync(
     .where(eq(sourceEnvironments.id, sync.sourceEnvironmentId));
   if (!environment) throw notFound("Environment");
   try {
+    await authorizeQueuedEffect(sync.requestedByActor, workspaceId, [
+      "repository.sync",
+    ]);
     if (
       environment.disconnectedAt ||
       environment.mappingRevision !== sync.mappingRevision
@@ -65,19 +75,35 @@ export async function executeEnvironmentSync(
       if (!completed) throw notFound("Environment sync");
       return completed;
     }
-    const snapshot = await dependencies.snapshot({
-      ...source,
-      branch: environment.branch,
-    });
+    const snapshot = dependencies
+      ? await dependencies.snapshot({
+          ...source,
+          branch: environment.branch,
+        } as Parameters<typeof fetchGitHubEnvironmentSnapshot>[0])
+      : await fetchRepositoryEnvironmentSnapshot({
+          ...source,
+          branch: environment.branch,
+        });
     const resolved = resolveRepositoryEnvironment({
       ...snapshot,
       branch: environment.branch,
       environment: environment.name,
     });
-    const tree = await dependencies.tree({
-      ...source,
-      commitSha: snapshot.commitSha,
-    });
+    const tree: RepositoryTree = dependencies
+      ? await dependencies.tree({
+          ...(source as Extract<typeof source, { provider: "github" }>),
+          commitSha: snapshot.commitSha,
+        })
+      : source.provider === "github"
+        ? await fetchGitHubRepositoryTree({
+            ...source,
+            commitSha: snapshot.commitSha,
+          })
+        : "repositoryTree" in snapshot
+          ? (snapshot.repositoryTree as RepositoryTree)
+          : (() => {
+              throw new Error("GitLab repository snapshot omitted its tree");
+            })();
     if (!tree.complete)
       throw conflict(
         "Repository tree is incomplete",
@@ -123,11 +149,20 @@ export async function executeEnvironmentSync(
         .select()
         .from(apps)
         .where(eq(apps.sourceEnvironmentId, environment.id));
-      for (const kind of ["app", "resource"] as const) {
+      for (const kind of ["app", "compose", "resource"] as const) {
         const hasExisting = current.some((entity) =>
-          kind === "app" ? entity.kind === "app" : entity.kind !== "app",
+          kind === "app"
+            ? entity.kind === "app"
+            : kind === "compose"
+              ? entity.kind === "compose"
+              : entity.kind !== "app" && entity.kind !== "compose",
         );
-        const directory = kind === "app" ? ".towbar/apps" : ".towbar/resources";
+        const directory =
+          kind === "app"
+            ? ".towbar/apps"
+            : kind === "compose"
+              ? ".towbar/compose"
+              : ".towbar/resources";
         if (hasExisting && !snapshot.directories.includes(directory)) {
           throw conflict(
             `${directory} is missing; existing configuration was preserved`,
@@ -135,21 +170,26 @@ export async function executeEnvironmentSync(
           );
         }
       }
+      const desired = [
+        ...resolved.manifest.apps,
+        ...(resolved.manifest.compose ?? []),
+        ...(resolved.manifest.resources ?? []),
+      ];
+      // Sync updates inventory only. Server restoration is a separate admin action.
       const workspaceServers = await transaction
         .select()
         .from(servers)
         .where(
           and(eq(servers.workspaceId, workspaceId), isNull(servers.archivedAt)),
         );
-      const serverBySlug = new Map(
-        workspaceServers
-          .filter((server) => server.slug)
-          .map((server) => [server.slug!, server]),
+      const actor = await authorizeQueuedEffect(
+        sync.requestedByActor,
+        workspaceId,
+        ["repository.sync"],
       );
-      const desired = [
-        ...resolved.manifest.apps,
-        ...(resolved.manifest.resources ?? []),
-      ];
+      const serverByIp = new Map(
+        workspaceServers.map((server) => [server.canonicalIp, server]),
+      );
       const claimedDomains = new Set(
         desired.flatMap((entity) =>
           entity.domains
@@ -194,8 +234,15 @@ export async function executeEnvironmentSync(
         currentApps: materialized
           .filter((row) => row.kind === "app")
           .map((row) => ({ ...row, config: row.config as NormalizedApp })),
+        currentCompose: materialized
+          .filter((row) => row.kind === "compose")
+          .map((row) => ({
+            ...row,
+            config:
+              row.config as import("@workspace/towbar-core").NormalizedComposeWorkload,
+          })),
         currentResources: materialized
-          .filter((row) => row.kind !== "app")
+          .filter((row) => row.kind !== "app" && row.kind !== "compose")
           .map((row) => ({ ...row, config: row.config as NormalizedResource })),
         desired: resolved.manifest,
       });
@@ -206,7 +253,7 @@ export async function executeEnvironmentSync(
         workspaceId,
         commitSha: snapshot.commitSha,
         tree,
-        serverBySlug,
+        serverByIp,
         requiredSecrets: resolved.manifest.requiredSecrets,
       });
       const [completed] = await transaction
@@ -229,6 +276,9 @@ export async function executeEnvironmentSync(
       await transaction
         .update(sourceEnvironments)
         .set({
+          ...(!actorAllows(actor, ["deployment.create"])
+            ? { autoDeployPaused: true }
+            : {}),
           latestSuccessfulSyncId: sync.id,
           latestCommitSha: snapshot.commitSha,
           latestManifestDigest: resolved.digest,

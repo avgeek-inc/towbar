@@ -1,1 +1,0 @@
-ALTER TABLE "towbar_releases" ADD COLUMN "config_digest" varchar(64);

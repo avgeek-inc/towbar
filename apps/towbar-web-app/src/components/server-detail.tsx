@@ -1,46 +1,64 @@
 "use client";
+import { ServerTerminal } from "./server-terminal";
+import { useAccess } from "./access-context";
 import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import {
+  CommandLineIcon,
   Activity01Icon,
-  Cancel01Icon,
+  Alert02Icon,
+  AlertCircleIcon,
+  CheckmarkCircle01Icon,
+  ComputerActivityIcon,
   DashboardCircleIcon,
-  DatabaseIcon,
+  CubeIcon,
   Delete02Icon,
   Link01Icon,
+  ServerOffIcon,
   ServerStack01Icon,
   Settings01Icon,
-  Shield01Icon,
-  Tick02Icon,
 } from "@hugeicons/core-free-icons";
 
 import { MonitoringAgentSettings } from "./monitoring-agent-settings";
-import { ScoutPanel } from "./scout-panel";
+import { ScoutMascot } from "./scout-mascot";
+import {
+  ScoutAlertRules,
+  ScoutIncidents,
+  ScoutPerformance,
+} from "./scout-panel";
 import { ElapsedTime } from "./elapsed-time";
 
-import { ConfigurationLinks } from "./configuration-links";
+import {
+  PrepareServerButton,
+  ServerPreparationChecklist,
+  ServerPreparationOverview,
+} from "./server-preparation";
 
 import { ServerEditor } from "./server-editor";
+import { ServerTlsSettings } from "./credential-editor";
+import { CloudProviderLogo } from "./cloud-provider-logo";
 import { ServerHardwareDescription } from "./server-hardware";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import type {
+  App,
+  MonitoringAgentStatus,
   OrphanItem,
+  Resource,
   ResourceOperation,
   RuntimeCapacity,
+  SecretMetadata,
   Server,
   ServerCheck,
   ServerChecksPage,
   ServerPreparation,
-  TrustedHostKey,
 } from "@workspace/towbar-web-client";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
 import { Pagination } from "@workspace/web-design-system/navigation/pagination";
-import { Stepper } from "@workspace/web-design-system/navigation/stepper";
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
@@ -53,44 +71,51 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import {
   ActionButton,
   DashboardPage,
+  FormCard,
   InlineLink,
   PageTabs,
   serversBreadcrumb,
 } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
+import { Spinner } from "@workspace/web-design-system/feedback/spinner";
+import { serverPreparationIndicator } from "@/lib/server-preparation-visibility";
 import { reconcileServerSetupStatus } from "@/lib/server-preparation-status";
 import { RelativeTime } from "./last-synced-time";
 import { formatDate } from "./dashboard-overview";
 import { ServerHostCapacity, ServerDeployableTable } from "./server-capacity";
 import { ResponsiveSubtabs } from "./responsive-subtabs";
 
-type DiscoveredKey = {
-  algorithm: string;
-  fingerprint: string;
-  publicKey: string;
-};
-
-type HostKeyRow = {
-  algorithm: string;
-  fingerprint: string;
-  id?: string;
-  publicKey?: string;
-  status: "trusted" | "untrusted";
-};
-
 const SERVER_CHECK_PAGE_SIZE = 10;
 
 export function ServerDetail() {
-  const requestedSettings = useDetailNavigation().settings;
-  const settingsTab = ["monitoring", "host-keys", "cleanup"].includes(
-    requestedSettings ?? "",
-  )
+  const detailNavigation = useDetailNavigation();
+  const requestedSettings = detailNavigation.settings;
+  const requestedSettingsTab = [
+    "cloudflare-tls",
+    "monitoring",
+    "cleanup",
+    "danger",
+  ].includes(requestedSettings ?? "")
     ? requestedSettings!
-    : "configuration";
+    : "credentials";
   const { serverId } = useParams<{
     serverId: string;
   }>();
+  const router = useRouter();
+  const { can } = useAccess();
+  const integrations = useApiQuery<{
+    integrations: Array<{ provider: string }>;
+  }>(can("integration.manage") ? "/v1/core/integrations" : null, 30_000);
+  const cloudflareConfigured = Boolean(
+    integrations.data?.integrations.some(
+      (integration) => integration.provider === "cloudflare",
+    ),
+  );
+  const settingsTab =
+    requestedSettingsTab === "cloudflare-tls" && !cloudflareConfigured
+      ? "credentials"
+      : requestedSettingsTab;
   const server = useApiQuery<{
     canCleanupOrphans: boolean;
     canManageServer: boolean;
@@ -105,8 +130,25 @@ export function ServerDetail() {
     `/v1/core/servers/${serverId}/capacity`,
     5_000,
   );
-  const keys = useApiQuery<{ hostKeys: TrustedHostKey[] }>(
-    `/v1/core/servers/${serverId}/host-keys`,
+  const apps = useApiQuery<{ apps: App[] }>("/v1/core/apps", 5_000);
+  const resources = useApiQuery<{ resources: Resource[] }>(
+    "/v1/core/resources",
+    5_000,
+  );
+  const monitoring = useApiQuery<{ agent: MonitoringAgentStatus }>(
+    `/v1/core/servers/${serverId}/monitoring`,
+    5_000,
+  );
+  const keys = useApiQuery<{ hostKeys: { id: string }[] }>(
+    can("server.credentials") ? `/v1/core/servers/${serverId}/host-keys` : null,
+  );
+  const credentials = useApiQuery<{
+    credential: SecretMetadata;
+    selectedPrivateKeyId: string | null;
+  }>(
+    can("server.credentials")
+      ? `/v1/core/servers/${serverId}/credentials`
+      : null,
   );
   const preparations = useApiQuery<{ preparations: ServerPreparation[] }>(
     `/v1/core/servers/${serverId}/preparations`,
@@ -123,7 +165,7 @@ export function ServerDetail() {
     }
   }, [latestPreparationStatus, refreshServer]);
   const orphans = useApiQuery<{ orphans: OrphanItem[] }>(
-    `/v1/core/servers/${serverId}/orphans`,
+    can("server.remove") ? `/v1/core/servers/${serverId}/orphans` : null,
     5_000,
   );
   const error =
@@ -131,6 +173,8 @@ export function ServerDetail() {
     checks.error ??
     capacity.error ??
     keys.error ??
+    credentials.error ??
+    integrations.error ??
     preparations.error ??
     orphans.error;
   if (error)
@@ -147,9 +191,10 @@ export function ServerDetail() {
     !server.data ||
     !checks.data ||
     !capacity.data ||
-    !keys.data ||
+    (can("integration.manage") && !integrations.data) ||
+    (can("server.credentials") && (!keys.data || !credentials.data)) ||
     !preparations.data ||
-    !orphans.data
+    (can("server.remove") && !orphans.data)
   )
     return (
       <DashboardPage
@@ -162,34 +207,35 @@ export function ServerDetail() {
     );
 
   const item = server.data.server;
-  const orphanItems = orphans.data.orphans;
+  const appCount = apps.data?.apps.filter(
+    (app) => app.serverIp === item.canonicalIp && !app.archivedAt,
+  ).length;
+  const resourceCount = resources.data?.resources.filter(
+    (resource) =>
+      resource.serverIp === item.canonicalIp && !resource.archivedAt,
+  ).length;
+  const orphanItems = orphans.data?.orphans ?? [];
   const orphanVolumes = orphanItems.filter((item) => item.kind === "volume");
   const disposableOrphans = orphanItems.filter(
     (item) => item.kind !== "volume",
   );
-  const discovered = readDiscoveredKeys(
-    checks.data.latestCheck ? [checks.data.latestCheck] : [],
-  );
-  const trustedFingerprints = new Set(
-    keys.data.hostKeys.map((key) => key.fingerprint),
-  );
-  const hostKeyRows: HostKeyRow[] = [
-    ...keys.data.hostKeys.map((key) => ({
-      algorithm: key.algorithm,
-      fingerprint: key.fingerprint,
-      id: key.id,
-      status: "trusted" as const,
-    })),
-    ...discovered
-      .filter((key) => !trustedFingerprints.has(key.fingerprint))
-      .map((key) => ({ ...key, status: "untrusted" as const })),
-  ];
   const latestCheck = checks.data.latestCheck;
   const latestPreparation = preparations.data.preparations[0];
   const setupStatus = reconcileServerSetupStatus(
     item.setupStatus,
     latestPreparation?.status,
   );
+  const credentialsPending =
+    !credentials.data?.credential.keys.includes("privateKey") ||
+    !keys.data?.hostKeys.length;
+  const preparationProps = {
+    credentialsPending,
+    item,
+    latestPreparation,
+    serverId,
+    setupStatus,
+  };
+  const preparationIndicator = serverPreparationIndicator(preparationProps);
   const operatingSystem = readCheckResult(latestCheck, "operatingSystem");
   const dockerVersion = readCheckResult(latestCheck, "dockerVersion");
   const checkColumns: ResourceTableColumn<ServerCheck>[] = [
@@ -206,16 +252,14 @@ export function ServerDetail() {
       header: "Category",
       cell: (check) =>
         check.errorCode === "HOST_KEY_NOT_TRUSTED" ? (
-          <InlineLink
-            href={`/servers/${serverId}?section=settings&settings=host-keys`}
-          >
-            Host keys
+          <InlineLink href={`/servers/${serverId}/settings/credentials`}>
+            Credentials
           </InlineLink>
         ) : check.errorCode === "TEMPORAL_UNAVAILABLE" ? (
           "Control plane"
         ) : check.errorMessage ? (
-          <InlineLink href={`/servers/${serverId}?section=settings`}>
-            Configuration
+          <InlineLink href={`/servers/${serverId}/settings/credentials`}>
+            Credentials
           </InlineLink>
         ) : (
           "Environment"
@@ -254,7 +298,16 @@ export function ServerDetail() {
     {
       key: "status",
       header: "Status",
-      cell: (check) => <StatusBadge status={check.status} />,
+      cell: (check) => (
+        <StatusBadge
+          status={check.status}
+          tooltip={
+            check.finishedAt
+              ? `Server check ${check.status}. Finished ${formatDate(check.finishedAt)}.`
+              : `Server check ${check.status} is still in progress.`
+          }
+        />
+      ),
     },
   ];
   const orphanColumns: ResourceTableColumn<OrphanItem>[] = [
@@ -272,125 +325,51 @@ export function ServerDetail() {
       cell: (orphan) => <span className="capitalize">{orphan.kind}</span>,
     },
   ];
-  const hostKeyColumns: ResourceTableColumn<HostKeyRow>[] = [
-    {
-      key: "algorithm",
-      header: "Algorithm",
-      cell: (key) => key.algorithm,
-      className: "whitespace-nowrap",
-    },
-    {
-      key: "fingerprint",
-      header: "Fingerprint",
-      cell: (key) => (
-        <TypographyCode className="break-all">{key.fingerprint}</TypographyCode>
-      ),
-      className: "w-full min-w-72",
-    },
-    {
-      key: "status",
-      header: "Status",
-      cell: (key) => <StatusBadge status={key.status} />,
-    },
-    {
-      key: "action",
-      header: "Action",
-      cell: (key) =>
-        key.status === "trusted" && key.id ? (
-          <ActionButton
-            action={() =>
-              api.delete(`/v1/core/servers/${serverId}/host-keys/${key.id}`)
-            }
-            confirm={{
-              actionLabel: "Untrust key",
-              description:
-                "Towbar will stop accepting this SSH host key. Verify and trust a replacement before the next server operation if this is the last trusted key.",
-              title: (
-                <span className="inline-flex flex-wrap items-center gap-1.5">
-                  <span>Untrust</span>
-                  <TypographyCode className="break-all">
-                    {key.fingerprint}
-                  </TypographyCode>
-                  <span>?</span>
-                </span>
-              ),
-            }}
-            pendingLabel="Untrusting…"
-            success="Host key untrusted"
-            variant="danger"
-          >
-            <HugeiconsIcon
-              aria-hidden="true"
-              icon={Cancel01Icon}
-              className="size-4 shrink-0"
-            />
-            Untrust key
-          </ActionButton>
-        ) : key.status === "untrusted" && key.publicKey ? (
-          <ActionButton
-            action={() =>
-              api.post(`/v1/core/servers/${serverId}/host-keys/actions/trust`, {
-                algorithm: key.algorithm,
-                fingerprint: key.fingerprint,
-                publicKey: key.publicKey,
-              })
-            }
-            confirm={{
-              actionLabel: "Trust key",
-              description:
-                "Only continue if you verified this fingerprint through an independent channel.",
-              title: (
-                <span className="inline-flex flex-wrap items-center gap-1.5">
-                  <span>Trust</span>
-                  <TypographyCode className="break-all">
-                    {key.fingerprint}
-                  </TypographyCode>
-                  <span>?</span>
-                </span>
-              ),
-            }}
-            success="Host key trusted"
-          >
-            <HugeiconsIcon
-              aria-hidden="true"
-              icon={Shield01Icon}
-              className="size-4 shrink-0"
-            />
-            Trust key
-          </ActionButton>
-        ) : (
-          <span className="text-muted">—</span>
-        ),
-      className: "whitespace-nowrap",
-    },
-  ];
 
   return (
     <DashboardPage
       icon={ServerStack01Icon}
       actions={
-        <ActionButton
-          confirm={{
-            title: "Check this server?",
-            description:
-              "Towbar will connect over SSH, inspect the server and its containers, and record a fresh check result.",
-            actionLabel: "Check server",
-          }}
-          action={() => api.post(`/v1/core/servers/${serverId}/actions/check`)}
-          pendingLabel="Checking…"
-          success="Server check queued"
-          variant="primary"
-        >
-          <HugeiconsIcon
-            aria-hidden="true"
-            icon={Tick02Icon}
-            className="size-4 shrink-0"
-          />
-          Check server
-        </ActionButton>
+        detailNavigation.section === "preparation" ? (
+          <PrepareServerButton {...preparationProps} />
+        ) : detailNavigation.section === "checks" &&
+          can("server.credentials") ? (
+          <ActionButton
+            confirm={{
+              title: "Check this server?",
+              description:
+                "Towbar will connect over SSH, inspect the server and its containers, and record a fresh check result.",
+              actionLabel: "Check server",
+            }}
+            action={() =>
+              api.post(`/v1/core/servers/${serverId}/actions/check`)
+            }
+            pendingLabel="Checking…"
+            success="Server check queued"
+            variant="primary"
+          >
+            <HugeiconsIcon
+              aria-hidden="true"
+              icon={ComputerActivityIcon}
+              className="size-4 shrink-0"
+            />
+            Check server
+          </ActionButton>
+        ) : undefined
       }
       badge={
-        <StatusBadge status={item.archivedAt ? "archived" : setupStatus} />
+        (detailNavigation.section ?? "overview") === "overview" ? (
+          <TooltipText
+            className="inline-flex"
+            tooltip={
+              !item.archivedAt && setupStatus === "pending"
+                ? "Server setup has not been completed yet."
+                : undefined
+            }
+          >
+            <StatusBadge status={item.archivedAt ? "archived" : setupStatus} />
+          </TooltipText>
+        ) : undefined
       }
       breadcrumbAncestors={serversBreadcrumb}
       title={item.canonicalIp}
@@ -406,15 +385,7 @@ export function ServerDetail() {
               icon: <HugeiconsIcon icon={ServerStack01Icon} />,
               content: (
                 <div className="content-grid">
-                  {setupStatus !== "ready" && (
-                    <ServerPreparationPanel
-                      hasTrustedHostKey={keys.data.hostKeys.length > 0}
-                      item={item}
-                      latestPreparation={latestPreparation}
-                      serverId={serverId}
-                      setupStatus={setupStatus}
-                    />
-                  )}
+                  <ServerPreparationOverview {...preparationProps} />
                   <ServerHostCapacity capacity={capacity.data.capacity} />
                   <div className="content-grid lg:grid-cols-2">
                     <Attributes
@@ -446,7 +417,7 @@ export function ServerDetail() {
                       <Attributes.Item label="SSH port">
                         {item.config.ssh.port}
                       </Attributes.Item>
-                      <Attributes.Item label="Cloudflare DNS TLS">
+                      <Attributes.Item label="Cloudflare TLS">
                         {item.config.proxy?.cloudflare.enabled
                           ? "Enabled"
                           : "Disabled"}
@@ -493,28 +464,94 @@ export function ServerDetail() {
                       <Attributes.Item label="Concurrent preview builds">
                         {item.config.previewBuildConcurrency ?? 1}
                       </Attributes.Item>
-                      <Attributes.Item label="Trusted host keys">
-                        {keys.data.hostKeys.length}
-                      </Attributes.Item>
                     </Attributes>
                   </div>
                 </div>
               ),
             },
             {
-              value: "monitoring",
-              label: "Scout Agent",
+              value: "preparation",
+              label: "Server Preparation",
+              badge:
+                preparationIndicator === "busy" ? (
+                  <Spinner
+                    size="sm"
+                    aria-label="Server preparation in progress"
+                  />
+                ) : preparationIndicator === "warning" ? (
+                  <span
+                    aria-label="Server preparation required"
+                    role="img"
+                    className="inline-flex text-warning-soft-foreground [&_svg]:size-4"
+                  >
+                    <HugeiconsIcon aria-hidden="true" icon={Alert02Icon} />
+                  </span>
+                ) : (
+                  <span
+                    aria-label="Server preparation completed"
+                    role="img"
+                    className="inline-flex text-success-soft-foreground [&_svg]:size-4"
+                  >
+                    <HugeiconsIcon
+                      aria-hidden="true"
+                      icon={CheckmarkCircle01Icon}
+                    />
+                  </span>
+                ),
+              icon: <HugeiconsIcon icon={Settings01Icon} />,
+              content: <ServerPreparationChecklist {...preparationProps} />,
+            },
+            ...(can("server.terminal")
+              ? [
+                  {
+                    value: "terminal",
+                    label: "Terminal",
+                    icon: <HugeiconsIcon icon={CommandLineIcon} />,
+                    content: (
+                      <ServerTerminal
+                        serverId={serverId}
+                        username={item.config.ssh.username}
+                        host={item.config.ssh.host ?? item.canonicalIp}
+                        credentialsPending={credentialsPending}
+                      />
+                    ),
+                  },
+                ]
+              : []),
+            {
+              value: "performance",
+              label: "Performance",
+              group: "Monitor",
               icon: <HugeiconsIcon icon={Activity01Icon} />,
               content: (
-                <ScoutPanel
+                <ScoutPerformance
                   path={`/v1/core/servers/${serverId}/metrics`}
                   serverId={serverId}
                 />
               ),
             },
             {
+              value: "alerts",
+              label: "Alerts",
+              contentOwnsTitle: true,
+              group: "Monitor",
+              icon: <HugeiconsIcon icon={Alert02Icon} />,
+              content: <ScoutAlertRules serverId={serverId} />,
+            },
+            {
+              value: "incidents",
+              label: "Incidents",
+              group: "Monitor",
+              icon: <HugeiconsIcon icon={AlertCircleIcon} />,
+              content: <ScoutIncidents serverId={serverId} />,
+            },
+            {
               value: "apps",
               label: "Apps",
+              badge:
+                appCount !== undefined ? (
+                  <span className="text-muted">{appCount}</span>
+                ) : undefined,
               icon: <HugeiconsIcon icon={DashboardCircleIcon} />,
               content: (
                 <ServerDeployableTable
@@ -526,7 +563,11 @@ export function ServerDetail() {
             {
               value: "resources",
               label: "Resources",
-              icon: <HugeiconsIcon icon={DatabaseIcon} />,
+              badge:
+                resourceCount !== undefined ? (
+                  <span className="text-muted">{resourceCount}</span>
+                ) : undefined,
+              icon: <HugeiconsIcon icon={CubeIcon} />,
               content: (
                 <ServerDeployableTable
                   capacity={capacity.data.capacity}
@@ -538,10 +579,6 @@ export function ServerDetail() {
               value: "checks",
               label: "Checks",
               icon: <HugeiconsIcon icon={Activity01Icon} />,
-              indicator: {
-                label: String(checks.data.pagination.total),
-                variant: "secondary",
-              },
               content: (
                 <ServerCheckHistory
                   columns={checkColumns}
@@ -565,38 +602,78 @@ export function ServerDetail() {
                   key={settingsTab}
                   tabs={[
                     {
-                      value: "configuration",
-                      label: "Configuration",
+                      value: "credentials",
+                      label: "Credentials",
+                      badge: credentialsPending ? (
+                        <span
+                          aria-label="Credentials require attention"
+                          className="inline-flex text-warning-soft-foreground [&_svg]:size-4"
+                          role="img"
+                        >
+                          <HugeiconsIcon
+                            aria-hidden="true"
+                            icon={Alert02Icon}
+                          />
+                        </span>
+                      ) : (
+                        <span
+                          aria-label="Credentials verified"
+                          className="inline-flex text-success-soft-foreground [&_svg]:size-4"
+                          role="img"
+                        >
+                          <HugeiconsIcon
+                            aria-hidden="true"
+                            icon={CheckmarkCircle01Icon}
+                          />
+                        </span>
+                      ),
                       content: (
                         <ServerEditor
                           canManage={server.data.canManageServer}
-                          canRemove={server.data.canRemoveServer}
                           server={item}
                         />
                       ),
                     },
-                    {
-                      value: "host-keys",
-                      label: "Host Keys",
-                      content: (
-                        <ResourceTable
-                          ariaLabel={`Host keys for ${item.canonicalIp}`}
-                          columns={hostKeyColumns}
-                          emptyDescription="Run a server check to discover the SSH host keys presented by this server."
-                          emptyTitle="No SSH host keys"
-                          getRowKey={(key) => key.fingerprint}
-                          items={hostKeyRows}
-                          tableClassName="min-w-[760px]"
-                        />
-                      ),
-                    },
+                    ...(cloudflareConfigured
+                      ? [
+                          {
+                            value: "cloudflare-tls",
+                            label: "Cloudflare TLS",
+                            badge: item.config.proxy?.cloudflare.enabled ? (
+                              <span
+                                role="img"
+                                aria-label="Cloudflare TLS enabled"
+                                title="Cloudflare TLS enabled"
+                                className="block size-1.5 rounded-full bg-success-soft-foreground"
+                              />
+                            ) : undefined,
+                            icon: <CloudProviderLogo provider="cloudflare" />,
+                            content: (
+                              <ServerTlsSettings
+                                canManage={server.data.canManageServer}
+                                server={item}
+                              />
+                            ),
+                          },
+                        ]
+                      : []),
                     {
                       value: "monitoring",
                       label: "Scout Agent",
+                      badge:
+                        monitoring.data?.agent.desiredState === "enabled" ? (
+                          <span
+                            role="img"
+                            aria-label="Scout Agent enabled"
+                            title="Scout Agent enabled"
+                            className="block size-1.5 rounded-full bg-success-soft-foreground"
+                          />
+                        ) : undefined,
+                      icon: <ScoutMascot size={24} variant="icon" />,
                       content: (
                         <MonitoringAgentSettings
                           serverId={serverId}
-                          canManage={server.data.canManageServer}
+                          canManage={can("scout.configure")}
                           ready={setupStatus === "ready"}
                         />
                       ),
@@ -659,6 +736,57 @@ export function ServerDetail() {
                         </div>
                       ),
                     },
+                    ...(server.data.canRemoveServer
+                      ? [
+                          {
+                            value: "danger",
+                            label: "Remove server",
+                            destructive: true,
+                            group: "Danger zone",
+                            icon: <HugeiconsIcon icon={ServerOffIcon} />,
+                            content: (
+                              <FormCard
+                                icon={<HugeiconsIcon icon={Delete02Icon} />}
+                                title="Danger zone"
+                              >
+                                <div className="content-grid">
+                                  <p className="max-w-3xl text-sm text-muted">
+                                    Remove this server and forget its stored
+                                    credentials and trusted host keys. Towbar
+                                    will attempt to remove existing app
+                                    containers when the server is added and
+                                    prepared again. A later Repository sync
+                                    restores the server automatically when a
+                                    manifest still references its IP address.
+                                  </p>
+                                  <ActionButton
+                                    action={() =>
+                                      api.delete(`/v1/core/servers/${serverId}`)
+                                    }
+                                    confirm={{
+                                      actionLabel: "Remove server",
+                                      description:
+                                        "Towbar will stop managing this server and forget its stored credentials and trusted host keys. Existing inventory is archived. Running services and data may remain on the machine. If a manifest still uses this IP address, the next Repository sync restores the server in Server Setup Pending and preparation attempts to remove its existing app containers.",
+                                      title: `Remove ${item.canonicalIp} from Towbar?`,
+                                    }}
+                                    onSuccess={() => router.push("/servers")}
+                                    pendingLabel="Removing…"
+                                    success="Server removal requested"
+                                    variant="danger"
+                                  >
+                                    <HugeiconsIcon
+                                      aria-hidden="true"
+                                      icon={Delete02Icon}
+                                      className="size-4 shrink-0"
+                                    />
+                                    Remove server
+                                  </ActionButton>
+                                </div>
+                              </FormCard>
+                            ),
+                          },
+                        ]
+                      : []),
                   ]}
                 />
               ),
@@ -723,150 +851,6 @@ function ServerCheckHistory({
   );
 }
 
-function ServerPreparationPanel({
-  hasTrustedHostKey,
-  item,
-  latestPreparation,
-  serverId,
-  setupStatus,
-}: {
-  hasTrustedHostKey: boolean;
-  item: Server;
-  latestPreparation: ServerPreparation | undefined;
-  serverId: string;
-  setupStatus: Server["setupStatus"];
-}) {
-  const preparing = setupStatus === "preparing";
-  const ready = setupStatus === "ready";
-  const steps = latestPreparation?.steps ?? [];
-  const activeStep = steps.findIndex(
-    (step) => step.status === "running" || step.status === "failed",
-  );
-  const currentStep =
-    activeStep >= 0
-      ? activeStep
-      : steps.every((step) => step.status === "succeeded")
-        ? steps.length
-        : 0;
-  const disabled =
-    Boolean(item.archivedAt) || ready || preparing || !hasTrustedHostKey;
-
-  return (
-    <div className="grid gap-4">
-      {latestPreparation?.status === "failed" &&
-      latestPreparation.errorMessage ? (
-        <Alert status="danger">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>Server preparation stopped</Alert.Title>
-            <Alert.Description>
-              {latestPreparation.errorMessage}
-              <ConfigurationLinks serverId={serverId} />
-            </Alert.Description>
-          </Alert.Content>
-        </Alert>
-      ) : null}
-      <Widget>
-        <Widget.Header endContent={<StatusBadge status={setupStatus} />}>
-          <Widget.Title icon={<HugeiconsIcon icon={ServerStack01Icon} />}>
-            Server preparation
-          </Widget.Title>
-        </Widget.Header>
-        <Widget.Content className="content-grid">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <p className="max-w-2xl text-sm text-muted">
-              Installs or validates Docker Engine, Caddy, Python, deployment
-              directories, and SSH user access. Apps and resources stay in
-              Server Setup Pending until every step succeeds.
-            </p>
-            <ActionButton<{ preparation: ServerPreparation }>
-              action={() =>
-                api.post<{ preparation: ServerPreparation }>(
-                  `/v1/core/servers/${serverId}/actions/prepare`,
-                )
-              }
-              confirm={{
-                actionLabel: "Prepare server",
-                description:
-                  "Towbar will connect with the trusted SSH host key, install or validate Docker Engine, Caddy, and Python, then verify the host. Existing conflicting services are not removed automatically.",
-                title: "Prepare this server?",
-              }}
-              isDisabled={disabled}
-              pendingLabel="Queueing…"
-              success="Server preparation queued"
-              variant="primary"
-            >
-              <HugeiconsIcon
-                aria-hidden="true"
-                icon={Settings01Icon}
-                className="size-4 shrink-0"
-              />
-              Prepare Server
-            </ActionButton>
-          </div>
-          {!hasTrustedHostKey && !ready ? (
-            <p className="text-warning-soft-foreground text-sm">
-              Trust at least one verified SSH host key before preparing this
-              server.
-            </p>
-          ) : null}
-          {latestPreparation?.startedAt ? (
-            <p className="text-sm text-muted">
-              Duration: <ElapsedTime {...latestPreparation} />
-            </p>
-          ) : null}
-          {steps.length ? (
-            <Stepper
-              aria-label="Server preparation progress"
-              currentStep={currentStep}
-              orientation="vertical"
-              size="sm"
-            >
-              {steps.map((step) => (
-                <Stepper.Step key={step.id}>
-                  <Stepper.Indicator />
-                  <Stepper.Content>
-                    <Stepper.Title>
-                      <span className="inline-flex min-w-0 items-center gap-2">
-                        <span className="truncate">{step.title}</span>
-                        <StatusBadge status={step.status} />
-                      </span>
-                    </Stepper.Title>
-                    {step.message || step.startedAt ? (
-                      <Stepper.Description>
-                        <span className="grid gap-1">
-                          {step.message}
-                          {step.startedAt ? (
-                            <ElapsedTime
-                              startedAt={step.startedAt}
-                              finishedAt={
-                                step.finishedAt ??
-                                (step.status === "running"
-                                  ? (latestPreparation?.finishedAt ?? null)
-                                  : null)
-                              }
-                              status={
-                                latestPreparation?.status === "running"
-                                  ? step.status
-                                  : "succeeded"
-                              }
-                            />
-                          ) : null}
-                        </span>
-                      </Stepper.Description>
-                    ) : null}
-                  </Stepper.Content>
-                  <Stepper.Separator />
-                </Stepper.Step>
-              ))}
-            </Stepper>
-          ) : null}
-        </Widget.Content>
-      </Widget>
-    </div>
-  );
-}
-
 function CleanupButton({
   description,
   items,
@@ -900,21 +884,6 @@ function CleanupButton({
       />
       {label}
     </ActionButton>
-  );
-}
-
-function readDiscoveredKeys(checks: ServerCheck[]): DiscoveredKey[] {
-  const failed = checks[0];
-  if (failed?.errorCode !== "HOST_KEY_NOT_TRUSTED") return [];
-  const value = failed?.result?.discoveredHostKeys;
-  if (!Array.isArray(value)) return [];
-  return value.filter(
-    (item): item is DiscoveredKey =>
-      typeof item === "object" &&
-      item !== null &&
-      typeof (item as DiscoveredKey).algorithm === "string" &&
-      typeof (item as DiscoveredKey).fingerprint === "string" &&
-      typeof (item as DiscoveredKey).publicKey === "string",
   );
 }
 

@@ -38,7 +38,6 @@ export async function assertDueHttpChecksAreNotStarved(workspaceId: string) {
     await db.insert(servers).values(
       serverIds.map((id, index) => ({
         id,
-        slug: `server-${id}`,
         workspaceId,
         canonicalIp: `192.0.2.${230 + index}`,
         config: normalizeServerConfiguration({

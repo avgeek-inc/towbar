@@ -2,8 +2,11 @@
 import { PageSelectionTitle } from "./page-selection-title";
 import {
   AlertCircleIcon,
+  CubeIcon,
   DashboardCircleIcon,
-  Cancel01Icon,
+  FilterResetIcon,
+  GitBranchIcon,
+  ServerStack01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { Server, Source } from "@workspace/towbar-web-client";
@@ -15,6 +18,18 @@ import { ScoutSelect } from "./scout-controls";
 
 type Kind = "apps" | "resources" | "servers" | "sources";
 export type InventoryCounts = { all: number; attention: number };
+const kindIcons = {
+  apps: DashboardCircleIcon,
+  resources: CubeIcon,
+  servers: ServerStack01Icon,
+  sources: GitBranchIcon,
+} as const;
+const kindLabels = {
+  apps: "apps",
+  resources: "resources",
+  servers: "servers",
+  sources: "repositories",
+} as const;
 const keys: Record<Kind, string[]> = {
   apps: [
     "q",
@@ -61,6 +76,7 @@ export function InventorySidebar({
   environments?: string[];
 }) {
   const { search, update } = usePageQuery();
+  const kindLabel = kindLabels[kind];
   const workload = kind === "apps" || kind === "resources";
   const controls: Array<{
     key: string;
@@ -73,7 +89,7 @@ export function InventorySidebar({
     controls.push(
       {
         key: "sourceId",
-        label: "Source",
+        label: "Repository",
         options: sources.map((s) => ({
           id: s.id,
           label: `${s.repositoryOwner}/${s.repositoryName}`,
@@ -173,14 +189,14 @@ export function InventorySidebar({
             icon={
               search.get("view") === "attention"
                 ? AlertCircleIcon
-                : DashboardCircleIcon
+                : kindIcons[kind]
             }
           />
         }
         label={
           search.get("view") === "attention"
-            ? `${kind[0]!.toUpperCase()}${kind.slice(1)} needing attention`
-            : `All ${kind}`
+            ? `${kindLabel[0]!.toUpperCase()}${kindLabel.slice(1)} needing attention`
+            : `All ${kindLabel}`
         }
       />
       <SecondaryItems
@@ -190,9 +206,9 @@ export function InventorySidebar({
         items={[
           {
             id: "all",
-            label: `All ${kind}`,
+            label: `All ${kindLabel}`,
             badge: counts?.all?.toString(),
-            icon: <HugeiconsIcon icon={DashboardCircleIcon} />,
+            icon: <HugeiconsIcon icon={kindIcons[kind]} />,
           },
           {
             id: "attention",
@@ -202,7 +218,7 @@ export function InventorySidebar({
           },
         ]}
       />
-      <SecondarySection title={`Filter ${kind}`}>
+      <SecondarySection title={`Filter ${kindLabel}`}>
         <div className="grid gap-4">
           {controls.map((control) => (
             <ScoutSelect
@@ -218,12 +234,11 @@ export function InventorySidebar({
           {keys[kind].some((key) => search.has(key)) ? (
             <Button
               variant="secondary"
-              size="sm"
               onPress={() =>
                 update(Object.fromEntries(keys[kind].map((key) => [key, null])))
               }
             >
-              <HugeiconsIcon icon={Cancel01Icon} className="size-4" />
+              <HugeiconsIcon icon={FilterResetIcon} className="size-4" />
               Clear filters
             </Button>
           ) : null}
@@ -231,9 +246,9 @@ export function InventorySidebar({
       </SecondarySection>
       <Input
         className="w-full max-w-sm"
-        aria-label={`Search ${kind}`}
+        aria-label={`Search ${kindLabel}`}
         placeholder={
-          kind === "servers" ? "Search IP address…" : `Search ${kind}…`
+          kind === "servers" ? "Search IP address…" : `Search ${kindLabel}…`
         }
         value={search.get("q") ?? ""}
         maxLength={200}

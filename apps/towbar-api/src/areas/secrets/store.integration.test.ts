@@ -12,11 +12,13 @@ import {
   apps,
   auditEvents,
   deployments,
-  githubInstallations,
+  integrationInstallations,
   releases,
   servers,
+  sessions,
   sources,
   users,
+  workspaceMembers,
   workspaces,
 } from "@workspace/towbar-database/schema";
 import type { TowbarHonoEnvironment } from "../../http/types.js";
@@ -33,11 +35,6 @@ void test(
     process.env.DATABASE_TOWBAR_URL = url;
     process.env.TOWBAR_CREDENTIALS_KEY = randomBytes(32).toString("base64");
     process.env.TOWBAR_INTERNAL_HMAC_SECRET = randomBytes(32).toString("hex");
-    process.env.TOWBAR_SLACK_BOT_TOKEN = "test-slack-token";
-    process.env.TOWBAR_SMTP_HOST = "mail.example.com";
-    process.env.TOWBAR_SMTP_FROM = "test@example.com";
-    process.env.TOWBAR_SMTP_USERNAME = "test";
-    process.env.TOWBAR_SMTP_PASSWORD = "test-smtp-password";
     const { runTowbarMigrations } =
       await import("@workspace/towbar-database/migrate");
     await runTowbarMigrations({
@@ -53,10 +50,6 @@ void test(
       await import("../../routes/v1/core/environment-secrets.js");
     const { serverCredentialRoutes } =
       await import("../../routes/v1/core/server-credentials.js");
-    const {
-      getNotificationProviderConfiguration,
-      notificationProviderAvailability,
-    } = await import("../notifications/configuration.js");
     const { createServer } = await import("../servers/lifecycle.js");
     const { listServerApps } = await import("../servers/service.js");
     const { HttpError } = await import("../../http/errors.js");
@@ -118,8 +111,9 @@ void test(
       environment: "production" as const,
       stage: "deployment",
     };
-    let workspaceRole: "owner" | "member" = "owner",
+    let workspaceRole: "admin" | "member" | "viewer" = "admin",
       requestWorkspace: string = workspaceId;
+    const sessionId = randomUUID();
     const api = new Hono<TowbarHonoEnvironment>();
     api.use("*", async (context, next) => {
       context.set("user", {
@@ -129,6 +123,13 @@ void test(
         email: "test@example.com",
         name: "Test",
       });
+      context.set("actor", {
+        kind: "session",
+        workspaceId: requestWorkspace,
+        userId: actorUserId,
+        role: workspaceRole,
+      });
+      context.set("currentSessionId", sessionId);
       await next();
     });
     api.onError((error, context) =>
@@ -166,24 +167,33 @@ void test(
         email: `${actorUserId}@example.com`,
         displayName: "Test",
       });
+      await db
+        .insert(workspaceMembers)
+        .values({ workspaceId, userId: actorUserId, role: "admin" });
+      await db.insert(sessions).values({
+        id: sessionId,
+        userId: actorUserId,
+        token: randomUUID(),
+        expiresAt: new Date(Date.now() + 86400_000),
+      });
       const [installation] = await db
-        .insert(githubInstallations)
+        .insert(integrationInstallations)
         .values({
+          provider: "github",
           workspaceId,
-          installationId: randomUUID(),
-          accountLogin: "test",
-          accountType: "Organization",
+          externalId: randomUUID(),
+          principalName: "test",
+          principalType: "Organization",
         })
         .returning();
       await db.insert(sources).values({
         id: sourceId,
         workspaceId,
-        githubInstallationId: installation!.id,
+        integrationInstallationId: installation!.id,
         repositoryOwner: "test",
         repositoryName: "test",
       });
       await db.insert(servers).values({
-        slug: `server-${serverId}`,
         id: serverId,
         workspaceId,
         canonicalIp: serverConfig.ip,
@@ -230,7 +240,7 @@ void test(
           await db.insert(sources).values({
             id: secondSourceId,
             workspaceId,
-            githubInstallationId: installation!.id,
+            integrationInstallationId: installation!.id,
             repositoryOwner: "test",
             repositoryName: "second",
           });
@@ -254,7 +264,7 @@ void test(
             [sourceId, secondSourceId].sort(),
           );
           await assert.rejects(
-            createServer({ config: serverConfig, workspaceId, slug: "host" }),
+            createServer({ config: serverConfig, workspaceId }),
             /already configured/u,
           );
           await db.delete(sources).where(eq(sources.id, secondSourceId));
@@ -269,35 +279,39 @@ void test(
           assert(bindings.every((binding) => binding.revision === null));
           await assert.rejects(
             resolveServerCredentials({ workspaceId, serverId }),
-            /Server → Settings → Configuration/u,
+            /Server → Settings → Credentials/u,
           );
         },
       );
       await t.test(
-        "secret environments reflect connected mappings without a production fallback",
+        "workspace secrets use one environment-agnostic slot",
         async () => {
           const connected = await api.request("/settings/secrets");
           assert.equal(connected.status, 200);
           const connectedBody = (await connected.json()) as {
             environments: string[];
           };
-          assert.deepEqual(connectedBody.environments, [
-            "production",
-            "preview:production",
-          ]);
+          assert.deepEqual(connectedBody.environments, ["production"]);
           const unknown = await api.request(
             "/settings/secrets?environment=staging",
           );
-          assert.equal(unknown.status, 422);
+          assert.equal(unknown.status, 200);
+          assert.deepEqual(
+            ((await unknown.json()) as { environments: string[] }).environments,
+            ["production"],
+          );
           requestWorkspace = otherWorkspaceId;
           try {
             const empty = await api.request("/settings/secrets");
             assert.equal(empty.status, 200);
-            assert.deepEqual(await empty.json(), {
-              environments: [],
-              bindings: [],
-              canManageSecrets: true,
-            });
+            const isolated = (await empty.json()) as {
+              environments: string[];
+              bindings: unknown[];
+              canManageSecrets: boolean;
+            };
+            assert.deepEqual(isolated.environments, ["production"]);
+            assert.equal(isolated.bindings.length, 4);
+            assert.equal(isolated.canManageSecrets, true);
           } finally {
             requestWorkspace = workspaceId;
           }
@@ -312,7 +326,6 @@ void test(
         actorUserId,
         sourceId,
         appId,
-        workspaceOwner,
         sourceOwner,
         appOwner,
         globalSlot,
@@ -343,7 +356,7 @@ void test(
         },
       );
       await t.test(
-        "reveal requires an owner in the same workspace and does not leak through metadata",
+        "reveal requires an admin; members update values and viewers cannot",
         async () => {
           const path = `/apps/${appId}/secrets/production/deployment`;
           const current = await readSecretMetadata(slot);
@@ -360,6 +373,7 @@ void test(
             });
           workspaceRole = "member";
           assert.equal((await reveal()).status, 403);
+          workspaceRole = "viewer";
           assert.equal((await patch(path, change)).status, 403);
           assert.equal(
             (
@@ -372,7 +386,17 @@ void test(
             ).status,
             403,
           );
-          workspaceRole = "owner";
+          workspaceRole = "member";
+          assert.equal(
+            (
+              await patch(path, {
+                ...change,
+                set: { TOKEN: "{{source.TOKEN}}" },
+              })
+            ).status,
+            200,
+          );
+          workspaceRole = "admin";
           requestWorkspace = otherWorkspaceId;
           assert.equal((await reveal()).status, 404);
           assert.equal((await patch(path, change)).status, 404);
@@ -478,21 +502,6 @@ void test(
           workspaceRole = role;
         },
       });
-      await t.test(
-        "notification configuration comes from installation environment variables",
-        () => {
-          assert.equal(notificationProviderAvailability().slack, true);
-          assert.equal(
-            getNotificationProviderConfiguration("slack")?.provider,
-            "slack",
-          );
-          assert.equal(notificationProviderAvailability().smtp, true);
-          assert.equal(
-            getNotificationProviderConfiguration("smtp")?.provider,
-            "smtp",
-          );
-        },
-      );
       const { testSecretLifecycle } = await import("./lifecycle-tests.js");
       await testSecretLifecycle({
         t,

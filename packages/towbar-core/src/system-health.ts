@@ -4,8 +4,7 @@ export type SystemHealthStatus =
 export type SystemHealthCheck = {
   checkedAt: string | null;
   description: string;
-  id:
-    "api-database" | "aws" | "azure" | "gcp" | "github" | "temporal" | "worker";
+  id: "api-database" | "temporal" | "worker";
   remediationHref: string | null;
   remediationLabel: string | null;
   status: SystemHealthStatus;

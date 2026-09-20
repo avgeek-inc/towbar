@@ -12,7 +12,7 @@ Start with the last successful stage. Repository sync, deployment admission, bui
 | Compose does not start                       | Required `.env` values and migration logs | Run `docker compose config --quiet`, then inspect `migrate` and `api` logs                                                  |
 | Login works locally but fails behind a proxy | App/API origins and trusted proxy hops    | Check [public origins](/docs/reference/environment-variables#public-origins) and rebuild browser assets after changing URLs |
 | Repository missing                           | GitHub App installation access            | Grant access to the repository and approve required permissions                                                             |
-| Source sync fails                            | Manifest error and referenced server IPs  | Fix the reported field or register the server, then sync again                                                              |
+| Repository sync fails                        | Manifest error and referenced server IPs  | Fix the reported field or register the server, then sync again                                                              |
 | Server Setup Pending                         | SSH trust and preparation result          | Verify the host fingerprint, then complete server preparation                                                               |
 
 ## Deployment problems
@@ -39,6 +39,6 @@ Check the relevant cloud provider integration ([AWS](/docs/integrations/aws), [G
 
 ## Collect useful diagnostics
 
-Record the Towbar version, Source and workload IDs, operation ID, timestamps with timezone, and the last failing stage. Include a minimal manifest and redacted logs when opening a [GitHub issue](https://github.com/avgeek-inc/towbar/issues).
+Record the Towbar version, Repository and workload IDs, operation ID, timestamps with timezone, and the last failing stage. Include a minimal manifest and redacted logs when opening a [GitHub issue](https://github.com/avgeek-inc/towbar/issues).
 
 Do not include secret values, private keys, or database contents. Report suspected vulnerabilities through the [private security process](/docs/self-hosting/security).

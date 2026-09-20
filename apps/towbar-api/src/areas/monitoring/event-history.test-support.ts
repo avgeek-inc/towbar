@@ -30,7 +30,7 @@ export async function verifyEventHistoryBounds(
   const old = row(new Date(now.getTime() - 2 * 3600_000));
   const future = row(new Date(now.getTime() + 3600_000));
   await db.insert(deployments).values([old, future]);
-  const query = { serverId, workspaceId, environment: "production" as const };
+  const query = { serverId, workspaceId };
   const hour = await getMonitoringHistory({ ...query, range: "1h" }, now);
   assert(
     !hour.events.some((event) => event.id === old.id || event.id === future.id),

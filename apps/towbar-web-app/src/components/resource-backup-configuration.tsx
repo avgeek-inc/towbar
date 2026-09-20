@@ -112,18 +112,19 @@ export function ResourceBackupConfiguration({
   });
 
   const missingProviders: string[] = [];
-  if (backup.s3 && !assuranceData.awsConfigured) missingProviders.push("AWS");
+  if (backup.s3 && !assuranceData.awsConfigured)
+    missingProviders.push("AWS S3");
   if (backup.gcs && !assuranceData.gcpConfigured)
-    missingProviders.push("Google Cloud");
+    missingProviders.push("Google Cloud Storage");
   if (backup.azureBlob && !assuranceData.azureConfigured)
-    missingProviders.push("Azure");
+    missingProviders.push("Azure Blob Storage");
   const credentialsConfigured = missingProviders.length === 0;
 
   const configuredProviders: ConfiguredProvider[] = [];
   if (backup.s3) {
     configuredProviders.push({
       id: "s3",
-      label: "AWS (S3)",
+      label: "AWS S3",
       providerName: "AWS",
       locationUri: `s3://${backup.s3.bucket}/${backup.s3.prefix || "towbar"}`,
       credentialsConfigured: Boolean(assuranceData.awsConfigured),
@@ -132,7 +133,7 @@ export function ResourceBackupConfiguration({
   if (backup.gcs) {
     configuredProviders.push({
       id: "gcs",
-      label: "Google Cloud (GCS)",
+      label: "Google Cloud Storage",
       providerName: "Google Cloud",
       locationUri: `gs://${backup.gcs.bucket}/${backup.gcs.prefix || "towbar"}`,
       credentialsConfigured: Boolean(assuranceData.gcpConfigured),
@@ -193,7 +194,6 @@ function ResourceBackupContent({
   const [selectedProvider, setSelectedProvider] = useState<ProviderKey>(
     configuredProviders[0]?.id ?? "s3",
   );
-
   return (
     <div className="content-grid min-w-0">
       <div className="content-grid min-w-0">
@@ -201,7 +201,11 @@ function ResourceBackupContent({
           <Widget className="min-w-0">
             <Widget.Header
               endContent={
-                <Chip className="shrink-0" variant={backupHealth.tone}>
+                <Chip
+                  className="shrink-0"
+                  tooltip={backupHealth.description}
+                  variant={backupHealth.tone}
+                >
                   {backupHealth.label}
                 </Chip>
               }
@@ -247,6 +251,7 @@ function ResourceBackupContent({
                   )}
                 </p>
                 <ActionButton
+                  permission="resource.backup"
                   action={() =>
                     api.post(
                       `/v1/core/resources/${resource.id}/actions/backup`,
@@ -282,9 +287,10 @@ function ResourceBackupContent({
             <Alert.Content>
               <Alert.Title>Backups paused</Alert.Title>
               <Alert.Description>
-                Add {missingProviders.join(" and ")} credentials in{" "}
-                <InlineLink href="/manage/integrations">
-                  Manage → Integrations
+                Enable {formatList(missingProviders)} in the Towbar API
+                environment, then restart Towbar. See the{" "}
+                <InlineLink href="https://www.towbar.dev/docs/reference/environment-variables">
+                  environment variable reference
                 </InlineLink>{" "}
                 before backups can run.
               </Alert.Description>
@@ -354,7 +360,10 @@ function ProviderDestinationCard({
       variant="card"
     >
       <Attributes.Item label="Location">
-        <TypographyCode className="block truncate" title={provider.locationUri}>
+        <TypographyCode
+          className="inline-block max-w-full truncate align-middle"
+          title={provider.locationUri}
+        >
           {provider.locationUri}
         </TypographyCode>
       </Attributes.Item>
@@ -382,10 +391,12 @@ function ProviderDestinationCard({
       ) : null}
       <Attributes.Item label="Schedule">
         {backup.schedule ? (
-          <span className="inline-flex items-center gap-2">
-            <TypographyCode>{backup.schedule.cron}</TypographyCode>
-            <span>UTC</span>
-          </span>
+          <TypographyCode
+            className="inline-block max-w-full truncate align-middle"
+            title={formatBackupSchedule(backup.schedule.cron)}
+          >
+            {backup.schedule.cron}
+          </TypographyCode>
         ) : (
           "Manual only"
         )}
@@ -396,13 +407,41 @@ function ProviderDestinationCard({
       <Attributes.Item label="Credentials status">
         <StatusBadge
           status={provider.credentialsConfigured ? "healthy" : "critical"}
-          label={
-            provider.credentialsConfigured ? "Connected" : "Missing credentials"
-          }
+          label={provider.credentialsConfigured ? "Available" : "Not enabled"}
         />
       </Attributes.Item>
     </Attributes>
   );
+}
+
+function formatList(items: string[]) {
+  if (items.length < 2) return items[0] ?? "a backup provider";
+  if (items.length === 2) return items.join(" and ");
+  return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
+}
+
+function formatBackupSchedule(cron: string) {
+  const [minute, hour, dayOfMonth, month, dayOfWeek] = cron.trim().split(/\s+/);
+  if (
+    /^\d{1,2}$/.test(minute ?? "") &&
+    /^\d{1,2}$/.test(hour ?? "") &&
+    dayOfMonth === "*" &&
+    month === "*"
+  ) {
+    const time = `${hour!.padStart(2, "0")}:${minute!.padStart(2, "0")}`;
+    if (dayOfWeek === "*") return `Daily at ${time} UTC`;
+    const weekday = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ][Number(dayOfWeek)];
+    if (weekday) return `Every ${weekday} at ${time} UTC`;
+  }
+  return "Custom schedule";
 }
 
 function ProviderBackupsTable({
@@ -455,7 +494,10 @@ function ProviderBackupsTable({
         const info = getDestinationInfo(item, provider.id);
         if (!info?.key) return <span className="text-muted">—</span>;
         return (
-          <TypographyCode className="max-w-64 truncate" title={info.key}>
+          <TypographyCode
+            className="inline-block max-w-64 truncate align-middle"
+            title={info.key}
+          >
             {info.key}
           </TypographyCode>
         );
@@ -532,16 +574,34 @@ export function formatBytes(bytes: number) {
   return `${value.toFixed(value >= 10 || exponent === 0 ? 0 : 1)} ${units[exponent]}`;
 }
 
-export function formatEngine(engine: "postgres" | "redis" | undefined) {
-  if (engine === "postgres") return "PostgreSQL";
-  if (engine === "redis") return "Redis";
-  return "Unknown";
+export function formatEngine(engine: SourceBackup["result"]["engine"]) {
+  return engine
+    ? {
+        clickhouse: "ClickHouse",
+        dragonfly: "Dragonfly",
+        keydb: "KeyDB",
+        mariadb: "MariaDB",
+        mongodb: "MongoDB",
+        mysql: "MySQL",
+        postgres: "PostgreSQL",
+        redis: "Redis",
+      }[engine]
+    : "Unknown";
 }
 
 export function formatBackupFormat(format: SourceBackup["result"]["format"]) {
-  if (format === "postgres-custom") return "PostgreSQL custom";
-  if (format === "redis-rdb") return "Redis RDB";
-  return "Metadata missing";
+  return format
+    ? {
+        "clickhouse-backup": "ClickHouse backup",
+        "dragonfly-rdb": "Dragonfly RDB",
+        "keydb-rdb": "KeyDB RDB",
+        "mariadb-sql": "MariaDB SQL",
+        "mongodb-archive": "MongoDB archive",
+        "mysql-sql": "MySQL SQL",
+        "postgres-custom": "PostgreSQL custom",
+        "redis-rdb": "Redis RDB",
+      }[format]
+    : "Metadata missing";
 }
 
 export function InlineLink({

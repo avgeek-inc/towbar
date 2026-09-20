@@ -5,6 +5,10 @@ import {
   finishServerCheck,
   getServerCheckExecutionContext,
 } from "../../../areas/servers/service.js";
+import {
+  finishServerCredentialVerification,
+  getServerCredentialVerificationExecutionContext,
+} from "../../../areas/servers/credential-verification.js";
 import { readJson, readUuidPathParameter } from "../../../http/requests.js";
 
 const checkId = (value: string) => readUuidPathParameter(value, "checkId");
@@ -28,16 +32,20 @@ const resultSchema = z.discriminatedUnion("status", [
 
 export const internalServerCheckRoutes = new Hono();
 
-internalServerCheckRoutes.get("/:checkId/context", async (context) =>
-  context.json({
-    context: await getServerCheckExecutionContext(
-      checkId(context.req.param("checkId")),
-    ),
-  }),
-);
+internalServerCheckRoutes.get("/:checkId/context", async (context) => {
+  const id = checkId(context.req.param("checkId"));
+  return context.json({
+    context:
+      (await getServerCredentialVerificationExecutionContext(id)) ??
+      (await getServerCheckExecutionContext(id)),
+  });
+});
 internalServerCheckRoutes.post("/:checkId/events", async (context) => {
   const body = await readJson(context, resultSchema);
+  const id = checkId(context.req.param("checkId"));
   return context.json({
-    check: await finishServerCheck(checkId(context.req.param("checkId")), body),
+    check:
+      (await finishServerCredentialVerification(id, body)) ??
+      (await finishServerCheck(id, body)),
   });
 });

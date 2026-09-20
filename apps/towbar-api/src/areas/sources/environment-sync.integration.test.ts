@@ -10,7 +10,6 @@ import {
 } from "@workspace/towbar-core";
 import {
   apps,
-  githubInstallations,
   previewPullRequestReports,
   servers,
   sourceEnvironments,
@@ -48,6 +47,14 @@ void test(
     const workspaceId = randomUUID(),
       sourceId = randomUUID(),
       userId = randomUUID();
+    const { withActor, captureQueuedActor } =
+      await import("../auth/actor-context.js");
+    const actor = {
+      kind: "session" as const,
+      workspaceId,
+      userId,
+      role: "admin" as const,
+    };
     const root = "version: 2\nenvironments:\n  production: {}\n  staging: {}\n";
     let keys = ["TOKEN", "EMPTY"];
     let broken = false;
@@ -59,49 +66,19 @@ void test(
       broken,
     }));
     try {
-      await database
-        .insert(workspaces)
-        .values({ id: workspaceId, slug: workspaceId, name: "V2 test" });
-      await database.insert(users).values({
-        id: userId,
-        email: `${userId}@example.com`,
-        displayName: "Test",
-      });
-      const [installation] = await database
-        .insert(githubInstallations)
-        .values({
-          workspaceId,
-          installationId: randomUUID(),
-          accountLogin: "test",
-          accountType: "Organization",
-        })
-        .returning();
-      await database.insert(sources).values({
-        id: sourceId,
-        workspaceId,
-        githubInstallationId: installation!.id,
-        repositoryOwner: "test",
-        repositoryName: "test",
-      });
+      const { seedEnvironmentTeam } =
+        await import("./environment-server-tests.js");
+      await seedEnvironmentTeam({ workspaceId, userId, sourceId });
       const config = normalizeServerConfiguration({
         ip: "192.0.2.10",
         ssh: { username: "deploy" },
       });
       await database.insert(servers).values({
         workspaceId,
-        slug: "host",
         canonicalIp: config.ip,
         config,
         configDigest: digestValue(config),
       });
-      await t.test(
-        "server slugs are editable and unique without changing preparation configuration",
-        async () => {
-          const { assertServerSlugEditing } =
-            await import("./environment-server-tests.js");
-          await assertServerSlugEditing(workspaceId);
-        },
-      );
       const [production, staging] = await database
         .insert(sourceEnvironments)
         .values([
@@ -119,6 +96,9 @@ void test(
             sourceId,
             sourceEnvironmentId: environment.id,
             mappingRevision: revision,
+            ...withActor(actor, () =>
+              captureQueuedActor(workspaceId, ["repository.sync"]),
+            ),
           })
           .returning();
         return executeEnvironmentSync(job!.id, workspaceId, dependencies);
@@ -144,12 +124,14 @@ void test(
         async () => {
           const { assertCompletedSyncRetry } =
             await import("./environment-sync-retry-tests.js");
-          await assertCompletedSyncRetry({
-            staging: staging!,
-            workspaceId,
-            snapshotCommit,
-            dependencies,
-          });
+          await withActor(actor, () =>
+            assertCompletedSyncRetry({
+              staging: staging!,
+              workspaceId,
+              snapshotCommit,
+              dependencies,
+            }),
+          );
         },
       );
       await t.test("instance identity and mapped push routing", async () => {
@@ -188,6 +170,28 @@ void test(
           assert.deepEqual(
             Object.keys((await readSecretValues(slot)).values),
             [],
+          );
+        },
+      );
+      await t.test(
+        "sync cannot revive a removed server; an admin must register it again",
+        async () => {
+          const { assertRemovedServerAdmission } =
+            await import("./environment-server-tests.js");
+          await withActor(actor, () =>
+            assertRemovedServerAdmission({
+              workspaceId,
+              prod,
+              config,
+              syncProduction: async () => {
+                snapshotCommit = "a".repeat(40);
+                await sync(production!);
+              },
+              syncStaging: async () => {
+                snapshotCommit = "b".repeat(40);
+                await sync(staging!);
+              },
+            }),
           );
         },
       );
@@ -281,7 +285,7 @@ void test(
         async () => {
           keys = [];
           broken = true;
-          await assert.rejects(sync(staging!), /missing-host/);
+          await assert.rejects(sync(staging!), /192\.0\.2\.99/);
           assert.deepEqual((await readSecretMetadata(slot)).keys, [
             "ADDED",
             "EMPTY",
@@ -292,7 +296,7 @@ void test(
             .where(
               and(eq(apps.id, stage.id), eq(apps.workspaceId, workspaceId)),
             );
-          assert.equal(retained!.config.server, "host");
+          assert.equal(retained!.config.server, "192.0.2.10");
           broken = false;
         },
       );

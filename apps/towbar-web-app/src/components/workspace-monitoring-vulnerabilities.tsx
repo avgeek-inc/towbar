@@ -1,4 +1,10 @@
 "use client";
+
+import {
+  TableCellStack,
+  tableCellDescriptionClassName,
+} from "@workspace/towbar-web-ui/table-cell-text";
+
 import { SecondaryItems } from "./secondary-sidebar";
 import { ScoutIcon } from "./scout-icons";
 import { useState } from "react";
@@ -8,16 +14,17 @@ import { SecurityCheckIcon } from "@hugeicons/core-free-icons";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { DashboardPage } from "./page-parts";
 import {
   severityVariant,
+  severityTooltip,
   VulnerabilitySeverityWidgets,
 } from "./vulnerability-severity-widgets";
 import { RelativeTime } from "./last-synced-time";
@@ -25,6 +32,8 @@ import type {
   VulnerabilityFindingSummary,
   WorkspaceVulnerabilityFindings,
 } from "@workspace/towbar-web-client";
+import { VulnerabilityAdvisoryLink } from "./vulnerability-advisory-link";
+import { deploymentHref } from "@/lib/deployment-route";
 
 const severityOrder = ["critical", "high", "medium", "low", "unknown"] as const;
 
@@ -44,14 +53,19 @@ export function WorkspaceVulnerabilities() {
     {
       key: "advisory",
       header: "Advisory",
-      cell: (finding) => <TypographyCode>{finding.advisoryId}</TypographyCode>,
+      cell: (finding) => (
+        <VulnerabilityAdvisoryLink advisoryId={finding.advisoryId} />
+      ),
       className: "whitespace-nowrap",
     },
     {
       key: "severity",
       header: "Severity",
       cell: (finding) => (
-        <Chip variant={severityVariant(finding.severity)}>
+        <Chip
+          variant={severityVariant(finding.severity)}
+          tooltip={severityTooltip(finding.severity)}
+        >
           {finding.severity}
         </Chip>
       ),
@@ -60,8 +74,18 @@ export function WorkspaceVulnerabilities() {
     {
       key: "package",
       header: "Package",
-      cell: (finding) => finding.packageName,
-      className: "whitespace-nowrap",
+      cell: (finding) => (
+        <TableCellStack>
+          <span>{finding.packageName}</span>
+          <TooltipText
+            className={`${tableCellDescriptionClassName} max-w-36 truncate 2xl:hidden`}
+            tooltip={finding.target}
+          >
+            {finding.target}
+          </TooltipText>
+        </TableCellStack>
+      ),
+      className: "min-w-28 whitespace-nowrap",
     },
     {
       key: "installed",
@@ -86,12 +110,26 @@ export function WorkspaceVulnerabilities() {
       key: "entity",
       header: "Entity",
       cell: (finding) => (
-        <Link
-          className="focus-visible:ring-focus inline-flex items-center rounded-sm text-muted outline-none hover:text-foreground focus-visible:ring-2"
-          href={`/sources/${finding.sourceId}/deployments/${finding.deploymentId}/vulnerabilities`}
-        >
-          {finding.appName}
-        </Link>
+        <TableCellStack>
+          <Link
+            className="focus-visible:ring-focus inline-flex items-center rounded-sm text-muted outline-none hover:text-foreground focus-visible:ring-2"
+            href={deploymentHref(
+              {
+                appId: finding.appId,
+                deployableKind: "app",
+                id: finding.deploymentId,
+              },
+              "vulnerabilities",
+            )}
+          >
+            {finding.appName}
+          </Link>
+          {finding.scannedAt ? (
+            <span className="2xl:hidden">
+              <RelativeTime label="Scanned" value={finding.scannedAt} />
+            </span>
+          ) : null}
+        </TableCellStack>
       ),
       className: "whitespace-nowrap",
     },
@@ -101,7 +139,8 @@ export function WorkspaceVulnerabilities() {
       cell: (finding) => (
         <TooltipText tooltip={finding.target}>{finding.target}</TooltipText>
       ),
-      className: "whitespace-nowrap",
+      className: "hidden whitespace-nowrap 2xl:table-cell",
+      headerClassName: "hidden 2xl:table-cell",
     },
     {
       key: "scanned",
@@ -112,7 +151,8 @@ export function WorkspaceVulnerabilities() {
         ) : (
           "—"
         ),
-      className: "whitespace-nowrap",
+      className: "hidden whitespace-nowrap 2xl:table-cell",
+      headerClassName: "hidden 2xl:table-cell",
     },
   ];
   return (
@@ -137,7 +177,7 @@ export function WorkspaceVulnerabilities() {
           },
           { id: "high", label: "High", icon: <ScoutIcon name="warning" /> },
           { id: "medium", label: "Medium", icon: <ScoutIcon name="warning" /> },
-          { id: "low", label: "Low", icon: <ScoutIcon name="none" /> },
+          { id: "low", label: "Low", icon: <ScoutIcon name="below" /> },
           {
             id: "unknown",
             label: "Unknown",
@@ -149,19 +189,30 @@ export function WorkspaceVulnerabilities() {
         {query.error ? <QueryError message={query.error} /> : null}
         {query.data ? (
           <>
-            <VulnerabilitySeverityWidgets totals={query.data.summary} />
+            <VulnerabilitySeverityWidgets
+              totals={query.data.summary}
+              selectedSeverity={severity === "all" ? undefined : severity}
+            />
             <ResourceTable
               ariaLabel="Workspace vulnerability findings"
               columns={columns}
-              getRowKey={(finding) => finding.id}
+              getRowKey={(finding) =>
+                [
+                  finding.id,
+                  finding.deploymentId,
+                  finding.advisoryId,
+                  finding.packageName,
+                  finding.target,
+                ].join(":")
+              }
               items={query.data.findings}
               emptyTitle="No advisories in this view"
               emptyDescription="Findings from the latest scan of each App's production image appear here ranked by severity. Resources are not image-scanned."
+              tableClassName="min-w-[760px] 2xl:min-w-[1080px]"
             />
             <div className="flex items-center justify-end gap-3">
               <span className="text-sm text-muted">Page {page}</span>
               <Button
-                size="sm"
                 variant="secondary"
                 isDisabled={page === 1 || query.isPreviousData}
                 onPress={() => setPage((old) => old - 1)}
@@ -170,7 +221,6 @@ export function WorkspaceVulnerabilities() {
                 Previous
               </Button>
               <Button
-                size="sm"
                 variant="secondary"
                 isDisabled={!query.data.nextPage || query.isPreviousData}
                 onPress={() => setPage((old) => old + 1)}

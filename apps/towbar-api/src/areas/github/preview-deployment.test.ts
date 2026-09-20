@@ -8,12 +8,12 @@ void test("GitHub groups app previews while preserving each PR's identity and li
     DATABASE_TOWBAR_URL: "postgres://localhost/unused_test",
     TOWBAR_CREDENTIALS_KEY: Buffer.alloc(32, 1).toString("base64"),
     TOWBAR_INTERNAL_HMAC_SECRET: "test-hmac-secret".repeat(3),
-    GITHUB_APP_ID: "1001",
-    GITHUB_APP_SLUG: "towbar-test",
-    GITHUB_APP_PRIVATE_KEY: privateKey
-      .export({ type: "pkcs8", format: "pem" })
-      .toString(),
-    GITHUB_WEBHOOK_SECRET: "test-webhook-secret",
+  };
+  const githubConfiguration = {
+    appId: "1001",
+    appSlug: "towbar-test",
+    privateKey: privateKey.export({ type: "pkcs8", format: "pem" }).toString(),
+    webhookSecret: "test-webhook-secret",
   };
   for (const [key, value] of Object.entries(environment)) {
     const previous = process.env[key];
@@ -46,13 +46,16 @@ void test("GitHub groups app previews while preserving each PR's identity and li
     repositoryOwner: "example-inc",
   };
   for (const pullRequestNumber of [135, 136]) {
-    await createGitHubPreviewDeployment({
-      ...repository,
-      appName: "Company Website",
-      commitSha: String(pullRequestNumber).padStart(40, "0"),
-      environmentUrl: `https://pr-${pullRequestNumber}.example.com`,
-      pullRequestNumber,
-    });
+    await createGitHubPreviewDeployment(
+      {
+        ...repository,
+        appName: "Company Website",
+        commitSha: String(pullRequestNumber).padStart(40, "0"),
+        environmentUrl: `https://pr-${pullRequestNumber}.example.com`,
+        pullRequestNumber,
+      },
+      githubConfiguration,
+    );
   }
   assert.equal(requests[0]?.body.environment, "Company Website · Preview");
   assert.equal(requests[1]?.body.environment, requests[0]?.body.environment);
@@ -69,13 +72,16 @@ void test("GitHub groups app previews while preserving each PR's identity and li
   assert.equal(requests[0]?.body.transient_environment, true);
   assert.equal(requests[0]?.body.production_environment, false);
 
-  await createGitHubPreviewDeployment({
-    ...repository,
-    appName: "A".repeat(255),
-    commitSha: "a".repeat(40),
-    environmentUrl: "https://long-name.example.com",
-    pullRequestNumber: 137,
-  });
+  await createGitHubPreviewDeployment(
+    {
+      ...repository,
+      appName: "A".repeat(255),
+      commitSha: "a".repeat(40),
+      environmentUrl: "https://long-name.example.com",
+      pullRequestNumber: 137,
+    },
+    githubConfiguration,
+  );
   const name = String(requests[2]?.body.environment);
   assert.equal(name.length, 255);
   assert.ok(name.endsWith(" · Preview"));
@@ -85,12 +91,15 @@ void test("GitHub groups app previews while preserving each PR's identity and li
     ["2", "success"],
     ["1", "inactive"],
   ] as const) {
-    await updateGitHubPreviewDeployment({
-      ...repository,
-      deploymentId,
-      state,
-      environmentUrl: `https://preview-${deploymentId}.example.com`,
-    });
+    await updateGitHubPreviewDeployment(
+      {
+        ...repository,
+        deploymentId,
+        state,
+        environmentUrl: `https://preview-${deploymentId}.example.com`,
+      },
+      githubConfiguration,
+    );
     assert.equal(requests.at(-1)?.body.auto_inactive, false);
     assert.equal(requests.at(-1)?.body.state, state);
     assert.ok(

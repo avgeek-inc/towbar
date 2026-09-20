@@ -3,6 +3,7 @@ import type {
   RuntimeObservedState,
 } from "./resource-operations.js";
 import type { SystemHealthStatus } from "./system-health.js";
+import type { DeployableKind } from "./manifest.js";
 
 export type RuntimeCapacity = {
   checkedAt: string | null;
@@ -28,7 +29,7 @@ export type RuntimeCapacity = {
     cpuPercent: number | null;
     healthStatus: RuntimeHealthState;
     id: string;
-    kind: "app" | "image" | "postgres" | "redis";
+    kind: DeployableKind;
     memoryLimitBytes: number | null;
     memoryUsageBytes: number | null;
     name: string;

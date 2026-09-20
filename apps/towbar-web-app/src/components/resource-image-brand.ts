@@ -1,4 +1,5 @@
 import catalog from "./resource-image-catalog.json";
+import type { ResourceType } from "@workspace/towbar-core";
 
 export type ResourceBrand = {
   label: string;
@@ -12,7 +13,13 @@ const fallback: ResourceBrand = {
   label: "Image",
   logo: "/resource-types/image.png",
 };
-const managed: Record<"postgres" | "redis", ResourceBrand> = {
+const managed: Record<Exclude<ResourceType, "image">, ResourceBrand> = {
+  clickhouse: { label: "ClickHouse", logo: "/resource-types/image.png" },
+  dragonfly: { label: "Dragonfly", logo: "/resource-types/redis.png" },
+  keydb: { label: "KeyDB", logo: "/resource-types/redis.png" },
+  mariadb: { label: "MariaDB", logo: "/resource-types/image.png" },
+  mongodb: { label: "MongoDB", logo: "/resource-types/image.png" },
+  mysql: { label: "MySQL", logo: "/resource-types/image.png" },
   postgres: { label: "PostgreSQL", logo: "/resource-types/postgres.png" },
   redis: { label: "Redis", logo: "/resource-types/redis.png" },
 };
@@ -65,7 +72,7 @@ const byRepository = new Map(
 );
 
 export function resourceImageBrand(
-  kind: "image" | "postgres" | "redis",
+  kind: ResourceType,
   image: string,
 ): ResourceBrand {
   if (kind !== "image") return managed[kind];

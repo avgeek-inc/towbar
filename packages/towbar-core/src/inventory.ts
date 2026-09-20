@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { managedResourceTypes } from "./manifest.js";
 
 const base = z.object({
   q: z.string().trim().max(200).optional(),
@@ -9,7 +10,7 @@ export const workloadFilters = base
     sourceId: z.uuid().optional(),
     environment: z.string().min(1).max(63).optional(),
     serverIp: z.string().max(100).optional(),
-    resourceType: z.enum(["image", "postgres", "redis"]).optional(),
+    resourceType: z.enum(["image", ...managedResourceTypes]).optional(),
     running: z.enum(["running", "stopped", "missing", "unknown"]).optional(),
     health: z
       .enum(["healthy", "unhealthy", "starting", "none", "unknown"])

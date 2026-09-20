@@ -8,6 +8,7 @@ import {
 export const publicSourceSelection = {
   createdAt: sources.createdAt,
   id: sources.id,
+  provider: sources.provider,
   repositoryName: sources.repositoryName,
   repositoryOwner: sources.repositoryOwner,
   status: sources.status,
@@ -16,7 +17,11 @@ export const publicSourceSelection = {
 
 /** A sync status deliberately excludes raw manifests and actor ownership. */
 export const publicSourceSyncSelection = {
-  environment: { id: sourceEnvironments.id, name: sourceEnvironments.name },
+  environment: {
+    id: sourceEnvironments.id,
+    name: sourceEnvironments.name,
+    branch: sourceEnvironments.branch,
+  },
   mappingRevision: sourceSyncs.mappingRevision,
 
   commitSha: sourceSyncs.commitSha,

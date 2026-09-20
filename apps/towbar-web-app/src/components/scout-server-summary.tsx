@@ -103,7 +103,7 @@ export const ScoutServerSummary = memo(function ScoutServerSummary({
     );
   return (
     <InlineLink
-      href={`/servers/${server.id}?section=monitoring`}
+      href={`/servers/${server.id}/performance`}
       className="block min-w-30 no-underline"
       aria-label={`Scout Agent for ${server.canonicalIp}: ${online ? "CPU and memory over the last 30 minutes" : "Inactive"}`}
     >

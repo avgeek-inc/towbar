@@ -3,18 +3,7 @@ import { ScoutIcon } from "./scout-icons";
 import { useState } from "react";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { useApiQuery } from "@/hooks/use-api-query";
-import type { ScoutIncident, ScoutRule } from "./scout-controls";
-
-export type MonitoringEntity = {
-  environmentName: string | null;
-  id: string;
-  key: string;
-  name: string;
-  kind: "server" | "app" | "resource";
-  serverId: string;
-  serverName: string;
-  sourceId: string | null;
-};
+import type { ScoutIncident } from "./scout-controls";
 export type ScoutOverviewIdentity = {
   serverName: string;
   workload: {
@@ -25,21 +14,9 @@ export type ScoutOverviewIdentity = {
     archivedAt: string | null;
   } | null;
 };
-export type OverviewRule = ScoutOverviewIdentity & {
-  rule: ScoutRule & { serverId: string };
-};
 export type OverviewIncident = ScoutOverviewIdentity & {
   incident: ScoutIncident & { serverId: string };
 };
-export function scoutHome(
-  row: ScoutOverviewIdentity,
-  owner: { serverId: string; deployableId: string | null },
-) {
-  if (!owner.deployableId)
-    return `/servers/${owner.serverId}?section=monitoring&scout=alerts`;
-  if (!row.workload || row.workload.archivedAt) return null;
-  return `/sources/${row.workload.sourceId}/${row.workload.kind === "app" ? "apps" : "resources"}/${owner.deployableId}?section=monitoring&scout=alerts`;
-}
 export function entityLabel(
   row: ScoutOverviewIdentity,
   owner: { deployableId: string | null },
@@ -50,12 +27,11 @@ export function entityLabel(
       : "Removed workload"
     : row.serverName;
 }
-export function useMonitoringOverview<T>(
-  area: "alerts" | "incidents",
-  state = "all",
-  filter = "",
+export function useWorkspaceIncidents<T>(
+  state: "active" | "resolved",
+  severity: "all" | "critical" | "warning",
 ) {
-  const filterKey = `${area}:${state}:${filter}`;
+  const filterKey = `${state}:${severity}`;
   const [cursorState, setCursorState] = useState({
     key: filterKey,
     cursors: [""],
@@ -71,7 +47,7 @@ export function useMonitoringOverview<T>(
     nextBefore: string | null;
     nextBeforeId: string | null;
   }>(
-    `/v1/core/monitoring/${area}?state=${state}&limit=20${filter}${cursors.at(-1)}`,
+    `/v1/core/monitoring/incidents?state=${state}&severity=${severity}&limit=20${cursors.at(-1)}`,
     30_000,
     { keepPreviousData: true },
   );
@@ -82,7 +58,6 @@ export function useMonitoringOverview<T>(
       <div className="flex items-center justify-end gap-3">
         <span className="text-sm text-muted">Page {cursors.length}</span>
         <Button
-          size="sm"
           variant="secondary"
           isDisabled={cursors.length === 1 || query.isPreviousData}
           onPress={() => setCursors((old) => old.slice(0, -1))}
@@ -91,7 +66,6 @@ export function useMonitoringOverview<T>(
           Previous
         </Button>
         <Button
-          size="sm"
           variant="secondary"
           isDisabled={!query.data?.nextBefore || query.isPreviousData}
           onPress={() =>

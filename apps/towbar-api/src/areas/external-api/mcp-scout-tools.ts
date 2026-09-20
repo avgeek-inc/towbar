@@ -3,7 +3,6 @@ import {
   deploymentComparisonQuerySchema,
   scoutAlertRuleSchema,
   scoutIncidentQuerySchema,
-  scoutMuteSchema,
 } from "@workspace/towbar-core";
 import { type McpTool, id, records, serverId, tool } from "./mcp-toolkit.js";
 
@@ -11,7 +10,7 @@ export const scoutTools: McpTool[] = [
   tool(
     "alerts_inspect",
     "Inspect Scout alerts and incidents",
-    "Inspect configured rules, latest evaluations and HTTP check results, maintenance mute, destination IDs, and a page of incidents. An active incident is not proof that its notification was delivered. Use returned rule IDs before configuration or muting; use the incident cursor to read older history.",
+    "Inspect configured rules, latest evaluations, HTTP check results, destination IDs, and a page of incidents. An active incident is not proof that its notification was delivered. Use returned rule IDs before configuration; use the incident cursor to read older history.",
     z.object({ ...serverId, ...scoutIncidentQuerySchema.shape }).strict(),
     async (a, c) => {
       const { serverId: target, ...query } = a;
@@ -32,6 +31,7 @@ export const scoutTools: McpTool[] = [
       ]);
       return { ...settings, ...incidents };
     },
+    { permissions: ["alert.read"] },
   ),
   tool(
     "alerts_configure",
@@ -49,25 +49,12 @@ export const scoutTools: McpTool[] = [
         body,
       });
     },
-    { readOnly: false, ownerOnly: true, destructive: false, idempotent: false },
-  ),
-  tool(
-    "alerts_mute",
-    "Mute Scout notifications for maintenance",
-    "Temporarily mute notifications from one Scout rule or every rule on a server while continuing measurements and incident tracking. Omit ruleId for server scope. Set durationSeconds to zero to resume notifications. A rule mute cannot override a server mute.",
-    scoutMuteSchema
-      .safeExtend({ ...serverId, ruleId: id("Scout alert rule").optional() })
-      .strict(),
-    async (a, c) => {
-      const { serverId: target, ruleId, ...body } = a;
-      return c.call({
-        method: "POST",
-        route: `/servers/:serverId/scout-alerts${ruleId ? "/rules/:ruleId" : ""}/mute`,
-        path: { serverId: target, ...(ruleId ? { ruleId } : {}) },
-        body,
-      });
+    {
+      permissions: ["alert.configure"],
+      readOnly: false,
+      destructive: false,
+      idempotent: false,
     },
-    { readOnly: false, ownerOnly: true, destructive: false, idempotent: false },
   ),
   tool(
     "alerts_remove",
@@ -80,7 +67,7 @@ export const scoutTools: McpTool[] = [
         route: "/servers/:serverId/scout-alerts/rules/:ruleId",
         path: a,
       }),
-    { readOnly: false, ownerOnly: true, destructive: true },
+    { permissions: ["alert.configure"], readOnly: false, destructive: true },
   ),
   tool(
     "deployment_compare",
@@ -134,5 +121,6 @@ export const scoutTools: McpTool[] = [
       }
       return result;
     },
+    { permissions: ["alert.read"] },
   ),
 ];

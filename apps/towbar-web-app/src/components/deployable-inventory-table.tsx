@@ -1,9 +1,10 @@
 "use client";
 
-import { DashboardCircleIcon, DatabaseIcon } from "@hugeicons/core-free-icons";
+import { CubeIcon, DashboardCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { App, Resource } from "@workspace/towbar-web-client";
 import { ResourceTable } from "@workspace/towbar-web-ui/resource-table";
+import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { groupDeployableInstances } from "@/lib/deployable-groups";
 
 export function DeployableInventoryTable<T extends App | Resource>({
@@ -24,18 +25,21 @@ export function DeployableInventoryTable<T extends App | Resource>({
               aria-hidden="true"
               className="size-5 shrink-0"
               icon={
-                group.items[0]!.kind === "app"
-                  ? DashboardCircleIcon
-                  : DatabaseIcon
+                group.items[0]!.kind === "app" ? DashboardCircleIcon : CubeIcon
               }
             />
             <h2 className="truncate text-base" title={group.manifestId}>
               {group.manifestId}
             </h2>
-            <span className="shrink-0 text-xs text-muted">
+            <Chip
+              className="shrink-0"
+              size="small"
+              tooltip={`This manifest has ${group.items.length} connected environment instance${group.items.length === 1 ? "" : "s"}.`}
+              variant="secondary"
+            >
               {group.items.length}{" "}
               {group.items.length === 1 ? "environment" : "environments"}
-            </span>
+            </Chip>
           </div>
           <ResourceTable
             {...props}

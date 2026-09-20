@@ -1,9 +1,18 @@
+import { logDrainRoutes } from "./log-drains.js";
+import { integrationRoutes } from "./integrations.js";
+import { gitlabRoutes } from "./gitlab.js";
+import { serverTerminalRoutes } from "./server-terminal.js";
+import { requireDeclaredPolicy } from "../../../http/declared-policy.js";
+import { localizeJsonResponse } from "../../../http/localization.js";
+import { preferenceRoutes } from "./preferences.js";
+import { teamRoutes } from "./team.js";
 import { monitoringOverviewRoutes } from "./monitoring-overview.js";
 import {
   monitoringHistoryRoutes,
   monitoringSettingsRoutes,
 } from "./monitoring.js";
 import { apiKeyRoutes } from "./api-keys.js";
+import { privateKeyRoutes } from "./private-keys.js";
 import { scoutAlertRoutes, scoutComparisonRoutes } from "./scout-alerts.js";
 import { environmentSecretRoutes } from "./environment-secrets.js";
 import { serverCredentialRoutes } from "./server-credentials.js";
@@ -16,9 +25,6 @@ import {
 import { accountRoutes } from "./account.js";
 import { appRoutes } from "./apps.js";
 import { deploymentRoutes } from "./deployments.js";
-import { awsRoutes } from "./aws.js";
-import { azureRoutes } from "./azure.js";
-import { gcpRoutes } from "./gcp.js";
 import { githubRoutes } from "./github.js";
 import { sessionRoutes } from "./session.js";
 import { serverRoutes } from "./servers.js";
@@ -32,21 +38,22 @@ import { notificationCenterRoutes } from "./notification-center.js";
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
 export const controlPlaneRoutes = new Hono<TowbarHonoEnvironment>();
+controlPlaneRoutes.use("*", localizeJsonResponse);
+controlPlaneRoutes.route("/", preferenceRoutes);
 
+controlPlaneRoutes.route("/log-drains", logDrainRoutes);
+controlPlaneRoutes.route("/integrations", integrationRoutes);
+controlPlaneRoutes.route("/gitlab", gitlabRoutes);
+controlPlaneRoutes.route("/team", teamRoutes);
 controlPlaneRoutes.route("/settings/api-keys", apiKeyRoutes);
+controlPlaneRoutes.route("/settings/private-keys", privateKeyRoutes);
 controlPlaneRoutes.route("/github", githubRoutes);
-controlPlaneRoutes.route("/aws", awsRoutes);
-controlPlaneRoutes.route("/azure", azureRoutes);
-controlPlaneRoutes.route("/gcp", gcpRoutes);
 controlPlaneRoutes.route(
   "/sources/:sourceId/notifications",
   notificationRoutes,
 );
+controlPlaneRoutes.route("/notifications", notificationRoutes);
 controlPlaneRoutes.route("/notifications", notificationCenterRoutes);
-controlPlaneRoutes.route(
-  "/servers/:serverId/notifications",
-  notificationRoutes,
-);
 controlPlaneRoutes.route(
   "/settings/secrets",
   environmentSecretRoutes("workspace"),
@@ -79,6 +86,7 @@ controlPlaneRoutes.route("/sources", sourceRoutes);
 controlPlaneRoutes.route("/apps", appRoutes);
 controlPlaneRoutes.route("/resources", resourceRoutes);
 controlPlaneRoutes.route("/previews", previewRoutes);
+controlPlaneRoutes.route("/servers", serverTerminalRoutes);
 controlPlaneRoutes.route("/servers", serverRoutes);
 controlPlaneRoutes.route("/deployments", deploymentRoutes);
 controlPlaneRoutes.route("/system-health", systemHealthRoutes);
@@ -87,5 +95,6 @@ controlPlaneRoutes.route("/", accountRoutes);
 export const coreRoutes = new Hono<TowbarHonoEnvironment>();
 coreRoutes.use("*", requireTrustedMutationOrigin);
 coreRoutes.use("*", requireAuthenticatedUser);
+coreRoutes.use("*", requireDeclaredPolicy);
 coreRoutes.route("/session", sessionRoutes);
 coreRoutes.route("/", controlPlaneRoutes);

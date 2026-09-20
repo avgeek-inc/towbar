@@ -1,3 +1,4 @@
+import { captureQueuedActor } from "../auth/actor-context.js";
 import { deploymentEnvironmentSnapshot } from "../apps/instance-environment.js";
 import { randomUUID } from "node:crypto";
 
@@ -22,6 +23,7 @@ import {
   getInstanceEnvironment,
   lockDeploymentEnvironment,
 } from "../apps/instance-environment.js";
+import { resolveBuildServerAdmission } from "../apps/build-server-admission.js";
 import { conflict } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import {
@@ -47,7 +49,7 @@ export async function admitPreviewDeployment(input: {
   targetConfigDigest: string;
   requiredSecrets: RequiredSecrets;
   force?: boolean;
-  requestedBy?: string;
+  requestedBy?: string | null;
   appId: string;
   branch: string;
   commitSha: string;
@@ -72,6 +74,7 @@ export async function admitPreviewDeployment(input: {
   });
   const deploymentId = randomUUID();
   const expiresAt = new Date(Date.now() + input.ttlHours * 60 * 60_000);
+  // eslint-disable-next-line complexity -- Preview admission atomically enforces quotas, identity, source state, and idempotency.
   return await database.transaction(async (transaction) => {
     const targetEnvironment = await lockPreviewTarget(transaction, input);
     const admissionLockKey = previewAdmissionLockKey({
@@ -244,6 +247,11 @@ export async function admitPreviewDeployment(input: {
     }
 
     const now = new Date();
+    const buildServer = await resolveBuildServerAdmission(transaction, {
+      deployable: input.config,
+      runtimeServerId: input.serverId,
+      workspaceId: input.workspaceId,
+    });
     const supersededDeployments = await transaction
       .update(deployments)
       .set({
@@ -279,8 +287,11 @@ export async function admitPreviewDeployment(input: {
         manifestDigest: input.manifestDigest,
         previewEnvironmentId: environment.id,
         requestedBy: input.requestedBy ?? null,
+        ...captureQueuedActor(input.workspaceId, ["deployment.create"]),
         serverId: input.serverId,
         serverSnapshot: input.server,
+        buildServerId: buildServer?.id,
+        buildServerSnapshot: buildServer?.snapshot,
         sourceId: input.sourceId,
         sourceInputDigest: input.sourceInputDigest,
         temporalWorkflowId: deploymentWorkflowId(deploymentId),

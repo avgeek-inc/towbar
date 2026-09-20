@@ -3,19 +3,20 @@ title: "Shared secrets"
 description: "Configure encrypted deployment secrets in Towbar."
 ---
 
-Towbar manages deployment secrets without an AWS Secrets Manager account. Values and assignments live in the editor, separate from `towbar.yml` and the entity files under `.towbar/`. Owners manage shared keys and values in Towbar. App and resource key names are declared in YAML; their values are edited in Towbar. Saved values stay hidden until an owner clicks the eye icon or opens File mode.
+Towbar manages deployment secrets without requiring an external secrets account. Values and assignments live in the editor, separate from `towbar.yml` and the entity files under `.towbar/`. Admins and Members manage shared keys and values in Towbar. App and resource key names are declared in YAML; their values are edited in Towbar. Saved values stay hidden until a recently authenticated Admin reveals them.
 
 ## Choose the right scope
 
-| Location                          | Purpose                                                                                |
-| --------------------------------- | -------------------------------------------------------------------------------------- |
-| Manage → Shared secrets           | Reusable workspace values for each environment and stage                               |
-| Source → Settings → Secrets       | Reusable values for one Source                                                         |
-| App → Settings → Secrets          | Named-environment and isolated preview values for one app                              |
-| Resource → Settings → Secrets     | Environment-specific runtime values, including `POSTGRES_PASSWORD` or `REDIS_PASSWORD` |
-| Server → Settings → Configuration | SSH private key and Cloudflare API token                                               |
+| Location                               | Purpose                                                                                |
+| -------------------------------------- | -------------------------------------------------------------------------------------- |
+| Manage → Shared secrets                | Reusable workspace values for each stage, shared across environments                   |
+| Repository → Settings → Shared secrets | Reusable values for one Repository                                                     |
+| App → Settings → Secrets               | Named-environment and isolated preview values for one app                              |
+| Resource → Settings → Secrets          | Environment-specific runtime values, including `POSTGRES_PASSWORD` or `REDIS_PASSWORD` |
+| Server → Settings → Credentials        | Select a stored SSH key                                                                |
+| Server → Settings → Cloudflare TLS     | Cloudflare TLS and its Account API token                                               |
 
-Shared secrets are available for reference; they are not automatically added to Sources, apps, or resources. Configure each variable where it is needed:
+Shared secrets are available for reference; they are not automatically added to Repositories, apps, or resources. Configure each variable where it is needed:
 
 ```dotenv
 API_TOKEN={{globals.API_TOKEN}}
@@ -23,9 +24,9 @@ DATABASE_PASSWORD={{source.DATABASE_PASSWORD}}
 AUTH_HEADER=Bearer {{globals.API_TOKEN}}
 ```
 
-`globals` reads a value from **Manage → Shared secrets**. `source` reads a value from the app or resource's own Source. A Source value can reference a global value; apps and resources can reference either scope. Global values are literal, and Source values cannot reference other Source values. References may be embedded in a larger value. Missing or invalid references stop deployment with an error that does not include secret values.
+`globals` reads a value from **Manage → Shared secrets**. `source` reads a value from the app or resource's own Repository. A Repository value can reference a global value; apps and resources can reference either scope. Global values are literal, and Repository values cannot reference other Repository values. References may be embedded in a larger value. Missing or invalid references stop deployment with an error that does not include secret values.
 
-References use the same environment and stage as the child variable. Each named environment is isolated. Preview values use `preview:<environment>`; for example, a staging preview reads `preview:staging` references, never staging or production values. Resources use their own environment runtime values. Empty strings are valid values. Removing a required key from the entity YAML deletes its saved value on the next successful sync of that environment. It does not restore an inherited value. Hooks receive values only when that hook is configured.
+Repository references use the same environment and stage as the child variable. Preview values use `preview:<environment>`; for example, a staging preview reads `preview:staging` repository values, never staging or production repository values. Global references use the workspace value for the selected stage across all environments, including previews. Reference a global value only when it is appropriate to share it with that environment. Resources use their own environment runtime values. Empty strings are valid values. Removing a required key from the entity YAML deletes its saved value on the next successful sync of that environment. It does not restore an inherited value. Hooks receive values only when that hook is configured.
 
 ### Required keys
 
@@ -39,11 +40,11 @@ secret keys remain editable in Towbar.
 
 ## Form and File modes
 
-For Shared secrets, select a connected environment or its preview scope in the secondary sidebar, then choose the stage inside the page. On an app or Source, both environment and stage stay inside the page. Use the **Form** and **File** tabs inside the secrets widget. In-page environment and stage selectors use dropdowns on mobile and tabs on larger screens.
+For workspace Shared secrets, choose Build, Runtime, Pre-deploy, or Post-deploy in the secondary sidebar. These workspace values are shared across environments when explicitly referenced. On an app or Repository, both environment and stage stay inside the page. Use the **Form** and **File** tabs inside the secrets widget. The mode switch is hidden when no keys are declared. Members can update values in Form mode without revealing existing values. In-page environment and stage selectors use dropdowns on mobile and tabs on larger screens.
 
 **Form** edits one key and value at a time. Configured values show a masked placeholder; use the eye icon to reveal or hide one value. Valid shared-reference expressions are highlighted in yellow.
 
-**File** fetches and reveals the stored values for the selected scope, environment, and stage in a `.env` editor. Edit one `KEY=value` assignment per line. Quoted values, multiline quoted strings, comments, and optional `export` prefixes are supported. Quote values containing `#` to keep it as part of the value. Duplicate keys and invalid syntax must be corrected before saving or switching back to Form. Comments and formatting are not stored.
+**File** is available to Admins because it fetches and reveals the stored values for the selected scope, environment, and stage in a `.env` editor. Edit one `KEY=value` assignment per line. Quoted values, multiline quoted strings, comments, and optional `export` prefixes are supported. Quote values containing `#` to keep it as part of the value. Duplicate keys and invalid syntax must be corrected before saving or switching back to Form. Comments and formatting are not stored.
 
 ```dotenv
 LOG_LEVEL="info"
@@ -52,11 +53,6 @@ AUTH_HEADER="Bearer {{globals.API_TOKEN}}"
 ```
 
 Removing a line deletes that key when saved; `KEY=` saves an empty string. Unchanged values are preserved. Switching modes does not save: use **Save** to apply edits. References remain expressions in the editor and resolve only for execution.
-
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light"><img src="/assets/guides/secrets-file-light.webp" alt="The staging Build secrets File editor with a YAML-declared key and a synthetic value." width="2192" height="1404" loading="lazy" /></div>
-  <div className="towbar-product-dark"><img src="/assets/guides/secrets-file-dark.webp" alt="The staging Build secrets File editor with a YAML-declared key and a synthetic value." width="2192" height="1404" loading="lazy" /></div>
-</div>
 
 ## Save and deploy
 
@@ -68,21 +64,21 @@ Shared Preview values and app references can be saved independently and are used
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/features/secrets-light.webp" alt="Example Shared secrets editor. Configured keys are visible; stored secret values remain hidden." width="2160" height="768" loading="lazy" />
+    <img src="/assets/release-v2/shared-secrets-light.jpg" alt="Shared secret names remain visible while their saved values are masked." width="1280" height="720" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/features/secrets-dark.webp" alt="Example Shared secrets editor. Configured keys are visible; stored secret values remain hidden." width="2160" height="768" loading="lazy" />
+    <img src="/assets/release-v2/shared-secrets-dark.jpg" alt="Shared secret names remain visible while their saved values are masked." width="1280" height="720" loading="lazy" />
   </div>
-  <p>Example Shared secrets editor. Configured keys are visible; stored secret values remain hidden.</p>
+  <p>Shared secret names remain visible while their saved values are masked.</p>
 </div>
 
 ## Rotate credentials
 
 Changing `POSTGRES_PASSWORD` in Towbar does not change the password already stored inside an existing PostgreSQL database. Coordinate database password rotation separately. SSH and Cloudflare replacement similarly updates what Towbar uses; it does not provision those credentials at the provider or server.
 
-Enable Cloudflare DNS TLS under **Server → Settings**, then store its token under
-**Server → Settings → Configuration**. Workload YAML continues selecting
-`tls.mode: cloudflare-dns` when that deployment requires it.
+Enable Cloudflare TLS and store its token under **Server → Settings → Cloudflare TLS**.
+Workload YAML continues selecting `tls.mode: cloudflare-dns` when that deployment
+requires it.
 
 ## External secret managers
 
@@ -94,24 +90,38 @@ For runtime, configure the bootstrap credential as a runtime secret and launch t
 
 References: [Docker build secrets](https://docs.docker.com/build/building/secrets/) and [Infisical Docker integration](https://infisical.com/docs/documentation/getting-started/docker).
 
-## Public API
+## External secret providers
 
-Read workspace metadata with `GET /v1/core/settings/secrets?environment=production` and update it with `PATCH /v1/core/settings/secrets/{environment}/{stage}`. Source and app metadata use `GET /v1/core/{sources|apps}/{id}/secrets?environment=production`, with `environment=preview:staging`, for example, selecting staging’s isolated Preview scope. Resources use `/v1/core/resources/{id}/secrets?environment=staging` and support runtime values for their own named environment. App and resource IDs identify environment instances; requests for a different instance environment are rejected. Stage identifiers are `build`, `deployment` (runtime), `pre_deploy`, and `post_deploy`.
+Admins can add one Infisical or Doppler configuration under **Integrations → External secrets**. Grant each connection only to the repositories and environments that may reference it. A manifest stores the integration slug, provider secret name, optional field/version, and whether it is needed at runtime or build time; it never stores the value.
+
+At deployment execution Towbar records the resolved provider version without the value. Infisical retries request that same version. Doppler's read API does not expose version-addressed retrieval, so Towbar records a keyed snapshot fingerprint and fails closed if a repeated resolution returns a different value; Doppler manifest references therefore reject `version`. Queued execution repeats the connection and scope checks. A disabled connection, denied scope, unavailable version, changed snapshot, or failed provider request stops the operation before promotion.
+
+Runtime values are supplied through the existing encrypted transient secret path. Dockerfile builds use BuildKit secret mounts. Static commands use a short-lived protected environment. Railpack, Nixpacks, and Buildpacks reject build-stage external secrets because those tools cannot currently guarantee that an environment value will stay out of the image and shared cache.
+
+Provider values are redacted from API responses, MCP output, command logs, operation snapshots, generated manifests, and image metadata. Use a provider machine identity limited to the exact project/path and read-only secret versions required by the workload.
+
+## API access
+
+For scripts, use the [public API](/docs/api/workflows#update-secrets-safely) with a personal or team API key. The `/v1/core` routes below are dashboard routes authenticated by a browser session. API keys cannot use reveal endpoints.
+
+Read workspace metadata with `GET /v1/core/settings/secrets` and update it with `PATCH /v1/core/settings/secrets/production/{stage}`. The `production` segment is the storage identifier for workspace values; those values are shared across environments. Repository and app metadata use `GET /v1/core/{sources|apps}/{id}/secrets?environment=production`, with `environment=preview:staging`, for example, selecting staging’s isolated Preview scope. Resources use `/v1/core/resources/{id}/secrets?environment=staging` and support runtime values for their own named environment. App and resource IDs identify environment instances; requests for a different instance environment are rejected. Stage identifiers are `build`, `deployment` (runtime), `pre_deploy`, and `post_deploy`.
 
 Mutations accept `{ "expectedRevision": null, "set": { "KEY": "new value" }, "delete": [] }`. Use `null` only for an unconfigured slot, then use its returned revision for later edits. Send only explicitly changed values; metadata and placeholders are never replacement values. A stale revision returns HTTP 409. Metadata includes local keys, available reference names, revisions, and pending changes. Legacy `inheritedKeys` and `inheritedOrigins` fields are empty. Secret mutations never enqueue work.
 
-Server metadata and writes use `GET` and `PATCH /v1/core/servers/{id}/credentials`, with `privateKey` and `apiToken` fields. Metadata and mutation responses contain no values and disable caching. Secret writes and reveals require a workspace owner. Server credentials remain write-only. Slack and SMTP provider credentials are installation environment variables and never pass through these APIs.
+Server credential metadata uses `GET /v1/core/servers/{id}/credentials`. Cloudflare `apiToken` changes use `PATCH` on that path. Submit the stored key’s `privateKeyId` and the current `expectedRevision` to `POST /v1/core/servers/{id}/credentials/actions/verify-private-key`, poll its verification resource, and trust a discovered host key only after comparing its fingerprint independently. Towbar attaches the selected stored key only after SSH authentication succeeds. Metadata and mutation responses contain no values and disable caching. Secret writes require Admin or Member access. Server credentials are administered separately and credential reveal requires a recently authenticated Admin browser session. Slack bot tokens and SMTP passwords are encrypted workspace settings; provider metadata responses never return them.
+
+Removing a server revokes its host-key trust. Restoring that server later requires fresh host-key discovery and explicit trust.
 
 After saving, queue a deployment for the selected environment instance through the app/resource deploy action, or a selected preview with `POST /v1/core/previews/{id}/actions/deploy`. Report any queue failure separately from the successful save.
 
-To reveal one stored environment value, send `POST` to the secret stage path followed by `/reveal`, with `{ "key": "ENV_KEY" }`. For example, `/v1/core/apps/{id}/secrets/production/deployment/reveal`. The response contains `value` and `revision`, uses `Cache-Control: no-store`, and records a value-free audit event. Workspace and Source paths support the same operation. Reveal does not resolve references or save changes.
+To reveal one stored environment value, send `POST` to the secret stage path followed by `/reveal`, with `{ "key": "ENV_KEY" }`. For example, `/v1/core/apps/{id}/secrets/production/deployment/reveal`. The response contains `value` and `revision`, uses `Cache-Control: no-store`, and records a value-free audit event. Workspace and Repository paths support the same operation. Reveal does not resolve references or save changes.
 
-To reveal all stored values for one environment and stage, send `POST` to the same stage path followed by `/reveal-all`, with `{}`. The response contains `values` (a key/value object) and one `revision`. File mode uses this single request. It has the same owner and workspace restrictions, returns stored reference expressions without resolving them, disables caching, and records a value-free audit event with the key count. It does not fetch other scopes, environments, or stages.
+To reveal all stored values for one environment and stage, send `POST` to the same stage path followed by `/reveal-all`, with `{}`. The response contains `values` (a key/value object) and one `revision`. File mode uses this single request. It has the same Admin and workspace restrictions, returns stored reference expressions without resolving them, disables caching, and records a value-free audit event with the key count. It does not fetch other scopes, environments, or stages.
 
 ## Storage and recovery
 
-Secret records are encrypted in PostgreSQL using the separately configured 32-byte `TOWBAR_CREDENTIALS_KEY`. Authenticated encryption binds each record to its workspace, owner, environment, stage, and identity. Values are resolved by the API for execution and sent over the authenticated internal worker path. An owner can also retrieve one stored value through the explicit reveal operation. Temporal history, metadata responses, deployment snapshots, and audit events contain no plaintext values.
+Secret records are encrypted in PostgreSQL using the separately configured 32-byte `TOWBAR_CREDENTIALS_KEY`. Authenticated encryption binds each record to its workspace, owner, environment, stage, and identity. Values are resolved by the API for execution and sent over the authenticated internal worker path. An Admin can also retrieve one stored value through the explicit reveal operation. Temporal history, metadata responses, deployment snapshots, and audit events contain no plaintext values.
 
 Back up the Towbar database and preserve its encryption key separately. Restore both to recover secret configuration. A database-only backup cannot recover secrets without the matching key. Do not replace the key on an existing installation without re-encrypting its stored credentials; there is no automatic key rotation or secret history in this release.
 
-Successful environment syncs reconcile required keys for existing App and Resource instances: unchanged keys retain values and references, new keys start unset, and removed declarations delete their values. Failed syncs preserve the previous declarations and values. Archival retains values; permanent owner deletion removes its records. Shared values and servers remain attached to the workspace. A new instance starts with unset required keys. Register a host under **Servers** and give it a workspace-unique slug before referencing that slug in an entity file. SSH and Cloudflare values stay scoped to that workspace server. Slack and SMTP are configured for the Towbar installation through deployment environment variables.
+Successful environment syncs reconcile required keys for existing App and Resource instances: unchanged keys retain values and references, new keys start unset, and removed declarations delete their values. Failed syncs preserve the previous declarations and values. Archival retains values; permanent owner deletion removes its records. Shared values and servers remain attached to the workspace. A new instance starts with unset required keys. Register a host under **Servers** before referencing its IP address in an entity file. SSH credentials stay scoped to that workspace server. Cloudflare, Slack, SMTP, and other provider credentials come from the API runtime environment and appear under **Manage → Integrations** only when their configuration is complete.

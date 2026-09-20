@@ -1,4 +1,4 @@
-import type { GitHubPullRequest } from "../github/client.js";
+import type { GitHubPullRequest as RepositoryPullRequest } from "../github/client.js";
 
 export type PreviewPullRequestDisposition =
   { action: "deploy" } | { action: "cleanup"; reason: string };
@@ -13,7 +13,7 @@ export function previewPullRequestsToReconcile(
 }
 
 export function previewPullRequestDisposition(input: {
-  pullRequest: GitHubPullRequest;
+  pullRequest: RepositoryPullRequest;
   repositoryName: string;
   repositoryOwner: string;
   sourceBranches: string[];
@@ -60,8 +60,8 @@ function sameRepository(left: string, right: string) {
 }
 
 export function samePreviewPullRequestRevision(
-  left: GitHubPullRequest,
-  right: GitHubPullRequest,
+  left: RepositoryPullRequest,
+  right: RepositoryPullRequest,
 ) {
   return (
     left.headSha === right.headSha &&

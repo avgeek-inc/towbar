@@ -1,1 +1,0 @@
-ALTER TABLE "towbar_deployments" ADD COLUMN "github_deployment_id" varchar(40);

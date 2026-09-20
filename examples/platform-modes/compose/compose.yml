@@ -1,0 +1,30 @@
+services:
+  web:
+    build:
+      context: ../node-app
+      dockerfile: Dockerfile
+    environment:
+      PORT: "3000"
+    healthcheck:
+      test: [CMD, wget, -q, -O, "-", "http://127.0.0.1:3000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    depends_on:
+      cache:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/uploads
+  cache:
+    image: redis@sha256:987c376c727652f99625c7d205a1cba3cb2c53b92b0b62aade2bd48ee1593232
+    command: [redis-server, --appendonly, "yes"]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    volumes:
+      - cache-data:/data
+volumes:
+  uploads: {}
+  cache-data: {}

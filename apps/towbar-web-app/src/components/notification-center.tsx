@@ -83,7 +83,7 @@ export function NotificationCenter() {
             ? `Notifications, ${unreadCount} unread`
             : "Notifications"
         }
-        className="relative isolate grid size-8 shrink-0 cursor-pointer touch-manipulation place-items-center rounded-full text-muted outline-none transition-[color,background-color,transform] before:absolute before:-inset-1.5 before:content-[''] hover:bg-default hover:text-foreground active:scale-[0.96] data-[focus-visible=true]:ring-2 data-[focus-visible=true]:ring-focus data-[focus-visible=true]:ring-offset-2 data-[focus-visible=true]:ring-offset-background motion-reduce:transition-none"
+        className="relative isolate grid size-8 shrink-0 cursor-pointer touch-manipulation place-items-center rounded-full bg-default text-muted outline-none transition-[color,background-color,transform] hover:bg-default/80 hover:text-foreground active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none"
       >
         <HugeiconsIcon aria-hidden="true" icon={Notification02Icon} size={18} />
         {unreadCount > 0 ? (

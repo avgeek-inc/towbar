@@ -1,4 +1,5 @@
 "use client";
+import { routePermission, useAccess } from "./access-context";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import { menuIcons } from "./secondary-sidebar";
@@ -10,8 +11,10 @@ import { cn } from "@workspace/web-design-system/lib/utils";
 import { DetailSettingsContext, SecondaryItems } from "./secondary-sidebar";
 
 type ResponsiveSubtab = {
+  actions?: ReactNode;
   badge?: ReactNode;
   content: ReactNode;
+  destructive?: boolean;
   group?: string;
   disabledReason?: string;
   isDisabled?: boolean;
@@ -39,6 +42,13 @@ export function ResponsiveSubtabs({
   tabs: ResponsiveSubtab[];
 }) {
   const detail = useDetailNavigation();
+  const { can } = useAccess();
+  tabs = tabs.filter((tab) => {
+    const permission = routePermission(
+      detail.base ? detail.href("settings", tab.value) : tab.value,
+    );
+    return !permission || can(permission);
+  });
   const detailSettings = useContext(DetailSettingsContext);
   const pathname = usePathname();
   const search = useSearchParams();
@@ -91,6 +101,7 @@ export function ResponsiveSubtabs({
     <>
       {detailSettings !== false && active ? (
         <PageSelectionTitle
+          actions={active.actions}
           label={active.label}
           icon={
             active.icon ??
@@ -114,6 +125,7 @@ export function ResponsiveSubtabs({
               label: tab.label,
               icon: tab.icon,
               badge: tab.badge,
+              destructive: tab.destructive,
               disabled: tab.isDisabled,
               disabledReason: tab.disabledReason,
             }))}

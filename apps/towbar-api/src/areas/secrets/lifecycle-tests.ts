@@ -4,7 +4,9 @@ import { and, eq } from "drizzle-orm";
 import {
   apps,
   auditEvents,
+  deployments,
   managedSecrets,
+  releases,
 } from "@workspace/towbar-database/schema";
 import type { normalizeServerConfiguration } from "@workspace/towbar-core";
 import type { TestContext } from "node:test";
@@ -75,7 +77,6 @@ export async function testSecretLifecycle({
         /^[a-f0-9]{64}$/u,
       );
       const newServer = await createServer({
-        slug: "new-host",
         config: { ...serverConfig, ip: "192.0.2.11" },
         workspaceId,
       });
@@ -145,6 +146,8 @@ export async function testSecretLifecycle({
         .where(eq(auditEvents.workspaceId, workspaceId));
       assert(!JSON.stringify(audit).includes("shared-value"));
       assert(!JSON.stringify(audit).includes("test-slack-token"));
+      await db.delete(releases).where(eq(releases.appId, appId));
+      await db.delete(deployments).where(eq(deployments.appId, appId));
       await db.delete(apps).where(eq(apps.id, appId));
       assert.deepEqual(
         await db

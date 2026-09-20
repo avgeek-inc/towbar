@@ -1,3 +1,10 @@
+import { actorAllows } from "@workspace/towbar-access";
+import {
+  dateTimeLocalizationSchema,
+  defaultDateTimePreferences,
+  localizedResponse,
+} from "@workspace/towbar-core/date-time";
+import { resolveApiKeyPrincipal } from "../../areas/api-keys/service.js";
 import { Hono } from "hono";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
@@ -14,6 +21,7 @@ import {
   type OperationCall,
   mcpTools,
 } from "../../areas/external-api/mcp-tools.js";
+import { mcpInputJsonSchema } from "../../areas/external-api/mcp-schema.js";
 import { forbidden } from "../../http/errors.js";
 import { operations } from "../../areas/external-api/catalogue.js";
 import { controlPlaneRoutes } from "./core/index.js";
@@ -25,12 +33,9 @@ export const mcpRoutes = new Hono<TowbarHonoEnvironment>();
 mcpRoutes.use("*", externalRateLimit);
 mcpRoutes.use("*", requireApiKey("mcp"));
 mcpRoutes.all("/", async (context) => {
-  const identity = context.get("user");
   const key = context.get("apiKey")!;
-  const allowed = mcpTools.filter(
-    (op) =>
-      (!op.ownerOnly || identity.workspaceRole === "owner") &&
-      (key.access === "write" || op.readOnly),
+  const allowed = mcpTools.filter((op) =>
+    actorAllows(context.get("actor"), op.permissions),
   );
   const server = new Server(
     { name: "towbar", version: "1.5.2" },
@@ -41,26 +46,34 @@ mcpRoutes.all("/", async (context) => {
     },
   );
   server.setRequestHandler(ListToolsRequestSchema, () => ({
-    tools: allowed.map((op) => ({
-      name: op.name,
-      title: op.title,
-      description: op.description,
-      inputSchema: z.toJSONSchema(op.input, {
-        io: "input",
-        unrepresentable: "any",
-      }) as { type: "object" },
-      outputSchema: {
-        type: "object" as const,
-        properties: { result: { type: "object" as const } },
-        required: ["result"],
-      },
-      annotations: {
-        readOnlyHint: op.readOnly,
-        destructiveHint: op.destructive,
-        idempotentHint: op.idempotent,
-        openWorldHint: true,
-      },
-    })),
+    tools: allowed.map((op) => {
+      const inputSchema = mcpInputJsonSchema(op.input);
+      return {
+        name: op.name,
+        title: op.title,
+        description: op.description,
+        inputSchema,
+        outputSchema: {
+          type: "object" as const,
+          properties: {
+            result: {
+              type: "object" as const,
+              properties: {
+                localization: z.toJSONSchema(dateTimeLocalizationSchema),
+              },
+              required: ["localization"],
+            },
+          },
+          required: ["result"],
+        },
+        annotations: {
+          readOnlyHint: op.readOnly,
+          destructiveHint: op.destructive,
+          idempotentHint: op.idempotent,
+          openWorldHint: true,
+        },
+      };
+    }),
   }));
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const op = allowed.find((item) => item.name === request.params.name);
@@ -78,8 +91,11 @@ mcpRoutes.all("/", async (context) => {
       // Dispatch in process with only the authenticated identity, never a caller-controlled URL or cookies.
       const dispatch = new Hono<TowbarHonoEnvironment>();
       dispatch.use("*", async (inner, next) => {
-        inner.set("user", identity);
-        inner.set("apiKey", key);
+        const fresh = await resolveApiKeyPrincipal(key.id);
+        if (!fresh) throw forbidden("This API key is no longer active");
+        inner.set("user", fresh.user);
+        inner.set("apiKey", fresh.key);
+        inner.set("actor", fresh.actor);
         inner.set("currentSessionId", context.get("currentSessionId"));
         inner.set("requestId", context.get("requestId"));
         await next();
@@ -106,12 +122,10 @@ mcpRoutes.all("/", async (context) => {
             item.method === request.method && item.path === request.route,
         );
         if (!operation) throw new Error("Unknown MCP operation dependency");
-        if (
-          (operation.ownerOnly && identity.workspaceRole !== "owner") ||
-          (key.access !== "write" && operation.method !== "GET")
-        )
+        const fresh = await resolveApiKeyPrincipal(key.id);
+        if (!fresh || !actorAllows(fresh.actor, operation.permissions))
           throw forbidden(
-            "This operation is unavailable with your key and workspace role",
+            "This operation is unavailable with your key and current team role",
           );
         const { route: _route, method: _method, ...input } = request;
         if (input.path && Object.keys(input.path).length === 0)
@@ -152,7 +166,15 @@ mcpRoutes.all("/", async (context) => {
           ...(response.status === 202 ? { accepted: true } : {}),
         };
       };
-      const result = await op.run(request.params.arguments ?? {}, { call });
+      const rawResult = await op.run(request.params.arguments ?? {}, { call });
+      const principal = await resolveApiKeyPrincipal(key.id);
+      if (!principal) throw forbidden("This API key is no longer active");
+      const result = localizedResponse(
+        rawResult,
+        principal.actor.kind === "team-key" || !principal.user.id
+          ? defaultDateTimePreferences
+          : (principal.user.dateTimePreferences ?? defaultDateTimePreferences),
+      );
       return {
         content: [{ type: "text", text: JSON.stringify({ result }) }],
         structuredContent: { result },

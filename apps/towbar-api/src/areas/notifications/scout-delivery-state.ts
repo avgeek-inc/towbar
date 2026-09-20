@@ -1,20 +1,10 @@
 import type {
   scoutAlertIncidents,
   scoutAlertRules,
-  scoutAlertSettings,
 } from "@workspace/towbar-database/schema";
 
-export function scoutNotificationsPaused(
-  rule: typeof scoutAlertRules.$inferSelect,
-  settings: typeof scoutAlertSettings.$inferSelect | null,
-  now: Date,
-) {
-  return (
-    !rule.enabled ||
-    rule.deletedAt !== null ||
-    Boolean(rule.mutedUntil && rule.mutedUntil > now) ||
-    Boolean(settings?.mutedUntil && settings.mutedUntil > now)
-  );
+export function scoutRuleDisabled(rule: typeof scoutAlertRules.$inferSelect) {
+  return !rule.enabled || rule.deletedAt !== null;
 }
 
 export function scoutIncidentChanged(

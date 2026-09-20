@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, ne } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, notInArray } from "drizzle-orm";
 
 import {
   apps,
@@ -46,6 +46,10 @@ async function listDeployables(
         driftReasons: deployableRuntimeStates.driftReasons,
         driftStatus: deployableRuntimeStates.driftStatus,
         healthStatus: deployableRuntimeStates.healthStatus,
+        ingressContainerName: deployableRuntimeStates.ingressContainerName,
+        ingressImage: deployableRuntimeStates.ingressImage,
+        ingressRestartCount: deployableRuntimeStates.ingressRestartCount,
+        ingressStatus: deployableRuntimeStates.ingressStatus,
         observedContainerName: deployableRuntimeStates.observedContainerName,
         observedImage: deployableRuntimeStates.observedImage,
         observedState: deployableRuntimeStates.observedState,
@@ -78,7 +82,9 @@ async function listDeployables(
           : eq(apps.workspaceId, workspaceId),
         isNull(apps.archivedAt),
         isNull(servers.archivedAt),
-        type === "app" ? eq(apps.kind, "app") : ne(apps.kind, "app"),
+        type === "app"
+          ? inArray(apps.kind, ["app", "compose"])
+          : notInArray(apps.kind, ["app", "compose"]),
       ),
     )
     .orderBy(desc(apps.updatedAt));
@@ -136,6 +142,10 @@ async function getDeployable(
         driftReasons: deployableRuntimeStates.driftReasons,
         driftStatus: deployableRuntimeStates.driftStatus,
         healthStatus: deployableRuntimeStates.healthStatus,
+        ingressContainerName: deployableRuntimeStates.ingressContainerName,
+        ingressImage: deployableRuntimeStates.ingressImage,
+        ingressRestartCount: deployableRuntimeStates.ingressRestartCount,
+        ingressStatus: deployableRuntimeStates.ingressStatus,
         observedContainerName: deployableRuntimeStates.observedContainerName,
         observedImage: deployableRuntimeStates.observedImage,
         observedState: deployableRuntimeStates.observedState,
@@ -169,7 +179,9 @@ async function getDeployable(
         eq(apps.workspaceId, workspaceId),
         isNull(apps.archivedAt),
         isNull(servers.archivedAt),
-        type === "app" ? eq(apps.kind, "app") : ne(apps.kind, "app"),
+        type === "app"
+          ? inArray(apps.kind, ["app", "compose"])
+          : notInArray(apps.kind, ["app", "compose"]),
       ),
     )
     .limit(1);
@@ -206,6 +218,17 @@ function normalizeRuntimeState(
     driftStatus: "drifted" | "in_sync" | "unknown" | null;
     healthStatus:
       "healthy" | "none" | "starting" | "unhealthy" | "unknown" | null;
+    ingressContainerName: string | null;
+    ingressImage: string | null;
+    ingressRestartCount: number | null;
+    ingressStatus:
+      | "disabled"
+      | "missing"
+      | "ready"
+      | "reconnecting"
+      | "stopped"
+      | "unknown"
+      | null;
     observedContainerName: string | null;
     observedImage: string | null;
     observedState: "missing" | "running" | "stopped" | "unknown" | null;
@@ -218,6 +241,10 @@ function normalizeRuntimeState(
       driftReasons: [],
       driftStatus: "unknown" as const,
       healthStatus: "unknown" as const,
+      ingressContainerName: null,
+      ingressImage: null,
+      ingressRestartCount: null,
+      ingressStatus: "unknown" as const,
       observedContainerName: null,
       observedImage: null,
       observedState: "unknown" as const,
@@ -229,6 +256,7 @@ function normalizeRuntimeState(
     driftReasons: runtimeState.driftReasons ?? [],
     driftStatus: runtimeState.driftStatus ?? "unknown",
     healthStatus: runtimeState.healthStatus ?? "unknown",
+    ingressStatus: runtimeState.ingressStatus ?? "unknown",
     observedState: runtimeState.observedState ?? "unknown",
   };
 }

@@ -78,6 +78,12 @@ export async function executeDeploymentActivity(deploymentId: string) {
     });
   } catch (error) {
     const cancelled = activity.cancellationSignal.aborted;
+    if (error instanceof DeploymentCommitUncertainError) {
+      activity.log.warn("Deployment release commit requires reconciliation", {
+        cause: safeErrorMessage(error.cause),
+        deploymentId,
+      });
+    }
     if (
       !(error instanceof DeploymentCommittedError) &&
       !(error instanceof DeploymentCommitUncertainError)

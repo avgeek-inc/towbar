@@ -17,42 +17,13 @@ pnpm --filter towbar-api typecheck
 pnpm --filter towbar-api build
 ```
 
-Production uses separate runtime and migrator PostgreSQL credentials. GitHub
-App credentials, the internal HMAC key, and `TOWBAR_CREDENTIALS_KEY` are host
-secrets and must never be stored in PostgreSQL or committed. The production
-image exposes the compiled migration command:
+Production uses separate runtime and migrator PostgreSQL credentials. Keep the internal HMAC secret and `TOWBAR_CREDENTIALS_KEY` outside PostgreSQL. Static integration and notification credentials come directly from the API process environment; the database stores only dynamic provider authorizations such as GitLab OAuth grants and GitHub installations.
 
-```sh
-node dist/cli/migrate.js
-```
+The production image includes `node dist/cli/migrate.js`, `node dist/cli/setup-code.js`, and `node dist/cli/recover-admin.js --email=admin@example.com [--reset-mfa]`. Towbar v2 requires a fresh database using the `001_team_access_v2` baseline. It does not upgrade a 1.x schema.
 
-An empty installation exposes a one-time owner setup operation through the web
-app's `/login` screen. The transaction is serialized and setup locks after the
-first account exists. Login and setup create the API session directly; there is
-no authorization-code exchange or separate authentication origin.
+Better Auth owns password hashing, sessions, MFA, invitation verification and API token mechanics. Towbar's wrappers enforce Admin/Member/Viewer capabilities and reject raw signup/organization/key endpoints. Initial setup requires an installer-issued code and creates one team and Admin atomically. Email-based recovery and optional TOTP are available under Personal Settings. Local operator recovery generates a temporary password, revokes sessions/personal keys and forces replacement. It is never an HTTP operation.
 
-Forgotten-owner recovery is an operator-only startup operation. Configure
-`TOWBAR_OWNER_RESET_EMAIL` and a high-entropy temporary
-`TOWBAR_OWNER_RESET_PASSWORD`, restart the API, sign in normally, and change the
-password under Account → Profile. The API stores the login credential only as
-an Argon2id password hash. A separate keyed marker records only whether that operator reset
-value has already run; it is never accepted by login. Existing sessions are
-revoked, and the same reset value is not reapplied on a later restart. Towbar
-exposes no unauthenticated password-reset route.
-
-Signed GitHub push webhooks synchronize only the manifest's configured branch.
-After any successful Source sync, including an operator-requested sync, the API
-admits apps and Resources with automatic deployment enabled when they are
-missing or their effective deployment digest changed. This lets `Sync now`
-recover deployables that were previously ineligible because their Server was
-not prepared, and retry deployables that failed during an earlier sync. Active
-requests and current releases remain deduplicated. The digest covers
-the selected Git tree inputs, runtime configuration, and target server
-configuration. Plain `autoDeploy: true` remains compatible and treats every
-commit as changed; `autoDeploy.inputs` enables path-aware selection. A repeated
-request for a queued or active digest is deduplicated. A newer, different digest
-marks an older same-app request `skipped` only while the older request is still
-queued.
+Repository sync reconciles inventory without implicit deployment. Member sync and branch-mapping changes pause environment automation until an Admin reviews and enables it. System GitHub/maintenance effects have scoped grants; queued human/key effects retain actor snapshots and revalidate before execution. See `docs/plans/team-access-v2.md` and the Team access self-hosting guide for the full permission contract.
 
 Relevant pull request events for Apps with Preview enabled enter a Source/PR
 coalescing workflow. The API reads the pull request's current state before each
@@ -60,7 +31,7 @@ reconciliation, so delayed or out-of-order webhooks cannot recreate a closed
 Preview. Admission records independent Preview deployments and releases,
 publishes GitHub Deployment statuses, updates one aggregate Preview comment on
 the pull request, and keeps production runtime health unchanged. Pull request
-merge or closure, retargeting, TTL expiry, manifest disablement, and owner
+merge or closure, retargeting, TTL expiry, manifest disablement, and Admin
 deletion converge on the same cleanup admission path.
 
 AWS, Google Cloud, and Azure backup credentials are workspace-scoped. Servers are
@@ -125,9 +96,9 @@ and expired rollback-volume cleanup.
 Owners can configure multiple Source-scoped Slack and SMTP notification
 destinations for deployment, Preview, runtime health, backup, and restore event
 categories. Slack and SMTP provider credentials come from the API deployment
-environment, and unavailable provider types are omitted from the destination
-editor. Each attempt resolves current provider configuration and records a
-separate durable delivery and bounded retry history.
+database as encrypted workspace settings, and unavailable provider types are
+omitted from the destination editor. Each attempt resolves current provider
+configuration and records a separate durable delivery and bounded retry history.
 Test sends and manual retries use the same delivery pipeline. Slack uses a bot
 token and channel IDs. SMTP targets must resolve exclusively to public addresses
 and are connected through a pinned address with TLS server-name verification.

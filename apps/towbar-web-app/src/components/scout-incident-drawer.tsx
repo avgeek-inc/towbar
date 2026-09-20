@@ -1,20 +1,26 @@
 "use client";
+import { displayDateTime } from "@/lib/date-time-display";
 import { ScoutIcon } from "./scout-icons";
 import { RelativeTime } from "./last-synced-time";
 import { ScoutIncidentNotifications } from "./scout-incident-notifications";
 import { Tabs } from "@workspace/web-design-system/navigation/tabs";
 import { useMemo, useState } from "react";
 import { Button } from "@workspace/web-design-system/buttons/button";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
+import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Drawer } from "@workspace/web-design-system/overlays/drawer";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
 import {
   conditionDescription,
+  metricDefinition,
   scoutValue,
   type ScoutIncident,
 } from "./scout-controls";
 import { ScoutIncidentChart } from "./scout-incident-chart";
+import {
+  ScoutIncidentSeverityChip,
+  ScoutIncidentStateChip,
+} from "./scout-incident-chips";
 
 export type IncidentDetails = {
   incident: ScoutIncident & { environment: string | null };
@@ -28,11 +34,7 @@ export type IncidentDetails = {
     aggregation: "maximum" | "minimum";
   };
 };
-export const incidentTime = (value: string) =>
-  new Date(value).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "long",
-  });
+export const incidentTime = displayDateTime;
 
 export function ScoutIncidentDrawer({
   serverId,
@@ -44,37 +46,34 @@ export function ScoutIncidentDrawer({
   onClose: () => void;
 }) {
   return (
-    <Drawer
+    <Drawer.Backdrop
       isOpen
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
     >
-      <Drawer.Backdrop>
-        <Drawer.Content placement="right">
-          <Drawer.Dialog className="w-full max-w-3xl">
-            <Drawer.CloseTrigger aria-label="Close incident" />
-            <Drawer.Header>
-              <p className="text-sm text-muted">Incident details</p>
-              <Drawer.Heading>{incident.ruleName}</Drawer.Heading>
-            </Drawer.Header>
-            <Drawer.Body>
-              <IncidentBody
-                key={incident.id}
-                serverId={serverId}
-                initial={incident}
-              />
-            </Drawer.Body>
-            <Drawer.Footer>
-              <Button slot="close" variant="secondary">
-                <ScoutIcon name="close" />
-                Close
-              </Button>
-            </Drawer.Footer>
-          </Drawer.Dialog>
-        </Drawer.Content>
-      </Drawer.Backdrop>
-    </Drawer>
+      <Drawer.Content placement="right">
+        <Drawer.Dialog className="w-full max-w-3xl">
+          <Drawer.CloseTrigger aria-label="Close incident" />
+          <Drawer.Header>
+            <p className="text-sm text-muted">Incident details</p>
+            <Drawer.Heading>{incident.ruleName}</Drawer.Heading>
+          </Drawer.Header>
+          <Drawer.Body>
+            <IncidentBody
+              key={incident.id}
+              serverId={serverId}
+              initial={incident}
+            />
+          </Drawer.Body>
+          <Drawer.Footer>
+            <Button slot="close" variant="secondary">
+              Close
+            </Button>
+          </Drawer.Footer>
+        </Drawer.Dialog>
+      </Drawer.Content>
+    </Drawer.Backdrop>
   );
 }
 function IncidentBody({
@@ -92,12 +91,7 @@ function IncidentBody({
   const incident = query.data?.incident ?? initial;
   const details = useMemo(
     () => [
-      [
-        "Entity",
-        query.data
-          ? `${query.data.entity.name}${query.data.incident.deployableId && query.data.incident.environment ? ` · ${query.data.incident.environment === "preview" ? "Previews" : "Persistent"}` : ""}`
-          : "Loading…",
-      ],
+      ["Entity", query.data ? query.data.entity.name : "Loading…"],
       [
         "Started",
         <RelativeTime
@@ -137,53 +131,13 @@ function IncidentBody({
   return (
     <div className="grid min-w-0 gap-6 pb-2">
       <div className="flex items-center gap-2">
-        <Chip
-          size="small"
-          icon={
-            <ScoutIcon
-              name={
-                incident.resolvedAt
-                  ? incident.resolutionReason === "recovered"
-                    ? "resolved"
-                    : "close"
-                  : incident.severity === "critical"
-                    ? "critical"
-                    : "warning"
-              }
-            />
-          }
-          variant={
-            incident.resolvedAt
-              ? incident.resolutionReason === "recovered"
-                ? "success"
-                : "secondary"
-              : incident.severity === "critical"
-                ? "destructive"
-                : "warning"
-          }
-        >
-          {incident.resolvedAt
-            ? incident.resolutionReason === "recovered"
-              ? "Recovered"
-              : "Closed"
-            : "Active"}
-        </Chip>
-        <Chip
-          size="small"
-          icon={
-            <ScoutIcon
-              name={incident.severity === "critical" ? "critical" : "warning"}
-            />
-          }
-          variant={incident.severity === "critical" ? "destructive" : "warning"}
-        >
-          {incident.severity === "critical" ? "Critical" : "Warning"}
-        </Chip>
+        <ScoutIncidentStateChip incident={incident} />
+        <ScoutIncidentSeverityChip severity={incident.severity} />
       </div>
       {query.error ? (
         <div className="grid gap-2">
           <QueryError message={query.error} />
-          <Button size="sm" variant="secondary" onPress={query.refresh}>
+          <Button variant="secondary" onPress={query.refresh}>
             <ScoutIcon name="refresh" />
             Retry
           </Button>
@@ -229,41 +183,64 @@ function IncidentBody({
           {incident.condition.http ? (
             <p className="break-all text-sm">{incident.condition.http.url}</p>
           ) : null}
-          <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            {details.map(([label, value]) => (
-              <div key={String(label)} className="min-w-0 overflow-x-auto">
-                <dt className="mb-1 text-sm text-muted">{label}</dt>
-                <dd className="break-words text-sm">{value}</dd>
-              </div>
-            ))}
-          </dl>
-          <div className="text-xs text-muted">
-            Incident ID{" "}
-            <span className="break-all font-mono">{incident.id}</span>
-          </div>
+          <Widget className="min-w-0">
+            <Widget.Header>
+              <Widget.Title icon={<ScoutIcon name="alerts" />}>
+                Incident details
+              </Widget.Title>
+            </Widget.Header>
+            <Widget.Content>
+              <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                {details.map(([label, value]) => (
+                  <div key={String(label)} className="min-w-0 overflow-x-auto">
+                    <dt className="mb-1 text-sm text-muted">{label}</dt>
+                    <dd className="break-words text-sm text-foreground">
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </Widget.Content>
+            <Widget.Footer>
+              <p className="min-w-0 text-xs">
+                <span className="text-muted">Incident ID </span>
+                <span className="break-all font-mono text-foreground">
+                  {incident.id}
+                </span>
+              </p>
+            </Widget.Footer>
+          </Widget>
         </Tabs.Panel>
         <Tabs.Panel id="monitoring" className="m-0 min-w-0 p-0 outline-none">
           <section
             aria-label="Incident metric history"
-            className="grid min-w-0 gap-3 pt-3"
+            className="min-w-0 pt-3"
           >
-            <div>
-              <h3 className="font-medium">From incident to now</h3>
-              <p className="mt-1 text-xs text-muted">
-                {incidentTime(incident.openedAt)} →{" "}
-                {query.data ? incidentTime(query.data.history.endAt) : "Now"}
-              </p>
-            </div>
-            {query.data ? (
-              <ScoutIncidentChart
-                incident={query.data.incident}
-                history={query.data.history}
-              />
-            ) : !query.error ? (
-              <div className="min-h-64">
-                <QueryLoading />
-              </div>
-            ) : null}
+            <Widget className="min-w-0">
+              <Widget.Header>
+                <Widget.Title icon={<ScoutIcon name="performance" />}>
+                  {metricDefinition(incident.condition.metric).label}
+                </Widget.Title>
+              </Widget.Header>
+              <Widget.Content className="min-w-0 pb-0 pl-0">
+                {query.data ? (
+                  <ScoutIncidentChart
+                    incident={query.data.incident}
+                    history={query.data.history}
+                  />
+                ) : !query.error ? (
+                  <div className="min-h-64">
+                    <QueryLoading />
+                  </div>
+                ) : null}
+              </Widget.Content>
+              <Widget.Footer>
+                <Widget.FooterDescription className="tabular-nums">
+                  {incidentTime(incident.openedAt)} →{" "}
+                  {query.data ? incidentTime(query.data.history.endAt) : "Now"}
+                </Widget.FooterDescription>
+              </Widget.Footer>
+            </Widget>
           </section>
         </Tabs.Panel>
         <Tabs.Panel id="notifications" className="m-0 min-w-0 p-0 outline-none">

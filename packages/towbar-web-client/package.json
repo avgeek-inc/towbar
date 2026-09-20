@@ -5,7 +5,8 @@
   "type": "module",
   "private": true,
   "dependencies": {
-    "@workspace/towbar-core": "workspace:*"
+    "@workspace/towbar-core": "workspace:*",
+    "@workspace/towbar-access": "workspace:*"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",

@@ -3,31 +3,28 @@ title: "Deployments and releases"
 description: "Understand triggers, deployment stages, health-based promotion, and rollback."
 ---
 
-A deployment is one attempt to put an app or resource into service. Towbar records its trigger, immutable inputs, progress, duration, and final result separately from Source sync history.
+A deployment is one attempt to put an app or resource into service. Towbar records its trigger, immutable inputs, progress, duration, and final result separately from Repository sync history.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
     <img
-      src="/assets/deployments-light.webp"
-      alt="Example deployment history. Compare the trigger, duration, and final result for each app or resource."
-      width="3200"
-      height="2100"
+      src="/assets/release-v2/deployments-light.jpg"
+      alt="Filter deployment history by status, trigger, and workload."
+      width="1280"
+      height="1210"
       loading="lazy"
     />
   </div>
   <div className="towbar-product-dark">
     <img
-      src="/assets/deployments-dark.webp"
-      alt="Example deployment history. Compare the trigger, duration, and final result for each app or resource."
-      width="3200"
-      height="2100"
+      src="/assets/release-v2/deployments-dark.jpg"
+      alt="Filter deployment history by status, trigger, and workload."
+      width="1280"
+      height="1210"
       loading="lazy"
     />
   </div>
-  <p>
-    Example deployment history. Compare the trigger, duration, and final result
-    for each app or resource.
-  </p>
+  <p>Filter deployment history by status, trigger, and workload.</p>
 </div>
 
 ## Browse deployment history
@@ -67,7 +64,7 @@ environments:
 
 This is a fragment, not a complete manifest. Towbar compares selected file identities and configuration to decide whether to queue work. An incomplete Git tree is treated as changed. Include every file that can affect the built app, including shared libraries and build configuration.
 
-Use the Source's pause controls to stop automatic deployment during maintenance. Saving a secret does not enqueue a deployment; deploy explicitly when you want the new value to take effect.
+Use the Repository's pause controls to stop automatic deployment during maintenance. Saving a secret does not enqueue a deployment; deploy explicitly when you want the new value to take effect.
 
 ## Deployment hooks
 
@@ -98,7 +95,7 @@ Durations advance while work is ongoing and stop at the final timestamp. The lat
 
 ## Inspect image vulnerabilities
 
-For opted-in apps, open **Vulnerabilities** in the deployment’s secondary sidebar to inspect the immutable image’s scan state, severity totals, and package findings. **Monitoring → Vulnerabilities** collects findings across the workspace. A successful deployment can still have vulnerabilities; a scan failure does not change deployment health. See [Vulnerability scanning](/docs/vulnerability-scanning) for setup and result interpretation.
+For opted-in apps, open **Vulnerabilities** in the deployment’s secondary sidebar to inspect the immutable image’s scan state, severity totals, and package findings. **Monitor → Vulnerabilities** collects findings across the workspace. A successful deployment can still have vulnerabilities; a scan failure does not change deployment health. See [Vulnerability scanning](/docs/vulnerability-scanning) for setup and result interpretation.
 
 ## Roll back an image
 

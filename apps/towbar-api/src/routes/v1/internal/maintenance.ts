@@ -1,3 +1,4 @@
+import { queueScheduledAppJobs } from "../../../areas/apps/jobs.js";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -25,3 +26,7 @@ internalMaintenanceRoutes.post("/sweep", async (context) => {
   await recordMaintenanceHeartbeat({ details: result, version: body.version });
   return context.json(result);
 });
+
+internalMaintenanceRoutes.post("/app-jobs", async (context) =>
+  context.json(await queueScheduledAppJobs()),
+);

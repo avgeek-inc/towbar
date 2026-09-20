@@ -1,4 +1,6 @@
 "use client";
+import { useAccess } from "./access-context";
+import { IntegrationProviderLogo } from "./integration-provider-logo";
 import {
   InventorySidebar,
   useInventoryQuery,
@@ -7,12 +9,16 @@ import {
 import {
   Add01Icon,
   DashboardCircleIcon,
-  DatabaseIcon,
-  GithubIcon,
+  CubeIcon,
   ServerStack01Icon,
+  Layers01Icon,
+  LeftToRightListBulletIcon,
 } from "@hugeicons/core-free-icons";
 
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+import {
+  Tooltip,
+  TooltipText,
+} from "@workspace/web-design-system/overlays/tooltip";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
@@ -29,9 +35,14 @@ import {
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
+import {
+  ToggleButton,
+  ToggleButtonGroup,
+} from "@workspace/web-design-system/buttons/toggle-button";
 
 import { DashboardPage, InlineLink } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
+import { useQueryChoice } from "@/hooks/use-page-query";
 import {
   getActiveDeploymentStates,
   resolveInventoryStatus,
@@ -49,6 +60,53 @@ import { ServerIpLink } from "./source-inventory";
 import { DeployableInventoryTable as GroupedDeployableTable } from "./deployable-inventory-table";
 import { AppIdentity, ResourceIdentity } from "./deployable-identity";
 
+const inventoryLayouts = ["grouped", "unified"] as const;
+
+function isApp(item: App | Resource): item is App {
+  return item.kind === "app" || item.kind === "compose";
+}
+
+function InventoryViewToggle({ kind }: { kind: "Apps" | "Resources" }) {
+  const [layout, setLayout] = useQueryChoice(
+    "layout",
+    inventoryLayouts,
+    "grouped",
+  );
+  return (
+    <ToggleButtonGroup
+      aria-label={`${kind} view`}
+      selectionMode="single"
+      disallowEmptySelection
+      selectedKeys={[layout]}
+      onSelectionChange={(keys) =>
+        setLayout(keys.has("unified") ? "unified" : "grouped")
+      }
+      size="sm"
+    >
+      <Tooltip>
+        <ToggleButton id="grouped" isIconOnly aria-label="Grouped view">
+          <HugeiconsIcon
+            icon={Layers01Icon}
+            className="size-4"
+            aria-hidden="true"
+          />
+        </ToggleButton>
+        <Tooltip.Content>Grouped view</Tooltip.Content>
+      </Tooltip>
+      <Tooltip>
+        <ToggleButton id="unified" isIconOnly aria-label="Unified view">
+          <HugeiconsIcon
+            icon={LeftToRightListBulletIcon}
+            className="size-4"
+            aria-hidden="true"
+          />
+        </ToggleButton>
+        <Tooltip.Content>Unified view</Tooltip.Content>
+      </Tooltip>
+    </ToggleButtonGroup>
+  );
+}
+
 export function AppsIndex() {
   const apps = useApiQuery<{
     apps: App[];
@@ -65,7 +123,11 @@ export function AppsIndex() {
     apps.error ?? deployments.error ?? sources.error ?? servers.error;
 
   return (
-    <DashboardPage icon={DashboardCircleIcon} title="Apps">
+    <DashboardPage
+      icon={DashboardCircleIcon}
+      title="Apps"
+      actions={<InventoryViewToggle kind="Apps" />}
+    >
       <InventorySidebar
         kind="apps"
         counts={apps.data?.counts}
@@ -106,7 +168,11 @@ export function ResourcesIndex() {
     deployments.error ?? resources.error ?? sources.error ?? servers.error;
 
   return (
-    <DashboardPage icon={DatabaseIcon} title="Resources">
+    <DashboardPage
+      icon={CubeIcon}
+      title="Resources"
+      actions={<InventoryViewToggle kind="Resources" />}
+    >
       <InventorySidebar
         kind="resources"
         counts={resources.data?.counts}
@@ -135,6 +201,7 @@ export function ResourcesIndex() {
 }
 
 export function ServersIndex() {
+  const { can } = useAccess();
   const apps = useApiQuery<{ apps: App[] }>("/v1/core/apps", 5_000);
   const resources = useApiQuery<{ resources: Resource[] }>(
     "/v1/core/resources",
@@ -150,14 +217,16 @@ export function ServersIndex() {
     <DashboardPage
       icon={ServerStack01Icon}
       actions={
-        <ButtonLink href="/servers/new">
-          <HugeiconsIcon
-            aria-hidden="true"
-            icon={Add01Icon}
-            className="size-4 shrink-0"
-          />
-          Add server
-        </ButtonLink>
+        can("server.update") ? (
+          <ButtonLink href="/servers/new">
+            <HugeiconsIcon
+              aria-hidden="true"
+              icon={Add01Icon}
+              className="size-4 shrink-0"
+            />
+            Add server
+          </ButtonLink>
+        ) : undefined
       }
       title="Servers"
     >
@@ -204,6 +273,7 @@ function DeployableInventoryTable({
   servers,
   sources,
 }: DeployableInventoryProps) {
+  const [layout] = useQueryChoice("layout", inventoryLayouts, "grouped");
   const filtered = useInventoryQuery(
     kind === "app" ? "apps" : "resources",
   ).includes("?");
@@ -216,12 +286,12 @@ function DeployableInventoryTable({
   const columns: ResourceTableColumn<App | Resource>[] = [
     {
       cell: (item) =>
-        item.kind === "app" ? (
+        isApp(item) ? (
           <AppIdentity app={item} />
         ) : (
           <ResourceIdentity resource={item} />
         ),
-      className: "w-full min-w-88",
+      className: "w-full min-w-64",
       wrapRowLink: false,
       header: kind === "app" ? "App" : "Resource",
       key: "name",
@@ -230,14 +300,15 @@ function DeployableInventoryTable({
       cell: (item) => (
         <InstanceEnvironmentLabel environment={item.environment} />
       ),
-      className: "min-w-40",
+      className: "min-w-32",
       header: "Environment",
       key: "environment",
     },
     {
       cell: (item) => <SourceLink source={sourcesById.get(item.sourceId)} />,
-      className: "min-w-40",
-      header: "Source",
+      className: "hidden min-w-40 2xl:table-cell",
+      headerClassName: "hidden 2xl:table-cell",
+      header: "Repository",
       key: "source",
     },
     {
@@ -248,7 +319,8 @@ function DeployableInventoryTable({
           hardware={serversByIp.get(item.serverIp)?.hardware}
         />
       ),
-      className: "min-w-52 tabular-nums",
+      className: "hidden min-w-52 tabular-nums 2xl:table-cell",
+      headerClassName: "hidden 2xl:table-cell",
       header: "Server",
       key: "server",
     },
@@ -259,7 +331,8 @@ function DeployableInventoryTable({
           runtime={runtimeById.get(item.id)}
         />
       ),
-      className: "min-w-36 whitespace-nowrap",
+      className: "hidden min-w-36 whitespace-nowrap 2xl:table-cell",
+      headerClassName: "hidden 2xl:table-cell",
       header: "Allocated CPU",
       key: "defined-cpu",
     },
@@ -270,7 +343,8 @@ function DeployableInventoryTable({
           runtime={runtimeById.get(item.id)}
         />
       ),
-      className: "min-w-40 whitespace-nowrap",
+      className: "hidden min-w-40 whitespace-nowrap 2xl:table-cell",
+      headerClassName: "hidden 2xl:table-cell",
       header: "Allocated Memory",
       key: "defined-memory",
     },
@@ -297,16 +371,18 @@ function DeployableInventoryTable({
     },
   ];
 
+  const InventoryTable =
+    layout === "unified" ? ResourceTable : GroupedDeployableTable;
   return (
-    <GroupedDeployableTable
+    <InventoryTable
       ariaLabel={kind === "app" ? "Apps" : "Resources"}
       columns={columns}
       emptyDescription={
         filtered
           ? "Try changing or clearing the filters."
           : kind === "app"
-            ? "A successful Source sync imports apps into this workspace."
-            : "A successful Source sync imports resources into this workspace."
+            ? "A successful Repository sync imports apps into this workspace."
+            : "A successful Repository sync imports resources into this workspace."
       }
       emptyTitle={
         filtered
@@ -316,28 +392,24 @@ function DeployableInventoryTable({
             : "No resources yet"
       }
       getRowHref={(item) =>
-        `/sources/${item.sourceId}/${kind === "app" ? "apps" : "resources"}/${item.id}`
+        `/${kind === "app" ? "apps" : "resources"}/${item.id}`
       }
       getRowKey={(item) => item.id}
       items={items}
-      tableClassName={kind === "app" ? "min-w-[920px]" : "min-w-[1040px]"}
+      tableClassName="min-w-[680px] 2xl:min-w-[1040px]"
     />
   );
 }
 
 function SourceLink({ source }: { source?: Source }) {
-  if (!source) return "Unknown Source";
+  if (!source) return "Unknown Repository";
   const name = `${source.repositoryOwner}/${source.repositoryName}`;
   return (
     <InlineLink
       className="inline-flex min-w-0 items-center gap-2"
-      href={`/sources/${source.id}`}
+      href={`/repositories/${source.id}`}
     >
-      <HugeiconsIcon
-        aria-hidden="true"
-        className="text-muted-foreground size-4 shrink-0"
-        icon={GithubIcon}
-      />
+      <IntegrationProviderLogo provider="github" />
       <TooltipText className="truncate" tooltip={name}>
         {source.repositoryName}
       </TooltipText>
@@ -377,8 +449,10 @@ function ServerInventory({
         server.hardware?.cpuCount
           ? `${server.hardware.cpuCount} vCPU`
           : "Unknown",
-      className: "min-w-32 whitespace-nowrap tabular-nums",
-      header: "Max CPU",
+      className:
+        "hidden min-w-32 whitespace-nowrap tabular-nums 2xl:table-cell",
+      headerClassName: "hidden 2xl:table-cell",
+      header: "CPU capacity",
       key: "max-cpu",
     },
     {
@@ -386,8 +460,10 @@ function ServerInventory({
         server.hardware?.memoryBytes
           ? formatBytes(server.hardware.memoryBytes)
           : "Unknown",
-      className: "min-w-36 whitespace-nowrap tabular-nums",
-      header: "Max Memory",
+      className:
+        "hidden min-w-36 whitespace-nowrap tabular-nums 2xl:table-cell",
+      headerClassName: "hidden 2xl:table-cell",
+      header: "Memory capacity",
       key: "max-memory",
     },
     {
@@ -416,7 +492,7 @@ function ServerInventory({
               <HugeiconsIcon
                 aria-hidden="true"
                 className="text-muted-foreground size-4"
-                icon={DatabaseIcon}
+                icon={CubeIcon}
               />
               <span className="tabular-nums">{resourceCount}</span>
             </TooltipText>
@@ -433,7 +509,7 @@ function ServerInventory({
           status={server.archivedAt ? "archived" : server.setupStatus}
         />
       ),
-      className: "w-32",
+      className: "w-32 whitespace-nowrap",
       header: "Status",
       key: "status",
     },
@@ -441,7 +517,8 @@ function ServerInventory({
       cell: (server) => (
         <RelativeTime label="Updated" value={server.updatedAt} />
       ),
-      className: "min-w-48 whitespace-nowrap",
+      className: "hidden min-w-48 whitespace-nowrap 2xl:table-cell",
+      headerClassName: "hidden 2xl:table-cell",
       header: "Updated",
       key: "updated",
     },
@@ -454,13 +531,13 @@ function ServerInventory({
       emptyDescription={
         filtered
           ? "Try changing or clearing the filters."
-          : "Add a server before syncing a Source that targets its IP address."
+          : "Add a server before syncing a Repository that targets its IP address."
       }
       emptyTitle={filtered ? "No matching servers" : "No servers yet"}
       getRowHref={(server) => `/servers/${server.id}`}
       getRowKey={(server) => server.id}
       items={servers}
-      tableClassName="min-w-[900px]"
+      tableClassName="min-w-[680px] 2xl:min-w-[1120px]"
     />
   );
 }

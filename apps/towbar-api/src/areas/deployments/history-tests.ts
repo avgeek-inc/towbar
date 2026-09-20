@@ -120,7 +120,7 @@ export async function testDeploymentHistory({
           .set({ kind: "deploy", rollbackReleaseSnapshot: null })
           .where(eq(deployments.id, ids[2]!));
         const resourceExecution = await getDeploymentExecutionContext(ids[2]!);
-        assert.equal(resourceExecution.githubToken, null);
+        assert.equal(resourceExecution.sourceCredential, null);
         assert.equal(resourceExecution.runtimeId, resourceId);
         await db
           .update(deployments)

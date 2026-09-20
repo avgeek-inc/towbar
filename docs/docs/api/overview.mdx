@@ -3,7 +3,7 @@ title: API & MCP
 description: Automate your Towbar control plane with a REST API or connect an AI client through MCP.
 ---
 
-Towbar exposes infrastructure operations through REST and MCP. Manage sources, apps, resources, servers, deployments, previews, secrets, integration settings, and your current identity using your current workspace permissions.
+Towbar exposes infrastructure operations through REST and MCP. Manage repositories, apps, resources, servers, deployments, previews, secrets, integration settings, and your current identity using your current workspace permissions.
 
 | Interface             | Endpoint                       | Authentication |
 | --------------------- | ------------------------------ | -------------- |
@@ -11,11 +11,11 @@ Towbar exposes infrastructure operations through REST and MCP. Manage sources, a
 | MCP                   | `https://YOUR_API_HOST/v1/mcp` | API key        |
 | OpenAPI specification | `GET /v1/api/openapi.json`     | API key        |
 
-Reference examples use `api.example.com`; replace it with the API host for your own Towbar installation. Your control plane shows the exact URLs in **Manage → API & MCP**, directly below Integrations.
+Reference examples use `api.example.com`; replace it with the API host for your own Towbar installation. Your control plane shows its MCP endpoint in **My Settings → MCP Guide**.
 
 <Steps>
   <Step title="Create a key">
-    Open **Manage → API & MCP → Create API key**. Name it for its consumer, choose its permissions and expiry, then copy it. Towbar only shows the secret once.
+    Open **Manage → My Settings → API Keys** and create an API key. Name it for its consumer, choose its permissions and expiry, then copy it. Towbar only shows the secret once.
   </Step>
   <Step title="Send a request">
     Set `TOWBAR_API_KEY` through your shell or secret manager and replace `YOUR_API_HOST` below.
@@ -25,7 +25,7 @@ Reference examples use `api.example.com`; replace it with the API host for your 
       -H "Authorization: Bearer $TOWBAR_API_KEY"
     ```
 
-    A successful list request returns `{"apps": [...]}`. An empty inventory returns `{"apps": []}`.
+    A successful list request contains `"apps": [...]` and `"localization": {...}`. An empty inventory contains `"apps": []`.
 
   </Step>
   <Step title="Connect your automation">
@@ -35,11 +35,11 @@ Reference examples use `api.example.com`; replace it with the API host for your 
 
 ## Route design
 
-Collections use plural nouns: `/sources`, `/apps`, `/resources`, `/servers`, and `/deployments`. Item routes use UUIDs. Related records live under their parent, such as `/apps/{appId}/releases`. Commands use `POST` on an `/actions/` route, such as `/apps/{appId}/actions/deploy`.
+The dashboard calls Git connections Repositories. API paths retain the identifier `sources`. Collections use plural nouns: `/sources`, `/apps`, `/resources`, `/servers`, and `/deployments`. Item routes use UUIDs. Related records live under their parent, such as `/apps/{appId}/releases`. Commands use `POST` on an `/actions/` route, such as `/apps/{appId}/actions/deploy`.
 
-Apps and resources are defined in your Git manifest. To create or change them, update the manifest and sync its source. The API does not invent a separate configuration model. Use `/sources/{sourceId}/actions/preview-sync` to inspect reconciliation before requesting a sync.
+Apps and resources are defined in your Git manifest. To create or change them, update the manifest and sync its repository. The API does not invent a separate configuration model. Read the sync result to inspect validation issues and imported changes.
 
-All documented paths are relative to `/v1/api`. Browser-only login, logout, initial setup, GitHub webhooks, and signed worker endpoints are separate protocols. They are not exposed as MCP tools. API key management, notification destination management, profile editing, password changes, browser-session management, and the GitHub installation handoff are available only in the control plane. `GET /profile` remains available to identify the current user and workspace.
+All documented paths are relative to `/v1/api`. Browser-only login, logout, initial setup, provider webhooks, and signed worker endpoints are separate protocols. They are not exposed as MCP tools. API key management, profile editing, password changes, browser-session management, GitHub installation, and GitLab OAuth handoff are available only in the control plane. Provider credentials and notification routes come only from the API process environment. `GET /identity` identifies the current actor and team.
 
 REST provides individual routes; MCP offers a separate [task-oriented tool catalogue](/docs/api/mcp-tools), including combined inspections and shared app/resource actions.
 
@@ -47,16 +47,16 @@ REST provides individual routes; MCP offers a separate [task-oriented tool catal
 
 The reference is grouped by the thing you manage, with smaller sections for each task:
 
-| Category     | Sections                                                                                                         |
-| ------------ | ---------------------------------------------------------------------------------------------------------------- |
-| Sources      | Overview, Sync & manifest, Auto-deploy, Inventory, Secrets                                                       |
-| Apps         | Overview, Deployments, Runtime & logs, Previews, Secrets                                                         |
-| Resources    | Overview, Deployments, Runtime & logs, Backups & restores, Secrets                                               |
-| Servers      | Overview, Inventory, Capacity, Checks & preparation, Credentials & trust, Maintenance, Scout Agent, Scout Alerts |
-| Deployments  | Overview, Progress & logs, Actions, Security scans, Performance comparisons                                      |
-| Previews     | Lifecycle                                                                                                        |
-| Workspace    | Shared secrets, System health, Identity                                                                          |
-| Integrations | GitHub, AWS                                                                                                      |
+| Category     | Sections                                                                                            |
+| ------------ | --------------------------------------------------------------------------------------------------- |
+| Repositories | Overview, Sync & manifest, Auto-deploy, Inventory, Secrets                                          |
+| Apps         | Overview, Deployments, Runtime & logs, Previews, Secrets                                            |
+| Resources    | Overview, Deployments, Runtime & logs, Backups & restores, Secrets                                  |
+| Servers      | Overview, Inventory, Capacity, Checks & preparation, Credentials & trust, Scout Agent, Scout Alerts |
+| Deployments  | Overview, Progress & logs, Actions, Security scans, Performance comparisons                         |
+| Previews     | Lifecycle                                                                                           |
+| Manage       | Shared secrets, System health, Identity                                                             |
+| Integrations | GitHub, GitLab, storage, registry, secrets, platform, notifications, and log forwarding             |
 
 For common tasks, start with the [automation workflows](/docs/api/workflows). Expand only the relevant reference section when you need a schema or an individual operation.
 
@@ -68,6 +68,39 @@ For common tasks, start with the [automation workflows](/docs/api/workflows). Ex
 - Lists return named arrays; detailed records return named objects. Deployment history and server checks accept `page` and `limit` and include pagination metadata. Other inventories are not paginated.
 - Request bodies are limited to 1 MiB unless a route imposes a smaller bound. Secret and credential mutations allow 300 KiB.
 - Responses carry `X-Request-Id`; include it when reporting a failure. API/MCP responses are marked `Cache-Control: no-store`.
+
+## Date and time localization
+
+JSON operation responses preserve their original timestamps and include a `localization` object. Personal API keys use the current preferences of their owner. Team API keys use the default date and time formats in UTC. MCP tool results include the same object under `result.localization`, and each deployment stream event includes it alongside `deployment`, `logs`, and `steps`.
+
+The `timestamps` map is keyed by each original ISO timestamp (or calendar date) found in the response. A client can look up a value directly and display the server-rendered label without formatting the timestamp again:
+
+```json
+{
+  "localization": {
+    "dateFormat": "year-month-day",
+    "timeFormat": "12-hour-seconds",
+    "timeZone": "Asia/Kolkata",
+    "timestamps": {
+      "2026-09-16T23:30:45.000Z": {
+        "date": "2026-09-17",
+        "time": "5:00:45 AM",
+        "dateTime": "5:00:45 AM, 2026-09-17",
+        "timeZone": "Asia/Kolkata",
+        "zoneLabel": "GMT+5:30",
+        "epochMilliseconds": 1789601445000,
+        "inputDateTime": "2026-09-17T05:00"
+      }
+    }
+  }
+}
+```
+
+`date` follows the selected calendar format. `time` and `dateTime` follow the selected clock format. `timeZone` is the effective IANA zone; `zoneLabel` is the offset or abbreviation at that instant, including daylight-saving changes. `epochMilliseconds` supports ordering and calculations. `inputDateTime` is a machine-readable local wall-clock value, not a display label.
+
+Calendar-date values retain their original date and have `null` for `time`, `dateTime`, and `inputDateTime`; changing time zone does not move a daily calendar bucket to a different day. Responses without timestamps have an empty map. A `204` response still has no body.
+
+Use the original timestamps for requests, sorting, scheduling, and relative-time calculations. Change account preferences from **My Settings → Preferences**; API keys cannot edit account settings.
 
 ## Asynchronous actions and retries
 

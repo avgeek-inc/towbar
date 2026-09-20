@@ -1,13 +1,18 @@
 import { createReadStream, createWriteStream } from "node:fs";
-import { mkdir } from "node:fs/promises";
+import { lstat, mkdir, opendir, realpath } from "node:fs/promises";
+import { lookup as lookupCallback } from "node:dns";
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 import path from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { createGunzip } from "node:zlib";
+import { Agent, fetch as networkFetch } from "undici";
 
 import { runCommand } from "./process.js";
 
 import type { DeploymentExecutionContext } from "./types.js";
+import type { LookupFunction } from "node:net";
 
 export const MAX_SOURCE_ARCHIVE_BYTES = 512 * 1024 * 1024;
 export const MAX_SOURCE_EXPANDED_BYTES = 2 * 1024 * 1024 * 1024;
@@ -21,7 +26,7 @@ export function createSourceArchiveLimit(maxBytes = MAX_SOURCE_ARCHIVE_BYTES) {
       if (receivedBytes > maxBytes) {
         callback(
           new Error(
-            `GitHub source archive exceeds the ${maxBytes}-byte safety limit`,
+            `Repository source archive exceeds the ${maxBytes}-byte safety limit`,
           ),
         );
         return;
@@ -116,32 +121,48 @@ export async function fetchDeploymentSource(
   localDirectory: string,
   signal?: AbortSignal,
 ) {
-  if (!context.githubToken) {
-    throw new Error(
-      "GitHub credentials are required to fetch deployment source",
-    );
+  if (!context.sourceCredential) {
+    throw new Error("Repository credentials are required to fetch source");
   }
   const archivePath = path.join(localDirectory, "source.tar.gz");
   const checkoutPath = path.join(localDirectory, "checkout");
   await mkdir(checkoutPath, { mode: 0o700 });
+  const credential = context.sourceCredential;
   const owner = encodeURIComponent(context.repositoryOwner);
   const repository = encodeURIComponent(context.repositoryName);
-  const response = await fetch(
-    `https://api.github.com/repos/${owner}/${repository}/tarball/${context.commitSha}`,
-    {
-      headers: {
-        accept: "application/vnd.github+json",
-        authorization: `Bearer ${context.githubToken}`,
-        "user-agent": "towbar.dev",
-        "x-github-api-version": "2022-11-28",
-      },
-      redirect: "follow",
-      signal,
-    },
-  );
+  const url =
+    credential.provider === "github"
+      ? `${credential.apiUrl.replace(/\/$/u, "")}/repos/${owner}/${repository}/tarball/${context.commitSha}`
+      : `${credential.baseUrl.replace(/\/$/u, "")}/api/v4/projects/${encodeURIComponent(credential.projectId)}/repository/archive.tar.gz?sha=${encodeURIComponent(context.commitSha)}`;
+  if (credential.provider === "gitlab") {
+    await assertAllowedSourceEndpoint(url, credential.allowPrivateNetwork);
+  }
+  const response =
+    credential.provider === "github"
+      ? await globalThis.fetch(url, {
+          headers: {
+            accept: "application/vnd.github+json",
+            authorization: `Bearer ${credential.token}`,
+            "user-agent": "towbar.dev",
+            "x-github-api-version": "2022-11-28",
+          },
+          redirect: "follow",
+          signal,
+        })
+      : await networkFetch(url, {
+          dispatcher: credential.allowPrivateNetwork
+            ? privateSourceAgent
+            : publicSourceAgent,
+          headers: {
+            authorization: `Bearer ${credential.token}`,
+            "user-agent": "towbar.dev",
+          },
+          redirect: "error",
+          signal,
+        });
   if (!response.ok || !response.body) {
     throw new Error(
-      `GitHub archive request failed with status ${response.status}`,
+      `${credential.provider === "github" ? "GitHub" : "GitLab"} archive request failed with status ${response.status}`,
     );
   }
   const declaredSize = Number(response.headers.get("content-length"));
@@ -150,7 +171,7 @@ export async function fetchDeploymentSource(
     declaredSize > MAX_SOURCE_ARCHIVE_BYTES
   ) {
     throw new Error(
-      `GitHub source archive exceeds the ${MAX_SOURCE_ARCHIVE_BYTES}-byte safety limit`,
+      `Repository source archive exceeds the ${MAX_SOURCE_ARCHIVE_BYTES}-byte safety limit`,
     );
   }
   await pipeline(
@@ -172,7 +193,153 @@ export async function fetchDeploymentSource(
     ],
     { signal, timeoutMs: 120_000 },
   );
+  await validateExtractedCheckout(checkoutPath);
   return checkoutPath;
+}
+
+async function validateExtractedCheckout(checkoutPath: string) {
+  const root = await realpath(checkoutPath);
+  const pending = [root];
+  while (pending.length) {
+    const directory = pending.pop()!;
+    const entries = await opendir(directory);
+    for await (const entry of entries) {
+      const candidate = path.join(directory, entry.name);
+      const metadata = await lstat(candidate);
+      if (metadata.isDirectory()) {
+        pending.push(candidate);
+        continue;
+      }
+      if (metadata.isFile()) continue;
+      if (metadata.isSymbolicLink()) {
+        let resolved: string;
+        try {
+          resolved = await realpath(candidate);
+        } catch {
+          throw new Error("Repository source contains a broken symbolic link");
+        }
+        if (resolved !== root && !resolved.startsWith(`${root}${path.sep}`))
+          throw new Error(
+            "Repository source contains a symbolic link outside the checkout",
+          );
+        continue;
+      }
+      throw new Error("Repository source contains an unsupported special file");
+    }
+  }
+}
+
+function sourcePolicyLookup(allowPrivate: boolean): LookupFunction {
+  return (hostname, options, callback) => {
+    lookupCallback(
+      hostname,
+      { ...options, all: true, verbatim: true },
+      (error, addresses) => {
+        if (error) return callback(error, "", 0);
+        try {
+          if (!addresses.length)
+            throw new Error("Repository endpoint did not resolve");
+          for (const entry of addresses)
+            assertAllowedSourceAddress(entry.address, allowPrivate);
+          if (options.all) return callback(null, addresses);
+          const selected = addresses[0]!;
+          return callback(null, selected.address, selected.family);
+        } catch (cause) {
+          return callback(
+            cause instanceof Error ? cause : new Error(String(cause)),
+            "",
+            0,
+          );
+        }
+      },
+    );
+  };
+}
+
+const publicSourceAgent = new Agent({
+  connect: { lookup: sourcePolicyLookup(false) },
+});
+const privateSourceAgent = new Agent({
+  connect: { lookup: sourcePolicyLookup(true) },
+});
+
+async function assertAllowedSourceEndpoint(
+  urlValue: string,
+  allowPrivate: boolean,
+) {
+  const url = new URL(urlValue);
+  if (url.protocol !== "https:")
+    throw new Error("Repository endpoints must use HTTPS");
+  const hostname = url.hostname.toLowerCase().replace(/\.$/u, "");
+  if (
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
+    hostname === "metadata.google.internal" ||
+    hostname === "metadata" ||
+    hostname === "169.254.169.254"
+  ) {
+    throw new Error("Repository endpoint is blocked by network policy");
+  }
+  const addresses = isIP(hostname)
+    ? [{ address: hostname }]
+    : await lookup(hostname, { all: true, verbatim: true });
+  if (addresses.length === 0)
+    throw new Error("Repository endpoint did not resolve");
+  for (const { address } of addresses) {
+    assertAllowedSourceAddress(address, allowPrivate);
+  }
+}
+
+function assertAllowedSourceAddress(address: string, allowPrivate: boolean) {
+  const normalized = address.toLowerCase();
+  const mapped = normalized.startsWith("::ffff:")
+    ? normalized.slice("::ffff:".length)
+    : normalized;
+  if (
+    (isIP(mapped) === 4 && isAlwaysBlockedIpv4(mapped)) ||
+    (isIP(normalized) === 6 && isAlwaysBlockedIpv6(normalized)) ||
+    isIP(normalized) === 0
+  )
+    throw new Error("Repository endpoint is blocked by network policy");
+  if (!allowPrivate && isPrivateAddress(address))
+    throw new Error(
+      "Repository endpoint resolves to a private network; enable the integration private-network policy explicitly",
+    );
+}
+
+function isAlwaysBlockedIpv4(address: string) {
+  const [first, second] = address.split(".").map(Number);
+  return (
+    first === 0 ||
+    first === 127 ||
+    (first === 100 && second! >= 64 && second! <= 127) ||
+    (first === 169 && second === 254) ||
+    (first === 192 && second === 0) ||
+    (first === 198 && (second === 18 || second === 19)) ||
+    first! >= 224
+  );
+}
+
+function isAlwaysBlockedIpv6(address: string) {
+  return (
+    address === "::" ||
+    address === "::1" ||
+    /^(?:fe8|fe9|fea|feb)/u.test(address) ||
+    address.startsWith("ff")
+  );
+}
+
+function isPrivateAddress(address: string) {
+  const normalized = address.toLowerCase();
+  const mapped = normalized.startsWith("::ffff:")
+    ? normalized.slice("::ffff:".length)
+    : normalized;
+  if (mapped.startsWith("10.") || mapped.startsWith("192.168.")) return true;
+  if (mapped.startsWith("172.")) {
+    const octet = Number(mapped.split(".")[1]);
+    if (octet >= 16 && octet <= 31) return true;
+  }
+  return normalized.startsWith("fc") || normalized.startsWith("fd");
 }
 
 function parseTarSize(field: Buffer) {

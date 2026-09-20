@@ -16,7 +16,7 @@
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint --fix . --max-warnings 0",
     "test": "tsx --test \"src/**/*.test.ts\" && pnpm test:fixture-api",
-    "test:fixture-api": "node --test ./scripts/fixture-api.test.mjs ./scripts/monitoring-fixture.test.mjs",
+    "test:fixture-api": "node --test ./scripts/*.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -28,25 +28,34 @@
     "@hugeicons/core-free-icons": "catalog:",
     "@hugeicons/react": "catalog:",
     "@lezer/highlight": "^1.2.3",
+    "@simplewebauthn/browser": "13.3.0",
     "@workspace/identity-web-ui": "workspace:*",
+    "@workspace/towbar-access": "workspace:*",
     "@workspace/towbar-web-client": "workspace:*",
     "@workspace/towbar-web-ui": "workspace:*",
     "@workspace/web-design-system": "workspace:*",
     "@workspace/web-page-sections": "workspace:*",
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/xterm": "6.0.0",
     "date-fns": "^4.4.0",
     "next": "catalog:",
+    "qrcode": "1.5.4",
     "react": "catalog:",
     "react-dom": "catalog:"
   },
   "devDependencies": {
+    "@simplewebauthn/server": "13.3.2",
     "@types/node": "catalog:",
+    "@types/qrcode": "1.5.6",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@types/ws": "8.18.1",
     "@workspace/eslint-config": "workspace:^",
     "@workspace/towbar-core": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "eslint": "catalog:",
     "tsx": "^4.23.13",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "ws": "8.21.3"
   }
 }

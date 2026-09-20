@@ -9,14 +9,14 @@ tracking, not a substitute for working behaviour or published documentation.
       container restart loops, and missing Scout reports. Additional reported
       gauges should use the same rule model. Opt-in presets, threshold direction,
       threshold, restart counting window, severity and enabled state. Recovery follows the
-      first healthy reading; all server destinations receive one alert per incident.
+      first healthy reading; all workspace destinations receive one alert per incident.
 - [x] Persistent incidents, deduplicated firing/recovery, no active repeats,
-      rule and server maintenance mutes, and readable active/resolved history.
+      rule enablement, and readable active/resolved history.
       Missing measurements must not count as zero or prove recovery. Backfilled
       samples must not generate stale alerts. Installation grace and intentional
       uninstall must not generate offline notifications.
-- [x] Reuse Slack/SMTP delivery with all server destinations for server and workload rules. Durable outbox and retry behaviour; test delivery and visible
-      errors. Muted incidents must not send stale notifications on recovery.
+- [x] Reuse Slack/SMTP delivery with workspace destinations for server and workload rules. Durable outbox and retry behaviour; test delivery and visible
+      errors. Disabled rules must not send stale notifications on recovery.
 - [x] Bounded durable evaluator independent of ingestion and UI. Safe concurrency,
       rule edits, deletion, scope/archive changes, retention, and worker restarts.
 - [x] Public HTTP uptime checks (recommended follow-on included for completeness):
@@ -47,8 +47,8 @@ without waiting for another sample, allowing missing-report detection. Workload
 rules bind to stable workload identity and explicitly select production/previews.
 Deployment comparisons bind to deployment labels, not wall-clock guesswork.
 
-Host notifications require server-scoped destinations because servers may exist
-without a source. Existing source destinations remain valid and unchanged.
+Scout notifications use workspace destinations because server, app, and resource
+rules share the same account-level notification channels. Existing source destinations remain valid and unchanged.
 Notification transitions are committed atomically with their durable delivery
 intent. External delivery happens outside the evaluator transaction.
 
@@ -63,10 +63,9 @@ Branch: `feat/scout-alerts-comparisons`, based on merged provider work on main.
 PR: [#83](https://github.com/avgeek-inc/towbar/pull/83). GitHub reports CI for each revision.
 
 Implemented shared schemas, persistent rules/incidents/HTTP claims, additive
-migrations, owner-scoped REST mutations, curated MCP tools, server notification
+migrations, owner-scoped REST mutations, curated MCP tools, workspace notification
 destinations, and a durable Temporal evaluation loop. The Scout web surfaces have
-Performance, Alerts, Notifications (server), and Compare deployments (workload)
-panels. Mintlify includes reference routes, detailed guides, and light/dark
+separate Performance, Alerts, Incidents, and workload comparison pages. Mintlify includes reference routes, detailed guides, and light/dark
 screenshots; README points readers to the new capabilities.
 
 Verified locally:
@@ -77,7 +76,7 @@ Verified locally:
 - `pnpm docs:api:check`: 121 response handlers, 116 public operations, 55 curated
   MCP tools. Notification destination management remains browser-only.
 - Alert tests cover concurrent claims/evaluation, deduplicated delivery intents,
-  immediate recovery, missing data, maintenance mutes, config changes, destination
+  immediate recovery, missing data, disabled rules, config changes, destination
   category changes, server archival, suppressed retries, restart-window boundaries,
   HTTP config revisions, and active-incident retention. Provider acknowledgement
   is simulated; no real Slack/email message was sent.
@@ -90,7 +89,7 @@ Verified locally:
 - A real isolated local Temporal server ran the Scout loop, retained a wake signal
   across worker restart, and replayed persisted history successfully. Activity
   execution was mocked; this does not claim live infrastructure verification.
-- Chromium fixture QA covers rule creation, HTTP configuration, maintenance mute,
+- Chromium fixture QA covers rule creation, HTTP configuration, rule enablement,
   notification destinations, incomplete and complete comparisons, dark/light mode,
   and 390px layouts. Comparison changes retain heading/results DOM nodes. After
   applying the existing staged chart scheduler, repeated comparison changes

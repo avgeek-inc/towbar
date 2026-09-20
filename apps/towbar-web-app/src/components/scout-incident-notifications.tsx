@@ -1,4 +1,10 @@
 "use client";
+
+import {
+  TableCellStack,
+  TableCellDescription,
+} from "@workspace/towbar-web-ui/table-cell-text";
+
 import { useState } from "react";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { Button } from "@workspace/web-design-system/buttons/button";
@@ -13,7 +19,7 @@ import { ScoutIcon } from "./scout-icons";
 type Delivery = {
   id: string;
   type: string;
-  provider: "slack" | "smtp";
+  provider: "slack" | "smtp" | "discord" | "telegram" | "webhook";
   destination: string;
   state: string;
   createdAt: string;
@@ -43,51 +49,44 @@ export function ScoutIncidentNotifications({
       key: "destination",
       header: "Destination",
       cell: (d) => (
-        <div className="grid min-w-40 gap-0.5">
+        <TableCellStack as="div" className="min-w-40">
           <span>{d.destination}</span>
-          <span className="flex items-center gap-1 text-xs text-muted">
-            <ScoutIcon name={d.provider} />
-            {d.provider === "smtp" ? "Email" : "Slack"} ·{" "}
-            {d.type === "scout.recovered" ? "Recovery" : "Alert"}
-          </span>
-        </div>
+          <TableCellDescription>
+            {providerLabel(d.provider)}
+          </TableCellDescription>
+        </TableCellStack>
       ),
     },
     {
       key: "status",
       header: "Status",
       cell: (d) => (
-        <div className="grid min-w-20 gap-0.5">
-          <Chip
-            size="small"
-            icon={
-              <ScoutIcon
-                name={
-                  d.state === "succeeded"
-                    ? "resolved"
-                    : d.state === "failed"
-                      ? "critical"
-                      : "time"
-                }
-              />
-            }
-            variant={
-              d.state === "succeeded"
-                ? "success"
-                : d.state === "failed"
-                  ? "destructive"
-                  : "secondary"
-            }
-          >
-            {d.state === "succeeded"
-              ? "Sent"
-              : d.state[0]!.toUpperCase() + d.state.slice(1)}
-          </Chip>
-          <span className="whitespace-nowrap text-xs text-muted">
-            {d.attemptCount} {d.attemptCount === 1 ? "attempt" : "attempts"}
-            {d.errorCode ? ` · ${d.errorCode}` : ""}
-          </span>
-        </div>
+        <Chip
+          size="small"
+          tooltip={deliveryTooltip(d)}
+          icon={
+            <ScoutIcon
+              name={
+                d.state === "succeeded"
+                  ? "resolved"
+                  : d.state === "failed"
+                    ? "critical"
+                    : "time"
+              }
+            />
+          }
+          variant={
+            d.state === "succeeded"
+              ? "success"
+              : d.state === "failed"
+                ? "destructive"
+                : "secondary"
+          }
+        >
+          {d.state === "succeeded"
+            ? "Sent"
+            : d.state[0]!.toUpperCase() + d.state.slice(1)}
+        </Chip>
       ),
     },
     {
@@ -126,7 +125,6 @@ export function ScoutIncidentNotifications({
           <span className="text-sm text-muted">Page {cursors.length}</span>
           <Button
             variant="secondary"
-            size="sm"
             isDisabled={cursors.length === 1 || query.isPreviousData}
             onPress={() => setCursors((old) => old.slice(0, -1))}
           >
@@ -135,7 +133,6 @@ export function ScoutIncidentNotifications({
           </Button>
           <Button
             variant="secondary"
-            size="sm"
             isDisabled={!query.data?.nextBefore || query.isPreviousData}
             onPress={() =>
               setCursors((old) => [
@@ -151,4 +148,24 @@ export function ScoutIncidentNotifications({
       ) : null}
     </div>
   );
+}
+
+function providerLabel(provider: Delivery["provider"]) {
+  if (provider === "smtp") return "Email";
+  if (provider === "webhook") return "Webhook push";
+  return `${provider.charAt(0).toUpperCase()}${provider.slice(1)}`;
+}
+
+function deliveryTooltip(delivery: Delivery) {
+  if (delivery.state === "succeeded") {
+    return delivery.deliveredAt
+      ? `Delivered after ${delivery.attemptCount} ${delivery.attemptCount === 1 ? "attempt" : "attempts"}.`
+      : "The provider accepted this notification.";
+  }
+  if (delivery.state === "failed") {
+    return delivery.errorCode
+      ? `Delivery failed with ${delivery.errorCode} after ${delivery.attemptCount} ${delivery.attemptCount === 1 ? "attempt" : "attempts"}.`
+      : `Delivery failed after ${delivery.attemptCount} ${delivery.attemptCount === 1 ? "attempt" : "attempts"}.`;
+  }
+  return "This notification is waiting to be delivered.";
 }

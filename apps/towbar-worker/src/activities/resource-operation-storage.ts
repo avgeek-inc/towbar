@@ -1,15 +1,16 @@
+/* eslint-disable max-lines -- Storage adapters share one signed-request and integrity contract across backup providers. */
 import { createSign } from "node:crypto";
 import { createReadStream, createWriteStream } from "node:fs";
 import { open } from "node:fs/promises";
-import { Readable } from "node:stream";
+import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
 import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
-  PutObjectCommand,
 } from "@aws-sdk/client-s3";
+import { Upload } from "@aws-sdk/lib-storage";
 
 import type { S3Client } from "@aws-sdk/client-s3";
 
@@ -18,12 +19,38 @@ import type {
   WorkspaceAzureCredential,
 } from "@workspace/towbar-deployer";
 
-export function s3Storage(client: S3Client): BackupStorage {
+type BackupObjectMetadata = Awaited<ReturnType<BackupStorage["headObject"]>>;
+
+function omitUndefinedValues(
+  value: BackupObjectMetadata,
+): BackupObjectMetadata {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entry]) => entry !== undefined),
+  ) as BackupObjectMetadata;
+}
+
+export function s3Storage(
+  client: S3Client,
+  providerManagedEncryption?: string,
+): BackupStorage {
   return {
-    deleteObject: async ({ bucket, key }) => {
-      await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+    deleteObject: async ({ bucket, key, versionId }) => {
+      await client.send(
+        new DeleteObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          ...(versionId ? { VersionId: versionId } : {}),
+        }),
+      );
     },
-    download: async ({ bucket, key, localPath, versionId }) => {
+    download: async ({
+      bucket,
+      key,
+      localPath,
+      maximumBytes,
+      signal,
+      versionId,
+    }) => {
       const object = await client.send(
         new GetObjectCommand({
           Bucket: bucket,
@@ -32,9 +59,17 @@ export function s3Storage(client: S3Client): BackupStorage {
         }),
       );
       if (!object.Body) throw new Error("Backup object has no body");
+      if (
+        maximumBytes !== undefined &&
+        object.ContentLength !== undefined &&
+        object.ContentLength > maximumBytes
+      )
+        throw new Error("Backup object exceeds the permitted download size");
       await pipeline(
         object.Body as NodeJS.ReadableStream,
+        byteLimit(maximumBytes),
         createWriteStream(localPath, { mode: 0o600 }),
+        { signal },
       );
     },
     headObject: async ({ bucket, key, versionId }) => {
@@ -47,25 +82,27 @@ export function s3Storage(client: S3Client): BackupStorage {
           }),
         );
         const metadata = object.Metadata ?? {};
-        return {
+        return omitUndefinedValues({
+          backupClass: parseBackupClass(metadata["towbar-backup-class"]),
           checksum: metadata["towbar-checksum"],
           encryption:
             object.ServerSideEncryption === "aws:kms"
               ? "aws:kms"
               : object.ServerSideEncryption === "AES256"
                 ? "AES256"
-                : undefined,
+                : providerManagedEncryption,
           engine: parseEngine(metadata["towbar-engine"]),
           engineMajorVersion: parsePositiveInteger(
             metadata["towbar-engine-major-version"],
           ),
           exists: true,
           format: parseFormat(metadata["towbar-format"]),
+          manifest: metadata["towbar-volume-manifest"],
           metadataVersion: parsePositiveInteger(
             metadata["towbar-metadata-version"],
           ),
           sizeBytes: object.ContentLength,
-        };
+        });
       } catch (error) {
         if (isS3ObjectMissing(error)) return { exists: false };
         throw error;
@@ -78,10 +115,15 @@ export function s3Storage(client: S3Client): BackupStorage {
       kmsKeyId,
       localPath,
       metadata,
+      signal,
       sizeBytes,
     }) => {
-      const result = await client.send(
-        new PutObjectCommand({
+      const upload = new Upload({
+        client,
+        leavePartsOnError: false,
+        partSize: 8 * 1024 * 1024,
+        queueSize: 2,
+        params: {
           Body: createReadStream(localPath),
           Bucket: bucket,
           ContentLength: sizeBytes,
@@ -92,8 +134,16 @@ export function s3Storage(client: S3Client): BackupStorage {
               ? encryption
               : undefined,
           ...(kmsKeyId ? { SSEKMSKeyId: kmsKeyId } : {}),
-        }),
-      );
+        },
+      });
+      const abort = () => void upload.abort();
+      signal?.addEventListener("abort", abort, { once: true });
+      let result: Awaited<ReturnType<typeof upload.done>>;
+      try {
+        result = await upload.done();
+      } finally {
+        signal?.removeEventListener("abort", abort);
+      }
       return result.VersionId ? { versionId: result.VersionId } : {};
     },
   };
@@ -159,9 +209,12 @@ export function gcsStorage(serviceAccountKey: {
   }
 
   return {
-    deleteObject: async ({ bucket, key }) => {
+    deleteObject: async ({ bucket, key, versionId }) => {
       const token = await getToken();
-      const url = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(key)}`;
+      const url = new URL(
+        `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(key)}`,
+      );
+      if (versionId) url.searchParams.set("generation", versionId);
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
         method: "DELETE",
@@ -170,7 +223,7 @@ export function gcsStorage(serviceAccountKey: {
         throw new Error(`GCP deleteObject failed: HTTP ${response.status}`);
       }
     },
-    download: async ({ bucket, key, localPath }) => {
+    download: async ({ bucket, key, localPath, maximumBytes, signal }) => {
       const token = await getToken();
       const url = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(key)}?alt=media`;
       const response = await fetch(url, {
@@ -180,11 +233,20 @@ export function gcsStorage(serviceAccountKey: {
         throw new Error(`GCP download failed: HTTP ${response.status}`);
       }
       if (!response.body) throw new Error("Backup object has no body");
+      const contentLength = Number(response.headers.get("content-length"));
+      if (
+        maximumBytes !== undefined &&
+        Number.isFinite(contentLength) &&
+        contentLength > maximumBytes
+      )
+        throw new Error("Backup object exceeds the permitted download size");
       await pipeline(
         Readable.fromWeb(
           response.body as import("node:stream/web").ReadableStream,
         ),
+        byteLimit(maximumBytes),
         createWriteStream(localPath, { mode: 0o600 }),
+        { signal },
       );
     },
     headObject: async ({ bucket, key }) => {
@@ -203,7 +265,8 @@ export function gcsStorage(serviceAccountKey: {
         size?: string;
       };
       const metadata = data.metadata ?? {};
-      return {
+      return omitUndefinedValues({
+        backupClass: parseBackupClass(metadata["towbar-backup-class"]),
         checksum: metadata["towbar-checksum"],
         encryption: data.kmsKeyName ? "Google-CMEK" : "Google-managed",
         engine: parseEngine(metadata["towbar-engine"]),
@@ -212,13 +275,14 @@ export function gcsStorage(serviceAccountKey: {
         ),
         exists: true,
         format: parseFormat(metadata["towbar-format"]),
+        manifest: metadata["towbar-volume-manifest"],
         metadataVersion: parsePositiveInteger(
           metadata["towbar-metadata-version"],
         ),
         sizeBytes: data.size ? Number(data.size) : undefined,
-      };
+      });
     },
-    upload: async ({ bucket, key, localPath, metadata, sizeBytes }) => {
+    upload: async ({ bucket, key, localPath, metadata, signal, sizeBytes }) => {
       const token = await getToken();
       const initUrl = `https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(bucket)}/o?uploadType=resumable&name=${encodeURIComponent(key)}`;
       const initRes = await fetch(initUrl, {
@@ -230,6 +294,7 @@ export function gcsStorage(serviceAccountKey: {
           "X-Upload-Content-Type": "application/octet-stream",
         },
         method: "POST",
+        signal,
       });
       if (!initRes.ok) {
         throw new Error(
@@ -242,20 +307,29 @@ export function gcsStorage(serviceAccountKey: {
       }
 
       const stream = createReadStream(localPath);
-      const putRes = await fetch(uploadUrl, {
-        body: Readable.toWeb(stream) as unknown as RequestInit["body"],
-        duplex: "half",
-        headers: {
-          "Content-Length": String(sizeBytes),
-          "Content-Type": "application/octet-stream",
-        },
-        method: "PUT",
-      });
-      if (!putRes.ok) {
-        throw new Error(`GCP upload failed: HTTP ${putRes.status}`);
+      try {
+        const putRes = await fetch(uploadUrl, {
+          body: Readable.toWeb(stream) as unknown as RequestInit["body"],
+          duplex: "half",
+          headers: {
+            "Content-Length": String(sizeBytes),
+            "Content-Type": "application/octet-stream",
+          },
+          method: "PUT",
+          signal,
+        });
+        if (!putRes.ok) {
+          throw new Error(`GCP upload failed: HTTP ${putRes.status}`);
+        }
+        const data = (await putRes.json()) as { generation?: string };
+        return data.generation ? { versionId: data.generation } : {};
+      } catch (error) {
+        await fetch(uploadUrl, {
+          method: "DELETE",
+          signal: AbortSignal.timeout(30_000),
+        }).catch(() => undefined);
+        throw error;
       }
-      const data = (await putRes.json()) as { generation?: string };
-      return data.generation ? { versionId: data.generation } : {};
     },
   };
 }
@@ -311,9 +385,10 @@ export function azureBlobStorage(
   }
 
   return {
-    deleteObject: async ({ bucket, key, storageAccount }) => {
+    deleteObject: async ({ bucket, key, storageAccount, versionId }) => {
       const token = await getToken();
-      const url = resolveUrl(storageAccount, bucket, key);
+      const url = new URL(resolveUrl(storageAccount, bucket, key));
+      if (versionId) url.searchParams.set("versionid", versionId);
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -325,7 +400,14 @@ export function azureBlobStorage(
         throw new Error(`Azure deleteObject failed: HTTP ${response.status}`);
       }
     },
-    download: async ({ bucket, key, localPath, storageAccount }) => {
+    download: async ({
+      bucket,
+      key,
+      localPath,
+      maximumBytes,
+      signal,
+      storageAccount,
+    }) => {
       const token = await getToken();
       const url = resolveUrl(storageAccount, bucket, key);
       const response = await fetch(url, {
@@ -338,11 +420,20 @@ export function azureBlobStorage(
         throw new Error(`Azure download failed: HTTP ${response.status}`);
       }
       if (!response.body) throw new Error("Backup object has no body");
+      const contentLength = Number(response.headers.get("content-length"));
+      if (
+        maximumBytes !== undefined &&
+        Number.isFinite(contentLength) &&
+        contentLength > maximumBytes
+      )
+        throw new Error("Backup object exceeds the permitted download size");
       await pipeline(
         Readable.fromWeb(
           response.body as import("node:stream/web").ReadableStream,
         ),
+        byteLimit(maximumBytes),
         createWriteStream(localPath, { mode: 0o600 }),
+        { signal },
       );
     },
     headObject: async ({ bucket, key, storageAccount }) => {
@@ -361,7 +452,10 @@ export function azureBlobStorage(
       }
       const headers = response.headers;
       const contentLength = headers.get("content-length");
-      return {
+      return omitUndefinedValues({
+        backupClass: parseBackupClass(
+          headers.get("x-ms-meta-towbar_backup_class") ?? undefined,
+        ),
         checksum: headers.get("x-ms-meta-towbar_checksum") ?? undefined,
         encryption:
           headers.get("x-ms-server-encrypted") === "true"
@@ -377,17 +471,19 @@ export function azureBlobStorage(
         format: parseFormat(
           headers.get("x-ms-meta-towbar_format") ?? undefined,
         ),
+        manifest: headers.get("x-ms-meta-towbar_volume_manifest") ?? undefined,
         metadataVersion: parsePositiveInteger(
           headers.get("x-ms-meta-towbar_metadata_version") ?? undefined,
         ),
         sizeBytes: contentLength ? Number(contentLength) : undefined,
-      };
+      });
     },
     upload: async ({
       bucket,
       key,
       localPath,
       metadata,
+      signal,
       sizeBytes,
       storageAccount,
     }) => {
@@ -402,6 +498,7 @@ export function azureBlobStorage(
           localPath,
           metaHeaders,
           sizeBytes,
+          signal,
           token,
           url,
         });
@@ -419,6 +516,7 @@ export function azureBlobStorage(
           ...metaHeaders,
         },
         method: "PUT",
+        signal,
       });
       if (!response.ok) {
         throw new Error(`Azure upload failed: HTTP ${response.status}`);
@@ -435,6 +533,7 @@ const AZURE_BLOCK_SIZE = 32 * 1024 * 1024;
 async function uploadAzureBlockBlobChunked(params: {
   localPath: string;
   metaHeaders: Record<string, string>;
+  signal?: AbortSignal;
   sizeBytes: number;
   token: string;
   url: string;
@@ -446,6 +545,7 @@ async function uploadAzureBlockBlobChunked(params: {
     let blockIndex = 0;
     const buffer = Buffer.alloc(AZURE_BLOCK_SIZE);
     while (offset < params.sizeBytes) {
+      params.signal?.throwIfAborted();
       const bytesToRead = Math.min(AZURE_BLOCK_SIZE, params.sizeBytes - offset);
       const { bytesRead } = await fileHandle.read(
         buffer,
@@ -468,6 +568,7 @@ async function uploadAzureBlockBlobChunked(params: {
           "x-ms-version": "2024-11-04",
         },
         method: "PUT",
+        signal: params.signal,
       });
       if (!blockRes.ok) {
         throw new Error(`Azure Put Block failed: HTTP ${blockRes.status}`);
@@ -476,6 +577,16 @@ async function uploadAzureBlockBlobChunked(params: {
       offset += bytesRead;
       blockIndex++;
     }
+  } catch (error) {
+    await fetch(params.url, {
+      headers: {
+        Authorization: `Bearer ${params.token}`,
+        "x-ms-version": "2024-11-04",
+      },
+      method: "DELETE",
+      signal: AbortSignal.timeout(30_000),
+    }).catch(() => undefined);
+    throw error;
   } finally {
     await fileHandle.close();
   }
@@ -492,12 +603,29 @@ async function uploadAzureBlockBlobChunked(params: {
       ...params.metaHeaders,
     },
     method: "PUT",
+    signal: params.signal,
   });
   if (!putListRes.ok) {
     throw new Error(`Azure Put Block List failed: HTTP ${putListRes.status}`);
   }
   const versionId = putListRes.headers.get("x-ms-version-id") ?? undefined;
   return versionId ? { versionId } : {};
+}
+
+function byteLimit(maximumBytes?: number) {
+  let received = 0;
+  return new Transform({
+    transform(chunk: Buffer, _encoding, callback) {
+      received += chunk.length;
+      if (maximumBytes !== undefined && received > maximumBytes) {
+        callback(
+          new Error("Backup object exceeds the permitted download size"),
+        );
+        return;
+      }
+      callback(null, chunk);
+    },
+  });
 }
 
 function parsePositiveInteger(value: string | undefined) {
@@ -520,11 +648,40 @@ function isS3ObjectMissing(error: unknown) {
 }
 
 function parseEngine(value: string | undefined) {
-  return value === "postgres" || value === "redis" ? value : undefined;
+  return [
+    "postgres",
+    "mysql",
+    "mariadb",
+    "mongodb",
+    "redis",
+    "dragonfly",
+    "keydb",
+    "clickhouse",
+  ].includes(value ?? "")
+    ? (value as import("@workspace/towbar-core").BackupOperationResult["engine"])
+    : undefined;
 }
 
 function parseFormat(value: string | undefined) {
-  return value === "postgres-custom" || value === "redis-rdb"
-    ? value
+  return [
+    "postgres-custom",
+    "mysql-sql",
+    "mariadb-sql",
+    "mongodb-archive",
+    "redis-rdb",
+    "dragonfly-rdb",
+    "keydb-rdb",
+    "clickhouse-backup",
+    "tar-gzip",
+    "tar-zstd",
+  ].includes(value ?? "")
+    ? (value as
+        | import("@workspace/towbar-core").BackupOperationResult["format"]
+        | "tar-gzip"
+        | "tar-zstd")
     : undefined;
+}
+
+function parseBackupClass(value: string | undefined) {
+  return value === "database" || value === "volume" ? value : undefined;
 }

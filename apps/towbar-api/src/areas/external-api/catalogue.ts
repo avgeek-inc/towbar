@@ -139,7 +139,14 @@ export function createOpenApiDocument(baseUrl: string) {
                 : {}),
               [op.stream ? "text/event-stream" : "application/json"]: {
                 schema: op.stream
-                  ? { type: "string" }
+                  ? {
+                      type: "string",
+                      description:
+                        "Server-sent events. Each data payload has the JSON snapshot schema below.",
+                      "x-towbar-event-schema": (
+                        responseSchemas.schemas as Record<string, unknown>
+                      )[op.responseSchema],
+                    }
                   : ((responseSchemas.schemas as Record<string, unknown>)[
                       op.responseSchema
                     ] ?? { type: "object" }),
@@ -153,7 +160,7 @@ export function createOpenApiDocument(baseUrl: string) {
       operationId: op.name,
       summary: op.summary,
       tags: [referenceGroup(op.path).join(" / ")],
-      description: `${op.ownerOnly ? "Requires workspace owner permission. " : "Available to workspace members and owners. "}${op.method === "GET" ? "Read-only and full-access keys are accepted." : "Requires a full-access key."}${op.stream ? " SSE deployment events containing deployment, logs, and steps. Reconnect after the bounded stream ends using Last-Event-ID. MCP returns a finite snapshot; call again to poll." : ""}`,
+      description: `${`Required permissions: ${op.permissions.join(", ")}. `}Personal keys are capped by the current member role; team keys use explicit grants.${op.stream ? " SSE deployment events containing deployment, logs, steps, and server-rendered localization labels. Reconnect after the bounded stream ends using Last-Event-ID. MCP returns a finite snapshot; call again to poll." : ""}`,
       security: [{ bearerAuth: [] }],
       parameters: params,
       ...(op.body
@@ -186,7 +193,7 @@ export function createOpenApiDocument(baseUrl: string) {
     openapi: "3.1.0",
     info: {
       title: "Towbar API",
-      version: "1.5.2",
+      version: "2.0.0",
       description:
         "Manage your Towbar control plane with a bearer API key. Keys inherit current workspace permissions.",
     },

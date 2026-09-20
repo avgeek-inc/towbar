@@ -6,6 +6,7 @@ import test from "node:test";
 import {
   ManifestValidationError,
   getLatestBackupScheduleOccurrence,
+  managedResourceCompatibility,
   validateBackupCron,
   validateSecretObject,
   validateServerLoginSecret,
@@ -172,12 +173,12 @@ void test("normalizes image, PostgreSQL, and Redis resources", () => {
   const source = `${manifest}\nresources:\n  - id: metrics\n    name: Metrics\n    type: image\n    image: prom/prometheus:v3.5.0\n    server: 203.0.113.10\n    container:\n      port: 9090\n      volumes:\n        - name: config\n          mountPath: /prometheus\n    health:\n      type: http\n      path: /-/healthy\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    access:\n      sshTunnel:\n        hostPort: 15432\n    backup:\n      schedule:\n        cron: "0 3 * * *"\n      retention:\n        keepLast: 14\n      s3:\n        bucket: example-production-backups\n        prefix: databases\n    container:\n      network: towbar-platform\n  - id: cache\n    name: Cache\n    type: redis\n    server: 203.0.113.10\n`;
   const parsed = parseResolvedManifest(source).manifest;
   const [cache, database, metrics] = parsed.resources ?? [];
-  assert.equal(cache?.image, "redis:8-alpine");
+  assert.equal(cache?.image, managedResourceCompatibility.redis.image);
   assert.equal(cache?.container.port, 6_379);
   assert.deepEqual(cache?.container.volumes, [
     { mountPath: "/data", name: "data" },
   ]);
-  assert.equal(database?.image, "postgres:17-alpine");
+  assert.equal(database?.image, managedResourceCompatibility.postgres.image);
   assert.deepEqual(database?.container.volumes, [
     { mountPath: "/var/lib/postgresql/data", name: "data" },
   ]);
@@ -200,13 +201,13 @@ void test("normalizes image, PostgreSQL, and Redis resources", () => {
   assert.equal(metrics?.health.type, "http");
 });
 
-void test("uses the PostgreSQL 18 data root for managed volumes", () => {
+void test("uses the supported PostgreSQL data directory for managed volumes", () => {
   const parsed = parseResolvedManifest(
-    `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    image: postgres:18-alpine\n    server: 203.0.113.10\n`,
+    `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n`,
   ).manifest;
 
   assert.deepEqual(parsed.resources?.[0]?.container.volumes, [
-    { mountPath: "/var/lib/postgresql", name: "data" },
+    { mountPath: "/var/lib/postgresql/data", name: "data" },
   ]);
 });
 
@@ -434,6 +435,10 @@ apps:
     name: API
     server: 203.0.113.10
     dockerfile: Dockerfile
+    rollout:
+      type: recreate
+      reason: The app reserves a singleton private-network alias
+      maintenanceMode: true
     container:
       network: private-app
       networkAlias: api

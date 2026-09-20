@@ -1,9 +1,10 @@
 "use client";
+import { useAccess } from "./access-context";
+import { IntegrationProviderLogo } from "./integration-provider-logo";
 import {
   Add01Icon,
   Shield01Icon,
   GitBranchIcon,
-  GithubIcon,
 } from "@hugeicons/core-free-icons";
 
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -24,6 +25,7 @@ import { EmptyState } from "@workspace/web-design-system/data-display/empty-stat
 import { Checkbox } from "@workspace/web-design-system/forms/checkbox";
 import { Input } from "@workspace/web-design-system/forms/input";
 import { Label } from "@workspace/web-design-system/forms/label";
+import { Select } from "@workspace/web-design-system/forms/select";
 import { Modal } from "@workspace/web-design-system/overlays/modal";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { ComboBox } from "@workspace/web-design-system/pickers/combo-box";
@@ -31,39 +33,61 @@ import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
+import { SourceBranchSelect } from "./source-branch-select";
+
+export type RepositoryProvider = "github" | "gitlab";
+type RepositoryOption = GitHubRepository & { provider?: RepositoryProvider };
+type GitLabConnectionOption = {
+  description: string;
+  id: string;
+  name: string;
+  slug: string;
+  verificationStatus: string;
+};
+
+export function configuredRepositoryProviders({
+  githubConnected,
+  gitlabConnected,
+}: {
+  githubConnected: boolean;
+  gitlabConnected: boolean;
+}): RepositoryProvider[] {
+  return [
+    ...(githubConnected ? (["github"] as const) : []),
+    ...(gitlabConnected ? (["gitlab"] as const) : []),
+  ];
+}
 
 export function SourceCreateModal({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   return (
-    <Modal
+    <Modal.Backdrop
       isOpen
       onOpenChange={(open) => {
         if (!open && !busy) onClose();
       }}
     >
-      <Modal.Backdrop>
-        <Modal.Container size="lg" scroll="inside">
-          <Modal.Dialog>
-            <Modal.CloseTrigger isDisabled={busy} />
-            <Modal.Header>
-              <Modal.Heading>
-                <span className="flex items-center gap-2">
-                  <HugeiconsIcon
-                    icon={GitBranchIcon}
-                    className="size-5"
-                    aria-hidden="true"
-                  />
-                  Add source
-                </span>
-              </Modal.Heading>
-            </Modal.Header>
-            <Modal.Body>
-              <SourceCreate busy={busy} setBusy={setBusy} onClose={onClose} />
-            </Modal.Body>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
+      <Modal.Container size="lg" scroll="inside">
+        <Modal.Dialog>
+          <Modal.CloseTrigger isDisabled={busy} />
+          <Modal.Header>
+            <Modal.Heading>
+              <span className="flex items-center gap-2">
+                <HugeiconsIcon
+                  icon={GitBranchIcon}
+                  className="size-5"
+                  aria-hidden="true"
+                />
+                Add repository
+              </span>
+            </Modal.Heading>
+          </Modal.Header>
+          <Modal.Body>
+            <SourceCreate busy={busy} setBusy={setBusy} onClose={onClose} />
+          </Modal.Body>
+        </Modal.Dialog>
+      </Modal.Container>
+    </Modal.Backdrop>
   );
 }
 
@@ -77,17 +101,43 @@ function SourceCreate({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const { can } = useAccess();
+  const [selectedProvider, setSelectedProvider] =
+    useState<RepositoryProvider>("github");
   const connection = useApiQuery<{ connection: GitHubConnection | null }>(
-    "/v1/core/github",
+    "/v1/core/github/installation",
   );
-  const repositories = useApiQuery<{ repositories: GitHubRepository[] }>(
-    connection.data?.connection ? "/v1/core/github/repositories" : null,
+  const gitlabConnections = useApiQuery<{
+    connections: GitLabConnectionOption[];
+  }>("/v1/core/gitlab/connections");
+  const availableProviders = configuredRepositoryProviders({
+    githubConnected: Boolean(
+      connection.data?.connection && !connection.data.connection.suspendedAt,
+    ),
+    gitlabConnected: Boolean(gitlabConnections.data?.connections.length),
+  });
+  const provider = availableProviders.includes(selectedProvider)
+    ? selectedProvider
+    : (availableProviders[0] ?? selectedProvider);
+  const gitlabIntegration = gitlabConnections.data?.connections[0]?.slug ?? "";
+  const repositoryPath =
+    provider === "github"
+      ? connection.data?.connection
+        ? "/v1/core/github/repositories"
+        : null
+      : gitlabIntegration
+        ? `/v1/core/gitlab/repositories?${new URLSearchParams({ integration: gitlabIntegration })}`
+        : null;
+  const repositories = useApiQuery<{ repositories: RepositoryOption[] }>(
+    repositoryPath,
   );
   const [fullName, setFullName] = useState("");
   const [owner, repository] = fullName.split("/");
   const branches = useApiQuery<{ branches: string[] }>(
     fullName
-      ? `/v1/core/github/branches?${new URLSearchParams({ owner: owner ?? "", repository: repository ?? "" })}`
+      ? provider === "github"
+        ? `/v1/core/github/branches?${new URLSearchParams({ owner: owner ?? "", repository: repository ?? "" })}`
+        : `/v1/core/gitlab/branches?${new URLSearchParams({ integration: gitlabIntegration, owner: owner ?? "", repository: repository ?? "" })}`
       : null,
   );
 
@@ -100,40 +150,127 @@ function SourceCreate({
     [],
   );
   const [mappings, setMappings] = useState<Record<string, string>>({});
-  if (connection.error && !connection.data)
+  function addEnvironment() {
+    const name = customEnvironment.trim();
+    if (
+      busy ||
+      !name ||
+      !discovered ||
+      discovered.some((item) => item.name === name)
+    )
+      return;
+    setDiscovered([...discovered, { name, previewsEnabled: false }]);
+    setSelectedEnvironments([...selectedEnvironments, name]);
+    setCustomEnvironment("");
+  }
+  if (
+    (connection.error && !connection.data) ||
+    (gitlabConnections.error && !gitlabConnections.data)
+  )
     return (
       <>
-        <QueryError message={connection.error} />
+        <QueryError message={connection.error ?? gitlabConnections.error!} />
       </>
     );
-  if (!connection.data)
+  if (!connection.data || !gitlabConnections.data)
     return (
       <>
         <QueryLoading />
       </>
     );
-  if (!connection.data.connection)
+  const providerSelection = (
+    <Select
+      aria-label="Repository provider"
+      fullWidth
+      isDisabled={busy}
+      selectedKey={provider}
+      variant="secondary"
+      onSelectionChange={(key) => {
+        const next = String(key) as RepositoryProvider;
+        setSelectedProvider(next);
+        setFullName("");
+        setDiscovered(null);
+        setSelectedEnvironments([]);
+        setMappings({});
+        setDiscoveryError(null);
+      }}
+    >
+      <Label isRequired>Provider</Label>
+      <Select.Trigger>
+        <Select.Value className="flex min-w-0 flex-1 items-center gap-2">
+          <IntegrationProviderLogo provider={provider} className="size-4" />
+          {provider === "github" ? "GitHub" : "GitLab"}
+        </Select.Value>
+        <Select.Indicator />
+      </Select.Trigger>
+      <Select.Popover>
+        <ListBox>
+          {availableProviders.map((item) => (
+            <ListBox.Item
+              key={item}
+              id={item}
+              textValue={item === "github" ? "GitHub" : "GitLab"}
+            >
+              <IntegrationProviderLogo provider={item} className="size-4" />
+              {item === "github" ? "GitHub" : "GitLab"}
+              <ListBox.ItemIndicator />
+            </ListBox.Item>
+          ))}
+        </ListBox>
+      </Select.Popover>
+    </Select>
+  );
+  if (provider === "github" && !connection.data.connection)
     return (
-      <>
+      <div className="grid gap-6">
+        {providerSelection}
         <EmptyState>
           <EmptyState.Header>
             <EmptyState.Title>GitHub not connected</EmptyState.Title>
             <EmptyState.Description>
-              Install the GitHub App before adding a Source.
+              Install the GitHub App before adding a Repository.
             </EmptyState.Description>
           </EmptyState.Header>
           <EmptyState.Content>
-            <ButtonLink href="/manage/integrations?integration=github">
-              <HugeiconsIcon
-                aria-hidden="true"
-                icon={GithubIcon}
-                className="size-4 shrink-0"
-              />
-              Open GitHub integration
-            </ButtonLink>
+            {can("integration.manage") ? (
+              <ButtonLink href="/manage/integrations/github">
+                <IntegrationProviderLogo provider="github" className="invert" />
+                Open GitHub integration
+              </ButtonLink>
+            ) : (
+              <p className="text-muted">
+                Ask an Admin to connect GitHub before adding a repository.
+              </p>
+            )}
           </EmptyState.Content>
         </EmptyState>
-      </>
+      </div>
+    );
+  if (provider === "gitlab" && gitlabConnections.data.connections.length === 0)
+    return (
+      <div className="grid gap-6">
+        {providerSelection}
+        <EmptyState>
+          <EmptyState.Header>
+            <EmptyState.Title>GitLab not connected</EmptyState.Title>
+            <EmptyState.Description>
+              Add a GitLab connection before adding a repository.
+            </EmptyState.Description>
+          </EmptyState.Header>
+          <EmptyState.Content>
+            {can("integration.manage") ? (
+              <ButtonLink href="/manage/integrations/gitlab">
+                <IntegrationProviderLogo provider="gitlab" />
+                Open GitLab integration
+              </ButtonLink>
+            ) : (
+              <p className="text-muted">
+                Ask an Admin to connect GitLab before adding a repository.
+              </p>
+            )}
+          </EmptyState.Content>
+        </EmptyState>
+      </div>
     );
   if (repositories.error)
     return (
@@ -154,14 +291,14 @@ function SourceCreate({
           <EmptyState.Header>
             <EmptyState.Title>No repositories available</EmptyState.Title>
             <EmptyState.Description>
-              Grant the Towbar GitHub App access to at least one repository,
-              then return here.
+              Grant the selected {provider === "github" ? "GitHub" : "GitLab"}{" "}
+              connection access to at least one repository, then return here.
             </EmptyState.Description>
           </EmptyState.Header>
         </EmptyState>
       </>
     );
-  const githubInstallationId = connection.data.connection.id;
+  const githubInstallationId = connection.data.connection?.id;
   const selected = repositories.data.repositories.find(
     (repo) => repo.fullName === fullName,
   );
@@ -184,7 +321,13 @@ function SourceCreate({
         setBusy(true);
         try {
           const repository = {
-            githubInstallationId,
+            ...(provider === "github"
+              ? { provider, githubInstallationId: githubInstallationId! }
+              : {
+                  provider,
+                  integration: gitlabIntegration,
+                  providerRepositoryId: selected.id,
+                }),
             repositoryName: selected.name,
             repositoryOwner: selected.owner,
           };
@@ -199,16 +342,16 @@ function SourceCreate({
             })),
           });
           if (result.syncs.some((sync) => sync.error)) {
-            toast.danger("Source connected; some syncs need retry", {
+            toast.danger("Repository connected; some syncs need retry", {
               description: "Open the environment to retry its initial sync.",
             });
-          } else toast.success("Source connected");
+          } else toast.success("Repository connected");
           onClose();
-          router.push(`/sources/${result.source.id}`);
+          router.push(`/repositories/${result.source.id}`);
         } catch (caught) {
           toast.danger(
             discovered
-              ? "Couldn't connect source"
+              ? "Couldn't connect repository"
               : "Couldn't read configuration",
             {
               description:
@@ -221,11 +364,13 @@ function SourceCreate({
       }}
     >
       <div className="grid gap-6">
+        {providerSelection}
         <div className="grid min-w-0 gap-6">
           <ComboBox
             className="gap-3"
             fullWidth
             isDisabled={busy}
+            isRequired
             selectedKey={fullName || null}
             variant="secondary"
             onSelectionChange={async (value) => {
@@ -248,7 +393,13 @@ function SourceCreate({
                     previewsEnabled: boolean;
                   }[];
                 }>("/v1/core/sources/discover", {
-                  githubInstallationId,
+                  ...(provider === "github"
+                    ? { provider, githubInstallationId: githubInstallationId! }
+                    : {
+                        provider,
+                        integration: gitlabIntegration,
+                        providerRepositoryId: repository.id,
+                      }),
                   repositoryOwner: repository.owner,
                   repositoryName: repository.name,
                   discoveryBranch: repository.defaultBranch,
@@ -279,7 +430,7 @@ function SourceCreate({
               }
             }}
           >
-            <Label>Repository</Label>
+            <Label isRequired>Repository</Label>
             <ComboBox.InputGroup className="relative">
               <Input
                 className={
@@ -340,9 +491,8 @@ function SourceCreate({
               </p>
             ) : null}
             {branches.error ? (
-              <p className="text-xs text-muted">
-                Branch suggestions are unavailable. You can still enter a branch
-                name.
+              <p className="text-xs text-danger">
+                Could not load branches: {branches.error}
               </p>
             ) : null}
             <div
@@ -350,7 +500,12 @@ function SourceCreate({
               aria-hidden="true"
             >
               <span>Environment</span>
-              <span>Deployment branch</span>
+              <span>
+                Deployment branch{" "}
+                <span aria-hidden="true" className="text-danger">
+                  *
+                </span>
+              </span>
             </div>
             {discovered.map((environment) => (
               <div
@@ -387,7 +542,7 @@ function SourceCreate({
                     }}
                   >
                     <Checkbox.Content>
-                      <Checkbox.Control className="border border-muted">
+                      <Checkbox.Control>
                         <Checkbox.Indicator />
                       </Checkbox.Control>
                       <Label>{environment.name}</Label>
@@ -395,73 +550,21 @@ function SourceCreate({
                   </Checkbox>
                 </div>
                 <div className="relative row-start-2 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1">
-                  <Label
-                    className="sr-only"
-                    htmlFor={`branch-${environment.name}`}
-                  >
-                    {environment.name} deployment branch
-                  </Label>
-                  <ComboBox
-                    aria-label={`${environment.name} deployment branch`}
-                    allowsCustomValue
-                    fullWidth
-                    variant="secondary"
-                    isDisabled={
+                  <SourceBranchSelect
+                    ariaLabel={`${environment.name} deployment branch`}
+                    branches={branches.data?.branches ?? []}
+                    disabled={
                       busy || !selectedEnvironments.includes(environment.name)
                     }
-                    inputValue={mappings[environment.name] ?? ""}
-                    onInputChange={(value) =>
+                    required={selectedEnvironments.includes(environment.name)}
+                    value={mappings[environment.name] ?? ""}
+                    onChange={(branch) => {
                       setMappings((current) => ({
                         ...current,
-                        [environment.name]: value,
-                      }))
-                    }
-                    onSelectionChange={(key) => {
-                      if (key !== null)
-                        setMappings((current) => ({
-                          ...current,
-                          [environment.name]: String(key),
-                        }));
+                        [environment.name]: branch,
+                      }));
                     }}
-                  >
-                    <ComboBox.InputGroup className="relative">
-                      <HugeiconsIcon
-                        icon={GitBranchIcon}
-                        aria-hidden="true"
-                        className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted"
-                      />
-                      <Input
-                        id={`branch-${environment.name}`}
-                        className="w-full pl-10"
-                        placeholder="Choose a branch"
-                        required={selectedEnvironments.includes(
-                          environment.name,
-                        )}
-                      />
-                      <ComboBox.Trigger />
-                    </ComboBox.InputGroup>
-                    <ComboBox.Popover>
-                      <ListBox>
-                        {(branches.data?.branches ?? []).map((branch) => (
-                          <ListBox.Item
-                            key={branch}
-                            id={branch}
-                            textValue={branch}
-                          >
-                            <HugeiconsIcon
-                              icon={GitBranchIcon}
-                              className="size-4 text-muted"
-                              aria-hidden="true"
-                            />
-                            <span className="min-w-0 flex-1 truncate">
-                              {branch}
-                            </span>
-                            <ListBox.ItemIndicator />
-                          </ListBox.Item>
-                        ))}
-                      </ListBox>
-                    </ComboBox.Popover>
-                  </ComboBox>
+                  />
                 </div>
               </div>
             ))}
@@ -476,6 +579,15 @@ function SourceCreate({
                     value={customEnvironment}
                     disabled={busy}
                     placeholder="e.g. qa"
+                    onKeyDown={(event) => {
+                      if (
+                        event.key === "Enter" &&
+                        !event.nativeEvent.isComposing
+                      ) {
+                        event.preventDefault();
+                        addEnvironment();
+                      }
+                    }}
                     onChange={(event) =>
                       setCustomEnvironment(event.target.value)
                     }
@@ -490,15 +602,7 @@ function SourceCreate({
                         (item) => item.name === customEnvironment.trim(),
                       )
                     }
-                    onPress={() => {
-                      const name = customEnvironment.trim();
-                      setDiscovered([
-                        ...discovered,
-                        { name, previewsEnabled: false },
-                      ]);
-                      setSelectedEnvironments([...selectedEnvironments, name]);
-                      setCustomEnvironment("");
-                    }}
+                    onPress={addEnvironment}
                   >
                     <HugeiconsIcon
                       icon={Add01Icon}
@@ -508,23 +612,14 @@ function SourceCreate({
                     Add environment
                   </Button>
                 </div>
-                <p className="text-xs text-muted">
-                  Each environment must be declared in towbar.yml on its
-                  selected branch. You can add more environments after
-                  connecting.
-                </p>
               </div>
             ) : null}
           </div>
         ) : null}
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-separator pt-5">
-        <p className="text-xs text-muted">
-          Validates each branch, imports configuration and creates required
-          secret fields. Workloads are not deployed.
-        </p>
+      <div className="flex justify-end">
         <Button
-          className="ml-auto w-fit shrink-0"
+          className="w-fit shrink-0"
           isDisabled={!selected || !discovered || busy || invalidSelection}
           type="submit"
         >

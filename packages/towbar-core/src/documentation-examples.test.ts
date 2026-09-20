@@ -35,14 +35,15 @@ void test("published YAML examples match the v2 repository parser", () => {
             parseRepositoryManifest(snippet);
             return;
           }
-          const kind = value.type ? "resource" : "app";
+          const kind = value.type || value.backup ? "resource" : "app";
           const entity = {
             id: "web",
             name: "Web",
-            server: "production-server",
+            server: "192.0.2.10",
+            ...(kind === "resource" ? { type: "postgres" } : {}),
             ...(kind === "app"
               ? {
-                  dockerfile: "Dockerfile",
+                  ...(!value.deployment ? { dockerfile: "Dockerfile" } : {}),
                   container: { port: 3000 },
                   domains: { primary: "app.example.com" },
                   tls: { mode: "direct" },

@@ -1,18 +1,12 @@
-import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
 
-import { notificationDestinationInputSchema } from "@workspace/towbar-core";
-
 import {
-  createNotificationDestination,
-  deleteNotificationDestination,
-  listNotificationDestinations,
-  testNotificationDestination,
-  updateNotificationDestination,
-} from "../../../areas/notifications/service.js";
+  deliveriesQuery,
+  listNotificationDeliveries,
+} from "../../../areas/event-history/deliveries.js";
+import { listNotificationDestinations } from "../../../areas/notifications/service.js";
 import { notificationProviderAvailability } from "../../../areas/notifications/configuration.js";
-import { forbidden } from "../../../http/errors.js";
-import { readJson } from "../../../http/requests.js";
+import { operation } from "../../../http/operation.js";
 
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
@@ -21,134 +15,46 @@ export const notificationRoutes = new Hono<TowbarHonoEnvironment>();
 notificationRoutes.get(
   "/destinations",
   operation({
+    permissions: ["notification.manage"],
     browserOnly: true,
     responseSchema: 'notifications.ts:get:"/destinations"',
-    summary: "List notification destinations",
-    response:
-      "JSON object containing canManageNotifications, destinations, providers.",
+    summary: "List environment-configured notification routes",
+    response: "Configured routes and provider availability without secrets.",
     status: 200,
   }),
   async (context) => {
     const user = context.get("user");
     return context.json({
-      canManageNotifications: user.workspaceRole === "owner",
+      canManageNotifications: false,
       destinations: await listNotificationDestinations({
         sourceId: context.req.param("sourceId"),
         serverId: context.req.param("serverId"),
         workspaceId: user.workspaceId,
       }),
-      providers: notificationProviderAvailability(),
+      providers: await notificationProviderAvailability(user.workspaceId),
     });
   },
 );
 
-notificationRoutes.post(
-  "/destinations",
+notificationRoutes.get(
+  "/deliveries",
   operation({
+    permissions: ["notification.manage"],
     browserOnly: true,
-    responseSchema: 'notifications.ts:post:"/destinations"',
-    summary: "Create notification destination",
-    body: notificationDestinationInputSchema,
-    ownerOnly: true,
-    response: "JSON object containing destination.",
-    status: 201,
+    query: deliveriesQuery,
+    summary: "List notification deliveries",
+    responseSchema: 'notifications.ts:get:"/deliveries"',
+    response: "Paginated notification deliveries and delivery state.",
   }),
   async (context) => {
-    requireOwner(context.get("user").workspaceRole);
-    const user = context.get("user");
-    const destination = await createNotificationDestination({
-      destination: await readJson(
-        context,
-        notificationDestinationInputSchema,
-        32 * 1_024,
-      ),
-      sourceId: context.req.param("sourceId"),
-      serverId: context.req.param("serverId"),
-      workspaceId: user.workspaceId,
-    });
-    return context.json({ destination }, 201);
-  },
-);
-
-notificationRoutes.put(
-  "/destinations/:destinationId",
-  operation({
-    browserOnly: true,
-    responseSchema: 'notifications.ts:put:"/destinations/:destinationId"',
-    summary: "Update notification destination",
-    body: notificationDestinationInputSchema,
-    ownerOnly: true,
-    response: "JSON object containing destination.",
-    status: 200,
-  }),
-  async (context) => {
-    requireOwner(context.get("user").workspaceRole);
-    const user = context.get("user");
-    return context.json({
-      destination: await updateNotificationDestination({
-        destination: await readJson(
-          context,
-          notificationDestinationInputSchema,
-          32 * 1_024,
-        ),
-        destinationId: context.req.param("destinationId"),
+    context.header("Cache-Control", "no-store");
+    return context.json(
+      await listNotificationDeliveries({
+        ...deliveriesQuery.parse(context.req.query()),
+        workspaceId: context.get("user").workspaceId,
         sourceId: context.req.param("sourceId"),
         serverId: context.req.param("serverId"),
-        workspaceId: user.workspaceId,
       }),
-    });
+    );
   },
 );
-
-notificationRoutes.delete(
-  "/destinations/:destinationId",
-  operation({
-    browserOnly: true,
-    responseSchema: 'notifications.ts:delete:"/destinations/:destinationId"',
-    summary: "Delete notification destination",
-    ownerOnly: true,
-    response: "No response body.",
-    status: 204,
-  }),
-  async (context) => {
-    requireOwner(context.get("user").workspaceRole);
-    const user = context.get("user");
-    await deleteNotificationDestination({
-      destinationId: context.req.param("destinationId"),
-      sourceId: context.req.param("sourceId"),
-      serverId: context.req.param("serverId"),
-      workspaceId: user.workspaceId,
-    });
-    return context.body(null, 204);
-  },
-);
-
-notificationRoutes.post(
-  "/destinations/:destinationId/actions/test",
-  operation({
-    browserOnly: true,
-    responseSchema:
-      'notifications.ts:post:"/destinations/:destinationId/actions/test"',
-    summary: "Test notification destination",
-    ownerOnly: true,
-    response: "JSON object containing delivery.",
-    status: 202,
-  }),
-  async (context) => {
-    requireOwner(context.get("user").workspaceRole);
-    const user = context.get("user");
-    const delivery = await testNotificationDestination({
-      destinationId: context.req.param("destinationId"),
-      sourceId: context.req.param("sourceId"),
-      serverId: context.req.param("serverId"),
-      workspaceId: user.workspaceId,
-    });
-    return context.json({ delivery }, 202);
-  },
-);
-
-function requireOwner(role: "member" | "owner") {
-  if (role !== "owner") {
-    throw forbidden("Only administrators can manage notifications");
-  }
-}

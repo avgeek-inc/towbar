@@ -143,6 +143,9 @@ void test("rejects removed recovery, repeat, and destination controls and unsafe
     !scoutAlertRuleSchema.safeParse({ ...rule, repeatSeconds: 1 }).success,
   );
   assert(
+    !scoutAlertRuleSchema.safeParse({ ...rule, notifyRecovery: false }).success,
+  );
+  assert(
     !scoutAlertRuleSchema.safeParse({
       ...rule,
       condition: { ...condition, durationSeconds: 86400 },

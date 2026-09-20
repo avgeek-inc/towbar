@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const towbarTaskQueue = "towbar-deployments";
+export const towbarLogDrainTaskQueue = "towbar-log-forwarding";
 export const deploymentLogChunkCharacterLimit = 64 * 1_024;
 
 export const deploymentStates = [

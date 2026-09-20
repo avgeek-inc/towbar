@@ -1,9 +1,8 @@
 import { testInstanceLinks } from "../sources/instance-test-helper.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import {
   normalizeDeploymentManifest,
@@ -11,7 +10,7 @@ import {
 } from "@workspace/towbar-core";
 import {
   apps,
-  githubInstallations,
+  integrationInstallations,
   managedSecrets,
   monitoringAgents,
   serverChecks,
@@ -21,6 +20,7 @@ import {
   sources,
   sshHostKeys,
   users,
+  workspaceMembers,
   workspaces,
 } from "@workspace/towbar-database/schema";
 import type { TowbarHonoEnvironment } from "../../http/types.js";
@@ -42,7 +42,9 @@ void test(
     });
     const { getTowbarDatabase, closeDatabase } =
       await import("../../infrastructure/database.js");
-    const { removeServer, createServer } = await import("./lifecycle.js");
+    const { removeServer: removeServerService, createServer } =
+      await import("./lifecycle.js");
+    const { trustServerHostKey } = await import("./trusted-host-keys.js");
     const { deleteSource } = await import("../sources/service.js");
     const { getCleanupExpected } =
       await import("../resource-operations/queries.js");
@@ -58,6 +60,11 @@ void test(
       ip: "192.0.2.111",
       ssh: { username: "deploy" },
     });
+    const { withActor } = await import("../auth/actor-context.js");
+    const removeServer = (input: Parameters<typeof removeServerService>[0]) =>
+      withActor({ kind: "session", workspaceId, userId, role: "admin" }, () =>
+        removeServerService(input),
+      );
     let serverId = "";
     try {
       await db
@@ -68,22 +75,26 @@ void test(
         email: `${userId}@example.com`,
         displayName: "Test",
       });
-      const server = await createServer({ config, workspaceId, slug: "host" });
+      await db
+        .insert(workspaceMembers)
+        .values({ workspaceId, userId, role: "admin" });
+      const server = await createServer({ config, workspaceId });
       serverId = server.id;
       const removal = { serverId, workspaceId, requestedBy: userId };
       const [installation] = await db
-        .insert(githubInstallations)
+        .insert(integrationInstallations)
         .values({
+          provider: "github",
           workspaceId,
-          installationId: randomUUID(),
-          accountLogin: "example",
-          accountType: "Organization",
+          externalId: randomUUID(),
+          principalName: "example",
+          principalType: "Organization",
         })
         .returning();
       await db.insert(sources).values({
         id: sourceId,
         workspaceId,
-        githubInstallationId: installation!.id,
+        integrationInstallationId: installation!.id,
         repositoryOwner: "example",
         repositoryName: "platform",
       });
@@ -114,7 +125,7 @@ void test(
         sourceRevision: "1234567",
       };
       await db.insert(apps).values(values);
-      let role: "member" | "owner" = "member";
+      let role: "member" | "admin" = "member";
       const api = new Hono<TowbarHonoEnvironment>();
       api.use("*", async (c, next) => {
         c.set("user", {
@@ -124,6 +135,7 @@ void test(
           email: "test@example.com",
           name: "Test",
         });
+        c.set("actor", { kind: "session", workspaceId, userId, role });
         await next();
       });
       api.onError((error, c) =>
@@ -145,7 +157,7 @@ void test(
             error instanceof HttpError && error.status === 404,
         );
       });
-      role = "owner";
+      role = "admin";
       const canRemove = async () => {
         const response = await api.request(`/servers/${serverId}`);
         assert.equal(response.status, 200);
@@ -153,22 +165,17 @@ void test(
           .canRemoveServer;
       };
       await t.test(
-        "source-backed apps and archived inventory hide and block removal",
+        "source-backed apps and archived inventory allow removal",
         async () => {
           for (const archivedAt of [null, new Date()]) {
             await db.update(apps).set({ archivedAt }).where(eq(apps.id, appId));
-            assert.equal(await canRemove(), false);
-            assert.equal(
-              (await api.request(`/servers/${serverId}`, { method: "DELETE" }))
-                .status,
-              409,
-            );
+            assert.equal(await canRemove(), true);
           }
         },
       );
       const resourceId = randomUUID();
       await t.test(
-        "a resource without any apps also hides and blocks removal",
+        "a resource without any apps also allows removal",
         async () => {
           await db.delete(apps).where(eq(apps.id, appId));
           const resource = normalizeDeploymentManifest({
@@ -191,13 +198,33 @@ void test(
               .update(apps)
               .set({ archivedAt })
               .where(eq(apps.id, resourceId));
-            assert.equal(await canRemove(), false);
-            assert.equal(
-              (await api.request(`/servers/${serverId}`, { method: "DELETE" }))
-                .status,
-              409,
-            );
+            assert.equal(await canRemove(), true);
           }
+        },
+      );
+      await t.test(
+        "removal archives assigned inventory and the same server can be restored",
+        async () => {
+          await db
+            .update(apps)
+            .set({ archivedAt: null })
+            .where(eq(apps.id, resourceId));
+          assert.deepEqual(await removeServer(removal), { pending: false });
+          assert(
+            (await db.select().from(servers).where(eq(servers.id, serverId)))[0]
+              ?.archivedAt,
+          );
+          assert(
+            (await db.select().from(apps).where(eq(apps.id, resourceId)))[0]
+              ?.archivedAt,
+          );
+          const restored = await createServer({ config, workspaceId });
+          assert.equal(restored.id, serverId);
+          assert.equal(restored.setupStatus, "pending");
+          await db
+            .update(apps)
+            .set({ archivedAt: null })
+            .where(eq(apps.id, resourceId));
         },
       );
       await t.test(
@@ -215,39 +242,6 @@ void test(
             [appId, resourceId].sort(),
           );
           assert.equal(await canRemove(), true);
-        },
-      );
-      await t.test(
-        "migration recovers ownership from retained checks",
-        async () => {
-          const historicalId = randomUUID();
-          await db.insert(serverChecks).values({
-            serverId,
-            status: "succeeded",
-            result: {
-              runtime: [
-                { deployableId: historicalId },
-                { deployableId: "malformed" },
-              ],
-            },
-          });
-          const migration = await readFile(
-            new URL(
-              "../../../../../packages/towbar-database/drizzle/0041_strong_gwen_stacy.sql",
-              import.meta.url,
-            ),
-            "utf8",
-          );
-          const backfill = migration
-            .split("--> statement-breakpoint")
-            .find((part) => part.includes("SELECT c.server_id"));
-          assert(backfill);
-          await db.execute(sql.raw(backfill));
-          assert(
-            (await getCleanupExpected(serverId)).ownedDeployableIds.includes(
-              historicalId,
-            ),
-          );
         },
       );
       await t.test(
@@ -286,6 +280,33 @@ void test(
         publicKey: "test",
         trustedBy: userId,
       });
+      await t.test(
+        "host identity replacement revokes prior trust",
+        async () => {
+          await trustServerHostKey({
+            algorithm: "ssh-ed25519",
+            fingerprint: "SHA256:ZkAslGjFiUHdGf/WUL8rQvkib4PTvQatUV0OUQSncCA",
+            publicKey:
+              "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4f",
+            replaceExisting: true,
+            serverId,
+            trustedBy: userId,
+            workspaceId,
+          });
+          const keys = await db
+            .select()
+            .from(sshHostKeys)
+            .where(eq(sshHostKeys.serverId, serverId));
+          assert.equal(keys.filter((key) => !key.revokedAt).length, 1);
+          assert.equal(
+            keys.find((key) => !key.revokedAt)?.fingerprint,
+            "SHA256:ZkAslGjFiUHdGf/WUL8rQvkib4PTvQatUV0OUQSncCA",
+          );
+          assert(
+            keys.find((key) => key.fingerprint === "SHA256:test")?.revokedAt,
+          );
+        },
+      );
       await mutateSecret(
         {
           type: "server",
@@ -352,7 +373,6 @@ void test(
           const revived = await createServer({
             config,
             workspaceId,
-            slug: "host",
           });
           assert.equal(revived.id, serverId);
           assert.equal(revived.setupStatus, "pending");

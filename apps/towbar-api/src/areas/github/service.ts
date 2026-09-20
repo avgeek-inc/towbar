@@ -4,11 +4,11 @@ import { and, eq, lt } from "drizzle-orm";
 import { SignJWT, jwtVerify } from "jose";
 
 import {
-  githubInstallations,
+  integrationInstallations,
   requestNonces,
 } from "@workspace/towbar-database/schema";
 
-import { getEnv, requireGitHubEnv } from "../../env.js";
+import { getEnv } from "../../env.js";
 import { conflict, forbidden, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import {
@@ -17,19 +17,20 @@ import {
   listGitHubRepositories,
 } from "./client.js";
 import { githubPermissionReadiness } from "./permissions.js";
+import { getGitHubAppConfiguration } from "./configuration.js";
 
 export async function getGitHubConnection(workspaceId: string) {
   const [installation] = await getTowbarDatabase()
     .select({
-      accountLogin: githubInstallations.accountLogin,
-      accountType: githubInstallations.accountType,
-      id: githubInstallations.id,
-      installationId: githubInstallations.installationId,
-      suspendedAt: githubInstallations.suspendedAt,
-      updatedAt: githubInstallations.updatedAt,
+      accountLogin: integrationInstallations.principalName,
+      accountType: integrationInstallations.principalType,
+      id: integrationInstallations.id,
+      installationId: integrationInstallations.externalId,
+      suspendedAt: integrationInstallations.suspendedAt,
+      updatedAt: integrationInstallations.updatedAt,
     })
-    .from(githubInstallations)
-    .where(eq(githubInstallations.workspaceId, workspaceId))
+    .from(integrationInstallations)
+    .where(eq(integrationInstallations.workspaceId, workspaceId))
     .limit(1);
   return installation ?? null;
 }
@@ -44,7 +45,10 @@ export async function getGitHubConnectionStatus(workspaceId: string) {
     };
   }
   try {
-    const installation = await getGitHubInstallation(connection.installationId);
+    const installation = await getGitHubInstallation(
+      connection.installationId,
+      workspaceId,
+    );
     return {
       ...connection,
       permissionReadiness: {
@@ -64,7 +68,7 @@ export async function createInstallationUrl(input: {
   userId: string;
   workspaceId: string;
 }) {
-  const github = requireGitHubEnv();
+  const github = await getGitHubAppConfiguration(input.workspaceId);
   const state = await new SignJWT({
     userId: input.userId,
     workspaceId: input.workspaceId,
@@ -106,20 +110,24 @@ export async function completeInstallation(input: {
   if (!payload.jti || !payload.exp) {
     throw forbidden("GitHub installation state is incomplete");
   }
-  const installation = await getGitHubInstallation(input.installationId);
+  const installation = await getGitHubInstallation(
+    input.installationId,
+    input.workspaceId,
+  );
   // Consume only after GitHub confirms the installation belongs to this App.
   // A transient GitHub failure can then retry the same signed callback safely.
   await consumeInstallationState(payload.jti, payload.exp);
   const database = getTowbarDatabase();
   const [existing] = await database
-    .select({ id: githubInstallations.id })
-    .from(githubInstallations)
-    .where(eq(githubInstallations.workspaceId, input.workspaceId))
+    .select({ id: integrationInstallations.id })
+    .from(integrationInstallations)
+    .where(eq(integrationInstallations.workspaceId, input.workspaceId))
     .limit(1);
   const values = {
-    accountLogin: installation.account.login,
-    accountType: installation.account.type,
-    installationId: String(installation.id),
+    externalId: String(installation.id),
+    principalName: installation.account.login,
+    principalType: installation.account.type,
+    provider: "github" as const,
     suspendedAt: installation.suspended_at
       ? new Date(installation.suspended_at)
       : null,
@@ -128,14 +136,14 @@ export async function completeInstallation(input: {
   };
   const [saved] = existing
     ? await database
-        .update(githubInstallations)
+        .update(integrationInstallations)
         .set(values)
-        .where(eq(githubInstallations.id, existing.id))
-        .returning({ id: githubInstallations.id })
+        .where(eq(integrationInstallations.id, existing.id))
+        .returning({ id: integrationInstallations.id })
     : await database
-        .insert(githubInstallations)
+        .insert(integrationInstallations)
         .values(values)
-        .returning({ id: githubInstallations.id });
+        .returning({ id: integrationInstallations.id });
   return saved;
 }
 
@@ -177,9 +185,9 @@ export async function disconnectGitHub(workspaceId: string) {
   if (!installation) return;
   await deleteGitHubInstallation(installation.installationId);
   await getTowbarDatabase()
-    .update(githubInstallations)
+    .update(integrationInstallations)
     .set({ suspendedAt: new Date(), updatedAt: new Date() })
-    .where(eq(githubInstallations.workspaceId, workspaceId));
+    .where(eq(integrationInstallations.workspaceId, workspaceId));
 }
 
 export async function getGitHubInstallationForSource(input: {
@@ -188,17 +196,19 @@ export async function getGitHubInstallationForSource(input: {
 }) {
   const [installation] = await getTowbarDatabase()
     .select()
-    .from(githubInstallations)
+    .from(integrationInstallations)
     .where(
       and(
-        eq(githubInstallations.id, input.installationId),
-        eq(githubInstallations.workspaceId, input.workspaceId),
+        eq(integrationInstallations.id, input.installationId),
+        eq(integrationInstallations.workspaceId, input.workspaceId),
       ),
     )
     .limit(1);
   if (!installation) throw notFound("GitHub installation");
   if (installation.suspendedAt) {
-    throw conflict("Reconnect the GitHub App before synchronizing Sources");
+    throw conflict(
+      "Reconnect the GitHub App before synchronizing repositories",
+    );
   }
   return installation;
 }

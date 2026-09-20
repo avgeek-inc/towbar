@@ -1,0 +1,39 @@
+---
+title: "Managed databases"
+description: "Run and recover the eight database engines supported by Towbar."
+---
+
+Towbar supports PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Dragonfly, KeyDB, and ClickHouse as managed resources. Each preset has a digest-pinned default image, authenticated health check, stable data volume, native backup format, and fresh-target restore workflow.
+
+## Compatibility matrix
+
+| Type         | Supported major | Default image          | Architectures | Backup tool                  |
+| ------------ | --------------- | ---------------------- | ------------- | ---------------------------- |
+| `postgres`   | 17              | PostgreSQL 17 Alpine   | amd64, arm64  | `pg_dump` / `pg_restore`     |
+| `mysql`      | 8.4             | MySQL 8.4              | amd64, arm64  | `mysqldump` / `mysql`        |
+| `mariadb`    | 11.8            | MariaDB 11.8           | amd64, arm64  | `mariadb-dump` / `mariadb`   |
+| `mongodb`    | 8.0             | MongoDB 8.0            | amd64, arm64  | `mongodump` / `mongorestore` |
+| `redis`      | 8               | Redis 8 Alpine         | amd64, arm64  | verified RDB snapshot        |
+| `dragonfly`  | 1               | Dragonfly 1.33         | amd64, arm64  | verified RDB snapshot        |
+| `keydb`      | 6               | KeyDB 6.3              | amd64 only    | verified RDB snapshot        |
+| `clickhouse` | 25              | ClickHouse 25.8 Alpine | amd64, arm64  | native archive               |
+
+The generated JSON Schema contains the exact reviewed image digests. Custom images must use a digest and match the supported major version. Towbar rejects KeyDB on arm64 during admission.
+
+## Credentials and persistence
+
+Save the engine password in the resource runtime secrets. PostgreSQL uses `POSTGRES_PASSWORD`, MySQL and MariaDB use their root-password fields, MongoDB uses its root credentials, Redis-compatible engines use `REDIS_PASSWORD`, and ClickHouse uses its configured user password. Secrets are resolved only for execution and are not written into the manifest or operation record.
+
+Each engine receives one managed volume at its native data path. Redeploy and authenticated restart checks must preserve representative data. Changing a stored secret does not automatically rotate credentials inside an existing database.
+
+## Backup and restore
+
+Add a backup policy with a named S3, R2, GCS, or Azure Blob integration, retention, and an optional UTC schedule. Towbar runs the engine-native export, verifies the archive, uploads it with checksum metadata, and records the engine and major version.
+
+A restore downloads and verifies the selected object, starts a fresh isolated target volume, imports the archive, runs the authenticated health check, and switches only after the restored target is ready. A failed import retains the active database and the failed target for controlled diagnosis. Cancellation is honored before the cutover boundary.
+
+Restores require the same engine and supported major version. Towbar does not perform an in-place major upgrade. Upgrade the database using the engine vendor's documented migration path and practice the change on a disposable copy.
+
+## Recovery practice
+
+At least once per release cycle, create representative rows or documents, restart the resource, make a backup, delete the disposable target volume, restore into a fresh target, and query the restored data. A successful upload or checksum alone is not recovery proof.

@@ -56,6 +56,12 @@ export async function startTestTarget({ systemd = false, https = false } = {}) {
       name,
       "--label",
       "towbar.test=v2-e2e",
+      ...(process.env.TOWBAR_VERIFICATION_RUN_ID
+        ? [
+            "--label",
+            `towbar.verification.run=${process.env.TOWBAR_VERIFICATION_RUN_ID}`,
+          ]
+        : []),
       "-e",
       "DOCKER_TLS_CERTDIR=",
       "-p",

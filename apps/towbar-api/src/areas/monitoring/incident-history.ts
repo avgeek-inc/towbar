@@ -67,14 +67,10 @@ export async function getScoutIncident(
     notes,
   );
   const extreme = condition.operator === "above" ? sql`max` : sql`min`;
-  const unavailable = Boolean(incident.deployableId && !incident.environment);
-  if (unavailable)
-    notes.push(
-      "The environment was not recorded for this older incident; its chart is unavailable.",
-    );
-  const rows = unavailable
-    ? []
-    : await database.execute<{ bin: number; value: number | null }>(sql`
+  const rows = await database.execute<{
+    bin: number;
+    value: number | null;
+  }>(sql`
     with observations as (${observations}) select floor(extract(epoch from at-${startAt}::timestamptz)/${step})::integer bin,
       ${condition.metric === "httpAvailability" ? sql`max` : extreme}(value) value
     from observations where at>=${startAt}::timestamptz and at<=${endAt}::timestamptz
@@ -133,7 +129,7 @@ function incidentObservations(
   const startAt = start.toISOString(),
     endAt = now.toISOString();
   const scope = incident.deployableId
-    ? sql`deployable_id=${incident.deployableId}::uuid and ${incident.environment === "production" ? sql`preview_id is null` : sql`preview_id is not null`}`
+    ? sql`deployable_id=${incident.deployableId}::uuid and preview_id is null`
     : condition.metric === "restarts"
       ? sql`entity_id<>'host'`
       : sql`entity_id='host'`;

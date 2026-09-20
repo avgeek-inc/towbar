@@ -1,5 +1,3 @@
-import { getCookie } from "hono/cookie";
-
 import { getEnv } from "../env.js";
 import { findSession } from "../areas/auth/service.js";
 import { forbidden, unauthorized } from "./errors.js";
@@ -15,12 +13,23 @@ export const sessionCookieName =
 export const requireAuthenticatedUser: MiddlewareHandler<
   TowbarHonoEnvironment
 > = async (context, next) => {
-  const token = getCookie(context, sessionCookieName);
-  if (!token) throw unauthorized();
-  const identity = await findSession(token);
+  const identity = await findSession(context.req.raw.headers);
   if (!identity) throw unauthorized("Your session has expired. Sign in again");
   context.set("user", identity.user);
+  context.set("actor", {
+    kind: "session",
+    workspaceId: identity.user.workspaceId,
+    userId: identity.user.id,
+    role: identity.user.workspaceRole,
+  });
   context.set("currentSessionId", identity.sessionId);
+  if (
+    identity.user.mustChangePassword &&
+    !["/v1/core/session", "/v1/core/profile/password"].includes(
+      context.req.path.replace(/\/$/, ""),
+    )
+  )
+    throw forbidden("Change your temporary password to continue");
   await next();
 };
 

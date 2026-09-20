@@ -4,6 +4,7 @@ import { PackageIcon } from "@hugeicons/core-free-icons";
 import { Select, ListBox } from "@workspace/web-design-system/forms/select";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { Tabs } from "@workspace/web-design-system/navigation/tabs";
+import { cn } from "@workspace/web-design-system/lib/utils";
 export function ResponsiveChoice({
   label,
   value,
@@ -12,7 +13,12 @@ export function ResponsiveChoice({
 }: {
   label: string;
   value: string;
-  options: Array<{ value: string; label: string; icon: typeof PackageIcon }>;
+  options: Array<{
+    value: string;
+    label: string;
+    icon: typeof PackageIcon;
+    iconClassName?: string;
+  }>;
   onChange: (value: string) => void;
 }) {
   const selected = options.find((option) => option.value === value);
@@ -34,7 +40,7 @@ export function ResponsiveChoice({
               <HugeiconsIcon
                 aria-hidden="true"
                 icon={selected?.icon ?? PackageIcon}
-                className="size-4 shrink-0"
+                className={cn("size-4 shrink-0", selected?.iconClassName)}
               />
               <span className="truncate">{selected?.label}</span>
             </span>
@@ -53,7 +59,7 @@ export function ResponsiveChoice({
                   <HugeiconsIcon
                     aria-hidden="true"
                     icon={option.icon}
-                    className="size-4 shrink-0"
+                    className={cn("size-4 shrink-0", option.iconClassName)}
                   />
                   {option.label}
                 </span>
@@ -81,7 +87,7 @@ export function ResponsiveChoice({
                 <HugeiconsIcon
                   aria-hidden="true"
                   icon={option.icon}
-                  className="size-4 shrink-0"
+                  className={cn("size-4 shrink-0", option.iconClassName)}
                 />
                 {option.label}
                 <Tabs.Indicator />

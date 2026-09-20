@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
+import { clearDateTimeLabels } from "@/lib/date-time-display";
 
 type ApiQueryCacheEntry = {
   cachedAt?: number;
@@ -11,6 +12,7 @@ type ApiQueryCacheEntry = {
 };
 
 const apiQueryCache = new Map<string, ApiQueryCacheEntry>();
+let cacheGeneration = 0;
 const freshCacheDurationMs = 10_000;
 
 function getCachedApiQuery<T>(path: string | null) {
@@ -31,11 +33,13 @@ async function loadApiQuery<T>(path: string, force = false): Promise<T> {
     }
   }
 
+  const generation = cacheGeneration;
   const promise = api.get<T>(path);
   apiQueryCache.set(path, { ...cached, promise });
   try {
     const data = await promise;
-    apiQueryCache.set(path, { cachedAt: Date.now(), data });
+    if (generation === cacheGeneration)
+      apiQueryCache.set(path, { cachedAt: Date.now(), data });
     return data;
   } catch (error) {
     if (apiQueryCache.get(path)?.promise === promise)
@@ -48,6 +52,12 @@ export function prefetchApiQueries(paths: string[]) {
   return Promise.all(paths.map((path) => loadApiQuery(path)));
 }
 
+export function clearApiQueryCache() {
+  clearDateTimeLabels();
+  cacheGeneration += 1;
+  apiQueryCache.clear();
+  window.dispatchEvent(new Event("towbar:clear-private-data"));
+}
 export function refreshApiQueries() {
   apiQueryCache.clear();
   window.dispatchEvent(new Event("towbar:refresh"));
@@ -74,11 +84,12 @@ export function useApiQuery<T>(
     let requestActive = false;
     const load = async (force = false) => {
       if (requestActive) return;
+      const generation = cacheGeneration;
       requestActive = true;
       if (active) setIsRefreshing(true);
       try {
         const result = await loadApiQuery<T>(path, force);
-        if (active) {
+        if (active && generation === cacheGeneration) {
           setResult({ data: result, path });
           setFailure(undefined);
         }
@@ -94,6 +105,11 @@ export function useApiQuery<T>(
       }
     };
     const handleRefresh = () => void load(true);
+    const handleClear = () => {
+      setResult(undefined);
+      setFailure(undefined);
+      setRevision((value) => value + 1);
+    };
     const handleVisibilityChange = () => {
       if (!document.hidden) void load(true);
     };
@@ -104,12 +120,14 @@ export function useApiQuery<T>(
         }, refreshMs)
       : undefined;
     window.addEventListener("towbar:refresh", handleRefresh);
+    window.addEventListener("towbar:clear-private-data", handleClear);
     if (refreshMs)
       document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       active = false;
       if (timer) clearInterval(timer);
       window.removeEventListener("towbar:refresh", handleRefresh);
+      window.removeEventListener("towbar:clear-private-data", handleClear);
       if (refreshMs)
         document.removeEventListener(
           "visibilitychange",

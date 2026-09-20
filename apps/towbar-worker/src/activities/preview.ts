@@ -3,6 +3,7 @@ import { Context } from "@temporalio/activity";
 import {
   cleanupPreviewEnvironment,
   deleteCloudflarePreviewDns,
+  deleteCloudflareTunnelDeployment,
 } from "@workspace/towbar-deployer";
 
 import type { PreviewPullRequestEvent } from "@workspace/towbar-core/temporal";
@@ -45,6 +46,12 @@ export async function executePreviewCleanupActivity(
     }>("GET", `/v1/internal/previews/${previewEnvironmentId}/cleanup/context`),
     signedApiRequest<{
       cloudflare: { apiToken: string } | null;
+      cloudflareTunnel: {
+        accountId: string;
+        apiToken: string;
+        tunnelName?: string;
+        zoneId?: string;
+      } | null;
       login: SshLoginSecret;
     }>(
       "POST",
@@ -59,6 +66,13 @@ export async function executePreviewCleanupActivity(
     if (secrets.cloudflare) {
       await deleteCloudflarePreviewDns({
         apiToken: secrets.cloudflare.apiToken,
+        appId: contextResponse.context.runtimeId,
+        hostname: contextResponse.context.hostname,
+      });
+    }
+    if (secrets.cloudflareTunnel) {
+      await deleteCloudflareTunnelDeployment({
+        ...secrets.cloudflareTunnel,
         appId: contextResponse.context.runtimeId,
         hostname: contextResponse.context.hostname,
       });

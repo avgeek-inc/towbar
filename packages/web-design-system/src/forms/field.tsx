@@ -9,11 +9,35 @@ export function Field({ className, ...props }: ComponentProps<"div">) {
 export function FieldGroup({ className, ...props }: ComponentProps<"div">) {
   return <div className={cn("content-grid", className)} {...props} />;
 }
-export function FieldLabel({ className, ...props }: ComponentProps<"label">) {
-  return <label className={cn("text-sm font-medium", className)} {...props} />;
+export function FieldLabel({
+  children,
+  className,
+  isRequired = false,
+  ...props
+}: ComponentProps<"label"> & { isRequired?: boolean }) {
+  return (
+    <label className={cn("text-sm font-medium", className)} {...props}>
+      {children}
+      {isRequired ? (
+        <span aria-hidden="true" className="text-danger">
+          {" "}
+          *
+        </span>
+      ) : null}
+    </label>
+  );
 }
 export function FieldDescription({ className, ...props }: ComponentProps<"p">) {
-  return <p className={cn("text-sm text-muted", className)} {...props} />;
+  return (
+    <p
+      data-slot="field-description"
+      className={cn(
+        "text-xs leading-relaxed font-normal text-muted",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 export function FieldError({ className, ...props }: ComponentProps<"p">) {
   return (

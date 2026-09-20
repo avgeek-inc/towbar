@@ -1,23 +1,18 @@
-import { createSign, randomUUID } from "node:crypto";
-
-import { and, eq } from "drizzle-orm";
-import { z } from "zod";
+import { createSign } from "node:crypto";
 
 import {
-  decryptCredential,
-  encryptCredential,
-  parseCredentialsMasterKey,
+  gcsConnectionConfigurationSchema,
+  gcsConnectionCredentialsSchema,
 } from "@workspace/towbar-core";
-import { workspaceGcpCredentials } from "@workspace/towbar-database/schema";
+import { z } from "zod";
 
-import { getEnv } from "../../env.js";
 import {
   HttpError,
   badRequest,
   notFound,
   serviceUnavailable,
 } from "../../http/errors.js";
-import { getTowbarDatabase } from "../../infrastructure/database.js";
+import { getRuntimeIntegration } from "../../infrastructure/runtime-integrations.js";
 
 export const gcpServiceAccountKeySchema = z
   .object({
@@ -37,32 +32,6 @@ export const gcpServiceAccountKeySchema = z
 
 export type GcpServiceAccountKey = z.infer<typeof gcpServiceAccountKeySchema>;
 
-export async function getGcpCredentialMetadata(workspaceId: string) {
-  const [credential] = await getTowbarDatabase()
-    .select({
-      clientEmail: workspaceGcpCredentials.clientEmail,
-      createdAt: workspaceGcpCredentials.createdAt,
-      lastVerifiedAt: workspaceGcpCredentials.verifiedAt,
-      projectId: workspaceGcpCredentials.projectId,
-      status: workspaceGcpCredentials.verificationStatus,
-      updatedAt: workspaceGcpCredentials.updatedAt,
-      verificationMessage: workspaceGcpCredentials.verificationMessage,
-    })
-    .from(workspaceGcpCredentials)
-    .where(eq(workspaceGcpCredentials.workspaceId, workspaceId))
-    .limit(1);
-  return credential ?? null;
-}
-
-export async function hasGcpCredentials(workspaceId: string) {
-  const [credential] = await getTowbarDatabase()
-    .select({ id: workspaceGcpCredentials.id })
-    .from(workspaceGcpCredentials)
-    .where(eq(workspaceGcpCredentials.workspaceId, workspaceId))
-    .limit(1);
-  return Boolean(credential);
-}
-
 export function parseGcpServiceAccountJson(raw: string): GcpServiceAccountKey {
   let parsed: unknown;
   try {
@@ -71,11 +40,10 @@ export function parseGcpServiceAccountJson(raw: string): GcpServiceAccountKey {
     throw badRequest("Invalid JSON in service account key");
   }
   const result = gcpServiceAccountKeySchema.safeParse(parsed);
-  if (!result.success) {
+  if (!result.success)
     throw badRequest(
       "Service account key must be a valid Google Cloud service account JSON key",
     );
-  }
   return result.data;
 }
 
@@ -104,37 +72,31 @@ export async function getGcpAccessToken(
   } catch {
     throw badRequest("Could not sign authentication token with private key");
   }
-  const jwt = `${signatureInput}.${signature}`;
-
-  const tokenUrl = payload.token_uri ?? "https://oauth2.googleapis.com/token";
   const body = new URLSearchParams({
-    assertion: jwt,
+    assertion: `${signatureInput}.${signature}`,
     grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
   });
-
   try {
-    const response = await fetch(tokenUrl, {
-      body: body.toString(),
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      method: "POST",
-    });
-
+    const response = await fetch(
+      payload.token_uri ?? "https://oauth2.googleapis.com/token",
+      {
+        body: body.toString(),
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        method: "POST",
+      },
+    );
     if (!response.ok) {
       const errorText = await response.text().catch(() => "");
       throw serviceUnavailable("Google Cloud rejected these credentials", {
         cause: new Error(errorText || `HTTP ${response.status}`),
       });
     }
-
     const data = (await response.json()) as { access_token?: string };
-    if (!data.access_token) {
+    if (!data.access_token)
       throw serviceUnavailable("Google Cloud did not return an access token");
-    }
     return data.access_token;
   } catch (error) {
-    if (error instanceof HttpError) {
-      throw error;
-    }
+    if (error instanceof HttpError) throw error;
     throw serviceUnavailable(
       "Could not connect to Google Cloud auth endpoint",
       { cause: error },
@@ -144,110 +106,48 @@ export async function getGcpAccessToken(
 
 export async function validateGcpCredentials(payload: GcpServiceAccountKey) {
   await getGcpAccessToken(payload);
-  return {
-    clientEmail: payload.client_email,
-    projectId: payload.project_id,
-  };
+  return { clientEmail: payload.client_email, projectId: payload.project_id };
 }
 
-export async function saveGcpCredentials(input: {
-  serviceAccountKey: string;
-  workspaceId: string;
-}) {
-  const payload = parseGcpServiceAccountJson(input.serviceAccountKey);
-  const identity = await validateGcpCredentials(payload);
-  const verifiedAt = new Date();
-  const database = getTowbarDatabase();
-  const [existing] = await database
-    .select({ id: workspaceGcpCredentials.id })
-    .from(workspaceGcpCredentials)
-    .where(eq(workspaceGcpCredentials.workspaceId, input.workspaceId))
-    .limit(1);
-  const id = existing?.id ?? randomUUID();
-  const encryptedPayload = encryptCredential({
-    associatedData: gcpCredentialAssociatedData(input.workspaceId, id),
-    masterKey: parseCredentialsMasterKey(getEnv().TOWBAR_CREDENTIALS_KEY),
-    value: payload,
-  });
-  const values = {
-    clientEmail: identity.clientEmail,
-    encryptedPayload,
-    id,
-    projectId: identity.projectId,
-    updatedAt: new Date(),
-    verificationMessage: `GCP project ${identity.projectId} (${identity.clientEmail})`,
-    verificationStatus: "verified" as const,
-    verifiedAt,
-    workspaceId: input.workspaceId,
-  };
-  if (existing) {
-    await database
-      .update(workspaceGcpCredentials)
-      .set(values)
-      .where(eq(workspaceGcpCredentials.id, existing.id));
-  } else {
-    await database.insert(workspaceGcpCredentials).values(values);
-  }
-  return await getGcpCredentialMetadata(input.workspaceId);
-}
-
-export async function reverifyGcpCredentials(workspaceId: string) {
-  const metadata = await getGcpCredentialMetadata(workspaceId);
-  if (!metadata) return;
-  let verificationStatus: "verified" | "failed" = "verified";
-  let verificationMessage: string;
-  try {
-    const credential = await getDecryptedGcpCredential({ workspaceId });
-    const identity = await validateGcpCredentials(credential.payload);
-    verificationMessage = `GCP project ${identity.projectId} (${identity.clientEmail})`;
-  } catch {
-    verificationStatus = "failed";
-    verificationMessage =
-      "Google Cloud could not verify the connected credentials. Check the service account key.";
-  }
-  await getTowbarDatabase()
-    .update(workspaceGcpCredentials)
-    .set({ verificationStatus, verificationMessage, verifiedAt: new Date() })
-    .where(
-      and(
-        eq(workspaceGcpCredentials.workspaceId, workspaceId),
-        eq(workspaceGcpCredentials.updatedAt, metadata.updatedAt),
-      ),
-    );
-}
-
-export async function deleteGcpCredentials(workspaceId: string) {
-  await getTowbarDatabase()
-    .delete(workspaceGcpCredentials)
-    .where(eq(workspaceGcpCredentials.workspaceId, workspaceId));
-}
-
-export async function getDecryptedGcpCredential(input: {
-  workspaceId: string;
-}) {
-  const [credential] = await getTowbarDatabase()
-    .select()
-    .from(workspaceGcpCredentials)
-    .where(eq(workspaceGcpCredentials.workspaceId, input.workspaceId))
-    .limit(1);
-  if (!credential) throw notFound("GCP credentials");
-  const payload = gcpServiceAccountKeySchema.parse(
-    decryptCredential({
-      associatedData: gcpCredentialAssociatedData(
-        input.workspaceId,
-        credential.id,
-      ),
-      envelope: credential.encryptedPayload,
-      masterKey: parseCredentialsMasterKey(getEnv().TOWBAR_CREDENTIALS_KEY),
-    }),
+function runtimeCredential() {
+  const connection = getRuntimeIntegration("gcs");
+  if (!connection || connection.provider !== "gcs") return null;
+  const configuration = gcsConnectionConfigurationSchema.parse(
+    connection.configuration,
   );
-  return {
-    id: credential.id,
-    payload,
-    projectId: credential.projectId,
-  };
+  const credentials = gcsConnectionCredentialsSchema.parse(
+    connection.credentials,
+  );
+  const payload = parseGcpServiceAccountJson(credentials.serviceAccountJson);
+  return { configuration, payload };
 }
 
-function gcpCredentialAssociatedData(workspaceId: string, recordId: string) {
-  return `${workspaceId}:workspace:gcp-credentials:${recordId}`;
+export function getGcpCredentialMetadata(_workspaceId: string) {
+  const credential = runtimeCredential();
+  if (!credential) return Promise.resolve(null);
+  return Promise.resolve({
+    clientEmail: credential.payload.client_email,
+    lastVerifiedAt: null,
+    projectId: credential.configuration.projectId,
+    source: "environment" as const,
+    status: "verified" as const,
+    verificationMessage: "Configured by the Towbar runtime environment",
+  });
+}
+
+export function hasGcpCredentials(_workspaceId: string) {
+  return Promise.resolve(Boolean(runtimeCredential()));
+}
+
+export function getDecryptedGcpCredential(input: { workspaceId: string }) {
+  return Promise.resolve().then(() => {
+    void input;
+    const credential = runtimeCredential();
+    if (!credential) throw notFound("Google Cloud credentials");
+    return {
+      id: "environment",
+      payload: credential.payload,
+      projectId: credential.configuration.projectId,
+    };
+  });
 }

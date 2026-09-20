@@ -1,6 +1,6 @@
 import { operation } from "../../../http/operation.js";
 import { requestPreviewDeployment } from "../../../areas/previews/manual-deployment.js";
-import { forbidden } from "../../../http/errors.js";
+
 import { Hono } from "hono";
 
 import { requestPreviewEnvironmentCleanup } from "../../../areas/previews/cleanup.js";
@@ -13,6 +13,7 @@ export const previewRoutes = new Hono<TowbarHonoEnvironment>();
 previewRoutes.post(
   "/:previewEnvironmentId/actions/delete",
   operation({
+    permissions: ["deployment.create"],
     responseSchema: 'previews.ts:post:"/:previewEnvironmentId/actions/delete"',
     summary: "Request preview environment cleanup",
     response: "The preview cleanup operation and its status.",
@@ -34,16 +35,14 @@ previewRoutes.post(
 previewRoutes.post(
   "/:previewEnvironmentId/actions/deploy",
   operation({
+    permissions: ["deployment.create"],
     responseSchema: 'previews.ts:post:"/:previewEnvironmentId/actions/deploy"',
     summary: "Request preview deployment",
-    ownerOnly: true,
     response: "The preview deployment and whether the request was replayed.",
     status: 202,
   }),
   async (context) => {
     const user = context.get("user");
-    if (user.workspaceRole !== "owner")
-      throw forbidden("Only the owner can deploy previews");
     return context.json(
       await requestPreviewDeployment({
         previewEnvironmentId: readUuidPathParameter(

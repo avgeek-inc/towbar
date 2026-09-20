@@ -39,13 +39,32 @@ export const backupAssuranceSchema = z
 export type BackupAssurance = z.infer<typeof backupAssuranceSchema>;
 export type BackupAssuranceCheck = z.infer<typeof backupAssuranceCheckSchema>;
 
+type BackupEngine =
+  | "clickhouse"
+  | "dragonfly"
+  | "keydb"
+  | "mariadb"
+  | "mongodb"
+  | "mysql"
+  | "postgres"
+  | "redis";
+type BackupFormat =
+  | "clickhouse-backup"
+  | "dragonfly-rdb"
+  | "keydb-rdb"
+  | "mariadb-sql"
+  | "mongodb-archive"
+  | "mysql-sql"
+  | "postgres-custom"
+  | "redis-rdb";
+
 type BackupMetadata = {
   checksum?: string;
   createdAt: Date;
   encryption?: string;
-  engine?: "postgres" | "redis";
+  engine?: BackupEngine;
   engineMajorVersion?: number;
-  format?: "postgres-custom" | "redis-rdb";
+  format?: BackupFormat;
   id: string;
   metadataVersion?: 1;
   sizeBytes?: number;
@@ -54,18 +73,18 @@ type BackupMetadata = {
 type BackupObjectMetadata = {
   checksum?: string;
   encryption?: string;
-  engine?: "postgres" | "redis";
+  engine?: BackupEngine;
   engineMajorVersion?: number;
   error?: "access_denied" | "unavailable";
   exists: boolean;
-  format?: "postgres-custom" | "redis-rdb";
+  format?: BackupFormat;
   metadataVersion?: number;
   sizeBytes?: number;
 };
 
 type BackupAssuranceInput = {
   backup: BackupMetadata | null;
-  expectedEngine: "postgres" | "redis";
+  expectedEngine: BackupEngine;
   object: BackupObjectMetadata | null;
   staleAfter: Date | null;
   checkedAt?: Date;
@@ -134,8 +153,16 @@ function buildChecks(input: BackupAssuranceInput): BackupAssuranceCheck[] {
     object?.encryption &&
     backup.encryption === object.encryption,
   );
-  const expectedFormat =
-    input.expectedEngine === "postgres" ? "postgres-custom" : "redis-rdb";
+  const expectedFormat = {
+    clickhouse: "clickhouse-backup",
+    dragonfly: "dragonfly-rdb",
+    keydb: "keydb-rdb",
+    mariadb: "mariadb-sql",
+    mongodb: "mongodb-archive",
+    mysql: "mysql-sql",
+    postgres: "postgres-custom",
+    redis: "redis-rdb",
+  }[input.expectedEngine];
   const formatMatches = Boolean(
     backup?.format === expectedFormat && object?.format === expectedFormat,
   );

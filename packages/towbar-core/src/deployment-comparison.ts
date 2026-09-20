@@ -10,11 +10,11 @@ export const deploymentComparisonQuerySchema = z
     candidateId: z.string().uuid(),
     windowMinutes: z.coerce.number().int().min(5).max(1440).default(30),
     warmupMinutes: z.coerce.number().int().min(0).max(60).default(2),
-    regressionPercent: z.coerce.number().min(1).max(500).default(20),
-    minimumCoveragePercent: z.coerce.number().min(50).max(100).default(80),
+    regressionPercent: z.coerce.number().min(0).max(500).default(0),
+    minimumCoveragePercent: z.coerce.number().min(0).max(100).default(0),
     statistic: z.enum(["average", "peak"]).default("average"),
-    cpuFloorCores: z.coerce.number().min(0).max(1024).default(0.05),
-    memoryFloorMiB: z.coerce.number().min(0).max(1048576).default(16),
+    cpuFloorCores: z.coerce.number().min(0).max(1024).default(0),
+    memoryFloorMiB: z.coerce.number().min(0).max(1048576).default(0),
   })
   .strict()
   .refine((value) => value.baselineId !== value.candidateId, {

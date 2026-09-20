@@ -78,20 +78,12 @@ async function inspectGcsBackupObject(
     return {
       checksum: metadata["towbar-checksum"],
       encryption: data.kmsKeyName ? "Google-CMEK" : "Google-managed",
-      engine:
-        metadata["towbar-engine"] === "postgres" ||
-        metadata["towbar-engine"] === "redis"
-          ? metadata["towbar-engine"]
-          : undefined,
+      engine: parseBackupEngine(metadata["towbar-engine"]),
       engineMajorVersion: parsePositiveInteger(
         metadata["towbar-engine-major-version"],
       ),
       exists: true,
-      format:
-        metadata["towbar-format"] === "postgres-custom" ||
-        metadata["towbar-format"] === "redis-rdb"
-          ? metadata["towbar-format"]
-          : undefined,
+      format: parseBackupFormat(metadata["towbar-format"]),
       metadataVersion: parsePositiveInteger(
         metadata["towbar-metadata-version"],
       ),
@@ -144,21 +136,16 @@ async function inspectAzureBackupObject(
         headers.get("x-ms-server-encrypted") === "true"
           ? "Microsoft-managed"
           : undefined,
-      engine:
-        headers.get("x-ms-meta-towbar_engine") === "postgres" ||
-        headers.get("x-ms-meta-towbar_engine") === "redis"
-          ? (headers.get("x-ms-meta-towbar_engine") as "postgres" | "redis")
-          : undefined,
+      engine: parseBackupEngine(
+        headers.get("x-ms-meta-towbar_engine") ?? undefined,
+      ),
       engineMajorVersion: parsePositiveInteger(
         headers.get("x-ms-meta-towbar_engine_major_version") ?? undefined,
       ),
       exists: true,
-      format:
-        headers.get("x-ms-meta-towbar_format") === "postgres-custom" ||
-        headers.get("x-ms-meta-towbar_format") === "redis-rdb"
-          ? (headers.get("x-ms-meta-towbar_format") as
-              "postgres-custom" | "redis-rdb")
-          : undefined,
+      format: parseBackupFormat(
+        headers.get("x-ms-meta-towbar_format") ?? undefined,
+      ),
       metadataVersion: parsePositiveInteger(
         headers.get("x-ms-meta-towbar_metadata_version") ?? undefined,
       ),
@@ -200,20 +187,12 @@ async function inspectS3BackupObject(
           : head.ServerSideEncryption === "AES256"
             ? "AES256"
             : undefined,
-      engine:
-        metadata["towbar-engine"] === "postgres" ||
-        metadata["towbar-engine"] === "redis"
-          ? metadata["towbar-engine"]
-          : undefined,
+      engine: parseBackupEngine(metadata["towbar-engine"]),
       engineMajorVersion: parsePositiveInteger(
         metadata["towbar-engine-major-version"],
       ),
       exists: true,
-      format:
-        metadata["towbar-format"] === "postgres-custom" ||
-        metadata["towbar-format"] === "redis-rdb"
-          ? metadata["towbar-format"]
-          : undefined,
+      format: parseBackupFormat(metadata["towbar-format"]),
       metadataVersion: parsePositiveInteger(
         metadata["towbar-metadata-version"],
       ),
@@ -317,11 +296,15 @@ export async function assureResourceBackup(
     .from(apps)
     .where(eq(apps.id, resourceId))
     .limit(1);
+  const expectedEngine =
+    resource && isNormalizedResource(resource.config)
+      ? parseBackupEngine(resource.config.kind)
+      : undefined;
   if (
     !resource ||
     !isNormalizedResource(resource.config) ||
     !resource.config.backup ||
-    (resource.config.kind !== "postgres" && resource.config.kind !== "redis")
+    !expectedEngine
   ) {
     throw new Error("Backup assurance requires a managed database Resource");
   }
@@ -397,7 +380,7 @@ export async function assureResourceBackup(
           }
         : null,
     checkedAt: now,
-    expectedEngine: resource.config.kind,
+    expectedEngine,
     object,
     staleAfter,
   });
@@ -431,6 +414,36 @@ function parsePositiveInteger(value: string | undefined) {
   if (!value || !/^\d+$/u.test(value)) return undefined;
   const parsed = Number(value);
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function parseBackupEngine(value: string | undefined) {
+  return [
+    "clickhouse",
+    "dragonfly",
+    "keydb",
+    "mariadb",
+    "mongodb",
+    "mysql",
+    "postgres",
+    "redis",
+  ].includes(value ?? "")
+    ? (value as NonNullable<BackupOperationResult["engine"]>)
+    : undefined;
+}
+
+function parseBackupFormat(value: string | undefined) {
+  return [
+    "clickhouse-backup",
+    "dragonfly-rdb",
+    "keydb-rdb",
+    "mariadb-sql",
+    "mongodb-archive",
+    "mysql-sql",
+    "postgres-custom",
+    "redis-rdb",
+  ].includes(value ?? "")
+    ? (value as NonNullable<BackupOperationResult["format"]>)
+    : undefined;
 }
 
 function classifyS3HeadFailure(

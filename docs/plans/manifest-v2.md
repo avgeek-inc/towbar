@@ -13,7 +13,7 @@ Status: implementation and local verification complete; final remote verificatio
 - Discover one entity per `*.app.yml` in `.towbar/apps/` and `*.resource.yml` in `.towbar/resources/`, recursively.
 - Entity files contain shared settings, required secrets, and explicit environment overrides. Objects merge; arrays replace. Identity and resource type cannot be overridden.
 - Repository-level Sources own logical entities. Environment instances own configuration, servers, operations, volumes, backups, secrets, and monitoring.
-- Servers have stable workspace-unique slugs referenced in manifests.
+- Entities reference registered servers directly by IP address.
 - Root environment preview eligibility and app opt-in must both be enabled. PRs never reconcile persistent configuration or secret slots.
 - Required secret declarations reconcile per instance: add unset slots, preserve existing values/references, remove deleted declarations. Missing secrets block deployment, not sync. Preserve empty versus unset.
 - No permanent v1 compatibility or user-data migration is required. Do not reset production data as part of implementation.
@@ -32,7 +32,7 @@ Status: implementation and local verification complete; final remote verificatio
 ## Delivery checklist
 
 - [x] Core v2 schemas, file discovery, overrides, secret declarations, deterministic resolved configuration.
-- [x] Repository/environment/logical-entity/instance schema and server slugs.
+- [x] Repository/environment/logical-entity/instance schema and server IP references.
 - [x] GitHub discovery and immutable file loading; API connection and environment mapping endpoints.
 - [x] Environment-specific atomic sync, stale-job guards, webhooks, initial sync without deployment.
 - [x] Secret reconciliation and validation in Form/File modes, bulk reveal, shared references and deployment admission.
@@ -58,10 +58,10 @@ not a list of untouched work.
   schema are removed. Root/app/resource JSON schemas are generated with a drift
   check. Starter files and configuration documentation use v2.
 - Storage: environments, mapping revisions, logical entities, instance links,
-  required keys and server slugs exist. Composite foreign keys guard instance,
-  source, server and workspace ownership. Source-level branch storage and its
-  public field are removed; each workspace connects a repository once. App and
-  resource entity/environment links, server slugs and instance secret declarations
+  required keys and server IP references exist. Composite foreign keys guard
+  instance, source, server and workspace ownership. Source-level branch storage
+  and its public field are removed; each workspace connects a repository once.
+  App and resource entity/environment links and instance secret declarations
   are required by PostgreSQL. Deployment secret declarations are also required
   snapshots; execution always checks their required keys. Source commit, digest
   and successful-sync fields are removed; environments own these snapshots.
@@ -81,7 +81,7 @@ not a list of untouched work.
   selection are implemented. Lifecycle locking protects reconciliation and
   manual redeploy. The connected PR lifecycle below proves deployment, update and
   cleanup through the real API, worker and disposable Docker target.
-- UI: server slugs, Source environment controls, instance environment switching,
+- UI: Source environment controls, instance environment switching,
   inventory environment filters, deployment history filters and URL navigation
   exist. Workspace and Source inventories group instances by logical entity,
   retaining each environment row and direct instance link. Deployment chips show the recorded environment name. Monitoring

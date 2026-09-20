@@ -2,6 +2,49 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
+    "jobs": {
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,62}$" },
+          "description": { "type": "string", "maxLength": 500 },
+          "command": {
+            "minItems": 1,
+            "maxItems": 64,
+            "type": "array",
+            "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
+          },
+          "schedule": {
+            "type": "object",
+            "properties": {
+              "cron": { "type": "string", "minLength": 1, "maxLength": 120 },
+              "timezone": { "default": "UTC", "type": "string", "const": "UTC" }
+            },
+            "required": ["cron"],
+            "additionalProperties": false
+          },
+          "timeoutSeconds": {
+            "default": 300,
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 3600
+          },
+          "enabled": { "default": true, "type": "boolean" }
+        },
+        "required": ["name", "command", "schedule"],
+        "additionalProperties": false
+      }
+    },
+    "logDrains": {
+      "maxItems": 6,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["newrelic", "axiom", "betterstack", "datadog", "otlp", "loki"]
+      }
+    },
     "autoDeploy": {
       "anyOf": [
         { "type": "boolean" },
@@ -29,11 +72,691 @@
     "description": { "type": "string", "maxLength": 500 },
     "server": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "type": "string",
-      "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+      "type": "string"
+    },
+    "deployment": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "const": "dockerfile" },
+            "context": {
+              "default": ".",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "arguments": {
+              "default": {},
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+              },
+              "additionalProperties": { "type": "string", "maxLength": 4096 }
+            },
+            "resources": {
+              "default": { "cpus": 2, "memory": "2g" },
+              "type": "object",
+              "properties": {
+                "cpus": {
+                  "default": 2,
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 128
+                },
+                "memory": {
+                  "default": "2g",
+                  "type": "string",
+                  "pattern": "^\\d+(?:\\.\\d+)?(?:[kmgt]i?b?|b)$"
+                }
+              },
+              "additionalProperties": false
+            },
+            "dockerfile": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "target": { "type": "string", "minLength": 1, "maxLength": 128 },
+            "architecture": { "type": "string", "enum": ["amd64", "arm64"] },
+            "cache": {
+              "type": "object",
+              "properties": {
+                "enabled": { "default": true, "type": "boolean" },
+                "scope": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[a-z0-9](?:[a-z0-9._-]{0,98}[a-z0-9])?$"
+                }
+              },
+              "additionalProperties": false
+            },
+            "timeoutSeconds": {
+              "default": 2700,
+              "type": "integer",
+              "minimum": 60,
+              "maximum": 7200
+            }
+          },
+          "required": ["type", "dockerfile"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "const": "static" },
+            "context": {
+              "default": ".",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "arguments": {
+              "default": {},
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+              },
+              "additionalProperties": { "type": "string", "maxLength": 4096 }
+            },
+            "resources": {
+              "default": { "cpus": 2, "memory": "2g" },
+              "type": "object",
+              "properties": {
+                "cpus": {
+                  "default": 2,
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 128
+                },
+                "memory": {
+                  "default": "2g",
+                  "type": "string",
+                  "pattern": "^\\d+(?:\\.\\d+)?(?:[kmgt]i?b?|b)$"
+                }
+              },
+              "additionalProperties": false
+            },
+            "output": { "type": "string", "minLength": 1, "maxLength": 1024 },
+            "buildCommand": {
+              "minItems": 1,
+              "maxItems": 64,
+              "type": "array",
+              "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
+            },
+            "architecture": { "type": "string", "enum": ["amd64", "arm64"] },
+            "cache": {
+              "type": "object",
+              "properties": {
+                "enabled": { "default": true, "type": "boolean" },
+                "scope": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[a-z0-9](?:[a-z0-9._-]{0,98}[a-z0-9])?$"
+                }
+              },
+              "additionalProperties": false
+            },
+            "nodeImage": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[^\\s@]+@sha256:[a-f0-9]{64}$"
+            },
+            "runtimeImage": {
+              "default": "nginxinc/nginx-unprivileged@sha256:0c79d56aee561a1d81c63f00eee5fb5fe29279560cdc55e91425133104c7fbe6",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[^\\s@]+@sha256:[a-f0-9]{64}$"
+            },
+            "spaFallback": { "default": false, "type": "boolean" },
+            "index": {
+              "default": "index.html",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "errorPage": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "headers": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[!#$%&'*+.^_`|~0-9A-Za-z-]+$"
+              },
+              "additionalProperties": { "type": "string", "maxLength": 2048 }
+            },
+            "timeoutSeconds": {
+              "default": 1800,
+              "type": "integer",
+              "minimum": 60,
+              "maximum": 7200
+            }
+          },
+          "required": ["type", "output", "nodeImage"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "const": "image" },
+            "image": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[^\\s@]+(?:@sha256:[a-f0-9]{64})?$"
+            },
+            "registry": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+            },
+            "platform": {
+              "type": "string",
+              "enum": ["linux/amd64", "linux/arm64"]
+            },
+            "pullPolicy": {
+              "default": "if-not-present",
+              "type": "string",
+              "enum": ["if-not-present", "always"]
+            }
+          },
+          "required": ["type", "image"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "const": "railpack" },
+            "context": {
+              "default": ".",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "arguments": {
+              "default": {},
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+              },
+              "additionalProperties": { "type": "string", "maxLength": 4096 }
+            },
+            "resources": {
+              "default": { "cpus": 2, "memory": "2g" },
+              "type": "object",
+              "properties": {
+                "cpus": {
+                  "default": 2,
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 128
+                },
+                "memory": {
+                  "default": "2g",
+                  "type": "string",
+                  "pattern": "^\\d+(?:\\.\\d+)?(?:[kmgt]i?b?|b)$"
+                }
+              },
+              "additionalProperties": false
+            },
+            "buildCommand": {
+              "minItems": 1,
+              "maxItems": 64,
+              "type": "array",
+              "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
+            },
+            "startCommand": {
+              "minItems": 1,
+              "maxItems": 64,
+              "type": "array",
+              "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
+            },
+            "configFile": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "architecture": { "type": "string", "enum": ["amd64", "arm64"] },
+            "timeoutSeconds": {
+              "default": 2700,
+              "type": "integer",
+              "minimum": 60,
+              "maximum": 7200
+            },
+            "cache": {
+              "type": "object",
+              "properties": {
+                "enabled": { "default": true, "type": "boolean" },
+                "scope": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[a-z0-9](?:[a-z0-9._-]{0,98}[a-z0-9])?$"
+                }
+              },
+              "additionalProperties": false
+            },
+            "version": { "type": "string", "minLength": 1, "maxLength": 100 },
+            "image": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[^\\s@]+@sha256:[a-f0-9]{64}$"
+            }
+          },
+          "required": ["type", "version", "image"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "const": "nixpacks" },
+            "context": {
+              "default": ".",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "arguments": {
+              "default": {},
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+              },
+              "additionalProperties": { "type": "string", "maxLength": 4096 }
+            },
+            "resources": {
+              "default": { "cpus": 2, "memory": "2g" },
+              "type": "object",
+              "properties": {
+                "cpus": {
+                  "default": 2,
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 128
+                },
+                "memory": {
+                  "default": "2g",
+                  "type": "string",
+                  "pattern": "^\\d+(?:\\.\\d+)?(?:[kmgt]i?b?|b)$"
+                }
+              },
+              "additionalProperties": false
+            },
+            "buildCommand": {
+              "minItems": 1,
+              "maxItems": 64,
+              "type": "array",
+              "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
+            },
+            "startCommand": {
+              "minItems": 1,
+              "maxItems": 64,
+              "type": "array",
+              "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
+            },
+            "configFile": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "architecture": { "type": "string", "enum": ["amd64", "arm64"] },
+            "timeoutSeconds": {
+              "default": 2700,
+              "type": "integer",
+              "minimum": 60,
+              "maximum": 7200
+            },
+            "cache": {
+              "type": "object",
+              "properties": {
+                "enabled": { "default": true, "type": "boolean" },
+                "scope": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[a-z0-9](?:[a-z0-9._-]{0,98}[a-z0-9])?$"
+                }
+              },
+              "additionalProperties": false
+            },
+            "version": { "type": "string", "minLength": 1, "maxLength": 100 },
+            "image": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[^\\s@]+@sha256:[a-f0-9]{64}$"
+            }
+          },
+          "required": ["type", "version", "image"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "const": "buildpack" },
+            "context": {
+              "default": ".",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "arguments": {
+              "default": {},
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+              },
+              "additionalProperties": { "type": "string", "maxLength": 4096 }
+            },
+            "resources": {
+              "default": { "cpus": 2, "memory": "2g" },
+              "type": "object",
+              "properties": {
+                "cpus": {
+                  "default": 2,
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 128
+                },
+                "memory": {
+                  "default": "2g",
+                  "type": "string",
+                  "pattern": "^\\d+(?:\\.\\d+)?(?:[kmgt]i?b?|b)$"
+                }
+              },
+              "additionalProperties": false
+            },
+            "buildCommand": {
+              "minItems": 1,
+              "maxItems": 64,
+              "type": "array",
+              "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
+            },
+            "startCommand": {
+              "minItems": 1,
+              "maxItems": 64,
+              "type": "array",
+              "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
+            },
+            "configFile": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "architecture": { "type": "string", "enum": ["amd64", "arm64"] },
+            "timeoutSeconds": {
+              "default": 2700,
+              "type": "integer",
+              "minimum": 60,
+              "maximum": 7200
+            },
+            "cache": {
+              "type": "object",
+              "properties": {
+                "enabled": { "default": true, "type": "boolean" },
+                "scope": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[a-z0-9](?:[a-z0-9._-]{0,98}[a-z0-9])?$"
+                }
+              },
+              "additionalProperties": false
+            },
+            "packImage": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[^\\s@]+@sha256:[a-f0-9]{64}$"
+            },
+            "builder": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[^\\s@]+@sha256:[a-f0-9]{64}$"
+            },
+            "buildpacks": {
+              "maxItems": 20,
+              "type": "array",
+              "items": { "type": "string", "minLength": 1, "maxLength": 512 }
+            }
+          },
+          "required": ["type", "packImage", "builder"],
+          "additionalProperties": false
+        }
+      ]
     },
     "dockerfile": { "type": "string", "minLength": 1, "maxLength": 1024 },
     "context": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "buildServer": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "ip": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "ipv4",
+                  "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$"
+                },
+                {
+                  "type": "string",
+                  "format": "ipv6",
+                  "pattern": "^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$"
+                }
+              ]
+            },
+            "allowRuntimeFallback": { "default": false, "type": "boolean" },
+            "transfer": {
+              "default": "direct",
+              "type": "string",
+              "enum": ["direct", "registry"]
+            },
+            "registry": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+            },
+            "architecture": { "type": "string", "enum": ["amd64", "arm64"] }
+          },
+          "required": ["ip"],
+          "additionalProperties": false
+        },
+        { "type": "null" }
+      ]
+    },
+    "rollout": {
+      "default": {
+        "type": "rolling",
+        "replicas": 1,
+        "maxSurge": 1,
+        "maxUnavailable": 0,
+        "startupDeadlineSeconds": 300,
+        "minimumHealthySeconds": 10,
+        "failureThreshold": 3,
+        "drainSeconds": 10,
+        "terminationSeconds": 30
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "const": "rolling" },
+            "replicas": {
+              "default": 1,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "maxSurge": {
+              "default": 1,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "maxUnavailable": {
+              "default": 0,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "startupDeadlineSeconds": {
+              "default": 300,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 86400
+            },
+            "minimumHealthySeconds": {
+              "default": 10,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 600
+            },
+            "failureThreshold": {
+              "default": 3,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            },
+            "drainSeconds": {
+              "default": 10,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 600
+            },
+            "terminationSeconds": {
+              "default": 30,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 86400
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "const": "recreate" },
+            "reason": { "type": "string", "minLength": 1, "maxLength": 500 },
+            "maintenanceMode": { "default": false, "type": "boolean" },
+            "terminationSeconds": {
+              "default": 30,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 86400
+            }
+          },
+          "required": ["type", "reason"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "externalSecrets": {
+      "type": "object",
+      "propertyNames": { "type": "string", "minLength": 1, "maxLength": 256 },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "integration": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "secret": { "type": "string", "minLength": 1, "maxLength": 1024 },
+          "field": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "version": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "use": { "type": "string", "enum": ["runtime", "build"] }
+        },
+        "required": ["integration", "secret", "use"],
+        "additionalProperties": false
+      }
+    },
+    "telemetry": {
+      "type": "object",
+      "properties": {
+        "integration": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+        },
+        "signals": {
+          "minItems": 1,
+          "maxItems": 3,
+          "type": "array",
+          "items": { "type": "string", "enum": ["logs", "metrics", "traces"] }
+        },
+        "protocol": {
+          "default": "otlp-grpc",
+          "type": "string",
+          "enum": ["otlp-http", "otlp-grpc"]
+        },
+        "sampling": {
+          "default": 1,
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "redactAttributes": {
+          "maxItems": 100,
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+        },
+        "cardinalityLimit": {
+          "default": 10000,
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 1000000
+        }
+      },
+      "additionalProperties": false
+    },
+    "ingress": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": { "type": { "type": "string", "const": "proxy" } },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "const": "cloudflare-tunnel" },
+            "integration": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+            },
+            "tunnel": { "type": "string", "minLength": 1, "maxLength": 128 },
+            "access": { "default": false, "type": "boolean" }
+          },
+          "required": ["type", "integration"],
+          "additionalProperties": false
+        }
+      ]
+    },
     "container": {
       "type": "object",
       "properties": {
@@ -46,6 +769,30 @@
           "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
         },
         "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "volumes": {
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+              },
+              "mountPath": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "initialData": {
+                "type": "string",
+                "enum": ["image", "previous-container"]
+              }
+            },
+            "required": ["name", "mountPath"],
+            "additionalProperties": false
+          }
+        },
         "resources": {
           "type": "object",
           "properties": {
@@ -219,6 +966,71 @@
       "additionalProperties": {
         "type": "object",
         "properties": {
+          "jobs": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{0,62}$"
+                },
+                "description": { "type": "string", "maxLength": 500 },
+                "command": {
+                  "minItems": 1,
+                  "maxItems": 64,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  }
+                },
+                "schedule": {
+                  "type": "object",
+                  "properties": {
+                    "cron": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120
+                    },
+                    "timezone": {
+                      "default": "UTC",
+                      "type": "string",
+                      "const": "UTC"
+                    }
+                  },
+                  "required": ["cron"],
+                  "additionalProperties": false
+                },
+                "timeoutSeconds": {
+                  "default": 300,
+                  "type": "integer",
+                  "minimum": 5,
+                  "maximum": 3600
+                },
+                "enabled": { "default": true, "type": "boolean" }
+              },
+              "required": ["name", "command", "schedule"],
+              "additionalProperties": false
+            }
+          },
+          "logDrains": {
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "newrelic",
+                "axiom",
+                "betterstack",
+                "datadog",
+                "otlp",
+                "loki"
+              ]
+            }
+          },
           "autoDeploy": {
             "anyOf": [
               { "type": "boolean" },
@@ -245,11 +1057,803 @@
           "description": { "type": "string", "maxLength": 500 },
           "server": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "string",
-            "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+            "type": "string"
+          },
+          "deployment": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "const": "dockerfile" },
+                  "context": {
+                    "default": ".",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "arguments": {
+                    "default": {},
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                    },
+                    "additionalProperties": {
+                      "type": "string",
+                      "maxLength": 4096
+                    }
+                  },
+                  "resources": {
+                    "default": { "cpus": 2, "memory": "2g" },
+                    "type": "object",
+                    "properties": {
+                      "cpus": {
+                        "default": 2,
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "maximum": 128
+                      },
+                      "memory": {
+                        "default": "2g",
+                        "type": "string",
+                        "pattern": "^\\d+(?:\\.\\d+)?(?:[kmgt]i?b?|b)$"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "dockerfile": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "target": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "architecture": {
+                    "type": "string",
+                    "enum": ["amd64", "arm64"]
+                  },
+                  "cache": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": { "default": true, "type": "boolean" },
+                      "scope": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "pattern": "^[a-z0-9](?:[a-z0-9._-]{0,98}[a-z0-9])?$"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "timeoutSeconds": {
+                    "default": 2700,
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 7200
+                  }
+                },
+                "required": ["type", "dockerfile"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "const": "static" },
+                  "context": {
+                    "default": ".",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "arguments": {
+                    "default": {},
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                    },
+                    "additionalProperties": {
+                      "type": "string",
+                      "maxLength": 4096
+                    }
+                  },
+                  "resources": {
+                    "default": { "cpus": 2, "memory": "2g" },
+                    "type": "object",
+                    "properties": {
+                      "cpus": {
+                        "default": 2,
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "maximum": 128
+                      },
+                      "memory": {
+                        "default": "2g",
+                        "type": "string",
+                        "pattern": "^\\d+(?:\\.\\d+)?(?:[kmgt]i?b?|b)$"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "output": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "buildCommand": {
+                    "minItems": 1,
+                    "maxItems": 64,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    }
+                  },
+                  "architecture": {
+                    "type": "string",
+                    "enum": ["amd64", "arm64"]
+                  },
+                  "cache": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": { "default": true, "type": "boolean" },
+                      "scope": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "pattern": "^[a-z0-9](?:[a-z0-9._-]{0,98}[a-z0-9])?$"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "nodeImage": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "pattern": "^[^\\s@]+@sha256:[a-f0-9]{64}$"
+                  },
+                  "runtimeImage": {
+                    "default": "nginxinc/nginx-unprivileged@sha256:0c79d56aee561a1d81c63f00eee5fb5fe29279560cdc55e91425133104c7fbe6",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "pattern": "^[^\\s@]+@sha256:[a-f0-9]{64}$"
+                  },
+                  "spaFallback": { "default": false, "type": "boolean" },
+                  "index": {
+                    "default": "index.html",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "errorPage": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "headers": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128,
+                      "pattern": "^[!#$%&'*+.^_`|~0-9A-Za-z-]+$"
+                    },
+                    "additionalProperties": {
+                      "type": "string",
+                      "maxLength": 2048
+                    }
+                  },
+                  "timeoutSeconds": {
+                    "default": 1800,
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 7200
+                  }
+                },
+                "required": ["type", "output", "nodeImage"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "const": "image" },
+                  "image": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "pattern": "^[^\\s@]+(?:@sha256:[a-f0-9]{64})?$"
+                  },
+                  "registry": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                  },
+                  "platform": {
+                    "type": "string",
+                    "enum": ["linux/amd64", "linux/arm64"]
+                  },
+                  "pullPolicy": {
+                    "default": "if-not-present",
+                    "type": "string",
+                    "enum": ["if-not-present", "always"]
+                  }
+                },
+                "required": ["type", "image"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "const": "railpack" },
+                  "context": {
+                    "default": ".",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "arguments": {
+                    "default": {},
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                    },
+                    "additionalProperties": {
+                      "type": "string",
+                      "maxLength": 4096
+                    }
+                  },
+                  "resources": {
+                    "default": { "cpus": 2, "memory": "2g" },
+                    "type": "object",
+                    "properties": {
+                      "cpus": {
+                        "default": 2,
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "maximum": 128
+                      },
+                      "memory": {
+                        "default": "2g",
+                        "type": "string",
+                        "pattern": "^\\d+(?:\\.\\d+)?(?:[kmgt]i?b?|b)$"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "buildCommand": {
+                    "minItems": 1,
+                    "maxItems": 64,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    }
+                  },
+                  "startCommand": {
+                    "minItems": 1,
+                    "maxItems": 64,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    }
+                  },
+                  "configFile": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "architecture": {
+                    "type": "string",
+                    "enum": ["amd64", "arm64"]
+                  },
+                  "timeoutSeconds": {
+                    "default": 2700,
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 7200
+                  },
+                  "cache": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": { "default": true, "type": "boolean" },
+                      "scope": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "pattern": "^[a-z0-9](?:[a-z0-9._-]{0,98}[a-z0-9])?$"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "version": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "image": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "pattern": "^[^\\s@]+@sha256:[a-f0-9]{64}$"
+                  }
+                },
+                "required": ["type", "version", "image"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "const": "nixpacks" },
+                  "context": {
+                    "default": ".",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "arguments": {
+                    "default": {},
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                    },
+                    "additionalProperties": {
+                      "type": "string",
+                      "maxLength": 4096
+                    }
+                  },
+                  "resources": {
+                    "default": { "cpus": 2, "memory": "2g" },
+                    "type": "object",
+                    "properties": {
+                      "cpus": {
+                        "default": 2,
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "maximum": 128
+                      },
+                      "memory": {
+                        "default": "2g",
+                        "type": "string",
+                        "pattern": "^\\d+(?:\\.\\d+)?(?:[kmgt]i?b?|b)$"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "buildCommand": {
+                    "minItems": 1,
+                    "maxItems": 64,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    }
+                  },
+                  "startCommand": {
+                    "minItems": 1,
+                    "maxItems": 64,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    }
+                  },
+                  "configFile": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "architecture": {
+                    "type": "string",
+                    "enum": ["amd64", "arm64"]
+                  },
+                  "timeoutSeconds": {
+                    "default": 2700,
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 7200
+                  },
+                  "cache": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": { "default": true, "type": "boolean" },
+                      "scope": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "pattern": "^[a-z0-9](?:[a-z0-9._-]{0,98}[a-z0-9])?$"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "version": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "image": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "pattern": "^[^\\s@]+@sha256:[a-f0-9]{64}$"
+                  }
+                },
+                "required": ["type", "version", "image"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "const": "buildpack" },
+                  "context": {
+                    "default": ".",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "arguments": {
+                    "default": {},
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                    },
+                    "additionalProperties": {
+                      "type": "string",
+                      "maxLength": 4096
+                    }
+                  },
+                  "resources": {
+                    "default": { "cpus": 2, "memory": "2g" },
+                    "type": "object",
+                    "properties": {
+                      "cpus": {
+                        "default": 2,
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "maximum": 128
+                      },
+                      "memory": {
+                        "default": "2g",
+                        "type": "string",
+                        "pattern": "^\\d+(?:\\.\\d+)?(?:[kmgt]i?b?|b)$"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "buildCommand": {
+                    "minItems": 1,
+                    "maxItems": 64,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    }
+                  },
+                  "startCommand": {
+                    "minItems": 1,
+                    "maxItems": 64,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    }
+                  },
+                  "configFile": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "architecture": {
+                    "type": "string",
+                    "enum": ["amd64", "arm64"]
+                  },
+                  "timeoutSeconds": {
+                    "default": 2700,
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 7200
+                  },
+                  "cache": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": { "default": true, "type": "boolean" },
+                      "scope": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "pattern": "^[a-z0-9](?:[a-z0-9._-]{0,98}[a-z0-9])?$"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "packImage": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "pattern": "^[^\\s@]+@sha256:[a-f0-9]{64}$"
+                  },
+                  "builder": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "pattern": "^[^\\s@]+@sha256:[a-f0-9]{64}$"
+                  },
+                  "buildpacks": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    }
+                  }
+                },
+                "required": ["type", "packImage", "builder"],
+                "additionalProperties": false
+              }
+            ]
           },
           "dockerfile": { "type": "string", "minLength": 1, "maxLength": 1024 },
           "context": { "type": "string", "minLength": 1, "maxLength": 1024 },
+          "buildServer": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "ip": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "ipv4",
+                        "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$"
+                      },
+                      {
+                        "type": "string",
+                        "format": "ipv6",
+                        "pattern": "^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$"
+                      }
+                    ]
+                  },
+                  "allowRuntimeFallback": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "transfer": {
+                    "default": "direct",
+                    "type": "string",
+                    "enum": ["direct", "registry"]
+                  },
+                  "registry": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                  },
+                  "architecture": {
+                    "type": "string",
+                    "enum": ["amd64", "arm64"]
+                  }
+                },
+                "required": ["ip"],
+                "additionalProperties": false
+              },
+              { "type": "null" }
+            ]
+          },
+          "rollout": {
+            "default": {
+              "type": "rolling",
+              "replicas": 1,
+              "maxSurge": 1,
+              "maxUnavailable": 0,
+              "startupDeadlineSeconds": 300,
+              "minimumHealthySeconds": 10,
+              "failureThreshold": 3,
+              "drainSeconds": 10,
+              "terminationSeconds": 30
+            },
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "const": "rolling" },
+                  "replicas": {
+                    "default": 1,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "maxSurge": {
+                    "default": 1,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "maxUnavailable": {
+                    "default": 0,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "startupDeadlineSeconds": {
+                    "default": 300,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 86400
+                  },
+                  "minimumHealthySeconds": {
+                    "default": 10,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 600
+                  },
+                  "failureThreshold": {
+                    "default": 3,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20
+                  },
+                  "drainSeconds": {
+                    "default": 10,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 600
+                  },
+                  "terminationSeconds": {
+                    "default": 30,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 86400
+                  }
+                },
+                "required": ["type"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "const": "recreate" },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "maintenanceMode": { "default": false, "type": "boolean" },
+                  "terminationSeconds": {
+                    "default": 30,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 86400
+                  }
+                },
+                "required": ["type", "reason"],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "externalSecrets": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "integration": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                },
+                "secret": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "field": { "type": "string", "minLength": 1, "maxLength": 256 },
+                "version": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "use": { "type": "string", "enum": ["runtime", "build"] }
+              },
+              "required": ["integration", "secret", "use"],
+              "additionalProperties": false
+            }
+          },
+          "telemetry": {
+            "type": "object",
+            "properties": {
+              "integration": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+              },
+              "signals": {
+                "minItems": 1,
+                "maxItems": 3,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["logs", "metrics", "traces"]
+                }
+              },
+              "protocol": {
+                "default": "otlp-grpc",
+                "type": "string",
+                "enum": ["otlp-http", "otlp-grpc"]
+              },
+              "sampling": {
+                "default": 1,
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "redactAttributes": {
+                "maxItems": 100,
+                "type": "array",
+                "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+              },
+              "cardinalityLimit": {
+                "default": 10000,
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 1000000
+              }
+            },
+            "additionalProperties": false
+          },
+          "ingress": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "const": "proxy" }
+                },
+                "required": ["type"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "const": "cloudflare-tunnel" },
+                  "integration": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                  },
+                  "tunnel": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "access": { "default": false, "type": "boolean" }
+                },
+                "required": ["type", "integration"],
+                "additionalProperties": false
+              }
+            ]
+          },
           "container": {
             "type": "object",
             "properties": {
@@ -262,6 +1866,30 @@
                 "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
               },
               "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+              "volumes": {
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+                    },
+                    "mountPath": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024
+                    },
+                    "initialData": {
+                      "type": "string",
+                      "enum": ["image", "previous-container"]
+                    }
+                  },
+                  "required": ["name", "mountPath"],
+                  "additionalProperties": false
+                }
+              },
               "resources": {
                 "type": "object",
                 "properties": {

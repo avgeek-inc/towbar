@@ -1,1 +1,0 @@
-ALTER TABLE "towbar_deployments" ADD COLUMN "required_secrets" jsonb;

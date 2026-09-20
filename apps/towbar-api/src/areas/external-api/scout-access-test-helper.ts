@@ -22,7 +22,7 @@ export async function assertScoutApiAccess({
   write: { token: string };
   ownedServerId: string;
   foreignServerId: string;
-  setRole: (role: "owner" | "member") => Promise<unknown>;
+  setRole: (role: "admin" | "member") => Promise<unknown>;
 }) {
   const path = `/servers/${ownedServerId}/scout-alerts`;
   const rule = {
@@ -47,14 +47,6 @@ export async function assertScoutApiAccess({
   await setRole("member");
   try {
     assert.equal((await request(path, write.token)).status, 200);
-    assert.equal(
-      (
-        await request(`${path}/mute`, write.token, "POST", {
-          durationSeconds: 3600,
-        })
-      ).status,
-      403,
-    );
     const client = await connect(write.token);
     try {
       const inspect = await client.callTool({
@@ -62,11 +54,6 @@ export async function assertScoutApiAccess({
         arguments: { serverId: ownedServerId },
       });
       assert.equal(inspect.isError, false);
-      const mutate = await client.callTool({
-        name: "towbar_alerts_mute",
-        arguments: { serverId: ownedServerId, durationSeconds: 3600 },
-      });
-      assert.equal(mutate.isError, true);
       const foreign = await client.callTool({
         name: "towbar_alerts_inspect",
         arguments: { serverId: foreignServerId },
@@ -76,7 +63,7 @@ export async function assertScoutApiAccess({
       await client.close();
     }
   } finally {
-    await setRole("owner");
+    await setRole("admin");
   }
 }
 

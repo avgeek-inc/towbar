@@ -9,7 +9,10 @@ import {
 import {
   isPrivateOrReservedAddress,
   renderSlackDeploymentMessage,
+  requirePublicHttpsUrl,
+  sendDiscordNotification,
   sendSlackNotification,
+  sendTelegramNotification,
 } from "./providers.js";
 import { backupStaleNotificationCopy } from "./backup-notifications.js";
 
@@ -166,4 +169,51 @@ void test("updates the Slack root only for the newest lifecycle event and always
     ["chat.update", "chat.postMessage"],
   );
   assert.equal(updatedRoot.rootUpdated, true);
+});
+
+void test("sends Discord and Telegram messages to their fixed provider hosts", async () => {
+  const calls: string[] = [];
+  const bodies: string[] = [];
+  const request = (url: string | URL | Request, init?: RequestInit) => {
+    calls.push(String(url));
+    if (typeof init?.body === "string") bodies.push(init.body);
+    return Promise.resolve(new Response("{}", { status: 200 }));
+  };
+  await sendDiscordNotification(
+    {
+      config: {
+        webhookUrl:
+          "https://discord.com/api/webhooks/123456/secret-token-value",
+      },
+      eventId: "event-discord",
+      payload: deploymentPayload,
+    },
+    request,
+  );
+  await sendTelegramNotification(
+    {
+      config: {
+        botToken: "123456:telegram-bot-secret-token",
+        chatId: "-100123456",
+        messageThreadId: 42,
+      },
+      eventId: "event-telegram",
+      payload: deploymentPayload,
+    },
+    request,
+  );
+  assert.match(calls[0]!, /^https:\/\/discord\.com\/api\/webhooks\//u);
+  assert.match(calls[1]!, /^https:\/\/api\.telegram\.org\/bot/u);
+  assert.equal(JSON.parse(bodies[1]!).message_thread_id, 42);
+});
+
+void test("rejects webhook endpoints with credentials or custom ports", async () => {
+  await assert.rejects(
+    requirePublicHttpsUrl("https://user:pass@example.com/hook"),
+    /public HTTPS URL/u,
+  );
+  await assert.rejects(
+    requirePublicHttpsUrl("https://example.com:8443/hook"),
+    /public HTTPS URL/u,
+  );
 });

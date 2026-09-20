@@ -1,3 +1,8 @@
+import {
+  authorizeQueuedEffect,
+  currentActor,
+  withActor,
+} from "../auth/actor-context.js";
 import { and, eq, isNotNull, isNull, notInArray } from "drizzle-orm";
 import {
   evaluateAutoDeployPause,
@@ -51,6 +56,7 @@ export async function scheduleSourceAutomaticDeployments(syncId: string) {
       deployAfterSync: sourceSyncs.deployAfterSync,
       commitSha: sourceSyncs.commitSha,
       requestedBy: sourceSyncs.requestedBy,
+      requestedByActor: sourceSyncs.requestedByActor,
       sourceId: sourceSyncs.sourceId,
       status: sourceSyncs.status,
       workspaceId: sources.workspaceId,
@@ -67,14 +73,21 @@ export async function scheduleSourceAutomaticDeployments(syncId: string) {
   ) {
     return { deploymentIds: [] };
   }
-  const result = await scheduleEligibleAutomaticDeployments({
-    commitSha: sync.commitSha,
-    sourceId: sync.sourceId,
-    sourceEnvironmentId: sync.sourceEnvironmentId,
-    syncId,
-    workspaceId: sync.workspaceId,
-  });
-  await requestDisabledPreviewCleanups(sync.sourceId);
+  const actor = await authorizeQueuedEffect(
+    sync.requestedByActor,
+    sync.workspaceId,
+    ["deployment.create"],
+  );
+  const result = await withActor(actor, () =>
+    scheduleEligibleAutomaticDeployments({
+      commitSha: sync.commitSha!,
+      sourceId: sync.sourceId,
+      sourceEnvironmentId: sync.sourceEnvironmentId!,
+      syncId,
+      workspaceId: sync.workspaceId,
+    }),
+  );
+  await requestDisabledPreviewCleanups(sync.sourceId, sync.sourceEnvironmentId);
   await scheduleSourcePreviewReconciliations(sync.sourceId);
   return result;
 }
@@ -294,8 +307,8 @@ export async function scheduleEligibleAutomaticDeployments(input: {
       }
       const gate = evaluateAutoDeployPause({
         deployablePaused: candidate.autoDeployPaused,
-        sourcePaused:
-          source.autoDeployPaused || Boolean(environment?.autoDeployPaused),
+        sourcePaused: source.autoDeployPaused,
+        environmentPaused: Boolean(environment?.autoDeployPaused),
       });
       if (gate.paused) {
         await database
@@ -303,7 +316,7 @@ export async function scheduleEligibleAutomaticDeployments(input: {
           .set({
             deferredAutomaticDeployment: createDeferredAutomaticDeployment({
               commitSha: input.commitSha,
-              deploymentDigest: candidate.deploymentDigest,
+              deploymentDigest: candidate.deploymentDigest!,
               gate,
               manifestId: candidate.manifestId,
             }),
@@ -311,22 +324,31 @@ export async function scheduleEligibleAutomaticDeployments(input: {
           .where(eq(apps.id, candidate.appId));
         return null;
       }
-      const result = await requestAppDeployment({
-        appId: candidate.appId,
-        expectedType: isNormalizedResource(candidate.config)
-          ? "resource"
-          : "app",
-        expectedCommitSha: input.commitSha,
-        idempotencyKey: sourceSyncDeploymentIdempotencyKey({
-          commitSha: input.commitSha,
-          deploymentDigest: candidate.deploymentDigest,
-          manifestId: candidate.manifestId,
-          sourceId: input.sourceId,
-          syncId: input.syncId,
-        }),
-        requestedBy: null,
-        workspaceId: input.workspaceId,
-      });
+      const result = await withActor(
+        currentActor() ?? {
+          kind: "system",
+          source: "worker",
+          workspaceId: input.workspaceId,
+          grants: ["deployment.create"],
+        },
+        () =>
+          requestAppDeployment({
+            appId: candidate.appId,
+            expectedType: isNormalizedResource(candidate.config)
+              ? "resource"
+              : "app",
+            expectedCommitSha: input.commitSha,
+            idempotencyKey: sourceSyncDeploymentIdempotencyKey({
+              commitSha: input.commitSha,
+              deploymentDigest: candidate.deploymentDigest!,
+              manifestId: candidate.manifestId,
+              sourceId: input.sourceId,
+              syncId: input.syncId,
+            }),
+            requestedBy: null,
+            workspaceId: input.workspaceId,
+          }),
+      );
       await database
         .update(apps)
         .set({ deferredAutomaticDeployment: null })

@@ -12,6 +12,7 @@ githubWebhookRoutes.post("/", async (context) => {
     deliveryId: context.req.header("x-github-delivery"),
     eventName: context.req.header("x-github-event"),
     signature: context.req.header("x-hub-signature-256"),
+    targetId: context.req.header("x-github-hook-installation-target-id"),
   });
   return context.json(result, 202);
 });

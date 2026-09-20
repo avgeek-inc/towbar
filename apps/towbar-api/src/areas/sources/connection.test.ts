@@ -18,6 +18,7 @@ void test("connection accepts more than twenty named mappings without a discover
     {
       ...repository,
       environments,
+      provider: "github",
     },
   );
   assert.equal(

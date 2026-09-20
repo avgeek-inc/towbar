@@ -1,71 +1,98 @@
 ---
-title: "Slack and email"
-description: "Configure notification providers and route Source events to the right destinations."
+title: "Notifications"
+description: "Configure operational notification providers and routes in the Towbar runtime environment."
 ---
 
-Towbar sends operational events to Slack channels and email recipients. Provider credentials are configured once for the installation. Each Source chooses its own destinations and event categories.
+Operational notification configuration lives only in `TOWBAR_NOTIFICATION_CONFIG_JSON`. The dashboard shows active providers, category routes, and persisted delivery history without exposing credentials or editing controls.
 
-## Configure Slack
+Set `TOWBAR_NOTIFICATIONS_ENABLED=true`, provide a JSON document with `providers` and `routes`, then restart the API. Invalid JSON, duplicate route IDs, missing provider credentials, or invalid destinations fail startup.
 
-Create a Slack app with a bot token and the [`chat:write` permission](https://docs.slack.dev/reference/scopes/chat.write/). Install it in the workspace and invite the bot to the channels that should receive notifications.
-
-Set `TOWBAR_SLACK_BOT_TOKEN` on the Towbar API deployment. With Compose, put it in `.env` and recreate the API:
-
-```bash
-docker compose up --detach --force-recreate api
+```json
+{
+  "providers": {
+    "slack": { "botToken": "xoxb-..." },
+    "smtp": {
+      "from": "towbar@example.com",
+      "host": "smtp.example.com",
+      "port": 587,
+      "secure": false,
+      "username": "towbar",
+      "password": "replace-me"
+    },
+    "telegram": { "botToken": "123456:...", "chatId": "-100123456" }
+  },
+  "routes": [
+    {
+      "id": "deployments-slack",
+      "provider": "slack",
+      "enabled": true,
+      "categories": ["deployments", "previews"],
+      "config": { "channelId": "C0123456789" }
+    },
+    {
+      "id": "operations-email",
+      "provider": "smtp",
+      "enabled": true,
+      "categories": ["health", "backups", "restores"],
+      "config": { "recipients": ["operations@example.com"] }
+    }
+  ]
+}
 ```
 
-Open **Manage → Integrations → Notifications → Slack** and confirm the provider is configured. Use the channel ID when adding a destination, not the channel's display name.
-
-## Configure email
-
-Set `TOWBAR_SMTP_HOST` and `TOWBAR_SMTP_FROM`. When authentication is required, set both `TOWBAR_SMTP_USERNAME` and `TOWBAR_SMTP_PASSWORD`. Match `TOWBAR_SMTP_PORT` and `TOWBAR_SMTP_SECURE` to the SMTP provider, then recreate the API.
-
-The default port is 587 and implicit TLS defaults to false. See the [SMTP variable reference](/docs/reference/environment-variables#email-smtp) for all options. **Integrations → Notifications → Email** shows whether the required settings are present.
-
-## Add a destination
-
-1. Open **Source → Settings → Notifications**.
-2. Select a configured provider and enter a Slack channel ID or email recipients.
-3. Choose the event categories and enable the destination.
-4. Save and send a test notification.
-5. Check the delivery result and confirm receipt at the destination.
-
-| Category    | Events include                                         |
-| ----------- | ------------------------------------------------------ |
-| Deployments | Queued, started, succeeded, failed, and cancelled      |
-| Previews    | Ready, failed, superseded, and cleaned up              |
-| Health      | Workload unhealthy and recovered                       |
-| Backups     | Stale, failed, and not restorable                      |
-| Restores    | Started, succeeded, failed, cancelled, and rolled back |
+Slack routes use channel IDs. SMTP routes use recipient arrays. Telegram routes can set a topic `messageThreadId`. Discord routes contain their incoming `webhookUrl`, and generic webhook routes contain their public HTTPS `url`; those two providers need no entry under `providers`.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
     <img
-      src="/assets/guides/notifications-light.webp"
-      alt="Example Source notification destinations. Unavailable indicates the installation’s Slack or email provider is not configured."
-      width="2160"
-      height="884"
+      src="/assets/release-v2/notifications-slack-light.jpg"
+      alt="Configured notification providers and their delivery history appear inside Integrations."
+      width="1280"
+      height="720"
       loading="lazy"
     />
   </div>
   <div className="towbar-product-dark">
     <img
-      src="/assets/guides/notifications-dark.webp"
-      alt="Example Source notification destinations. Unavailable indicates the installation’s Slack or email provider is not configured."
-      width="2160"
-      height="884"
+      src="/assets/release-v2/notifications-slack-dark.jpg"
+      alt="Configured notification providers and their delivery history appear inside Integrations."
+      width="1280"
+      height="720"
       loading="lazy"
     />
   </div>
   <p>
-    Example Source notification destinations. Unavailable indicates the
-    installation’s Slack or email provider is not configured.
+    Only providers enabled by the runtime configuration appear in the
+    Integrations sidebar.
   </p>
 </div>
 
+## Configure Slack
+
+Add one Slack bot token under `providers.slack`, then add a route for each channel and category combination. Put the channel ID in `config.channelId`. Install the bot in every target channel before restarting Towbar.
+
+## Configure email
+
+Add the SMTP host, port, TLS mode, sender, username, and password under `providers.smtp`. Each SMTP route declares a `config.recipients` array. The same SMTP provider also sends invitation, email-change, password-reset, and other transactional messages to the affected account.
+
+## Configure Discord
+
+Discord uses an incoming webhook per route. Put its full HTTPS URL in `config.webhookUrl`; no shared provider credential is required. Limit the webhook to the intended channel and rotate it in Discord if it is exposed.
+
+## Configure Telegram
+
+Add the bot token and chat ID under `providers.telegram`. A route may set `config.messageThreadId` when the destination is a forum topic. Ensure the bot can post to the configured chat before restarting Towbar.
+
+## Configure webhook push
+
+Generic webhook routes put a public HTTPS `url` directly in their route configuration. Towbar rejects credentials in the URL, private-network destinations, and unsupported ports. Authenticate the request at the receiving service using infrastructure controls appropriate for that endpoint.
+
+Towbar stores provider-neutral events, route IDs, delivery attempts, retry state, provider outcomes, and thread identifiers. Credentials are resolved from the current runtime configuration only when a delivery runs. Removing a route stops future matching deliveries without erasing history. Account and team transactional email uses the configured SMTP provider but selects the affected account as recipient rather than an operational route.
+
+## Delivery history
+
+Open **Manage → Integrations → Notifications → Deliveries** to filter and inspect persisted delivery history. A succeeded delivery means the provider accepted it; it does not prove a person read it.
+
 ## Diagnose delivery
 
-Each delivery has its own attempts and result. A failed notification does not turn a successful deployment into a failed deployment. Check the destination's enabled state and categories first, then provider access and the recorded delivery error.
-
-For Slack, verify the bot is in the channel. For SMTP, check authentication, sender permissions, TLS settings, and recipient delivery. A **Configured** badge only confirms settings are present; a successful test and actual receipt verify the delivery path.
+Use the delivery row’s status, attempt timestamps, and provider-safe error to distinguish routing, authentication, rate-limit, and temporary transport failures. Correct environment configuration and restart the API for authentication failures. Towbar retries transient failures with bounded backoff; repeated rate limits pause the affected destination rather than blocking application workflows.

@@ -12,7 +12,7 @@ import {
 import {
   apps,
   deployments,
-  githubInstallations,
+  integrationInstallations,
   monitoringAgents,
   monitoringSamples,
   servers,
@@ -82,7 +82,6 @@ void test(
         name: "Comparison fixture",
       });
       await db.insert(servers).values({
-        slug: `server-${serverId}`,
         id: serverId,
         workspaceId,
         canonicalIp: "192.0.2.202",
@@ -93,18 +92,19 @@ void test(
         .insert(monitoringAgents)
         .values({ serverId, desiredState: "enabled", status: "online" });
       const [installation] = await db
-        .insert(githubInstallations)
+        .insert(integrationInstallations)
         .values({
+          provider: "github",
           workspaceId,
-          installationId: randomUUID(),
-          accountLogin: "example",
-          accountType: "Organization",
+          externalId: randomUUID(),
+          principalName: "example",
+          principalType: "Organization",
         })
         .returning();
       await db.insert(sources).values({
         id: sourceId,
         workspaceId,
-        githubInstallationId: installation!.id,
+        integrationInstallationId: installation!.id,
         repositoryOwner: "example",
         repositoryName: "comparison",
       });

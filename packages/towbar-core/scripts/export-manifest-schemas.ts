@@ -1,11 +1,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { z } from "zod";
 import { format, resolveConfig } from "prettier";
-import {
-  appSchema,
-  resourceSchema,
-  serverSlugSchema,
-} from "../src/manifest.js";
+import { appSchema, ipAddressSchema, resourceSchema } from "../src/manifest.js";
+import { composeWorkloadSchema } from "../src/platform-expansion.js";
 import {
   environmentNameSchema,
   repositoryManifestSchema,
@@ -32,8 +29,9 @@ function partial(schema: Schema): Schema {
   return result;
 }
 function entitySchema(
-  schema: typeof appSchema | typeof resourceSchema,
-  kind: "app" | "resource",
+  schema:
+    typeof appSchema | typeof composeWorkloadSchema | typeof resourceSchema,
+  kind: "app" | "compose" | "resource",
 ) {
   const complete = z.toJSONSchema(schema, { io: "input" }) as Schema;
   const result = partial(complete);
@@ -43,10 +41,10 @@ function entitySchema(
       ([key]) => !["id", "name", "type", "preview"].includes(key),
     ),
   );
-  properties.server = z.toJSONSchema(serverSlugSchema, { io: "input" });
+  properties.server = z.toJSONSchema(ipAddressSchema, { io: "input" });
   overrides.server = properties.server;
   properties.secrets = z.toJSONSchema(
-    kind === "resource" ? resourceRequiredSecretsSchema : requiredSecretsSchema,
+    kind === "app" ? requiredSecretsSchema : resourceRequiredSecretsSchema,
     { io: "input" },
   );
   properties.environments = {
@@ -59,9 +57,9 @@ function entitySchema(
     },
   };
   result.required =
-    kind === "app"
-      ? ["id", "name", "environments"]
-      : ["id", "name", "type", "environments"];
+    kind === "resource"
+      ? ["id", "name", "type", "environments"]
+      : ["id", "name", "environments"];
   result.description =
     "Entity defaults are merged with the selected environment before full validation during sync. Branch mappings and secret values are managed in Towbar.";
   return result;
@@ -73,6 +71,7 @@ rootEnvironments.propertyNames = environmentNames;
 const schemas = {
   "repository.v2": repository,
   "app.v2": entitySchema(appSchema, "app"),
+  "compose.v2": entitySchema(composeWorkloadSchema, "compose"),
   "resource.v2": entitySchema(resourceSchema, "resource"),
 };
 for (const [name, schema] of Object.entries(schemas)) {

@@ -1,4 +1,11 @@
 "use client";
+
+import {
+  TableCellStack,
+  TableCellDescription,
+  tableCellDescriptionClassName,
+} from "@workspace/towbar-web-ui/table-cell-text";
+
 import { DeploymentEnvironmentChip } from "./deployment-environment-chip";
 
 import { deploymentSubtitle } from "@/lib/overview";
@@ -22,6 +29,9 @@ import { InlineLink } from "./page-parts";
 import { RelativeTime } from "./last-synced-time";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
+import { DomainLink } from "./domain-link";
+import { deploymentStatusTooltip } from "./deployment-table";
+import { deploymentHref } from "@/lib/deployment-route";
 
 export function OverviewIncidents() {
   const query = useApiQuery<{ activeIncidents: number }>(
@@ -68,6 +78,11 @@ export function OverviewIncidents() {
               <StatusBadge
                 status={count ? "critical" : "healthy"}
                 label={count ? "Needs attention" : "All clear"}
+                tooltip={
+                  count
+                    ? `${count} active ${count === 1 ? "incident needs" : "incidents need"} attention.`
+                    : "No incidents are currently active."
+                }
               />
             </div>
             <Image
@@ -102,17 +117,26 @@ function deploymentColumns(
           apps.find((app) => app.id === item.appId)?.config.domains?.primary,
         );
         return (
-          <div className="grid gap-0.5">
+          <TableCellStack as="div">
             <span>{item.deployableName}</span>
-            {detail && (
-              <span
-                className="max-w-48 truncate text-xs text-muted"
-                title={detail}
-              >
-                {detail}
-              </span>
-            )}
-          </div>
+            {detail ? (
+              item.deployableKind === "app" ? (
+                <DomainLink
+                  className={`${tableCellDescriptionClassName} max-w-48 truncate`}
+                  domain={detail}
+                >
+                  {detail}
+                </DomainLink>
+              ) : (
+                <TableCellDescription
+                  className="max-w-48 truncate"
+                  title={detail}
+                >
+                  {detail}
+                </TableCellDescription>
+              )
+            ) : null}
+          </TableCellStack>
         );
       },
     },
@@ -134,7 +158,12 @@ function deploymentColumns(
       key: "status",
       header: "Status",
       className: "whitespace-nowrap",
-      cell: (item) => <StatusBadge status={getDeploymentDisplayStatus(item)} />,
+      cell: (item) => (
+        <StatusBadge
+          status={getDeploymentDisplayStatus(item)}
+          tooltip={deploymentStatusTooltip(item)}
+        />
+      ),
     },
     {
       key: "requested",
@@ -162,9 +191,7 @@ export function OverviewDeployments({ apps }: { apps: App[] }) {
           columns={deploymentColumns(apps)}
           items={query.data.deployments}
           getRowKey={(item) => item.id}
-          getRowHref={(item) =>
-            `/sources/${item.sourceId}/deployments/${item.id}`
-          }
+          getRowHref={deploymentHref}
           emptyTitle="No deployments yet"
           emptyDescription="Your latest deployments will appear here."
         />

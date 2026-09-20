@@ -4,16 +4,13 @@ import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
 import { eq } from "drizzle-orm";
 import {
-  aggregateMonitoringValues,
   normalizeDeploymentManifest,
   normalizeServerConfiguration,
   scoutAlertRuleSchema,
 } from "@workspace/towbar-core";
 import {
   apps,
-  githubInstallations,
-  monitoringAgents,
-  monitoringSamples,
+  integrationInstallations,
   servers,
   sources,
   users,
@@ -65,7 +62,6 @@ void test(
         displayName: "Tester",
       });
       await db.insert(servers).values({
-        slug: `server-${serverId}`,
         id: serverId,
         workspaceId,
         canonicalIp: "192.0.2.209",
@@ -76,18 +72,19 @@ void test(
         configDigest: "fixture",
       });
       const [installation] = await db
-        .insert(githubInstallations)
+        .insert(integrationInstallations)
         .values({
+          provider: "github",
           workspaceId,
-          installationId: randomUUID(),
-          accountLogin: "example",
-          accountType: "Organization",
+          externalId: randomUUID(),
+          principalName: "example",
+          principalType: "Organization",
         })
         .returning();
       await db.insert(sources).values({
         id: sourceId,
         workspaceId,
-        githubInstallationId: installation!.id,
+        integrationInstallationId: installation!.id,
         repositoryOwner: "example",
         repositoryName: "limits",
       });
@@ -135,114 +132,6 @@ void test(
           sourceRevision: "abcdef0",
         });
       }
-      const { getWorkspaceMonitoringSummary } =
-        await import("./workspace-summary.js");
-      const summaryNow = new Date();
-      await db.insert(monitoringAgents).values({
-        serverId,
-        desiredState: "enabled",
-        status: "online",
-        lastCollectedAt: summaryNow,
-      });
-      await db.insert(monitoringSamples).values([
-        {
-          serverId,
-          entityId: "host",
-          bucketAt: summaryNow,
-          metrics: aggregateMonitoringValues({
-            cpuPercent: 81,
-            memoryPercent: 95,
-          }),
-        },
-        ...["app-one", "app-two"].map((entityId) => ({
-          serverId,
-          entityId,
-          deployableId: appId,
-          state: "running",
-          bucketAt: summaryNow,
-          metrics: aggregateMonitoringValues({ cpuPercent: 90 }),
-        })),
-        {
-          serverId,
-          entityId: "resource",
-          deployableId: resourceId,
-          state: "running",
-          bucketAt: summaryNow,
-          metrics: aggregateMonitoringValues({ memoryPercent: 80 }),
-        },
-        {
-          serverId,
-          entityId: "stopped",
-          deployableId: resourceId,
-          state: "exited",
-          bucketAt: summaryNow,
-          metrics: aggregateMonitoringValues({ memoryPercent: 99 }),
-        },
-        {
-          serverId,
-          entityId: "stale",
-          deployableId: resourceId,
-          state: "running",
-          bucketAt: new Date(summaryNow.getTime() - 120000),
-          metrics: aggregateMonitoringValues({ memoryPercent: 99 }),
-        },
-        {
-          serverId,
-          entityId: "orphan",
-          deployableId: randomUUID(),
-          state: "running",
-          bucketAt: summaryNow,
-          metrics: aggregateMonitoringValues({ memoryPercent: 99 }),
-        },
-      ]);
-      // No rules exist: count entities once, even across metrics and replicas. Exactly 80 is healthy.
-      assert.deepEqual(
-        await getWorkspaceMonitoringSummary(workspaceId, summaryNow),
-        {
-          activeIncidents: 0,
-          criticalVulnerabilities: 0,
-          pressuredEntities: 2,
-        },
-      );
-      await db.insert(monitoringSamples).values({
-        serverId,
-        entityId: "resource",
-        deployableId: resourceId,
-        state: "running",
-        bucketAt: new Date(summaryNow.getTime() + 1000),
-        metrics: aggregateMonitoringValues({ memoryPercent: 81 }),
-      });
-      assert.equal(
-        (
-          await getWorkspaceMonitoringSummary(
-            workspaceId,
-            new Date(summaryNow.getTime() + 1000),
-          )
-        ).pressuredEntities,
-        3,
-      );
-      await db
-        .update(apps)
-        .set({ archivedAt: summaryNow })
-        .where(eq(apps.id, appId));
-      assert.equal(
-        (await getWorkspaceMonitoringSummary(workspaceId, summaryNow))
-          .pressuredEntities,
-        1,
-      );
-      await db.update(apps).set({ archivedAt: null }).where(eq(apps.id, appId));
-      assert.equal(
-        (
-          await getWorkspaceMonitoringSummary(
-            workspaceId,
-            new Date(summaryNow.getTime() + 120000),
-          )
-        ).pressuredEntities,
-        0,
-      );
-      await db
-        .delete(monitoringSamples)
-        .where(eq(monitoringSamples.serverId, serverId));
       for (const entity of [null, appId, resourceId]) {
         // Disabled rules also occupy slots; concurrent requests contend for the tenth.
         for (let i = 0; i < 9; i++)
@@ -272,14 +161,10 @@ void test(
           ruleId: first.id,
           rule: { ...rule(entity), name: "Edited at capacity" },
         });
-        // Workload environments do not have separate allowances.
         await assert.rejects(
           saveScoutAlertRule({
             ...scope,
-            rule: {
-              ...rule(entity),
-              environment: entity ? "preview" : "production",
-            },
+            rule: rule(entity),
           }),
           limitError,
         );
@@ -301,35 +186,6 @@ void test(
         (await listScoutAlertRules({ ...scope, deployableId: appId })).rules
           .length,
         10,
-      );
-      const { listWorkspaceAlerts, monitoringOverviewQuery } =
-        await import("./workspace.js");
-      for (const [kind, id] of [
-        ["server", serverId],
-        ["app", appId],
-        ["resource", resourceId],
-      ]) {
-        const result = await listWorkspaceAlerts(
-          workspaceId,
-          monitoringOverviewQuery.parse({ kind, limit: 50 }),
-        );
-        assert.equal(result.items.length, 10);
-        for (const row of result.items)
-          assert.equal(row.rule.deployableId ?? row.rule.serverId, id);
-        const specific = await listWorkspaceAlerts(
-          workspaceId,
-          monitoringOverviewQuery.parse({ entityId: id, limit: 50 }),
-        );
-        assert.equal(specific.items.length, 10);
-      }
-      assert.equal(
-        (
-          await listWorkspaceAlerts(
-            workspaceId,
-            monitoringOverviewQuery.parse({ kind: "server", entityId: appId }),
-          )
-        ).items.length,
-        0,
       );
     } finally {
       await db.delete(workspaces).where(eq(workspaces.id, workspaceId));

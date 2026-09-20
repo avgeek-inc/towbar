@@ -1,80 +1,71 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
+import { readFile, readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
+import { runTowbarMigrations } from "../dist/migrate.js";
 
 const url = process.env.TOWBAR_TEST_DATABASE_URL;
-test(
-  "workspace migration preserves existing cleanup history",
-  { skip: !url },
-  async () => {
-    assert(
-      new URL(url).pathname.endsWith("_test"),
-      "Use a dedicated test database ending in _test",
-    );
-    const admin = postgres(url, { max: 1, onnotice() {} });
-    const databaseName = `towbar_upgrade_${randomUUID().replaceAll("-", "")}_test`;
-    const folder = await mkdtemp(path.join(tmpdir(), "towbar-upgrade-"));
-    let client;
-    try {
-      await admin.unsafe(`CREATE DATABASE "${databaseName}"`);
-      const databaseUrl = new URL(url);
-      databaseUrl.pathname = `/${databaseName}`;
-      client = postgres(databaseUrl.toString(), { max: 1, onnotice() {} });
-      const migrationsFolder = fileURLToPath(
-        new URL("../drizzle", import.meta.url),
-      );
-      await cp(migrationsFolder, folder, { recursive: true });
-      const journalPath = path.join(folder, "meta/_journal.json");
-      const journal = JSON.parse(await readFile(journalPath, "utf8"));
-      const entries = journal.entries;
-      journal.entries = entries.filter((entry) => entry.idx < 37);
-      await writeFile(journalPath, JSON.stringify(journal));
-      await migrate(drizzle(client), { migrationsFolder: folder });
+const migrationsFolder = fileURLToPath(new URL("../drizzle", import.meta.url));
 
-      const [workspace] =
-        await client`insert into towbar_workspaces (slug, name) values ('upgrade', 'Upgrade test') returning id`;
-      const [installation] =
-        await client`insert into towbar_github_installations (workspace_id, installation_id, account_login, account_type) values (${workspace.id}, '1', 'example', 'Organization') returning id`;
-      const [source] =
-        await client`insert into towbar_sources (workspace_id, github_installation_id, repository_owner, repository_name, branch) values (${workspace.id}, ${installation.id}, 'example', 'app', 'main') returning id`;
-      const [server] =
-        await client`insert into towbar_servers (workspace_id, source_id, canonical_ip, config, config_digest, source_revision) values (${workspace.id}, ${source.id}, '192.0.2.10', '{}', 'fixture', 'fixture') returning id`;
-      const [operation] =
-        await client`insert into towbar_resource_operations (workspace_id, source_id, server_id, idempotency_key, temporal_workflow_id, type, state, request, server_snapshot) values (${workspace.id}, ${source.id}, ${server.id}, 'cleanup-test', 'cleanup-test', 'cleanup_orphans', 'succeeded', '{"type":"cleanup_orphans","items":[]}', '{}') returning id`;
-
-      journal.entries = entries.filter((entry) => entry.idx <= 37);
-      await writeFile(journalPath, JSON.stringify(journal));
-      await migrate(drizzle(client), { migrationsFolder: folder });
-      const [upgraded] =
-        await client`select source_id, server_id, type, state from towbar_resource_operations where id = ${operation.id}`;
-      assert.deepEqual(upgraded, {
-        source_id: null,
-        server_id: server.id,
-        type: "cleanup_orphans",
-        state: "succeeded",
-      });
-      await assert.rejects(
-        client`update towbar_resource_operations set source_id = ${source.id} where id = ${operation.id}`,
-        { code: "23514" },
-      );
-    } finally {
-      await client?.end();
-      await admin.unsafe(`DROP DATABASE IF EXISTS "${databaseName}"`);
-      await admin.end();
-      await rm(folder, { recursive: true, force: true });
-    }
-  },
-);
+test("v2 migration journal describes only the 001 baseline", async () => {
+  const files = (await readdir(migrationsFolder)).filter((name) =>
+    name.endsWith(".sql"),
+  );
+  assert.deepEqual(files, ["001_team_access_v2.sql"]);
+  const journal = JSON.parse(
+    await readFile(`${migrationsFolder}/meta/_journal.json`, "utf8"),
+  );
+  assert.equal(journal.entries.length, 1);
+  assert.equal(journal.entries[0].tag, "001_team_access_v2");
+  const migration = await readFile(
+    `${migrationsFolder}/001_team_access_v2.sql`,
+    "utf8",
+  );
+  assert.match(
+    migration,
+    /CREATE UNIQUE INDEX "uq_towbar_integration_workspace_provider" ON "towbar_integration_authorizations" USING btree \("workspace_id","provider"\)/u,
+  );
+  assert.match(
+    migration,
+    /CREATE FUNCTION towbar_record_deployable_ownership\(\) RETURNS trigger/u,
+  );
+  assert.match(
+    migration,
+    /CREATE FUNCTION towbar_require_active_server\(\) RETURNS trigger/u,
+  );
+  assert.match(
+    migration,
+    /CREATE FUNCTION towbar_merge_monitoring_metrics\(a jsonb, b jsonb\) RETURNS jsonb/u,
+  );
+  assert.equal(
+    migration.match(/CREATE TRIGGER towbar_require_active_server/gu)?.length,
+    9,
+  );
+  assert.match(
+    migration,
+    /CREATE TRIGGER towbar_monitoring_require_active_server/u,
+  );
+  assert.doesNotMatch(migration, /towbar_notification_destinations/u);
+  assert.doesNotMatch(
+    migration,
+    /towbar_workspace_notification_provider_configurations/u,
+  );
+  assert.doesNotMatch(migration, /towbar_log_drain_configurations/u);
+  assert.doesNotMatch(
+    migration,
+    /towbar_(?:auth_sso|enterprise_identity|scim_)/u,
+  );
+  assert.doesNotMatch(migration, /'(?:oidc|saml|scim)'/u);
+  assert.doesNotMatch(migration, /fluent[ -]?bit/iu);
+  assert.doesNotMatch(migration, /aws.?secrets.?manager/iu);
+});
 
 test(
-  "fresh installation applies the complete v2 schema",
+  "fresh installation applies v2 auth, tenancy and runtime safeguards",
   { skip: !url },
   async () => {
     assert(
@@ -89,37 +80,85 @@ test(
       const databaseUrl = new URL(url);
       databaseUrl.pathname = `/${databaseName}`;
       client = postgres(databaseUrl.toString(), { max: 1, onnotice() {} });
-      const migrationsFolder = fileURLToPath(
-        new URL("../drizzle", import.meta.url),
+      await client`create table towbar_workspaces(id text primary key)`;
+      await client`insert into towbar_workspaces values ('preserve-legacy-data')`;
+      await assert.rejects(
+        runTowbarMigrations({
+          databaseUrl: databaseUrl.toString(),
+          logger: { info() {}, error() {} },
+        }),
+        /requires a fresh database/,
       );
+      assert.equal(
+        (await client`select id from towbar_workspaces`)[0].id,
+        "preserve-legacy-data",
+      );
+      await client`drop table towbar_workspaces`;
       await migrate(drizzle(client), { migrationsFolder });
       await migrate(drizzle(client), { migrationsFolder });
-      const columns = await client`
-      select table_name, column_name, is_nullable from information_schema.columns
-      where table_schema = 'public' and
-      ((table_name = 'towbar_servers' and column_name = 'slug') or
-       (table_name = 'towbar_apps' and column_name = 'required_secrets') or
-       (table_name = 'towbar_deployments' and column_name = 'target_environment'))
-      order by table_name`;
+      const [{ count }] =
+        await client`select count(*)::int as count from drizzle.__drizzle_migrations`;
+      assert.equal(count, 1);
+      const roles =
+        await client`select enumlabel from pg_enum join pg_type on pg_type.oid = enumtypid where typname = 'towbar_workspace_role' order by enumsortorder`;
       assert.deepEqual(
-        [...columns],
-        [
-          {
-            table_name: "towbar_apps",
-            column_name: "required_secrets",
-            is_nullable: "NO",
-          },
-          {
-            table_name: "towbar_deployments",
-            column_name: "target_environment",
-            is_nullable: "NO",
-          },
-          {
-            table_name: "towbar_servers",
-            column_name: "slug",
-            is_nullable: "NO",
-          },
-        ],
+        roles.map((row) => row.enumlabel),
+        ["admin", "member", "viewer"],
+      );
+      const columns =
+        await client`select table_name, column_name from information_schema.columns where table_schema = 'public'`;
+      for (const [table, column] of [
+        ["towbar_servers", "canonical_ip"],
+        ["towbar_apps", "required_secrets"],
+        ["towbar_deployments", "target_environment"],
+        ["towbar_deployments", "requested_by_actor"],
+        ["towbar_source_syncs", "requested_by_actor"],
+        ["towbar_api_key_policies", "creation_request_id"],
+        ["towbar_users", "must_change_password"],
+        ["towbar_sessions", "authenticated_at"],
+        ["towbar_preview_environments", "cleanup_requested_by_actor"],
+      ])
+        assert(
+          columns.some(
+            (row) => row.table_name === table && row.column_name === column,
+          ),
+          `${table}.${column}`,
+        );
+      const [{ merged }] =
+        await client`select towbar_merge_monitoring_metrics('{"cpu":{"sum":3,"min":1,"max":2,"count":2}}', '{"cpu":{"sum":4,"min":4,"max":4,"count":1}}') as merged`;
+      assert.deepEqual(merged, { cpu: { sum: 7, min: 1, max: 4, count: 3 } });
+      const [workspace] =
+        await client`insert into towbar_workspaces (slug, name) values ('fresh', 'Fresh install') returning id`;
+      const [server] =
+        await client`insert into towbar_servers (workspace_id, canonical_ip, config, config_digest, archived_at) values (${workspace.id}, '192.0.2.10', '{}', 'fixture', now()) returning id`;
+      await assert.rejects(
+        client`insert into towbar_server_checks (server_id) values (${server.id})`,
+        { code: "23514" },
+      );
+      const triggers =
+        await client`select tgname from pg_trigger where not tgisinternal`;
+      assert.equal(
+        triggers.filter((row) => row.tgname === "towbar_require_active_server")
+          .length,
+        9,
+      );
+      assert(
+        triggers.some(
+          (row) => row.tgname === "towbar_record_deployable_ownership",
+        ),
+      );
+      assert(
+        triggers.some(
+          (row) => row.tgname === "towbar_monitoring_require_active_server",
+        ),
+      );
+      const integrationIndexes =
+        await client`select indexname from pg_indexes where schemaname = 'public' and tablename = 'towbar_integration_authorizations'`;
+      assert(
+        integrationIndexes.some(
+          (row) => row.indexname === "uq_towbar_integration_workspace_provider",
+        ),
+        "integration providers must be unique within a workspace",
       );
     } finally {
       await client?.end();

@@ -21,7 +21,7 @@ function resolve(overrides: Record<string, unknown> = {}) {
           tls: { mode: "cloudflare-dns" },
           preview: { enabled: true, domain: "preview.example.com" },
           secrets: { runtime: ["TOKEN"] },
-          environments: { staging: { server: "stage-host" } },
+          environments: { staging: { server: "192.0.2.10" } },
           ...overrides,
         }),
       },
@@ -51,7 +51,7 @@ void test("uses PR build configuration and secret declarations without mutating 
 void test("retains the target infrastructure and preview domain when PR files change them", () => {
   const target = resolve().manifest.apps[0]!;
   const resolved = resolve({
-    environments: { staging: { server: "different-host" } },
+    environments: { staging: { server: "192.0.2.11" } },
     preview: { enabled: true, domain: "different.example.com", ttlHours: 1 },
   });
   const preview = resolvePreviewConfiguration({ target, resolved });

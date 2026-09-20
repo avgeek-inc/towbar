@@ -23,11 +23,11 @@ const app = {
   secrets: { runtime: ["DATABASE_URL", "SESSION_SECRET"] },
   environments: {
     production: {
-      server: "production-server",
+      server: "192.0.2.10",
       domains: { primary: "app.example.com" },
     },
     staging: {
-      server: "staging-server",
+      server: "192.0.2.11",
       container: { resources: { cpus: 0.5 } },
       domains: { primary: "staging.example.com" },
     },
@@ -73,7 +73,7 @@ void test("root rejects Git branch mappings and configurable entity directories"
 void test("resolves only selected environment with deep object overrides and required secrets", () => {
   const { manifest } = resolve();
   assert.equal(manifest.version, 2);
-  assert.equal(manifest.apps[0]?.server, "staging-server");
+  assert.equal(manifest.apps[0]?.server, "192.0.2.11");
   assert.equal(manifest.apps[0]?.sourceBranch, "develop");
   assert.deepEqual(manifest.apps[0]?.container.resources, {
     cpus: 0.5,
@@ -105,7 +105,7 @@ void test("replaces lists instead of concatenating them", () => {
       redirects: [{ host: "old.example.com" }],
     },
     environments: {
-      staging: { server: "staging-server", domains: { redirects: [] } },
+      staging: { server: "192.0.2.11", domains: { redirects: [] } },
     },
   };
   assert.deepEqual(resolve(entity).manifest.apps[0]?.domains?.redirects, []);
@@ -125,7 +125,7 @@ void test("logical app and resource may share an id", () => {
     id: "website",
     name: "Database",
     type: "postgres",
-    environments: { staging: { server: "staging-server" } },
+    environments: { staging: { server: "192.0.2.11" } },
   });
   assert.equal(result.manifest.apps[0]?.id, result.manifest.resources?.[0]?.id);
 });
@@ -136,7 +136,7 @@ void test("resources declare runtime secrets only", () => {
     name: "Database",
     type: "postgres",
     secrets: { runtime: ["POSTGRES_PASSWORD"] },
-    environments: { staging: { server: "staging-server" } },
+    environments: { staging: { server: "192.0.2.11" } },
   };
   assert.deepEqual(
     resolve(app, "staging", resource).manifest.requiredSecrets[
@@ -161,20 +161,19 @@ void test("resources declare runtime secrets only", () => {
 
 void test("rejects unknown environments and identity overrides", () => {
   assert.throws(
-    () =>
-      resolve({ ...app, environments: { typo: { server: "staging-server" } } }),
+    () => resolve({ ...app, environments: { typo: { server: "192.0.2.11" } } }),
     /invalid/,
   );
   assert.throws(() =>
     resolve({
       ...app,
-      environments: { staging: { id: "other", server: "staging-server" } },
+      environments: { staging: { id: "other", server: "192.0.2.11" } },
     }),
   );
   assert.throws(() => resolve(app, "missing"));
 });
 
-void test("rejects duplicate keys, aliases, invalid secret declarations and IP server references", () => {
+void test("rejects duplicate keys, aliases, invalid secrets and non-IP server references", () => {
   assert.throws(() =>
     parseRepositoryManifest("version: 2\nversion: 2\nenvironments: {}"),
   );
@@ -186,7 +185,10 @@ void test("rejects duplicate keys, aliases, invalid secret declarations and IP s
   assert.throws(() => resolve({ ...app, secrets: { runtime: ["A", "A"] } }));
   assert.throws(() => resolve({ ...app, secrets: { runtime: ["__proto__"] } }));
   assert.throws(() =>
-    resolve({ ...app, environments: { staging: { server: "192.0.2.1" } } }),
+    resolve({
+      ...app,
+      environments: { staging: { server: "staging-server" } },
+    }),
   );
 });
 

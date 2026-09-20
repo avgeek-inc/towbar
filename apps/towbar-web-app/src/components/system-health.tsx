@@ -6,8 +6,7 @@ import {
   CheckmarkCircle02Icon,
   HealthIcon,
   InformationCircleIcon,
-  PlugSocketIcon,
-  Tick02Icon,
+  ReloadIcon,
 } from "@hugeicons/core-free-icons";
 
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
@@ -46,7 +45,7 @@ const statusPresentation = {
   healthy: {
     icon: CheckmarkCircle02Icon,
     label: "Healthy",
-    text: "text-success",
+    text: "text-success-soft-foreground",
     variant: "success" as const,
   },
   unknown: {
@@ -74,6 +73,7 @@ export function SystemHealthPage() {
     );
   }
   const health = query.data;
+  const checksStale = health.checks.some(isCheckStale);
   return (
     <DashboardPage
       icon={HealthIcon}
@@ -81,8 +81,7 @@ export function SystemHealthPage() {
         <ActionButton<SystemHealth>
           confirm={{
             title: "Run system checks?",
-            description:
-              "Run fresh checks against the control plane and configured integrations.",
+            description: "Run fresh checks against the Towbar control plane.",
             actionLabel: "Run checks",
           }}
           action={() => api.post("/v1/core/system-health/actions/check")}
@@ -93,29 +92,32 @@ export function SystemHealthPage() {
         >
           <HugeiconsIcon
             aria-hidden="true"
-            icon={Tick02Icon}
+            icon={ReloadIcon}
             className="size-4 shrink-0"
           />
           Run checks
         </ActionButton>
       }
-      badge={<HealthStatusChip status={health.status} />}
+      badge={
+        <HealthStatusChip
+          stale={checksStale}
+          status={health.status}
+          tooltip={
+            checksStale
+              ? "One or more system checks are older than 15 minutes."
+              : health.status === "healthy"
+                ? "All current system checks passed."
+                : "One or more current system checks need attention."
+          }
+        />
+      }
       title="System health"
     >
       <HealthChecks
-        checks={health.checks.filter(
-          (check) => check.id !== "github" && check.id !== "aws",
-        )}
+        checks={health.checks}
         title="Control plane"
         icon={Activity01Icon}
         version={health.version}
-      />
-      <HealthChecks
-        checks={health.checks.filter(
-          (check) => check.id === "github" || check.id === "aws",
-        )}
-        title="Integrations"
-        icon={PlugSocketIcon}
       />
     </DashboardPage>
   );
@@ -141,7 +143,9 @@ function HealthChecks({
       </Widget.Header>
       <Widget.Content className="grid p-0">
         {checks.map((check) => {
-          const presentation = statusPresentation[check.status];
+          const stale = isCheckStale(check);
+          const presentation =
+            statusPresentation[stale ? "attention" : check.status];
           return (
             <div
               className="grid gap-3 border-b border-separator px-5 py-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
@@ -156,7 +160,11 @@ function HealthChecks({
                 <div className="grid min-w-0 gap-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-sm font-medium">{check.title}</h3>
-                    <HealthStatusChip status={check.status} />
+                    <HealthStatusChip
+                      checkedAt={check.checkedAt}
+                      stale={stale}
+                      status={check.status}
+                    />
                   </div>
                   <p className="text-sm text-muted">{check.description}</p>
                   {check.checkedAt ? (
@@ -194,16 +202,37 @@ function HealthChecks({
   );
 }
 
-function HealthStatusChip({ status }: { status: SystemHealthStatus }) {
-  const presentation = statusPresentation[status];
+function HealthStatusChip({
+  checkedAt,
+  stale = false,
+  status,
+  tooltip,
+}: {
+  checkedAt?: string | null;
+  stale?: boolean;
+  status: SystemHealthStatus;
+  tooltip?: string;
+}) {
+  const presentation = statusPresentation[stale ? "attention" : status];
   return (
     <Chip
       variant={presentation.variant}
       icon={<HugeiconsIcon icon={presentation.icon} />}
+      tooltip={
+        tooltip ??
+        (checkedAt
+          ? `${stale ? "This result is stale. Last checked" : "Last checked"} ${formatDate(checkedAt)}.`
+          : "This check has not run yet.")
+      }
     >
-      {presentation.label}
+      {stale ? "Checks stale" : presentation.label}
     </Chip>
   );
+}
+
+function isCheckStale(check: SystemHealthCheck) {
+  if (!check.checkedAt) return true;
+  return Date.now() - new Date(check.checkedAt).getTime() > 15 * 60 * 1000;
 }
 
 function shortVersion(version: string) {

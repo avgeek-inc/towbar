@@ -31,10 +31,19 @@ export function deploymentSubtitle(
   item: Pick<Deployment, "deployableKind" | "hostname" | "environment">,
   productionDomain?: string,
 ) {
+  if (item.deployableKind === "compose") return "Docker Compose";
   if (item.deployableKind !== "app")
-    return { image: "Container image", postgres: "PostgreSQL", redis: "Redis" }[
-      item.deployableKind
-    ];
+    return {
+      clickhouse: "ClickHouse",
+      dragonfly: "Dragonfly",
+      image: "Container image",
+      keydb: "KeyDB",
+      mariadb: "MariaDB",
+      mongodb: "MongoDB",
+      mysql: "MySQL",
+      postgres: "PostgreSQL",
+      redis: "Redis",
+    }[item.deployableKind];
   return (
     item.hostname ??
     (item.environment === "production" ? productionDomain : undefined)

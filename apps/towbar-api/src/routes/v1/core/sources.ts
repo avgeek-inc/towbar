@@ -1,3 +1,4 @@
+import { actorAllows } from "@workspace/towbar-access";
 import { sourceConnectionRoutes } from "./source-connection.js";
 import { sourceEnvironmentRoutes } from "./source-environments.js";
 import { filterSources, sourceFilters } from "@workspace/towbar-core/inventory";
@@ -16,7 +17,11 @@ import { listDeployments } from "../../../areas/deployments/service.js";
 import { listSourceCapacity } from "../../../areas/servers/capacity.js";
 import { listSourceBackups } from "../../../areas/resource-operations/service.js";
 import { listPreviewEnvironments } from "../../../areas/previews/service.js";
-import { forbidden } from "../../../http/errors.js";
+import {
+  listRepositoryBranches,
+  sourceProviderClient,
+} from "../../../areas/sources/repository-provider.js";
+
 import { readJson } from "../../../http/requests.js";
 import { autoDeployControlPatchSchema } from "./auto-deploy-control-requests.js";
 import {
@@ -34,6 +39,7 @@ sourceRoutes.route("/:sourceId/environments", sourceEnvironmentRoutes);
 sourceRoutes.get(
   "/",
   operation({
+    permissions: ["repository.read"],
     responseSchema: 'sources.ts:get:"/"',
     query: sourceFilters,
     summary: "List sources",
@@ -52,6 +58,7 @@ sourceRoutes.get(
 sourceRoutes.get(
   "/:sourceId",
   operation({
+    permissions: ["repository.read"],
     responseSchema: 'sources.ts:get:"/:sourceId"',
     summary: "Get source",
     response: "JSON object containing canManageSource, source.",
@@ -60,8 +67,29 @@ sourceRoutes.get(
   async (context) => {
     const user = context.get("user");
     return context.json({
-      canManageSource: user.workspaceRole === "owner",
+      canManageSource: actorAllows(context.get("actor"), ["repository.update"]),
       source: await getSource(context.req.param("sourceId"), user.workspaceId),
+    });
+  },
+);
+
+sourceRoutes.get(
+  "/:sourceId/branches",
+  operation({
+    permissions: ["repository.read"],
+    responseSchema: 'sources.ts:get:"/:sourceId/branches"',
+    summary: "List repository branches",
+    response: "Branch names visible through the repository connection.",
+    status: 200,
+  }),
+  async (context) => {
+    const user = context.get("user");
+    const sourceId = context.req.param("sourceId");
+    await getSource(sourceId, user.workspaceId);
+    return context.json({
+      branches: await listRepositoryBranches(
+        await sourceProviderClient(sourceId),
+      ),
     });
   },
 );
@@ -69,6 +97,7 @@ sourceRoutes.get(
 sourceRoutes.get(
   "/:sourceId/auto-deploy-control",
   operation({
+    permissions: ["repository.read"],
     responseSchema: 'sources.ts:get:"/:sourceId/auto-deploy-control"',
     summary: "Get source auto deploy control",
     response: "JSON object containing autoDeploy, canManageAutoDeploy.",
@@ -81,7 +110,9 @@ sourceRoutes.get(
         context.req.param("sourceId"),
         user.workspaceId,
       ),
-      canManageAutoDeploy: user.workspaceRole === "owner",
+      canManageAutoDeploy: actorAllows(context.get("actor"), [
+        "deployment.create",
+      ]),
     });
   },
 );
@@ -89,20 +120,15 @@ sourceRoutes.get(
 sourceRoutes.patch(
   "/:sourceId/auto-deploy-control",
   operation({
+    permissions: ["deployment.create"],
     responseSchema: 'sources.ts:patch:"/:sourceId/auto-deploy-control"',
     summary: "Update source auto deploy control",
     body: autoDeployControlPatchSchema,
-    ownerOnly: true,
     response: "JSON object containing autoDeploy, canManageAutoDeploy.",
     status: 200,
   }),
   async (context) => {
     const user = context.get("user");
-    if (user.workspaceRole !== "owner") {
-      throw forbidden(
-        "Only the owner can manage automatic deployment controls",
-      );
-    }
     const sourceId = context.req.param("sourceId");
     const result = await updateSourceAutoDeployControl({
       ...(await readJson(context, autoDeployControlPatchSchema)),
@@ -115,7 +141,9 @@ sourceRoutes.patch(
     }
     return context.json({
       autoDeploy,
-      canManageAutoDeploy: user.workspaceRole === "owner",
+      canManageAutoDeploy: actorAllows(context.get("actor"), [
+        "deployment.create",
+      ]),
     });
   },
 );
@@ -123,6 +151,7 @@ sourceRoutes.patch(
 sourceRoutes.get(
   "/:sourceId/apps",
   operation({
+    permissions: ["repository.read"],
     responseSchema: 'sources.ts:get:"/:sourceId/apps"',
     summary: "List source apps",
     response: "JSON object containing apps.",
@@ -140,6 +169,7 @@ sourceRoutes.get(
 sourceRoutes.get(
   "/:sourceId/resources",
   operation({
+    permissions: ["repository.read"],
     responseSchema: 'sources.ts:get:"/:sourceId/resources"',
     summary: "List source resources",
     response: "JSON object containing resources.",
@@ -160,6 +190,7 @@ sourceRoutes.get(
 sourceRoutes.get(
   "/:sourceId/capacity",
   operation({
+    permissions: ["repository.read"],
     responseSchema: 'sources.ts:get:"/:sourceId/capacity"',
     summary: "List source capacity",
     response: "JSON object containing capacities.",
@@ -178,6 +209,7 @@ sourceRoutes.get(
 sourceRoutes.get(
   "/:sourceId/deployments",
   operation({
+    permissions: ["repository.read"],
     responseSchema: 'sources.ts:get:"/:sourceId/deployments"',
     summary: "List source deployments",
     response: "JSON object containing deployments.",
@@ -198,6 +230,7 @@ sourceRoutes.get(
 sourceRoutes.get(
   "/:sourceId/backups",
   operation({
+    permissions: ["repository.read"],
     responseSchema: 'sources.ts:get:"/:sourceId/backups"',
     summary: "List source backups",
     response: "JSON object containing backups.",
@@ -218,6 +251,7 @@ sourceRoutes.get(
 sourceRoutes.get(
   "/:sourceId/previews",
   operation({
+    permissions: ["repository.read"],
     responseSchema: 'sources.ts:get:"/:sourceId/previews"',
     summary: "List source previews",
     response: "JSON object containing previews.",
@@ -238,17 +272,14 @@ sourceRoutes.get(
 sourceRoutes.delete(
   "/:sourceId",
   operation({
+    permissions: ["repository.disconnect"],
     responseSchema: 'sources.ts:delete:"/:sourceId"',
     summary: "Delete source",
-    ownerOnly: true,
     response: "No response body.",
     status: 204,
   }),
   async (context) => {
     const user = context.get("user");
-    if (user.workspaceRole !== "owner") {
-      throw forbidden("Only administrators can delete Sources");
-    }
     await deleteSource(context.req.param("sourceId"), user.workspaceId);
     return context.body(null, 204);
   },
@@ -257,6 +288,7 @@ sourceRoutes.delete(
 sourceRoutes.get(
   "/:sourceId/syncs",
   operation({
+    permissions: ["repository.read"],
     responseSchema: 'sources.ts:get:"/:sourceId/syncs"',
     summary: "List source syncs",
     response: "JSON object containing syncs.",
@@ -274,6 +306,7 @@ sourceRoutes.get(
 sourceRoutes.get(
   "/:sourceId/syncs/:syncId",
   operation({
+    permissions: ["repository.read"],
     responseSchema: 'sources.ts:get:"/:sourceId/syncs/:syncId"',
     summary: "Get source sync",
     response: "JSON object containing sync.",

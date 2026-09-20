@@ -1,6 +1,11 @@
-import { Layers01Icon } from "@hugeicons/core-free-icons";
+import {
+  TableCellStack,
+  TableCellDescription,
+} from "@workspace/towbar-web-ui/table-cell-text";
+import { GitBranchIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { InstanceEnvironment } from "@workspace/towbar-web-client";
+import { EnvironmentIcon } from "./environment-icon";
 
 export function InstanceEnvironmentLabel({
   environment,
@@ -9,19 +14,20 @@ export function InstanceEnvironmentLabel({
 }) {
   if (!environment) return <span className="text-muted">—</span>;
   return (
-    <span className="grid gap-0.5">
+    <TableCellStack>
       <span className="inline-flex items-center gap-2">
+        <EnvironmentIcon name={environment.name} />
+        <span>{environment.name}</span>
+      </span>
+      <TableCellDescription className="inline-flex items-center gap-1">
         <HugeiconsIcon
           aria-hidden="true"
-          icon={Layers01Icon}
-          className="size-4 shrink-0"
+          icon={GitBranchIcon}
+          className="size-[1em] shrink-0"
         />
-        {environment.name}
-      </span>
-      <span className="text-xs text-muted">
-        {environment.branch}
+        <span className="font-mono">{environment.branch}</span>
         {environment.disconnectedAt ? " · Disconnected" : ""}
-      </span>
-    </span>
+      </TableCellDescription>
+    </TableCellStack>
   );
 }

@@ -28,11 +28,11 @@ export function environmentSyncDependencies(
               secrets: { runtime: keys },
               environments: {
                 production: {
-                  server: "host",
+                  server: "192.0.2.10",
                   domains: { primary: "prod.example.com" },
                 },
                 staging: {
-                  server: broken ? "missing-host" : "host",
+                  server: broken ? "192.0.2.99" : "192.0.2.10",
                   domains: { primary: "stage.example.com" },
                 },
               },

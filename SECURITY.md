@@ -32,7 +32,7 @@ should pin a reviewed release and subscribe to repository security advisories.
 - PostgreSQL, Temporal, Temporal UI, and SSH are restricted by host and network
   controls rather than exposed broadly.
 - Towbar stores secrets encrypted with AES-256-GCM. The installation encryption key is stored separately from database backups; losing it makes secrets unrecoverable.
-- Secret metadata and mutation responses contain no values. Only owners can mutate or explicitly reveal environment secret values; server credentials remain write-only. Audit events and Temporal history contain no secret values. Database access plus the installation key permits decryption, so both are trusted operational boundaries.
+- Secret metadata and mutation responses contain no values. Admins and Members can update declared secret values and references; only recently authenticated Admin browser sessions can reveal stored credentials. Viewer sessions cannot mutate shared resources. Audit events and Temporal history contain no secret values. Database access plus the installation key permits decryption, so both are trusted operational boundaries.
 - Optional Source AWS identities are scoped to the S3 backup operations they require.
 - Destination hosts use SSH keys, pinned host identity, current security
   updates, and least-privilege network rules.

@@ -16,29 +16,62 @@ export type SshLoginSecret = {
 };
 
 export type DeploymentSecrets = {
+  buildLogin?: SshLoginSecret;
   build: Record<string, string>;
   cloudflare: { apiToken: string } | null;
+  cloudflareTunnel: {
+    accountId: string;
+    access: boolean;
+    apiToken: string;
+    image: string;
+    integration: string;
+    tunnelName?: string;
+    zoneId?: string;
+  } | null;
+  previousCloudflareTunnel: {
+    accountId: string;
+    apiToken: string;
+    hostnames: string[];
+    integration: string;
+    tunnelName?: string;
+    zoneId?: string;
+  } | null;
+  previousCloudflareTunnelCleanupBlocked: boolean;
   hooks: {
     postDeploy: Record<string, string>;
     preDeploy: Record<string, string>;
   };
   login: SshLoginSecret;
+  registry?: {
+    password: string;
+    server: string;
+    username: string;
+  } | null;
   runtime: Record<string, string>;
 };
 
 export type DeploymentExecutionContext = {
   app: NormalizedDeployable;
+  buildServer?: {
+    config: NormalizedServer;
+    id: string;
+    transfer: "direct" | "registry";
+    trustedHostKeys: TrustedHostKey[];
+  };
   commitSha: string;
   deploymentId: string;
   deployableId: string;
   environment?: "preview" | "production";
+  environmentName: string;
   gitRef?: string | null;
-  githubToken: string | null;
+  sourceCredential: RepositorySourceCredential | null;
   kind: "deploy" | "rollback";
   repositoryName: string;
   repositoryOwner: string;
   runtimeId?: string;
+  serverId: string;
   sourceId: string;
+  workspaceId: string;
   rollbackRelease: {
     commitSha: string;
     containerName: string;
@@ -48,11 +81,26 @@ export type DeploymentExecutionContext = {
   } | null;
   currentRelease: {
     containerName: string;
+    containerNames?: string[];
     imageTag: string;
   } | null;
   server: NormalizedServer;
   trustedHostKeys: TrustedHostKey[];
 };
+
+export type RepositorySourceCredential =
+  | {
+      apiUrl: string;
+      provider: "github";
+      token: string;
+    }
+  | {
+      allowPrivateNetwork: boolean;
+      baseUrl: string;
+      projectId: string;
+      provider: "gitlab";
+      token: string;
+    };
 
 export type TrustedHostKey = {
   algorithm: string;
@@ -78,10 +126,17 @@ export type ServerCheckContext = {
   expectedImageTags: string[];
   ownedDeployableIds?: string[];
   login: SshLoginSecret;
+  purpose?: "credential-verification";
   trustedHostKeys: TrustedHostKey[];
 };
 
+export type ServerCredentialVerificationResult = {
+  hostKey: TrustedHostKey;
+};
+
 export type ServerPreparationContext = {
+  cleanupDeployableIds?: string[];
+  privateKeyName?: string;
   config: NormalizedServer;
   login: SshLoginSecret;
   preparationId: string;
@@ -89,6 +144,11 @@ export type ServerPreparationContext = {
 };
 
 export type ServerPreparationHooks = {
+  log?: (input: {
+    id: ServerPreparationStepId;
+    log: string;
+    logTruncated: boolean;
+  }) => Promise<void>;
   step: (input: {
     id: ServerPreparationStepId;
     message: string;
@@ -102,6 +162,7 @@ export type ServerPreparationResult = {
   dockerVersion: string;
   operatingSystem: string;
   pythonVersion: string;
+  zstdVersion: string;
 };
 
 export type ExecutorHooks = {
@@ -117,7 +178,10 @@ export type ReleaseCommitResult = {
 
 export type DeploymentResult = {
   candidatePort: number;
+  candidatePorts: number[];
+  composeServices?: string[];
   containerName: string;
+  containerNames: string[];
   imageDigest: string;
   imagePlatform: string;
   imageTag: string;
@@ -176,6 +240,7 @@ export type ResourceOperationExecutionContext = {
   } | null;
   deployable: NormalizedDeployable | null;
   deployableId: string | null;
+  environment?: string | null;
   operationId: string;
   retentionBackups: Array<{
     bucket: string;
@@ -200,20 +265,27 @@ export type ResourceOperationSecrets = {
   azure: WorkspaceAzureCredential | null;
   gcp: WorkspaceGcpCredential | null;
   login: SshLoginSecret;
+  namedStorage: NamedBackupStorageConnection | null;
   runtime: Record<string, string>;
   sensitiveValues: string[];
 };
+
+export type NamedBackupStorageConnection =
+  import("@workspace/towbar-core").NamedBackupStorageConnection;
 
 export type BackupStorage = {
   deleteObject(input: {
     bucket: string;
     key: string;
     storageAccount?: string;
+    versionId?: string;
   }): Promise<void>;
   download(input: {
     bucket: string;
     key: string;
     localPath: string;
+    maximumBytes?: number;
+    signal?: AbortSignal;
     storageAccount?: string;
     versionId?: string;
   }): Promise<void>;
@@ -224,11 +296,16 @@ export type BackupStorage = {
     versionId?: string;
   }): Promise<{
     checksum?: string;
-    engine?: "postgres" | "redis";
+    backupClass?: "database" | "volume";
+    engine?: import("@workspace/towbar-core").BackupOperationResult["engine"];
     engineMajorVersion?: number;
     encryption?: string;
     exists: boolean;
-    format?: "postgres-custom" | "redis-rdb";
+    format?:
+      | import("@workspace/towbar-core").BackupOperationResult["format"]
+      | "tar-gzip"
+      | "tar-zstd";
+    manifest?: string;
     metadataVersion?: number;
     sizeBytes?: number;
   }>;
@@ -239,6 +316,7 @@ export type BackupStorage = {
     kmsKeyId?: string;
     localPath: string;
     metadata: Record<string, string>;
+    signal?: AbortSignal;
     sizeBytes: number;
     storageAccount?: string;
   }): Promise<{ versionId?: string }>;

@@ -1,0 +1,7 @@
+services:
+  web:
+    profiles: [production]
+    restart: unless-stopped
+  cache:
+    profiles: [production]
+    restart: unless-stopped

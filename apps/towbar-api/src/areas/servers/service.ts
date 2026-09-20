@@ -1,9 +1,20 @@
+/* eslint-disable max-lines -- Server lifecycle, credential state, preparation, and runtime summaries share one service boundary. */
+import {
+  getLatestServerPreparations,
+  toPublicServer,
+} from "./public-server.js";
+export { toPublicServer } from "./public-server.js";
+import {
+  authorizeQueuedEffect,
+  captureQueuedActor,
+} from "../auth/actor-context.js";
 import { getServerMonitoringSummaries } from "../monitoring/server-summaries.js";
-import { and, desc, eq, inArray, isNull, ne } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, ne, notInArray } from "drizzle-orm";
 import { z } from "zod";
 
 import {
   type RuntimeExpectation,
+  isNormalizedCompose,
   isNormalizedResource,
   serverHardwareFromCheck,
 } from "@workspace/towbar-core";
@@ -14,12 +25,11 @@ import {
   releases,
   serverChecks,
   serverDeployableOwnership,
-  serverPreparations,
   servers,
   sshHostKeys,
 } from "@workspace/towbar-database/schema";
 
-import { notFound } from "../../http/errors.js";
+import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueueServerCheck } from "../../infrastructure/temporal.js";
 import { publicDeploymentSelection } from "../deployment-selection.js";
@@ -42,13 +52,13 @@ export const sshLoginSecretSchema = z
   .strict();
 
 export const serverSelection = {
-  slug: servers.slug,
   archivedAt: servers.archivedAt,
   canonicalIp: servers.canonicalIp,
   config: servers.config,
   configDigest: servers.configDigest,
   createdAt: servers.createdAt,
   id: servers.id,
+  privateKeyId: servers.privateKeyId,
   preparedAt: servers.preparedAt,
   preparedConfigDigest: servers.preparedConfigDigest,
   updatedAt: servers.updatedAt,
@@ -187,6 +197,10 @@ async function listServerDeployables(
         driftReasons: deployableRuntimeStates.driftReasons,
         driftStatus: deployableRuntimeStates.driftStatus,
         healthStatus: deployableRuntimeStates.healthStatus,
+        ingressContainerName: deployableRuntimeStates.ingressContainerName,
+        ingressImage: deployableRuntimeStates.ingressImage,
+        ingressRestartCount: deployableRuntimeStates.ingressRestartCount,
+        ingressStatus: deployableRuntimeStates.ingressStatus,
         observedContainerName: deployableRuntimeStates.observedContainerName,
         observedImage: deployableRuntimeStates.observedImage,
         observedState: deployableRuntimeStates.observedState,
@@ -209,7 +223,9 @@ async function listServerDeployables(
       and(
         eq(apps.serverId, serverId),
         isNull(apps.archivedAt),
-        type === "app" ? eq(apps.kind, "app") : ne(apps.kind, "app"),
+        type === "app"
+          ? inArray(apps.kind, ["app", "compose"])
+          : notInArray(apps.kind, ["app", "compose"]),
       ),
     )
     .orderBy(desc(apps.updatedAt));
@@ -232,6 +248,7 @@ async function listServerDeployables(
             driftReasons: app.runtimeState.driftReasons ?? [],
             driftStatus: app.runtimeState.driftStatus ?? "unknown",
             healthStatus: app.runtimeState.healthStatus ?? "unknown",
+            ingressStatus: app.runtimeState.ingressStatus ?? "unknown",
             observedState: app.runtimeState.observedState ?? "unknown",
           }
         : {
@@ -240,6 +257,10 @@ async function listServerDeployables(
             driftReasons: [],
             driftStatus: "unknown" as const,
             healthStatus: "unknown" as const,
+            ingressContainerName: null,
+            ingressImage: null,
+            ingressRestartCount: null,
+            ingressStatus: "unknown" as const,
             observedContainerName: null,
             observedImage: null,
             observedState: "unknown" as const,
@@ -270,6 +291,7 @@ export async function requestServerCheck(input: {
     .insert(serverChecks)
     .values({
       requestedBy: input.requestedBy,
+      ...captureQueuedActor(input.workspaceId, ["server.credentials"]),
       serverId: input.serverId,
     })
     .returning();
@@ -314,6 +336,8 @@ export async function getServerCheckExecutionContext(checkId: string) {
   const [context] = await getTowbarDatabase()
     .select({
       checkId: serverChecks.id,
+      requestedByActor: serverChecks.requestedByActor,
+      status: serverChecks.status,
       config: servers.config,
       serverId: servers.id,
       workspaceId: servers.workspaceId,
@@ -323,6 +347,11 @@ export async function getServerCheckExecutionContext(checkId: string) {
     .where(and(eq(serverChecks.id, checkId), isNull(servers.archivedAt)))
     .limit(1);
   if (!context) throw notFound("Server check");
+  if (!["queued", "running"].includes(context.status))
+    throw conflict("Server check is already complete");
+  await authorizeQueuedEffect(context.requestedByActor, context.workspaceId, [
+    "server.credentials",
+  ]);
   const credentials = await resolveServerCredentials(context);
   const login = sshLoginSecretSchema.parse({
     privateKey: credentials.values.privateKey,
@@ -392,8 +421,23 @@ export async function getServerCheckExecutionContext(checkId: string) {
       const resource = isNormalizedResource(deployable.config)
         ? deployable.config
         : null;
+      const cloudflareTunnel = isNormalizedCompose(deployable.config)
+        ? Object.values(deployable.config.services).some(
+            (service) => service.ingress?.type === "cloudflare-tunnel",
+          )
+        : deployable.config.ingress?.type === "cloudflare-tunnel";
       const containerPort = deployable.config.container.port;
       return {
+        ...(!resource
+          ? {
+              volumes: (deployable.config.container.volumes ?? []).map(
+                (volume) => ({
+                  name: `towbar-${deployable.deployableId}-${volume.name}`,
+                  mountPath: volume.mountPath,
+                }),
+              ),
+            }
+          : {}),
         connectivity: containerPort
           ? {
               containerPort,
@@ -408,10 +452,14 @@ export async function getServerCheckExecutionContext(checkId: string) {
         health: isNormalizedResource(deployable.config)
           ? deployable.config.health
           : { ...deployable.config.health, type: "http" as const },
+        ingress: cloudflareTunnel ? { type: "cloudflare-tunnel" } : null,
         release: release
           ? {
               containerName: release.containerName,
               imageTag: release.imageTag,
+              kind: isNormalizedCompose(deployable.config)
+                ? ("compose" as const)
+                : ("container" as const),
             }
           : null,
       };
@@ -460,6 +508,7 @@ export async function finishServerCheck(
       .limit(1);
     const runtimeTransitions: Array<{
       deployableId: string;
+      reason: "health" | "tunnel";
       recovered: boolean;
     }> = [];
     if (input.status === "succeeded") {
@@ -468,6 +517,7 @@ export async function finishServerCheck(
         .select({
           healthStatus: deployableRuntimeStates.healthStatus,
           id: apps.id,
+          ingressStatus: deployableRuntimeStates.ingressStatus,
         })
         .from(apps)
         .leftJoin(
@@ -479,6 +529,12 @@ export async function finishServerCheck(
         deployables.map((deployable) => [
           deployable.id,
           deployable.healthStatus,
+        ]),
+      );
+      const priorIngressByDeployable = new Map(
+        deployables.map((deployable) => [
+          deployable.id,
+          deployable.ingressStatus,
         ]),
       );
       const allowed = new Set(deployables.map((deployable) => deployable.id));
@@ -493,6 +549,7 @@ export async function finishServerCheck(
         ) {
           runtimeTransitions.push({
             deployableId: inspection.deployableId,
+            reason: "health",
             recovered: false,
           });
         } else if (
@@ -501,6 +558,33 @@ export async function finishServerCheck(
         ) {
           runtimeTransitions.push({
             deployableId: inspection.deployableId,
+            reason: "health",
+            recovered: true,
+          });
+        }
+        const priorIngress = priorIngressByDeployable.get(
+          inspection.deployableId,
+        );
+        const ingressFailed = !["disabled", "ready"].includes(
+          inspection.ingressStatus,
+        );
+        const ingressPreviouslyFailed =
+          priorIngress !== null &&
+          priorIngress !== undefined &&
+          !["disabled", "ready"].includes(priorIngress);
+        if (ingressFailed && !ingressPreviouslyFailed) {
+          runtimeTransitions.push({
+            deployableId: inspection.deployableId,
+            reason: "tunnel",
+            recovered: false,
+          });
+        } else if (
+          inspection.ingressStatus === "ready" &&
+          ingressPreviouslyFailed
+        ) {
+          runtimeTransitions.push({
+            deployableId: inspection.deployableId,
+            reason: "tunnel",
             recovered: true,
           });
         }
@@ -512,6 +596,10 @@ export async function finishServerCheck(
             driftReasons: inspection.driftReasons,
             driftStatus: inspection.driftStatus,
             healthStatus: inspection.healthStatus,
+            ingressContainerName: inspection.ingressContainerName,
+            ingressImage: inspection.ingressImage,
+            ingressRestartCount: inspection.ingressRestartCount,
+            ingressStatus: inspection.ingressStatus,
             lastCheckId: check.id,
             observedContainerName: inspection.observedContainerName,
             observedImage: inspection.observedImage,
@@ -525,6 +613,10 @@ export async function finishServerCheck(
               driftReasons: inspection.driftReasons,
               driftStatus: inspection.driftStatus,
               healthStatus: inspection.healthStatus,
+              ingressContainerName: inspection.ingressContainerName,
+              ingressImage: inspection.ingressImage,
+              ingressRestartCount: inspection.ingressRestartCount,
+              ingressStatus: inspection.ingressStatus,
               lastCheckId: check.id,
               observedContainerName: inspection.observedContainerName,
               observedImage: inspection.observedImage,
@@ -552,64 +644,4 @@ export async function finishServerCheck(
     serverRecovered: outcome.serverRecovered,
   });
   return outcome.check;
-}
-
-async function getLatestServerPreparations(serverIds: string[]) {
-  if (serverIds.length === 0) {
-    return new Map<
-      string,
-      {
-        configDigest: string;
-        status: "queued" | "running" | "succeeded" | "failed";
-      }
-    >();
-  }
-  const preparations = await getTowbarDatabase()
-    .selectDistinctOn([serverPreparations.serverId], {
-      configDigest: serverPreparations.configDigest,
-      serverId: serverPreparations.serverId,
-      status: serverPreparations.status,
-    })
-    .from(serverPreparations)
-    .where(inArray(serverPreparations.serverId, serverIds))
-    .orderBy(serverPreparations.serverId, desc(serverPreparations.createdAt));
-  return new Map(
-    preparations.map((preparation) => [
-      preparation.serverId,
-      {
-        configDigest: preparation.configDigest,
-        status: preparation.status,
-      },
-    ]),
-  );
-}
-
-export function toPublicServer(
-  server: typeof servers.$inferSelect,
-  latestPreparation?: {
-    configDigest: string;
-    status: "queued" | "running" | "succeeded" | "failed";
-  },
-) {
-  const {
-    configDigest,
-    preparedConfigDigest,
-    workspaceId: _workspaceId,
-    ...publicServer
-  } = server;
-  const ready =
-    Boolean(server.preparedAt) && preparedConfigDigest === configDigest;
-  const currentPreparation = latestPreparation?.configDigest === configDigest;
-  return {
-    ...publicServer,
-    setupStatus: ready
-      ? ("ready" as const)
-      : currentPreparation &&
-          (latestPreparation.status === "queued" ||
-            latestPreparation.status === "running")
-        ? ("preparing" as const)
-        : currentPreparation && latestPreparation.status === "failed"
-          ? ("failed" as const)
-          : ("pending" as const),
-  };
 }

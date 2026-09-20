@@ -9,6 +9,7 @@ const require = createRequire(
 const { eq, inArray } = require("drizzle-orm");
 
 export async function createResourceLifecycleDatabase({
+  githubConfiguration,
   server,
   trustedHostKeys,
   key,
@@ -32,6 +33,16 @@ export async function createResourceLifecycleDatabase({
   }
   process.env.TOWBAR_CREDENTIALS_KEY = randomBytes(32).toString("base64");
   process.env.TOWBAR_INTERNAL_HMAC_SECRET = randomBytes(32).toString("hex");
+  if (githubConfiguration) {
+    process.env.TOWBAR_GITHUB_ENABLED = "true";
+    process.env.TOWBAR_GITHUB_APP_ID = githubConfiguration.appId;
+    process.env.TOWBAR_GITHUB_APP_SLUG = githubConfiguration.appSlug;
+    process.env.TOWBAR_GITHUB_PRIVATE_KEY_BASE64 = Buffer.from(
+      githubConfiguration.privateKey,
+    ).toString("base64");
+    process.env.TOWBAR_GITHUB_WEBHOOK_SECRET =
+      githubConfiguration.webhookSecret;
+  }
   const { runTowbarMigrations } =
     await import("../../packages/towbar-database/dist/migrate.js");
   await runTowbarMigrations({
@@ -42,6 +53,8 @@ export async function createResourceLifecycleDatabase({
     await import("../../apps/towbar-api/dist/infrastructure/database.js");
   const { mutateSecret } =
     await import("../../apps/towbar-api/dist/areas/secrets/store.js");
+  const { withActor } =
+    await import("../../apps/towbar-api/dist/areas/auth/actor-context.js");
   const {
     getDeploymentExecutionContext,
     resolveDeploymentSecrets,
@@ -83,20 +96,28 @@ export async function createResourceLifecycleDatabase({
       id: userId,
       email: `${userId}@example.com`,
       displayName: "Test",
+      emailVerified: true,
+    });
+    await db.insert(schema.workspaceMembers).values({
+      workspaceId,
+      userId,
+      role: "admin",
     });
     const [installation] = await db
-      .insert(schema.githubInstallations)
+      .insert(schema.integrationInstallations)
       .values({
         workspaceId,
-        installationId: randomUUID(),
-        accountLogin: "test",
-        accountType: "Organization",
+        provider: "github",
+        externalId: randomUUID(),
+        principalName: "test",
+        principalType: "Organization",
       })
       .returning();
     await db.insert(schema.sources).values({
       id: sourceId,
       workspaceId,
-      githubInstallationId: installation.id,
+      integrationInstallationId: installation.id,
+      provider: "github",
       repositoryOwner: "test",
       repositoryName: "test",
     });
@@ -279,8 +300,13 @@ export async function createResourceLifecycleDatabase({
             expectedType: entityType,
             idempotencyKey: randomUUID(),
           };
-          const result = await requestAppDeployment(request);
-          const replay = await requestAppDeployment(request);
+          const actor = { kind: "session", workspaceId, userId, role: "admin" };
+          const result = await withActor(actor, () =>
+            requestAppDeployment(request),
+          );
+          const replay = await withActor(actor, () =>
+            requestAppDeployment(request),
+          );
           assert.equal(replay.deployment.id, result.deployment.id);
           assert.equal(replay.replayed, true);
           return { deploymentId: result.deployment.id };

@@ -244,7 +244,7 @@ function operationStage(
 function friendlyStorageFailure(checks: BackupAssurance["checks"]) {
   const objectCheck = checks.find((check) => check.name === "object_exists");
   if (objectCheck?.message.toLowerCase().includes("cannot access")) {
-    return "Towbar cannot read the saved file. Check the workspace backup provider permissions.";
+    return "Towbar cannot read the saved file. Check the runtime backup provider permissions.";
   }
   if (objectCheck && !objectCheck.passed) {
     return objectCheck.message.toLowerCase().includes("unavailable")

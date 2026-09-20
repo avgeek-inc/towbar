@@ -1,9 +1,13 @@
+import { streamStillAuthorized } from "../../../http/stream-authorization.js";
+import { localizedResponse } from "@workspace/towbar-core/date-time";
+import { requestDateTimePreferences } from "../../../http/localization.js";
 import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
 
 import { listDeploymentHistory } from "../../../areas/deployments/history.js";
+import { getDeploymentSourceRevision } from "../../../areas/deployments/source-revision.js";
 import { requestDeploymentRetry } from "../../../areas/apps/service.js";
 import {
   cancelDeployment,
@@ -16,7 +20,7 @@ import {
   listDeploymentVulnerabilityFindings,
   requestDeploymentVulnerabilityScan,
 } from "../../../areas/vulnerability-scans/service.js";
-import { badRequest, forbidden } from "../../../http/errors.js";
+import { badRequest } from "../../../http/errors.js";
 
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
@@ -29,6 +33,7 @@ export const deploymentRoutes = new Hono<TowbarHonoEnvironment>();
 deploymentRoutes.get(
   "/",
   operation({
+    permissions: ["deployment.read"],
     responseSchema: 'deployments.ts:get:"/"',
     summary: "List deployments",
     response: "JSON object containing deployments.",
@@ -42,6 +47,7 @@ deploymentRoutes.get(
 deploymentRoutes.get(
   "/history",
   operation({
+    permissions: ["deployment.read"],
     responseSchema: 'deployments.ts:get:"/history"',
     summary: "List deployment history",
     query: historyQuerySchema,
@@ -61,6 +67,7 @@ deploymentRoutes.get(
 deploymentRoutes.get(
   "/:deploymentId",
   operation({
+    permissions: ["deployment.read"],
     responseSchema: 'deployments.ts:get:"/:deploymentId"',
     summary: "Get deployment",
     response: "JSON object containing deployment.",
@@ -75,8 +82,28 @@ deploymentRoutes.get(
     }),
 );
 deploymentRoutes.get(
+  "/:deploymentId/source-revision",
+  operation({
+    permissions: ["deployment.read"],
+    responseSchema: 'deployments.ts:get:"/:deploymentId/source-revision"',
+    summary: "Read deployment pull request details",
+    browserOnly: true,
+    response:
+      "Pull request details when the deployment revision identifies a GitHub pull request.",
+    status: 200,
+  }),
+  async (context) =>
+    context.json(
+      await getDeploymentSourceRevision(
+        context.req.param("deploymentId"),
+        context.get("user").workspaceId,
+      ),
+    ),
+);
+deploymentRoutes.get(
   "/:deploymentId/steps",
   operation({
+    permissions: ["deployment.read"],
     responseSchema: 'deployments.ts:get:"/:deploymentId/steps"',
     summary: "List deployment steps",
     response: "JSON object containing steps.",
@@ -93,6 +120,7 @@ deploymentRoutes.get(
 deploymentRoutes.get(
   "/:deploymentId/logs",
   operation({
+    permissions: ["deployment.read"],
     responseSchema: 'deployments.ts:get:"/:deploymentId/logs"',
     summary: "List deployment logs",
     query: z.object({ after: afterSchema }).strict(),
@@ -111,6 +139,7 @@ deploymentRoutes.get(
 deploymentRoutes.get(
   "/:deploymentId/vulnerability-scan/findings",
   operation({
+    permissions: ["deployment.read"],
     responseSchema:
       'deployments.ts:get:"/:deploymentId/vulnerability-scan/findings"',
     summary: "List deployment vulnerability findings",
@@ -128,6 +157,7 @@ deploymentRoutes.get(
 deploymentRoutes.get(
   "/:deploymentId/events",
   operation({
+    permissions: ["deployment.read"],
     responseSchema: 'deployments.ts:get:"/:deploymentId/events"',
     summary: "Watch deployment events",
     query: z
@@ -160,6 +190,8 @@ deploymentRoutes.get(
         context.req.header("last-event-id") ?? context.req.query("after"),
       );
       for (let index = 0; index < 25; index += 1) {
+        if (!(await streamStillAuthorized(context, ["deployment.read"])))
+          return;
         const deployment = await getDeployment(deploymentId, workspaceId);
         const logs = await listDeploymentLogs({
           afterSequence: after,
@@ -169,7 +201,12 @@ deploymentRoutes.get(
         const steps = await listDeploymentSteps(deploymentId, workspaceId);
         if (logs.length > 0) after = logs.at(-1)?.sequence ?? after;
         await stream.writeSSE({
-          data: JSON.stringify({ deployment, logs, steps }),
+          data: JSON.stringify(
+            localizedResponse(
+              { deployment, logs, steps },
+              requestDateTimePreferences(context),
+            ),
+          ),
           event: "deployment",
           id: `${deployment.updatedAt.toISOString()}:${after}`,
         });
@@ -191,6 +228,7 @@ deploymentRoutes.get(
 deploymentRoutes.post(
   "/:deploymentId/actions/cancel",
   operation({
+    permissions: ["deployment.cancel"],
     responseSchema: 'deployments.ts:post:"/:deploymentId/actions/cancel"',
     summary: "Cancel deployment",
     response: "JSON object containing deployment.",
@@ -211,6 +249,7 @@ deploymentRoutes.post(
 deploymentRoutes.post(
   "/:deploymentId/actions/retry",
   operation({
+    permissions: ["deployment.create"],
     responseSchema: 'deployments.ts:post:"/:deploymentId/actions/retry"',
     summary: "Request deployment retry",
     idempotencyKey: true,
@@ -239,18 +278,15 @@ deploymentRoutes.post(
 deploymentRoutes.post(
   "/:deploymentId/vulnerability-scan/actions/rescan",
   operation({
+    permissions: ["deployment.create"],
     responseSchema:
       'deployments.ts:post:"/:deploymentId/vulnerability-scan/actions/rescan"',
     summary: "Request deployment vulnerability scan",
-    ownerOnly: true,
     response: "The scan request and its operation status.",
     status: 202,
   }),
   async (context) => {
     const user = context.get("user");
-    if (user.workspaceRole !== "owner") {
-      throw forbidden("Only workspace owners can request an image rescan");
-    }
     const result = await requestDeploymentVulnerabilityScan({
       deploymentId: context.req.param("deploymentId"),
       force: true,

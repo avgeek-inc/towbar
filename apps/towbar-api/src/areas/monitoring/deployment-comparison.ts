@@ -38,9 +38,7 @@ export async function listComparisonDeployments(input: {
       id: deployments.id,
       commitSha: deployments.commitSha,
       finishedAt: deployments.finishedAt,
-      environment: deployments.environment,
       targetEnvironment: deployments.targetEnvironment,
-      previewId: deployments.previewEnvironmentId,
       serverId: deployments.serverId,
       kind: deployments.kind,
     })
@@ -50,6 +48,7 @@ export async function listComparisonDeployments(input: {
         eq(deployments.workspaceId, input.workspaceId),
         eq(deployments.appId, input.deployableId),
         eq(deployments.state, "succeeded"),
+        isNull(deployments.previewEnvironmentId),
       ),
     )
     .orderBy(desc(deployments.finishedAt), desc(deployments.id))
@@ -96,6 +95,7 @@ export async function getDeploymentComparison(
         eq(deployments.workspaceId, input.workspaceId),
         eq(deployments.appId, input.deployableId),
         inArray(deployments.id, [query.baselineId, query.candidateId]),
+        isNull(deployments.previewEnvironmentId),
       ),
     );
   const baseline = candidates.find((d) => d.id === query.baselineId),
@@ -110,13 +110,8 @@ export async function getDeploymentComparison(
     throw badRequest(
       "Compare two successful deployments with a recorded completion time",
     );
-  if (
-    baseline.environment !== candidate.environment ||
-    baseline.previewEnvironmentId !== candidate.previewEnvironmentId
-  )
-    throw badRequest(
-      "Choose deployments in the same production or preview environment",
-    );
+  if (baseline.targetEnvironment.id !== candidate.targetEnvironment.id)
+    throw badRequest("Choose deployments in the same persistent environment");
   const windowSeconds = query.windowMinutes * 60;
   const stepSeconds = Math.max(60, Math.ceil(windowSeconds / 240 / 60) * 60);
   const analyze = async (deployment: typeof deployments.$inferSelect) => {
@@ -177,7 +172,6 @@ export async function getDeploymentComparison(
         id: deployment.id,
         commitSha: deployment.commitSha,
         serverId: deployment.serverId,
-        environment: deployment.environment,
         kind: deployment.kind,
         finishedAt: deployment.finishedAt!.toISOString(),
         configDigest: deployment.configDigest,

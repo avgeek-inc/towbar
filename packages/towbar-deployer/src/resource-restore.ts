@@ -24,6 +24,7 @@ import type {
 } from "./types.js";
 import type {
   BackupOperationResult,
+  ManagedResourceType,
   NormalizedResource,
   RestoreOperationResult,
 } from "@workspace/towbar-core";
@@ -41,9 +42,9 @@ type ManagedRestoreInput = {
 };
 
 type RestoreBackupResult = BackupOperationResult & {
-  engine: "postgres" | "redis";
+  engine: ManagedResourceType;
   engineMajorVersion: number;
-  format: "postgres-custom" | "redis-rdb";
+  format: NonNullable<BackupOperationResult["format"]>;
   metadataVersion: 1;
 };
 
@@ -58,7 +59,7 @@ type RestorePlan = {
   localBackup: string;
   release: NonNullable<ResourceOperationExecutionContext["currentRelease"]>;
   remoteBackup: string;
-  resource: NormalizedResource & { kind: "postgres" | "redis" };
+  resource: NormalizedResource & { kind: ManagedResourceType };
   result: RestoreBackupResult;
   runtimeDirectory: string;
   secrets: ResourceOperationSecrets;
@@ -87,7 +88,7 @@ function resolveRestorePlan(input: ManagedRestoreInput): RestorePlan {
     context.request.type !== "restore" ||
     !resource ||
     !isNormalizedResource(resource) ||
-    (resource.kind !== "postgres" && resource.kind !== "redis") ||
+    resource.kind === "image" ||
     !release ||
     !backup ||
     !storage ||
@@ -107,8 +108,7 @@ function resolveRestorePlan(input: ManagedRestoreInput): RestorePlan {
   ) {
     throw new Error("Backup metadata is not restore-ready");
   }
-  const expectedFormat =
-    resource.kind === "postgres" ? "postgres-custom" : "redis-rdb";
+  const expectedFormat = restoreFormat(resource.kind);
   if (result.format !== expectedFormat) {
     throw new Error("Backup format is incompatible with this Resource");
   }
@@ -224,6 +224,8 @@ export async function executeManagedRestore(input: ManagedRestoreInput) {
       bucket: result.bucket,
       key: result.key,
       localPath: localBackup,
+      maximumBytes: result.sizeBytes,
+      signal,
       ...(result.storageAccount
         ? { storageAccount: result.storageAccount }
         : {}),
@@ -234,7 +236,7 @@ export async function executeManagedRestore(input: ManagedRestoreInput) {
       "verifying_backup",
       "Verifying the downloaded checksum and format",
       {
-        command: `${resource.kind === "postgres" ? "pg_restore --list" : "redis-check-rdb"} <backup>`,
+        command: `${restoreTool(resource.kind)} <backup>`,
       },
     );
     const localMetadata = await stat(localBackup);
@@ -278,10 +280,7 @@ export async function executeManagedRestore(input: ManagedRestoreInput) {
       "restoring_candidate",
       `Restoring ${resource.kind} into the candidate`,
       {
-        command:
-          resource.kind === "postgres"
-            ? "pg_restore <backup>"
-            : "redis-check-rdb <backup>",
+        command: `${restoreTool(resource.kind)} <backup>`,
       },
     );
     await session.run(
@@ -305,8 +304,7 @@ export async function executeManagedRestore(input: ManagedRestoreInput) {
       "validating_candidate",
       "Candidate database is readable and healthy",
       {
-        command:
-          resource.kind === "postgres" ? "psql SELECT 1" : "redis-cli PING",
+        command: validationTool(resource.kind),
         level: "success",
       },
     );
@@ -513,6 +511,45 @@ async function progress(
   } = {},
 ) {
   await hooks.progress?.({ ...extra, message, phase });
+}
+
+function restoreFormat(kind: ManagedResourceType) {
+  return {
+    clickhouse: "clickhouse-backup",
+    dragonfly: "dragonfly-rdb",
+    keydb: "keydb-rdb",
+    mariadb: "mariadb-sql",
+    mongodb: "mongodb-archive",
+    mysql: "mysql-sql",
+    postgres: "postgres-custom",
+    redis: "redis-rdb",
+  }[kind] as NonNullable<BackupOperationResult["format"]>;
+}
+
+function restoreTool(kind: ManagedResourceType) {
+  return {
+    clickhouse: "clickhouse-client RESTORE",
+    dragonfly: "RDB import",
+    keydb: "redis-check-rdb",
+    mariadb: "mariadb",
+    mongodb: "mongorestore",
+    mysql: "mysql",
+    postgres: "pg_restore",
+    redis: "redis-check-rdb",
+  }[kind];
+}
+
+function validationTool(kind: ManagedResourceType) {
+  return {
+    clickhouse: "clickhouse-client SELECT 1",
+    dragonfly: "redis-cli PING",
+    keydb: "redis-cli PING",
+    mariadb: "mariadb SELECT 1",
+    mongodb: "mongosh ping",
+    mysql: "mysql SELECT 1",
+    postgres: "psql SELECT 1",
+    redis: "redis-cli PING",
+  }[kind];
 }
 
 async function sha256File(filePath: string) {

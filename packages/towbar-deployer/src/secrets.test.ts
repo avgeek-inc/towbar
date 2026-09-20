@@ -15,6 +15,9 @@ function secrets(
   return {
     build: { BUILD_TOKEN: "build-secret" },
     cloudflare: { apiToken: "cloudflare-secret" },
+    cloudflareTunnel: null,
+    previousCloudflareTunnel: null,
+    previousCloudflareTunnelCleanupBlocked: false,
     hooks: {
       postDeploy: { POST_TOKEN: "post-secret" },
       preDeploy: { MIGRATION_TOKEN: "migration-secret" },

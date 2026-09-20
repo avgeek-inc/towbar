@@ -1,10 +1,4 @@
-import { SourceCodeIcon } from "@hugeicons/core-free-icons";
-import { ApiMcpSettings } from "@/components/api-mcp-settings";
-import { DashboardPage } from "@/components/page-parts";
+import { redirect } from "next/navigation";
 export default function Page() {
-  return (
-    <DashboardPage icon={SourceCodeIcon} title="API & MCP">
-      <ApiMcpSettings />
-    </DashboardPage>
-  );
+  redirect("/team-settings/ssh-keys");
 }

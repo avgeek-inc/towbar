@@ -1,13 +1,14 @@
 id: hello-towbar
 name: Hello Towbar
-description: A Dockerfile application deployed by Towbar.
+description: A ready-to-copy Node.js application deployed by Towbar.
 dockerfile: Dockerfile
 context: .
 vulnerabilityScanning: true
 autoDeploy:
   inputs:
     - Dockerfile
-    - server.mjs
+    - package.json
+    - src/**
 container:
   port: 3000
   resources:
@@ -20,11 +21,11 @@ tls:
   mode: direct
 environments:
   production:
-    server: production-server
+    server: 192.0.2.10
     domains:
       primary: hello.example.com
   staging:
-    server: staging-server
+    server: 192.0.2.11
     domains:
       primary: staging.example.com
 preview:

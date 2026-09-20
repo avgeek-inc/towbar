@@ -1,149 +1,59 @@
 "use client";
 
-import {
-  CloudIcon,
-  GithubIcon,
-  Mail01Icon,
-  SlackIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
-import type {
-  AwsCredentialMetadata,
-  AzureCredentialMetadata,
-  GcpCredentialMetadata,
-  GitHubConnection,
-} from "@workspace/towbar-web-client";
+import { useEffect } from "react";
+import type { IntegrationProvider } from "@workspace/towbar-core";
+import { useRouter } from "next/navigation";
+import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
+import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
+
+import { logDrainNames, type LogDrainState } from "./log-drain-integration";
+import { logDrainStatus } from "@/lib/log-drain-providers";
 import { useApiQuery } from "@/hooks/use-api-query";
-import { usePageQuery } from "@/hooks/use-page-query";
-
-import { CloudProviderLogo } from "@/components/cloud-provider-logo";
 import { PageSelectionTitle } from "./page-selection-title";
-import { AwsIntegration } from "@/components/aws-integration";
-import { AzureIntegration } from "@/components/azure-integration";
-import { GcpIntegration } from "@/components/gcp-integration";
-import { GitHubSettings } from "@/components/github-settings";
-import { NotificationIntegration } from "@/components/notification-integration";
-import { SecondaryItems } from "@/components/secondary-sidebar";
+import { SecondaryItems } from "./secondary-sidebar";
+import {
+  getProviderIcon,
+  integrationGroups,
+  logForwardingProviders,
+  notificationDeliveries,
+  notificationProviders,
+  type ProviderGroup,
+} from "./integration-catalog";
 
-function getProviderIcon(value: string, className?: string) {
-  if (value === "aws" || value === "gcp" || value === "azure") {
-    return <CloudProviderLogo provider={value} className={className} />;
-  }
-  const icons: Record<string, typeof GithubIcon> = {
-    github: GithubIcon,
-    slack: SlackIcon,
-    email: Mail01Icon,
-  };
-  const Icon = icons[value] ?? CloudIcon;
-  return <HugeiconsIcon icon={Icon} className={className} />;
-}
+function ProviderPage({
+  groups,
+  provider,
+  statuses,
+  basePath,
+}: {
+  groups: ProviderGroup[];
+  provider: string;
+  statuses: Record<string, string | undefined>;
+  basePath: string;
+}) {
+  const router = useRouter();
+  const providers = groups.flatMap((group) => group.providers);
+  const activeProvider = providers.find((item) => item.value === provider);
+  const fallbackProvider = providers[0]?.value;
 
-const integrationGroups = [
-  {
-    value: "source-control",
-    label: "Source control",
-    providers: [
-      {
-        value: "github",
-        label: "GitHub",
-        content: <GitHubSettings />,
-      },
-    ],
-  },
-  {
-    value: "backup-providers",
-    label: "Backup providers",
-    icon: CloudIcon,
-    providers: [
-      {
-        value: "aws",
-        label: "AWS",
-        content: <AwsIntegration />,
-      },
-      {
-        value: "gcp",
-        label: "Google Cloud",
-        content: <GcpIntegration />,
-      },
-      {
-        value: "azure",
-        label: "Azure",
-        content: <AzureIntegration />,
-      },
-    ],
-  },
-  {
-    value: "notifications",
-    label: "Notifications",
-    providers: [
-      {
-        value: "slack",
-        label: "Slack",
-        content: <NotificationIntegration provider="slack" />,
-      },
-      {
-        value: "email",
-        label: "Email",
-        content: <NotificationIntegration provider="smtp" />,
-      },
-    ],
-  },
-];
+  useEffect(() => {
+    if (!activeProvider && fallbackProvider)
+      router.replace(`${basePath}/${fallbackProvider}`);
+  }, [activeProvider, basePath, fallbackProvider, router]);
 
-export function Integrations() {
-  const { search, update } = usePageQuery();
-  const github = useApiQuery<{ connection: GitHubConnection | null }>(
-    "/v1/core/github",
-    30_000,
-  );
-  const aws = useApiQuery<{ credential: AwsCredentialMetadata | null }>(
-    "/v1/core/aws",
-    30_000,
-  );
-  const gcp = useApiQuery<{ credential: GcpCredentialMetadata | null }>(
-    "/v1/core/gcp",
-    30_000,
-  );
-  const azure = useApiQuery<{ credential: AzureCredentialMetadata | null }>(
-    "/v1/core/azure",
-    30_000,
-  );
-  const notifications = useApiQuery<{
-    providers: { slack: boolean; smtp: boolean };
-  }>("/v1/core/notifications/providers", 30_000);
-  const statuses: Record<string, string | undefined> = {
-    github:
-      !github.error &&
-      github.data?.connection &&
-      !github.data.connection.suspendedAt
-        ? "Connected"
-        : undefined,
-    aws:
-      !aws.error && aws.data?.credential?.status === "verified"
-        ? "Connected"
-        : undefined,
-    gcp:
-      !gcp.error && gcp.data?.credential?.status === "verified"
-        ? "Connected"
-        : undefined,
-    azure:
-      !azure.error && azure.data?.credential?.status === "verified"
-        ? "Connected"
-        : undefined,
-    slack:
-      !notifications.error && notifications.data?.providers.slack
-        ? "Configured"
-        : undefined,
-    email:
-      !notifications.error && notifications.data?.providers.smtp
-        ? "Configured"
-        : undefined,
-  };
-  const providers = integrationGroups.flatMap((group) => group.providers);
-  const activeProvider =
-    providers.find(
-      (provider) => provider.value === search.get("integration"),
-    ) ?? providers[0]!;
+  if (!fallbackProvider)
+    return (
+      <EmptyState>
+        <EmptyState.Header>
+          <EmptyState.Title>No integrations configured</EmptyState.Title>
+          <EmptyState.Description className="max-w-md text-pretty">
+            Configure an integration in the Towbar runtime environment to make
+            it available here.
+          </EmptyState.Description>
+        </EmptyState.Header>
+      </EmptyState>
+    );
+  if (!activeProvider) return <QueryLoading />;
 
   return (
     <>
@@ -151,22 +61,22 @@ export function Integrations() {
         label={activeProvider.label}
         icon={getProviderIcon(activeProvider.value, "size-6")}
       />
-      {integrationGroups.map((group) => (
+      {groups.map((group) => (
         <SecondaryItems
           key={group.value}
           title={group.label}
           selected={activeProvider.value}
-          onSelect={(value) => update({ integration: value })}
-          items={group.providers.map((provider) => ({
-            id: provider.value,
-            label: provider.label,
-            icon: getProviderIcon(provider.value, "size-4"),
-            badge: statuses[provider.value] ? (
+          onSelect={(value) => router.push(`${basePath}/${value}`)}
+          items={group.providers.map((item) => ({
+            id: item.value,
+            label: item.label,
+            icon: getProviderIcon(item.value, "size-4"),
+            badge: statuses[item.value] ? (
               <span
                 role="img"
-                aria-label={statuses[provider.value]}
-                title={statuses[provider.value]}
-                className="block size-1.5 rounded-full bg-success"
+                aria-label={statuses[item.value]}
+                title={statuses[item.value]}
+                className="block size-1.5 rounded-full bg-success-soft-foreground"
               />
             ) : undefined,
           }))}
@@ -176,3 +86,84 @@ export function Integrations() {
     </>
   );
 }
+
+type IntegrationCapabilities = {
+  integrations: Array<{ category: string; provider: IntegrationProvider }>;
+};
+
+export function Integrations({ integration }: { integration: string }) {
+  const integrations = useApiQuery<IntegrationCapabilities>(
+    "/v1/core/integrations",
+    30_000,
+  );
+  const drains = useApiQuery<LogDrainState>("/v1/core/log-drains", 30_000);
+  const notifications = useApiQuery<{
+    providers: Record<
+      "discord" | "slack" | "smtp" | "telegram" | "webhook",
+      boolean
+    >;
+  }>("/v1/core/notifications/providers", 30_000);
+  const error = integrations.error ?? drains.error ?? notifications.error;
+  if (error) return <QueryError message={error} />;
+  if (!integrations.data || !drains.data || !notifications.data)
+    return <QueryLoading />;
+
+  const enabled = new Set(
+    integrations.data.integrations.map((item) => item.provider),
+  );
+  const groups: ProviderGroup[] = integrationGroups
+    .map((group) => ({
+      ...group,
+      providers: group.providers.filter((item) =>
+        enabled.has(item.provider as IntegrationProvider),
+      ),
+    }))
+    .filter((group) => group.providers.length > 0);
+  const enabledLogDrains = new Set(
+    drains.data.configurations.map((configuration) => configuration.provider),
+  );
+  const logProviders = logForwardingProviders.filter((item) =>
+    enabledLogDrains.has(item.provider as keyof typeof logDrainNames),
+  );
+  if (logProviders.length)
+    groups.push({
+      value: "log-forwarding",
+      label: "Log forwarding",
+      providers: logProviders,
+    });
+
+  const enabledNotifications = notificationProviders.filter(
+    (item) => notifications.data!.providers[item.provider],
+  );
+  if (enabledNotifications.length)
+    groups.push({
+      value: "notifications",
+      label: "Notifications",
+      providers: [...enabledNotifications, notificationDeliveries],
+    });
+
+  const statuses: Record<string, string> = Object.fromEntries([
+    ...groups
+      .flatMap((group) => group.providers)
+      .filter((item) => item.value !== "deliveries")
+      .map((item) => [item.value, "Configured"] as const),
+    ...drains.data.configurations.map(
+      (item) => [item.provider, logDrainStatus(item).label] as const,
+    ),
+  ]);
+  return (
+    <ProviderPage
+      groups={groups}
+      provider={integration}
+      statuses={statuses}
+      basePath="/manage/integrations"
+    />
+  );
+}
+
+export {
+  getProviderIcon,
+  integrationGroups,
+  logForwardingProviders,
+  notificationProviders,
+} from "./integration-catalog";

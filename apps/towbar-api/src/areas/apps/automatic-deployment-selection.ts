@@ -1,9 +1,11 @@
+import type { DeployableKind } from "@workspace/towbar-core";
+
 type AutomaticDeploymentCandidate = {
   archivedAt: Date | null;
   config: { autoDeploy?: boolean };
   deploymentDigest: string | null;
   manifestId: string;
-  kind: "app" | "image" | "postgres" | "redis";
+  kind: DeployableKind;
   serverReady: boolean;
   sourceRevision: string | null;
 };

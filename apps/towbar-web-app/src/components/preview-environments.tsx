@@ -1,8 +1,20 @@
 "use client";
+
+import {
+  TableCellStack,
+  TableCellDescription,
+  tableCellDescriptionClassName,
+} from "@workspace/towbar-web-ui/table-cell-text";
+
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Delete02Icon, ReloadIcon } from "@hugeicons/core-free-icons";
+import {
+  Delete02Icon,
+  GitBranchIcon,
+  ReloadIcon,
+} from "@hugeicons/core-free-icons";
 
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+import { NewTabIndicator } from "@workspace/web-design-system/navigation/new-tab-indicator";
 
 import type { PreviewEnvironment } from "@workspace/towbar-web-client";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
@@ -16,8 +28,10 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { ActionButton, InlineLink } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
+import { deploymentHref } from "@/lib/deployment-route";
 import { RelativeTime } from "./last-synced-time";
 import { formatDate } from "./dashboard-overview";
+import { DomainLink } from "./domain-link";
 
 export function PreviewEnvironments({
   appId,
@@ -42,7 +56,7 @@ export function PreviewEnvironments({
       header: "Pull request",
       className: "min-w-48",
       cell: (preview) => (
-        <div className="flex flex-col items-start gap-0.5">
+        <TableCellStack as="div" className="justify-items-start">
           <a
             className="focus-visible:ring-focus rounded-md underline decoration-muted underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2"
             href={preview.pullRequestUrl}
@@ -50,14 +64,22 @@ export function PreviewEnvironments({
             target="_blank"
           >
             PR #{preview.pullRequestNumber}
+            <NewTabIndicator />
           </a>
           <TooltipText
-            className="max-w-48 truncate text-xs text-muted"
+            className={`${tableCellDescriptionClassName} inline-flex max-w-48 items-center gap-1 truncate`}
             tooltip={preview.branch}
           >
-            {preview.branch}
+            <HugeiconsIcon
+              aria-hidden="true"
+              icon={GitBranchIcon}
+              className="size-[1em] shrink-0"
+            />
+            <TypographyCode className="truncate py-0 text-xs/4">
+              {preview.branch}
+            </TypographyCode>
           </TooltipText>
-        </div>
+        </TableCellStack>
       ),
     },
     ...(!appId
@@ -74,19 +96,9 @@ export function PreviewEnvironments({
       key: "url",
       header: "URL",
       className: "min-w-64",
-      cell: (preview) =>
-        preview.status === "healthy" ? (
-          <a
-            className="focus-visible:ring-focus inline-flex rounded-md underline decoration-muted underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2"
-            href={`https://${preview.hostname}`}
-            rel="noreferrer"
-            target="_blank"
-          >
-            {preview.hostname}
-          </a>
-        ) : (
-          preview.hostname
-        ),
+      cell: (preview) => (
+        <DomainLink domain={preview.hostname}>{preview.hostname}</DomainLink>
+      ),
     },
     {
       key: "commit",
@@ -111,20 +123,22 @@ export function PreviewEnvironments({
       header: "Status",
       className: "min-w-56",
       cell: (preview) => (
-        <div className="flex flex-col items-start gap-0.5">
-          <StatusBadge status={preview.status} />
-          {preview.status === "cleanup_failed" && preview.errorMessage ? (
-            <span className="line-clamp-2 text-sm text-danger">
-              {preview.errorMessage}
-            </span>
-          ) : null}
+        <TableCellStack as="div" className="justify-items-start">
+          <StatusBadge
+            status={preview.status}
+            tooltip={
+              preview.status === "cleanup_failed" && preview.errorMessage
+                ? preview.errorMessage
+                : undefined
+            }
+          />
           {preview.status === "cleanup_failed" &&
           preview.nextCleanupAttemptAt ? (
-            <span className="text-xs text-muted">
-              Automatic retry {formatDate(preview.nextCleanupAttemptAt)}
-            </span>
+            <TableCellDescription className="whitespace-nowrap tabular-nums">
+              Retry scheduled {formatDate(preview.nextCleanupAttemptAt)}
+            </TableCellDescription>
           ) : null}
-        </div>
+        </TableCellStack>
       ),
     },
     {
@@ -132,16 +146,21 @@ export function PreviewEnvironments({
       header: "Actions",
       className: "whitespace-nowrap",
       cell: (preview) => (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {preview.latestDeploymentId ? (
             <InlineLink
-              href={`/sources/${preview.sourceId}/deployments/${preview.latestDeploymentId}`}
+              href={deploymentHref({
+                appId: preview.appId,
+                deployableKind: "app",
+                id: preview.latestDeploymentId,
+              })}
             >
               Deployment
             </InlineLink>
           ) : null}
           {preview.status === "cleanup_failed" ? (
             <ActionButton
+              ariaLabel={`Retry cleanup for PR #${preview.pullRequestNumber}`}
               confirm={{
                 title: "Retry Preview cleanup?",
                 description:
@@ -157,9 +176,9 @@ export function PreviewEnvironments({
               <HugeiconsIcon
                 aria-hidden="true"
                 icon={ReloadIcon}
-                className="size-4 shrink-0"
+                className="shrink-0"
               />
-              Retry cleanup
+              Retry
             </ActionButton>
           ) : (
             <ActionButton
@@ -180,7 +199,7 @@ export function PreviewEnvironments({
               <HugeiconsIcon
                 aria-hidden="true"
                 icon={Delete02Icon}
-                className="size-4 shrink-0"
+                className="shrink-0"
               />
               Delete
             </ActionButton>
@@ -194,7 +213,7 @@ export function PreviewEnvironments({
     <ResourceTable
       ariaLabel="Preview deployments"
       columns={columns}
-      emptyDescription="Enable Preview for an app, then open a same-repository pull request targeting the Source branch."
+      emptyDescription="Enable Preview for an app, then open a same-repository pull request targeting the Repository branch."
       emptyTitle="No Preview deployments"
       getRowKey={(preview) => preview.id}
       items={query.data.previews}

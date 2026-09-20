@@ -1,3 +1,6 @@
+import { recordAuditEvent } from "../../infrastructure/audit.js";
+import { auditAttribution } from "../auth/actor-context.js";
+import { withActor } from "../auth/actor-context.js";
 import { and, eq, inArray, max } from "drizzle-orm";
 
 import {
@@ -6,7 +9,6 @@ import {
   restoreOperationResultSchema,
 } from "@workspace/towbar-core";
 import {
-  auditEvents,
   deployableRuntimeStates,
   resourceOperationEvents,
   resourceOperations,
@@ -20,39 +22,50 @@ import { assureResourceBackup } from "./backup-assurance.js";
 
 import type { ResourceOperationResult } from "@workspace/towbar-core";
 
+type TerminalOperationInput =
+  | { result: ResourceOperationResult; state: "succeeded" }
+  | {
+      errorCode: string;
+      errorMessage: string;
+      result?: ResourceOperationResult;
+      state: "cancelled" | "failed";
+    };
+
 export async function finishResourceOperation(
   operationId: string,
-  input:
-    | { result: ResourceOperationResult; state: "succeeded" }
-    | {
-        errorCode: string;
-        errorMessage: string;
-        result?: ResourceOperationResult;
-        state: "cancelled" | "failed";
-      },
+  input: TerminalOperationInput,
 ) {
+  const terminalInput = normalizeRolledBackRestore(input);
   const { changed, operation } = await persistTerminalOperation(
     operationId,
-    input,
+    terminalInput,
   );
   // Temporal activity completion can be retried after the database commit.
   // Keep terminal callbacks idempotent so a retry does not duplicate audit
   // entries, notifications, server checks, or backup assurance work.
   if (!changed) return operation;
-  await runTerminalSideEffects(operation, input.state);
+  await runTerminalSideEffects(operation, terminalInput.state);
   return operation;
+}
+
+function normalizeRolledBackRestore(
+  input: TerminalOperationInput,
+): TerminalOperationInput {
+  if (input.state !== "succeeded") return input;
+  const result = restoreOutcome(input.result);
+  if (!result.success || result.data.outcome !== "rolled_back") return input;
+  return {
+    errorCode: "RESTORE_ROLLED_BACK",
+    errorMessage:
+      "Restored data did not pass promotion checks; Towbar restored the previous active data",
+    result: input.result,
+    state: "failed",
+  };
 }
 
 async function persistTerminalOperation(
   operationId: string,
-  input:
-    | { result: ResourceOperationResult; state: "succeeded" }
-    | {
-        errorCode: string;
-        errorMessage: string;
-        result?: ResourceOperationResult;
-        state: "cancelled" | "failed";
-      },
+  input: TerminalOperationInput,
 ) {
   return await getTowbarDatabase().transaction(async (transaction) => {
     const [current] = await transaction
@@ -104,20 +117,13 @@ async function insertTerminalRestoreEvent(
     Parameters<ReturnType<typeof getTowbarDatabase>["transaction"]>[0]
   >[0],
   operationId: string,
-  input:
-    | { result: ResourceOperationResult; state: "succeeded" }
-    | {
-        errorCode: string;
-        errorMessage: string;
-        result?: ResourceOperationResult;
-        state: "cancelled" | "failed";
-      },
+  input: TerminalOperationInput,
 ) {
   const [latest] = await transaction
     .select({ sequence: max(resourceOperationEvents.sequence) })
     .from(resourceOperationEvents)
     .where(eq(resourceOperationEvents.operationId, operationId));
-  const restoreResult = restoreOperationResultSchema.safeParse(input.result);
+  const restoreResult = restoreOutcome(input.result);
   await transaction.insert(resourceOperationEvents).values({
     level: input.state === "succeeded" ? "success" : "error",
     message: terminalRestoreMessage(input.state, restoreResult),
@@ -130,7 +136,7 @@ async function insertTerminalRestoreEvent(
 
 function terminalRestoreMessage(
   state: "cancelled" | "failed" | "succeeded",
-  result: ReturnType<typeof restoreOperationResultSchema.safeParse>,
+  result: ReturnType<typeof restoreOutcome>,
 ) {
   if (result.success && result.data.outcome === "rolled_back") {
     return "Promotion failed; the previous runtime remains active";
@@ -184,11 +190,20 @@ async function runTerminalSideEffects(
     state === "succeeded" &&
     ["cleanup_orphans", "restart", "start", "stop"].includes(operation.type)
   ) {
-    await requestServerCheck({
-      requestedBy: null,
-      serverId: operation.serverId,
-      workspaceId: operation.workspaceId,
-    }).catch(() => undefined);
+    await withActor(
+      {
+        kind: "system",
+        source: "worker",
+        workspaceId: operation.workspaceId,
+        grants: ["server.credentials"],
+      },
+      () =>
+        requestServerCheck({
+          requestedBy: null,
+          serverId: operation.serverId,
+          workspaceId: operation.workspaceId,
+        }),
+    ).catch(() => undefined);
   }
   if (operation.state === "failed" && operation.type === "backup") {
     await emitResourceOperationNotification(
@@ -208,26 +223,22 @@ async function runTerminalSideEffects(
 async function finishRestoreSideEffects(
   operation: typeof resourceOperations.$inferSelect,
 ) {
-  const restoreResult = restoreOperationResultSchema.safeParse(
-    operation.result,
-  );
-  await getTowbarDatabase()
-    .insert(auditEvents)
-    .values({
-      action: `resource.restore.${operation.state}`,
-      actorUserId: operation.requestedBy,
-      metadata: {
-        operationId: operation.id,
-        outcome: restoreResult.success ? restoreResult.data.outcome : null,
-        reason:
-          operation.request.type === "restore"
-            ? operation.request.reason
-            : null,
-      },
-      targetId: operation.resourceId,
-      targetType: "resource",
-      workspaceId: operation.workspaceId,
-    });
+  if (operation.state === "queued" || operation.state === "running") return;
+  const restoreResult = restoreOutcome(operation.result);
+  await recordAuditEvent(getTowbarDatabase(), {
+    action: `resource.restore.${operation.state}`,
+    actorUserId: operation.requestedBy,
+    metadata: {
+      operationId: operation.id,
+      outcome: restoreResult.success ? restoreResult.data.outcome : null,
+      reason:
+        operation.request.type === "restore" ? operation.request.reason : null,
+    },
+    targetId: operation.resourceId,
+    targetType: "resource",
+    workspaceId: operation.workspaceId,
+    ...auditAttribution(),
+  });
   const event =
     restoreResult.success && restoreResult.data.outcome === "rolled_back"
       ? "restore.rolled_back"
@@ -241,30 +252,34 @@ async function finishRestoreSideEffects(
   );
 }
 
+function restoreOutcome(result: unknown) {
+  return restoreOperationResultSchema.safeParse(result);
+}
+
 async function auditRestoreCleanup(
   operation: typeof resourceOperations.$inferSelect,
 ) {
+  if (operation.state === "queued" || operation.state === "running") return;
   const cleanupResult = restoreCleanupResultSchema.safeParse(operation.result);
-  await getTowbarDatabase()
-    .insert(auditEvents)
-    .values({
-      action: `resource.restore_cleanup.${operation.state}`,
-      actorUserId: operation.requestedBy,
-      metadata: {
-        cleanedVolumes: cleanupResult.success
-          ? cleanupResult.data.cleanedVolumes.length
+  await recordAuditEvent(getTowbarDatabase(), {
+    action: `resource.restore_cleanup.${operation.state}`,
+    actorUserId: operation.requestedBy,
+    metadata: {
+      cleanedVolumes: cleanupResult.success
+        ? cleanupResult.data.cleanedVolumes.length
+        : null,
+      operationId: operation.id,
+      restoreId:
+        operation.request.type === "restore_cleanup"
+          ? operation.request.restoreId
           : null,
-        operationId: operation.id,
-        restoreId:
-          operation.request.type === "restore_cleanup"
-            ? operation.request.restoreId
-            : null,
-        skippedVolumes: cleanupResult.success
-          ? cleanupResult.data.skippedVolumes.length
-          : null,
-      },
-      targetId: operation.resourceId,
-      targetType: "resource",
-      workspaceId: operation.workspaceId,
-    });
+      skippedVolumes: cleanupResult.success
+        ? cleanupResult.data.skippedVolumes.length
+        : null,
+    },
+    targetId: operation.resourceId,
+    targetType: "resource",
+    workspaceId: operation.workspaceId,
+    ...auditAttribution(),
+  });
 }

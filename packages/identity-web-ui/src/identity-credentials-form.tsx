@@ -15,6 +15,7 @@ import { Input } from "@workspace/web-design-system/forms/input";
 import { PasswordInput } from "@workspace/web-design-system/forms/password-input";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
+import { toast } from "@workspace/web-design-system/overlays/toast";
 import type { ComponentRootProps } from "@workspace/web-design-system/lib/component-root-props";
 import { cn } from "@workspace/web-design-system/lib/utils";
 
@@ -31,6 +32,7 @@ type IdentityCredentialsFormOwnProps = {
   children?: never;
   defaultIdentifier?: string;
   disabled?: boolean;
+  errorPresentation?: "inline" | "toast";
   identifier?: string;
   identifierAutoComplete?: string;
   identifierLabel?: string;
@@ -53,6 +55,7 @@ export function IdentityCredentialsForm({
   className,
   defaultIdentifier = "",
   disabled = false,
+  errorPresentation = "inline",
   identifier,
   identifierAutoComplete = "username",
   identifierLabel = "Username",
@@ -104,9 +107,9 @@ export function IdentityCredentialsForm({
     try {
       await onSubmit(credentials);
     } catch (error) {
-      setSubmissionError(
-        error instanceof Error ? error.message : "Sign in failed",
-      );
+      const message = error instanceof Error ? error.message : "Sign in failed";
+      if (errorPresentation === "toast") toast.danger(message);
+      else setSubmissionError(message);
     }
   });
 
@@ -119,13 +122,16 @@ export function IdentityCredentialsForm({
     >
       <FieldGroup>
         <Field>
-          <Label htmlFor={identifierId}>{identifierLabel}</Label>
+          <Label htmlFor={identifierId} isRequired>
+            {identifierLabel}
+          </Label>
           <Input
             id={identifierId}
             type={identifierType}
             autoComplete={identifierAutoComplete}
             aria-invalid={Boolean(errors.identifier)}
             placeholder={identifierPlaceholder}
+            required
             {...identifierField}
             onChange={(event) => {
               identifierField.onChange(event);
@@ -138,13 +144,16 @@ export function IdentityCredentialsForm({
         </Field>
         <Field>
           <div className="flex items-center justify-between">
-            <Label htmlFor={passwordId}>Password</Label>
+            <Label htmlFor={passwordId} isRequired>
+              Password
+            </Label>
             {passwordAction}
           </div>
           <PasswordInput
             id={passwordId}
             autoComplete="current-password"
             aria-invalid={Boolean(errors.password)}
+            required
             {...register("password")}
           />
           {errors.password && (
