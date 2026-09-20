@@ -9,7 +9,7 @@ A server is a workspace-owned Ubuntu host. Towbar uses SSH to build and run work
 
 Use a dedicated Ubuntu 22.04 or 24.04 LTS host with root access or a user that has passwordless `sudo`. The worker must be able to reach its SSH port. Restrict access at the network layer and keep the operating system maintained.
 
-Preparation installs or validates Docker Engine 28 or newer, Caddy, `python3`, GNU `timeout`, and the required non-interactive permissions. It checks for at least 1 GiB of available storage under Docker's data directory. Plan additional disk and memory for builds, retained images, and database volumes.
+Preparation installs or validates Docker Engine 29 or newer with Buildx per-build resource controls, Caddy, `python3`, GNU `timeout`, and the required non-interactive permissions. It checks for at least 1 GiB of available storage under Docker's data directory. Plan additional disk and memory for builds, retained images, and database volumes. Re-run preparation after upgrading Towbar so an older Docker installation is upgraded before the next deployment.
 
 ## Register and trust the host
 

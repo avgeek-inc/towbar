@@ -64,7 +64,8 @@ if command -v docker >/dev/null; then
   "${"$"}{SUDO[@]}" systemctl enable --now docker >/dev/null 2>&1 || true
   docker_version="$("${"$"}{SUDO[@]}" docker version --format '{{.Server.Version}}' 2>/dev/null || true)"
   docker_major="${"$"}{docker_version%%.*}"
-  if test -n "$docker_major" && test "$docker_major" -ge 28; then
+  if test -n "$docker_major" && test "$docker_major" -ge 29 && \
+    "${"$"}{SUDO[@]}" docker buildx build --help 2>&1 | grep -Fq -- '--resource'; then
     docker_compatible=true
   elif ! dpkg-query -W -f='${"$"}{Status}' docker-ce 2>/dev/null | grep -Fq 'install ok installed'; then
     printf 'An incompatible Docker installation is already present. Remove the conflicting installation before continuing.\n' >&2
@@ -107,8 +108,12 @@ fi
 "${"$"}{SUDO[@]}" systemctl enable --now docker >&2
 docker_version="$("${"$"}{SUDO[@]}" docker version --format '{{.Server.Version}}')"
 docker_major="${"$"}{docker_version%%.*}"
-if test -z "$docker_major" || test "$docker_major" -lt 28; then
-  printf 'Docker Engine 28 or newer is required; the server reports %s.\n' "$docker_version" >&2
+if test -z "$docker_major" || test "$docker_major" -lt 29; then
+  printf 'Docker Engine 29 or newer is required; the server reports %s.\n' "$docker_version" >&2
+  exit 72
+fi
+if ! "${"$"}{SUDO[@]}" docker buildx build --help 2>&1 | grep -Fq -- '--resource'; then
+  printf '%s\n' 'Docker Buildx with per-build resource controls is required.' >&2
   exit 72
 fi
 printf '%s\n' "$docker_version"
@@ -198,6 +203,7 @@ command -v zstd >/dev/null
 "${"$"}{SUDO[@]}" systemctl is-active --quiet docker
 "${"$"}{SUDO[@]}" systemctl is-active --quiet caddy
 "${"$"}{SUDO[@]}" docker info >/dev/null
+"${"$"}{SUDO[@]}" docker buildx build --help 2>&1 | grep -Fq -- '--resource'
 if test "$ssh_user" != root; then
   id -nG "$ssh_user" | tr ' ' '\n' | grep -Fxq docker
 fi

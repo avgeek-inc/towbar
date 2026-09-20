@@ -83,6 +83,9 @@ void describe("remote deployment scripts", () => {
       assert.match(script, /towbar\.build-cache-mode=\$cache_mode/);
       assert.match(script, /towbar\.context-digest=\$context_digest/);
       assert.match(script, /tar --sort=name --mtime='@0'/);
+      assert.match(script, /docker buildx build --load/);
+      assert.match(script, /--resource "cpu-quota=/);
+      assert.match(script, /--resource "memory=\$build_memory"/);
       assert.match(
         script,
         /printf '%s\\n' "\$TOWBAR_COMMIT_SHA" >"\$cache_state\/\$cache_scope"/,
@@ -93,8 +96,8 @@ void describe("remote deployment scripts", () => {
   void it("applies declared resource limits to both static build stages", () => {
     assert.match(staticBuildRemoteScript, /"--cpus", build_cpus/);
     assert.match(staticBuildRemoteScript, /"--memory", build_memory/);
-    assert.match(staticBuildRemoteScript, /--cpu-quota/);
-    assert.match(staticBuildRemoteScript, /--memory "\$build_memory"/);
+    assert.match(staticBuildRemoteScript, /--resource "cpu-quota=/);
+    assert.match(staticBuildRemoteScript, /--resource "memory=\$build_memory"/);
   });
 
   void it("injects runtime secrets by key without putting values in argv", () => {

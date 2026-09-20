@@ -131,10 +131,9 @@ done
 if test -n "$target"; then build_args+=(--target "$target"); fi
 if test -n "$architecture"; then build_args+=(--platform "linux/$architecture"); fi
 ${configureDockerBuildCacheScript}
-DOCKER_BUILDKIT=1 docker build "${"$"}{build_args[@]}" \
-  --cpu-period 100000 \
-  --cpu-quota "$(python3 -c 'import sys; print(round(float(sys.argv[1]) * 100000))' "$build_cpus")" \
-  --memory "$build_memory" \
+docker buildx build --load "${"$"}{build_args[@]}" \
+  --resource "cpu-quota=$(python3 -c 'import sys; print(round(float(sys.argv[1]) * 100000))' "$build_cpus")" \
+  --resource "memory=$build_memory" \
   --label "towbar.managed=true" \
   --label "towbar.app=$TOWBAR_APP_ID" \
   --label "towbar.deployable=$TOWBAR_DEPLOYABLE_ID" \
@@ -303,10 +302,9 @@ PYTHON
 build_args=()
 if test -n "$architecture"; then build_args+=(--platform "linux/$architecture"); fi
 ${configureDockerBuildCacheScript}
-DOCKER_BUILDKIT=1 docker build "${"$"}{build_args[@]}" \
-  --cpu-period 100000 \
-  --cpu-quota "$(python3 -c 'import sys; print(round(float(sys.argv[1]) * 100000))' "$build_cpus")" \
-  --memory "$build_memory" \
+docker buildx build --load "${"$"}{build_args[@]}" \
+  --resource "cpu-quota=$(python3 -c 'import sys; print(round(float(sys.argv[1]) * 100000))' "$build_cpus")" \
+  --resource "memory=$build_memory" \
   --label "towbar.managed=true" \
   --label "towbar.app=$TOWBAR_APP_ID" \
   --label "towbar.deployable=$TOWBAR_DEPLOYABLE_ID" \

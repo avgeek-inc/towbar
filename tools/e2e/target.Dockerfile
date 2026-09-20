@@ -1,4 +1,4 @@
-FROM docker:28-dind AS docker
+FROM docker:29-dind AS docker
 FROM caddy:2 AS caddy
 FROM ubuntu:24.04
 RUN apt-get update \
