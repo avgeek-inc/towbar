@@ -84,6 +84,7 @@ void describe("remote deployment scripts", () => {
       assert.match(script, /towbar\.context-digest=\$context_digest/);
       assert.match(script, /tar --sort=name --mtime='@0'/);
       assert.match(script, /docker buildx build --load/);
+      assert.match(script, /tar -cf - -C "\$remote_dir\/context" \./);
       assert.match(script, /--resource "cpu-quota=/);
       assert.match(script, /--resource "memory=\$build_memory"/);
       assert.match(

@@ -131,7 +131,7 @@ done
 if test -n "$target"; then build_args+=(--target "$target"); fi
 if test -n "$architecture"; then build_args+=(--platform "linux/$architecture"); fi
 ${configureDockerBuildCacheScript}
-docker buildx build --load "${"$"}{build_args[@]}" \
+tar -cf - -C "$remote_dir/context" . | docker buildx build --load "${"$"}{build_args[@]}" \
   --resource "cpu-quota=$(python3 -c 'import sys; print(round(float(sys.argv[1]) * 100000))' "$build_cpus")" \
   --resource "memory=$build_memory" \
   --label "towbar.managed=true" \
@@ -142,9 +142,9 @@ docker buildx build --load "${"$"}{build_args[@]}" \
   --label "towbar.build-cache-mode=$cache_mode" \
   --label "towbar.context-digest=$context_digest" \
   --label towbar.build-cache=true \
-  -f "$remote_dir/context/$dockerfile" \
+  -f "$dockerfile" \
   -t "$image_tag" \
-  "$remote_dir/context"
+  -
 if test "$cache_enabled" = true; then docker image tag "$image_tag" "$cache_image"; fi
 ${maintainBuildCacheScript}
 `;
@@ -302,7 +302,7 @@ PYTHON
 build_args=()
 if test -n "$architecture"; then build_args+=(--platform "linux/$architecture"); fi
 ${configureDockerBuildCacheScript}
-docker buildx build --load "${"$"}{build_args[@]}" \
+tar -cf - -C "$remote_dir/context" . | docker buildx build --load "${"$"}{build_args[@]}" \
   --resource "cpu-quota=$(python3 -c 'import sys; print(round(float(sys.argv[1]) * 100000))' "$build_cpus")" \
   --resource "memory=$build_memory" \
   --label "towbar.managed=true" \
@@ -313,8 +313,8 @@ docker buildx build --load "${"$"}{build_args[@]}" \
   --label "towbar.build-cache-mode=$cache_mode" \
   --label "towbar.context-digest=$context_digest" \
   --label towbar.build-cache=true \
-  -f "$remote_dir/context/.towbar-static.Dockerfile" \
-  -t "$image_tag" "$remote_dir/context"
+  -f .towbar-static.Dockerfile \
+  -t "$image_tag" -
 if test "$cache_enabled" = true; then docker image tag "$image_tag" "$cache_image"; fi
 ${maintainBuildCacheScript}
 `;
