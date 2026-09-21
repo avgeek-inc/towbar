@@ -36,6 +36,9 @@ origin at build time. The website URL is an external navigation target; the Comp
 Use the same origin for the app and API. Route `/v1/*` to the API listener on
 port `4020` and every other path to the web listener on port `4021`. Login is
 rendered by the web app and sends credentialed requests to that same origin.
+External REST, MCP, and API-key management are enabled only when
+`TOWBAR_API_BASE_URL` uses HTTPS. The default local HTTP installation supports
+the on-host dashboard without exposing those automation interfaces.
 
 The default `TOWBAR_BIND_ADDRESS=127.0.0.1` keeps services private to the host.
 Terminate TLS at a reverse proxy on that host or a private load balancer.

@@ -27,9 +27,11 @@ import { operations } from "../../areas/external-api/catalogue.js";
 import { controlPlaneRoutes } from "./core/index.js";
 import { readJson } from "../../http/requests.js";
 import { normalizeError } from "../../http/error-response.js";
+import { requireHttpsExternalAccess } from "../../http/external-access.js";
 import type { TowbarHonoEnvironment } from "../../http/types.js";
 
 export const mcpRoutes = new Hono<TowbarHonoEnvironment>();
+mcpRoutes.use("*", requireHttpsExternalAccess);
 mcpRoutes.use("*", externalRateLimit);
 mcpRoutes.use("*", requireApiKey("mcp"));
 mcpRoutes.all("/", async (context) => {

@@ -7,6 +7,7 @@ import {
 } from "@workspace/towbar-web-ui/table-cell-text";
 
 import { TeamAuditLogs } from "./team-audit-logs";
+import { hasHttpsExternalAccess } from "@/lib/config";
 import { useMemo, useState, type ComponentProps, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -181,6 +182,7 @@ export function TeamSettingsShell({
     <DashboardPage title={active.label} icon={active.icon}>
       {teamSettingsGroups.map((group) => {
         const items = group.pages
+          .filter((id) => id !== "api-keys" || hasHttpsExternalAccess)
           .map((id) => ({ id, ...teamSettingsPages[id] }))
           .filter((item) => can(item.permission));
         return items.length ? (

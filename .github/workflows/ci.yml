@@ -78,9 +78,9 @@ jobs:
           infra/towbar version
           NO_COLOR=1 infra/towbar preview --defaults | tee /tmp/towbar-preview.txt
           grep --fixed-strings "Towbar is ready" /tmp/towbar-preview.txt
-          grep --fixed-strings \
-            "REST: http://localhost:4020/v1/api · MCP: http://localhost:4020/v1/mcp" \
-            /tmp/towbar-preview.txt
+          if grep --extended-regexp "REST:|MCP:" /tmp/towbar-preview.txt; then
+            exit 1
+          fi
           NO_COLOR=1 TOWBAR_NON_INTERACTIVE=1 TOWBAR_INSTALL_MODE=public \
             TOWBAR_INSTALL_URL=https://towbar.example.com \
             infra/towbar preview | tee /tmp/towbar-public-preview.txt

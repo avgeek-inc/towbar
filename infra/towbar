@@ -179,7 +179,6 @@ show_install_summary() {
   else
     printf 'Towbar will stay available only on this server.\n'
     ui_note "Open the dashboard at $INSTALL_APP_URL after installation."
-    ui_note "REST: $INSTALL_API_URL/v1/api · MCP: $INSTALL_API_URL/v1/mcp"
   fi
   printf '\n'
 }

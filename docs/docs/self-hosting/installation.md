@@ -121,13 +121,7 @@ Open the printed link and enter the team name, your name, email, password and co
 
 Complete setup while the services are loopback-bound. Configure SMTP for invitations and password recovery, then add colleagues under Team Settings. See [Team access](/docs/self-hosting/team-access) for roles, MFA and invitations. If access is lost, use [Admin account recovery](/docs/self-hosting/account-recovery).
 
-The loopback defaults keep every Towbar interface private to the host. From another computer, forward both listeners over SSH:
-
-```bash
-ssh -L 4021:127.0.0.1:4021 -L 4020:127.0.0.1:4020 user@towbar-host
-```
-
-Then use `http://localhost:4021` for the dashboard, `http://localhost:4020/v1/api` for REST, and `http://localhost:4020/v1/mcp` for MCP. These endpoints are available in local mode; they are not published to the network. GitHub webhooks require the Towbar API route to be reachable over HTTPS, so a complete push-to-deploy setup also needs a maintained reverse proxy or private ingress.
+The loopback defaults provide an on-host dashboard for evaluating and configuring Towbar. External REST, MCP, and API-key management remain unavailable in this mode. Configure a single HTTPS Towbar origin and restart the installation before connecting automation clients or receiving provider webhooks.
 
 ## Verify the installation
 

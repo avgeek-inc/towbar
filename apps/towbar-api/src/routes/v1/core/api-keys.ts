@@ -7,6 +7,7 @@ import {
 } from "../../../areas/api-keys/service.js";
 import { requireRecentAuthentication } from "../../../areas/auth/recent-authentication.js";
 import { getEnv } from "../../../env.js";
+import { requireHttpsExternalAccess } from "../../../http/external-access.js";
 import { operation } from "../../../http/operation.js";
 import { readJson, readUuidPathParameter } from "../../../http/requests.js";
 import { sessionUser } from "../../../http/session-user.js";
@@ -20,6 +21,7 @@ const createKeySchema = z
   })
   .strict();
 export const apiKeyRoutes = new Hono<TowbarHonoEnvironment>();
+apiKeyRoutes.use("*", requireHttpsExternalAccess);
 apiKeyRoutes.use("*", async (c, next) => {
   c.header("Cache-Control", "no-store");
   await next();
