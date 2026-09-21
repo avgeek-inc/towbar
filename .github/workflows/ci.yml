@@ -73,7 +73,11 @@ jobs:
           cache: pnpm
       - run: bash -n install.sh infra/towbar
       - run: shellcheck install.sh infra/towbar
-      - run: infra/towbar help && infra/towbar version
+      - run: |
+          infra/towbar help
+          infra/towbar version
+          NO_COLOR=1 infra/towbar preview --defaults | tee /tmp/towbar-preview.txt
+          grep --fixed-strings "Towbar is ready" /tmp/towbar-preview.txt
       - run: shellcheck infra/postgres/*.sh infra/temporal/*.sh
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check

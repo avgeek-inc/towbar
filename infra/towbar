@@ -12,13 +12,293 @@ CURRENT_LINK="$TOWBAR_ROOT/current"
 VERSION_FILE="$TOWBAR_ROOT/VERSION"
 LOCK_FILE="${TOWBAR_LOCK_FILE:-/var/lock/towbar.lock}"
 
+STYLE_RESET=""
+STYLE_BOLD=""
+STYLE_MUTED=""
+STYLE_YELLOW=""
+STYLE_GREEN=""
+STYLE_RED=""
+
+setup_styles() {
+  if [[ -t 1 && -z "${NO_COLOR:-}" && "${TERM:-dumb}" != dumb ]]; then
+    STYLE_RESET=$'\033[0m'
+    STYLE_BOLD=$'\033[1m'
+    STYLE_MUTED=$'\033[38;5;245m'
+    STYLE_YELLOW=$'\033[38;5;214m'
+    STYLE_GREEN=$'\033[38;5;78m'
+    STYLE_RED=$'\033[38;5;203m'
+  fi
+}
+
+setup_styles
+
 log() {
   printf 'Towbar: %s\n' "$*"
 }
 
 fail() {
-  printf 'Towbar: %s\n' "$*" >&2
+  printf '%sTowbar: %s%s\n' "$STYLE_RED" "$*" "$STYLE_RESET" >&2
   exit 1
+}
+
+ui_brand() {
+  if gum_available; then
+    gum style \
+      --border rounded \
+      --border-foreground 214 \
+      --padding "0 2" \
+      --margin "1 0" \
+      --bold \
+      "TOWBAR" \
+      "Self-hosted deployments, ready on your infrastructure."
+    printf '\n'
+    return
+  fi
+  printf '\n%s%sTOWBAR%s\n' "$STYLE_BOLD" "$STYLE_YELLOW" "$STYLE_RESET"
+  printf '%sSelf-hosted deployments, ready on your infrastructure.%s\n\n' \
+    "$STYLE_MUTED" "$STYLE_RESET"
+}
+
+ui_heading() {
+  printf '%s%s%s\n' "$STYLE_BOLD" "$1" "$STYLE_RESET"
+}
+
+ui_note() {
+  printf '%s%s%s\n' "$STYLE_MUTED" "$1" "$STYLE_RESET"
+}
+
+ui_step() {
+  printf '%s✓%s  %s\n' "$STYLE_GREEN" "$STYLE_RESET" "$1"
+}
+
+ui_pending_step() {
+  printf '%s○%s  %s\n' "$STYLE_YELLOW" "$STYLE_RESET" "$1"
+}
+
+interactive_terminal() {
+  [[ -t 0 && -t 1 && "${TOWBAR_NON_INTERACTIVE:-0}" != 1 ]]
+}
+
+gum_available() {
+  interactive_terminal && command -v gum >/dev/null 2>&1
+}
+
+prompt_choice() {
+  local prompt="$1" first="$2" second="$3" answer
+  if gum_available; then
+    answer="$(
+      gum choose \
+        --cursor.foreground 214 \
+        --header "$prompt" \
+        --header.foreground 250 \
+        "$first" "$second"
+    )"
+    printf '%s\n' "$answer"
+    return
+  fi
+
+  printf '%s%s%s\n' "$STYLE_BOLD" "$prompt" "$STYLE_RESET" >&2
+  printf '  %s1%s  %s\n' "$STYLE_YELLOW" "$STYLE_RESET" "$first" >&2
+  printf '   2  %s\n' "$second" >&2
+  printf '%sChoose 1 or 2 [1]: %s' "$STYLE_MUTED" "$STYLE_RESET" >&2
+  read -r answer
+  case "$answer" in
+    "" | 1) printf '%s\n' "$first" ;;
+    2) printf '%s\n' "$second" ;;
+    *) fail "enter 1 or 2" ;;
+  esac
+}
+
+prompt_input() {
+  local prompt="$1" default_value="$2" answer
+  if gum_available; then
+    answer="$(
+      gum input \
+        --cursor.foreground 214 \
+        --prompt.foreground 214 \
+        --prompt "› " \
+        --header "$prompt" \
+        --header.foreground 250 \
+        --value "$default_value"
+    )"
+  else
+    printf '%s%s%s\n' "$STYLE_BOLD" "$prompt" "$STYLE_RESET" >&2
+    printf '%s[%s] › %s' "$STYLE_MUTED" "$default_value" "$STYLE_RESET" >&2
+    read -r answer
+  fi
+  printf '%s\n' "${answer:-$default_value}"
+}
+
+prompt_confirm() {
+  local prompt="$1" answer
+  if gum_available; then
+    gum confirm \
+      --affirmative "Install" \
+      --negative "Cancel" \
+      --prompt.foreground 214 \
+      "$prompt"
+    return
+  fi
+
+  printf '%s%s [Y/n]: %s' "$STYLE_BOLD" "$prompt" "$STYLE_RESET" >&2
+  read -r answer
+  [[ "$answer" =~ ^[Nn]$ ]] && return 1
+  [[ -z "$answer" || "$answer" =~ ^[Yy]$ ]]
+}
+
+validate_https_url() {
+  [[ "$1" =~ ^https://[^[:space:]]+$ ]] ||
+    fail "$2 must be a complete HTTPS URL"
+}
+
+validate_proxy_hops() {
+  [[ "$1" =~ ^[1-8]$ ]] || fail "trusted proxy hops must be between 1 and 8"
+}
+
+set_env_value() {
+  local env_file="$1" key="$2" value="$3" pending
+  pending="$(mktemp "${env_file}.XXXXXX")"
+  awk \
+    -v key="$key" \
+    -v value="$value" \
+    'BEGIN { FS = OFS = "="; found = 0 }
+      $1 == key { print key, value; found = 1; next }
+      { print }
+      END { if (!found) print key, value }' \
+    "$env_file" >"$pending"
+  chmod 600 "$pending"
+  mv "$pending" "$env_file"
+}
+
+show_install_plan() {
+  local requested_version="$1"
+  printf '\n'
+  ui_heading "Installation plan"
+  printf '  %-18s %s\n' "Release" "$requested_version"
+  printf '  %-18s %s\n' "Access" \
+    "$([[ "$INSTALL_MODE" == public ]] && printf 'Public HTTPS' || printf 'Local or private')"
+  printf '  %-18s %s\n' "Dashboard" "$INSTALL_APP_URL"
+  printf '  %-18s %s\n' "API" "$INSTALL_API_URL"
+  printf '  %-18s %s\n' "Configuration" "$TOWBAR_ENV_FILE"
+  printf '  %-18s %s\n' "Releases" "$RELEASES_DIR"
+  if [[ "$INSTALL_MODE" == public ]]; then
+    ui_note "  An existing host reverse proxy must terminate TLS for these URLs."
+  fi
+  printf '\n'
+}
+
+collect_install_settings() {
+  local requested_version="$1" access_choice
+  INSTALL_MODE="${TOWBAR_INSTALL_MODE:-local}"
+  INSTALL_APP_URL="${TOWBAR_INSTALL_APP_URL:-http://localhost:4021}"
+  INSTALL_API_URL="${TOWBAR_INSTALL_API_URL:-http://localhost:4020}"
+  INSTALL_PROXY_HOPS="${TOWBAR_INSTALL_TRUSTED_PROXY_HOPS:-1}"
+
+  case "$INSTALL_MODE" in
+    local | public) ;;
+    *) fail "TOWBAR_INSTALL_MODE must be local or public" ;;
+  esac
+
+  if interactive_terminal; then
+    ui_heading "How will you open Towbar?"
+    ui_note "The safe default binds the dashboard and API to this host."
+    printf '\n'
+    access_choice="$(
+      prompt_choice \
+        "Choose an access model" \
+        "Local or private access (recommended)" \
+        "Public HTTPS behind a host reverse proxy"
+    )"
+    if [[ "$access_choice" == "Public HTTPS behind a host reverse proxy" ]]; then
+      INSTALL_MODE=public
+      INSTALL_APP_URL="$(
+        prompt_input "Dashboard URL" \
+          "${TOWBAR_INSTALL_APP_URL:-https://towbar.example.com}"
+      )"
+      INSTALL_API_URL="$(
+        prompt_input "API URL" \
+          "${TOWBAR_INSTALL_API_URL:-https://api.towbar.example.com}"
+      )"
+      INSTALL_PROXY_HOPS="$(
+        prompt_input "Trusted reverse-proxy hops" \
+          "${TOWBAR_INSTALL_TRUSTED_PROXY_HOPS:-1}"
+      )"
+    else
+      INSTALL_MODE=local
+      INSTALL_APP_URL=http://localhost:4021
+      INSTALL_API_URL=http://localhost:4020
+      INSTALL_PROXY_HOPS=0
+    fi
+  elif [[ "$INSTALL_MODE" == local ]]; then
+    INSTALL_APP_URL="${TOWBAR_INSTALL_APP_URL:-http://localhost:4021}"
+    INSTALL_API_URL="${TOWBAR_INSTALL_API_URL:-http://localhost:4020}"
+    INSTALL_PROXY_HOPS=0
+  fi
+
+  if [[ "$INSTALL_MODE" == public ]]; then
+    validate_https_url "$INSTALL_APP_URL" "dashboard URL"
+    validate_https_url "$INSTALL_API_URL" "API URL"
+    validate_proxy_hops "$INSTALL_PROXY_HOPS"
+  fi
+
+  show_install_plan "$requested_version"
+  if interactive_terminal && ! prompt_confirm "Continue with this installation?"; then
+    fail "installation cancelled"
+  fi
+}
+
+apply_install_settings() {
+  set_env_value "$TOWBAR_ENV_FILE" TOWBAR_BIND_ADDRESS 127.0.0.1
+  set_env_value "$TOWBAR_ENV_FILE" TOWBAR_APP_BASE_URL "$INSTALL_APP_URL"
+  set_env_value "$TOWBAR_ENV_FILE" TOWBAR_API_BASE_URL "$INSTALL_API_URL"
+  set_env_value \
+    "$TOWBAR_ENV_FILE" TOWBAR_TRUSTED_PROXY_HOPS "$INSTALL_PROXY_HOPS"
+}
+
+preview_installation() {
+  local delay="${TOWBAR_PREVIEW_DELAY:-0.12}" step
+  local -a steps=(
+    "Inspecting the host"
+    "Installing Docker and prerequisites"
+    "Resolving the latest stable v2 release"
+    "Generating installation secrets"
+    "Building the control-plane services"
+    "Applying the database schema"
+    "Starting Towbar"
+    "Verifying the API, worker and dashboard"
+  )
+
+  printf '\n'
+  ui_heading "Installing Towbar"
+  for step in "${steps[@]}"; do
+    if [[ -t 1 && -n "$STYLE_YELLOW" ]]; then
+      ui_pending_step "$step"
+      sleep "$delay"
+      printf '\033[1A\033[2K'
+    fi
+    ui_step "$step"
+  done
+
+  printf '\n%s%sTowbar is ready%s\n' \
+    "$STYLE_BOLD" "$STYLE_GREEN" "$STYLE_RESET"
+  printf '  %-18s %s\n' "Dashboard" "$INSTALL_APP_URL"
+  printf '  %-18s %s\n' "API" "$INSTALL_API_URL"
+  printf '  %-18s %s\n' "Configuration" "$TOWBAR_ENV_FILE"
+  printf '\n'
+  ui_note "A one-time setup link is printed here after a real installation."
+  ui_note "The browser setup asks for your team name, name, email and password."
+}
+
+preview_command() {
+  [[ $# -le 1 ]] || fail "usage: towbar preview [--defaults]"
+  case "${1:-}" in
+    "") ;;
+    --defaults) TOWBAR_NON_INTERACTIVE=1 ;;
+    *) fail "usage: towbar preview [--defaults]" ;;
+  esac
+  ui_brand
+  collect_install_settings "latest stable v2 release"
+  preview_installation
 }
 
 require_root() {
@@ -236,6 +516,7 @@ EOF
 
 generate_config() {
   local release_dir="$1" pending_config
+  CONFIG_CREATED=false
   [[ ! -e "$TOWBAR_ENV_FILE" ]] || return
 
   install -d -m 0700 "$TOWBAR_CONFIG_DIR"
@@ -254,6 +535,7 @@ generate_config() {
     "$release_dir/.env.example" >"$pending_config"
   chmod 600 "$pending_config"
   mv "$pending_config" "$TOWBAR_ENV_FILE"
+  CONFIG_CREATED=true
   log "Created $TOWBAR_ENV_FILE with generated installation secrets"
 }
 
@@ -343,6 +625,7 @@ upgrade_release() {
   acquire_lock
 
   if [[ "$requested_version" == latest ]]; then
+    ui_pending_step "Resolving the latest stable release"
     version="$(resolve_latest_version)"
   else
     version="$requested_version"
@@ -350,8 +633,13 @@ upgrade_release() {
   fi
   verify_release "$version"
   commit="$(resolve_release_commit "$version")"
+  ui_step "Verified $version at immutable commit ${commit:0:12}"
   release_dir="$(download_release "$version" "$commit")"
   generate_config "$release_dir"
+  if [[ "$CONFIG_CREATED" == true && -n "${INSTALL_MODE:-}" ]]; then
+    apply_install_settings
+    ui_step "Created the encrypted runtime configuration"
+  fi
   validate_config_for "$release_dir"
 
   if [[ -L "$CURRENT_LINK" ]]; then
@@ -382,15 +670,19 @@ upgrade_release() {
   trap 'rollback_upgrade 130' INT
   trap 'rollback_upgrade 143' TERM
 
-  log "Building $version"
+  ui_pending_step "Building the control-plane services"
   compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
     build --quiet api worker web-app
+  ui_step "Built the control-plane services"
   set_current_release "$release_dir"
   containers_changed=true
-  log "Applying migrations and starting $version"
+  ui_pending_step "Applying the database schema and starting $version"
   compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
     up --detach --wait --remove-orphans
+  ui_step "Started the control plane"
+  ui_pending_step "Verifying the API, worker and dashboard"
   verify_running_release "$release_dir" "$commit"
+  ui_step "Verified the API, worker and dashboard"
 
   printf '%s\n' "$version" >"$VERSION_FILE"
   install_cli_from_release "$release_dir"
@@ -554,13 +846,51 @@ version_command() {
   printf 'CLI %s\n' "$CLI_VERSION"
 }
 
+print_setup_link() {
+  local release_dir commit setup_output
+  release_dir="$(current_release_dir)"
+  commit="$(metadata_value "$release_dir" COMMIT)"
+  if setup_output="$(
+    compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
+      exec -T api node dist/cli/setup-code.js
+  )"; then
+    printf '\n%s%sComplete browser setup%s\n' \
+      "$STYLE_BOLD" "$STYLE_YELLOW" "$STYLE_RESET"
+    printf '%s\n' "$setup_output"
+    ui_note "The link is single-use. Keep it private."
+    ui_note "You will enter your team name, name, email and password in the browser."
+  else
+    ui_note "Towbar is healthy, but the setup link could not be issued automatically."
+    ui_note "Run: sudo towbar exec api node dist/cli/setup-code.js"
+  fi
+}
+
 install_command() {
+  local requested_version="${1:-latest}"
+  [[ $# -le 1 ]] || fail "usage: towbar install [VERSION]"
   require_root install
+  require_linux
+  validate_repository
+  [[ "$requested_version" == latest ]] || validate_version "$requested_version"
   [[ ! -L "$CURRENT_LINK" ]] || fail "Towbar is already installed; use sudo towbar upgrade"
+
+  ui_brand
+  collect_install_settings "$requested_version"
+  ui_heading "Installing Towbar"
+  ui_pending_step "Inspecting the host and installing prerequisites"
   install_prerequisites
-  upgrade_release "${1:-latest}"
-  log "Edit configuration with: sudo towbar config edit"
-  log "Show service status with: sudo towbar status"
+  ui_step "Host prerequisites are ready"
+  upgrade_release "$requested_version"
+
+  printf '\n%s%sTowbar is ready%s\n' \
+    "$STYLE_BOLD" "$STYLE_GREEN" "$STYLE_RESET"
+  printf '  %-18s %s\n' "Dashboard" "$INSTALL_APP_URL"
+  printf '  %-18s %s\n' "API" "$INSTALL_API_URL"
+  printf '  %-18s %s\n' "Configuration" "$TOWBAR_ENV_FILE"
+  print_setup_link
+  printf '\n'
+  ui_note "Next: configure optional integrations in the environment file."
+  ui_note "Manage this installation with sudo towbar status, logs and upgrade."
 }
 
 usage() {
@@ -579,6 +909,7 @@ Commands:
   status                 Show Compose service status
   logs [SERVICE...]      Show recent service logs
   exec SERVICE COMMAND   Run a command in a Towbar service
+  preview [--defaults]   Preview installation onboarding without making changes
   version                Show the installed release and CLI versions
   help                   Show this help
 EOF
@@ -591,6 +922,7 @@ case "${1:-help}" in
   help | --help | -h) usage ;;
   install) shift; install_command "$@" ;;
   logs) logs_command "$@" ;;
+  preview) shift; preview_command "$@" ;;
   restart) restart_release ;;
   status) status_command ;;
   upgrade | update) shift; upgrade_release "${1:-latest}" ;;

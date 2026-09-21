@@ -11,6 +11,24 @@ Use a dedicated Ubuntu or Debian host with persistent storage and outbound HTTPS
 
 The examples use loopback addresses for initial setup. Keep that binding until you have created the first Admin account.
 
+## Preview the onboarding
+
+You can review the complete terminal experience on macOS or Linux without root access, Docker, or filesystem changes:
+
+```bash
+./infra/towbar preview
+```
+
+The preview uses a compact built-in terminal interface. If [Gum](https://github.com/charmbracelet/gum) is already installed, Towbar uses it for the choice, input, and confirmation controls. Gum is optional and is never installed by Towbar. Use `./infra/towbar preview --defaults` for a non-interactive preview.
+
+The installer asks only how the control plane will be reached:
+
+1. Choose local or private access, or public HTTPS behind an existing host reverse proxy.
+2. For public HTTPS, enter the dashboard URL, API URL, and number of trusted proxy hops.
+3. Review the release, URLs, configuration path, and release path, then confirm the installation.
+
+Towbar generates the database passwords, credential-encryption key, and internal signing secret. It does not ask for provider credentials during installation. Optional integrations remain disabled until their environment variables are added later.
+
 ## Install the control plane
 
 Review and run the installer as root:
@@ -20,6 +38,19 @@ curl -fsSL https://raw.githubusercontent.com/avgeek-inc/towbar/main/install.sh |
 ```
 
 The installer places the current CLI at `/usr/local/bin/towbar`. The CLI verifies the selected published release, resolves it to an immutable commit, installs it under `/opt/towbar/releases`, and starts the Compose stack. It generates the PostgreSQL, runtime-database, credential-encryption, and internal-signing secrets once. Existing Docker installations are preserved; Docker upgrades remain managed by the host package manager.
+
+During installation, the CLI:
+
+1. Inspects the host and installs the required system packages.
+2. Installs Docker Engine and Compose v2 when they are absent.
+3. Resolves the latest published stable v2 release to its immutable commit.
+4. Downloads the release and creates the root-owned runtime configuration.
+5. Builds the API, worker, and dashboard images.
+6. Applies the database and Temporal schemas.
+7. Starts the control plane and verifies each long-running service.
+8. Prints a one-time browser setup link.
+
+The browser setup asks for the team name, administrator display name, email address, password, and password confirmation. Provider credentials, SMTP, notification destinations, deployment servers, and repositories are configured after the first Admin signs in.
 
 To review every executable before installation, download the CLI directly:
 

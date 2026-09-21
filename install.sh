@@ -39,7 +39,15 @@ install -o root -g root -m 0755 "$temporary_cli" "$TOWBAR_BIN"
 trap - EXIT
 cleanup
 
+if [[ -t 1 && -r /dev/tty && -w /dev/tty ]]; then
+  exec env \
+    TOWBAR_REPOSITORY="$TOWBAR_REPOSITORY" \
+    TOWBAR_BIN="$TOWBAR_BIN" \
+    "$TOWBAR_BIN" install "$TOWBAR_VERSION" </dev/tty
+fi
+
 exec env \
+  TOWBAR_NON_INTERACTIVE=1 \
   TOWBAR_REPOSITORY="$TOWBAR_REPOSITORY" \
   TOWBAR_BIN="$TOWBAR_BIN" \
   "$TOWBAR_BIN" install "$TOWBAR_VERSION"
