@@ -47,6 +47,10 @@ docker compose up --build --detach --wait
 docker compose ps
 ```
 
+For repeatable upgrades from stable releases, prepare the same checkout and
+`.env`, then follow [Deploy with GitHub Actions](/docs/self-hosting/github-actions).
+The included workflow supports ordinary SSH servers and AWS Systems Manager.
+
 Towbar v2 requires a fresh database and does not upgrade a 1.x installation. Keep any existing instance and backup separate; do not point this release at its database.
 
 Issue a one-time setup link from the API container:

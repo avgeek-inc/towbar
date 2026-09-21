@@ -80,6 +80,7 @@
             "group": "Run Towbar",
             "pages": [
               "docs/self-hosting/installation",
+              "docs/self-hosting/github-actions",
               "docs/self-hosting/team-access",
               "docs/self-hosting/upgrades",
               "docs/self-hosting/account-recovery",

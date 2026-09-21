@@ -23,7 +23,7 @@ The production image includes `node dist/cli/migrate.js`, `node dist/cli/setup-c
 
 Better Auth owns password hashing, sessions, MFA, invitation verification and API token mechanics. Towbar's wrappers enforce Admin/Member/Viewer capabilities and reject raw signup/organization/key endpoints. Initial setup requires an installer-issued code and creates one team and Admin atomically. Email-based recovery and optional TOTP are available under Personal Settings. Local operator recovery generates a temporary password, revokes sessions/personal keys and forces replacement. It is never an HTTP operation.
 
-Repository sync reconciles inventory without implicit deployment. Member sync and branch-mapping changes pause environment automation until an Admin reviews and enables it. System GitHub/maintenance effects have scoped grants; queued human/key effects retain actor snapshots and revalidate before execution. See `docs/plans/team-access-v2.md` and the Team access self-hosting guide for the full permission contract.
+Repository sync reconciles inventory without implicit deployment. Member sync and branch-mapping changes pause environment automation until an Admin reviews and enables it. System GitHub/maintenance effects have scoped grants; queued human/key effects retain actor snapshots and revalidate before execution. See the [Team access guide](../../docs/docs/self-hosting/team-access.md) for the full permission contract.
 
 Relevant pull request events for Apps with Preview enabled enter a Source/PR
 coalescing workflow. The API reads the pull request's current state before each

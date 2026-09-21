@@ -11,3 +11,4 @@ coverage/
 .env.*
 !.env.example
 tmp/
+docs/plans/

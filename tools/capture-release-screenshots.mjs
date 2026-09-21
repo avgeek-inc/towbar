@@ -6,10 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repository = fileURLToPath(new URL("../", import.meta.url));
-const manifestPath = path.join(
-  repository,
-  "docs/plans/release-v2-screenshots.json",
-);
+const manifestPath = path.join(repository, "tools/release-screenshots.json");
 const appOrigin =
   process.env.TOWBAR_SCREENSHOT_ORIGIN ?? "http://127.0.0.1:4021";
 const apiOrigin =

@@ -107,6 +107,7 @@ register; you choose their provider and capacity.
 Installation and configuration live in the [Towbar documentation](https://www.towbar.dev/docs).
 
 - **[Install Towbar](https://www.towbar.dev/docs/self-hosting/installation)** — set up your control plane.
+- **[Deploy with GitHub Actions](https://www.towbar.dev/docs/self-hosting/github-actions)** — deploy reviewed releases over SSH or AWS Systems Manager.
 - **[Deploy your first app](https://www.towbar.dev/docs/getting-started)** — connect GitHub, prepare a server, and deploy.
 - **[Browse the guides and reference](https://www.towbar.dev/docs)** — apps, databases, previews, Scout Agent, API, MCP, and operations.
 

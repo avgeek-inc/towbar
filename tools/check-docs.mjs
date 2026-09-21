@@ -154,7 +154,7 @@ function jpegDimensions(image) {
 async function checkReleaseScreenshots() {
   const manifest = JSON.parse(
     await readFile(
-      path.join(root, "plans/release-v2-screenshots.json"),
+      path.join(repository, "tools/release-screenshots.json"),
       "utf8",
     ),
   );
