@@ -95,8 +95,8 @@ Deployment, preparation, backup, and restore histories show stage progress and f
 For runtime problems, inspect the workload's logs and latest health check. For control-plane problems, start with:
 
 ```bash
-docker compose ps
-docker compose logs --tail 200 api worker temporal
+sudo towbar status
+sudo towbar logs api worker temporal
 ```
 
 Configure [notifications](/docs/integrations/notifications) for events that need attention. Use [Troubleshooting](/docs/troubleshooting) to narrow down common symptoms.

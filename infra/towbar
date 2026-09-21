@@ -1,0 +1,599 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+CLI_VERSION="2.0.0"
+TOWBAR_ROOT="${TOWBAR_ROOT:-/opt/towbar}"
+TOWBAR_CONFIG_DIR="${TOWBAR_CONFIG_DIR:-/etc/towbar}"
+TOWBAR_ENV_FILE="${TOWBAR_ENV_FILE:-$TOWBAR_CONFIG_DIR/towbar.env}"
+TOWBAR_REPOSITORY="${TOWBAR_REPOSITORY:-avgeek-inc/towbar}"
+TOWBAR_BIN="${TOWBAR_BIN:-/usr/local/bin/towbar}"
+RELEASES_DIR="$TOWBAR_ROOT/releases"
+CURRENT_LINK="$TOWBAR_ROOT/current"
+VERSION_FILE="$TOWBAR_ROOT/VERSION"
+LOCK_FILE="${TOWBAR_LOCK_FILE:-/var/lock/towbar.lock}"
+
+log() {
+  printf 'Towbar: %s\n' "$*"
+}
+
+fail() {
+  printf 'Towbar: %s\n' "$*" >&2
+  exit 1
+}
+
+require_root() {
+  ((EUID == 0)) || fail "this command must run as root; use sudo towbar $*"
+}
+
+require_linux() {
+  [[ "$(uname -s)" == Linux ]] || fail "Towbar installation supports Linux hosts"
+}
+
+validate_repository() {
+  [[ "$TOWBAR_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] ||
+    fail "TOWBAR_REPOSITORY must be a GitHub owner/repository pair"
+}
+
+validate_version() {
+  [[ "$1" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] ||
+    fail "release must be a stable semantic version such as v2.0.0"
+  ((10#${BASH_REMATCH[1]} >= 2)) || fail "the Towbar CLI supports v2 releases and later"
+}
+
+acquire_lock() {
+  install -d -m 0755 "$(dirname "$LOCK_FILE")"
+  exec 9>"$LOCK_FILE"
+  flock --nonblock 9 || fail "another Towbar operation is running"
+}
+
+require_runtime_tools() {
+  local command_name
+  for command_name in curl docker git jq openssl tar; do
+    command -v "$command_name" >/dev/null ||
+      fail "missing required command: $command_name"
+  done
+  docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is required"
+}
+
+install_prerequisites() {
+  require_linux
+  command -v apt-get >/dev/null ||
+    fail "automatic installation currently supports Ubuntu and Debian"
+
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update
+  apt-get install --yes ca-certificates curl git jq openssl tar util-linux
+
+  if command -v docker >/dev/null; then
+    docker compose version >/dev/null 2>&1 ||
+      fail "Docker is installed without Compose v2; install the Docker Compose plugin"
+    systemctl enable --now docker
+    return
+  fi
+
+  # Supplied by every supported distribution.
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  case "${ID:-}" in
+    ubuntu | debian) ;;
+    *) fail "automatic Docker installation supports Ubuntu and Debian" ;;
+  esac
+
+  apt-get remove --yes \
+    containerd docker-compose docker-compose-v2 docker-doc docker.io \
+    podman-docker runc >/dev/null 2>&1 || true
+  install -m 0755 -d /etc/apt/keyrings
+  curl \
+    --fail \
+    --silent \
+    --show-error \
+    --location \
+    --proto '=https' \
+    --tlsv1.2 \
+    "https://download.docker.com/linux/$ID/gpg" \
+    --output /etc/apt/keyrings/docker.asc
+  chmod a+r /etc/apt/keyrings/docker.asc
+
+  distro_codename="${UBUNTU_CODENAME:-${VERSION_CODENAME:-}}"
+  [[ -n "$distro_codename" ]] || fail "could not determine the distribution codename"
+  cat >/etc/apt/sources.list.d/docker.sources <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/$ID
+Suites: $distro_codename
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+
+  apt-get update
+  apt-get install --yes \
+    containerd.io docker-buildx-plugin docker-ce docker-ce-cli \
+    docker-compose-plugin
+  systemctl enable --now docker
+}
+
+resolve_latest_version() {
+  local effective_url version
+  effective_url="$(
+    curl \
+      --fail \
+      --silent \
+      --show-error \
+      --location \
+      --proto '=https' \
+      --tlsv1.2 \
+      --output /dev/null \
+      --write-out '%{url_effective}' \
+      "https://github.com/$TOWBAR_REPOSITORY/releases/latest"
+  )"
+  version="${effective_url##*/}"
+  validate_version "$version"
+  printf '%s\n' "$version"
+}
+
+verify_release() {
+  local version="$1" release_json
+  release_json="$(mktemp)"
+  curl \
+    --fail \
+    --silent \
+    --show-error \
+    --location \
+    --proto '=https' \
+    --tlsv1.2 \
+    "https://api.github.com/repos/$TOWBAR_REPOSITORY/releases/tags/$version" \
+    --output "$release_json"
+  jq -e \
+    --arg version "$version" \
+    '.tag_name == $version and .draft == false and .prerelease == false and .published_at != null' \
+    "$release_json" >/dev/null || {
+    rm -f "$release_json"
+    fail "$version is not a published stable release"
+  }
+  rm -f "$release_json"
+}
+
+resolve_release_commit() {
+  local version="$1" refs commit
+  refs="$(
+    git ls-remote \
+      "https://github.com/$TOWBAR_REPOSITORY.git" \
+      "refs/tags/$version" \
+      "refs/tags/$version^{}"
+  )"
+  commit="$(
+    awk \
+      -v tag_ref="refs/tags/$version" \
+      -v peeled_ref="refs/tags/$version^{}" \
+      '$2 == tag_ref { tag = $1 } $2 == peeled_ref { peeled = $1 } END { print peeled != "" ? peeled : tag }' \
+      <<<"$refs"
+  )"
+  [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || fail "could not resolve $version to a commit"
+  printf '%s\n' "$commit"
+}
+
+metadata_value() {
+  local release_dir="$1" key="$2"
+  awk -F= -v key="$key" '$1 == key { print substr($0, length(key) + 2); exit }' \
+    "$release_dir/.towbar-release"
+}
+
+download_release() {
+  local version="$1" commit="$2" release_dir staging archive source_dir package_version
+  release_dir="$RELEASES_DIR/$version"
+  if [[ -d "$release_dir" ]]; then
+    [[ -f "$release_dir/.towbar-release" ]] ||
+      fail "$release_dir exists without Towbar release metadata"
+    [[ "$(metadata_value "$release_dir" COMMIT)" == "$commit" ]] ||
+      fail "$release_dir does not match the published release commit"
+    printf '%s\n' "$release_dir"
+    return
+  fi
+
+  install -d -m 0755 "$RELEASES_DIR"
+  staging="$(mktemp -d "$RELEASES_DIR/.staging.XXXXXX")"
+  archive="$staging/release.tar.gz"
+  cleanup_download() {
+    rm -rf "$staging"
+  }
+  trap cleanup_download EXIT
+
+  log "Downloading $version at immutable commit $commit" >&2
+  curl \
+    --fail \
+    --silent \
+    --show-error \
+    --location \
+    --retry 4 \
+    --retry-all-errors \
+    --proto '=https' \
+    --tlsv1.2 \
+    "https://github.com/$TOWBAR_REPOSITORY/archive/$commit.tar.gz" \
+    --output "$archive"
+
+  if tar -tzf "$archive" | grep -Eq '(^/|(^|/)\.\.(/|$))'; then
+    fail "release archive contains an unsafe path"
+  fi
+  tar -xzf "$archive" -C "$staging"
+  source_dir="$(find "$staging" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+  [[ -n "$source_dir" ]] || fail "release archive did not contain a source directory"
+  [[ -f "$source_dir/docker-compose.yml" && -f "$source_dir/.env.example" ]] ||
+    fail "release archive is missing Towbar installation files"
+
+  package_version="$(jq -r .version "$source_dir/package.json")"
+  [[ "$package_version" == "${version#v}" ]] ||
+    fail "$version contains package version $package_version"
+  cat >"$source_dir/.towbar-release" <<EOF
+VERSION=$version
+COMMIT=$commit
+REPOSITORY=$TOWBAR_REPOSITORY
+EOF
+  mv "$source_dir" "$release_dir"
+  trap - EXIT
+  cleanup_download
+  printf '%s\n' "$release_dir"
+}
+
+generate_config() {
+  local release_dir="$1" pending_config
+  [[ ! -e "$TOWBAR_ENV_FILE" ]] || return
+
+  install -d -m 0700 "$TOWBAR_CONFIG_DIR"
+  pending_config="$(mktemp "$TOWBAR_CONFIG_DIR/towbar.env.XXXXXX")"
+  awk \
+    -v postgres_password="$(openssl rand -hex 32)" \
+    -v runtime_password="$(openssl rand -hex 32)" \
+    -v credentials_key="$(openssl rand -base64 32 | tr -d '\n')" \
+    -v hmac_secret="$(openssl rand -hex 32)" \
+    'BEGIN { FS = OFS = "=" }
+      $1 == "TOWBAR_POSTGRES_PASSWORD" { $2 = postgres_password }
+      $1 == "TOWBAR_DATABASE_RUNTIME_PASSWORD" { $2 = runtime_password }
+      $1 == "TOWBAR_CREDENTIALS_KEY" { $2 = credentials_key }
+      $1 == "TOWBAR_INTERNAL_HMAC_SECRET" { $2 = hmac_secret }
+      { print }' \
+    "$release_dir/.env.example" >"$pending_config"
+  chmod 600 "$pending_config"
+  mv "$pending_config" "$TOWBAR_ENV_FILE"
+  log "Created $TOWBAR_ENV_FILE with generated installation secrets"
+}
+
+compose_for() {
+  local release_dir="$1" commit="$2" env_file="$3"
+  shift 3
+  TOWBAR_IMAGE_TAG="$commit" \
+    SOURCE_COMMIT="$commit" \
+    docker compose \
+      --env-file "$env_file" \
+      --project-directory "$release_dir" \
+      --file "$release_dir/docker-compose.yml" \
+      "$@"
+}
+
+validate_config_for() {
+  local release_dir="$1" env_file="${2:-$TOWBAR_ENV_FILE}" commit
+  [[ -f "$env_file" ]] || fail "$env_file is missing"
+  commit="$(metadata_value "$release_dir" COMMIT)"
+  compose_for "$release_dir" "$commit" "$env_file" config --quiet
+}
+
+set_current_release() {
+  local release_dir="$1" pending_link="$TOWBAR_ROOT/.current.next"
+  rm -f "$pending_link"
+  ln -s "$release_dir" "$pending_link"
+  mv -Tf "$pending_link" "$CURRENT_LINK"
+}
+
+verify_running_release() {
+  local release_dir="$1" commit="$2" service container_id health_status expected_image running_image
+  for service in api worker web-app; do
+    container_id="$(compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q "$service")"
+    if [[ -z "$container_id" ]]; then
+      printf 'Towbar: %s container was not created\n' "$service" >&2
+      return 1
+    fi
+    health_status="$(
+      docker inspect \
+        --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
+        "$container_id"
+    )"
+    if [[ "$health_status" != healthy ]]; then
+      printf 'Towbar: %s finished with status %s\n' "$service" "$health_status" >&2
+      return 1
+    fi
+    case "$service" in
+      api) expected_image="towbar/api:$commit" ;;
+      worker) expected_image="towbar/worker:$commit" ;;
+      web-app) expected_image="towbar/web-app:$commit" ;;
+    esac
+    running_image="$(docker inspect --format '{{.Config.Image}}' "$container_id")"
+    if [[ "$running_image" != "$expected_image" ]]; then
+      printf \
+        'Towbar: %s runs %s instead of %s\n' \
+        "$service" "$running_image" "$expected_image" >&2
+      return 1
+    fi
+  done
+
+  container_id="$(compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q api)"
+  api_version="$(
+    docker exec "$container_id" node -e \
+      'fetch("http://127.0.0.1:4020/health").then((response) => response.json()).then((body) => process.stdout.write(body.version ?? ""))'
+  )"
+  if [[ "$api_version" != "$commit" ]]; then
+    printf 'Towbar: API reports %s instead of %s\n' "$api_version" "$commit" >&2
+    return 1
+  fi
+}
+
+install_cli_from_release() {
+  local release_dir="$1"
+  if [[ -f "$release_dir/infra/towbar" ]]; then
+    install -o root -g root -m 0755 "$release_dir/infra/towbar" "$TOWBAR_BIN"
+  fi
+}
+
+upgrade_release() {
+  local requested_version="${1:-latest}" version commit release_dir
+  local previous_release="" previous_commit="" containers_changed=false
+
+  require_root upgrade
+  require_linux
+  require_runtime_tools
+  validate_repository
+  acquire_lock
+
+  if [[ "$requested_version" == latest ]]; then
+    version="$(resolve_latest_version)"
+  else
+    version="$requested_version"
+    validate_version "$version"
+  fi
+  verify_release "$version"
+  commit="$(resolve_release_commit "$version")"
+  release_dir="$(download_release "$version" "$commit")"
+  generate_config "$release_dir"
+  validate_config_for "$release_dir"
+
+  if [[ -L "$CURRENT_LINK" ]]; then
+    previous_release="$(readlink -f "$CURRENT_LINK")"
+    [[ -f "$previous_release/.towbar-release" ]] ||
+      fail "the current release is missing Towbar metadata"
+    previous_commit="$(metadata_value "$previous_release" COMMIT)"
+  fi
+
+  rollback_upgrade() {
+    local exit_code="${1:-1}"
+    trap - ERR INT TERM
+    set +e
+    if [[ -n "$previous_release" ]]; then
+      log "Upgrade failed; restoring $(metadata_value "$previous_release" VERSION)"
+      set_current_release "$previous_release"
+      if [[ "$containers_changed" == true ]]; then
+        compose_for "$previous_release" "$previous_commit" "$TOWBAR_ENV_FILE" \
+          up --detach --wait --remove-orphans
+      fi
+    elif [[ "$containers_changed" == true ]]; then
+      compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" down --remove-orphans
+      rm -f "$CURRENT_LINK"
+    fi
+    exit "$exit_code"
+  }
+  trap 'rollback_upgrade $?' ERR
+  trap 'rollback_upgrade 130' INT
+  trap 'rollback_upgrade 143' TERM
+
+  log "Building $version"
+  compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
+    build --quiet api worker web-app
+  set_current_release "$release_dir"
+  containers_changed=true
+  log "Applying migrations and starting $version"
+  compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
+    up --detach --wait --remove-orphans
+  verify_running_release "$release_dir" "$commit"
+
+  printf '%s\n' "$version" >"$VERSION_FILE"
+  install_cli_from_release "$release_dir"
+  trap - ERR INT TERM
+  log "$version is healthy at $commit"
+}
+
+current_release_dir() {
+  [[ -L "$CURRENT_LINK" ]] || fail "Towbar is not installed"
+  readlink -f "$CURRENT_LINK"
+}
+
+restart_release() {
+  local release_dir commit previous_config
+  require_root restart
+  require_runtime_tools
+  acquire_lock
+  release_dir="$(current_release_dir)"
+  commit="$(metadata_value "$release_dir" COMMIT)"
+  previous_config="$TOWBAR_CONFIG_DIR/towbar.env.previous"
+  validate_config_for "$release_dir"
+
+  rollback_restart() {
+    local exit_code="${1:-1}"
+    trap - ERR INT TERM
+    set +e
+    if [[ -f "$previous_config" ]]; then
+      log "Restart failed; restoring the previous configuration"
+      install -o root -g root -m 0600 "$previous_config" "$TOWBAR_ENV_FILE"
+      compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
+        build --quiet api worker web-app
+      compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
+        up --detach --wait --remove-orphans
+    fi
+    exit "$exit_code"
+  }
+  trap 'rollback_restart $?' ERR
+  trap 'rollback_restart 130' INT
+  trap 'rollback_restart 143' TERM
+
+  log "Rebuilding the current release with $TOWBAR_ENV_FILE"
+  compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
+    build --quiet api worker web-app
+  compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
+    up --detach --wait --remove-orphans
+  verify_running_release "$release_dir" "$commit"
+  trap - ERR INT TERM
+  log "Configuration applied"
+}
+
+config_edit() {
+  local release_dir editor pending_config previous_config
+  require_root config edit
+  require_runtime_tools
+  acquire_lock
+  release_dir="$(current_release_dir)"
+  editor="${SUDO_EDITOR:-${EDITOR:-vi}}"
+  pending_config="$(mktemp "$TOWBAR_CONFIG_DIR/towbar.env.edit.XXXXXX")"
+  previous_config="$TOWBAR_CONFIG_DIR/towbar.env.previous"
+  cleanup_edit() {
+    rm -f "$pending_config"
+  }
+  trap cleanup_edit EXIT
+  cp "$TOWBAR_ENV_FILE" "$pending_config"
+  chmod 600 "$pending_config"
+  # The editor is intentionally word-split to support values such as "code --wait".
+  # shellcheck disable=SC2086
+  $editor "$pending_config"
+  validate_config_for "$release_dir" "$pending_config"
+  install -o root -g root -m 0600 "$TOWBAR_ENV_FILE" "$previous_config"
+  install -o root -g root -m 0600 "$pending_config" "$TOWBAR_ENV_FILE"
+  trap - EXIT
+  cleanup_edit
+  log "Saved $TOWBAR_ENV_FILE; run sudo towbar restart to apply it"
+}
+
+config_rollback() {
+  local release_dir swap_file
+  require_root config rollback
+  require_runtime_tools
+  acquire_lock
+  [[ -f "$TOWBAR_CONFIG_DIR/towbar.env.previous" ]] ||
+    fail "no previous configuration is available"
+  release_dir="$(current_release_dir)"
+  validate_config_for "$release_dir" "$TOWBAR_CONFIG_DIR/towbar.env.previous"
+  swap_file="$(mktemp "$TOWBAR_CONFIG_DIR/towbar.env.swap.XXXXXX")"
+  install -o root -g root -m 0600 "$TOWBAR_ENV_FILE" "$swap_file"
+  install -o root -g root -m 0600 \
+    "$TOWBAR_CONFIG_DIR/towbar.env.previous" "$TOWBAR_ENV_FILE"
+  install -o root -g root -m 0600 \
+    "$swap_file" "$TOWBAR_CONFIG_DIR/towbar.env.previous"
+  rm -f "$swap_file"
+  log "Restored the previous configuration; run sudo towbar restart to apply it"
+}
+
+config_command() {
+  case "${1:-}" in
+    edit) config_edit ;;
+    path) printf '%s\n' "$TOWBAR_ENV_FILE" ;;
+    rollback) config_rollback ;;
+    validate)
+      require_root config validate
+      require_runtime_tools
+      validate_config_for "$(current_release_dir)"
+      log "Configuration is valid"
+      ;;
+    *) fail "usage: towbar config {edit|path|rollback|validate}" ;;
+  esac
+}
+
+compose_command() {
+  local release_dir commit
+  require_root compose
+  require_runtime_tools
+  [[ $# -ge 2 ]] || fail "usage: towbar compose COMMAND [ARG...]"
+  release_dir="$(current_release_dir)"
+  commit="$(metadata_value "$release_dir" COMMIT)"
+  shift
+  compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" "$@"
+}
+
+status_command() {
+  local release_dir commit
+  require_root status
+  require_runtime_tools
+  release_dir="$(current_release_dir)"
+  commit="$(metadata_value "$release_dir" COMMIT)"
+  compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps
+}
+
+logs_command() {
+  local release_dir commit
+  require_root logs
+  require_runtime_tools
+  release_dir="$(current_release_dir)"
+  commit="$(metadata_value "$release_dir" COMMIT)"
+  shift
+  compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
+    logs --tail "${TOWBAR_LOG_TAIL:-200}" "$@"
+}
+
+exec_command() {
+  local release_dir commit service
+  require_root exec
+  require_runtime_tools
+  service="${2:-}"
+  [[ -n "$service" && $# -ge 3 ]] ||
+    fail "usage: towbar exec SERVICE COMMAND [ARG...]"
+  release_dir="$(current_release_dir)"
+  commit="$(metadata_value "$release_dir" COMMIT)"
+  shift 2
+  compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" exec "$service" "$@"
+}
+
+version_command() {
+  if [[ -f "$VERSION_FILE" ]]; then
+    printf 'Towbar %s\n' "$(cat "$VERSION_FILE")"
+  else
+    printf 'Towbar is not installed\n'
+  fi
+  printf 'CLI %s\n' "$CLI_VERSION"
+}
+
+install_command() {
+  require_root install
+  [[ ! -L "$CURRENT_LINK" ]] || fail "Towbar is already installed; use sudo towbar upgrade"
+  install_prerequisites
+  upgrade_release "${1:-latest}"
+  log "Edit configuration with: sudo towbar config edit"
+  log "Show service status with: sudo towbar status"
+}
+
+usage() {
+  cat <<'EOF'
+Usage: towbar COMMAND [ARGUMENTS]
+
+Commands:
+  install [VERSION]      Install the latest or selected stable release
+  upgrade [VERSION]      Upgrade to the latest or selected stable release
+  restart                Rebuild and restart with the current configuration
+  compose COMMAND        Run a Docker Compose command for this installation
+  config edit            Edit and validate /etc/towbar/towbar.env
+  config path            Print the configuration path
+  config rollback        Restore the previous edited configuration
+  config validate        Validate the current configuration
+  status                 Show Compose service status
+  logs [SERVICE...]      Show recent service logs
+  exec SERVICE COMMAND   Run a command in a Towbar service
+  version                Show the installed release and CLI versions
+  help                   Show this help
+EOF
+}
+
+case "${1:-help}" in
+  compose) compose_command "$@" ;;
+  config) shift; config_command "$@" ;;
+  exec) exec_command "$@" ;;
+  help | --help | -h) usage ;;
+  install) shift; install_command "$@" ;;
+  logs) logs_command "$@" ;;
+  restart) restart_release ;;
+  status) status_command ;;
+  upgrade | update) shift; upgrade_release "${1:-latest}" ;;
+  version | --version | -v) version_command ;;
+  *) fail "unknown command: $1; run towbar help" ;;
+esac

@@ -7,56 +7,67 @@ Towbar runs on infrastructure you manage. The Compose stack includes the dashboa
 
 ## Before you begin
 
-Use a Linux host with Docker Engine, Compose v2, Git, and OpenSSL. You also need persistent storage for PostgreSQL and outbound access to download images and dependencies. For GitHub integration, plan HTTPS origins for the app and API.
+Use a dedicated Ubuntu or Debian host with persistent storage and outbound HTTPS access. The installer uses Docker's official APT repository when Docker is not already available. If the host already has Docker, it must include Compose v2. For GitHub integration, plan HTTPS origins for the app and API.
 
 The examples use loopback addresses for initial setup. Keep that binding until you have created the first Admin account.
 
 ## Install the control plane
 
-Install Docker Engine with Compose v2, Git, and OpenSSL on the control-plane
-host. Clone Towbar and create the local environment file:
+Review and run the installer as root:
 
 ```bash
-git clone https://github.com/avgeek-inc/towbar.git
-cd towbar
-cp .env.example .env
+curl -fsSL https://raw.githubusercontent.com/avgeek-inc/towbar/main/install.sh | sudo bash
 ```
 
-Generate each PostgreSQL password and the HMAC secret independently:
+The installer places the current CLI at `/usr/local/bin/towbar`. The CLI verifies the selected published release, resolves it to an immutable commit, installs it under `/opt/towbar/releases`, and starts the Compose stack. It generates the PostgreSQL, runtime-database, credential-encryption, and internal-signing secrets once. Existing Docker installations are preserved; Docker upgrades remain managed by the host package manager.
+
+To review every executable before installation, download the CLI directly:
 
 ```bash
-openssl rand -hex 32
+curl -fsSLo towbar \
+  https://raw.githubusercontent.com/avgeek-inc/towbar/main/infra/towbar
+less towbar
+sudo install -o root -g root -m 0755 towbar /usr/local/bin/towbar
+sudo towbar install
 ```
 
-Generate the credential-encryption key separately. It must decode to exactly 32
-bytes:
+Set `TOWBAR_VERSION` to install a specific published stable release:
 
 ```bash
-openssl rand -base64 32 | tr -d '\n'
+curl -fsSL https://raw.githubusercontent.com/avgeek-inc/towbar/main/install.sh | \
+  sudo TOWBAR_VERSION=v2.0.0 bash
 ```
 
-Put those values in `.env`. For an internet reachable installation, also
-replace the three base URLs before building. The API and web app need reachable
-HTTPS origins; login stays on the web app origin. `TOWBAR_WEBSITE_BASE_URL` is
-an external link target; Towbar does not run the website in this repository.
+## Configure the installation
 
-Start the stack:
+Towbar keeps operator configuration outside versioned release directories at `/etc/towbar/towbar.env`. The file is owned by root with mode `600`, remains in place across upgrades, and can be edited directly or through the CLI:
 
 ```bash
-docker compose up --build --detach --wait
-docker compose ps
+sudo towbar config edit
+sudo towbar config validate
+sudo towbar restart
 ```
 
-For repeatable upgrades from stable releases, prepare the same checkout and
-`.env`, then follow [Deploy with GitHub Actions](/docs/self-hosting/github-actions).
-The included workflow supports ordinary SSH servers and AWS Systems Manager.
+For an internet-reachable installation, replace the three base URLs before exposing the service. The API and web app need reachable HTTPS origins; login stays on the web app origin. `TOWBAR_WEBSITE_BASE_URL` is an external link target; Towbar does not run the website in this repository.
+
+The edit command validates a temporary copy before replacing the active file and retains one previous copy for `sudo towbar config rollback`. `restart` rebuilds release images when configuration affects web-app build arguments and restores the previous edited configuration if the replacement fails.
+
+Useful host commands include:
+
+```bash
+sudo towbar status
+sudo towbar logs api worker
+sudo towbar version
+```
+
+Use `sudo towbar upgrade` for later stable releases. See [Upgrades and recovery](/docs/self-hosting/upgrades) before upgrading an installation with production data.
 
 Towbar v2 requires a fresh database and does not upgrade a 1.x installation. Keep any existing instance and backup separate; do not point this release at its database.
 
 Issue a one-time setup link from the API container:
 
 ```bash
-docker compose exec api node dist/cli/setup-code.js
+sudo towbar exec api node dist/cli/setup-code.js
 ```
 
 Open the printed link and enter the team name, your name, email, password and confirmation. The setup code is placed in the URL fragment and should be kept private. It is consumed atomically; only one initial team/Admin can be created. Issuing a replacement code before setup invalidates the previous code. For local development use `pnpm --filter towbar-api auth:setup-code`.
@@ -71,7 +82,7 @@ push-to-deploy setup also needs a maintained reverse proxy or private ingress.
 
 Open **Manage → System health** and run checks. Confirm the API and database, Temporal, and worker checks are healthy. GitHub can remain unconfigured until you connect a GitHub App.
 
-The `migrate`, `temporal-schema`, and `temporal-namespace` containers are one-time jobs and should exit successfully. The API, worker, web app, PostgreSQL, and Temporal should continue running. If startup fails, inspect `docker compose logs --tail 200 migrate temporal-schema temporal temporal-namespace api worker` before retrying.
+The `migrate`, `temporal-schema`, and `temporal-namespace` containers are one-time jobs and should exit successfully. The API, worker, web app, PostgreSQL, and Temporal should continue running. If startup fails, run `sudo towbar logs migrate temporal-schema temporal temporal-namespace api worker`.
 
 Temporal uses pinned upstream server and administration images. Startup applies versioned SQL schemas and creates the default namespace if absent. Repeating startup preserves existing workflow state. Do not delete PostgreSQL volumes to resolve a startup failure.
 

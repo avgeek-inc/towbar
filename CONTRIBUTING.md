@@ -74,9 +74,9 @@ release; linked GitHub pull requests are also detected.
 Set the repository secret `LINEAR_ACCESS_KEY` to the pipeline access key from
 Linear. A continuous pipeline creates completed releases on sync; a scheduled
 pipeline collects the release for its configured stage workflow. This reports
-GitHub publication; production deployment success is tracked separately by
-`Deploy release`. To retry reporting, rerun the failed reporting job. The release
-tag is the version identifier, so retries target the same Linear release.
+GitHub publication only; installing a release is a separate host-local operation
+through the `towbar` CLI. To retry reporting, rerun the failed reporting job. The
+release tag is the version identifier, so retries target the same Linear release.
 
 Project stewardship and the current code owner are recorded in
 [MAINTAINERS.md](MAINTAINERS.md).

@@ -5,7 +5,7 @@ description: "Reference for control-plane secrets, public origins, notification 
 
 Use this reference when configuring the Towbar installation. Application secrets belong in the [Shared secrets editor](/docs/secrets), and app behavior belongs in the [deployment manifest](/docs/reference/deployment-manifest).
 
-Copy `.env.example` to `.env` in the repository root. Keep it out of Git. Compose reads this file when creating containers; editing it does not update running services.
+The installer creates `/etc/towbar/towbar.env` with root ownership and mode `600`. Edit it with `sudo towbar config edit`, validate it with `sudo towbar config validate`, and apply changes with `sudo towbar restart`. Compose reads this file when creating containers; editing it alone does not update running services.
 
 ## Required installation secrets
 
@@ -74,7 +74,7 @@ GitHub stores only the selected App installation and account metadata in Postgre
 | Cloudflare           | `TOWBAR_CLOUDFLARE_ENABLED` | account ID and API token                                                          |
 | OpenTelemetry        | `TOWBAR_OTLP_ENABLED`       | endpoint; headers are supplied through `TOWBAR_OTLP_HEADERS_JSON`                 |
 
-Use the exact names in `.env.example` for optional bucket, prefix, endpoint, addressing-style, private-network, CA, zone, image, dashboard, and protocol fields. Temporary AWS sessions are intentionally unsupported because they cannot be maintained safely as static installation configuration.
+Use the exact names in the installed configuration file or `.env.example` for optional bucket, prefix, endpoint, addressing-style, private-network, CA, zone, image, dashboard, and protocol fields. Temporary AWS sessions are intentionally unsupported because they cannot be maintained safely as static installation configuration.
 
 ### Notifications
 
@@ -139,7 +139,7 @@ default is a reviewed multi-architecture pin. Recreate both the API and worker
 after changing scanner configuration:
 
 ```bash
-docker compose up --detach --force-recreate api worker
+sudo towbar compose up --detach --force-recreate api worker
 ```
 
 See [Vulnerability scanning](/docs/vulnerability-scanning) for workspace findings, scan states, and rescanning.
@@ -170,9 +170,9 @@ Keep worker activity capacity above the largest server build-concurrency setting
 
 `NEXT_PUBLIC_SENTRY_DSN` is optional. When using it, configure the dashboard build with the intended value and review what your Sentry project collects.
 
-## Release automation
+## Installation and upgrades
 
-The optional GitHub Actions deployment environment is documented under [Upgrades and recovery](/docs/self-hosting/upgrades#automatic-release-deployment).
+Towbar installation and upgrades run on the control-plane host. See [Install Towbar](/docs/self-hosting/installation) for the installer and [Upgrades and recovery](/docs/self-hosting/upgrades) for the CLI upgrade process.
 
 ## API and MCP rate limits
 
