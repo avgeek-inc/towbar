@@ -9,7 +9,7 @@ The workflow deploys only stable published releases. A manual run also requires 
 
 ## Prepare the server once
 
-Install Docker Engine with Compose v2, Git, OpenSSL, and an SSH server. Use a dedicated server or VM and a dedicated SSH key. The SSH account needs non-interactive `sudo` because a deployment manages system-owned containers and the checkout while preserving the checkout's ordinary owner.
+Install Docker Engine with Compose v2, Git, OpenSSL, an SSH server, GNU `base64`, and `flock` from util-linux. Ubuntu includes the last two utilities by default. Use a dedicated server or VM and a dedicated SSH key. The SSH account needs non-interactive `sudo` because a deployment manages system-owned containers and the checkout while preserving the checkout's ordinary owner.
 
 Create the installation directory as the SSH account, clone Towbar, and create the host-managed environment file:
 
