@@ -47,14 +47,15 @@ Create a GitHub environment named `production`, require approval if more than on
 
 Add these environment variables:
 
-| Variable                       | Value or purpose                             |
-| ------------------------------ | -------------------------------------------- |
-| `TOWBAR_DEPLOY_TRANSPORT`      | `ssh`                                        |
-| `TOWBAR_DEPLOY_SSH_USER`       | SSH account; defaults to `ubuntu`            |
-| `TOWBAR_DEPLOY_SSH_PORT`       | SSH port; defaults to `22`                   |
-| `TOWBAR_DEPLOY_PATH`           | Existing checkout; defaults to `/opt/towbar` |
-| `TOWBAR_DEPLOY_API_HEALTH_URL` | Optional public API `/health` URL            |
-| `TOWBAR_DEPLOY_APP_HEALTH_URL` | Optional public dashboard URL                |
+| Variable                       | Value or purpose                               |
+| ------------------------------ | ---------------------------------------------- |
+| `TOWBAR_DEPLOY_ENABLED`        | `true` to deploy stable releases automatically |
+| `TOWBAR_DEPLOY_TRANSPORT`      | `ssh`                                          |
+| `TOWBAR_DEPLOY_SSH_USER`       | SSH account; defaults to `ubuntu`              |
+| `TOWBAR_DEPLOY_SSH_PORT`       | SSH port; defaults to `22`                     |
+| `TOWBAR_DEPLOY_PATH`           | Existing checkout; defaults to `/opt/towbar`   |
+| `TOWBAR_DEPLOY_API_HEALTH_URL` | Optional public API `/health` URL              |
+| `TOWBAR_DEPLOY_APP_HEALTH_URL` | Optional public dashboard URL                  |
 
 Add these environment secrets:
 
@@ -69,7 +70,7 @@ The deployment key can initiate a root-level release through `sudo`; protect the
 
 ## Run the first deployment
 
-Publish a stable release such as `v2.0.0`, or select **Actions → Deploy release → Run workflow** and enter an existing stable published tag. The same workflow runs automatically for later stable releases.
+Publish a stable release such as `v2.0.0`, or select **Actions → Deploy release → Run workflow** and enter an existing stable published tag. Stable releases deploy automatically when `TOWBAR_DEPLOY_ENABLED` is `true`. Manual runs remain available without that variable, which lets you test the deployment before enabling automatic releases.
 
 Review the workflow summary and then verify:
 
@@ -85,14 +86,15 @@ Complete initial account setup using the one-time setup link from the [installat
 
 Set `TOWBAR_DEPLOY_TRANSPORT=aws-ssm` or omit it for the default AWS transport. Configure these `production` environment variables:
 
-| Variable                       | Purpose                                      |
-| ------------------------------ | -------------------------------------------- |
-| `TOWBAR_DEPLOY_AWS_ROLE_ARN`   | GitHub OIDC role assumed by the workflow     |
-| `TOWBAR_DEPLOY_AWS_REGION`     | Region containing the managed EC2 instance   |
-| `TOWBAR_DEPLOY_INSTANCE_ID`    | Only instance the role may command           |
-| `TOWBAR_DEPLOY_PATH`           | Existing checkout; defaults to `/opt/towbar` |
-| `TOWBAR_DEPLOY_API_HEALTH_URL` | Optional public API `/health` URL            |
-| `TOWBAR_DEPLOY_APP_HEALTH_URL` | Optional public dashboard URL                |
+| Variable                       | Purpose                                        |
+| ------------------------------ | ---------------------------------------------- |
+| `TOWBAR_DEPLOY_ENABLED`        | `true` to deploy stable releases automatically |
+| `TOWBAR_DEPLOY_AWS_ROLE_ARN`   | GitHub OIDC role assumed by the workflow       |
+| `TOWBAR_DEPLOY_AWS_REGION`     | Region containing the managed EC2 instance     |
+| `TOWBAR_DEPLOY_INSTANCE_ID`    | Only instance the role may command             |
+| `TOWBAR_DEPLOY_PATH`           | Existing checkout; defaults to `/opt/towbar`   |
+| `TOWBAR_DEPLOY_API_HEALTH_URL` | Optional public API `/health` URL              |
+| `TOWBAR_DEPLOY_APP_HEALTH_URL` | Optional public dashboard URL                  |
 
 Read the repository's OIDC subject prefix with:
 

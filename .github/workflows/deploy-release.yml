@@ -22,7 +22,9 @@ jobs:
   deploy:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event.release.draft == false && github.event.release.prerelease == false)
+      (github.event.release.draft == false &&
+      github.event.release.prerelease == false &&
+      vars.TOWBAR_DEPLOY_ENABLED == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: production
