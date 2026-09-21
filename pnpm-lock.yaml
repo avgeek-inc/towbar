@@ -31,8 +31,8 @@ catalogs:
       specifier: ^5.2.2
       version: 5.9.1
     "@hugeicons/core-free-icons":
-      specifier: ^4.3.3
-      version: 4.3.4
+      specifier: 4.3.0
+      version: 4.3.0
     "@hugeicons/react":
       specifier: ^1.1.10
       version: 1.1.10
@@ -308,7 +308,7 @@ importers:
         version: 6.43.12
       "@hugeicons/core-free-icons":
         specifier: "catalog:"
-        version: 4.3.4
+        version: 4.3.0
       "@hugeicons/react":
         specifier: "catalog:"
         version: 1.1.10(react@19.3.0)
@@ -725,7 +725,7 @@ importers:
     dependencies:
       "@hugeicons/core-free-icons":
         specifier: "catalog:"
-        version: 4.3.4
+        version: 4.3.0
       "@hugeicons/react":
         specifier: "catalog:"
         version: 1.1.10(react@19.3.0)
@@ -785,7 +785,7 @@ importers:
         version: 3.2.5(tailwind-merge@3.7.0)(tailwindcss@4.3.3)
       "@hugeicons/core-free-icons":
         specifier: "catalog:"
-        version: 4.3.4
+        version: 4.3.0
       "@hugeicons/react":
         specifier: "catalog:"
         version: 1.1.10(react@19.3.0)
@@ -2485,10 +2485,10 @@ packages:
       zod:
         optional: true
 
-  "@hugeicons/core-free-icons@4.3.4":
+  "@hugeicons/core-free-icons@4.3.0":
     resolution:
       {
-        integrity: sha512-TMbzqGFD4XnEyVYut4sTzT7Wpq+Mghe7ChGd+R3bkyhJc31tcsfxtX8gmgrV3zIqn5dumsNJhvsX+h3OPjLMGQ==,
+        integrity: sha512-5DC5gq2psNDKBQThOjpuFCtMco8nl2FkrBzZgG15cFGM0kSwUoych/pw0DmjBygF9qRDITdBPtmzJqLsOeImMg==,
       }
 
   "@hugeicons/react@1.1.10":
@@ -10807,7 +10807,7 @@ snapshots:
       ajv-formats: 2.1.1(ajv@8.20.0)
       zod: 4.5.4
 
-  "@hugeicons/core-free-icons@4.3.4": {}
+  "@hugeicons/core-free-icons@4.3.0": {}
 
   "@hugeicons/react@1.1.10(react@19.3.0)":
     dependencies:
