@@ -32,6 +32,7 @@ void test(
     process.env.TOWBAR_CREDENTIALS_KEY = randomBytes(32).toString("base64");
     process.env.TOWBAR_INTERNAL_HMAC_SECRET = randomBytes(32).toString("hex");
     process.env.TOWBAR_APP_BASE_URL = "https://app.towbar.test";
+    process.env.TOWBAR_API_BASE_URL = "https://app.towbar.test";
     const { runTowbarMigrations } =
       await import("@workspace/towbar-database/migrate");
     await runTowbarMigrations({
