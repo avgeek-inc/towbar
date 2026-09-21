@@ -5,23 +5,23 @@ description: Automate your Towbar control plane with a REST API or connect an AI
 
 Towbar exposes infrastructure operations through REST and MCP. Manage repositories, apps, resources, servers, deployments, previews, secrets, integration settings, and your current identity using your current workspace permissions.
 
-| Interface             | Endpoint                       | Authentication |
-| --------------------- | ------------------------------ | -------------- |
-| REST API              | `https://YOUR_API_HOST/v1/api` | API key        |
-| MCP                   | `https://YOUR_API_HOST/v1/mcp` | API key        |
-| OpenAPI specification | `GET /v1/api/openapi.json`     | API key        |
+| Interface             | Endpoint                          | Authentication |
+| --------------------- | --------------------------------- | -------------- |
+| REST API              | `https://YOUR_TOWBAR_HOST/v1/api` | API key        |
+| MCP                   | `https://YOUR_TOWBAR_HOST/v1/mcp` | API key        |
+| OpenAPI specification | `GET /v1/api/openapi.json`        | API key        |
 
-Reference examples use `api.example.com`; replace it with the API host for your own Towbar installation. Your control plane shows its MCP endpoint in **My Settings → MCP Guide**.
+Reference examples use `towbar.example.com`; replace it with the hostname for your own Towbar installation. Your control plane shows its MCP endpoint in **My Settings → MCP Guide**.
 
 <Steps>
   <Step title="Create a key">
     Open **Manage → My Settings → API Keys** and create an API key. Name it for its consumer, choose its permissions and expiry, then copy it. Towbar only shows the secret once.
   </Step>
   <Step title="Send a request">
-    Set `TOWBAR_API_KEY` through your shell or secret manager and replace `YOUR_API_HOST` below.
+    Set `TOWBAR_API_KEY` through your shell or secret manager and replace `YOUR_TOWBAR_HOST` below.
 
     ```bash
-    curl 'https://YOUR_API_HOST/v1/api/apps' \
+    curl 'https://YOUR_TOWBAR_HOST/v1/api/apps' \
       -H "Authorization: Bearer $TOWBAR_API_KEY"
     ```
 

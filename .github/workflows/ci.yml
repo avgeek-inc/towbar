@@ -78,6 +78,22 @@ jobs:
           infra/towbar version
           NO_COLOR=1 infra/towbar preview --defaults | tee /tmp/towbar-preview.txt
           grep --fixed-strings "Towbar is ready" /tmp/towbar-preview.txt
+          grep --fixed-strings \
+            "REST: http://localhost:4020/v1/api · MCP: http://localhost:4020/v1/mcp" \
+            /tmp/towbar-preview.txt
+          NO_COLOR=1 TOWBAR_NON_INTERACTIVE=1 TOWBAR_INSTALL_MODE=public \
+            TOWBAR_INSTALL_URL=https://towbar.example.com \
+            infra/towbar preview | tee /tmp/towbar-public-preview.txt
+          grep --fixed-strings \
+            "Towbar will be available at https://towbar.example.com." \
+            /tmp/towbar-public-preview.txt
+          grep --fixed-strings \
+            "Route /v1/* to port 4020 and all other paths to port 4021." \
+            /tmp/towbar-public-preview.txt
+          if grep --fixed-strings "Trusted reverse-proxy hops" \
+            /tmp/towbar-public-preview.txt; then
+            exit 1
+          fi
       - run: shellcheck infra/postgres/*.sh infra/temporal/*.sh
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check

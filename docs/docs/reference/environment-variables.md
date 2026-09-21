@@ -24,25 +24,26 @@ length.
 
 ## Public origins
 
-Set all three base URLs before building images. Browser bundles embed public
-URLs at build time. The website URL is an external navigation target; the Compose stack does not host the Mintlify website.
+Set the Towbar origin before building images. Browser bundles embed the API
+origin at build time. The website URL is an external navigation target; the Compose stack does not host the Mintlify website.
 
 | Variable                  | Example                      |
 | ------------------------- | ---------------------------- |
-| `TOWBAR_API_BASE_URL`     | `https://api.towbar.example` |
-| `TOWBAR_APP_BASE_URL`     | `https://app.towbar.example` |
-| `TOWBAR_WEBSITE_BASE_URL` | `https://towbar.example`     |
+| `TOWBAR_API_BASE_URL`     | `https://towbar.example`     |
+| `TOWBAR_APP_BASE_URL`     | `https://towbar.example`     |
+| `TOWBAR_WEBSITE_BASE_URL` | `https://www.towbar.example` |
 
-Keep the app and API under the same registrable site, as in the example above,
-or proxy the API through that site. Login is rendered by the web app and sends
-credentialed requests directly to the API; there is no separate authentication
-origin.
+Use the same origin for the app and API. Route `/v1/*` to the API listener on
+port `4020` and every other path to the web listener on port `4021`. Login is
+rendered by the web app and sends credentialed requests to that same origin.
 
 The default `TOWBAR_BIND_ADDRESS=127.0.0.1` keeps services private to the host.
 Terminate TLS at a reverse proxy on that host or a private load balancer.
 `TOWBAR_TRUSTED_PROXY_HOPS` defaults to `0`, which ignores forwarding headers
-and uses the direct socket address for authentication throttling. Set it only
-to the exact number of trusted proxy hops in front of the API.
+and uses the direct socket address for authentication throttling. The public
+installer sets it to `1` for one directly connected reverse proxy. Change it
+only to the exact number of controlled proxy hops in front of the API, and
+prevent direct access to port `4020` whenever the value is greater than zero.
 
 ## Runtime integrations
 

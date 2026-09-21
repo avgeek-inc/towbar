@@ -86,7 +86,7 @@ Protect mapped branches and restrict Preview credentials accordingly.
 
 ## Trust boundaries
 
-1. Browser to the web app and API public origins.
+1. Browser to the Towbar public origin, with `/v1/*` routed to the API.
 2. GitHub or GitLab webhook to the API, authenticated with its environment-configured webhook secret.
 3. API to worker/internal routes, authenticated with HMAC signatures and replay
    protection.

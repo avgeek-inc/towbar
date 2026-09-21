@@ -7,7 +7,7 @@ Towbar runs on infrastructure you manage. The Compose stack includes the dashboa
 
 ## Before you begin
 
-Use a dedicated Ubuntu or Debian host with persistent storage and outbound HTTPS access. The installer uses Docker's official APT repository when Docker is not already available. If the host already has Docker, it must include Compose v2. For GitHub integration, plan HTTPS origins for the app and API.
+Use a dedicated Ubuntu or Debian host with persistent storage and outbound HTTPS access. The installer uses Docker's official APT repository when Docker is not already available. If the host already has Docker, it must include Compose v2. For GitHub integration, plan one HTTPS origin for Towbar.
 
 The examples use loopback addresses for initial setup. Keep that binding until you have created the first Admin account.
 
@@ -24,7 +24,7 @@ The preview uses a compact built-in terminal interface. If [Gum](https://github.
 The installer asks only how the control plane will be reached:
 
 1. Choose whether Towbar stays on the server or is published through an existing HTTPS reverse proxy.
-2. For public HTTPS, enter the dashboard URL, API URL, and number of trusted proxy hops.
+2. For public HTTPS, enter the single URL where Towbar will be available.
 3. Review where Towbar will be available, then confirm the installation.
 
 Towbar generates the database passwords, credential-encryption key, and internal signing secret. It does not ask for provider credentials during installation. Optional integrations remain disabled until their environment variables are added later.
@@ -79,7 +79,23 @@ sudo towbar config validate
 sudo towbar restart
 ```
 
-For an internet-reachable installation, replace the three base URLs before exposing the service. The API and web app need reachable HTTPS origins; login stays on the web app origin. `TOWBAR_WEBSITE_BASE_URL` is an external link target; Towbar does not run the website in this repository.
+For an internet-reachable installation, Towbar uses one HTTPS origin for the dashboard, REST API, MCP, webhooks, and terminal transport. The installer writes that origin to both `TOWBAR_APP_BASE_URL` and `TOWBAR_API_BASE_URL`. `TOWBAR_WEBSITE_BASE_URL` is an external link target; Towbar does not run the website in this repository.
+
+Keep both Compose listeners bound to loopback. Configure the host's HTTPS reverse proxy to preserve the request path and send `/v1/*` to the API on port `4020`; send every other path to the dashboard on port `4021`. For example, a Caddy site can use:
+
+```caddyfile
+towbar.example.com {
+  handle /v1/* {
+    reverse_proxy 127.0.0.1:4020
+  }
+
+  handle {
+    reverse_proxy 127.0.0.1:4021
+  }
+}
+```
+
+That API route includes REST, MCP, provider webhooks, streaming responses, and the terminal WebSocket. Do not use `handle_path`; Towbar needs the `/v1` prefix to reach the API unchanged. The installer assumes one directly connected reverse proxy and sets `TOWBAR_TRUSTED_PROXY_HOPS=1` without asking for it. This value only controls which client address Towbar trusts for rate limiting. Change it only when the request passes through more than one proxy you control, such as a CDN followed by Caddy. Never expose port `4020` directly when forwarding headers are trusted.
 
 The edit command validates a temporary copy before replacing the active file and retains one previous copy for `sudo towbar config rollback`. `restart` rebuilds release images when configuration affects web-app build arguments and restores the previous edited configuration if the replacement fails.
 
@@ -105,9 +121,13 @@ Open the printed link and enter the team name, your name, email, password and co
 
 Complete setup while the services are loopback-bound. Configure SMTP for invitations and password recovery, then add colleagues under Team Settings. See [Team access](/docs/self-hosting/team-access) for roles, MFA and invitations. If access is lost, use [Admin account recovery](/docs/self-hosting/account-recovery).
 
-The loopback defaults are suitable for evaluating the UI on the host. GitHub
-webhooks require the API URL to be reachable over HTTPS, so a complete
-push-to-deploy setup also needs a maintained reverse proxy or private ingress.
+The loopback defaults keep every Towbar interface private to the host. From another computer, forward both listeners over SSH:
+
+```bash
+ssh -L 4021:127.0.0.1:4021 -L 4020:127.0.0.1:4020 user@towbar-host
+```
+
+Then use `http://localhost:4021` for the dashboard, `http://localhost:4020/v1/api` for REST, and `http://localhost:4020/v1/mcp` for MCP. These endpoints are available in local mode; they are not published to the network. GitHub webhooks require the Towbar API route to be reachable over HTTPS, so a complete push-to-deploy setup also needs a maintained reverse proxy or private ingress.
 
 ## Verify the installation
 

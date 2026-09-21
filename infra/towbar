@@ -63,6 +63,10 @@ ui_heading() {
   printf '%s%s%s\n' "$STYLE_BOLD" "$1" "$STYLE_RESET"
 }
 
+ui_success_heading() {
+  printf '%s%s%s%s\n' "$STYLE_BOLD" "$STYLE_GREEN" "$1" "$STYLE_RESET"
+}
+
 ui_note() {
   printf '%s%s%s\n' "$STYLE_MUTED" "$1" "$STYLE_RESET"
 }
@@ -147,12 +151,8 @@ prompt_confirm() {
 }
 
 validate_https_url() {
-  [[ "$1" =~ ^https://[^[:space:]]+$ ]] ||
-    fail "$2 must be a complete HTTPS URL"
-}
-
-validate_proxy_hops() {
-  [[ "$1" =~ ^[1-8]$ ]] || fail "trusted proxy hops must be between 1 and 8"
+  [[ "$1" =~ ^https://[^/?#@[:space:]]+/?$ ]] ||
+    fail "$2 must be an HTTPS origin without a path"
 }
 
 set_env_value() {
@@ -172,20 +172,20 @@ set_env_value() {
 
 show_install_summary() {
   printf '\n'
-  ui_heading "Ready to install Towbar"
+  ui_success_heading "Ready to install Towbar"
   if [[ "$INSTALL_MODE" == public ]]; then
-    printf 'Dashboard  %s\n' "$INSTALL_APP_URL"
-    printf 'API        %s\n' "$INSTALL_API_URL"
-    ui_note "Your existing HTTPS reverse proxy must route both addresses to this server."
+    printf 'Towbar will be available at %s.\n' "$INSTALL_APP_URL"
+    ui_note "Route /v1/* to port 4020 and all other paths to port 4021."
   else
     printf 'Towbar will stay available only on this server.\n'
     ui_note "Open the dashboard at $INSTALL_APP_URL after installation."
+    ui_note "REST: $INSTALL_API_URL/v1/api · MCP: $INSTALL_API_URL/v1/mcp"
   fi
   printf '\n'
 }
 
 collect_install_settings() {
-  local access_choice
+  local access_choice public_url
   INSTALL_MODE="${TOWBAR_INSTALL_MODE:-local}"
   INSTALL_APP_URL="${TOWBAR_INSTALL_APP_URL:-http://localhost:4021}"
   INSTALL_API_URL="${TOWBAR_INSTALL_API_URL:-http://localhost:4020}"
@@ -208,18 +208,13 @@ collect_install_settings() {
     )"
     if [[ "$access_choice" == "On the internet through an HTTPS reverse proxy" ]]; then
       INSTALL_MODE=public
-      INSTALL_APP_URL="$(
-        prompt_input "Dashboard URL" \
-          "${TOWBAR_INSTALL_APP_URL:-https://towbar.example.com}"
+      public_url="$(
+        prompt_input "Towbar URL" \
+          "${TOWBAR_INSTALL_URL:-https://towbar.example.com}"
       )"
-      INSTALL_API_URL="$(
-        prompt_input "API URL" \
-          "${TOWBAR_INSTALL_API_URL:-https://api.towbar.example.com}"
-      )"
-      INSTALL_PROXY_HOPS="$(
-        prompt_input "Trusted reverse-proxy hops" \
-          "${TOWBAR_INSTALL_TRUSTED_PROXY_HOPS:-1}"
-      )"
+      public_url="${public_url%/}"
+      INSTALL_APP_URL="$public_url"
+      INSTALL_API_URL="$public_url"
     else
       INSTALL_MODE=local
       INSTALL_APP_URL=http://localhost:4021
@@ -230,12 +225,17 @@ collect_install_settings() {
     INSTALL_APP_URL="${TOWBAR_INSTALL_APP_URL:-http://localhost:4021}"
     INSTALL_API_URL="${TOWBAR_INSTALL_API_URL:-http://localhost:4020}"
     INSTALL_PROXY_HOPS=0
+  else
+    public_url="${TOWBAR_INSTALL_URL:-https://towbar.example.com}"
+    public_url="${public_url%/}"
+    INSTALL_APP_URL="$public_url"
+    INSTALL_API_URL="$public_url"
   fi
 
   if [[ "$INSTALL_MODE" == public ]]; then
-    validate_https_url "$INSTALL_APP_URL" "dashboard URL"
-    validate_https_url "$INSTALL_API_URL" "API URL"
-    validate_proxy_hops "$INSTALL_PROXY_HOPS"
+    validate_https_url "$INSTALL_APP_URL" "Towbar URL"
+    [[ "$INSTALL_PROXY_HOPS" =~ ^[1-8]$ ]] ||
+      fail "TOWBAR_INSTALL_TRUSTED_PROXY_HOPS must be between 1 and 8"
   fi
 
   show_install_summary
@@ -248,6 +248,9 @@ apply_install_settings() {
   set_env_value "$TOWBAR_ENV_FILE" TOWBAR_BIND_ADDRESS 127.0.0.1
   set_env_value "$TOWBAR_ENV_FILE" TOWBAR_APP_BASE_URL "$INSTALL_APP_URL"
   set_env_value "$TOWBAR_ENV_FILE" TOWBAR_API_BASE_URL "$INSTALL_API_URL"
+  set_env_value \
+    "$TOWBAR_ENV_FILE" TOWBAR_GITLAB_OAUTH_REDIRECT_URI \
+    "$INSTALL_API_URL/v1/core/gitlab/oauth/callback"
   set_env_value \
     "$TOWBAR_ENV_FILE" TOWBAR_TRUSTED_PROXY_HOPS "$INSTALL_PROXY_HOPS"
 }
