@@ -148,7 +148,7 @@ See [Vulnerability scanning](/docs/vulnerability-scanning) for workspace finding
 
 ## Account security
 
-Initial setup requires an installer-issued single-use code. Email recovery, MFA and the local recovery command are documented in [Team access](/docs/self-hosting/team-access). The v1 owner-reset environment variables are not supported.
+Initial setup atomically creates one team and Admin, then closes permanently. Email recovery, MFA and the local recovery command are documented in [Team access](/docs/self-hosting/team-access). The v1 owner-reset environment variables are not supported.
 
 `TOWBAR_PASSWORD_BREACH_CHECK` defaults to `true`; explicitly setting `false` supports isolated installations without the password corpus service. `TOWBAR_PASSWORD_VERIFY_CONCURRENCY` defaults to `2` (range 1–8), and `TOWBAR_PASSWORD_VERIFY_QUEUE_LIMIT` defaults to `16` (range 1–100). Benchmark resource usage before raising these limits. Saturation returns a retryable busy response.
 

@@ -66,7 +66,7 @@ type KeySettings = {
 };
 const baseEndpoint = "/v1/core/settings/api-keys";
 
-function SetupCode({ title, code }: { title: string; code: string }) {
+function RevealedSecret({ title, code }: { title: string; code: string }) {
   return (
     <CodeBlock>
       <CodeBlock.Header>
@@ -344,7 +344,7 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
                   : "This request already created a key. Its token can only be shown in the original response. Revoke it and create a replacement if you did not save it."}
               </p>
               {revealed ? (
-                <SetupCode title="Your new key" code={revealed} />
+                <RevealedSecret title="Your new key" code={revealed} />
               ) : null}
               <Button onPress={() => setRevealOpen(false)}>Done</Button>
             </Modal.Body>
@@ -566,7 +566,7 @@ function McpSetup({ url }: { url: string }) {
             ]}
           />
         </div>
-        <SetupCode title={config.title} code={config.code} />
+        <RevealedSecret title={config.title} code={config.code} />
         {client === "codex" ? (
           <div className="text-xs leading-relaxed font-normal text-muted">
             Set{" "}

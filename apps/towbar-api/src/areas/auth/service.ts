@@ -1,8 +1,4 @@
 import { and, count, desc, eq, gt, isNull, sql } from "drizzle-orm";
-import {
-  createOpaqueToken,
-  hashOpaqueToken,
-} from "@workspace/towbar-core/security";
 import { isWorkspaceRole, roleActions } from "@workspace/towbar-access";
 import {
   authAccounts,
@@ -22,58 +18,34 @@ import {
 import { enqueueIdentityEmail } from "../team/email-outbox.js";
 
 export async function getInitialSetupStatus() {
-  const [setup] = await getTowbarDatabase()
-    .select({ completedAt: installationSetup.completedAt })
-    .from(installationSetup)
-    .where(eq(installationSetup.id, 1));
-  return { setupRequired: !setup?.completedAt };
-}
-export async function issueSetupCode() {
-  const code = createOpaqueToken();
-  await getTowbarDatabase().transaction(async (tx) => {
-    await tx.execute(
-      sql`select pg_advisory_xact_lock(hashtext('towbar-initial-setup'))`,
-    );
-    const [workspace] = await tx.select({ count: count() }).from(workspaces);
-    if (workspace?.count)
-      throw conflict(
-        "Towbar setup has already been completed",
-        "SETUP_COMPLETED",
-      );
-    await tx
-      .insert(installationSetup)
-      .values({ id: 1, codeHash: hashOpaqueToken(code) })
-      .onConflictDoUpdate({
-        target: installationSetup.id,
-        set: { codeHash: hashOpaqueToken(code) },
-      });
-  });
-  return code;
+  const [workspace] = await getTowbarDatabase()
+    .select({ count: count() })
+    .from(workspaces);
+  return { setupRequired: !workspace?.count };
 }
 export async function createInitialAdmin(input: {
   teamName: string;
   displayName: string;
   email: string;
   password: string;
-  setupCode: string;
 }) {
   const email = input.email.trim().toLowerCase();
   await getTowbarDatabase().transaction(async (tx) => {
     await tx.execute(
       sql`select pg_advisory_xact_lock(hashtext('towbar-initial-setup'))`,
     );
-    const [setup] = await tx
-      .select()
-      .from(installationSetup)
-      .where(eq(installationSetup.id, 1))
-      .for("update");
-    if (setup?.completedAt)
+    const [existingWorkspace] = await tx
+      .select({ count: count() })
+      .from(workspaces);
+    if (existingWorkspace?.count)
       throw conflict(
         "Towbar setup has already been completed",
         "SETUP_COMPLETED",
       );
-    if (!setup?.codeHash || setup.codeHash !== hashOpaqueToken(input.setupCode))
-      throw forbidden("Use the setup link issued by the installation command");
+    await tx
+      .insert(installationSetup)
+      .values({ id: 1 })
+      .onConflictDoNothing({ target: installationSetup.id });
     const [workspace] = await tx
       .insert(workspaces)
       .values({ name: input.teamName.trim(), slug: "towbar" })
@@ -102,7 +74,6 @@ export async function createInitialAdmin(input: {
         workspaceId: workspace.id,
         breakGlassUserId: result.user.id,
         completedAt: new Date(),
-        codeHash: null,
       })
       .where(eq(installationSetup.id, 1));
   });

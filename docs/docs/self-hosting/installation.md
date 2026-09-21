@@ -45,7 +45,7 @@ During installation, the CLI:
 6. Applies the database and Temporal schemas.
 7. For a public URL, verifies DNS and ports 80 and 443, then starts the bundled Caddy gateway.
 8. Obtains a Let's Encrypt certificate, verifies the public HTTPS endpoint, and rehearses a gateway restart using the persisted certificate.
-9. Verifies each long-running service and prints a one-time browser setup link.
+9. Verifies each long-running service and prints the dashboard URL.
 
 The browser setup asks for the team name, administrator display name, email address, password, and password confirmation. Provider credentials, SMTP, notification destinations, deployment servers, and repositories are configured after the first Admin signs in.
 
@@ -108,15 +108,9 @@ Use `sudo towbar upgrade` for later stable releases. See [Upgrades and recovery]
 
 Towbar v2 requires a fresh database and does not upgrade a 1.x installation. Keep any existing instance and backup separate; do not point this release at its database.
 
-Issue a one-time setup link from the API container:
+Open the dashboard and enter the team name, your name, email, password and confirmation. The first successful submission creates the only initial team and Admin account. Setup then closes immediately; concurrent or repeated submissions are rejected.
 
-```bash
-sudo towbar exec api node dist/cli/setup-code.js
-```
-
-Open the printed link and enter the team name, your name, email, password and confirmation. The setup code is placed in the URL fragment and should be kept private. It is consumed atomically; only one initial team/Admin can be created. Issuing a replacement code before setup invalidates the previous code. For local development use `pnpm --filter towbar-api auth:setup-code`.
-
-Complete setup while the services are loopback-bound. Configure SMTP for invitations and password recovery, then add colleagues under Team Settings. See [Team access](/docs/self-hosting/team-access) for roles, MFA and invitations. If access is lost, use [Admin account recovery](/docs/self-hosting/account-recovery).
+Complete setup immediately after installation. Configure SMTP for invitations and password recovery, then add colleagues under Team Settings. See [Team access](/docs/self-hosting/team-access) for roles, MFA and invitations. If access is lost, use [Admin account recovery](/docs/self-hosting/account-recovery).
 
 The loopback defaults provide an on-host dashboard for evaluating and configuring Towbar. External REST, MCP, and API-key management remain unavailable in this mode. Configure a single HTTPS Towbar origin and restart the installation before connecting automation clients or receiving provider webhooks.
 

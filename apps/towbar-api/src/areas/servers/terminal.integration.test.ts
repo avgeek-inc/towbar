@@ -58,7 +58,6 @@ void test(
     };
     try {
       const setup = await auth.createInitialAdmin({
-        setupCode: await auth.issueSetupCode(),
         displayName: "Admin",
         teamName: "Terminal",
         email: "admin@terminal.test",

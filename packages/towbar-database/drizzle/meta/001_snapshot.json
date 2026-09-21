@@ -2645,12 +2645,6 @@
           "notNull": true,
           "default": 1
         },
-        "code_hash": {
-          "name": "code_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "workspace_id": {
           "name": "workspace_id",
           "type": "uuid",

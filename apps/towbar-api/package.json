@@ -19,7 +19,6 @@
     "test": "tsx --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"**/*.ts\"",
-    "auth:setup-code": "tsx src/cli/setup-code.ts",
     "auth:recover-admin": "tsx src/cli/recover-admin.ts",
     "auth:reset-mfa": "tsx src/cli/reset-user-mfa.ts"
   },

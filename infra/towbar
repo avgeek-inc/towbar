@@ -307,7 +307,7 @@ preview_installation() {
     "$STYLE_BOLD" "$STYLE_GREEN" "$STYLE_RESET"
   printf 'Open the dashboard at %s\n' "$INSTALL_APP_URL"
   printf '\n'
-  ui_note "A one-time setup link is printed here after a real installation."
+  ui_note "The dashboard URL is printed here after a real installation."
   ui_note "The browser setup asks for your team name, name, email and password."
 }
 
@@ -1394,25 +1394,6 @@ version_command() {
   printf 'CLI %s\n' "$CLI_VERSION"
 }
 
-print_setup_link() {
-  local release_dir commit setup_output
-  release_dir="$(current_release_dir)"
-  commit="$(metadata_value "$release_dir" COMMIT)"
-  if setup_output="$(
-    compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
-      exec -T api node dist/cli/setup-code.js
-  )"; then
-    printf '\n%s%sComplete browser setup%s\n' \
-      "$STYLE_BOLD" "$STYLE_YELLOW" "$STYLE_RESET"
-    printf '%s\n' "$setup_output"
-    ui_note "The link is single-use. Keep it private."
-    ui_note "You will enter your team name, name, email and password in the browser."
-  else
-    ui_note "Towbar is healthy, but the setup link could not be issued automatically."
-    ui_note "Run: sudo towbar exec api node dist/cli/setup-code.js"
-  fi
-}
-
 install_command() {
   [[ $# -eq 0 ]] || fail "usage: towbar install"
   require_root install
@@ -1432,7 +1413,6 @@ install_command() {
   printf '\n%s%sTowbar is ready%s\n' \
     "$STYLE_BOLD" "$STYLE_GREEN" "$STYLE_RESET"
   printf 'Open the dashboard at %s\n' "$INSTALL_APP_URL"
-  print_setup_link
   printf '\n'
   ui_note "Next: configure optional integrations in the environment file."
   ui_note "Manage this installation with sudo towbar status, logs and upgrade."

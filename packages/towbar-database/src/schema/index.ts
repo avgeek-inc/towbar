@@ -449,7 +449,6 @@ export const installationSetup = pgTable(
   "towbar_installation_setup",
   {
     id: integer("id").primaryKey().default(1),
-    codeHash: text("code_hash"),
     workspaceId: uuid("workspace_id").references(() => workspaces.id),
     breakGlassUserId: uuid("break_glass_user_id").references(() => users.id, {
       onDelete: "restrict",

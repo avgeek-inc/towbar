@@ -87,22 +87,6 @@ try {
     [...compose, "up", "--detach", "--wait", "--wait-timeout", "300"],
     { timeoutMs: 360_000 },
   );
-  const output = await run.capture("docker", [
-    ...compose,
-    "exec",
-    "-T",
-    "api",
-    "node",
-    "dist/cli/setup-code.js",
-  ]);
-  const setupUrl = output.match(
-    /http:\/\/127\.0\.0\.1:\d+\/setup#code=\S+/,
-  )?.[0];
-  const setupCode =
-    setupUrl &&
-    new URLSearchParams(new URL(setupUrl).hash.slice(1)).get("code");
-  if (!setupCode)
-    throw new Error("The production CLI did not issue a setup code");
   await run.step(
     "onboarding",
     "node",
@@ -111,7 +95,6 @@ try {
       extra: {
         VERIFY_API_URL: run.env.TOWBAR_APP_BASE_URL,
         VERIFY_APP_URL: run.env.TOWBAR_APP_BASE_URL,
-        VERIFY_SETUP_CODE: setupCode,
       },
       timeoutMs: 120_000,
     },
@@ -178,7 +161,7 @@ try {
     async () => {
       if (configured) {
         // The project and network names are freshly generated, never inherited.
-        // Keep logs to state/health output: API logs can contain the one-time setup URL.
+        // Keep diagnostics to state and health output; do not collect application logs.
         await run.capture("docker", [
           ...compose,
           "down",

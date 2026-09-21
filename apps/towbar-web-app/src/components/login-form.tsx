@@ -127,15 +127,6 @@ export function LoginForm() {
 
 function InitialTeamSetup() {
   const teamId = useId();
-  const codeId = useId();
-  const [setupCode, setSetupCode] = useState("");
-  useEffect(() => {
-    const code = new URLSearchParams(window.location.hash.slice(1)).get("code");
-    if (code) {
-      setSetupCode(code);
-      window.history.replaceState(null, "", window.location.pathname);
-    }
-  }, []);
   const nameId = useId();
   const emailId = useId();
   const passwordId = useId();
@@ -155,8 +146,6 @@ function InitialTeamSetup() {
     const confirmPassword = String(data.get("confirmPassword") ?? "");
     const nextErrors: Record<string, string> = {};
     if (!teamName) nextErrors.teamName = "Team name is required";
-    if (!setupCode)
-      nextErrors.setupCode = "Enter the setup code from your installer";
     if (!displayName) nextErrors.displayName = "Name is required";
     if (!/^\S+@\S+\.\S+$/u.test(email)) {
       nextErrors.email = "Enter a valid email address";
@@ -176,7 +165,6 @@ function InitialTeamSetup() {
       await api.post("/v1/public/auth/setup", {
         confirmPassword,
         teamName,
-        setupCode,
         displayName,
         email,
         password,
@@ -210,22 +198,6 @@ function InitialTeamSetup() {
             />
             {errors.teamName ? (
               <FieldError>{errors.teamName}</FieldError>
-            ) : null}
-          </Field>
-          <Field>
-            <Label htmlFor={codeId} isRequired>
-              Setup code
-            </Label>
-            <PasswordInput
-              id={codeId}
-              name="setupCode"
-              value={setupCode}
-              onChange={(event) => setSetupCode(event.target.value)}
-              autoComplete="off"
-              required
-            />
-            {errors.setupCode ? (
-              <FieldError>{errors.setupCode}</FieldError>
             ) : null}
           </Field>
           <Field>
@@ -307,8 +279,7 @@ function InitialTeamSetup() {
         </Button>
       </form>
       <FieldDescription>
-        Use the single-use setup code from the installer. Your password must
-        contain at least 15 characters.
+        Your password must contain at least 15 characters.
       </FieldDescription>
     </AuthFrame>
   );

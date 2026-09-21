@@ -1,4 +1,3 @@
-/* eslint-disable max-lines -- Security integration coverage exercises email changes, 2FA, passkeys, and account recovery together. */
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -75,18 +74,7 @@ void test(
         true,
         "This suite requires a fresh test schema",
       );
-      const setupCode = await auth.issueSetupCode();
-      await assert.rejects(
-        auth.createInitialAdmin({
-          setupCode: "not-a-valid-setup-code",
-          teamName: "Test team",
-          displayName: "Admin",
-          email: "admin@example.test",
-          password,
-        }),
-      );
       const setupInput = {
-        setupCode,
         teamName: "Test team",
         displayName: "Admin",
         email: "admin@example.test",
@@ -128,7 +116,6 @@ void test(
           }
           await assert.rejects(
             auth.createInitialAdmin({
-              setupCode,
               teamName: "Other",
               displayName: "Attacker",
               email: "attacker@example.test",

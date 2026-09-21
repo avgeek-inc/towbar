@@ -296,7 +296,6 @@ CREATE TABLE "towbar_image_vulnerability_scans" (
 --> statement-breakpoint
 CREATE TABLE "towbar_installation_setup" (
 	"id" integer PRIMARY KEY DEFAULT 1 NOT NULL,
-	"code_hash" text,
 	"workspace_id" uuid,
 	"break_glass_user_id" uuid,
 	"completed_at" timestamp with time zone,
