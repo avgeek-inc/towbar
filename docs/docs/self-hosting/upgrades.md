@@ -32,7 +32,8 @@ The CLI accepts only published, non-prerelease v2-or-later semantic versions. It
 The CLI keeps configuration outside release directories. Edit and apply it independently:
 
 ```bash
-sudo towbar config edit
+sudo nano "$(towbar config path)"
+sudo towbar config validate
 sudo towbar restart
 ```
 

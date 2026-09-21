@@ -5,6 +5,8 @@ description: "Find the failing stage and recover from common setup, deployment, 
 
 Start with the last successful stage. Repository sync, deployment admission, build, promotion, and runtime health are separate operations; success in one does not prove the next completed.
 
+Run `sudo towbar doctor` before changing installation state. It checks the host, protected configuration file, Docker, required services, installed release, database readiness, and the active local or public access path without making changes. Public mode also checks DNS, HTTPS, certificate lifetime and persistence, GitHub access, and Let's Encrypt access. Use `sudo towbar doctor --json` in support tooling; it omits secret values and exits nonzero when a required check fails.
+
 ## Setup and connectivity
 
 | Symptom                                      | Check                                            | Next action                                                                                                                 |

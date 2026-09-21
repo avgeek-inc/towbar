@@ -2,8 +2,8 @@
 set -Eeuo pipefail
 
 TOWBAR_REPOSITORY="${TOWBAR_REPOSITORY:-avgeek-inc/towbar}"
-TOWBAR_VERSION="${TOWBAR_VERSION:-latest}"
-TOWBAR_CLI_URL="${TOWBAR_CLI_URL:-https://raw.githubusercontent.com/$TOWBAR_REPOSITORY/main/infra/towbar}"
+INSTALLER_VERSION="v2.0.1"
+TOWBAR_CLI_URL="${TOWBAR_CLI_URL:-https://raw.githubusercontent.com/$TOWBAR_REPOSITORY/$INSTALLER_VERSION/infra/towbar}"
 TOWBAR_BIN="${TOWBAR_BIN:-/usr/local/bin/towbar}"
 
 fail() {
@@ -43,11 +43,11 @@ if [[ -t 1 && -r /dev/tty && -w /dev/tty ]]; then
   exec env \
     TOWBAR_REPOSITORY="$TOWBAR_REPOSITORY" \
     TOWBAR_BIN="$TOWBAR_BIN" \
-    "$TOWBAR_BIN" install "$TOWBAR_VERSION" </dev/tty
+    "$TOWBAR_BIN" install </dev/tty
 fi
 
 exec env \
   TOWBAR_NON_INTERACTIVE=1 \
   TOWBAR_REPOSITORY="$TOWBAR_REPOSITORY" \
   TOWBAR_BIN="$TOWBAR_BIN" \
-  "$TOWBAR_BIN" install "$TOWBAR_VERSION"
+  "$TOWBAR_BIN" install

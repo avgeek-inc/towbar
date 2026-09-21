@@ -56,6 +56,7 @@ try {
   );
   compose.push("--file", override);
   Object.assign(run.env, {
+    COMPOSE_PROFILES: "local",
     TOWBAR_IMAGE_TAG: project,
     TOWBAR_NETWORK_NAME: `${project}-platform`,
     TOWBAR_BIND_ADDRESS: "127.0.0.1",

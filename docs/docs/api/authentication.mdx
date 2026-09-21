@@ -51,9 +51,9 @@ TOWBAR_TRUSTED_PROXY_HOPS=0
 The fixed window starts at the first request after expiry. Each key has its own persistent limit. All API and MCP keys from the same client IP also share an address window. Changing keys or alternating interfaces does not create a new allowance. The browser control plane and GitHub webhook have their own authentication behavior and are not part of this bucket.
 
 The API process trusts no forwarding headers by default. The Compose template
-accounts for Towbar's internal gateway, and the installer adds the host HTTPS
-reverse proxy for a domain installation. Change this value only when you change
-that topology, and keep the unified listener private. An incorrect count can
+and installer account for Towbar's bundled gateway in both local and public
+installations. Change this value only when you add another controlled proxy in
+front of Towbar. An incorrect count can
 group every client under the proxy IP or trust a spoofed address.
 
 The counter is updated atomically in PostgreSQL. A database outage fails requests rather than bypassing the limit. REST event streams count once when connected; subsequent reconnects count as new requests.

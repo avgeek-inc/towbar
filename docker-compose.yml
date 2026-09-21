@@ -261,6 +261,8 @@ services:
       args:
         NEXT_PUBLIC_TOWBAR_API_BASE_URL: ${TOWBAR_API_BASE_URL:-http://localhost:4021}
         NEXT_PUBLIC_TOWBAR_WEBSITE_BASE_URL: ${TOWBAR_WEBSITE_BASE_URL:-https://www.towbar.dev}
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+        NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${NEXT_PUBLIC_SENTRY_ENVIRONMENT:-production}
         SOURCE_COMMIT: ${SOURCE_COMMIT:-development}
     restart: unless-stopped
     depends_on:
@@ -270,6 +272,7 @@ services:
 
   gateway:
     image: caddy:2.11.4-alpine@sha256:de23def33b17fb5d1290b0f6c2add1d70780e52341896c00a4c8a2a2fe9d355e
+    profiles: [local]
     restart: unless-stopped
     depends_on:
       api:
@@ -291,9 +294,45 @@ services:
       retries: 5
     volumes:
       - ./infra/gateway/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
     networks: [platform]
     ports:
       - "${TOWBAR_BIND_ADDRESS:-127.0.0.1}:${TOWBAR_PORT:-4021}:4021"
+
+  gateway-public:
+    image: caddy:2.11.4-alpine@sha256:de23def33b17fb5d1290b0f6c2add1d70780e52341896c00a4c8a2a2fe9d355e
+    profiles: [public]
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+      web-app:
+        condition: service_healthy
+    environment:
+      TOWBAR_GATEWAY_DOMAIN: ${TOWBAR_GATEWAY_DOMAIN:-localhost.invalid}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--output-document=/dev/null",
+          "http://127.0.0.1:2019/config/",
+        ]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 18
+    volumes:
+      - ./infra/gateway/Caddyfile.public:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [platform]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
 
 networks:
   platform:
@@ -301,3 +340,5 @@ networks:
 
 volumes:
   postgres-data:
+  caddy-data:
+  caddy-config:

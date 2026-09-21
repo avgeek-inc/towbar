@@ -31,7 +31,7 @@ To resume with the retained state:
 sudo towbar restart
 ```
 
-If you exposed Towbar through a reverse proxy, remove only its own routing entries. Remove its DNS records and firewall rules separately if no other service uses them.
+For a public installation, remove its DNS record and firewall rules separately if no other service uses them. Towbar stops listening on ports 80 and 443 when the gateway container is removed.
 
 ## Permanently remove control-plane data
 
@@ -45,7 +45,7 @@ sudo towbar compose down --volumes --remove-orphans
 
 The `--volumes` flag permanently deletes the PostgreSQL volume declared by this Compose project. Do not run it during an upgrade or temporary shutdown. Do not use global `docker system prune` or `docker volume prune` as an uninstall step: other applications may share the host.
 
-After removing the stack, delete `/opt/towbar`, `/etc/towbar`, and `/usr/local/bin/towbar` only after confirming the database backup and encryption key are stored elsewhere. Remove only Towbar-specific proxy settings and unused images; Docker, Caddy, monitoring services, and shared host packages may still be used by other workloads.
+After removing the stack, delete `/opt/towbar`, `/etc/towbar`, and `/usr/local/bin/towbar` only after confirming the database backup and encryption key are stored elsewhere. Remove only Towbar-specific images and volumes; Docker and shared host packages may still be used by other workloads.
 
 ## Retire remaining access
 
