@@ -35,40 +35,40 @@ allowBuilds:
   ssh2: false
 
 catalog:
-  "@aws-sdk/client-s3": ^3.1127.0
+  "@aws-sdk/client-s3": ^3.1134.0
   "@aws-sdk/lib-storage": 3.1127.0
-  "@aws-sdk/client-sts": ^3.1127.0
+  "@aws-sdk/client-sts": ^3.1134.0
   "@eslint/js": ^9.39.4
   "@fontsource-variable/inter": ^5.3.0
-  "@heroui/react": 3.2.4
-  "@heroui/styles": 3.2.4
+  "@heroui/react": 3.2.5
+  "@heroui/styles": 3.2.5
   "@hookform/resolvers": ^5.2.2
-  "@hugeicons/core-free-icons": ^4.3.0
+  "@hugeicons/core-free-icons": 4.3.0
   "@hugeicons/react": ^1.1.10
-  "@sentry/nextjs": ^10.73.0
+  "@sentry/nextjs": ^10.75.0
   "@tailwindcss/postcss": ^4.2.4
-  "@temporalio/activity": ^1.23.0
-  "@temporalio/client": ^1.23.0
-  "@temporalio/worker": ^1.23.0
-  "@temporalio/workflow": ^1.23.0
-  "@types/node": ^26.4.1
-  "@types/react": ^19.2.14
-  "@types/react-dom": ^19.2.5
+  "@temporalio/activity": ^1.24.0
+  "@temporalio/client": ^1.24.0
+  "@temporalio/worker": ^1.24.0
+  "@temporalio/workflow": ^1.24.0
+  "@types/node": ^26.6.1
+  "@types/react": ^19.3.0
+  "@types/react-dom": ^19.3.0
   clsx: ^2.1.1
   drizzle-orm: ^0.45.2
   eslint: ^9.39.4
-  next: ^16.3.4
+  next: ^16.3.5
   postgres: ^3.4.9
-  prettier: ^3.8.3
-  react: ^19.2.5
+  prettier: ^3.9.7
+  react: ^19.3.0
   react-aria-components: ^1.21.1
-  react-dom: ^19.2.5
-  react-hook-form: ^7.87.0
+  react-dom: ^19.3.0
+  react-hook-form: ^7.88.0
   recharts: ^3.10.1
-  tailwind-merge: ^3.6.0
+  tailwind-merge: ^3.7.0
   tailwindcss: ^4.2.4
   typescript: ^5.9.3
-  yaml: ^2.8.3
+  yaml: ^2.9.1
   zod: ^4.5.4
 
 packageExtensions:
