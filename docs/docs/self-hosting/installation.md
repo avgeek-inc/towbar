@@ -19,13 +19,9 @@ You can review the complete terminal experience on macOS or Linux without root a
 ./infra/towbar preview
 ```
 
-The preview uses a compact built-in terminal interface. If [Gum](https://github.com/charmbracelet/gum) is already installed, Towbar uses it for the choice, input, and confirmation controls. Gum is optional and is never installed by Towbar. Use `./infra/towbar preview --defaults` for a non-interactive preview.
+The preview uses a compact built-in terminal interface. If [Gum](https://github.com/charmbracelet/gum) is already installed, Towbar uses it for the input and confirmation controls. Gum is optional and is never installed by Towbar. Use `./infra/towbar preview --defaults` for a non-interactive preview.
 
-The installer asks only how the control plane will be reached:
-
-1. Choose whether Towbar stays on the server or is published through an existing HTTPS reverse proxy.
-2. For public HTTPS, enter the single URL where Towbar will be available.
-3. Review where Towbar will be available, then confirm the installation.
+The installer asks only for the URL where the control plane will be reached. Press Enter to keep the default `http://localhost:4021` on-host installation, or enter the single HTTPS origin served by an existing reverse proxy. Other localhost ports, HTTPS localhost URLs, and non-HTTPS remote URLs are rejected. Review the result, then confirm the installation.
 
 Towbar generates the database passwords, credential-encryption key, and internal signing secret. It does not ask for provider credentials during installation. Optional integrations remain disabled until their environment variables are added later.
 
@@ -80,6 +76,8 @@ sudo towbar restart
 ```
 
 For an internet-reachable installation, Towbar uses one HTTPS origin for the dashboard, REST API, MCP, webhooks, and terminal transport. The installer writes that origin to both `TOWBAR_APP_BASE_URL` and `TOWBAR_API_BASE_URL`. `TOWBAR_WEBSITE_BASE_URL` is an external link target; Towbar does not run the website in this repository.
+
+The installer does not create DNS records, install or reconfigure a reverse proxy, or issue a TLS certificate. The existing reverse proxy must serve a valid certificate for the entered hostname.
 
 Keep both Compose listeners bound to loopback. Configure the host's HTTPS reverse proxy to preserve the request path and send `/v1/*` to the API on port `4020`; send every other path to the dashboard on port `4021`. For example, a Caddy site can use:
 

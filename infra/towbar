@@ -87,50 +87,25 @@ gum_available() {
   interactive_terminal && command -v gum >/dev/null 2>&1
 }
 
-prompt_choice() {
-  local prompt="$1" first="$2" second="$3" answer
-  if gum_available; then
-    answer="$(
-      gum choose \
-        --cursor.foreground 214 \
-        --header "$prompt" \
-        --header.foreground 250 \
-        "$first" "$second"
-    )"
-    printf '%s\n' "$answer"
-    return
-  fi
-
-  printf '%s%s%s\n' "$STYLE_BOLD" "$prompt" "$STYLE_RESET" >&2
-  printf '  1  %s\n' "$first" >&2
-  printf '  2  %s\n' "$second" >&2
-  printf '%sChoose 1 or 2 [1]: %s' "$STYLE_MUTED" "$STYLE_RESET" >&2
-  read -r answer
-  case "$answer" in
-    "" | 1) printf '%s\n' "$first" ;;
-    2) printf '%s\n' "$second" ;;
-    *) fail "enter 1 or 2" ;;
-  esac
-}
-
-prompt_input() {
-  local prompt="$1" default_value="$2" answer
+prompt_install_url() {
+  local default_url="$1" answer
   if gum_available; then
     answer="$(
       gum input \
         --cursor.foreground 214 \
         --prompt.foreground 214 \
         --prompt "› " \
-        --header "$prompt" \
+        --header "Specify URL (Enter to continue with $default_url):" \
         --header.foreground 250 \
-        --value "$default_value"
+        --placeholder "$default_url"
     )"
   else
-    printf '%s%s%s\n' "$STYLE_BOLD" "$prompt" "$STYLE_RESET" >&2
-    printf '%s[%s] › %s' "$STYLE_MUTED" "$default_value" "$STYLE_RESET" >&2
+    printf '%sSpecify URL%s %s(Enter to continue with %s):%s ' \
+      "$STYLE_BOLD" "$STYLE_RESET" "$STYLE_MUTED" "$default_url" \
+      "$STYLE_RESET" >&2
     read -r answer
   fi
-  printf '%s\n' "${answer:-$default_value}"
+  printf '%s\n' "${answer:-$default_url}"
 }
 
 prompt_confirm() {
@@ -155,6 +130,29 @@ validate_https_url() {
     fail "$2 must be an HTTPS origin without a path"
 }
 
+set_install_url() {
+  local requested_url="${1%/}" lowercase_url
+  lowercase_url="$(printf '%s' "$requested_url" | tr '[:upper:]' '[:lower:]')"
+
+  if [[ "$lowercase_url" == "http://localhost:4021" ]]; then
+    INSTALL_MODE=local
+    INSTALL_APP_URL=http://localhost:4021
+    INSTALL_API_URL=http://localhost:4020
+    INSTALL_PROXY_HOPS=0
+    return
+  fi
+
+  if [[ "$lowercase_url" =~ ^https?://localhost([:/?#]|$) ]]; then
+    fail "localhost is supported only as http://localhost:4021"
+  fi
+
+  validate_https_url "$requested_url" "Towbar URL"
+  INSTALL_MODE=public
+  INSTALL_APP_URL="$requested_url"
+  INSTALL_API_URL="$requested_url"
+  INSTALL_PROXY_HOPS=1
+}
+
 set_env_value() {
   local env_file="$1" key="$2" value="$3" pending
   pending="$(mktemp "${env_file}.XXXXXX")"
@@ -175,7 +173,7 @@ show_install_summary() {
   ui_success_heading "Ready to install Towbar"
   if [[ "$INSTALL_MODE" == public ]]; then
     printf 'Towbar will be available at %s.\n' "$INSTALL_APP_URL"
-    ui_note "Route /v1/* to port 4020 and all other paths to port 4021."
+    ui_note "Your HTTPS reverse proxy must provide TLS, route /v1/* to port 4020, and route all other paths to port 4021."
   else
     printf 'Towbar will stay available only on this server.\n'
     ui_note "Open the dashboard at $INSTALL_APP_URL after installation."
@@ -184,59 +182,16 @@ show_install_summary() {
 }
 
 collect_install_settings() {
-  local access_choice public_url
-  INSTALL_MODE="${TOWBAR_INSTALL_MODE:-local}"
-  INSTALL_APP_URL="${TOWBAR_INSTALL_APP_URL:-http://localhost:4021}"
-  INSTALL_API_URL="${TOWBAR_INSTALL_API_URL:-http://localhost:4020}"
-  INSTALL_PROXY_HOPS="${TOWBAR_INSTALL_TRUSTED_PROXY_HOPS:-1}"
-
-  case "$INSTALL_MODE" in
-    local | public) ;;
-    *) fail "TOWBAR_INSTALL_MODE must be local or public" ;;
-  esac
+  local requested_url="${TOWBAR_INSTALL_URL:-http://localhost:4021}"
 
   if interactive_terminal; then
     ui_heading "Where will Towbar be available?"
     ui_note "Keep it private, or publish it through an existing HTTPS reverse proxy."
     printf '\n'
-    access_choice="$(
-      prompt_choice \
-        "Choose where Towbar will be available" \
-        "Only on this server (recommended)" \
-        "On the internet through an HTTPS reverse proxy"
-    )"
-    if [[ "$access_choice" == "On the internet through an HTTPS reverse proxy" ]]; then
-      INSTALL_MODE=public
-      public_url="$(
-        prompt_input "Towbar URL" \
-          "${TOWBAR_INSTALL_URL:-https://towbar.example.com}"
-      )"
-      public_url="${public_url%/}"
-      INSTALL_APP_URL="$public_url"
-      INSTALL_API_URL="$public_url"
-    else
-      INSTALL_MODE=local
-      INSTALL_APP_URL=http://localhost:4021
-      INSTALL_API_URL=http://localhost:4020
-      INSTALL_PROXY_HOPS=0
-    fi
-  elif [[ "$INSTALL_MODE" == local ]]; then
-    INSTALL_APP_URL="${TOWBAR_INSTALL_APP_URL:-http://localhost:4021}"
-    INSTALL_API_URL="${TOWBAR_INSTALL_API_URL:-http://localhost:4020}"
-    INSTALL_PROXY_HOPS=0
-  else
-    public_url="${TOWBAR_INSTALL_URL:-https://towbar.example.com}"
-    public_url="${public_url%/}"
-    INSTALL_APP_URL="$public_url"
-    INSTALL_API_URL="$public_url"
+    requested_url="$(prompt_install_url "$requested_url")"
   fi
 
-  if [[ "$INSTALL_MODE" == public ]]; then
-    validate_https_url "$INSTALL_APP_URL" "Towbar URL"
-    [[ "$INSTALL_PROXY_HOPS" =~ ^[1-8]$ ]] ||
-      fail "TOWBAR_INSTALL_TRUSTED_PROXY_HOPS must be between 1 and 8"
-  fi
-
+  set_install_url "$requested_url"
   show_install_summary
   if interactive_terminal && ! prompt_confirm "Continue with this installation?"; then
     fail "installation cancelled"

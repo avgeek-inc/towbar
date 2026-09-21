@@ -81,19 +81,28 @@ jobs:
           if grep --extended-regexp "REST:|MCP:" /tmp/towbar-preview.txt; then
             exit 1
           fi
-          NO_COLOR=1 TOWBAR_NON_INTERACTIVE=1 TOWBAR_INSTALL_MODE=public \
+          NO_COLOR=1 TOWBAR_NON_INTERACTIVE=1 \
             TOWBAR_INSTALL_URL=https://towbar.example.com \
             infra/towbar preview | tee /tmp/towbar-public-preview.txt
           grep --fixed-strings \
             "Towbar will be available at https://towbar.example.com." \
             /tmp/towbar-public-preview.txt
           grep --fixed-strings \
-            "Route /v1/* to port 4020 and all other paths to port 4021." \
+            "Your HTTPS reverse proxy must provide TLS, route /v1/* to port 4020, and route all other paths to port 4021." \
             /tmp/towbar-public-preview.txt
           if grep --fixed-strings "Trusted reverse-proxy hops" \
             /tmp/towbar-public-preview.txt; then
             exit 1
           fi
+          for invalid_url in \
+            http://localhost:4020 \
+            https://localhost:4021 \
+            http://towbar.example.com; do
+            if NO_COLOR=1 TOWBAR_NON_INTERACTIVE=1 \
+              TOWBAR_INSTALL_URL="$invalid_url" infra/towbar preview; then
+              exit 1
+            fi
+          done
       - run: shellcheck infra/postgres/*.sh infra/temporal/*.sh
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
