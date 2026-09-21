@@ -88,7 +88,7 @@ jobs:
             "Towbar will be available at https://towbar.example.com." \
             /tmp/towbar-public-preview.txt
           grep --fixed-strings \
-            "Your HTTPS reverse proxy must provide TLS, route /v1/* to port 4020, and route all other paths to port 4021." \
+            "Point your existing HTTPS reverse proxy to 127.0.0.1:4021." \
             /tmp/towbar-public-preview.txt
           if grep --fixed-strings "Trusted reverse-proxy hops" \
             /tmp/towbar-public-preview.txt; then
@@ -128,7 +128,7 @@ jobs:
       - run: pnpm build
         env:
           SENTRY_ALLOW_MISSING: "true"
-          NEXT_PUBLIC_TOWBAR_API_BASE_URL: http://localhost:4020
+          NEXT_PUBLIC_TOWBAR_API_BASE_URL: http://localhost:4021
           NEXT_PUBLIC_TOWBAR_WEBSITE_BASE_URL: https://www.towbar.dev
 
   compose:

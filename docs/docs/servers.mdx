@@ -113,10 +113,10 @@ Connection open/close events are audited. Towbar does not store terminal input
 or output; the remote shell may keep its own history. Terminal output is shown
 as received and is not subject to deployment-log secret redaction.
 
-Expose Towbar over HTTPS and route `/v1/terminal` to the API with WebSocket
-upgrades enabled. The API process needs network access
-to the target's SSH port, in addition to the worker's existing access. The
-standard Compose installation has one API process. If you run multiple API
+Expose Towbar over HTTPS through its unified listener. The bundled gateway
+handles the `/v1/terminal` WebSocket upgrade. The API process needs network
+access to the target's SSH port, in addition to the worker's existing access.
+The standard Compose installation has one API process. If you run multiple API
 replicas, use connection affinity so the ticket request and WebSocket reach
 the same process; restarting that process disconnects its shells.
 

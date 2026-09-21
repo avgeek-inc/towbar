@@ -45,8 +45,7 @@ try {
     "--format",
     "{{.ServerVersion}}",
   ]);
-  const [apiPort, appPort, temporalPort, temporalApiPort] =
-    await availablePorts(4);
+  const [towbarPort, temporalPort, temporalApiPort] = await availablePorts(3);
   const override = path.join(run.directory, "test-ports.json");
   await writeFile(
     override,
@@ -60,11 +59,10 @@ try {
     TOWBAR_IMAGE_TAG: project,
     TOWBAR_NETWORK_NAME: `${project}-platform`,
     TOWBAR_BIND_ADDRESS: "127.0.0.1",
-    TOWBAR_API_PORT: String(apiPort),
-    TOWBAR_APP_PORT: String(appPort),
+    TOWBAR_PORT: String(towbarPort),
     TOWBAR_TEMPORAL_UI_PORT: String(temporalPort),
-    TOWBAR_API_BASE_URL: `http://127.0.0.1:${apiPort}`,
-    TOWBAR_APP_BASE_URL: `http://127.0.0.1:${appPort}`,
+    TOWBAR_API_BASE_URL: `http://127.0.0.1:${towbarPort}`,
+    TOWBAR_APP_BASE_URL: `http://127.0.0.1:${towbarPort}`,
     TOWBAR_WEBSITE_BASE_URL: "https://www.towbar.dev",
     TOWBAR_POSTGRES_PASSWORD: randomBytes(32).toString("hex"),
     TOWBAR_DATABASE_RUNTIME_PASSWORD: randomBytes(32).toString("hex"),

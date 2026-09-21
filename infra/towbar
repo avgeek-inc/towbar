@@ -137,8 +137,8 @@ set_install_url() {
   if [[ "$lowercase_url" == "http://localhost:4021" ]]; then
     INSTALL_MODE=local
     INSTALL_APP_URL=http://localhost:4021
-    INSTALL_API_URL=http://localhost:4020
-    INSTALL_PROXY_HOPS=0
+    INSTALL_API_URL=http://localhost:4021
+    INSTALL_PROXY_HOPS=1
     return
   fi
 
@@ -150,7 +150,7 @@ set_install_url() {
   INSTALL_MODE=public
   INSTALL_APP_URL="$requested_url"
   INSTALL_API_URL="$requested_url"
-  INSTALL_PROXY_HOPS=1
+  INSTALL_PROXY_HOPS=2
 }
 
 set_env_value() {
@@ -173,7 +173,7 @@ show_install_summary() {
   ui_success_heading "Ready to install Towbar"
   if [[ "$INSTALL_MODE" == public ]]; then
     printf 'Towbar will be available at %s.\n' "$INSTALL_APP_URL"
-    ui_note "Your HTTPS reverse proxy must provide TLS, route /v1/* to port 4020, and route all other paths to port 4021."
+    ui_note "Point your existing HTTPS reverse proxy to 127.0.0.1:4021."
   else
     printf 'Towbar will stay available only on this server.\n'
     ui_note "Open the dashboard at $INSTALL_APP_URL after installation."
@@ -547,6 +547,21 @@ verify_running_release() {
       return 1
     fi
   done
+
+  container_id="$(compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q gateway)"
+  if [[ -z "$container_id" ]]; then
+    printf 'Towbar: gateway container was not created\n' >&2
+    return 1
+  fi
+  health_status="$(
+    docker inspect \
+      --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
+      "$container_id"
+  )"
+  if [[ "$health_status" != healthy ]]; then
+    printf 'Towbar: gateway finished with status %s\n' "$health_status" >&2
+    return 1
+  fi
 
   container_id="$(compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q api)"
   api_version="$(

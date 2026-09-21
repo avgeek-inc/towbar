@@ -79,21 +79,15 @@ For an internet-reachable installation, Towbar uses one HTTPS origin for the das
 
 The installer does not create DNS records, install or reconfigure a reverse proxy, or issue a TLS certificate. The existing reverse proxy must serve a valid certificate for the entered hostname.
 
-Keep both Compose listeners bound to loopback. Configure the host's HTTPS reverse proxy to preserve the request path and send `/v1/*` to the API on port `4020`; send every other path to the dashboard on port `4021`. For example, a Caddy site can use:
+Towbar publishes one loopback listener for the dashboard, REST API, MCP, webhooks, streaming responses, and terminal WebSocket. Point the host's HTTPS reverse proxy at that listener and preserve the request path. For example, a Caddy site can use:
 
 ```caddyfile
 towbar.example.com {
-  handle /v1/* {
-    reverse_proxy 127.0.0.1:4020
-  }
-
-  handle {
-    reverse_proxy 127.0.0.1:4021
-  }
+  reverse_proxy 127.0.0.1:4021
 }
 ```
 
-That API route includes REST, MCP, provider webhooks, streaming responses, and the terminal WebSocket. Do not use `handle_path`; Towbar needs the `/v1` prefix to reach the API unchanged. The installer assumes one directly connected reverse proxy and sets `TOWBAR_TRUSTED_PROXY_HOPS=1` without asking for it. This value only controls which client address Towbar trusts for rate limiting. Change it only when the request passes through more than one proxy you control, such as a CDN followed by Caddy. Never expose port `4020` directly when forwarding headers are trusted.
+Towbar's internal gateway routes `/v1/*` to the API and all other paths to the dashboard, so those service boundaries do not leak into host configuration. Keep port `4021` bound to loopback; do not expose it directly to the internet.
 
 The edit command validates a temporary copy before replacing the active file and retains one previous copy for `sudo towbar config rollback`. `restart` rebuilds release images when configuration affects web-app build arguments and restores the previous edited configuration if the replacement fails.
 

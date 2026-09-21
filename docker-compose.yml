@@ -11,7 +11,7 @@ x-backend-environment: &backend-environment
   SOURCE_COMMIT: ${SOURCE_COMMIT:-development}
   TEMPORAL_ADDRESS: temporal:7233
   TEMPORAL_NAMESPACE: default
-  TOWBAR_API_BASE_URL: ${TOWBAR_API_BASE_URL:-http://localhost:4020}
+  TOWBAR_API_BASE_URL: ${TOWBAR_API_BASE_URL:-http://localhost:4021}
   TOWBAR_APP_BASE_URL: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
   TOWBAR_WEBSITE_BASE_URL: ${TOWBAR_WEBSITE_BASE_URL:-https://www.towbar.dev}
   TOWBAR_INTERNAL_HMAC_SECRET: ${TOWBAR_INTERNAL_HMAC_SECRET:?set TOWBAR_INTERNAL_HMAC_SECRET}
@@ -142,7 +142,7 @@ services:
       TOWBAR_PASSWORD_VERIFY_QUEUE_LIMIT: ${TOWBAR_PASSWORD_VERIFY_QUEUE_LIMIT:-16}
       TOWBAR_API_RATE_LIMIT_MAX: ${TOWBAR_API_RATE_LIMIT_MAX:-60}
       TOWBAR_API_RATE_LIMIT_WINDOW_SECONDS: ${TOWBAR_API_RATE_LIMIT_WINDOW_SECONDS:-60}
-      TOWBAR_TRUSTED_PROXY_HOPS: ${TOWBAR_TRUSTED_PROXY_HOPS:-0}
+      TOWBAR_TRUSTED_PROXY_HOPS: ${TOWBAR_TRUSTED_PROXY_HOPS:-1}
       TOWBAR_VULNERABILITY_SCANNING_ENABLED: ${TOWBAR_VULNERABILITY_SCANNING_ENABLED:-false}
       TOWBAR_VULNERABILITY_SCAN_MAX_AGE_HOURS: ${TOWBAR_VULNERABILITY_SCAN_MAX_AGE_HOURS:-168}
       TOWBAR_GITHUB_ENABLED: ${TOWBAR_GITHUB_ENABLED:-false}
@@ -232,8 +232,6 @@ services:
       TOWBAR_LOG_DRAIN_LOKI_ENABLED: ${TOWBAR_LOG_DRAIN_LOKI_ENABLED:-false}
       TOWBAR_LOG_DRAIN_LOKI_CONFIG_JSON: ${TOWBAR_LOG_DRAIN_LOKI_CONFIG_JSON:-}
     networks: [platform]
-    ports:
-      - "${TOWBAR_BIND_ADDRESS:-127.0.0.1}:${TOWBAR_API_PORT:-4020}:4020"
 
   worker:
     image: towbar/worker:${TOWBAR_IMAGE_TAG:-local}
@@ -261,7 +259,7 @@ services:
       context: .
       dockerfile: apps/towbar-web-app/Dockerfile
       args:
-        NEXT_PUBLIC_TOWBAR_API_BASE_URL: ${TOWBAR_API_BASE_URL:-http://localhost:4020}
+        NEXT_PUBLIC_TOWBAR_API_BASE_URL: ${TOWBAR_API_BASE_URL:-http://localhost:4021}
         NEXT_PUBLIC_TOWBAR_WEBSITE_BASE_URL: ${TOWBAR_WEBSITE_BASE_URL:-https://www.towbar.dev}
         SOURCE_COMMIT: ${SOURCE_COMMIT:-development}
     restart: unless-stopped
@@ -269,8 +267,33 @@ services:
       api:
         condition: service_healthy
     networks: [platform]
+
+  gateway:
+    image: caddy:2.11.4-alpine@sha256:de23def33b17fb5d1290b0f6c2add1d70780e52341896c00a4c8a2a2fe9d355e
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+      web-app:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--output-document=/dev/null",
+          "http://127.0.0.1:4021/health",
+        ]
+      interval: 20s
+      timeout: 5s
+      start_period: 5s
+      retries: 5
+    volumes:
+      - ./infra/gateway/Caddyfile:/etc/caddy/Caddyfile:ro
+    networks: [platform]
     ports:
-      - "${TOWBAR_BIND_ADDRESS:-127.0.0.1}:${TOWBAR_APP_PORT:-4021}:4021"
+      - "${TOWBAR_BIND_ADDRESS:-127.0.0.1}:${TOWBAR_PORT:-4021}:4021"
 
 networks:
   platform:

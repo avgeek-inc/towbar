@@ -33,20 +33,19 @@ origin at build time. The website URL is an external navigation target; the Comp
 | `TOWBAR_APP_BASE_URL`     | `https://towbar.example`     |
 | `TOWBAR_WEBSITE_BASE_URL` | `https://www.towbar.example` |
 
-Use the same origin for the app and API. Route `/v1/*` to the API listener on
-port `4020` and every other path to the web listener on port `4021`. Login is
-rendered by the web app and sends credentialed requests to that same origin.
+Use the same origin for the app and API. Towbar's internal gateway routes API
+and dashboard requests through the single published listener on port `4021`.
+Login is rendered by the web app and sends credentialed requests to that same origin.
 External REST, MCP, and API-key management are enabled only when
 `TOWBAR_API_BASE_URL` uses HTTPS. The default local HTTP installation supports
 the on-host dashboard without exposing those automation interfaces.
 
-The default `TOWBAR_BIND_ADDRESS=127.0.0.1` keeps services private to the host.
-Terminate TLS at a reverse proxy on that host or a private load balancer.
-`TOWBAR_TRUSTED_PROXY_HOPS` defaults to `0`, which ignores forwarding headers
-and uses the direct socket address for authentication throttling. The public
-installer sets it to `1` for one directly connected reverse proxy. Change it
-only to the exact number of controlled proxy hops in front of the API, and
-prevent direct access to port `4020` whenever the value is greater than zero.
+The default `TOWBAR_BIND_ADDRESS=127.0.0.1` keeps the listener private to the
+host. Terminate TLS at a reverse proxy on that host or a private load balancer.
+The installer accounts for Towbar's internal gateway when setting
+`TOWBAR_TRUSTED_PROXY_HOPS`; change it only if you add another controlled proxy
+such as a CDN. Keep port `4021` bound to loopback whenever forwarding headers
+are trusted.
 
 ## Runtime integrations
 
@@ -163,8 +162,7 @@ Register IP addresses, SSH access, and concurrency under [Servers](/docs/servers
 | `TOWBAR_WORKER_MAX_CONCURRENT_ACTIVITIES` | `4`                        | Global worker activity capacity                          |
 | `TOWBAR_APP_ID`                           | `towbar-worker` in Compose | Manifest app identity for worker self-deployment cleanup |
 | `TOWBAR_BIND_ADDRESS`                     | `127.0.0.1`                | Published Compose port binding                           |
-| `TOWBAR_API_PORT`                         | `4020`                     | API port on the host                                     |
-| `TOWBAR_APP_PORT`                         | `4021`                     | Dashboard port on the host                               |
+| `TOWBAR_PORT`                             | `4021`                     | Unified dashboard and API port on the host               |
 | `TOWBAR_TEMPORAL_UI_PORT`                 | `8233`                     | Temporal UI port on the host                             |
 | `TOWBAR_NETWORK_NAME`                     | `towbar-platform`          | Compose network name                                     |
 
