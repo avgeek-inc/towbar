@@ -48,7 +48,6 @@ jobs:
         id: release
         env:
           SSH_HOST: ${{ secrets.TOWBAR_DEPLOY_SSH_HOST }}
-          SSH_KNOWN_HOSTS: ${{ secrets.TOWBAR_DEPLOY_SSH_KNOWN_HOSTS }}
           SSH_PRIVATE_KEY: ${{ secrets.TOWBAR_DEPLOY_SSH_PRIVATE_KEY }}
         run: |
           set -euo pipefail
@@ -61,7 +60,6 @@ jobs:
               ;;
             ssh)
               : "${SSH_HOST:?set the TOWBAR_DEPLOY_SSH_HOST production secret}"
-              : "${SSH_KNOWN_HOSTS:?set the TOWBAR_DEPLOY_SSH_KNOWN_HOSTS production secret}"
               : "${SSH_PRIVATE_KEY:?set the TOWBAR_DEPLOY_SSH_PRIVATE_KEY production secret}"
               if [[ ! "$SSH_PORT" =~ ^[0-9]+$ ]] || ((SSH_PORT < 1 || SSH_PORT > 65535)); then
                 echo "TOWBAR_DEPLOY_SSH_PORT must be an integer from 1 to 65535" >&2
@@ -186,14 +184,12 @@ jobs:
       - name: Configure SSH
         if: env.DEPLOY_TRANSPORT == 'ssh'
         env:
-          SSH_KNOWN_HOSTS: ${{ secrets.TOWBAR_DEPLOY_SSH_KNOWN_HOSTS }}
           SSH_PRIVATE_KEY: ${{ secrets.TOWBAR_DEPLOY_SSH_PRIVATE_KEY }}
         run: |
           set -euo pipefail
           install -d -m 700 "$HOME/.ssh"
           printf '%s\n' "$SSH_PRIVATE_KEY" >"$HOME/.ssh/towbar_deploy"
-          printf '%s\n' "$SSH_KNOWN_HOSTS" >"$HOME/.ssh/known_hosts"
-          chmod 600 "$HOME/.ssh/towbar_deploy" "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/towbar_deploy"
           ssh-keygen -y -f "$HOME/.ssh/towbar_deploy" >/dev/null
 
       - name: Deploy exact release through SSH
@@ -225,8 +221,7 @@ jobs:
             -p "$SSH_PORT" \
             -o BatchMode=yes \
             -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
-            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            -o StrictHostKeyChecking=accept-new \
             -- "$SSH_USER@$SSH_HOST" "$remote_command"
 
       - name: Verify public health

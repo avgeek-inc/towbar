@@ -41,15 +41,6 @@ ssh-keygen -t ed25519 -C towbar-github-actions -f towbar-deploy
 
 Add `towbar-deploy.pub` to the server account's `~/.ssh/authorized_keys`. Store the complete private key as the `TOWBAR_DEPLOY_SSH_PRIVATE_KEY` secret in a GitHub environment named `production`.
 
-Record the server's SSH host key from a trusted network:
-
-```bash
-ssh-keyscan -H -p 22 towbar.example.com > towbar-known-hosts
-ssh-keygen -lf towbar-known-hosts
-```
-
-Compare that fingerprint with the host fingerprint shown by the server console or provider before saving the complete `towbar-known-hosts` contents as `TOWBAR_DEPLOY_SSH_KNOWN_HOSTS`. The workflow uses strict host-key checking and never accepts a new key automatically.
-
 ## Configure the production environment
 
 Create a GitHub environment named `production`, require approval if more than one person can publish releases, and restrict it to the protected default branch and stable release tags.
@@ -67,11 +58,12 @@ Add these environment variables:
 
 Add these environment secrets:
 
-| Secret                          | Purpose                                       |
-| ------------------------------- | --------------------------------------------- |
-| `TOWBAR_DEPLOY_SSH_HOST`        | Server DNS name or IP address                 |
-| `TOWBAR_DEPLOY_SSH_PRIVATE_KEY` | Complete dedicated private key                |
-| `TOWBAR_DEPLOY_SSH_KNOWN_HOSTS` | Pinned `known_hosts` line for the destination |
+| Secret                          | Purpose                        |
+| ------------------------------- | ------------------------------ |
+| `TOWBAR_DEPLOY_SSH_HOST`        | Server DNS name or IP address  |
+| `TOWBAR_DEPLOY_SSH_PRIVATE_KEY` | Complete dedicated private key |
+
+GitHub-hosted runners start with an empty SSH profile. The workflow accepts the host key presented during each run, so no `known_hosts` secret is required.
 
 The deployment key can initiate a root-level release through `sudo`; protect the environment, restrict who can modify the workflow and default branch, and rotate the key after suspected exposure.
 
@@ -113,7 +105,6 @@ Trust only `<returned-prefix>:environment:production` in the AWS role. Grant `ss
 ## Troubleshoot a failed deployment
 
 - A tag validation failure means the release is missing, draft, prerelease, or does not match the package version.
-- A host-key error means the destination key differs from the pinned value. Verify the server through its console before replacing the secret.
 - A dirty-checkout error protects host changes from being overwritten. Move the change into a reviewed commit or restore the checkout.
 - A missing `.env` or permissive file mode must be fixed on the host. Use mode `600` or `400`.
 - A Compose health failure triggers rollback. Inspect the workflow output and the host's `migrate`, `api`, and `worker` logs before retrying.

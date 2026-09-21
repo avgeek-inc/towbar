@@ -38,5 +38,5 @@ Use **Forgot password** when SMTP and the account's mailbox are available. Host 
 The included `Deploy release` workflow supports a generic Linux server over SSH
 and EC2 through AWS Systems Manager. Follow [Deploy with GitHub
 Actions](/docs/self-hosting/github-actions) to prepare the server, protect the
-GitHub environment, pin the SSH host key or AWS OIDC identity, and run the
-first exact-tag deployment.
+GitHub environment, configure the SSH or AWS OIDC identity, and run the first
+exact-tag deployment.
