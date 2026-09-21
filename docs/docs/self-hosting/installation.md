@@ -102,7 +102,7 @@ sudo towbar doctor
 sudo towbar version
 ```
 
-`sudo towbar doctor` performs read-only host, configuration, Docker, service, release, database, and access-mode checks. Public installations also check DNS, HTTPS routing, certificate lifetime, persisted Caddy state, and outbound access needed for releases and certificate renewal. It prints no secret values, returns a nonzero exit code when a required check fails, and supports machine-readable output with `sudo towbar doctor --json`.
+`sudo towbar doctor` performs read-only host, configuration, Docker, service, release, database, and access-mode checks. Public installations also check DNS, HTTPS routing, certificate lifetime, persisted Caddy state, and outbound access needed for releases and certificate renewal. It prints no secret values and returns a nonzero exit code when a required check fails.
 
 Use `sudo towbar upgrade` for later stable releases. See [Upgrades and recovery](/docs/self-hosting/upgrades) before upgrading an installation with production data.
 

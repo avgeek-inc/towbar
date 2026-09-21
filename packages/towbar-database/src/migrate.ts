@@ -54,11 +54,11 @@ export async function runTowbarMigrations(
     await client`select pg_advisory_lock(hashtext(${migrationLockKey}))`;
     lockAcquired = true;
     const [existing] = await client<
-      { workspace: string | null; setup: string | null }[]
+      { workspace: string | null; v2Auth: string | null }[]
     >`
       select to_regclass('public.towbar_workspaces')::text as workspace,
-             to_regclass('public.towbar_installation_setup')::text as setup`;
-    if (existing?.workspace && !existing.setup)
+             to_regclass('public.towbar_auth_accounts')::text as "v2Auth"`;
+    if (existing?.workspace && !existing.v2Auth)
       throw new Error(
         "Towbar v2 requires a fresh database; this schema cannot be upgraded from 1.x. Preserve the existing database and use a separate v2 installation.",
       );

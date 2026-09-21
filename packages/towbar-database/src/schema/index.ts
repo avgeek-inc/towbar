@@ -445,22 +445,6 @@ export const workspaceInvitations = pgTable(
   ],
 );
 
-export const installationSetup = pgTable(
-  "towbar_installation_setup",
-  {
-    id: integer("id").primaryKey().default(1),
-    workspaceId: uuid("workspace_id").references(() => workspaces.id),
-    breakGlassUserId: uuid("break_glass_user_id").references(() => users.id, {
-      onDelete: "restrict",
-    }),
-    completedAt: timestamp("completed_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [check("towbar_setup_singleton", sql`${table.id} = 1`)],
-);
-
 export const apiKeys = pgTable(
   "towbar_api_keys",
   {

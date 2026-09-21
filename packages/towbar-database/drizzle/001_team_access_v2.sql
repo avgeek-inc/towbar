@@ -294,15 +294,6 @@ CREATE TABLE "towbar_image_vulnerability_scans" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "towbar_installation_setup" (
-	"id" integer PRIMARY KEY DEFAULT 1 NOT NULL,
-	"workspace_id" uuid,
-	"break_glass_user_id" uuid,
-	"completed_at" timestamp with time zone,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "towbar_setup_singleton" CHECK ("towbar_installation_setup"."id" = 1)
-);
---> statement-breakpoint
 CREATE TABLE "towbar_integration_authorization_attempts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"workspace_id" uuid NOT NULL,
@@ -995,8 +986,6 @@ ALTER TABLE "towbar_image_vulnerability_scans" ADD CONSTRAINT "towbar_image_vuln
 ALTER TABLE "towbar_image_vulnerability_scans" ADD CONSTRAINT "towbar_image_vulnerability_scans_app_id_towbar_apps_id_fk" FOREIGN KEY ("app_id") REFERENCES "public"."towbar_apps"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "towbar_image_vulnerability_scans" ADD CONSTRAINT "towbar_image_vulnerability_scans_server_id_towbar_servers_id_fk" FOREIGN KEY ("server_id") REFERENCES "public"."towbar_servers"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "towbar_image_vulnerability_scans" ADD CONSTRAINT "towbar_image_vulnerability_scans_deployment_id_towbar_deployments_id_fk" FOREIGN KEY ("deployment_id") REFERENCES "public"."towbar_deployments"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "towbar_installation_setup" ADD CONSTRAINT "towbar_installation_setup_workspace_id_towbar_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."towbar_workspaces"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "towbar_installation_setup" ADD CONSTRAINT "towbar_installation_setup_break_glass_user_id_towbar_users_id_fk" FOREIGN KEY ("break_glass_user_id") REFERENCES "public"."towbar_users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "towbar_integration_authorization_attempts" ADD CONSTRAINT "towbar_integration_authorization_attempts_workspace_id_towbar_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."towbar_workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "towbar_integration_authorization_attempts" ADD CONSTRAINT "towbar_integration_authorization_attempts_requested_by_towbar_users_id_fk" FOREIGN KEY ("requested_by") REFERENCES "public"."towbar_users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "towbar_integration_authorizations" ADD CONSTRAINT "towbar_integration_authorizations_workspace_id_towbar_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."towbar_workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

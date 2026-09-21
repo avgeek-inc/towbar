@@ -2,7 +2,6 @@ import { and, count, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import { isWorkspaceRole, roleActions } from "@workspace/towbar-access";
 import {
   authAccounts,
-  installationSetup,
   sessions,
   users,
   workspaceMembers,
@@ -42,10 +41,6 @@ export async function createInitialAdmin(input: {
         "Towbar setup has already been completed",
         "SETUP_COMPLETED",
       );
-    await tx
-      .insert(installationSetup)
-      .values({ id: 1 })
-      .onConflictDoNothing({ target: installationSetup.id });
     const [workspace] = await tx
       .insert(workspaces)
       .values({ name: input.teamName.trim(), slug: "towbar" })
@@ -68,14 +63,6 @@ export async function createInitialAdmin(input: {
       userId: result.user.id,
       role: "admin",
     });
-    await tx
-      .update(installationSetup)
-      .set({
-        workspaceId: workspace.id,
-        breakGlassUserId: result.user.id,
-        completedAt: new Date(),
-      })
-      .where(eq(installationSetup.id, 1));
   });
   return await getIdentityAuth().api.signInEmail({
     body: { email, password: input.password },

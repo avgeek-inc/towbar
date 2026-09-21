@@ -520,7 +520,7 @@ download_release() {
   tar -xzf "$archive" -C "$staging"
   source_dir="$(find "$staging" -mindepth 1 -maxdepth 1 -type d -print -quit)"
   [[ -n "$source_dir" ]] || fail "release archive did not contain a source directory"
-  [[ -f "$source_dir/docker-compose.yml" && -f "$source_dir/.env.example" ]] ||
+  [[ -f "$source_dir/docker-compose.yml" && -f "$source_dir/.env.example" && -f "$source_dir/infra/towbar" ]] ||
     fail "release archive is missing Towbar installation files"
 
   package_version="$(jq -r .version "$source_dir/package.json")"
@@ -753,9 +753,7 @@ rehearse_public_https_restart() {
 
 install_cli_from_release() {
   local release_dir="$1"
-  if [[ -f "$release_dir/infra/towbar" ]]; then
-    install -o root -g root -m 0755 "$release_dir/infra/towbar" "$TOWBAR_BIN"
-  fi
+  install -o root -g root -m 0755 "$release_dir/infra/towbar" "$TOWBAR_BIN"
 }
 
 upgrade_release() {
@@ -973,71 +971,25 @@ config_command() {
 }
 
 doctor_record() {
-  local id="$1" status="$2" message="$3" detail="${4:-}"
-  DOCTOR_CHECK_IDS+=("$id")
-  DOCTOR_CHECK_STATUSES+=("$status")
-  DOCTOR_CHECK_MESSAGES+=("$message")
-  DOCTOR_CHECK_DETAILS+=("$detail")
+  local status="$1" message="$2" detail="${3:-}"
 
   case "$status" in
     pass)
       DOCTOR_PASS_COUNT=$((DOCTOR_PASS_COUNT + 1))
-      [[ "$DOCTOR_OUTPUT" == json ]] || ui_step "$message"
+      ui_step "$message"
       ;;
     warn)
       DOCTOR_WARN_COUNT=$((DOCTOR_WARN_COUNT + 1))
-      if [[ "$DOCTOR_OUTPUT" != json ]]; then
-        ui_pending_step "$message"
-      fi
+      ui_pending_step "$message"
       ;;
     fail)
       DOCTOR_FAIL_COUNT=$((DOCTOR_FAIL_COUNT + 1))
-      if [[ "$DOCTOR_OUTPUT" != json ]]; then
-        ui_failure_step "$message"
-      fi
+      ui_failure_step "$message"
       ;;
   esac
-  if [[ "$DOCTOR_OUTPUT" != json && -n "$detail" ]]; then
+  if [[ -n "$detail" ]]; then
     ui_note "   $detail"
   fi
-}
-
-doctor_emit_json() {
-  local status result_file index
-  result_file="$(mktemp)"
-  for index in "${!DOCTOR_CHECK_IDS[@]}"; do
-    jq -cn \
-      --arg id "${DOCTOR_CHECK_IDS[$index]}" \
-      --arg status "${DOCTOR_CHECK_STATUSES[$index]}" \
-      --arg message "${DOCTOR_CHECK_MESSAGES[$index]}" \
-      --arg detail "${DOCTOR_CHECK_DETAILS[$index]}" \
-      '{id: $id, status: $status, message: $message, detail: $detail}' \
-      >>"$result_file"
-  done
-  if ((DOCTOR_FAIL_COUNT > 0)); then
-    status=failed
-  elif ((DOCTOR_WARN_COUNT > 0)); then
-    status=warning
-  else
-    status=healthy
-  fi
-  jq -s \
-    --arg status "$status" \
-    --arg version "$DOCTOR_VERSION" \
-    --arg commit "$DOCTOR_COMMIT" \
-    --arg mode "$DOCTOR_MODE" \
-    --argjson passed "$DOCTOR_PASS_COUNT" \
-    --argjson warnings "$DOCTOR_WARN_COUNT" \
-    --argjson failed "$DOCTOR_FAIL_COUNT" \
-    '{
-      status: $status,
-      version: $version,
-      commit: $commit,
-      mode: $mode,
-      summary: {passed: $passed, warnings: $warnings, failed: $failed},
-      checks: .
-    }' "$result_file"
-  rm -f "$result_file"
 }
 
 doctor_check_host() {
@@ -1045,97 +997,97 @@ doctor_check_host() {
   os_id="$(awk -F= '$1 == "ID" { value = $2; gsub(/\"/, "", value); print value; exit }' /etc/os-release 2>/dev/null || true)"
   case "$os_id" in
     ubuntu | debian)
-      doctor_record host.os pass "Supported Linux distribution" "$os_id"
+      doctor_record pass "Supported Linux distribution" "$os_id"
       ;;
     *)
-      doctor_record host.os fail "Unsupported Linux distribution" "Towbar supports Ubuntu and Debian; detected ${os_id:-unknown}."
+      doctor_record fail "Unsupported Linux distribution" "Towbar supports Ubuntu and Debian; detected ${os_id:-unknown}."
       ;;
   esac
 
   architecture="$(uname -m)"
   case "$architecture" in
     x86_64 | aarch64 | arm64)
-      doctor_record host.architecture pass "Supported host architecture" "$architecture"
+      doctor_record pass "Supported host architecture" "$architecture"
       ;;
     *)
-      doctor_record host.architecture warn "Unverified host architecture" "$architecture"
+      doctor_record warn "Unverified host architecture" "$architecture"
       ;;
   esac
 
   for command_name in curl docker git jq openssl tar; do
     if command -v "$command_name" >/dev/null 2>&1; then
-      doctor_record "host.command.$command_name" pass "$command_name is available"
+      doctor_record pass "$command_name is available"
     else
-      doctor_record "host.command.$command_name" fail "$command_name is missing"
+      doctor_record fail "$command_name is missing"
     fi
   done
 
   if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-    doctor_record docker.engine pass "Docker Engine is reachable" "$(docker version --format '{{.Server.Version}}' 2>/dev/null || true)"
+    doctor_record pass "Docker Engine is reachable" "$(docker version --format '{{.Server.Version}}' 2>/dev/null || true)"
   else
-    doctor_record docker.engine fail "Docker Engine is not reachable" "Start Docker, then rerun sudo towbar doctor."
+    doctor_record fail "Docker Engine is not reachable" "Start Docker, then rerun sudo towbar doctor."
   fi
   if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-    doctor_record docker.compose pass "Docker Compose v2 is available" "$(docker compose version --short 2>/dev/null || true)"
+    doctor_record pass "Docker Compose v2 is available" "$(docker compose version --short 2>/dev/null || true)"
   else
-    doctor_record docker.compose fail "Docker Compose v2 is unavailable"
+    doctor_record fail "Docker Compose v2 is unavailable"
   fi
 
   disk_kib="$(df -Pk "$TOWBAR_ROOT" 2>/dev/null | awk 'NR == 2 { print $4 }')"
   if [[ "$disk_kib" =~ ^[0-9]+$ ]]; then
     disk_gib="$(awk -v kib="$disk_kib" 'BEGIN { printf "%.1f", kib / 1048576 }')"
     if ((disk_kib < 2097152)); then
-      doctor_record host.disk fail "Host disk space is critically low" "$disk_gib GiB available. Free at least 2 GiB before operating Towbar."
+      doctor_record fail "Host disk space is critically low" "$disk_gib GiB available. Free at least 2 GiB before operating Towbar."
     elif ((disk_kib < 10485760)); then
-      doctor_record host.disk warn "Host disk space is low" "$disk_gib GiB available; 10 GiB or more is recommended for builds and upgrades."
+      doctor_record warn "Host disk space is low" "$disk_gib GiB available; 10 GiB or more is recommended for builds and upgrades."
     else
-      doctor_record host.disk pass "Host disk space is available" "$disk_gib GiB free"
+      doctor_record pass "Host disk space is available" "$disk_gib GiB free"
     fi
   else
-    doctor_record host.disk warn "Host disk space could not be measured"
+    doctor_record warn "Host disk space could not be measured"
   fi
 
   memory_kib="$(awk '/^MemTotal:/ { print $2; exit }' /proc/meminfo 2>/dev/null || true)"
   if [[ "$memory_kib" =~ ^[0-9]+$ ]]; then
     if ((memory_kib < 1048576)); then
-      doctor_record host.memory fail "Host memory is below 1 GiB" "Towbar may not start reliably on this host."
+      doctor_record fail "Host memory is below 1 GiB" "Towbar may not start reliably on this host."
     elif ((memory_kib < 2097152)); then
-      doctor_record host.memory warn "Host memory is below 2 GiB" "Builds and concurrent workflows may be constrained."
+      doctor_record warn "Host memory is below 2 GiB" "Builds and concurrent workflows may be constrained."
     else
-      doctor_record host.memory pass "Host memory is available" "$(awk -v kib="$memory_kib" 'BEGIN { printf "%.1f GiB", kib / 1048576 }')"
+      doctor_record pass "Host memory is available" "$(awk -v kib="$memory_kib" 'BEGIN { printf "%.1f GiB", kib / 1048576 }')"
     fi
   else
-    doctor_record host.memory warn "Host memory could not be measured"
+    doctor_record warn "Host memory could not be measured"
   fi
 
   if command -v timedatectl >/dev/null 2>&1 && \
     [[ "$(timedatectl show --property=NTPSynchronized --value 2>/dev/null || true)" == yes ]]; then
-    doctor_record host.clock pass "System clock is synchronized"
+    doctor_record pass "System clock is synchronized"
   else
-    doctor_record host.clock warn "System clock synchronization was not confirmed" "TLS and signed requests require an accurate clock."
+    doctor_record warn "System clock synchronization was not confirmed" "TLS and signed requests require an accurate clock."
   fi
 }
 
 doctor_check_config() {
   local release_dir="$1" ownership mode app_url
   if [[ ! -f "$TOWBAR_ENV_FILE" ]]; then
-    doctor_record config.file fail "Runtime configuration is missing" "$TOWBAR_ENV_FILE"
+    doctor_record fail "Runtime configuration is missing" "$TOWBAR_ENV_FILE"
     return
   fi
 
   ownership="$(stat -c '%U:%G' "$TOWBAR_ENV_FILE" 2>/dev/null || true)"
   mode="$(stat -c '%a' "$TOWBAR_ENV_FILE" 2>/dev/null || true)"
   if [[ "$ownership" == root:root && "$mode" == 600 ]]; then
-    doctor_record config.permissions pass "Runtime configuration is protected" "$TOWBAR_ENV_FILE is owned by root:root with mode 600."
+    doctor_record pass "Runtime configuration is protected" "$TOWBAR_ENV_FILE is owned by root:root with mode 600."
   else
-    doctor_record config.permissions fail "Runtime configuration permissions are unsafe" "Expected root:root mode 600; found ${ownership:-unknown} mode ${mode:-unknown}."
+    doctor_record fail "Runtime configuration permissions are unsafe" "Expected root:root mode 600; found ${ownership:-unknown} mode ${mode:-unknown}."
   fi
 
   if (validate_config_for "$release_dir") >/dev/null 2>&1; then
     app_url="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_APP_BASE_URL)"
-    doctor_record config.valid pass "Runtime configuration is valid" "$DOCTOR_MODE mode at $app_url"
+    doctor_record pass "Runtime configuration is valid" "$DOCTOR_MODE mode at $app_url"
   else
-    doctor_record config.valid fail "Runtime configuration is invalid" "Run sudo towbar config validate for the exact error."
+    doctor_record fail "Runtime configuration is invalid" "Run sudo towbar config validate for the exact error."
   fi
 }
 
@@ -1147,32 +1099,32 @@ doctor_check_services() {
   for service in "${services[@]}"; do
     container_id="$(compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q "$service" 2>/dev/null || true)"
     if [[ -z "$container_id" ]]; then
-      doctor_record "service.$service" fail "$service is not running"
+      doctor_record fail "$service is not running"
       continue
     fi
     health_status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_id" 2>/dev/null || true)"
     if [[ "$health_status" == healthy || "$health_status" == running ]]; then
-      doctor_record "service.$service" pass "$service is healthy" "$health_status"
+      doctor_record pass "$service is healthy" "$health_status"
     else
-      doctor_record "service.$service" fail "$service is unhealthy" "Status: ${health_status:-unknown}. Inspect sudo towbar logs $service."
+      doctor_record fail "$service is unhealthy" "Status: ${health_status:-unknown}. Inspect sudo towbar logs $service."
     fi
     restart_count="$(docker inspect --format '{{.RestartCount}}' "$container_id" 2>/dev/null || true)"
     if [[ "$restart_count" =~ ^[0-9]+$ ]] && ((restart_count >= 3)); then
-      doctor_record "service.$service.restarts" warn "$service has restarted repeatedly" "$restart_count restarts"
+      doctor_record warn "$service has restarted repeatedly" "$restart_count restarts"
     fi
   done
 
   if compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
     exec -T postgres pg_isready -U towbar -d towbar >/dev/null 2>&1; then
-    doctor_record service.postgres.connection pass "PostgreSQL accepts Towbar connections"
+    doctor_record pass "PostgreSQL accepts Towbar connections"
   else
-    doctor_record service.postgres.connection fail "PostgreSQL rejected the readiness check"
+    doctor_record fail "PostgreSQL rejected the readiness check"
   fi
 
   if (verify_running_release "$release_dir" "$commit") >/dev/null 2>&1; then
-    doctor_record release.running pass "Running services match the installed release" "${DOCTOR_VERSION} at ${commit:0:12}"
+    doctor_record pass "Running services match the installed release" "${DOCTOR_VERSION} at ${commit:0:12}"
   else
-    doctor_record release.running fail "Running services do not match the installed release" "Run sudo towbar logs, then sudo towbar restart after correcting the failure."
+    doctor_record fail "Running services do not match the installed release" "Run sudo towbar logs, then sudo towbar restart after correcting the failure."
   fi
 }
 
@@ -1181,16 +1133,16 @@ doctor_check_local_access() {
   container_id="$(compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q "$gateway_service" 2>/dev/null || true)"
   published="$(docker port "$container_id" 4021/tcp 2>/dev/null || true)"
   if [[ "$published" == 127.0.0.1:4021 ]]; then
-    doctor_record access.loopback pass "Dashboard is restricted to this host" "$published"
+    doctor_record pass "Dashboard is restricted to this host" "$published"
   else
-    doctor_record access.loopback fail "Local dashboard binding is not isolated" "Expected 127.0.0.1:4021; found ${published:-no published port}."
+    doctor_record fail "Local dashboard binding is not isolated" "Expected 127.0.0.1:4021; found ${published:-no published port}."
   fi
   if curl --fail --silent --show-error --max-time 10 http://127.0.0.1:4021/health >/dev/null 2>&1; then
-    doctor_record access.dashboard pass "Local dashboard responds"
+    doctor_record pass "Local dashboard responds"
   else
-    doctor_record access.dashboard fail "Local dashboard does not respond" "Check sudo towbar logs gateway web-app."
+    doctor_record fail "Local dashboard does not respond" "Check sudo towbar logs gateway web-app."
   fi
-  doctor_record access.automation pass "External API and MCP access are disabled" "Public automation access requires a Towbar HTTPS installation."
+  doctor_record pass "External API and MCP access are disabled" "Public automation access requires a Towbar HTTPS installation."
 }
 
 doctor_check_public_access() {
@@ -1202,25 +1154,25 @@ doctor_check_public_access() {
   published_http="$(docker port "$container_id" 80/tcp 2>/dev/null || true)"
   published_https="$(docker port "$container_id" 443/tcp 2>/dev/null || true)"
   if [[ -n "$published_http" && -n "$published_https" ]]; then
-    doctor_record access.ports pass "HTTPS gateway publishes ports 80 and 443"
+    doctor_record pass "HTTPS gateway publishes ports 80 and 443"
   else
-    doctor_record access.ports fail "HTTPS gateway ports are incomplete" "HTTP: ${published_http:-missing}; HTTPS: ${published_https:-missing}."
+    doctor_record fail "HTTPS gateway ports are incomplete" "HTTP: ${published_http:-missing}; HTTPS: ${published_https:-missing}."
   fi
 
   addresses="$(getent ahostsv4 "$hostname" 2>/dev/null | awk '$2 == "STREAM" { print $1 }' | sort -u | paste -sd, - || true)"
   if [[ -n "$addresses" ]]; then
-    doctor_record access.dns pass "Public hostname has an A record" "$hostname resolves to $addresses."
+    doctor_record pass "Public hostname has an A record" "$hostname resolves to $addresses."
   else
-    doctor_record access.dns fail "Public hostname does not resolve" "Create an A record for $hostname."
+    doctor_record fail "Public hostname does not resolve" "Create an A record for $hostname."
   fi
 
   if curl \
     --fail --silent --show-error --location --connect-timeout 10 --max-time 20 \
     --noproxy '*' --proto '=https' --resolve "$hostname:443:127.0.0.1" \
     --tlsv1.2 "$app_url/health" >/dev/null 2>&1; then
-    doctor_record access.https pass "Public HTTPS dashboard responds" "$app_url"
+    doctor_record pass "Public HTTPS dashboard responds" "$app_url"
   else
-    doctor_record access.https fail "Public HTTPS dashboard verification failed" "Inspect sudo towbar logs $gateway_service."
+    doctor_record fail "Public HTTPS dashboard verification failed" "Inspect sudo towbar logs $gateway_service."
   fi
 
   api_status="$(curl \
@@ -1230,10 +1182,10 @@ doctor_check_public_access() {
     "$app_url/v1/core/session" 2>/dev/null || true)"
   case "$api_status" in
     200 | 401 | 403)
-      doctor_record access.api pass "REST API is routed through the HTTPS origin" "HTTP $api_status from $app_url/v1/core/session"
+      doctor_record pass "REST API is routed through the HTTPS origin" "HTTP $api_status from $app_url/v1/core/session"
       ;;
     *)
-      doctor_record access.api fail "REST API routing failed" "HTTP ${api_status:-000} from the public origin."
+      doctor_record fail "REST API routing failed" "HTTP ${api_status:-000} from the public origin."
       ;;
   esac
 
@@ -1242,33 +1194,33 @@ doctor_check_public_access() {
     issuer="$(openssl x509 -noout -issuer <<<"$certificate" 2>/dev/null | sed 's/^issuer=//' || true)"
     expiry="$(openssl x509 -noout -enddate <<<"$certificate" 2>/dev/null | sed 's/^notAfter=//' || true)"
     if openssl x509 -checkend 604800 -noout <<<"$certificate" >/dev/null 2>&1; then
-      doctor_record access.certificate pass "TLS certificate is valid for more than seven days" "Expires $expiry; issuer $issuer"
+      doctor_record pass "TLS certificate is valid for more than seven days" "Expires $expiry; issuer $issuer"
     else
-      doctor_record access.certificate fail "TLS certificate expires within seven days" "Expires ${expiry:-unknown}; inspect Caddy renewal logs."
+      doctor_record fail "TLS certificate expires within seven days" "Expires ${expiry:-unknown}; inspect Caddy renewal logs."
     fi
   else
-    doctor_record access.certificate fail "TLS certificate could not be inspected"
+    doctor_record fail "TLS certificate could not be inspected"
   fi
 
   if docker exec "$container_id" sh -eu -c \
     'test -n "$(find /data/caddy/certificates -type f -name "$1.crt" -print -quit)"' \
     sh "$hostname" >/dev/null 2>&1; then
-    doctor_record access.certificate_storage pass "Caddy certificate state is persisted"
+    doctor_record pass "Caddy certificate state is persisted"
   else
-    doctor_record access.certificate_storage fail "Caddy certificate state was not found" "A gateway replacement may need to issue a new certificate."
+    doctor_record fail "Caddy certificate state was not found" "A gateway replacement may need to issue a new certificate."
   fi
 
   if curl --fail --silent --show-error --max-time 10 \
     https://api.github.com/rate_limit >/dev/null 2>&1; then
-    doctor_record network.github pass "GitHub is reachable for releases and source access"
+    doctor_record pass "GitHub is reachable for releases and source access"
   else
-    doctor_record network.github warn "GitHub could not be reached" "Upgrades and GitHub-backed workflows may fail."
+    doctor_record warn "GitHub could not be reached" "Upgrades and GitHub-backed workflows may fail."
   fi
   if curl --fail --silent --show-error --max-time 10 \
     https://acme-v02.api.letsencrypt.org/directory >/dev/null 2>&1; then
-    doctor_record network.letsencrypt pass "Let's Encrypt is reachable for certificate renewal"
+    doctor_record pass "Let's Encrypt is reachable for certificate renewal"
   else
-    doctor_record network.letsencrypt warn "Let's Encrypt could not be reached" "Automatic certificate renewal may fail."
+    doctor_record warn "Let's Encrypt could not be reached" "Automatic certificate renewal may fail."
   fi
 }
 
@@ -1276,15 +1228,7 @@ doctor_command() {
   local release_dir gateway_service warning_label
   require_root doctor
   require_linux
-  [[ $# -le 1 ]] || fail "usage: towbar doctor [--json]"
-  case "${1:-}" in
-    "") DOCTOR_OUTPUT=human ;;
-    --json) DOCTOR_OUTPUT=json ;;
-    *) fail "usage: towbar doctor [--json]" ;;
-  esac
-  if [[ "$DOCTOR_OUTPUT" == json ]] && ! command -v jq >/dev/null 2>&1; then
-    fail "jq is required for towbar doctor --json"
-  fi
+  [[ $# -eq 0 ]] || fail "usage: towbar doctor"
 
   release_dir="$(current_release_dir)"
   [[ -f "$release_dir/.towbar-release" ]] || fail "the current release is missing Towbar metadata"
@@ -1296,17 +1240,10 @@ doctor_command() {
   DOCTOR_PASS_COUNT=0
   DOCTOR_WARN_COUNT=0
   DOCTOR_FAIL_COUNT=0
-  DOCTOR_CHECK_IDS=()
-  DOCTOR_CHECK_STATUSES=()
-  DOCTOR_CHECK_MESSAGES=()
-  DOCTOR_CHECK_DETAILS=()
-
-  if [[ "$DOCTOR_OUTPUT" == human ]]; then
-    ui_brand
-    ui_heading "Checking Towbar"
-    ui_note "$DOCTOR_VERSION · $DOCTOR_MODE mode · ${DOCTOR_COMMIT:0:12}"
-    printf '\n'
-  fi
+  ui_brand
+  ui_heading "Checking Towbar"
+  ui_note "$DOCTOR_VERSION · $DOCTOR_MODE mode · ${DOCTOR_COMMIT:0:12}"
+  printf '\n'
 
   doctor_check_host
   doctor_check_config "$release_dir"
@@ -1315,27 +1252,23 @@ doctor_command() {
     case "$DOCTOR_MODE" in
       local) doctor_check_local_access "$release_dir" "$DOCTOR_COMMIT" "$gateway_service" ;;
       public) doctor_check_public_access "$release_dir" "$DOCTOR_COMMIT" "$gateway_service" ;;
-      *) doctor_record access.mode fail "Installation mode is invalid" "$DOCTOR_MODE" ;;
+      *) doctor_record fail "Installation mode is invalid" "$DOCTOR_MODE" ;;
     esac
   fi
 
-  if [[ "$DOCTOR_OUTPUT" == json ]]; then
-    doctor_emit_json
+  printf '\n'
+  if ((DOCTOR_FAIL_COUNT > 0)); then
+    warning_label=warnings
+    ((DOCTOR_WARN_COUNT == 1)) && warning_label=warning
+    ui_failure_step "Towbar needs attention: $DOCTOR_FAIL_COUNT failed, $DOCTOR_WARN_COUNT $warning_label, $DOCTOR_PASS_COUNT passed"
+  elif ((DOCTOR_WARN_COUNT > 0)); then
+    warning_label=warnings
+    ((DOCTOR_WARN_COUNT == 1)) && warning_label=warning
+    ui_success_heading "Towbar is healthy with $DOCTOR_WARN_COUNT $warning_label"
+    ui_note "$DOCTOR_PASS_COUNT checks passed."
   else
-    printf '\n'
-    if ((DOCTOR_FAIL_COUNT > 0)); then
-      warning_label=warnings
-      ((DOCTOR_WARN_COUNT == 1)) && warning_label=warning
-      ui_failure_step "Towbar needs attention: $DOCTOR_FAIL_COUNT failed, $DOCTOR_WARN_COUNT $warning_label, $DOCTOR_PASS_COUNT passed"
-    elif ((DOCTOR_WARN_COUNT > 0)); then
-      warning_label=warnings
-      ((DOCTOR_WARN_COUNT == 1)) && warning_label=warning
-      ui_success_heading "Towbar is healthy with $DOCTOR_WARN_COUNT $warning_label"
-      ui_note "$DOCTOR_PASS_COUNT checks passed."
-    else
-      ui_success_heading "Towbar is healthy"
-      ui_note "$DOCTOR_PASS_COUNT checks passed."
-    fi
+    ui_success_heading "Towbar is healthy"
+    ui_note "$DOCTOR_PASS_COUNT checks passed."
   fi
 
   ((DOCTOR_FAIL_COUNT == 0))
@@ -1429,7 +1362,7 @@ Commands:
   compose COMMAND        Run a Docker Compose command for this installation
   config path            Print the configuration path
   config validate        Validate the current configuration
-  doctor [--json]        Run read-only installation diagnostics
+  doctor                 Run read-only installation diagnostics
   status                 Show Compose service status
   logs [SERVICE...]      Show recent service logs
   exec SERVICE COMMAND   Run a command in a Towbar service
