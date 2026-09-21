@@ -4,7 +4,7 @@ import { ElapsedTime } from "./elapsed-time";
 
 import {
   DashboardCircleIcon,
-  DatabaseIcon,
+  CubeIcon,
   GitBranchIcon,
   GitCompareIcon,
   InformationSquareIcon,
@@ -43,8 +43,8 @@ export function SourceSyncDetail() {
     5_000,
   );
   const breadcrumbAncestors = useSourceBreadcrumbs(sourceId, {
-    href: `/sources/${sourceId}?section=info`,
-    label: "Info",
+    href: `/repositories/${sourceId}/sync-history`,
+    label: "Sync history",
   });
 
   if (query.error) {
@@ -52,7 +52,7 @@ export function SourceSyncDetail() {
       <DashboardPage
         icon={RefreshIcon}
         breadcrumbAncestors={breadcrumbAncestors}
-        title="Source sync"
+        title="Repository sync"
       >
         <QueryError message={query.error} />
       </DashboardPage>
@@ -64,7 +64,7 @@ export function SourceSyncDetail() {
       <DashboardPage
         icon={RefreshIcon}
         breadcrumbAncestors={breadcrumbAncestors}
-        title="Source sync"
+        title="Repository sync"
       >
         <QueryLoading />
       </DashboardPage>
@@ -74,6 +74,11 @@ export function SourceSyncDetail() {
   const sync = query.data.sync;
   const issueCount = Array.isArray(sync.issues) ? sync.issues.length : 0;
   const changes = readReconciliationChanges(sync.reconciliation);
+  const legacyCounts = readLegacyReconciliationCounts(sync.reconciliation);
+  const changeCount = legacyCounts
+    ? legacyCounts.apps + legacyCounts.resources + legacyCounts.servers
+    : changes.length;
+  const hasLegacyScope = !sync.environment || !sync.mappingRevision;
   return (
     <DashboardPage
       icon={RefreshIcon}
@@ -97,60 +102,102 @@ export function SourceSyncDetail() {
             label: "Overview",
             icon: <HugeiconsIcon icon={InformationSquareIcon} />,
             content: (
-              <div className="content-grid lg:grid-cols-2">
-                <Attributes
-                  icon={<HugeiconsIcon icon={RefreshIcon} />}
-                  columns={2}
-                  title="Sync"
-                  variant="card"
-                >
-                  <Attributes.Item label="Requested">
-                    {formatDate(sync.createdAt)}
-                  </Attributes.Item>
-                  <Attributes.Item label="Started">
-                    {sync.startedAt
-                      ? formatDate(sync.startedAt)
-                      : "Not started"}
-                  </Attributes.Item>
-                  <Attributes.Item label="Finished">
-                    {sync.finishedAt
-                      ? formatDate(sync.finishedAt)
-                      : "Not finished"}
-                  </Attributes.Item>
-                  <Attributes.Item label="Duration">
-                    <ElapsedTime {...sync} />
-                  </Attributes.Item>
-                </Attributes>
-                <Attributes
-                  icon={<HugeiconsIcon icon={GitBranchIcon} />}
-                  columns={2}
-                  title="Revision"
-                  variant="card"
-                >
-                  <Attributes.Item label="Commit">
-                    {sync.commitSha ? (
-                      <TypographyCode title={sync.commitSha}>
-                        {sync.commitSha.slice(0, 12)}
+              <div className="content-grid">
+                {hasLegacyScope ? (
+                  <Alert status="warning">
+                    <Alert.Indicator />
+                    <Alert.Content>
+                      <Alert.Title>Legacy sync metadata</Alert.Title>
+                      <Alert.Description>
+                        This sync completed before environment mapping details
+                        were recorded. Its imported inventory and revision
+                        remain available below.
+                      </Alert.Description>
+                    </Alert.Content>
+                  </Alert>
+                ) : null}
+                <div className="content-grid lg:grid-cols-2">
+                  <Attributes
+                    icon={<HugeiconsIcon icon={RefreshIcon} />}
+                    columns={2}
+                    title="Sync"
+                    variant="card"
+                  >
+                    <Attributes.Item label="Environment">
+                      {sync.environment?.name ?? "Legacy sync"}
+                    </Attributes.Item>
+                    <Attributes.Item label="Mapping revision">
+                      {sync.mappingRevision ? (
+                        <TypographyCode title={sync.mappingRevision}>
+                          {sync.mappingRevision.slice(0, 8)}
+                        </TypographyCode>
+                      ) : (
+                        "Legacy sync"
+                      )}
+                    </Attributes.Item>
+                    <Attributes.Item label="Changes">
+                      {changeCount}
+                    </Attributes.Item>
+                    <Attributes.Item label="Validation issues">
+                      {issueCount}
+                    </Attributes.Item>
+                    <Attributes.Item label="Requested">
+                      {formatDate(sync.createdAt)}
+                    </Attributes.Item>
+                    <Attributes.Item label="Started">
+                      {sync.startedAt
+                        ? formatDate(sync.startedAt)
+                        : "Not started"}
+                    </Attributes.Item>
+                    <Attributes.Item label="Finished">
+                      {sync.finishedAt
+                        ? formatDate(sync.finishedAt)
+                        : "Not finished"}
+                    </Attributes.Item>
+                    <Attributes.Item label="Duration">
+                      <ElapsedTime {...sync} />
+                    </Attributes.Item>
+                  </Attributes>
+                  <Attributes
+                    icon={<HugeiconsIcon icon={GitBranchIcon} />}
+                    columns={2}
+                    title="Revision"
+                    variant="card"
+                  >
+                    <Attributes.Item label="Branch">
+                      {sync.environment ? (
+                        <TypographyCode>
+                          {sync.environment.branch}
+                        </TypographyCode>
+                      ) : (
+                        "Not recorded"
+                      )}
+                    </Attributes.Item>
+                    <Attributes.Item label="Commit">
+                      {sync.commitSha ? (
+                        <TypographyCode title={sync.commitSha}>
+                          {sync.commitSha.slice(0, 12)}
+                        </TypographyCode>
+                      ) : (
+                        "Not recorded"
+                      )}
+                    </Attributes.Item>
+                    <Attributes.Item label="Manifest digest">
+                      {sync.manifestDigest ? (
+                        <TypographyCode title={sync.manifestDigest}>
+                          {sync.manifestDigest.slice(0, 12)}
+                        </TypographyCode>
+                      ) : (
+                        "Not recorded"
+                      )}
+                    </Attributes.Item>
+                    <Attributes.Item label="Sync ID">
+                      <TypographyCode title={sync.id}>
+                        {sync.id.slice(0, 8)}
                       </TypographyCode>
-                    ) : (
-                      "Not recorded"
-                    )}
-                  </Attributes.Item>
-                  <Attributes.Item label="Manifest digest">
-                    {sync.manifestDigest ? (
-                      <TypographyCode title={sync.manifestDigest}>
-                        {sync.manifestDigest.slice(0, 12)}
-                      </TypographyCode>
-                    ) : (
-                      "Not recorded"
-                    )}
-                  </Attributes.Item>
-                  <Attributes.Item label="Sync ID">
-                    <TypographyCode title={sync.id}>
-                      {sync.id.slice(0, 8)}
-                    </TypographyCode>
-                  </Attributes.Item>
-                </Attributes>
+                    </Attributes.Item>
+                  </Attributes>
+                </div>
               </div>
             ),
           },
@@ -245,7 +292,7 @@ function SyncChanges({
           {legacyCounts.apps}
         </Attributes.Item>
         <Attributes.Item
-          icon={<HugeiconsIcon icon={DatabaseIcon} />}
+          icon={<HugeiconsIcon icon={CubeIcon} />}
           label="Resources"
         >
           {legacyCounts.resources}
@@ -261,7 +308,7 @@ function SyncChanges({
   }
   return (
     <ResourceTable
-      ariaLabel="Source sync changes"
+      ariaLabel="Repository sync changes"
       columns={changeColumns}
       emptyDescription="The manifest matched the current apps, resources, and servers."
       emptyTitle="No inventory changes"
@@ -279,7 +326,19 @@ function ChangeBadge({ action }: { action: ReconciliationAction }) {
       : action === "update"
         ? "warning"
         : "success";
-  return <Chip variant={variant}>{formatChangeAction(action)}</Chip>;
+  const tooltip =
+    action === "archive"
+      ? "The item was absent from the synced manifest and moved to archived state."
+      : action === "create"
+        ? "The sync created this item from the manifest."
+        : action === "restore"
+          ? "The sync restored a previously archived item."
+          : "The sync applied manifest changes to this item.";
+  return (
+    <Chip tooltip={tooltip} variant={variant}>
+      {formatChangeAction(action)}
+    </Chip>
+  );
 }
 
 function SyncIssues({ value }: { value: unknown }) {
@@ -368,7 +427,7 @@ function readLegacyReconciliationCounts(value: unknown) {
 
 function reconciliationKindIcon(kind: ReconciliationKind) {
   if (kind === "App") return DashboardCircleIcon;
-  if (kind === "Resource") return DatabaseIcon;
+  if (kind === "Resource") return CubeIcon;
   return ServerStack01Icon;
 }
 

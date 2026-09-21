@@ -20,7 +20,7 @@ if [[ "$deploy_root" != /* || "$deploy_root" == / ]]; then
   fail "deployment root must be a specific absolute path"
 fi
 if ((EUID != 0)); then
-  fail "deployment must run as root through the host's SSM agent"
+  fail "deployment must run as root through the configured deployment transport"
 fi
 
 for command_name in curl docker git runuser stat; do

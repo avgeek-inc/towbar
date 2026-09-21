@@ -17,5 +17,5 @@ export function deploymentCleanupId(context: DeploymentExecutionContext) {
 }
 
 export function deploymentRuntimeId(context: DeploymentExecutionContext) {
-  return context.runtimeId ?? context.app.id;
+  return context.runtimeId ?? context.deployableId;
 }

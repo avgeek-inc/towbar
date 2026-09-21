@@ -1,21 +1,26 @@
+import { withActor } from "../auth/actor-context.js";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { digestValue } from "@workspace/towbar-core";
 import {
-  githubInstallations,
-  githubWebhookDeliveries,
+  integrationInstallations,
+  integrationWebhookDeliveries,
+  sourceEnvironments,
   sources,
 } from "@workspace/towbar-database/schema";
 
-import { requireGitHubEnv } from "../../env.js";
 import { badRequest, unauthorized } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueuePreviewPullRequestEvent } from "../../infrastructure/temporal.js";
-import { requestSourceSync } from "../sources/service.js";
+import { requestEnvironmentSync } from "../sources/environments.js";
 import { shouldReconcilePreviewPullRequest } from "./webhook-events.js";
+import {
+  getGitHubAppConfigurationByAppId,
+  getGitHubAppConfigurationForInstallation,
+} from "./configuration.js";
 
 const pushSchema = z.object({
   after: z.string().regex(/^[a-f0-9]{40}$/u),
@@ -46,20 +51,25 @@ export async function processGitHubWebhook(input: {
   deliveryId: string | undefined;
   eventName: string | undefined;
   signature: string | undefined;
+  targetId: string | undefined;
 }) {
   if (!input.deliveryId || !input.eventName || !input.signature) {
     throw badRequest("Required GitHub webhook headers are missing");
   }
-  verifyWebhookSignature(input.body, input.signature);
   let payload: unknown;
   try {
     payload = JSON.parse(input.body);
   } catch {
     throw badRequest("GitHub webhook body is invalid JSON");
   }
+  const installationId = getWebhookInstallationId(payload);
+  const github = input.targetId
+    ? await getGitHubAppConfigurationByAppId(input.targetId, installationId)
+    : await getGitHubAppConfigurationForInstallation(installationId);
+  verifyWebhookSignature(input.body, input.signature, github.webhookSecret);
   const database = getTowbarDatabase();
   const created = await database
-    .insert(githubWebhookDeliveries)
+    .insert(integrationWebhookDeliveries)
     .values({
       action:
         typeof payload === "object" && payload && "action" in payload
@@ -67,35 +77,52 @@ export async function processGitHubWebhook(input: {
           : null,
       deliveryId: input.deliveryId,
       eventName: input.eventName,
+      installationId: github.installationRecordId,
       payloadDigest: digestValue(input.body),
+      provider: "github",
     })
     .onConflictDoNothing()
-    .returning({ deliveryId: githubWebhookDeliveries.deliveryId });
+    .returning({ deliveryId: integrationWebhookDeliveries.deliveryId });
   if (created.length === 0) return { accepted: true, duplicate: true };
 
   try {
     const sourceId =
       input.eventName === "push"
-        ? await processPush(payload)
+        ? await processGitHubPush(payload)
         : input.eventName === "pull_request"
           ? await processPullRequest(payload)
           : input.eventName === "installation"
             ? await processInstallation(payload)
             : null;
     await database
-      .update(githubWebhookDeliveries)
+      .update(integrationWebhookDeliveries)
       .set({ processedAt: new Date(), sourceId })
-      .where(eq(githubWebhookDeliveries.deliveryId, input.deliveryId));
+      .where(
+        and(
+          eq(integrationWebhookDeliveries.provider, "github"),
+          eq(integrationWebhookDeliveries.deliveryId, input.deliveryId),
+        ),
+      );
     return { accepted: true, duplicate: false };
   } catch (error) {
     await database
-      .delete(githubWebhookDeliveries)
-      .where(eq(githubWebhookDeliveries.deliveryId, input.deliveryId));
+      .delete(integrationWebhookDeliveries)
+      .where(
+        and(
+          eq(integrationWebhookDeliveries.provider, "github"),
+          eq(integrationWebhookDeliveries.deliveryId, input.deliveryId),
+        ),
+      );
     throw error;
   }
 }
 
-async function processPush(payload: unknown) {
+export async function processGitHubPush(
+  payload: unknown,
+  enqueue: (
+    input: Parameters<typeof requestEnvironmentSync>[0],
+  ) => Promise<unknown> = requestEnvironmentSync,
+) {
   const push = pushSchema.parse(payload);
   const branch = push.ref.startsWith("refs/heads/")
     ? push.ref.slice("refs/heads/".length)
@@ -108,12 +135,36 @@ async function processPush(payload: unknown) {
   });
   const deleted = isDeletedPush(push);
   for (const source of matchingSources) {
-    if (source.branch !== branch || deleted) continue;
-    await requestSourceSync({
-      requestedBy: null,
-      sourceId: source.id,
-      workspaceId: source.workspaceId,
-    });
+    if (deleted) continue;
+    const environments = await getTowbarDatabase()
+      .select()
+      .from(sourceEnvironments)
+      .where(
+        and(
+          eq(sourceEnvironments.sourceId, source.id),
+          eq(sourceEnvironments.branch, branch),
+          isNull(sourceEnvironments.disconnectedAt),
+        ),
+      );
+    for (const environment of environments) {
+      await withActor(
+        {
+          kind: "system",
+          source: "github",
+          workspaceId: source.workspaceId,
+          grants: ["repository.sync", "deployment.create", "workload.operate"],
+        },
+        () =>
+          enqueue({
+            sourceId: source.id,
+            environmentId: environment.id,
+            expectedMappingRevision: environment.mappingRevision,
+            workspaceId: source.workspaceId,
+            requestedBy: null,
+            deployAfterSync: !environment.autoDeployPaused,
+          }),
+      );
+    }
   }
   return matchingSources[0]?.id ?? null;
 }
@@ -142,21 +193,21 @@ async function findActiveSources(input: {
 }) {
   return await getTowbarDatabase()
     .select({
-      branch: sources.branch,
       id: sources.id,
       workspaceId: sources.workspaceId,
     })
     .from(sources)
     .innerJoin(
-      githubInstallations,
-      eq(githubInstallations.id, sources.githubInstallationId),
+      integrationInstallations,
+      eq(integrationInstallations.id, sources.integrationInstallationId),
     )
     .where(
       and(
-        eq(githubInstallations.installationId, String(input.installationId)),
+        eq(integrationInstallations.externalId, String(input.installationId)),
         eq(sources.repositoryOwner, input.repositoryOwner),
         eq(sources.repositoryName, input.repositoryName),
         eq(sources.status, "active"),
+        isNull(integrationInstallations.suspendedAt),
       ),
     )
     .orderBy(sources.createdAt);
@@ -171,11 +222,11 @@ async function processInstallation(payload: unknown) {
       : undefined;
   if (suspendedAt === undefined) return null;
   await getTowbarDatabase()
-    .update(githubInstallations)
+    .update(integrationInstallations)
     .set({ suspendedAt, updatedAt: new Date() })
     .where(
       eq(
-        githubInstallations.installationId,
+        integrationInstallations.externalId,
         String(installation.installation.id),
       ),
     );
@@ -186,11 +237,12 @@ function isDeletedPush(push: z.infer<typeof pushSchema>) {
   return push.deleted || /^0{40}$/u.test(push.after);
 }
 
-function verifyWebhookSignature(body: string, supplied: string) {
-  const expected = `sha256=${createHmac(
-    "sha256",
-    requireGitHubEnv().webhookSecret,
-  )
+function verifyWebhookSignature(
+  body: string,
+  supplied: string,
+  webhookSecret: string,
+) {
+  const expected = `sha256=${createHmac("sha256", webhookSecret)
     .update(body)
     .digest("hex")}`;
   const left = Buffer.from(expected);
@@ -198,4 +250,14 @@ function verifyWebhookSignature(body: string, supplied: string) {
   if (left.length !== right.length || !timingSafeEqual(left, right)) {
     throw unauthorized("GitHub webhook signature is invalid");
   }
+}
+
+function getWebhookInstallationId(payload: unknown) {
+  const result = z
+    .object({ installation: z.object({ id: z.number().int().positive() }) })
+    .safeParse(payload);
+  if (!result.success) {
+    throw badRequest("GitHub webhook installation is missing");
+  }
+  return String(result.data.installation.id);
 }

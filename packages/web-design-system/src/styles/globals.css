@@ -5,6 +5,7 @@
 
 @theme {
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --text-md: 1rem;
 }
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -43,6 +44,161 @@ a {
 }
 
 @layer components {
+  .button.button--sm {
+    @apply h-9 gap-1.5 px-2.5 text-xs/4 md:h-7;
+
+    & svg:not([data-slot="spinner"] svg, [data-slot="link-icon"] svg) {
+      @apply my-0 size-3.5;
+    }
+
+    & [data-slot="spinner"] {
+      @apply size-3.5;
+    }
+  }
+
+  .button.button--sm.button--icon-only {
+    @apply w-9 px-0 md:w-7;
+  }
+
+  .table__column {
+    @apply py-[10px];
+  }
+
+  /* Keep form controls touch-friendly on coarse pointers, then use the same
+     compact rhythm as small buttons on desktop. Editable text remains 16px on
+     touch devices so mobile browsers do not zoom the page on focus. */
+  .input {
+    @apply h-11 px-3 py-2 text-base;
+  }
+
+  .textarea {
+    @apply min-h-11 px-3 py-2 text-base;
+  }
+
+  .select__trigger,
+  .autocomplete__trigger {
+    @apply min-h-11 px-3 py-2;
+  }
+
+  .select__value,
+  .autocomplete__value {
+    @apply text-base;
+  }
+
+  .input-group {
+    @apply min-h-11;
+  }
+
+  .input-group__input,
+  .search-field__input {
+    @apply px-3 py-2 text-base;
+  }
+
+  .search-field__group {
+    @apply h-11;
+  }
+
+  .select__popover,
+  .combo-box__popover,
+  .autocomplete__popover,
+  .dropdown__popover {
+    border-radius: var(--radius-xl);
+  }
+
+  .select__popover [data-slot="list-box"],
+  .combo-box__popover [data-slot="list-box"],
+  .autocomplete__popover [data-slot="list-box"],
+  .dropdown__popover [data-slot="dropdown-menu"] {
+    @apply p-1;
+  }
+
+  .select__popover [data-slot="list-box-item"],
+  .combo-box__popover [data-slot="list-box-item"],
+  .autocomplete__popover [data-slot="list-box-item"],
+  .dropdown__popover [data-slot="menu-item"] {
+    @apply min-h-11 gap-2 rounded-lg px-2.5 py-1.5;
+  }
+
+  @media (pointer: fine) {
+    .input {
+      @apply h-8 px-2.5 py-1.5 text-sm;
+    }
+
+    .textarea {
+      @apply min-h-8 px-2.5 py-1.5 text-sm;
+    }
+
+    .select__trigger,
+    .autocomplete__trigger {
+      @apply min-h-8 px-2.5 py-1.5;
+    }
+
+    .select__value,
+    .autocomplete__value {
+      @apply text-sm;
+    }
+
+    .input-group {
+      @apply min-h-8;
+    }
+
+    .input-group__input,
+    .search-field__input {
+      @apply px-2.5 py-1.5 text-sm;
+    }
+
+    .input-group__prefix,
+    .input-group__suffix {
+      @apply px-2.5;
+    }
+
+    .search-field__group {
+      @apply h-8;
+    }
+
+    .search-field__search-icon {
+      @apply ms-2.5 size-3.5;
+    }
+
+    .search-field__clear-button {
+      @apply me-1.5 size-5;
+    }
+
+    .select__popover [data-slot="list-box-item"],
+    .combo-box__popover [data-slot="list-box-item"],
+    .autocomplete__popover [data-slot="list-box-item"],
+    .dropdown__popover [data-slot="menu-item"] {
+      @apply min-h-8 gap-2 rounded-lg px-2 py-1;
+    }
+  }
+
+  .button--danger-ghost {
+    --button-fg: var(--danger-soft-foreground);
+    --button-bg-hover: var(--danger-soft);
+    --button-bg-pressed: var(--danger-soft-hover);
+  }
+
+  .sidebar-identity {
+    background:
+      linear-gradient(
+        135deg,
+        color-mix(in oklch, var(--color-yellow-600) 28%, transparent) 0%,
+        color-mix(in oklch, var(--color-yellow-600) 14%, transparent) 50%,
+        color-mix(in oklch, var(--color-yellow-600) 5%, transparent) 100%
+      ),
+      color-mix(in oklch, var(--surface) 70%, transparent);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .sidebar-identity {
+      background-color: var(--surface);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+
   /* Let prefixed fields shrink with narrow form columns instead of using the
      input element's intrinsic width. Keep text inside the editable area. */
   .input-group {
@@ -64,6 +220,12 @@ a {
   .input-group__prefix,
   .input-group__suffix {
     @apply shrink-0;
+  }
+
+  .tabs__tab:focus-visible,
+  .tabs__tab[data-focus-visible="true"] {
+    box-shadow: none !important;
+    outline: none !important;
   }
 
   /* Keep sibling cards, sections, and form fields 16px apart on both axes. */

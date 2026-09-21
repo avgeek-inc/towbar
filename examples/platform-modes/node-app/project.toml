@@ -1,0 +1,12 @@
+[_]
+schema-version = "0.2"
+id = "com.towbar.platform-mode-example"
+name = "Towbar platform mode example"
+version = "1.0.0"
+
+[io.buildpacks]
+include = ["package.json", "server.mjs"]
+
+[[io.buildpacks.build.env]]
+name = "NODE_ENV"
+value = "production"

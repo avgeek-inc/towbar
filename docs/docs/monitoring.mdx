@@ -7,38 +7,17 @@ Towbar exposes several kinds of health. Read the relevant check and its timestam
 
 ## Navigate monitoring
 
-On Performance and Alerts, choose an entity type in the secondary sidebar, then select a server, app, or resource from the list. Search the list by name or IP address. Alerts also supports all entities of the selected type. On Incidents, choose **All incidents**, **Active**, or **Resolved**. On mobile, open **Page menu** for these controls.
+The workspace **Monitor** section contains **Incidents** and **Vulnerabilities**. On Incidents, choose **Active** or **Resolved**, then optionally filter by severity. On mobile, open **Page menu** for these controls.
 
 ## Performance history
 
-Select **Monitoring → Performance**, choose an entity type, and select an entity in the sidebar. Use the time range and chart controls to inspect CPU, memory, disk, and network measurements. Workload views also offer environment and container selection. The URL retains the entity and chart filters, so a shared link opens the same view.
-
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/guides/monitoring-performance-light.webp"
-      alt="Example Performance page with entity navigation and Scout resource usage charts."
-      width="3200"
-      height="2100"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/guides/monitoring-performance-dark.webp"
-      alt="Example Performance page with entity navigation and Scout resource usage charts."
-      width="3200"
-      height="2100"
-      loading="lazy"
-    />
-  </div>
-</div>
+Open a server, app, or resource and select **Monitor → Performance**. Use the time range and chart controls to inspect CPU, memory, disk, and network measurements. Workload views also offer environment and container selection. The URL retains the chart filters, so a shared link opens the same view.
 
 Deployment and restart markers connect changes in usage to operational events. Drag across a chart to zoom, or choose a custom time range. Missing measurements appear as gaps. See [Scout Agent](/docs/scout) for collection and retention, and [Deployment comparisons](/docs/deployment-comparisons) for comparing releases over equal windows.
 
 ## Alerts, incidents, and vulnerabilities
 
-Use **Monitoring → Alerts** to inspect configured rules and **Incidents** to review active or resolved conditions. Configure rules and notification destinations through [Scout Alerts](/docs/scout-alerts). **Vulnerabilities** provides a separate view of known package findings from app image scans; see [Vulnerability scanning](/docs/vulnerability-scanning).
+Use workspace **Incidents** to review active or resolved conditions across every server, app, and resource. Filter the list by severity. Configure and inspect alert rules from the relevant entity page; [Scout Alerts](/docs/scout-alerts) covers rules and notification destinations. **Vulnerabilities** provides a separate view of known package findings from app image scans; see [Vulnerability scanning](/docs/vulnerability-scanning).
 
 ## System health
 
@@ -47,32 +26,29 @@ Open **Manage → System health** and choose **Run checks**.
 | Section       | Checks                                     | What to investigate                                                                 |
 | ------------- | ------------------------------------------ | ----------------------------------------------------------------------------------- |
 | Control plane | API/database, Temporal, worker/maintenance | API reachability, workflow admission, recent worker activity, and version alignment |
-| Integrations  | GitHub and connected AWS credentials       | Installation access, suspended connections, stale checks, or invalid credentials    |
-
-A provider configuration badge means required settings exist. It does not confirm delivery to a Slack channel, successful SMTP delivery, or access to every S3 bucket. Use a destination test or a real backup to verify that specific path.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
     <img
-      src="/assets/guides/system-health-light.webp"
-      alt="Example System health page with separate control-plane and integration checks."
-      width="2528"
-      height="1478"
+      src="/assets/release-v2/system-health-light.jpg"
+      alt="System health reports only control-plane checks and their latest observation time."
+      width="1280"
+      height="720"
       loading="lazy"
     />
   </div>
   <div className="towbar-product-dark">
     <img
-      src="/assets/guides/system-health-dark.webp"
-      alt="Example System health page with separate control-plane and integration checks."
-      width="2528"
-      height="1478"
+      src="/assets/release-v2/system-health-dark.jpg"
+      alt="System health reports only control-plane checks and their latest observation time."
+      width="1280"
+      height="720"
       loading="lazy"
     />
   </div>
   <p>
-    Example System health page with separate control-plane and integration
-    checks.
+    System health focuses on Towbar's control plane; provider availability lives
+    under Integrations.
   </p>
 </div>
 
@@ -91,25 +67,24 @@ Server capacity columns describe the host's maximum capacity. They do not repres
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
     <img
-      src="/assets/guides/server-workloads-light.webp"
-      alt="Example server Apps view. Usage percentages are shown against each workload’s allocated CPU and memory."
-      width="2160"
-      height="422"
+      src="/assets/release-v2/server-workloads-light.jpg"
+      alt="A server’s Apps page compares observed usage with allocated CPU and memory."
+      width="1280"
+      height="720"
       loading="lazy"
     />
   </div>
   <div className="towbar-product-dark">
     <img
-      src="/assets/guides/server-workloads-dark.webp"
-      alt="Example server Apps view. Usage percentages are shown against each workload’s allocated CPU and memory."
-      width="2160"
-      height="422"
+      src="/assets/release-v2/server-workloads-dark.jpg"
+      alt="A server’s Apps page compares observed usage with allocated CPU and memory."
+      width="1280"
+      height="720"
       loading="lazy"
     />
   </div>
   <p>
-    Example server Apps view. Usage percentages are shown against each
-    workload’s allocated CPU and memory.
+    A server’s Apps page compares observed usage with allocated CPU and memory.
   </p>
 </div>
 

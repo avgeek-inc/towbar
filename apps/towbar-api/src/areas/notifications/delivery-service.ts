@@ -1,6 +1,7 @@
+import { scoutDestinationDisabled } from "./scout-destination.js";
 import {
   scoutIncidentChanged,
-  scoutNotificationsPaused,
+  scoutRuleDisabled,
 } from "./scout-delivery-state.js";
 import { and, asc, eq, lte, or, sql } from "drizzle-orm";
 import { ZodError } from "zod";
@@ -10,12 +11,10 @@ import {
   monitoringAgents,
   notificationDeliveries,
   notificationDeliveryAttempts,
-  notificationDestinations,
   notificationEvents,
   notificationThreads,
   scoutAlertIncidents,
   scoutAlertRules,
-  scoutAlertSettings,
   servers,
 } from "@workspace/towbar-database/schema";
 
@@ -23,6 +22,7 @@ import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueueNotificationDelivery } from "../../infrastructure/temporal.js";
 import { getNotificationProviderConfiguration } from "./configuration.js";
 import { NotificationProviderError, deliverNotification } from "./providers.js";
+import { getRuntimeNotificationRoute } from "../../infrastructure/runtime-notifications.js";
 
 const maximumAutomaticAttempts = 5;
 
@@ -57,13 +57,14 @@ export async function executeNotificationDeliveryAttempt(input: {
   if (claimed.outcome) return claimed.outcome;
   const { delivery } = claimed;
   try {
-    const providerConfiguration = getNotificationProviderConfiguration(
+    const providerConfiguration = await getNotificationProviderConfiguration(
+      delivery.workspaceId,
       delivery.provider,
     );
     if (!providerConfiguration) {
       throw new NotificationProviderError(
         "PROVIDER_NOT_CONFIGURED",
-        `${delivery.provider === "slack" ? "Slack" : "SMTP"} notifications are not configured for this Towbar instance`,
+        `${delivery.provider === "slack" ? "Slack" : "Email"} notifications are not configured for this workspace`,
         false,
       );
     }
@@ -133,19 +134,14 @@ async function claimAttempt(input: {
   return await getTowbarDatabase().transaction(async (transaction) => {
     const [delivery] = await transaction
       .select({
-        config: notificationDestinations.config,
         cycle: notificationDeliveries.cycle,
-        destinationCategories: notificationDestinations.categories,
-        destinationEnabled: notificationDestinations.enabled,
-        destinationServerId: notificationDestinations.serverId,
-        destinationDeletedAt: notificationDestinations.deletedAt,
-        destinationId: notificationDestinations.id,
+        destinationId: notificationDeliveries.destinationKey,
         deliveryId: notificationDeliveries.id,
         workspaceId: notificationEvents.workspaceId,
         eventId: notificationEvents.id,
         eventType: notificationEvents.type,
         payload: notificationEvents.payload,
-        provider: notificationDestinations.provider,
+        provider: notificationDeliveries.provider,
         state: notificationDeliveries.state,
         lastErrorCode: notificationDeliveries.lastErrorCode,
       })
@@ -153,10 +149,6 @@ async function claimAttempt(input: {
       .innerJoin(
         notificationEvents,
         eq(notificationEvents.id, notificationDeliveries.eventId),
-      )
-      .innerJoin(
-        notificationDestinations,
-        eq(notificationDestinations.id, notificationDeliveries.destinationId),
       )
       .where(eq(notificationDeliveries.id, input.deliveryId))
       .for("update", { of: notificationDeliveries })
@@ -170,15 +162,8 @@ async function claimAttempt(input: {
     if (delivery.cycle !== input.cycle || delivery.state === "succeeded") {
       return { outcome: { outcome: "stale" as const } };
     }
-    if (
-      delivery.eventType.startsWith("scout.") &&
-      (await suppressScoutDelivery(transaction, delivery))
-    )
-      return { outcome: { outcome: "terminal" as const } };
-    if (
-      (!delivery.destinationServerId && !delivery.destinationEnabled) ||
-      delivery.destinationDeletedAt
-    ) {
+    const route = getRuntimeNotificationRoute(delivery.destinationId);
+    if (!route || route.provider !== delivery.provider) {
       await transaction
         .update(notificationDeliveries)
         .set({
@@ -190,6 +175,19 @@ async function claimAttempt(input: {
         .where(eq(notificationDeliveries.id, input.deliveryId));
       return { outcome: { outcome: "terminal" as const } };
     }
+    const resolvedDelivery = {
+      ...delivery,
+      config: route.config,
+      destinationCategories: route.categories,
+      destinationDeletedAt: null,
+      destinationEnabled: true,
+      destinationServerId: null,
+    };
+    if (
+      delivery.eventType.startsWith("scout.") &&
+      (await suppressScoutDelivery(transaction, resolvedDelivery))
+    )
+      return { outcome: { outcome: "terminal" as const } };
     const [existing] = await transaction
       .select({
         startedAt: notificationDeliveryAttempts.startedAt,
@@ -245,7 +243,9 @@ async function claimAttempt(input: {
         updatedAt: now,
       })
       .where(eq(notificationDeliveries.id, input.deliveryId));
-    return { delivery };
+    return {
+      delivery: resolvedDelivery,
+    };
   });
 }
 
@@ -271,14 +271,14 @@ async function claimNotificationThread(delivery: {
       .insert(notificationThreads)
       .values({
         creatingDeliveryId: delivery.deliveryId,
-        destinationId: delivery.destinationId,
+        destinationKey: delivery.destinationId,
         entityId: delivery.payload.entity.id,
         entityKind: delivery.payload.entity.kind,
         latestEventAt: new Date(delivery.payload.occurredAt),
       })
       .onConflictDoNothing({
         target: [
-          notificationThreads.destinationId,
+          notificationThreads.destinationKey,
           notificationThreads.entityKind,
           notificationThreads.entityId,
         ],
@@ -288,7 +288,7 @@ async function claimNotificationThread(delivery: {
       .from(notificationThreads)
       .where(
         and(
-          eq(notificationThreads.destinationId, delivery.destinationId),
+          eq(notificationThreads.destinationKey, delivery.destinationId),
           eq(notificationThreads.entityKind, delivery.payload.entity.kind),
           eq(notificationThreads.entityId, delivery.payload.entity.id),
         ),
@@ -362,7 +362,7 @@ async function completeNotificationThread(
     })
     .where(
       and(
-        eq(notificationThreads.destinationId, delivery.destinationId),
+        eq(notificationThreads.destinationKey, delivery.destinationId),
         eq(notificationThreads.entityKind, delivery.payload.entity.kind),
         eq(notificationThreads.entityId, delivery.payload.entity.id),
         eq(notificationThreads.creatingDeliveryId, delivery.deliveryId),
@@ -388,7 +388,7 @@ async function releaseNotificationThreadClaim(delivery: {
     .set({ creatingDeliveryId: null, updatedAt: new Date() })
     .where(
       and(
-        eq(notificationThreads.destinationId, delivery.destinationId),
+        eq(notificationThreads.destinationKey, delivery.destinationId),
         eq(notificationThreads.entityKind, delivery.payload.entity.kind),
         eq(notificationThreads.entityId, delivery.payload.entity.id),
         eq(notificationThreads.creatingDeliveryId, delivery.deliveryId),
@@ -494,16 +494,11 @@ async function suppressScoutDelivery(
           .select({
             incident: scoutAlertIncidents,
             rule: scoutAlertRules,
-            settings: scoutAlertSettings,
           })
           .from(scoutAlertIncidents)
           .innerJoin(
             scoutAlertRules,
             eq(scoutAlertRules.id, scoutAlertIncidents.ruleId),
-          )
-          .leftJoin(
-            scoutAlertSettings,
-            eq(scoutAlertSettings.serverId, scoutAlertIncidents.serverId),
           )
           .where(eq(scoutAlertIncidents.id, incidentId))
           .limit(1)
@@ -546,10 +541,9 @@ async function suppressScoutDelivery(
     (scout.rule.condition.metric !== "httpAvailability" &&
       scope.desiredState !== "enabled") ||
     (scout.rule.deployableId && !workload) ||
-    delivery.destinationDeletedAt ||
-    delivery.destinationServerId !== scout.rule.serverId ||
+    scoutDestinationDisabled(delivery, scout.rule.serverId) ||
     delivery.eventType === "scout.reminder" ||
-    scoutNotificationsPaused(scout.rule, scout.settings, now) ||
+    scoutRuleDisabled(scout.rule) ||
     scoutIncidentChanged(
       scout.rule,
       scout.incident,
@@ -557,8 +551,7 @@ async function suppressScoutDelivery(
     ) ||
     (delivery.eventType !== "scout.recovered" && scout.incident.resolvedAt) ||
     (delivery.eventType === "scout.recovered" &&
-      (!scout.rule.notifyRecovery ||
-        scout.incident.resolutionReason !== "recovered"));
+      scout.incident.resolutionReason !== "recovered");
   if (suppressed) {
     // Serialize sibling suppressions so the last one reliably re-arms the batch.
     if (scout)
@@ -573,7 +566,7 @@ async function suppressScoutDelivery(
         state: "failed",
         lastErrorCode: "SCOUT_NOTIFICATION_SUPPRESSED",
         lastErrorMessage:
-          "Scout notifications were muted, the rule changed, or the incident no longer needs attention",
+          "The Scout rule was disabled, changed, or the incident no longer needs attention",
         updatedAt: now,
       })
       .where(eq(notificationDeliveries.id, delivery.deliveryId));

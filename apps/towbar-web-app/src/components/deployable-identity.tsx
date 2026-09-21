@@ -1,9 +1,16 @@
 "use client";
 
-import Image from "next/image";
+import {
+  TableCellStack,
+  TableCellDescription,
+  tableCellDescriptionClassName,
+} from "@workspace/towbar-web-ui/table-cell-text";
+
+import Image, { type ImageLoaderProps } from "next/image";
 import { useState } from "react";
 import { resourceImageBrand, type ResourceBrand } from "./resource-image-brand";
 import {
+  DashboardCircleIcon,
   HeartPulseIcon,
   InternetIcon,
   WebhookIcon,
@@ -15,6 +22,11 @@ import {
   TooltipText,
 } from "@workspace/web-design-system/overlays/tooltip";
 import { InlineLink } from "./page-parts";
+import { DomainLink } from "./domain-link";
+
+function externalImageLoader({ src }: ImageLoaderProps) {
+  return src;
+}
 
 export function AppIdentity({
   app,
@@ -31,48 +43,104 @@ export function AppIdentity({
       ].filter((domain): domain is string => Boolean(domain)),
     ),
   ];
+  const primaryDomain = domains[0];
 
   return (
-    <span className="grid min-w-0 justify-items-start gap-0.5">
-      <DeployableName
-        autoDeploy={Boolean(app.config.autoDeploy)}
-        name={app.name}
-        href={`/sources/${app.sourceId}/apps/${app.id}`}
-        exposed={domains.length > 0}
-        health={healthStatus}
-      />
-      {domains.length > 0 ? (
-        <Tooltip>
-          <Tooltip.Trigger
-            render={(props) => <span {...props} />}
-            aria-label={`Domains: ${domains.join(", ")}`}
-            className="flex max-w-64 min-w-0 items-center gap-0.5 text-xs text-muted outline-none focus-visible:ring-2 focus-visible:ring-focus rounded-sm"
-          >
-            <span className="truncate">{domains[0]}</span>
-            {domains.length > 1 ? (
-              <span className="shrink-0 tabular-nums">
-                +{domains.length - 1}
-              </span>
-            ) : null}
-          </Tooltip.Trigger>
-          <Tooltip.Content
-            className="max-w-xs text-xs"
-            placement="top"
-            showArrow
-          >
-            <Tooltip.Arrow />
-            <span className="grid gap-1">
-              {domains.map((domain) => (
-                <span className="break-all" key={domain}>
-                  {domain}
+    <span className="inline-flex min-w-0 items-center gap-3">
+      <AppLogo key={primaryDomain ?? "no-domain"} domain={primaryDomain} />
+      <TableCellStack className="justify-items-start">
+        <DeployableName
+          autoDeploy={Boolean(app.config.autoDeploy)}
+          name={app.name}
+          href={`/apps/${app.id}`}
+          exposed={domains.length > 0}
+          health={healthStatus}
+        />
+        {primaryDomain ? (
+          <Tooltip>
+            <Tooltip.Trigger
+              render={(props) => <span {...props} />}
+              aria-label={`Domains: ${domains.join(", ")}`}
+              className={`${tableCellDescriptionClassName} flex max-w-64 min-w-0 items-center gap-0.5 outline-none focus-visible:ring-2 focus-visible:ring-focus rounded-sm`}
+            >
+              <DomainLink className="truncate" domain={primaryDomain}>
+                {primaryDomain}
+              </DomainLink>
+              {domains.length > 1 ? (
+                <span className="shrink-0 tabular-nums">
+                  +{domains.length - 1}
                 </span>
-              ))}
-            </span>
-          </Tooltip.Content>
-        </Tooltip>
-      ) : (
-        <span className="text-xs text-muted">Not publicly exposed</span>
-      )}
+              ) : null}
+            </Tooltip.Trigger>
+            <Tooltip.Content
+              className="max-w-64 whitespace-normal break-normal text-xs [overflow-wrap:normal] [word-break:normal]"
+              placement="top"
+              showArrow
+            >
+              <Tooltip.Arrow />
+              <span className="grid gap-1">
+                {domains.map((domain) => (
+                  <DomainLink
+                    className="whitespace-nowrap"
+                    domain={domain}
+                    key={domain}
+                  >
+                    {domain}
+                  </DomainLink>
+                ))}
+              </span>
+            </Tooltip.Content>
+          </Tooltip>
+        ) : (
+          <TableCellDescription>Not publicly exposed</TableCellDescription>
+        )}
+      </TableCellStack>
+    </span>
+  );
+}
+
+export function AppLogo({
+  domain,
+  size = "default",
+}: {
+  domain: string | undefined;
+  size?: "default" | "small";
+}) {
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const pixels = size === "small" ? 24 : 32;
+  return (
+    <span
+      className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-sm ${size === "small" ? "size-6" : "size-8"}`}
+    >
+      {!loaded ? (
+        <HugeiconsIcon
+          aria-hidden="true"
+          className={size === "small" ? "size-5" : "size-6"}
+          icon={DashboardCircleIcon}
+        />
+      ) : null}
+      {domain && !failed ? (
+        <Image
+          alt=""
+          className={`object-contain ${size === "small" ? "size-6" : "size-8"} ${loaded ? "" : "absolute opacity-0"}`}
+          height={pixels}
+          loader={externalImageLoader}
+          unoptimized
+          width={pixels}
+          src={`https://${domain}/favicon.ico`}
+          onError={() => setFailed(true)}
+          onLoad={(event) => {
+            const image = event.currentTarget;
+            if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+              setLoaded(true);
+            } else {
+              setFailed(true);
+            }
+          }}
+          referrerPolicy="no-referrer"
+        />
+      ) : null}
     </span>
   );
 }
@@ -150,16 +218,16 @@ export function ResourceIdentity({
   return (
     <span className="inline-flex min-w-0 items-center gap-3">
       <ResourceLogo key={type.logo} brand={type} />
-      <span className="grid min-w-0 gap-0.5">
+      <TableCellStack>
         <DeployableName
           autoDeploy={Boolean(resource.config.autoDeploy)}
           name={resource.name}
-          href={`/sources/${resource.sourceId}/resources/${resource.id}`}
+          href={`/resources/${resource.id}`}
           exposed={Boolean(resource.config.domains?.primary)}
           health={healthStatus}
         />
-        <span className="text-xs text-muted">{type.label}</span>
-      </span>
+        <TableCellDescription>{type.label}</TableCellDescription>
+      </TableCellStack>
     </span>
   );
 }

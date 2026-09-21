@@ -9,13 +9,14 @@ const repositoryRoot = path.resolve(
 const checkOnly = process.argv.includes("--check");
 
 const publishedFiles = [
+  ...["repository", "app", "resource"].map((kind) => ({
+    source: `packages/towbar-core/schemas/${kind}.v2.json`,
+    target: `docs/schemas/${kind}.v2.json`,
+  })),
+  { source: "examples/towbar.yml", target: "docs/examples/towbar.yaml" },
   {
-    source: "packages/towbar-core/schemas/deployment.v1.json",
-    target: "docs/schemas/deployment.v1.json",
-  },
-  {
-    source: "examples/deployment.yml",
-    target: "docs/examples/deployment.yaml",
+    source: "examples/.towbar/apps/hello-towbar.app.yml",
+    target: "docs/examples/hello-towbar.app.yaml",
   },
 ];
 

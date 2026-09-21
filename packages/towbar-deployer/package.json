@@ -12,7 +12,7 @@
     }
   },
   "scripts": {
-    "build": "tsc --project tsconfig.build.json",
+    "build": "tsc --project tsconfig.build.json && cp src/log-drain-gateway.py dist/log-drain-gateway.py",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix --max-warnings 0",
     "test": "tsx --test \"src/**/*.test.ts\"",
@@ -20,6 +20,8 @@
   },
   "dependencies": {
     "@workspace/towbar-core": "workspace:*",
+    "undici": "7.29.0",
+    "yaml": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -5,7 +5,7 @@ import { type NormalizedDeploymentManifest, digestValue } from "./manifest.js";
 import { reconcileManifest } from "./reconciliation.js";
 
 const desired: NormalizedDeploymentManifest = {
-  version: 1,
+  version: 2,
   source: { branch: "main" },
   apps: [
     {

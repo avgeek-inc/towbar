@@ -1,3 +1,4 @@
+import { actorAllows } from "@workspace/towbar-access";
 import { filterServers, serverFilters } from "@workspace/towbar-core/inventory";
 import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
@@ -10,7 +11,6 @@ import {
 
 import {
   createServer,
-  hasServerAssignments,
   removeServer,
   updateServer,
 } from "../../../areas/servers/lifecycle.js";
@@ -37,7 +37,7 @@ import {
   requestOrphanCleanup,
 } from "../../../areas/resource-operations/service.js";
 import { getServerCapacity } from "../../../areas/servers/capacity.js";
-import { badRequest, forbidden, notFound } from "../../../http/errors.js";
+import { badRequest, notFound } from "../../../http/errors.js";
 import { readJson } from "../../../http/requests.js";
 
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
@@ -50,6 +50,7 @@ const hostKeySchema = z
       .regex(/^[A-Za-z0-9][A-Za-z0-9@._+-]{0,79}$/u),
     fingerprint: z.string().trim().startsWith("SHA256:").max(255),
     publicKey: z.string().trim().min(32).max(16_384),
+    replaceExisting: z.boolean().optional().default(false),
   })
   .strict();
 const serverChecksQuerySchema = z
@@ -79,6 +80,7 @@ export const serverRoutes = new Hono<TowbarHonoEnvironment>();
 serverRoutes.get(
   "/",
   operation({
+    permissions: ["server.read"],
     responseSchema: 'servers.ts:get:"/"',
     query: serverFilters,
     summary: "List servers",
@@ -96,23 +98,24 @@ serverRoutes.get(
 serverRoutes.post(
   "/",
   operation({
+    permissions: ["server.update"],
     responseSchema: 'servers.ts:post:"/"',
     summary: "Create server",
     body: serverConfigurationSchema,
-    ownerOnly: true,
     response: "JSON object containing server.",
     status: 201,
   }),
   async (context) => {
     const user = context.get("user");
-    if (user.workspaceRole !== "owner") {
-      throw forbidden("Only the owner can add servers");
-    }
-    const config = normalizeServerConfiguration(
-      await readJson(context, serverConfigurationSchema),
-    );
+    const configuration = await readJson(context, serverConfigurationSchema);
+    const config = normalizeServerConfiguration(configuration);
     return context.json(
-      { server: await createServer({ config, workspaceId: user.workspaceId }) },
+      {
+        server: await createServer({
+          config,
+          workspaceId: user.workspaceId,
+        }),
+      },
       201,
     );
   },
@@ -120,6 +123,7 @@ serverRoutes.post(
 serverRoutes.get(
   "/:serverId",
   operation({
+    permissions: ["server.read"],
     responseSchema: 'servers.ts:get:"/:serverId"',
     summary: "Get server",
     response:
@@ -133,11 +137,9 @@ serverRoutes.get(
       user.workspaceId,
     );
     return context.json({
-      canCleanupOrphans: user.workspaceRole === "owner",
-      canManageServer: user.workspaceRole === "owner",
-      canRemoveServer:
-        user.workspaceRole === "owner" &&
-        !(await hasServerAssignments(server.id)),
+      canCleanupOrphans: actorAllows(context.get("actor"), ["server.remove"]),
+      canManageServer: actorAllows(context.get("actor"), ["server.update"]),
+      canRemoveServer: actorAllows(context.get("actor"), ["server.remove"]),
       server,
     });
   },
@@ -145,21 +147,17 @@ serverRoutes.get(
 serverRoutes.patch(
   "/:serverId",
   operation({
+    permissions: ["server.update"],
     responseSchema: 'servers.ts:patch:"/:serverId"',
     summary: "Update server",
     body: serverConfigurationSchema,
-    ownerOnly: true,
     response: "JSON object containing server.",
     status: 200,
   }),
   async (context) => {
     const user = context.get("user");
-    if (user.workspaceRole !== "owner") {
-      throw forbidden("Only the owner can update servers");
-    }
-    const config = normalizeServerConfiguration(
-      await readJson(context, serverConfigurationSchema),
-    );
+    const configuration = await readJson(context, serverConfigurationSchema);
+    const config = normalizeServerConfiguration(configuration);
     return context.json({
       server: await updateServer({
         config,
@@ -172,6 +170,7 @@ serverRoutes.patch(
 serverRoutes.get(
   "/:serverId/apps",
   operation({
+    permissions: ["server.read"],
     responseSchema: 'servers.ts:get:"/:serverId/apps"',
     summary: "List server apps",
     response: "JSON object containing apps.",
@@ -188,6 +187,7 @@ serverRoutes.get(
 serverRoutes.get(
   "/:serverId/resources",
   operation({
+    permissions: ["server.read"],
     responseSchema: 'servers.ts:get:"/:serverId/resources"',
     summary: "List server resources",
     response: "JSON object containing resources.",
@@ -204,6 +204,7 @@ serverRoutes.get(
 serverRoutes.get(
   "/:serverId/deployments",
   operation({
+    permissions: ["server.read"],
     responseSchema: 'servers.ts:get:"/:serverId/deployments"',
     summary: "List server deployments",
     response: "JSON object containing deployments.",
@@ -220,6 +221,7 @@ serverRoutes.get(
 serverRoutes.get(
   "/:serverId/capacity",
   operation({
+    permissions: ["server.read"],
     responseSchema: 'servers.ts:get:"/:serverId/capacity"',
     summary: "Get server capacity",
     response: "JSON object containing capacity.",
@@ -237,6 +239,7 @@ serverRoutes.get(
 serverRoutes.get(
   "/:serverId/checks",
   operation({
+    permissions: ["server.read"],
     responseSchema: 'servers.ts:get:"/:serverId/checks"',
     summary: "List server checks",
     query: serverChecksQuerySchema,
@@ -257,6 +260,7 @@ serverRoutes.get(
 serverRoutes.get(
   "/:serverId/preparations",
   operation({
+    permissions: ["server.read"],
     responseSchema: 'servers.ts:get:"/:serverId/preparations"',
     summary: "List server preparations",
     response: "JSON object containing preparations.",
@@ -273,6 +277,7 @@ serverRoutes.get(
 serverRoutes.get(
   "/:serverId/orphans",
   operation({
+    permissions: ["server.read"],
     responseSchema: 'servers.ts:get:"/:serverId/orphans"',
     summary: "Get server orphans",
     response: "JSON object containing orphans.",
@@ -289,6 +294,7 @@ serverRoutes.get(
 serverRoutes.get(
   "/:serverId/host-keys",
   operation({
+    permissions: ["server.credentials"],
     responseSchema: 'servers.ts:get:"/:serverId/host-keys"',
     summary: "List trusted host keys",
     response: "JSON object containing hostKeys.",
@@ -305,6 +311,7 @@ serverRoutes.get(
 serverRoutes.post(
   "/:serverId/actions/check",
   operation({
+    permissions: ["server.update"],
     responseSchema: 'servers.ts:post:"/:serverId/actions/check"',
     summary: "Request server check",
     response: "JSON object containing check.",
@@ -327,6 +334,7 @@ serverRoutes.post(
 serverRoutes.post(
   "/:serverId/actions/prepare",
   operation({
+    permissions: ["server.prepare"],
     responseSchema: 'servers.ts:post:"/:serverId/actions/prepare"',
     summary: "Request server preparation",
     response: "JSON object containing preparation.",
@@ -349,19 +357,16 @@ serverRoutes.post(
 serverRoutes.post(
   "/:serverId/actions/cleanup-orphans",
   operation({
+    permissions: ["server.remove"],
     responseSchema: 'servers.ts:post:"/:serverId/actions/cleanup-orphans"',
     summary: "Request orphan cleanup",
     body: cleanupSchema,
-    ownerOnly: true,
     idempotencyKey: true,
     response: "The cleanup operation and whether the request was replayed.",
     status: 202,
   }),
   async (context) => {
     const user = context.get("user");
-    if (user.workspaceRole !== "owner") {
-      throw forbidden("Only administrators can remove orphaned Docker objects");
-    }
     const result = await requestOrphanCleanup({
       idempotencyKey: requireIdempotencyKey(
         context.req.header("idempotency-key"),
@@ -377,6 +382,7 @@ serverRoutes.post(
 serverRoutes.post(
   "/:serverId/host-keys/actions/trust",
   operation({
+    permissions: ["server.credentials"],
     responseSchema: 'servers.ts:post:"/:serverId/host-keys/actions/trust"',
     summary: "Trust server host key",
     body: hostKeySchema,
@@ -402,6 +408,7 @@ serverRoutes.post(
 serverRoutes.delete(
   "/:serverId/host-keys/:hostKeyId",
   operation({
+    permissions: ["server.credentials"],
     responseSchema: 'servers.ts:delete:"/:serverId/host-keys/:hostKeyId"',
     summary: "Revoke server host key",
     response: "No response body.",
@@ -432,18 +439,16 @@ function requireIdempotencyKey(value: string | undefined) {
 serverRoutes.delete(
   "/:serverId",
   operation({
+    permissions: ["server.remove"],
     responseSchema: 'servers.ts:delete:"/:serverId"',
     summary: "Remove server",
     additionalStatuses: [202],
-    ownerOnly: true,
     response:
-      "Stops Towbar management and removes stored server credentials and host-key trust. Does not terminate the machine or delete Docker services or data. Assigned workloads and active operations block removal.",
+      "Stops Towbar management, archives assigned inventory, and removes stored server credentials and host-key trust. Active operations block removal. A later Source sync restores an archived server referenced by IP.",
     status: 204,
   }),
   async (context) => {
     const user = context.get("user");
-    if (user.workspaceRole !== "owner")
-      throw forbidden("Only the owner can remove servers");
     const removal = await removeServer({
       serverId: context.req.param("serverId"),
       workspaceId: user.workspaceId,

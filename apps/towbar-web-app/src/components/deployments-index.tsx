@@ -1,9 +1,16 @@
 "use client";
 
 import {
-  Cancel01Icon,
+  TableCellStack,
+  TableCellDescription,
+} from "@workspace/towbar-web-ui/table-cell-text";
+
+import { DeploymentEnvironmentChip } from "./deployment-environment-chip";
+
+import {
   DashboardCircleIcon,
-  DatabaseIcon,
+  CubeIcon,
+  FilterResetIcon,
   Rocket01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -20,7 +27,6 @@ import {
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
 import { Pagination } from "@workspace/web-design-system/navigation/pagination";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
@@ -28,7 +34,11 @@ import { TypographyCode } from "@workspace/web-design-system/typography/typograp
 import { DashboardPage, InlineLink } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
-import { DeploymentTriggerChip } from "./deployment-table";
+import { deploymentHref } from "@/lib/deployment-route";
+import {
+  DeploymentTriggerChip,
+  deploymentStatusTooltip,
+} from "./deployment-table";
 import { DeploymentDuration } from "./elapsed-time";
 import { RelativeTime } from "./last-synced-time";
 
@@ -42,7 +52,12 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
     key: "id",
     header: "Deployment ID",
     cell: (item) => (
-      <TypographyCode title={item.id}>{item.id.slice(0, 8)}</TypographyCode>
+      <TableCellStack>
+        <TypographyCode title={item.id}>{item.id.slice(0, 8)}</TypographyCode>
+        <span className="2xl:hidden">
+          <RelativeTime label="Requested" value={item.createdAt} />
+        </span>
+      </TableCellStack>
     ),
     className: "min-w-40",
   },
@@ -50,55 +65,70 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
     key: "deployable",
     header: "App / Resource",
     cell: (item) => (
-      <span className="inline-flex items-center gap-2">
+      <TableCellStack>
         <InlineLink
-          className="inline-flex items-center gap-2"
-          href={`/sources/${item.sourceId}/${item.deployableKind === "app" ? "apps" : "resources"}/${item.appId}`}
+          className="inline-flex min-w-0 items-center gap-2"
+          href={`/${item.deployableKind === "app" ? "apps" : "resources"}/${item.appId}`}
         >
           <HugeiconsIcon
             aria-hidden="true"
             className="size-4 shrink-0"
             icon={
-              item.deployableKind === "app" ? DashboardCircleIcon : DatabaseIcon
+              item.deployableKind === "app" ? DashboardCircleIcon : CubeIcon
             }
           />
-          {item.deployableName}
+          <span className="truncate">{item.deployableName}</span>
         </InlineLink>
-        {item.environment === "preview" ? (
-          <Chip
-            size="small"
-            variant="secondary"
-            icon={<HugeiconsIcon icon={Rocket01Icon} />}
-          >
-            Preview
-          </Chip>
-        ) : null}
-      </span>
+        <TableCellDescription className="flex items-center gap-1.5 2xl:hidden">
+          <TypographyCode className="py-0 text-xs/4">
+            {item.targetEnvironment.branch}
+          </TypographyCode>
+          <span aria-hidden="true">·</span>
+          <TypographyCode className="py-0 text-xs/4" title={item.commitSha}>
+            {item.commitSha.slice(0, 8)}
+          </TypographyCode>
+        </TableCellDescription>
+      </TableCellStack>
     ),
     className: "min-w-56",
+  },
+  {
+    key: "environment",
+    header: "Environment",
+    cell: (item) => <DeploymentEnvironmentChip deployment={item} />,
+    className: "whitespace-nowrap",
   },
   {
     key: "trigger",
     header: "Trigger",
     cell: (item) => <DeploymentTriggerChip trigger={item.trigger} />,
-    className: "whitespace-nowrap",
+    className: "hidden whitespace-nowrap 2xl:table-cell",
+    headerClassName: "hidden 2xl:table-cell",
   },
   {
     key: "requested",
     header: "Requested",
     cell: (item) => <RelativeTime label="Requested" value={item.createdAt} />,
-    className: "min-w-40 whitespace-nowrap",
+    className: "hidden min-w-40 whitespace-nowrap 2xl:table-cell",
+    headerClassName: "hidden 2xl:table-cell",
   },
   {
     key: "duration",
     header: "Duration",
     cell: (item) => <DeploymentDuration deployment={item} />,
+    className: "hidden 2xl:table-cell",
+    headerClassName: "hidden 2xl:table-cell",
   },
   {
     key: "status",
     header: "Status",
-    cell: (item) => <StatusBadge status={getDeploymentDisplayStatus(item)} />,
-    className: "whitespace-nowrap",
+    cell: (item) => (
+      <StatusBadge
+        status={getDeploymentDisplayStatus(item)}
+        tooltip={deploymentStatusTooltip(item)}
+      />
+    ),
+    className: "w-32 whitespace-nowrap",
   },
 ];
 
@@ -110,6 +140,7 @@ export function DeploymentsIndex() {
   const filters = [
     "type",
     "environment",
+    "targetEnvironment",
     "state",
     "trigger",
     "serverId",
@@ -161,11 +192,23 @@ export function DeploymentsIndex() {
           />
           <ScoutSelect
             label="Environment"
+            value={search.get("targetEnvironment") ?? "all"}
+            onChange={(v) => setFilter("targetEnvironment", v)}
+            options={[
+              { id: "all", label: "All environments" },
+              ...(query.data?.environments ?? []).map((name) => ({
+                id: name,
+                label: name,
+              })),
+            ]}
+          />
+          <ScoutSelect
+            label="Deployment kind"
             value={search.get("environment") ?? "all"}
             onChange={(v) => setFilter("environment", v)}
             options={[
-              { id: "all", label: "All environments" },
-              { id: "production", label: "Production" },
+              { id: "all", label: "All deployments" },
+              { id: "production", label: "Persistent" },
               { id: "preview", label: "Preview" },
             ]}
           />
@@ -208,14 +251,13 @@ export function DeploymentsIndex() {
           />
           {params.size > 0 ? (
             <Button
-              size="sm"
               variant="secondary"
               onPress={() => {
                 pagination.reset();
                 window.history.pushState(null, "", pathname);
               }}
             >
-              <HugeiconsIcon icon={Cancel01Icon} className="size-4" />
+              <HugeiconsIcon icon={FilterResetIcon} className="size-4" />
               Clear filters
             </Button>
           ) : null}
@@ -252,12 +294,10 @@ export function DeploymentsIndex() {
                 ? "Try changing or clearing the filters."
                 : "Deploy an app or resource to see its deployment history here."
             }
-            getRowHref={(item) =>
-              `/sources/${item.sourceId}/deployments/${item.id}`
-            }
+            getRowHref={deploymentHref}
             getRowKey={(item) => item.id}
             items={query.data.deployments}
-            tableClassName="min-w-[1040px]"
+            tableClassName="min-w-[700px] 2xl:min-w-[1040px]"
           />
         )}
         {(pagination.totalPages ?? 0) > 1 ? (

@@ -2,6 +2,8 @@ import { format } from "prettier";
 import ts from "typescript";
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { z } from "zod";
+import { dateTimeLocalizationSchema } from "@workspace/towbar-core/date-time";
 const project = resolve(import.meta.dirname, "../tsconfig.json");
 const config = ts.readConfigFile(project, ts.sys.readFile);
 const parsed = ts.parseJsonConfigFileContent(
@@ -156,6 +158,19 @@ for (const source of program
             : results.length
               ? { anyOf: results }
               : {};
+        if (results.length)
+          schemas[key] = {
+            allOf: [
+              schemas[key],
+              {
+                type: "object",
+                properties: {
+                  localization: z.toJSONSchema(dateTimeLocalizationSchema),
+                },
+                required: ["localization"],
+              },
+            ],
+          };
       }
     }
     ts.forEachChild(node, walk);

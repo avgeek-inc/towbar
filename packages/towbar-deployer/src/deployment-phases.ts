@@ -1,17 +1,32 @@
-import { chmod, mkdir, writeFile } from "node:fs/promises";
+import { deploymentVolumeArguments, prepareAppStorage } from "./app-storage.js";
+import { chmod, mkdir, stat, statfs, writeFile } from "node:fs/promises";
+import { setTimeout as wait } from "node:timers/promises";
+/* eslint-disable max-lines -- Deployment phases share stateful rollback invariants that must remain visible in one module. */
+import { createHash } from "node:crypto";
+import { otelResourceAttributes } from "./otel-resource-attributes.js";
 import path from "node:path";
 
-import { createBuildContextArchive } from "./build-context.js";
+import {
+  createBuildContextArchive,
+  createSourceContextArchive,
+} from "./build-context.js";
 import { parseCandidatePort } from "./candidate-port.js";
 import {
   deploymentCleanupId,
   deploymentRuntimeId,
 } from "./deployment-identity.js";
-import { reconcileCloudflareForDeployment } from "./cloudflare.js";
+import {
+  type CloudflareTunnelTransition,
+  cleanupCloudflareTunnelTransition,
+  deploymentPublicHostnames,
+  reconcileCloudflareForDeployment,
+  reconcileCloudflareTunnelForDeployment,
+} from "./cloudflare.js";
 import { checkOriginEndpoint, checkPublicEndpoint } from "./endpoint-health.js";
 import { runWithSafeLogs, safeLog, transition } from "./executor-hooks.js";
 import {
   buildRemoteScript,
+  builderBuildRemoteScript,
   configureCaddyScript,
   containerHealthRemoteScript,
   ensureNetworkRemoteScript,
@@ -19,9 +34,11 @@ import {
   healthRemoteScript,
   hookRemoteScript,
   prepareRemoteScript,
+  pullApplicationImageRemoteScript,
   scheduleFinalizeRemoteScript,
   startRemoteScript,
   startResourceRemoteScript,
+  staticBuildRemoteScript,
 } from "./remote-scripts.js";
 import { renderCaddyFragment } from "./routing.js";
 import { pullResourceImage } from "./pull-resource-image.js";
@@ -40,7 +57,11 @@ import type {
   DeploymentSecrets,
   ExecutorHooks,
 } from "./types.js";
-import { isNormalizedResource } from "@workspace/towbar-core";
+import {
+  isNormalizedCompose,
+  isNormalizedResource,
+  managedTelemetryNetworkName,
+} from "@workspace/towbar-core";
 import type {
   NormalizedApp,
   NormalizedDeploymentHook,
@@ -56,8 +77,14 @@ type DeploymentPhaseInput = {
   secrets: DeploymentSecrets;
   sensitiveValues: string[];
   session: SshSession;
+  buildSession?: SshSession;
+  cloudflareTunnelTransition?: CloudflareTunnelTransition;
+  targetArchitecture?: "amd64" | "arm64";
   signal?: AbortSignal;
 };
+
+const maxBuildArtifactBytes = 20 * 1_024 * 1_024 * 1_024;
+const buildArtifactCapacityMargin = 256 * 1_024 * 1_024;
 
 export async function prepareDeploymentImage(input: DeploymentPhaseInput) {
   await transition(
@@ -70,12 +97,15 @@ export async function prepareDeploymentImage(input: DeploymentPhaseInput) {
     input.context.app.tls?.mode === "cloudflare-dns",
     input.signal,
   );
-  if (input.context.app.container.network) {
-    await input.session.run(
-      ensureNetworkRemoteScript,
-      [input.context.app.container.network],
-      { signal: input.signal, timeoutMs: 30_000 },
-    );
+  if (input.buildSession)
+    await preflight(input.buildSession, false, input.signal, "build");
+  input.targetArchitecture = await verifyDeploymentArchitectures(input);
+  const network = deploymentNetwork(input.context);
+  if (network) {
+    await input.session.run(ensureNetworkRemoteScript, [network], {
+      signal: input.signal,
+      timeoutMs: 30_000,
+    });
   }
 
   const checkout = await selectDeploymentSource(input);
@@ -88,9 +118,13 @@ export async function prepareDeploymentImage(input: DeploymentPhaseInput) {
   await input.session.run(prepareRemoteScript, [input.remoteDirectory], {
     signal: input.signal,
   });
+  if (input.buildSession)
+    await input.buildSession.run(prepareRemoteScript, [input.remoteDirectory], {
+      signal: input.signal,
+    });
   await writeSecretFiles(input.localDirectory, input.secrets);
   if (isNormalizedResource(input.context.app)) {
-    await uploadSecrets(input);
+    await uploadSecrets(input, input.session, ["runtime"]);
     if (input.context.kind === "deploy") {
       await pullResourceImage(input);
     } else {
@@ -98,6 +132,13 @@ export async function prepareDeploymentImage(input: DeploymentPhaseInput) {
     }
   } else if (checkout) {
     await buildDeploymentImage(input, checkout);
+    await uploadSecrets(input, input.session, ["runtime", "hooks", "registry"]);
+  } else if (
+    input.context.kind === "deploy" &&
+    applicationDeployment(input.context.app).type === "image"
+  ) {
+    await pullApplicationImage(input);
+    await uploadSecrets(input, input.session, ["runtime", "hooks", "registry"]);
   } else {
     await verifyRetainedImage(input, true);
   }
@@ -105,6 +146,7 @@ export async function prepareDeploymentImage(input: DeploymentPhaseInput) {
   const application = isNormalizedResource(input.context.app)
     ? null
     : (input.context.app as NormalizedApp);
+  if (application) await prepareAppStorage(input, application);
   const hook =
     input.context.kind === "deploy" ? application?.hooks?.preDeploy : undefined;
   await transition(
@@ -119,18 +161,91 @@ export async function prepareDeploymentImage(input: DeploymentPhaseInput) {
   }
 }
 
+export async function preflightBuildServer(
+  session: SshSession,
+  signal?: AbortSignal,
+) {
+  await preflight(session, false, signal, "build");
+}
+
 export async function startAndVerifyCandidate(input: DeploymentPhaseInput) {
-  await transition(
-    input.hooks,
-    "starting_candidate",
-    "Starting candidate container",
+  const result = await startAndVerifyCandidates(input);
+  return result.candidatePorts[0] ?? 0;
+}
+
+export async function startAndVerifyCandidates(input: DeploymentPhaseInput) {
+  const resource = isNormalizedResource(input.context.app)
+    ? input.context.app
+    : null;
+  const application =
+    !resource &&
+    !isNormalizedCompose(input.context.app) &&
+    input.context.app.kind === "app"
+      ? input.context.app
+      : null;
+  const rollout = application?.rollout;
+  if (!resource && rollout?.type === "rolling") {
+    return await startRollingCandidates(input, rollout);
+  }
+
+  const previousContainer = input.context.currentRelease?.containerName ?? "";
+  if (application && rollout?.type === "recreate" && rollout.maintenanceMode) {
+    await transition(
+      input.hooks,
+      "starting_candidate",
+      `Entering the declared maintenance window: ${rollout.reason}`,
+    );
+    const previousNames = input.context.currentRelease?.containerNames?.length
+      ? input.context.currentRelease.containerNames
+      : previousContainer
+        ? [previousContainer]
+        : [];
+    for (const name of previousNames)
+      await stopContainer(input, name, rollout.terminationSeconds);
+  }
+
+  const candidatePort = await startAndVerifyNamedCandidate(
+    input,
+    input.containerName,
+    previousContainer,
   );
+  await configureAndVerifyRouting(input, [candidatePort]);
+  return {
+    candidatePorts: [candidatePort],
+    containerNames: [input.containerName],
+  };
+}
+
+async function startAndVerifyNamedCandidate(
+  input: DeploymentPhaseInput,
+  containerName: string,
+  previousContainer: string,
+  startupDeadlineSeconds?: number,
+  emitStateTransitions = true,
+) {
+  const startupDeadline = startupDeadlineSeconds
+    ? Date.now() + startupDeadlineSeconds * 1_000
+    : null;
+  if (emitStateTransitions) {
+    await transition(
+      input.hooks,
+      "starting_candidate",
+      `Starting candidate container ${containerName}`,
+    );
+  } else {
+    await safeLog(
+      input.hooks,
+      `Starting rolling candidate ${containerName}.\n`,
+      "stdout",
+      input.sensitiveValues,
+    );
+  }
   const resource = isNormalizedResource(input.context.app)
     ? input.context.app
     : null;
   const startResult = resource
     ? await input.session.run(
-        `export TOWBAR_APP_ID="$1" TOWBAR_CLEANUP_ID="$2" TOWBAR_DEPLOYMENT_ID="$3" TOWBAR_COMMIT_SHA="$4" TOWBAR_SOURCE_ID="$5" TOWBAR_DEPLOYABLE_ID="$6"\nshift 6\n${startResourceRemoteScript}`,
+        `export TOWBAR_APP_ID="$1" TOWBAR_CLEANUP_ID="$2" TOWBAR_DEPLOYMENT_ID="$3" TOWBAR_COMMIT_SHA="$4" TOWBAR_SOURCE_ID="$5" TOWBAR_DEPLOYABLE_ID="$6" TOWBAR_TELEMETRY_ENV_JSON="$7"\nshift 7\n${startResourceRemoteScript}`,
         [
           resource.id,
           deploymentCleanupId(input.context),
@@ -138,8 +253,9 @@ export async function startAndVerifyCandidate(input: DeploymentPhaseInput) {
           input.context.commitSha,
           input.context.sourceId,
           input.context.deployableId,
+          telemetryEnvironment(input.context),
           input.remoteDirectory,
-          input.containerName,
+          containerName,
           input.imageTag,
           resource.container.port ? String(resource.container.port) : "",
           resource.container.network ?? "",
@@ -149,7 +265,7 @@ export async function startAndVerifyCandidate(input: DeploymentPhaseInput) {
             : "",
           String(resource.container.resources.cpus),
           resource.container.resources.memory,
-          input.context.currentRelease?.containerName ?? "",
+          previousContainer,
           input.context.deployableId,
           String(resource.container.volumes.length),
           ...resource.container.volumes.flatMap((volume) => [
@@ -158,29 +274,37 @@ export async function startAndVerifyCandidate(input: DeploymentPhaseInput) {
           ]),
           ...resource.container.command,
         ],
-        { signal: input.signal, timeoutMs: 180_000 },
+        {
+          signal: input.signal,
+          timeoutMs: startupTimeout(startupDeadline, 180_000),
+        },
       )
     : await input.session.run(
-        `export TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3" TOWBAR_SOURCE_ID="$4" TOWBAR_DEPLOYABLE_ID="$5"\nshift 5\n${startRemoteScript}`,
+        `export TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3" TOWBAR_SOURCE_ID="$4" TOWBAR_DEPLOYABLE_ID="$5" TOWBAR_VOLUME_ARGS_JSON="$6" TOWBAR_TELEMETRY_ENV_JSON="$7"\nshift 7\n${startRemoteScript}`,
         [
           deploymentRuntimeId(input.context),
           input.context.deploymentId,
           input.context.commitSha,
           input.context.sourceId,
           input.context.deployableId,
+          deploymentVolumeArguments(input.context),
+          telemetryEnvironment(input.context),
           input.remoteDirectory,
-          input.containerName,
+          containerName,
           input.imageTag,
           String(input.context.app.container.port),
-          input.context.app.container.network ?? "",
+          deploymentNetwork(input.context) ?? "",
           input.context.app.container.resources
             ? String(input.context.app.container.resources.cpus)
             : "",
           input.context.app.container.resources?.memory ?? "",
           input.context.app.container.networkAlias ?? "",
-          input.context.currentRelease?.containerName ?? "",
+          previousContainer,
         ],
-        { signal: input.signal, timeoutMs: 120_000 },
+        {
+          signal: input.signal,
+          timeoutMs: startupTimeout(startupDeadline, 120_000),
+        },
       );
   const requiresPublishedPort = !resource || Boolean(resource.container.port);
   const candidatePort = parseCandidatePort(
@@ -188,39 +312,441 @@ export async function startAndVerifyCandidate(input: DeploymentPhaseInput) {
     requiresPublishedPort,
   );
 
-  await transition(input.hooks, "checking_health", "Checking candidate health");
-  if (resource && resource.health.type !== "http") {
-    await input.session.run(
-      containerHealthRemoteScript,
-      [
-        input.containerName,
-        resource.health.type,
-        String(resource.health.timeoutSeconds),
-        ...(resource.health.type === "command" ? resource.health.command : []),
-      ],
-      {
-        signal: input.signal,
-        timeoutMs: (resource.health.timeoutSeconds + 10) * 1_000,
-      },
+  if (emitStateTransitions) {
+    await transition(
+      input.hooks,
+      "checking_health",
+      "Checking candidate health",
     );
   } else {
-    const health = resource?.health ?? input.context.app.health;
-    if (!("path" in health)) throw new Error("HTTP health path is missing");
-    await input.session.run(
-      healthRemoteScript,
-      [String(candidatePort), health.path, String(health.timeoutSeconds)],
-      {
-        signal: input.signal,
-        timeoutMs: (health.timeoutSeconds + 10) * 1_000,
-      },
+    await safeLog(
+      input.hooks,
+      `Checking rolling candidate ${containerName}.\n`,
+      "stdout",
+      input.sensitiveValues,
     );
   }
-  await configureAndVerifyRouting(input, candidatePort);
+  try {
+    if (resource && resource.health.type !== "http") {
+      await input.session.run(
+        containerHealthRemoteScript,
+        [
+          containerName,
+          resource.health.type,
+          String(resource.health.timeoutSeconds),
+          ...(resource.health.type === "command"
+            ? resource.health.command
+            : []),
+        ],
+        {
+          signal: input.signal,
+          timeoutMs: (resource.health.timeoutSeconds + 10) * 1_000,
+        },
+      );
+    } else {
+      const health = resource?.health ?? input.context.app.health;
+      if (!("path" in health)) throw new Error("HTTP health path is missing");
+      const healthTimeoutSeconds = boundedHealthTimeout(
+        health.timeoutSeconds,
+        startupDeadline,
+      );
+      await input.session.run(
+        healthRemoteScript,
+        [String(candidatePort), health.path, String(healthTimeoutSeconds)],
+        {
+          signal: input.signal,
+          timeoutMs: startupTimeout(
+            startupDeadline,
+            (healthTimeoutSeconds + 10) * 1_000,
+          ),
+        },
+      );
+    }
+  } catch (error) {
+    throw new Error("Candidate health check failed", { cause: error });
+  }
   return candidatePort;
+}
+
+function telemetryEnvironment(context: DeploymentPhaseInput["context"]) {
+  const app = context.app;
+  if (isNormalizedCompose(app)) return "{}";
+  const telemetry = app.telemetry;
+  if (!telemetry) return "{}";
+  const endpoint =
+    telemetry.protocol === "otlp-http"
+      ? "http://towbar-otel:4318"
+      : "http://towbar-otel:4317";
+  return JSON.stringify({
+    OTEL_EXPORTER_OTLP_ENDPOINT: endpoint,
+    OTEL_EXPORTER_OTLP_PROTOCOL:
+      telemetry.protocol === "otlp-http" ? "http/protobuf" : "grpc",
+    OTEL_SERVICE_NAME: app.name,
+    OTEL_RESOURCE_ATTRIBUTES: otelResourceAttributes({
+      "deployment.environment.name": context.environmentName,
+      "towbar.app.id": context.deployableId,
+      "towbar.deployment.id": context.deploymentId,
+      "towbar.repository.id": context.sourceId,
+      "towbar.server.id": context.serverId,
+      "towbar.team.id": context.workspaceId,
+    }),
+    ...(telemetry.signals.includes("traces")
+      ? {
+          OTEL_TRACES_SAMPLER: "parentbased_traceidratio",
+          OTEL_TRACES_SAMPLER_ARG: String(telemetry.sampling),
+        }
+      : { OTEL_SDK_DISABLED: "false" }),
+  });
+}
+
+function deploymentNetwork(context: DeploymentExecutionContext) {
+  if (isNormalizedCompose(context.app)) return null;
+  return (
+    context.app.container.network ??
+    (context.app.telemetry
+      ? managedTelemetryNetworkName(context.serverId)
+      : null)
+  );
+}
+
+async function startRollingCandidates(
+  input: DeploymentPhaseInput,
+  rollout: Extract<NormalizedApp["rollout"], { type: "rolling" }>,
+) {
+  if (
+    isNormalizedCompose(input.context.app) ||
+    isNormalizedResource(input.context.app)
+  ) {
+    throw new Error("Rolling app deployment received an incompatible workload");
+  }
+  const application = input.context.app;
+  if (application.container.volumes?.length) {
+    throw new Error(
+      "Rolling deployment cannot overlap a single-writer managed volume",
+    );
+  }
+  if (application.container.networkAlias) {
+    throw new Error(
+      "Rolling deployment cannot overlap a singleton network alias",
+    );
+  }
+
+  const previousNames = [
+    ...(input.context.currentRelease?.containerNames?.length
+      ? input.context.currentRelease.containerNames
+      : input.context.currentRelease?.containerName
+        ? [input.context.currentRelease.containerName]
+        : []),
+  ];
+  const previous = await inspectRunningPorts(
+    input,
+    previousNames,
+    application.container.port,
+  );
+  await preflightRollingHeadroom(input, rollout, previous.length);
+  const candidates: Array<{ name: string; port: number }> = [];
+  const activePrevious = [...previous];
+  const attemptedCandidates: string[] = [];
+  const desiredNames = Array.from(
+    { length: rollout.replicas },
+    (_, index) => `${input.containerName}-r${index + 1}`,
+  );
+
+  try {
+    for (const name of desiredNames) {
+      while (
+        activePrevious.length > 0 &&
+        candidates.length + activePrevious.length >=
+          rollout.replicas + rollout.maxSurge
+      ) {
+        const remainingAvailable =
+          candidates.length + activePrevious.length - 1;
+        if (
+          remainingAvailable <
+          Math.max(0, rollout.replicas - rollout.maxUnavailable)
+        ) {
+          throw new Error(
+            "Rolling replacement cannot satisfy maxSurge and maxUnavailable",
+          );
+        }
+        const retired = activePrevious.shift();
+        if (!retired) break;
+        const remainingPorts = [
+          ...candidates.map((candidate) => candidate.port),
+          ...activePrevious.map((release) => release.port),
+        ];
+        if (remainingPorts.length)
+          await configureAndVerifyRouting(input, remainingPorts, false);
+        if (rollout.drainSeconds > 0) {
+          await wait(rollout.drainSeconds * 1_000, undefined, {
+            signal: input.signal,
+          });
+        }
+        await stopContainer(input, retired.name, rollout.terminationSeconds);
+      }
+
+      const firstCandidate = attemptedCandidates.length === 0;
+      attemptedCandidates.push(name);
+      const port = await startAndVerifyNamedCandidate(
+        input,
+        name,
+        "",
+        rollout.startupDeadlineSeconds,
+        firstCandidate,
+      );
+      if (rollout.minimumHealthySeconds > 0) {
+        await verifyRollingCandidateStability(input, port, rollout);
+      }
+      candidates.push({ name, port });
+      await configureAndVerifyRouting(
+        input,
+        [
+          ...candidates.map((candidate) => candidate.port),
+          ...activePrevious.map((release) => release.port),
+        ],
+        false,
+      );
+    }
+
+    while (activePrevious.length > 0) {
+      const retired = activePrevious.shift();
+      if (!retired) break;
+      await configureAndVerifyRouting(
+        input,
+        [
+          ...candidates.map((candidate) => candidate.port),
+          ...activePrevious.map((release) => release.port),
+        ],
+        false,
+      );
+      if (rollout.drainSeconds > 0) {
+        await wait(rollout.drainSeconds * 1_000, undefined, {
+          signal: input.signal,
+        });
+      }
+      await stopContainer(input, retired.name, rollout.terminationSeconds);
+    }
+    await configureAndVerifyRouting(
+      input,
+      candidates.map((candidate) => candidate.port),
+      true,
+    );
+    return {
+      candidatePorts: candidates.map((candidate) => candidate.port),
+      containerNames: candidates.map((candidate) => candidate.name),
+    };
+  } catch (error) {
+    const rollbackRuntime = await input.session
+      .run(
+        String.raw`set -euo pipefail
+previous_json="$1"
+candidates_json="$2"
+python3 - "$previous_json" "$candidates_json" <<'PYTHON'
+import json, subprocess, sys
+previous = json.loads(sys.argv[1])
+candidates = json.loads(sys.argv[2])
+for name in candidates:
+    subprocess.run(["docker", "rm", "-f", name], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+for name in previous:
+    subprocess.run(["docker", "start", name], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+PYTHON
+`,
+        [JSON.stringify(previousNames), JSON.stringify(attemptedCandidates)],
+        { timeoutMs: 120_000 },
+      )
+      .then(() => true)
+      .catch(async (rollbackError) => {
+        await input.hooks.log?.(
+          `Rolling runtime rollback failed: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}\n`,
+          "stderr",
+        );
+        return false;
+      });
+    if (rollbackRuntime && previous.length) {
+      await restoreRollingRoute(
+        input,
+        previous.map((release) => release.port),
+      ).catch(async (rollbackError) => {
+        await input.hooks.log?.(
+          `Rolling route rollback failed: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}\n`,
+          "stderr",
+        );
+      });
+    }
+    throw error;
+  }
+}
+
+async function restoreRollingRoute(
+  input: DeploymentPhaseInput,
+  previousPorts: number[],
+) {
+  await writeRoutingFiles(input, previousPorts);
+  if (!input.context.app.domains) return;
+  await input.session.upload(
+    path.join(input.localDirectory, "app.caddy"),
+    `${input.remoteDirectory}/app.caddy`,
+  );
+  await input.session.run(
+    configureCaddyScript,
+    [input.remoteDirectory, deploymentRuntimeId(input.context)],
+    { timeoutMs: 180_000 },
+  );
+}
+
+function startupTimeout(deadline: number | null, maximumMs: number) {
+  if (deadline === null) return maximumMs;
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) throw new Error("Candidate startup deadline exceeded");
+  return Math.max(1_000, Math.min(maximumMs, remaining));
+}
+
+function boundedHealthTimeout(configured: number, deadline: number | null) {
+  if (deadline === null) return configured;
+  const remaining = Math.floor((deadline - Date.now()) / 1_000);
+  if (remaining <= 0) throw new Error("Candidate startup deadline exceeded");
+  return Math.max(1, Math.min(configured, remaining));
+}
+
+async function verifyRollingCandidateStability(
+  input: DeploymentPhaseInput,
+  port: number,
+  rollout: Extract<NormalizedApp["rollout"], { type: "rolling" }>,
+) {
+  if (
+    isNormalizedCompose(input.context.app) ||
+    isNormalizedResource(input.context.app)
+  )
+    throw new Error(
+      "Rolling health verification received an incompatible workload",
+    );
+  await input.session.run(
+    String.raw`set -euo pipefail
+port="$1"
+health_path="$2"
+stable_seconds="$3"
+failure_threshold="$4"
+deadline=$((SECONDS + stable_seconds))
+failures=0
+while (( SECONDS < deadline )); do
+  if curl --fail --silent --show-error --max-time 5 "http://127.0.0.1:$port$health_path" >/dev/null; then
+    failures=0
+  else
+    failures=$((failures + 1))
+    if (( failures >= failure_threshold )); then
+      echo "Candidate exceeded the readiness failure threshold" >&2
+      exit 1
+    fi
+  fi
+  sleep 2
+done
+`,
+    [
+      String(port),
+      input.context.app.health.path,
+      String(rollout.minimumHealthySeconds),
+      String(rollout.failureThreshold),
+    ],
+    {
+      signal: input.signal,
+      timeoutMs: (rollout.minimumHealthySeconds + 10) * 1_000,
+    },
+  );
+}
+
+async function preflightRollingHeadroom(
+  input: DeploymentPhaseInput,
+  rollout: Extract<NormalizedApp["rollout"], { type: "rolling" }>,
+  runningPreviousCount: number,
+) {
+  const resources = input.context.app.container.resources ?? {
+    cpus: 1,
+    memory: "512m",
+  };
+  const surge = Math.min(rollout.maxSurge, rollout.replicas);
+  // Scaling up needs room for every missing replica. During replacement, the
+  // peak also includes the permitted surge until an old replica is drained.
+  // If excess old replicas already exist, Towbar retires them before starting
+  // a candidate, so their released limits provide the required headroom.
+  const additionalContainers = Math.max(
+    0,
+    rollout.replicas +
+      (runningPreviousCount > 0 ? surge : 0) -
+      runningPreviousCount,
+  );
+  if (additionalContainers === 0) return;
+  await input.session.run(
+    String.raw`set -euo pipefail
+memory="$1"
+cpus="$2"
+surge="$3"
+required_memory="$(python3 - "$memory" "$surge" <<'PYTHON'
+import re, sys
+value = sys.argv[1].lower()
+match = re.fullmatch(r"([0-9]+(?:\.[0-9]+)?)([kmgt]i?b?|b)", value)
+if not match:
+    raise SystemExit("Invalid memory limit")
+amount = float(match.group(1))
+unit = match.group(2)
+powers = {"b": 0, "k": 1, "kb": 1, "kib": 1, "m": 2, "mb": 2, "mib": 2, "g": 3, "gb": 3, "gib": 3, "t": 4, "tb": 4, "tib": 4}
+print(int(amount * (1024 ** powers[unit]) * int(sys.argv[2])))
+PYTHON
+)"
+available_memory="$(( $(awk '/MemAvailable:/ {print $2}' /proc/meminfo) * 1024 ))"
+test "$available_memory" -ge "$required_memory" || {
+  echo "Insufficient memory headroom for the declared rolling surge" >&2
+  exit 75
+}
+required_cpu_millis="$(python3 - "$cpus" "$surge" <<'PYTHON'
+import math, sys
+print(math.ceil(float(sys.argv[1]) * int(sys.argv[2]) * 1000))
+PYTHON
+)"
+used_cpu_millis="$(docker ps -q | xargs -r docker inspect --format '{{.HostConfig.NanoCpus}}' | awk '{ total += $1 / 1000000 } END { printf "%.0f", total }')"
+available_cpu_millis="$(( $(nproc) * 1000 - used_cpu_millis ))"
+test "$available_cpu_millis" -ge "$required_cpu_millis" || {
+  echo "Insufficient CPU headroom for the declared rolling surge" >&2
+  exit 75
+}
+`,
+    [resources.memory, String(resources.cpus), String(additionalContainers)],
+    { signal: input.signal, timeoutMs: 30_000 },
+  );
+}
+
+async function inspectRunningPorts(
+  input: DeploymentPhaseInput,
+  containerNames: string[],
+  containerPort: number,
+) {
+  const running: Array<{ name: string; port: number }> = [];
+  for (const name of containerNames) {
+    const result = await input.session.run(
+      'set -euo pipefail\nif test "$(docker inspect --format \'{{.State.Running}}\' "$1" 2>/dev/null || true)" = true; then docker port "$1" "$2/tcp" | awk -F: \'NR==1 {print $NF}\'; fi',
+      [name, String(containerPort)],
+      { signal: input.signal, timeoutMs: 30_000 },
+    );
+    const port = Number.parseInt(result.stdout.trim(), 10);
+    if (Number.isInteger(port) && port > 0) running.push({ name, port });
+  }
+  return running;
+}
+
+async function stopContainer(
+  input: DeploymentPhaseInput,
+  name: string,
+  timeoutSeconds = 30,
+) {
+  await input.session.run(
+    'set -euo pipefail\ndocker stop --time "$2" "$1" >/dev/null 2>&1 || true',
+    [name, String(timeoutSeconds)],
+    { signal: input.signal, timeoutMs: (timeoutSeconds + 15) * 1_000 },
+  );
 }
 
 export async function finishPromotedDeployment(
   input: DeploymentPhaseInput & {
+    containerNames: string[];
     deferCleanup: boolean;
     retainedImageTags: string[];
     warnings: string[];
@@ -256,6 +782,39 @@ export async function finishPromotedDeployment(
     );
   }
 
+  await (
+    input.secrets.previousCloudflareTunnelCleanupBlocked
+      ? Promise.reject(new Error("Previous tunnel credentials are unavailable"))
+      : cleanupCloudflareTunnelTransition({
+          appId: deploymentRuntimeId(input.context),
+          current: input.secrets.cloudflareTunnel,
+          previous: input.secrets.previousCloudflareTunnel,
+          protectedHostnames: deploymentPublicHostnames(input.context.app),
+          session: input.session,
+        })
+  ).catch(async () => {
+    const warning =
+      "The release is live, but the previous Cloudflare Tunnel needs cleanup";
+    input.warnings.push(warning);
+    await safeLog(
+      input.hooks,
+      `${warning}.\n`,
+      "stderr",
+      input.sensitiveValues,
+    );
+  });
+  await input.cloudflareTunnelTransition?.finalize().catch(async () => {
+    const warning =
+      "The release is live, but Cloudflare Tunnel rollback state needs cleanup";
+    input.warnings.push(warning);
+    await safeLog(
+      input.hooks,
+      `${warning}.\n`,
+      "stderr",
+      input.sensitiveValues,
+    );
+  });
+
   await transition(
     input.hooks,
     "cleaning_up",
@@ -269,7 +828,7 @@ export async function finishPromotedDeployment(
       [
         input.remoteDirectory,
         deploymentCleanupId(input.context),
-        input.containerName,
+        JSON.stringify(input.containerNames),
         ...(input.deferCleanup ? ["20"] : []),
         ...input.retainedImageTags,
       ],
@@ -311,6 +870,14 @@ async function selectDeploymentSource(input: DeploymentPhaseInput) {
     );
     return undefined;
   }
+  if (applicationDeployment(input.context.app).type === "image") {
+    await transition(
+      input.hooks,
+      "fetching_source",
+      "Selecting the declared immutable application image",
+    );
+    return undefined;
+  }
   await transition(
     input.hooks,
     "fetching_source",
@@ -328,50 +895,381 @@ async function buildDeploymentImage(
   checkout: string,
 ) {
   const application = input.context.app as NormalizedApp;
+  const deployment = applicationDeployment(application);
   const contextArchive = path.join(input.localDirectory, "context.tar.gz");
-  const { relativeDockerfile } = await createBuildContextArchive({
-    archivePath: contextArchive,
-    checkout,
-    contextPath: application.context,
-    dockerfilePath: application.dockerfile,
-    signal: input.signal,
-  });
+  let relativeDockerfile = "";
+  if (deployment.type === "dockerfile") {
+    ({ relativeDockerfile } = await createBuildContextArchive({
+      archivePath: contextArchive,
+      checkout,
+      contextPath: deployment.context,
+      dockerfilePath: deployment.dockerfile,
+      signal: input.signal,
+    }));
+  } else {
+    if (deployment.type === "image")
+      throw new Error("Prebuilt images do not use a source checkout");
+    await createSourceContextArchive({
+      archivePath: contextArchive,
+      checkout,
+      contextPath: deployment.context,
+      signal: input.signal,
+    });
+  }
   await transition(
     input.hooks,
     "transferring",
     "Transferring minimal build context",
   );
-  await input.session.upload(
+  const buildSession = input.buildSession ?? input.session;
+  await buildSession.upload(
     contextArchive,
     `${input.remoteDirectory}/context.tar.gz`,
     { signal: input.signal },
   );
-  await uploadSecrets(input);
+  await uploadSecrets(input, buildSession, ["build", "registry"]);
   await transition(input.hooks, "building", "Building immutable Docker image");
+  const timeoutMs =
+    "timeoutSeconds" in deployment
+      ? deployment.timeoutSeconds * 1_000
+      : 45 * 60_000;
   await runWithSafeLogs({
     hooks: input.hooks,
     run: async (outputHandlers) =>
-      await input.session.run(
-        `export TOWBAR_APP_ID="$1" TOWBAR_COMMIT_SHA="$2" TOWBAR_SOURCE_ID="$3" TOWBAR_DEPLOYABLE_ID="$4"\nshift 4\n${buildRemoteScript}`,
+      await buildSession.run(
+        `export TOWBAR_APP_ID="$1" TOWBAR_COMMIT_SHA="$2" TOWBAR_SOURCE_ID="$3" TOWBAR_DEPLOYABLE_ID="$4"\nshift 4\n${buildScriptFor(deployment.type)}`,
         [
           deploymentRuntimeId(input.context),
           input.context.commitSha,
           input.context.sourceId,
           input.context.deployableId,
-          input.remoteDirectory,
-          input.imageTag,
-          relativeDockerfile,
-          String(MAX_SOURCE_EXPANDED_BYTES),
-          String(MAX_SOURCE_ARCHIVE_ENTRIES),
+          ...buildArguments(input, deployment, relativeDockerfile),
         ],
-        {
-          ...outputHandlers,
-          signal: input.signal,
-          timeoutMs: 45 * 60_000,
-        },
+        { ...outputHandlers, signal: input.signal, timeoutMs },
       ),
     sensitiveValues: input.sensitiveValues,
   });
+  if (input.buildSession) await transferBuiltImage(input);
+}
+
+async function transferBuiltImage(input: DeploymentPhaseInput) {
+  if (!input.buildSession) return;
+  if (input.context.buildServer?.transfer === "registry") {
+    if (!input.secrets.registry)
+      throw new Error("Registry build transfer credentials are unavailable");
+    const registryImage = registryTransferImage(input);
+    const { stdout } = await input.buildSession.run(
+      String.raw`set -euo pipefail
+remote_dir="$1"
+server="$2"
+source_image="$3"
+registry_image="$4"
+cat "$remote_dir/secrets/registry/password" | docker login "$server" --username "$(cat "$remote_dir/secrets/registry/username")" --password-stdin >/dev/null
+trap 'docker logout "$server" >/dev/null 2>&1 || true' EXIT
+docker image tag "$source_image" "$registry_image"
+docker push "$registry_image" >/dev/null
+docker image inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' "$registry_image" | grep '^'"$registry_image"'@sha256:' | head -1
+`,
+      [
+        input.remoteDirectory,
+        registryServer(input.secrets.registry.server),
+        input.imageTag,
+        registryImage,
+      ],
+      { signal: input.signal, timeoutMs: 30 * 60_000 },
+    );
+    const immutableImage = stdout
+      .split(/\r?\n/u)
+      .map((value) => value.trim())
+      .find((value) => value.startsWith(`${registryImage}@sha256:`));
+    if (!immutableImage?.match(/@sha256:[a-f0-9]{64}$/u))
+      throw new Error("Registry did not return an immutable image digest");
+    await input.session.run(
+      String.raw`set -euo pipefail
+remote_dir="$1"
+server="$2"
+immutable_image="$3"
+local_image="$4"
+cat "$remote_dir/secrets/registry/password" | docker login "$server" --username "$(cat "$remote_dir/secrets/registry/username")" --password-stdin >/dev/null
+trap 'docker logout "$server" >/dev/null 2>&1 || true' EXIT
+docker pull "$immutable_image" >/dev/null
+test "$(docker image inspect --format '{{index .RepoDigests 0}}' "$immutable_image" | sed 's/.*@//')" = "${"$"}{immutable_image##*@}"
+docker image tag "$immutable_image" "$local_image"
+docker image inspect "$local_image" >/dev/null
+`,
+      [
+        input.remoteDirectory,
+        registryServer(input.secrets.registry.server),
+        immutableImage,
+        input.imageTag,
+      ],
+      { signal: input.signal, timeoutMs: 30 * 60_000 },
+    );
+    return;
+  }
+  const remoteArchive = `${input.remoteDirectory}/image.tar.gz`;
+  const localArchive = path.join(input.localDirectory, "image.tar.gz");
+  const { stdout } = await input.buildSession.run(
+    String.raw`set -euo pipefail
+image_size="$(docker image inspect --format '{{.Size}}' "$1")"
+case "$image_size" in ''|*[!0-9]*) exit 65;; esac
+test "$image_size" -le "$3"
+available="$(df -PB1 "$(dirname "$2")" | awk 'NR==2 {print $4}')"
+test "$available" -ge "$((image_size + 268435456))"
+docker save "$1" | gzip -1 >"$2"
+archive_size="$(stat -c %s "$2")"
+test "$archive_size" -le "$3"
+printf '%s %s\n' "$(sha256sum "$2" | awk '{print $1}')" "$archive_size"
+`,
+    [input.imageTag, remoteArchive, String(maxBuildArtifactBytes)],
+    { signal: input.signal, timeoutMs: 30 * 60_000 },
+  );
+  const [expectedChecksum, rawArchiveSize] = stdout.trim().split(/\s+/u);
+  if (!expectedChecksum?.match(/^[a-f0-9]{64}$/u))
+    throw new Error("Build server did not return an image checksum");
+  const archiveSize = Number(rawArchiveSize);
+  if (
+    !Number.isSafeInteger(archiveSize) ||
+    archiveSize <= 0 ||
+    archiveSize > maxBuildArtifactBytes
+  )
+    throw new Error("Build artifact exceeds Towbar's 20 GiB transfer limit");
+  const localCapacity = await statfs(input.localDirectory);
+  if (
+    localCapacity.bavail * localCapacity.bsize <
+    archiveSize + buildArtifactCapacityMargin
+  )
+    throw new Error(
+      "The control plane does not have enough temporary capacity for this build artifact",
+    );
+  await input.buildSession.download(remoteArchive, localArchive, {
+    signal: input.signal,
+    timeoutMs: 30 * 60_000,
+  });
+  if ((await stat(localArchive)).size !== archiveSize)
+    throw new Error("Build artifact size changed during transfer");
+  await input.session.run(
+    String.raw`set -euo pipefail
+available="$(df -PB1 "$1" | awk 'NR==2 {print $4}')"
+test "$available" -ge "$(( $2 + 268435456 ))"
+`,
+    [input.remoteDirectory, String(archiveSize)],
+    { signal: input.signal, timeoutMs: 30_000 },
+  );
+  await input.session.upload(localArchive, remoteArchive, {
+    signal: input.signal,
+    timeoutMs: 30 * 60_000,
+  });
+  await input.session.run(
+    'set -euo pipefail\ntest "$(sha256sum "$1" | awk \'{print $1}\')" = "$2"\ngzip -cd "$1" | docker load >/dev/null\ndocker image inspect "$3" >/dev/null\nrm -f -- "$1"\n',
+    [remoteArchive, expectedChecksum, input.imageTag],
+    { signal: input.signal, timeoutMs: 30 * 60_000 },
+  );
+}
+
+export async function cleanupBuildServerArtifacts(input: DeploymentPhaseInput) {
+  if (!input.buildSession) return;
+  const tags = [input.imageTag];
+  if (
+    input.context.buildServer?.transfer === "registry" &&
+    input.secrets.registry
+  )
+    tags.push(registryTransferImage(input));
+  await input.buildSession.run(
+    'for image in "$@"; do docker image rm "$image" >/dev/null 2>&1 || true; done',
+    tags,
+    { timeoutMs: 120_000 },
+  );
+}
+
+function registryServer(value: string) {
+  return value.replace(/^https?:\/\//u, "").replace(/\/$/u, "");
+}
+
+function registryTransferImage(input: DeploymentPhaseInput) {
+  const server = registryServer(input.secrets.registry!.server);
+  return `${server}/towbar/${input.context.deployableId}:${input.context.deploymentId}`;
+}
+
+function buildScriptFor(
+  type: Exclude<ReturnType<typeof applicationDeployment>["type"], "image">,
+) {
+  if (type === "dockerfile") return buildRemoteScript;
+  if (type === "static") return staticBuildRemoteScript;
+  return builderBuildRemoteScript;
+}
+
+// eslint-disable-next-line complexity -- The argument matrix maps each supported buildpack contract to its immutable CLI invocation.
+function buildArguments(
+  input: DeploymentPhaseInput,
+  deployment: Exclude<
+    ReturnType<typeof applicationDeployment>,
+    { type: "image" }
+  >,
+  relativeDockerfile: string,
+) {
+  if (deployment.type === "dockerfile")
+    return [
+      input.remoteDirectory,
+      input.imageTag,
+      relativeDockerfile,
+      String(MAX_SOURCE_EXPANDED_BYTES),
+      String(MAX_SOURCE_ARCHIVE_ENTRIES),
+      JSON.stringify(deployment.arguments),
+      String(deployment.resources.cpus),
+      deployment.resources.memory,
+      deployment.target ?? "",
+      input.targetArchitecture ?? "",
+      String(deployment.cache?.enabled ?? true),
+      buildCacheScope(input, deployment.cache?.scope, deployment.type),
+    ];
+  if (deployment.type === "static")
+    return [
+      input.remoteDirectory,
+      input.imageTag,
+      deployment.output,
+      String(input.context.app.container.port),
+      deployment.nodeImage,
+      deployment.runtimeImage,
+      JSON.stringify(deployment.buildCommand ?? []),
+      String(deployment.spaFallback),
+      deployment.index,
+      deployment.errorPage ?? "",
+      JSON.stringify(deployment.headers ?? {}),
+      String(MAX_SOURCE_EXPANDED_BYTES),
+      String(MAX_SOURCE_ARCHIVE_ENTRIES),
+      JSON.stringify(deployment.arguments),
+      String(deployment.resources.cpus),
+      deployment.resources.memory,
+      input.targetArchitecture ?? "",
+      String(deployment.cache?.enabled ?? true),
+      buildCacheScope(input, deployment.cache?.scope, deployment.type),
+    ];
+  return [
+    input.remoteDirectory,
+    input.imageTag,
+    deployment.type,
+    deployment.type === "buildpack" ? deployment.packImage : deployment.image,
+    deployment.type === "buildpack" ? deployment.builder : "",
+    JSON.stringify(deployment.buildCommand ?? []),
+    JSON.stringify(deployment.startCommand ?? []),
+    input.targetArchitecture ?? "",
+    String(deployment.cache?.enabled ?? true),
+    JSON.stringify(
+      deployment.type === "buildpack" ? (deployment.buildpacks ?? []) : [],
+    ),
+    JSON.stringify(deployment.arguments),
+    String(MAX_SOURCE_EXPANDED_BYTES),
+    String(MAX_SOURCE_ARCHIVE_ENTRIES),
+    String(deployment.resources.cpus),
+    deployment.resources.memory,
+    deployment.type === "buildpack" ? "" : deployment.version,
+    deployment.configFile ?? "",
+    buildCacheScope(input, deployment.cache?.scope, deployment.type),
+  ];
+}
+
+function buildCacheScope(
+  input: DeploymentPhaseInput,
+  requested: string | undefined,
+  mode: string,
+) {
+  return createHash("sha256")
+    .update(
+      `${input.context.sourceId}\0${requested ?? input.context.deployableId}\0${mode}`,
+    )
+    .digest("hex")
+    .slice(0, 32);
+}
+
+async function verifyDeploymentArchitectures(input: DeploymentPhaseInput) {
+  const runtime = await serverArchitecture(input.session, input.signal);
+  if (isNormalizedResource(input.context.app)) return runtime;
+  const deployment = applicationDeployment(input.context.app);
+  const requested =
+    deployment.type === "image"
+      ? deployment.platform?.replace("linux/", "")
+      : "architecture" in deployment
+        ? deployment.architecture
+        : undefined;
+  if (requested && requested !== runtime)
+    throw new Error(
+      `Deployment targets linux/${requested}, but the runtime server is linux/${runtime}`,
+    );
+  if (
+    input.buildSession &&
+    !isNormalizedCompose(input.context.app) &&
+    input.context.app.buildServer?.architecture
+  ) {
+    const actual = await serverArchitecture(input.buildSession, input.signal);
+    if (actual !== input.context.app.buildServer.architecture)
+      throw new Error(
+        `Build server was declared as ${input.context.app.buildServer.architecture}, but reports ${actual}`,
+      );
+  }
+  return runtime;
+}
+
+async function serverArchitecture(session: SshSession, signal?: AbortSignal) {
+  const result = await session.run(
+    'set -euo pipefail\ncase "$(uname -m)" in x86_64|amd64) printf amd64 ;; aarch64|arm64) printf arm64 ;; *) echo "Unsupported server architecture" >&2; exit 65 ;; esac',
+    [],
+    { signal, timeoutMs: 30_000 },
+  );
+  const architecture = result.stdout.trim();
+  if (architecture !== "amd64" && architecture !== "arm64")
+    throw new Error("Server returned an invalid architecture");
+  return architecture;
+}
+
+async function pullApplicationImage(input: DeploymentPhaseInput) {
+  const deployment = applicationDeployment(input.context.app);
+  if (deployment.type !== "image")
+    throw new Error("Application image is missing");
+  await transition(input.hooks, "transferring", "No source transfer required");
+  await transition(
+    input.hooks,
+    "building",
+    "Pulling the declared application image",
+  );
+  await runWithSafeLogs({
+    hooks: input.hooks,
+    run: async (outputHandlers) =>
+      input.session.run(
+        pullApplicationImageRemoteScript,
+        [
+          deployment.image,
+          input.imageTag,
+          deployment.pullPolicy,
+          deployment.platform ?? "",
+          input.remoteDirectory,
+          input.secrets.registry
+            ? registryServer(input.secrets.registry.server)
+            : "",
+        ],
+        { ...outputHandlers, signal: input.signal, timeoutMs: 15 * 60_000 },
+      ),
+    sensitiveValues: input.sensitiveValues,
+  });
+}
+
+function applicationDeployment(
+  app: import("@workspace/towbar-core").NormalizedDeployable,
+) {
+  if (isNormalizedResource(app))
+    throw new Error("Managed resources do not have an application build mode");
+  if (isNormalizedCompose(app))
+    throw new Error("Compose workloads use the Compose deployment executor");
+  return (
+    app.deployment ?? {
+      type: "dockerfile" as const,
+      context: app.context,
+      arguments: {},
+      resources: { cpus: 2, memory: "2g" },
+      dockerfile: app.dockerfile ?? "Dockerfile",
+      timeoutSeconds: 2_700,
+    }
+  );
 }
 
 async function verifyRetainedImage(
@@ -383,7 +1281,8 @@ async function verifyRetainedImage(
     "transferring",
     "Transferring runtime configuration for retained release",
   );
-  if (uploadRuntimeSecrets) await uploadSecrets(input);
+  if (uploadRuntimeSecrets)
+    await uploadSecrets(input, input.session, ["runtime", "hooks"]);
   await transition(input.hooks, "building", "Verifying retained Docker image");
   await input.session.run(
     'docker image inspect "$1" >/dev/null',
@@ -397,21 +1296,32 @@ async function verifyRetainedImage(
 
 async function configureAndVerifyRouting(
   input: DeploymentPhaseInput,
-  candidatePort: number,
+  candidatePorts: number[],
+  verifyPublic = true,
 ) {
-  await transition(
-    input.hooks,
-    "configuring_routing",
-    "Reconciling DNS and validating generated Caddy routing",
-  );
+  if (verifyPublic) {
+    await transition(
+      input.hooks,
+      "configuring_routing",
+      "Reconciling DNS and validating generated Caddy routing",
+    );
+  } else {
+    await safeLog(
+      input.hooks,
+      "Applying an intermediate rolling route.\n",
+      "stdout",
+      input.sensitiveValues,
+    );
+  }
   await reconcileCloudflareForDeployment({
     app: input.context.app,
     appId: deploymentRuntimeId(input.context),
     credentials: input.secrets.cloudflare,
     server: input.context.server,
   });
-  await writeRoutingFiles(input, candidatePort);
+  await writeRoutingFiles(input, candidatePorts);
   if (!input.context.app.domains) {
+    if (!verifyPublic) return;
     await transition(
       input.hooks,
       "provisioning_tls",
@@ -437,16 +1347,31 @@ async function configureAndVerifyRouting(
       { signal: input.signal },
     );
   }
-  await transition(
-    input.hooks,
-    "provisioning_tls",
-    "Provisioning TLS through Caddy",
-  );
+  if (verifyPublic) {
+    await transition(
+      input.hooks,
+      "provisioning_tls",
+      "Provisioning TLS through Caddy",
+    );
+  }
   await input.session.run(
     configureCaddyScript,
     [input.remoteDirectory, deploymentRuntimeId(input.context)],
     { signal: input.signal, timeoutMs: 180_000 },
   );
+  if (!verifyPublic) return;
+  if (input.context.app.ingress?.type === "cloudflare-tunnel") {
+    if (!input.secrets.cloudflareTunnel)
+      throw new Error("Cloudflare Tunnel credentials were not resolved");
+    input.cloudflareTunnelTransition =
+      await reconcileCloudflareTunnelForDeployment({
+        ...input.secrets.cloudflareTunnel,
+        app: input.context.app,
+        appId: deploymentRuntimeId(input.context),
+        localDirectory: input.localDirectory,
+        session: input.session,
+      });
+  }
   await transition(
     input.hooks,
     "checking_public_endpoint",
@@ -484,6 +1409,7 @@ async function writeSecretFiles(
     postDeploy: path.join(localDirectory, "hook-secrets", "postDeploy"),
     preDeploy: path.join(localDirectory, "hook-secrets", "preDeploy"),
     runtime: path.join(localDirectory, "runtime-secrets"),
+    registry: path.join(localDirectory, "registry-secrets"),
   };
   await Promise.all(
     Object.values(directories).map((directory) =>
@@ -500,6 +1426,9 @@ async function writeSecretFiles(
     writeEntries(directories.runtime, secrets.runtime),
     writeEntries(directories.postDeploy, secrets.hooks.postDeploy),
     writeEntries(directories.preDeploy, secrets.hooks.preDeploy),
+    ...(secrets.registry
+      ? [writeEntries(directories.registry, secrets.registry)]
+      : []),
   ]);
 }
 
@@ -514,33 +1443,48 @@ async function writeEntries(
   );
 }
 
-async function uploadSecrets(input: DeploymentPhaseInput) {
+async function uploadSecrets(
+  input: DeploymentPhaseInput,
+  session: SshSession,
+  groups: Array<"build" | "hooks" | "registry" | "runtime">,
+) {
   const files = [
-    ...[...Object.keys(input.secrets.build), aggregateBuildSecretKey].map(
-      (key) => ["build-secrets", `build/${key}`, key] as const,
-    ),
-    ...Object.keys(input.secrets.runtime).map(
-      (key) => ["runtime-secrets", `runtime/${key}`, key] as const,
-    ),
-    ...(["postDeploy", "preDeploy"] as const).flatMap((hookName) =>
-      Object.keys(input.secrets.hooks[hookName]).map(
-        (key) =>
-          [
-            `hook-secrets/${hookName}`,
-            `hooks/${hookName}/${key}`,
-            key,
-          ] as const,
-      ),
-    ),
+    ...(groups.includes("build")
+      ? [...Object.keys(input.secrets.build), aggregateBuildSecretKey].map(
+          (key) => ["build-secrets", `build/${key}`, key] as const,
+        )
+      : []),
+    ...(groups.includes("runtime")
+      ? Object.keys(input.secrets.runtime).map(
+          (key) => ["runtime-secrets", `runtime/${key}`, key] as const,
+        )
+      : []),
+    ...(groups.includes("hooks")
+      ? (["postDeploy", "preDeploy"] as const).flatMap((hookName) =>
+          Object.keys(input.secrets.hooks[hookName]).map(
+            (key) =>
+              [
+                `hook-secrets/${hookName}`,
+                `hooks/${hookName}/${key}`,
+                key,
+              ] as const,
+          ),
+        )
+      : []),
+    ...(groups.includes("registry") && input.secrets.registry
+      ? (["username", "password"] as const).map(
+          (key) => ["registry-secrets", `registry/${key}`, key] as const,
+        )
+      : []),
   ];
   for (const [localParent, remotePath, key] of files) {
-    await input.session.upload(
+    await session.upload(
       path.join(input.localDirectory, localParent, key),
       `${input.remoteDirectory}/secrets/${remotePath}`,
       { signal: input.signal },
     );
   }
-  await input.session.run(
+  await session.run(
     'set -euo pipefail\nfind "$1"/secrets -type f -exec chmod 600 {} +\n',
     [input.remoteDirectory],
     { signal: input.signal },
@@ -557,16 +1501,17 @@ async function runDeploymentHook(
     hooks: input.hooks,
     run: async (outputHandlers) =>
       await input.session.run(
-        `export TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3"\nshift 3\n${hookRemoteScript}`,
+        `export TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3" TOWBAR_VOLUME_ARGS_JSON="$4"\nshift 4\n${hookRemoteScript}`,
         [
           deploymentRuntimeId(input.context),
           input.context.deploymentId,
           input.context.commitSha,
+          deploymentVolumeArguments(input.context),
           input.remoteDirectory,
           input.hookName,
           input.containerName,
           input.imageTag,
-          input.context.app.container.network ?? "",
+          deploymentNetwork(input.context) ?? "",
           input.context.app.container.resources
             ? String(input.context.app.container.resources.cpus)
             : "",
@@ -584,10 +1529,10 @@ async function runDeploymentHook(
   });
 }
 
-async function writeRoutingFiles(input: DeploymentPhaseInput, port: number) {
+async function writeRoutingFiles(input: DeploymentPhaseInput, ports: number[]) {
   await writeFile(
     path.join(input.localDirectory, "app.caddy"),
-    renderCaddyFragment(input.context, port),
+    renderCaddyFragment(input.context, ports),
     { mode: 0o600 },
   );
   if (input.secrets.cloudflare) {
@@ -604,10 +1549,11 @@ async function preflight(
   session: SshSession,
   requiresCloudflareModule: boolean,
   signal?: AbortSignal,
+  role: "build" | "runtime" = "runtime",
 ) {
   await session.run(
-    'set -euo pipefail\nrequires_cloudflare="$1"\n. /etc/os-release\ntest "$ID" = ubuntu\ncommand -v docker >/dev/null\ndocker info >/dev/null\ncommand -v caddy >/dev/null\ncommand -v python3 >/dev/null\ncommand -v timeout >/dev/null\nsudo -n /usr/bin/test -d /etc/caddy\nif test "$requires_cloudflare" = true; then caddy list-modules | grep -Fx dns.providers.cloudflare >/dev/null; fi\ntest "$(df -Pk /var/lib/docker | awk \'NR==2 {print $4}\')" -gt 1048576\n',
-    [String(requiresCloudflareModule)],
+    'set -euo pipefail\nrequires_cloudflare="$1"\nrole="$2"\n. /etc/os-release\ntest "$ID" = ubuntu\ncommand -v docker >/dev/null\ndocker info >/dev/null\ncommand -v python3 >/dev/null\ncommand -v timeout >/dev/null\nif test "$role" = runtime; then command -v caddy >/dev/null; sudo -n /usr/bin/test -d /etc/caddy; fi\nif test "$requires_cloudflare" = true; then caddy list-modules | grep -Fx dns.providers.cloudflare >/dev/null; fi\ntest "$(df -Pk /var/lib/docker | awk \'NR==2 {print $4}\')" -gt 1048576\n',
+    [String(requiresCloudflareModule), role],
     { signal, timeoutMs: 30_000 },
   );
 }

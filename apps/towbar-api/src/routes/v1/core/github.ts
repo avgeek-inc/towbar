@@ -1,3 +1,5 @@
+import { sessionUser } from "../../../http/session-user.js";
+import { getWorkspaceRepositoryBranches } from "../../../areas/github/branches.js";
 import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -9,6 +11,7 @@ import {
   getGitHubConnectionStatus,
   getWorkspaceGitHubRepositories,
 } from "../../../areas/github/service.js";
+import { getGitHubAppConfigurationMetadata } from "../../../areas/github/configuration.js";
 import { retryFailedPreviewReporting } from "../../../areas/previews/reporting-retry.js";
 import { getPreviewReportingHealth } from "../../../areas/previews/reporting-state.js";
 import { readJson } from "../../../http/requests.js";
@@ -27,24 +30,33 @@ export const githubRoutes = new Hono<TowbarHonoEnvironment>();
 githubRoutes.get(
   "/",
   operation({
+    permissions: ["integration.manage"],
     responseSchema: 'github.ts:get:"/"',
     summary: "Get GitHub integration",
-    response: "JSON object containing connection, previewReporting.",
+    response:
+      "JSON object containing configuration, connection, and previewReporting.",
     status: 200,
   }),
   async (context) => {
     const workspaceId = context.get("user").workspaceId;
-    const [connection, previewReporting] = await Promise.all([
+    const [configuration, connection, previewReporting] = await Promise.all([
+      getGitHubAppConfigurationMetadata(workspaceId),
       getGitHubConnectionStatus(workspaceId),
       getPreviewReportingHealth(workspaceId),
     ]);
-    return context.json({ connection, previewReporting });
+    return context.json({
+      canManage: context.get("user").workspaceRole === "admin",
+      configuration,
+      connection,
+      previewReporting,
+    });
   },
 );
 
 githubRoutes.post(
   "/actions/retry-preview-reporting",
   operation({
+    permissions: ["integration.manage"],
     responseSchema: 'github.ts:post:"/actions/retry-preview-reporting"',
     summary: "Retry failed preview reporting",
     response: "The number of preview reports queued for retry.",
@@ -61,6 +73,7 @@ githubRoutes.post(
 githubRoutes.post(
   "/actions/installation-url",
   operation({
+    permissions: ["integration.manage"],
     responseSchema: 'github.ts:post:"/actions/installation-url"',
     summary: "Create installation URL",
     browserOnly: true,
@@ -70,7 +83,7 @@ githubRoutes.post(
   async (context) => {
     const user = context.get("user");
     const url = await createInstallationUrl({
-      userId: user.id,
+      userId: sessionUser(context).id,
       workspaceId: user.workspaceId,
     });
     return context.json({ url });
@@ -80,6 +93,7 @@ githubRoutes.post(
 githubRoutes.post(
   "/actions/complete-installation",
   operation({
+    permissions: ["integration.manage"],
     responseSchema: 'github.ts:post:"/actions/complete-installation"',
     summary: "Complete installation",
     browserOnly: true,
@@ -92,7 +106,7 @@ githubRoutes.post(
     const user = context.get("user");
     const installation = await completeInstallation({
       ...input,
-      userId: user.id,
+      userId: sessionUser(context).id,
       workspaceId: user.workspaceId,
     });
     return context.json({ installation }, 201);
@@ -102,6 +116,7 @@ githubRoutes.post(
 githubRoutes.get(
   "/repositories",
   operation({
+    permissions: ["githubInstallation.read"],
     responseSchema: 'github.ts:get:"/repositories"',
     summary: "Get workspace GitHub repositories",
     response: "JSON object containing repositories.",
@@ -115,9 +130,38 @@ githubRoutes.get(
   },
 );
 
+const branchesQuery = z
+  .object({
+    owner: z.string().trim().min(1).max(255),
+    repository: z.string().trim().min(1).max(255),
+  })
+  .strict();
+
+githubRoutes.get(
+  "/branches",
+  operation({
+    permissions: ["githubInstallation.read"],
+    responseSchema: 'github.ts:get:"/branches"',
+    summary: "List repository branches",
+    query: branchesQuery,
+    response:
+      "Repository branch names available to the workspace GitHub installation.",
+    status: 200,
+  }),
+  async (context) => {
+    const input = branchesQuery.parse(context.req.query());
+    const branches = await getWorkspaceRepositoryBranches(
+      context.get("user").workspaceId,
+      input,
+    );
+    return context.json({ branches });
+  },
+);
+
 githubRoutes.delete(
   "/",
   operation({
+    permissions: ["integration.manage"],
     responseSchema: 'github.ts:delete:"/"',
     summary: "Disconnect GitHub",
     response: "No response body.",
@@ -126,5 +170,30 @@ githubRoutes.delete(
   async (context) => {
     await disconnectGitHub(context.get("user").workspaceId);
     return context.body(null, 204);
+  },
+);
+
+githubRoutes.get(
+  "/installation",
+  operation({
+    permissions: ["githubInstallation.read"],
+    summary: "Get connected GitHub installation",
+    responseSchema: 'github.ts:get:"/installation"',
+    response: "Connected installation metadata without provider credentials.",
+  }),
+  async (context) => {
+    const connection = await getGitHubConnectionStatus(
+      context.get("user").workspaceId,
+    );
+    return context.json({
+      connection: connection
+        ? {
+            id: connection.id,
+            accountLogin: connection.accountLogin,
+            accountType: connection.accountType,
+            suspendedAt: connection.suspendedAt,
+          }
+        : null,
+    });
   },
 );

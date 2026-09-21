@@ -1,6 +1,11 @@
 export * from "./client";
 export * from "./types";
 export type {
+  DateTimePreferences,
+  DateTimeLocalization,
+  LocalizedTimestamp,
+} from "@workspace/towbar-core/date-time";
+export type {
   RuntimeCapacity,
   SystemHealth,
   SystemHealthCheck,
@@ -26,3 +31,5 @@ export type {
 } from "@workspace/towbar-core";
 
 export { deploymentStates } from "@workspace/towbar-core/temporal";
+
+export type { AuditEventIcon } from "@workspace/towbar-core";

@@ -3,7 +3,7 @@ import type { App, Resource } from "@workspace/towbar-web-client";
 type InventoryItem = Pick<
   App | Resource,
   "sourceId" | "serverIp" | "archivedAt"
->;
+> & { entityId?: string | null };
 
 export function countSourceInventory(
   apps: InventoryItem[],
@@ -17,6 +17,7 @@ export function countSourceInventory(
     ["apps", apps],
     ["resources", resources],
   ] as const) {
+    const counted = new Set<unknown>();
     for (const item of items) {
       if (item.archivedAt) continue;
       const count = counts.get(item.sourceId) ?? {
@@ -24,7 +25,9 @@ export function countSourceInventory(
         resources: 0,
         servers: new Set<string>(),
       };
-      count[kind] += 1;
+      const key = item.entityId ? `${item.sourceId}:${item.entityId}` : item;
+      if (!counted.has(key)) count[kind] += 1;
+      counted.add(key);
       count.servers.add(item.serverIp);
       counts.set(item.sourceId, count);
     }

@@ -18,7 +18,6 @@ import { EmptyState } from "@workspace/web-design-system/data-display/empty-stat
 import { Table } from "@workspace/web-design-system/data-display/table";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { cn } from "@workspace/web-design-system/lib/utils";
-import { TypographyHeading } from "@workspace/web-design-system/typography/typography";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { AppIdentity, ResourceIdentity } from "./deployable-identity";
@@ -34,6 +33,10 @@ import { formatBytes } from "./runtime-operations";
 
 type MeterStatus = "healthy" | "attention" | "critical";
 export type RuntimeMetric = RuntimeCapacity["runtimes"][number];
+
+function isApp(item: App | Resource): item is App {
+  return item.kind === "app" || item.kind === "compose";
+}
 
 const capacityStatusPresentation = {
   attention: { label: "Attention", variant: "warning" as const },
@@ -167,7 +170,7 @@ export function ServerDeployableTable({
                 <Table.Row id={item.id} key={item.id}>
                   <Table.Cell>
                     <div className="min-w-80">
-                      {item.kind === "app" ? (
+                      {isApp(item) ? (
                         <AppIdentity app={item} healthStatus={healthStatus} />
                       ) : (
                         <ResourceIdentity
@@ -337,12 +340,9 @@ function CapacityValue({
   return (
     <div className="grid content-start gap-0.5">
       <span className="text-sm font-medium">{label}</span>
-      <TypographyHeading
-        className="font-medium font-mono leading-5 tabular-nums"
-        level={5}
-      >
+      <span className="text-md font-medium font-mono leading-4 tabular-nums">
         {value}
-      </TypographyHeading>
+      </span>
       <span className="text-xs text-muted">{detail}</span>
     </div>
   );

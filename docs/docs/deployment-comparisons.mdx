@@ -3,36 +3,40 @@ title: Deployment comparisons
 description: Compare two deployments with equal observation windows, resource usage changes, restarts, and data coverage.
 ---
 
-Open an app or resource and choose **Scout Agent → Compare deployments**. Select a baseline and a deployment to compare, choose the observation window, and select **Compare deployments**.
+Open an app or resource and choose **Monitor → Compare deployments**. Select a baseline and a deployment to compare, choose the observation window, and select **Compare deployments**.
 
 Both deployments must have succeeded, belong to the same workload, and run in the same production or individual preview environment. The list includes the latest 100 successful deployments. The comparison uses the deployment identity reported by Scout, so another release's containers are not silently included.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
     <img
-      src="/assets/guides/deployment-comparison-light.webp"
-      alt="Deployment performance comparison"
-      width="2160"
-      height="1860"
+      src="/assets/release-v2/deployment-comparison-light.jpg"
+      alt="Compare resource usage over equal periods after two deployments became ready."
+      width="1280"
+      height="720"
       loading="lazy"
     />
   </div>
   <div className="towbar-product-dark">
     <img
-      src="/assets/guides/deployment-comparison-dark.webp"
-      alt="Deployment performance comparison"
-      width="2160"
-      height="1860"
+      src="/assets/release-v2/deployment-comparison-dark.jpg"
+      alt="Compare resource usage over equal periods after two deployments became ready."
+      width="1280"
+      height="720"
       loading="lazy"
     />
   </div>
+  <p>
+    Compare resource usage over equal periods after two deployments became
+    ready.
+  </p>
 </div>
 
 ## Choose a fair window
 
 Each window starts after the deployment's recorded completion time plus your warm-up period. The default compares **30 minutes**, skipping the first **2 minutes**. Configure a window from 5 minutes to 24 hours and warm-up from zero to 60 minutes.
 
-Charts align by time since the start of each observation window. For example, the ten-minute point compares the tenth minute of both deployments, even if they shipped on different days. Dates and coverage remain visible beside each deployment.
+Charts align by time since the start of each observation window. For example, the ten-minute point compares the tenth minute of both deployments, even if they shipped on different days. The selectors show each deployment's commit and date. The results report coverage for the selected windows.
 
 Choose **Average usage** for sustained resource demand or **Peak usage** for spikes. Averages are weighted by sample count. Peak totals sum each container's maximum within a reporting interval; these maxima may not have occurred at the same instant. Comparisons across servers or changed configuration include a warning.
 

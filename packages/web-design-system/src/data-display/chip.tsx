@@ -2,6 +2,7 @@
 
 import { Chip as HeroChip, Spinner } from "@heroui/react";
 import type { ComponentProps, ReactNode } from "react";
+import { TooltipText } from "../overlays/tooltip";
 
 type ChipVariant =
   | "default"
@@ -20,6 +21,7 @@ export type ChipProps = Omit<
   loading?: boolean;
   icon?: ReactNode;
   size?: ChipSize;
+  tooltip?: ReactNode;
   variant?: ChipVariant;
 };
 
@@ -39,6 +41,7 @@ export function Chip({
   loading,
   icon,
   size,
+  tooltip,
   variant,
   ...props
 }: ChipProps) {
@@ -46,7 +49,7 @@ export function Chip({
     typeof children === "number" ||
     (typeof children === "string" &&
       /^\s*[+-]?\d[\d,]*(?:\.\d+)?\s*$/.test(children));
-  return (
+  const chip = (
     <HeroChip
       aria-busy={loading || undefined}
       color={variant ? colors[variant] : undefined}
@@ -61,7 +64,7 @@ export function Chip({
         {!loading && icon ? (
           <span
             aria-hidden="true"
-            className="inline-flex shrink-0 [&_svg]:size-3.5 [&_svg]:text-current"
+            className="inline-flex shrink-0 text-current [&_svg]:m-0 [&_svg]:size-3.5 [&_svg]:!text-current"
           >
             {icon}
           </span>
@@ -69,5 +72,12 @@ export function Chip({
         {children}
       </HeroChip.Label>
     </HeroChip>
+  );
+  return tooltip ? (
+    <TooltipText className="inline-flex" tooltip={tooltip}>
+      {chip}
+    </TooltipText>
+  ) : (
+    chip
   );
 }

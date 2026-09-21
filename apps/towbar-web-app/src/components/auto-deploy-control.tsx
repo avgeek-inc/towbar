@@ -14,6 +14,7 @@ import { Switch } from "@workspace/web-design-system/forms/switch";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
+import { EnvironmentAutomationControls } from "./environment-automation-controls";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 
@@ -67,55 +68,62 @@ export function AutoDeployControlEditor({
     type !== "source" &&
     !paused &&
     query.data.autoDeploy.effective.paused &&
-    query.data.autoDeploy.effective.scope === "source";
+    query.data.autoDeploy.effective.scope !== "deployable";
 
   return (
-    <form onSubmit={save}>
-      <Widget>
-        <Widget.Header>
-          <Widget.Title icon={<HugeiconsIcon icon={Rocket01Icon} />}>
-            Auto-deploy
-          </Widget.Title>
-        </Widget.Header>
-        <Widget.Content className="content-grid">
-          <Switch
-            isDisabled={!query.data.canManageAutoDeploy}
-            isSelected={paused}
-            onChange={setPaused}
-          >
-            <Switch.Content className="min-h-11">
-              <Switch.Control>
-                <Switch.Thumb />
-              </Switch.Control>
-              <span className="grid gap-1">
-                <Label>Pause automatic deployments</Label>
-                <span className="text-sm text-muted">
-                  {inheritedPause
-                    ? "Automatic deployments are currently paused for the entire Source."
-                    : "Running and queued deployments continue, and manual deployments remain available."}
+    <div className="content-grid">
+      <form onSubmit={save}>
+        <Widget>
+          <Widget.Header>
+            <Widget.Title icon={<HugeiconsIcon icon={Rocket01Icon} />}>
+              Auto-deploy
+            </Widget.Title>
+          </Widget.Header>
+          <Widget.Content className="content-grid">
+            <Switch
+              isDisabled={!query.data.canManageAutoDeploy}
+              isSelected={paused}
+              onChange={setPaused}
+            >
+              <Switch.Content className="min-h-11">
+                <Switch.Control>
+                  <Switch.Thumb />
+                </Switch.Control>
+                <span className="grid gap-1">
+                  <Label>Pause automatic deployments</Label>
+                  <span className="text-sm text-muted">
+                    {inheritedPause
+                      ? query.data.autoDeploy.effective.scope === "environment"
+                        ? "Automatic deployments are paused for this environment. Review its branch mapping in Repository auto-deploy settings."
+                        : "Automatic deployments are currently paused for the entire Repository."
+                      : "Running and queued deployments continue, and manual deployments remain available."}
+                  </span>
                 </span>
-              </span>
-            </Switch.Content>
-          </Switch>
-          <Button
-            className="w-fit"
-            isDisabled={
-              saving ||
-              !query.data.canManageAutoDeploy ||
-              paused === query.data.autoDeploy.paused
-            }
-            type="submit"
-          >
-            <HugeiconsIcon
-              aria-hidden="true"
-              icon={FloppyDiskIcon}
-              className="size-4 shrink-0"
-            />
-            {saving ? "Saving…" : "Save"}
-          </Button>
-        </Widget.Content>
-      </Widget>
-    </form>
+              </Switch.Content>
+            </Switch>
+            <Button
+              className="w-fit"
+              isDisabled={
+                saving ||
+                !query.data.canManageAutoDeploy ||
+                paused === query.data.autoDeploy.paused
+              }
+              type="submit"
+            >
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={FloppyDiskIcon}
+                className="size-4 shrink-0"
+              />
+              {saving ? "Saving…" : "Save"}
+            </Button>
+          </Widget.Content>
+        </Widget>
+      </form>
+      {type === "source" ? (
+        <EnvironmentAutomationControls sourceId={id} />
+      ) : null}
+    </div>
   );
 }
 

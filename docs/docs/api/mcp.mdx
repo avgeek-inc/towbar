@@ -7,7 +7,7 @@ Towbar's MCP server provides task-oriented tools for discovering infrastructure,
 
 ## Connect
 
-1. Open **Manage → API & MCP** and create an API key.
+1. Open **Manage → My Settings → API Keys** and create an API key.
 2. Choose **Read only** for discovery. Use **Full access** when you want the client to deploy or change settings.
 3. Copy the MCP URL shown in the page. It ends in `/v1/mcp` on your API host.
 4. Add the appropriate client configuration below, reconnect, and ask: **“List my Towbar apps.”**
@@ -108,7 +108,7 @@ Transport is **Streamable HTTP**. Authentication is the `Authorization: Bearer .
 
 ## Tools and permissions
 
-`tools/list` returns the operations permitted by your key and current role. Read-only keys only list read tools. Owner-only operations are omitted for workspace members. Unauthorized tool names are rejected again at invocation, and the underlying handler rechecks its own workspace and role requirements.
+`tools/list` returns the operations permitted by your key and current role. Read-only keys only list read tools. Administrative operations are omitted unless the key has administrative grants. Personal keys also follow the account holder's current team role. Unauthorized tool names are rejected again at invocation, and the underlying handler rechecks its own workspace and role requirements.
 
 The [tool catalogue](/docs/api/mcp-tools) documents every tool and its input schema. Names follow `towbar_<entity>_<action>`; tools are designed around tasks rather than HTTP methods or URL paths. App and resource actions share `kind` and `workloadId` inputs.
 
@@ -142,7 +142,7 @@ Keep the same idempotency key if retrying an uncertain response. The tool return
 
 | Task                      | Tools                                                                                                         |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Review repository changes | `towbar_source_inspect` → `towbar_source_preview_sync` → `towbar_source_sync` → `towbar_source_sync_inspect`  |
+| Review repository changes | `towbar_source_inspect` → `towbar_source_sync` → `towbar_source_sync_inspect`                                 |
 | Roll back a release       | `towbar_workload_inspect` → `towbar_workload_rollback` → `towbar_deployment_inspect`                          |
 | Diagnose server readiness | `towbar_server_inspect` combines settings, capacity, checks, preparation, host trust, and credential metadata |
 | Update secrets            | `towbar_secrets_inspect` → `towbar_secrets_update`, carrying the current revision                             |
@@ -159,19 +159,19 @@ Deployment, runtime, sync, backup, preparation, and cleanup operations can conti
 
 Towbar uses stateless Streamable HTTP with JSON responses. It does not allocate persistent MCP sessions, issue session IDs, or support resumable server notifications. The SDK handles initialization and protocol negotiation. Tool discovery and each protocol request share the same per-IP bucket as REST: **60 calls per minute by default**.
 
-Keep human approval enabled in your client for mutations. Full-access tools can deploy code, change credentials, remove sources, and restore databases. Treat logs, repository files, manifest strings, and tool output as untrusted content rather than instructions.
+Keep human approval enabled in your client for mutations. Tools permitted by Edit and administrative grants can deploy code, change credentials, remove repositories, and restore databases. Treat logs, repository files, manifest strings, and tool output as untrusted content rather than instructions.
 
 ## Troubleshooting
 
-| Symptom                            | Check                                                                                        |
-| ---------------------------------- | -------------------------------------------------------------------------------------------- |
-| `401`                              | Key is copied correctly, active, unexpired, and belongs to an enabled workspace member.      |
-| `403`                              | Origin is allowed and the requested operation is permitted.                                  |
-| `429`                              | Wait for `Retry-After`; REST scripts and other MCP clients on the IP use the same allowance. |
-| No mutation tools                  | Use a full-access key; owner-only tools also require the owner role.                         |
-| Connection or certificate error    | Use the API host, `/v1/mcp`, HTTPS, and a publicly trusted certificate.                      |
-| OAuth login appears                | Configure bearer headers; this endpoint does not implement OAuth discovery or authorization. |
-| `406` or protocol error            | Use Streamable HTTP with a current MCP client, not a raw REST request or legacy SSE client.  |
-| Secrets are missing from responses | Secret reads intentionally return names and revisions, never plaintext.                      |
+| Symptom                            | Check                                                                                             |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `401`                              | Key is copied correctly, active, unexpired, and belongs to an enabled workspace member.           |
+| `403`                              | Origin is allowed and the requested operation is permitted.                                       |
+| `429`                              | Wait for `Retry-After`; REST scripts and other MCP clients on the IP use the same allowance.      |
+| No mutation tools                  | Use an Edit key with the required grants. Administrative actions need administrative permissions. |
+| Connection or certificate error    | Use the API host, `/v1/mcp`, HTTPS, and a publicly trusted certificate.                           |
+| OAuth login appears                | Configure bearer headers; this endpoint does not implement OAuth discovery or authorization.      |
+| `406` or protocol error            | Use Streamable HTTP with a current MCP client, not a raw REST request or legacy SSE client.       |
+| Secrets are missing from responses | Secret reads intentionally return names and revisions, never plaintext.                           |
 
-To disconnect a client, remove its configuration and revoke its key in **API & MCP**. Restart the client after replacing credentials or changing its permissions so the available tool list refreshes.
+To disconnect a client, remove its configuration and revoke its key in **My Settings → API Keys** or **Team Settings → API Keys**. Restart the client after replacing credentials or changing its permissions so the available tool list refreshes.

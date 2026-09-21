@@ -1,3 +1,4 @@
+import { testInstanceLinks } from "../sources/instance-test-helper.js";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
@@ -8,7 +9,7 @@ import {
 } from "@workspace/towbar-core";
 import {
   apps,
-  githubInstallations,
+  integrationInstallations,
   monitoringSamples,
   notificationEvents,
   sources,
@@ -23,24 +24,24 @@ export async function assertScoutWorkloadLinks(
   const db = getTowbarDatabase();
   const sourceId = randomUUID();
   const [installation] = await db
-    .insert(githubInstallations)
+    .insert(integrationInstallations)
     .values({
+      provider: "github",
       workspaceId: scope.workspaceId,
-      installationId: randomUUID(),
-      accountLogin: "example",
-      accountType: "Organization",
+      externalId: randomUUID(),
+      principalName: "example",
+      principalType: "Organization",
     })
     .returning();
   await db.insert(sources).values({
     id: sourceId,
     workspaceId: scope.workspaceId,
-    githubInstallationId: installation!.id,
+    integrationInstallationId: installation!.id,
     repositoryOwner: "example",
     repositoryName: "links",
-    branch: "main",
   });
   const manifest = normalizeDeploymentManifest({
-    version: 1,
+    version: 2,
     apps: [
       {
         id: "app",
@@ -66,6 +67,11 @@ export async function assertScoutWorkloadLinks(
   for (const [index, kind] of ["app", "postgres"].entries()) {
     const id = ids[index]!;
     await db.insert(apps).values({
+      ...(await testInstanceLinks(
+        sourceId,
+        kind,
+        kind === "app" ? "app" : "resource",
+      )),
       id,
       kind: kind as "app" | "postgres",
       workspaceId: scope.workspaceId,
@@ -103,7 +109,7 @@ export async function assertScoutWorkloadLinks(
     const event = events.find((entry) => entry.payload.entity.id === id);
     assert(event, "The workload alert should produce a notification");
     const target = new URL(String(event.payload.details.performance));
-    assert.equal(target.pathname, `/sources/${sourceId}/${segment}/${id}`);
+    assert.equal(target.pathname, `/${segment}/${id}`);
     assert.equal(target.searchParams.get("section"), "monitoring");
   }
 }

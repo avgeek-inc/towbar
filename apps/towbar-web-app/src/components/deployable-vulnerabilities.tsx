@@ -16,12 +16,14 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { RelativeTime } from "./last-synced-time";
 import {
   severityVariant,
+  severityTooltip,
   VulnerabilitySeverityWidgets,
 } from "./vulnerability-severity-widgets";
 import type {
   VulnerabilityFindingSummary,
   WorkspaceVulnerabilityFindings,
 } from "@workspace/towbar-web-client";
+import { VulnerabilityAdvisoryLink } from "./vulnerability-advisory-link";
 
 export function DeployableVulnerabilities({
   appId,
@@ -56,14 +58,19 @@ export function DeployableVulnerabilities({
     {
       key: "advisory",
       header: "Advisory",
-      cell: (finding) => <TypographyCode>{finding.advisoryId}</TypographyCode>,
+      cell: (finding) => (
+        <VulnerabilityAdvisoryLink advisoryId={finding.advisoryId} />
+      ),
       className: "whitespace-nowrap",
     },
     {
       key: "severity",
       header: "Severity",
       cell: (finding) => (
-        <Chip variant={severityVariant(finding.severity)}>
+        <Chip
+          variant={severityVariant(finding.severity)}
+          tooltip={severityTooltip(finding.severity)}
+        >
           {finding.severity}
         </Chip>
       ),
@@ -129,7 +136,6 @@ export function DeployableVulnerabilities({
       <div className="flex items-center justify-end gap-3">
         <span className="text-sm text-muted">Page {page}</span>
         <Button
-          size="sm"
           variant="secondary"
           isDisabled={page === 1}
           onPress={() => setPage(page - 1)}
@@ -138,7 +144,6 @@ export function DeployableVulnerabilities({
           Previous
         </Button>
         <Button
-          size="sm"
           variant="secondary"
           isDisabled={!query.data.nextPage}
           onPress={() => setPage(page + 1)}

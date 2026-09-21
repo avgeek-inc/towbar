@@ -26,12 +26,13 @@ The homepage pairs the seven-day **Deployments trend** with app, resource, serve
     icon="server"
     href="/docs/self-hosting/installation"
   >
-    Run the control plane with Docker Compose and create your owner account.
+    Run the control plane with Docker Compose and create your team and first
+    Admin account.
   </Card>
 </CardGroup>
 
 New to the model? Read [Core concepts](/docs/concepts) for the difference between
-Sources, servers, workloads, deployments, and releases.
+Repositories, servers, workloads, deployments, and releases.
 
 ## Build and deploy
 
@@ -40,7 +41,7 @@ Sources, servers, workloads, deployments, and releases.
     Configure Dockerfile builds, health checks, and resource allocations.
   </Card>
   <Card title="Resources" icon="database" href="/docs/resources">
-    Run PostgreSQL, Redis, and services from container images.
+    Run eight managed database engines and services from container images.
   </Card>
   <Card
     title="Preview environments"
@@ -53,21 +54,21 @@ Sources, servers, workloads, deployments, and releases.
 
 ## Filter and share views
 
-The secondary sidebar contains the current page’s filters and sections. On mobile, open **Page menu**. Apps, Resources, Servers, and Sources have **All** and **Needs attention** views with counts for the full inventory.
+The secondary sidebar contains the current page’s filters and sections. On mobile, open **Page menu**. Apps, Resources, Servers, and Repositories have **All** and **Needs attention** views with counts for the full inventory.
 
-- **Apps and Resources:** filter by Source, server, running state, and health. Resources also supports resource type.
+- **Apps and Resources:** filter by Repository, server, running state, and health. Resources also supports resource type.
 - **Servers:** filter by setup status, latest check health, and Scout Agent status. An absent or unfinished check is shown as unknown.
-- **Sources:** filter by latest sync result and whether automatic deployments are enabled or paused.
+- **Repositories:** filter by latest sync result and whether automatic deployments are enabled or paused.
 
-Needs attention includes workloads with unprepared servers, unhealthy runtime checks, configuration drift, or a missing/stopped container that should be running. Servers need attention when setup is pending or failed, the latest check failed, or an enabled Scout Agent is offline or in error. Sources need attention after a failed latest sync. An intentionally stopped workload or a disabled Scout Agent does not by itself need attention.
+Needs attention includes workloads with unprepared servers, unhealthy runtime checks, configuration drift, or a missing/stopped container that should be running. Servers need attention when setup is pending or failed, the latest check failed, or an enabled Scout Agent is offline or in error. Repositories need attention after a failed latest sync. An intentionally stopped workload or a disabled Scout Agent does not by itself need attention.
 
-Search and filter selections are stored in the URL. Opening a copied URL restores the view; browser Back and Forward restore earlier selections. Performance and Alerts links also retain the selected entity. Monitoring links preserve the time range, environment, aggregation, and instance selection, while shared-secret links preserve environment and stage. Secret values are never included in these links.
+Search and filter selections are stored in the URL. Opening a copied URL restores the view; browser Back and Forward restore earlier selections. Monitoring links preserve the time range, environment, aggregation, and instance selection, while secret-editor links preserve the selected stage and, where applicable, environment. Secret values are never included in these links.
 
 ## Operate with context
 
 | I want to…                    | Read                                                                                 |
 | ----------------------------- | ------------------------------------------------------------------------------------ |
-| Connect a repository          | [Sources](/docs/sources)                                                             |
+| Connect a repository          | [Repositories](/docs/repositories)                                                   |
 | Add or prepare a host         | [Servers](/docs/servers)                                                             |
 | Set environment values        | [Shared secrets](/docs/secrets)                                                      |
 | Expose a service securely     | [Domains and TLS](/docs/domains-tls)                                                 |
@@ -83,10 +84,16 @@ Search and filter selections are stored in the URL. Opening a copied URL restore
 - [Deployment comparisons](/docs/deployment-comparisons): compare resource usage over equal observation windows.
 - [Vulnerability scanning](/docs/vulnerability-scanning): review image findings and available package fixes.
 
+## Manage your workspace
+
+- [Team settings](/docs/team-settings): manage members, invitations, roles, and team API keys.
+- [Personal settings](/docs/personal-settings): update your account, configure sign-in methods, and manage personal API keys.
+- [SSH keys](/docs/ssh-keys): store the keys used for server connections.
+
 ## What Towbar expects
 
 Towbar is designed for teams that manage their own Ubuntu hosts and trust the
-repositories they deploy. Builds run on those hosts. Server maintenance, DNS,
+repositories they deploy. Builds run on those hosts. Host administration, DNS,
 backup storage, and repository access remain under your control.
 
 Before exposing an installation publicly, review [installation configuration](/docs/reference/environment-variables)

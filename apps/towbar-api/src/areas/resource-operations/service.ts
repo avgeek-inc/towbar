@@ -1,12 +1,16 @@
-import { and, desc, eq, isNull, max } from "drizzle-orm";
+import { recordAuditEvent } from "../../infrastructure/audit.js";
+import { auditAttribution } from "../auth/actor-context.js";
+import { and, desc, eq, inArray, isNull, max } from "drizzle-orm";
 import {
+  backupOperationResultSchema,
+  isNormalizedCompose,
   isNormalizedResource,
+  managedResourceTypes,
   restoreOperationPhaseSchema,
   restoreOperationResultSchema,
 } from "@workspace/towbar-core";
 import {
   apps,
-  auditEvents,
   resourceOperationEvents,
   resourceOperations,
   servers,
@@ -16,7 +20,7 @@ import { conflict, notFound, unprocessable } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { cancelResourceOperationWorkflow } from "../../infrastructure/temporal.js";
 import { emitResourceOperationNotification } from "../notifications/events.js";
-import { hasAwsCredentials } from "../aws/service.js";
+import { requireBackupCredentials } from "./credentials.js";
 import { admitOperation } from "./admission.js";
 import { assureResourceBackup } from "./backup-assurance.js";
 import {
@@ -80,8 +84,13 @@ export async function requestDeployableOperation(input: {
   requestedBy: string | null;
   request:
     | { type: "backup" }
-    | { tail: number; type: "capture_logs" }
-    | { type: "restart" | "start" | "stop" };
+    | {
+        runtime?: "workload" | "ingress";
+        service?: string;
+        tail: number;
+        type: "capture_logs";
+      }
+    | { service?: string; type: "restart" | "start" | "stop" };
   workspaceId: string;
 }) {
   const target = await getDeployableTarget(
@@ -103,10 +112,46 @@ export async function requestDeployableOperation(input: {
   if (!target.currentRelease) {
     throw unprocessable("Deploy this item before using runtime operations");
   }
+  if (
+    "service" in input.request &&
+    input.request.service !== undefined &&
+    target.config.kind !== "compose"
+  ) {
+    throw unprocessable(
+      "A service can only be selected for a Compose workload",
+      "COMPOSE_SERVICE_UNAVAILABLE",
+    );
+  }
+  if (
+    input.request.type === "capture_logs" &&
+    input.request.runtime === "ingress"
+  ) {
+    if (input.request.service !== undefined) {
+      throw unprocessable(
+        "A Compose service cannot be selected for ingress log capture",
+        "INGRESS_LOG_TARGET_INVALID",
+      );
+    }
+    const hasCloudflareTunnel = isNormalizedCompose(target.config)
+      ? Object.values(target.config.services).some(
+          (service) => service.ingress?.type === "cloudflare-tunnel",
+        )
+      : target.config.ingress?.type === "cloudflare-tunnel";
+    if (!hasCloudflareTunnel) {
+      throw unprocessable(
+        "Cloudflare Tunnel is not configured for this deployable",
+        "INGRESS_LOG_TARGET_UNAVAILABLE",
+      );
+    }
+  }
   const release = target.currentRelease;
   if (input.request.type === "backup") {
-    requireBackupResource(target.config);
-    await requireAwsCredentials(input.workspaceId);
+    const resource = requireBackupResource(target.config);
+    await requireBackupCredentials(input.workspaceId, {
+      s3: Boolean(resource.backup!.s3),
+      gcs: Boolean(resource.backup!.gcs),
+      azureBlob: Boolean(resource.backup!.azureBlob),
+    });
   }
   return await admitOperation({
     appSnapshot: target.config,
@@ -127,7 +172,7 @@ export async function requestResourceRestore(input: {
   confirmation: string;
   idempotencyKey: string;
   reason: string;
-  requestedBy: string;
+  requestedBy: string | null;
   resourceId: string;
   workspaceId: string;
 }) {
@@ -144,7 +189,6 @@ export async function requestResourceRestore(input: {
     );
   }
   const resource = requireBackupResource(target.config);
-  await requireAwsCredentials(input.workspaceId);
   if (!target.currentRelease) {
     throw unprocessable("Deploy this Resource before restoring a backup");
   }
@@ -166,7 +210,7 @@ export async function requestResourceRestore(input: {
     );
   }
   const [backup] = await getTowbarDatabase()
-    .select({ id: resourceOperations.id })
+    .select({ id: resourceOperations.id, result: resourceOperations.result })
     .from(resourceOperations)
     .where(
       and(
@@ -181,6 +225,11 @@ export async function requestResourceRestore(input: {
     )
     .limit(1);
   if (!backup) throw notFound("Retained backup");
+  const storedBackup = backupOperationResultSchema.parse(backup.result);
+  await requireBackupCredentials(input.workspaceId, {
+    [storedBackup.restoreFrom ??
+    (storedBackup.storageAccount ? "azureBlob" : "s3")]: true,
+  });
   const admitted = await admitOperation({
     appSnapshot: resource,
     idempotencyKey: input.idempotencyKey,
@@ -199,35 +248,25 @@ export async function requestResourceRestore(input: {
     workspaceId: input.workspaceId,
   });
   if (!admitted.replayed) {
-    await getTowbarDatabase()
-      .insert(auditEvents)
-      .values({
-        action: "resource.restore.requested",
-        actorUserId: input.requestedBy,
-        metadata: {
-          backupId: backup.id,
-          operationId: admitted.operation.id,
-          reason: input.reason,
-        },
-        targetId: target.id,
-        targetType: "resource",
-        workspaceId: input.workspaceId,
-      });
+    await recordAuditEvent(getTowbarDatabase(), {
+      action: "resource.restore.requested",
+      actorUserId: input.requestedBy,
+      metadata: {
+        backupId: backup.id,
+        operationId: admitted.operation.id,
+        reason: input.reason,
+      },
+      targetId: target.id,
+      targetType: "resource",
+      workspaceId: input.workspaceId,
+      ...auditAttribution(),
+    });
     await emitResourceOperationNotification(
       admitted.operation.id,
       "restore.started",
     ).catch(() => undefined);
   }
   return admitted;
-}
-
-async function requireAwsCredentials(workspaceId: string) {
-  if (!(await hasAwsCredentials(workspaceId))) {
-    throw conflict(
-      "Configure AWS in Manage → Integrations before running S3 backups or restores",
-      "AWS_NOT_CONFIGURED",
-    );
-  }
 }
 
 export async function requestRestoreCleanup(input: {
@@ -240,7 +279,13 @@ export async function requestRestoreCleanup(input: {
   const target = await getDeployableTarget(input.resourceId, input.workspaceId);
   if (!target.currentRelease) throw unprocessable("Resource is not deployed");
   const [restore] = await getTowbarDatabase()
-    .select({ result: resourceOperations.result })
+    .select({
+      appSnapshot: resourceOperations.appSnapshot,
+      result: resourceOperations.result,
+      serverId: resourceOperations.serverId,
+      serverSnapshot: resourceOperations.serverSnapshot,
+      sourceId: resourceOperations.sourceId,
+    })
     .from(resourceOperations)
     .where(
       and(
@@ -248,13 +293,24 @@ export async function requestRestoreCleanup(input: {
         eq(resourceOperations.resourceId, target.id),
         eq(resourceOperations.workspaceId, input.workspaceId),
         eq(resourceOperations.type, "restore"),
-        eq(resourceOperations.state, "succeeded"),
+        inArray(resourceOperations.state, ["failed", "succeeded"]),
       ),
     )
     .limit(1);
-  const result = restoreOperationResultSchema.safeParse(restore?.result);
-  if (!result.success || result.data.previousVolumes.length === 0) {
-    throw conflict("This restore has no rollback volumes to clean up");
+  if (!restore) throw notFound("Restore operation");
+  const managedResult = restoreOperationResultSchema.safeParse(restore?.result);
+  const retainedVolumes =
+    managedResult.success &&
+    ["promoted", "rolled_back"].includes(managedResult.data.outcome)
+      ? managedResult.data.previousVolumes
+      : [];
+  const volumes = [
+    ...new Map(
+      retainedVolumes.map((volume) => [volume.volumeName, volume]),
+    ).values(),
+  ];
+  if (volumes.length === 0) {
+    throw conflict("This restore has no retained volumes to clean up");
   }
   const scopedKey = `restore_cleanup:${target.id}:${input.idempotencyKey}`;
   const existingCleanups = await getTowbarDatabase()
@@ -285,43 +341,42 @@ export async function requestRestoreCleanup(input: {
     );
   }
   const admitted = await admitOperation({
-    appSnapshot: target.config,
+    appSnapshot: restore.appSnapshot,
     idempotencyKey: input.idempotencyKey,
     request: {
       release: target.currentRelease,
       restoreId: input.restoreId,
       type: "restore_cleanup",
-      volumes: result.data.previousVolumes.map((volume) => volume.volumeName),
+      volumes: volumes.map((volume) => volume.volumeName),
     },
     requestedBy: input.requestedBy,
     resourceId: target.id,
-    serverId: target.serverId,
-    serverIp: target.serverIp,
-    serverSnapshot: target.serverConfig,
-    sourceId: target.sourceId,
+    serverId: restore.serverId,
+    serverIp: restore.serverSnapshot.ip,
+    serverSnapshot: restore.serverSnapshot,
+    sourceId: restore.sourceId,
     workspaceId: input.workspaceId,
   });
   if (!admitted.replayed) {
-    await getTowbarDatabase()
-      .insert(auditEvents)
-      .values({
-        action: "resource.restore_cleanup.requested",
-        actorUserId: input.requestedBy,
-        metadata: {
-          operationId: admitted.operation.id,
-          restoreId: input.restoreId,
-        },
-        targetId: target.id,
-        targetType: "resource",
-        workspaceId: input.workspaceId,
-      });
+    await recordAuditEvent(getTowbarDatabase(), {
+      action: "resource.restore_cleanup.requested",
+      actorUserId: input.requestedBy,
+      metadata: {
+        operationId: admitted.operation.id,
+        restoreId: input.restoreId,
+      },
+      targetId: target.id,
+      targetType: "resource",
+      workspaceId: input.workspaceId,
+      ...auditAttribution(),
+    });
   }
   return admitted;
 }
 
 export async function cancelResourceRestore(input: {
   operationId: string;
-  requestedBy: string;
+  requestedBy: string | null;
   resourceId: string;
   workspaceId: string;
 }) {
@@ -337,11 +392,12 @@ export async function cancelResourceRestore(input: {
       ),
     )
     .limit(1);
-  if (!operation) throw notFound("Restore operation");
+  if (!operation) throw notFound("Backup or restore operation");
   if (!["queued", "running"].includes(operation.state)) {
-    throw conflict("This restore can no longer be cancelled");
+    throw conflict("This backup or restore can no longer be cancelled");
   }
   if (
+    operation.type === "restore" &&
     operation.phase &&
     [
       "promoting",
@@ -377,16 +433,15 @@ export async function cancelResourceRestore(input: {
     await cancelResourceOperationWorkflow(operation.id);
     return operation;
   }
-  await getTowbarDatabase()
-    .insert(auditEvents)
-    .values({
-      action: "resource.restore.cancel_requested",
-      actorUserId: input.requestedBy,
-      metadata: { operationId: operation.id },
-      targetId: input.resourceId,
-      targetType: "resource",
-      workspaceId: input.workspaceId,
-    });
+  await recordAuditEvent(getTowbarDatabase(), {
+    action: "resource.restore.cancel_requested",
+    actorUserId: input.requestedBy,
+    metadata: { operationId: operation.id },
+    targetId: input.resourceId,
+    targetType: "resource",
+    workspaceId: input.workspaceId,
+    ...auditAttribution(),
+  });
   await cancelResourceOperationWorkflow(operation.id);
   return updated;
 }
@@ -409,8 +464,8 @@ export async function appendResourceOperationProgress(
       .where(eq(resourceOperations.id, operationId))
       .for("update")
       .limit(1);
-    if (!operation || operation.type !== "restore") {
-      throw notFound("Restore operation");
+    if (!operation || !["backup", "restore"].includes(operation.type)) {
+      throw notFound("Backup or restore operation");
     }
     const [latest] = await transaction
       .select({ sequence: max(resourceOperationEvents.sequence) })
@@ -440,7 +495,7 @@ export async function appendResourceOperationProgress(
 export async function requestOrphanCleanup(input: {
   idempotencyKey: string;
   items: Array<{ kind: "container" | "image" | "volume"; name: string }>;
-  requestedBy: string;
+  requestedBy: string | null;
   serverId: string;
   workspaceId: string;
 }) {
@@ -491,10 +546,10 @@ export async function requestOrphanCleanup(input: {
 function requireDatabaseResource(config: (typeof apps.$inferSelect)["config"]) {
   if (
     !isNormalizedResource(config) ||
-    !["postgres", "redis"].includes(config.kind)
+    !managedResourceTypes.includes(config.kind as never)
   ) {
     throw unprocessable(
-      "Backups are supported for PostgreSQL and Redis Resources",
+      "Backups are supported only for managed database Resources",
     );
   }
   return config;
@@ -504,7 +559,7 @@ function requireBackupResource(config: (typeof apps.$inferSelect)["config"]) {
   const resource = requireDatabaseResource(config);
   if (!resource.backup) {
     throw unprocessable(
-      "Declare backup.s3 for this Resource before using backups",
+      "Declare a backup destination for this Resource before using backups",
     );
   }
   return resource;

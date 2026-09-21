@@ -1,42 +1,42 @@
 ---
 title: "Resources"
-description: "Run PostgreSQL, Redis, and image-based services with persistent storage and health checks."
+description: "Run managed databases and image-based services with persistent storage and recovery."
 ---
 
 Resources run from an existing container image. Use them for databases, caches, and supporting services that do not need a repository build.
 
 ## Supported types
 
-| Type       | Use it for                   | Towbar behavior                                                                                          |
-| ---------- | ---------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `postgres` | PostgreSQL databases         | Managed command, database health checks, persistent data volume, optional multi-cloud backup and restore |
-| `redis`    | Redis caches and data stores | Password-protected managed command, persistent data volume, optional multi-cloud backup and restore      |
-| `image`    | Other containerized services | Your image and optional command, declared ports, volumes, and health checks                              |
+| Type                           | Use it for                   | Towbar behavior                                                                             |
+| ------------------------------ | ---------------------------- | ------------------------------------------------------------------------------------------- |
+| `postgres`, `mysql`, `mariadb` | Relational databases         | Authenticated health checks, persistent data volume, native backup and fresh-target restore |
+| `mongodb`                      | Document databases           | Authenticated health checks, persistent data volume, native backup and fresh-target restore |
+| `redis`, `dragonfly`, `keydb`  | Redis-compatible data        | Password protection, persistent snapshot, backup and fresh-target restore                   |
+| `clickhouse`                   | Analytical databases         | Authenticated checks, persistent data, native backup and restore                            |
+| `image`                        | Other containerized services | Your image and optional command, declared ports, volumes, and health checks                 |
 
-Images must have an explicit non-`latest` tag or a digest. Use a digest when you need an immutable image reference. PostgreSQL and Redis have preset images if you omit `image`; pin an explicit version when planning upgrades.
+Images must have an explicit non-`latest` tag or a digest. Managed engines have reviewed digest-pinned defaults. Custom managed images must use a digest and the supported major version. See [Managed databases](/docs/managed-databases) for versions, architectures, secrets, and restore boundaries.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
     <img
-      src="/assets/features/resources-light.webp"
-      alt="Example resource inventory with PostgreSQL, Redis, and image-based services."
-      width="2160"
-      height="1034"
+      src="/assets/release-v2/resource-overview-light.jpg"
+      alt="Resource state and the latest deployment attempt are shown separately."
+      width="1280"
+      height="720"
       loading="lazy"
     />
   </div>
   <div className="towbar-product-dark">
     <img
-      src="/assets/features/resources-dark.webp"
-      alt="Example resource inventory with PostgreSQL, Redis, and image-based services."
-      width="2160"
-      height="1034"
+      src="/assets/release-v2/resource-overview-dark.jpg"
+      alt="Resource state and the latest deployment attempt are shown separately."
+      width="1280"
+      height="720"
       loading="lazy"
     />
   </div>
-  <p>
-    Example resource inventory with PostgreSQL, Redis, and image-based services.
-  </p>
+  <p>Resource state and the latest deployment attempt are shown separately.</p>
 </div>
 
 ## Resource logos
@@ -53,27 +53,32 @@ verification of image provenance or security.
 
 ## Add a database
 
-```yaml
-version: 1
-source:
-  branch: main
-resources:
-  - id: database
-    name: Primary database
-    type: postgres
-    image: postgres:17-alpine
-    server: 203.0.113.10
-    container:
-      network: app-network
-      resources:
-        cpus: 1
-        memory: 1g
-    access:
-      sshTunnel:
-        hostPort: 15432
+```yaml title="towbar.yml"
+version: 2
+environments:
+  production:
+    previews:
+      enabled: true
 ```
 
-Register the server, then save `POSTGRES_PASSWORD` under **Resource → Settings → Secrets**. Redis resources use `REDIS_PASSWORD`. These values are production runtime secrets and never belong in YAML.
+```yaml title=".towbar/resources/database.resource.yml"
+id: database
+name: Primary database
+type: postgres
+server: 192.0.2.10
+container:
+  network: app-network
+  resources:
+    cpus: 1
+    memory: 1g
+access:
+  sshTunnel:
+    hostPort: 15432
+environments:
+  production: {}
+```
+
+Register the server, then save `POSTGRES_PASSWORD` under **Resource → Settings → Secrets**. Redis resources use `REDIS_PASSWORD`. These values are runtime secrets for the selected environment and never belong in YAML.
 
 Deploy the resource, wait for its health check to pass, and verify connectivity from the intended client.
 
@@ -85,10 +90,10 @@ Apps and resources on the same host can share a named `container.network`. Towba
 
 ## Persist data
 
-PostgreSQL and Redis receive a managed data volume. Generic image resources can declare named volumes and mount paths. Deployment and image rollback are not database migration tools: plan engine upgrades and schema compatibility separately.
+Every managed engine receives a managed data volume. Generic image resources can declare named volumes and mount paths. Deployment and image rollback are not database migration tools: plan engine upgrades and schema compatibility separately.
 
 Changing `POSTGRES_PASSWORD` in Towbar does not rotate the password already stored inside an existing database. Coordinate that change with the database before replacing the running resource.
 
 ## Back up and restore
 
-Only PostgreSQL and Redis presets support Towbar-managed backups. Connect cloud provider integrations ([AWS](/docs/integrations/aws), [Google Cloud](/docs/integrations/gcp), or [Azure](/docs/integrations/azure)) and declare a [backup policy](/docs/backups), then verify restore readiness. Read the [restore procedure](/docs/restores) before relying on a backup for recovery.
+All eight managed engine presets support Towbar-managed backup and restore. Enable one S3, Cloudflare R2, Google Cloud Storage, or Azure Blob runtime integration, reference its provider in the [backup policy](/docs/backups), and verify a fresh-target restore before relying on it. Read the [restore procedure](/docs/restores) before production recovery.

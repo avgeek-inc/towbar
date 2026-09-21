@@ -5,7 +5,10 @@ import { fileURLToPath } from "node:url";
 import { NativeConnection, Worker } from "@temporalio/worker";
 
 import { instrumentTemporalActivities } from "@workspace/observability-node/temporal";
-import { towbarTaskQueue } from "@workspace/towbar-core/temporal";
+import {
+  towbarLogDrainTaskQueue,
+  towbarTaskQueue,
+} from "@workspace/towbar-core/temporal";
 
 import * as activities from "./activities/index.js";
 import { getEnv } from "./env.js";
@@ -40,6 +43,7 @@ async function main() {
       ? { apiKey: env.TEMPORAL_API_KEY, tls: true }
       : {}),
   });
+  const workflowBundle = await loadWorkflowBundle();
   const worker = await Worker.create({
     activities: instrumentedActivities,
     connection,
@@ -48,16 +52,37 @@ async function main() {
       env.TOWBAR_WORKER_MAX_CONCURRENT_ACTIVITIES,
     namespace: env.TEMPORAL_NAMESPACE,
     taskQueue: towbarTaskQueue,
-    workflowBundle: await loadWorkflowBundle(),
+    workflowBundle,
+  });
+  const logWorker = await Worker.create({
+    activities: Object.fromEntries(
+      Object.entries(instrumentedActivities).filter(([name]) =>
+        [
+          "listLogDrainServersActivity",
+          "reconcileLogDrainServerActivity",
+        ].includes(name),
+      ),
+    ),
+    connection,
+    identity: `towbar-log-worker-${process.pid}`,
+    maxConcurrentActivityTaskExecutions: 2,
+    maxConcurrentWorkflowTaskExecutions: 2,
+    namespace: env.TEMPORAL_NAMESPACE,
+    taskQueue: towbarLogDrainTaskQueue,
+    workflowBundle,
   });
   ready = true;
-  const shutdown = () => worker.shutdown();
+  const shutdown = () => {
+    for (const instance of [worker, logWorker])
+      if (instance.getState() === "RUNNING") instance.shutdown();
+  };
   process.once("SIGINT", shutdown);
   process.once("SIGTERM", shutdown);
   try {
-    await worker.run();
+    await Promise.all([worker.run(), logWorker.run()]);
   } finally {
     ready = false;
+    shutdown();
     healthServer.close();
     await connection.close();
   }

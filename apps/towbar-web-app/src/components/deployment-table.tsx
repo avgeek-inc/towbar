@@ -1,4 +1,5 @@
 "use client";
+import { displayDateTime } from "@/lib/date-time-display";
 
 import {
   GitBranchIcon,
@@ -20,6 +21,7 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { DeploymentDuration } from "./elapsed-time";
 import { RelativeTime } from "./last-synced-time";
 import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
+import { deploymentHref } from "@/lib/deployment-route";
 
 const DEPLOYMENT_PAGE_SIZE = 10;
 
@@ -84,7 +86,10 @@ export function DeploymentTable({
       key: "status",
       header: "Status",
       cell: (deployment) => (
-        <StatusBadge status={getDeploymentDisplayStatus(deployment)} />
+        <StatusBadge
+          status={getDeploymentDisplayStatus(deployment)}
+          tooltip={deploymentStatusTooltip(deployment)}
+        />
       ),
       className: "whitespace-nowrap",
     },
@@ -97,9 +102,7 @@ export function DeploymentTable({
         columns={columns}
         emptyDescription={emptyDescription}
         emptyTitle="No deployments yet"
-        getRowHref={(deployment) =>
-          `/sources/${deployment.sourceId}/deployments/${deployment.id}`
-        }
+        getRowHref={deploymentHref}
         getRowKey={(deployment) => deployment.id}
         items={visibleDeployments}
       />
@@ -114,6 +117,19 @@ export function DeploymentTable({
       ) : null}
     </div>
   );
+}
+
+export function deploymentStatusTooltip(deployment: Deployment) {
+  const status = getDeploymentDisplayStatus(deployment).split("_").join(" ");
+  const requested = `Requested ${formatTooltipDate(deployment.createdAt)}.`;
+  const finished = deployment.finishedAt
+    ? ` Finished ${formatTooltipDate(deployment.finishedAt)}.`
+    : "";
+  return `${status.charAt(0).toUpperCase()}${status.slice(1)}. ${requested}${finished}`;
+}
+
+function formatTooltipDate(value: string) {
+  return displayDateTime(value);
 }
 
 export function formatDeploymentTrigger(trigger: Deployment["trigger"]) {
@@ -131,6 +147,13 @@ export function DeploymentTriggerChip({
     <Chip
       size="small"
       variant="secondary"
+      tooltip={
+        trigger === "auto_deploy"
+          ? "Queued automatically after a repository change."
+          : trigger === "rollback"
+            ? "Restores a previously deployed revision."
+            : "Queued manually by a user or API client."
+      }
       icon={
         <HugeiconsIcon
           icon={

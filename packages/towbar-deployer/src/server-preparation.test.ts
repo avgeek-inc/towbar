@@ -1,13 +1,145 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 
 import { CommandError } from "./process.js";
 
 import {
+  ServerPreparationError,
   preparationErrorMessage,
+  prepareServer,
   serverPreparationScripts,
 } from "./server-preparation.js";
+import { SshSession } from "./ssh.js";
+import type {
+  ServerPreparationContext,
+  ServerPreparationHooks,
+} from "./types.js";
+
+const preparationContext: ServerPreparationContext = {
+  preparationId: "test-preparation",
+  privateKeyName: "Production servers",
+  config: {
+    ip: "192.0.2.10",
+    ssh: { host: "192.0.2.10", username: "deploy", port: 22 },
+    buildConcurrency: 1,
+  },
+  login: { privateKey: "private-test-value" },
+  trustedHostKeys: [],
+};
+
+void test("records useful results and terminal output for all preparation steps", async (t) => {
+  const events: Parameters<ServerPreparationHooks["step"]>[0][] = [];
+  const logs = new Map<string, string>();
+  let closed = false;
+  const outputs = [
+    "Ubuntu 24.04 LTS",
+    "Python 3.12.3",
+    "28.3.3",
+    "v2.11.4",
+    "Towbar directories and Docker access configured",
+    "Ubuntu 24.04 LTS\n28.3.3\nv2.11.4\nPython 3.12.3\nzstd command line interface 1.5.7\n26214400",
+  ];
+  t.mock.method(SshSession, "connect", () =>
+    Promise.resolve({
+      run: async (
+        _script: string,
+        _args: string[],
+        options: Parameters<SshSession["run"]>[2],
+      ) => {
+        const stdout = `${outputs.shift()}\n`;
+        await options?.onStderr?.("Actual command output\n");
+        await options?.onStdout?.(stdout);
+        return { stdout, stderr: "Actual command output\n" };
+      },
+      close: () => {
+        closed = true;
+        return Promise.resolve();
+      },
+    }),
+  );
+  const result = await prepareServer(preparationContext, {
+    step: (event) => {
+      events.push(event);
+      return Promise.resolve();
+    },
+    log: ({ id, log }) => {
+      logs.set(id, log);
+      return Promise.resolve();
+    },
+  });
+  assert.equal(closed, true);
+  assert.equal(
+    events.filter((event) => event.status === "succeeded").length,
+    7,
+  );
+  assert.equal(logs.size, 7);
+  assert.match(
+    events.find(
+      (event) => event.id === "connecting" && event.status === "succeeded",
+    )!.message,
+    /Production servers/,
+  );
+  assert.match(
+    events.find(
+      (event) => event.id === "inspecting" && event.status === "succeeded",
+    )!.message,
+    /Ubuntu release.*passwordless sudo/,
+  );
+  assert.match(logs.get("installing_prerequisites")!, /Actual command output/);
+  assert.match(logs.get("verifying")!, /26214400/);
+  assert.equal(result.diskAvailableKb, 26214400);
+});
+
+void test("retains failure output, redacts secrets, and stops subsequent steps", async (t) => {
+  const events: Parameters<ServerPreparationHooks["step"]>[0][] = [];
+  const logs: string[] = [];
+  let closed = false;
+  let commands = 0;
+  t.mock.method(SshSession, "connect", () =>
+    Promise.resolve({
+      run: async (
+        _script: string,
+        _args: string[],
+        options: Parameters<SshSession["run"]>[2],
+      ) => {
+        commands++;
+        await options?.onStderr?.("API token 'private-");
+        await options?.onStderr?.("test-value' appears invalid\n");
+        throw new CommandError(
+          "bash failed",
+          "",
+          "API token 'private-test-value' appears invalid",
+        );
+      },
+      close: () => {
+        closed = true;
+        return Promise.resolve();
+      },
+    }),
+  );
+  await assert.rejects(
+    prepareServer(preparationContext, {
+      step: (event) => {
+        events.push(event);
+        return Promise.resolve();
+      },
+      log: ({ log }) => {
+        logs.push(log);
+        return Promise.resolve();
+      },
+    }),
+    (error: unknown) =>
+      error instanceof ServerPreparationError &&
+      error.stepId === "inspecting" &&
+      !error.message.includes("private-test-value"),
+  );
+  assert.equal(commands, 1);
+  assert.equal(closed, true);
+  assert.equal(events.at(-1)!.status, "failed");
+  assert.doesNotMatch(JSON.stringify({ events, logs }), /private-test-value/);
+  assert.match(logs.at(-1)!, /appears invalid/);
+});
 
 void test("uses signed upstream package repositories and pinned Caddy inputs", () => {
   assert.match(
@@ -61,16 +193,72 @@ void test("requires pinned SSH trust and verifies the installed services", () =>
   assert.match(serverPreparationScripts.verifyServer, /python3/);
 });
 
-void test("keeps package-manager progress out of preparation step messages", () => {
+void test("captures package-manager output on stderr without changing result parsing", () => {
   assert.match(
     serverPreparationScripts.installPrerequisites,
-    /python3 sudo >\/dev\/null/,
+    /python3 sudo util-linux zstd unattended-upgrades >&2/,
   );
   assert.match(
     serverPreparationScripts.installDocker,
-    /docker-compose-plugin \\\s+>\/dev\/null/,
+    /docker-compose-plugin \\\s+>&2/,
   );
-  assert.match(serverPreparationScripts.installCaddy, /caddy >\/dev\/null/);
+  assert.match(serverPreparationScripts.installCaddy, /caddy >&2/);
+});
+
+void test("Caddy installation diagnostics do not pollute its recorded version", () => {
+  const result = spawnSync(
+    "bash",
+    [
+      "-c",
+      String.raw`
+id() { printf '1000\n'; }
+sudo() { shift; "$@"; }
+CADDY_READY=false
+caddy() {
+  case "$1" in
+    list-modules)
+      if [[ "$CADDY_READY" == true ]]; then printf 'dns.providers.cloudflare\n'; fi
+      return 0 ;;
+    version) printf 'v2.11.4 build-info\n' ;;
+  esac
+}
+dpkg-query() { printf 'install ok installed\n'; }
+mktemp() { printf '/tmp/towbar-preparation-test-unused\n'; }
+docker() { printf 'Building Caddy\n'; }
+test() {
+  if [[ "$1" == '-x' ]]; then return 0; fi
+  builtin test "$@"
+}
+/tmp/towbar-preparation-test-unused/caddy() { printf 'dns.providers.cloudflare\n'; }
+dpkg-divert() {
+  if [[ "$1" == '--list' ]]; then return 0; fi
+  printf 'Adding diversion of /usr/bin/caddy\n'
+}
+update-alternatives() { printf 'Using Caddy alternative\n'; }
+install() { CADDY_READY=true; }
+rm() { :; }
+systemctl() { printf 'Enabled Caddy service\n'; }
+${serverPreparationScripts.installCaddy}
+`,
+      "preparation-test",
+      "true",
+    ],
+    { encoding: "utf8" },
+  );
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, "v2.11.4\n");
+  assert.match(result.stderr, /Building Caddy/);
+  assert.match(result.stderr, /Adding diversion/);
+  assert.match(result.stderr, /Using Caddy alternative/);
+  assert.match(result.stderr, /Enabled Caddy service/);
+});
+
+void test("re-preparation cleanup only removes Towbar app containers selected by deployable id", () => {
+  const script = serverPreparationScripts.cleanupExistingApps;
+  assert.match(script, /label=towbar\.managed=true/);
+  assert.match(script, /towbar\.deployable/);
+  assert.match(script, /docker", "rm", "--force"/);
+  assert.doesNotMatch(script, /docker", "volume"/);
 });
 
 void test("fully consumes Caddy module output under pipefail", () => {

@@ -10,6 +10,30 @@ export async function createBuildContextArchive(input: {
   dockerfilePath: string;
   signal?: AbortSignal;
 }) {
+  const contextRoot = await createSourceContextArchive(input);
+  const checkoutRoot = await realpath(input.checkout);
+
+  const dockerfileCandidate = path.resolve(checkoutRoot, input.dockerfilePath);
+  const dockerfile = await realpath(dockerfileCandidate);
+  assertContainedPath(contextRoot, dockerfile, "Dockerfile");
+  if (dockerfileCandidate !== dockerfile) {
+    throw new Error("Dockerfile cannot traverse symbolic links");
+  }
+  if (!(await stat(dockerfile)).isFile()) {
+    throw new Error("Dockerfile must be a regular file");
+  }
+
+  return {
+    relativeDockerfile: path.relative(contextRoot, dockerfile),
+  };
+}
+
+export async function createSourceContextArchive(input: {
+  archivePath: string;
+  checkout: string;
+  contextPath: string;
+  signal?: AbortSignal;
+}) {
   const checkoutRoot = await realpath(input.checkout);
   const contextCandidate = path.resolve(checkoutRoot, input.contextPath);
   const contextRoot = await realpath(contextCandidate);
@@ -22,25 +46,13 @@ export async function createBuildContextArchive(input: {
     throw new Error("Build context must be a directory");
   }
 
-  const dockerfileCandidate = path.resolve(checkoutRoot, input.dockerfilePath);
-  const dockerfile = await realpath(dockerfileCandidate);
-  assertContainedPath(contextRoot, dockerfile, "Dockerfile");
-  if (dockerfileCandidate !== dockerfile) {
-    throw new Error("Dockerfile cannot traverse symbolic links");
-  }
-  if (!(await stat(dockerfile)).isFile()) {
-    throw new Error("Dockerfile must be a regular file");
-  }
-
   await runCommand("tar", ["-czf", input.archivePath, "."], {
     cwd: contextRoot,
     signal: input.signal,
     timeoutMs: 180_000,
   });
 
-  return {
-    relativeDockerfile: path.relative(contextRoot, dockerfile),
-  };
+  return contextRoot;
 }
 
 function assertContainedPath(root: string, candidate: string, label: string) {

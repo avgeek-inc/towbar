@@ -1,0 +1,29 @@
+{
+  "name": "@workspace/towbar-email",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "preview": "email dev --dir emails --port 4030",
+    "test": "tsx --test src/*.test.ts"
+  },
+  "dependencies": {
+    "@workspace/towbar-access": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-email": "6.9.5"
+  },
+  "devDependencies": {
+    "@react-email/ui": "6.9.5",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@workspace/typescript-config": "workspace:*",
+    "tsx": "^4.23.13",
+    "typescript": "catalog:"
+  }
+}

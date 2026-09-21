@@ -2,21 +2,28 @@ import type { DeploymentExecutionContext } from "./types.js";
 
 export function renderCaddyFragment(
   context: DeploymentExecutionContext,
-  port: number,
+  ports: number | number[],
 ) {
   const domains = context.app.domains;
   if (!domains) return "";
 
+  const upstreams = (Array.isArray(ports) ? ports : [ports]).map(
+    (port) => `127.0.0.1:${port}`,
+  );
+  const tunnel = context.app.ingress?.type === "cloudflare-tunnel";
+  const site = (hostname: string) => (tunnel ? `http://${hostname}` : hostname);
   const lines = [
-    `${domains.primary} {`,
-    `  reverse_proxy 127.0.0.1:${port}`,
+    `${site(domains.primary)} {`,
+    `  reverse_proxy ${upstreams.join(" ")} {`,
+    "    lb_policy round_robin",
+    "  }",
     ...renderTransportHeaders(),
     ...renderTls(context),
     "}",
   ];
   for (const redirect of domains.redirects) {
     lines.push(
-      `${redirect.host} {`,
+      `${site(redirect.host)} {`,
       `  redir https://${domains.primary}{uri} ${redirect.status}`,
       ...renderTransportHeaders(),
       ...renderTls(context),

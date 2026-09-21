@@ -96,11 +96,6 @@ export function MonitoringHistory({
     },
     [applyCustom],
   );
-  const [environment] = useQueryChoice(
-    "environment",
-    ["production", "preview"],
-    "production",
-  );
   const [view, setView] = useQueryChoice(
     "metricView",
     ["average", "peak"],
@@ -111,7 +106,7 @@ export function MonitoringHistory({
     update({ instance: value === "all" ? null : value });
   const syncId = useId();
   const query = useApiQuery<History>(
-    `${path}?${new URLSearchParams({ range: custom ? "custom" : range, environment, ...custom })}`,
+    `${path}?${new URLSearchParams({ range: custom ? "custom" : range, ...custom })}`,
     30_000,
     { keepPreviousData: true },
   );
@@ -146,6 +141,7 @@ export function MonitoringHistory({
       </Widget>
     );
   const hasPoints = history.series.some((row) => row.points.length > 0);
+  const hasSelectedPoints = series.some((row) => row.points.length > 0);
   const agent = history.agent;
   const selectedServer = serverId ?? history.serverId;
   return (
@@ -159,22 +155,6 @@ export function MonitoringHistory({
           </span>
         </div>
         <div className="flex max-w-full flex-wrap items-center gap-2">
-          {workload ? (
-            <HistorySelect
-              label="Environment"
-              value={environment}
-              onChange={(value) => {
-                update({
-                  environment: value === "production" ? null : value,
-                  instance: null,
-                });
-              }}
-              options={[
-                { id: "production", label: "Production" },
-                { id: "preview", label: "Previews" },
-              ]}
-            />
-          ) : null}
           {workload && history.series.length > 1 ? (
             <HistorySelect
               label="Instance"
@@ -184,7 +164,7 @@ export function MonitoringHistory({
                 { id: "all", label: "All instances" },
                 ...history.series.map((row) => ({
                   id: row.id,
-                  label: `${row.previewId ? `Preview ${row.previewId.slice(0, 8)}` : "Container"} · ${row.id.slice(0, 8)}`,
+                  label: `Container · ${row.id.slice(0, 8)}`,
                 })),
               ]}
             />
@@ -233,10 +213,11 @@ export function MonitoringHistory({
       {agent.desiredState !== "enabled" && hasPoints ? (
         <MonitoringEmptyState serverId={selectedServer} disabled historical />
       ) : null}
-      {!hasPoints ? (
+      {!hasSelectedPoints ? (
         <MonitoringEmptyState
           serverId={selectedServer}
           disabled={agent.desiredState !== "enabled"}
+          filtered={hasPoints}
         />
       ) : (
         <>
@@ -263,7 +244,7 @@ export function MonitoringHistory({
             </p>
           ) : null}
           <MonitoringEvents
-            key={`${path}:${custom ? `${custom.startAt}:${custom.endAt}` : range}:${environment}:${instance}`}
+            key={`${path}:${custom ? `${custom.startAt}:${custom.endAt}` : range}:${instance}`}
             events={history.events}
             limited={history.eventsLimited}
           />
@@ -276,10 +257,12 @@ function MonitoringEmptyState({
   serverId,
   disabled,
   historical = false,
+  filtered = false,
 }: {
   serverId: string;
   disabled: boolean;
   historical?: boolean;
+  filtered?: boolean;
 }) {
   return (
     <Widget>
@@ -290,12 +273,16 @@ function MonitoringEmptyState({
         <h3 className="font-medium">
           {disabled
             ? "Scout Agent is not enabled"
-            : "No measurements in this range"}
+            : filtered
+              ? "No measurements for this instance"
+              : "No measurements in this range"}
         </h3>
         <p className="max-w-lg text-sm text-muted">
           {disabled
             ? "Install Scout Agent on this server to see how your apps and resources perform over time."
-            : "Metrics appear after Scout Agent reports. Try another time range or check Scout Agent’s connection."}
+            : filtered
+              ? "Choose another instance or time range to inspect available measurements."
+              : "Metrics appear after Scout Agent reports. Try another time range or check Scout Agent’s connection."}
           {historical ? " Previously collected history is shown below." : ""}
         </p>
         <div className="flex flex-wrap justify-center gap-2">

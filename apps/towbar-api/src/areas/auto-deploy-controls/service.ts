@@ -1,9 +1,16 @@
-import { and, eq } from "drizzle-orm";
+import { recordAuditEvent } from "../../infrastructure/audit.js";
+import { auditAttribution, requireActor } from "../auth/actor-context.js";
+import { and, eq, isNull } from "drizzle-orm";
 
 import { evaluateAutoDeployPause } from "@workspace/towbar-core";
-import { apps, sources } from "@workspace/towbar-database/schema";
+import {
+  apps,
+  sourceEnvironments,
+  sourceSyncs,
+  sources,
+} from "@workspace/towbar-database/schema";
 
-import { notFound } from "../../http/errors.js";
+import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 
 import type {
@@ -41,6 +48,7 @@ export async function getDeployableAutoDeployControl(input: {
       ...evaluateAutoDeployPause({
         deployablePaused: target.paused,
         sourcePaused: target.sourcePaused,
+        environmentPaused: target.environmentPaused,
       }),
       pending: target.pending,
     },
@@ -145,9 +153,14 @@ async function loadDeployableControl(input: {
       paused: apps.autoDeployPaused,
       pending: apps.deferredAutomaticDeployment,
       sourcePaused: sources.autoDeployPaused,
+      environmentPaused: sourceEnvironments.autoDeployPaused,
     })
     .from(apps)
     .innerJoin(sources, eq(sources.id, apps.sourceId))
+    .innerJoin(
+      sourceEnvironments,
+      eq(sourceEnvironments.id, apps.sourceEnvironmentId),
+    )
     .where(
       and(
         eq(apps.id, input.deployableId),
@@ -162,8 +175,75 @@ async function loadDeployableControl(input: {
 }
 
 function matchesExpectedType(
-  kind: "app" | "image" | "postgres" | "redis",
+  kind: import("@workspace/towbar-core").DeployableKind,
   expected: "app" | "resource",
 ) {
   return expected === "app" ? kind === "app" : kind !== "app";
+}
+
+export async function updateEnvironmentAutomation(input: {
+  sourceId: string;
+  environmentId: string;
+  workspaceId: string;
+  expectedRevision: string;
+  paused: boolean;
+}) {
+  requireActor(input.workspaceId, ["deployment.create"]);
+  await getTowbarDatabase().transaction(async (tx) => {
+    const [environment] = await tx
+      .select({
+        environment: sourceEnvironments,
+        workspaceId: sources.workspaceId,
+      })
+      .from(sourceEnvironments)
+      .innerJoin(sources, eq(sources.id, sourceEnvironments.sourceId))
+      .where(
+        and(
+          eq(sourceEnvironments.id, input.environmentId),
+          eq(sources.id, input.sourceId),
+          eq(sources.workspaceId, input.workspaceId),
+          isNull(sourceEnvironments.disconnectedAt),
+        ),
+      )
+      .for("update");
+    if (!environment) throw notFound("Environment");
+    if (environment.environment.mappingRevision !== input.expectedRevision)
+      throw conflict(
+        "The branch mapping changed. Refresh and review it before continuing",
+        "ENVIRONMENT_MAPPING_CHANGED",
+      );
+    if (!input.paused) {
+      const [sync] = environment.environment.latestSuccessfulSyncId
+        ? await tx
+            .select({ revision: sourceSyncs.mappingRevision })
+            .from(sourceSyncs)
+            .where(
+              eq(
+                sourceSyncs.id,
+                environment.environment.latestSuccessfulSyncId,
+              ),
+            )
+        : [];
+      if (!sync || sync.revision !== input.expectedRevision)
+        throw conflict(
+          "Sync the current branch mapping before enabling runtime automation",
+          "ENVIRONMENT_SYNC_REQUIRED",
+        );
+    }
+    await tx
+      .update(sourceEnvironments)
+      .set({ autoDeployPaused: input.paused, updatedAt: new Date() })
+      .where(eq(sourceEnvironments.id, input.environmentId));
+    await recordAuditEvent(tx, {
+      workspaceId: input.workspaceId,
+      ...auditAttribution(),
+      action: "environment.automation-updated",
+      targetType: "environment",
+      targetId: input.environmentId,
+      metadata: {
+        paused: input.paused,
+        mappingRevision: input.expectedRevision,
+      },
+    });
+  });
 }

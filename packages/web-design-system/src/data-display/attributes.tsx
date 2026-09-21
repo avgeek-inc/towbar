@@ -9,8 +9,9 @@ import {
 } from "react";
 import { Widget } from "./widget";
 import { cn } from "../lib/utils";
+import { HeadingHelp } from "../overlays/heading-help";
 
-export type AttributesVariant = "card" | "list";
+export type AttributesVariant = "card" | "embedded" | "list";
 export type AttributesColumns = 1 | 2 | 3;
 const VariantContext = createContext<AttributesVariant>("list");
 const columns = {
@@ -41,35 +42,58 @@ const Root = forwardRef<HTMLDivElement, AttributesProps>(
       ...props
     },
     ref,
-  ) => (
-    <VariantContext.Provider value={variant}>
-      <Widget
-        ref={ref}
-        className={cn("min-w-0 overflow-hidden", className)}
-        {...props}
-      >
-        <Widget.Header>
-          <Widget.Title
-            icon={icon}
-            className="min-w-0 truncate text-xs font-medium text-muted"
-            title={typeof title === "string" ? title : undefined}
+  ) => {
+    if (variant === "embedded")
+      return (
+        <VariantContext.Provider value={variant}>
+          <div
+            ref={ref}
+            className={cn("grid min-w-0 gap-1", className)}
+            {...props}
           >
-            {title}
-          </Widget.Title>
-        </Widget.Header>
-        <Widget.Content className={variant === "list" ? "p-0" : undefined}>
-          <dl
-            className={cn(
-              variant === "card" ? "content-grid" : "grid",
-              variant === "card" && columns[count],
-            )}
-          >
-            {children}
-          </dl>
-        </Widget.Content>
-      </Widget>
-    </VariantContext.Provider>
-  ),
+            <span className="inline-flex min-w-0 items-center gap-2 text-xs font-medium text-muted">
+              {icon ? (
+                <span aria-hidden="true" className="inline-flex shrink-0">
+                  {icon}
+                </span>
+              ) : null}
+              <span className="truncate">{title}</span>
+              <HeadingHelp title={typeof title === "string" ? title : ""} />
+            </span>
+            <dl className="grid">{children}</dl>
+          </div>
+        </VariantContext.Provider>
+      );
+    return (
+      <VariantContext.Provider value={variant}>
+        <Widget
+          ref={ref}
+          className={cn("min-w-0 overflow-hidden", className)}
+          {...props}
+        >
+          <Widget.Header>
+            <Widget.Title
+              icon={icon}
+              className="min-w-0 truncate text-xs font-medium text-muted"
+              title={typeof title === "string" ? title : undefined}
+            >
+              {title}
+            </Widget.Title>
+          </Widget.Header>
+          <Widget.Content className={variant === "list" ? "p-0" : undefined}>
+            <dl
+              className={cn(
+                variant === "card" ? "content-grid" : "grid",
+                variant === "card" && columns[count],
+              )}
+            >
+              {children}
+            </dl>
+          </Widget.Content>
+        </Widget>
+      </VariantContext.Provider>
+    );
+  },
 );
 Root.displayName = "Attributes.Root";
 export interface AttributesItemProps extends Omit<
@@ -89,7 +113,10 @@ const Item = forwardRef<HTMLDivElement, AttributesItemProps>(
         className={cn(
           variant === "card"
             ? "grid min-w-0 gap-1"
-            : "flex min-w-0 items-center justify-between gap-4 border-b border-separator px-4 py-3 last:border-0",
+            : cn(
+                "flex min-w-0 items-center justify-between gap-4 border-b border-separator py-3 last:border-0",
+                variant === "list" && "px-4",
+              ),
           className,
         )}
         {...props}

@@ -1,5 +1,6 @@
 import {
   type NormalizedApp,
+  type NormalizedComposeWorkload,
   type NormalizedDeploymentManifest,
   type NormalizedResource,
   digestValue,
@@ -22,12 +23,14 @@ export type ReconciliationAction<T> = {
 
 export type ManifestReconciliation = {
   apps: Array<ReconciliationAction<NormalizedApp>>;
+  compose: Array<ReconciliationAction<NormalizedComposeWorkload>>;
   resources: Array<ReconciliationAction<NormalizedResource>>;
   summary: Record<ReconciliationAction<unknown>["action"], number>;
 };
 
 export function reconcileManifest(input: {
   currentApps: Array<MaterializedManifestEntity<NormalizedApp>>;
+  currentCompose?: Array<MaterializedManifestEntity<NormalizedComposeWorkload>>;
   currentResources?: Array<MaterializedManifestEntity<NormalizedResource>>;
   desired: NormalizedDeploymentManifest;
 }): ManifestReconciliation {
@@ -41,6 +44,11 @@ export function reconcileManifest(input: {
     input.desired.resources ?? [],
     (resource) => resource.id,
   );
+  const compose = reconcileEntities(
+    input.currentCompose ?? [],
+    input.desired.compose ?? [],
+    (workload) => workload.id,
+  );
   const summary: ManifestReconciliation["summary"] = {
     archive: 0,
     create: 0,
@@ -48,10 +56,10 @@ export function reconcileManifest(input: {
     unchanged: 0,
     update: 0,
   };
-  [...apps, ...resources].forEach((entry) => {
+  [...apps, ...compose, ...resources].forEach((entry) => {
     summary[entry.action] += 1;
   });
-  return { apps, resources, summary };
+  return { apps, compose, resources, summary };
 }
 
 function reconcileEntities<T>(

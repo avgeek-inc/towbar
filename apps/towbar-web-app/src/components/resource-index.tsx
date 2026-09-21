@@ -1,4 +1,11 @@
 "use client";
+import { useAccess } from "./access-context";
+import { IntegrationProviderLogo } from "./integration-provider-logo";
+import { useState } from "react";
+import {
+  configuredRepositoryProviders,
+  SourceCreateModal,
+} from "./source-create";
 import {
   InventorySidebar,
   useInventoryQuery,
@@ -7,18 +14,19 @@ import {
 import {
   Add01Icon,
   DashboardCircleIcon,
-  DatabaseIcon,
+  CubeIcon,
   GitBranchIcon,
-  GithubIcon,
-  ServerStack01Icon,
 } from "@hugeicons/core-free-icons";
 
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+import {
+  Tooltip,
+  TooltipText,
+} from "@workspace/web-design-system/overlays/tooltip";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
 import type { App, Resource, Source } from "@workspace/towbar-web-client";
-import { ButtonLink } from "@workspace/web-design-system/buttons/button";
+import { Button } from "@workspace/web-design-system/buttons/button";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
@@ -33,6 +41,8 @@ import { LastSyncedTime } from "./last-synced-time";
 
 export function SourceIndex() {
   const router = useRouter();
+  const [addingSource, setAddingSource] = useState(false);
+  const { can } = useAccess();
   const filtered = useInventoryQuery("sources").includes("?");
   const query = useApiQuery<{ sources: Source[]; counts: InventoryCounts }>(
     useInventoryQuery("sources"),
@@ -43,13 +53,34 @@ export function SourceIndex() {
     "/v1/core/resources",
     5_000,
   );
+  const github = useApiQuery<{
+    connection: { suspendedAt: string | null } | null;
+  }>("/v1/core/github/installation", 30_000);
+  const gitlab = useApiQuery<{ connections: unknown[] }>(
+    "/v1/core/gitlab/connections",
+    30_000,
+  );
+  const providerAvailabilityLoaded = Boolean(github.data && gitlab.data);
+  const hasConfiguredProvider =
+    configuredRepositoryProviders({
+      githubConnected: Boolean(
+        github.data?.connection && !github.data.connection.suspendedAt,
+      ),
+      gitlabConnected: Boolean(gitlab.data?.connections.length),
+    }).length > 0;
+  const providerAvailabilityFailed = Boolean(github.error || gitlab.error);
+  const noConfiguredProvider =
+    providerAvailabilityLoaded && !hasConfiguredProvider;
+  const addRepositoryDisabled =
+    !providerAvailabilityFailed &&
+    (!providerAvailabilityLoaded || noConfiguredProvider);
   const error = query.error ?? apps.error ?? resources.error;
   const inventory = countSourceInventory(
     apps.data?.apps ?? [],
     resources.data?.resources ?? [],
   );
   function prepareSource(source: Source) {
-    const href = `/sources/${source.id}`;
+    const href = `/repositories/${source.id}`;
     router.prefetch(href);
     return prefetchApiQueries([
       `/v1/core/sources/${source.id}`,
@@ -62,13 +93,13 @@ export function SourceIndex() {
   const columns: ResourceTableColumn<Source>[] = [
     {
       key: "repository",
-      header: "Source Repo",
+      header: "Repository",
       cell: (source) => (
         <span className="flex min-w-0 items-center gap-2">
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-5 shrink-0"
-            icon={GithubIcon}
+          <IntegrationProviderLogo
+            provider="github"
+            className="size-5"
+            size={20}
           />
           <TooltipText
             className="truncate"
@@ -78,12 +109,12 @@ export function SourceIndex() {
           </TooltipText>
         </span>
       ),
-      className: "w-full min-w-72",
+      className: "w-full min-w-56",
     },
     {
       key: "inventory",
-      header: "Inventory",
-      className: "min-w-44 whitespace-nowrap",
+      header: "Manifest inventories",
+      className: "min-w-60 whitespace-nowrap",
       cell: (source) => {
         const counts = inventory.get(source.id);
         return (
@@ -97,12 +128,7 @@ export function SourceIndex() {
               {
                 label: "resource",
                 count: counts?.resources ?? 0,
-                icon: DatabaseIcon,
-              },
-              {
-                label: "server",
-                count: counts?.servers.size ?? 0,
-                icon: ServerStack01Icon,
+                icon: CubeIcon,
               },
             ].map(({ label, count, icon }) => (
               <TooltipText
@@ -117,6 +143,10 @@ export function SourceIndex() {
                   className="size-4 text-muted-foreground"
                 />
                 <span className="tabular-nums">{count}</span>
+                <span className="text-muted">
+                  {label}
+                  {count === 1 ? "" : "s"}
+                </span>
               </TooltipText>
             ))}
           </span>
@@ -124,29 +154,16 @@ export function SourceIndex() {
       },
     },
     {
-      key: "branch",
-      header: "Prod Branch",
-      cell: (source) => (
-        <span className="inline-flex items-center gap-2">
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-4 shrink-0 text-muted-foreground"
-            icon={GitBranchIcon}
-          />
-          {source.branch}
-        </span>
-      ),
-      className: "min-w-32 whitespace-nowrap",
-    },
-    {
       key: "last-synced",
       header: "Last synced",
       cell: (source) => <LastSyncedTime value={source.updatedAt} />,
-      className: "min-w-48 whitespace-nowrap",
+      className: "min-w-40 whitespace-nowrap",
     },
     {
       key: "status",
       header: "Status",
+      headerClassName: "hidden 2xl:table-cell",
+      className: "hidden 2xl:table-cell",
       cell: (source) => <StatusBadge status={source.status} />,
     },
   ];
@@ -155,17 +172,19 @@ export function SourceIndex() {
     <DashboardPage
       icon={GitBranchIcon}
       actions={
-        <ButtonLink href="/sources/new">
-          <HugeiconsIcon
-            aria-hidden="true"
-            icon={Add01Icon}
-            className="size-4 shrink-0"
+        can("repository.connect") ? (
+          <AddRepositoryButton
+            isDisabled={addRepositoryDisabled}
+            noConfiguredProvider={noConfiguredProvider}
+            onPress={() => setAddingSource(true)}
           />
-          Add source
-        </ButtonLink>
+        ) : undefined
       }
-      title="Sources"
+      title="Repositories"
     >
+      {addingSource && can("repository.connect") ? (
+        <SourceCreateModal onClose={() => setAddingSource(false)} />
+      ) : null}
       <InventorySidebar kind="sources" counts={query.data?.counts} />
       {error ? (
         <QueryError message={error} />
@@ -173,25 +192,26 @@ export function SourceIndex() {
         <QueryLoading variant="table" />
       ) : (
         <ResourceTable
-          ariaLabel="Sources"
+          ariaLabel="Repositories"
           columns={columns}
           emptyAction={
-            <ButtonLink href="/sources/new">
-              <HugeiconsIcon
-                aria-hidden="true"
-                icon={Add01Icon}
-                className="size-4 shrink-0"
+            can("repository.connect") ? (
+              <AddRepositoryButton
+                isDisabled={addRepositoryDisabled}
+                noConfiguredProvider={noConfiguredProvider}
+                onPress={() => setAddingSource(true)}
               />
-              Add source
-            </ButtonLink>
+            ) : undefined
           }
           emptyDescription={
             filtered
               ? "Try changing or clearing the filters."
               : "Connect a GitHub repository to import its Towbar manifest."
           }
-          emptyTitle={filtered ? "No matching sources" : "No sources yet"}
-          getRowHref={(source) => `/sources/${source.id}`}
+          emptyTitle={
+            filtered ? "No matching repositories" : "No repositories yet"
+          }
+          getRowHref={(source) => `/repositories/${source.id}`}
           getRowKey={(source) => source.id}
           items={query.data.sources}
           onRowLinkIntent={(source) => {
@@ -204,11 +224,49 @@ export function SourceIndex() {
               new Promise((resolve) => setTimeout(resolve, 150)),
             ])
               .catch(() => undefined)
-              .finally(() => router.push(`/sources/${source.id}`));
+              .finally(() => router.push(`/repositories/${source.id}`));
           }}
-          tableClassName="min-w-[900px]"
+          tableClassName="min-w-[680px] 2xl:min-w-[900px]"
         />
       )}
     </DashboardPage>
+  );
+}
+
+function AddRepositoryButton({
+  isDisabled,
+  noConfiguredProvider,
+  onPress,
+}: {
+  isDisabled: boolean;
+  noConfiguredProvider: boolean;
+  onPress: () => void;
+}) {
+  const button = (
+    <Button isDisabled={isDisabled} onPress={onPress}>
+      <HugeiconsIcon
+        aria-hidden="true"
+        icon={Add01Icon}
+        className="size-4 shrink-0"
+      />
+      Add repository
+    </Button>
+  );
+  if (!noConfiguredProvider) return button;
+  return (
+    <Tooltip>
+      <Tooltip.Trigger
+        aria-label="Why adding a repository is unavailable"
+        className="inline-flex rounded-md outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        render={(props) => <span {...props} />}
+        tabIndex={0}
+      >
+        {button}
+      </Tooltip.Trigger>
+      <Tooltip.Content placement="top" showArrow>
+        <Tooltip.Arrow />
+        No source provider connected yet.
+      </Tooltip.Content>
+    </Tooltip>
   );
 }

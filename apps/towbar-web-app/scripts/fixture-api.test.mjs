@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
+import { resolveRepositoryEnvironment } from "@workspace/towbar-core";
 
 import { createFixtureApiServer, fixtureIds } from "./fixture-api.ts";
 import { reconcileServerSetupStatus } from "../src/lib/server-preparation-status.ts";
@@ -11,6 +12,7 @@ const readRoutes = [
   "/v1/core/sessions",
   "/v1/core/github",
   "/v1/core/notifications/providers",
+  "/v1/core/notifications/destinations",
   "/v1/core/github/repositories",
   "/v1/core/sources",
   "/v1/core/apps",
@@ -20,10 +22,11 @@ const readRoutes = [
   "/v1/core/deployments/history",
   "/v1/core/monitoring/vulnerabilities",
   "/v1/core/system-health",
-  "/v1/core/aws",
+  "/v1/core/integrations",
+  "/v1/core/log-drains",
   "/v1/core/settings/secrets",
   `/v1/core/sources/${fixtureIds.source}`,
-  `/v1/core/sources/${fixtureIds.source}/manifest`,
+  `/v1/core/sources/${fixtureIds.source}/environments`,
   `/v1/core/sources/${fixtureIds.source}/syncs`,
   `/v1/core/sources/${fixtureIds.source}/auto-deploy-control`,
   `/v1/core/sources/${fixtureIds.source}/secrets`,
@@ -38,6 +41,8 @@ const readRoutes = [
   `/v1/core/apps/${fixtureIds.app}/secrets`,
   `/v1/core/apps/${fixtureIds.app}/deployments`,
   `/v1/core/apps/${fixtureIds.app}/releases`,
+  `/v1/core/apps/${fixtureIds.storageApp}/storage`,
+  `/v1/core/apps/${fixtureIds.storageApp}/jobs`,
   `/v1/core/apps/${fixtureIds.app}/operations`,
   `/v1/core/resources/${fixtureIds.resource}`,
   `/v1/core/resources/${fixtureIds.resource}/auto-deploy-control`,
@@ -55,6 +60,7 @@ const readRoutes = [
   `/v1/core/servers/${fixtureIds.server}/host-keys`,
   `/v1/core/servers/${fixtureIds.server}/orphans`,
   `/v1/core/deployments/${fixtureIds.deployment}`,
+  `/v1/core/deployments/${fixtureIds.deployment}/source-revision`,
   `/v1/core/deployments/${fixtureIds.deployment}/steps`,
   `/v1/core/deployments/${fixtureIds.deployment}/logs`,
 ];
@@ -64,6 +70,50 @@ test("terminal preparation state replaces a stale preparing server state", () =>
   assert.equal(reconcileServerSetupStatus("preparing", "succeeded"), "ready");
   assert.equal(reconcileServerSetupStatus("preparing", "running"), "preparing");
   assert.equal(reconcileServerSetupStatus("pending", "succeeded"), "pending");
+});
+
+test("notification integrations are read-only runtime capabilities", async () => {
+  const server = createFixtureApiServer({
+    notificationProvidersConfigured: true,
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}/v1/core`;
+
+  try {
+    const providers = await (
+      await fetch(`${baseUrl}/notifications/providers`)
+    ).json();
+    assert.deepEqual(providers.providers, {
+      discord: true,
+      slack: true,
+      smtp: true,
+      telegram: true,
+      webhook: true,
+    });
+    assert.deepEqual(providers.configurations.slack, {
+      source: "environment",
+    });
+
+    const destinations = await (
+      await fetch(`${baseUrl}/notifications/destinations`)
+    ).json();
+    assert.equal(destinations.canManageNotifications, false);
+    assert(destinations.destinations.length > 0);
+
+    for (const [route, method] of [
+      ["/notifications/providers/slack", "PUT"],
+      ["/notifications/providers/slack/secret", "GET"],
+      ["/notifications/destinations", "POST"],
+    ]) {
+      assert.equal((await fetch(`${baseUrl}${route}`, { method })).status, 404);
+    }
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
 });
 
 test("the local fixture permits credentialed CORS only from exact web fixture origins", async () => {
@@ -170,44 +220,111 @@ test("the local fixture rejects disallowed origins before state changes", async 
   }
 });
 
-test("health checks include AWS only while the integration is connected", async () => {
+test("runtime integrations expose capabilities without credentials or mutations", async () => {
   const server = createFixtureApiServer();
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
   const base = `http://127.0.0.1:${server.address().port}/v1/core`;
   try {
-    const read = async () => (await fetch(`${base}/system-health`)).json();
-    assert.equal(
-      (await read()).checks.some((check) => check.id === "aws"),
-      false,
+    const state = await (await fetch(`${base}/integrations`)).json();
+    assert(state.integrations.some((item) => item.provider === "github"));
+    assert(state.integrations.some((item) => item.provider === "aws"));
+    assert(
+      state.integrations.every(
+        (item) => Object.keys(item).sort().join(",") === "category,provider",
+      ),
     );
-    const saved = await fetch(`${base}/aws`, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        accessKeyId: "fixture-key",
-        region: "ap-south-1",
-      }),
+    assert.equal(
+      (await fetch(`${base}/integrations`, { method: "POST" })).status,
+      404,
+    );
+    assert.equal((await fetch(`${base}/aws`)).status, 404);
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
+test("GitHub uses environment configuration and a dynamic installation", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const baseUrl = `http://127.0.0.1:${server.address().port}/v1/core/github`;
+
+  try {
+    const initial = await (await fetch(baseUrl)).json();
+    assert.deepEqual(initial.configuration, {
+      appId: "123456",
+      appSlug: "towbar-fixture",
+      source: "environment",
     });
-    assert.equal(saved.status, 200);
-    const connected = (await read()).checks.find((check) => check.id === "aws");
-    assert.equal(connected.status, "healthy");
-    const checked = await (
-      await fetch(`${base}/system-health/actions/check`, { method: "POST" })
-    ).json();
-    assert.equal(
-      checked.checks.filter((check) => check.id === "aws").length,
-      1,
+    assert.equal(initial.connection, null);
+    assert.equal((await fetch(`${baseUrl}/configuration`)).status, 404);
+    assert.equal((await fetch(`${baseUrl}/configuration/secrets`)).status, 404);
+
+    const installationResponse = await fetch(
+      `${baseUrl}/actions/installation-url`,
+      {
+        headers: { origin: "http://localhost:4021" },
+        method: "POST",
+      },
     );
-    assert.equal(
-      checked.checks.find((check) => check.id === "aws").checkedAt,
-      checked.checkedAt,
+    assert.equal(installationResponse.status, 200);
+    const installationUrl = new URL((await installationResponse.json()).url);
+    const reconnected = await fetch(
+      `${baseUrl}/actions/complete-installation`,
+      {
+        body: JSON.stringify({
+          installationId: installationUrl.searchParams.get("installation_id"),
+          state: installationUrl.searchParams.get("state"),
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      },
     );
-    await fetch(`${base}/aws`, { method: "DELETE" });
+    assert.equal(reconnected.status, 201);
     assert.equal(
-      (await read()).checks.some((check) => check.id === "aws"),
-      false,
+      (await (await fetch(baseUrl)).json()).connection.accountLogin,
+      "example-inc",
     );
+
+    assert.equal((await fetch(baseUrl, { method: "DELETE" })).status, 204);
+    const disconnected = await (await fetch(baseUrl)).json();
+    assert.equal(disconnected.connection, null);
+    assert.equal(disconnected.configuration.source, "environment");
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
+test("GitLab OAuth is the only mutable GitLab authorization", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const base = `http://127.0.0.1:${server.address().port}/v1/core`;
+  try {
+    const before = await (await fetch(`${base}/gitlab/connections`)).json();
+    assert.equal(before.connections.length, 1);
+    assert.equal(before.connections[0].verificationStatus, "verified");
+
+    const start = await fetch(`${base}/gitlab/oauth/start`, {
+      headers: { origin: "http://localhost:4021" },
+      method: "POST",
+    });
+    assert.equal(start.status, 200);
+    assert.equal(
+      new URL((await start.json()).authorizationUrl).pathname,
+      "/manage/integrations/gitlab",
+    );
+
+    assert.equal(
+      (await fetch(`${base}/gitlab/oauth/connection`, { method: "DELETE" }))
+        .status,
+      204,
+    );
+    const after = await (await fetch(`${base}/gitlab/connections`)).json();
+    assert.equal(after.connections.length, 0);
   } finally {
     server.close();
     await once(server, "close");
@@ -228,10 +345,9 @@ test("the local fixture separates control-plane checks from server capacity", as
     );
     assert.equal(response.status, 200);
     const health = await response.json();
-    assert.equal(health.checks.length, 4);
-    assert.equal(
-      health.checks.some((check) => check.id === "aws"),
-      false,
+    assert.deepEqual(
+      health.checks.map((check) => check.id),
+      ["api-database", "temporal", "worker"],
     );
     assert.equal("runtimeCapacity" in health, false);
     const capacityResponse = await fetch(
@@ -350,7 +466,7 @@ test("the local fixture supports write-only stage edits and rejects stale revisi
     );
     assert.deepEqual(previewBuild.inheritedKeys, []);
     assert.deepEqual(previewBuild.availableReferences, {
-      globals: ["GLOBAL_PREVIEW_TOKEN"],
+      globals: ["GLOBAL_PACKAGE_TOKEN"],
       source: ["SOURCE_PREVIEW_TOKEN"],
     });
     const revealed = await fetch(`${endpoint}/production/deployment/reveal`, {
@@ -379,84 +495,35 @@ test("the local fixture supports write-only stage edits and rejects stale revisi
       (await globalUpdate.text()).includes("must-also-not-return"),
       false,
     );
-  } finally {
-    server.close();
-    await once(server, "close");
-  }
-});
-
-test("the local fixture covers source creation and the initial sync", async () => {
-  const server = createFixtureApiServer();
-  server.listen(0, "127.0.0.1");
-  await once(server, "listening");
-  const address = server.address();
-  assert(address && typeof address === "object");
-  const baseUrl = `http://127.0.0.1:${address.port}`;
-
-  try {
-    const createResponse = await fetch(`${baseUrl}/v1/core/sources`, {
-      body: JSON.stringify({
-        branch: "main",
-        githubInstallationId: "b1111111-1111-4111-8111-111111111111",
-        repositoryName: "platform",
-        repositoryOwner: "example-inc",
-      }),
-      headers: { "content-type": "application/json" },
-      method: "POST",
-    });
-    assert.equal(createResponse.status, 201);
-    const createPayload = await createResponse.json();
-    assert.equal(createPayload.source.id, fixtureIds.source);
-
-    const syncResponse = await fetch(
-      `${baseUrl}/v1/core/sources/${createPayload.source.id}/actions/sync`,
-      { method: "POST" },
-    );
-    assert.equal(syncResponse.status, 202);
-    const syncPayload = await syncResponse.json();
-    assert.equal(syncPayload.sync.id, fixtureIds.sync);
-  } finally {
-    server.close();
-    await once(server, "close");
-  }
-});
-
-test("the local fixture models one write-only workspace AWS integration", async () => {
-  const server = createFixtureApiServer();
-  server.listen(0, "127.0.0.1");
-  await once(server, "listening");
-  const address = server.address();
-  assert(address && typeof address === "object");
-  const baseUrl = `http://127.0.0.1:${address.port}`;
-  const endpoint = `${baseUrl}/v1/core/aws`;
-
-  try {
-    const empty = await (await fetch(endpoint)).json();
-    assert.equal(empty.credential, null);
-
-    const savedResponse = await fetch(endpoint, {
-      body: JSON.stringify({
-        accessKeyId: "AKIAEXAMPLE123456",
-        region: "ap-south-1",
-        secretAccessKey: "must-not-return-secret-value",
-      }),
-      headers: { "content-type": "application/json" },
-      method: "PUT",
-    });
-    assert.equal(savedResponse.status, 200);
-    const savedText = await savedResponse.text();
-    assert.equal(savedText.includes("must-not-return-secret-value"), false);
-    assert.equal(JSON.parse(savedText).credential.accessKeyIdSuffix, "3456");
-
-    const assurance = await (
-      await fetch(
-        `${baseUrl}/v1/core/resources/${fixtureIds.resource}/backup-assurance`,
-      )
+    const sharedAcrossTargets = await (
+      await fetch(`${globalEndpoint}?environment=preview`)
     ).json();
-    assert.equal(assurance.awsConfigured, true);
-
-    assert.equal((await fetch(endpoint, { method: "DELETE" })).status, 204);
-    assert.equal((await (await fetch(endpoint)).json()).credential, null);
+    assert.deepEqual(sharedAcrossTargets.environments, ["production"]);
+    assert(
+      sharedAcrossTargets.bindings
+        .find((item) => item.stage === "build")
+        .keys.includes("GLOBAL_WRITE_ONLY"),
+    );
+    const currentBuild = sharedAcrossTargets.bindings.find(
+      (item) => item.stage === "build",
+    );
+    const deleted = await fetch(`${globalEndpoint}/preview/build`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        expectedRevision: currentBuild.revision,
+        set: {},
+        delete: ["GLOBAL_WRITE_ONLY"],
+      }),
+    });
+    assert.equal(deleted.status, 200);
+    const afterDelete = await (await fetch(globalEndpoint)).json();
+    assert.equal(
+      afterDelete.bindings
+        .find((item) => item.stage === "build")
+        .keys.includes("GLOBAL_WRITE_ONLY"),
+      false,
+    );
   } finally {
     server.close();
     await once(server, "close");
@@ -496,7 +563,7 @@ test("the local fixture supports workspace server creation, editing, and safe re
           await fetch(`${baseUrl}/v1/core/servers/${fixtureIds.server}`)
         ).json()
       ).canRemoveServer,
-      false,
+      true,
     );
 
     const duplicate = await fetch(`${baseUrl}/v1/core/servers`, {
@@ -534,14 +601,6 @@ test("the local fixture supports workspace server creation, editing, and safe re
     assert.equal(
       (await fetch(`${baseUrl}/v1/core/servers/${created.id}`)).status,
       404,
-    );
-    assert.equal(
-      (
-        await fetch(`${baseUrl}/v1/core/servers/${fixtureIds.server}`, {
-          method: "DELETE",
-        })
-      ).status,
-      409,
     );
   } finally {
     fixture.close();
@@ -626,31 +685,36 @@ test("the local fixture ranks workspace advisories by severity with affected app
     );
     assert.equal(response.status, 200);
     const payload = await response.json();
-    assert.equal(payload.findings.length, 7);
+    assert.equal(payload.findings.length, 12);
     assert.equal(payload.nextPage, null);
     assert.equal(payload.findings[0].advisoryId, "CVE-2026-21001");
     assert.equal(payload.findings[0].severity, "critical");
-    assert.equal(payload.findings[0].appName, "Towbar API");
     assert.equal(payload.findings[0].packageName, "openssl");
-    assert.equal(payload.findings[1].advisoryId, "CVE-2026-21002");
-    assert.equal(payload.findings[2].advisoryId, "CVE-2026-12001");
-    assert.equal(payload.findings[2].appName, "Example Website");
-    assert.equal(payload.findings[2].scanState, "stale");
-    assert.equal(payload.findings[3].appName, "Towbar API");
+    assert(
+      payload.findings.some(
+        (finding) =>
+          finding.advisoryId === "CVE-2026-12001" &&
+          finding.appName === "Example Website" &&
+          finding.scanState === "stale",
+      ),
+    );
+    assert(
+      payload.findings.some((finding) => finding.appName === "Towbar API"),
+    );
     assert.equal(payload.findings.at(-1).severity, "low");
-    assert.equal(payload.summary.critical, 2);
-    assert.equal(payload.summary.scansWithFindings, 1);
+    assert.equal(payload.summary.critical, 4);
+    assert.equal(payload.summary.scansWithFindings, 2);
     assert.equal(payload.summary.cleanScans, 1);
 
     const criticalOnly = await fetch(
       `${baseUrl}/v1/core/monitoring/vulnerabilities?severity=critical`,
     ).then((item) => item.json());
-    assert.equal(criticalOnly.findings.length, 2);
+    assert.equal(criticalOnly.findings.length, 4);
     assert.equal(
       criticalOnly.findings.every((finding) => finding.severity === "critical"),
       true,
     );
-    assert.equal(criticalOnly.summary.critical, 2);
+    assert.equal(criticalOnly.summary.critical, 4);
 
     const appScoped = await fetch(
       `${baseUrl}/v1/core/monitoring/vulnerabilities?appId=${fixtureIds.app}`,
@@ -838,6 +902,123 @@ test("the local fixture covers first-connection host-key trust", async () => {
   }
 });
 
+test("SSH private keys are saved only after connection verification", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+  const credentialsPath = `/v1/core/servers/${fixtureIds.server}/credentials`;
+  const verificationPath = `${credentialsPath}/actions/verify-private-key`;
+  const privateKey = [
+    "-----BEGIN OPENSSH PRIVATE KEY-----",
+    "fixture-private-key-material-that-is-long-enough-for-validation",
+    "-----END OPENSSH PRIVATE KEY-----",
+  ].join("\n");
+
+  try {
+    const createKeyResponse = await fetch(
+      `${baseUrl}/v1/core/settings/private-keys`,
+      {
+        body: JSON.stringify({
+          description: "Fixture verification key",
+          mode: "manual",
+          name: "Fixture key",
+          privateKey,
+          publicKey: null,
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      },
+    );
+    assert.equal(createKeyResponse.status, 201);
+    const privateKeyId = (await createKeyResponse.json()).privateKey.id;
+    const before = await (await fetch(baseUrl + credentialsPath)).json();
+    assert.equal(before.credential.keys.includes("privateKey"), false);
+
+    const untrustedResponse = await fetch(baseUrl + verificationPath, {
+      body: JSON.stringify({
+        expectedRevision: before.credential.revision,
+        privateKeyId,
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    });
+    assert.equal(untrustedResponse.status, 202);
+    const untrusted = (await untrustedResponse.json()).verification;
+    assert.equal(untrusted.status, "failed");
+    assert.equal(untrusted.errorCode, "HOST_KEY_NOT_TRUSTED");
+    assert.equal(
+      untrusted.result.discoveredHostKeys[0].fingerprint,
+      "SHA256:TowbarFixtureHostKey",
+    );
+    const stillUnconfigured = await (
+      await fetch(baseUrl + credentialsPath)
+    ).json();
+    assert.equal(
+      stillUnconfigured.credential.keys.includes("privateKey"),
+      false,
+    );
+    assert.equal(
+      stillUnconfigured.credential.revision,
+      before.credential.revision,
+    );
+
+    const trustResponse = await fetch(
+      `${baseUrl}/v1/core/servers/${fixtureIds.server}/host-keys/actions/trust`,
+      { method: "POST" },
+    );
+    assert.equal(trustResponse.status, 201);
+
+    const verifiedResponse = await fetch(baseUrl + verificationPath, {
+      body: JSON.stringify({
+        expectedRevision: before.credential.revision,
+        privateKeyId,
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    });
+    assert.equal(verifiedResponse.status, 202);
+    const verified = (await verifiedResponse.json()).verification;
+    assert.equal(verified.status, "succeeded");
+    const readback = await fetch(
+      `${baseUrl}${credentialsPath}/verifications/${verified.id}`,
+    );
+    assert.equal(readback.status, 200);
+    assert.equal((await readback.json()).verification.status, "succeeded");
+
+    const saved = await (await fetch(baseUrl + credentialsPath)).json();
+    assert.equal(saved.credential.keys.includes("privateKey"), true);
+    assert.notEqual(saved.credential.revision, before.credential.revision);
+
+    const removeResponse = await fetch(baseUrl + credentialsPath, {
+      body: JSON.stringify({
+        expectedRevision: saved.credential.revision,
+        set: {},
+        delete: ["privateKey"],
+      }),
+      headers: { "content-type": "application/json" },
+      method: "PATCH",
+    });
+    assert.equal(removeResponse.status, 200);
+    const removed = await removeResponse.json();
+    assert.equal(removed.credential.keys.includes("privateKey"), false);
+    const hostKeys = await (
+      await fetch(`${baseUrl}/v1/core/servers/${fixtureIds.server}/host-keys`)
+    ).json();
+    assert.deepEqual(hostKeys.hostKeys, []);
+    assert.equal(
+      (await fetch(`${baseUrl}${credentialsPath}/verifications/${verified.id}`))
+        .status,
+      404,
+    );
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
 test("the local fixture covers server preparation and deployable readiness", async () => {
   const server = createFixtureApiServer();
   server.listen(0, "127.0.0.1");
@@ -857,8 +1038,29 @@ test("the local fixture covers server preparation and deployable readiness", asy
     );
     assert.equal(response.status, 202);
     const payload = await response.json();
-    assert.equal(payload.preparation.status, "succeeded");
+    assert.equal(payload.preparation.status, "queued");
     assert.equal(payload.preparation.steps.length, 7);
+
+    let preparation = payload.preparation;
+    for (
+      let poll = 0;
+      poll < 10 && preparation.status !== "succeeded";
+      poll += 1
+    ) {
+      const preparationResponse = await fetch(
+        `${baseUrl}/v1/core/servers/${fixtureIds.server}/preparations`,
+      );
+      assert.equal(preparationResponse.status, 200);
+      const preparationPayload = await preparationResponse.json();
+      preparation = preparationPayload.preparations[0];
+    }
+    assert.equal(preparation.status, "succeeded");
+    assert.ok(preparation.steps.every((step) => step.log?.length > 0));
+    assert.match(preparation.steps[0].message, /Production servers/);
+    assert.equal(
+      preparation.steps.every((step) => step.status === "succeeded"),
+      true,
+    );
 
     const serverResponse = await fetch(
       `${baseUrl}/v1/core/servers/${fixtureIds.server}`,
@@ -955,8 +1157,8 @@ test("fixture Sources have distinct inventories and working scoped routes", asyn
     ).json();
     assert.equal(sources.length, 4);
     const expected = new Map([
-      [fixtureIds.source, [3, 4, 2]],
-      [fixtureIds.docsSource, [1, 0, 1]],
+      [fixtureIds.source, [5, 11, 2]],
+      [fixtureIds.docsSource, [3, 0, 1]],
       [fixtureIds.analyticsSource, [0, 1, 1]],
       [fixtureIds.sandboxSource, [0, 0, 0]],
     ]);
@@ -964,13 +1166,45 @@ test("fixture Sources have distinct inventories and working scoped routes", asyn
       const path = `${baseUrl}/v1/core/sources/${source.id}`;
       for (const child of [
         "",
-        "/manifest",
+        "/environments",
         "/syncs",
         "/capacity",
         "/deployments",
       ]) {
         assert.equal((await fetch(path + child)).status, 200, path + child);
       }
+      assert.equal((await fetch(`${path}/manifest`)).status, 404);
+      const { environments } = await (
+        await fetch(`${path}/environments`)
+      ).json();
+      for (const environment of environments) {
+        const { manifest } = await (
+          await fetch(`${path}/environments/${environment.id}/manifest`)
+        ).json();
+        const resolved = resolveRepositoryEnvironment({
+          root: manifest.files[0].content,
+          files: manifest.files.slice(1),
+          environment: environment.name,
+          branch: environment.branch,
+        });
+        assert.equal(resolved.manifest.environment, environment.name);
+        assert.match(manifest.files[0].content, /^version: 2/);
+        assert.equal(manifest.files[0].path, "towbar.yml");
+        assert(manifest.files.length > 1);
+        assert(
+          manifest.files
+            .slice(1)
+            .every((file) => file.path.startsWith(".towbar/")),
+        );
+      }
+      assert.equal(
+        (
+          await fetch(
+            `${path}/environments/00000000-0000-4000-8000-000000000000/manifest`,
+          )
+        ).status,
+        404,
+      );
       const { apps } = await (await fetch(`${path}/apps`)).json();
       const { resources } = await (await fetch(`${path}/resources`)).json();
       assert(
@@ -985,6 +1219,500 @@ test("fixture Sources have distinct inventories and working scoped routes", asyn
         expected.get(source.id),
       );
     }
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
+test("v2 fixtures expose environment mappings and isolated sibling instances", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+  const get = async (path) => {
+    const response = await fetch(baseUrl + path);
+    assert.equal(response.status, 200, path);
+    return response.json();
+  };
+  try {
+    const { environments } = await get(
+      `/v1/core/sources/${fixtureIds.source}/environments`,
+    );
+    assert.deepEqual(
+      environments.map(({ name, branch }) => [name, branch]),
+      [
+        ["production", "main"],
+        ["staging", "develop"],
+      ],
+    );
+    for (const [kind, productionId, stagingId] of [
+      ["apps", fixtureIds.app, fixtureIds.stagingApp],
+      ["resources", fixtureIds.resource, fixtureIds.stagingResource],
+    ]) {
+      const items = (
+        await get(`/v1/core/sources/${fixtureIds.source}/${kind}`)
+      )[kind];
+      const production = items.find((item) => item.id === productionId);
+      const staging = items.find((item) => item.id === stagingId);
+      assert.equal(production.entityId, staging.entityId);
+      assert.notEqual(production.id, staging.id);
+      assert.equal(production.environment.name, "production");
+      assert.equal(staging.environment.name, "staging");
+      assert.equal(staging.environment.branch, "develop");
+      const filtered = await get(`/v1/core/${kind}?environment=staging`);
+      assert.deepEqual(
+        filtered[kind].map((item) => item.id),
+        [stagingId],
+      );
+    }
+    const appInventory = await get("/v1/core/apps");
+    const resourceInventory = await get("/v1/core/resources");
+    assert.equal(appInventory.apps.length, 8);
+    assert.equal(appInventory.counts.all, 7);
+    assert.equal(
+      appInventory.apps.find((app) => app.id === fixtureIds.faviconApp)?.config
+        .domains?.primary,
+      "www.wikipedia.org",
+    );
+    assert.equal(resourceInventory.resources.length, 12);
+    assert.equal(resourceInventory.counts.all, 11);
+    const history = await get(
+      "/v1/core/deployments/history?targetEnvironment=staging&limit=1",
+    );
+    assert.deepEqual(history.environments, ["production", "staging"]);
+    assert.equal(history.pagination.total, 2);
+    assert.equal(history.pagination.totalPages, 2);
+    assert.equal(history.deployments.length, 1);
+    assert.equal(history.deployments[0].targetEnvironment.name, "staging");
+    const missing = await get(
+      "/v1/core/deployments/history?targetEnvironment=missing",
+    );
+    assert.equal(missing.pagination.total, 0);
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
+test("source discovery uses v2 environments and unsupported mutations do not return read payloads", async () => {
+  const server = createFixtureApiServer({ githubAppConnected: true });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+  const post = (path, body) =>
+    fetch(baseUrl + path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  try {
+    const { connection } = await (
+      await fetch(`${baseUrl}/v1/core/github`)
+    ).json();
+    const request = {
+      githubInstallationId: connection.id,
+      repositoryOwner: "example-inc",
+      repositoryName: "example-service",
+      discoveryBranch: "main",
+    };
+    const discovery = await post("/v1/core/sources/discover", request);
+    assert.equal(discovery.status, 200);
+    assert.deepEqual((await discovery.json()).environments, [
+      { name: "production", previewsEnabled: false },
+      { name: "staging", previewsEnabled: true },
+    ]);
+    assert.equal(
+      (
+        await post("/v1/core/sources/discover", {
+          ...request,
+          discoveryBranch: "missing",
+        })
+      ).status,
+      404,
+    );
+    assert.equal((await post("/v1/core/sources", request)).status, 404);
+    assert.equal(
+      (
+        await fetch(
+          `${baseUrl}/v1/core/sources/${fixtureIds.source}/environments`,
+          { method: "PATCH" },
+        )
+      ).status,
+      404,
+    );
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
+test("connecting a selected environment persists isolated instances without deployment", async () => {
+  const server = createFixtureApiServer({ githubAppConnected: true });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  const base = `http://127.0.0.1:${address.port}/v1/core`;
+  const get = async (path) => {
+    const response = await fetch(base + path);
+    assert.equal(response.status, 200, path);
+    return response.json();
+  };
+  const connect = (body) =>
+    fetch(base + "/sources/connect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  try {
+    const { connection } = await get("/github");
+    const request = {
+      githubInstallationId: connection.id,
+      repositoryOwner: "example-inc",
+      repositoryName: "example-service",
+      environments: [{ environment: "staging", branch: "develop" }],
+    };
+    const before = await get("/sources");
+    for (const invalid of [
+      null,
+      { ...request, environments: [] },
+      {
+        ...request,
+        environments: [{ environment: "staging", branch: "missing" }],
+      },
+    ])
+      assert.equal((await connect(invalid)).status, 400);
+    assert.deepEqual(await get("/sources"), before);
+    const response = await connect(request);
+    assert.equal(response.status, 201);
+    const { source, syncs } = await response.json();
+    assert.equal(syncs.length, 1);
+    assert.equal(syncs[0].environment, "staging");
+    assert.equal(syncs[0].error, null);
+    assert.deepEqual((await get(`/sources/${source.id}`)).source, source);
+    const { environments } = await get(`/sources/${source.id}/environments`);
+    assert.equal(environments.length, 1);
+    assert.equal(environments[0].branch, "develop");
+    for (const kind of ["apps", "resources"]) {
+      const instances = (await get(`/sources/${source.id}/${kind}`))[kind];
+      assert.equal(instances.length, 1);
+      assert.equal(instances[0].environment.name, "staging");
+      assert.equal(instances[0].sourceId, source.id);
+      assert.equal(instances[0].runtimeState.observedContainerName, null);
+      assert.equal(instances[0].runtimeState.observedState, "unknown");
+      assert.ok(
+        (await get(`/${kind}`))[kind].some(
+          (item) => item.id === instances[0].id,
+        ),
+      );
+    }
+    assert.deepEqual(
+      (await get(`/sources/${source.id}/deployments`)).deployments,
+      [],
+    );
+    assert.equal((await connect(request)).status, 400);
+    assert.equal(
+      (await get(`/sources/${source.id}/environments`)).environments.length,
+      1,
+    );
+    const endpoint = `/sources/${source.id}/environments`;
+    const mutate = (method, path, body) =>
+      fetch(base + path, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      });
+    const original = (await get(`/sources/${source.id}/apps`)).apps[0];
+    const initialHistory = (await get(`/sources/${source.id}/syncs`)).syncs;
+    assert.deepEqual(
+      (await get(`/sources/${source.id}/syncs/${initialHistory[0].id}`)).sync,
+      initialHistory[0],
+    );
+    assert.equal(
+      (
+        await fetch(
+          `${base}/sources/${fixtureIds.source}/syncs/${initialHistory[0].id}`,
+        )
+      ).status,
+      404,
+    );
+    let mapping = environments[0];
+    const changed = await mutate("PATCH", `${endpoint}/${mapping.id}`, {
+      branch: "main",
+      expectedRevision: mapping.mappingRevision,
+    });
+    assert.equal(changed.status, 200);
+    const saved = await changed.json();
+    assert.equal(saved.sync.deployAfterSync, false);
+    assert.notEqual(saved.environment.mappingRevision, mapping.mappingRevision);
+    assert.equal(
+      (
+        await mutate("DELETE", `${endpoint}/${mapping.id}`, {
+          expectedRevision: mapping.mappingRevision,
+        })
+      ).status,
+      409,
+    );
+    mapping = saved.environment;
+    const missingBranch = await mutate("PATCH", `${endpoint}/${mapping.id}`, {
+      branch: "missing",
+      expectedRevision: mapping.mappingRevision,
+    });
+    assert.equal(missingBranch.status, 400);
+    assert.equal(
+      (await missingBranch.json()).error.message,
+      "Branch was not found",
+    );
+    assert.equal((await get(endpoint)).environments[0].branch, "main");
+    assert.deepEqual(
+      (await get(`/sources/${source.id}/syncs`)).syncs.slice(1),
+      initialHistory,
+    );
+    assert.equal(
+      (
+        await mutate("DELETE", `${endpoint}/${mapping.id}`, {
+          expectedRevision: mapping.mappingRevision,
+        })
+      ).status,
+      200,
+    );
+    assert.equal(
+      (await mutate("POST", `${endpoint}/${mapping.id}/syncs`)).status,
+      404,
+    );
+    assert.equal(
+      (await get(`/sources/${source.id}/apps`)).apps[0].id,
+      original.id,
+    );
+    const reconnected = await mutate("POST", endpoint, {
+      environment: "staging",
+      branch: "develop",
+    });
+    assert.equal(reconnected.status, 201);
+    assert.equal((await reconnected.json()).environment.id, mapping.id);
+    assert.equal(
+      (await get(`/sources/${source.id}/apps`)).apps[0].id,
+      original.id,
+    );
+    assert.equal(
+      (await mutate("POST", `${endpoint}/${mapping.id}/syncs`)).status,
+      202,
+    );
+    assert.equal(
+      (
+        await mutate("POST", endpoint, {
+          environment: "production",
+          branch: "main",
+        })
+      ).status,
+      201,
+    );
+    const siblings = (await get(`/sources/${source.id}/apps`)).apps;
+    assert.equal(siblings.length, 2);
+    assert.notEqual(siblings[0].id, siblings[1].id);
+    assert.equal(siblings[0].entityId, siblings[1].entityId);
+    assert.deepEqual(
+      (await get(`/sources/${source.id}/deployments`)).deployments,
+      [],
+    );
+    assert.equal((await get(`/apps/${original.id}`)).app.id, original.id);
+    assert.deepEqual(
+      (await get(`/apps/${original.id}/deployments`)).deployments,
+      [],
+    );
+    const secretEndpoint = `/apps/${original.id}/secrets`;
+    const metadata = await get(secretEndpoint);
+    assert.equal(metadata.environments[0], "staging");
+    const runtime = metadata.bindings.find(
+      (item) => item.stage === "deployment",
+    );
+    assert.equal(runtime.declared, true);
+    const snapshot = (await get(`${endpoint}/${mapping.id}/manifest`)).manifest;
+    const resolved = resolveRepositoryEnvironment({
+      root: snapshot.files.find((file) => file.path === "towbar.yml").content,
+      files: snapshot.files.filter((file) => file.path !== "towbar.yml"),
+      environment: "staging",
+      branch: "develop",
+    }).manifest;
+    assert.deepEqual(
+      (await get(`/apps/${original.id}`)).app.config,
+      resolved.apps[0],
+    );
+    assert.deepEqual(
+      runtime.keys,
+      resolved.requiredSecrets["app:service"].runtime,
+    );
+    assert.deepEqual(runtime.keys, ["DATABASE_URL"]);
+    assert.deepEqual(runtime.missingKeys, ["DATABASE_URL"]);
+    const valuePath = `${secretEndpoint}/staging/deployment`;
+    const unset = await mutate("POST", `${valuePath}/reveal-all`, {});
+    assert.equal(unset.headers.get("cache-control"), "no-store");
+    assert.deepEqual((await unset.json()).values, {});
+    const emptySaved = await mutate("PATCH", valuePath, {
+      expectedRevision: null,
+      set: { DATABASE_URL: "" },
+    });
+    assert.equal(emptySaved.status, 200);
+    const { secret } = await emptySaved.json();
+    assert.deepEqual(
+      (await get(secretEndpoint)).bindings.find(
+        (item) => item.stage === "deployment",
+      ).missingKeys,
+      [],
+    );
+    assert.deepEqual(
+      (await (await mutate("POST", `${valuePath}/reveal-all`, {})).json())
+        .values,
+      { DATABASE_URL: "" },
+    );
+    assert.equal(
+      (
+        await mutate("PATCH", valuePath, {
+          expectedRevision: null,
+          set: { DATABASE_URL: "stale" },
+        })
+      ).status,
+      409,
+    );
+    assert.equal(
+      (
+        await mutate("PATCH", valuePath, {
+          expectedRevision: secret.revision,
+          set: { UNDECLARED: "invalid" },
+        })
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await mutate("PATCH", valuePath, {
+          expectedRevision: secret.revision,
+          delete: ["DATABASE_URL"],
+        })
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await mutate(
+          "POST",
+          `${secretEndpoint}/production/deployment/reveal-all`,
+          {},
+        )
+      ).status,
+      404,
+    );
+    const production = siblings.find(
+      (item) => item.environment.name === "production",
+    );
+    assert.deepEqual(
+      (await get(`/apps/${production.id}/secrets`)).bindings.find(
+        (item) => item.stage === "deployment",
+      ).missingKeys,
+      ["DATABASE_URL"],
+    );
+    const database = (await get(`/sources/${source.id}/resources`))
+      .resources[0];
+    const resourceBindings = (await get(`/resources/${database.id}/secrets`))
+      .bindings;
+    assert.deepEqual(
+      resourceBindings.map((item) => item.stage),
+      ["deployment"],
+    );
+    assert.deepEqual(resourceBindings[0].missingKeys, ["POSTGRES_PASSWORD"]);
+    assert.equal(
+      (
+        await mutate(
+          "POST",
+          `/resources/${database.id}/secrets/staging/build/reveal-all`,
+          {},
+        )
+      ).status,
+      404,
+    );
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
+test("scheduled jobs fixture records manual output and returns no jobs for unconfigured apps", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  const base = `http://127.0.0.1:${address.port}/v1/core/apps`;
+  const appId = fixtureIds.storageApp;
+  try {
+    const jobs = await (await fetch(`${base}/${appId}/jobs`)).json();
+    assert.equal(jobs.jobs[0].name, "daily-report");
+    assert.equal(jobs.automationPaused, false);
+    const response = await fetch(`${base}/${appId}/actions/run-job`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "daily-report" }),
+    });
+    assert.equal(response.status, 202);
+    const run = (await response.json()).operation;
+    const refreshed = await (await fetch(`${base}/${appId}/jobs`)).json();
+    assert.equal(
+      refreshed.runs.find((item) => item.id === run.id).result.exitCode,
+      0,
+    );
+    assert.match(run.result.logs, /Report generated/);
+    assert.deepEqual(
+      (await (await fetch(`${base}/${fixtureIds.app}/jobs`)).json()).jobs,
+      [],
+    );
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
+test("storage fixture exposes mounted app volumes without backup or restore actions", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const appUrl = `http://127.0.0.1:${address.port}/v1/core/apps/${fixtureIds.storageApp}`;
+
+  try {
+    const storageResponse = await fetch(`${appUrl}/storage`);
+    assert.equal(storageResponse.status, 200);
+    const storage = await storageResponse.json();
+
+    assert.deepEqual(storage.volumes, [
+      {
+        mountPath: "/app/uploads",
+        name: "uploads",
+        status: "mounted",
+        volumeName: `towbar-${fixtureIds.storageApp}-uploads`,
+      },
+    ]);
+    assert.equal("backupPolicies" in storage, false);
+    assert.equal("restoreTargets" in storage, false);
+    assert.equal(
+      (
+        await fetch(`${appUrl}/actions/volume-backup`, {
+          method: "POST",
+        })
+      ).status,
+      404,
+    );
+    assert.equal(
+      (
+        await fetch(`${appUrl}/actions/volume-restore`, {
+          method: "POST",
+        })
+      ).status,
+      404,
+    );
   } finally {
     server.close();
     await once(server, "close");

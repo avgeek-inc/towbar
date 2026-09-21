@@ -1,19 +1,31 @@
+import type { Action, WorkspaceRole } from "@workspace/towbar-access";
+import type {
+  NormalizedApp,
+  NormalizedComposeWorkload,
+  NormalizedResource,
+  ResourceType,
+} from "@workspace/towbar-core";
 export type TowbarUser = {
   email: string;
   id: string;
   name: string;
   workspaceId: string;
-  workspaceRole: "member" | "owner";
+  workspaceRole: WorkspaceRole;
+  teamName: string;
+  capabilities: Action[];
+  mustChangePassword: boolean;
+  passwordSetupRequired: boolean;
+  emailVerified: boolean;
+  twoFactorEnabled: boolean;
 };
 
 export type Source = {
-  branch: string;
   createdAt: string;
   id: string;
-  latestCommitSha: string | null;
-  latestManifestDigest: string | null;
+  provider: "github" | "gitlab";
   repositoryName: string;
   repositoryOwner: string;
+  repositoryUrl?: string;
   status: "active" | "archived";
   updatedAt: string;
 };
@@ -28,9 +40,9 @@ export type AutoDeployControlResponse = {
         deferredAt: string;
         manifestId: string;
         reason: "paused";
-        scope: "deployable" | "source";
+        scope: "deployable" | "environment" | "source";
       } | null;
-      scope: "deployable" | "source" | null;
+      scope: "deployable" | "environment" | "source" | null;
     };
     manifestAutoDeployEnabled?: boolean;
     paused: boolean;
@@ -38,48 +50,21 @@ export type AutoDeployControlResponse = {
   canManageAutoDeploy: boolean;
 };
 
+export type InstanceEnvironment = {
+  id: string;
+  name: string;
+  branch: string;
+  disconnectedAt: string | null;
+};
+
 export type App = {
+  entityId: string | null;
+  environment: InstanceEnvironment | null;
   archivedAt: string | null;
-  config: {
-    autoDeploy?: boolean;
-    container: {
-      network?: string;
-      port: number;
-      resources?: { cpus: number; memory: string };
-    };
-    context?: string;
-    deploymentInputs?: string[];
-    description?: string;
-    dockerfile: string;
-    domains?: {
-      primary: string;
-      redirects: Array<{ host: string; status: 301 | 302 }>;
-    };
-    health: { path: string; timeoutSeconds: number };
-    hooks?: {
-      postDeploy?: {
-        command: string[];
-        timeoutSeconds: number;
-      };
-      preDeploy?: {
-        command: string[];
-        timeoutSeconds: number;
-      };
-    };
-    id: string;
-    name: string;
-    preview?: {
-      domain: string;
-      enabled: true;
-      ttlHours: number;
-    };
-    server: string;
-    sourceBranch?: string;
-    tls?: { mode: "cloudflare-dns" | "direct" };
-  };
+  config: NormalizedApp | NormalizedComposeWorkload;
   description: string | null;
   id: string;
-  kind: "app";
+  kind: "app" | "compose";
   manifestId: string;
   name: string;
   runtimeState: RuntimeState;
@@ -93,7 +78,9 @@ export type App = {
 export type AppSecretStage =
   "build" | "deployment" | "pre_deploy" | "post_deploy";
 export type AppSecretBinding = {
-  environment: "production" | "preview";
+  declared?: boolean;
+  missingKeys?: string[];
+  environment: string;
   stage: AppSecretStage;
   keys: string[];
   inheritedKeys: string[];
@@ -113,6 +100,7 @@ export type AppSecretBinding = {
   }>;
 };
 export type AppSecretsResponse = {
+  environments: string[];
   bindings: AppSecretBinding[];
   canManageSecrets: boolean;
 };
@@ -131,11 +119,14 @@ export type NotificationDestination = {
     | { channelId: string }
     | {
         recipients: string[];
-      };
+      }
+    | { webhookHost: string }
+    | { messageThreadId: number }
+    | { urlHost: string };
   createdAt: string;
   enabled: boolean;
   id: string;
-  provider: "slack" | "smtp";
+  provider: "slack" | "smtp" | "discord" | "telegram" | "webhook";
   sourceId: string | null;
   serverId?: string | null;
   updatedAt: string;
@@ -158,60 +149,13 @@ export type NotificationEvent = {
 };
 
 export type Resource = {
+  entityId: string | null;
+  environment: InstanceEnvironment | null;
   archivedAt: string | null;
-  config: {
-    access?: { sshTunnel: { hostPort: number } };
-    autoDeploy?: boolean;
-    backup?: {
-      azureBlob?: {
-        container: string;
-        prefix?: string;
-        storageAccount: string;
-      };
-      gcs?: {
-        bucket: string;
-        prefix?: string;
-        region?: string;
-      };
-      restoreFrom?: "azureBlob" | "gcs" | "s3";
-      retention: { keepLast: number };
-      s3?: {
-        bucket: string;
-        encryption: "AES256" | "aws:kms";
-        kmsKeyId?: string;
-        prefix: string;
-        region?: string;
-      };
-      schedule?: { cron: string; timezone: "UTC" };
-    };
-    container: {
-      command: string[];
-      network?: string;
-      networkAlias?: string;
-      port?: number;
-      resources: { cpus: number; memory: string };
-      volumes: Array<{ mountPath: string; name: string }>;
-    };
-    description?: string;
-    domains?: {
-      primary: string;
-      redirects: Array<{ host: string; status: 301 | 302 }>;
-    };
-    health:
-      | { command: string[]; timeoutSeconds: number; type: "command" }
-      | { timeoutSeconds: number; type: "container" }
-      | { path: string; timeoutSeconds: number; type: "http" };
-    id: string;
-    image: string;
-    kind: "image" | "postgres" | "redis";
-    name: string;
-    server: string;
-    sourceBranch?: string;
-    tls?: { mode: "cloudflare-dns" | "direct" };
-  };
+  config: NormalizedResource;
   description: string | null;
   id: string;
-  kind: "image" | "postgres" | "redis";
+  kind: ResourceType;
   manifestId: string;
   name: string;
   runtimeState: RuntimeState;
@@ -247,6 +191,11 @@ export type RuntimeState = {
   driftReasons: string[];
   driftStatus: "drifted" | "in_sync" | "unknown";
   healthStatus: "healthy" | "none" | "starting" | "unhealthy" | "unknown";
+  ingressContainerName: string | null;
+  ingressImage: string | null;
+  ingressRestartCount: number | null;
+  ingressStatus:
+    "disabled" | "missing" | "ready" | "reconnecting" | "stopped" | "unknown";
   observedContainerName: string | null;
   observedImage: string | null;
   observedState: "missing" | "running" | "stopped" | "unknown";
@@ -275,9 +224,17 @@ export type BackupResult = {
   deletedBackupIds: string[];
   destinations?: BackupDestinationResult[];
   encryption: "AES256" | "aws:kms" | (string & {});
-  engine?: "postgres" | "redis";
+  engine?: Exclude<ResourceType, "image">;
   engineMajorVersion?: number;
-  format?: "postgres-custom" | "redis-rdb";
+  format?:
+    | "clickhouse-backup"
+    | "dragonfly-rdb"
+    | "keydb-rdb"
+    | "mariadb-sql"
+    | "mongodb-archive"
+    | "mysql-sql"
+    | "postgres-custom"
+    | "redis-rdb";
   key: string;
   metadataVersion?: 1;
   objectVersionId?: string;
@@ -308,7 +265,7 @@ export type RestoreResult = {
   rollbackAvailableUntil: string | null;
   validation: {
     databaseName: string | null;
-    engine: "postgres" | "redis";
+    engine: Exclude<ResourceType, "image">;
     engineMajorVersion: number;
     healthVerified: boolean;
     readable: boolean;
@@ -341,6 +298,13 @@ export type ResourceOperation = {
   resourceId: string | null;
   result:
     | BackupResult
+    | {
+        jobName: string;
+        logs: string;
+        truncated: boolean;
+        exitCode: number;
+        timedOut: boolean;
+      }
     | { cleaned: OrphanItem[]; skipped: OrphanItem[] }
     | { logs: string; truncated: boolean }
     | RestoreResult
@@ -360,6 +324,7 @@ export type ResourceOperation = {
 };
 
 export type ResourceOperationType =
+  | "run_job"
   | "backup"
   | "capture_logs"
   | "cleanup_orphans"
@@ -370,7 +335,7 @@ export type ResourceOperationType =
   | "stop";
 
 export type SourceBackup = ResourceOperation & {
-  resourceKind: "image" | "postgres" | "redis";
+  resourceKind: ResourceType;
   resourceManifestId: string;
   resourceName: string;
   result: BackupResult;
@@ -402,10 +367,16 @@ export type DeploymentState =
   | "cancelled";
 
 export type Deployment = {
+  targetEnvironment: {
+    id: string;
+    name: string;
+    branch: string;
+    mappingRevision: string;
+  };
   appId: string;
   commitSha: string;
   createdAt: string;
-  deployableKind: "app" | "image" | "postgres" | "redis";
+  deployableKind: "app" | "compose" | ResourceType;
   environment: "preview" | "production";
   errorCode: string | null;
   errorMessage: string | null;
@@ -433,6 +404,19 @@ export type Deployment = {
   updatedAt: string;
   vulnerabilityScan?: VulnerabilityScan | null;
   vulnerabilityScanningEnabled?: boolean;
+};
+
+export type DeploymentPullRequest = {
+  author: string | null;
+  baseBranch: string;
+  changedFileCount: number;
+  draft: boolean;
+  headBranch: string;
+  merged: boolean;
+  number: number;
+  state: "closed" | "open";
+  title: string;
+  url: string;
 };
 
 export type VulnerabilitySeverityTotals = {
@@ -564,6 +548,32 @@ export type GitHubConnection = {
   updatedAt: string;
 };
 
+export type NamedIntegrationConnection = {
+  configuration: Record<string, unknown>;
+  credentialValues: Record<string, string>;
+  createdAt: string;
+  credentialHint: string | null;
+  description: string;
+  disconnectedAt: string | null;
+  id: string;
+  name: string;
+  provider: import("@workspace/towbar-core").IntegrationProvider;
+  revision: number;
+  scopes: import("@workspace/towbar-core").IntegrationScope[];
+  slug: string;
+  updatedAt: string;
+  verificationMessage: string | null;
+  verificationStatus: "unverified" | "verified" | "failed";
+  verifiedAt: string | null;
+};
+
+export type GitHubAppConfigurationMetadata = {
+  appId: string;
+  appSlug: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type PreviewReportingHealth = {
   failedCount: number;
   lastError: string | null;
@@ -580,6 +590,7 @@ export type GitHubRepository = {
 };
 
 export type AwsCredentialMetadata = {
+  accessKeyId: string;
   accessKeyIdSuffix: string;
   createdAt: string;
   lastVerifiedAt: string | null;
@@ -611,6 +622,8 @@ export type AzureCredentialMetadata = {
 };
 
 export type SourceSync = {
+  environment: { id: string; name: string; branch: string } | null;
+  mappingRevision: string | null;
   commitSha: string | null;
   createdAt: string;
   finishedAt: string | null;
@@ -640,9 +653,12 @@ export type PaginationMetadata = {
   totalPages: number;
 };
 
-export type DeploymentHistoryItem = Deployment & { deployableName: string };
+export type DeploymentHistoryItem = Deployment & {
+  deployableName: string;
+};
 
 export type DeploymentHistoryPage = {
+  environments: string[];
   deployments: DeploymentHistoryItem[];
   pagination: PaginationMetadata;
 };
@@ -655,6 +671,8 @@ export type ServerChecksPage = {
 
 export type ServerPreparationStep = {
   finishedAt: string | null;
+  log?: string;
+  logTruncated?: boolean;
   id:
     | "connecting"
     | "inspecting"
@@ -691,6 +709,7 @@ export type TrustedHostKey = {
 export type Release = {
   appId: string;
   commitSha: string;
+  composeServices: string[];
   containerName: string;
   deploymentId: string;
   id: string;
@@ -708,4 +727,41 @@ export type UserSession = {
   id: string;
   lastSeenAt: string;
   revokedAt: string | null;
+};
+
+export type AppStorageResponse = {
+  checkedAt: string | null;
+  serverId: string;
+  serverIp: string;
+  volumes: Array<{
+    name: string;
+    mountPath: string;
+    volumeName: string;
+    status: "mounted" | "pending" | "retained" | "not_mounted" | "unknown";
+  }>;
+};
+
+export type AppJob = {
+  name: string;
+  description?: string;
+  command: string[];
+  schedule: { cron: string; timezone: "UTC" };
+  timeoutSeconds: number;
+  enabled: boolean;
+};
+export type AppJobRun = Omit<ResourceOperation, "request" | "result"> & {
+  request: { type: "run_job"; job: AppJob; scheduledAt: string | null };
+  result: {
+    jobName: string;
+    logs: string;
+    truncated: boolean;
+    exitCode: number;
+    timedOut: boolean;
+  } | null;
+};
+export type AppJobsResponse = {
+  automationPaused: boolean;
+  jobs: AppJob[];
+  ready: boolean;
+  runs: AppJobRun[];
 };

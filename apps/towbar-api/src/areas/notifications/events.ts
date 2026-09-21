@@ -1,4 +1,4 @@
-import { and, eq, isNull, ne } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import {
   apps,
@@ -193,6 +193,7 @@ export async function emitRuntimeHealthNotification(input: {
   checkId: string;
   entityId: string;
   entityKind: "resource" | "server";
+  reason?: "health" | "tunnel";
   recovered: boolean;
 }) {
   const type = input.recovered
@@ -239,13 +240,14 @@ export async function emitRuntimeHealthNotification(input: {
   const [resource] = await getTowbarDatabase()
     .select({
       entityName: apps.name,
+      kind: apps.kind,
       repositoryName: sources.repositoryName,
       sourceId: apps.sourceId,
       workspaceId: apps.workspaceId,
     })
     .from(apps)
     .innerJoin(sources, eq(sources.id, apps.sourceId))
-    .where(and(eq(apps.id, input.entityId), ne(apps.kind, "app")))
+    .where(eq(apps.id, input.entityId))
     .limit(1);
   if (!resource) return;
   await emitRuntimeHealthEvent({
@@ -260,6 +262,8 @@ async function emitRuntimeHealthEvent(input: {
   entityId: string;
   entityKind: "resource" | "server";
   entityName: string;
+  kind?: string;
+  reason?: "health" | "tunnel";
   recovered: boolean;
   repositoryName: string;
   sourceId: string;
@@ -267,18 +271,35 @@ async function emitRuntimeHealthEvent(input: {
   workspaceId: string;
 }) {
   await emitNotificationEvent({
-    dedupeKey: `${input.type}:${input.entityKind}:${input.entityId}:${input.sourceId}:${input.checkId}`,
+    dedupeKey: `${input.type}:${input.reason ?? "health"}:${input.entityKind}:${input.entityId}:${input.sourceId}:${input.checkId}`,
     payload: notificationEventPayload({
       entity: {
         id: input.entityId,
-        kind: input.entityKind,
+        kind:
+          input.entityKind === "server"
+            ? "server"
+            : input.kind === "app"
+              ? "app"
+              : "resource",
         name: input.entityName,
       },
-      message: input.recovered
-        ? `${input.entityName} recovered and is healthy again.`
-        : `${input.entityName} is unhealthy and needs attention.`,
+      message:
+        input.reason === "tunnel"
+          ? input.recovered
+            ? `Cloudflare Tunnel for ${input.entityName} reconnected and is ready.`
+            : `Cloudflare Tunnel for ${input.entityName} is not ready. Check the tunnel runtime and Cloudflare connection.`
+          : input.recovered
+            ? `${input.entityName} recovered and is healthy again.`
+            : `${input.entityName} is unhealthy and needs attention.`,
       source: { id: input.sourceId, name: input.repositoryName },
-      title: input.recovered ? "Runtime recovered" : "Runtime unhealthy",
+      title:
+        input.reason === "tunnel"
+          ? input.recovered
+            ? "Cloudflare Tunnel recovered"
+            : "Cloudflare Tunnel needs attention"
+          : input.recovered
+            ? "Runtime recovered"
+            : "Runtime unhealthy",
     }),
     sourceId: input.sourceId,
     type: input.type,
@@ -288,7 +309,11 @@ async function emitRuntimeHealthEvent(input: {
 
 export async function emitServerCheckNotifications(input: {
   checkId: string;
-  runtimeTransitions: Array<{ deployableId: string; recovered: boolean }>;
+  runtimeTransitions: Array<{
+    deployableId: string;
+    reason: "health" | "tunnel";
+    recovered: boolean;
+  }>;
   serverBecameUnhealthy: boolean;
   serverId: string;
   serverRecovered: boolean;
@@ -310,6 +335,7 @@ export async function emitServerCheckNotifications(input: {
         checkId: input.checkId,
         entityId: transition.deployableId,
         entityKind: "resource",
+        reason: transition.reason,
         recovered: transition.recovered,
       }),
     ),

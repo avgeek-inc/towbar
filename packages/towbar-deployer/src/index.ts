@@ -1,6 +1,8 @@
 export * from "./build-context.js";
 export * from "./cloudflare.js";
 export * from "./deployment.js";
+export * from "./compose-deployment.js";
+export * from "./compose-security.js";
 export * from "./endpoint-health.js";
 export * from "./image-provenance.js";
 export * from "./deployment-identity.js";
@@ -19,3 +21,7 @@ export * from "./ssh.js";
 export * from "./types.js";
 export * from "./monitoring-agent.js";
 export { CommandError } from "./process.js";
+
+export * from "./log-drains.js";
+export * from "./log-drain-test.js";
+export * from "./otel-collector.js";

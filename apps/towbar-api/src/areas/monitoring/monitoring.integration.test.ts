@@ -1,3 +1,5 @@
+import { testDeploymentEnvironment } from "../sources/instance-test-helper.js";
+import { testInstanceLinks } from "../sources/instance-test-helper.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -11,7 +13,7 @@ import {
 import {
   apps,
   deployments,
-  githubInstallations,
+  integrationInstallations,
   monitoringAgents,
   monitoringSamples,
   previewEnvironments,
@@ -233,7 +235,7 @@ void test(
         async () => {
           const { getMonitoringHistory } = await import("./queries.js");
           const history = await getMonitoringHistory(
-            { serverId, workspaceId, range: "1h", environment: "production" },
+            { serverId, workspaceId, range: "1h" },
             now,
           );
           assert.equal(history.series[0]?.id, "host");
@@ -249,13 +251,12 @@ void test(
                 serverId,
                 workspaceId: randomUUID(),
                 range: "1h",
-                environment: "production",
               },
               now,
             ),
           );
           const longHistory = await getMonitoringHistory(
-            { serverId, workspaceId, range: "60d", environment: "production" },
+            { serverId, workspaceId, range: "60d" },
             now,
           );
           assert.equal(
@@ -316,29 +317,29 @@ void test(
         },
       );
       await t.test(
-        "production, previews, and replacement containers stay separate",
+        "preview metrics are discarded while persistent replacement containers stay separate",
         async () => {
           const sourceId = randomUUID(),
             appId = randomUUID();
           const [installation] = await db
-            .insert(githubInstallations)
+            .insert(integrationInstallations)
             .values({
+              provider: "github",
               workspaceId,
-              installationId: randomUUID(),
-              accountLogin: "example",
-              accountType: "Organization",
+              externalId: randomUUID(),
+              principalName: "example",
+              principalType: "Organization",
             })
             .returning();
           await db.insert(sources).values({
             id: sourceId,
             workspaceId,
-            githubInstallationId: installation!.id,
+            integrationInstallationId: installation!.id,
             repositoryOwner: "example",
             repositoryName: "metrics",
-            branch: "main",
           });
           const config = normalizeDeploymentManifest({
-            version: 1,
+            version: 2,
             apps: [
               {
                 id: "app",
@@ -352,6 +353,7 @@ void test(
             ],
           }).apps[0]!;
           await db.insert(apps).values({
+            ...(await testInstanceLinks(sourceId, "app")),
             id: appId,
             workspaceId,
             sourceId,
@@ -381,6 +383,13 @@ void test(
           const deploymentIds = [randomUUID(), randomUUID(), randomUUID()];
           for (const [i, id] of deploymentIds.entries())
             await db.insert(deployments).values({
+              targetEnvironment: await testDeploymentEnvironment(appId),
+              requiredSecrets: {
+                build: [],
+                runtime: [],
+                preDeploy: [],
+                postDeploy: [],
+              },
               id,
               workspaceId,
               sourceId,
@@ -411,7 +420,6 @@ void test(
               containerId: String(i + 1).repeat(64),
               deployableId: appId,
               deploymentId,
-              previewId: randomUUID(),
               metrics: { cpuPercent: 10 * (i + 1) },
             })),
           );
@@ -432,7 +440,7 @@ void test(
           assert.equal(
             (await ingestMonitoringSample(serverId, generation, body, now))
               .accepted,
-            4,
+            2,
           );
           const { getMonitoringHistory } = await import("./queries.js");
           const query = {
@@ -441,10 +449,7 @@ void test(
             kind: "app" as const,
             range: "1h" as const,
           };
-          const production = await getMonitoringHistory(
-            { ...query, environment: "production" },
-            now,
-          );
+          const production = await getMonitoringHistory(query, now);
           const customNow = new Date(now.getTime() + 60000);
           const customQuery = {
             ...query,
@@ -453,31 +458,18 @@ void test(
             endAt: new Date(now.getTime() + 30000).toISOString(),
           };
           const customProduction = await getMonitoringHistory(
-            { ...customQuery, environment: "production" },
-            customNow,
-          );
-          const customPreview = await getMonitoringHistory(
-            { ...customQuery, environment: "preview", previewId: previews[0]! },
+            customQuery,
             customNow,
           );
           assert(
             customProduction.series.every((row) => row.previewId === null),
           );
-          assert(
-            customPreview.series.every((row) => row.previewId === previews[0]),
-          );
           assert.equal(customProduction.endAt, customQuery.endAt);
           assert.equal(customProduction.series.length, 2);
-          assert.equal(customPreview.series.length, 1);
-          assert.equal(
-            customPreview.series[0]?.points[0]?.metrics.cpuPercent?.max,
-            20,
-          );
           await assert.rejects(
             getMonitoringHistory(
               {
                 ...customQuery,
-                environment: "production",
                 workspaceId: randomUUID(),
               },
               customNow,
@@ -485,23 +477,6 @@ void test(
           );
           assert.equal(production.series.length, 2);
           assert(production.series.every((row) => row.previewId === null));
-          const preview = await getMonitoringHistory(
-            { ...query, environment: "preview" },
-            now,
-          );
-          assert.deepEqual(
-            new Set(preview.series.map((row) => row.previewId)),
-            new Set(previews),
-          );
-          const isolated = await getMonitoringHistory(
-            { ...query, environment: "preview", previewId: previews[0]! },
-            now,
-          );
-          assert.equal(isolated.series.length, 1);
-          assert.equal(
-            isolated.series[0]?.points[0]?.metrics.cpuPercent?.max,
-            20,
-          );
           const previous = new Date(now.getTime() - 60_000);
           await db.insert(monitoringSamples).values(
             [0, 1].map((restartCount, index) => ({
@@ -514,7 +489,7 @@ void test(
             })),
           );
           const serverHistory = await getMonitoringHistory(
-            { serverId, workspaceId, range: "1h", environment: "production" },
+            { serverId, workspaceId, range: "1h" },
             now,
           );
           assert.equal(
@@ -522,23 +497,11 @@ void test(
               .length,
             1,
           );
-          const appHistory = await getMonitoringHistory(
-            { ...query, environment: "production" },
-            now,
-          );
+          const appHistory = await getMonitoringHistory(query, now);
           assert.equal(
             appHistory.events.filter((event) => event.type === "restart")
               .length,
             1,
-          );
-          const previewHistory = await getMonitoringHistory(
-            { ...query, environment: "preview" },
-            now,
-          );
-          assert.equal(
-            previewHistory.events.filter((event) => event.type === "restart")
-              .length,
-            0,
           );
           const { verifyEventHistoryBounds } =
             await import("./event-history.test-support.js");

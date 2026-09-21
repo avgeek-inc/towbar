@@ -38,7 +38,7 @@ function TitledPage({
       {...props}
       lead={
         <PageSection
-          className="pt-5 pb-3 sm:pt-6 sm:pb-4"
+          className="py-5 sm:pt-6 sm:pb-3"
           xPadding="none"
           yPadding="none"
         >

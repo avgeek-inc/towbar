@@ -3,7 +3,7 @@ title: MCP tool catalogue
 description: Task-oriented Towbar tools for discovery, deployment, diagnostics, backups, servers, previews, and secrets.
 ---
 
-Towbar exposes 55 purpose-built tools. Names follow `towbar_<entity>_<action>`; they are independent of REST routes. Discovery filters this catalogue by your key and workspace role.
+Towbar exposes 53 purpose-built tools. Names follow `towbar_<entity>_<action>`; they are independent of REST routes. Discovery filters this catalogue by your key and workspace role.
 
 Use [MCP setup](/docs/api/mcp) for connection details and worked examples. Mutation tools carry risk annotations; client approval is still required for consequential actions. Successful calls return structured `result` data with a matching JSON text fallback. Failures set `isError`.
 
@@ -16,9 +16,9 @@ Inventory and history tools return bounded pages with continuation fields. Histo
 
 `towbar_alerts_inspect`
 
-Inspect configured rules, latest evaluations and HTTP check results, maintenance mute, destination IDs, and a page of incidents. An active incident is not proof that its notification was delivered. Use returned rule IDs before configuration or muting; use the incident cursor to read older history.
+Inspect configured rules, latest evaluations, HTTP check results, destination IDs, and a page of incidents. An active incident is not proof that its notification was delivered. Use returned rule IDs before configuration; use the incident cursor to read older history.
 
-Read only. Available to workspace members and owners.
+Read-only operation. Required permissions: `alert.read`.
 
 **Arguments**
 
@@ -86,7 +86,7 @@ Read only. Available to workspace members and owners.
 
 Configure a host/workload metric alert or a public HTTP uptime check. Omit ruleId to create; supply an inspected ruleId to replace its settings. Read current settings before updating and preserve settings the user did not request changing. HTTP checks send recurring public requests. Alerts notify all destinations configured on the server on the first qualifying reading, once per incident, and recover when the condition clears. Creating a rule does not send an immediate test.
 
-Full-access key required. Workspace owner required.
+Edit access required. Required permissions: `alert.configure`.
 
 **Arguments**
 
@@ -121,11 +121,6 @@ Full-access key required. Workspace owner required.
           "type": "null"
         }
       ]
-    },
-    "environment": {
-      "default": "production",
-      "type": "string",
-      "enum": ["production", "preview"]
     },
     "condition": {
       "type": "object",
@@ -234,10 +229,6 @@ Full-access key required. Workspace owner required.
       "required": ["metric", "threshold"],
       "additionalProperties": false
     },
-    "notifyRecovery": {
-      "default": true,
-      "type": "boolean"
-    },
     "serverId": {
       "type": "string",
       "format": "uuid",
@@ -258,66 +249,13 @@ Full-access key required. Workspace owner required.
 
 </Accordion>
 
-<Accordion title="Mute Scout notifications for maintenance">
-
-`towbar_alerts_mute`
-
-Temporarily mute notifications from one Scout rule or every rule on a server while continuing measurements and incident tracking. Omit ruleId for server scope. Set durationSeconds to zero to resume notifications. A rule mute cannot override a server mute.
-
-Full-access key required. Workspace owner required.
-
-**Arguments**
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "durationSeconds": {
-      "anyOf": [
-        {
-          "type": "number",
-          "const": 0
-        },
-        {
-          "type": "integer",
-          "minimum": 60,
-          "maximum": 604800
-        }
-      ]
-    },
-    "reason": {
-      "default": "",
-      "type": "string",
-      "maxLength": 240
-    },
-    "serverId": {
-      "type": "string",
-      "format": "uuid",
-      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-      "description": "Server UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
-    },
-    "ruleId": {
-      "type": "string",
-      "format": "uuid",
-      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-      "description": "Scout alert rule UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
-    }
-  },
-  "required": ["durationSeconds", "serverId"],
-  "additionalProperties": false
-}
-```
-
-</Accordion>
-
 <Accordion title="Remove a Scout alert rule">
 
 `towbar_alerts_remove`
 
 Delete an inspected Scout rule, stop its checks/evaluation and close active incidents without claiming recovery. Resolved incident history remains until retention expires. Confirm the user's intended rule before removal.
 
-Full-access key required. Workspace owner required.
+Edit access required. Required permissions: `alert.configure`.
 
 **Arguments**
 
@@ -357,7 +295,7 @@ Full-access key required. Workspace owner required.
 
 First call with workloadId only to discover successful deployment IDs. Then supply baselineId and candidateId from the same workload and production/preview environment to compare equal post-readiness windows. Reports coverage, usage deltas, restarts and caveats; insufficient data cannot establish a regression and traffic may differ. Defaults to summaries; includePoints returns at most 24 representative points per side.
 
-Read only. Available to workspace members and owners.
+Read-only operation. Required permissions: `alert.read`.
 
 **Arguments**
 
@@ -397,15 +335,15 @@ Read only. Available to workspace members and owners.
       "maximum": 60
     },
     "regressionPercent": {
-      "default": 20,
+      "default": 0,
       "type": "number",
-      "minimum": 1,
+      "minimum": 0,
       "maximum": 500
     },
     "minimumCoveragePercent": {
-      "default": 80,
+      "default": 0,
       "type": "number",
-      "minimum": 50,
+      "minimum": 0,
       "maximum": 100
     },
     "statistic": {
@@ -414,13 +352,13 @@ Read only. Available to workspace members and owners.
       "enum": ["average", "peak"]
     },
     "cpuFloorCores": {
-      "default": 0.05,
+      "default": 0,
       "type": "number",
       "minimum": 0,
       "maximum": 1024
     },
     "memoryFloorMiB": {
-      "default": 16,
+      "default": 0,
       "type": "number",
       "minimum": 0,
       "maximum": 1048576
@@ -443,7 +381,7 @@ Read only. Available to workspace members and owners.
 
 Find deployment IDs and outcomes across the workspace with server-side pagination. Use towbar_deployment_inspect for build steps and logs.
 
-Read only. Available to workspace members and owners.
+Read-only operation. Required permissions: `deployment.read`.
 
 **Arguments**
 
@@ -477,7 +415,7 @@ Read only. Available to workspace members and owners.
 
 Diagnose one deployment: returns state, build steps, a bounded log page, and optional vulnerability findings. Poll using nextAfter, including after terminal state if hasMoreLogs. Only succeeded, succeeded_with_warnings, failed, cancelled, or skipped are terminal; accepted/queued is not success.
 
-Read only. Available to workspace members and owners.
+Read-only operation. Required permissions: `deployment.read`.
 
 **Arguments**
 
@@ -534,7 +472,7 @@ Read only. Available to workspace members and owners.
 
 Request cancellation of a running deployment. Poll towbar_deployment_inspect until terminal; a cancellation request can race completion.
 
-Full-access key required. Available to workspace members and owners.
+Edit access required. Required permissions: `deployment.cancel`.
 
 **Arguments**
 
@@ -563,7 +501,7 @@ Full-access key required. Available to workspace members and owners.
 
 Create a new attempt for an eligible failed deployment. Use a fresh idempotencyKey for this retry, then inspect the returned deployment ID.
 
-Full-access key required. Available to workspace members and owners.
+Edit access required. Required permissions: `deployment.create`.
 
 **Arguments**
 
@@ -598,7 +536,7 @@ Full-access key required. Available to workspace members and owners.
 
 Request a vulnerability scan for a deployment image. Read findings and scan state using towbar_deployment_inspect with includeFindings afterward.
 
-Full-access key required. Workspace owner required.
+Edit access required. Required permissions: `deployment.create`.
 
 **Arguments**
 
@@ -623,6 +561,74 @@ Full-access key required. Workspace owner required.
 
 </AccordionGroup>
 
+## Integrations
+
+<AccordionGroup>
+<Accordion title="List available integrations">
+
+`towbar_integration_list`
+
+List integrations enabled by the Towbar runtime environment. Configuration and secret values are never returned.
+
+Read-only operation. Required permissions: `integration.manage`.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Disconnect GitHub integration">
+
+`towbar_github_disconnect`
+
+Disconnect the workspace GitHub integration, affecting repository sync and deployments. Confirm this workspace-wide change with the user.
+
+Edit access required. Required permissions: `integration.manage`.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Retry preview reporting">
+
+`towbar_github_retry_reporting`
+
+Retry failed GitHub preview status/comment reporting. This retries reporting, not deployment; inspect preview/deployment state separately.
+
+Edit access required. Required permissions: `integration.manage`.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+</AccordionGroup>
+
 ## Workspace
 
 <AccordionGroup>
@@ -630,9 +636,9 @@ Full-access key required. Workspace owner required.
 
 `towbar_workspace_inspect`
 
-Identify the current workspace and inspect control-plane health. Use first to understand the authenticated context; does not trigger health checks.
+Identify the current team, actor, and permitted actions. Use first to understand the authenticated context.
 
-Read only. Available to workspace members and owners.
+Read-only operation. Required permissions: `identity.read`.
 
 **Arguments**
 
@@ -653,7 +659,7 @@ Read only. Available to workspace members and owners.
 
 Run system health checks, then use towbar_workspace_inspect to review the latest results.
 
-Full-access key required. Available to workspace members and owners.
+Edit access required. Required permissions: `system.manage`.
 
 **Arguments**
 
@@ -679,7 +685,7 @@ Full-access key required. Available to workspace members and owners.
 
 Find entity UUIDs by name, repository, or IP before taking action. Returns a compact page and nextOffset. An optional sourceId or serverId limits app/resource discovery; do not supply both. Use the matching inspect tool for details.
 
-Read only. Available to workspace members and owners.
+Read-only operation. Required permissions: `repository.read`, `workload.read`, `resource.read`, `server.read`.
 
 **Arguments**
 
@@ -729,13 +735,13 @@ Read only. Available to workspace members and owners.
 
 </Accordion>
 
-<Accordion title="Find connected GitHub repositories">
+<Accordion title="Find available GitHub or GitLab repositories">
 
 `towbar_repository_search`
 
-Find a repository and installation UUID for towbar_source_connect. Returns a bounded page; GitHub installation setup happens in the control plane.
+Find a repository connection and provider-specific identifier for towbar_source_connect. GitHub uses its installation connection; GitLab uses its workspace provider configuration and supports cloud or self-managed instances.
 
-Read only. Available to workspace members and owners.
+Read-only operation. Required permissions: `githubInstallation.read`, `integration.manage`.
 
 **Arguments**
 
@@ -744,6 +750,16 @@ Read only. Available to workspace members and owners.
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
+    "provider": {
+      "default": "github",
+      "type": "string",
+      "enum": ["github", "gitlab"]
+    },
+    "integration": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
     "search": {
       "default": "",
       "type": "string",
@@ -770,16 +786,16 @@ Read only. Available to workspace members and owners.
 
 </AccordionGroup>
 
-## Sources
+## Repositories
 
 <AccordionGroup>
-<Accordion title="Inspect source and manifest">
+<Accordion title="Inspect source and environments">
 
 `towbar_source_inspect`
 
-Inspect a connected repository, its manifest, auto-deploy control, and server capacity together. Find the sourceId with towbar_inventory_search. Use towbar_source_preview_sync before reconciling changes.
+Inspect a connected repository, its environment branch mappings, auto-deploy control and server capacity. Supply an environmentId to include the immutable manifest snapshot from its latest successful sync. Find IDs with towbar_inventory_search and the returned environment list.
 
-Read only. Available to workspace members and owners.
+Read-only operation. Required permissions: `repository.read`.
 
 **Arguments**
 
@@ -793,6 +809,12 @@ Read only. Available to workspace members and owners.
       "format": "uuid",
       "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
       "description": "Source UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "environmentId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Source environment UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
     }
   },
   "required": ["sourceId"],
@@ -806,45 +828,127 @@ Read only. Available to workspace members and owners.
 
 `towbar_source_connect`
 
-Connect a repository from towbar_repository_search using its installation ID and production branch. Then preview and sync its manifest; connecting does not prove deployment success.
+Connect a repository after discovery, mapping its selected environments to branches. Initial sync does not deploy. Inspect each returned environment sync outcome.
 
-Full-access key required. Available to workspace members and owners.
+Edit access required. Required permissions: `repository.connect`.
 
 **Arguments**
 
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "branch": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 255
+  "anyOf": [
+    {
+      "type": "object",
+      "properties": {
+        "repositoryOwner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "repositoryName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "environments": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "environment": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,62}$"
+              },
+              "branch": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255
+              }
+            },
+            "required": ["environment", "branch"],
+            "additionalProperties": false
+          }
+        },
+        "provider": {
+          "default": "github",
+          "type": "string",
+          "const": "github"
+        },
+        "githubInstallationId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        }
+      },
+      "required": [
+        "repositoryOwner",
+        "repositoryName",
+        "environments",
+        "githubInstallationId"
+      ],
+      "additionalProperties": false
     },
-    "githubInstallationId": {
-      "type": "string",
-      "format": "uuid",
-      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-    },
-    "repositoryName": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 255
-    },
-    "repositoryOwner": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 255
+    {
+      "type": "object",
+      "properties": {
+        "repositoryOwner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "repositoryName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "environments": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "environment": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,62}$"
+              },
+              "branch": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255
+              }
+            },
+            "required": ["environment", "branch"],
+            "additionalProperties": false
+          }
+        },
+        "provider": {
+          "type": "string",
+          "const": "gitlab"
+        },
+        "providerRepositoryId": {
+          "type": "string",
+          "pattern": "^[1-9]\\d{0,19}$"
+        },
+        "integration": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+        }
+      },
+      "required": [
+        "repositoryOwner",
+        "repositoryName",
+        "environments",
+        "provider",
+        "providerRepositoryId",
+        "integration"
+      ],
+      "additionalProperties": false
     }
-  },
-  "required": [
-    "branch",
-    "githubInstallationId",
-    "repositoryName",
-    "repositoryOwner"
-  ],
-  "additionalProperties": false
+  ]
 }
 ```
 
@@ -856,7 +960,7 @@ Full-access key required. Available to workspace members and owners.
 
 Remove a source from Towbar. Inspect the source and confirm the target with the user first; this changes which repository Towbar manages.
 
-Full-access key required. Workspace owner required.
+Edit access required. Required permissions: `repository.disconnect`.
 
 **Arguments**
 
@@ -879,42 +983,113 @@ Full-access key required. Workspace owner required.
 
 </Accordion>
 
-<Accordion title="Preview manifest changes">
+<Accordion title="Discover repository environments">
 
-`towbar_source_preview_sync`
+`towbar_source_discover`
 
-Compare a repository manifest with current inventory before requesting reconciliation. Returns proposed changes and validation errors; does not deploy the proposed changes.
+Read towbar.yml on a discovery branch to find declared environments before connecting. Does not create a source or deploy.
 
-Full-access key required. Available to workspace members and owners.
+Edit access required. Required permissions: `repository.connect`.
 
 **Arguments**
 
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "sourceId": {
-      "type": "string",
-      "format": "uuid",
-      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-      "description": "Source UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+  "anyOf": [
+    {
+      "type": "object",
+      "properties": {
+        "repositoryOwner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "repositoryName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "discoveryBranch": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "provider": {
+          "default": "github",
+          "type": "string",
+          "const": "github"
+        },
+        "githubInstallationId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        }
+      },
+      "required": [
+        "repositoryOwner",
+        "repositoryName",
+        "discoveryBranch",
+        "githubInstallationId"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "repositoryOwner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "repositoryName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "discoveryBranch": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "provider": {
+          "type": "string",
+          "const": "gitlab"
+        },
+        "providerRepositoryId": {
+          "type": "string",
+          "pattern": "^[1-9]\\d{0,19}$"
+        },
+        "integration": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+        }
+      },
+      "required": [
+        "repositoryOwner",
+        "repositoryName",
+        "discoveryBranch",
+        "provider",
+        "providerRepositoryId",
+        "integration"
+      ],
+      "additionalProperties": false
     }
-  },
-  "required": ["sourceId"],
-  "additionalProperties": false
+  ]
 }
 ```
 
 </Accordion>
 
-<Accordion title="Sync repository manifest">
+<Accordion title="Sync connected environments">
 
 `towbar_source_sync`
 
-Reconcile a source with its production branch after reviewing towbar_source_preview_sync. May update inventory and trigger deployments. Returns a sync ID; use towbar_source_sync_inspect to check the outcome.
+Sync one environment when environmentId is supplied, or all connected environments otherwise. Uses mapped branches. Member sync updates inventory without deploying. Inspect each returned sync ID for completion.
 
-Full-access key required. Available to workspace members and owners.
+Edit access required. Required permissions: `repository.sync`.
 
 **Arguments**
 
@@ -928,6 +1103,12 @@ Full-access key required. Available to workspace members and owners.
       "format": "uuid",
       "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
       "description": "Source UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "environmentId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Environment UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
     }
   },
   "required": ["sourceId"],
@@ -943,7 +1124,7 @@ Full-access key required. Available to workspace members and owners.
 
 Check a specific syncId returned by towbar_source_sync, or list a bounded page of sync attempts when no syncId is supplied. Inspect errors before retrying; acceptance is not completion.
 
-Read only. Available to workspace members and owners.
+Read-only operation. Required permissions: `repository.read`.
 
 **Arguments**
 
@@ -993,9 +1174,9 @@ Read only. Available to workspace members and owners.
 
 `towbar_workload_inspect`
 
-Read an app/resource configuration, effective auto-deploy controls, releases, deployments, and runtime operations together. Use operation IDs to follow start/stop/restart/log requests. Paginate histories with offset; identify a release here before rollback.
+Read an app/resource configuration, effective auto-deploy controls, releases, deployments, and runtime operations together. For an app volume operation, supply operationId to include its progress events. Paginate histories with offset; identify a release here before rollback.
 
-Read only. Available to workspace members and owners.
+Read-only operation. Required permissions: `workload.read`, `resource.read`.
 
 **Arguments**
 
@@ -1013,6 +1194,12 @@ Read only. Available to workspace members and owners.
       "format": "uuid",
       "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
       "description": "App or resource UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "operationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "App volume operation UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
     },
     "offset": {
       "default": 0,
@@ -1040,7 +1227,7 @@ Read only. Available to workspace members and owners.
 
 Deploy an app or resource from its current source configuration. Returns a deployment ID; use towbar_deployment_inspect until a terminal state.
 
-Full-access key required. Available to workspace members and owners.
+Edit access required. Required permissions: `deployment.create`.
 
 **Arguments**
 
@@ -1079,7 +1266,7 @@ Full-access key required. Available to workspace members and owners.
 
 Roll an app/resource back to a release selected from towbar_workload_inspect, or omit releaseId for the previous release. Returns a deployment ID to inspect. This can replace running code.
 
-Full-access key required. Available to workspace members and owners.
+Edit access required. Required permissions: `deployment.create`.
 
 **Arguments**
 
@@ -1124,7 +1311,7 @@ Full-access key required. Available to workspace members and owners.
 
 Restart an app/resource runtime. Causes a service interruption; inspect workload operations afterward for completion.
 
-Full-access key required. Available to workspace members and owners.
+Edit access required. Required permissions: `workload.operate`.
 
 **Arguments**
 
@@ -1148,6 +1335,12 @@ Full-access key required. Available to workspace members and owners.
       "minLength": 1,
       "maxLength": 255,
       "description": "Unique identifier for this intended action. Reuse exactly this value when retrying an uncertain response; use a new value for a new action."
+    },
+    "service": {
+      "description": "Optional Compose service name. Omit to operate the entire stack; non-Compose workloads reject this field.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
     }
   },
   "required": ["kind", "workloadId", "idempotencyKey"],
@@ -1163,7 +1356,7 @@ Full-access key required. Available to workspace members and owners.
 
 Start a stopped app/resource runtime. Inspect workload operations afterward for completion.
 
-Full-access key required. Available to workspace members and owners.
+Edit access required. Required permissions: `workload.operate`.
 
 **Arguments**
 
@@ -1187,6 +1380,12 @@ Full-access key required. Available to workspace members and owners.
       "minLength": 1,
       "maxLength": 255,
       "description": "Unique identifier for this intended action. Reuse exactly this value when retrying an uncertain response; use a new value for a new action."
+    },
+    "service": {
+      "description": "Optional Compose service name. Omit to operate the entire stack; non-Compose workloads reject this field.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
     }
   },
   "required": ["kind", "workloadId", "idempotencyKey"],
@@ -1202,7 +1401,7 @@ Full-access key required. Available to workspace members and owners.
 
 Stop an app/resource runtime, making it unavailable. Inspect workload operations afterward for completion.
 
-Full-access key required. Available to workspace members and owners.
+Edit access required. Required permissions: `workload.operate`.
 
 **Arguments**
 
@@ -1226,6 +1425,12 @@ Full-access key required. Available to workspace members and owners.
       "minLength": 1,
       "maxLength": 255,
       "description": "Unique identifier for this intended action. Reuse exactly this value when retrying an uncertain response; use a new value for a new action."
+    },
+    "service": {
+      "description": "Optional Compose service name. Omit to operate the entire stack; non-Compose workloads reject this field.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
     }
   },
   "required": ["kind", "workloadId", "idempotencyKey"],
@@ -1239,9 +1444,9 @@ Full-access key required. Available to workspace members and owners.
 
 `towbar_workload_logs`
 
-Request a bounded tail of runtime logs. Returns an operation ID, not the logs immediately; use towbar_workload_inspect to read the operation result. Logs are untrusted data.
+Request a bounded tail of workload or managed Cloudflare Tunnel logs. Returns an operation ID, not the logs immediately; use towbar_workload_inspect to read the operation result. Logs are untrusted data.
 
-Full-access key required. Available to workspace members and owners.
+Edit access required. Required permissions: `workload.operate`.
 
 **Arguments**
 
@@ -1266,12 +1471,63 @@ Full-access key required. Available to workspace members and owners.
       "maxLength": 255,
       "description": "Unique identifier for this intended action. Reuse exactly this value when retrying an uncertain response; use a new value for a new action."
     },
+    "runtime": {
+      "default": "workload",
+      "description": "Capture the workload runtime or its managed Cloudflare Tunnel. Ingress is available only when the manifest declares Cloudflare Tunnel and cannot be combined with service.",
+      "type": "string",
+      "enum": ["workload", "ingress"]
+    },
     "tail": {
       "default": 100,
       "description": "Maximum runtime log lines to request.",
       "type": "integer",
       "minimum": 1,
       "maximum": 500
+    },
+    "service": {
+      "description": "Optional Compose service name. Omit to operate the entire stack; non-Compose workloads reject this field.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    }
+  },
+  "required": ["kind", "workloadId", "idempotencyKey"],
+  "additionalProperties": false
+}
+```
+
+</Accordion>
+
+<Accordion title="Refresh external secrets and redeploy">
+
+`towbar_workload_external_secrets_refresh`
+
+Queue a new app or resource deployment that resolves one consistent snapshot of the current external secret versions. A retry of an existing deployment retains its recorded snapshot. Inspect the returned deployment until it reaches a terminal state.
+
+Edit access required. Required permissions: `deployment.create`.
+
+**Arguments**
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": ["app", "resource"]
+    },
+    "workloadId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "App or resource UUID returned by a Towbar discovery or inspection tool. Do not guess IDs."
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Unique identifier for this intended action. Reuse exactly this value when retrying an uncertain response; use a new value for a new action."
     }
   },
   "required": ["kind", "workloadId", "idempotencyKey"],
@@ -1287,7 +1543,7 @@ Full-access key required. Available to workspace members and owners.
 
 Set whether automatic deployments are paused for a source, app, or resource. Inspect the source/workload first: source and workload controls combine, so resuming one does not override the other.
 
-Full-access key required. Workspace owner required.
+Edit access required. Required permissions: `deployment.create`.
 
 **Arguments**
 
@@ -1326,9 +1582,9 @@ Full-access key required. Workspace owner required.
 
 `towbar_performance_inspect`
 
-Read server, app, or resource performance with averages, peaks, reporting freshness, and recent deployment/restart events. Production and preview measurements stay separate. Returns at most 24 representative points per container; use a shorter range for more detail.
+Read persistent server, app, or resource performance with averages, peaks, reporting freshness, and recent deployment/restart events. Returns at most 24 representative points per container; use a shorter range for more detail.
 
-Read only. Available to workspace members and owners.
+Read-only operation. Required permissions: `scout.read`.
 
 **Arguments**
 
@@ -1374,16 +1630,6 @@ Read only. Available to workspace members and owners.
       "type": "string",
       "format": "date-time",
       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-    },
-    "environment": {
-      "default": "production",
-      "type": "string",
-      "enum": ["production", "preview"]
-    },
-    "previewId": {
-      "type": "string",
-      "format": "uuid",
-      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
     }
   },
   "required": ["kind", "targetId"],
@@ -1399,7 +1645,7 @@ Read only. Available to workspace members and owners.
 
 Install/update Scout Agent, Towbar’s opt-in monitoring agent, change retention, or uninstall it. Installation requires explicit user acknowledgement. Uninstall revokes reporting immediately and removes services asynchronously. Shorter retention expires older data. Poll server_inspect for completion; queued does not mean online.
 
-Full-access key required. Workspace owner required.
+Edit access required. Required permissions: `scout.configure`.
 
 **Arguments**
 
@@ -1459,9 +1705,9 @@ Full-access key required. Workspace owner required.
 
 `towbar_server_inspect`
 
-Read server settings, capacity, recent checks, preparation attempts, host-key fingerprints, credential metadata, and orphan inventory together. Use before preparation or cleanup. No private credential values are returned.
+Read server settings, capacity, recent checks, preparation attempts, monitoring, and orphan inventory together. Use before preparation or cleanup. No private credential values are returned.
 
-Read only. Available to workspace members and owners.
+Read-only operation. Required permissions: `server.read`, `scout.read`.
 
 **Arguments**
 
@@ -1502,7 +1748,7 @@ Read only. Available to workspace members and owners.
 
 Register a workspace server by IP and SSH configuration. Then configure credentials, independently verify/trust its SSH host key, and prepare it. Registration alone does not make the server ready.
 
-Full-access key required. Workspace owner required.
+Edit access required. Required permissions: `server.update`.
 
 **Arguments**
 
@@ -1574,7 +1820,7 @@ Full-access key required. Workspace owner required.
 
 Stop managing a server and forget stored credentials and host trust. Uninstalls monitoring before forgetting SSH access; this may return pending. Does not terminate the machine or delete running services, Docker objects, or data. Assigned workloads and active operations block removal. Inspect and clean selected orphans first if desired.
 
-Full-access key required. Workspace owner required.
+Edit access required. Required permissions: `server.remove`.
 
 **Arguments**
 
@@ -1603,7 +1849,7 @@ Full-access key required. Workspace owner required.
 
 Update server IP, SSH settings, proxy options, and build concurrency. Inspect current settings first; changing connectivity can disrupt deployments.
 
-Full-access key required. Workspace owner required.
+Edit access required. Required permissions: `server.update`.
 
 **Arguments**
 
@@ -1681,7 +1927,7 @@ Full-access key required. Workspace owner required.
 
 Set or delete SSH/Cloudflare credentials with the revision from towbar_server_inspect. Values are never returned. Preserve expectedRevision to avoid overwriting concurrent changes.
 
-Full-access key required. Workspace owner required.
+Edit access required. Required permissions: `server.credentials`.
 
 **Arguments**
 
@@ -1747,7 +1993,7 @@ Full-access key required. Workspace owner required.
 
 Trust a server host key only after the user independently verifies its fingerprint. Never auto-trust a fingerprint simply because the server reported it.
 
-Full-access key required. Available to workspace members and owners.
+Edit access required. Required permissions: `server.credentials`.
 
 **Arguments**
 
@@ -1775,6 +2021,10 @@ Full-access key required. Available to workspace members and owners.
       "type": "string",
       "minLength": 32,
       "maxLength": 16384
+    },
+    "replaceExisting": {
+      "default": false,
+      "type": "boolean"
     }
   },
   "required": ["serverId", "algorithm", "fingerprint", "publicKey"],
@@ -1790,7 +2040,7 @@ Full-access key required. Available to workspace members and owners.
 
 Remove a previously trusted server host key. This can prevent subsequent SSH connections; identify hostKeyId in towbar_server_inspect first.
 
-Full-access key required. Available to workspace members and owners.
+Edit access required. Required permissions: `server.credentials`.
 
 **Arguments**
 
@@ -1825,7 +2075,7 @@ Full-access key required. Available to workspace members and owners.
 
 Install or validate server prerequisites after credentials and host trust are configured. Follow preparation attempts in towbar_server_inspect until ready or failed.
 
-Full-access key required. Available to workspace members and owners.
+Edit access required. Required permissions: `server.prepare`.
 
 **Arguments**
 
@@ -1854,7 +2104,7 @@ Full-access key required. Available to workspace members and owners.
 
 Request a new health/capacity check. Inspect server checks afterward to distinguish a queued request from a completed check.
 
-Full-access key required. Available to workspace members and owners.
+Edit access required. Required permissions: `server.update`.
 
 **Arguments**
 
@@ -1883,7 +2133,7 @@ Full-access key required. Available to workspace members and owners.
 
 Delete only explicitly selected orphan containers, images, or volumes from towbar_server_inspect. Volumes may contain data; confirm the exact inventory with the user before cleanup.
 
-Full-access key required. Workspace owner required.
+Edit access required. Required permissions: `server.remove`.
 
 **Arguments**
 
@@ -1944,7 +2194,7 @@ Full-access key required. Workspace owner required.
 
 Read secret bindings, inheritance, and revision metadata for a workspace, source, app, or resource. Never returns plaintext values. Read before towbar_secrets_update; use the correct environment and slot revision.
 
-Read only. Available to workspace members and owners.
+Read-only operation. Required permissions: `secret.list`, `sharedSecret.list`.
 
 **Arguments**
 
@@ -1965,7 +2215,8 @@ Read only. Available to workspace members and owners.
     },
     "environment": {
       "type": "string",
-      "enum": ["production", "preview"]
+      "maxLength": 80,
+      "pattern": "^(?:preview:)?[a-z][a-z0-9-]{0,62}$"
     }
   },
   "required": ["scope"],
@@ -1981,7 +2232,7 @@ Read only. Available to workspace members and owners.
 
 Set/delete named secrets in one environment and lifecycle stage. Use expectedRevision from towbar_secrets_inspect (null only for an empty slot). A conflict requires rereading and reconciling changes. Never returns plaintext values.
 
-Full-access key required. Workspace owner required.
+Edit access required. Required permissions: `secret.update`, `sharedSecret.update`.
 
 **Arguments**
 
@@ -2002,7 +2253,8 @@ Full-access key required. Workspace owner required.
     },
     "environment": {
       "type": "string",
-      "enum": ["production", "preview"]
+      "maxLength": 80,
+      "pattern": "^(?:preview:)?[a-z][a-z0-9-]{0,62}$"
     },
     "stage": {
       "type": "string",
@@ -2064,7 +2316,7 @@ Full-access key required. Workspace owner required.
 
 For a source, page through available backups. For a resource, inspect backup assurance and operations; supply operationId to include its restore events. Use before restore and to check backup/restore completion.
 
-Read only. Available to workspace members and owners.
+Read-only operation. Required permissions: `repository.read`, `resource.read`.
 
 **Arguments**
 
@@ -2115,7 +2367,7 @@ Read only. Available to workspace members and owners.
 
 Request a database/resource backup. Follow the operation in towbar_backup_inspect; acceptance does not mean a recoverable backup exists.
 
-Full-access key required. Available to workspace members and owners.
+Edit access required. Required permissions: `resource.backup`.
 
 **Arguments**
 
@@ -2150,7 +2402,7 @@ Full-access key required. Available to workspace members and owners.
 
 Restore a selected backup to a resource. This can overwrite database contents. Inspect backup assurance and the target first; obtain the exact confirmation and a reason from the user. Follow progress with towbar_backup_inspect.
 
-Full-access key required. Workspace owner required.
+Edit access required. Required permissions: `resource.restore`.
 
 **Arguments**
 
@@ -2206,7 +2458,7 @@ Full-access key required. Workspace owner required.
 
 Request cleanup for a specific restore after reviewing its outcome. This removes retained restore artifacts; use towbar_backup_inspect to verify completion.
 
-Full-access key required. Workspace owner required.
+Edit access required. Required permissions: `resource.restore`.
 
 **Arguments**
 
@@ -2246,7 +2498,7 @@ Full-access key required. Workspace owner required.
 
 Request cancellation of an eligible resource restore. Inspect the operation with towbar_backup_inspect afterward; acceptance is not proof that the restore stopped.
 
-Full-access key required. Workspace owner required.
+Edit access required. Required permissions: `resource.restore`.
 
 **Arguments**
 
@@ -2286,7 +2538,7 @@ Full-access key required. Workspace owner required.
 
 List preview environments for an app or source, including IDs, URLs, and lifecycle state. Use IDs from this list for deploy/cleanup, and poll it afterward to verify the outcome.
 
-Read only. Available to workspace members and owners.
+Read-only operation. Required permissions: `workload.read`, `repository.read`.
 
 **Arguments**
 
@@ -2331,7 +2583,7 @@ Read only. Available to workspace members and owners.
 
 Request a deployment for a preview environment found by towbar_preview_list. Inspect the returned deployment ID and preview lifecycle afterward.
 
-Full-access key required. Workspace owner required.
+Edit access required. Required permissions: `deployment.create`.
 
 **Arguments**
 
@@ -2360,7 +2612,7 @@ Full-access key required. Workspace owner required.
 
 Request removal of a preview environment and its runtime. Confirm the selected preview; poll towbar_preview_list afterward until cleanup completes or fails.
 
-Full-access key required. Available to workspace members and owners.
+Edit access required. Required permissions: `deployment.create`.
 
 **Arguments**
 
@@ -2377,134 +2629,6 @@ Full-access key required. Available to workspace members and owners.
     }
   },
   "required": ["previewEnvironmentId"],
-  "additionalProperties": false
-}
-```
-
-</Accordion>
-
-</AccordionGroup>
-
-## Integrations
-
-<AccordionGroup>
-<Accordion title="Inspect GitHub and AWS connections">
-
-`towbar_integration_inspect`
-
-Read GitHub installation state and AWS credential metadata together. Never returns secret values. Use towbar_repository_search to find repositories available for towbar_source_connect.
-
-Read only. Available to workspace members and owners.
-
-**Arguments**
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {},
-  "additionalProperties": false
-}
-```
-
-</Accordion>
-
-<Accordion title="Disconnect GitHub integration">
-
-`towbar_github_disconnect`
-
-Disconnect the workspace GitHub integration, affecting repository sync and deployments. Confirm this workspace-wide change with the user.
-
-Full-access key required. Available to workspace members and owners.
-
-**Arguments**
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {},
-  "additionalProperties": false
-}
-```
-
-</Accordion>
-
-<Accordion title="Retry preview reporting">
-
-`towbar_github_retry_reporting`
-
-Retry failed GitHub preview status/comment reporting. This retries reporting, not deployment; inspect preview/deployment state separately.
-
-Full-access key required. Available to workspace members and owners.
-
-**Arguments**
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {},
-  "additionalProperties": false
-}
-```
-
-</Accordion>
-
-<Accordion title="Configure AWS credentials">
-
-`towbar_aws_configure`
-
-Save AWS access credentials and region for the workspace. Use towbar_integration_inspect for metadata afterward; credential values are never returned.
-
-Full-access key required. Workspace owner required.
-
-**Arguments**
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "accessKeyId": {
-      "type": "string",
-      "minLength": 16,
-      "maxLength": 128
-    },
-    "region": {
-      "default": "ap-south-1",
-      "type": "string",
-      "minLength": 3,
-      "maxLength": 64
-    },
-    "secretAccessKey": {
-      "type": "string",
-      "minLength": 20,
-      "maxLength": 256
-    }
-  },
-  "required": ["accessKeyId", "secretAccessKey"],
-  "additionalProperties": false
-}
-```
-
-</Accordion>
-
-<Accordion title="Remove AWS credentials">
-
-`towbar_aws_disconnect`
-
-Remove workspace AWS credentials. This can affect backup and infrastructure operations; confirm the workspace-wide impact first.
-
-Full-access key required. Workspace owner required.
-
-**Arguments**
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {},
   "additionalProperties": false
 }
 ```

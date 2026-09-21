@@ -10,11 +10,16 @@ import {
   primaryKey,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import {
+  defaultDateTimePreferences,
+  type DateTimePreferences,
+} from "@workspace/towbar-core/date-time";
 
 import { deploymentStates } from "@workspace/towbar-core/temporal";
 import { deploymentEnvironments } from "@workspace/towbar-core/preview";
@@ -33,17 +38,22 @@ import type {
   NormalizedDeployable,
   NormalizedDeploymentManifest,
   NormalizedServer,
+  RequiredSecrets,
   BackupAssuranceCheck,
   BackupAssuranceStatus,
   RestoreOperationPhase,
   ServerPreparationStep,
   VulnerabilitySeverityTotals,
   ScoutAlertCondition,
+  LogDrainHealth,
+  IntegrationScope,
+  IntegrationProvider,
 } from "@workspace/towbar-core";
 
 export const workspaceRoleEnum = pgEnum("towbar_workspace_role", [
-  "owner",
+  "admin",
   "member",
+  "viewer",
 ]);
 export const sourceStatusEnum = pgEnum("towbar_source_status", [
   "active",
@@ -89,9 +99,16 @@ export const releaseStatusEnum = pgEnum("towbar_release_status", [
 ]);
 export const deployableKindEnum = pgEnum("towbar_deployable_kind", [
   "app",
+  "compose",
   "image",
   "postgres",
+  "mysql",
+  "mariadb",
+  "mongodb",
   "redis",
+  "dragonfly",
+  "keydb",
+  "clickhouse",
 ]);
 export const previewEnvironmentStatusEnum = pgEnum(
   "towbar_preview_environment_status",
@@ -106,6 +123,7 @@ export const resourceOperationTypeEnum = pgEnum(
   [
     "backup",
     "capture_logs",
+    "run_job",
     "cleanup_orphans",
     "restart",
     "restore",
@@ -145,6 +163,9 @@ export const runtimeDriftStateEnum = pgEnum("towbar_runtime_drift_state", [
 export const notificationProviderEnum = pgEnum("towbar_notification_provider", [
   "slack",
   "smtp",
+  "discord",
+  "telegram",
+  "webhook",
 ]);
 export const notificationDeliveryStateEnum = pgEnum(
   "towbar_notification_delivery_state",
@@ -168,6 +189,16 @@ export const users = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     email: varchar("email", { length: 320 }).notNull(),
     displayName: varchar("display_name", { length: 120 }).notNull(),
+    dateTimePreferences: jsonb("date_time_preferences")
+      .$type<DateTimePreferences>()
+      .default(defaultDateTimePreferences)
+      .notNull(),
+    emailVerified: boolean("email_verified").default(false).notNull(),
+    image: text("image"),
+    twoFactorEnabled: boolean("two_factor_enabled").default(false).notNull(),
+    mustChangePassword: boolean("must_change_password")
+      .default(false)
+      .notNull(),
     disabledAt: timestamp("disabled_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -176,21 +207,50 @@ export const users = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => [uniqueIndex("uq_towbar_users_email").on(table.email)],
+  (table) => [
+    uniqueIndex("uq_towbar_users_email").on(table.email),
+    check(
+      "towbar_users_email_normalized",
+      sql`${table.email} = lower(trim(${table.email}))`,
+    ),
+  ],
 );
 
-export const passwordCredentials = pgTable("towbar_password_credentials", {
-  userId: uuid("user_id")
-    .primaryKey()
-    .references(() => users.id, { onDelete: "cascade" }),
-  passwordHash: text("password_hash").notNull(),
-  operatorResetFingerprint: varchar("operator_reset_fingerprint", {
-    length: 64,
-  }),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-});
+export const authAccounts = pgTable(
+  "towbar_auth_accounts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", {
+      withTimezone: true,
+    }),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", {
+      withTimezone: true,
+    }),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_towbar_auth_accounts_user").on(table.userId),
+    uniqueIndex("uq_towbar_auth_account_provider").on(
+      table.providerId,
+      table.accountId,
+    ),
+  ],
+);
 
 export const authRateLimitBuckets = pgTable(
   "towbar_auth_rate_limit_buckets",
@@ -212,21 +272,104 @@ export const sessions = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+    token: text("token").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    revokedAt: timestamp("revoked_at", { withTimezone: true }),
-    lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    activeOrganizationId: uuid("active_organization_id"),
+    authenticatedAt: timestamp("authenticated_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
-    uniqueIndex("uq_towbar_sessions_token_hash").on(table.tokenHash),
+    uniqueIndex("uq_towbar_sessions_token").on(table.token),
     index("idx_towbar_sessions_user_id").on(table.userId),
     index("idx_towbar_sessions_expires_at").on(table.expiresAt),
   ],
+);
+
+export const authVerifications = pgTable(
+  "towbar_auth_verifications",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index("idx_towbar_verification_identifier").on(table.identifier)],
+);
+
+export const authPasskeys = pgTable(
+  "towbar_auth_passkeys",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 120 }),
+    publicKey: text("public_key").notNull(),
+    credentialID: text("credential_id").notNull(),
+    counter: integer("counter").notNull(),
+    deviceType: text("device_type").notNull(),
+    backedUp: boolean("backed_up").notNull(),
+    transports: text("transports"),
+    aaguid: text("aaguid"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_towbar_passkey_user").on(table.userId),
+    uniqueIndex("uq_towbar_passkey_credential").on(table.credentialID),
+  ],
+);
+
+export const emailChanges = pgTable(
+  "towbar_email_changes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+    previousEmail: varchar("previous_email", { length: 320 }).notNull(),
+    newEmail: varchar("new_email", { length: 320 }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [uniqueIndex("uq_towbar_email_change_user").on(table.userId)],
+);
+
+export const authTwoFactors = pgTable(
+  "towbar_auth_two_factors",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    secret: text("secret").notNull(),
+    backupCodes: text("backup_codes").notNull(),
+    verified: boolean("verified").default(false).notNull(),
+    failedVerificationCount: integer("failed_verification_count")
+      .default(0)
+      .notNull(),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  },
+  (table) => [uniqueIndex("uq_towbar_two_factor_user").on(table.userId)],
 );
 
 export const workspaces = pgTable(
@@ -235,6 +378,9 @@ export const workspaces = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     slug: varchar("slug", { length: 80 }).notNull(),
     name: varchar("name", { length: 120 }).notNull(),
+    description: varchar("description", { length: 500 }),
+    logo: text("logo"),
+    metadata: text("metadata"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -248,6 +394,7 @@ export const workspaces = pgTable(
 export const workspaceMembers = pgTable(
   "towbar_workspace_members",
   {
+    id: uuid("id").defaultRandom().primaryKey(),
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
@@ -260,54 +407,236 @@ export const workspaceMembers = pgTable(
       .notNull(),
   },
   (table) => [
-    primaryKey({
-      columns: [table.workspaceId, table.userId],
-      name: "pk_towbar_workspace_members",
-    }),
+    uniqueIndex("uq_towbar_workspace_members_identity").on(
+      table.workspaceId,
+      table.userId,
+    ),
     index("idx_towbar_workspace_members_user_id").on(table.userId),
   ],
+);
+
+export const workspaceInvitations = pgTable(
+  "towbar_workspace_invitations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    email: varchar("email", { length: 320 }).notNull(),
+    role: workspaceRoleEnum("role").notNull(),
+    inviterId: uuid("inviter_id")
+      .notNull()
+      .references(() => users.id),
+    status: text("status")
+      .$type<"pending" | "accepted" | "rejected" | "canceled">()
+      .default("pending")
+      .notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_pending_invitation")
+      .on(table.workspaceId, table.email)
+      .where(sql`${table.status} = 'pending'`),
+    check(
+      "towbar_invitation_email_normalized",
+      sql`${table.email} = lower(trim(${table.email}))`,
+    ),
+  ],
+);
+
+export const installationSetup = pgTable(
+  "towbar_installation_setup",
+  {
+    id: integer("id").primaryKey().default(1),
+    codeHash: text("code_hash"),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id),
+    breakGlassUserId: uuid("break_glass_user_id").references(() => users.id, {
+      onDelete: "restrict",
+    }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [check("towbar_setup_singleton", sql`${table.id} = 1`)],
 );
 
 export const apiKeys = pgTable(
   "towbar_api_keys",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    configId: text("config_id").notNull(),
+    name: text("name"),
+    start: text("start"),
+    referenceId: uuid("reference_id").notNull(),
+    prefix: text("prefix"),
+    key: text("key").notNull(),
+    refillInterval: integer("refill_interval"),
+    refillAmount: integer("refill_amount"),
+    lastRefillAt: timestamp("last_refill_at", { withTimezone: true }),
+    enabled: boolean("enabled").default(true),
+    rateLimitEnabled: boolean("rate_limit_enabled").default(true),
+    rateLimitTimeWindow: integer("rate_limit_time_window").default(60000),
+    rateLimitMax: integer("rate_limit_max").default(60),
+    requestCount: integer("request_count").default(0),
+    remaining: integer("remaining"),
+    lastRequest: timestamp("last_request", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    permissions: text("permissions"),
+    metadata: text("metadata"),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_api_key_hash").on(table.key),
+    index("idx_towbar_api_keys_reference").on(table.referenceId),
+    check(
+      "towbar_api_keys_config",
+      sql`${table.configId} in ('personal', 'team')`,
+    ),
+  ],
+);
+
+export const apiKeyPolicies = pgTable(
+  "towbar_api_key_policies",
+  {
+    keyId: uuid("key_id")
+      .primaryKey()
+      .references(() => apiKeys.id, { onDelete: "cascade" }),
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
-    name: varchar("name", { length: 120 }).notNull(),
-    access: varchar("access", { length: 10 })
-      .$type<"read" | "write">()
-      .notNull(),
-    tokenHash: varchar("token_hash", { length: 64 }).notNull(),
-    tokenPrefix: varchar("token_prefix", { length: 20 }).notNull(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    scope: text("scope").$type<"personal" | "team">().notNull(),
+    ownerUserId: uuid("owner_user_id").references(() => users.id, {
+      onDelete: "cascade",
+    }),
+    creatorUserId: uuid("creator_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    access: text("access").$type<"read" | "edit">().notNull(),
+    includeAdmin: boolean("include_admin").default(false).notNull(),
+    grants: jsonb("grants").$type<string[]>().notNull(),
+    creationRequestId: uuid("creation_request_id").defaultRandom().notNull(),
+    creationDigest: text("creation_digest").notNull(),
+    version: integer("version").default(1).notNull(),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
-    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
   (table) => [
-    uniqueIndex("uq_towbar_api_keys_hash").on(table.tokenHash),
-    index("idx_towbar_api_keys_owner").on(table.workspaceId, table.userId),
-    check("towbar_api_keys_access", sql`${table.access} in ('read', 'write')`),
+    uniqueIndex("uq_towbar_api_policy_creation").on(
+      table.workspaceId,
+      table.creatorUserId,
+      table.creationRequestId,
+    ),
+    index("idx_towbar_api_policy_workspace").on(table.workspaceId),
+    check(
+      "towbar_api_policy_scope",
+      sql`(${table.scope} = 'personal' and ${table.ownerUserId} is not null) or (${table.scope} = 'team' and ${table.ownerUserId} is null)`,
+    ),
+    check("towbar_api_policy_access", sql`${table.access} in ('read', 'edit')`),
+    check(
+      "towbar_api_policy_admin",
+      sql`not ${table.includeAdmin} or ${table.access} = 'edit'`,
+    ),
   ],
 );
 
-export const githubInstallations = pgTable(
-  "towbar_github_installations",
+export const transactionalEmails = pgTable(
+  "towbar_transactional_emails",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
-    installationId: varchar("installation_id", { length: 40 }).notNull(),
-    accountLogin: varchar("account_login", { length: 255 }).notNull(),
-    accountType: varchar("account_type", { length: 40 }).notNull(),
+    recipient: varchar("recipient", { length: 320 }).notNull(),
+    template: varchar("template", { length: 80 }).notNull(),
+    templateVersion: integer("template_version").default(1).notNull(),
+    dedupeKey: text("dedupe_key").notNull(),
+    invitationId: uuid("invitation_id").references(
+      () => workspaceInvitations.id,
+    ),
+    encryptedData: jsonb("encrypted_data").$type<EncryptedCredential>(),
+    status: text("status")
+      .$type<"pending" | "sending" | "sent" | "failed" | "canceled">()
+      .default("pending")
+      .notNull(),
+    attempts: integer("attempts").default(0).notNull(),
+    leaseToken: uuid("lease_token"),
+    leaseUntil: timestamp("lease_until", { withTimezone: true }),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    errorCode: text("error_code"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_transactional_email_dedupe").on(table.dedupeKey),
+    index("idx_towbar_transactional_email_ready").on(
+      table.status,
+      table.nextAttemptAt,
+    ),
+  ],
+);
+
+export const workspacePrivateKeys = pgTable(
+  "towbar_workspace_private_keys",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 120 }).notNull(),
+    description: varchar("description", { length: 500 }),
+    algorithm: varchar("algorithm", { length: 24 })
+      .$type<"ed25519" | "rsa" | "other">()
+      .notNull(),
+    generated: boolean("generated").default(false).notNull(),
+    publicKey: text("public_key"),
+    encryptedPrivateKey: jsonb("encrypted_private_key")
+      .$type<EncryptedCredential>()
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_workspace_private_keys_name").on(
+      table.workspaceId,
+      table.name,
+    ),
+    index("idx_towbar_workspace_private_keys_workspace").on(table.workspaceId),
+  ],
+);
+
+export const integrationInstallations = pgTable(
+  "towbar_integration_installations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    provider: varchar("provider", { length: 64 })
+      .$type<IntegrationProvider>()
+      .notNull(),
+    externalId: varchar("external_id", { length: 128 }).notNull(),
+    principalName: varchar("principal_name", { length: 255 }).notNull(),
+    principalType: varchar("principal_type", { length: 40 }).notNull(),
     suspendedAt: timestamp("suspended_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -317,9 +646,13 @@ export const githubInstallations = pgTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex("uq_towbar_github_installation_id").on(table.installationId),
-    uniqueIndex("uq_towbar_github_installations_workspace").on(
+    uniqueIndex("uq_towbar_integration_installation_external").on(
+      table.provider,
+      table.externalId,
+    ),
+    uniqueIndex("uq_towbar_integration_installation_workspace").on(
       table.workspaceId,
+      table.provider,
     ),
   ],
 );
@@ -331,16 +664,22 @@ export const sources = pgTable(
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
-    githubInstallationId: uuid("github_installation_id")
-      .notNull()
-      .references(() => githubInstallations.id, { onDelete: "restrict" }),
+    integrationInstallationId: uuid("integration_installation_id").references(
+      () => integrationInstallations.id,
+      { onDelete: "restrict" },
+    ),
+    integrationAuthorizationId: uuid("integration_authorization_id").references(
+      () => integrationAuthorizations.id,
+      { onDelete: "restrict" },
+    ),
+    provider: varchar("provider", { length: 16 })
+      .$type<"github" | "gitlab">()
+      .default("github")
+      .notNull(),
+    providerRepositoryId: varchar("provider_repository_id", { length: 128 }),
     repositoryOwner: varchar("repository_owner", { length: 255 }).notNull(),
     repositoryName: varchar("repository_name", { length: 255 }).notNull(),
-    branch: varchar("branch", { length: 255 }).notNull(),
     status: sourceStatusEnum("status").default("active").notNull(),
-    latestCommitSha: varchar("latest_commit_sha", { length: 64 }),
-    latestManifestDigest: varchar("latest_manifest_digest", { length: 64 }),
-    latestSuccessfulSyncId: uuid("latest_successful_sync_id"),
     autoDeployPaused: boolean("auto_deploy_paused").default(false).notNull(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -351,37 +690,37 @@ export const sources = pgTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex("uq_towbar_sources_secret_owner").on(
-      table.id,
+    unique("uq_towbar_sources_secret_owner").on(table.id, table.workspaceId),
+    uniqueIndex("uq_towbar_sources_repository").on(
       table.workspaceId,
-    ),
-    uniqueIndex("uq_towbar_sources_repository_branch").on(
-      table.workspaceId,
+      table.provider,
       table.repositoryOwner,
       table.repositoryName,
-      table.branch,
+    ),
+    check(
+      "towbar_source_provider_connection",
+      sql`(${table.provider} = 'github' AND ${table.integrationInstallationId} IS NOT NULL AND ${table.integrationAuthorizationId} IS NULL) OR (${table.provider} = 'gitlab' AND ${table.integrationInstallationId} IS NULL AND ${table.integrationAuthorizationId} IS NOT NULL AND ${table.providerRepositoryId} IS NOT NULL)`,
     ),
     index("idx_towbar_sources_workspace").on(table.workspaceId),
   ],
 );
 
-export const workspaceAwsCredentials = pgTable(
-  "towbar_workspace_aws_credentials",
+export const sourceEnvironments = pgTable(
+  "towbar_source_environments",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    workspaceId: uuid("workspace_id")
+    sourceId: uuid("source_id")
       .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
-    encryptedPayload: jsonb("encrypted_payload")
-      .$type<EncryptedCredential>()
-      .notNull(),
-    accessKeySuffix: varchar("access_key_suffix", { length: 8 }).notNull(),
-    region: varchar("region", { length: 64 }).notNull(),
-    verificationStatus: credentialVerificationStatusEnum("verification_status")
-      .default("unverified")
-      .notNull(),
-    verificationMessage: varchar("verification_message", { length: 500 }),
-    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+      .references(() => sources.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 63 }).notNull(),
+    branch: varchar("branch", { length: 255 }).notNull(),
+    mappingRevision: uuid("mapping_revision").defaultRandom().notNull(),
+    previewsEnabled: boolean("previews_enabled").default(false).notNull(),
+    latestCommitSha: varchar("latest_commit_sha", { length: 64 }),
+    latestManifestDigest: varchar("latest_manifest_digest", { length: 64 }),
+    latestSuccessfulSyncId: uuid("latest_successful_sync_id"),
+    autoDeployPaused: boolean("auto_deploy_paused").default(false).notNull(),
+    disconnectedAt: timestamp("disconnected_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -390,105 +729,143 @@ export const workspaceAwsCredentials = pgTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex("uq_towbar_aws_credentials_workspace").on(table.workspaceId),
-  ],
-);
-
-export const workspaceGcpCredentials = pgTable(
-  "towbar_workspace_gcp_credentials",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    workspaceId: uuid("workspace_id")
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
-    encryptedPayload: jsonb("encrypted_payload")
-      .$type<EncryptedCredential>()
-      .notNull(),
-    projectId: varchar("project_id", { length: 128 }).notNull(),
-    clientEmail: varchar("client_email", { length: 256 }).notNull(),
-    verificationStatus: credentialVerificationStatusEnum("verification_status")
-      .default("unverified")
-      .notNull(),
-    verificationMessage: varchar("verification_message", { length: 500 }),
-    verifiedAt: timestamp("verified_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    uniqueIndex("uq_towbar_gcp_credentials_workspace").on(table.workspaceId),
-  ],
-);
-
-export const workspaceAzureCredentials = pgTable(
-  "towbar_workspace_azure_credentials",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    workspaceId: uuid("workspace_id")
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
-    encryptedPayload: jsonb("encrypted_payload")
-      .$type<EncryptedCredential>()
-      .notNull(),
-    tenantId: varchar("tenant_id", { length: 64 }).notNull(),
-    clientId: varchar("client_id", { length: 64 }).notNull(),
-    clientSecretSuffix: varchar("client_secret_suffix", {
-      length: 8,
-    }).notNull(),
-    verificationStatus: credentialVerificationStatusEnum("verification_status")
-      .default("unverified")
-      .notNull(),
-    verificationMessage: varchar("verification_message", { length: 500 }),
-    verifiedAt: timestamp("verified_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    uniqueIndex("uq_towbar_azure_credentials_workspace").on(table.workspaceId),
-  ],
-);
-
-export const notificationDestinations = pgTable(
-  "towbar_notification_destinations",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    workspaceId: uuid("workspace_id")
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
-    sourceId: uuid("source_id").references(() => sources.id, {
-      onDelete: "cascade",
-    }),
-    serverId: uuid("server_id").references(() => servers.id, {
-      onDelete: "cascade",
-    }),
-    provider: notificationProviderEnum("provider").notNull(),
-    enabled: boolean("enabled").default(true).notNull(),
-    categories: jsonb("categories").$type<NotificationCategory[]>().notNull(),
-    config: jsonb("config")
-      .$type<NotificationDestinationInput["config"]>()
-      .notNull(),
-    deletedAt: timestamp("deleted_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    check(
-      "notificationDestinations_scope",
-      sql`num_nonnulls(${table.sourceId}, ${table.serverId}) = 1`,
+    uniqueIndex("uq_towbar_source_environments_name").on(
+      table.sourceId,
+      table.name,
     ),
-    index("notificationDestinations_server").on(table.serverId),
-    index("idx_towbar_notification_destinations_source").on(table.sourceId),
+    unique("uq_towbar_source_environments_owner").on(table.id, table.sourceId),
+    index("idx_towbar_source_environments_branch").on(
+      table.sourceId,
+      table.branch,
+    ),
+  ],
+);
+
+export const sourceEntities = pgTable(
+  "towbar_source_entities",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "cascade" }),
+    entityType: varchar("entity_type", { length: 16 })
+      .$type<"app" | "compose" | "resource">()
+      .notNull(),
+    manifestId: varchar("manifest_id", { length: 63 }).notNull(),
+    resourceType: varchar("resource_type", { length: 16 }).$type<
+      | "image"
+      | "postgres"
+      | "mysql"
+      | "mariadb"
+      | "mongodb"
+      | "redis"
+      | "dragonfly"
+      | "keydb"
+      | "clickhouse"
+    >(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_source_entities_identity").on(
+      table.sourceId,
+      table.entityType,
+      table.manifestId,
+    ),
+    unique("uq_towbar_source_entities_owner").on(table.id, table.sourceId),
+    check(
+      "towbar_source_entity_kind",
+      sql`(${table.entityType} IN ('app','compose') AND ${table.resourceType} IS NULL) OR (${table.entityType} = 'resource' AND ${table.resourceType} IN ('image','postgres','mysql','mariadb','mongodb','redis','dragonfly','keydb','clickhouse'))`,
+    ),
+  ],
+);
+
+export const integrationAuthorizations = pgTable(
+  "towbar_integration_authorizations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    slug: varchar("slug", { length: 64 }).notNull(),
+    name: varchar("name", { length: 100 }).notNull(),
+    description: varchar("description", { length: 500 }).default("").notNull(),
+    provider: varchar("provider", { length: 64 })
+      .$type<IntegrationProvider>()
+      .notNull(),
+    scopes: jsonb("scopes").$type<IntegrationScope[]>().default([]).notNull(),
+    revision: integer("revision").default(1).notNull(),
+    encryptedPayload: jsonb("encrypted_payload").$type<EncryptedCredential>(),
+    credentialHint: varchar("credential_hint", { length: 8 }),
+    verificationStatus: credentialVerificationStatusEnum("verification_status")
+      .default("unverified")
+      .notNull(),
+    verificationMessage: varchar("verification_message", { length: 500 }),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    disconnectedAt: timestamp("disconnected_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_integration_workspace_slug").on(
+      table.workspaceId,
+      table.slug,
+    ),
+    uniqueIndex("uq_towbar_integration_workspace_provider").on(
+      table.workspaceId,
+      table.provider,
+    ),
+    index("idx_towbar_integration_workspace_id").on(
+      table.workspaceId,
+      table.id,
+    ),
+    check("towbar_integration_revision_positive", sql`${table.revision} > 0`),
+    check(
+      "towbar_integration_connection_state",
+      sql`(${table.disconnectedAt} IS NULL AND ${table.encryptedPayload} IS NOT NULL) OR (${table.disconnectedAt} IS NOT NULL AND ${table.encryptedPayload} IS NULL)`,
+    ),
+    check(
+      "towbar_integration_slug",
+      sql`${table.slug} ~ '^[a-z][a-z0-9]*(-[a-z0-9]+)*$'`,
+    ),
+  ],
+);
+
+export const integrationAuthorizationAttempts = pgTable(
+  "towbar_integration_authorization_attempts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    requestedBy: uuid("requested_by").references(() => users.id, {
+      onDelete: "cascade",
+    }),
+    provider: varchar("provider", { length: 64 })
+      .$type<IntegrationProvider>()
+      .notNull(),
+    stateDigest: varchar("state_digest", { length: 64 }).notNull(),
+    encryptedPayload: jsonb("encrypted_payload")
+      .$type<EncryptedCredential>()
+      .notNull(),
+    redirectUri: varchar("redirect_uri", { length: 2048 }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_integration_authorization_state").on(
+      table.provider,
+      table.stateDigest,
+    ),
+    index("idx_towbar_integration_authorization_expiry").on(table.expiresAt),
   ],
 );
 
@@ -519,6 +896,10 @@ export const notificationEvents = pgTable(
       .notNull(),
   },
   (table) => [
+    index("idx_towbar_notification_events_workspace_id").on(
+      table.workspaceId,
+      table.id,
+    ),
     check(
       "notificationEvents_scope",
       sql`num_nonnulls(${table.sourceId}, ${table.serverId}) = 1`,
@@ -546,9 +927,8 @@ export const notificationDeliveries = pgTable(
     eventId: uuid("event_id")
       .notNull()
       .references(() => notificationEvents.id, { onDelete: "cascade" }),
-    destinationId: uuid("destination_id")
-      .notNull()
-      .references(() => notificationDestinations.id, { onDelete: "cascade" }),
+    destinationKey: varchar("destination_key", { length: 64 }).notNull(),
+    provider: notificationProviderEnum("provider").notNull(),
     state: notificationDeliveryStateEnum("state").default("pending").notNull(),
     cycle: integer("cycle").default(1).notNull(),
     attemptCount: integer("attempt_count").default(0).notNull(),
@@ -565,16 +945,20 @@ export const notificationDeliveries = pgTable(
       .notNull(),
   },
   (table) => [
+    index("idx_towbar_notification_deliveries_cursor").on(
+      table.createdAt,
+      table.id,
+    ),
     uniqueIndex("uq_towbar_notification_deliveries_event_destination").on(
       table.eventId,
-      table.destinationId,
+      table.destinationKey,
     ),
     index("idx_towbar_notification_deliveries_state_next").on(
       table.state,
       table.nextAttemptAt,
     ),
     index("idx_towbar_notification_deliveries_destination_created").on(
-      table.destinationId,
+      table.destinationKey,
       table.createdAt,
     ),
   ],
@@ -612,9 +996,7 @@ export const notificationThreads = pgTable(
   "towbar_notification_threads",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    destinationId: uuid("destination_id")
-      .notNull()
-      .references(() => notificationDestinations.id, { onDelete: "cascade" }),
+    destinationKey: varchar("destination_key", { length: 64 }).notNull(),
     entityKind: varchar("entity_kind", { length: 40 }).notNull(),
     entityId: varchar("entity_id", { length: 255 }).notNull(),
     creatingDeliveryId: uuid("creating_delivery_id").references(
@@ -635,12 +1017,12 @@ export const notificationThreads = pgTable(
   },
   (table) => [
     uniqueIndex("uq_towbar_notification_threads_destination_entity").on(
-      table.destinationId,
+      table.destinationKey,
       table.entityKind,
       table.entityId,
     ),
     index("idx_towbar_notification_threads_destination").on(
-      table.destinationId,
+      table.destinationKey,
     ),
   ],
 );
@@ -652,6 +1034,12 @@ export const sourceSyncs = pgTable(
     sourceId: uuid("source_id")
       .notNull()
       .references(() => sources.id, { onDelete: "cascade" }),
+    sourceEnvironmentId: uuid("source_environment_id").references(
+      () => sourceEnvironments.id,
+      { onDelete: "cascade" },
+    ),
+    mappingRevision: uuid("mapping_revision"),
+    deployAfterSync: boolean("deploy_after_sync").default(false).notNull(),
     status: sourceSyncStatusEnum("status").default("queued").notNull(),
     commitSha: varchar("commit_sha", { length: 64 }),
     manifestDigest: varchar("manifest_digest", { length: 64 }),
@@ -661,6 +1049,17 @@ export const sourceSyncs = pgTable(
     ).$type<NormalizedDeploymentManifest>(),
     reconciliation: jsonb("reconciliation").$type<ManifestReconciliation>(),
     issues: jsonb("issues").$type<ManifestIssue[]>(),
+    requestedByKeyId: uuid("requested_by_key_id").references(() => apiKeys.id, {
+      onDelete: "set null",
+    }),
+    requestedByActor: jsonb("requested_by_actor").$type<{
+      kind: "session" | "personal-key" | "team-key" | "system";
+      workspaceId: string;
+      userId?: string;
+      keyId?: string;
+      source?: "github" | "gitlab" | "worker";
+      grants?: string[];
+    }>(),
     requestedBy: uuid("requested_by").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -671,6 +1070,11 @@ export const sourceSyncs = pgTable(
       .notNull(),
   },
   (table) => [
+    foreignKey({
+      name: "fk_towbar_source_syncs_environment_owner",
+      columns: [table.sourceEnvironmentId, table.sourceId],
+      foreignColumns: [sourceEnvironments.id, sourceEnvironments.sourceId],
+    }).onDelete("cascade"),
     index("idx_towbar_source_syncs_source_created").on(
       table.sourceId,
       table.createdAt,
@@ -678,22 +1082,72 @@ export const sourceSyncs = pgTable(
   ],
 );
 
-export const githubWebhookDeliveries = pgTable(
-  "towbar_github_webhook_deliveries",
+export const integrationWebhookDeliveries = pgTable(
+  "towbar_integration_webhook_deliveries",
   {
-    deliveryId: varchar("delivery_id", { length: 100 }).primaryKey(),
+    id: uuid("id").defaultRandom().primaryKey(),
+    provider: varchar("provider", { length: 64 })
+      .$type<IntegrationProvider>()
+      .notNull(),
+    authorizationId: uuid("authorization_id").references(
+      () => integrationAuthorizations.id,
+      { onDelete: "cascade" },
+    ),
+    installationId: uuid("installation_id").references(
+      () => integrationInstallations.id,
+      { onDelete: "cascade" },
+    ),
+    deliveryId: varchar("delivery_id", { length: 128 }).notNull(),
     eventName: varchar("event_name", { length: 100 }).notNull(),
     action: varchar("action", { length: 100 }),
     payloadDigest: varchar("payload_digest", { length: 64 }).notNull(),
     sourceId: uuid("source_id").references(() => sources.id, {
       onDelete: "set null",
     }),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }),
     acceptedAt: timestamp("accepted_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
     processedAt: timestamp("processed_at", { withTimezone: true }),
   },
-  (table) => [index("idx_towbar_webhooks_accepted_at").on(table.acceptedAt)],
+  (table) => [
+    uniqueIndex("uq_towbar_integration_webhook_delivery").on(
+      table.provider,
+      table.deliveryId,
+    ),
+    uniqueIndex("uq_towbar_integration_webhook_payload").on(
+      table.provider,
+      table.authorizationId,
+      table.installationId,
+      table.eventName,
+      table.payloadDigest,
+    ),
+    index("idx_towbar_integration_webhook_source_occurred").on(
+      table.sourceId,
+      table.occurredAt,
+    ),
+    index("idx_towbar_integration_webhook_accepted").on(table.acceptedAt),
+    check(
+      "towbar_integration_webhook_identity",
+      sql`num_nonnulls(${table.authorizationId}, ${table.installationId}) = 1`,
+    ),
+  ],
+);
+
+export const repositoryWebhookCursors = pgTable(
+  "towbar_repository_webhook_cursors",
+  {
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "cascade" }),
+    eventKey: varchar("event_key", { length: 512 }).notNull(),
+    deliveryId: varchar("delivery_id", { length: 128 }).notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.sourceId, table.eventKey] })],
 );
 
 export const servers = pgTable(
@@ -703,6 +1157,10 @@ export const servers = pgTable(
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
+    privateKeyId: uuid("private_key_id").references(
+      () => workspacePrivateKeys.id,
+      { onDelete: "restrict" },
+    ),
     canonicalIp: varchar("canonical_ip", { length: 64 }).notNull(),
     config: jsonb("config").$type<NormalizedServer>().notNull(),
     configDigest: varchar("config_digest", { length: 64 }).notNull(),
@@ -717,15 +1175,13 @@ export const servers = pgTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex("uq_towbar_servers_secret_owner").on(
-      table.id,
-      table.workspaceId,
-    ),
+    unique("uq_towbar_servers_secret_owner").on(table.id, table.workspaceId),
     uniqueIndex("uq_towbar_servers_workspace_ip").on(
       table.workspaceId,
       table.canonicalIp,
     ),
     index("idx_towbar_servers_workspace").on(table.workspaceId),
+    index("idx_towbar_servers_private_key").on(table.privateKeyId),
     index("idx_towbar_servers_archived_at").on(table.archivedAt),
   ],
 );
@@ -753,6 +1209,17 @@ export const serverChecks = pgTable(
     result: jsonb("result").$type<Record<string, unknown>>(),
     errorCode: varchar("error_code", { length: 100 }),
     errorMessage: varchar("error_message", { length: 1_000 }),
+    requestedByKeyId: uuid("requested_by_key_id").references(() => apiKeys.id, {
+      onDelete: "set null",
+    }),
+    requestedByActor: jsonb("requested_by_actor").$type<{
+      kind: "session" | "personal-key" | "team-key" | "system";
+      workspaceId: string;
+      userId?: string;
+      keyId?: string;
+      source?: "github" | "gitlab" | "worker";
+      grants?: string[];
+    }>(),
     requestedBy: uuid("requested_by").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -771,6 +1238,57 @@ export const serverChecks = pgTable(
   ],
 );
 
+export const serverCredentialVerifications = pgTable(
+  "towbar_server_credential_verifications",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    serverId: uuid("server_id")
+      .notNull()
+      .references(() => servers.id, { onDelete: "cascade" }),
+    privateKeyId: uuid("private_key_id").references(
+      () => workspacePrivateKeys.id,
+      { onDelete: "set null" },
+    ),
+    status: checkStatusEnum("status").default("queued").notNull(),
+    encryptedPrivateKey: jsonb(
+      "encrypted_private_key",
+    ).$type<EncryptedCredential>(),
+    expectedCredentialRevision: uuid("expected_credential_revision"),
+    result: jsonb("result").$type<Record<string, unknown>>(),
+    errorCode: varchar("error_code", { length: 100 }),
+    errorMessage: varchar("error_message", { length: 1_000 }),
+    requestedByKeyId: uuid("requested_by_key_id").references(() => apiKeys.id, {
+      onDelete: "set null",
+    }),
+    requestedByActor: jsonb("requested_by_actor").$type<{
+      kind: "session" | "personal-key" | "team-key" | "system";
+      workspaceId: string;
+      userId?: string;
+      keyId?: string;
+      source?: "github" | "gitlab" | "worker";
+      grants?: string[];
+    }>(),
+    requestedBy: uuid("requested_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_towbar_server_credential_verifications_server").on(
+      table.serverId,
+      table.createdAt,
+      table.id,
+    ),
+    uniqueIndex("uq_towbar_server_credential_verifications_active")
+      .on(table.serverId)
+      .where(sql`${table.status} in ('queued', 'running')`),
+  ],
+);
+
 export const serverPreparations = pgTable(
   "towbar_server_preparations",
   {
@@ -784,6 +1302,17 @@ export const serverPreparations = pgTable(
     result: jsonb("result").$type<Record<string, unknown>>(),
     errorCode: varchar("error_code", { length: 100 }),
     errorMessage: varchar("error_message", { length: 1_000 }),
+    requestedByKeyId: uuid("requested_by_key_id").references(() => apiKeys.id, {
+      onDelete: "set null",
+    }),
+    requestedByActor: jsonb("requested_by_actor").$type<{
+      kind: "session" | "personal-key" | "team-key" | "system";
+      workspaceId: string;
+      userId?: string;
+      keyId?: string;
+      source?: "github" | "gitlab" | "worker";
+      grants?: string[];
+    }>(),
     requestedBy: uuid("requested_by").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -814,9 +1343,9 @@ export const sshHostKeys = pgTable(
     algorithm: varchar("algorithm", { length: 80 }).notNull(),
     fingerprint: varchar("fingerprint", { length: 255 }).notNull(),
     publicKey: text("public_key").notNull(),
-    trustedBy: uuid("trusted_by")
-      .notNull()
-      .references(() => users.id, { onDelete: "restrict" }),
+    trustedBy: uuid("trusted_by").references(() => users.id, {
+      onDelete: "restrict",
+    }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -843,6 +1372,17 @@ export const apps = pgTable(
     serverId: uuid("server_id")
       .notNull()
       .references(() => servers.id, { onDelete: "restrict" }),
+    entityId: uuid("entity_id")
+      .notNull()
+      .references(() => sourceEntities.id, {
+        onDelete: "cascade",
+      }),
+    sourceEnvironmentId: uuid("source_environment_id")
+      .notNull()
+      .references(() => sourceEnvironments.id, { onDelete: "cascade" }),
+    requiredSecrets: jsonb("required_secrets")
+      .$type<RequiredSecrets>()
+      .notNull(),
     manifestId: varchar("manifest_id", { length: 63 }).notNull(),
     kind: deployableKindEnum("kind").default("app").notNull(),
     name: varchar("name", { length: 120 }).notNull(),
@@ -865,14 +1405,34 @@ export const apps = pgTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex("uq_towbar_apps_secret_owner").on(
+    foreignKey({
+      name: "fk_towbar_apps_environment_owner",
+      columns: [table.sourceEnvironmentId, table.sourceId],
+      foreignColumns: [sourceEnvironments.id, sourceEnvironments.sourceId],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "fk_towbar_apps_entity_owner",
+      columns: [table.entityId, table.sourceId],
+      foreignColumns: [sourceEntities.id, sourceEntities.sourceId],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "fk_towbar_apps_source_owner",
+      columns: [table.sourceId, table.workspaceId],
+      foreignColumns: [sources.id, sources.workspaceId],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "fk_towbar_apps_server_owner",
+      columns: [table.serverId, table.workspaceId],
+      foreignColumns: [servers.id, servers.workspaceId],
+    }).onDelete("restrict"),
+    unique("uq_towbar_apps_secret_owner").on(
       table.id,
       table.workspaceId,
       table.sourceId,
     ),
-    uniqueIndex("uq_towbar_apps_source_manifest_id").on(
-      table.sourceId,
-      table.manifestId,
+    uniqueIndex("uq_towbar_apps_environment_entity").on(
+      table.sourceEnvironmentId,
+      table.entityId,
     ),
     index("idx_towbar_apps_workspace").on(table.workspaceId),
     index("idx_towbar_apps_server").on(table.serverId),
@@ -907,6 +1467,15 @@ export const previewEnvironments = pgTable(
       .default("building")
       .notNull(),
     errorMessage: varchar("error_message", { length: 1_000 }),
+    cleanupRequestedByActor: jsonb("cleanup_requested_by_actor").$type<{
+      kind: "session" | "personal-key" | "team-key" | "system";
+      workspaceId: string;
+      userId?: string;
+      keyId?: string;
+      source?: "github" | "gitlab" | "worker";
+      grants?: string[];
+    }>(),
+    cleanupStartedAt: timestamp("cleanup_started_at", { withTimezone: true }),
     cleanupAttempts: integer("cleanup_attempts").default(0).notNull(),
     lastCleanupAttemptAt: timestamp("last_cleanup_attempt_at", {
       withTimezone: true,
@@ -1011,6 +1580,14 @@ export const previewPullRequestReports = pgTable(
 export const deployments = pgTable(
   "towbar_deployments",
   {
+    targetEnvironment: jsonb("target_environment")
+      .$type<{
+        id: string;
+        name: string;
+        branch: string;
+        mappingRevision: string;
+      }>()
+      .notNull(),
     id: uuid("id").defaultRandom().primaryKey(),
     workspaceId: uuid("workspace_id")
       .notNull()
@@ -1024,6 +1601,20 @@ export const deployments = pgTable(
     serverId: uuid("server_id")
       .notNull()
       .references(() => servers.id, { onDelete: "restrict" }),
+    buildServerId: uuid("build_server_id").references(() => servers.id, {
+      onDelete: "restrict",
+    }),
+    requestedByKeyId: uuid("requested_by_key_id").references(() => apiKeys.id, {
+      onDelete: "set null",
+    }),
+    requestedByActor: jsonb("requested_by_actor").$type<{
+      kind: "session" | "personal-key" | "team-key" | "system";
+      workspaceId: string;
+      userId?: string;
+      keyId?: string;
+      source?: "github" | "gitlab" | "worker";
+      grants?: string[];
+    }>(),
     requestedBy: uuid("requested_by").references(() => users.id, {
       onDelete: "restrict",
     }),
@@ -1054,11 +1645,18 @@ export const deployments = pgTable(
     sourceInputDigest: varchar("source_input_digest", { length: 64 }),
     manifestDigest: varchar("manifest_digest", { length: 64 }).notNull(),
     imageDigest: varchar("image_digest", { length: 71 }),
+    imageSourceReference: varchar("image_source_reference", { length: 512 }),
     imagePlatform: varchar("image_platform", { length: 64 }),
+    requiredSecrets: jsonb("required_secrets")
+      .$type<RequiredSecrets>()
+      .notNull(),
     appSnapshot: jsonb("app_snapshot").$type<NormalizedDeployable>().notNull(),
     serverSnapshot: jsonb("server_snapshot")
       .$type<NormalizedServer>()
       .notNull(),
+    buildServerSnapshot: jsonb(
+      "build_server_snapshot",
+    ).$type<NormalizedServer>(),
     rollbackReleaseSnapshot: jsonb("rollback_release_snapshot").$type<{
       commitSha: string;
       containerName: string;
@@ -1086,6 +1684,10 @@ export const deployments = pgTable(
       "chk_towbar_deployments_environment",
       sql`(${table.environment} = 'production' AND ${table.previewEnvironmentId} IS NULL AND ${table.gitRef} IS NULL AND ${table.hostname} IS NULL) OR (${table.environment} = 'preview' AND ${table.previewEnvironmentId} IS NOT NULL AND ${table.gitRef} IS NOT NULL AND ${table.hostname} IS NOT NULL)`,
     ),
+    check(
+      "chk_towbar_deployments_build_server_snapshot",
+      sql`(${table.buildServerId} IS NULL AND ${table.buildServerSnapshot} IS NULL) OR (${table.buildServerId} IS NOT NULL AND ${table.buildServerSnapshot} IS NOT NULL)`,
+    ),
     uniqueIndex("uq_towbar_deployments_idempotency").on(
       table.workspaceId,
       table.idempotencyKey,
@@ -1099,6 +1701,10 @@ export const deployments = pgTable(
     ),
     index("idx_towbar_deployments_server_state").on(
       table.serverId,
+      table.state,
+    ),
+    index("idx_towbar_deployments_build_server_state").on(
+      table.buildServerId,
       table.state,
     ),
     index("idx_towbar_deployments_preview_created").on(
@@ -1267,6 +1873,14 @@ export const releases = pgTable(
     imagePlatform: varchar("image_platform", { length: 64 }),
     imageTag: varchar("image_tag", { length: 512 }).notNull(),
     containerName: varchar("container_name", { length: 255 }).notNull(),
+    containerNames: jsonb("container_names")
+      .$type<string[]>()
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    composeServices: jsonb("compose_services")
+      .$type<string[]>()
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
     promotedAt: timestamp("promoted_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -1302,6 +1916,17 @@ export const resourceOperations = pgTable(
     serverId: uuid("server_id")
       .notNull()
       .references(() => servers.id, { onDelete: "cascade" }),
+    requestedByKeyId: uuid("requested_by_key_id").references(() => apiKeys.id, {
+      onDelete: "set null",
+    }),
+    requestedByActor: jsonb("requested_by_actor").$type<{
+      kind: "session" | "personal-key" | "team-key" | "system";
+      workspaceId: string;
+      userId?: string;
+      keyId?: string;
+      source?: "github" | "gitlab" | "worker";
+      grants?: string[];
+    }>(),
     requestedBy: uuid("requested_by").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -1443,6 +2068,20 @@ export const deployableRuntimeStates = pgTable(
       .default([]),
     observedContainerName: varchar("observed_container_name", { length: 255 }),
     observedImage: varchar("observed_image", { length: 512 }),
+    ingressStatus: varchar("ingress_status", { length: 32 })
+      .$type<
+        | "disabled"
+        | "missing"
+        | "ready"
+        | "reconnecting"
+        | "stopped"
+        | "unknown"
+      >()
+      .default("unknown")
+      .notNull(),
+    ingressContainerName: varchar("ingress_container_name", { length: 255 }),
+    ingressImage: varchar("ingress_image", { length: 512 }),
+    ingressRestartCount: integer("ingress_restart_count"),
     lastCheckId: uuid("last_check_id").references(() => serverChecks.id, {
       onDelete: "set null",
     }),
@@ -1480,6 +2119,12 @@ export const auditEvents = pgTable(
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
+    actorKind: text("actor_kind").$type<
+      "session" | "personal-key" | "team-key" | "system"
+    >(),
+    actorKeyId: uuid("actor_key_id").references(() => apiKeys.id, {
+      onDelete: "set null",
+    }),
     actorUserId: uuid("actor_user_id").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -1496,6 +2141,23 @@ export const auditEvents = pgTable(
       .notNull(),
   },
   (table) => [
+    index("idx_towbar_audit_workspace_actor_cursor").on(
+      table.workspaceId,
+      table.actorUserId,
+      table.createdAt,
+      table.id,
+    ),
+    index("idx_towbar_audit_workspace_action_cursor").on(
+      table.workspaceId,
+      table.action,
+      table.createdAt,
+      table.id,
+    ),
+    index("idx_towbar_audit_workspace_cursor").on(
+      table.workspaceId,
+      table.createdAt,
+      table.id,
+    ),
     index("idx_towbar_audit_workspace_created").on(
       table.workspaceId,
       table.createdAt,
@@ -1547,7 +2209,7 @@ export const managedSecrets = pgTable(
       onDelete: "cascade",
     }),
     owner: text("owner").notNull(),
-    environment: deploymentEnvironmentEnum("environment")
+    environment: varchar("environment", { length: 80 })
       .notNull()
       .default("production"),
     stage: text("stage").notNull(),
@@ -1615,6 +2277,7 @@ export const monitoringAgents = pgTable(
     generation: uuid("generation").notNull().defaultRandom(),
     tokenHash: varchar("token_hash", { length: 64 }),
     encryptedToken: jsonb("encrypted_token").$type<EncryptedCredential>(),
+    removalRequested: boolean("removal_requested").default(false).notNull(),
     removalRequestedBy: uuid("removal_requested_by").references(
       () => users.id,
       { onDelete: "set null" },
@@ -1631,6 +2294,17 @@ export const monitoringAgents = pgTable(
     operationStartedAt: timestamp("operation_started_at", {
       withTimezone: true,
     }),
+    requestedByKeyId: uuid("requested_by_key_id").references(() => apiKeys.id, {
+      onDelete: "set null",
+    }),
+    requestedByActor: jsonb("requested_by_actor").$type<{
+      kind: "session" | "personal-key" | "team-key" | "system";
+      workspaceId: string;
+      userId?: string;
+      keyId?: string;
+      source?: "github" | "gitlab" | "worker";
+      grants?: string[];
+    }>(),
     requestedBy: uuid("requested_by").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -1713,17 +2387,6 @@ export const monitoringSamples = pgTable(
   ],
 );
 
-export const scoutAlertSettings = pgTable("towbar_scout_alert_settings", {
-  serverId: uuid("server_id")
-    .primaryKey()
-    .references(() => servers.id, { onDelete: "cascade" }),
-  mutedUntil: timestamp("muted_until", { withTimezone: true }),
-  muteReason: varchar("mute_reason", { length: 240 }).notNull().default(""),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
-
 export const scoutAlertRules = pgTable(
   "towbar_scout_alert_rules",
   {
@@ -1744,9 +2407,6 @@ export const scoutAlertRules = pgTable(
       .notNull()
       .default("production"),
     condition: jsonb("condition").$type<ScoutAlertCondition>().notNull(),
-    notifyRecovery: boolean("notify_recovery").notNull().default(true),
-    mutedUntil: timestamp("muted_until", { withTimezone: true }),
-    muteReason: varchar("mute_reason", { length: 240 }).notNull().default(""),
     evaluationState: varchar("evaluation_state", { length: 20 })
       .notNull()
       .default("unknown"),
@@ -1843,3 +2503,59 @@ export const scoutHttpChecks = pgTable(
     ),
   ],
 );
+
+export const serverIntegrationStates = pgTable(
+  "towbar_server_integration_states",
+  {
+    integrationKind: varchar("integration_kind", { length: 64 })
+      .default("log-forwarding")
+      .notNull(),
+    health: jsonb("health").$type<LogDrainHealth[]>().notNull().default([]),
+    details: jsonb("details")
+      .$type<{
+        otlp?: {
+          active: boolean;
+          digest: string;
+          persistentQueue: boolean;
+          queueSize: number;
+          signals: Array<"logs" | "metrics" | "traces">;
+          slug: string | null;
+          metrics: {
+            enqueueFailures: Record<"logs" | "metrics" | "traces", number>;
+            queueCapacity: number;
+            queueDepth: number;
+            sendFailures: Record<"logs" | "metrics" | "traces", number>;
+          } | null;
+        };
+      }>()
+      .notNull()
+      .default({}),
+    removalRequested: boolean("removal_requested").notNull().default(false),
+    requestedByActor:
+      jsonb("requested_by_actor").$type<
+        (typeof monitoringAgents.$inferSelect)["requestedByActor"]
+      >(),
+    serverId: uuid("server_id")
+      .notNull()
+      .references(() => servers.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    appliedDigest: varchar("applied_digest", { length: 64 }),
+    status: varchar("status", { length: 16 }).notNull().default("pending"),
+    errorMessage: varchar("error_message", { length: 500 }),
+    checkedAt: timestamp("checked_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    appliedAt: timestamp("applied_at", { withTimezone: true }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.serverId, table.integrationKind] }),
+    index("idx_towbar_server_integration_workspace_kind").on(
+      table.workspaceId,
+      table.integrationKind,
+    ),
+  ],
+);
+
+export const serverLogDrains = serverIntegrationStates;

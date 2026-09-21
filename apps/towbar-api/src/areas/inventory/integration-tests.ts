@@ -22,7 +22,7 @@ export async function testInventory({
   await t.test(
     "inventory latest statuses and counts stay workspace scoped",
     async () => {
-      const { serverChecks, sourceSyncs } =
+      const { serverChecks, sourceSyncs, sourceEnvironments } =
         await import("@workspace/towbar-database/schema");
       const { listSources } = await import("../sources/service.js");
       const { listServers } = await import("../servers/service.js");
@@ -44,9 +44,16 @@ export async function testInventory({
           status: "failed",
           createdAt: new Date("2099-01-01"),
         });
+        const [environment] = await db
+          .select()
+          .from(sourceEnvironments)
+          .where(eq(sourceEnvironments.sourceId, sourceId));
+        assert(environment);
         await db.insert(sourceSyncs).values({
           id: syncId,
           sourceId,
+          sourceEnvironmentId: environment.id,
+          mappingRevision: environment.mappingRevision,
           status: "failed",
           createdAt: new Date("2099-01-01"),
         });

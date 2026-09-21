@@ -2,10 +2,10 @@
 
 import {
   Archive01Icon,
-  Cancel01Icon,
   Delete02Icon,
   RefreshIcon,
   Shield01Icon,
+  StopCircleIcon,
   Undo02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -120,10 +120,10 @@ export function ResourceRestoreConfiguration({
     backup.restoreFrom ?? (backup.s3 ? "s3" : backup.gcs ? "gcs" : "azureBlob");
   const restoreProviderLabel =
     restoreProvider === "gcs"
-      ? "Google Cloud (GCS)"
+      ? "Google Cloud Storage"
       : restoreProvider === "azureBlob"
         ? "Azure Blob Storage"
-        : "AWS (S3)";
+        : "AWS S3";
   const restoreProviderName =
     restoreProvider === "gcs"
       ? "Google Cloud"
@@ -203,14 +203,13 @@ export function ResourceRestoreConfiguration({
                 ["queued", "running"].includes(operation.state),
               )
             }
-            size="sm"
             variant="secondary"
             onPress={() => setSelectedBackup(item)}
           >
             <HugeiconsIcon
               aria-hidden="true"
               icon={Undo02Icon}
-              className="size-4 shrink-0"
+              className="shrink-0"
             />
             Restore
           </Button>
@@ -229,7 +228,9 @@ export function ResourceRestoreConfiguration({
             <Alert.Title>Restore unavailable</Alert.Title>
             <Alert.Description>
               Add {restoreProviderName} credentials in{" "}
-              <InlineLink href="/manage/integrations">
+              <InlineLink
+                href={`/manage/integrations/${restoreProvider === "s3" ? "aws" : restoreProvider === "gcs" ? "gcp" : "azure"}`}
+              >
                 Manage → Integrations
               </InlineLink>{" "}
               before database restores can run.
@@ -252,7 +253,7 @@ export function ResourceRestoreConfiguration({
             <span>{restoreProviderLabel}</span>
           </span>
         </Attributes.Item>
-        <Attributes.Item label="Source location">
+        <Attributes.Item label="Repository location">
           <TypographyCode className="block truncate" title={restoreLocationUri}>
             {restoreLocationUri}
           </TypographyCode>
@@ -298,13 +299,11 @@ function RestoreConfirmation({
 }) {
   const [confirmation, setConfirmation] = useState("");
   const [reason, setReason] = useState("");
-  const [error, setError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
 
   function close() {
     setConfirmation("");
     setReason("");
-    setError(undefined);
     onClose();
   }
 
@@ -312,7 +311,6 @@ function RestoreConfirmation({
     event.preventDefault();
     if (!backup) return;
     setSubmitting(true);
-    setError(undefined);
     try {
       await api.post(
         `/v1/core/resources/${resource.id}/actions/restore`,
@@ -323,136 +321,121 @@ function RestoreConfirmation({
       refreshApiQueries();
       close();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Restore failed");
+      toast.danger(cause instanceof Error ? cause.message : "Restore failed");
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <Modal
+    <Modal.Backdrop
       isOpen={Boolean(backup)}
       onOpenChange={(open) => {
         if (!open && !submitting) close();
       }}
     >
-      <Modal.Backdrop>
-        <Modal.Container scroll="inside" size="lg">
-          <Modal.Dialog>
-            <Modal.CloseTrigger />
-            <Modal.Header>
-              <Modal.Heading>Restore {resource.name}</Modal.Heading>
-            </Modal.Header>
-            <Modal.Body>
-              <form className="content-grid" onSubmit={submit}>
-                <Alert status="danger">
-                  <Alert.Indicator />
-                  <Alert.Content>
-                    <Alert.Title>This replaces the active database</Alert.Title>
-                    <Alert.Description>
-                      Towbar restores into an isolated candidate first. After
-                      validation, promotion briefly replaces the active volume.
-                      Promotion cannot be cancelled; the previous volume is
-                      retained for rollback for seven days.
-                    </Alert.Description>
-                  </Alert.Content>
-                </Alert>
-                {backup ? (
-                  <Attributes
-                    icon={<HugeiconsIcon icon={Archive01Icon} />}
-                    columns={2}
-                    title="Selected backup"
-                  >
-                    <Attributes.Item label="Created">
-                      {formatDate(backup.finishedAt ?? backup.createdAt)}
-                    </Attributes.Item>
-                    <Attributes.Item label="Size">
-                      {formatBytes(backup.result.sizeBytes)}
-                    </Attributes.Item>
-                    <Attributes.Item label="Engine">
-                      {formatEngine(backup.result.engine)}{" "}
-                      {backup.result.engineMajorVersion}
-                    </Attributes.Item>
-                    <Attributes.Item label="Checksum">
-                      <TypographyCode title={backup.result.checksum}>
-                        {backup.result.checksum.slice(0, 12)}
-                      </TypographyCode>
-                    </Attributes.Item>
-                  </Attributes>
-                ) : null}
-                {error ? (
-                  <Alert status="danger">
-                    <Alert.Indicator />
-                    <Alert.Content>
-                      <Alert.Title>Couldn&apos;t queue restore</Alert.Title>
-                      <Alert.Description>{error}</Alert.Description>
-                    </Alert.Content>
-                  </Alert>
-                ) : null}
-                <Field>
-                  <FieldLabel htmlFor="restore-reason">Reason</FieldLabel>
-                  <Input
-                    id="restore-reason"
-                    minLength={10}
-                    required
-                    value={reason}
-                    variant="secondary"
-                    onChange={(event) => setReason(event.currentTarget.value)}
+      <Modal.Container scroll="inside" size="lg">
+        <Modal.Dialog>
+          <Modal.CloseTrigger />
+          <Modal.Header>
+            <Modal.Heading>Restore {resource.name}</Modal.Heading>
+          </Modal.Header>
+          <Modal.Body>
+            <form className="content-grid" onSubmit={submit}>
+              <div className="grid gap-2">
+                <p className="font-medium text-danger">
+                  This replaces the active database
+                </p>
+                <p className="text-muted">
+                  Towbar restores into an isolated candidate first. After
+                  validation, promotion briefly replaces the active volume.
+                  Promotion cannot be cancelled; the previous volume is retained
+                  for rollback for seven days.
+                </p>
+              </div>
+              {backup ? (
+                <Attributes
+                  icon={<HugeiconsIcon icon={Archive01Icon} />}
+                  columns={2}
+                  title="Selected backup"
+                >
+                  <Attributes.Item label="Created">
+                    {formatDate(backup.finishedAt ?? backup.createdAt)}
+                  </Attributes.Item>
+                  <Attributes.Item label="Size">
+                    {formatBytes(backup.result.sizeBytes)}
+                  </Attributes.Item>
+                  <Attributes.Item label="Engine">
+                    {formatEngine(backup.result.engine)}{" "}
+                    {backup.result.engineMajorVersion}
+                  </Attributes.Item>
+                  <Attributes.Item label="Checksum">
+                    <TypographyCode title={backup.result.checksum}>
+                      {backup.result.checksum.slice(0, 12)}
+                    </TypographyCode>
+                  </Attributes.Item>
+                </Attributes>
+              ) : null}
+              <Field>
+                <FieldLabel htmlFor="restore-reason" isRequired>
+                  Reason
+                </FieldLabel>
+                <Input
+                  id="restore-reason"
+                  minLength={10}
+                  required
+                  value={reason}
+                  variant="secondary"
+                  onChange={(event) => setReason(event.currentTarget.value)}
+                />
+                <FieldDescription>
+                  Recorded in the restore audit trail. Minimum 10 characters.
+                </FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="restore-confirmation" isRequired>
+                  Type {resource.name} to confirm
+                </FieldLabel>
+                <Input
+                  id="restore-confirmation"
+                  required
+                  value={confirmation}
+                  variant="secondary"
+                  onChange={(event) =>
+                    setConfirmation(event.currentTarget.value)
+                  }
+                />
+              </Field>
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button
+                  isDisabled={submitting}
+                  variant="secondary"
+                  onPress={close}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  isDisabled={
+                    submitting ||
+                    confirmation !== resource.name ||
+                    reason.trim().length < 10
+                  }
+                  type="submit"
+                  variant="danger"
+                >
+                  <HugeiconsIcon
+                    aria-hidden="true"
+                    icon={Undo02Icon}
+                    className="size-4 shrink-0"
                   />
-                  <FieldDescription>
-                    Recorded in the restore audit trail. Minimum 10 characters.
-                  </FieldDescription>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="restore-confirmation">
-                    Type {resource.name} to confirm
-                  </FieldLabel>
-                  <Input
-                    id="restore-confirmation"
-                    required
-                    value={confirmation}
-                    variant="secondary"
-                    onChange={(event) =>
-                      setConfirmation(event.currentTarget.value)
-                    }
-                  />
-                </Field>
-                <div className="flex flex-wrap justify-end gap-2">
-                  <Button
-                    isDisabled={submitting}
-                    variant="secondary"
-                    onPress={close}
-                  >
-                    <HugeiconsIcon
-                      aria-hidden="true"
-                      icon={Cancel01Icon}
-                      className="size-4 shrink-0"
-                    />
-                    Cancel
-                  </Button>
-                  <Button
-                    isDisabled={
-                      submitting ||
-                      confirmation !== resource.name ||
-                      reason.trim().length < 10
-                    }
-                    type="submit"
-                    variant="danger"
-                  >
-                    <HugeiconsIcon
-                      aria-hidden="true"
-                      icon={Undo02Icon}
-                      className="size-4 shrink-0"
-                    />
-                    {submitting ? "Queueing restore…" : "Restore database"}
-                  </Button>
-                </div>
-              </form>
-            </Modal.Body>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
+                  {submitting ? "Queueing restore…" : "Restore database"}
+                </Button>
+              </div>
+            </form>
+          </Modal.Body>
+        </Modal.Dialog>
+      </Modal.Container>
+    </Modal.Backdrop>
   );
 }
 
@@ -679,17 +662,17 @@ function RestoreOperationAction({
     >
       <HugeiconsIcon
         aria-hidden="true"
-        icon={Cancel01Icon}
-        className="size-4 shrink-0"
+        icon={StopCircleIcon}
+        className="shrink-0"
       />
       Cancel
     </ActionButton>
   ) : (
-    <Button size="sm" variant="secondary" onPress={onCleanup}>
+    <Button variant="secondary" onPress={onCleanup}>
       <HugeiconsIcon
         aria-hidden="true"
         icon={Delete02Icon}
-        className="size-4 shrink-0"
+        className="shrink-0"
       />
       Clean up volume
     </Button>
@@ -705,19 +688,16 @@ function RestoreCleanupConfirmation({
   operation: ResourceOperation | null;
   resourceId: string;
 }) {
-  const [error, setError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
   const result = operation ? readRestoreResult(operation.result) : null;
 
   function close() {
-    setError(undefined);
     onClose();
   }
 
   async function cleanUp() {
     if (!operation) return;
     setSubmitting(true);
-    setError(undefined);
     try {
       await api.post(
         `/v1/core/resources/${resourceId}/actions/restore-cleanup`,
@@ -728,84 +708,70 @@ function RestoreCleanupConfirmation({
       refreshApiQueries();
       close();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Cleanup failed");
+      toast.danger(cause instanceof Error ? cause.message : "Cleanup failed");
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <Modal
+    <Modal.Backdrop
       isOpen={Boolean(operation)}
       onOpenChange={(open) => {
         if (!open && !submitting) close();
       }}
     >
-      <Modal.Backdrop>
-        <Modal.Container size="md">
-          <Modal.Dialog>
-            <Modal.CloseTrigger />
-            <Modal.Header>
-              <Modal.Heading>Clean up rollback volume?</Modal.Heading>
-            </Modal.Header>
-            <Modal.Body className="content-grid">
-              <Alert status="danger">
-                <Alert.Indicator />
-                <Alert.Content>
-                  <Alert.Title>
-                    This removes the retained database volume
-                  </Alert.Title>
-                  <Alert.Description>
-                    The promoted database stays active, but Towbar can no longer
-                    roll back to the previous volume after cleanup.
-                  </Alert.Description>
-                </Alert.Content>
-              </Alert>
-              <p className="text-muted typography--body-sm">
-                {result?.previousVolumes.length ?? 0} previous volume
-                {(result?.previousVolumes.length ?? 0) === 1 ? "" : "s"} will be
-                removed.
+      <Modal.Container size="md">
+        <Modal.Dialog>
+          <Modal.CloseTrigger />
+          <Modal.Header>
+            <Modal.Heading>Clean up rollback volume?</Modal.Heading>
+          </Modal.Header>
+          <Modal.Body className="content-grid">
+            <div className="grid gap-2">
+              <p className="font-medium text-danger">
+                This removes the retained database volume
               </p>
-              {error ? (
-                <Alert status="danger">
-                  <Alert.Indicator />
-                  <Alert.Content>
-                    <Alert.Title>Couldn&apos;t queue cleanup</Alert.Title>
-                    <Alert.Description>{error}</Alert.Description>
-                  </Alert.Content>
-                </Alert>
-              ) : null}
-              <div className="flex flex-wrap justify-end gap-2">
-                <Button
-                  isDisabled={submitting}
-                  variant="secondary"
-                  onPress={close}
-                >
-                  <HugeiconsIcon
-                    aria-hidden="true"
-                    icon={Shield01Icon}
-                    className="size-4 shrink-0"
-                  />
-                  Keep rollback volume
-                </Button>
-                <Button
-                  isDisabled={submitting}
-                  variant="danger"
-                  onPress={cleanUp}
-                >
-                  <HugeiconsIcon
-                    aria-hidden="true"
-                    icon={Delete02Icon}
-                    className="size-4 shrink-0"
-                  />
-                  {submitting ? "Queueing cleanup…" : "Clean up volume"}
-                </Button>
-              </div>
-            </Modal.Body>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
+              <p className="text-muted">
+                The promoted database stays active, but Towbar can no longer
+                roll back to the previous volume after cleanup.
+              </p>
+            </div>
+            <p className="text-muted typography--body-sm">
+              {result?.previousVolumes.length ?? 0} previous volume
+              {(result?.previousVolumes.length ?? 0) === 1 ? "" : "s"} will be
+              removed.
+            </p>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button
+                isDisabled={submitting}
+                variant="secondary"
+                onPress={close}
+              >
+                <HugeiconsIcon
+                  aria-hidden="true"
+                  icon={Shield01Icon}
+                  className="size-4 shrink-0"
+                />
+                Keep rollback volume
+              </Button>
+              <Button
+                isDisabled={submitting}
+                variant="danger"
+                onPress={cleanUp}
+              >
+                <HugeiconsIcon
+                  aria-hidden="true"
+                  icon={Delete02Icon}
+                  className="size-4 shrink-0"
+                />
+                {submitting ? "Queueing cleanup…" : "Clean up volume"}
+              </Button>
+            </div>
+          </Modal.Body>
+        </Modal.Dialog>
+      </Modal.Container>
+    </Modal.Backdrop>
   );
 }
 

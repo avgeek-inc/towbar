@@ -94,7 +94,7 @@ async function harness(t: TestContext) {
       return execute("bash", [path.join(directory, `${kind}.sh`), ...args], {
         env: {
           ...process.env,
-          // eslint-disable-next-line turbo/no-undeclared-env-vars -- Host tool lookup only; Docker state is isolated per test.
+
           PATH: `${directory}:${process.env.PATH}`,
           ALIAS_TEST_STATE: state,
           ALIAS_TEST_PAUSE: options.pause ? "1" : "",

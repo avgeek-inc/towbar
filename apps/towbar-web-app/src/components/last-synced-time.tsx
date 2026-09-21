@@ -2,9 +2,18 @@
 
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import type { ReactNode } from "react";
+import {
+  TableCellDescription,
+  tableCellStackClassName,
+} from "@workspace/towbar-web-ui/table-cell-text";
 import { useSyncExternalStore } from "react";
 import { usePageVisibilityInterval } from "@workspace/web-design-system/hooks/use-page-visibility-interval";
 import { formatTableTime } from "@/lib/table-time";
+import {
+  subscribeLocalization,
+  localizationRevision,
+  serverLocalizationRevision,
+} from "@/lib/date-time-display";
 
 const listeners = new Set<() => void>();
 let currentTime = Date.now();
@@ -24,6 +33,11 @@ export function RelativeTime({
   label: string;
   value: string;
 }) {
+  useSyncExternalStore(
+    subscribeLocalization,
+    localizationRevision,
+    serverLocalizationRevision,
+  );
   const now = useSyncExternalStore(
     subscribeToClock,
     getClockSnapshot,
@@ -37,15 +51,13 @@ export function RelativeTime({
       as="time"
       tooltip={formatted.timezone}
       aria-label={`${label}: ${formatted.absolute} ${formatted.timezone}${formatted.relative ? `, ${formatted.relative}` : ""}`}
-      className="grid gap-0.5 whitespace-nowrap tabular-nums"
+      className={`${tableCellStackClassName} whitespace-nowrap tabular-nums`}
       dateTime={value}
     >
-      <span className="text-sm font-normal" aria-hidden={!formatted.relative}>
+      <span aria-hidden={!formatted.relative}>
         {formatted.relative ?? "\u00a0"}
       </span>
-      <span className="text-xs font-normal text-muted">
-        {formatted.absolute}
-      </span>
+      <TableCellDescription>{formatted.absolute}</TableCellDescription>
     </TooltipText>
   );
 }

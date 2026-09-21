@@ -46,7 +46,7 @@ const yamlHighlighting = syntaxHighlighting(
       tag: [tags.propertyName, tags.definition(tags.propertyName)],
       color: "var(--accent)",
     },
-    { tag: tags.string, color: "var(--success)" },
+    { tag: tags.string, color: "var(--success-soft-foreground)" },
     { tag: [tags.number, tags.bool, tags.null], color: "var(--warning)" },
     { tag: tags.comment, color: "var(--muted)" },
   ]),
@@ -58,6 +58,7 @@ export default function CodeEditor({
   embedded = false,
   language = "env",
   ariaLabel = "Secrets .env file",
+  readOnlyLinePrefixes,
   onChange,
 }: {
   value: string;
@@ -65,6 +66,7 @@ export default function CodeEditor({
   embedded?: boolean;
   language?: "env" | "yaml";
   ariaLabel?: string;
+  readOnlyLinePrefixes?: string[];
   onChange?: (value: string) => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
@@ -84,6 +86,17 @@ export default function CodeEditor({
           disabled ? [] : highlightActiveLine(),
           history(),
           keymap.of([...defaultKeymap, ...historyKeymap]),
+          readOnlyLinePrefixes?.length
+            ? EditorState.transactionFilter.of((transaction) =>
+                !transaction.docChanged ||
+                (transaction.newDoc.lines === readOnlyLinePrefixes.length &&
+                  readOnlyLinePrefixes.every((prefix, index) =>
+                    transaction.newDoc.line(index + 1).text.startsWith(prefix),
+                  ))
+                  ? transaction
+                  : [],
+              )
+            : [],
           editable.current.of(EditorState.readOnly.of(disabled)),
           EditorView.contentAttributes.of((view) => ({
             "aria-label": ariaLabel,
@@ -144,7 +157,7 @@ export default function CodeEditor({
       view.destroy();
       editor.current = null;
     };
-    // Language and label are fixed for the lifetime of an editor instance.
+    // Language, label, and protected prefixes are fixed for an editor instance.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {

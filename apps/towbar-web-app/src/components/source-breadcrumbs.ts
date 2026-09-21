@@ -16,8 +16,8 @@ export function useSourceBreadcrumbs(
   }>(sourceId ? `/v1/core/sources/${sourceId}` : null);
   const sourceAncestor = sourceId
     ? {
-        href: `/sources/${sourceId}`,
-        label: source.data?.source.repositoryName ?? "Source",
+        href: `/repositories/${sourceId}`,
+        label: source.data?.source.repositoryName ?? "Repository",
       }
     : undefined;
 

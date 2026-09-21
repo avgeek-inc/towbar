@@ -6,7 +6,7 @@ import type { SshSession } from "./ssh.js";
 import type { DeploymentExecutionContext, ExecutorHooks } from "./types.js";
 
 export const pullResourceImageScript =
-  'set -euo pipefail\nbase_image="$1"\nimage_tag="$2"\nsource_id="$3"\ndeployable_id="$4"\nmanifest_id="$5"\ndocker pull "$base_image"\nprintf \'ARG BASE_IMAGE=busybox:stable\\nFROM ${BASE_IMAGE}\\n\' | docker build --build-arg "BASE_IMAGE=$base_image" --label "towbar.managed=true" --label "towbar.app=$manifest_id" --label "towbar.deployable=$deployable_id" --label "towbar.source=$source_id" -t "$image_tag" -\ndocker image rm "$base_image" >/dev/null 2>&1 || true';
+  'set -euo pipefail\nbase_image="$1"\nimage_tag="$2"\nsource_id="$3"\ndeployable_id="$4"\nresource_kind="$5"\nhost_arch="$(dpkg --print-architecture 2>/dev/null || uname -m)"\ncase "$host_arch" in x86_64) host_arch=amd64 ;; aarch64) host_arch=arm64 ;; esac\nif test "$resource_kind" = keydb && test "$host_arch" != amd64; then\n  echo "KeyDB 6.3.4 is available only for linux/amd64; select an amd64 server" >&2\n  exit 65\nfi\ndocker pull "$base_image"\nprintf \'ARG BASE_IMAGE=busybox:stable\\nFROM ${BASE_IMAGE}\\n\' | docker build --build-arg "BASE_IMAGE=$base_image" --label "towbar.managed=true" --label "towbar.app=$deployable_id" --label "towbar.deployable=$deployable_id" --label "towbar.source=$source_id" -t "$image_tag" -\ndocker image rm "$base_image" >/dev/null 2>&1 || true';
 
 export async function pullResourceImage(input: {
   context: DeploymentExecutionContext;
@@ -32,7 +32,7 @@ export async function pullResourceImage(input: {
           input.imageTag,
           input.context.sourceId,
           input.context.deployableId,
-          resource.id,
+          resource.kind,
         ],
         {
           ...outputHandlers,

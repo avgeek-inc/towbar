@@ -28,29 +28,30 @@ Scout Agent runs as two small systemd services: a local collector and an HTTPS s
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
     <img
-      src="/assets/guides/monitoring-agent-settings-light.webp"
-      alt="Scout Agent settings"
-      width="2160"
-      height="1108"
+      src="/assets/release-v2/scout-settings-light.jpg"
+      alt="Choose retention and consent before installing Scout Agent."
+      width="1280"
+      height="720"
       loading="lazy"
     />
   </div>
   <div className="towbar-product-dark">
     <img
-      src="/assets/guides/monitoring-agent-settings-dark.webp"
-      alt="Scout Agent settings"
-      width="2160"
-      height="1108"
+      src="/assets/release-v2/scout-settings-dark.jpg"
+      alt="Choose retention and consent before installing Scout Agent."
+      width="1280"
+      height="720"
       loading="lazy"
     />
   </div>
+  <p>Choose retention and consent before installing Scout Agent.</p>
 </div>
 
 ### Performance history
 
 The **Scout Agent** column on the Servers list shows CPU (top) and memory (bottom) trends for the last 30 minutes while the agent is online. Graphs are green, with readings above 80% in red, and refresh every 30 seconds. Hover a graph to identify the metric, or select the cell to open performance history. Missing measurements leave gaps. Agents that are disabled or not online show **Inactive** without charts.
 
-Open **Scout Agent** in the secondary sidebar on a server, app, or resource to view performance history. The page stays available when monitoring is off, with links to the server's Scout Agent settings and this guide.
+Open **Monitor → Performance** in the secondary sidebar on a server, app, or resource to view performance history. The page stays available when monitoring is off, with links to the server's Scout Agent settings and this guide.
 
 - Server metrics include CPU usage, CPU count, load, memory, swap, root/Docker filesystem capacity, disk I/O, network traffic, and uptime.
 - Container metrics include CPU consumption and its limit, memory consumption and its limit, network and block I/O, restart count, state, and health when Docker provides it.
@@ -68,27 +69,31 @@ The API preserves the sum, count, minimum, and maximum for each metric. Longer c
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
     <img
-      src="/assets/guides/monitoring-performance-light.webp"
-      alt="Server performance history"
-      width="3200"
-      height="2100"
+      src="/assets/release-v2/performance-light.jpg"
+      alt="Performance history combines measurements, aggregation controls, and deployment markers."
+      width="1280"
+      height="1502"
       loading="lazy"
     />
   </div>
   <div className="towbar-product-dark">
     <img
-      src="/assets/guides/monitoring-performance-dark.webp"
-      alt="Server performance history"
-      width="3200"
-      height="2100"
+      src="/assets/release-v2/performance-dark.jpg"
+      alt="Performance history combines measurements, aggregation controls, and deployment markers."
+      width="1280"
+      height="1502"
       loading="lazy"
     />
   </div>
+  <p>
+    Performance history combines measurements, aggregation controls, and
+    deployment markers.
+  </p>
 </div>
 
 ### Alerts and deployment comparisons
 
-Use **Scout Agent → Alerts** to configure metric rules, public HTTP checks, and notification destinations. [Scout Alerts](/docs/scout-alerts) covers thresholds, recovery, maintenance mutes, and incident history.
+Use **Monitor → Alerts** to configure metric rules and public HTTP checks. [Scout Alerts](/docs/scout-alerts) covers thresholds, automatic recovery notifications, enablement, and incident history.
 
 On an app or resource, **Compare deployments** aligns equal periods after two releases became ready. [Deployment comparisons](/docs/deployment-comparisons) explains sensitivity, sample coverage, and the limits of inferring a regression.
 
@@ -112,7 +117,7 @@ Choose **Update Scout Agent** to install the version bundled with the current To
 
 **Uninstall Scout Agent** immediately revokes the upload credential, then stops the services and removes the binary, configuration, and retry buffer. Existing history follows its retention period. A failed uninstall keeps SSH credentials available for retry.
 
-Removing an otherwise unused server first uninstalls monitoring and only then forgets SSH credentials and host-key trust. The machine, application containers, and volumes are not deleted. Workload assignments and active operations still block server removal.
+Removing a server revokes its monitoring access and stops future collection in Towbar. Active operations must finish first. The machine, running services, and Docker data remain on the host. Follow [server removal](/docs/servers#remove-a-server) to review the effects on assigned workloads.
 
 ### Troubleshooting
 
@@ -139,7 +144,7 @@ Use the normal API key authentication for management and history:
 | App history       | `GET /v1/api/apps/{appId}/metrics`                             |
 | Resource history  | `GET /v1/api/resources/{resourceId}/metrics`                   |
 
-Installation requires `{"acknowledge": true, "retentionDays": 15}`. Retention updates require `{"retentionDays": 15}`. Management requires a full-access key owned by the workspace owner. Read-only keys can inspect monitoring within their workspace.
+Installation requires `{"acknowledge": true, "retentionDays": 15}`. Retention updates require `{"retentionDays": 15}`. Management requires an Edit key with Scout configuration permission. Admins and Members can grant that permission to their personal keys. Read-only keys can inspect monitoring within their workspace.
 
 History accepts `range=15m|30m|1h|6h|24h|7d|15d|30d|60d|custom`, `environment=production|preview`, and an optional `previewId`. For `range=custom`, also provide `startAt` and `endAt` as ISO 8601 timestamps with a time-zone offset (for example, `2026-09-07T10:00:00Z`). Samples and events use the same time bounds, and existing point, instance, and event caps still apply. The agent-only ingestion endpoint is not a user API route.
 

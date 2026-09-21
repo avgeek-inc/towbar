@@ -1,10 +1,19 @@
 "use client";
 
 import { createElement, type ComponentProps, type ReactNode } from "react";
-import { Tooltip } from "@heroui/react";
+import { Tooltip as HeroTooltip, type TooltipProps } from "@heroui/react";
 import { cn } from "../lib/utils";
 
-export { Tooltip };
+function TooltipRoot(props: TooltipProps) {
+  return <HeroTooltip closeDelay={100} delay={250} {...props} />;
+}
+
+export const Tooltip = Object.assign(TooltipRoot, {
+  Root: TooltipRoot,
+  Trigger: HeroTooltip.Trigger,
+  Content: HeroTooltip.Content,
+  Arrow: HeroTooltip.Arrow,
+});
 export type { TooltipProps } from "@heroui/react";
 
 /** A focusable text or icon hint with no browser-native title attribute. */
@@ -39,7 +48,7 @@ export function TooltipText({
         {children}
       </Tooltip.Trigger>
       <Tooltip.Content
-        className="max-w-xs break-words text-xs"
+        className="max-w-64 whitespace-normal break-normal text-xs [overflow-wrap:normal] [word-break:normal]"
         placement="top"
         showArrow
       >

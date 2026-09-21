@@ -1,3 +1,14 @@
+import {
+  cancelEmailChange,
+  pendingEmailChange,
+  requestEmailChange,
+} from "../../../areas/auth/email-change.js";
+import {
+  manageAuthenticator,
+  setupAuthenticator,
+} from "../../../areas/auth/authenticator.js";
+import { requireRecentAuthentication } from "../../../areas/auth/recent-authentication.js";
+import { sessionUser } from "../../../http/session-user.js";
 import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -17,9 +28,9 @@ const profileSchema = z
   .strict();
 const passwordSchema = z
   .object({
-    currentPassword: z.string().min(12).max(1_024),
-    confirmPassword: z.string().min(12).max(1_024),
-    newPassword: z.string().min(12).max(1_024),
+    currentPassword: z.string().max(1_024).optional(),
+    confirmPassword: z.string().min(15).max(1_024),
+    newPassword: z.string().min(15).max(1_024),
   })
   .refine((input) => input.newPassword === input.confirmPassword, {
     message: "New passwords do not match",
@@ -31,6 +42,7 @@ export const accountRoutes = new Hono<TowbarHonoEnvironment>();
 accountRoutes.get(
   "/sessions",
   operation({
+    permissions: ["personal.manage"],
     responseSchema: 'account.ts:get:"/sessions"',
     summary: "List user sessions",
     browserOnly: true,
@@ -40,12 +52,13 @@ accountRoutes.get(
   async (context) =>
     context.json({
       currentSessionId: context.get("currentSessionId"),
-      sessions: await listUserSessions(context.get("user").id),
+      sessions: await listUserSessions(sessionUser(context).id),
     }),
 );
 accountRoutes.delete(
   "/sessions/:sessionId",
   operation({
+    permissions: ["personal.manage"],
     responseSchema: 'account.ts:delete:"/sessions/:sessionId"',
     summary: "Revoke user session",
     browserOnly: true,
@@ -57,7 +70,7 @@ accountRoutes.delete(
     await revokeUserSession({
       currentSessionId: context.get("currentSessionId"),
       sessionId,
-      userId: context.get("user").id,
+      userId: sessionUser(context).id,
     });
     return context.body(null, 204);
   },
@@ -65,16 +78,19 @@ accountRoutes.delete(
 accountRoutes.get(
   "/profile",
   operation({
+    permissions: ["personal.manage"],
     responseSchema: 'account.ts:get:"/profile"',
     summary: "Get current profile",
+    browserOnly: true,
     response: "JSON object containing user.",
     status: 200,
   }),
-  (context) => context.json({ user: context.get("user") }),
+  (context) => context.json({ user: sessionUser(context) }),
 );
 accountRoutes.patch(
   "/profile",
   operation({
+    permissions: ["personal.manage"],
     responseSchema: 'account.ts:patch:"/profile"',
     summary: "Update profile",
     browserOnly: true,
@@ -84,7 +100,7 @@ accountRoutes.patch(
   }),
   async (context) => {
     const body = await readJson(context, profileSchema);
-    const currentUser = context.get("user");
+    const currentUser = sessionUser(context);
     const updatedUser = await updateProfile({
       displayName: body.displayName,
       userId: currentUser.id,
@@ -101,6 +117,7 @@ accountRoutes.patch(
 accountRoutes.put(
   "/profile/password",
   operation({
+    permissions: ["personal.manage"],
     responseSchema: 'account.ts:put:"/profile/password"',
     summary: "Change password",
     browserOnly: true,
@@ -110,12 +127,129 @@ accountRoutes.put(
   }),
   async (context) => {
     const body = await readJson(context, passwordSchema);
-    await changePassword({
-      currentSessionId: context.get("currentSessionId"),
+    const headers = await changePassword({
+      headers: context.req.raw.headers,
       currentPassword: body.currentPassword,
       newPassword: body.newPassword,
-      userId: context.get("user").id,
+      userId: sessionUser(context).id,
     });
+    for (const cookie of headers.getSetCookie())
+      context.header("Set-Cookie", cookie, { append: true });
     return context.body(null, 204);
+  },
+);
+
+accountRoutes.get(
+  "/identity",
+  operation({
+    permissions: ["identity.read"],
+    summary: "Get current actor and team",
+    responseSchema: 'account.ts:get:"/identity"',
+    response: "Actor kind, team ID, and effective permissions.",
+  }),
+  (context) =>
+    context.json({
+      actor: context.get("actor").kind,
+      workspaceId: context.get("user").workspaceId,
+      capabilities: context.get("user").capabilities ?? [],
+    }),
+);
+
+const emailChangeSchema = z.object({ email: z.email().max(320) }).strict();
+accountRoutes.get(
+  "/profile/email-change",
+  operation({
+    permissions: ["personal.manage"],
+    browserOnly: true,
+    summary: "Get pending email change",
+    responseSchema: 'account.ts:get:"/profile/email-change"',
+    response: "Pending email and expiry.",
+  }),
+  async (c) => c.json({ pending: await pendingEmailChange(sessionUser(c).id) }),
+);
+accountRoutes.post(
+  "/profile/email-change",
+  operation({
+    permissions: ["personal.manage"],
+    browserOnly: true,
+    summary: "Request email change",
+    responseSchema: 'account.ts:post:"/profile/email-change"',
+    response: "Pending email and expiry.",
+    body: emailChangeSchema,
+  }),
+  async (c) => {
+    await requireRecentAuthentication(
+      sessionUser(c).id,
+      c.get("currentSessionId"),
+    );
+    return c.json(
+      await requestEmailChange(
+        sessionUser(c),
+        (await readJson(c, emailChangeSchema)).email,
+      ),
+    );
+  },
+);
+accountRoutes.delete(
+  "/profile/email-change",
+  operation({
+    permissions: ["personal.manage"],
+    browserOnly: true,
+    summary: "Cancel email change",
+    responseSchema: 'account.ts:delete:"/profile/email-change"',
+    response: "No response body.",
+    status: 204,
+  }),
+  async (c) => {
+    await cancelEmailChange(sessionUser(c).id);
+    return c.body(null, 204);
+  },
+);
+accountRoutes.post(
+  "/profile/two-factor/setup",
+  operation({
+    permissions: ["personal.manage"],
+    browserOnly: true,
+    summary: "Set up authenticator",
+    responseSchema: 'account.ts:post:"/profile/two-factor/setup"',
+    response: "Authenticator URI and recovery codes.",
+  }),
+  async (c) => {
+    await requireRecentAuthentication(
+      sessionUser(c).id,
+      c.get("currentSessionId"),
+    );
+    return c.json(await setupAuthenticator(sessionUser(c).id));
+  },
+);
+const authenticatorSchema = z
+  .object({
+    code: z.string().regex(/^\d{6}$/),
+    action: z.enum(["disable", "recovery"]),
+  })
+  .strict();
+accountRoutes.post(
+  "/profile/two-factor/manage",
+  operation({
+    permissions: ["personal.manage"],
+    browserOnly: true,
+    summary: "Update authenticator settings",
+    responseSchema: 'account.ts:post:"/profile/two-factor/manage"',
+    response: "Updated recovery codes.",
+    body: authenticatorSchema,
+  }),
+  async (c) => {
+    await requireRecentAuthentication(
+      sessionUser(c).id,
+      c.get("currentSessionId"),
+    );
+    return c.json(
+      await manageAuthenticator({
+        ...(await readJson(c, authenticatorSchema)),
+        userId: sessionUser(c).id,
+        sessionId: c.get("currentSessionId")!,
+        headers: c.req.raw.headers,
+      }),
+    );
   },
 );

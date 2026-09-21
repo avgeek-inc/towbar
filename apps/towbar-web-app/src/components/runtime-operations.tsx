@@ -1,6 +1,6 @@
 "use client";
+import { useAccess } from "./access-context";
 import {
-  Cancel01Icon,
   MoreHorizontalIcon,
   PlayIcon,
   ReloadIcon,
@@ -24,7 +24,9 @@ import type {
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
+import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { Label } from "@workspace/web-design-system/forms/label";
+import { ListBox, Select } from "@workspace/web-design-system/forms/select";
 import { AlertDialog } from "@workspace/web-design-system/overlays/alert-dialog";
 import { Dropdown } from "@workspace/web-design-system/overlays/dropdown";
 import { toast } from "@workspace/web-design-system/overlays/toast";
@@ -35,31 +37,35 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { ActionButton } from "@/components/page-parts";
 import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
+import { deploymentHref } from "@/lib/deployment-route";
 import { formatDate } from "./dashboard-overview";
 
 type DeployableType = "app" | "resource";
 type DeployableAction = "restart" | "rollback" | "start" | "stop";
+const ingressRuntimeTarget = "__towbar_ingress__";
 
 export function DeployableActionsMenu({
   active,
   deployableId,
   previousReleaseId,
   runtimeState,
-  sourceId,
+  services = [],
   type,
 }: {
   active: boolean;
   deployableId: string;
   previousReleaseId?: string;
   runtimeState: RuntimeState;
-  sourceId: string;
+  services?: string[];
   type: DeployableType;
 }) {
   const router = useRouter();
+  const { can } = useAccess();
   const [selectedAction, setSelectedAction] = useState<DeployableAction | null>(
     null,
   );
   const [busy, setBusy] = useState(false);
+  const [service, setService] = useState("");
   const path = type === "app" ? "apps" : "resources";
   const actions: DeployableAction[] = [
     "start",
@@ -82,11 +88,11 @@ export function DeployableActionsMenu({
           { releaseId: previousReleaseId },
           { "Idempotency-Key": crypto.randomUUID() },
         );
-        router.push(`/sources/${sourceId}/deployments/${result.deployment.id}`);
+        router.push(deploymentHref(result.deployment));
       } else {
         await api.post(
           `/v1/core/${path}/${deployableId}/actions/${selectedAction}`,
-          undefined,
+          { service: service || undefined },
           { "Idempotency-Key": crypto.randomUUID() },
         );
       }
@@ -100,6 +106,7 @@ export function DeployableActionsMenu({
     }
   }
 
+  if (!can("workload.operate")) return null;
   return (
     <>
       <Dropdown>
@@ -157,18 +164,24 @@ export function DeployableActionsMenu({
               />
               <AlertDialog.Heading>{selection?.title}</AlertDialog.Heading>
             </AlertDialog.Header>
-            <AlertDialog.Body>{selection?.description}</AlertDialog.Body>
+            <AlertDialog.Body>
+              <div className="content-grid">
+                <p>{selection?.description}</p>
+                {services.length ? (
+                  <RuntimeScopeSelect
+                    services={services}
+                    value={service}
+                    onChange={setService}
+                  />
+                ) : null}
+              </div>
+            </AlertDialog.Body>
             <AlertDialog.Footer>
               <Button
                 isDisabled={busy}
                 variant="secondary"
                 onPress={() => setSelectedAction(null)}
               >
-                <HugeiconsIcon
-                  aria-hidden="true"
-                  icon={Cancel01Icon}
-                  className="size-4 shrink-0"
-                />
                 Cancel
               </Button>
               <Button
@@ -176,11 +189,6 @@ export function DeployableActionsMenu({
                 variant={selection?.danger ? "danger" : "primary"}
                 onPress={runAction}
               >
-                <HugeiconsIcon
-                  aria-hidden="true"
-                  icon={selectedAction ? actionIcon(selectedAction) : PlayIcon}
-                  className="size-4 shrink-0"
-                />
                 {busy ? selection?.pendingLabel : selection?.label}
               </Button>
             </AlertDialog.Footer>
@@ -257,12 +265,19 @@ function actionIcon(action: DeployableAction) {
 export function RuntimeLogs({
   active,
   deployableId,
+  hasIngress = false,
+  services = [],
   type,
 }: {
   active: boolean;
   deployableId: string;
+  hasIngress?: boolean;
+  services?: string[];
   type: DeployableType;
 }) {
+  const [target, setTarget] = useState("");
+  const ingressSelected = target === ingressRuntimeTarget;
+  const service = ingressSelected ? "" : target;
   const path = type === "app" ? "apps" : "resources";
   const operations = useApiQuery<{ operations: ResourceOperation[] }>(
     `/v1/core/${path}/${deployableId}/operations`,
@@ -271,22 +286,37 @@ export function RuntimeLogs({
   if (operations.error) return <QueryError message={operations.error} />;
   if (!operations.data) return <QueryLoading variant="detail" />;
 
-  const latest = operations.data.operations.find(
-    (operation) => operation.type === "capture_logs",
-  );
+  const latest = operations.data.operations.find((operation) => {
+    if (operation.type !== "capture_logs") return false;
+    const runtime =
+      typeof operation.request.runtime === "string"
+        ? operation.request.runtime
+        : "workload";
+    if (runtime !== (ingressSelected ? "ingress" : "workload")) return false;
+    const selected =
+      typeof operation.request.service === "string"
+        ? operation.request.service
+        : "";
+    return selected === service;
+  });
   const result = readLogResult(latest?.result);
   const captureLogsButton = active ? (
     <ActionButton
       confirm={{
-        title: "Capture container logs?",
-        description:
-          "Queue a server operation to capture the latest 500 log lines from this container.",
+        title: `Capture ${ingressSelected ? "Cloudflare Tunnel" : "container"} logs?`,
+        description: `Queue a server operation to capture the latest 500 log lines from the ${
+          ingressSelected ? "managed Cloudflare Tunnel" : "selected workload"
+        } runtime.`,
         actionLabel: "Capture logs",
       }}
       action={() =>
         api.post(
           `/v1/core/${path}/${deployableId}/actions/logs`,
-          { tail: 500 },
+          {
+            runtime: ingressSelected ? "ingress" : "workload",
+            service: service || undefined,
+            tail: 500,
+          },
           { "Idempotency-Key": crypto.randomUUID() },
         )
       }
@@ -302,6 +332,26 @@ export function RuntimeLogs({
       Capture logs
     </ActionButton>
   ) : null;
+  const captureControls = (
+    <div className="flex flex-wrap items-end gap-3">
+      {services.length || hasIngress ? (
+        <RuntimeScopeSelect
+          hasIngress={hasIngress}
+          services={services}
+          value={target}
+          workloadLabel={
+            services.length
+              ? "Entire stack"
+              : type === "app"
+                ? "App container"
+                : "Resource container"
+          }
+          onChange={setTarget}
+        />
+      ) : null}
+      {captureLogsButton}
+    </div>
+  );
 
   if (!latest) {
     return (
@@ -309,12 +359,15 @@ export function RuntimeLogs({
         <EmptyState.Header>
           <EmptyState.Title>No logs captured</EmptyState.Title>
           <EmptyState.Description>
-            Capture the latest container output when you need to inspect this
-            {` ${type}`}.
+            {active
+              ? `Capture the latest ${
+                  ingressSelected ? "Cloudflare Tunnel" : "container"
+                } output when you need to inspect this ${type}.`
+              : `Log capture becomes available after the target server is prepared.`}
           </EmptyState.Description>
         </EmptyState.Header>
         {captureLogsButton ? (
-          <EmptyState.Content>{captureLogsButton}</EmptyState.Content>
+          <EmptyState.Content>{captureControls}</EmptyState.Content>
         ) : null}
       </EmptyState>
     );
@@ -322,15 +375,30 @@ export function RuntimeLogs({
 
   return (
     <div className="content-grid">
+      {!active ? (
+        <Alert status="warning">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>New log captures are unavailable</Alert.Title>
+            <Alert.Description>
+              Prepare the target server before requesting another container log
+              capture.
+            </Alert.Description>
+          </Alert.Content>
+        </Alert>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-muted typography--body-sm">
           Last requested {formatDate(latest.createdAt)}
         </p>
-        {captureLogsButton}
+        {captureControls}
       </div>
       {latest.state === "succeeded" ? (
         result?.logs ? (
-          <CodePanel ariaLabel="Captured container logs" language="text">
+          <CodePanel
+            ariaLabel={`Captured ${ingressSelected ? "Cloudflare Tunnel" : "container"} logs`}
+            language="text"
+          >
             {result.logs}
           </CodePanel>
         ) : (
@@ -361,10 +429,7 @@ export function RuntimeLogs({
           <Attributes.Item label="Result">
             {latest.errorMessage ?? "Waiting for the worker"}
             {latest.errorMessage ? (
-              <ConfigurationLinks
-                sourceId={latest.sourceId}
-                serverId={latest.serverId}
-              />
+              <ConfigurationLinks serverId={latest.serverId} />
             ) : null}
           </Attributes.Item>
         </Attributes>
@@ -375,6 +440,61 @@ export function RuntimeLogs({
         </p>
       ) : null}
     </div>
+  );
+}
+
+function RuntimeScopeSelect({
+  hasIngress = false,
+  onChange,
+  services,
+  value,
+  workloadLabel,
+}: {
+  hasIngress?: boolean;
+  onChange: (value: string) => void;
+  services: string[];
+  value: string;
+  workloadLabel?: string;
+}) {
+  return (
+    <Select
+      aria-label="Runtime target"
+      className="min-w-52"
+      selectedKey={value || "__stack"}
+      onSelectionChange={(key) =>
+        key !== null && onChange(String(key) === "__stack" ? "" : String(key))
+      }
+      variant="secondary"
+    >
+      <Label>Target</Label>
+      <Select.Trigger>
+        <Select.Value />
+        <Select.Indicator />
+      </Select.Trigger>
+      <Select.Popover>
+        <ListBox>
+          <ListBox.Item
+            id="__stack"
+            textValue={workloadLabel ?? "Entire stack"}
+          >
+            {workloadLabel ?? "Entire stack"}
+          </ListBox.Item>
+          {[...new Set(services)].sort().map((service) => (
+            <ListBox.Item id={service} key={service} textValue={service}>
+              {service}
+            </ListBox.Item>
+          ))}
+          {hasIngress ? (
+            <ListBox.Item
+              id={ingressRuntimeTarget}
+              textValue="Cloudflare Tunnel"
+            >
+              Cloudflare Tunnel
+            </ListBox.Item>
+          ) : null}
+        </ListBox>
+      </Select.Popover>
+    </Select>
   );
 }
 

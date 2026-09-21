@@ -38,11 +38,11 @@ export async function testBulkReveal({
   globalSlot: SecretSlot;
   manifest: Manifest;
   appConfig: NonNullable<Manifest["apps"]>[number];
-  setRole: (role: "owner" | "member") => void;
+  setRole: (role: "admin" | "member") => void;
   setWorkspace: (id: string) => void;
 }) {
   await t.test(
-    "bulk reveal is scoped, owner-only, uncached, and value-free in audits",
+    "bulk reveal is scoped, admin-only, uncached, and value-free in audits",
     async () => {
       const revealAll = (path: string) =>
         api.request(`${path}/reveal-all`, {
@@ -53,7 +53,7 @@ export async function testBulkReveal({
       const path = `/apps/${appId}/secrets/production/deployment`;
       setRole("member");
       assert.equal((await revealAll(path)).status, 403);
-      setRole("owner");
+      setRole("admin");
       setWorkspace(otherWorkspaceId);
       assert.equal((await revealAll(path)).status, 404);
       setWorkspace(workspaceId);
@@ -69,14 +69,14 @@ export async function testBulkReveal({
         assert.deepEqual(await response.json(), expected);
       }
       const empty = await revealAll(
-        `/apps/${appId}/secrets/preview/post_deploy`,
+        `/apps/${appId}/secrets/preview:production/post_deploy`,
       );
       assert.equal(empty.status, 200);
       assert.deepEqual(
         await empty.json(),
         await readSecretValues({
           ...slot,
-          environment: "preview",
+          environment: "preview:production",
           stage: "post_deploy",
         }),
       );
@@ -96,8 +96,11 @@ export async function testBulkReveal({
         .where(eq(apps.id, appId));
       try {
         assert.equal(
-          (await revealAll(`/resources/${appId}/secrets/preview/deployment`))
-            .status,
+          (
+            await revealAll(
+              `/resources/${appId}/secrets/preview:production/deployment`,
+            )
+          ).status,
           422,
         );
         assert.equal(

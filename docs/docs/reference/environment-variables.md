@@ -44,53 +44,83 @@ Terminate TLS at a reverse proxy on that host or a private load balancer.
 and uses the direct socket address for authentication throttling. Set it only
 to the exact number of trusted proxy hops in front of the API.
 
-## GitHub App
+## Runtime integrations
 
-| Variable                        | Purpose                                                    |
-| ------------------------------- | ---------------------------------------------------------- |
-| `GITHUB_APP_ID`                 | Numeric App ID                                             |
-| `GITHUB_APP_SLUG`               | App slug used for installation                             |
-| `GITHUB_APP_PRIVATE_KEY_BASE64` | Base64-encoded private key PEM, without line wrapping      |
-| `GITHUB_WEBHOOK_SECRET`         | Random secret shared with the GitHub webhook configuration |
+Towbar integrations are configured only in the API process environment. The dashboard never accepts or reveals provider credentials. An integration appears in the UI only after its `TOWBAR_<PROVIDER>_ENABLED` flag is `true` and every required value is valid. The API validates all enabled integrations before it begins listening; a partial configuration fails startup instead of leaving a broken provider visible.
 
-GitHub is optional at startup and required to add Sources. Configure all required values together; partial configuration is rejected. Follow the [GitHub setup guide](/docs/integrations/github) for permissions and webhook URLs.
+Set secret values directly. Towbar does not support `_FILE` variants. Encode multiline values as Base64 where the variable name ends in `_BASE64`, and pass structured maps through the documented JSON variables. Restart the API after changing integration configuration.
 
-## Notification providers
+### Source control
 
-Provider credentials are installation settings. Delivery destinations and event categories are configured per Source. See [Notifications](/docs/integrations/notifications) for the complete setup and delivery checks.
+| Provider     | Required variables                                                                                                                                                | Optional variables                                              |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| GitHub App   | `TOWBAR_GITHUB_ENABLED`, `TOWBAR_GITHUB_APP_ID`, `TOWBAR_GITHUB_APP_SLUG`, `TOWBAR_GITHUB_PRIVATE_KEY_BASE64`, `TOWBAR_GITHUB_WEBHOOK_SECRET`                     | `TOWBAR_GITHUB_API_URL`                                         |
+| GitLab OAuth | `TOWBAR_GITLAB_ENABLED`, `TOWBAR_GITLAB_OAUTH_CLIENT_ID`, `TOWBAR_GITLAB_OAUTH_CLIENT_SECRET`, `TOWBAR_GITLAB_OAUTH_REDIRECT_URI`, `TOWBAR_GITLAB_WEBHOOK_SECRET` | `TOWBAR_GITLAB_BASE_URL`, `TOWBAR_GITLAB_ALLOW_PRIVATE_NETWORK` |
 
-### Slack
+GitHub stores only the selected App installation and account metadata in PostgreSQL. GitLab stores only an encrypted, revocable OAuth grant and short-lived PKCE authorization attempts. App identity, OAuth client secrets, webhook secrets, and provider endpoints remain in the runtime environment.
 
-Set `TOWBAR_SLACK_BOT_TOKEN` to the bot token for your Slack app, then recreate the API container. Invite the bot to each destination channel.
+### Registries, storage, secrets, platform, and telemetry
 
-### Email (SMTP)
+| Provider             | Enable flag                 | Required values                                                                   |
+| -------------------- | --------------------------- | --------------------------------------------------------------------------------- |
+| OCI registry         | `TOWBAR_REGISTRY_ENABLED`   | `TOWBAR_REGISTRY_HOST`, `TOWBAR_REGISTRY_PASSWORD`; username is optional          |
+| AWS                  | `TOWBAR_AWS_ENABLED`        | `TOWBAR_AWS_REGION`, `TOWBAR_AWS_ACCESS_KEY_ID`, `TOWBAR_AWS_SECRET_ACCESS_KEY`   |
+| S3 compatible        | `TOWBAR_S3_ENABLED`         | region, access key ID, and secret access key; endpoint/bucket/prefix are optional |
+| Cloudflare R2        | `TOWBAR_R2_ENABLED`         | endpoint, region, access key ID, and secret access key                            |
+| Google Cloud Storage | `TOWBAR_GCS_ENABLED`        | project ID and `TOWBAR_GCS_SERVICE_ACCOUNT_JSON_BASE64`                           |
+| Azure Blob Storage   | `TOWBAR_AZURE_ENABLED`      | storage account, tenant ID, client ID, and client secret                          |
+| Infisical            | `TOWBAR_INFISICAL_ENABLED`  | client ID and client secret                                                       |
+| Doppler              | `TOWBAR_DOPPLER_ENABLED`    | service token                                                                     |
+| Cloudflare           | `TOWBAR_CLOUDFLARE_ENABLED` | account ID and API token                                                          |
+| OpenTelemetry        | `TOWBAR_OTLP_ENABLED`       | endpoint; headers are supplied through `TOWBAR_OTLP_HEADERS_JSON`                 |
 
-| Variable                     | Default  | Purpose                 |
-| ---------------------------- | -------- | ----------------------- |
-| `TOWBAR_SMTP_HOST`           | Required | SMTP server hostname    |
-| `TOWBAR_SMTP_FROM`           | Required | Sender address          |
-| `TOWBAR_SMTP_PORT`           | `587`    | SMTP port               |
-| `TOWBAR_SMTP_SECURE`         | `false`  | Use implicit TLS        |
-| `TOWBAR_SMTP_USERNAME`       | Unset    | Authentication username |
-| `TOWBAR_SMTP_PASSWORD`       | Unset    | Authentication password |
-| `TOWBAR_SMTP_SUBJECT_PREFIX` | `Towbar` | Email subject prefix    |
+Use the exact names in `.env.example` for optional bucket, prefix, endpoint, addressing-style, private-network, CA, zone, image, dashboard, and protocol fields. Temporary AWS sessions are intentionally unsupported because they cannot be maintained safely as static installation configuration.
 
-Set username and password together when the server requires authentication. Match the port and TLS mode to your provider. Recreate the API after changing provider values:
+### Notifications
 
-```bash
-docker compose up --detach --force-recreate api
+Set `TOWBAR_NOTIFICATIONS_ENABLED=true` and place provider credentials plus routes in `TOWBAR_NOTIFICATION_CONFIG_JSON`. The document has a `providers` object for Slack, SMTP, and Telegram credentials, and a `routes` array for enabled category destinations. Discord and generic webhook credentials live directly in their route because each route has its own URL. Route IDs must be unique, and every non-webhook route must have its provider configured.
+
+```json
+{
+  "providers": {
+    "smtp": {
+      "from": "towbar@example.com",
+      "host": "smtp.example.com",
+      "port": 587,
+      "secure": false,
+      "username": "towbar",
+      "password": "replace-me"
+    }
+  },
+  "routes": [
+    {
+      "id": "operations-email",
+      "provider": "smtp",
+      "enabled": true,
+      "categories": ["deployments", "health"],
+      "config": { "recipients": ["operations@example.com"] }
+    }
+  ]
+}
 ```
+
+The dashboard shows the active providers and routes without returning credentials. Notification events, delivery attempts, provider outcomes, and thread identifiers remain persisted for reliable retries and audit history.
+
+### Log forwarding
+
+Each supported drain has `TOWBAR_LOG_DRAIN_<PROVIDER>_ENABLED` and `TOWBAR_LOG_DRAIN_<PROVIDER>_CONFIG_JSON`. Providers are `NEWRELIC`, `AXIOM`, `BETTERSTACK`, `DATADOG`, `OTLP`, and `LOKI`. The JSON shape is provider-specific and includes the ingest credential. Towbar hashes the JSON to derive a revision; it does not persist the configuration document. Per-server applied state, delivery health, backoff, and diagnostics remain in PostgreSQL.
 
 ## Image vulnerability scanning
 
 Set `TOWBAR_VULNERABILITY_SCANNING_ENABLED=true` to make image scanning
-available to Sources. Each App must then opt in explicitly in its deployment
+available to Repositories. Each App must then opt in explicitly in its deployment
 manifest:
 
-```yaml
-apps:
-  - id: hello-towbar
-    vulnerabilityScanning: true
+```yaml title=".towbar/apps/hello-towbar.app.yml"
+id: hello-towbar
+vulnerabilityScanning: true
+environments:
+  production: {}
 ```
 
 Towbar queues a scan of that App's immutable image digest after each successful
@@ -114,13 +144,15 @@ docker compose up --detach --force-recreate api worker
 
 See [Vulnerability scanning](/docs/vulnerability-scanning) for workspace findings, scan states, and rescanning.
 
-## Owner recovery
+## Account security
 
-Initial owner setup happens in the dashboard on an empty installation. For later recovery, `TOWBAR_OWNER_RESET_EMAIL` and `TOWBAR_OWNER_RESET_PASSWORD` must be set together. Follow the [recovery procedure](/docs/self-hosting/upgrades#forgotten-owner-password), then remove both variables.
+Initial setup requires an installer-issued single-use code. Email recovery, MFA and the local recovery command are documented in [Team access](/docs/self-hosting/team-access). The v1 owner-reset environment variables are not supported.
+
+`TOWBAR_PASSWORD_BREACH_CHECK` defaults to `true`; explicitly setting `false` supports isolated installations without the password corpus service. `TOWBAR_PASSWORD_VERIFY_CONCURRENCY` defaults to `2` (range 1–8), and `TOWBAR_PASSWORD_VERIFY_QUEUE_LIMIT` defaults to `16` (range 1–100). Benchmark resource usage before raising these limits. Saturation returns a retryable busy response.
 
 ## Servers and worker capacity
 
-Register IP addresses, SSH access, concurrency, and Cloudflare credentials under [Servers](/docs/servers). These settings do not belong in the manifest. [AWS credentials](/docs/integrations/aws) are an optional workspace integration for S3 operations.
+Register IP addresses, SSH access, and concurrency under [Servers](/docs/servers). These settings do not belong in the manifest. Cloudflare and [AWS credentials](/docs/integrations/aws) are optional runtime integrations configured in the API environment.
 
 | Variable                                  | Default                    | Purpose                                                  |
 | ----------------------------------------- | -------------------------- | -------------------------------------------------------- |
@@ -146,7 +178,7 @@ The optional GitHub Actions deployment environment is documented under [Upgrades
 
 `TOWBAR_API_RATE_LIMIT_MAX` defaults to `60` requests and
 `TOWBAR_API_RATE_LIMIT_WINDOW_SECONDS` defaults to `60` seconds. The API and
-MCP share one persistent per-IP bucket. Set both variables on the API process;
+MCP share persistent per-key and per-IP limits. Set both variables on the API process;
 restart it after changes. Configure `TOWBAR_TRUSTED_PROXY_HOPS` for your proxy
 topology so clients are counted correctly. See [API authentication and rate
 limits](/docs/api/authentication) for bounds, response headers, and examples.

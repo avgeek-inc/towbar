@@ -3,82 +3,91 @@ title: "Your first deployment"
 description: "Take a Dockerfile app from a GitHub repository to a verified deployment on your Ubuntu server."
 ---
 
-This guide takes one app through Source sync, server preparation, deployment, and route verification. Use the [Hello Towbar example](https://github.com/avgeek-inc/towbar-example) for a working Dockerfile app and health endpoint, or bring your own app.
+This guide takes one app through Repository sync, server preparation, deployment, and route verification. Use the [example files in this repository](https://github.com/avgeek-inc/towbar/tree/main/examples) for a small HTTP app and health endpoint, or bring your own app.
 
 ## Before you begin
 
-You need a running Towbar installation with an owner account, a connected GitHub App, and an Ubuntu target you can administer. If those are not ready, follow [Install Towbar](/docs/self-hosting/installation), [Connect GitHub](/docs/integrations/github), and [Register a server](/docs/servers) first.
+You need a running Towbar installation with an Admin account, a connected GitHub App, and an Ubuntu target you can administer. If those are not ready, follow [Install Towbar](/docs/self-hosting/installation), [Connect GitHub](/docs/integrations/github), and [Register a server](/docs/servers) first.
 
 Use a domain you control for a public app. The examples use documentation-only IPs and hostnames; replace them with your own values.
 
 ## 1. Create your app repository
 
-[Use the Hello Towbar template](https://github.com/avgeek-inc/towbar-example/generate)
-or fork the [example repository](https://github.com/avgeek-inc/towbar-example).
-Grant the connected GitHub App access to your copy. The example needs no package
-installation or application secrets and can be checked locally with `npm test`
-and `npm start` on Node.js 24 or newer.
+Create a GitHub repository and copy `server.mjs`, `Dockerfile`, and
+`.dockerignore` from the example directory into its root. Grant the connected
+GitHub App access to your repository. The app needs no dependencies or secrets.
+Run it locally with Node.js 24 or newer:
 
-Edit the included `.towbar/deployment.yml`, replacing the server IP and domain.
-If you are bringing your own app, create the file with this configuration:
+```sh
+node server.mjs
+```
 
-```yaml
-version: 1
-source:
-  branch: main
-apps:
-  - id: hello-towbar
-    name: Hello Towbar
-    server: 203.0.113.10
-    dockerfile: Dockerfile
-    context: .
-    container:
-      port: 3000
-      resources:
-        cpus: 0.5
-        memory: 256m
-    health:
-      path: /health
-      timeoutSeconds: 60
-    domains:
-      primary: hello.example.com
-    tls:
-      mode: direct
+Open `http://localhost:3000` and check `http://localhost:3000/health`.
+
+Create `towbar.yml` and `.towbar/apps/hello-towbar.app.yml`, replacing the server IP and domain.
+For a first deployment to production, use:
+
+```yaml title="towbar.yml"
+version: 2
+environments:
+  production: {}
+```
+
+```yaml title=".towbar/apps/hello-towbar.app.yml"
+id: hello-towbar
+name: Hello Towbar
+server: 192.0.2.10
+dockerfile: Dockerfile
+context: .
+container:
+  port: 3000
+  resources:
+    cpus: 0.5
+    memory: 256m
+health:
+  path: /health
+  timeoutSeconds: 60
+domains:
+  primary: hello.example.com
+tls:
+  mode: direct
+environments:
+  production: {}
 ```
 
 Use the server IP registered in Towbar. Match the Dockerfile path, port, and health endpoint to your app. Point the domain at the target server and allow the traffic required by [Caddy and TLS](/docs/domains-tls).
 
-Commit this file to the branch in `source.branch`. Automatic deployment is deliberately omitted so you can verify the first release manually.
+Commit these files to the branch you will map to production in Towbar. Automatic deployment is deliberately omitted so you can verify the first release manually.
 
-## 2. Add and sync the Source
+## 2. Add and sync the Repository
 
-Open **Sources → Add source** and select the repository. Wait for the initial sync, then open its result.
+Open **Repositories → Add repository**, select the repository, then select production and map it to your branch. Wait for the initial sync, then open its result.
 
-A successful sync imports **Hello Towbar** into the Source's Apps list. If it fails, correct the reported manifest field or missing server reference and sync again. A successful sync accepts configuration; it does not mean the app is running.
+A successful sync imports **Hello Towbar** into the Repository's Apps list. If it fails, correct the reported manifest field or missing server reference and sync again. A successful sync accepts configuration; it does not mean the app is running.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/features/sources-light.webp" alt="Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result." width="2160" height="904" loading="lazy" />
+    <img src="/assets/release-v2/repositories-light.jpg" alt="Repositories show their imported app and resource inventories and latest sync time." width="1280" height="720" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/features/sources-dark.webp" alt="Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result." width="2160" height="904" loading="lazy" />
+    <img src="/assets/release-v2/repositories-dark.jpg" alt="Repositories show their imported app and resource inventories and latest sync time." width="1280" height="720" loading="lazy" />
   </div>
-  <p>Example Sources inventory after importing repositories. Open a Source to inspect its apps and sync result.</p>
+  <p>Repositories show their imported app and resource inventories and latest sync time.</p>
 </div>
 
 ## 3. Verify the server
 
-Open the target under **Servers**. Save its SSH private key in **Settings → Configuration**, then run a server check. Compare the discovered SSH fingerprint with the host's console through an independent channel before trusting it.
+Open the target under **Servers → Settings → Credentials** and select a stored [SSH key](/docs/ssh-keys). You can choose **Add private key** inside the dropdown to generate or import one. Install its public key on the server before verifying access. Choose **Save**, compare the discovered host fingerprint with the server console through an independent channel, and trust it only if it matches. Towbar attaches the selected key after SSH authentication succeeds.
 
 Choose **Prepare Server** and follow the steps until the host is **Ready**. If preparation fails, inspect the reported step instead of repeatedly requesting deployment.
 
 ## 4. Save application secrets
 
-Open **App → Settings → Secrets** and select Production. Add build, runtime, or hook values as needed, then save. To reuse a shared value, set the app variable to `{{globals.KEY}}` or `{{source.KEY}}`. Shared values are not injected automatically.
+If your app needs secrets, declare their keys in the entity file’s top-level `secrets` field and sync the production environment. Open the production app instance’s **Settings → Secrets** page and fill the declared build, runtime, or hook values, then save. New required keys appear as unset; missing values block deployment, but do not block sync. To reuse a shared value, set the app variable to `{{globals.KEY}}` or `{{source.KEY}}`. Shared values are not injected automatically.
 
 The Hello Towbar example needs no secrets, so you can skip this step for your first deployment.
 
-Saved values are hidden until an owner reveals them with the eye icon. Leaving a replacement field untouched preserves its value. Saving does not start a deployment. See [Shared secrets](/docs/secrets) for references and rotation.
+Saved values are hidden until an Admin reveals them with the eye icon. Leaving a replacement field untouched preserves its value. Saving does not start a deployment. See [Shared secrets](/docs/secrets) for references and rotation.
 
 ## 5. Deploy
 
@@ -88,19 +97,19 @@ If a stage fails, open its output and correct that failure before retrying. The 
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/deployments-light.webp" alt="Example deployment history showing queued, active, successful, and failed attempts." width="3200" height="2100" loading="lazy" />
+    <img src="/assets/release-v2/deployments-light.jpg" alt="Filter deployment history by status, trigger, and workload." width="1280" height="1210" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/deployments-dark.webp" alt="Example deployment history showing queued, active, successful, and failed attempts." width="3200" height="2100" loading="lazy" />
+    <img src="/assets/release-v2/deployments-dark.jpg" alt="Filter deployment history by status, trigger, and workload." width="1280" height="1210" loading="lazy" />
   </div>
-  <p>Example deployment history showing queued, active, successful, and failed attempts.</p>
+  <p>Filter deployment history by status, trigger, and workload.</p>
 </div>
 
 ## 6. Verify the result
 
 Confirm all four conditions:
 
-- The Source sync succeeded at the intended commit.
+- The Repository sync succeeded at the intended commit.
 - The target server is Ready.
 - The deployment reached Succeeded.
 - The configured HTTPS domain serves the expected app version.
@@ -109,8 +118,8 @@ For an app without a public domain, verify it through its intended private clien
 
 ## Next steps
 
-For your second deployment, edit the heading in `src/index.html`, commit to
-`main`, and deploy again. Reload the public page to verify that your new code is
+For your second deployment, edit the response in `server.mjs`, commit to the
+branch mapped to production, and deploy again. Reload the public page to verify that your new code is
 running.
 
 Enable [automatic deployment](/docs/deployments#automatic-deployments), add [pull request previews](/docs/previews), or connect a [database resource](/docs/resources). Configure [notifications](/docs/integrations/notifications) so failed operations reach the people who need to act.

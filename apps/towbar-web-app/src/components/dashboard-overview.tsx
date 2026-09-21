@@ -1,11 +1,18 @@
 "use client";
 
 import {
+  displayChartDate,
+  displayDate,
+  displayDateTime,
+} from "@/lib/date-time-display";
+import { useLocalizedTimestamps } from "@/hooks/use-localized-timestamps";
+
+import { groupDeployableInstances } from "@/lib/deployable-groups";
+import {
   Activity01Icon,
   DashboardCircleIcon,
   DashboardSquare01Icon,
-  DatabaseIcon,
-  GitBranchIcon,
+  CubeIcon,
   ServerStack01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -20,6 +27,10 @@ import type {
 import { LineChart } from "@workspace/web-design-system/charts/line-chart";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
+import {
+  ResourceTable,
+  type ResourceTableColumn,
+} from "@workspace/towbar-web-ui/resource-table";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -29,6 +40,7 @@ import { OverviewIncidents, OverviewDeployments } from "./overview-operations";
 import { useApiQuery } from "@/hooks/use-api-query";
 
 import { buildDeploymentActivity } from "@/lib/overview";
+import { ServerIpLink } from "./source-inventory";
 
 const activitySeries = [
   { color: "var(--accent-soft-foreground)", key: "total", label: "Requested" },
@@ -71,6 +83,40 @@ export function DashboardOverview() {
   const activeApps = appItems.filter((app) => !app.archivedAt);
   const activeResources = resourceItems.filter((item) => !item.archivedAt);
   const activeServers = serverItems.filter((server) => !server.archivedAt);
+  const serversNeedingSetup = activeServers.filter(
+    (server) => server.setupStatus !== "ready",
+  );
+  const pendingServerColumns: ResourceTableColumn<Server>[] = [
+    {
+      key: "server",
+      header: "Server",
+      cell: (server) => (
+        <ServerIpLink
+          hardware={server.hardware}
+          ip={server.canonicalIp}
+          serverId={server.id}
+        />
+      ),
+      className: "w-full min-w-64",
+    },
+    {
+      key: "status",
+      header: "Setup",
+      cell: (server) => <StatusBadge status={server.setupStatus} />,
+      className: "whitespace-nowrap",
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      headerClassName: "text-end",
+      cell: (server) => (
+        <ButtonLink href={`/servers/${server.id}/overview`} variant="secondary">
+          Complete Setup
+        </ButtonLink>
+      ),
+      className: "whitespace-nowrap text-end",
+    },
+  ];
   const metrics = [
     {
       icon: DashboardCircleIcon,
@@ -81,11 +127,11 @@ export function DashboardOverview() {
       detailCount: activeApps.filter(
         (item) => item.runtimeState.observedState === "running",
       ).length,
-      detailLabel: "running",
-      value: activeApps.length,
+      detailLabel: "instances running",
+      value: groupDeployableInstances(activeApps).length,
     },
     {
-      icon: DatabaseIcon,
+      icon: CubeIcon,
       href: "/resources",
       label: "Resources",
       image: "/scout/overview-resources-charcoal.png",
@@ -93,8 +139,8 @@ export function DashboardOverview() {
       detailCount: activeResources.filter(
         (item) => item.runtimeState.observedState === "running",
       ).length,
-      detailLabel: "running",
-      value: activeResources.length,
+      detailLabel: "instances running",
+      value: groupDeployableInstances(activeResources).length,
     },
     {
       icon: ServerStack01Icon,
@@ -111,20 +157,18 @@ export function DashboardOverview() {
   ];
 
   return (
-    <DashboardPage
-      icon={DashboardSquare01Icon}
-      title="Overview"
-      actions={
-        <ButtonLink href="/sources" variant="secondary">
-          <HugeiconsIcon
-            icon={GitBranchIcon}
-            className="size-4"
-            aria-hidden="true"
-          />
-          Open Sources
-        </ButtonLink>
-      }
-    >
+    <DashboardPage icon={DashboardSquare01Icon} title="Overview">
+      {serversNeedingSetup.length ? (
+        <ResourceTable
+          ariaLabel="Servers pending setup"
+          columns={pendingServerColumns}
+          emptyDescription="All servers are ready."
+          emptyTitle="No servers pending setup"
+          getRowKey={(server) => server.id}
+          items={serversNeedingSetup}
+          tableClassName="min-w-[560px]"
+        />
+      ) : null}
       <div className="grid items-stretch gap-4 xl:grid-cols-2">
         <OverviewActivity />
         <div className="grid min-w-0 gap-4 sm:grid-cols-2">
@@ -175,6 +219,10 @@ function OverviewActivity() {
   );
   const deploymentItems = query.data?.deployments ?? [];
   const activity = buildDeploymentActivity(deploymentItems);
+  const { error: dateLabelError } = useLocalizedTimestamps(
+    activity.map((day) => day.date),
+  );
+  const activitySummary = summarizeDeploymentActivity(deploymentItems);
   return (
     <Widget className="min-w-0">
       <Widget.Header
@@ -196,8 +244,8 @@ function OverviewActivity() {
         </Widget.Title>
       </Widget.Header>
       <Widget.Content className="grid min-w-0 content-center gap-3">
-        {query.error ? (
-          <QueryError message={query.error} />
+        {query.error || dateLabelError ? (
+          <QueryError message={query.error ?? dateLabelError!} />
         ) : !query.data ? (
           <QueryLoading />
         ) : deploymentItems.length ? (
@@ -211,7 +259,7 @@ function OverviewActivity() {
             <LineChart.XAxis
               dataKey="date"
               tick={activityAxisTick}
-              tickFormatter={(value) => formatActivityDate(String(value))}
+              tickFormatter={(value) => displayChartDate(String(value))}
               tickMargin={8}
             />
             <LineChart.YAxis
@@ -244,25 +292,61 @@ function OverviewActivity() {
             <EmptyState.Header>
               <EmptyState.Title>No deployment activity yet</EmptyState.Title>
               <EmptyState.Description className="max-w-sm text-pretty">
-                Add or open a Source, then deploy an imported app or resource
-                when it is ready.
+                Add or open a Repository, then deploy an imported app or
+                resource when it is ready.
               </EmptyState.Description>
             </EmptyState.Header>
-            <EmptyState.Content>
-              <ButtonLink href="/sources" variant="secondary">
-                <HugeiconsIcon
-                  aria-hidden="true"
-                  icon={GitBranchIcon}
-                  className="size-4 shrink-0"
-                />
-                Open Sources
-              </ButtonLink>
-            </EmptyState.Content>
           </EmptyState>
         )}
       </Widget.Content>
+      {activitySummary ? (
+        <Widget.Footer>
+          <Widget.FooterDescription className="tabular-nums">
+            Last 7 days: {activitySummary.successRate}% successful ·{" "}
+            {activitySummary.failed} failed · median duration{" "}
+            {activitySummary.medianDuration}
+          </Widget.FooterDescription>
+        </Widget.Footer>
+      ) : null}
     </Widget>
   );
+}
+
+function summarizeDeploymentActivity(deployments: Deployment[]) {
+  const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const completed = deployments.filter(
+    (deployment) =>
+      new Date(deployment.createdAt).getTime() >= cutoff &&
+      deployment.finishedAt &&
+      ["succeeded", "succeeded_with_warnings", "failed"].includes(
+        deployment.state,
+      ),
+  );
+  if (!completed.length) return null;
+  const succeeded = completed.filter((deployment) =>
+    deployment.state.startsWith("succeeded"),
+  ).length;
+  const durations = completed
+    .filter((deployment) => deployment.startedAt && deployment.finishedAt)
+    .map(
+      (deployment) =>
+        new Date(deployment.finishedAt!).getTime() -
+        new Date(deployment.startedAt!).getTime(),
+    )
+    .filter((duration) => duration >= 0)
+    .sort((left, right) => left - right);
+  const median = durations[Math.floor(durations.length / 2)];
+  return {
+    failed: completed.filter((deployment) => deployment.state === "failed")
+      .length,
+    medianDuration:
+      median === undefined
+        ? "unavailable"
+        : median < 60_000
+          ? `${Math.max(1, Math.round(median / 1000))} sec`
+          : `${Math.round(median / 60_000)} min`,
+    successRate: Math.round((succeeded / completed.length) * 100),
+  };
 }
 
 function OverviewMetricIcon({
@@ -276,16 +360,9 @@ function OverviewMetricIcon({
 }
 
 function formatActivityDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  }).format(new Date(`${value}T00:00:00Z`));
+  return displayDate(value);
 }
 
 export function formatDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+  return displayDateTime(value);
 }

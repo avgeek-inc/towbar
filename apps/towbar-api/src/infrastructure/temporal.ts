@@ -1,3 +1,4 @@
+import { towbarLogDrainTaskQueue } from "@workspace/towbar-core/temporal";
 import { createHash, randomUUID } from "node:crypto";
 
 import { Client, Connection } from "@temporalio/client";
@@ -346,6 +347,33 @@ export async function cancelResourceOperationWorkflow(operationId: string) {
     .cancel();
 }
 
+export async function closeTemporalClient() {
+  const pending = clientPromise;
+  clientPromise = undefined;
+  if (pending) await (await pending).connection.close();
+}
+
+export async function stopWorkflowsForRestore() {
+  const client = await getTemporalClient();
+  for await (const workflow of client.workflow.list({
+    query: "ExecutionStatus = 'Running'",
+  })) {
+    if (
+      workflow.taskQueue !== towbarTaskQueue ||
+      !workflow.workflowId.startsWith("towbar-")
+    )
+      continue;
+    try {
+      await client.workflow
+        .getHandle(workflow.workflowId, workflow.runId)
+        .terminate("Towbar control-plane database restore");
+    } catch (error) {
+      if (!(error instanceof Error) || error.name !== "WorkflowNotFoundError")
+        throw error;
+    }
+  }
+}
+
 async function getTemporalClient() {
   clientPromise ??= createTemporalClient().catch((error: unknown) => {
     clientPromise = undefined;
@@ -395,4 +423,46 @@ export async function enqueueMonitoringAgent(input: {
     return { workflowId, closed: execution.status.name !== "RUNNING" };
   }
   return { workflowId };
+}
+
+export async function enqueueTransactionalEmail(
+  outboxId: string,
+  attempt: number,
+) {
+  const client = await getTemporalClient();
+  try {
+    await client.workflow.start("runTransactionalEmailWorkflow", {
+      args: [{ outboxId }],
+      taskQueue: towbarTaskQueue,
+      workflowId: `towbar-team-email/${outboxId}/${attempt}`,
+      workflowExecutionTimeout: "30 minutes",
+      workflowIdReusePolicy: "ALLOW_DUPLICATE_FAILED_ONLY",
+    });
+  } catch (error) {
+    if (!isWorkflowAlreadyStarted(error)) throw error;
+  }
+}
+
+export async function wakeAppJobsWorkflow() {
+  const client = await getTemporalClient();
+  await client.workflow.signalWithStart("runAppJobsWorkflow", {
+    args: [],
+    signal: "wakeAppJobs",
+    signalArgs: [],
+    taskQueue: towbarTaskQueue,
+    workflowId: "towbar-app-jobs",
+    workflowIdReusePolicy: "ALLOW_DUPLICATE",
+  });
+}
+
+export async function wakeLogDrainsWorkflow() {
+  const client = await getTemporalClient();
+  await client.workflow.signalWithStart("runLogDrainsWorkflow", {
+    args: [],
+    signal: "wakeLogDrains",
+    signalArgs: [],
+    taskQueue: towbarLogDrainTaskQueue,
+    workflowId: "towbar-log-drains",
+    workflowIdReusePolicy: "ALLOW_DUPLICATE",
+  });
 }

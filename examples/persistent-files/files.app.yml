@@ -1,0 +1,14 @@
+id: files
+name: File uploads
+dockerfile: examples/persistent-files/Dockerfile
+context: examples/persistent-files
+container:
+  port: 3000
+  volumes:
+    - name: uploads
+      mountPath: /app/uploads
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10

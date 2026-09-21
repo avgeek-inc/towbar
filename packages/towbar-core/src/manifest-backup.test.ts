@@ -1,19 +1,17 @@
+import { parseResolvedManifest } from "./manifest-test-helper.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  ManifestValidationError,
-  parseDeploymentManifest,
-} from "./manifest.js";
+import { ManifestValidationError } from "./manifest.js";
 
 const manifest = `
-version: 1
+version: 2
 source:
   branch: release
 `;
 
 void test("normalizes managed backups and rejects unsafe declarations", () => {
-  const parsed = parseDeploymentManifest(
+  const parsed = parseResolvedManifest(
     `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    backup:\n      s3:\n        bucket: example-production-backups\n        encryption: aws:kms\n        kmsKeyId: alias/towbar-backups\n`,
   ).manifest;
   const resource = parsed.resources?.[0];
@@ -24,14 +22,14 @@ void test("normalizes managed backups and rejects unsafe declarations", () => {
 
   assert.throws(
     () =>
-      parseDeploymentManifest(
+      parseResolvedManifest(
         `${manifest}\nresources:\n  - id: metrics\n    name: Metrics\n    type: image\n    image: prom/prometheus:v3.5.0\n    server: 203.0.113.10\n    backup:\n      s3:\n        bucket: example-production-backups\n`,
       ),
     ManifestValidationError,
   );
   assert.throws(
     () =>
-      parseDeploymentManifest(
+      parseResolvedManifest(
         `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    backup:\n      s3:\n        bucket: example-production-backups\n        encryption: aws:kms\n`,
       ),
     ManifestValidationError,
@@ -39,7 +37,7 @@ void test("normalizes managed backups and rejects unsafe declarations", () => {
 });
 
 void test("normalizes GCS, Azure Blob, and multi-destination backups", () => {
-  const gcsManifest = parseDeploymentManifest(
+  const gcsManifest = parseResolvedManifest(
     `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    backup:\n      gcs:\n        bucket: my-gcs-backups\n        prefix: db\n        region: us-central1\n`,
   ).manifest;
   const gcsResource = gcsManifest.resources?.[0];
@@ -49,7 +47,7 @@ void test("normalizes GCS, Azure Blob, and multi-destination backups", () => {
   assert.equal(gcsResource.backup?.gcs?.prefix, "db");
   assert.equal(gcsResource.backup?.gcs?.region, "us-central1");
 
-  const azureManifest = parseDeploymentManifest(
+  const azureManifest = parseResolvedManifest(
     `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    backup:\n      azureBlob:\n        storageAccount: myaccount\n        container: backups\n`,
   ).manifest;
   const azureResource = azureManifest.resources?.[0];
@@ -59,7 +57,7 @@ void test("normalizes GCS, Azure Blob, and multi-destination backups", () => {
   assert.equal(azureResource.backup?.azureBlob?.container, "backups");
   assert.equal(azureResource.backup?.azureBlob?.prefix, "towbar");
 
-  const multiManifest = parseDeploymentManifest(
+  const multiManifest = parseResolvedManifest(
     `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    backup:\n      restoreFrom: gcs\n      s3:\n        bucket: s3-backups\n      gcs:\n        bucket: gcs-backups\n`,
   ).manifest;
   const multiResource = multiManifest.resources?.[0];
@@ -71,7 +69,7 @@ void test("normalizes GCS, Azure Blob, and multi-destination backups", () => {
   // Rejects multiple destinations without restoreFrom
   assert.throws(
     () =>
-      parseDeploymentManifest(
+      parseResolvedManifest(
         `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    backup:\n      s3:\n        bucket: s3-backups\n      gcs:\n        bucket: gcs-backups\n`,
       ),
     ManifestValidationError,
@@ -80,7 +78,7 @@ void test("normalizes GCS, Azure Blob, and multi-destination backups", () => {
   // Rejects restoreFrom referencing undeclared destination
   assert.throws(
     () =>
-      parseDeploymentManifest(
+      parseResolvedManifest(
         `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    backup:\n      restoreFrom: azureBlob\n      s3:\n        bucket: s3-backups\n`,
       ),
     ManifestValidationError,
@@ -89,7 +87,7 @@ void test("normalizes GCS, Azure Blob, and multi-destination backups", () => {
   // Rejects empty backup destination block
   assert.throws(
     () =>
-      parseDeploymentManifest(
+      parseResolvedManifest(
         `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    backup:\n      retention:\n        keepLast: 5\n`,
       ),
     ManifestValidationError,

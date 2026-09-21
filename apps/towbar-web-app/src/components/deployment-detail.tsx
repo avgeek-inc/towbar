@@ -1,55 +1,67 @@
 "use client";
+import { displayTime } from "@/lib/date-time-display";
+import { useAccess } from "./access-context";
+import { DeploymentEnvironmentChip } from "./deployment-environment-chip";
 import {
   Activity01Icon,
-  Cancel01Icon,
+  Alert02Icon,
+  AlertCircleIcon,
+  ArrowRight02Icon,
   DashboardCircleIcon,
-  DatabaseIcon,
+  CubeIcon,
   FileViewIcon,
+  GitBranchIcon,
+  GitPullRequestIcon,
   InformationSquareIcon,
   ReloadIcon,
   Rocket01Icon,
   SecurityCheckIcon,
   ServerStack01Icon,
+  StopCircleIcon,
 } from "@hugeicons/core-free-icons";
 
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+import { DeploymentDuration } from "./elapsed-time";
+import { DeploymentProgress } from "./deployment-progress";
 
-import { DeploymentDuration, ElapsedTime } from "./elapsed-time";
-import { isEventRunning } from "@/lib/elapsed-time";
-
-import { ConfigurationLinks } from "./configuration-links";
+import { DomainLink } from "./domain-link";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
-import type { Deployment, Source } from "@workspace/towbar-web-client";
+import type {
+  Deployment,
+  DeploymentPullRequest,
+  Source,
+} from "@workspace/towbar-web-client";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
+import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
-import { Stepper } from "@workspace/web-design-system/navigation/stepper";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import type { BreadcrumbAncestors } from "@workspace/web-page-sections/page";
 import { CodePanel } from "@workspace/towbar-web-ui/code-panel";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
-import {
-  formatStatus,
-  StatusBadge,
-} from "@workspace/towbar-web-ui/status-badge";
+import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import {
   ActionButton,
+  appsBreadcrumb,
   DashboardPage,
   InlineLink,
   PageTabs,
+  resourcesBreadcrumb,
 } from "@/components/page-parts";
 import { useDeploymentStream } from "@/hooks/use-deployment-stream";
 import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
+import { deploymentHref } from "@/lib/deployment-route";
 import { formatDate } from "./dashboard-overview";
-import { DeploymentTriggerChip } from "./deployment-table";
+import {
+  DeploymentTriggerChip,
+  deploymentStatusTooltip,
+} from "./deployment-table";
 import { DeploymentVulnerabilities } from "./deployment-vulnerability-scan";
-import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
 
 const terminal = new Set([
@@ -60,15 +72,22 @@ const terminal = new Set([
   "succeeded_with_warnings",
 ]);
 export function DeploymentDetail() {
-  const { deploymentId, sourceId } = useParams<{
+  const { can } = useAccess();
+  const { appId, deploymentId, resourceId } = useParams<{
+    appId?: string;
     deploymentId: string;
-    sourceId: string;
+    resourceId?: string;
   }>();
   const router = useRouter();
   const detail = useDetailNavigation();
   const stream = useDeploymentStream(deploymentId);
   const source = useApiQuery<{ source: Source }>(
-    `/v1/core/sources/${sourceId}`,
+    stream.deployment ? `/v1/core/sources/${stream.deployment.sourceId}` : null,
+  );
+  const revision = useApiQuery<{ pullRequest: DeploymentPullRequest | null }>(
+    stream.deployment
+      ? `/v1/core/deployments/${deploymentId}/source-revision`
+      : null,
   );
   const deployable = useApiQuery<{
     app?: { name: string; serverIp: string };
@@ -78,20 +97,22 @@ export function DeploymentDetail() {
       ? `/v1/core/${stream.deployment.deployableKind === "app" ? "apps" : "resources"}/${stream.deployment.appId}`
       : null,
   );
-  const deployableSection = stream.deployment
+  const routeDeployableKind = appId
+    ? "app"
+    : resourceId
+      ? "resource"
+      : undefined;
+  const deploymentDeployableKind = stream.deployment
     ? stream.deployment.deployableKind === "app"
-      ? "apps"
-      : "resources"
-    : undefined;
-  const sourceBreadcrumbAncestors = useSourceBreadcrumbs(
-    sourceId,
-    deployableSection
-      ? {
-          href: `/sources/${sourceId}?section=${deployableSection}`,
-          label: deployableSection === "apps" ? "Apps" : "Resources",
-        }
-      : undefined,
-  );
+      ? "app"
+      : "resource"
+    : routeDeployableKind;
+  const deployableSection =
+    deploymentDeployableKind === "resource" ? "resources" : "apps";
+  const deployableBreadcrumb =
+    deploymentDeployableKind === "resource"
+      ? resourcesBreadcrumb
+      : appsBreadcrumb;
   const deployableName =
     deployable.data?.app?.name ?? deployable.data?.resource?.name;
   const serverIp =
@@ -99,19 +120,19 @@ export function DeploymentDetail() {
   const breadcrumbAncestors = (
     stream.deployment && deployableName
       ? [
-          ...sourceBreadcrumbAncestors,
+          ...deployableBreadcrumb,
           {
-            href: `/sources/${sourceId}/${deployableSection}/${stream.deployment.appId}`,
+            href: `/${deployableSection}/${stream.deployment.appId}`,
             label: deployableName,
           },
         ]
-      : sourceBreadcrumbAncestors
+      : deployableBreadcrumb
   ) as BreadcrumbAncestors;
   if (stream.error && !stream.deployment)
     return (
       <DashboardPage
         icon={Rocket01Icon}
-        breadcrumbAncestors={sourceBreadcrumbAncestors}
+        breadcrumbAncestors={deployableBreadcrumb}
         title="Deployment"
       >
         <QueryError message={stream.error} />
@@ -121,7 +142,7 @@ export function DeploymentDetail() {
     return (
       <DashboardPage
         icon={Rocket01Icon}
-        breadcrumbAncestors={sourceBreadcrumbAncestors}
+        breadcrumbAncestors={deployableBreadcrumb}
         title="Deployment"
       >
         <QueryLoading />
@@ -135,21 +156,27 @@ export function DeploymentDetail() {
       ? `https://github.com/${encodeURIComponent(repository.repositoryOwner)}/${encodeURIComponent(repository.repositoryName)}/commit/${encodeURIComponent(item.commitSha)}`
       : undefined;
   const displayStatus = getDeploymentDisplayStatus(item);
-  if (item.sourceId !== sourceId) {
+  const routeDeployableId = appId ?? resourceId;
+  if (
+    routeDeployableId !== item.appId ||
+    routeDeployableKind !== deploymentDeployableKind
+  ) {
     return (
       <DashboardPage
         icon={Rocket01Icon}
-        breadcrumbAncestors={sourceBreadcrumbAncestors}
+        breadcrumbAncestors={deployableBreadcrumb}
         title="Deployment"
       >
         <QueryError
-          message="This Deployment does not belong to the selected Source."
+          message={`This Deployment does not belong to the selected ${routeDeployableKind === "resource" ? "Resource" : "App"}.`}
           retryable={false}
         />
       </DashboardPage>
     );
   }
-  const actions = !terminal.has(item.state) ? (
+  const actions = !can("deployment.create") ? undefined : !terminal.has(
+      item.state,
+    ) ? (
     <ActionButton
       action={() =>
         api.post(`/v1/core/deployments/${deploymentId}/actions/cancel`)
@@ -166,7 +193,7 @@ export function DeploymentDetail() {
     >
       <HugeiconsIcon
         aria-hidden="true"
-        icon={Cancel01Icon}
+        icon={StopCircleIcon}
         className="size-4 shrink-0"
       />
       Cancel
@@ -187,11 +214,7 @@ export function DeploymentDetail() {
           { "Idempotency-Key": crypto.randomUUID() },
         )
       }
-      onSuccess={(result) =>
-        router.push(
-          `/sources/${item.sourceId}/deployments/${result.deployment.id}`,
-        )
-      }
+      onSuccess={(result) => router.push(deploymentHref(result.deployment))}
       pendingLabel="Queueing…"
       success="Retry queued"
       variant="primary"
@@ -208,19 +231,6 @@ export function DeploymentDetail() {
   const progressSteps = stream.steps.filter(
     (step) => !terminal.has(step.state),
   );
-  const currentStep =
-    [...progressSteps].reverse().find((step) => step.status === "running") ??
-    progressSteps.at(-1);
-  const currentStepIndex = Math.max(
-    0,
-    progressSteps.findIndex((step) => step.id === currentStep?.id),
-  );
-  const displayedStep = ["succeeded", "succeeded_with_warnings"].includes(
-    item.state,
-  )
-    ? progressSteps.length
-    : currentStepIndex;
-
   const sectionTitles: Record<string, string> = {
     logs: "Logs",
     overview: "Overview",
@@ -238,47 +248,81 @@ export function DeploymentDetail() {
     <DashboardPage
       icon={Rocket01Icon}
       actions={actions}
-      badge={<StatusBadge status={displayStatus} />}
+      badge={
+        <StatusBadge
+          status={displayStatus}
+          tooltip={deploymentStatusTooltip(item)}
+        />
+      }
       breadcrumbAncestors={breadcrumbAncestors}
       breadcrumbLabel={activeSectionTitle}
-      title="Deployment"
+      title={deployableName ? `${deployableName} deployment` : "Deployment"}
     >
       {item.errorMessage ? (
-        <Alert
-          status={
-            item.state === "succeeded_with_warnings"
-              ? "warning"
-              : item.state === "skipped"
-                ? "default"
-                : "danger"
-          }
-        >
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>
-              {item.errorCode ? (
-                <TypographyCode>{item.errorCode}</TypographyCode>
-              ) : item.state === "succeeded_with_warnings" ? (
-                "Deployment warning"
-              ) : item.state === "skipped" ? (
-                "Deployment superseded"
-              ) : (
-                "Deployment failed"
-              )}
-            </Alert.Title>
-            <Alert.Description>
+        <Widget className="min-w-0" role="alert">
+          <Widget.Header>
+            <Widget.Title
+              help={false}
+              icon={
+                <HugeiconsIcon
+                  icon={
+                    item.state === "succeeded_with_warnings"
+                      ? Alert02Icon
+                      : item.state === "skipped"
+                        ? InformationSquareIcon
+                        : item.state === "cancelled"
+                          ? StopCircleIcon
+                          : AlertCircleIcon
+                  }
+                />
+              }
+              className={
+                item.state === "succeeded_with_warnings"
+                  ? "text-warning-soft-foreground"
+                  : item.state === "skipped" || item.state === "cancelled"
+                    ? "text-muted"
+                    : "text-danger-soft-foreground"
+              }
+            >
+              {item.state === "succeeded_with_warnings"
+                ? "Deployment warning"
+                : item.state === "skipped"
+                  ? "Deployment superseded"
+                  : item.state === "cancelled"
+                    ? "Deployment cancelled"
+                    : "Deployment failed"}
+            </Widget.Title>
+          </Widget.Header>
+          <Widget.Content>
+            <p className="text-sm break-words text-foreground">
               {item.errorMessage}
-              <ConfigurationLinks
-                sourceId={item.sourceId}
-                serverId={item.serverId}
-                deployable={{
-                  id: item.appId,
-                  kind: item.deployableKind === "app" ? "app" : "resource",
-                }}
-              />
-            </Alert.Description>
-          </Alert.Content>
-        </Alert>
+            </p>
+          </Widget.Content>
+          {item.errorCode ||
+          (stream.logs.length > 0 && activeSectionTitle !== "Logs") ? (
+            <Widget.Footer>
+              {item.errorCode ? (
+                <Widget.FooterDescription>
+                  Error code:{" "}
+                  <code className="break-all">{item.errorCode}</code>
+                </Widget.FooterDescription>
+              ) : null}
+              {stream.logs.length > 0 && activeSectionTitle !== "Logs" ? (
+                <InlineLink
+                  href={deploymentHref(item, "logs")}
+                  className="inline-flex shrink-0 items-center gap-1 text-xs !text-accent !underline"
+                >
+                  View logs
+                  <HugeiconsIcon
+                    aria-hidden="true"
+                    icon={ArrowRight02Icon}
+                    className="size-3.5"
+                  />
+                </InlineLink>
+              ) : null}
+            </Widget.Footer>
+          ) : null}
+        </Widget>
       ) : stream.connection === "reconnecting" ? (
         <Alert status="warning">
           <Alert.Indicator />
@@ -311,7 +355,7 @@ export function DeploymentDetail() {
                       {item.kind === "rollback" ? "Rollback" : "Deploy"}
                     </Attributes.Item>
                     <Attributes.Item label="Environment">
-                      <StatusBadge status={item.environment} />
+                      <DeploymentEnvironmentChip deployment={item} />
                     </Attributes.Item>
                     <Attributes.Item label="Trigger">
                       <DeploymentTriggerChip trigger={item.trigger} />
@@ -343,7 +387,7 @@ export function DeploymentDetail() {
                           icon={
                             item.deployableKind === "app"
                               ? DashboardCircleIcon
-                              : DatabaseIcon
+                              : CubeIcon
                           }
                         />
                       }
@@ -352,8 +396,8 @@ export function DeploymentDetail() {
                       <InlineLink
                         href={
                           item.deployableKind === "app"
-                            ? `/sources/${item.sourceId}/apps/${item.appId}`
-                            : `/sources/${item.sourceId}/resources/${item.appId}`
+                            ? `/apps/${item.appId}`
+                            : `/resources/${item.appId}`
                         }
                       >
                         {deployableName ?? (
@@ -396,14 +440,9 @@ export function DeploymentDetail() {
                     ) : null}
                     {item.hostname ? (
                       <Attributes.Item label="URL">
-                        <a
-                          className="underline decoration-muted underline-offset-4 hover:decoration-current"
-                          href={`https://${item.hostname}`}
-                          rel="noreferrer"
-                          target="_blank"
-                        >
+                        <DomainLink domain={item.hostname}>
                           {item.hostname}
-                        </a>
+                        </DomainLink>
                       </Attributes.Item>
                     ) : null}
                     <Attributes.Item label="Manifest digest">
@@ -423,7 +462,7 @@ export function DeploymentDetail() {
                     <Attributes.Item label="Image platform">
                       {item.imagePlatform ?? "Not recorded"}
                     </Attributes.Item>
-                    <Attributes.Item label="Source inputs">
+                    <Attributes.Item label="Repository inputs">
                       {item.sourceInputDigest ? (
                         <TypographyCode title={item.sourceInputDigest}>
                           {item.sourceInputDigest.slice(0, 12)}
@@ -439,6 +478,77 @@ export function DeploymentDetail() {
                     </Attributes.Item>
                   </Attributes>
                 </div>
+                {revision.data?.pullRequest ? (
+                  <Attributes
+                    icon={<HugeiconsIcon icon={GitPullRequestIcon} />}
+                    columns={3}
+                    title="Pull request"
+                    variant="card"
+                  >
+                    <Attributes.Item label="Pull request">
+                      <InlineLink
+                        aria-label={`Open pull request ${revision.data.pullRequest.number} on GitHub (opens in a new tab)`}
+                        href={revision.data.pullRequest.url}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                      >
+                        PR #{revision.data.pullRequest.number}
+                      </InlineLink>
+                    </Attributes.Item>
+                    <Attributes.Item label="Title">
+                      {revision.data.pullRequest.title}
+                    </Attributes.Item>
+                    <Attributes.Item label="Status">
+                      <Chip
+                        size="small"
+                        tooltip={pullRequestStateTooltip(
+                          revision.data.pullRequest,
+                        )}
+                        variant={
+                          revision.data.pullRequest.state === "open" &&
+                          !revision.data.pullRequest.draft
+                            ? "success"
+                            : "secondary"
+                        }
+                      >
+                        {revision.data.pullRequest.merged
+                          ? "Merged"
+                          : revision.data.pullRequest.draft
+                            ? "Draft"
+                            : revision.data.pullRequest.state === "open"
+                              ? "Open"
+                              : "Closed"}
+                      </Chip>
+                    </Attributes.Item>
+                    <Attributes.Item
+                      icon={<HugeiconsIcon icon={GitBranchIcon} />}
+                      label="Branches"
+                    >
+                      <span className="inline-flex min-w-0 items-center gap-1.5">
+                        <TypographyCode className="truncate">
+                          {revision.data.pullRequest.headBranch}
+                        </TypographyCode>
+                        <span aria-hidden="true" className="text-muted">
+                          →
+                        </span>
+                        <TypographyCode className="truncate">
+                          {revision.data.pullRequest.baseBranch}
+                        </TypographyCode>
+                      </span>
+                    </Attributes.Item>
+                    <Attributes.Item label="Author">
+                      {revision.data.pullRequest.author
+                        ? `@${revision.data.pullRequest.author}`
+                        : "Unknown"}
+                    </Attributes.Item>
+                    <Attributes.Item label="Changes">
+                      {revision.data.pullRequest.changedFileCount}{" "}
+                      {revision.data.pullRequest.changedFileCount === 1
+                        ? "file"
+                        : "files"}
+                    </Attributes.Item>
+                  </Attributes>
+                ) : null}
               </div>
             ),
           },
@@ -447,78 +557,45 @@ export function DeploymentDetail() {
             label: "Progress",
             icon: <HugeiconsIcon icon={Activity01Icon} />,
             content: (
-              <Widget className="min-w-0">
-                <Widget.Header
-                  endContent={<StatusBadge status={stream.connection} />}
-                >
-                  <Widget.Title icon={<HugeiconsIcon icon={Activity01Icon} />}>
-                    Progress
-                  </Widget.Title>
-                </Widget.Header>
-                <Widget.Content>
-                  <Stepper
-                    aria-label="Deployment progress"
-                    currentStep={displayedStep}
-                    orientation="vertical"
-                    size="sm"
+              <div className="content-grid min-w-0">
+                {terminal.has(item.state) && progressSteps.length < 2 ? (
+                  <Widget>
+                    <Widget.Header>
+                      <Widget.Title
+                        icon={<HugeiconsIcon icon={InformationSquareIcon} />}
+                        help={false}
+                      >
+                        Limited Progress History
+                      </Widget.Title>
+                    </Widget.Header>
+                    <Widget.Content>
+                      <p className="text-sm text-foreground">
+                        This deployment completed without recording its full
+                        execution timeline. The final status and available logs
+                        remain authoritative.
+                      </p>
+                    </Widget.Content>
+                  </Widget>
+                ) : null}
+                <Widget className="min-w-0">
+                  <Widget.Header
+                    endContent={<StatusBadge status={stream.connection} />}
                   >
-                    {progressSteps.map((step) => (
-                      <Stepper.Step key={step.id}>
-                        <Stepper.Indicator />
-                        <Stepper.Content>
-                          <Stepper.Title>
-                            <span className="inline-flex min-w-0 items-center gap-2">
-                              <span className="truncate">
-                                {formatStatus(step.state)}
-                              </span>
-                              <StatusBadge status={step.status} />
-                            </span>
-                          </Stepper.Title>
-                          {step.message || step.startedAt ? (
-                            <Stepper.Description>
-                              <span className="grid gap-1">
-                                {step.message ? (
-                                  <span>{step.message}</span>
-                                ) : null}
-                                {step.startedAt ? (
-                                  <TooltipText
-                                    as="time"
-                                    className="tabular-nums"
-                                    dateTime={step.startedAt}
-                                    tooltip={formatDate(step.startedAt)}
-                                  >
-                                    {formatTime(step.startedAt)}
-                                  </TooltipText>
-                                ) : null}
-                                {step.startedAt ? (
-                                  <ElapsedTime
-                                    startedAt={step.startedAt}
-                                    finishedAt={
-                                      step.finishedAt ??
-                                      (step.status === "running"
-                                        ? item.finishedAt
-                                        : null)
-                                    }
-                                    status={
-                                      isEventRunning({
-                                        ...item,
-                                        status: item.state,
-                                      })
-                                        ? step.status
-                                        : "succeeded"
-                                    }
-                                  />
-                                ) : null}
-                              </span>
-                            </Stepper.Description>
-                          ) : null}
-                        </Stepper.Content>
-                        <Stepper.Separator />
-                      </Stepper.Step>
-                    ))}
-                  </Stepper>
-                </Widget.Content>
-              </Widget>
+                    <Widget.Title
+                      icon={<HugeiconsIcon icon={Activity01Icon} />}
+                    >
+                      Progress
+                    </Widget.Title>
+                  </Widget.Header>
+                  <Widget.Content className="p-2">
+                    <DeploymentProgress
+                      deployment={item}
+                      steps={progressSteps}
+                      hasLogs={stream.logs.length > 0}
+                    />
+                  </Widget.Content>
+                </Widget>
+              </div>
             ),
           },
           {
@@ -579,10 +656,15 @@ export function DeploymentDetail() {
 }
 
 function formatTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    hour: "2-digit",
-    hour12: false,
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(new Date(value));
+  return displayTime(value);
+}
+
+function pullRequestStateTooltip(pullRequest: DeploymentPullRequest) {
+  if (pullRequest.merged)
+    return `Merged from ${pullRequest.headBranch} into ${pullRequest.baseBranch}.`;
+  if (pullRequest.draft)
+    return `Draft pull request from ${pullRequest.headBranch} into ${pullRequest.baseBranch}.`;
+  if (pullRequest.state === "open")
+    return `Open pull request from ${pullRequest.headBranch} into ${pullRequest.baseBranch}.`;
+  return `Closed without merging into ${pullRequest.baseBranch}.`;
 }

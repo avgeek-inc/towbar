@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { managedResourceTypes } from "./manifest.js";
 
 const base = z.object({
   q: z.string().trim().max(200).optional(),
@@ -7,8 +8,9 @@ const base = z.object({
 export const workloadFilters = base
   .extend({
     sourceId: z.uuid().optional(),
+    environment: z.string().min(1).max(63).optional(),
     serverIp: z.string().max(100).optional(),
-    resourceType: z.enum(["image", "postgres", "redis"]).optional(),
+    resourceType: z.enum(["image", ...managedResourceTypes]).optional(),
     running: z.enum(["running", "stopped", "missing", "unknown"]).optional(),
     health: z
       .enum(["healthy", "unhealthy", "starting", "none", "unknown"])
@@ -48,13 +50,19 @@ function select<T>(
   query: Base,
   attention: (item: T) => boolean,
   matches: (item: T) => boolean,
+  countKey?: (item: T) => unknown,
 ) {
+  const count = (rows: T[]) =>
+    countKey ? new Set(rows.map(countKey)).size : rows.length;
   return {
     items: items.filter(
       (item) =>
         (query.view !== "attention" || attention(item)) && matches(item),
     ),
-    counts: { all: items.length, attention: items.filter(attention).length },
+    counts: {
+      all: count(items),
+      attention: count(items.filter(attention)),
+    },
   };
 }
 const includes = (text: string, q?: string) =>
@@ -63,9 +71,11 @@ export function filterWorkloads<
   T extends {
     name: string;
     sourceId: string;
+    entityId?: string | null;
     serverIp: string;
     kind: string;
     serverReady: boolean;
+    environment?: { name: string } | null;
     runtimeState: {
       healthStatus: string;
       observedState: string;
@@ -74,7 +84,7 @@ export function filterWorkloads<
     };
   },
 >(items: T[], query: z.output<typeof workloadFilters>) {
-  return select(
+  const result = select(
     items,
     query,
     (item) =>
@@ -86,11 +96,23 @@ export function filterWorkloads<
     (item) =>
       includes(`${item.name} ${item.serverIp}`, query.q) &&
       (!query.sourceId || item.sourceId === query.sourceId) &&
+      (!query.environment || item.environment?.name === query.environment) &&
       (!query.serverIp || item.serverIp === query.serverIp) &&
       (!query.resourceType || item.kind === query.resourceType) &&
       (!query.running || item.runtimeState.observedState === query.running) &&
       (!query.health || item.runtimeState.healthStatus === query.health),
+    (item) => (item.entityId ? `${item.sourceId}:${item.entityId}` : item),
   );
+  return {
+    ...result,
+    environments: [
+      ...new Set(
+        items
+          .filter((item) => !query.sourceId || item.sourceId === query.sourceId)
+          .flatMap((item) => (item.environment ? [item.environment.name] : [])),
+      ),
+    ].sort(),
+  };
 }
 export function filterServers<
   T extends {

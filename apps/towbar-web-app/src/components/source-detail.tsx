@@ -1,10 +1,13 @@
 "use client";
+import { useAccess } from "./access-context";
+import { IntegrationProviderLogo } from "./integration-provider-logo";
+import { groupDeployableInstances } from "@/lib/deployable-groups";
 import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import {
   DashboardCircleIcon,
-  DatabaseIcon,
+  CubeIcon,
   Delete02Icon,
-  GithubIcon,
+  CloudIcon,
   ReloadIcon,
   SourceCodeIcon,
   Settings01Icon,
@@ -24,13 +27,10 @@ import type {
   Source,
   SourceSync,
 } from "@workspace/towbar-web-client";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
 import { Pagination } from "@workspace/web-design-system/navigation/pagination";
+import { NewTabIndicator } from "@workspace/web-design-system/navigation/new-tab-indicator";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
-import dynamic from "next/dynamic";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { CodeBlock } from "@workspace/web-design-system/typography/code-block";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
@@ -49,25 +49,18 @@ import {
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { RelativeTime } from "./last-synced-time";
+import { formatDate } from "./dashboard-overview";
 import { SourceSecrets } from "./app-secrets";
 import {
   SourceNotifications,
   type NotificationDestinationsResponse,
 } from "./source-notifications";
+import { SourceEnvironmentManifest } from "./source-environment-manifest";
+import { SourceEnvironments } from "./source-environments";
+import { SourceEnvironmentConnect } from "./source-environment-connect";
 import { SourceApps, SourceResources } from "./source-inventory";
 import { ResponsiveSubtabs } from "./responsive-subtabs";
 import { AutoDeployControlEditor } from "./auto-deploy-control";
-
-const CodeEditor = dynamic(() => import("./code-editor"), { ssr: false });
-
-type ManifestResponse = {
-  manifest: {
-    commitSha: string;
-    manifest: unknown;
-    manifestDigest: string;
-    rawManifest: string;
-  } | null;
-};
 
 const SOURCE_SYNC_PAGE_SIZE = 10;
 
@@ -75,12 +68,16 @@ export function SourceDetail() {
   const { sourceId } = useParams<{ sourceId: string }>();
   const router = useRouter();
   const detailNavigation = useDetailNavigation();
+  const { can } = useAccess();
   const source = useApiQuery<{
     canManageSource: boolean;
     source: Source;
   }>(`/v1/core/sources/${sourceId}`);
-  const manifest = useApiQuery<ManifestResponse>(
-    `/v1/core/sources/${sourceId}/manifest`,
+  const repository = source.data?.source;
+  const branches = useApiQuery<{ branches: string[] }>(
+    repository && can("repository.read")
+      ? `/v1/core/sources/${sourceId}/branches`
+      : null,
   );
   const syncs = useApiQuery<{ syncs: SourceSync[] }>(
     `/v1/core/sources/${sourceId}/syncs`,
@@ -103,23 +100,37 @@ export function SourceDetail() {
     5_000,
   );
   const servers = useApiQuery<{ servers: Server[] }>("/v1/core/servers", 5_000);
-  const error = source.error ?? manifest.error ?? syncs.error;
+  const error = source.error ?? syncs.error;
   if (error)
     return (
       <DashboardPage
-        icon={GithubIcon}
+        icon={SourceCodeIcon}
+        titleIcon={
+          <IntegrationProviderLogo
+            provider={repository?.provider ?? "github"}
+            className="size-6"
+            size={24}
+          />
+        }
         breadcrumbAncestors={sourcesBreadcrumb}
-        title="Source"
+        title="Repository"
       >
         <QueryError message={error} />
       </DashboardPage>
     );
-  if (!source.data || !manifest.data || !syncs.data)
+  if (!source.data || !syncs.data)
     return (
       <DashboardPage
-        icon={GithubIcon}
+        icon={SourceCodeIcon}
+        titleIcon={
+          <IntegrationProviderLogo
+            provider={repository?.provider ?? "github"}
+            className="size-6"
+            size={24}
+          />
+        }
         breadcrumbAncestors={sourcesBreadcrumb}
-        title="Source"
+        title="Repository"
       >
         <QueryLoading />
       </DashboardPage>
@@ -128,6 +139,25 @@ export function SourceDetail() {
   const item = source.data.source;
   const latestSync = syncs.data.syncs[0];
   const syncColumns: ResourceTableColumn<SourceSync>[] = [
+    {
+      key: "environment",
+      header: "Environment",
+      cell: (sync) => sync.environment?.name ?? "Not recorded",
+      className: "min-w-36",
+    },
+    {
+      key: "branch",
+      header: "Branch",
+      cell: (sync) =>
+        sync.environment ? (
+          <TypographyCode className="whitespace-nowrap">
+            {sync.environment.branch}
+          </TypographyCode>
+        ) : (
+          "Not recorded"
+        ),
+      className: "min-w-36",
+    },
     {
       key: "commit",
       header: "Commit",
@@ -147,7 +177,13 @@ export function SourceDetail() {
     {
       key: "result",
       header: "Result",
-      cell: (sync) => getSyncIssueMessage(sync.issues) ?? "Manifest accepted",
+      cell: (sync) =>
+        getSyncIssueMessage(sync.issues) ??
+        (sync.status === "succeeded"
+          ? "Manifest accepted"
+          : sync.status === "failed"
+            ? "Sync failed"
+            : "Pending validation"),
       className: "min-w-48 whitespace-nowrap",
     },
     {
@@ -164,28 +200,68 @@ export function SourceDetail() {
     {
       key: "status",
       header: "Status",
-      cell: (sync) => <StatusBadge status={sync.status} />,
+      cell: (sync) => (
+        <StatusBadge
+          status={sync.status}
+          tooltip={
+            sync.finishedAt
+              ? `Repository sync ${sync.status}. Finished ${formatDate(sync.finishedAt)}.`
+              : `Repository sync ${sync.status}. Requested ${formatDate(sync.createdAt)}.`
+          }
+        />
+      ),
     },
   ];
 
   return (
     <DashboardPage
-      icon={GithubIcon}
+      icon={SourceCodeIcon}
+      titleIcon={
+        <IntegrationProviderLogo
+          provider={item.provider}
+          className="size-6"
+          size={24}
+        />
+      }
       actions={
         <div className="flex flex-wrap justify-end gap-2">
-          {item.status === "active" ? (
+          {source.data.canManageSource &&
+          item.status === "active" &&
+          detailNavigation.section === "environments" ? (
+            <SourceEnvironmentConnect
+              sourceId={sourceId}
+              branches={branches.data?.branches ?? []}
+            />
+          ) : null}
+          {item.status === "active" && can("repository.sync") ? (
             <ActionButton
-              action={() =>
-                api.post(`/v1/core/sources/${sourceId}/actions/sync`)
-              }
+              action={async () => {
+                const result = await api.post<{
+                  outcomes: {
+                    environmentId: string;
+                    syncId: string | null;
+                    error: string | null;
+                  }[];
+                }>(`/v1/core/sources/${sourceId}/environments/syncs`);
+                const failures = result.outcomes.filter(
+                  (outcome) => outcome.error,
+                );
+                if (failures.length) {
+                  throw new Error(
+                    `${result.outcomes.length - failures.length} environment syncs queued; ${failures.length} failed: ${failures.map((outcome) => outcome.error).join("; ")}`,
+                  );
+                }
+                if (!result.outcomes.length)
+                  throw new Error("No connected environments to sync");
+              }}
               confirm={{
-                actionLabel: "Sync source",
+                actionLabel: "Sync",
                 description:
-                  "Towbar will fetch the latest commit, validate and reconcile the manifest, then queue every eligible missing or outdated deployable with auto-deploy enabled.",
-                title: "Sync this Source now?",
+                  "Towbar will refresh each environment’s inventory from its mapped branch. This does not deploy workloads. Member-initiated syncs pause runtime automation until an Admin enables it.",
+                title: "Sync environments now?",
               }}
               pendingLabel="Queueing sync…"
-              success="Source sync queued"
+              success="Environment syncs queued"
               variant="primary"
             >
               <HugeiconsIcon
@@ -193,7 +269,7 @@ export function SourceDetail() {
                 icon={ReloadIcon}
                 className="size-4 shrink-0"
               />
-              Sync now
+              Sync
             </ActionButton>
           ) : null}
         </div>
@@ -203,7 +279,7 @@ export function SourceDetail() {
         latestSync ? (
           <InlineLink
             className="inline-flex items-center"
-            href={`/sources/${sourceId}/syncs/${latestSync.id}`}
+            href={`/repositories/${sourceId}/syncs/${latestSync.id}`}
           >
             <SyncStatusChip sync={latestSync} />
           </InlineLink>
@@ -214,26 +290,44 @@ export function SourceDetail() {
       title={item.repositoryName}
       titleContent={
         <a
-          href={`https://github.com/${encodeURIComponent(item.repositoryOwner)}/${encodeURIComponent(item.repositoryName)}`}
+          href={item.repositoryUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="truncate rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
-          aria-label={`${item.repositoryOwner}/${item.repositoryName} on GitHub (opens in a new tab)`}
+          className="inline-flex min-w-0 items-center rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+          aria-label={`${item.repositoryOwner}/${item.repositoryName} on ${item.provider === "github" ? "GitHub" : "GitLab"} (opens in a new tab)`}
           title={`${item.repositoryOwner}/${item.repositoryName}`}
         >
-          {item.repositoryName}
+          <span className="truncate">{item.repositoryName}</span>
+          <NewTabIndicator />
         </a>
       }
     >
       <PageTabs
-        defaultValue="apps"
+        defaultValue="environments"
         tabs={[
+          {
+            value: "environments",
+            label: "Environments",
+            icon: <HugeiconsIcon icon={CloudIcon} />,
+            content: (
+              <SourceEnvironments
+                sourceId={sourceId}
+                canManage={source.data.canManageSource}
+                branches={branches.data?.branches ?? []}
+              />
+            ),
+          },
           {
             value: "apps",
             label: "Apps",
             icon: <HugeiconsIcon icon={DashboardCircleIcon} />,
             indicator: apps.data
-              ? { label: String(apps.data.apps.length), variant: "secondary" }
+              ? {
+                  label: String(
+                    groupDeployableInstances(apps.data.apps).length,
+                  ),
+                  variant: "secondary",
+                }
               : undefined,
             content: (
               <SourceApps
@@ -247,17 +341,18 @@ export function SourceDetail() {
                   servers.error
                 }
                 servers={servers.data?.servers}
-                sourceId={sourceId}
               />
             ),
           },
           {
             value: "resources",
             label: "Resources",
-            icon: <HugeiconsIcon icon={DatabaseIcon} />,
+            icon: <HugeiconsIcon icon={CubeIcon} />,
             indicator: resources.data
               ? {
-                  label: String(resources.data.resources.length),
+                  label: String(
+                    groupDeployableInstances(resources.data.resources).length,
+                  ),
                   variant: "secondary",
                 }
               : undefined,
@@ -273,52 +368,20 @@ export function SourceDetail() {
                 }
                 resources={resources.data?.resources}
                 servers={servers.data?.servers}
-                sourceId={sourceId}
               />
             ),
           },
           {
             value: "manifest",
             label: "Manifest",
-            group: "Source information",
+            group: "Repository information",
             icon: <HugeiconsIcon icon={SourceCodeIcon} />,
-            content: manifest.data.manifest ? (
-              <CodeBlock
-                aria-label="Deployment manifest"
-                className="w-full min-w-0"
-              >
-                <CodeBlock.Header>
-                  <CodeBlock.Filename>Deployment manifest</CodeBlock.Filename>
-                  <CodeBlock.CopyButton
-                    code={manifest.data.manifest.rawManifest}
-                  />
-                </CodeBlock.Header>
-                <Widget.Content>
-                  <CodeEditor
-                    ariaLabel="Deployment manifest code"
-                    language="yaml"
-                    value={manifest.data.manifest.rawManifest}
-                    disabled
-                    embedded
-                  />
-                </Widget.Content>
-              </CodeBlock>
-            ) : (
-              <EmptyState>
-                <EmptyState.Header>
-                  <EmptyState.Title>No manifest imported</EmptyState.Title>
-                  <EmptyState.Description>
-                    Run the first Source sync to load and validate the
-                    deployment manifest.
-                  </EmptyState.Description>
-                </EmptyState.Header>
-              </EmptyState>
-            ),
+            content: <SourceEnvironmentManifest sourceId={sourceId} />,
           },
           {
             value: "sync-history",
             label: "Sync history",
-            group: "Source information",
+            group: "Repository information",
             icon: <HugeiconsIcon icon={ReloadIcon} />,
             content: (
               <SourceSyncHistory
@@ -337,7 +400,7 @@ export function SourceDetail() {
               <SourceSettings
                 canManage={source.data.canManageSource}
                 isActive={detailNavigation.section === "settings"}
-                onDelete={() => router.push("/sources")}
+                onDelete={() => router.push("/repositories")}
                 sourceId={sourceId}
               />
             ),
@@ -359,16 +422,17 @@ function SourceSettings({
   onDelete: () => void;
   sourceId: string;
 }) {
+  const { can } = useAccess();
   const notificationDestinations =
     useApiQuery<NotificationDestinationsResponse>(
-      isActive
+      isActive && can("notification.manage")
         ? `/v1/core/sources/${sourceId}/notifications/destinations`
         : null,
     );
 
   return (
     <SourceSubtabs
-      ariaLabel="Source settings"
+      ariaLabel="Repository settings"
       collapseOnMobile
       defaultSelectedKey="secrets"
       tabs={[
@@ -405,7 +469,7 @@ function SourceSettings({
                   >
                     <div className="content-grid">
                       <p className="max-w-3xl text-sm text-muted">
-                        Deleting a Source removes its imported inventory and
+                        Deleting a Repository removes its imported inventory and
                         operational history. Workspace integrations, servers,
                         and backup objects already in S3 remain available.
                         Running services and Docker data stay on the servers.
@@ -417,14 +481,14 @@ function SourceSettings({
                           api.delete(`/v1/core/sources/${sourceId}`)
                         }
                         confirm={{
-                          actionLabel: "Delete Source permanently",
+                          actionLabel: "Delete Repository permanently",
                           description:
-                            "This permanently deletes the Source, sync history, Apps, Resources, Deployments, Releases, backup metadata, and runtime operations. Workspace integrations, servers, their credentials, checks, and trust records remain available. Running services and Docker data are not deleted. Check each server afterward to find leftovers in Cleanup. This cannot be undone.",
-                          title: "Delete this Source and its inventory?",
+                            "This permanently deletes the Repository, sync history, Apps, Resources, Deployments, Releases, backup metadata, and runtime operations. Workspace integrations, servers, their credentials, checks, and trust records remain available. Running services and Docker data are not deleted. Check each server afterward to find leftovers in Cleanup. This cannot be undone.",
+                          title: "Delete this Repository and its inventory?",
                         }}
                         onSuccess={onDelete}
                         pendingLabel="Deleting…"
-                        success="Source deleted"
+                        success="Repository deleted"
                         variant="danger"
                       >
                         <HugeiconsIcon
@@ -432,7 +496,7 @@ function SourceSettings({
                           icon={Delete02Icon}
                           className="size-4 shrink-0"
                         />
-                        Delete Source
+                        Delete Repository
                       </ActionButton>
                     </div>
                   </FormCard>
@@ -472,7 +536,7 @@ function SourceSyncHistory({
         columns={columns}
         emptyDescription="Run the first sync to validate and import the deployment manifest."
         emptyTitle="No sync attempts yet"
-        getRowHref={(sync) => `/sources/${sourceId}/syncs/${sync.id}`}
+        getRowHref={(sync) => `/repositories/${sourceId}/syncs/${sync.id}`}
         getRowKey={(sync) => sync.id}
         items={visibleSyncs}
       />
@@ -536,7 +600,7 @@ function getSyncStatusLabel(sync?: SourceSync) {
   if (!sync) return "Not synced";
   if (sync.status === "queued") return "Sync queued";
   if (sync.status === "running") return "Syncing";
-  if (sync.status === "succeeded") return "Synced";
+  if (sync.status === "succeeded") return "Last sync succeeded";
   return "Sync failed";
 }
 

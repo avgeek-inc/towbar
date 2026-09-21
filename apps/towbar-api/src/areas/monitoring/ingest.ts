@@ -147,6 +147,7 @@ export async function ingestMonitoringSample(
         (!deployment || deployment.appId !== entity.deployableId)
       )
         return [];
+      if (deployment?.previewId) return [];
       return [
         {
           serverId,

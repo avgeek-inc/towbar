@@ -1,7 +1,11 @@
 "use client";
-import { SecondaryItems } from "./secondary-sidebar";
-import { MonitoringEntityPicker } from "./monitoring-entity-picker";
-import { useMonitoringSelection } from "@/hooks/use-monitoring-selection";
+
+import {
+  TableCellStack,
+  TableCellDescription,
+} from "@workspace/towbar-web-ui/table-cell-text";
+
+import { SecondaryItems, SecondarySection } from "./secondary-sidebar";
 import { ScoutIcon } from "./scout-icons";
 import { useState } from "react";
 import { useQueryChoice } from "@/hooks/use-page-query";
@@ -10,42 +14,44 @@ import {
   CheckmarkCircle02Icon,
 } from "@hugeicons/core-free-icons";
 import { Button } from "@workspace/web-design-system/buttons/button";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
 import { DashboardPage } from "./page-parts";
-import { PageSelectionTitle } from "./page-selection-title";
-import { conditionDescription, scoutValue } from "./scout-controls";
+import {
+  conditionDescription,
+  ScoutSelect,
+  scoutValue,
+} from "./scout-controls";
 import { RelativeTime } from "./last-synced-time";
 import { ScoutIncidentDrawer } from "./scout-incident-drawer";
 import {
+  ScoutIncidentSeverityChip,
+  ScoutIncidentStateChip,
+} from "./scout-incident-chips";
+import {
   entityLabel,
-  useMonitoringOverview,
+  useWorkspaceIncidents,
   type OverviewIncident,
 } from "./workspace-monitoring-shared";
 
 export function WorkspaceIncidents() {
-  const {
-    kind,
-    setKind,
-    selected: selectedEntity,
-    select: setSelectedEntity,
-    entityKey,
-    resolve,
-  } = useMonitoringSelection();
   const [state, setState] = useQueryChoice(
     "state",
-    ["all", "active", "resolved"],
+    ["active", "resolved"],
+    "active",
+  );
+  const [severity, setSeverity] = useQueryChoice(
+    "severity",
+    ["all", "critical", "warning"],
     "all",
   );
   const [selected, setSelected] = useState<OverviewIncident | null>(null);
-  const { query, pagination, reset } = useMonitoringOverview<OverviewIncident>(
-    "incidents",
+  const { query, pagination, reset } = useWorkspaceIncidents<OverviewIncident>(
     state,
-    `&kind=${kind}${selectedEntity ? `&entityId=${selectedEntity.id}` : ""}`,
+    severity,
   );
   const columns: ResourceTableColumn<OverviewIncident>[] = [
     {
@@ -53,69 +59,42 @@ export function WorkspaceIncidents() {
       header: "Incident",
       className: "min-w-72",
       cell: ({ incident }) => (
-        <div className="grid gap-0.5">
+        <TableCellStack as="div">
           <span>{incident.ruleName}</span>
-          <span className="text-xs text-muted">
+          <TableCellDescription>
             {conditionDescription(incident.condition)}
-          </span>
-        </div>
+          </TableCellDescription>
+        </TableCellStack>
       ),
     },
     {
       key: "entity",
       header: "Entity",
       cell: (row) => (
-        <div className="grid min-w-40 gap-0.5">
+        <TableCellStack as="div" className="min-w-40">
           <span className="whitespace-nowrap">
             {entityLabel(row, row.incident)}
           </span>
-          <span className="text-xs text-muted">
+          <TableCellDescription>
             {row.incident.deployableId
               ? row.workload?.kind === "app"
                 ? "App"
                 : "Resource"
               : "Server"}
-          </span>
-        </div>
+          </TableCellDescription>
+        </TableCellStack>
       ),
     },
     {
       key: "status",
-      header: "Status",
+      header: "State",
+      cell: ({ incident }) => <ScoutIncidentStateChip incident={incident} />,
+    },
+    {
+      key: "severity",
+      header: "Severity",
       cell: ({ incident }) => (
-        <Chip
-          size="small"
-          icon={
-            <ScoutIcon
-              name={
-                incident.resolvedAt
-                  ? incident.resolutionReason === "recovered"
-                    ? "resolved"
-                    : "close"
-                  : incident.severity === "critical"
-                    ? "critical"
-                    : "warning"
-              }
-            />
-          }
-          variant={
-            incident.resolvedAt
-              ? incident.resolutionReason === "recovered"
-                ? "success"
-                : "secondary"
-              : incident.severity === "critical"
-                ? "destructive"
-                : "warning"
-          }
-        >
-          {incident.resolvedAt
-            ? incident.resolutionReason === "recovered"
-              ? "Recovered"
-              : "Closed"
-            : incident.severity === "critical"
-              ? "Critical"
-              : "Warning"}
-        </Chip>
+        <ScoutIncidentSeverityChip severity={incident.severity} />
       ),
     },
     {
@@ -145,7 +124,7 @@ export function WorkspaceIncidents() {
       key: "view",
       header: "",
       cell: (row) => (
-        <Button size="sm" variant="secondary" onPress={() => setSelected(row)}>
+        <Button variant="secondary" onPress={() => setSelected(row)}>
           <ScoutIcon name="view" />
           View Incident
         </Button>
@@ -154,23 +133,9 @@ export function WorkspaceIncidents() {
   ];
   return (
     <DashboardPage
-      title={
-        selectedEntity
-          ? `${selectedEntity.name} · ${state === "active" ? "Active incidents" : state === "resolved" ? "Resolved incidents" : "All incidents"}`
-          : state === "active"
-            ? "Active incidents"
-            : state === "resolved"
-              ? "Resolved incidents"
-              : "All incidents"
-      }
+      title={state === "active" ? "Active incidents" : "Resolved incidents"}
       icon={state === "resolved" ? CheckmarkCircle02Icon : AlertCircleIcon}
     >
-      {selectedEntity ? (
-        <PageSelectionTitle
-          label={`${selectedEntity.name} · ${state === "active" ? "Active incidents" : state === "resolved" ? "Resolved incidents" : "All incidents"}`}
-          icon={<ScoutIcon name={selectedEntity.kind} />}
-        />
-      ) : null}
       <SecondaryItems
         title="Incident status"
         selected={state}
@@ -179,7 +144,6 @@ export function WorkspaceIncidents() {
           reset();
         }}
         items={[
-          { id: "all", label: "All incidents", icon: <ScoutIcon name="all" /> },
           {
             id: "active",
             label: "Active",
@@ -192,28 +156,24 @@ export function WorkspaceIncidents() {
           },
         ]}
       />
-      <MonitoringEntityPicker
-        allowAll
-        kind={kind}
-        entityKey={entityKey}
-        onResolve={resolve}
-        onKindChange={(value) => {
-          setKind(value);
-          reset();
-        }}
-        selected={selectedEntity}
-        onSelect={(entity, replace) => {
-          setSelectedEntity(entity, replace);
-          reset();
-        }}
-      />
+      <SecondarySection title="Filter incidents">
+        <ScoutSelect
+          label="Severity"
+          value={severity}
+          onChange={(value) => {
+            setSeverity(value);
+            reset();
+          }}
+          options={[
+            { id: "all", label: "All severities" },
+            { id: "critical", label: "Critical" },
+            { id: "warning", label: "Warning" },
+          ]}
+        />
+      </SecondarySection>
       <div className="grid gap-5">
         {query.error ? <QueryError message={query.error} /> : null}
-        {entityKey && !selectedEntity ? (
-          <p className="text-sm text-muted">
-            Select an available entity to view its incidents.
-          </p>
-        ) : query.data ? (
+        {query.data ? (
           <ResourceTable
             ariaLabel="Workspace incidents"
             columns={columns}

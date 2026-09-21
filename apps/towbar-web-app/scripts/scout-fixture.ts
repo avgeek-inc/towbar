@@ -3,7 +3,6 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   scoutAlertPresets,
   scoutAlertRuleSchema,
-  scoutMuteSchema,
 } from "@workspace/towbar-core/scout-alerts";
 import {
   comparisonMetrics,
@@ -14,6 +13,7 @@ import {
 import type { ComparisonPoint } from "@workspace/towbar-web-client";
 
 type Workload = {
+  environment: { id: string; name: string } | null;
   id: string;
   name: string;
   serverId: string;
@@ -27,17 +27,19 @@ export function createScoutFixture(
 ) {
   const now = Date.now();
   const iso = (ago: number) => new Date(now - ago * 60_000).toISOString();
-  const destinations = serverIds.map((serverId) => ({
-    id: randomUUID(),
-    serverId,
-    sourceId: null,
-    provider: "smtp" as const,
-    enabled: true,
-    categories: ["scout"],
-    config: { recipients: ["operations@example.com"] },
-    createdAt: iso(1440),
-    updatedAt: iso(1440),
-  }));
+  const destinations = [
+    {
+      id: randomUUID(),
+      serverId: null,
+      sourceId: null,
+      provider: "smtp" as const,
+      enabled: true,
+      categories: ["scout"],
+      config: { recipients: ["operations@example.com"] },
+      createdAt: iso(1440),
+      updatedAt: iso(1440),
+    },
+  ];
   const rules = serverIds.flatMap((serverId, serverIndex) =>
     ["disk", "memory", "offline"].map((key, index) => {
       const preset = scoutAlertPresets.find((p) => p.id === key)!;
@@ -50,8 +52,6 @@ export function createScoutFixture(
         id: randomUUID(),
         serverId,
         createdAt: iso(index + serverIndex * 10),
-        mutedUntil: null as string | null,
-        muteReason: "",
         evaluationState: serverIndex
           ? "inactive"
           : index === 0
@@ -82,7 +82,7 @@ export function createScoutFixture(
         ruleName: rule.name,
         severity: rule.severity,
         condition: rule.condition,
-        environment: rule.environment,
+        environment: "production" as const,
         deployableId: rule.deployableId,
         openedAt: iso(12 + item * 90 + index * 30),
         resolvedAt:
@@ -93,16 +93,11 @@ export function createScoutFixture(
         lastNotifiedAt: iso(12 + item * 90 + index * 30),
       })),
     );
-  const settings = new Map(
-    serverIds.map((id) => [
-      id,
-      { mutedUntil: null as string | null, muteReason: "" },
-    ]),
-  );
   const deployments = workloads.flatMap((w) =>
     Array.from({ length: 3 }, (_, index) => ({
       id: randomUUID(),
       deployableId: w.id,
+      targetEnvironment: w.environment,
       commitSha: [
         "ad92c1b48bd78f920ddd",
         "c88b05a41bb93c9f411a",
@@ -121,18 +116,20 @@ export function createScoutFixture(
     url: URL,
   ) {
     const serverMatch = url.pathname.match(
-      /^\/v1\/core\/servers\/([^/]+)\/(scout-alerts|notifications)(.*)$/,
+      /^\/v1\/core\/servers\/([^/]+)\/(scout-alerts)(.*)$/,
     );
     const compareMatch = url.pathname.match(
       /^\/v1\/core\/workloads\/([^/]+)\/(comparison-deployments|deployment-comparison)$/,
     );
     const globalMatch = url.pathname.match(
-      /^\/v1\/core\/monitoring\/(entities|alerts|incidents|summary)$/,
+      /^\/v1\/core\/monitoring\/(incidents|summary)$/,
     );
     if (!serverMatch && !compareMatch && !globalMatch) return false;
     const send = (status: number, data?: unknown) => {
       response.writeHead(status, { "content-type": "application/json" });
-      response.end(data === undefined ? undefined : JSON.stringify(data));
+      response.end(
+        data === undefined ? undefined : fixtureJson(response, data),
+      );
     };
     const fail = () =>
       send(404, { error: { message: "Fixture record not found" } });
@@ -141,114 +138,52 @@ export function createScoutFixture(
         send(200, {
           activeIncidents: incidents.filter((i) => !i.resolvedAt).length,
           criticalVulnerabilities,
-          pressuredEntities: 2,
         });
         return true;
       }
       const limit = Math.min(100, Number(url.searchParams.get("limit") ?? 20));
       const serverName = (id: string) =>
         `192.0.2.${10 + serverIds.indexOf(id)}`;
-      if (globalMatch[1] === "entities") {
-        const search = (url.searchParams.get("search") ?? "").toLowerCase(),
-          kind = url.searchParams.get("kind") ?? "all",
-          after = url.searchParams.get("after") ?? "";
-        const entities = [
-          ...serverIds.map((id) => ({
-            id,
-            key: `server:${id}`,
-            name: serverName(id),
-            kind: "server",
-            serverId: id,
-            serverName: serverName(id),
-            sourceId: null,
-          })),
-          ...workloads.map((w) => ({
-            id: w.id,
-            key: `${!w.kind || w.kind === "app" ? "app" : "resource"}:${w.id}`,
-            name: w.name,
-            kind: !w.kind || w.kind === "app" ? "app" : "resource",
-            serverId: w.serverId,
-            serverName: serverName(w.serverId),
-            sourceId: w.sourceId,
-          })),
-        ]
-          .filter(
-            (e) =>
-              (kind === "all" || kind === e.kind) &&
-              (e.name.toLowerCase().includes(search) ||
-                e.serverName.includes(search)) &&
-              e.key > after,
-          )
-          .sort((a, b) => a.key.localeCompare(b.key));
-        send(200, {
-          entities: entities.slice(0, limit),
-          nextAfter: entities.length > limit ? entities[limit - 1]!.key : null,
-        });
-      } else {
-        const state = url.searchParams.get("state") ?? "all",
-          before = url.searchParams.get("before"),
-          beforeId = url.searchParams.get("beforeId") ?? "";
-        const identity = (owner: {
-          serverId: string;
-          deployableId: string | null;
-        }) => ({
-          serverName: serverName(owner.serverId),
-          workload: owner.deployableId
-            ? {
-                ...workloads.find((w) => w.id === owner.deployableId),
-                archivedAt: null,
-              }
-            : null,
-        });
-        const items =
-          globalMatch[1] === "alerts"
-            ? rules.map((rule) => ({
-                ...identity(rule),
-                rule,
-                at: rule.createdAt,
-                id: rule.id,
-              }))
-            : incidents
-                .filter(
-                  (i) =>
-                    state === "all" ||
-                    (state === "active"
-                      ? !i.resolvedAt
-                      : Boolean(i.resolvedAt)),
-                )
-                .map((incident) => ({
-                  ...identity(incident),
-                  incident,
-                  at: incident.openedAt,
-                  id: incident.id,
-                }));
-        const filtered = items
-          .filter((item) => {
-            const owner = "rule" in item ? item.rule : item.incident;
-            const kind = !owner.deployableId
-              ? "server"
-              : item.workload?.kind === "app" || !item.workload?.kind
-                ? "app"
-                : "resource";
-            const requestedKind = url.searchParams.get("kind") ?? "all",
-              entityId = url.searchParams.get("entityId");
-            return (
-              (requestedKind === "all" || requestedKind === kind) &&
-              (!entityId || (owner.deployableId ?? owner.serverId) === entityId)
-            );
-          })
-          .filter(
-            (i) =>
-              !before || i.at < before || (i.at === before && i.id < beforeId),
-          )
-          .sort((a, b) => b.at.localeCompare(a.at) || b.id.localeCompare(a.id));
-        send(200, {
-          items: filtered.slice(0, limit),
-          nextBefore: filtered.length > limit ? filtered[limit - 1]!.at : null,
-          nextBeforeId:
-            filtered.length > limit ? filtered[limit - 1]!.id : null,
-        });
-      }
+      const state = url.searchParams.get("state") ?? "active";
+      const severity = url.searchParams.get("severity") ?? "all";
+      const before = url.searchParams.get("before");
+      const beforeId = url.searchParams.get("beforeId") ?? "";
+      const filtered = incidents
+        .filter(
+          (incident) =>
+            (state === "active"
+              ? !incident.resolvedAt
+              : Boolean(incident.resolvedAt)) &&
+            (severity === "all" || incident.severity === severity),
+        )
+        .map((incident) => {
+          const workload = workloads.find(
+            (item) => item.id === incident.deployableId,
+          );
+          return {
+            serverName: serverName(incident.serverId),
+            workload: workload
+              ? {
+                  ...workload,
+                  environmentName: workload.environment?.name,
+                  archivedAt: null,
+                }
+              : null,
+            incident,
+            at: incident.openedAt,
+            id: incident.id,
+          };
+        })
+        .filter(
+          (i) =>
+            !before || i.at < before || (i.at === before && i.id < beforeId),
+        )
+        .sort((a, b) => b.at.localeCompare(a.at) || b.id.localeCompare(a.id));
+      send(200, {
+        items: filtered.slice(0, limit),
+        nextBefore: filtered.length > limit ? filtered[limit - 1]!.at : null,
+        nextBeforeId: filtered.length > limit ? filtered[limit - 1]!.id : null,
+      });
       return true;
     }
     if (compareMatch) {
@@ -383,19 +318,13 @@ export function createScoutFixture(
       });
       return true;
     }
-    const [, serverId, area, rest] = serverMatch!;
-    if (!settings.has(serverId!)) {
+    const [, serverId, , rest] = serverMatch!;
+    if (!serverIds.includes(serverId!)) {
       fail();
       return true;
     }
     if (request.method === "GET") {
-      if (area === "notifications")
-        send(200, {
-          canManageNotifications: true,
-          destinations: destinations.filter((d) => d.serverId === serverId),
-          providers: { slack: true, smtp: true },
-        });
-      else if (rest === "" || rest === "/")
+      if (rest === "" || rest === "/")
         send(200, {
           canManage: true,
           rules: rules.filter(
@@ -410,8 +339,7 @@ export function createScoutFixture(
           workloads: workloads
             .filter((w) => w.serverId === serverId)
             .map((w) => ({ ...w, kind: w.kind ?? "app" })),
-          settings: settings.get(serverId!),
-          destinations: destinations.filter((d) => d.serverId === serverId),
+          destinations,
           providers: { slack: true, smtp: true },
         });
       else if (
@@ -424,40 +352,38 @@ export function createScoutFixture(
         if (!incident) fail();
         else
           send(200, {
-            items: destinations
-              .filter((d) => d.serverId === serverId)
-              .flatMap((d) => [
-                {
-                  id: `${incident.id}-${d.id}-alert`,
-                  provider: d.provider,
-                  destination: d.config.recipients.join(", "),
-                  type: "scout.firing",
-                  state: "succeeded",
-                  createdAt: incident.openedAt,
-                  deliveredAt: new Date(
-                    new Date(incident.openedAt).getTime() + 1000,
-                  ).toISOString(),
-                  attemptCount: 1,
-                  errorCode: null,
-                },
-                ...(incident.resolvedAt
-                  ? [
-                      {
-                        id: `${incident.id}-${d.id}-recovery`,
-                        provider: d.provider,
-                        destination: d.config.recipients.join(", "),
-                        type: "scout.recovered",
-                        state: "succeeded",
-                        createdAt: incident.resolvedAt,
-                        deliveredAt: new Date(
-                          new Date(incident.resolvedAt).getTime() + 1000,
-                        ).toISOString(),
-                        attemptCount: 1,
-                        errorCode: null,
-                      },
-                    ]
-                  : []),
-              ]),
+            items: destinations.flatMap((d) => [
+              {
+                id: `${incident.id}-${d.id}-alert`,
+                provider: d.provider,
+                destination: d.config.recipients.join(", "),
+                type: "scout.firing",
+                state: "succeeded",
+                createdAt: incident.openedAt,
+                deliveredAt: new Date(
+                  new Date(incident.openedAt).getTime() + 1000,
+                ).toISOString(),
+                attemptCount: 1,
+                errorCode: null,
+              },
+              ...(incident.resolvedAt
+                ? [
+                    {
+                      id: `${incident.id}-${d.id}-recovery`,
+                      provider: d.provider,
+                      destination: d.config.recipients.join(", "),
+                      type: "scout.recovered",
+                      state: "succeeded",
+                      createdAt: incident.resolvedAt,
+                      deliveredAt: new Date(
+                        new Date(incident.resolvedAt).getTime() + 1000,
+                      ).toISOString(),
+                      attemptCount: 1,
+                      errorCode: null,
+                    },
+                  ]
+                : []),
+            ]),
             nextBefore: null,
             nextBeforeId: null,
           });
@@ -545,47 +471,10 @@ export function createScoutFixture(
       let body = "";
       for await (const chunk of request) body += String(chunk);
       const input = body ? JSON.parse(body) : {};
-      if (area === "notifications") {
-        const match = rest!.match(
-          /^\/destinations(?:\/([^/]+)(\/actions\/test)?)?$/,
-        );
-        if (!match) return fail();
-        const index = destinations.findIndex(
-          (d) => d.id === match[1] && d.serverId === serverId,
-        );
-        if (match[2])
-          return send(202, { delivery: { id: randomUUID(), cycle: 1 } });
-        if (request.method === "DELETE") {
-          if (index < 0) return fail();
-          destinations.splice(index, 1);
-          return send(204);
-        }
-        const destination = {
-          ...input,
-          id: index < 0 ? randomUUID() : match[1],
-          serverId,
-          sourceId: null,
-          createdAt: iso(0),
-          updatedAt: iso(0),
-        };
-        if (index >= 0) destinations[index] = destination;
-        else destinations.push(destination);
-        return send(index < 0 ? 201 : 200, { destination });
-      }
-      const match = rest!.match(/^\/rules\/([^/]+)(\/mute)?$/);
+      const match = rest!.match(/^\/rules\/([^/]+)$/);
       const rule = rules.find(
         (r) => r.id === match?.[1] && r.serverId === serverId,
       );
-      if (rest === "/mute" || match?.[2]) {
-        const mute = scoutMuteSchema.parse(input),
-          target = match ? rule : settings.get(serverId!);
-        if (!target) return fail();
-        target.mutedUntil = mute.durationSeconds
-          ? new Date(Date.now() + mute.durationSeconds * 1000).toISOString()
-          : null;
-        target.muteReason = mute.reason;
-        return send(200, target);
-      }
       if (request.method === "DELETE") {
         if (!rule) return fail();
         rules.splice(rules.indexOf(rule), 1);
@@ -599,8 +488,6 @@ export function createScoutFixture(
           createdAt: new Date().toISOString(),
           id: randomUUID(),
           serverId: serverId!,
-          mutedUntil: null,
-          muteReason: "",
           evaluatedAt: null as unknown as string,
           observedValue: null as unknown as number,
           evaluationState: "unknown",
@@ -617,3 +504,4 @@ export function createScoutFixture(
     return true;
   };
 }
+import { fixtureJson } from "./fixture-localization.ts";

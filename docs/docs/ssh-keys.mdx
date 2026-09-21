@@ -1,0 +1,68 @@
+---
+title: "SSH keys"
+description: "Generate or store private SSH keys and select them for server connections."
+---
+
+Open **Manage → SSH keys** to keep the private keys Towbar uses to connect to servers. Only Admins can manage these keys. API keys for scripts are separate and live in My Settings or Team Settings.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/ssh-keys-light.jpg"
+      alt="The key store shows key type and usage. Sign out is grouped with workspace settings in the sidebar."
+      width="1280"
+      height="720"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/ssh-keys-dark.jpg"
+      alt="The key store shows key type and usage. Sign out is grouped with workspace settings in the sidebar."
+      width="1280"
+      height="720"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    The key store shows key type and usage. Sign out is grouped with workspace
+    settings in the sidebar.
+  </p>
+</div>
+
+## Add a key
+
+Choose **Add private key** and select one of these types:
+
+- **Generate ED25519** creates an ED25519 key pair.
+- **Generate RSA** creates an RSA key pair.
+- **Add manually** stores an existing private key. A public key is optional; Towbar derives and verifies it when the key format supports that.
+
+Give every key a name. Add a description if it helps other Admins identify its purpose. Do not paste a real private key into repository files, issue reports, or screenshots.
+
+For a generated key, copy the public key into `~/.ssh/authorized_keys` for the SSH user on the target server. The private key stays in Towbar's encrypted store.
+
+## Use a key on a server
+
+1. Open **Servers**, select the server, and open **Settings → Credentials**.
+2. Choose a stored private key from the dropdown. **Add private key** inside the dropdown opens the same form without leaving the server.
+3. Save the selection and follow the connection verification flow.
+4. Compare the discovered host fingerprint with a trusted value from your server provider before trusting it.
+
+The SSH private key proves Towbar's identity to the server. The server's host key proves which server Towbar reached. Replacing one does not replace or verify the other.
+
+## Review and edit keys
+
+The table shows the name, description, key type, usage, and update time. **Not used** means no server currently selects the key. A usage chip shows how many servers use it.
+
+Open **Edit** to change the name or description. The public key appears in a disabled input and can be copied. The eye control reveals or masks the private key; revealing a stored key may require a recent authentication.
+
+A key used by a server cannot have its key material replaced. To rotate it, add a new stored key, install its public key on the affected servers, then select it in each server's Credentials page. Verify each connection before retiring the previous key. Towbar does not update a remote server's `authorized_keys` through this form.
+
+## Delete a key
+
+Delete asks for confirmation. A key selected by a server cannot be deleted. Select a replacement on each server first, then delete the unused stored key.
+
+Deleting a key from Towbar does not remove its public key from remote servers. Remove that access on the servers too when retiring the credential.
+
+See [server credentials and host trust](/docs/servers#register-and-trust-the-host) before preparing a new server or accepting a changed fingerprint.

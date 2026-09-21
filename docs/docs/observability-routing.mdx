@@ -1,0 +1,34 @@
+---
+title: "OpenTelemetry"
+description: "Export workload logs, metrics, and traces through managed, isolated collectors."
+---
+
+Towbar uses the environment-configured OpenTelemetry integration to run a managed Collector for workload logs, metrics, and traces. Authentication headers remain in the API runtime environment and are never returned by the dashboard.
+
+## OpenTelemetry
+
+Configure OpenTelemetry through the `TOWBAR_OTLP_*` runtime variables with an HTTPS endpoint, `http/protobuf` or `grpc`, optional authentication headers, an optional backend dashboard URL, and explicit private-network policy. The read-only integration page links to that dashboard without storing backend credentials. In the workload manifest, reference the integration and choose `logs`, `metrics`, `traces`, or a combination:
+
+```yaml
+container:
+  port: 3000
+  network: production-apps
+telemetry:
+  integration: otlp
+  signals: [logs, metrics, traces]
+  protocol: otlp-grpc
+  sampling: 0.25
+  redactAttributes: [enduser.email]
+  cardinalityLimit: 10000
+```
+
+The declared Docker network is required so Towbar can attach both the workload
+and its isolated collector without publishing a receiver on the host.
+
+Towbar runs a digest-pinned OpenTelemetry Collector Contrib image with bounded CPU, memory, item-counted queues, batches, retry time, gzip compression, and diagnostic output. Queue overflow rejects new telemetry instead of blocking application exporters. Authentication headers are written only to root-owned transient configuration. Logs, metrics, and traces use independent exporters and persistent queues so a failing backend signal cannot block the application or the other signals. The connection page reports live queue depth/capacity, per-signal enqueue drops, and failed sends from the Collector's loopback-only internal metrics endpoint. If the prepared host cannot inspect the container namespace, Towbar reports those counters as unavailable instead of zero. Resource attributes include workload, environment, release, container, and server identity for correlation.
+
+Sampling applies to traces. Attribute redaction is enforced before export. For metrics, `cardinalityLimit` is the maximum number of new unique values accepted for one metric attribute during each five-minute epoch. The Collector replaces values that exceed that growth threshold with the OpenTelemetry overflow sentinel and reaggregates metric types for which that operation is safe. Cumulative sums, histograms, exponential histograms, and summaries are tagged with `otel.metric.overflow` instead because the Collector cannot safely reaggregate those types; configure a backend rule for that marker when those metric types need a hard downstream cap. Core Towbar identity attributes are exempt so telemetry remains attributable. The collector does not expose an administrative receiver publicly.
+
+## Avoid duplicate collection
+
+A workload cannot enable OTLP logs and another log drain at the same time. Compose applies the same rule per service. Metrics or traces may coexist with a separate log drain. Provider-side acceptance does not prove indexing or retention, so send a synthetic event and verify it in the actual backend before enabling production routing.

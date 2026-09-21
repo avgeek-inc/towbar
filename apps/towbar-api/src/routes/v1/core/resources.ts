@@ -1,3 +1,4 @@
+import { actorAllows } from "@workspace/towbar-access";
 import {
   filterWorkloads,
   workloadFilters,
@@ -27,7 +28,7 @@ import {
 import { hasAwsCredentials } from "../../../areas/aws/service.js";
 import { hasAzureCredentials } from "../../../areas/azure/service.js";
 import { hasGcpCredentials } from "../../../areas/gcp/service.js";
-import { badRequest, forbidden } from "../../../http/errors.js";
+import { badRequest } from "../../../http/errors.js";
 import { readJson } from "../../../http/requests.js";
 import { autoDeployControlPatchSchema } from "./auto-deploy-control-requests.js";
 import {
@@ -42,7 +43,14 @@ const rollbackSchema = z
   .object({ releaseId: z.string().uuid().optional() })
   .strict();
 const logsSchema = z
-  .object({ tail: z.number().int().min(1).max(5_000) })
+  .object({
+    runtime: z.enum(["workload", "ingress"]).default("workload"),
+    service: z.string().trim().min(1).max(128).optional(),
+    tail: z.number().int().min(1).max(5_000),
+  })
+  .strict();
+const runtimeActionSchema = z
+  .object({ service: z.string().trim().min(1).max(128).optional() })
   .strict();
 const restoreSchema = z
   .object({
@@ -60,6 +68,7 @@ export const resourceRoutes = new Hono<TowbarHonoEnvironment>();
 resourceRoutes.get(
   "/",
   operation({
+    permissions: ["resource.read"],
     responseSchema: 'resources.ts:get:"/"',
     query: workloadFilters,
     summary: "List resources",
@@ -71,13 +80,18 @@ resourceRoutes.get(
       await listResources(context.get("user").workspaceId),
       workloadFilters.parse(context.req.query()),
     );
-    return context.json({ resources: result.items, counts: result.counts });
+    return context.json({
+      resources: result.items,
+      counts: result.counts,
+      environments: result.environments,
+    });
   },
 );
 
 resourceRoutes.get(
   "/:resourceId",
   operation({
+    permissions: ["resource.read"],
     responseSchema: 'resources.ts:get:"/:resourceId"',
     summary: "Get resource",
     response: "JSON object containing resource.",
@@ -97,6 +111,7 @@ resourceRoutes.get(
 resourceRoutes.get(
   "/:resourceId/auto-deploy-control",
   operation({
+    permissions: ["resource.read"],
     responseSchema: 'resources.ts:get:"/:resourceId/auto-deploy-control"',
     summary: "Get resource auto-deploy settings",
     response: "JSON object containing autoDeploy, canManageAutoDeploy.",
@@ -110,7 +125,9 @@ resourceRoutes.get(
         expectedType: "resource",
         workspaceId: user.workspaceId,
       }),
-      canManageAutoDeploy: user.workspaceRole === "owner",
+      canManageAutoDeploy: actorAllows(context.get("actor"), [
+        "deployment.create",
+      ]),
     });
   },
 );
@@ -118,20 +135,15 @@ resourceRoutes.get(
 resourceRoutes.patch(
   "/:resourceId/auto-deploy-control",
   operation({
+    permissions: ["deployment.create"],
     responseSchema: 'resources.ts:patch:"/:resourceId/auto-deploy-control"',
     summary: "Update resource auto-deploy settings",
     body: autoDeployControlPatchSchema,
-    ownerOnly: true,
     response: "JSON object containing autoDeploy, canManageAutoDeploy.",
     status: 200,
   }),
   async (context) => {
     const user = context.get("user");
-    if (user.workspaceRole !== "owner") {
-      throw forbidden(
-        "Only the owner can manage automatic deployment controls",
-      );
-    }
     const result = await updateDeployableAutoDeployControl({
       deployableId: context.req.param("resourceId"),
       expectedType: "resource",
@@ -144,7 +156,9 @@ resourceRoutes.patch(
     }
     return context.json({
       autoDeploy,
-      canManageAutoDeploy: user.workspaceRole === "owner",
+      canManageAutoDeploy: actorAllows(context.get("actor"), [
+        "deployment.create",
+      ]),
     });
   },
 );
@@ -152,6 +166,7 @@ resourceRoutes.patch(
 resourceRoutes.get(
   "/:resourceId/deployments",
   operation({
+    permissions: ["resource.read"],
     responseSchema: 'resources.ts:get:"/:resourceId/deployments"',
     summary: "List resource deployments",
     response: "JSON object containing deployments.",
@@ -169,6 +184,7 @@ resourceRoutes.get(
 resourceRoutes.get(
   "/:resourceId/releases",
   operation({
+    permissions: ["resource.read"],
     responseSchema: 'resources.ts:get:"/:resourceId/releases"',
     summary: "List resource releases",
     response: "JSON object containing releases.",
@@ -186,6 +202,7 @@ resourceRoutes.get(
 resourceRoutes.get(
   "/:resourceId/operations",
   operation({
+    permissions: ["resource.read"],
     responseSchema: 'resources.ts:get:"/:resourceId/operations"',
     summary: "List resource operations",
     response: "JSON object containing operations.",
@@ -203,6 +220,7 @@ resourceRoutes.get(
 resourceRoutes.get(
   "/:resourceId/backup-assurance",
   operation({
+    permissions: ["resource.read"],
     responseSchema: 'resources.ts:get:"/:resourceId/backup-assurance"',
     summary: "Get resource backup assurance",
     response:
@@ -227,7 +245,7 @@ resourceRoutes.get(
       ),
       awsConfigured,
       azureConfigured,
-      canRestore: user.workspaceRole === "owner",
+      canRestore: actorAllows(context.get("actor"), ["resource.restore"]),
       gcpConfigured,
     });
   },
@@ -236,6 +254,7 @@ resourceRoutes.get(
 resourceRoutes.get(
   "/:resourceId/operations/:operationId/events",
   operation({
+    permissions: ["resource.read"],
     responseSchema:
       'resources.ts:get:"/:resourceId/operations/:operationId/events"',
     summary: "List operation events",
@@ -254,6 +273,7 @@ resourceRoutes.get(
 resourceRoutes.post(
   "/:resourceId/actions/deploy",
   operation({
+    permissions: ["deployment.create"],
     responseSchema: 'resources.ts:post:"/:resourceId/actions/deploy"',
     summary: "Request resource deployment",
     idempotencyKey: true,
@@ -277,8 +297,36 @@ resourceRoutes.post(
 );
 
 resourceRoutes.post(
+  "/:resourceId/actions/refresh-external-secrets",
+  operation({
+    permissions: ["deployment.create"],
+    responseSchema:
+      'resources.ts:post:"/:resourceId/actions/refresh-external-secrets"',
+    summary: "Redeploy a resource with current external secrets",
+    idempotencyKey: true,
+    response:
+      "A new deployment that resolves one consistent snapshot of current external secret versions.",
+    status: 202,
+  }),
+  async (context) => {
+    const user = context.get("user");
+    const result = await requestAppDeployment({
+      appId: context.req.param("resourceId"),
+      expectedType: "resource",
+      idempotencyKey: requireIdempotencyKey(
+        context.req.header("idempotency-key"),
+      ),
+      requestedBy: user.id,
+      workspaceId: user.workspaceId,
+    });
+    return context.json(result, result.replayed ? 200 : 202);
+  },
+);
+
+resourceRoutes.post(
   "/:resourceId/actions/rollback",
   operation({
+    permissions: ["deployment.create"],
     responseSchema: 'resources.ts:post:"/:resourceId/actions/rollback"',
     summary: "Request resource rollback",
     body: rollbackSchema,
@@ -308,21 +356,27 @@ for (const action of ["backup", "restart", "start", "stop"] as const) {
   resourceRoutes.post(
     `/:resourceId/actions/${action}`,
     operation({
+      permissions: [
+        action === "backup" ? "resource.backup" : "workload.operate",
+      ],
       responseSchema: "resources.ts:post:`/:resourceId/actions/${action}`",
       summary: `${action.charAt(0).toUpperCase() + action.slice(1)} resource`,
+      ...(action === "backup" ? {} : { body: runtimeActionSchema }),
       idempotencyKey: true,
       response: "The runtime operation and whether the request was replayed.",
       status: 202,
     }),
     async (context) => {
       const user = context.get("user");
+      const input =
+        action === "backup" ? {} : await readJson(context, runtimeActionSchema);
       const result = await requestDeployableOperation({
         deployableId: context.req.param("resourceId"),
         idempotencyKey: requireIdempotencyKey(
           context.req.header("idempotency-key"),
         ),
         requestedBy: user.id,
-        request: { type: action },
+        request: { ...input, type: action },
         workspaceId: user.workspaceId,
       });
       return context.json(result, result.replayed ? 200 : 202);
@@ -333,19 +387,16 @@ for (const action of ["backup", "restart", "start", "stop"] as const) {
 resourceRoutes.post(
   "/:resourceId/actions/restore",
   operation({
+    permissions: ["resource.restore"],
     responseSchema: 'resources.ts:post:"/:resourceId/actions/restore"',
     summary: "Request resource restore",
     body: restoreSchema,
-    ownerOnly: true,
     idempotencyKey: true,
     response: "The restore operation and whether the request was replayed.",
     status: 202,
   }),
   async (context) => {
     const user = context.get("user");
-    if (user.workspaceRole !== "owner") {
-      throw forbidden("Only the owner can restore database Resources");
-    }
     const input = await readJson(context, restoreSchema);
     const result = await requestResourceRestore({
       ...input,
@@ -363,10 +414,10 @@ resourceRoutes.post(
 resourceRoutes.post(
   "/:resourceId/actions/restore-cleanup",
   operation({
+    permissions: ["resource.restore"],
     responseSchema: 'resources.ts:post:"/:resourceId/actions/restore-cleanup"',
     summary: "Request restore cleanup",
     body: restoreCleanupSchema,
-    ownerOnly: true,
     idempotencyKey: true,
     response:
       "The restore cleanup operation and whether the request was replayed.",
@@ -374,9 +425,6 @@ resourceRoutes.post(
   }),
   async (context) => {
     const user = context.get("user");
-    if (user.workspaceRole !== "owner") {
-      throw forbidden("Only the owner can clean up rollback volumes");
-    }
     const input = await readJson(context, restoreCleanupSchema);
     const result = await requestRestoreCleanup({
       ...input,
@@ -394,18 +442,15 @@ resourceRoutes.post(
 resourceRoutes.post(
   "/:resourceId/operations/:operationId/actions/cancel",
   operation({
+    permissions: ["resource.restore"],
     responseSchema:
       'resources.ts:post:"/:resourceId/operations/:operationId/actions/cancel"',
     summary: "Cancel resource restore",
-    ownerOnly: true,
     response: "JSON object containing operation.",
     status: 200,
   }),
   async (context) => {
     const user = context.get("user");
-    if (user.workspaceRole !== "owner") {
-      throw forbidden("Only the owner can cancel database restores");
-    }
     return context.json({
       operation: await cancelResourceRestore({
         operationId: context.req.param("operationId"),
@@ -420,6 +465,7 @@ resourceRoutes.post(
 resourceRoutes.post(
   "/:resourceId/actions/logs",
   operation({
+    permissions: ["workload.operate"],
     responseSchema: 'resources.ts:post:"/:resourceId/actions/logs"',
     summary: "Request resource operation",
     body: logsSchema,
@@ -436,7 +482,7 @@ resourceRoutes.post(
         context.req.header("idempotency-key"),
       ),
       requestedBy: user.id,
-      request: { tail: input.tail, type: "capture_logs" },
+      request: { ...input, type: "capture_logs" },
       workspaceId: user.workspaceId,
     });
     return context.json(result, result.replayed ? 200 : 202);

@@ -1,7 +1,11 @@
 import type { SshSession } from "./ssh.js";
 
 const imageProvenanceScript = String.raw`set -euo pipefail
-docker image inspect --format '{{.Id}} {{.Os}}/{{.Architecture}}' "$1"
+image="$1"
+digest="$(docker image inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' "$image" | sed -n 's/.*@\(sha256:[a-f0-9]\{64\}\)$/\1/p' | head -1)"
+if test -z "$digest"; then digest="$(docker image inspect --format '{{.Id}}' "$image")"; fi
+platform="$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image")"
+printf '%s %s\n' "$digest" "$platform"
 `;
 
 export type ImageProvenance = {

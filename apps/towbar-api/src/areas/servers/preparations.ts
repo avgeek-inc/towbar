@@ -1,11 +1,18 @@
+import {
+  authorizeQueuedEffect,
+  captureQueuedActor,
+} from "../auth/actor-context.js";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 
 import { createServerPreparationSteps } from "@workspace/towbar-core";
 import type { ServerPreparationStep } from "@workspace/towbar-core";
 import {
+  apps,
+  auditEvents,
   serverPreparations,
   servers,
   sshHostKeys,
+  workspacePrivateKeys,
 } from "@workspace/towbar-database/schema";
 
 import { conflict, notFound } from "../../http/errors.js";
@@ -45,7 +52,7 @@ export async function listServerPreparations(
 }
 
 export async function requestServerPreparation(input: {
-  requestedBy: string;
+  requestedBy: string | null;
   serverId: string;
   workspaceId: string;
 }) {
@@ -112,6 +119,7 @@ export async function requestServerPreparation(input: {
       .values({
         configDigest: server.configDigest,
         requestedBy: input.requestedBy,
+        ...captureQueuedActor(input.workspaceId, ["server.prepare"]),
         serverId: server.id,
         steps: createServerPreparationSteps(),
       })
@@ -157,14 +165,29 @@ export async function getServerPreparationExecutionContext(
       currentConfigDigest: servers.configDigest,
       preparationConfigDigest: serverPreparations.configDigest,
       preparationId: serverPreparations.id,
+      requestedByActor: serverPreparations.requestedByActor,
+      status: serverPreparations.status,
+      preparedAt: servers.preparedAt,
       serverId: servers.id,
       workspaceId: servers.workspaceId,
+      privateKeyName: workspacePrivateKeys.name,
     })
     .from(serverPreparations)
     .innerJoin(servers, eq(servers.id, serverPreparations.serverId))
+    .leftJoin(
+      workspacePrivateKeys,
+      and(
+        eq(workspacePrivateKeys.id, servers.privateKeyId),
+        eq(workspacePrivateKeys.workspaceId, servers.workspaceId),
+      ),
+    )
     .where(eq(serverPreparations.id, preparationId))
     .limit(1);
   if (!context) throw notFound("Server preparation");
+  if (context.status === "queued")
+    await authorizeQueuedEffect(context.requestedByActor, context.workspaceId, [
+      "server.prepare",
+    ]);
   if (context.currentConfigDigest !== context.preparationConfigDigest) {
     throw conflict(
       "Server configuration changed after preparation was queued",
@@ -188,6 +211,34 @@ export async function getServerPreparationExecutionContext(
         isNull(sshHostKeys.revokedAt),
       ),
     );
+  const [priorRemoval] = context.preparedAt
+    ? []
+    : await database
+        .select({ id: auditEvents.id })
+        .from(auditEvents)
+        .where(
+          and(
+            eq(auditEvents.action, "server.removed"),
+            eq(auditEvents.targetId, context.serverId),
+            eq(auditEvents.targetType, "server"),
+            eq(auditEvents.workspaceId, context.workspaceId),
+          ),
+        )
+        .limit(1);
+  const cleanupDeployableIds = priorRemoval
+    ? (
+        await database
+          .select({ id: apps.id })
+          .from(apps)
+          .where(
+            and(
+              eq(apps.serverId, context.serverId),
+              eq(apps.kind, "app"),
+              isNull(apps.archivedAt),
+            ),
+          )
+      ).map((app) => app.id)
+    : [];
   await database
     .update(serverPreparations)
     .set({ startedAt: new Date(), status: "running" })
@@ -198,9 +249,11 @@ export async function getServerPreparationExecutionContext(
       ),
     );
   return {
+    cleanupDeployableIds,
     config: context.config,
     login,
     preparationId: context.preparationId,
+    privateKeyName: context.privateKeyName ?? undefined,
     trustedHostKeys,
   };
 }

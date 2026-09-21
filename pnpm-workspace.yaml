@@ -3,6 +3,8 @@ packages:
   - packages/*
 
 overrides:
+  "@simplewebauthn/server@<=13.3.1": 13.3.2
+  "js-yaml@>=4.0.0 <4.3.2": 4.3.2
   "@esbuild-kit/core-utils>esbuild": 0.25.12
   "@grpc/grpc-js@1.14.3": 1.14.4
   "axios@1.15.2": 1.18.0
@@ -12,6 +14,7 @@ overrides:
   "fast-xml-builder@1.1.5": 1.1.7
   "form-data@2.5.5": 2.5.6
   "form-data@4.0.5": 4.0.6
+  "gaxios@6.7.1>uuid": 11.1.1
   "minimatch@9.0.9": 10.2.5
   "nanoid@3.3.16": 3.3.18
   "postcss@8.4.31": 8.5.18
@@ -25,12 +28,15 @@ overrides:
 allowBuilds:
   "@sentry/cli": true
   "@swc/core": true
+  cpu-features: false
   esbuild: true
   protobufjs: true
   sharp: true
+  ssh2: false
 
 catalog:
   "@aws-sdk/client-s3": ^3.1127.0
+  "@aws-sdk/lib-storage": 3.1127.0
   "@aws-sdk/client-sts": ^3.1127.0
   "@eslint/js": ^9.39.4
   "@fontsource-variable/inter": ^5.3.0
@@ -64,3 +70,8 @@ catalog:
   typescript: ^5.9.3
   yaml: ^2.8.3
   zod: ^4.5.4
+
+packageExtensions:
+  "@heroui/react@3.2.4":
+    dependencies:
+      "@internationalized/date": "^3.12.4"

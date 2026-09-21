@@ -1,18 +1,17 @@
 "use client";
+import { useAccess } from "./access-context";
+import type { Action } from "@workspace/towbar-access";
 import {
   PageSelectionContext,
   PageSelectionTitle,
   type PageSelection,
 } from "./page-selection-title";
 import { DetailSettingsContext, SecondaryItems } from "./secondary-sidebar";
-import {
-  FloppyDiskIcon,
-  Cancel01Icon,
-  Delete02Icon,
-  Tick02Icon,
-} from "@hugeicons/core-free-icons";
+import { FloppyDiskIcon } from "@hugeicons/core-free-icons";
 
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+import { HeadingHelp } from "@workspace/web-design-system/overlays/heading-help";
+import { NewTabIndicator } from "@workspace/web-design-system/navigation/new-tab-indicator";
 
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -33,6 +32,7 @@ import {
   FieldDescription,
   FieldLabel,
 } from "@workspace/web-design-system/forms/field";
+import { PasswordInput } from "@workspace/web-design-system/forms/password-input";
 import { Input } from "@workspace/web-design-system/forms/input";
 import type { InputProps } from "@workspace/web-design-system/forms/input";
 import { Textarea } from "@workspace/web-design-system/forms/textarea";
@@ -47,7 +47,15 @@ import { refreshApiQueries } from "@/hooks/use-api-query";
 const appBreadcrumb = [{ href: "/", label: "Towbar" }] as const;
 export const sourcesBreadcrumb = [
   ...appBreadcrumb,
-  { href: "/sources", label: "Sources" },
+  { href: "/repositories", label: "Repositories" },
+] as BreadcrumbAncestors;
+export const appsBreadcrumb = [
+  ...appBreadcrumb,
+  { href: "/apps", label: "Apps" },
+] as BreadcrumbAncestors;
+export const resourcesBreadcrumb = [
+  ...appBreadcrumb,
+  { href: "/resources", label: "Resources" },
 ] as BreadcrumbAncestors;
 export const serversBreadcrumb = [
   ...appBreadcrumb,
@@ -63,6 +71,7 @@ export function DashboardPage({
   icon,
   title,
   titleContent,
+  titleIcon,
 }: {
   actions?: ReactNode;
   badge?: ReactNode;
@@ -72,13 +81,14 @@ export function DashboardPage({
   icon: ComponentProps<typeof HugeiconsIcon>["icon"];
   title: string;
   titleContent?: ReactNode;
+  titleIcon?: ReactNode;
 }) {
   const [selection, setSelection] = useState<PageSelection | null>(null);
   const heading = selection ? selection.label : title;
   return (
     <PageSelectionContext.Provider value={setSelection}>
       <ApplicationPage
-        actions={actions}
+        actions={selection?.actions ?? actions}
         badge={badge}
         breadcrumbAncestors={
           selection?.keepEntityName
@@ -91,9 +101,9 @@ export function DashboardPage({
           <span className="inline-flex min-w-0 items-center gap-2">
             <span
               aria-hidden="true"
-              className="inline-flex shrink-0 [&_svg]:size-6"
+              className="inline-flex shrink-0 [&_img]:size-6 [&_svg]:size-6"
             >
-              {selection?.icon ?? <HugeiconsIcon icon={icon} />}
+              {selection?.icon ?? titleIcon ?? <HugeiconsIcon icon={icon} />}
             </span>
             {titleContent && !selection ? (
               <>{titleContent}</>
@@ -102,13 +112,14 @@ export function DashboardPage({
                 {heading}
               </TooltipText>
             )}
+            <HeadingHelp title={heading} kind="page" />
           </span>
         }
       >
         {selection?.keepEntityName ? (
           <SecondaryEntityHeader
             title={title}
-            icon={<HugeiconsIcon icon={icon} />}
+            icon={titleIcon ?? <HugeiconsIcon icon={icon} />}
           >
             {titleContent ?? title}
           </SecondaryEntityHeader>
@@ -133,7 +144,10 @@ export function PageTabs({
   aliases?: Record<string, string>;
   defaultValue: string;
   tabs: Array<{
+    badge?: ReactNode;
     content: ReactNode;
+    contentOwnsTitle?: boolean;
+    destructive?: boolean;
     group?: string;
     icon?: ReactNode;
     indicator?:
@@ -206,7 +220,7 @@ export function PageTabs({
   const active = tabs.find((tab) => tab.value === selectedKey);
   return (
     <>
-      {selectedKey !== "settings" && active ? (
+      {selectedKey !== "settings" && active && !active.contentOwnsTitle ? (
         <PageSelectionTitle
           label={active.label}
           icon={active.icon}
@@ -223,20 +237,22 @@ export function PageTabs({
             id: tab.value,
             label: tab.label,
             icon: tab.icon,
+            destructive: tab.destructive,
             badge:
-              typeof tab.indicator === "object" ? (
+              tab.badge ??
+              (typeof tab.indicator === "object" ? (
                 tab.indicator.dot ? (
                   <span
                     role="img"
                     aria-label={tab.indicator.ariaLabel ?? "Needs attention"}
-                    className="inline-block size-2 rounded-full bg-warning"
+                    className="inline-block size-2 rounded-full bg-warning-soft-foreground"
                   />
                 ) : (
                   tab.indicator.label
                 )
               ) : (
                 tab.indicator
-              ),
+              )),
           }))}
       />
       {[
@@ -253,20 +269,22 @@ export function PageTabs({
               id: tab.value,
               label: tab.label,
               icon: tab.icon,
+              destructive: tab.destructive,
               badge:
-                typeof tab.indicator === "object" ? (
+                tab.badge ??
+                (typeof tab.indicator === "object" ? (
                   tab.indicator.dot ? (
                     <span
                       role="img"
                       aria-label={tab.indicator.ariaLabel ?? "Needs attention"}
-                      className="inline-block size-2 rounded-full bg-warning"
+                      className="inline-block size-2 rounded-full bg-warning-soft-foreground"
                     />
                   ) : (
                     tab.indicator.label
                   )
                 ) : (
                   tab.indicator
-                ),
+                )),
             }))}
         />
       ))}
@@ -288,6 +306,7 @@ export function ActionButton<T>({
   isIconOnly = false,
   isDisabled = false,
   onSuccess,
+  permission,
   pendingLabel = "Working…",
   success,
   variant = "secondary",
@@ -303,12 +322,15 @@ export function ActionButton<T>({
   isIconOnly?: boolean;
   isDisabled?: boolean;
   onSuccess?: (result: T) => void;
+  permission?: Action;
   pendingLabel?: string;
   success: string;
   variant?: "danger" | "primary" | "secondary";
 }) {
+  const { can } = useAccess();
   const [busy, setBusy] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+  if (permission && !can(permission)) return null;
   async function runAction() {
     setBusy(true);
     try {
@@ -368,11 +390,6 @@ export function ActionButton<T>({
                 variant="secondary"
                 onPress={() => setIsConfirming(false)}
               >
-                <HugeiconsIcon
-                  aria-hidden="true"
-                  icon={Cancel01Icon}
-                  className="size-4 shrink-0"
-                />
                 Cancel
               </Button>
               <Button
@@ -389,14 +406,7 @@ export function ActionButton<T>({
                     {pendingLabel}
                   </>
                 ) : confirm.actionLabel ? (
-                  <>
-                    <HugeiconsIcon
-                      aria-hidden="true"
-                      icon={variant === "danger" ? Delete02Icon : Tick02Icon}
-                      className="size-4 shrink-0"
-                    />
-                    {confirm.actionLabel}
-                  </>
+                  confirm.actionLabel
                 ) : (
                   children
                 )}
@@ -437,6 +447,7 @@ export function SimpleForm({
   onSubmit,
   successMessage = "Saved",
   submitLabel,
+  errorPresentation = "inline",
 }: {
   fields: Array<{
     autoComplete?: string;
@@ -458,6 +469,7 @@ export function SimpleForm({
   onSubmit: (values: Record<string, string>) => Promise<void>;
   successMessage?: string;
   submitLabel: string;
+  errorPresentation?: "inline" | "toast";
 }) {
   const formId = useId();
   const [busy, setBusy] = useState(false);
@@ -479,7 +491,10 @@ export function SimpleForm({
       await onSubmit(values);
       toast.success(successMessage);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not save");
+      const message =
+        caught instanceof Error ? caught.message : "Could not save";
+      if (errorPresentation === "toast") toast.danger(message);
+      else setError(message);
     } finally {
       setBusy(false);
     }
@@ -497,7 +512,10 @@ export function SimpleForm({
       ) : null}
       {fields.map((field) => (
         <Field key={field.name}>
-          <FieldLabel htmlFor={`${formId}-${field.name}`}>
+          <FieldLabel
+            htmlFor={`${formId}-${field.name}`}
+            isRequired={field.required}
+          >
             {field.label}
           </FieldLabel>
           {field.type === "textarea" ? (
@@ -514,6 +532,19 @@ export function SimpleForm({
               required={field.required}
               rows={field.rows ?? 6}
               spellCheck={field.spellCheck}
+              variant={field.variant}
+            />
+          ) : field.type === "password" ? (
+            <PasswordInput
+              id={`${formId}-${field.name}`}
+              autoComplete={field.autoComplete}
+              defaultValue={field.defaultValue}
+              disabled={field.disabled}
+              maxLength={field.maxLength}
+              minLength={field.minLength}
+              name={field.name}
+              placeholder={field.placeholder}
+              required={field.required}
               variant={field.variant}
             />
           ) : (
@@ -553,6 +584,7 @@ export function InlineLink({
   children,
   className,
   href,
+  target,
   ...props
 }: Omit<ComponentProps<typeof Link>, "children" | "className" | "href"> & {
   children: ReactNode;
@@ -567,8 +599,10 @@ export function InlineLink({
         className,
       )}
       href={href}
+      target={target}
     >
       {children}
+      {target === "_blank" ? <NewTabIndicator /> : null}
     </Link>
   );
 }

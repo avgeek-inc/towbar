@@ -1,1 +1,0 @@
-ALTER TABLE "towbar_apps" DROP COLUMN "decommissioned_at";

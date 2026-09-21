@@ -1,16 +1,14 @@
+import type { Action } from "@workspace/towbar-access";
+import type { TowbarUser } from "@workspace/towbar-web-client";
 import {
   ComputerIcon,
   AlertCircleIcon,
-  Notification01Icon,
-  Analytics01Icon,
-  SourceCodeIcon,
   DashboardCircleIcon,
   DashboardSquare01Icon,
-  DatabaseIcon,
+  CubeIcon,
   GitBranchIcon,
   HealthIcon,
   Key01Icon,
-  Logout03Icon,
   PlugSocketIcon,
   Rocket01Icon,
   SecurityCheckIcon,
@@ -22,6 +20,7 @@ import { createElement } from "react";
 
 import packageManifest from "../../../../package.json";
 import { TowbarBrandLogo } from "@workspace/towbar-web-ui/brand";
+import { Avatar } from "@workspace/web-design-system/data-display/avatar";
 import type {
   ApplicationPolicy,
   HeaderConfig,
@@ -30,19 +29,13 @@ import type {
 import { defineSidebarIcons } from "@workspace/web-design-system/layouts/sidebar-icons";
 
 const sidebarIcons = defineSidebarIcons({
-  performance: Analytics01Icon,
-  alerts: Notification01Icon,
   incidents: AlertCircleIcon,
   apps: DashboardCircleIcon,
   deployments: Rocket01Icon,
   health: HealthIcon,
-  integrations: PlugSocketIcon,
-  api: SourceCodeIcon,
-  logout: Logout03Icon,
   overview: DashboardSquare01Icon,
   profile: UserAccountIcon,
-  resources: DatabaseIcon,
-  secrets: Key01Icon,
+  resources: CubeIcon,
   vulnerabilities: SecurityCheckIcon,
   servers: ServerStack01Icon,
   sessions: ComputerIcon,
@@ -57,7 +50,14 @@ const inventorySingularLabels = {
   apps: "app",
   resources: "resource",
   servers: "server",
-  sources: "source",
+  sources: "repository",
+} as const;
+
+const inventoryPluralLabels = {
+  apps: "apps",
+  resources: "resources",
+  servers: "servers",
+  sources: "repositories",
 } as const;
 
 const brand = {
@@ -104,8 +104,8 @@ const sidebar = {
         {
           kind: "link",
           id: "sources",
-          label: "Sources",
-          href: "/sources",
+          label: "Repositories",
+          href: "/repositories",
           icon: sidebarIcons.sources,
         },
         {
@@ -133,22 +133,8 @@ const sidebar = {
     },
     {
       id: "monitoring",
-      label: "Monitoring",
+      label: "Monitor",
       items: [
-        {
-          kind: "link",
-          id: "performance",
-          label: "Performance",
-          href: "/monitoring/performance",
-          icon: sidebarIcons.performance,
-        },
-        {
-          kind: "link",
-          id: "alerts",
-          label: "Alerts",
-          href: "/monitoring/alerts",
-          icon: sidebarIcons.alerts,
-        },
         {
           kind: "link",
           id: "incidents",
@@ -166,29 +152,36 @@ const sidebar = {
       ],
     },
     {
-      id: "manage",
+      id: "workspace",
       label: "Manage",
       items: [
+        {
+          kind: "link",
+          id: "settings",
+          label: "My Settings",
+          href: "/settings",
+          icon: Settings01Icon,
+        },
+        {
+          kind: "link",
+          id: "team-settings",
+          label: "Team Settings",
+          href: "/team-settings/general",
+          icon: UserAccountIcon,
+        },
         {
           kind: "link",
           id: "integrations",
           label: "Integrations",
           href: "/manage/integrations",
-          icon: sidebarIcons.integrations,
-        },
-        {
-          kind: "link",
-          id: "api-mcp",
-          label: "API & MCP",
-          href: "/manage/api-mcp",
-          icon: sidebarIcons.api,
+          icon: PlugSocketIcon,
         },
         {
           kind: "link",
           id: "shared-secrets",
-          label: "Shared secrets",
+          label: "Shared Secrets",
           href: "/manage/shared-secrets",
-          icon: sidebarIcons.secrets,
+          icon: Key01Icon,
         },
         {
           kind: "link",
@@ -199,102 +192,120 @@ const sidebar = {
         },
       ],
     },
-    {
-      id: "settings",
-      items: [
-        {
-          kind: "link",
-          id: "settings",
-          label: "Settings",
-          href: "/settings",
-          icon: Settings01Icon,
-        },
-      ],
-    },
   ],
   persistenceKey: "towbar-sidebar",
 } satisfies SidebarConfig;
 
 export function createApplicationSidebar(
-  onSignOut: () => void,
   counts: ApplicationSidebarCounts = {},
   monitoring?: {
     activeIncidents: number;
     criticalVulnerabilities: number;
-    pressuredEntities: number;
   },
+  user?: TowbarUser,
 ) {
   return {
     ...sidebar,
-    groups: sidebar.groups.map((group) =>
-      group.id === "operate"
-        ? {
-            ...group,
-            items: group.items.map((item) => {
-              const id = item.id as keyof ApplicationSidebarCounts;
-              const value = counts[id];
-              const singular = inventorySingularLabels[id];
-              return value === undefined || !singular
-                ? item
-                : {
-                    ...item,
-                    badge: {
-                      label: `${value} ${singular}${value === 1 ? "" : "s"}`,
-                      value,
-                    },
-                  };
-            }),
-          }
-        : group.id === "monitoring"
+    footerContent: user
+      ? createElement(
+          "div",
+          {
+            className:
+              "sidebar-identity flex min-w-0 items-start gap-2.5 px-4 py-4 text-sm",
+          },
+          createElement(Avatar, {
+            "aria-hidden": true,
+            email: user.email,
+            name: user.name,
+            size: "md",
+          }),
+          createElement(
+            "div",
+            { className: "grid min-w-0 flex-1 gap-1" },
+            createElement(
+              "span",
+              { className: "truncate font-medium" },
+              user.name,
+            ),
+            createElement(
+              "span",
+              { className: "truncate text-xs text-foreground/70" },
+              user.teamName,
+            ),
+          ),
+        )
+      : undefined,
+    groups: sidebar.groups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) => {
+          const permissions: Record<string, Action> = {
+            health: "system.read",
+            integrations: "integration.manage",
+            "shared-secrets": "sharedSecret.list",
+          };
+          if (item.id === "team-settings")
+            return (
+              !user ||
+              ["team.read", "privateKey.manage"].some((permission) =>
+                user.capabilities?.includes(permission as Action),
+              )
+            );
+          return (
+            !user ||
+            !permissions[item.id] ||
+            user.capabilities?.includes(permissions[item.id]!)
+          );
+        }),
+      }))
+      .filter((group) => group.items.length > 0)
+      .map((group) =>
+        group.id === "operate"
           ? {
               ...group,
               items: group.items.map((item) => {
-                const value =
-                  item.id === "incidents"
-                    ? monitoring?.activeIncidents
-                    : item.id === "performance"
-                      ? monitoring?.pressuredEntities
-                      : item.id === "vulnerabilities"
-                        ? monitoring?.criticalVulnerabilities
-                        : undefined;
-                return !value
+                const id = item.id as keyof ApplicationSidebarCounts;
+                const value = counts[id];
+                const singular = inventorySingularLabels[id];
+                const plural = inventoryPluralLabels[id];
+                return value === undefined || !singular
                   ? item
                   : {
                       ...item,
                       badge: {
+                        label: `${value} ${value === 1 ? singular : plural}`,
                         value,
-                        tone:
-                          item.id === "performance"
-                            ? ("warning" as const)
-                            : ("danger" as const),
-                        label:
-                          item.id === "incidents"
-                            ? `${value} active incident${value === 1 ? "" : "s"}`
-                            : item.id === "performance"
-                              ? `${value} entit${value === 1 ? "y" : "ies"} with resource usage above 80%`
-                              : `${value} critical or high vulnerabilit${value === 1 ? "y" : "ies"}`,
                       },
                     };
               }),
             }
-          : group,
-    ),
-    footerActions: [
-      {
-        kind: "action",
-        id: "sign-out",
-        destructive: true,
-        label: "Sign out",
-        icon: sidebarIcons.logout,
-        confirmation: {
-          cancelLabel: "Stay signed in",
-          confirmLabel: "Sign out",
-          description: "This ends the current Towbar session on this browser.",
-          title: "Sign out of Towbar?",
-        },
-        onSelect: onSignOut,
-      },
-    ],
+          : group.id === "monitoring"
+            ? {
+                ...group,
+                items: group.items.map((item) => {
+                  const value =
+                    item.id === "incidents"
+                      ? monitoring?.activeIncidents
+                      : item.id === "vulnerabilities"
+                        ? monitoring?.criticalVulnerabilities
+                        : undefined;
+                  return !value
+                    ? item
+                    : {
+                        ...item,
+                        badge: {
+                          value,
+                          tone: "danger" as const,
+                          label:
+                            item.id === "incidents"
+                              ? `${value} active incident${value === 1 ? "" : "s"}`
+                              : `${value} critical or high vulnerabilit${value === 1 ? "y" : "ies"}`,
+                        },
+                      };
+                }),
+              }
+            : group,
+      ),
   } satisfies SidebarConfig;
 }
 

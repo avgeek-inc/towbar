@@ -20,20 +20,20 @@ mode: "custom"
   <div className="towbar-product-frame">
     <div className="towbar-product-light">
       <img
-        src="/assets/overview-light.webp"
+        src="/assets/release-v2/overview-light.jpg"
         alt="Towbar overview with deployment trends, workload counts, active incidents, and recent deployments"
-        width="3200"
-        height="2100"
+        width="1280"
+        height="1154"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 1200px) calc(100vw - 66px), 1134px"
         fetchPriority="high"
       />
     </div>
     <div className="towbar-product-dark">
       <img
-        src="/assets/overview-dark.webp"
+        src="/assets/release-v2/overview-dark.jpg"
         alt="Towbar overview with deployment trends, workload counts, active incidents, and recent deployments"
-        width="3200"
-        height="2100"
+        width="1280"
+        height="1154"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 1200px) calc(100vw - 66px), 1134px"
         fetchPriority="high"
       />
@@ -75,19 +75,19 @@ mode: "custom"
 </section>
 
 <div className="towbar-features">
-  <section className="towbar-feature" aria-labelledby="sources-heading">
+  <section className="towbar-feature" aria-labelledby="repositories-heading">
     <div className="towbar-feature-copy">
-      <p className="towbar-feature-label">Sources</p>
-      <h2 id="sources-heading">Your repository is the starting point.</h2>
-      <p>Connect a GitHub repository and define its apps and resources in a deployment manifest. Keep configuration in review, sync changes from your production branch, and choose which workloads deploy automatically.</p>
-      <a className="towbar-link" href="/docs/sources">Explore sources <span aria-hidden="true">→</span></a>
+      <p className="towbar-feature-label">Repositories</p>
+      <h2 id="repositories-heading">Your repository is the starting point.</h2>
+      <p>Connect a GitHub repository and define its apps and resources in YAML. Map production, staging, or other environments to branches in Towbar. Review configuration in Git and choose which workloads deploy automatically.</p>
+      <a className="towbar-link" href="/docs/repositories">Explore repositories <span aria-hidden="true">→</span></a>
     </div>
     <div className="towbar-feature-image">
       <div className="towbar-product-light">
-        <img src="/assets/features/sources-light.webp" alt="Four example GitHub sources showing app, resource, and distinct server counts alongside production branches and sync status." width="2160" height="904" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
+        <img src="/assets/release-v2/repositories-light.jpg" alt="Repositories show imported app and resource counts and the latest sync time." width="1280" height="720" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
       </div>
       <div className="towbar-product-dark">
-        <img src="/assets/features/sources-dark.webp" alt="Four example GitHub sources showing app, resource, and distinct server counts alongside production branches and sync status." width="2160" height="904" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
+        <img src="/assets/release-v2/repositories-dark.jpg" alt="Repositories show imported app and resource counts and the latest sync time." width="1280" height="720" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
       </div>
     </div>
   </section>
@@ -108,20 +108,20 @@ mode: "custom"
   <div className="towbar-feature-image">
     <div className="towbar-product-light">
       <img
-        src="/assets/features/apps-light.webp"
+        src="/assets/release-v2/app-overview-light.jpg"
         alt="An example Towbar app showing its health, running state, server, and latest deployment."
-        width="2160"
-        height="832"
+        width="1280"
+        height="720"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
     </div>
     <div className="towbar-product-dark">
       <img
-        src="/assets/features/apps-dark.webp"
+        src="/assets/release-v2/app-overview-dark.jpg"
         alt="An example Towbar app showing its health, running state, server, and latest deployment."
-        width="2160"
-        height="832"
+        width="1280"
+        height="720"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
@@ -129,10 +129,10 @@ mode: "custom"
   </div>
 </section>
 
-<section className="towbar-feature" aria-labelledby="resources-heading">
+<section className="towbar-feature" aria-labelledby="rerepositories-heading">
   <div className="towbar-feature-copy">
     <p className="towbar-feature-label">Resources</p>
-    <h2 id="resources-heading">A place for your databases, too.</h2>
+    <h2 id="rerepositories-heading">A place for your databases, too.</h2>
     <p>
       Run PostgreSQL, Redis, and container images alongside your apps. Keep data
       in persistent volumes, connect services privately, and schedule database
@@ -145,20 +145,20 @@ mode: "custom"
   <div className="towbar-feature-image">
     <div className="towbar-product-light">
       <img
-        src="/assets/features/resources-light.webp"
-        alt="Example PostgreSQL, Redis, and container image resources in the Towbar inventory."
-        width="2160"
-        height="1034"
+        src="/assets/release-v2/resource-overview-light.jpg"
+        alt="Example PostgreSQL resource showing production and staging selection, runtime state, server readiness, and the latest deployment."
+        width="1280"
+        height="720"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
     </div>
     <div className="towbar-product-dark">
       <img
-        src="/assets/features/resources-dark.webp"
-        alt="Example PostgreSQL, Redis, and container image resources in the Towbar inventory."
-        width="2160"
-        height="1034"
+        src="/assets/release-v2/resource-overview-dark.jpg"
+        alt="Example PostgreSQL resource showing production and staging selection, runtime state, server readiness, and the latest deployment."
+        width="1280"
+        height="720"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
@@ -182,20 +182,20 @@ mode: "custom"
   <div className="towbar-feature-image">
     <div className="towbar-product-light">
       <img
-        src="/assets/features/servers-light.webp"
+        src="/assets/release-v2/server-overview-light.jpg"
         alt="An example server’s host capacity panel showing CPU, memory, disk usage, and uptime."
-        width="2160"
-        height="1632"
+        width="1280"
+        height="951"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
     </div>
     <div className="towbar-product-dark">
       <img
-        src="/assets/features/servers-dark.webp"
+        src="/assets/release-v2/server-overview-dark.jpg"
         alt="An example server’s host capacity panel showing CPU, memory, disk usage, and uptime."
-        width="2160"
-        height="1632"
+        width="1280"
+        height="951"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
@@ -219,20 +219,20 @@ mode: "custom"
   <div className="towbar-feature-image">
     <div className="towbar-product-light">
       <img
-        src="/assets/features/previews-light.webp"
+        src="/assets/release-v2/previews-light.jpg"
         alt="Example Towbar pull request previews showing URLs, commits, expiry times, health status, and cleanup retry details."
-        width="2160"
-        height="716"
+        width="1280"
+        height="720"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
     </div>
     <div className="towbar-product-dark">
       <img
-        src="/assets/features/previews-dark.webp"
+        src="/assets/release-v2/previews-dark.jpg"
         alt="Example Towbar pull request previews showing URLs, commits, expiry times, health status, and cleanup retry details."
-        width="2160"
-        height="716"
+        width="1280"
+        height="720"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
@@ -244,15 +244,15 @@ mode: "custom"
     <div className="towbar-feature-copy">
       <p className="towbar-feature-label">Secret Management</p>
       <h2 id="secrets-heading">Keep credentials out of Git.</h2>
-      <p>Store encrypted secrets at workspace, Source, or workload scope. Connect shared values with explicit references, reveal them as an owner, and edit in Form or .env File mode. Production and preview settings stay separate for each deployment stage.</p>
+      <p>Store encrypted secrets at workspace, repository, or workload scope. Reference shared values explicitly. Admins can reveal values and use the .env editor; Members can submit replacements without revealing existing values. Keep repository and workload secrets separate for each environment and preview.</p>
       <a className="towbar-link" href="/docs/secrets">Explore secrets <span aria-hidden="true">→</span></a>
     </div>
     <div className="towbar-feature-image">
       <div className="towbar-product-light">
-        <img src="/assets/features/secrets-light.webp" alt="Shared secret settings in an example Towbar workspace. Stored values are hidden, with separate production, preview, and deployment stages." width="2160" height="768" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
+        <img src="/assets/release-v2/shared-secrets-light.jpg" alt="Shared secret settings in an example Towbar workspace. Stored values stay masked." width="1280" height="720" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
       </div>
       <div className="towbar-product-dark">
-        <img src="/assets/features/secrets-dark.webp" alt="Shared secret settings in an example Towbar workspace. Stored values are hidden, with separate production, preview, and deployment stages." width="2160" height="768" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
+        <img src="/assets/release-v2/shared-secrets-dark.jpg" alt="Shared secret settings in an example Towbar workspace. Stored values stay masked." width="1280" height="720" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
       </div>
     </div>
   </section>
@@ -296,20 +296,20 @@ mode: "custom"
     <div className="towbar-feature-image">
       <div className="towbar-product-light">
         <img
-          src="/assets/guides/monitoring-performance-light.webp"
+          src="/assets/release-v2/performance-light.jpg"
           alt="Performance history with entity navigation and resource usage charts."
-          width="3200"
-          height="2100"
+          width="1280"
+          height="1502"
           sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
           loading="lazy"
         />
       </div>
       <div className="towbar-product-dark">
         <img
-          src="/assets/guides/monitoring-performance-dark.webp"
+          src="/assets/release-v2/performance-dark.jpg"
           alt="Performance history with entity navigation and resource usage charts."
-          width="3200"
-          height="2100"
+          width="1280"
+          height="1502"
           sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
           loading="lazy"
         />
@@ -333,20 +333,20 @@ mode: "custom"
     <div className="towbar-feature-image">
       <div className="towbar-product-light">
         <img
-          src="/assets/guides/incidents-light.webp"
-          alt="Active and resolved incidents with severity, trigger measurements, and timestamps."
-          width="3200"
-          height="2100"
+          src="/assets/release-v2/incident-detail-light.jpg"
+          alt="Incident details with severity, measurements, and notification timing."
+          width="1280"
+          height="720"
           sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
           loading="lazy"
         />
       </div>
       <div className="towbar-product-dark">
         <img
-          src="/assets/guides/incidents-dark.webp"
-          alt="Active and resolved incidents with severity, trigger measurements, and timestamps."
-          width="3200"
-          height="2100"
+          src="/assets/release-v2/incident-detail-dark.jpg"
+          alt="Incident details with severity, measurements, and notification timing."
+          width="1280"
+          height="720"
           sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
           loading="lazy"
         />
@@ -370,21 +370,59 @@ mode: "custom"
     <div className="towbar-feature-image">
       <div className="towbar-product-light">
         <img
-          src="/assets/guides/vulnerabilities-light.webp"
+          src="/assets/release-v2/vulnerabilities-light.jpg"
           alt="Workspace vulnerability findings with severity filters, packages, and fixed versions."
-          width="3200"
-          height="2100"
+          width="1280"
+          height="1494"
           sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
           loading="lazy"
         />
       </div>
       <div className="towbar-product-dark">
         <img
-          src="/assets/guides/vulnerabilities-dark.webp"
+          src="/assets/release-v2/vulnerabilities-dark.jpg"
           alt="Workspace vulnerability findings with severity filters, packages, and fixed versions."
-          width="3200"
-          height="2100"
+          width="1280"
+          height="1494"
           sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
+          loading="lazy"
+        />
+      </div>
+    </div>
+  </section>
+</div>
+
+<div className="towbar-features">
+  <section className="towbar-feature" aria-labelledby="team-heading">
+    <div className="towbar-feature-copy">
+      <p className="towbar-feature-label">Team access</p>
+      <h2 id="team-heading">Give each person the access they need.</h2>
+      <p>
+        Invite your team as Admins, Members, or Viewers. Secure accounts with
+        passkeys or an authenticator app. Use personal keys for individual
+        scripts and team keys for shared automation, with the same permission
+        limits in the API and MCP.
+      </p>
+      <a className="towbar-link" href="/docs/team-settings">
+        Explore team settings <span aria-hidden="true">→</span>
+      </a>
+    </div>
+    <div className="towbar-feature-image">
+      <div className="towbar-product-light">
+        <img
+          src="/assets/release-v2/team-members-light.jpg"
+          alt="Team members and pending invitations with Admin, Member, and Viewer roles."
+          width="1280"
+          height="882"
+          loading="lazy"
+        />
+      </div>
+      <div className="towbar-product-dark">
+        <img
+          src="/assets/release-v2/team-members-dark.jpg"
+          alt="Team members and pending invitations with Admin, Member, and Viewer roles."
+          width="1280"
+          height="882"
           loading="lazy"
         />
       </div>

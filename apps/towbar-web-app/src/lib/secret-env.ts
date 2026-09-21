@@ -54,3 +54,24 @@ export function parseSecretEnv(text: string) {
   }
   return values;
 }
+
+export function managedSecretKeyError(
+  declaredKeys: string[],
+  providedKeys: Iterable<string>,
+) {
+  const provided = new Set(providedKeys);
+  const missingKeys = declaredKeys.filter((key) => !provided.has(key)).sort();
+  const unsupportedKeys = [...provided]
+    .filter((key) => !declaredKeys.includes(key))
+    .sort();
+  if (!missingKeys.length && !unsupportedKeys.length) return;
+  return [
+    "Secret keys are managed in YAML. Correct the following issues:",
+    missingKeys.length ? `- Missing keys: ${missingKeys.join(", ")}.` : null,
+    unsupportedKeys.length
+      ? `- Unsupported keys: ${unsupportedKeys.join(", ")}.`
+      : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}

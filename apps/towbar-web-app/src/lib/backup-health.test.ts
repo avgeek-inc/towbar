@@ -86,7 +86,7 @@ void test("translates an S3 access failure into an actionable health state", () 
   assert.equal(health.title, "Backup cannot be verified");
   assert.equal(
     health.description,
-    "Towbar cannot read the saved file. Check the workspace backup provider permissions.",
+    "Towbar cannot read the saved file. Check the runtime backup provider permissions.",
   );
   assert.deepEqual(
     health.stages.map((stage) => [stage.label, stage.status]),

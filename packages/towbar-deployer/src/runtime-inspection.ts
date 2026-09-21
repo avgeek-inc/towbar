@@ -11,6 +11,18 @@ import type {
 const inspectionSchema = z
   .object({
     orphans: z.array(orphanItemSchema),
+    storage: z
+      .array(
+        z.object({
+          deployableId: z.string(),
+          runtimeId: z.string(),
+          name: z.string(),
+          volumeName: z.string(),
+          mountPath: z.string(),
+          mounted: z.boolean(),
+        }),
+      )
+      .default([]),
     runtime: z.array(
       z
         .object({
@@ -23,6 +35,17 @@ const inspectionSchema = z
             "none",
             "starting",
             "unhealthy",
+            "unknown",
+          ]),
+          ingressContainerName: z.string().nullable(),
+          ingressImage: z.string().nullable(),
+          ingressRestartCount: z.number().int().nonnegative().nullable(),
+          ingressStatus: z.enum([
+            "disabled",
+            "missing",
+            "ready",
+            "reconnecting",
+            "stopped",
             "unknown",
           ]),
           memoryLimitBytes: z.number().int().nonnegative().nullable(),
@@ -75,16 +98,8 @@ def parse_bytes(value):
     return int(amount * (base ** powers[unit]))
 
 def collect_runtime_stats():
-    container_names = {
-        item["release"]["containerName"]
-        for item in expected["deployables"]
-        if item.get("release")
-    }
-    if not container_names:
-        return {}
-    # Query running containers once, then retain only expected release names.
-    # Supplying a missing expected name makes Docker fail the whole stats call
-    # and would otherwise hide metrics for every healthy container.
+    # Query running containers once. Compose release names identify a project,
+    # so their concrete service containers are selected later by labels.
     result = command("docker", "stats", "--no-stream", "--format", "{{json .}}")
     if result.returncode != 0:
         return {}
@@ -95,7 +110,7 @@ def collect_runtime_stats():
         except json.JSONDecodeError:
             continue
         name = stats.get("Name") or stats.get("Container")
-        if name in container_names:
+        if name:
             stats_by_name[name] = stats
     return stats_by_name
 
@@ -172,7 +187,68 @@ def evaluate_health(item, container, running):
         "none"
     )
 
+def inspect_ingress(item):
+    if not item.get("ingress"):
+        return {
+            "ingressContainerName": None,
+            "ingressImage": None,
+            "ingressRestartCount": None,
+            "ingressStatus": "disabled",
+        }
+    deployable_id = item["deployableId"]
+    result = command(
+        "docker", "ps", "-aq",
+        "--filter", "label=towbar.managed=true",
+        "--filter", "label=towbar.ingress=cloudflare-tunnel",
+        "--filter", "label=towbar.app=" + deployable_id,
+    )
+    identifiers = [value for value in result.stdout.splitlines() if value]
+    if result.returncode != 0:
+        return {
+            "ingressContainerName": None,
+            "ingressImage": None,
+            "ingressRestartCount": None,
+            "ingressStatus": "unknown",
+        }
+    if len(identifiers) != 1:
+        return {
+            "ingressContainerName": None,
+            "ingressImage": None,
+            "ingressRestartCount": None,
+            "ingressStatus": "missing" if not identifiers else "unknown",
+        }
+    container = inspect("container", identifiers[0])
+    if not container:
+        return {
+            "ingressContainerName": None,
+            "ingressImage": None,
+            "ingressRestartCount": None,
+            "ingressStatus": "unknown",
+        }
+    name = container.get("Name", "").lstrip("/") or None
+    image = (container.get("Config") or {}).get("Image")
+    running = bool((container.get("State") or {}).get("Running"))
+    registered = False
+    if running and name:
+        logs = command("docker", "logs", "--tail", "100", name)
+        combined = logs.stdout + "\n" + logs.stderr
+        registered = bool(re.search(
+            r"Registered tunnel connection|Connection [a-f0-9-]+ registered",
+            combined,
+        ))
+    return {
+        "ingressContainerName": name,
+        "ingressImage": image,
+        "ingressRestartCount": int(container.get("RestartCount") or 0),
+        "ingressStatus": "ready" if registered else "reconnecting" if running else "stopped",
+    }
+
 expected_containers = set(expected["containerNames"])
+expected_compose_projects = {
+    item["release"]["containerName"]
+    for item in expected["deployables"]
+    if item.get("release") and item["release"].get("kind") == "compose"
+}
 expected_deployables = {item["deployableId"] for item in expected["deployables"]}
 expected_images = set(expected["imageTags"])
 runtime_stats = collect_runtime_stats()
@@ -182,6 +258,7 @@ for item in expected["deployables"]:
     deployable_id = item["deployableId"]
     desired = item["desiredState"]
     release = item.get("release")
+    ingress = inspect_ingress(item)
     if not release:
         runtime.append({
             "cpuPercent": None,
@@ -189,6 +266,7 @@ for item in expected["deployables"]:
             "driftReasons": [],
             "driftStatus": "unknown",
             "healthStatus": "unknown",
+            **ingress,
             "memoryLimitBytes": None,
             "memoryUsageBytes": None,
             "observedContainerName": None,
@@ -196,6 +274,60 @@ for item in expected["deployables"]:
             "observedState": "unknown",
             "restartCount": None,
             "startedAt": None,
+        })
+        continue
+    if release.get("kind") == "compose":
+        project = release["containerName"]
+        names = command("docker", "ps", "-a", "--filter", "label=com.docker.compose.project=" + project, "--format", "{{.Names}}")
+        containers = [inspect("container", name) for name in names.stdout.splitlines()]
+        containers = [container for container in containers if container]
+        if not containers:
+            runtime.append({
+                "cpuPercent": None, "deployableId": deployable_id,
+                "driftReasons": ["Current Compose project has no containers"],
+                "driftStatus": "drifted", "healthStatus": "unknown",
+                **ingress,
+                "memoryLimitBytes": None, "memoryUsageBytes": None,
+                "observedContainerName": None, "observedImage": None,
+                "observedState": "missing", "restartCount": None, "startedAt": None,
+            })
+            continue
+        states = [bool((container.get("State") or {}).get("Running")) for container in containers]
+        health_values = [(container.get("State", {}).get("Health") or {}).get("Status") for container in containers]
+        reasons = []
+        if ingress["ingressStatus"] not in ("disabled", "ready"):
+            reasons.append("Cloudflare Tunnel is not ready")
+        if desired == "running" and not all(states): reasons.append("One or more Compose services are stopped")
+        if desired == "stopped" and any(states): reasons.append("One or more Compose services are running")
+        if any(value == "unhealthy" for value in health_values): reasons.append("A Compose service health check is failing")
+        for container in containers:
+            labels = container.get("Config", {}).get("Labels") or {}
+            if labels.get("towbar.source") != item["sourceId"] or labels.get("towbar.deployable") != deployable_id:
+                reasons.append("Compose service predates Towbar ownership labels; redeploy before cleanup")
+                break
+        metrics = [runtime_metrics(container.get("Name", "").lstrip("/"), container, runtime_stats) for container in containers]
+        def total(field):
+            values = [value[field] for value in metrics if value[field] is not None]
+            return sum(values) if values else None
+        started = [value["startedAt"] for value in metrics if value["startedAt"]]
+        health = (
+            "unhealthy" if any(value == "unhealthy" for value in health_values) else
+            "starting" if any(value == "starting" for value in health_values) else
+            "healthy" if all(states) else "none"
+        )
+        runtime.append({
+            "cpuPercent": total("cpuPercent"), "deployableId": deployable_id,
+            "driftReasons": sorted(set(reasons)),
+            "driftStatus": "drifted" if reasons else "in_sync",
+            "healthStatus": health,
+            **ingress,
+            "memoryLimitBytes": total("memoryLimitBytes"),
+            "memoryUsageBytes": total("memoryUsageBytes"),
+            "observedContainerName": project,
+            "observedImage": ", ".join(sorted(set((container.get("Config") or {}).get("Image", "") for container in containers))),
+            "observedState": "running" if all(states) else "stopped" if not any(states) else "unknown",
+            "restartCount": sum(value["restartCount"] or 0 for value in metrics),
+            "startedAt": min(started) if started else None,
         })
         continue
     container = inspect("container", release["containerName"])
@@ -206,6 +338,7 @@ for item in expected["deployables"]:
             "driftReasons": ["Current release container is missing"],
             "driftStatus": "drifted",
             "healthStatus": "unknown",
+            **ingress,
             "memoryLimitBytes": None,
             "memoryUsageBytes": None,
             "observedContainerName": None,
@@ -221,6 +354,8 @@ for item in expected["deployables"]:
     image = container.get("Config", {}).get("Image")
     metrics = runtime_metrics(release["containerName"], container, runtime_stats)
     reasons = []
+    if ingress["ingressStatus"] not in ("disabled", "ready"):
+        reasons.append("Cloudflare Tunnel is not ready")
     if image != release["imageTag"]:
         reasons.append("Container image differs from the current release")
     if desired == "running" and not running:
@@ -231,6 +366,9 @@ for item in expected["deployables"]:
         reasons.append("Container health check is failing")
     if labels.get("towbar.source") != item["sourceId"] or labels.get("towbar.deployable") != deployable_id:
         reasons.append("Container predates Source ownership labels; redeploy before cleanup")
+    for volume in item.get("volumes", []):
+        if not any(m.get("Type") == "volume" and m.get("Name") == volume["name"] and m.get("Destination") == volume["mountPath"] and m.get("RW") for m in container.get("Mounts", [])):
+            reasons.append("Persistent storage is not mounted at " + volume["mountPath"])
     connectivity = item.get("connectivity")
     if connectivity:
         network_name = connectivity.get("network")
@@ -257,6 +395,7 @@ for item in expected["deployables"]:
         "driftReasons": reasons,
         "driftStatus": "drifted" if reasons else "in_sync",
         "healthStatus": health if running else "none",
+        **ingress,
         "observedContainerName": container.get("Name", "").lstrip("/") or None,
         "observedImage": image,
         "observedState": "running" if running else "stopped",
@@ -270,19 +409,40 @@ for name in containers.stdout.splitlines():
         continue
     labels = container.get("Config", {}).get("Labels") or {}
     container_name = container.get("Name", "").lstrip("/")
-    if owned(labels) and container_name not in expected_containers:
+    compose_project = labels.get("com.docker.compose.project")
+    if owned(labels) and container_name not in expected_containers and compose_project not in expected_compose_projects:
         orphans.append({
             "kind": "container",
             "name": container_name,
             "reason": "Towbar container is not a current release",
         })
 
+storage = []
 volumes = command("docker", "volume", "ls", "-q", "--filter", "label=towbar.managed=true")
 for name in volumes.stdout.splitlines():
     volume = inspect("volume", name)
     if not volume:
         continue
     labels = volume.get("Labels") or {}
+    if owned(labels) and labels.get("towbar.storage") == "app":
+        attached = command("docker", "ps", "-q", "--filter", "volume=" + name)
+        mount_path = labels.get("towbar.mount-path", "")
+        mounted = False
+        for container_id in attached.stdout.splitlines():
+            container = inspect("container", container_id)
+            if not container:
+                continue
+            container_labels = (container.get("Config") or {}).get("Labels") or {}
+            if not owned(container_labels) or container_labels.get("towbar.app") != labels.get("towbar.runtime"):
+                continue
+            for mount in container.get("Mounts", []):
+                if mount.get("Name") == name and mount.get("Type") == "volume" and mount.get("RW"):
+                    mount_path = mount.get("Destination", mount_path)
+                    mounted = True
+        storage.append({"deployableId": labels.get("towbar.deployable", ""),
+                        "runtimeId": labels.get("towbar.runtime", ""),
+                        "name": labels.get("towbar.volume", ""), "volumeName": name,
+                        "mountPath": mount_path, "mounted": mounted})
     if owned(labels) and labels.get("towbar.deployable") not in expected_deployables:
         orphans.append({
             "kind": "volume",
@@ -306,7 +466,7 @@ for name in images.stdout.splitlines():
         })
 
 orphans.sort(key=lambda item: (item["kind"], item["name"]))
-print(json.dumps({"orphans": orphans, "runtime": runtime}, separators=(",", ":")))
+print(json.dumps({"orphans": orphans, "runtime": runtime, "storage": storage}, separators=(",", ":")))
 PYTHON
 `;
 
@@ -338,5 +498,13 @@ export function parseRuntimeInspectionOutput(value: string) {
   return inspectionSchema.parse(JSON.parse(value)) as {
     orphans: z.infer<typeof orphanItemSchema>[];
     runtime: RuntimeInspection[];
+    storage: Array<{
+      deployableId: string;
+      runtimeId: string;
+      name: string;
+      volumeName: string;
+      mountPath: string;
+      mounted: boolean;
+    }>;
   };
 }

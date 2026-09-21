@@ -6,7 +6,7 @@ See [monitoring documentation](../../docs/docs/scout.mdx) for operator setup, me
 
 ## Build and test
 
-Use Go 1.26.4, matching CI and the worker Docker build:
+Use Go 1.26.8, matching CI and the worker Docker build:
 
 ```sh
 go vet ./...

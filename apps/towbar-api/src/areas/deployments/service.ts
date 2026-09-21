@@ -1,3 +1,7 @@
+/* eslint-disable max-lines -- Deployment admission, snapshotting, and lifecycle transitions share one transactional service contract. */
+import { assertAppStorageServer } from "../apps/storage.js";
+import { requireActiveAutomation } from "../auth/automation-authority.js";
+import { authorizeQueuedEffect } from "../auth/actor-context.js";
 import {
   and,
   asc,
@@ -12,14 +16,18 @@ import {
   deploymentStateSchema,
   terminalDeploymentStates,
 } from "@workspace/towbar-core/temporal";
-import { digestValue } from "@workspace/towbar-core";
+import {
+  digestValue,
+  isNormalizedCompose,
+  isNormalizedResource,
+} from "@workspace/towbar-core";
 import {
   apps,
   deployableRuntimeStates,
   deploymentLogChunks,
   deploymentSteps,
   deployments,
-  githubInstallations,
+  integrationInstallations,
   previewEnvironments,
   releases,
   sources,
@@ -31,6 +39,7 @@ import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { cancelDeploymentWorkflow } from "../../infrastructure/temporal.js";
 import { createInstallationToken } from "../github/client.js";
+import { resolveIntegrationById } from "../integrations/service.js";
 import { emitDeploymentNotification } from "../notifications/events.js";
 import { publicDeploymentSelection } from "../deployment-selection.js";
 import { isVulnerabilityScanningEnabled } from "../vulnerability-scans/admission.js";
@@ -41,6 +50,7 @@ import { attachDeploymentQueueBlockers } from "./queue-blocker-query.js";
 
 export {
   resolveDeploymentCloudflareSecret,
+  resolveDeploymentCloudflareTunnelSecret,
   resolveDeploymentLogin,
   resolveDeploymentSecrets,
 } from "./deployment-secrets.js";
@@ -207,7 +217,10 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
       deploymentId: deployments.id,
       environment: deployments.environment,
       gitRef: deployments.gitRef,
-      installationId: githubInstallations.installationId,
+      installationId: integrationInstallations.externalId,
+      provider: sources.provider,
+      integrationAuthorizationId: sources.integrationAuthorizationId,
+      providerRepositoryId: sources.providerRepositoryId,
       kind: deployments.kind,
       repositoryName: sources.repositoryName,
       repositoryOwner: sources.repositoryOwner,
@@ -215,18 +228,43 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
       previewEnvironmentId: deployments.previewEnvironmentId,
       server: deployments.serverSnapshot,
       serverId: deployments.serverId,
+      buildServer: deployments.buildServerSnapshot,
+      buildServerId: deployments.buildServerId,
       sourceId: deployments.sourceId,
       workspaceId: deployments.workspaceId,
+      requestedByActor: deployments.requestedByActor,
+      state: deployments.state,
+      targetEnvironment: deployments.targetEnvironment,
     })
     .from(deployments)
     .innerJoin(sources, eq(sources.id, deployments.sourceId))
-    .innerJoin(
-      githubInstallations,
-      eq(githubInstallations.id, sources.githubInstallationId),
+    .leftJoin(
+      integrationInstallations,
+      eq(integrationInstallations.id, sources.integrationInstallationId),
     )
     .where(eq(deployments.id, deploymentId))
     .limit(1);
   if (!context) throw notFound("Deployment");
+  if (!isNormalizedResource(context.app))
+    await assertAppStorageServer(
+      getTowbarDatabase(),
+      context.appId,
+      context.serverId,
+    );
+  if (["queued", "waiting_for_server"].includes(context.state)) {
+    const actor = await authorizeQueuedEffect(
+      context.requestedByActor,
+      context.workspaceId,
+      ["deployment.create"],
+    );
+    if (actor.kind === "system")
+      await requireActiveAutomation({
+        workspaceId: context.workspaceId,
+        deployableId: context.appId,
+        mappingRevision: context.targetEnvironment.mappingRevision,
+        preview: context.environment === "preview",
+      });
+  }
   if (context.kind === "rollback" && !context.rollbackRelease) {
     throw new Error("Rollback deployment is missing its release snapshot");
   }
@@ -243,9 +281,25 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
         isNull(sshHostKeys.revokedAt),
       ),
     );
+  const buildServerTrustedHostKeys = context.buildServerId
+    ? await getTowbarDatabase()
+        .select({
+          algorithm: sshHostKeys.algorithm,
+          fingerprint: sshHostKeys.fingerprint,
+          publicKey: sshHostKeys.publicKey,
+        })
+        .from(sshHostKeys)
+        .where(
+          and(
+            eq(sshHostKeys.serverId, context.buildServerId),
+            isNull(sshHostKeys.revokedAt),
+          ),
+        )
+    : [];
   const [currentRelease] = await getTowbarDatabase()
     .select({
       containerName: releases.containerName,
+      containerNames: releases.containerNames,
       imageTag: releases.imageTag,
     })
     .from(releases)
@@ -259,20 +313,114 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
       ),
     )
     .limit(1);
-  const { appId, ...publicContext } = context;
+  const {
+    appId,
+    buildServer: buildServerSnapshot,
+    buildServerId,
+    installationId: _installationId,
+    integrationAuthorizationId: _integrationConnectionId,
+    providerRepositoryId: _providerRepositoryId,
+    provider: _provider,
+    requestedByActor: _actor,
+    state: _state,
+    targetEnvironment: _target,
+    ...publicContext
+  } = context;
+  const sourceCredential =
+    context.kind !== "deploy" || isNormalizedResource(context.app)
+      ? null
+      : context.provider === "github"
+        ? context.installationId
+          ? {
+              apiUrl: "https://api.github.com",
+              provider: "github" as const,
+              token: await createInstallationToken(context.installationId),
+            }
+          : (() => {
+              throw new Error("GitHub source is missing its installation");
+            })()
+        : context.integrationAuthorizationId
+          ? await resolveGitLabSourceCredential({
+              connectionId: context.integrationAuthorizationId,
+              environment: context.targetEnvironment.name,
+              sourceId: context.sourceId,
+              projectId:
+                context.providerRepositoryId ??
+                (() => {
+                  throw new Error("GitLab source is missing its project ID");
+                })(),
+              workspaceId: context.workspaceId,
+            })
+          : (() => {
+              throw new Error("GitLab source is missing its integration");
+            })();
   return {
     ...publicContext,
-    currentRelease: currentRelease ?? null,
+    currentRelease: currentRelease
+      ? {
+          ...currentRelease,
+          containerNames:
+            currentRelease.containerNames.length > 0
+              ? currentRelease.containerNames
+              : [currentRelease.containerName],
+        }
+      : null,
     deployableId: appId,
+    environmentName:
+      context.environment === "preview"
+        ? `preview:${context.targetEnvironment.name}`
+        : context.targetEnvironment.name,
     runtimeId:
       context.environment === "preview"
         ? await getPreviewRuntimeId(context.previewEnvironmentId!)
-        : context.app.id,
-    githubToken:
-      context.kind === "deploy"
-        ? await createInstallationToken(context.installationId)
-        : null,
+        : appId,
+    sourceCredential,
     trustedHostKeys,
+    ...(buildServerSnapshot && buildServerId
+      ? {
+          buildServer: {
+            config: buildServerSnapshot,
+            id: buildServerId,
+            transfer:
+              !isNormalizedResource(context.app) &&
+              !isNormalizedCompose(context.app) &&
+              context.app.buildServer
+                ? context.app.buildServer.transfer
+                : "direct",
+            trustedHostKeys: buildServerTrustedHostKeys,
+          },
+        }
+      : {}),
+  };
+}
+
+async function resolveGitLabSourceCredential(input: {
+  connectionId: string;
+  environment: string;
+  sourceId: string;
+  projectId: string;
+  workspaceId: string;
+}) {
+  const resolved = await resolveIntegrationById({
+    id: input.connectionId,
+    providers: ["gitlab"],
+    target: {
+      kind: "repository",
+      purpose: "source",
+      repositoryId: input.sourceId,
+      environment: input.environment,
+    },
+    workspaceId: input.workspaceId,
+  });
+  if (resolved.connectionInput.provider !== "gitlab")
+    throw new Error("GitLab source resolved an incompatible integration");
+  return {
+    allowPrivateNetwork:
+      resolved.connectionInput.configuration.allowPrivateNetwork,
+    baseUrl: resolved.connectionInput.configuration.baseUrl,
+    projectId: input.projectId,
+    provider: "gitlab" as const,
+    token: resolved.connectionInput.credentials.token,
   };
 }
 
@@ -346,7 +494,9 @@ export async function getDeploymentRecoveryStatus(deploymentId: string) {
 export async function commitDeploymentRelease(
   deploymentId: string,
   input: {
+    composeServices?: string[];
     containerName: string;
+    containerNames: string[];
     imageDigest: string;
     imagePlatform: string;
     imageTag: string;
@@ -362,6 +512,7 @@ export async function commitDeploymentRelease(
         sourceInputDigest: deployments.sourceInputDigest,
         environment: deployments.environment,
         gitRef: deployments.gitRef,
+        admittedImageDigest: deployments.imageDigest,
         previewEnvironmentId: deployments.previewEnvironmentId,
       })
       .from(deployments)
@@ -369,6 +520,15 @@ export async function commitDeploymentRelease(
       .for("update")
       .limit(1);
     if (!deployment) throw notFound("Deployment");
+    if (
+      deployment.admittedImageDigest &&
+      deployment.admittedImageDigest !== input.imageDigest
+    ) {
+      throw conflict(
+        "The pulled image digest differs from the digest resolved at admission",
+        "IMAGE_DIGEST_CHANGED",
+      );
+    }
     if (deployment.previewEnvironmentId) {
       const [environment] = await transaction
         .select({
@@ -439,9 +599,11 @@ export async function commitDeploymentRelease(
         .values({
           appId: deployment.appId,
           commitSha: deployment.commitSha,
+          composeServices: input.composeServices ?? [],
           configDigest: digestValue(deployment.appSnapshot),
           deploymentDigest: deployment.deploymentDigest,
           containerName: input.containerName,
+          containerNames: input.containerNames,
           deploymentId,
           imageDigest: input.imageDigest,
           imagePlatform: input.imagePlatform,

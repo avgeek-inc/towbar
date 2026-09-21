@@ -1,4 +1,3 @@
-import { operation } from "../../../http/operation.js";
 import { Hono } from "hono";
 import { z } from "zod";
 import {
@@ -6,42 +5,38 @@ import {
   listApiKeys,
   revokeApiKey,
 } from "../../../areas/api-keys/service.js";
+import { requireRecentAuthentication } from "../../../areas/auth/recent-authentication.js";
 import { getEnv } from "../../../env.js";
+import { operation } from "../../../http/operation.js";
 import { readJson, readUuidPathParameter } from "../../../http/requests.js";
+import { sessionUser } from "../../../http/session-user.js";
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
-
 const createKeySchema = z
   .object({
     name: z.string().trim().min(1).max(120),
-    access: z.enum(["read", "write"]),
-    expiresAt: z.iso
-      .datetime()
-      .refine(
-        (value) => Date.parse(value) > Date.now(),
-        "Expiry must be in the future",
-      )
-      .nullable()
-      .optional(),
+    access: z.enum(["read", "edit"]),
+    includeAdmin: z.boolean().default(false),
+    expiresAt: z.iso.datetime().nullable().optional(),
   })
   .strict();
 export const apiKeyRoutes = new Hono<TowbarHonoEnvironment>();
-apiKeyRoutes.use("*", async (context, next) => {
-  context.header("Cache-Control", "no-store");
+apiKeyRoutes.use("*", async (c, next) => {
+  c.header("Cache-Control", "no-store");
   await next();
 });
 apiKeyRoutes.get(
-  "/",
+  "/personal",
   operation({
-    responseSchema: 'api-keys.ts:get:"/"',
-    summary: "List API keys",
+    permissions: ["personal.manage"],
     browserOnly: true,
-    response: "JSON object containing keys, apiUrl, mcpUrl, rateLimit.",
-    status: 200,
+    summary: "List personal API keys",
+    responseSchema: 'api-keys.ts:get:"/personal"',
+    response: "Personal keys, API and MCP URLs, and rate limits.",
   }),
-  async (context) => {
+  async (c) => {
     const env = getEnv();
-    return context.json({
-      keys: await listApiKeys(context.get("user")),
+    return c.json({
+      keys: await listApiKeys(sessionUser(c)),
       apiUrl: `${env.TOWBAR_API_BASE_URL}/v1/api`,
       mcpUrl: `${env.TOWBAR_API_BASE_URL}/v1/mcp`,
       rateLimit: {
@@ -52,35 +47,101 @@ apiKeyRoutes.get(
   },
 );
 apiKeyRoutes.post(
-  "/",
+  "/personal",
   operation({
-    responseSchema: 'api-keys.ts:post:"/"',
-    summary: "Create API key",
+    permissions: ["personal.manage"],
     browserOnly: true,
+    summary: "Create personal API key",
+    idempotencyKey: true,
+    responseSchema: 'api-keys.ts:post:"/personal"',
     body: createKeySchema,
-    response:
-      "Key metadata and the one-time token. Save the token now; it cannot be retrieved later.",
+    response: "Key metadata and one-time token.",
     status: 201,
   }),
-  async (context) => {
-    const input = await readJson(context, createKeySchema);
-    return context.json(await createApiKey(context.get("user"), input), 201);
+  async (c) => {
+    const input = await readJson(c, createKeySchema);
+    const user = sessionUser(c);
+    if (input.includeAdmin)
+      await requireRecentAuthentication(user.id, c.get("currentSessionId"));
+    return c.json(
+      await createApiKey(user, {
+        ...input,
+        scope: "personal",
+        requestId: z.uuid().parse(c.req.header("Idempotency-Key")),
+      }),
+      201,
+    );
   },
 );
 apiKeyRoutes.delete(
-  "/:keyId",
+  "/personal/:keyId",
   operation({
-    responseSchema: 'api-keys.ts:delete:"/:keyId"',
-    summary: "Revoke API key",
+    permissions: ["personal.manage"],
     browserOnly: true,
+    summary: "Revoke personal API key",
+    responseSchema: 'api-keys.ts:delete:"/personal/:keyId"',
     response: "No response body.",
     status: 204,
   }),
-  async (context) => {
+  async (c) => {
     await revokeApiKey(
-      context.get("user"),
-      readUuidPathParameter(context.req.param("keyId"), "keyId"),
+      sessionUser(c),
+      readUuidPathParameter(c.req.param("keyId"), "keyId"),
     );
-    return context.body(null, 204);
+    return c.body(null, 204);
+  },
+);
+apiKeyRoutes.get(
+  "/team",
+  operation({
+    permissions: ["apikey.read"],
+    browserOnly: true,
+    summary: "List team API keys",
+    responseSchema: 'api-keys.ts:get:"/team"',
+    response: "Team API keys.",
+  }),
+  async (c) => c.json({ keys: await listApiKeys(sessionUser(c), "team") }),
+);
+apiKeyRoutes.post(
+  "/team",
+  operation({
+    permissions: ["apikey.create"],
+    browserOnly: true,
+    freshSession: true,
+    summary: "Create team API key",
+    idempotencyKey: true,
+    responseSchema: 'api-keys.ts:post:"/team"',
+    body: createKeySchema,
+    response: "Key metadata and one-time token.",
+    status: 201,
+  }),
+  async (c) =>
+    c.json(
+      await createApiKey(sessionUser(c), {
+        ...(await readJson(c, createKeySchema)),
+        scope: "team",
+        requestId: z.uuid().parse(c.req.header("Idempotency-Key")),
+      }),
+      201,
+    ),
+);
+apiKeyRoutes.delete(
+  "/team/:keyId",
+  operation({
+    permissions: ["apikey.delete"],
+    browserOnly: true,
+    freshSession: true,
+    summary: "Revoke team API key",
+    responseSchema: 'api-keys.ts:delete:"/team/:keyId"',
+    response: "No response body.",
+    status: 204,
+  }),
+  async (c) => {
+    await revokeApiKey(
+      sessionUser(c),
+      readUuidPathParameter(c.req.param("keyId"), "keyId"),
+      "team",
+    );
+    return c.body(null, 204);
   },
 );

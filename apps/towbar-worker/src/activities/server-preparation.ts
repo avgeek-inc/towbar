@@ -52,7 +52,21 @@ export async function executeServerPreparationActivity(preparationId: string) {
     const response = await signedApiRequest<{
       context: ServerPreparationContext;
     }>("GET", `/v1/internal/server-preparations/${preparationId}/context`);
-    const result = await prepareServer(response.context, { step: updateStep });
+    const result = await prepareServer(response.context, {
+      step: updateStep,
+      log: async ({ id, log, logTruncated }) => {
+        const step = steps.find((candidate) => candidate.id === id);
+        if (!step) throw new Error(`Unknown server preparation step: ${id}`);
+        step.log = log;
+        step.logTruncated = logTruncated;
+        await signedApiRequest(
+          "POST",
+          `/v1/internal/server-preparations/${preparationId}/events`,
+          { status: "running", steps },
+        );
+        activity.heartbeat({ preparationId, step: id });
+      },
+    });
     await signedApiRequest(
       "POST",
       `/v1/internal/server-preparations/${preparationId}/events`,

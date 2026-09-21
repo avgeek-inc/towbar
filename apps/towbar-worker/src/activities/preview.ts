@@ -3,6 +3,7 @@ import { Context } from "@temporalio/activity";
 import {
   cleanupPreviewEnvironment,
   deleteCloudflarePreviewDns,
+  deleteCloudflareTunnelDeployment,
 } from "@workspace/towbar-deployer";
 
 import type { PreviewPullRequestEvent } from "@workspace/towbar-core/temporal";
@@ -40,10 +41,17 @@ export async function executePreviewCleanupActivity(
   const [contextResponse, secrets] = await Promise.all([
     signedApiRequest<{
       context: PreviewCleanupContext;
+      cleanupAttempt: number;
       latestDeploymentId: string | null;
     }>("GET", `/v1/internal/previews/${previewEnvironmentId}/cleanup/context`),
     signedApiRequest<{
       cloudflare: { apiToken: string } | null;
+      cloudflareTunnel: {
+        accountId: string;
+        apiToken: string;
+        tunnelName?: string;
+        zoneId?: string;
+      } | null;
       login: SshLoginSecret;
     }>(
       "POST",
@@ -62,9 +70,20 @@ export async function executePreviewCleanupActivity(
         hostname: contextResponse.context.hostname,
       });
     }
-    await recordCleanupResult(previewEnvironmentId, { succeeded: true });
+    if (secrets.cloudflareTunnel) {
+      await deleteCloudflareTunnelDeployment({
+        ...secrets.cloudflareTunnel,
+        appId: contextResponse.context.runtimeId,
+        hostname: contextResponse.context.hostname,
+      });
+    }
+    await recordCleanupResult(previewEnvironmentId, {
+      succeeded: true,
+      cleanupAttempt: contextResponse.cleanupAttempt,
+    });
   } catch (error) {
     await recordCleanupResult(previewEnvironmentId, {
+      cleanupAttempt: contextResponse.cleanupAttempt,
       errorMessage: safeErrorMessage(error),
       succeeded: false,
     }).catch(() => undefined);
@@ -74,7 +93,7 @@ export async function executePreviewCleanupActivity(
 
 async function recordCleanupResult(
   previewEnvironmentId: string,
-  result: { errorMessage?: string; succeeded: boolean },
+  result: { cleanupAttempt: number; errorMessage?: string; succeeded: boolean },
 ) {
   await signedApiRequest(
     "POST",

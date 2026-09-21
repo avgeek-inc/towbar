@@ -5,7 +5,11 @@ import {
   parseInstanceMetadata,
 } from "./instance-metadata.js";
 
-import type { ServerCheckContext, ServerCheckResult } from "./types.js";
+import type {
+  ServerCheckContext,
+  ServerCheckResult,
+  ServerCredentialVerificationResult,
+} from "./types.js";
 
 const preflightScript = String.raw`
 set -euo pipefail
@@ -42,7 +46,7 @@ rm -f /tmp/towbar-docker-version
 
 export async function checkServer(
   context: ServerCheckContext,
-): Promise<ServerCheckResult> {
+): Promise<ServerCheckResult | ServerCredentialVerificationResult> {
   const discovered = await scanHostKeys(context.config);
   if (context.trustedHostKeys.length === 0) {
     throw new HostKeyNotTrustedError(discovered);
@@ -53,6 +57,9 @@ export async function checkServer(
     trustedHostKeys: context.trustedHostKeys,
   });
   try {
+    if (context.purpose === "credential-verification") {
+      return { hostKey: context.trustedHostKeys[0]! };
+    }
     const { stdout } = await session.run(
       preflightScript,
       [String(Boolean(context.config.proxy?.cloudflare))],

@@ -1,22 +1,25 @@
+"use client";
+import { useAccess } from "./access-context";
 import { InlineLink } from "./page-parts";
 
 export function ConfigurationLinks({
-  sourceId,
   serverId,
   deployable,
 }: {
-  sourceId?: string;
   serverId: string;
   deployable?: { id: string; kind: "app" | "resource" };
 }) {
+  const { can } = useAccess();
   return (
     <span className="mt-2 flex flex-wrap gap-3">
-      <InlineLink href={`/servers/${serverId}?section=settings`}>
-        Server configuration
-      </InlineLink>
-      {deployable && sourceId ? (
+      {can("server.credentials") ? (
+        <InlineLink href={`/servers/${serverId}/settings/credentials`}>
+          Server credentials
+        </InlineLink>
+      ) : null}
+      {deployable && can("secret.list") ? (
         <InlineLink
-          href={`/sources/${sourceId}/${deployable.kind}s/${deployable.id}?section=settings&settings=secrets`}
+          href={`/${deployable.kind}s/${deployable.id}/settings/secrets`}
         >
           {deployable.kind === "app" ? "App secrets" : "Resource secrets"}
         </InlineLink>

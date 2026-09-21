@@ -1,5 +1,11 @@
+import { recordAuditEvent } from "../../infrastructure/audit.js";
+import { auditAttribution } from "../auth/actor-context.js";
+import { captureQueuedActor } from "../auth/actor-context.js";
 import { randomUUID } from "node:crypto";
-import { enqueueMonitoringAgent } from "../../infrastructure/temporal.js";
+import {
+  enqueueMonitoringAgent,
+  wakeLogDrainsWorkflow,
+} from "../../infrastructure/temporal.js";
 import { and, eq, inArray, isNull, notInArray } from "drizzle-orm";
 
 import {
@@ -9,7 +15,6 @@ import {
 } from "@workspace/towbar-core";
 import {
   apps,
-  auditEvents,
   deployments,
   imageVulnerabilityScans,
   managedSecrets,
@@ -17,6 +22,8 @@ import {
   previewEnvironments,
   resourceOperations,
   serverChecks,
+  serverCredentialVerifications,
+  serverLogDrains,
   serverPreparations,
   servers,
   sshHostKeys,
@@ -153,7 +160,7 @@ export async function updateServer(input: {
 export async function removeServer(input: {
   serverId: string;
   workspaceId: string;
-  requestedBy: string;
+  requestedBy: string | null;
 }) {
   const pending = await getTowbarDatabase().transaction(async (transaction) => {
     const [server] = await transaction
@@ -169,12 +176,20 @@ export async function removeServer(input: {
       .for("update")
       .limit(1);
     if (!server) throw notFound("Server");
-    if (await hasServerAssignments(server.id, transaction))
-      throw conflict(
-        "Move or remove the apps, resources, and previews assigned to this server first.",
-        "SERVER_IN_USE",
-      );
     const active = await Promise.all([
+      transaction
+        .select({ id: serverCredentialVerifications.id })
+        .from(serverCredentialVerifications)
+        .where(
+          and(
+            eq(serverCredentialVerifications.serverId, server.id),
+            inArray(serverCredentialVerifications.status, [
+              "queued",
+              "running",
+            ]),
+          ),
+        )
+        .limit(1),
       transaction
         .select({ id: serverChecks.id })
         .from(serverChecks)
@@ -237,6 +252,35 @@ export async function removeServer(input: {
         "Wait for active server operations to finish before removing this server.",
         "SERVER_BUSY",
       );
+    const [forwarder] = await transaction
+      .select()
+      .from(serverLogDrains)
+      .where(
+        and(
+          eq(serverLogDrains.serverId, server.id),
+          eq(serverLogDrains.integrationKind, "log-forwarding"),
+        ),
+      )
+      .for("update");
+    if (forwarder && forwarder.status !== "disabled") {
+      await transaction
+        .update(serverLogDrains)
+        .set({
+          removalRequested: true,
+          requestedByActor: captureQueuedActor(input.workspaceId, [
+            "server.remove",
+          ]).requestedByActor,
+          status: "pending",
+          errorMessage: null,
+        })
+        .where(
+          and(
+            eq(serverLogDrains.serverId, server.id),
+            eq(serverLogDrains.integrationKind, "log-forwarding"),
+          ),
+        );
+      return { serverId: server.id, logDrains: true as const };
+    }
     const [agent] = await transaction
       .select()
       .from(monitoringAgents)
@@ -258,8 +302,10 @@ export async function removeServer(input: {
           status: "queued",
           tokenHash: null,
           encryptedToken: null,
+          removalRequested: true,
           removalRequestedBy: input.requestedBy,
           requestedBy: input.requestedBy,
+          ...captureQueuedActor(input.workspaceId, ["server.remove"]),
           errorMessage: null,
           operationStartedAt: null,
           updatedAt: new Date(),
@@ -288,52 +334,42 @@ export async function removeServer(input: {
         and(eq(sshHostKeys.serverId, server.id), isNull(sshHostKeys.revokedAt)),
       );
     await transaction
+      .update(apps)
+      .set({ archivedAt: now, updatedAt: now })
+      .where(and(eq(apps.serverId, server.id), isNull(apps.archivedAt)));
+    await transaction
+      .update(previewEnvironments)
+      .set({ deletedAt: now, status: "deleted", updatedAt: now })
+      .where(
+        and(
+          eq(previewEnvironments.serverId, server.id),
+          isNull(previewEnvironments.deletedAt),
+        ),
+      );
+    await transaction
       .update(servers)
       .set({
         archivedAt: now,
+        privateKeyId: null,
         preparedAt: null,
         preparedConfigDigest: null,
         updatedAt: now,
       })
       .where(eq(servers.id, server.id));
-    await transaction.insert(auditEvents).values({
+    await recordAuditEvent(transaction, {
       action: "server.removed",
       actorUserId: input.requestedBy,
       targetId: server.id,
       targetType: "server",
       workspaceId: input.workspaceId,
       metadata: {},
+      ...auditAttribution(),
     });
   });
-  if (pending) await enqueueMonitoringAgent(pending).catch(() => undefined);
+  if (pending) {
+    if ("logDrains" in pending)
+      await wakeLogDrainsWorkflow().catch(() => undefined);
+    else await enqueueMonitoringAgent(pending).catch(() => undefined);
+  }
   return { pending: Boolean(pending) };
-}
-
-// Archived apps/resources still belong to a source and may be restored by sync.
-// Retained Docker ownership alone is not an assignment and must not block removal.
-export async function hasServerAssignments(
-  serverId: string,
-  database: Pick<
-    ReturnType<typeof getTowbarDatabase>,
-    "select"
-  > = getTowbarDatabase(),
-) {
-  const [workloads, previews] = await Promise.all([
-    database
-      .select({ id: apps.id })
-      .from(apps)
-      .where(eq(apps.serverId, serverId))
-      .limit(1),
-    database
-      .select({ id: previewEnvironments.id })
-      .from(previewEnvironments)
-      .where(
-        and(
-          eq(previewEnvironments.serverId, serverId),
-          isNull(previewEnvironments.deletedAt),
-        ),
-      )
-      .limit(1),
-  ]);
-  return workloads.length > 0 || previews.length > 0;
 }

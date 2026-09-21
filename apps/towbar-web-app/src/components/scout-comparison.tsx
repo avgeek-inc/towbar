@@ -31,8 +31,6 @@ type DeploymentChoice = {
   id: string;
   commitSha: string | null;
   finishedAt: string | null;
-  environment: string;
-  previewId: string | null;
   serverId: string;
   kind: string;
 };
@@ -87,11 +85,7 @@ export function ScoutComparison({ deployableId }: { deployableId: string }) {
   const [candidate, setCandidate] = useState("");
   const [windowMinutes, setWindow] = useState(30);
   const [warmupMinutes, setWarmup] = useState(2);
-  const [regressionPercent, setRegression] = useState(20);
-  const [minimumCoveragePercent, setCoverage] = useState(80);
   const [statistic, setStatistic] = useState("average");
-  const [cpuFloorCores, setCpuFloor] = useState(0.05);
-  const [memoryFloorMiB, setMemoryFloor] = useState(16);
   const [applied, setApplied] = useState("");
   const comparison = useApiQuery<ScoutComparisonResponse>(
     applied ? `${endpoint}/deployment-comparison?${applied}` : null,
@@ -101,12 +95,7 @@ export function ScoutComparison({ deployableId }: { deployableId: string }) {
   const result = useDeferredValue(comparison.data);
   const rows = deployments.data?.deployments ?? [];
   const selectedCandidate = rows.find((d) => d.id === candidate) ?? rows[0];
-  const compatible = rows.filter(
-    (d) =>
-      d.id !== selectedCandidate?.id &&
-      d.environment === selectedCandidate?.environment &&
-      d.previewId === selectedCandidate?.previewId,
-  );
+  const compatible = rows.filter((d) => d.id !== selectedCandidate?.id);
   const selectedBaseline =
     compatible.find((d) => d.id === baseline) ??
     compatible.find(
@@ -118,7 +107,8 @@ export function ScoutComparison({ deployableId }: { deployableId: string }) {
     compatible[0];
   const choice = (d: DeploymentChoice) => ({
     id: d.id,
-    label: `${d.commitSha?.slice(0, 7) ?? d.id.slice(0, 8)} · ${d.environment === "preview" ? "Preview" : "Production"} · ${d.finishedAt ? formatDate(d.finishedAt) : "Unknown time"}`,
+    label: d.commitSha?.slice(0, 7) ?? d.id.slice(0, 8),
+    detail: d.finishedAt ? formatDate(d.finishedAt) : "Unknown time",
   });
   function compare(event: FormEvent) {
     event.preventDefault();
@@ -128,25 +118,13 @@ export function ScoutComparison({ deployableId }: { deployableId: string }) {
       candidateId: selectedCandidate.id,
       windowMinutes: String(windowMinutes),
       warmupMinutes: String(warmupMinutes),
-      regressionPercent: String(regressionPercent),
-      minimumCoveragePercent: String(minimumCoveragePercent),
       statistic,
-      cpuFloorCores: String(cpuFloorCores),
-      memoryFloorMiB: String(memoryFloorMiB),
     }).toString();
     if (next === applied) comparison.refresh();
     else setApplied(next);
   }
   return (
     <div className="grid min-w-0 gap-6">
-      <div className="grid gap-1">
-        <h2 className="text-lg font-medium">Compare deployments</h2>
-        <p className="max-w-3xl text-sm text-muted">
-          Compare equal periods after two deployments became ready. Scout shows
-          changes in resource usage; traffic and workload differences can also
-          affect the result.
-        </p>
-      </div>
       {deployments.error ? <QueryError message={deployments.error} /> : null}
       {!deployments.data ? (
         <QueryLoading />
@@ -155,9 +133,8 @@ export function ScoutComparison({ deployableId }: { deployableId: string }) {
           <Widget.Content className="grid gap-2 py-10 text-center">
             <h3 className="font-medium">Two successful deployments needed</h3>
             <p className="text-sm text-muted">
-              Deploy this workload again, then compare deployments from the same
-              production or preview environment. Scout must have collected
-              metrics for both.
+              Deploy this workload again, then compare two deployments in this
+              environment.
             </p>
           </Widget.Content>
         </Widget>
@@ -166,12 +143,14 @@ export function ScoutComparison({ deployableId }: { deployableId: string }) {
           <div className="grid gap-4 lg:grid-cols-2">
             <ScoutSelect
               label="Baseline"
+              required
               value={selectedBaseline?.id ?? ""}
               onChange={setBaseline}
               options={compatible.map(choice)}
             />
             <ScoutSelect
               label="Compare with"
+              required
               value={selectedCandidate?.id ?? ""}
               onChange={(id) => {
                 setCandidate(id);
@@ -206,6 +185,7 @@ export function ScoutComparison({ deployableId }: { deployableId: string }) {
             />
             <ScoutSelect
               label="Compare"
+              required
               value={statistic}
               onChange={setStatistic}
               options={[
@@ -214,48 +194,6 @@ export function ScoutComparison({ deployableId }: { deployableId: string }) {
               ]}
             />
           </div>
-          <details className="rounded-xl border border-border p-4">
-            <summary className="cursor-pointer text-sm font-medium">
-              Advanced comparison settings
-            </summary>
-            <div className="mt-4 grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <ScoutNumber
-                label="Flag changes above (%)"
-                description="Ignore smaller changes in CPU or memory usage."
-                value={regressionPercent}
-                onChange={setRegression}
-                min={1}
-                max={500}
-              />
-              <ScoutNumber
-                label="Required measurements (%)"
-                description="Show a result only when this much of the period has data."
-                value={minimumCoveragePercent}
-                onChange={setCoverage}
-                min={50}
-                max={100}
-              />
-              <ScoutNumber
-                label="Ignore CPU changes below (cores)"
-                value={cpuFloorCores}
-                onChange={setCpuFloor}
-                min={0}
-                max={1024}
-                step={0.01}
-              />
-              <ScoutNumber
-                label="Ignore memory changes below (MiB)"
-                value={memoryFloorMiB}
-                onChange={setMemoryFloor}
-                min={0}
-                max={1048576}
-              />
-            </div>
-            <p className="mt-3 text-sm text-muted">
-              A CPU or memory change must exceed both the percentage and
-              absolute minimum. Network and disk activity are shown for context.
-            </p>
-          </details>
           <div className="flex items-center gap-3">
             <Button
               type="submit"
@@ -299,48 +237,8 @@ const ComparisonResults = memo(function ComparisonResults({
     <section
       aria-label="Deployment comparison results"
       aria-busy={updating}
-      className="grid min-w-0 gap-6"
+      className="min-w-0"
     >
-      <div className="grid gap-4 lg:grid-cols-2">
-        {(["baseline", "candidate"] as const).map((key) => {
-          const side = data[key];
-          return (
-            <Widget key={key}>
-              <Widget.Header>
-                <Widget.Title>
-                  {key === "baseline" ? "Baseline" : "Compared deployment"}
-                </Widget.Title>
-              </Widget.Header>
-              <Widget.Content className="grid gap-2 text-sm">
-                <span className="font-mono font-medium">
-                  {side.deployment.commitSha?.slice(0, 12) ??
-                    side.deployment.id.slice(0, 8)}
-                </span>
-                <span className="text-muted">
-                  Ready {formatDate(side.deployment.finishedAt!)}
-                </span>
-                <span className="text-muted">
-                  Observed {formatDate(side.startAt)} – {formatDate(side.endAt)}
-                </span>
-                <span>
-                  Recorded restarts: {side.restarts ?? "No data"} ·{" "}
-                  {Math.round(side.restartCoveragePercent ?? 0)}% coverage
-                </span>
-              </Widget.Content>
-            </Widget>
-          );
-        })}
-      </div>
-      {data.warnings.length ? (
-        <div
-          role="status"
-          className="grid gap-2 rounded-xl bg-default p-4 text-sm text-muted"
-        >
-          {data.warnings.map((warning) => (
-            <p key={warning}>{warning}</p>
-          ))}
-        </div>
-      ) : null}
       <div className="grid min-w-0 gap-5 xl:grid-cols-2">
         {data.metrics.map((metric) => (
           <ComparisonChartSlot
@@ -358,9 +256,20 @@ const assessmentLabel = {
   insufficient_data: "Insufficient data",
   increased: "Higher usage",
   decreased: "Lower usage",
-  stable: "Within sensitivity",
+  stable: "No change",
   informational: "Activity comparison",
 };
+
+function comparisonAssessmentTooltip(metric: ComparisonMetric) {
+  if (metric.assessment === "insufficient_data")
+    return "There are not enough measurements in both windows to compare this metric.";
+  if (metric.assessment === "informational")
+    return "This metric is shown for context and is not classified as a regression.";
+  if (metric.deltaPercent === null)
+    return "The baseline value is zero, so a percentage change cannot be calculated.";
+  const direction = metric.deltaPercent > 0 ? "higher" : "lower";
+  return `Compared usage is ${Math.abs(metric.deltaPercent).toFixed(1)}% ${direction} than the baseline window.`;
+}
 const ComparisonChartSlot = memo(function ComparisonChartSlot(props: {
   metric: ComparisonMetric;
   data: ScoutComparisonResponse;
@@ -447,6 +356,7 @@ function ComparisonChart({
         endContent={
           <Chip
             size="small"
+            tooltip={comparisonAssessmentTooltip(metric)}
             variant={
               metric.assessment === "increased" ? "warning" : "secondary"
             }

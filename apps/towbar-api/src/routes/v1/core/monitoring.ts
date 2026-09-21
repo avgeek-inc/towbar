@@ -10,7 +10,7 @@ import {
   updateMonitoringRetention,
 } from "../../../areas/monitoring/lifecycle.js";
 import { getMonitoringHistory } from "../../../areas/monitoring/queries.js";
-import { forbidden } from "../../../http/errors.js";
+
 import { operation } from "../../../http/operation.js";
 import { readJson } from "../../../http/requests.js";
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
@@ -19,6 +19,7 @@ export const monitoringSettingsRoutes = new Hono<TowbarHonoEnvironment>();
 monitoringSettingsRoutes.get(
   "/",
   operation({
+    permissions: ["scout.read"],
     responseSchema: 'monitoring.ts:get:"/"',
     summary: "Get Scout Agent status",
     response:
@@ -36,18 +37,16 @@ monitoringSettingsRoutes.get(
 monitoringSettingsRoutes.patch(
   "/",
   operation({
+    permissions: ["scout.configure"],
     responseSchema: 'monitoring.ts:patch:"/"',
     summary: "Set monitoring retention",
     body: monitoringSettingsSchema,
-    ownerOnly: true,
     response:
       "Updated monitoring settings. Older data expires when retention is shortened.",
     status: 200,
   }),
   async (context) => {
     const user = context.get("user");
-    if (user.workspaceRole !== "owner")
-      throw forbidden("Only the owner can configure monitoring");
     const body = await readJson(context, monitoringSettingsSchema);
     return context.json({
       agent: await updateMonitoringRetention({
@@ -62,18 +61,16 @@ monitoringSettingsRoutes.patch(
 monitoringSettingsRoutes.post(
   "/actions/install",
   operation({
+    permissions: ["scout.configure"],
     responseSchema: 'monitoring.ts:post:"/actions/install"',
     summary: "Install or update Scout Agent",
     body: monitoringInstallSchema,
-    ownerOnly: true,
     response:
       "Queues acknowledged installation of the bundled agent version and rotates its credential. Online status requires a received sample.",
     status: 202,
   }),
   async (context) => {
     const user = context.get("user");
-    if (user.workspaceRole !== "owner")
-      throw forbidden("Only the owner can install monitoring");
     const body = await readJson(context, monitoringInstallSchema);
     return context.json(
       {
@@ -92,17 +89,15 @@ monitoringSettingsRoutes.post(
 monitoringSettingsRoutes.post(
   "/actions/uninstall",
   operation({
+    permissions: ["scout.configure"],
     responseSchema: 'monitoring.ts:post:"/actions/uninstall"',
     summary: "Uninstall Scout Agent",
-    ownerOnly: true,
     response:
       "Revokes the upload credential immediately and queues removal of the agent services and local buffer. Stored history follows the retention policy.",
     status: 202,
   }),
   async (context) => {
     const user = context.get("user");
-    if (user.workspaceRole !== "owner")
-      throw forbidden("Only the owner can uninstall monitoring");
     return context.json(
       {
         agent: await requestMonitoringAgent({
@@ -121,6 +116,7 @@ export const monitoringHistoryRoutes = new Hono<TowbarHonoEnvironment>();
 monitoringHistoryRoutes.get(
   "/servers/:serverId/metrics",
   operation({
+    permissions: ["scout.read"],
     responseSchema: 'monitoring.ts:get:"/servers/:serverId/metrics"',
     summary: "Read server metrics history",
     query: monitoringQuerySchema,
@@ -140,11 +136,12 @@ monitoringHistoryRoutes.get(
 monitoringHistoryRoutes.get(
   "/apps/:appId/metrics",
   operation({
+    permissions: ["scout.read"],
     responseSchema: 'monitoring.ts:get:"/apps/:appId/metrics"',
     summary: "Read app metrics history",
     query: monitoringQuerySchema,
     response:
-      "App metrics across container replacements, with production and preview isolation.",
+      "Persistent app metrics across container replacements, preserving gaps and per-instance peaks.",
     status: 200,
   }),
   async (context) =>
@@ -160,6 +157,7 @@ monitoringHistoryRoutes.get(
 monitoringHistoryRoutes.get(
   "/resources/:resourceId/metrics",
   operation({
+    permissions: ["scout.read"],
     responseSchema: 'monitoring.ts:get:"/resources/:resourceId/metrics"',
     summary: "Read resource metrics history",
     query: monitoringQuerySchema,

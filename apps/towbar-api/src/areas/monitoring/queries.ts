@@ -54,7 +54,7 @@ export async function getMonitoringHistory(
   }
   const { start, end, step } = window;
   const scope = input.deployableId
-    ? sql`deployable_id=${input.deployableId}::uuid and ${input.environment === "production" ? sql`preview_id is null` : input.previewId ? sql`preview_id=${input.previewId}::uuid` : sql`preview_id is not null`}`
+    ? sql`deployable_id=${input.deployableId}::uuid and preview_id is null`
     : sql`entity_id='host'`;
   const filter = sql`server_id=${serverId}::uuid and bucket_at>=${start.toISOString()}::timestamptz and bucket_at<${end.toISOString()}::timestamptz and ${scope}`;
   const instances = await database.execute<{
@@ -98,7 +98,7 @@ export async function getMonitoringHistory(
       });
   }
   const eventScope = input.deployableId
-    ? sql`app_id=${input.deployableId}::uuid and ${input.environment === "production" ? sql`preview_environment_id is null` : input.previewId ? sql`preview_environment_id=${input.previewId}::uuid` : sql`preview_environment_id is not null`}`
+    ? sql`app_id=${input.deployableId}::uuid and preview_environment_id is null`
     : sql`true`;
   const events = await database.execute<{
     id: string;

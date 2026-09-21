@@ -6,8 +6,11 @@ import { pullResourceImageScript } from "./pull-resource-image.js";
 void test("wraps pinned Resource images with Source ownership labels", () => {
   assert.match(pullResourceImageScript, /docker pull "\$base_image"/);
   assert.match(pullResourceImageScript, /towbar\.managed=true/);
+  assert.match(pullResourceImageScript, /towbar\.app=\$deployable_id/);
   assert.match(pullResourceImageScript, /towbar\.source=\$source_id/);
   assert.match(pullResourceImageScript, /towbar\.deployable=\$deployable_id/);
   assert.match(pullResourceImageScript, /-t "\$image_tag"/);
   assert.match(pullResourceImageScript, /ARG BASE_IMAGE=busybox:stable/);
+  assert.match(pullResourceImageScript, /resource_kind.*keydb/u);
+  assert.match(pullResourceImageScript, /available only for linux\/amd64/u);
 });

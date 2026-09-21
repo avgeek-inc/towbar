@@ -3,7 +3,6 @@ import { and, asc, eq, sql } from "drizzle-orm";
 import {
   apps,
   deployments,
-  githubInstallations,
   previewEnvironments,
   previewPullRequestReports,
   sources,
@@ -12,6 +11,8 @@ import {
 import { getEnv } from "../../env.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { upsertGitHubPullRequestComment } from "../github/client.js";
+import { upsertGitLabMergeRequestComment } from "../gitlab/client.js";
+import { sourceProviderClient } from "../sources/repository-provider.js";
 import {
   type PreviewSkippedApp,
   markPreviewReportDeliveryAttempt,
@@ -77,15 +78,10 @@ export async function publishPreviewPullRequestComment(input: {
   const [[source], environments, [report]] = await Promise.all([
     database
       .select({
-        installationId: githubInstallations.installationId,
         repositoryName: sources.repositoryName,
         repositoryOwner: sources.repositoryOwner,
       })
       .from(sources)
-      .innerJoin(
-        githubInstallations,
-        eq(githubInstallations.id, sources.githubInstallationId),
-      )
       .where(eq(sources.id, input.sourceId))
       .limit(1),
     database
@@ -133,24 +129,36 @@ export async function publishPreviewPullRequestComment(input: {
   await markPreviewReportDeliveryAttempt(input, "comment");
   try {
     const comment = await database.transaction(async (transaction) => {
-      // GitHub comment creation has no idempotency key, so keep discovery and
-      // creation inside one cross-process critical section.
+      // Provider comment creation has no idempotency key, so keep discovery
+      // and creation inside one cross-process critical section.
       await transaction.execute(
         sql`select pg_advisory_xact_lock(hashtextextended(${marker}, 0))`,
       );
-      return await upsertGitHubPullRequestComment({
-        body: renderPreviewPullRequestComment({
-          appBaseUrl: getEnv().TOWBAR_APP_BASE_URL,
-          entries,
-          marker,
-          sourceId: input.sourceId,
-        }),
-        installationId: source.installationId,
+      const provider = await sourceProviderClient(input.sourceId);
+      const body = renderPreviewPullRequestComment({
+        appBaseUrl: getEnv().TOWBAR_APP_BASE_URL,
+        entries,
         marker,
-        pullRequestNumber: input.pullRequestNumber,
-        repositoryName: source.repositoryName,
-        repositoryOwner: source.repositoryOwner,
+        sourceId: input.sourceId,
       });
+      return provider.provider === "github"
+        ? await upsertGitHubPullRequestComment({
+            body,
+            installationId: provider.installationId,
+            marker,
+            pullRequestNumber: input.pullRequestNumber,
+            repositoryName: source.repositoryName,
+            repositoryOwner: source.repositoryOwner,
+          })
+        : await upsertGitLabMergeRequestComment({
+            body,
+            connection: provider.connection,
+            marker,
+            projectId: provider.projectId,
+            pullRequestNumber: input.pullRequestNumber,
+            repositoryName: source.repositoryName,
+            repositoryOwner: source.repositoryOwner,
+          });
     });
     await markPreviewReportDeliverySucceeded(input, "comment");
     return comment;

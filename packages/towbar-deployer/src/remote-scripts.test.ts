@@ -12,6 +12,7 @@ import {
   scheduleFinalizeRemoteScript,
   startRemoteScript,
   startResourceRemoteScript,
+  staticBuildRemoteScript,
 } from "./remote-scripts.js";
 
 void describe("remote deployment scripts", () => {
@@ -59,6 +60,45 @@ void describe("remote deployment scripts", () => {
     assert.match(buildRemoteScript, /max_expanded_bytes/);
     assert.match(buildRemoteScript, /max_archive_entries/);
     assert.match(buildRemoteScript, /--no-same-owner --no-same-permissions/);
+  });
+
+  void it("keeps Towbar build caches within a scoped 20 GiB budget", () => {
+    for (const script of [buildRemoteScript, staticBuildRemoteScript]) {
+      assert.match(script, /cache_budget_bytes=21474836480/);
+      assert.match(script, /towbar\/build-cache-\$scope:current/);
+      assert.match(script, /towbar-build-\$scope-build/);
+      assert.match(script, /towbar-build-\$scope-launch/);
+      assert.match(script, /label=towbar\.build-cache=true/);
+      assert.match(script, /sort -n/);
+      assert.doesNotMatch(script, /docker system prune/);
+      assert.doesNotMatch(script, /docker volume prune/);
+    }
+  });
+
+  void it("only reuses Docker build cache for the same source commit", () => {
+    for (const script of [buildRemoteScript, staticBuildRemoteScript]) {
+      assert.match(script, /cached_commit=.*cache_marker/);
+      assert.match(script, /cached_commit.*TOWBAR_COMMIT_SHA/);
+      assert.match(script, /build_args\+=\(--no-cache\)/);
+      assert.match(script, /towbar\.build-cache-mode=\$cache_mode/);
+      assert.match(script, /towbar\.context-digest=\$context_digest/);
+      assert.match(script, /tar --sort=name --mtime='@0'/);
+      assert.match(script, /docker buildx build --load/);
+      assert.match(script, /tar -cf - -C "\$remote_dir\/context" \./);
+      assert.match(script, /--resource "cpu-quota=/);
+      assert.match(script, /--resource "memory=\$build_memory"/);
+      assert.match(
+        script,
+        /printf '%s\\n' "\$TOWBAR_COMMIT_SHA" >"\$cache_state\/\$cache_scope"/,
+      );
+    }
+  });
+
+  void it("applies declared resource limits to both static build stages", () => {
+    assert.match(staticBuildRemoteScript, /"--cpus", build_cpus/);
+    assert.match(staticBuildRemoteScript, /"--memory", build_memory/);
+    assert.match(staticBuildRemoteScript, /--resource "cpu-quota=/);
+    assert.match(staticBuildRemoteScript, /--resource "memory=\$build_memory"/);
   });
 
   void it("injects runtime secrets by key without putting values in argv", () => {
@@ -142,6 +182,10 @@ void describe("remote deployment scripts", () => {
     assert.match(scheduleFinalizeRemoteScript, /sleep "\$delay_seconds"/);
     assert.match(scheduleFinalizeRemoteScript, /nohup bash -c/);
     assert.match(scheduleFinalizeRemoteScript, /label=towbar\.app=\$app_id/);
-    assert.match(scheduleFinalizeRemoteScript, /name" != "\$container_name/);
+    assert.match(scheduleFinalizeRemoteScript, /retained-containers/);
+    assert.match(
+      scheduleFinalizeRemoteScript,
+      /! grep -Fxq "\$name" "\$retained_containers"/,
+    );
   });
 });

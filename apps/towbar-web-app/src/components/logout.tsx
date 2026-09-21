@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Spinner } from "@workspace/web-design-system/feedback/spinner";
 
+import { clearApiQueryCache } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 
 export function Logout() {
@@ -11,6 +12,7 @@ export function Logout() {
   useEffect(() => {
     if (started.current) return;
     started.current = true;
+    clearApiQueryCache();
     api
       .delete("/v1/core/session")
       .catch(() => undefined)

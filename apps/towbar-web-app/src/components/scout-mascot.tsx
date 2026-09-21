@@ -1,9 +1,17 @@
 import Image from "next/image";
 
-export function ScoutMascot({ size = 80 }: { size?: number }) {
+export function ScoutMascot({
+  size = 80,
+  variant = "mascot",
+}: {
+  size?: number;
+  variant?: "mascot" | "icon";
+}) {
   return (
     <Image
-      src="/scout/mascot.webp"
+      src={
+        variant === "icon" ? "/scout/sidebar-icon-v2.png" : "/scout/mascot.webp"
+      }
       alt=""
       aria-hidden="true"
       width={size}

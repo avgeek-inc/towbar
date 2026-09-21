@@ -16,7 +16,7 @@ jobs:
   monitoring-agent:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    container: golang:1.26.4-bookworm
+    container: golang:1.26.8-bookworm@sha256:9fdc884aacc3bec89b20ffc69f4bb369c78210e3e4f600387b5128b12c199f81
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - run: test -z "$(gofmt -l .)"
@@ -73,13 +73,24 @@ jobs:
           cache: pnpm
       - run: bash -n infra/deploy-release.sh
       - run: shellcheck infra/deploy-release.sh
+      - run: shellcheck infra/postgres/*.sh infra/temporal/*.sh
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm docs:api:check
       - run: pnpm typecheck
+      - run: pnpm test:verification-runner
+      - name: Verify embedded example
+        run: |
+          pnpm test:examples
+          docker build --tag towbar-example:test examples
+          docker run --detach --name towbar-example --publish 127.0.0.1:3000:3000 towbar-example:test
+          trap 'docker logs towbar-example; docker rm --force towbar-example' EXIT
+          curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 1 --max-time 5 http://127.0.0.1:3000/health
+          curl --fail --silent http://127.0.0.1:3000/ | grep --quiet 'Your app is running.'
       - run: pnpm test
+      - run: pnpm audit --prod --audit-level=moderate
       - name: Verify Trivy archive permissions as a non-root Docker user
         run: pnpm --filter towbar-worker exec tsx --test src/vulnerability-scanners/trivy.docker.test.ts
         env:
@@ -92,16 +103,61 @@ jobs:
 
   compose:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       # v7.0.1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Configure non-production Compose values
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build, boot and verify a fresh production installation
+        run: node tools/verification/production.mjs
+      - name: Preserve production verification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: verification-production
+          path: tmp/verification/
+          retention-days: 14
+
+  integration:
+    name: integration (${{ matrix.group }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [api, docker, app, resources, forwarding, scanner]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run required integration coverage without skipped suites
+        run: pnpm verify:integration "${{ matrix.group }}"
+      - name: Preserve integration verification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: verification-${{ matrix.group }}
+          path: tmp/verification/
+          retention-days: 14
+
+  required-ci:
+    name: Required CI
+    if: always()
+    needs: [docs, verify, monitoring-agent, compose, integration]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every verification job to succeed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
         run: |
-          cp .env.example .env
-          sed -i 's/replace-with-64-random-hex-characters/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/' .env
-          sed -i 's/replace-with-different-64-random-hex-characters/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/' .env
-          sed -i 's/replace-with-base64-encoded-32-byte-key/Y2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2M=/' .env
-          sed -i 's/replace-with-at-least-32-random-characters/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/' .env
-      - run: docker compose config --quiet
-      - run: docker compose build
+          node -e 'const jobs = JSON.parse(process.env.RESULTS); for (const [name, job] of Object.entries(jobs)) { if (job.result !== "success") { console.error(name + ": " + job.result); process.exitCode = 1; } }'

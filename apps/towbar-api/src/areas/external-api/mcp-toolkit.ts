@@ -1,3 +1,4 @@
+import type { Action } from "@workspace/towbar-access";
 import { z } from "zod";
 import { secretKeySchema } from "@workspace/towbar-core";
 import { operations } from "./catalogue.js";
@@ -21,7 +22,7 @@ export type McpTool = {
   description: string;
   input: z.ZodType;
   readOnly: boolean;
-  ownerOnly: boolean;
+  permissions: readonly Action[];
   destructive: boolean;
   idempotent: boolean;
   run: (
@@ -38,9 +39,8 @@ export function tool<S extends z.ZodType>(
     args: z.output<S>,
     context: ToolContext,
   ) => Promise<Record<string, unknown>>,
-  options: Partial<
-    Pick<McpTool, "readOnly" | "ownerOnly" | "destructive" | "idempotent">
-  > = {},
+  options: Pick<McpTool, "permissions"> &
+    Partial<Pick<McpTool, "readOnly" | "destructive" | "idempotent">>,
 ): McpTool {
   return {
     name: `towbar_${name}`,
@@ -48,7 +48,6 @@ export function tool<S extends z.ZodType>(
     description,
     input,
     readOnly: true,
-    ownerOnly: false,
     destructive: false,
     idempotent: true,
     ...options,
@@ -198,7 +197,7 @@ export function action(
     },
     {
       readOnly: false,
-      ownerOnly: op.ownerOnly ?? false,
+      permissions: op.permissions,
       destructive: options.destructive ?? true,
       idempotent: Boolean(op.idempotencyKey),
     },

@@ -1,3 +1,8 @@
+/* eslint-disable max-lines -- The parity suite intentionally exercises the complete REST and MCP authorization matrix together. */
+import {
+  seedApiServers,
+  seedConnectedEnvironment,
+} from "./environment-test-helper.js";
 import {
   assertPublicOperationNames,
   expectedBrowserOnlyRoutes,
@@ -6,7 +11,7 @@ import {
   assertScoutApiAccess,
   connectTestMcpClient,
 } from "./scout-access-test-helper.js";
-import { hashOpaqueToken } from "@workspace/towbar-core/security";
+import { defaultKeyHasher } from "@better-auth/api-key";
 import assert from "node:assert/strict";
 import { createHmac, randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -15,8 +20,6 @@ import {
   apiKeys,
   auditEvents,
   authRateLimitBuckets,
-  servers,
-  sessions,
   users,
   workspaceMembers,
   workspaces,
@@ -28,6 +31,7 @@ void test(
   async (t) => {
     assert(url && new URL(url).pathname.endsWith("_test"));
     process.env.DATABASE_TOWBAR_URL = url;
+    process.env.TOWBAR_PASSWORD_BREACH_CHECK = "false";
     process.env.TOWBAR_CREDENTIALS_KEY = randomBytes(32).toString("base64");
     process.env.TOWBAR_INTERNAL_HMAC_SECRET = randomBytes(32).toString("hex");
     process.env.TOWBAR_APP_BASE_URL = "https://app.towbar.test";
@@ -47,8 +51,16 @@ void test(
     });
     const { getTowbarDatabase, closeDatabase } =
       await import("../../infrastructure/database.js");
-    const { createApiKey, hashApiKey, listApiKeys, revokeApiKey } =
-      await import("../api-keys/service.js");
+    const {
+      createApiKey: createKey,
+      listApiKeys,
+      revokeApiKey,
+    } = await import("../api-keys/service.js");
+    const createApiKey = async (...args: Parameters<typeof createKey>) => {
+      const created = await createKey(...args);
+      assert(created.token);
+      return { ...created, token: created.token };
+    };
     const { createApp } = await import("../../app.js");
     const { operations, createOpenApiDocument } =
       await import("./catalogue.js");
@@ -72,35 +84,24 @@ void test(
     ]);
     await db
       .insert(workspaceMembers)
-      .values({ userId, workspaceId, role: "owner" });
+      .values({ userId, workspaceId, role: "admin" });
     const user = {
       id: userId,
       email: `${userId}@example.test`,
       name: "API test",
       workspaceId,
-      workspaceRole: "owner" as const,
+      workspaceRole: "admin" as const,
     };
     const ownedServerId = randomUUID(),
       foreignServerId = randomUUID();
-    await db.insert(servers).values(
-      [
-        { id: ownedServerId, workspaceId, ip: "192.0.2.10" },
-        { id: foreignServerId, workspaceId: otherId, ip: "192.0.2.11" },
-      ].map(({ id, workspaceId, ip }) => ({
-        id,
-        workspaceId,
-        canonicalIp: ip,
-        configDigest: "test-digest",
-        config: {
-          ip,
-          ssh: { host: ip, port: 22, username: "ubuntu" },
-          buildConcurrency: 1,
-        },
-      })),
-    );
+    await seedApiServers([
+      { id: ownedServerId, workspaceId, ip: "192.0.2.10" },
+      { id: foreignServerId, workspaceId: otherId, ip: "192.0.2.11" },
+    ]);
     const write = await createApiKey(user, {
       name: "Automation",
-      access: "write",
+      access: "edit",
+      includeAdmin: true,
     });
     const read = await createApiKey(user, {
       name: "Read",
@@ -124,11 +125,17 @@ void test(
       });
     const connect = (token: string) =>
       connectTestMcpClient(token, (request) => app.fetch(request));
-    t.beforeEach(async () => {
+    const clearRateBucket = async () => {
+      for (const key of [read.key, write.key])
+        await db
+          .update(apiKeys)
+          .set({ requestCount: 0, lastRequest: null, rateLimitMax: 1000 })
+          .where(eq(apiKeys.id, key.id));
       await db
         .delete(authRateLimitBuckets)
         .where(eq(authRateLimitBuckets.keyHash, bucketHash));
-    });
+    };
+    t.beforeEach(clearRateBucket);
     try {
       await t.test(
         "public operations have REST schemas and unique operation IDs; browser-only routes are excluded",
@@ -172,11 +179,11 @@ void test(
             .select()
             .from(apiKeys)
             .where(eq(apiKeys.id, write.key!.id));
-          assert.equal(stored!.tokenHash, hashApiKey(write.token));
+          assert.equal(stored!.key, await defaultKeyHasher(write.token));
           assert(!JSON.stringify(stored).includes(write.token));
           const text = JSON.stringify(await listApiKeys(user));
           assert(!text.includes(write.token));
-          assert(!text.includes(stored!.tokenHash));
+          assert(!text.includes(stored!.key));
           const audit = await db
             .select()
             .from(auditEvents)
@@ -190,7 +197,7 @@ void test(
           );
           assert(!JSON.stringify(audit).includes(write.token));
           assert.equal(
-            (await request("/profile", write.token)).headers.get(
+            (await request("/identity", write.token)).headers.get(
               "cache-control",
             ),
             "no-store",
@@ -218,62 +225,9 @@ void test(
             ).status,
             401,
           );
-          const token = randomBytes(32).toString("base64url");
-          await db.insert(sessions).values({
-            userId,
-            tokenHash: hashOpaqueToken(token),
-            expiresAt: new Date(Date.now() + 3600000),
-          });
-          const cookie = `towbar-session=${token}`;
-          assert.equal(
-            (
-              await app.request("/v1/core/settings/api-keys", {
-                headers: { cookie },
-              })
-            ).status,
-            200,
-          );
-          assert.equal(
-            (
-              await app.request("/v1/core/settings/api-keys", {
-                method: "POST",
-                headers: { cookie, "content-type": "application/json" },
-                body: JSON.stringify({
-                  name: "Browser",
-                  access: "read",
-                }),
-              })
-            ).status,
-            403,
-          );
-          const created = await app.request("/v1/core/settings/api-keys", {
-            method: "POST",
-            headers: {
-              cookie,
-              "content-type": "application/json",
-              origin: "https://app.towbar.test",
-            },
-            body: JSON.stringify({
-              name: "Browser",
-              access: "read",
-            }),
-          });
-          assert.equal(created.status, 201);
-          const profile = await app.request("/v1/core/profile", {
-            method: "PATCH",
-            headers: {
-              cookie,
-              "content-type": "application/json",
-              origin: "https://app.towbar.test",
-            },
-            body: JSON.stringify({ displayName: "Browser profile" }),
-          });
-          assert.equal(profile.status, 200);
-          assert.equal(
-            (await app.request("/v1/core/sessions", { headers: { cookie } }))
-              .status,
-            200,
-          );
+          const { assertBrowserSessionBoundary } =
+            await import("./browser-session-test-helper.js");
+          await assertBrowserSessionBoundary({ db, app, userId, user });
         },
       );
       await t.test(
@@ -282,37 +236,26 @@ void test(
           const excluded: Array<[string, string, string]> = [
             ["GET", "/notifications", "get_notifications"],
             ["GET", "/notifications/providers", "get_notifications_providers"],
+            ["GET", "/log-drains", "get_log_drains"],
             [
               "GET",
               `/sources/${randomUUID()}/notifications/destinations`,
               "get_sources_by_id_notifications_destinations",
             ],
             [
-              "POST",
-              `/sources/${randomUUID()}/notifications/destinations`,
-              "post_sources_by_id_notifications_destinations",
-            ],
-            [
-              "PUT",
-              `/sources/${randomUUID()}/notifications/destinations/${randomUUID()}`,
-              "put_sources_by_id_notifications_destinations_by_id",
-            ],
-            [
-              "DELETE",
-              `/sources/${randomUUID()}/notifications/destinations/${randomUUID()}`,
-              "delete_sources_by_id_notifications_destinations_by_id",
+              "GET",
+              "/settings/api-keys/personal",
+              "get_settings_api_keys_personal",
             ],
             [
               "POST",
-              `/sources/${randomUUID()}/notifications/destinations/${randomUUID()}/actions/test`,
-              "post_sources_by_id_notifications_destinations_by_id_actions_test",
+              "/settings/api-keys/personal",
+              "post_settings_api_keys_personal",
             ],
-            ["GET", "/settings/api-keys", "get_settings_api_keys"],
-            ["POST", "/settings/api-keys", "post_settings_api_keys"],
             [
               "DELETE",
-              `/settings/api-keys/${write.key.id}`,
-              "delete_settings_api_keys_by_id",
+              `/settings/api-keys/personal/${write.key.id}`,
+              "delete_settings_api_keys_personal_by_id",
             ],
             ["PATCH", "/profile", "patch_profile"],
             ["PUT", "/profile/password", "put_profile_password"],
@@ -328,24 +271,41 @@ void test(
               "/github/actions/complete-installation",
               "post_github_actions_complete_installation",
             ],
+            ["POST", "/gitlab/oauth/start", "post_gitlab_oauth_start"],
+            [
+              "DELETE",
+              "/gitlab/oauth/connection",
+              "delete_gitlab_oauth_connection",
+            ],
           ];
+          await seedConnectedEnvironment(workspaceId);
           const client = await connect(write.token);
           try {
             const tools = await client.listTools();
             const spec = createOpenApiDocument("https://api.test/v1/api");
             for (const [method, path, name] of excluded) {
-              assert.equal(
-                (await request(path, write.token, method)).status,
-                404,
-              );
-              assert(!tools.tools.some((tool) => tool.name === name));
-              assert(
-                !JSON.stringify(spec.paths).includes(`"operationId":"${name}"`),
-              );
-              assert.equal(
-                (await client.callTool({ name, arguments: {} })).isError,
-                true,
-              );
+              try {
+                assert.equal(
+                  (await request(path, write.token, method)).status,
+                  404,
+                  `${method} ${path} must not be available to API keys`,
+                );
+                assert(
+                  !tools.tools.some((tool) => tool.name === name),
+                  `${name} must not be advertised by MCP`,
+                );
+                assert(
+                  !JSON.stringify(spec.paths).includes(
+                    `"operationId":"${name}"`,
+                  ),
+                  `${name} must not be present in OpenAPI`,
+                );
+              } catch (error) {
+                throw new Error(
+                  `Browser-only boundary failed for ${method} ${path}: ${error instanceof Error ? error.message : String(error)}`,
+                  { cause: error },
+                );
+              }
             }
           } finally {
             await client.close();
@@ -355,7 +315,7 @@ void test(
       await t.test(
         "read-only, ownership, expiry, revocation, and live role checks",
         async () => {
-          assert.equal((await request("/profile", read.token)).status, 200);
+          assert.equal((await request("/identity", read.token)).status, 200);
           assert.equal(
             (
               await request(
@@ -388,61 +348,95 @@ void test(
             (await request("/servers/not-a-uuid", write.token)).status,
             400,
           );
+          await assert.rejects(
+            createApiKey(
+              { ...user, workspaceId: otherId },
+              { name: "Foreign membership", access: "read" },
+            ),
+          );
+          const otherUserId = randomUUID();
+          await db.insert(users).values({
+            id: otherUserId,
+            email: `${otherUserId}@example.test`,
+            displayName: "Other member",
+          });
+          await db.insert(workspaceMembers).values({
+            userId: otherUserId,
+            workspaceId: otherId,
+            role: "viewer",
+          });
           const otherKey = await createApiKey(
-            { ...user, workspaceId: otherId },
+            {
+              ...user,
+              id: otherUserId,
+              workspaceId: otherId,
+              workspaceRole: "viewer",
+            },
             { name: "Other", access: "read" },
           );
           await assert.rejects(() => revokeApiKey(user, otherKey.key.id));
-          assert.equal((await request("/profile", otherKey.token)).status, 401);
+          assert.equal(
+            (await request(`/servers/${ownedServerId}`, otherKey.token)).status,
+            404,
+          );
           const expiring = await createApiKey(user, {
             name: "Expired",
             access: "read",
-            expiresAt: new Date(Date.now() - 1000).toISOString(),
           });
-          assert.equal((await request("/profile", expiring.token)).status, 401);
           await db
-            .update(workspaceMembers)
-            .set({ role: "member" })
-            .where(eq(workspaceMembers.userId, userId));
+            .update(apiKeys)
+            .set({ expiresAt: new Date(Date.now() - 1000) })
+            .where(eq(apiKeys.id, expiring.key.id));
           assert.equal(
-            (await request("/aws", write.token, "DELETE")).status,
-            403,
+            (await request("/identity", expiring.token)).status,
+            401,
           );
-          const memberClient = await connect(write.token);
-          try {
-            const available = await memberClient.listTools();
-            assert(
-              !available.tools.some(
-                (tool) => tool.name === "towbar_secrets_update",
-              ),
-            );
-            assert.equal(
-              (
-                await memberClient.callTool({
-                  name: "towbar_secrets_update",
-                  arguments: {
-                    scope: "workspace",
-                    environment: "preview",
-                    stage: "build",
-                    expectedRevision: null,
-                    set: { DENIED: "No" },
-                  },
-                })
-              ).isError,
-              true,
-            );
-          } finally {
-            await memberClient.close();
-          }
           await db
             .update(workspaceMembers)
-            .set({ role: "owner" })
+            .set({ role: "viewer" })
             .where(eq(workspaceMembers.userId, userId));
+          try {
+            assert.equal(
+              (await request("/integrations", write.token)).status,
+              403,
+            );
+            const memberClient = await connect(write.token);
+            try {
+              const available = await memberClient.listTools();
+              assert(
+                !available.tools.some(
+                  (tool) => tool.name === "towbar_secrets_update",
+                ),
+              );
+              assert.equal(
+                (
+                  await memberClient.callTool({
+                    name: "towbar_secrets_update",
+                    arguments: {
+                      scope: "workspace",
+                      environment: "preview",
+                      stage: "build",
+                      expectedRevision: null,
+                      set: { DENIED: "No" },
+                    },
+                  })
+                ).isError,
+                true,
+              );
+            } finally {
+              await memberClient.close();
+            }
+          } finally {
+            await db
+              .update(workspaceMembers)
+              .set({ role: "admin" })
+              .where(eq(workspaceMembers.userId, userId));
+          }
           await db
             .update(users)
             .set({ disabledAt: new Date() })
             .where(eq(users.id, userId));
-          assert.equal((await request("/profile", write.token)).status, 401);
+          assert.equal((await request("/identity", write.token)).status, 401);
           await db
             .update(users)
             .set({ disabledAt: null })
@@ -450,7 +444,7 @@ void test(
         },
       );
       await t.test(
-        "Scout rules enforce owner writes, read-only keys, and tenant boundaries through REST and MCP",
+        "Scout rules enforce role writes, read-only keys, and tenant boundaries through REST and MCP",
         () =>
           assertScoutApiAccess({
             request,
@@ -473,16 +467,16 @@ void test(
           try {
             const list = await client.listTools();
             assert.equal(list.tools.length, mcpTools.length);
-            assert.equal(
-              (await client.callTool({ name: "get_apps", arguments: {} }))
-                .isError,
-              true,
-            );
+            assert(!list.tools.some((tool) => tool.name === "get_apps"));
             const profile = await client.callTool({
               name: "towbar_inventory_search",
               arguments: { kind: "app" },
             });
-            assert.equal(profile.isError, false);
+            assert.equal(
+              profile.isError,
+              false,
+              `App inventory failed: ${JSON.stringify(profile.content)}`,
+            );
             const foundServer = await client.callTool({
               name: "towbar_inventory_search",
               arguments: { kind: "server", search: "192.0.2." },
@@ -499,13 +493,21 @@ void test(
               name: "towbar_server_inspect",
               arguments: { serverId: foreignServerId },
             });
-            assert.equal(foreign.isError, true);
+            assert.equal(
+              foreign.isError,
+              true,
+              "A foreign server must remain inaccessible",
+            );
             assert(!JSON.stringify(foreign).includes("192.0.2.11"));
             const invalid = await client.callTool({
               name: "towbar_server_inspect",
               arguments: { serverId: "../../internal" },
             });
-            assert.equal(invalid.isError, true);
+            assert.equal(
+              invalid.isError,
+              true,
+              "An invalid server identifier must be rejected",
+            );
             const secret = await client.callTool({
               name: "towbar_secrets_update",
               arguments: {
@@ -516,7 +518,11 @@ void test(
                 set: { TEST_VALUE: "do-not-expose" },
               },
             });
-            assert.equal(secret.isError, false);
+            assert.equal(
+              secret.isError,
+              false,
+              `Secret update failed: ${JSON.stringify(secret.content)}`,
+            );
             assert(!JSON.stringify(secret).includes("do-not-expose"));
             const readback = await (
               await request("/settings/secrets", write.token)
@@ -558,15 +564,19 @@ void test(
           await db
             .delete(authRateLimitBuckets)
             .where(eq(authRateLimitBuckets.keyHash, bucketHash));
+          await db
+            .update(apiKeys)
+            .set({ requestCount: 0, lastRequest: null })
+            .where(eq(apiKeys.id, write.key.id));
           const results = await Promise.all(
             Array.from({ length: 60 }, (_, i) =>
-              request("/profile", write.token, "GET", undefined, {
+              request("/identity", write.token, "GET", undefined, {
                 "x-forwarded-for": `192.0.2.${i}`,
               }),
             ),
           );
           assert(results.every((result) => result.status === 200));
-          const limited = await request("/profile", write.token);
+          const limited = await request("/identity", write.token);
           assert.equal(limited.status, 429);
           assert(Number(limited.headers.get("retry-after")) > 0);
           assert.equal(limited.headers.get("x-ratelimit-remaining"), "0");
@@ -583,16 +593,18 @@ void test(
             .update(authRateLimitBuckets)
             .set({ expiresAt: new Date(Date.now() - 1) })
             .where(eq(authRateLimitBuckets.keyHash, bucketHash));
-          assert.equal((await request("/profile", write.token)).status, 200);
+          await db
+            .update(apiKeys)
+            .set({ requestCount: 0, lastRequest: null })
+            .where(eq(apiKeys.id, write.key.id));
+          assert.equal((await request("/identity", write.token)).status, 200);
         },
       );
     } finally {
       await db.delete(workspaces).where(eq(workspaces.id, workspaceId));
       await db.delete(workspaces).where(eq(workspaces.id, otherId));
       await db.delete(users).where(eq(users.id, userId));
-      await db
-        .delete(authRateLimitBuckets)
-        .where(eq(authRateLimitBuckets.keyHash, bucketHash));
+      await clearRateBucket();
       await closeDatabase();
     }
   },

@@ -1,0 +1,102 @@
+---
+title: "Personal settings"
+description: "Manage your profile, sign-in methods, browser sessions, and personal API keys."
+---
+
+Open **Manage → My Settings**. These settings affect your own account. Your team role determines which operational actions you can take, but every user can secure their account and review their sessions.
+
+## Profile
+
+Use **Profile → Display name** to change the name shown in the sidebar and team member list. Changing it does not change your sign-in email or permissions.
+
+## Preferences
+
+Open **Preferences → Date and time** to choose a date format, time format, and time zone. Search for a city such as `Kolkata` or choose `UTC`. The preview shows how your selection will appear. Select **Save** to apply it across Towbar.
+
+Absolute dates and times in tables, charts, logs, and tooltips use these settings. Relative labels such as “5 minutes ago” are unchanged. The default is `16 Sept 2026`, `14:30`, and UTC. Your preferences follow your account, including across browsers and devices.
+
+Custom monitoring ranges use your saved format and time zone. If a time occurs twice during a daylight-saving change, choose the first or second occurrence. Towbar rejects times skipped by a clock change.
+
+Your personal API keys and MCP connections use your current preferences. Team API keys always use the default formats in UTC. Changing display preferences does not change scheduled operations or stored timestamps. See the [API localization contract](/docs/api/overview#date-and-time-localization).
+
+## Email and password
+
+Open **Email & Password** for the separate email and password forms. Save each form independently.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/email-password-light.jpg"
+      alt="Email and password have separate forms in My Settings."
+      width="1280"
+      height="720"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/email-password-dark.jpg"
+      alt="Email and password have separate forms in My Settings."
+      width="1280"
+      height="720"
+      loading="lazy"
+    />
+  </div>
+  <p>Email and password have separate forms in My Settings.</p>
+</div>
+
+### Change your email
+
+1. Enter the new address under **Email address** and request a confirmation link.
+2. Open the email sent to that address and follow the link within one hour.
+3. Sign in again with the new address after confirmation.
+
+Your current address stays active until you confirm. A newer request replaces the previous link. You can cancel a pending change from Email & Password. After confirmation, Towbar signs out your browser sessions and sends a notice to the old address.
+
+The Towbar operator must configure [SMTP](/docs/integrations/notifications#configure-email) in the API environment before Towbar can send the confirmation. Admins cannot replace another member's email from the Members page; the account holder must complete this flow.
+
+### Change your password
+
+Enter your current password, then the new password twice. Use at least 15 characters. Password managers and paste are supported. Towbar checks new passwords against a list of known compromised passwords. If the check is unavailable, try again later.
+
+An account created by an admin starts with a temporary password. The user must replace it during the first sign-in before opening the dashboard.
+
+## Sessions
+
+The Sessions table lists your active browser sessions, when each was last used, and when it expires. **This browser** identifies your current session. Revoke a session when you no longer use or recognize it.
+
+Use the sign-out icon beside the theme switcher in the header to end the current browser session. The confirmation links back to these settings for managing other sessions. Signing out does not revoke your personal API keys.
+
+## Two-factor Auth
+
+An authenticator app adds a one-time code after password sign-in. Open **Two-factor Auth → Authenticator app** to set it up.
+
+1. Start setup and scan the QR code with your authenticator app. You can copy the setup key instead if needed.
+2. Enter a current six-digit code to enable the authenticator.
+3. Save the recovery codes somewhere you can reach if you lose your device.
+
+Each recovery code works once. Replacing the codes makes the previous set unusable. Replacing codes or disabling the authenticator requires a current authenticator code.
+
+Towbar may ask you to authenticate again before a sensitive change if your last authentication was more than ten minutes ago. Starting setup does not enable MFA until Towbar accepts the verification code.
+
+## Passkeys
+
+A passkey verifies your identity after you enter your email and password. Your browser asks for device verification, such as a fingerprint, face scan, or PIN. The biometric data stays with the device.
+
+Under **Two-factor Auth → Passkeys**, add a passkey and give it a name you will recognize. You can rename it later or remove one you no longer use. Removing it from Towbar stops that credential from signing in to this installation; it does not delete the copy stored in your password manager.
+
+Sign in with your email and password first. If you configured both an authenticator app and a passkey, choose which method to use. With only an authenticator, Towbar opens the code form; with only a passkey, it requests the passkey automatically. On localhost, the browser remembers your last successful method and uses it again if it is still configured and supported. You can choose another configured method or retry a cancelled passkey request. Keep your password and recovery options available. Passkeys belong to the Towbar site's domain, so moving the installation to a different domain requires new passkeys. Production installations need HTTPS; localhost is supported for development.
+
+## Personal API keys
+
+Open **API Keys** to create and revoke keys for scripts or an MCP client. Choose the narrowest access and a suitable expiry. Copy the token when it is created; Towbar cannot show it again.
+
+Your role limits what each key can do. Viewer keys are read-only. A role change can reduce an existing key's access. Read [API key permissions](/docs/api/authentication#keys-and-permissions) before choosing access for automation.
+
+## MCP Guide
+
+The **MCP Guide** page shows the endpoint and client configuration for this Towbar installation. Use a personal key with the access your client needs. See [Connect an MCP client](/docs/api/mcp).
+
+## If you cannot sign in
+
+Use **Forgot password** when SMTP is available. If you lost your authenticator, use an unused recovery code. An installation operator can follow [admin account recovery](/docs/self-hosting/upgrades#admin-account-recovery) when the usual recovery methods are unavailable.

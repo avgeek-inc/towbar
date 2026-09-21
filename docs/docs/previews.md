@@ -7,35 +7,35 @@ Preview environments let you review an app before merging a pull request. Each e
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/features/previews-light.webp" alt="Example preview environments with pull request URLs, commits, expiry times, and cleanup status." width="2160" height="716" loading="lazy" />
+    <img src="/assets/release-v2/previews-light.jpg" alt="Preview environments show their URL, commit, expiry, and cleanup status." width="1280" height="720" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/features/previews-dark.webp" alt="Example preview environments with pull request URLs, commits, expiry times, and cleanup status." width="2160" height="716" loading="lazy" />
+    <img src="/assets/release-v2/previews-dark.jpg" alt="Preview environments show their URL, commit, expiry, and cleanup status." width="1280" height="720" loading="lazy" />
   </div>
-  <p>Example preview environments with pull request URLs, commits, expiry times, and cleanup status.</p>
+  <p>Preview environments show their URL, commit, expiry, and cleanup status.</p>
 </div>
 
 ## Enable previews
 
 Previews are opt-in per app. Opening a same-repository pull request
-that targets `source.branch` builds its immutable head commit and promotes it
+that targets a connected environment's mapped branch with previews enabled builds its immutable head commit and promotes it
 to one stable PR URL. Draft pull requests are supported. Resources are not
 cloned, and production shared or App secrets are never inherited.
 
-```yaml
-apps:
-  - id: hello-towbar
-    # Existing production configuration omitted.
-    preview:
-      enabled: true
-      domain: preview.example.com
-      ttlHours: 72
+```yaml title=".towbar/apps/hello-towbar.app.yml"
+id: hello-towbar
+preview:
+  enabled: true
+  domain: preview.example.com
+  ttlHours: 72
+environments:
+  production: {}
 ```
 
 ## Set up DNS
 
 The generated hostname includes the App ID, pull request number, and a stable
-Source/PR hash, for example
+Repository/PR hash, for example
 `hello-towbar-pr-42-a1b2c3d4.preview.example.com`. With
 `tls.mode: cloudflare-dns`, Towbar creates and removes the exact proxied DNS
 record. With `tls.mode: direct`, route the Preview base domain to the target
@@ -52,7 +52,7 @@ concurrency, and is capped at `4`. Preview builds have lower queue priority
 than production, Resource, cleanup, and server operations. A newer PR commit supersedes only
 queued work for that App and PR. A failed build leaves the last healthy Preview
 live. Merging or closing the pull request, retargeting it away from
-`source.branch`, disabling Preview in the next successful Source sync,
+the target environment's branch mapping, disabling Preview in the next successful Repository sync,
 manually deleting it in Towbar, or reaching `ttlHours` queues targeted
 container, image, route, and DNS cleanup; persistent volumes and Resources are
 never removed. Reopening an eligible pull request recreates its Preview.
@@ -82,7 +82,7 @@ Each preview keeps its own URL and status; deploying one PR does not deactivate
 another PR's preview. Older environments with PR numbers in their names remain
 in GitHub until you remove them there.
 
-Towbar also maintains one comment per Source and pull request with every App's
+Towbar also maintains one comment per Repository and pull request with every App's
 build status, Preview URL, and deployment details link. A hidden stable marker
 lets Towbar update the same GitHub comment instead of posting a new comment for
 each state change.
@@ -96,7 +96,7 @@ configuration remain controlled by the production manifest. Secret assignments a
 
 ## Verify a preview
 
-1. Create a same-repository pull request against the Source's production branch.
+1. Create a same-repository pull request against the preview-enabled environment's mapped branch.
 2. Change a file included by the app's deployment inputs.
 3. Open the preview in Towbar and wait for deployment to succeed.
 4. Open its URL and verify the expected change.

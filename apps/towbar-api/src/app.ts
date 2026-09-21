@@ -1,3 +1,4 @@
+import { auditRequestContext } from "./infrastructure/audit-context.js";
 import { randomUUID } from "node:crypto";
 
 import { Hono } from "hono";
@@ -24,7 +25,7 @@ function createRoutedApp(routeScope: "internal" | "public") {
       : randomUUID();
     context.set("requestId", requestId);
     context.header("x-request-id", requestId);
-    await next();
+    await auditRequestContext.run(requestId, next);
   });
   app.use(
     "/v1/*",

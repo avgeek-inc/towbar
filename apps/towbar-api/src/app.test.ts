@@ -120,6 +120,20 @@ void describe("Towbar API boundaries", () => {
     }
   });
 
+  void it("does not expose enterprise identity protocols", async () => {
+    for (const [method, path] of [
+      ["POST", "/v1/public/auth/identity/sign-in/sso"],
+      ["GET", "/v1/public/auth/identity/sso/saml2/sp/metadata"],
+      ["GET", "/v1/public/auth/identity/scim/v2/Users"],
+    ] as const) {
+      const response = await app.request(path, {
+        headers: { origin: "https://app.towbar.test" },
+        method,
+      });
+      assert.equal(response.status, 404, `${method} ${path}`);
+    }
+  });
+
   void it("does not reflect invalid request identifiers", async () => {
     const response = await app.request("/v1/public/signup", {
       headers: { "x-request-id": "invalid request id with spaces" },

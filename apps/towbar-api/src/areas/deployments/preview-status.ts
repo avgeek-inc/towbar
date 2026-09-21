@@ -3,7 +3,6 @@ import { and, eq, isNull, notInArray } from "drizzle-orm";
 import { terminalDeploymentStates } from "@workspace/towbar-core/temporal";
 import {
   deployments,
-  githubInstallations,
   previewEnvironments,
   sources,
 } from "@workspace/towbar-database/schema";
@@ -13,6 +12,8 @@ import {
   createGitHubPreviewDeployment,
   updateGitHubPreviewDeployment,
 } from "../github/client.js";
+import { publishGitLabCommitStatus } from "../gitlab/client.js";
+import { sourceProviderClient } from "../sources/repository-provider.js";
 import { publishPreviewPullRequestCommentForDeployment } from "../previews/pr-comment.js";
 import { emitPreviewNotification } from "../notifications/events.js";
 import {
@@ -90,7 +91,6 @@ export async function publishPreviewDeploymentStatus(
       gitRef: deployments.gitRef,
       githubDeploymentId: deployments.githubDeploymentId,
       hostname: deployments.hostname,
-      installationId: githubInstallations.installationId,
       pullRequestNumber: previewEnvironments.pullRequestNumber,
       repositoryName: sources.repositoryName,
       repositoryOwner: sources.repositoryOwner,
@@ -101,10 +101,6 @@ export async function publishPreviewDeploymentStatus(
     .innerJoin(
       previewEnvironments,
       eq(previewEnvironments.id, deployments.previewEnvironmentId),
-    )
-    .innerJoin(
-      githubInstallations,
-      eq(githubInstallations.id, sources.githubInstallationId),
     )
     .where(
       and(
@@ -120,6 +116,22 @@ export async function publishPreviewDeploymentStatus(
   };
   await markPreviewReportDeliveryAttempt(report, "deployment");
   try {
+    const provider = await sourceProviderClient(deployment.sourceId);
+    if (provider.provider === "gitlab") {
+      await publishGitLabCommitStatus({
+        appName: deployment.app.name,
+        commitSha: deployment.commitSha,
+        connection: provider.connection,
+        description: `Towbar preview is ${state.replaceAll("_", " ")}`,
+        environmentUrl: `https://${deployment.hostname}`,
+        projectId: provider.projectId,
+        repositoryName: deployment.repositoryName,
+        repositoryOwner: deployment.repositoryOwner,
+        state: previewGitLabDeploymentState(state),
+      });
+      await markPreviewReportDeliverySucceeded(report, "deployment");
+      return;
+    }
     let githubDeploymentId = deployment.githubDeploymentId;
     if (state !== "inactive" || githubDeploymentId) {
       if (!githubDeploymentId) {
@@ -127,7 +139,7 @@ export async function publishPreviewDeploymentStatus(
           appName: deployment.app.name,
           commitSha: deployment.commitSha,
           environmentUrl: `https://${deployment.hostname}`,
-          installationId: deployment.installationId,
+          installationId: provider.installationId,
           pullRequestNumber: deployment.pullRequestNumber,
           repositoryName: deployment.repositoryName,
           repositoryOwner: deployment.repositoryOwner,
@@ -148,7 +160,7 @@ export async function publishPreviewDeploymentStatus(
         await updateGitHubPreviewDeployment({
           deploymentId: githubDeploymentId,
           environmentUrl: `https://${deployment.hostname}`,
-          installationId: deployment.installationId,
+          installationId: provider.installationId,
           repositoryName: deployment.repositoryName,
           repositoryOwner: deployment.repositoryOwner,
           state: githubState,
@@ -160,6 +172,18 @@ export async function publishPreviewDeploymentStatus(
     await markPreviewReportDeliveryFailed(report, "deployment", error);
     throw error;
   }
+}
+
+function previewGitLabDeploymentState(
+  state: DeploymentState | "inactive",
+): "canceled" | "failed" | "pending" | "running" | "success" {
+  if (state === "inactive" || state === "cancelled" || state === "skipped")
+    return "canceled";
+  if (state === "failed") return "failed";
+  if (state === "queued" || state === "waiting_for_server") return "pending";
+  if (state === "succeeded" || state === "succeeded_with_warnings")
+    return "success";
+  return "running";
 }
 
 function previewGitHubDeploymentState(state: DeploymentState) {

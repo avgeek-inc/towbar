@@ -1,3 +1,17 @@
+import { eventHistoryFixture } from "./event-history-fixture.ts";
+import { logDrainsFixture } from "./log-drains-fixture.ts";
+import { terminalFixture } from "./terminal-fixture.ts";
+import {
+  createTeamAccessFixture,
+  type TeamFixtureOptions,
+} from "./team-access-fixture.ts";
+import { fixtureJson, useFixtureLocalization } from "./fixture-localization.ts";
+import { roleActions, isWorkspaceRole } from "@workspace/towbar-access";
+import { createDeclaredSecretsFixture } from "./declared-secrets-fixture.ts";
+import {
+  createSourceConnectionFixture,
+  FixtureEnvironmentError,
+} from "./source-connection-fixture.ts";
 import {
   workloadFilters,
   serverFilters,
@@ -25,12 +39,10 @@ import type {
   BackupAssurance,
   AppSecretsResponse,
   AutoDeployControlResponse,
-  AwsCredentialMetadata,
-  AzureCredentialMetadata,
-  GcpCredentialMetadata,
   Deployment,
   DeploymentEvent,
   DeploymentLog,
+  DeploymentPullRequest,
   DeploymentState,
   DeploymentStep,
   GitHubConnection,
@@ -61,6 +73,10 @@ import type {
 } from "@workspace/towbar-web-client";
 
 export const fixtureIds = {
+  faviconApp: "31111111-1111-4111-8111-555555555555",
+  stagingApp: "31111111-1111-4111-8111-666666666666",
+  storageApp: "31111111-1111-4111-8111-888888888888",
+  stagingResource: "41111111-1111-4111-8111-666666666666",
   app: "31111111-1111-4111-8111-222222222222",
   deployment: "61111111-1111-4111-8111-111111111111",
   preview: "b1111111-1111-4111-8111-111111111111",
@@ -99,19 +115,23 @@ const terminalStates = new Set<DeploymentState>([
 ]);
 
 const user: TowbarUser = {
-  email: "owner@example.com",
+  email: "admin@example.com",
   id: "71111111-1111-4111-8111-111111111111",
-  name: "Towbar Owner",
+  name: "Towbar Admin",
   workspaceId: "81111111-1111-4111-8111-111111111111",
-  workspaceRole: "owner",
+  workspaceRole: "admin",
+  teamName: "Towbar team",
+  capabilities: roleActions("admin"),
+  mustChangePassword: false,
+  passwordSetupRequired: false,
+  emailVerified: true,
+  twoFactorEnabled: false,
 };
 
 const source: Source = {
-  branch: "main",
   createdAt: fixtureNow,
   id: fixtureIds.source,
-  latestCommitSha: commitSha,
-  latestManifestDigest: manifestDigest,
+  provider: "github",
   repositoryName: "platform",
   repositoryOwner: "example-inc",
   status: "active",
@@ -124,21 +144,16 @@ const sources: Source[] = [
     ...source,
     id: fixtureIds.docsSource,
     repositoryName: "documentation",
-    branch: "production",
   },
   {
     ...source,
     id: fixtureIds.analyticsSource,
     repositoryName: "analytics",
-    branch: "main",
   },
   {
     ...source,
     id: fixtureIds.sandboxSource,
     repositoryName: "sandbox",
-    branch: "develop",
-    latestCommitSha: null,
-    latestManifestDigest: null,
   },
 ];
 
@@ -204,6 +219,48 @@ const resources: FixtureResource[] = [
     "image",
     servers[1]!,
   ),
+  createResourceFixture(
+    "41111111-1111-4111-8111-777777777771",
+    "Commerce MySQL",
+    "commerce-mysql",
+    "mysql",
+    servers[1]!,
+  ),
+  createResourceFixture(
+    "41111111-1111-4111-8111-777777777772",
+    "Billing MariaDB",
+    "billing-mariadb",
+    "mariadb",
+    servers[1]!,
+  ),
+  createResourceFixture(
+    "41111111-1111-4111-8111-777777777773",
+    "Events MongoDB",
+    "events-mongodb",
+    "mongodb",
+    servers[1]!,
+  ),
+  createResourceFixture(
+    "41111111-1111-4111-8111-777777777774",
+    "Session Dragonfly",
+    "session-dragonfly",
+    "dragonfly",
+    servers[1]!,
+  ),
+  createResourceFixture(
+    "41111111-1111-4111-8111-777777777775",
+    "Queue KeyDB",
+    "queue-keydb",
+    "keydb",
+    servers[1]!,
+  ),
+  createResourceFixture(
+    "41111111-1111-4111-8111-777777777776",
+    "Analytics ClickHouse",
+    "analytics-clickhouse",
+    "clickhouse",
+    servers[1]!,
+  ),
 ];
 
 apps.push({
@@ -215,6 +272,76 @@ apps.push({
   ),
   sourceId: fixtureIds.docsSource,
 });
+const faviconApp = createAppFixture(
+  fixtureIds.faviconApp,
+  "Wikipedia",
+  "wikipedia",
+  servers[1]!,
+);
+faviconApp.sourceId = fixtureIds.docsSource;
+faviconApp.config.domains = {
+  primary: "www.wikipedia.org",
+  redirects: [],
+};
+apps.push(faviconApp);
+const storageApp = createAppFixture(
+  fixtureIds.storageApp,
+  "File uploads",
+  "file-uploads",
+  servers[1]!,
+);
+storageApp.sourceId = fixtureIds.docsSource;
+storageApp.config.container.volumes = [
+  { name: "uploads", mountPath: "/app/uploads" },
+];
+storageApp.config.jobs = [
+  {
+    name: "daily-report",
+    description: "Summarize uploaded files",
+    command: ["node", "scripts/report.js"],
+    schedule: { cron: "0 2 * * *", timezone: "UTC" },
+    timeoutSeconds: 300,
+    enabled: true,
+  },
+];
+apps.push(storageApp);
+const composeApp: FixtureApp = {
+  ...createAppFixture(
+    "31111111-1111-4111-8111-999999999999",
+    "Compose storefront",
+    "compose-storefront",
+    servers[1]!,
+  ),
+  config: {
+    autoDeploy: true,
+    container: { port: 0, volumes: [] },
+    context: ".",
+    deploymentInputs: ["deploy/compose.yml", "deploy/compose.production.yml"],
+    description: "Multi-service storefront fixture",
+    file: "deploy/compose.yml",
+    health: { path: "/", timeoutSeconds: 300 },
+    hooks: {},
+    id: "compose-storefront",
+    kind: "compose",
+    name: "Compose storefront",
+    overrides: ["deploy/compose.production.yml"],
+    profiles: ["production"],
+    server: servers[1]!.canonicalIp,
+    services: {
+      cache: {},
+      web: {
+        domains: ["storefront.example.com"],
+        port: 3000,
+      },
+    },
+    sourceBranch: "main",
+    strategy: "maintenance",
+    vulnerabilityScanning: false,
+  },
+  kind: "compose",
+};
+apps.push(composeApp);
+
 resources.push({
   ...createResourceFixture(
     "41111111-1111-4111-8111-555555555555",
@@ -224,6 +351,49 @@ resources.push({
     servers[1]!,
   ),
   sourceId: fixtureIds.analyticsSource,
+});
+
+const environmentMappings = sources
+  .filter((item) => item.id !== fixtureIds.sandboxSource)
+  .flatMap((item) =>
+    (item.id === fixtureIds.source
+      ? ["production", "staging"]
+      : ["production"]
+    ).map((name) => ({
+      id: `${name === "staging" ? "a" : "c"}${item.id.slice(1)}`,
+      sourceId: item.id,
+      name,
+      branch: name === "staging" ? "develop" : "main",
+      mappingRevision: `${name === "staging" ? "a" : "c"}${item.id.slice(1)}`,
+      previewsEnabled: name === "staging",
+      latestSyncStatus: "succeeded" as const,
+      latestSyncFinishedAt: fixtureNow,
+      latestSuccessfulSyncId: fixtureIds.sync,
+      disconnectedAt: null,
+    })),
+  );
+for (const item of [...apps, ...resources]) {
+  item.entityId = item.id;
+  item.environment = environmentMappings.find(
+    (environment) =>
+      environment.sourceId === item.sourceId &&
+      environment.name === "production",
+  )!;
+}
+const stagingEnvironment = environmentMappings.find(
+  (environment) =>
+    environment.sourceId === fixtureIds.source &&
+    environment.name === "staging",
+)!;
+apps.push({
+  ...apps.find((item) => item.id === fixtureIds.app)!,
+  id: fixtureIds.stagingApp,
+  environment: stagingEnvironment,
+});
+resources.push({
+  ...resources.find((item) => item.id === fixtureIds.resource)!,
+  id: fixtureIds.stagingResource,
+  environment: stagingEnvironment,
 });
 
 const fixtureSecretKeys = new Map<string, string[]>();
@@ -260,7 +430,9 @@ fixtureSecretVersions.set(
 fixtureSecretKeys.set(`${source.id}:preview:build`, ["SOURCE_PREVIEW_TOKEN"]);
 fixtureSecretVersions.set(`${source.id}:preview:build`, crypto.randomUUID());
 
-const platformApps = apps.filter((app) => app.sourceId === source.id);
+const platformApps = apps.filter(
+  (app) => app.sourceId === source.id && app.environment?.name === "production",
+);
 
 const deploymentFixtureNow = Date.now();
 const deploymentDayOffsets = [6, 6, 5, 5, 5, 4, 3, 3, 2, 2, 2, 1, 0, 0];
@@ -298,7 +470,9 @@ const deployments: Deployment[] = [
       server,
       index % 5 === 0 ? "failed" : "succeeded",
       createdAt,
-      index % 7 === 0 ? "rollback" : index % 2 === 0 ? "auto_deploy" : "manual",
+      (["manual", "auto_deploy", "rollback"] as const)[
+        Math.floor(index / platformApps.length) % 3
+      ]!,
     );
   }),
   ...Array.from({ length: 12 }, (_, index) => {
@@ -315,6 +489,21 @@ const deployments: Deployment[] = [
     );
   }),
 ];
+
+deployments.push(
+  createDeploymentFixture(
+    "61111111-1111-4111-8111-666666666666",
+    apps.find((item) => item.id === fixtureIds.stagingApp)!,
+    servers[1]!,
+    "queued",
+  ),
+  createDeploymentFixture(
+    "62111111-1111-4111-8111-666666666666",
+    resources.find((item) => item.id === fixtureIds.stagingResource)!,
+    servers[0]!,
+    "queued",
+  ),
+);
 
 const previewDeployment: Deployment = {
   ...createDeploymentFixture(
@@ -622,6 +811,10 @@ const releases: Release[] = [...apps, ...resources].map(
   (deployable, index) => ({
     appId: deployable.id,
     commitSha,
+    composeServices:
+      deployable.config.kind === "compose"
+        ? Object.keys(deployable.config.services)
+        : [],
     containerName: `towbar-${deployable.manifestId}`,
     deploymentId:
       deployments.find((item) => item.appId === deployable.id)?.id ??
@@ -636,7 +829,17 @@ const releases: Release[] = [...apps, ...resources].map(
   }),
 );
 
+const sourceSyncEnvironment = environmentMappings.find(
+  (environment) =>
+    environment.sourceId === source.id && environment.name === "production",
+)!;
 const sourceSync: SourceSync = {
+  environment: {
+    id: sourceSyncEnvironment.id,
+    name: sourceSyncEnvironment.name,
+    branch: sourceSyncEnvironment.branch,
+  },
+  mappingRevision: sourceSyncEnvironment.mappingRevision,
   commitSha,
   createdAt: fixtureNow,
   finishedAt: fixtureNow,
@@ -647,10 +850,6 @@ const sourceSync: SourceSync = {
   startedAt: fixtureNow,
   status: "succeeded",
 };
-
-let awsCredential: AwsCredentialMetadata | null = null;
-let azureCredential: AzureCredentialMetadata | null = null;
-let gcpCredential: GcpCredentialMetadata | null = null;
 
 const githubConnection: GitHubConnection = {
   accountLogin: "example-inc",
@@ -758,6 +957,12 @@ const serverChecks: ServerCheck[] = [
   },
 ];
 
+type FixtureCredentialVerification = ServerCheck;
+const credentialVerifications = new Map<
+  string,
+  FixtureCredentialVerification
+>();
+
 let systemHealth: SystemHealth = {
   checkedAt: systemHealthFixtureNow,
   checks: [
@@ -791,15 +996,6 @@ let systemHealth: SystemHealth = {
       status: "healthy",
       title: "Worker and maintenance",
     },
-    {
-      checkedAt: systemHealthFixtureNow,
-      description: "GitHub confirmed access to example-inc.",
-      id: "github",
-      remediationHref: null,
-      remediationLabel: null,
-      status: "healthy",
-      title: "GitHub App",
-    },
   ],
   status: "healthy",
   version: "1.0.2-fixture",
@@ -808,22 +1004,7 @@ let systemHealth: SystemHealth = {
 function fixtureSystemHealth(): SystemHealth {
   return {
     ...systemHealth,
-    checks: [
-      ...systemHealth.checks,
-      ...(awsCredential
-        ? [
-            {
-              id: "aws" as const,
-              title: "AWS",
-              checkedAt: awsCredential.lastVerifiedAt,
-              description: `AWS identity verified. Region: ${awsCredential.region}.`,
-              status: "healthy" as const,
-              remediationHref: null,
-              remediationLabel: null,
-            },
-          ]
-        : []),
-    ],
+    checks: [...systemHealth.checks],
   };
 }
 
@@ -924,12 +1105,63 @@ const runtimeCapacity: RuntimeCapacity[] = [
   },
 ];
 
+const preparationStepResults: Record<
+  ServerPreparation["steps"][number]["id"],
+  { message: string; log: string }
+> = {
+  connecting: {
+    message:
+      "SSH connection successfully tested as root using private key “Production servers”. The server identity matched a trusted host key.",
+    log: "[stdout] Testing SSH access using stored private key “Production servers”.\n[stdout] Pinned host key matched. SSH authentication succeeded. Remote command: true (exit 0).\n",
+  },
+  inspecting: {
+    message:
+      "Ubuntu 24.04 LTS is supported. Checked the Ubuntu release and confirmed root access for the SSH user.",
+    log: "[stderr] Operating system: Ubuntu 24.04 LTS\n[stderr] Administrative access: root\n[stdout] Ubuntu 24.04 LTS\n",
+  },
+  installing_prerequisites: {
+    message:
+      "Python 3.12.3 is available. Updated the APT package index and installed HTTPS transport, CA certificates, curl, GnuPG, archive keyrings, coreutils, and sudo.",
+    log: "[stderr] Reading package lists...\n[stderr] ca-certificates is already the newest version.\n[stderr] Setting up python3 (3.12.3)...\n[stdout] Python 3.12.3\n",
+  },
+  installing_docker: {
+    message:
+      "Docker Engine 28.3.3 is running and enabled at boot. Checked compatibility and installed Docker Engine, containerd, Buildx, and Compose when needed.",
+    log: "[stderr] Setting up docker-ce (28.3.3)...\n[stderr] Setting up docker-buildx-plugin...\n[stderr] Setting up docker-compose-plugin...\n[stdout] 28.3.3\n",
+  },
+  installing_caddy: {
+    message:
+      "Caddy v2.11.4 is running and enabled at boot. Created /etc/caddy and /etc/caddy/towbar. Verified the Cloudflare DNS module.",
+    log: "[stderr] Setting up caddy...\n[stderr] Cloudflare DNS module verified\n[stdout] v2.11.4\n",
+  },
+  configuring_access: {
+    message:
+      "Created /etc/caddy/towbar and /var/lib/towbar with mode 0755. The root SSH user already has Docker access.",
+    log: "[stdout] Towbar directories and Docker access configured\n",
+  },
+  verifying: {
+    message:
+      "Verified Ubuntu 24.04 LTS, Docker 28.3.3, Caddy v2.11.4, and Python 3.12.3. Docker and Caddy are active, Docker responds, the Caddy configuration is valid, and deployment directories and Docker access are available. Free Docker disk space: 25.0 GiB (minimum 1 GiB).",
+    log: "[stderr] Docker and Caddy services: active\n[stderr] Valid configuration\n[stdout] Ubuntu 24.04 LTS\n[stdout] 28.3.3\n[stdout] v2.11.4\n[stdout] Python 3.12.3\n[stdout] 26214400\n",
+  },
+};
+
 const serverPreparationsByServer = new Map<string, ServerPreparation[]>([
   [fixtureIds.server, []],
   [fixtureIds.secondaryServer, [createPreparationFixture("succeeded")]],
 ]);
+const serverPreparationPolls = new Map<string, number>();
 
-const runtimeOperations: ResourceOperation[] = [
+type FixtureRuntimeOperation = Omit<
+  ResourceOperation,
+  "request" | "result" | "type"
+> & {
+  request: ResourceOperation["request"] | Record<string, unknown>;
+  result: ResourceOperation["result"] | Record<string, unknown> | null;
+  type: ResourceOperation["type"];
+};
+
+const runtimeOperations: FixtureRuntimeOperation[] = [
   {
     cancelRequestedAt: null,
     createdAt: fixtureNow,
@@ -1021,7 +1253,34 @@ const backupAssurances: BackupAssurance[] = sourceBackups.map((backup) => {
     updatedAt: fixtureNow,
   };
 });
-const operationEventsByOperation = new Map<string, ResourceOperationEvent[]>();
+const operationEventsByOperation = new Map<string, ResourceOperationEvent[]>([
+  [
+    "e2111111-1111-4111-8111-111111111111",
+    [
+      {
+        command:
+          "tar --create --file - /var/lib/docker/volumes/towbar-file-uploads-uploads/_data",
+        createdAt: fixtureNow,
+        id: "e3111111-1111-4111-8111-111111111111",
+        level: "success",
+        message: "Captured and encrypted 1 declared volume",
+        metadata: { bytes: 18_874_368, objects: 1 },
+        phase: "capturing",
+        sequence: 1,
+      },
+      {
+        command: null,
+        createdAt: fixtureNow,
+        id: "e3111111-1111-4111-8111-222222222222",
+        level: "success",
+        message: "Uploaded the volume archive and verified its checksum",
+        metadata: { integration: "s3-production" },
+        phase: "complete",
+        sequence: 2,
+      },
+    ],
+  ],
+]);
 const notificationDestinations: NotificationDestination[] = [
   {
     categories: ["deployments", "previews", "health"],
@@ -1043,6 +1302,39 @@ const notificationDestinations: NotificationDestination[] = [
     id: "a1111111-1111-4111-8111-222222222222",
     provider: "smtp",
     sourceId: source.id,
+    updatedAt: fixtureNow,
+  },
+  {
+    categories: ["scout"],
+    config: { channelId: "CTOWBARALERTS" },
+    createdAt: fixtureNow,
+    enabled: true,
+    id: "a1111111-1111-4111-8111-333333333333",
+    provider: "slack",
+    serverId: null,
+    sourceId: null,
+    updatedAt: fixtureNow,
+  },
+  {
+    categories: ["deployments"],
+    config: { channelId: "CTOWBARDEPLOYS" },
+    createdAt: fixtureNow,
+    enabled: true,
+    id: "a1111111-1111-4111-8111-444444444444",
+    provider: "slack",
+    serverId: null,
+    sourceId: null,
+    updatedAt: fixtureNow,
+  },
+  {
+    categories: ["scout", "deployments", "health", "backups", "restores"],
+    config: { recipients: ["operations@example.com"] },
+    createdAt: fixtureNow,
+    enabled: true,
+    id: "a1111111-1111-4111-8111-555555555555",
+    provider: "smtp",
+    serverId: null,
+    sourceId: null,
     updatedAt: fixtureNow,
   },
 ];
@@ -1079,7 +1371,52 @@ const workflowStates: DeploymentState[] = [
   "cleaning_up",
 ];
 
-export function createFixtureApiServer() {
+export function createFixtureApiServer({
+  githubAppConnected = false,
+  notificationProvidersConfigured = false,
+  logDrainTestOutcome,
+  role,
+  authState,
+  smtpAvailable,
+  emailVerified,
+}: TeamFixtureOptions & {
+  githubAppConnected?: boolean;
+  notificationProvidersConfigured?: boolean;
+  logDrainTestOutcome?: "sent" | "auth_failure" | "rate_limited";
+} = {}) {
+  const teamAccess = createTeamAccessFixture(user, {
+    role,
+    authState,
+    smtpAvailable,
+    emailVerified,
+  });
+  let activeGitHubConnection: GitHubConnection | null = githubAppConnected
+    ? {
+        ...githubConnection,
+        permissionReadiness: { ...githubConnection.permissionReadiness },
+      }
+    : null;
+  const fixtureGitHubConfiguration = {
+    appId: "123456",
+    appSlug: "towbar-fixture",
+    source: "environment" as const,
+  };
+  const githubAppConfiguration = fixtureGitHubConfiguration;
+  const githubInstallationState = "fixture-github-installation-state";
+  const notificationProviderState = {
+    discord: notificationProvidersConfigured,
+    slack: notificationProvidersConfigured,
+    smtp: notificationProvidersConfigured,
+    telegram: notificationProvidersConfigured,
+    webhook: notificationProvidersConfigured,
+  };
+  const connections = createSourceConnectionFixture({
+    existing: sources,
+    installationId: githubConnection.id,
+    app: apps[0]!,
+    resource: resources[0]!,
+  });
+  const declaredSecrets = createDeclaredSecretsFixture(connections);
   const scoutFixture = createScoutFixture(
     servers.map((s) => s.id),
     [...apps, ...resources],
@@ -1095,20 +1432,210 @@ export function createFixtureApiServer() {
       fixtureMonitoringAgent(index === 0),
     ]),
   );
-  awsCredential = null;
-  azureCredential = null;
-  gcpCredential = null;
-  const apiKeys: Array<{
+  type FixturePrivateKey = {
+    algorithm: "ed25519" | "rsa" | "other";
+    createdAt: string;
+    description: string | null;
+    generated: boolean;
     id: string;
     name: string;
-    prefix: string;
-    access: string;
-    createdAt: string;
-    expiresAt: string | null;
-    lastUsedAt: string | null;
-    revokedAt: string | null;
-  }> = [];
-  return createServer((request, response) => {
+    privateKey: string;
+    publicKey: string | null;
+    updatedAt: string;
+  };
+  const fixturePrivateKeyValue = `-----BEGIN PRIVATE KEY-----\n${"cHJpdmF0ZS1rZXktZml4dHVyZQ==".repeat(4)}\n-----END PRIVATE KEY-----`;
+  const privateKeys: FixturePrivateKey[] = [
+    {
+      algorithm: "ed25519",
+      createdAt: fixtureNow,
+      description: "Primary deployment key",
+      generated: true,
+      id: "d1111111-1111-4111-8111-111111111111",
+      name: "Production servers",
+      privateKey: fixturePrivateKeyValue,
+      publicKey: `ssh-ed25519 ${"A".repeat(68)} towbar-fixture`,
+      updatedAt: fixtureNow,
+    },
+    {
+      algorithm: "rsa",
+      createdAt: fixtureNow,
+      description: "Key for a future server",
+      generated: true,
+      id: "d1111111-1111-4111-8111-222222222222",
+      name: "Spare server key",
+      privateKey: fixturePrivateKeyValue,
+      publicKey: `ssh-rsa ${"B".repeat(68)} towbar-fixture`,
+      updatedAt: fixtureNow,
+    },
+  ];
+  const selectedPrivateKeys = new Map<string, string>([
+    [fixtureIds.secondaryServer, privateKeys[0]!.id],
+  ]);
+  applyFixtureSecretMutation(`credentials:${fixtureIds.secondaryServer}`, {
+    set: { privateKey: fixturePrivateKeyValue },
+  });
+  const terminal = terminalFixture(
+    () => teamAccess.getUser()?.workspaceRole === "admin",
+  );
+  const integrationFixture = (
+    provider: string,
+    slug: string,
+    name: string,
+    configuration: Record<string, unknown>,
+    purpose: string,
+  ) => ({
+    id: crypto.randomUUID(),
+    slug,
+    name,
+    description: `${name} local fixture`,
+    provider,
+    configuration,
+    credentialValues:
+      provider === "registry"
+        ? { username: "towbar-fixture" }
+        : provider === "gitlab"
+          ? { oauthClientId: "towbar-fixture-client" }
+          : provider === "s3" || provider === "r2"
+            ? { accessKeyId: "FIXTUREACCESSKEY" }
+            : provider === "azureBlob"
+              ? {
+                  tenantId: "fixture-tenant-id",
+                  clientId: "fixture-client-id",
+                }
+              : provider === "infisical"
+                ? { clientId: "fixture-client-id" }
+                : {},
+    scopes: [
+      purpose === "identity" || purpose === "backup"
+        ? { kind: "control-plane", purpose }
+        : { kind: "workspace", purpose },
+    ],
+    revision: 1,
+    credentialHint: "fixture",
+    verificationStatus: "verified",
+    verificationMessage: "Connection verified by the local fixture.",
+    verifiedAt: fixtureNow,
+    disconnectedAt: null as string | null,
+    createdAt: fixtureNow,
+    updatedAt: fixtureNow,
+  });
+  const namedIntegrations = [
+    integrationFixture(
+      "gitlab",
+      "gitlab-main",
+      "GitLab",
+      { baseUrl: "https://gitlab.com", allowPrivateNetwork: false },
+      "source",
+    ),
+    integrationFixture(
+      "registry",
+      "registry-main",
+      "OCI registry",
+      { registry: "registry.example.com", allowPrivateNetwork: false },
+      "image",
+    ),
+    integrationFixture(
+      "s3",
+      "s3-production",
+      "Production S3",
+      {
+        region: "ap-south-1",
+        bucket: "towbar-fixture-backups",
+        prefix: "control-plane",
+        addressingStyle: "auto",
+        allowPrivateNetwork: false,
+      },
+      "backup",
+    ),
+    integrationFixture(
+      "r2",
+      "r2-archive",
+      "Cloudflare R2",
+      {
+        endpoint: "https://fixture.r2.cloudflarestorage.com",
+        region: "auto",
+        bucket: "towbar-fixture-r2",
+        prefix: "towbar",
+        addressingStyle: "auto",
+        allowPrivateNetwork: false,
+      },
+      "backup",
+    ),
+    integrationFixture(
+      "gcs",
+      "gcs-production",
+      "Google Cloud Storage",
+      {
+        projectId: "towbar-fixture",
+        bucket: "towbar-fixture-gcs-backups",
+        prefix: "towbar",
+      },
+      "backup",
+    ),
+    integrationFixture(
+      "azureBlob",
+      "azure-production",
+      "Azure Blob Storage",
+      {
+        storageAccount: "towbarfixture",
+        container: "towbar-backups",
+        prefix: "towbar",
+      },
+      "backup",
+    ),
+    integrationFixture(
+      "infisical",
+      "infisical-production",
+      "Infisical",
+      { baseUrl: "https://app.infisical.com", allowPrivateNetwork: false },
+      "secret",
+    ),
+    integrationFixture(
+      "doppler",
+      "doppler-production",
+      "Doppler",
+      {},
+      "secret",
+    ),
+    integrationFixture(
+      "cloudflare",
+      "cloudflare-production",
+      "Cloudflare",
+      {
+        accountId: "fixture-account",
+        zoneId: "fixture-zone",
+        cloudflaredImage:
+          "cloudflare/cloudflared@sha256:b269e8abd07a5bf6f3f4be65d5050b2174eca89c56a0241a8ff32a16aec454e4",
+      },
+      "ingress",
+    ),
+    integrationFixture(
+      "otlp",
+      "otel-production",
+      "OpenTelemetry",
+      {
+        endpoint: "https://otel.example.com",
+        dashboardUrl: "https://observe.example.com",
+        protocol: "grpc",
+        allowPrivateNetwork: false,
+      },
+      "telemetry",
+    ),
+  ];
+  const logDrains = logDrainsFixture({
+    testOutcome: logDrainTestOutcome,
+    canManage: () => teamAccess.getUser()?.workspaceRole === "admin",
+    testServers: () =>
+      servers
+        .filter((server) => server.preparedAt && server.setupStatus === "ready")
+        .map((server) => ({
+          id: server.id,
+          name: `${server.canonicalIp} (local fixture)`,
+        })),
+  });
+  const eventHistory = eventHistoryFixture(teamAccess.getUser, user);
+  const fixtureServer = createServer(async (request, response) => {
+    useFixtureLocalization(response, teamAccess.getPreferences);
     if (!authorizeFixtureCorsRequest(response, request.headers.origin)) return;
     if (request.method === "OPTIONS") {
       response.writeHead(204);
@@ -1118,6 +1645,186 @@ export function createFixtureApiServer() {
 
     const requestUrl = new URL(request.url ?? "/", "http://localhost");
     const path = requestUrl.pathname;
+    if (eventHistory(request, response, requestUrl)) return;
+    if (await teamAccess.handle(request, response, requestUrl)) return;
+    if (await logDrains(request, response, path)) return;
+    if (path === "/v1/core/integrations" && request.method === "GET") {
+      return writeJson(response, 200, {
+        integrations: [
+          { category: "source-control", provider: "github" },
+          { category: "source-control", provider: "gitlab" },
+          { category: "registry", provider: "registry" },
+          { category: "backup", provider: "aws" },
+          { category: "backup", provider: "gcs" },
+          { category: "backup", provider: "azureBlob" },
+          { category: "backup", provider: "s3" },
+          { category: "backup", provider: "r2" },
+          { category: "secrets", provider: "infisical" },
+          { category: "secrets", provider: "doppler" },
+          { category: "platform", provider: "cloudflare" },
+          { category: "platform", provider: "otlp" },
+        ],
+      });
+    }
+    if (path === "/v1/core/gitlab/connections" && request.method === "GET")
+      return writeJson(response, 200, {
+        connections: namedIntegrations
+          .filter(
+            (connection) =>
+              connection.provider === "gitlab" && !connection.disconnectedAt,
+          )
+          .map((connection) => ({
+            id: connection.id,
+            slug: connection.slug,
+            name: connection.name,
+            description: "towbar-fixture",
+            verificationStatus: connection.verificationStatus,
+          })),
+      });
+    if (path === "/v1/core/gitlab/oauth/start" && request.method === "POST")
+      return writeJson(response, 200, {
+        authorizationUrl: new URL(
+          "/manage/integrations/gitlab?connected=true",
+          request.headers.origin ?? "http://localhost:4021",
+        ).toString(),
+        expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
+      });
+    if (
+      path === "/v1/core/gitlab/oauth/connection" &&
+      request.method === "DELETE"
+    ) {
+      const connection = namedIntegrations.find(
+        (item) => item.provider === "gitlab" && !item.disconnectedAt,
+      );
+      if (connection) connection.disconnectedAt = new Date().toISOString();
+      response.writeHead(204);
+      response.end();
+      return;
+    }
+    if (path === "/v1/core/gitlab/repositories" && request.method === "GET")
+      return writeJson(response, 200, {
+        repositories: [
+          {
+            id: 1001,
+            owner: "towbar-fixture",
+            name: "platform",
+            defaultBranch: "main",
+            visibility: "private",
+            webUrl: "https://gitlab.com/towbar-fixture/platform",
+          },
+        ],
+        nextPage: null,
+      });
+    if (path === "/v1/core/gitlab/groups" && request.method === "GET")
+      return writeJson(response, 200, {
+        groups: [
+          {
+            id: 100,
+            name: "Towbar fixture",
+            fullPath: "towbar-fixture",
+          },
+        ],
+        nextPage: null,
+      });
+    if (path === "/v1/core/gitlab/branches" && request.method === "GET")
+      return writeJson(response, 200, { branches: ["main", "develop"] });
+    const terminalMatch = path.match(
+      /^\/v1\/core\/servers\/([^/]+)\/terminal$/,
+    );
+    if (terminalMatch && request.method === "POST") {
+      if (!selectedPrivateKeys.has(terminalMatch[1]!))
+        return writeJson(response, 409, {
+          error: { message: "Connect a private key in Credentials first." },
+        });
+      return writeJson(response, 200, terminal.issue());
+    }
+    if (path === "/v1/core/github/installation" && request.method === "GET") {
+      writeJson(response, 200, { connection: activeGitHubConnection });
+      return;
+    }
+    if (path === "/v1/core/github") {
+      if (request.method === "GET") {
+        writeJson(response, 200, {
+          canManage: true,
+          configuration: githubAppConfiguration,
+          connection: activeGitHubConnection,
+          previewReporting,
+        });
+        return;
+      }
+      if (request.method === "DELETE") {
+        activeGitHubConnection = null;
+        response.writeHead(204);
+        response.end();
+        return;
+      }
+    }
+    if (
+      request.method === "POST" &&
+      path === "/v1/core/github/actions/installation-url"
+    ) {
+      const callback = new URL(
+        "/manage/integrations/github",
+        request.headers.origin ?? "http://localhost:4021",
+      );
+      callback.searchParams.set(
+        "installation_id",
+        githubConnection.installationId,
+      );
+      callback.searchParams.set("state", githubInstallationState);
+      writeJson(response, 200, { url: callback.toString() });
+      return;
+    }
+    if (
+      request.method === "POST" &&
+      path === "/v1/core/github/actions/complete-installation"
+    ) {
+      void readRequestJson(request)
+        .then((input) => {
+          const values = input as {
+            installationId?: string;
+            state?: string;
+          };
+          if (
+            values.installationId !== githubConnection.installationId ||
+            values.state !== githubInstallationState
+          ) {
+            writeJson(response, 400, {
+              error: { message: "Invalid GitHub installation callback" },
+            });
+            return;
+          }
+          activeGitHubConnection = {
+            ...githubConnection,
+            permissionReadiness: { ...githubConnection.permissionReadiness },
+            updatedAt: new Date().toISOString(),
+          };
+          writeJson(response, 201, {
+            installation: { id: activeGitHubConnection.id },
+          });
+        })
+        .catch(() =>
+          writeJson(response, 400, {
+            error: { message: "Invalid JSON" },
+          }),
+        );
+      return;
+    }
+    if (request.method === "GET" && path === "/v1/core/github/branches") {
+      const owner = requestUrl.searchParams.get("owner");
+      const repository = requestUrl.searchParams.get("repository");
+      if (
+        !githubRepositories.some(
+          (repo) => repo.owner === owner && repo.name === repository,
+        )
+      ) {
+        writeNotFound(response);
+        return;
+      }
+      writeJson(response, 200, { branches: ["develop", "main", "release/qa"] });
+      return;
+    }
+
     if (scoutFixture(request, response, requestUrl)) return;
     if (
       request.method === "GET" &&
@@ -1149,9 +1856,12 @@ export function createFixtureApiServer() {
           });
         } else if (path.endsWith("/sources")) {
           const result = filterSources(
-            sources.map((source) => ({
+            [...sources, ...connections.sources].map((source) => ({
               ...source,
-              latestSyncStatus: source.latestManifestDigest
+              latestSyncStatus: [
+                ...environmentMappings,
+                ...connections.mappings,
+              ].some((item) => item.sourceId === source.id)
                 ? "succeeded"
                 : "never",
               autoDeployPaused: false,
@@ -1165,12 +1875,15 @@ export function createFixtureApiServer() {
         } else {
           const resource = path.endsWith("/resources");
           const result = filterWorkloads<FixtureApp | FixtureResource>(
-            resource ? resources : apps,
+            resource
+              ? [...resources, ...connections.resources]
+              : [...apps, ...connections.apps],
             workloadFilters.parse(query),
           );
           writeJson(response, 200, {
             [resource ? "resources" : "apps"]: result.items,
             counts: result.counts,
+            environments: result.environments,
           });
         }
       } catch {
@@ -1256,132 +1969,117 @@ export function createFixtureApiServer() {
       return;
     }
 
-    if (path === "/v1/core/settings/api-keys") {
+    if (path === "/v1/core/settings/private-keys") {
       if (request.method === "POST") {
         void readRequestJson(request)
           .then((input) => {
             const values = input as {
+              algorithm?: "ed25519" | "rsa";
+              description?: string | null;
+              mode: "generate" | "manual";
               name: string;
-              access: string;
-              expiresAt: string | null;
+              privateKey?: string;
+              publicKey?: string | null;
             };
-            const key = {
-              ...values,
+            const now = new Date().toISOString();
+            const privateKey: FixturePrivateKey = {
+              algorithm:
+                values.mode === "generate"
+                  ? (values.algorithm ?? "ed25519")
+                  : values.publicKey?.startsWith("ssh-rsa")
+                    ? "rsa"
+                    : values.publicKey?.startsWith("ssh-ed25519")
+                      ? "ed25519"
+                      : "other",
+              createdAt: now,
+              description: values.description ?? null,
+              generated: values.mode === "generate",
               id: randomUUID(),
-              prefix: "twb_fixture",
-              createdAt: new Date().toISOString(),
-              lastUsedAt: null,
-              revokedAt: null,
+              name: values.name,
+              privateKey: values.privateKey ?? fixturePrivateKeyValue,
+              publicKey:
+                values.publicKey ??
+                `ssh-${values.algorithm ?? "ed25519"} ${"B".repeat(68)} ${values.name}`,
+              updatedAt: now,
             };
-            apiKeys.push(key);
-            writeJson(response, 201, {
-              key,
-              token: "twb_fixture_only_not_a_real_credential",
+            privateKeys.push(privateKey);
+            return writeJson(response, 201, {
+              privateKey: {
+                ...privateKey,
+                privateKey: undefined,
+                usageCount: 0,
+              },
             });
           })
           .catch(() => writeJson(response, 400, { error: "Invalid JSON" }));
       } else
         writeJson(response, 200, {
-          keys: apiKeys,
-          apiUrl: "https://api.example.com/v1/api",
-          mcpUrl: "https://api.example.com/v1/mcp",
-          rateLimit: { requests: 60, windowSeconds: 60 },
+          canManage: true,
+          privateKeys: privateKeys.map((privateKey) => ({
+            ...privateKey,
+            privateKey: undefined,
+            usageCount: [...selectedPrivateKeys.values()].filter(
+              (id) => id === privateKey.id,
+            ).length,
+          })),
         });
       return;
     }
-    if (
-      path.startsWith("/v1/core/settings/api-keys/") &&
-      request.method === "DELETE"
-    ) {
-      const key = apiKeys.find((key) => key.id === path.split("/").at(-1));
-      if (key) key.revokedAt = new Date().toISOString();
-      response.writeHead(204);
-      response.end();
-      return;
+    const privateKeyRevealMatch = path.match(
+      /^\/v1\/core\/settings\/private-keys\/([^/]+)\/reveal$/,
+    );
+    if (request.method === "GET" && privateKeyRevealMatch) {
+      const privateKey = privateKeys.find(
+        (item) => item.id === privateKeyRevealMatch[1],
+      );
+      if (!privateKey) return writeNotFound(response);
+      return writeJson(response, 200, { value: privateKey.privateKey });
     }
-    if (path === "/v1/core/aws" && request.method === "PUT") {
+    const privateKeyMatch = path.match(
+      /^\/v1\/core\/settings\/private-keys\/([^/]+)$/,
+    );
+    if (privateKeyMatch && request.method === "PATCH") {
+      const privateKey = privateKeys.find(
+        (item) => item.id === privateKeyMatch[1],
+      );
+      if (!privateKey) return writeNotFound(response);
       void readRequestJson(request)
         .then((input) => {
-          const values = input as { accessKeyId?: string; region?: string };
-          const now = new Date().toISOString();
-          awsCredential = {
-            accessKeyIdSuffix: values.accessKeyId?.slice(-4) ?? "ABCD",
-            createdAt: now,
-            lastVerifiedAt: now,
-            region: values.region ?? "ap-south-1",
-            status: "verified",
-            updatedAt: now,
-            verificationMessage: "AWS identity verified",
-          };
-          return writeJson(response, 200, { credential: awsCredential });
+          const values = input as Partial<FixturePrivateKey>;
+          if (
+            values.privateKey &&
+            [...selectedPrivateKeys.values()].includes(privateKey.id)
+          )
+            return writeJson(response, 409, {
+              error: { message: "Detach this key before changing it." },
+            });
+          Object.assign(privateKey, values, {
+            updatedAt: new Date().toISOString(),
+          });
+          return writeJson(response, 200, {
+            privateKey: {
+              ...privateKey,
+              privateKey: undefined,
+              usageCount: [...selectedPrivateKeys.values()].filter(
+                (id) => id === privateKey.id,
+              ).length,
+            },
+          });
         })
         .catch(() => writeJson(response, 400, { error: "Invalid JSON" }));
       return;
     }
-    if (path === "/v1/core/aws" && request.method === "DELETE") {
-      awsCredential = null;
-      response.writeHead(204);
-      response.end();
-      return;
-    }
-    if (path === "/v1/core/azure" && request.method === "PUT") {
-      void readRequestJson(request)
-        .then((input) => {
-          const values = input as { clientId?: string; tenantId?: string };
-          const now = new Date().toISOString();
-          azureCredential = {
-            clientId: values.clientId ?? "00000000-0000-0000-0000-000000000000",
-            clientSecretSuffix: "1234",
-            createdAt: now,
-            lastVerifiedAt: now,
-            status: "verified",
-            tenantId: values.tenantId ?? "00000000-0000-0000-0000-000000000000",
-            updatedAt: now,
-            verificationMessage: "Azure identity verified",
-          };
-          return writeJson(response, 200, { credential: azureCredential });
-        })
-        .catch(() => writeJson(response, 400, { error: "Invalid JSON" }));
-      return;
-    }
-    if (path === "/v1/core/azure" && request.method === "DELETE") {
-      azureCredential = null;
-      response.writeHead(204);
-      response.end();
-      return;
-    }
-    if (path === "/v1/core/gcp" && request.method === "PUT") {
-      void readRequestJson(request)
-        .then((input) => {
-          const values = input as { serviceAccountKey?: string };
-          const now = new Date().toISOString();
-          let parsed: { client_email?: string; project_id?: string } = {};
-          try {
-            parsed = JSON.parse(values.serviceAccountKey ?? "{}");
-          } catch {
-            // ignore
-          }
-          gcpCredential = {
-            clientEmail:
-              parsed.client_email ??
-              "backup@gcp-project.iam.gserviceaccount.com",
-            createdAt: now,
-            lastVerifiedAt: now,
-            projectId: parsed.project_id ?? "gcp-project",
-            status: "verified",
-            updatedAt: now,
-            verificationMessage: "Google Cloud identity verified",
-          };
-          return writeJson(response, 200, { credential: gcpCredential });
-        })
-        .catch(() => writeJson(response, 400, { error: "Invalid JSON" }));
-      return;
-    }
-    if (path === "/v1/core/gcp" && request.method === "DELETE") {
-      gcpCredential = null;
-      response.writeHead(204);
-      response.end();
-      return;
+    if (privateKeyMatch && request.method === "DELETE") {
+      const index = privateKeys.findIndex(
+        (item) => item.id === privateKeyMatch[1],
+      );
+      if (index < 0) return writeNotFound(response);
+      if ([...selectedPrivateKeys.values()].includes(privateKeys[index]!.id))
+        return writeJson(response, 409, {
+          error: { message: "Detach this key before deleting it." },
+        });
+      privateKeys.splice(index, 1);
+      return writeJson(response, 200, { ok: true });
     }
     if (
       request.method === "POST" &&
@@ -1398,11 +2096,60 @@ export function createFixtureApiServer() {
         })),
         status: "healthy",
       };
-      if (awsCredential) awsCredential.lastVerifiedAt = checkedAt;
       return writeJson(response, 200, fixtureSystemHealth());
     }
-    if (request.method === "POST" && path === "/v1/core/sources") {
-      return writeJson(response, 201, { source });
+    if (request.method === "POST" && path === "/v1/core/sources/connect") {
+      void readRequestJson(request)
+        .then((body) => writeJson(response, 201, connections.connect(body)))
+        .catch((error) =>
+          writeJson(response, 400, {
+            error:
+              error instanceof Error
+                ? error.message
+                : "Invalid connection request",
+          }),
+        );
+      return;
+    }
+    if (request.method === "POST" && path === "/v1/core/sources/discover") {
+      void readRequestJson(request)
+        .then((body) => {
+          if (!body || typeof body !== "object" || Array.isArray(body))
+            throw new Error("Invalid discovery request");
+          const input = body as Record<string, unknown>;
+          if (input.githubInstallationId !== githubConnection.id)
+            return writeJson(response, 404, {
+              error: "GitHub installation was not found",
+            });
+          const repository = githubRepositories.find(
+            (item) =>
+              item.owner === input.repositoryOwner &&
+              item.name === input.repositoryName,
+          );
+          if (!repository)
+            return writeJson(response, 404, {
+              error: "Repository was not found",
+            });
+          if (
+            ![repository.defaultBranch, "develop"].includes(
+              String(input.discoveryBranch),
+            )
+          )
+            return writeJson(response, 404, {
+              error: "Discovery branch was not found",
+            });
+          return writeJson(response, 200, {
+            commitSha,
+            environments: [
+              { name: "production", previewsEnabled: false },
+              { name: "staging", previewsEnabled: true },
+            ],
+          });
+        })
+        .catch(() =>
+          writeJson(response, 400, { error: "Invalid discovery request" }),
+        );
+      return;
     }
     if (request.method === "POST" && path === "/v1/core/servers") {
       void readRequestJson(request)
@@ -1473,18 +2220,6 @@ export function createFixtureApiServer() {
         (item) => item.id === serverMutationMatch[1],
       );
       if (index < 0) return writeNotFound(response);
-      if (
-        [...apps, ...resources].some(
-          (item) => item.serverId === serverMutationMatch[1],
-        )
-      ) {
-        return writeJson(response, 409, {
-          error: {
-            message:
-              "Move or remove the apps, resources, and previews assigned to this server first.",
-          },
-        });
-      }
       servers.splice(index, 1);
       response.writeHead(204);
       response.end();
@@ -1535,67 +2270,49 @@ export function createFixtureApiServer() {
         return;
       }
     }
-    const notificationDestinationMatch = path.match(
-      new RegExp(
-        `^/v1/core/sources/${source.id}/notifications/destinations(?:/([^/]+)(?:/actions/test)?)?$`,
-      ),
-    );
-    if (notificationDestinationMatch && request.method === "POST") {
-      const destinationId = notificationDestinationMatch[1];
-      if (destinationId && path.endsWith("/actions/test")) {
-        const destination = notificationDestinations.find(
-          (item) => item.id === destinationId,
-        );
-        if (!destination) return writeNotFound(response);
-        notificationEvents.unshift(
-          createNotificationEventFixture(randomUUID(), "notification.test"),
-        );
-        return writeJson(response, 202, {
-          delivery: { cycle: 1, id: randomUUID() },
-        });
+    if (declaredSecrets.owns(path)) {
+      if (request.method === "GET") {
+        try {
+          const payload = declaredSecrets.read(
+            path,
+            requestUrl.searchParams.get("environment"),
+          );
+          return payload
+            ? writeJson(response, 200, payload)
+            : writeNotFound(response);
+        } catch (error) {
+          return writeJson(
+            response,
+            error instanceof FixtureEnvironmentError ? error.status : 400,
+            {
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Invalid secret request",
+            },
+          );
+        }
       }
+      response.setHeader("Cache-Control", "no-store");
       void readRequestJson(request)
-        .then((input) => {
-          const now = new Date().toISOString();
-          const destination = {
-            ...(input as Omit<
-              NotificationDestination,
-              "createdAt" | "id" | "sourceId" | "updatedAt"
-            >),
-            createdAt: now,
-            id: randomUUID(),
-            sourceId: source.id,
-            updatedAt: now,
-          } satisfies NotificationDestination;
-          notificationDestinations.push(destination);
-          return writeJson(response, 201, { destination });
+        .then((body) => {
+          const payload = declaredSecrets.mutate(request.method!, path, body);
+          return payload
+            ? writeJson(response, 200, payload)
+            : writeNotFound(response);
         })
-        .catch(() => writeJson(response, 400, { error: "Invalid JSON" }));
-      return;
-    }
-    if (notificationDestinationMatch && request.method === "PUT") {
-      const destination = notificationDestinations.find(
-        (item) => item.id === notificationDestinationMatch[1],
-      );
-      if (!destination) return writeNotFound(response);
-      void readRequestJson(request)
-        .then((input) => {
-          Object.assign(destination, input, {
-            updatedAt: new Date().toISOString(),
-          });
-          return writeJson(response, 200, { destination });
-        })
-        .catch(() => writeJson(response, 400, { error: "Invalid JSON" }));
-      return;
-    }
-    if (notificationDestinationMatch && request.method === "DELETE") {
-      const index = notificationDestinations.findIndex(
-        (item) => item.id === notificationDestinationMatch[1],
-      );
-      if (index < 0) return writeNotFound(response);
-      notificationDestinations.splice(index, 1);
-      response.writeHead(204);
-      response.end();
+        .catch((error) =>
+          writeJson(
+            response,
+            error instanceof FixtureEnvironmentError ? error.status : 400,
+            {
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Invalid secret request",
+            },
+          ),
+        );
       return;
     }
     const revealMatch = path.match(
@@ -1607,7 +2324,7 @@ export function createFixtureApiServer() {
     if (request.method === "POST" && (revealMatch || globalRevealMatch)) {
       const slot = revealMatch
         ? `${revealMatch[2]}:${revealMatch[3]}:${revealMatch[4]}`
-        : `${user.workspaceId}:${globalRevealMatch![1]}:${globalRevealMatch![2]}`;
+        : `${user.workspaceId}:production:${globalRevealMatch![2]}`;
       response.setHeader("Cache-Control", "no-store");
       void readRequestJson(request)
         .then((input) => {
@@ -1649,6 +2366,84 @@ export function createFixtureApiServer() {
     const credentialMatch = path.match(
       /^\/v1\/core\/servers\/([^/]+)\/credentials$/,
     );
+    const credentialVerificationRequestMatch = path.match(
+      /^\/v1\/core\/servers\/([^/]+)\/credentials\/actions\/verify-private-key$/,
+    );
+    if (request.method === "POST" && credentialVerificationRequestMatch) {
+      const serverId = credentialVerificationRequestMatch[1]!;
+      const server = servers.find((item) => item.id === serverId);
+      if (!server) return writeNotFound(response);
+      void readRequestJson(request)
+        .then((input) => {
+          const payload = input as {
+            expectedRevision: string | null;
+            privateKeyId?: string;
+          };
+          const storedPrivateKey = privateKeys.find(
+            (privateKey) => privateKey.id === payload.privateKeyId,
+          );
+          const slot = `credentials:${serverId}`;
+          if (
+            payload.expectedRevision !==
+            (fixtureSecretVersions.get(slot) ?? null)
+          )
+            return writeJson(response, 409, {
+              error: {
+                message:
+                  "Server credentials changed after loading. Refresh before saving.",
+              },
+            });
+          if (!storedPrivateKey)
+            return writeJson(response, 422, {
+              error: { message: "Select a stored SSH private key." },
+            });
+
+          const now = new Date().toISOString();
+          const trusted = (hostKeysByServer.get(serverId) ?? []).some(
+            (hostKey) => hostKey.fingerprint === discoveredHostKey.fingerprint,
+          );
+          const verification: FixtureCredentialVerification = {
+            createdAt: now,
+            errorCode: trusted ? null : "HOST_KEY_NOT_TRUSTED",
+            errorMessage: trusted
+              ? null
+              : "Trust a discovered SSH host key before Towbar connects.",
+            finishedAt: now,
+            id: randomUUID(),
+            result: trusted
+              ? { hostKey: discoveredHostKey }
+              : { discoveredHostKeys: [discoveredHostKey] },
+            startedAt: now,
+            status: trusted ? "succeeded" : "failed",
+          };
+          if (trusted)
+            applyFixtureSecretMutation(slot, {
+              set: { privateKey: storedPrivateKey.privateKey },
+            });
+          if (trusted) selectedPrivateKeys.set(serverId, storedPrivateKey.id);
+          credentialVerifications.set(verification.id, verification);
+          return writeJson(response, 202, { verification });
+        })
+        .catch(() =>
+          writeJson(response, 400, {
+            error: { message: "Invalid credential verification request" },
+          }),
+        );
+      return;
+    }
+    const credentialVerificationMatch = path.match(
+      /^\/v1\/core\/servers\/([^/]+)\/credentials\/verifications\/([^/]+)$/,
+    );
+    if (request.method === "GET" && credentialVerificationMatch) {
+      const server = servers.find(
+        (item) => item.id === credentialVerificationMatch[1],
+      );
+      const verification = credentialVerifications.get(
+        credentialVerificationMatch[2]!,
+      );
+      if (!server || !verification) return writeNotFound(response);
+      return writeJson(response, 200, { verification });
+    }
     if (
       request.method === "PATCH" &&
       (mutationMatch || globalSecretMutationMatch || credentialMatch)
@@ -1656,7 +2451,7 @@ export function createFixtureApiServer() {
       const key = mutationMatch
         ? `${mutationMatch[2]}:${mutationMatch[3]}:${mutationMatch[4]}`
         : globalSecretMutationMatch
-          ? `${user.workspaceId}:${globalSecretMutationMatch[1]}:${globalSecretMutationMatch[2]}`
+          ? `${user.workspaceId}:production:${globalSecretMutationMatch[2]}`
           : `credentials:${credentialMatch![1]}`;
       void readRequestJson(request)
         .then((input) => {
@@ -1665,6 +2460,12 @@ export function createFixtureApiServer() {
             set?: Record<string, string>;
             delete?: string[];
           };
+          if (credentialMatch && payload.set?.privateKey !== undefined)
+            return writeJson(response, 422, {
+              error: {
+                message: "Verify SSH private keys before saving them.",
+              },
+            });
           if (
             payload.expectedRevision !==
             (fixtureSecretVersions.get(key) ?? null)
@@ -1676,6 +2477,11 @@ export function createFixtureApiServer() {
               },
             });
           applyFixtureSecretMutation(key, payload);
+          if (credentialMatch && payload.delete?.includes("privateKey")) {
+            hostKeysByServer.set(credentialMatch[1]!, []);
+            credentialVerifications.clear();
+            selectedPrivateKeys.delete(credentialMatch[1]!);
+          }
           return writeJson(response, 200, {
             secret: fixtureMetadata(key),
             credential: fixtureMetadata(key),
@@ -1692,6 +2498,8 @@ export function createFixtureApiServer() {
       return writeJson(response, 200, {
         credential: fixtureMetadata(`credentials:${credentialMatch[1]}`),
         canManage: true,
+        selectedPrivateKeyId:
+          selectedPrivateKeys.get(credentialMatch[1]!) ?? null,
       });
     const deletePreviewMatch = path.match(
       /^\/v1\/core\/previews\/([^/]+)\/actions\/delete$/,
@@ -1718,28 +2526,34 @@ export function createFixtureApiServer() {
         succeeded: 1,
       });
     }
-    if (
-      request.method === "POST" &&
-      path === `/v1/core/servers/${fixtureIds.server}/host-keys/actions/trust`
-    ) {
-      const hostKeys = hostKeysByServer.get(fixtureIds.server)!;
-      if (
-        !hostKeys.some(
-          (key) => key.fingerprint === discoveredHostKey.fingerprint,
-        )
-      ) {
-        hostKeys.push({
-          algorithm: discoveredHostKey.algorithm,
-          createdAt: new Date().toISOString(),
-          fingerprint: discoveredHostKey.fingerprint,
-          id: "c1111111-1111-4111-8111-111111111111",
-        });
-      }
-      const failedCheckIndex = serverChecks.findIndex(
-        (check) => check.errorCode === "HOST_KEY_NOT_TRUSTED",
-      );
-      if (failedCheckIndex >= 0) serverChecks.splice(failedCheckIndex, 1);
-      return writeJson(response, 201, { hostKey: hostKeys[0] });
+    const trustHostKeyMatch = path.match(
+      /^\/v1\/core\/servers\/([^/]+)\/host-keys\/actions\/trust$/,
+    );
+    if (request.method === "POST" && trustHostKeyMatch) {
+      void readOptionalRequestJson(request).then((payload) => {
+        const hostKeys = hostKeysByServer.get(trustHostKeyMatch[1]!);
+        if (!hostKeys) return writeNotFound(response);
+        if (payload.replaceExisting === true)
+          hostKeys.splice(0, hostKeys.length);
+        if (
+          !hostKeys.some(
+            (key) => key.fingerprint === discoveredHostKey.fingerprint,
+          )
+        ) {
+          hostKeys.push({
+            algorithm: discoveredHostKey.algorithm,
+            createdAt: new Date().toISOString(),
+            fingerprint: discoveredHostKey.fingerprint,
+            id: "c1111111-1111-4111-8111-111111111111",
+          });
+        }
+        const failedCheckIndex = serverChecks.findIndex(
+          (check) => check.errorCode === "HOST_KEY_NOT_TRUSTED",
+        );
+        if (failedCheckIndex >= 0) serverChecks.splice(failedCheckIndex, 1);
+        return writeJson(response, 201, { hostKey: hostKeys[0] });
+      });
+      return;
     }
     const revokeHostKeyMatch = path.match(
       /^\/v1\/core\/servers\/([^/]+)\/host-keys\/([^/]+)$/,
@@ -1789,14 +2603,60 @@ export function createFixtureApiServer() {
           },
         });
       }
-      const preparation = createPreparationFixture("succeeded");
-      server.preparedAt = preparation.finishedAt;
-      server.setupStatus = "ready";
+      const preparation = createPreparationFixture("queued");
+      server.preparedAt = null;
+      server.setupStatus = "preparing";
       serverPreparationsByServer.set(server.id, [preparation]);
-      for (const deployable of [...apps, ...resources]) {
-        if (deployable.serverId === server.id) deployable.serverReady = true;
-      }
+      serverPreparationPolls.set(preparation.id, 0);
       return writeJson(response, 202, { preparation });
+    }
+    const jobMatch = path.match(
+      /^\/v1\/core\/apps\/([^/]+)\/actions\/run-job$/,
+    );
+    if (request.method === "POST" && jobMatch) {
+      const app = apps.find((item) => item.id === jobMatch[1]);
+      void readRequestJson(request)
+        .then((input) => {
+          const body = input as { name?: string };
+          const job = app?.config.jobs?.find((item) => item.name === body.name);
+          if (!app || !job)
+            return writeJson(response, 404, {
+              message: "Scheduled job not found",
+            });
+          const now = new Date().toISOString();
+          const operation: ResourceOperation = {
+            id: randomUUID(),
+            resourceId: app.id,
+            sourceId: app.sourceId,
+            serverId: app.serverId,
+            type: "run_job",
+            request: { type: "run_job", job, scheduledAt: null },
+            requestedBy: null,
+            state: "succeeded",
+            createdAt: now,
+            updatedAt: now,
+            startedAt: now,
+            finishedAt: now,
+            deletedAt: null,
+            cancelRequestedAt: null,
+            phase: null,
+            errorCode: null,
+            errorMessage: null,
+            result: {
+              jobName: job.name,
+              exitCode: 0,
+              timedOut: false,
+              logs: "Report generated from 12 uploaded files.\n",
+              truncated: false,
+            },
+          };
+          runtimeOperations.unshift(operation);
+          return writeJson(response, 202, { operation, replayed: false });
+        })
+        .catch(() =>
+          writeJson(response, 400, { message: "Invalid job request" }),
+        );
+      return;
     }
     const runtimeActionMatch = path.match(
       /^\/v1\/core\/(apps|resources)\/([^/]+)\/actions\/(backup|logs|restart|start|stop)$/,
@@ -2058,16 +2918,167 @@ export function createFixtureApiServer() {
       return writeDeploymentEvents(response, deployment);
     }
 
-    const payload = getFixturePayload(path, requestUrl.searchParams);
+    if (
+      request.method !== "GET" &&
+      /^\/v1\/core\/sources\/[^/]+\/environments(?:\/|$)/.test(path)
+    ) {
+      if (
+        !connections.sources.some((source) => source.id === path.split("/")[4])
+      )
+        return writeNotFound(response);
+      void (
+        path.endsWith("/syncs") ? Promise.resolve({}) : readRequestJson(request)
+      )
+        .then((body) => {
+          const result = connections.mutateEnvironment(
+            request.method!,
+            path,
+            body,
+          );
+          if (!result) return writeNotFound(response);
+          writeJson(response, result.status, result.body);
+        })
+        .catch((error) =>
+          writeJson(
+            response,
+            error instanceof FixtureEnvironmentError ? error.status : 400,
+            {
+              error: {
+                code: "INVALID_ENVIRONMENT_REQUEST",
+                message:
+                  error instanceof Error
+                    ? error.message
+                    : "Invalid environment request",
+              },
+            },
+          ),
+        );
+      return;
+    }
+
+    if (request.method !== "GET") return writeNotFound(response);
+    const payload =
+      connections.read(path) ??
+      getFixturePayload(
+        path,
+        requestUrl.searchParams,
+        notificationProviderState,
+      );
     if (payload === undefined) return writeNotFound(response);
     writeJson(response, 200, payload);
   });
+  terminal.attach(fixtureServer);
+  return fixtureServer;
+}
+
+function publicNotificationRoute(destination: NotificationDestination) {
+  return {
+    categories: destination.categories,
+    enabled: destination.enabled,
+    id: destination.id,
+    provider: destination.provider,
+    source: "environment" as const,
+  };
 }
 
 function getFixturePayload(
   path: string,
   searchParams: URLSearchParams,
+  notificationProviderState: {
+    discord: boolean;
+    slack: boolean;
+    smtp: boolean;
+    telegram: boolean;
+    webhook: boolean;
+  },
 ): unknown {
+  const environmentSource = path.match(
+    /^\/v1\/core\/sources\/([^/]+)\/environments$/,
+  );
+  if (
+    environmentSource &&
+    sources.some((item) => item.id === environmentSource[1])
+  )
+    return {
+      environments: environmentMappings.filter(
+        (item) => item.sourceId === environmentSource[1],
+      ),
+    };
+  const manifestMatch = path.match(
+    /^\/v1\/core\/sources\/([^/]+)\/environments\/([^/]+)\/manifest$/,
+  );
+  if (manifestMatch) {
+    const mapping = environmentMappings.find(
+      (item) =>
+        item.sourceId === manifestMatch[1] && item.id === manifestMatch[2],
+    );
+    if (!mapping) return undefined;
+    const mappings = environmentMappings.filter(
+      (item) => item.sourceId === mapping.sourceId,
+    );
+    const files = [...apps, ...resources]
+      .filter((item) => item.sourceId === mapping.sourceId)
+      .filter(
+        (item, index, all) =>
+          all.findIndex((other) => other.entityId === item.entityId) === index,
+      )
+      .map((item) => {
+        const isApp = item.kind === "app";
+        const isCompose = item.kind === "compose";
+        const members = [...apps, ...resources].filter(
+          (other) => other.entityId === item.entityId,
+        );
+        const content = [
+          `id: ${item.manifestId}`,
+          `name: ${JSON.stringify(item.name)}`,
+          ...(isCompose
+            ? [
+                "file: deploy/compose.yml",
+                "overrides:",
+                "  - deploy/compose.production.yml",
+                "profiles:",
+                "  - production",
+                "services:",
+                "  web:",
+                "    domains:",
+                "      - storefront.example.com",
+                "    port: 3000",
+              ]
+            : isApp
+              ? ["dockerfile: Dockerfile", "container:", "  port: 3000"]
+              : [
+                  `type: ${item.kind}`,
+                  ...(item.kind === "image"
+                    ? ["image: axllent/mailpit:v1.27"]
+                    : []),
+                ]),
+          "environments:",
+          ...members.flatMap((member) => [
+            `  ${member.environment!.name}:`,
+            `    server: ${member.serverIp}`,
+          ]),
+          "",
+        ].join("\n");
+        const directory = isCompose ? "compose" : isApp ? "apps" : "resources";
+        const suffix = isCompose ? "compose" : isApp ? "app" : "resource";
+        return {
+          path: `.towbar/${directory}/${item.manifestId}.${suffix}.yml`,
+          content,
+        };
+      });
+    return {
+      manifest: {
+        commitSha,
+        files: [
+          {
+            path: "towbar.yml",
+            content: `version: 2\nenvironments:\n${mappings.map((item) => (item.previewsEnabled ? `  ${item.name}:\n    previews:\n      enabled: true` : `  ${item.name}: {}`)).join("\n")}\n`,
+          },
+          ...files,
+        ],
+      },
+    };
+  }
   if (path === "/v1/core/deployments/history") {
     const page = readPositiveInteger(searchParams.get("page"), 1);
     const limit = Math.min(
@@ -2081,6 +3092,9 @@ function getFixturePayload(
       .filter((item) => {
         const type = searchParams.get("type");
         return (
+          (!searchParams.get("targetEnvironment") ||
+            item.targetEnvironment.name ===
+              searchParams.get("targetEnvironment")) &&
           (!type ||
             (type === "app"
               ? item.deployableKind === "app"
@@ -2107,6 +3121,9 @@ function getFixturePayload(
         return sort === "oldest" ? -newest : newest;
       });
     return {
+      environments: [
+        ...new Set(environmentMappings.map((item) => item.name)),
+      ].sort(),
       deployments: ordered
         .slice((page - 1) * limit, page * limit)
         .map((item) => ({
@@ -2137,7 +3154,6 @@ function getFixturePayload(
     if (!child) return { canManageSource: true, source: extraSource };
     if (child === "apps") return { apps: sourceApps };
     if (child === "resources") return { resources: sourceResources };
-    if (child === "manifest") return { manifest: null };
     if (child === "syncs") return { syncs: [] };
     if (child === "deployments") return { deployments: [] };
     if (child === "previews") return { previews: [] };
@@ -2152,9 +3168,9 @@ function getFixturePayload(
       };
     if (child === "notifications/destinations")
       return {
-        canManageNotifications: true,
-        destinations: [],
-        providers: { slack: false, smtp: false },
+        canManageNotifications: false,
+        destinations: notificationDestinations.map(publicNotificationRoute),
+        providers: notificationProviderState,
       };
     if (child === "secrets")
       return getFixtureSourceSecrets(
@@ -2166,9 +3182,34 @@ function getFixturePayload(
   const fixedPayloads = new Map<string, unknown>([
     [
       "/v1/core/notifications/providers",
-      { providers: { slack: false, smtp: false } },
+      {
+        configurations: {
+          slack: notificationProviderState.slack
+            ? { source: "environment" }
+            : null,
+          smtp: notificationProviderState.smtp
+            ? { source: "environment" }
+            : null,
+          telegram: notificationProviderState.telegram
+            ? { source: "environment" }
+            : null,
+        },
+        providers: notificationProviderState,
+      },
     ],
     ["/v1/core/session", { user }],
+    [
+      "/v1/public/auth/state",
+      {
+        user,
+        account: {
+          email: user.email,
+          name: user.name,
+          emailVerified: user.emailVerified,
+        },
+      },
+    ],
+    ["/v1/public/auth/setup-status", { setupRequired: false }],
     ["/v1/core/profile", { user }],
     [
       "/v1/core/sessions",
@@ -2177,6 +3218,12 @@ function getFixturePayload(
     [
       "/v1/core/github",
       {
+        canManage: true,
+        configuration: {
+          appId: "123456",
+          appSlug: "towbar-fixture",
+          source: "environment",
+        },
         connection: githubConnection,
         previewReporting,
       },
@@ -2196,21 +3243,7 @@ function getFixturePayload(
       },
     ],
     [`/v1/core/sources/${source.id}`, { canManageSource: true, source }],
-    [
-      `/v1/core/sources/${source.id}/manifest`,
-      {
-        manifest: {
-          commitSha,
-          manifest: { apps: [], resources: [], version: 1 },
-          manifestDigest,
-          rawManifest: "version: 1\napps: []\nresources: []\n",
-        },
-      },
-    ],
     [`/v1/core/sources/${source.id}/syncs`, { syncs: [sourceSync] }],
-    ["/v1/core/aws", { canManage: true, credential: awsCredential }],
-    ["/v1/core/azure", { canManage: true, credential: azureCredential }],
-    ["/v1/core/gcp", { canManage: true, credential: gcpCredential }],
     [
       `/v1/core/sources/${source.id}/apps`,
       { apps: apps.filter((item) => item.sourceId === source.id) },
@@ -2233,9 +3266,17 @@ function getFixturePayload(
     [
       `/v1/core/sources/${source.id}/notifications/destinations`,
       {
-        canManageNotifications: true,
-        destinations: notificationDestinations,
-        providers: { slack: false, smtp: false },
+        canManageNotifications: false,
+        destinations: notificationDestinations.map(publicNotificationRoute),
+        providers: notificationProviderState,
+      },
+    ],
+    [
+      "/v1/core/notifications/destinations",
+      {
+        canManageNotifications: false,
+        destinations: notificationDestinations.map(publicNotificationRoute),
+        providers: notificationProviderState,
       },
     ],
     [`/v1/core/notifications`, { notifications: notificationEvents }],
@@ -2246,6 +3287,32 @@ function getFixturePayload(
   ]);
   const fixed = fixedPayloads.get(path);
   if (fixed !== undefined) return fixed;
+
+  const sourceRevisionMatch = path.match(
+    /^\/v1\/core\/deployments\/([^/]+)\/source-revision$/,
+  );
+  if (sourceRevisionMatch) {
+    const deployment = deployments.find(
+      (item) => item.id === sourceRevisionMatch[1],
+    );
+    if (!deployment) return undefined;
+    const pullRequest: DeploymentPullRequest | null =
+      deployment.id === fixtureIds.deployment
+        ? {
+            author: "octocat",
+            baseBranch: "main",
+            changedFileCount: 12,
+            draft: false,
+            headBranch: "environment-aware-deployments",
+            merged: true,
+            number: 128,
+            state: "closed",
+            title: "Add environment-aware deployments",
+            url: "https://github.com/example-inc/platform/pull/128",
+          }
+        : null;
+    return { pullRequest };
+  }
 
   const deploymentMatch = path.match(
     /^\/v1\/core\/deployments\/([^/]+)(?:\/(steps|logs))?$/,
@@ -2282,9 +3349,7 @@ function getFixturePayload(
   }
 
   if (path === "/v1/core/settings/secrets") {
-    return getFixtureGlobalSecrets(
-      searchParams.get("environment") === "preview" ? "preview" : "production",
-    );
+    return getFixtureGlobalSecrets("production");
   }
 
   if (path === `/v1/core/sources/${source.id}/secrets`) {
@@ -2322,24 +3387,24 @@ function getFixturePayload(
     return {
       assurance: assurances[0] ?? null,
       assurances,
-      awsConfigured: Boolean(awsCredential),
-      azureConfigured: Boolean(azureCredential),
+      awsConfigured: true,
+      azureConfigured: true,
       canRestore: true,
-      gcpConfigured: Boolean(gcpCredential),
+      gcpConfigured: true,
     };
   }
 
   const operationEventsMatch = path.match(
-    /^\/v1\/core\/resources\/([^/]+)\/operations\/([^/]+)\/events$/,
+    /^\/v1\/core\/(apps|resources)\/([^/]+)\/operations\/([^/]+)\/events$/,
   );
   if (operationEventsMatch) {
     return {
-      events: operationEventsByOperation.get(operationEventsMatch[2]!) ?? [],
+      events: operationEventsByOperation.get(operationEventsMatch[3]!) ?? [],
     };
   }
 
   const deployableMatch = path.match(
-    /^\/v1\/core\/(apps|resources)\/([^/]+)(?:\/(deployments|releases|operations|previews))?$/,
+    /^\/v1\/core\/(apps|resources)\/([^/]+)(?:\/(deployments|releases|operations|previews|storage|jobs))?$/,
   );
   if (deployableMatch) {
     const [kind, id, child] = deployableMatch.slice(1);
@@ -2348,6 +3413,31 @@ function getFixturePayload(
         ? apps.find((item) => item.id === id)
         : resources.find((item) => item.id === id);
     if (!deployable) return undefined;
+    if (child === "jobs" && kind === "apps") {
+      const app = deployable as FixtureApp;
+      return {
+        jobs: app.config.jobs ?? [],
+        automationPaused: false,
+        ready: app.serverReady,
+        runs: runtimeOperations.filter(
+          (operation) =>
+            operation.resourceId === id && operation.type === "run_job",
+        ),
+      };
+    }
+    if (child === "storage" && kind === "apps") {
+      const app = deployable as FixtureApp;
+      return {
+        checkedAt: new Date().toISOString(),
+        serverId: app.serverId,
+        serverIp: app.serverIp,
+        volumes: (app.config.container.volumes ?? []).map((volume) => ({
+          ...volume,
+          volumeName: `towbar-${app.id}-${volume.name}`,
+          status: "mounted",
+        })),
+      };
+    }
     if (child === "deployments") {
       return {
         deployments: deployments.filter(
@@ -2420,8 +3510,26 @@ function getFixturePayload(
       };
     }
     if (child === "preparations") {
+      const preparations = serverPreparationsByServer.get(server.id) ?? [];
+      const latest = preparations[0];
+      if (
+        latest &&
+        (latest.status === "queued" || latest.status === "running")
+      ) {
+        const polls = serverPreparationPolls.get(latest.id) ?? 0;
+        serverPreparationPolls.set(latest.id, polls + 1);
+        if (polls > 0) advancePreparationFixture(latest, server);
+        if (latest.finishedAt) {
+          server.preparedAt = latest.finishedAt;
+          server.setupStatus = "ready";
+          for (const deployable of [...apps, ...resources]) {
+            if (deployable.serverId === server.id)
+              deployable.serverReady = true;
+          }
+        }
+      }
       return {
-        preparations: serverPreparationsByServer.get(server.id) ?? [],
+        preparations,
       };
     }
     if (child === "host-keys") {
@@ -2431,9 +3539,7 @@ function getFixturePayload(
     return {
       canCleanupOrphans: true,
       canManageServer: true,
-      canRemoveServer: ![...apps, ...resources].some(
-        (item) => item.serverId === server.id,
-      ),
+      canRemoveServer: true,
       server,
     };
   }
@@ -2563,12 +3669,16 @@ function getFixtureSecretsResponse(
     ? ["deployment" as const]
     : (["build", "deployment", "pre_deploy", "post_deploy"] as const);
   return {
+    environments:
+      resource || scope === "global"
+        ? ["production"]
+        : ["production", "preview"],
     canManageSecrets: true,
     bindings: stages.map((stage) => {
       const local = fixtureMetadata(`${id}:${environment}:${stage}`);
       const global =
         scope !== "global"
-          ? fixtureMetadata(`${user.workspaceId}:${environment}:${stage}`)
+          ? fixtureMetadata(`${user.workspaceId}:production:${stage}`)
           : { keys: [], revision: null };
       const shared =
         scope === "deployable"
@@ -2648,6 +3758,15 @@ async function readRequestJson(request: IncomingMessage) {
   return JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown;
 }
 
+async function readOptionalRequestJson(request: IncomingMessage) {
+  const chunks: Buffer[] = [];
+  for await (const chunk of request) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  const value = Buffer.concat(chunks).toString("utf8");
+  return value ? (JSON.parse(value) as Record<string, unknown>) : {};
+}
+
 function createServerFixture(
   id: string,
   canonicalIp: string,
@@ -2710,6 +3829,10 @@ function createRuntimeState(
     driftReasons: unhealthy ? ["Health check is failing"] : [],
     driftStatus: unhealthy ? "drifted" : "in_sync",
     healthStatus,
+    ingressContainerName: null,
+    ingressImage: null,
+    ingressRestartCount: null,
+    ingressStatus: "disabled",
     observedContainerName: "fixture",
     observedImage: "fixture:latest",
     observedState: "running",
@@ -2724,17 +3847,23 @@ function createAppFixture(
   healthStatus: App["runtimeState"]["healthStatus"] = "healthy",
 ): FixtureApp {
   return {
+    entityId: null,
+    environment: null,
     archivedAt: null,
     config: {
       autoDeploy: true,
+      vulnerabilityScanning: true,
       container: {
         network: "towbar-fixture",
         port: 3000,
         resources: { cpus: 1, memory: "1g" },
       },
       description: `${name} fixture`,
+      context: ".",
+      deploymentInputs: [],
       dockerfile: `apps/${manifestId}/Dockerfile`,
       health: { path: "/health", timeoutSeconds: 30 },
+      hooks: {},
       id: manifestId,
       name,
 
@@ -2749,6 +3878,7 @@ function createAppFixture(
           }
         : {}),
       server: server.canonicalIp,
+      sourceBranch: "main",
     },
     description: `${name} fixture`,
     id,
@@ -2773,6 +3903,8 @@ function createResourceFixture(
   server: Server,
 ): FixtureResource {
   return {
+    entityId: null,
+    environment: null,
     archivedAt: null,
     config: {
       access:
@@ -2834,6 +3966,7 @@ function createResourceFixture(
       name,
 
       server: server.canonicalIp,
+      sourceBranch: "main",
     },
     description: `${name} fixture`,
     id,
@@ -2892,10 +4025,12 @@ function createPreparationFixture(
     status,
     steps: definitions.map((step, index) => ({
       ...step,
+      log: status === "succeeded" ? preparationStepResults[step.id].log : "",
+      logTruncated: false,
       finishedAt: finished ? fixtureNow : null,
       message:
         status === "succeeded"
-          ? `${step.title} complete`
+          ? preparationStepResults[step.id].message
           : index === 0
             ? "Waiting for the server coordinator"
             : null,
@@ -2903,6 +4038,68 @@ function createPreparationFixture(
       status: status === "succeeded" ? "succeeded" : "waiting",
     })),
   };
+}
+
+function advancePreparationFixture(
+  preparation: ServerPreparation,
+  server: Server,
+) {
+  const now = new Date().toISOString();
+  if (preparation.status === "queued") {
+    preparation.status = "running";
+    preparation.startedAt = now;
+    const first = preparation.steps[0];
+    if (first) {
+      first.message = "Opening the trusted SSH connection";
+      first.startedAt = now;
+      first.status = "running";
+    }
+    return;
+  }
+
+  const activeIndex = preparation.steps.findIndex(
+    (step) => step.status === "running",
+  );
+  if (activeIndex < 0) return;
+  const active = preparation.steps[activeIndex]!;
+  active.finishedAt = now;
+  active.message = preparationStepResults[active.id].message;
+  active.log = preparationStepResults[active.id].log;
+  active.logTruncated = false;
+  const username = server.config.ssh.username;
+  if (active.id === "connecting")
+    active.message = active.message.replace("as root ", `as ${username} `);
+  if (username !== "root") {
+    if (active.id === "inspecting") {
+      active.message = active.message.replace(
+        "root access",
+        "passwordless sudo access",
+      );
+      active.log = active.log.replace(
+        "Administrative access: root",
+        "Administrative access: passwordless sudo verified",
+      );
+    }
+    if (active.id === "configuring_access")
+      active.message = `Created /etc/caddy/towbar and /var/lib/towbar with mode 0755. Added ${username} to the Docker group and verified membership.`;
+  }
+  active.status = "succeeded";
+  const next = preparation.steps[activeIndex + 1];
+  if (next) {
+    next.message = `${next.title} in progress`;
+    next.startedAt = now;
+    next.status = "running";
+    return;
+  }
+
+  preparation.finishedAt = now;
+  preparation.result = {
+    caddyVersion: "v2.11.4",
+    dockerVersion: "28.3.3",
+    operatingSystem: "Ubuntu 24.04 LTS",
+    pythonVersion: "Python 3.12.3",
+  };
+  preparation.status = "succeeded";
 }
 
 function createBackupFixture(
@@ -3026,6 +4223,10 @@ function createDeploymentFixture(
   createdAt = fixtureNow,
   trigger: Deployment["trigger"] = "manual",
 ): Deployment {
+  const mapping = environmentMappings.find(
+    (item) => item.id === deployable.environment?.id,
+  );
+  if (!mapping) throw new Error("Fixture deployment requires an environment");
   const terminal = terminalStates.has(state);
   const scanCompletedAt = new Date(
     new Date(createdAt).getTime() + 102_000,
@@ -3033,6 +4234,12 @@ function createDeploymentFixture(
   const startedAt = state === "queued" ? null : createdAt;
   const imageDigest = `sha256:${id.replaceAll("-", "").repeat(2)}`;
   return {
+    targetEnvironment: {
+      id: mapping.id,
+      name: mapping.name,
+      branch: mapping.branch,
+      mappingRevision: mapping.mappingRevision,
+    },
     appId: deployable.id,
     commitSha,
     createdAt,
@@ -3204,7 +4411,7 @@ function writeDeploymentEvents(
     steps: getDeploymentSteps(deployment),
   };
   response.write(
-    `id: 1\nevent: deployment\ndata: ${JSON.stringify(event)}\n\n`,
+    `id: 1\nevent: deployment\ndata: ${fixtureJson(response, event)}\n\n`,
   );
   const keepAlive = setInterval(
     () => response.write(": keep-alive\n\n"),
@@ -3247,7 +4454,7 @@ function authorizeFixtureCorsRequest(
 
 function writeJson(response: ServerResponse, status: number, payload: unknown) {
   response.writeHead(status, { "content-type": "application/json" });
-  response.end(JSON.stringify(payload));
+  response.end(fixtureJson(response, payload));
 }
 
 function writeNotFound(response: ServerResponse) {
@@ -3257,7 +4464,27 @@ function writeNotFound(response: ServerResponse) {
 const entrypoint = process.argv[1];
 if (entrypoint && import.meta.url === pathToFileURL(entrypoint).href) {
   const port = 4420;
-  createFixtureApiServer().listen(port, "127.0.0.1", () => {
+  const requestedRole = process.env.TOWBAR_FIXTURE_ROLE;
+  const requestedState = process.env.TOWBAR_FIXTURE_AUTH_STATE;
+  createFixtureApiServer({
+    role: isWorkspaceRole(requestedRole) ? requestedRole : "admin",
+    authState:
+      requestedState === "new-instance" ||
+      requestedState === "signed-out" ||
+      requestedState === "temporary-password"
+        ? requestedState
+        : "authenticated",
+    logDrainTestOutcome:
+      process.env.TOWBAR_FIXTURE_LOG_DRAIN_TEST_OUTCOME === "auth_failure"
+        ? "auth_failure"
+        : process.env.TOWBAR_FIXTURE_LOG_DRAIN_TEST_OUTCOME === "rate_limited"
+          ? "rate_limited"
+          : "sent",
+    smtpAvailable: process.env.TOWBAR_FIXTURE_SMTP_UNAVAILABLE !== "true",
+    githubAppConnected: process.env.TOWBAR_FIXTURE_GITHUB_CONNECTED === "true",
+    notificationProvidersConfigured:
+      process.env.TOWBAR_FIXTURE_NOTIFICATION_PROVIDERS_CONFIGURED === "true",
+  }).listen(port, "127.0.0.1", () => {
     console.info(`Towbar fixture API ready at http://127.0.0.1:${port}`);
   });
 }

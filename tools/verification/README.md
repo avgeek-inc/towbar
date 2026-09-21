@@ -1,0 +1,58 @@
+# Required release verification
+
+Run these commands from the repository after `pnpm install --frozen-lockfile`:
+
+```sh
+pnpm verify
+pnpm verify:integration api
+pnpm verify:integration docker
+pnpm verify:integration app
+pnpm verify:integration resources
+pnpm verify:integration forwarding
+pnpm verify:integration scanner
+pnpm verify:production
+```
+
+Node 24+, pnpm, Docker with Compose, Python 3, OpenSSH and a Linux-container-capable Docker daemon are required. The application HTTPS lifecycle reserves loopback port 443; stop a conflicting local test first. The runner does not stop unrelated services. E2E targets use disposable privileged Docker-in-Docker containers; run them on a trusted development machine or an isolated CI runner, never a production Docker host.
+
+## Required coverage
+
+| Group        | Exercises                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api`        | All API tests, dedicated authorization/team/settings/recovery/terminal/history/backup/log-drain databases, cloud-storage emulators, PostgreSQL backup/restore, database initial schema, Temporal workflow integration                                                                                                                                                                                                            |
+| `docker`     | All deployer tests with real Docker tests enabled, provider wire formats, volume/job/network/recovery behavior and Python drain-gateway protocol behavior                                                                                                                                                                                                                                                                        |
+| `app`        | API/Temporal/SSH deployment lifecycle, persistent files, PR previews, local-CA Caddy HTTPS, rollback and preview cleanup                                                                                                                                                                                                                                                                                                         |
+| `resources`  | API/Temporal/SSH resource lifecycle plus direct Redis backup/restore                                                                                                                                                                                                                                                                                                                                                             |
+| `forwarding` | Log-drain installation, delivery tests, authentication failures, rate limiting, backpressure and isolation                                                                                                                                                                                                                                                                                                                       |
+| `scanner`    | Scanner installation, update, failure and recovery through the SSH test target                                                                                                                                                                                                                                                                                                                                                   |
+| Production   | Build actual Compose production images, exercise backup/restore with the packaged PostgreSQL tools as the non-root API user, boot a fresh database and services, render setup, create first administrator, verify authorization/origin checks, reject setup replay, resume/replay a persisted workflow after recreating Temporal and restarting PostgreSQL, then scan all three built Towbar images for HIGH/CRITICAL advisories |
+
+The API, database, worker and deployer TAP suites must each report a nonempty passing run with zero failures, cancellations, skips or TODOs. An exit code of zero alone does not pass these suites. Lifecycle scripts use real effects and assertions and must exit successfully. Runner tests exercise failure recording, skip rejection, timeout handling and inherited-credential removal.
+
+## Isolation and evidence
+
+Each invocation clears inherited Towbar, Temporal, database and cloud-provider environment configuration. It creates a random run ID, loopback-only service bindings, temporary PostgreSQL data and dedicated test databases. PostgreSQL and the Temporal development server are pinned by digest. The runner uses no external account credentials.
+
+Production verification ignores the workspace `.env`, creates independent random credentials, image tags, project/network names and ports, then removes its own stack volumes and image tags. It does not run `compose down` against the developer project. The setup code is consumed in memory and is not written to test output. Smoke tests explicitly forward the disposable session cookie over loopback HTTP: this proves API session behavior, not browser HTTPS, Secure-cookie enforcement, physical passkeys or production email delivery.
+
+The recovery check runs the production transactional-email workflow on a unique task queue with a local test activity; no message is sent. It waits for an activity result and timer to reach PostgreSQL, stops the test worker, recreates the Temporal container, restarts PostgreSQL without deleting its volume, and repeats Compose initialization. The same workflow run must finish without repeating the completed activity, then replay successfully. A test-only override publishes Temporal on a random loopback port; the production Compose file does not publish its API. Failure diagnostics include only infrastructure services and redact the generated secret values.
+
+Every command writes a log and result record under `tmp/verification/<group>-<run-id>/`. The directory is ignored by Git. CI uploads it as a 14-day artifact on success or failure. Configuration values and the setup ceremony are not printed. Test data, accounts and credentials are disposable; never replace them with real accounts.
+
+On normal exit, failure, SIGINT or SIGTERM, the runner attempts to remove only its run-labelled infrastructure. SSH lifecycle targets carry the run label as well. Test-owned containers inside individual Docker suites also have their own `finally` cleanup. A forced machine shutdown or SIGKILL can prevent cleanup; inspect the exact run's labels before removing leftovers. Never use a broad Docker prune as recovery.
+
+## CI enforcement
+
+`.github/workflows/ci.yml` runs all six integration groups, the production gate, existing quality/docs gates and the Scout build/tests. The final **Required CI** job fails when any dependency fails, is cancelled or is skipped. Configure the repository ruleset to require this check before merge; adding the workflow alone does not change remote branch protection.
+
+The ordinary `pnpm test` still supports fast local runs with optional infrastructure. It is not the release acceptance command. The six mandatory jobs supply that infrastructure themselves and reject skips. `pnpm verify` also rejects moderate-or-higher production dependency advisories. The separate Linux Trivy Docker gate remains in CI because macOS execution is not proof of that native Linux path.
+
+Fresh production boot and the required integration groups are local/CI evidence. Real Git providers, real cloud permissions, SMTP delivery, physical WebAuthn devices, long-duration VM load, Tunnel routing and actual patch/reboot checks need the separately documented acceptance procedures. Never relabel an emulator or a UI fixture as a live-provider test.
+
+## Production-image security gate
+
+Production verification runs pinned Trivy against the exact locally built API, worker and web images after their functional checks. A HIGH/CRITICAL finding, scanner failure or advisory-database download failure makes the command fail. Unfixed advisories are not silently ignored. All three scans are attempted, with per-image JSON reports and command outcomes in the verification directory. The advisory database and layer cache use a disposable Docker volume, so CI retains the raw reports and logs without uploading the scanner cache. Raw counts can include multiple binary packages for one CVE; the report must distinguish package matching from runtime exploitability.
+
+The scanner uses the local Docker socket on the trusted verification host, bounded to two CPUs and 2 GiB memory. It is not a sandbox for untrusted images or tools. It has no provider credentials. On timeout or interruption, cleanup selects only the scanner's unique name and matching run label. CI already requires this production job through Required CI; no additional optional environment flag enables these scans.
+
+The v2.0.0 release images pass this gate with no HIGH/CRITICAL findings in the API, worker or web image. Do not weaken the severity level, add `--ignore-unfixed`, or blanket-ignore a source package to keep the gate green. Third-party infrastructure images and any additional published architectures still need their own release inventory review.

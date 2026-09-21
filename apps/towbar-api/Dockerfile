@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-FROM node:24-alpine AS base
+FROM node:24-alpine@sha256:50c8e8ca1d27439048670df5883f32d57cf81cff6233222c893fd0d9884cbd81 AS base
 
 FROM base AS pruner
 ARG TURBO_VERSION=2.10.11
@@ -26,7 +26,10 @@ RUN --mount=type=cache,id=towbar-pnpm-store,target=/pnpm/store,sharing=locked \
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production PORT=4020
-RUN apk add --no-cache ca-certificates curl \
+RUN apk upgrade --no-cache \
+  && apk add --no-cache ca-certificates curl \
+  && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /opt/yarn-* \
+  && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg \
   && addgroup --system --gid 1001 towbar \
   && adduser --system --uid 1001 --ingroup towbar towbar
 COPY --from=builder --chown=towbar:towbar /prod/towbar-api ./

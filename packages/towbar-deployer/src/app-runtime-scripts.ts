@@ -29,6 +29,23 @@ if test -n "$network_name"; then runtime_args+=(--network "$network_name"); fi
 if test -n "$network_alias"; then runtime_args+=(--network-alias "$network_alias"); fi
 if test -n "$resource_cpus"; then runtime_args+=(--cpus "$resource_cpus"); fi
 if test -n "$resource_memory"; then runtime_args+=(--memory "$resource_memory"); fi
+telemetry_environment="${"$"}{TOWBAR_TELEMETRY_ENV_JSON-}"
+if test -z "$telemetry_environment"; then telemetry_environment='{}'; fi
+/usr/bin/python3 - "$telemetry_environment" <<'PYTHON' >"$remote_dir/telemetry-env.json"
+import json, sys
+value = json.loads(sys.argv[1])
+if not isinstance(value, dict) or any(not isinstance(k, str) or not isinstance(v, str) for k, v in value.items()):
+    raise SystemExit("Invalid telemetry environment")
+json.dump(value, sys.stdout, separators=(",", ":"), sort_keys=True)
+PYTHON
+while IFS=$'\t' read -r key encoded; do
+  runtime_args+=(--env "$key=$(printf '%s' "$encoded" | base64 -d)")
+done < <(/usr/bin/python3 - "$remote_dir/telemetry-env.json" <<'PYTHON'
+import base64, json, sys
+for key, value in json.load(open(sys.argv[1], encoding="utf-8")).items():
+    print(key + "\t" + base64.b64encode(value.encode()).decode())
+PYTHON
+)
 /usr/bin/python3 - "$remote_dir/secrets/runtime" "$container_name" "$container_port" \
   /usr/bin/docker run -d "${"$"}{runtime_args[@]}" \
   --name "$container_name" \
@@ -47,6 +64,7 @@ if test -n "$resource_memory"; then runtime_args+=(--memory "$resource_memory");
   -p "__TOWBAR_PUBLISH__" \
   "$image_tag" <<'PYTHON' >/dev/null
 import hashlib
+import json
 import os
 from pathlib import Path
 import socket
@@ -57,7 +75,21 @@ runtime_directory = Path(sys.argv[1])
 container_name = sys.argv[2]
 container_port = sys.argv[3]
 command = sys.argv[4:]
-runtime_arguments: list[str] = []
+runtime_arguments: list[str] = json.loads(os.environ.get("TOWBAR_VOLUME_ARGS_JSON", "[]"))
+for option in runtime_arguments[1::2]:
+    volume_name = next(part[4:] for part in option.split(",") if part.startswith("src="))
+    inspected = subprocess.run(["/usr/bin/docker", "volume", "inspect", volume_name], capture_output=True, text=True)
+    if inspected.returncode:
+        raise SystemExit("Persistent volume is missing before startup: " + volume_name)
+    labels = json.loads(inspected.stdout)[0].get("Labels") or {}
+    if any(labels.get(key) != value for key, value in {
+        "towbar.managed": "true", "towbar.storage": "app",
+        "towbar.runtime": os.environ["TOWBAR_APP_ID"],
+        "towbar.source": os.environ["TOWBAR_SOURCE_ID"],
+        "towbar.deployable": os.environ["TOWBAR_DEPLOYABLE_ID"],
+    }.items()):
+        raise SystemExit("Persistent volume ownership changed before startup")
+
 for secret_path in sorted(runtime_directory.iterdir()):
     if not secret_path.is_file():
         continue

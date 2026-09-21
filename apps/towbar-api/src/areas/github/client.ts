@@ -3,9 +3,15 @@ import { createPrivateKey } from "node:crypto";
 import { SignJWT } from "jose";
 import { z } from "zod";
 
-import { requireGitHubEnv } from "../../env.js";
-import { HttpError } from "../../http/errors.js";
+import {
+  getGitHubAppConfiguration,
+  getGitHubAppConfigurationForInstallation,
+} from "./configuration.js";
 import { githubRequest } from "./request.js";
+
+type GitHubAppConfiguration = Awaited<
+  ReturnType<typeof getGitHubAppConfiguration>
+>;
 
 const installationSchema = z.object({
   account: z.object({
@@ -34,22 +40,6 @@ const repositoriesSchema = z.object({
     }),
   ),
   total_count: z.number().int().nonnegative(),
-});
-
-const referenceSchema = z.object({
-  object: z.object({
-    sha: z.string().regex(/^[a-f0-9]{40}$/u),
-    type: z.literal("commit"),
-  }),
-});
-
-const contentSchema = z.object({
-  content: z.string(),
-  encoding: z.literal("base64"),
-  path: z.literal(".towbar/deployment.yml"),
-  sha: z.string(),
-  size: z.number().int().nonnegative(),
-  type: z.literal("file"),
 });
 
 const gitCommitSchema = z.object({
@@ -123,8 +113,11 @@ export type GitHubPullRequest = {
   state: "closed" | "open";
 };
 
-export async function getGitHubInstallation(installationId: string) {
-  const jwt = await createGitHubAppJwt();
+export async function getGitHubInstallation(
+  installationId: string,
+  workspaceId?: string,
+) {
+  const jwt = await createGitHubAppJwt({ installationId, workspaceId });
   const value = await githubRequest(`/app/installations/${installationId}`, {
     token: jwt,
   });
@@ -132,7 +125,7 @@ export async function getGitHubInstallation(installationId: string) {
 }
 
 export async function deleteGitHubInstallation(installationId: string) {
-  const jwt = await createGitHubAppJwt();
+  const jwt = await createGitHubAppJwt({ installationId });
   await githubRequest(`/app/installations/${installationId}`, {
     method: "DELETE",
     token: jwt,
@@ -165,76 +158,6 @@ export async function listGitHubRepositories(installationId: string) {
     owner: repository.owner.login,
     private: repository.private,
   }));
-}
-
-export async function fetchGitHubSourceSnapshot(input: {
-  branch: string;
-  installationId: string;
-  repositoryName: string;
-  repositoryOwner: string;
-}) {
-  const token = await createInstallationToken(input.installationId);
-  const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
-  let referenceValue: unknown;
-  try {
-    referenceValue = await githubRequest(
-      `/repos/${repository}/git/ref/heads/${encodeURIComponent(input.branch)}`,
-      { token },
-    );
-  } catch (error) {
-    if (isGitHubReferenceUnavailable(error)) {
-      throw new HttpError(
-        422,
-        "SOURCE_BRANCH_NOT_FOUND",
-        `Branch '${input.branch}' was not found in ${input.repositoryOwner}/${input.repositoryName}. Push the branch or update this Source, then sync again.`,
-      );
-    }
-    throw error;
-  }
-  const reference = referenceSchema.parse(referenceValue);
-  const commitSha = reference.object.sha;
-  return await fetchGitHubManifestSnapshot({ ...input, commitSha });
-}
-
-export async function fetchGitHubManifestSnapshot(input: {
-  commitSha: string;
-  installationId: string;
-  repositoryName: string;
-  repositoryOwner: string;
-}) {
-  const token = await createInstallationToken(input.installationId);
-  const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
-  let contentValue: unknown;
-  try {
-    contentValue = await githubRequest(
-      `/repos/${repository}/contents/.towbar/deployment.yml?ref=${input.commitSha}`,
-      { token },
-    );
-  } catch (error) {
-    if (isGitHubNotFound(error)) {
-      throw new HttpError(
-        422,
-        "MANIFEST_NOT_FOUND",
-        `Add .towbar/deployment.yml to commit '${input.commitSha.slice(0, 12)}' in ${input.repositoryOwner}/${input.repositoryName}.`,
-      );
-    }
-    throw error;
-  }
-  const content = contentSchema.parse(contentValue);
-  if (content.size > 256 * 1_024) {
-    throw new HttpError(
-      422,
-      "MANIFEST_TOO_LARGE",
-      "The Towbar deployment manifest exceeds 256 KiB",
-    );
-  }
-  return {
-    commitSha: input.commitSha,
-    manifestSource: Buffer.from(
-      content.content.replaceAll("\n", ""),
-      "base64",
-    ).toString("utf8"),
-  };
 }
 
 export async function fetchGitHubRepositoryTree(input: {
@@ -352,18 +275,11 @@ export async function listOpenGitHubPullRequestNumbers(input: {
   return pullRequestNumbers;
 }
 
-function isGitHubNotFound(error: unknown): error is HttpError {
-  return error instanceof HttpError && error.status === 404;
-}
-
-function isGitHubReferenceUnavailable(error: unknown): error is HttpError {
-  return (
-    error instanceof HttpError && (error.status === 404 || error.status === 409)
-  );
-}
-
-export async function createInstallationToken(installationId: string) {
-  const jwt = await createGitHubAppJwt();
+export async function createInstallationToken(
+  installationId: string,
+  configuration?: GitHubAppConfiguration,
+) {
+  const jwt = await createGitHubAppJwt({ installationId }, configuration);
   const value = installationTokenSchema.parse(
     await githubRequest(`/app/installations/${installationId}/access_tokens`, {
       method: "POST",
@@ -374,16 +290,22 @@ export async function createInstallationToken(installationId: string) {
   return value.token;
 }
 
-export async function createGitHubPreviewDeployment(input: {
-  appName: string;
-  commitSha: string;
-  environmentUrl: string;
-  installationId: string;
-  pullRequestNumber: number;
-  repositoryName: string;
-  repositoryOwner: string;
-}) {
-  const token = await createInstallationToken(input.installationId);
+export async function createGitHubPreviewDeployment(
+  input: {
+    appName: string;
+    commitSha: string;
+    environmentUrl: string;
+    installationId: string;
+    pullRequestNumber: number;
+    repositoryName: string;
+    repositoryOwner: string;
+  },
+  configuration?: GitHubAppConfiguration,
+) {
+  const token = await createInstallationToken(
+    input.installationId,
+    configuration,
+  );
   const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
   const deployment = githubDeploymentSchema.parse(
     await githubRequest(`/repos/${repository}/deployments`, {
@@ -404,16 +326,22 @@ export async function createGitHubPreviewDeployment(input: {
   return String(deployment.id);
 }
 
-export async function updateGitHubPreviewDeployment(input: {
-  deploymentId: string;
-  environmentUrl: string;
-  installationId: string;
-  repositoryName: string;
-  repositoryOwner: string;
-  state:
-    "error" | "failure" | "inactive" | "in_progress" | "queued" | "success";
-}) {
-  const token = await createInstallationToken(input.installationId);
+export async function updateGitHubPreviewDeployment(
+  input: {
+    deploymentId: string;
+    environmentUrl: string;
+    installationId: string;
+    repositoryName: string;
+    repositoryOwner: string;
+    state:
+      "error" | "failure" | "inactive" | "in_progress" | "queued" | "success";
+  },
+  configuration?: GitHubAppConfiguration,
+) {
+  const token = await createInstallationToken(
+    input.installationId,
+    configuration,
+  );
   const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
   await githubRequest(
     `/repos/${repository}/deployments/${encodeURIComponent(input.deploymentId)}/statuses`,
@@ -440,7 +368,9 @@ export async function upsertGitHubPullRequestComment(input: {
 }) {
   const token = await createInstallationToken(input.installationId);
   const repository = `${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`;
-  const appId = requireGitHubEnv().appId;
+  const appId = (
+    await getGitHubAppConfigurationForInstallation(input.installationId)
+  ).appId;
   const comments: GitHubIssueComment[] = [];
   for (let page = 1; page <= 10; page += 1) {
     const pageComments = issueCommentListSchema.parse(
@@ -499,8 +429,18 @@ export function classifyGitHubPullRequestComments(input: {
   };
 }
 
-async function createGitHubAppJwt() {
-  const github = requireGitHubEnv();
+async function createGitHubAppJwt(
+  input: {
+    installationId: string;
+    workspaceId?: string;
+  },
+  configuration?: GitHubAppConfiguration,
+) {
+  const github =
+    configuration ??
+    (input.workspaceId
+      ? await getGitHubAppConfiguration(input.workspaceId)
+      : await getGitHubAppConfigurationForInstallation(input.installationId));
   const now = Math.floor(Date.now() / 1_000);
   return await new SignJWT({})
     .setProtectedHeader({ alg: "RS256" })

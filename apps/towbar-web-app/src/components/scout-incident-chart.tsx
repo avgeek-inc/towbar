@@ -1,4 +1,11 @@
 "use client";
+import { QueryError } from "@workspace/towbar-web-ui/query-state";
+import {
+  displayChartDate,
+  displayDateTime,
+  displayTime,
+} from "@/lib/date-time-display";
+import { useLocalizedChartTicks } from "@/hooks/use-localized-timestamps";
 import { memo, useMemo } from "react";
 import { LineChart } from "@workspace/web-design-system/charts/line-chart";
 import { metricDefinition, scoutValue } from "./scout-controls";
@@ -23,12 +30,13 @@ export const ScoutIncidentChart = memo(function ScoutIncidentChart({
   const threshold = incident.condition.threshold / metric.factor;
   const start = new Date(history.startAt).getTime(),
     end = new Date(history.endAt).getTime();
+  const { ticks, error: dateLabelError } = useLocalizedChartTicks(start, end);
   const format = (value: number) =>
     scoutValue(value * metric.factor, metric.id);
   return (
     <>
       <div className="min-w-0">
-        <div className="mb-4 text-sm font-medium">{metric.label}</div>
+        {dateLabelError ? <QueryError message={dateLabelError} /> : null}
         {data.some((point) => point.value !== null) ? (
           <LineChart data={data} height={280}>
             <LineChart.Grid vertical={false} />
@@ -38,13 +46,9 @@ export const ScoutIncidentChart = memo(function ScoutIncidentChart({
               domain={[start, Math.max(start + 1000, end)]}
               tickCount={4}
               tick={{ fontSize: 11 }}
-              tickFormatter={(at: number) =>
-                new Date(at).toLocaleString(
-                  undefined,
-                  end - start > 86400_000
-                    ? { month: "short", day: "numeric" }
-                    : { hour: "2-digit", minute: "2-digit" },
-                )
+              ticks={ticks}
+              tickFormatter={
+                end - start > 86400_000 ? displayChartDate : displayTime
               }
               minTickGap={25}
             />
@@ -64,12 +68,7 @@ export const ScoutIncidentChart = memo(function ScoutIncidentChart({
             <LineChart.Tooltip
               content={
                 <LineChart.TooltipContent
-                  labelFormatter={(at) =>
-                    new Date(Number(at)).toLocaleString(undefined, {
-                      dateStyle: "medium",
-                      timeStyle: "long",
-                    })
-                  }
+                  labelFormatter={(at) => displayDateTime(Number(at))}
                   valueFormatter={(value) => format(Number(value))}
                 />
               }
@@ -121,7 +120,7 @@ export const ScoutIncidentChart = memo(function ScoutIncidentChart({
                       ? "Recovered"
                       : "Closed",
                   position: "insideTopLeft",
-                  fill: "var(--success)",
+                  fill: "var(--success-soft-foreground)",
                   fontSize: 11,
                 }}
               />
@@ -133,14 +132,6 @@ export const ScoutIncidentChart = memo(function ScoutIncidentChart({
           </div>
         )}
       </div>
-      <p className="text-xs text-muted">
-        {http
-          ? "Availability checks"
-          : metric.id === "missingReports"
-            ? "Estimated report age"
-            : `${history.aggregation === "maximum" ? "Highest" : "Lowest"} reading per interval`}{" "}
-        · Dotted bridges mark missing measurements.
-      </p>
       {history.notes.map((note) => (
         <p key={note} className="text-xs text-muted">
           {note}

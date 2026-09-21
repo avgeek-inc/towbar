@@ -20,7 +20,9 @@ export function ScoutHttpEditor({
   return (
     <div className="grid gap-4">
       <Field>
-        <FieldLabel htmlFor={id}>Public URL</FieldLabel>
+        <FieldLabel htmlFor={id} isRequired>
+          Public URL
+        </FieldLabel>
         <Input
           id={id}
           type="url"
@@ -41,6 +43,7 @@ export function ScoutHttpEditor({
       <div className="grid gap-4 sm:grid-cols-2">
         <ScoutSelect
           label="Request method"
+          required
           value={value.method}
           onChange={(method) =>
             onChange({ ...value, method: method as "GET" | "HEAD" })
@@ -93,10 +96,10 @@ export function ScoutHttpEditor({
           }
         />
       </div>
-      <p className="text-sm text-muted">
+      <FieldDescription>
         An unexpected status, timeout, connection failure, or invalid TLS
         certificate counts as unavailable. Responses and cookies are not stored.
-      </p>
+      </FieldDescription>
     </div>
   );
 }

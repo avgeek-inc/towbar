@@ -1,55 +1,43 @@
 import type { NotificationProvider } from "@workspace/towbar-core";
 
-import { getEnv } from "../../env.js";
+import {
+  getRuntimeNotificationProvider,
+  getRuntimeNotifications,
+} from "../../infrastructure/runtime-notifications.js";
 
-export type SlackProviderConfiguration = {
-  appBaseUrl: string;
-  botToken: string;
-  provider: "slack";
-};
-export type SmtpProviderConfiguration = {
-  from: string;
-  host: string;
-  password?: string;
-  port: number;
-  provider: "smtp";
-  secure: boolean;
-  subjectPrefix: string;
-  username?: string;
-};
-export type NotificationProviderConfiguration =
-  SlackProviderConfiguration | SmtpProviderConfiguration;
+export type NotificationProviderConfiguration = NonNullable<
+  ReturnType<typeof getRuntimeNotificationProvider>
+>;
 
-export function notificationProviderAvailability() {
-  const env = getEnv();
-  return {
-    slack: Boolean(env.TOWBAR_SLACK_BOT_TOKEN),
-    smtp: Boolean(env.TOWBAR_SMTP_HOST && env.TOWBAR_SMTP_FROM),
-  };
+export function getNotificationProviderState(_workspaceId: string) {
+  const runtime = getRuntimeNotifications();
+  const configured = (provider: NotificationProvider) =>
+    Boolean(runtime.providers[provider]);
+  return Promise.resolve({
+    configurations: {
+      slack: configured("slack") ? { source: "environment" as const } : null,
+      smtp: configured("smtp") ? { source: "environment" as const } : null,
+      telegram: configured("telegram")
+        ? { source: "environment" as const }
+        : null,
+    },
+    providers: {
+      discord: configured("discord"),
+      slack: configured("slack"),
+      smtp: configured("smtp"),
+      telegram: configured("telegram"),
+      webhook: configured("webhook"),
+    },
+  });
+}
+
+export async function notificationProviderAvailability(workspaceId: string) {
+  return (await getNotificationProviderState(workspaceId)).providers;
 }
 
 export function getNotificationProviderConfiguration(
+  _workspaceId: string,
   provider: NotificationProvider,
-): NotificationProviderConfiguration | null {
-  const env = getEnv();
-  if (provider === "slack") {
-    return env.TOWBAR_SLACK_BOT_TOKEN
-      ? {
-          appBaseUrl: env.TOWBAR_APP_BASE_URL,
-          botToken: env.TOWBAR_SLACK_BOT_TOKEN,
-          provider,
-        }
-      : null;
-  }
-  if (!env.TOWBAR_SMTP_HOST || !env.TOWBAR_SMTP_FROM) return null;
-  return {
-    from: env.TOWBAR_SMTP_FROM,
-    host: env.TOWBAR_SMTP_HOST,
-    password: env.TOWBAR_SMTP_PASSWORD,
-    port: env.TOWBAR_SMTP_PORT ?? 587,
-    provider,
-    secure: env.TOWBAR_SMTP_SECURE,
-    subjectPrefix: env.TOWBAR_SMTP_SUBJECT_PREFIX ?? "Towbar",
-    username: env.TOWBAR_SMTP_USERNAME,
-  };
+): Promise<NotificationProviderConfiguration | null> {
+  return Promise.resolve(getRuntimeNotificationProvider(provider));
 }

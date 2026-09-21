@@ -33,12 +33,18 @@ function context(
     currentRelease: null,
     deploymentId: "00000000-0000-4000-8000-000000000000",
     deployableId: "00000000-0000-4000-8000-000000000001",
-    githubToken: "token",
+    environmentName: "production",
+    sourceCredential: {
+      apiUrl: "https://api.github.com",
+      provider: "github",
+      token: "token",
+    },
     kind: "deploy",
     repositoryName: "repository",
     repositoryOwner: "owner",
     sourceId: "00000000-0000-4000-8000-000000000002",
     rollbackRelease: null,
+    serverId: "00000000-0000-4000-8000-000000000003",
     server: {
       buildConcurrency: 1,
       ip: "192.0.2.1",
@@ -46,6 +52,7 @@ function context(
       ssh: { host: "192.0.2.1", port: 22, username: "deploy" },
     },
     trustedHostKeys: [],
+    workspaceId: "00000000-0000-4000-8000-000000000004",
   };
 }
 

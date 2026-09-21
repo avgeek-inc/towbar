@@ -1,7 +1,8 @@
+import { testInstanceLinks } from "../sources/instance-test-helper.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import {
   normalizeDeploymentManifest,
@@ -11,12 +12,13 @@ import {
   apps,
   auditEvents,
   deployments,
-  githubInstallations,
-  managedSecrets,
+  integrationInstallations,
   releases,
   servers,
+  sessions,
   sources,
   users,
+  workspaceMembers,
   workspaces,
 } from "@workspace/towbar-database/schema";
 import type { TowbarHonoEnvironment } from "../../http/types.js";
@@ -33,11 +35,6 @@ void test(
     process.env.DATABASE_TOWBAR_URL = url;
     process.env.TOWBAR_CREDENTIALS_KEY = randomBytes(32).toString("base64");
     process.env.TOWBAR_INTERNAL_HMAC_SECRET = randomBytes(32).toString("hex");
-    process.env.TOWBAR_SLACK_BOT_TOKEN = "test-slack-token";
-    process.env.TOWBAR_SMTP_HOST = "mail.example.com";
-    process.env.TOWBAR_SMTP_FROM = "test@example.com";
-    process.env.TOWBAR_SMTP_USERNAME = "test";
-    process.env.TOWBAR_SMTP_PASSWORD = "test-smtp-password";
     const { runTowbarMigrations } =
       await import("@workspace/towbar-database/migrate");
     await runTowbarMigrations({
@@ -46,25 +43,14 @@ void test(
     });
     const { getTowbarDatabase, closeDatabase } =
       await import("../../infrastructure/database.js");
-    const {
-      mutateSecret,
-      readSecretValues,
-      readSecretMetadata,
-      resolveServerCredentials,
-    } = await import("./store.js");
+    const { mutateSecret, readSecretMetadata, resolveServerCredentials } =
+      await import("./store.js");
     const { listEnvironmentSecrets } = await import("../apps/secrets.js");
     const { environmentSecretRoutes } =
       await import("../../routes/v1/core/environment-secrets.js");
     const { serverCredentialRoutes } =
       await import("../../routes/v1/core/server-credentials.js");
-    const {
-      getNotificationProviderConfiguration,
-      notificationProviderAvailability,
-    } = await import("../notifications/configuration.js");
-    const { applyDeployableAction } =
-      await import("../sources/materialization.js");
-    const { createServer, updateServer } =
-      await import("../servers/lifecycle.js");
+    const { createServer } = await import("../servers/lifecycle.js");
     const { listServerApps } = await import("../servers/service.js");
     const { HttpError } = await import("../../http/errors.js");
     const db = getTowbarDatabase();
@@ -75,7 +61,7 @@ void test(
       serverId = randomUUID(),
       appId = randomUUID();
     const manifest = normalizeDeploymentManifest({
-      version: 1,
+      version: 2,
       apps: [
         {
           id: "app",
@@ -84,6 +70,13 @@ void test(
           dockerfile: "Dockerfile",
           context: ".",
           container: { port: 3000 },
+          domains: { primary: "app.example.com" },
+          tls: { mode: "cloudflare-dns" },
+          preview: {
+            enabled: true,
+            domain: "preview.example.com",
+            ttlHours: 24,
+          },
           hooks: {
             preDeploy: { command: ["echo", "pre"] },
             postDeploy: { command: ["echo", "post"] },
@@ -118,8 +111,9 @@ void test(
       environment: "production" as const,
       stage: "deployment",
     };
-    let workspaceRole: "owner" | "member" = "owner",
+    let workspaceRole: "admin" | "member" | "viewer" = "admin",
       requestWorkspace: string = workspaceId;
+    const sessionId = randomUUID();
     const api = new Hono<TowbarHonoEnvironment>();
     api.use("*", async (context, next) => {
       context.set("user", {
@@ -129,6 +123,13 @@ void test(
         email: "test@example.com",
         name: "Test",
       });
+      context.set("actor", {
+        kind: "session",
+        workspaceId: requestWorkspace,
+        userId: actorUserId,
+        role: workspaceRole,
+      });
+      context.set("currentSessionId", sessionId);
       await next();
     });
     api.onError((error, context) =>
@@ -166,22 +167,31 @@ void test(
         email: `${actorUserId}@example.com`,
         displayName: "Test",
       });
+      await db
+        .insert(workspaceMembers)
+        .values({ workspaceId, userId: actorUserId, role: "admin" });
+      await db.insert(sessions).values({
+        id: sessionId,
+        userId: actorUserId,
+        token: randomUUID(),
+        expiresAt: new Date(Date.now() + 86400_000),
+      });
       const [installation] = await db
-        .insert(githubInstallations)
+        .insert(integrationInstallations)
         .values({
+          provider: "github",
           workspaceId,
-          installationId: randomUUID(),
-          accountLogin: "test",
-          accountType: "Organization",
+          externalId: randomUUID(),
+          principalName: "test",
+          principalType: "Organization",
         })
         .returning();
       await db.insert(sources).values({
         id: sourceId,
         workspaceId,
-        githubInstallationId: installation!.id,
+        integrationInstallationId: installation!.id,
         repositoryOwner: "test",
         repositoryName: "test",
-        branch: "main",
       });
       await db.insert(servers).values({
         id: serverId,
@@ -190,8 +200,27 @@ void test(
         config: serverConfig,
         configDigest: "digest",
       });
+      const { createSecretTestEnvironment } =
+        await import("./execution-tests.js");
+      const environment = await createSecretTestEnvironment(db, sourceId);
       await db.insert(apps).values({
         id: appId,
+        ...(await testInstanceLinks(sourceId, "app")),
+        sourceEnvironmentId: environment!.id,
+        requiredSecrets: {
+          build: ["BUILD", "PREVIEW_ONLY"],
+          runtime: [
+            "TOKEN",
+            "MULTILINE",
+            "EMPTY",
+            "COMMON",
+            "GLOBAL_ONLY",
+            "PREVIEW_ONLY",
+            "GLOBAL_PREVIEW",
+          ],
+          preDeploy: ["MIGRATION", "PREVIEW_ONLY", "SOURCE_PREVIEW"],
+          postDeploy: ["PREVIEW_ONLY"],
+        },
         workspaceId,
         sourceId,
         serverId,
@@ -211,13 +240,13 @@ void test(
           await db.insert(sources).values({
             id: secondSourceId,
             workspaceId,
-            githubInstallationId: installation!.id,
+            integrationInstallationId: installation!.id,
             repositoryOwner: "test",
             repositoryName: "second",
-            branch: "main",
           });
           await db.insert(apps).values({
             id: secondAppId,
+            ...(await testInstanceLinks(secondSourceId, "app")),
             workspaceId,
             sourceId: secondSourceId,
             serverId,
@@ -250,8 +279,42 @@ void test(
           assert(bindings.every((binding) => binding.revision === null));
           await assert.rejects(
             resolveServerCredentials({ workspaceId, serverId }),
-            /Server → Settings → Configuration/u,
+            /Server → Settings → Credentials/u,
           );
+        },
+      );
+      await t.test(
+        "workspace secrets use one environment-agnostic slot",
+        async () => {
+          const connected = await api.request("/settings/secrets");
+          assert.equal(connected.status, 200);
+          const connectedBody = (await connected.json()) as {
+            environments: string[];
+          };
+          assert.deepEqual(connectedBody.environments, ["production"]);
+          const unknown = await api.request(
+            "/settings/secrets?environment=staging",
+          );
+          assert.equal(unknown.status, 200);
+          assert.deepEqual(
+            ((await unknown.json()) as { environments: string[] }).environments,
+            ["production"],
+          );
+          requestWorkspace = otherWorkspaceId;
+          try {
+            const empty = await api.request("/settings/secrets");
+            assert.equal(empty.status, 200);
+            const isolated = (await empty.json()) as {
+              environments: string[];
+              bindings: unknown[];
+              canManageSecrets: boolean;
+            };
+            assert.deepEqual(isolated.environments, ["production"]);
+            assert.equal(isolated.bindings.length, 4);
+            assert.equal(isolated.canManageSecrets, true);
+          } finally {
+            requestWorkspace = workspaceId;
+          }
         },
       );
       const { testManagedSecretInheritance } =
@@ -263,7 +326,6 @@ void test(
         actorUserId,
         sourceId,
         appId,
-        workspaceOwner,
         sourceOwner,
         appOwner,
         globalSlot,
@@ -294,7 +356,7 @@ void test(
         },
       );
       await t.test(
-        "reveal requires an owner in the same workspace and does not leak through metadata",
+        "reveal requires an admin; members update values and viewers cannot",
         async () => {
           const path = `/apps/${appId}/secrets/production/deployment`;
           const current = await readSecretMetadata(slot);
@@ -311,6 +373,7 @@ void test(
             });
           workspaceRole = "member";
           assert.equal((await reveal()).status, 403);
+          workspaceRole = "viewer";
           assert.equal((await patch(path, change)).status, 403);
           assert.equal(
             (
@@ -323,7 +386,17 @@ void test(
             ).status,
             403,
           );
-          workspaceRole = "owner";
+          workspaceRole = "member";
+          assert.equal(
+            (
+              await patch(path, {
+                ...change,
+                set: { TOKEN: "{{source.TOKEN}}" },
+              })
+            ).status,
+            200,
+          );
+          workspaceRole = "admin";
           requestWorkspace = otherWorkspaceId;
           assert.equal((await reveal()).status, 404);
           assert.equal((await patch(path, change)).status, 404);
@@ -429,167 +502,18 @@ void test(
           workspaceRole = role;
         },
       });
-      await t.test(
-        "notification configuration comes from installation environment variables",
-        () => {
-          assert.equal(notificationProviderAvailability().slack, true);
-          assert.equal(
-            getNotificationProviderConfiguration("slack")?.provider,
-            "slack",
-          );
-          assert.equal(notificationProviderAvailability().smtp, true);
-          assert.equal(
-            getNotificationProviderConfiguration("smtp")?.provider,
-            "smtp",
-          );
-        },
-      );
-      await t.test(
-        "archival and sync preserve secrets; tampering fails closed; deletion cascades",
-        async () => {
-          const syncInput = {
-            commitSha: "7654321",
-            sourceId,
-            workspaceId,
-            deploymentDigests: new Map([
-              [
-                appConfig.id,
-                { deploymentDigest: "new-digest", sourceInputDigest: null },
-              ],
-            ]),
-            serverIds: new Map([[serverConfig.ip, serverId]]),
-          };
-          await db.transaction(async (transaction) => {
-            await applyDeployableAction(transaction, {
-              ...syncInput,
-              action: {
-                action: "archive",
-                id: appConfig.id,
-                current: {
-                  id: appId,
-                  config: appConfig,
-                  configDigest: "digest",
-                  identity: appConfig.id,
-                  archivedAt: null,
-                },
-              },
-            });
-          });
-          const retained = await readSecretValues(slot);
-          assert.equal(retained.values.MULTILINE, "line one\nline two");
-          await db.transaction(async (transaction) => {
-            await applyDeployableAction(transaction, {
-              ...syncInput,
-              action: {
-                action: "restore",
-                id: appConfig.id,
-                desired: { ...appConfig, name: "Renamed" },
-              },
-            });
-          });
-          assert.equal(
-            (
-              await updateServer({
-                config: { ...serverConfig, buildConcurrency: 2 },
-                serverId,
-                workspaceId,
-              })
-            ).id,
-            serverId,
-          );
-          assert.match(
-            (
-              await db
-                .select({ deploymentDigest: apps.deploymentDigest })
-                .from(apps)
-                .where(eq(apps.id, appId))
-                .limit(1)
-            )[0]!.deploymentDigest!,
-            /^[a-f0-9]{64}$/u,
-          );
-          const newServer = await createServer({
-            config: { ...serverConfig, ip: "192.0.2.11" },
-            workspaceId,
-          });
-          assert.equal(
-            (
-              await readSecretMetadata({
-                type: "server",
-                id: newServer.id,
-                workspaceId,
-                environment: "production",
-                stage: "credentials",
-              })
-            ).revision,
-            null,
-          );
-          assert.equal(
-            (await readSecretValues(slot)).revision,
-            retained.revision,
-          );
-          const [row] = await db
-            .select()
-            .from(managedSecrets)
-            .where(
-              and(
-                eq(managedSecrets.owner, `app:${appId}`),
-                eq(managedSecrets.stage, "deployment"),
-                eq(managedSecrets.environment, "production"),
-              ),
-            );
-          assert(row);
-          // Database ownership cannot be reassigned across a workspace even by a direct write.
-          await assert.rejects(
-            db
-              .update(managedSecrets)
-              .set({ workspaceId: otherWorkspaceId })
-              .where(eq(managedSecrets.id, row.id)),
-          );
-          const [another] = await db
-            .select()
-            .from(managedSecrets)
-            .where(
-              and(
-                eq(managedSecrets.owner, `source:${sourceId}`),
-                eq(managedSecrets.stage, "deployment"),
-              ),
-            );
-          assert(another);
-          await db
-            .update(managedSecrets)
-            .set({ encryptedPayload: another.encryptedPayload })
-            .where(eq(managedSecrets.id, row.id));
-          await assert.rejects(
-            readSecretValues(slot),
-            /could not be unlocked/u,
-          );
-          await db
-            .update(managedSecrets)
-            .set({ encryptedPayload: row.encryptedPayload })
-            .where(eq(managedSecrets.id, row.id));
-          await db
-            .update(managedSecrets)
-            .set({
-              encryptedPayload: {
-                ...row.encryptedPayload,
-                authenticationTag: randomBytes(16).toString("base64url"),
-              },
-            })
-            .where(eq(managedSecrets.id, row.id));
-          await assert.rejects(
-            readSecretValues(slot),
-            /could not be unlocked/u,
-          );
-          const audit = await db
-            .select()
-            .from(auditEvents)
-            .where(eq(auditEvents.workspaceId, workspaceId));
-          assert(!JSON.stringify(audit).includes("shared-value"));
-          assert(!JSON.stringify(audit).includes("test-slack-token"));
-          await db.delete(apps).where(eq(apps.id, appId));
-          assert.equal((await readSecretMetadata(slot)).revision, null);
-        },
-      );
+      const { testSecretLifecycle } = await import("./lifecycle-tests.js");
+      await testSecretLifecycle({
+        t,
+        db,
+        appId,
+        workspaceId,
+        otherWorkspaceId,
+        sourceId,
+        serverId,
+        serverConfig,
+        slot,
+      });
     } finally {
       await db.delete(releases).where(eq(releases.appId, appId));
       await db

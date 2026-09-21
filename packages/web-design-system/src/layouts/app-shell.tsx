@@ -19,8 +19,9 @@ import { Toast } from "../overlays/toast";
 import { ThemeSwitcher } from "../controls/theme-switcher";
 import { cn } from "../lib/utils";
 import { BrandLockup } from "../media/brand-lockup";
-import { useAppNavigate } from "../navigation/app-layout";
+import { useAppNavigate, useMobileNavigation } from "../navigation/app-layout";
 import { BreadcrumbTrail } from "../navigation/breadcrumbs";
+import { NewTabIndicator } from "../navigation/new-tab-indicator";
 import { AppShellBoundary, useAppShellHeaderState } from "./app-shell-boundary";
 import type {
   ApplicationPolicy,
@@ -90,11 +91,15 @@ function RoutedLink({
   children?: ReactNode;
 }) {
   const navigate = useAppNavigate();
+  const { close } = useMobileNavigation();
   const onClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+      return;
     if (!item.external && navigate) {
       event.preventDefault();
       navigate(item.href);
     }
+    close();
   };
   return (
     <a
@@ -106,6 +111,7 @@ function RoutedLink({
       target={item.external ? "_blank" : undefined}
     >
       {children ?? item.label}
+      {item.external ? <NewTabIndicator /> : null}
     </a>
   );
 }
@@ -114,12 +120,14 @@ export function ApplicationNavbar({
   config,
   hasSidebar = false,
   onSidebarToggle,
+  sidebarOpen,
   showThemeSwitcher = false,
 }: {
   actions?: ReactNode;
   config: HeaderConfig;
   hasSidebar?: boolean;
   onSidebarToggle?: () => void;
+  sidebarOpen?: boolean;
   showThemeSwitcher?: boolean;
 }) {
   const { breadcrumbItems } = useAppShellHeaderState();
@@ -136,7 +144,9 @@ export function ApplicationNavbar({
         {hasSidebar ? (
           <Button
             aria-label="Toggle navigation"
-            className="size-10 min-h-10 min-w-10 shrink-0"
+            aria-expanded={sidebarOpen}
+            aria-controls={sidebarOpen ? "application-navigation" : undefined}
+            className="size-11 min-h-11 min-w-11 shrink-0 lg:size-10 lg:min-h-10 lg:min-w-10"
             isIconOnly
             onPress={onSidebarToggle}
             variant="ghost"
@@ -181,8 +191,12 @@ export function ApplicationNavbar({
             item={config.callToAction}
           />
         ) : null}
-        {actions}
-        {showThemeSwitcher ? <ThemeSwitcher size="small" /> : null}
+        {actions || showThemeSwitcher ? (
+          <div className="flex items-center gap-2">
+            {actions}
+            {showThemeSwitcher ? <ThemeSwitcher size="small" /> : null}
+          </div>
+        ) : null}
       </nav>
     </header>
   );
@@ -212,18 +226,20 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
             ) : null)
           }
         >
-          {config.brand.title}
-        </BrandLockup>
-        {config.brandVersion ? (
-          <span
-            aria-label={`Version ${config.brandVersion}`}
-            className="shrink-0 font-mono text-xs text-muted"
-          >
-            v{config.brandVersion}
+          <span className="flex min-w-0 flex-col gap-0.5 lg:flex-row lg:items-baseline lg:gap-2.5">
+            <span className="truncate">{config.brand.title}</span>
+            {config.brandVersion ? (
+              <span
+                aria-label={`Version ${config.brandVersion}`}
+                className="shrink-0 font-mono text-xs font-normal text-muted"
+              >
+                v{config.brandVersion}
+              </span>
+            ) : null}
           </span>
-        ) : null}
+        </BrandLockup>
       </RoutedLink>
-      <div className="grid min-h-0 flex-1 content-start gap-1 overflow-y-auto overscroll-contain px-3 pt-2">
+      <div className="grid min-h-0 flex-1 content-start gap-1 overflow-y-auto overscroll-contain px-3 py-4">
         {config.groups.map((group) => (
           <section className="grid gap-1 [&+&]:mt-2" key={group.id}>
             {group.label ? (
@@ -236,7 +252,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
                 item.kind === "link" ? (
                   <RoutedLink
                     className={cn(
-                      "flex min-h-9 items-center gap-3 rounded-2xl px-2 py-1.5 text-sm",
+                      "flex min-h-9 min-w-0 items-center gap-3 rounded-2xl px-2 py-1.5 text-sm",
                       pathname === item.href ||
                         (item.href !== "/" && pathname.startsWith(item.href))
                         ? "bg-default font-medium text-foreground"
@@ -246,15 +262,21 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
                     key={item.id}
                   >
                     {item.icon ? (
-                      <HugeiconsIcon icon={item.icon} size={16} />
+                      <HugeiconsIcon
+                        icon={item.icon}
+                        size={16}
+                        className="shrink-0"
+                      />
                     ) : null}
-                    {item.label}
+                    <span className="min-w-0 flex-1 break-words">
+                      {item.label}
+                    </span>
                     {item.badge ? (
                       <span
                         aria-label={item.badge.label}
                         title={item.badge.label}
                         className={cn(
-                          "ms-auto min-w-5 text-xs font-mono tabular-nums",
+                          "ms-auto min-w-4 shrink-0 text-xs font-mono tabular-nums lg:min-w-5",
                           item.badge.tone
                             ? "rounded-full px-1.5 py-0.5 text-center font-medium"
                             : "text-end text-muted",
@@ -276,6 +298,11 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
           </section>
         ))}
       </div>
+      {config.footerContent ? (
+        <div className="shrink-0 border-t border-separator pb-[env(safe-area-inset-bottom)] group-data-[collapsible=icon]:hidden">
+          {config.footerContent}
+        </div>
+      ) : null}
       {config.footerActions?.length ? (
         <div className="grid shrink-0 gap-1 border-t border-separator px-3 pb-4 pt-2">
           {config.footerActions.map((item) => (
@@ -290,24 +317,31 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
 function SidebarAction({ item }: { item: SidebarActionConfig }) {
   const [isConfirming, setIsConfirming] = useState(false);
   const trigger = (
-    <button
+    <Button
       aria-label={item.accessibleLabel}
+      variant={item.destructive ? "danger-ghost" : "ghost"}
       className={cn(
-        "flex min-h-9 items-center gap-3 rounded-2xl px-2 py-1.5 text-start text-sm font-normal text-muted hover:bg-default/60 hover:text-foreground disabled:opacity-50",
-        item.destructive && "text-danger hover:bg-danger/10 hover:text-danger",
+        "h-auto min-h-9 w-full justify-start gap-3 rounded-2xl px-2 py-1.5 text-start text-sm font-normal",
+        !item.destructive &&
+          "text-muted hover:bg-default/60 hover:text-foreground",
       )}
-      disabled={item.disabled}
-      onClick={() => {
+      isDisabled={item.disabled}
+      onPress={() => {
         if (item.confirmation) setIsConfirming(true);
         else item.onSelect();
       }}
       type="button"
     >
       {item.icon ? (
-        <HugeiconsIcon aria-hidden="true" icon={item.icon} size={16} />
+        <HugeiconsIcon
+          aria-hidden="true"
+          icon={item.icon}
+          size={16}
+          className="shrink-0"
+        />
       ) : null}
-      {item.label}
-    </button>
+      <span className="min-w-0 whitespace-normal">{item.label}</span>
+    </Button>
   );
 
   if (!item.confirmation) return trigger;
@@ -391,13 +425,19 @@ export function ApplicationFooter({
 export function usePersistentAppSidebar(storageKey = "towbar-sidebar") {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   useLayoutEffect(() => {
-    try {
-      const isDesktop = window.matchMedia("(min-width: 64rem)").matches;
-      const value = isDesktop ? localStorage.getItem(storageKey) : null;
-      setSidebarOpen(isDesktop && value !== "false");
-    } catch {
-      // Storage can be unavailable in private browsing or hardened browsers.
-    }
+    const query = window.matchMedia("(min-width: 64rem)");
+    const restoreSidebar = () => {
+      let open = query.matches;
+      try {
+        if (query.matches) open = localStorage.getItem(storageKey) !== "false";
+      } catch {
+        // Storage can be unavailable in private browsing or hardened browsers.
+      }
+      setSidebarOpen(open);
+    };
+    restoreSidebar();
+    query.addEventListener("change", restoreSidebar);
+    return () => query.removeEventListener("change", restoreSidebar);
   }, [storageKey]);
   const onSidebarOpenChange = useCallback(
     (open: boolean) => {

@@ -1,23 +1,23 @@
+import { recordAuditEvent } from "../../infrastructure/audit.js";
+import { auditAttribution } from "../auth/actor-context.js";
 import { and, desc, eq, isNull, lt, or, sql } from "drizzle-orm";
 import {
   SCOUT_ALERT_RULE_LIMIT_PER_ENTITY,
   type ScoutAlertRuleInput,
+  digestValue,
   scoutAlertRuleSchema,
-  scoutMuteSchema,
 } from "@workspace/towbar-core";
 import {
   apps,
-  auditEvents,
-  notificationDestinations,
   scoutAlertIncidents,
   scoutAlertRules,
-  scoutAlertSettings,
   servers,
 } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { badRequest, conflict, notFound } from "../../http/errors.js";
 import { getServer } from "../servers/service.js";
 import { notificationProviderAvailability } from "../notifications/configuration.js";
+import { getRuntimeNotifications } from "../../infrastructure/runtime-notifications.js";
 
 export type ScoutScope = { serverId: string; workspaceId: string };
 type Database = ReturnType<typeof getTowbarDatabase>;
@@ -30,7 +30,7 @@ export async function listScoutAlertRules(
 ) {
   await getServer(scope.serverId, scope.workspaceId);
   const database = getTowbarDatabase();
-  const [rules, settings, destinations, workloads] = await Promise.all([
+  const [rules, workloads] = await Promise.all([
     database
       .select()
       .from(scoutAlertRules)
@@ -49,30 +49,6 @@ export async function listScoutAlertRules(
       .orderBy(desc(scoutAlertRules.createdAt))
       .limit(100),
     database
-      .select()
-      .from(scoutAlertSettings)
-      .where(eq(scoutAlertSettings.serverId, scope.serverId))
-      .limit(1),
-    database
-      .select({
-        id: notificationDestinations.id,
-        provider: notificationDestinations.provider,
-        config: notificationDestinations.config,
-        enabled: notificationDestinations.enabled,
-        categories: notificationDestinations.categories,
-        sourceId: notificationDestinations.sourceId,
-        serverId: notificationDestinations.serverId,
-      })
-      .from(notificationDestinations)
-      .where(
-        and(
-          eq(notificationDestinations.workspaceId, scope.workspaceId),
-          isNull(notificationDestinations.deletedAt),
-          eq(notificationDestinations.serverId, scope.serverId),
-        ),
-      )
-      .limit(200),
-    database
       .select({
         id: apps.id,
         name: apps.name,
@@ -90,6 +66,15 @@ export async function listScoutAlertRules(
       .orderBy(apps.name)
       .limit(512),
   ]);
+  const destinations = getRuntimeNotifications()
+    .routes.filter((route) => route.categories.includes("scout"))
+    .map((route) => ({
+      categories: route.categories,
+      enabled: true,
+      id: route.id,
+      provider: route.provider,
+      source: "environment" as const,
+    }));
   const checks = await database.execute<{
     rule_id: string;
     checked_at: string | null;
@@ -108,9 +93,8 @@ export async function listScoutAlertRules(
       httpCheck: checks.find((check) => check.rule_id === rule.id) ?? null,
     })),
     workloads,
-    settings: settings[0] ?? { mutedUntil: null, muteReason: "" },
     destinations,
-    providers: notificationProviderAvailability(),
+    providers: await notificationProviderAvailability(scope.workspaceId),
   };
 }
 
@@ -118,7 +102,7 @@ export async function saveScoutAlertRule(
   input: ScoutScope & {
     ruleId?: string;
     rule: ScoutAlertRuleInput;
-    requestedBy: string;
+    requestedBy: string | null;
   },
 ) {
   const rule = scoutAlertRuleSchema.parse(input.rule);
@@ -161,9 +145,9 @@ export async function saveScoutAlertRule(
       if (old.deployableId !== rule.deployableId)
         await assertEntityRuleCapacity(tx, input, rule.deployableId);
       const conditionChanged =
-        JSON.stringify(old.condition) !== JSON.stringify(rule.condition) ||
+        digestValue(old.condition) !== digestValue(rule.condition) ||
         old.deployableId !== rule.deployableId ||
-        old.environment !== rule.environment;
+        old.environment !== "production";
       if (conditionChanged || !rule.enabled)
         await resolveRuleIncidents(
           tx,
@@ -174,6 +158,7 @@ export async function saveScoutAlertRule(
         .update(scoutAlertRules)
         .set({
           ...rule,
+          environment: "production",
           updatedAt: new Date(),
           ...(conditionChanged
             ? {
@@ -203,19 +188,21 @@ export async function saveScoutAlertRule(
         .insert(scoutAlertRules)
         .values({
           ...rule,
+          environment: "production",
           workspaceId: input.workspaceId,
           serverId: input.serverId,
         })
         .returning();
     }
     if (!result) throw new Error("Scout rule was not saved");
-    await tx.insert(auditEvents).values({
+    await recordAuditEvent(tx, {
       workspaceId: input.workspaceId,
       actorUserId: input.requestedBy,
       action: input.ruleId ? "scout.rule_updated" : "scout.rule_created",
       targetType: "server",
       targetId: input.serverId,
       metadata: { ruleId: result.id },
+      ...auditAttribution(),
     });
     return result;
   });
@@ -248,7 +235,7 @@ async function assertEntityRuleCapacity(
 }
 
 export async function deleteScoutAlertRule(
-  input: ScoutScope & { ruleId: string; requestedBy: string },
+  input: ScoutScope & { ruleId: string; requestedBy: string | null },
 ) {
   await getTowbarDatabase().transaction(async (tx) => {
     await lockScoutServer(tx, input);
@@ -266,74 +253,15 @@ export async function deleteScoutAlertRule(
       .returning({ id: scoutAlertRules.id });
     if (!row) throw notFound("Scout alert rule");
     await resolveRuleIncidents(tx, row.id, "rule_deleted");
-    await tx.insert(auditEvents).values({
+    await recordAuditEvent(tx, {
       workspaceId: input.workspaceId,
       actorUserId: input.requestedBy,
       action: "scout.rule_deleted",
       targetType: "server",
       targetId: input.serverId,
       metadata: { ruleId: row.id },
+      ...auditAttribution(),
     });
-  });
-}
-
-export async function muteScoutAlerts(
-  input: ScoutScope & {
-    ruleId?: string;
-    requestedBy: string;
-    durationSeconds: number;
-    reason: string;
-  },
-  now = new Date(),
-) {
-  const mute = scoutMuteSchema.parse({
-    durationSeconds: input.durationSeconds,
-    reason: input.reason,
-  });
-  const values = {
-    mutedUntil: mute.durationSeconds
-      ? new Date(now.getTime() + mute.durationSeconds * 1000)
-      : null,
-    muteReason: mute.durationSeconds ? mute.reason : "",
-    updatedAt: now,
-  };
-  return await getTowbarDatabase().transaction(async (tx) => {
-    await lockScoutServer(tx, input);
-    if (input.ruleId) {
-      const [row] = await tx
-        .update(scoutAlertRules)
-        .set({ mutedUntil: values.mutedUntil, muteReason: values.muteReason })
-        .where(
-          and(
-            eq(scoutAlertRules.id, input.ruleId),
-            eq(scoutAlertRules.serverId, input.serverId),
-            eq(scoutAlertRules.workspaceId, input.workspaceId),
-            isNull(scoutAlertRules.deletedAt),
-          ),
-        )
-        .returning({ id: scoutAlertRules.id });
-      if (!row) throw notFound("Scout alert rule");
-    } else
-      await tx
-        .insert(scoutAlertSettings)
-        .values({ serverId: input.serverId, ...values })
-        .onConflictDoUpdate({
-          target: scoutAlertSettings.serverId,
-          set: values,
-        });
-    await tx.insert(auditEvents).values({
-      workspaceId: input.workspaceId,
-      actorUserId: input.requestedBy,
-      action: mute.durationSeconds ? "scout.muted" : "scout.unmuted",
-      targetType: "server",
-      targetId: input.serverId,
-      metadata: {
-        ruleId: input.ruleId ?? null,
-        mutedUntil: values.mutedUntil?.toISOString() ?? null,
-        reason: values.muteReason,
-      },
-    });
-    return values;
   });
 }
 

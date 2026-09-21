@@ -1,0 +1,60 @@
+---
+title: "Deployment modes"
+description: "Deploy Dockerfiles, static sites, OCI images, Railpack, Nixpacks, Buildpacks, and Compose projects."
+---
+
+Towbar reads deployment configuration from the repository revision being deployed. The dashboard previews the normalized manifest and operates it; it does not keep a second workload configuration.
+
+## Choose a mode
+
+| Mode         | Use it for                                    | Important behavior                                                                                                 |
+| ------------ | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `dockerfile` | Existing container builds                     | BuildKit builds the declared Dockerfile and context. Build secrets use secret mounts.                              |
+| `static`     | Prebuilt or generated browser assets          | An optional command produces the output directory, which is packaged in a digest-pinned unprivileged server image. |
+| `image`      | Images built elsewhere                        | An explicit tag or digest is required. Tags are resolved and recorded as immutable digests before execution.       |
+| `railpack`   | Recommended source detection                  | The manifest pins the Railpack version and tool image.                                                             |
+| `nixpacks`   | Compatibility with existing Nixpacks projects | The manifest pins the Nixpacks version and tool image.                                                             |
+| `buildpack`  | Cloud Native Buildpacks                       | The pack image and a Towbar-reviewed Paketo or Heroku builder digest are required.                                 |
+| Compose      | Multi-service projects                        | Compose files, overrides, and profiles come from the same immutable repository revision.                           |
+
+See `examples/platform-modes` in the Towbar repository for a validated example of every mode.
+
+## Source builders
+
+Source builders accept a repository-relative context, build and start commands, cache settings, architecture, timeout, build arguments, and CPU/memory limits. Paths cannot escape the context through `..` or symbolic links. Tool and builder images must be pinned by digest.
+
+Dockerfile builds pass protected build values through BuildKit secret mounts. Static build commands receive protected values only in their short-lived build environment. Railpack, Nixpacks, and Buildpacks currently reject protected build secrets because forwarding them through their environment or cache could retain them in image layers. Use a Dockerfile when a build requires credentials.
+
+Cancellation stops the active remote command and cleanup removes staged source and unpromoted images. A build cache is scoped to the workload unless the manifest explicitly declares another authorized scope.
+
+## Prebuilt images
+
+Use a named registry integration for a private image. Towbar contacts the Registry V2 API during admission, follows supported bearer challenges, resolves the tag to a digest, and stores the original reference and immutable digest. `latest` is rejected. A different digest at execution time fails the deployment rather than silently deploying changed content.
+
+Private registry endpoints require HTTPS. Private-network access is disabled unless it is enabled on the integration. The workload platform and target server architecture must agree.
+
+## Build servers
+
+Set `defaults.buildServer` at the manifest root to use another registered server for every build in that repository environment. Because each connected environment reads its own immutable manifest revision, a branch can declare a different environment default. An app-level `buildServer` overrides the default; set it to `null` to build that app on its runtime server. The selected server must belong to the team, have trusted SSH credentials, be prepared, and support the requested architecture. `direct` transfer streams the verified image archive to the runtime server. `registry` transfer uses a named registry integration and verifies the pushed and pulled digest.
+
+Build-server capacity and concurrency are reserved independently from runtime operations. Towbar does not fall back to the runtime server unless `allowRuntimeFallback: true` is explicitly set. A missing or unavailable build server otherwise fails closed.
+
+Build servers apply to individual app build modes. Compose builds run on the selected runtime server because Compose resolves and builds the service graph as one project; `buildServer` is rejected on Compose workloads instead of being accepted and ignored.
+
+Build caches are isolated by the configured scope. Towbar refreshes the scope marker after a successful use, removes the scope immediately when caching is disabled, and reclaims scopes that have been inactive for 30 days. Dockerfile and static cache images and Buildpacks cache volumes carry managed labels so ordinary release cleanup does not remove the active cache.
+
+## Rolling and recreate strategies
+
+Eligible stateless apps use a health-gated rolling strategy. Configure replicas, surge, maximum unavailability, startup deadline, minimum healthy time, failure threshold, drain time, and termination time. Admission checks declared CPU and memory headroom for the surge before replacing a replica. A candidate must remain healthy for the configured interval; repeated failed checks abort promotion and retain the previous release.
+
+Use `recreate` with a reason for stateful single-writer volumes, fixed host ports, or another workload that cannot run old and new instances together. App rollback selects an earlier release; it does not reverse a database migration or restore persistent data.
+
+## Compose projects
+
+Declare a Compose workload in `.towbar/compose`. Towbar runs the installed Docker Compose v2 plugin to parse and validate the project. Compose files may use repository-relative overrides, profiles, service dependencies, health checks, repository builds, explicit non-latest images, named volumes, and manifest-declared public service policies.
+
+Towbar validates every Compose document before Docker Compose opens it, including recursively referenced local includes and `extends` files. References must stay inside the immutable repository checkout; remote includes, include project-directory overrides, external or explicitly named Docker resources, privileged containers, external namespaces, Docker socket or host bind mounts, devices, fixed or publicly bound host ports, and unsupported routing combinations are rejected. It supplies a generated environment file for resolved runtime values and removes the transfer copy after execution. Partial updates retain a stable previous project definition so recovery can bring the previous stack back without deleting project volumes. Compose projects use recreate or maintenance replacement; rolling Compose replacement is rejected rather than emulated.
+
+## Integrations in a manifest
+
+Manifests refer to stable integration slugs for registries, external secrets, backup storage, telemetry, and Cloudflare Tunnel. Repository sync verifies that each connection exists, is active, matches the required provider, and grants the repository and environment access. Queued execution repeats the check so a revoked connection or reduced role cannot be bypassed by an old operation.

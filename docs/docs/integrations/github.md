@@ -1,62 +1,62 @@
 ---
 title: "GitHub"
-description: "Connect repositories, receive push events, and publish pull request preview status."
+description: "Configure a GitHub App in the runtime environment, install it, and connect repositories."
 ---
 
-Towbar uses a GitHub App to read your repositories and receive deployment events. You create the App for your installation and choose which repositories it can access.
+Towbar uses one GitHub App per installation. The App identity and secrets live only in the API runtime environment. PostgreSQL stores the selected installation and account metadata, never the App private key or webhook secret.
 
-## Before you begin
+## Create and configure the App
 
-Install Towbar and configure reachable HTTPS app and API origins. You need permission to create a GitHub App and install it for the target account or organization.
+Create a GitHub App with repository Contents and Metadata read access. Grant Pull requests and Deployments read and write access when using Preview deployments. Subscribe to `push`, `pull_request`, and `installation` events.
 
-## Create and install the App
+Set the webhook URL to `${TOWBAR_API_BASE_URL}/v1/public/webhooks/github` and the setup URL to `${TOWBAR_APP_BASE_URL}/manage/integrations/github`, with redirect enabled. Generate a private key, then configure:
 
-Create one GitHub App for this Towbar installation:
-
-- Repository contents: read-only
-- Repository metadata: read-only
-- Pull requests: read and write (required for Preview deployments and their PR status comment)
-- Deployments: read and write (required when using Preview deployments)
-- Webhook events: `push`, `pull_request`, and `installation`
-- Webhook URL: `${TOWBAR_API_BASE_URL}/v1/public/webhooks/github`
-- Setup URL with redirect enabled:
-  `${TOWBAR_APP_BASE_URL}/manage/integrations?integration=github`
-
-Generate a private key for the App and encode its PEM without line wrapping:
-
-```bash
-base64 < github-app.pem | tr -d '\n'
+```dotenv
+TOWBAR_GITHUB_ENABLED=true
+TOWBAR_GITHUB_APP_ID=123456
+TOWBAR_GITHUB_APP_SLUG=your-towbar-app
+TOWBAR_GITHUB_PRIVATE_KEY_BASE64=<base64-encoded-pem>
+TOWBAR_GITHUB_WEBHOOK_SECRET=<shared-webhook-secret>
+TOWBAR_GITHUB_API_URL=https://api.github.com
 ```
 
-Set `GITHUB_APP_ID`, `GITHUB_APP_SLUG`,
-`GITHUB_APP_PRIVATE_KEY_BASE64`, and a random `GITHUB_WEBHOOK_SECRET` in `.env`,
-then recreate the API container:
+Encode the PEM with `base64 < private-key.pem | tr -d '\n'`. Restart the API. Startup fails if the key cannot be parsed or any enabled field is missing.
 
-```bash
-docker compose up --detach --force-recreate api
-```
+## Install and use it
 
-In Towbar, open **Manage → Integrations → Source control → GitHub**, install the App, and grant it access only
-to repositories Towbar should deploy.
-
-## Verify access
-
-Open **Manage → System health** and choose **Run checks**. GitHub appears in the **Integrations** section. A healthy result verifies the connected installation; it does not mean a Source has synced or an app has deployed.
-
-Open **Sources → Add source** and confirm the intended repository is available. If it is missing, review the GitHub App installation's repository selection and organization approval.
+Open **Manage → Integrations → GitHub** and choose **Install GitHub App**. Select only the accounts and repositories Towbar should manage. The connection widget is shown only because the runtime configuration is valid; no credential form is exposed.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/guides/github-light.webp" alt="Example GitHub connection. A preview-reporting warning can appear while the installation remains connected." width="2160" height="1096" loading="lazy" />
+    <img
+      src="/assets/release-v2/github-setup-light.jpg"
+      alt="GitHub shows runtime App availability before an installation is connected."
+      width="1280"
+      height="720"
+      loading="lazy"
+    />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/guides/github-dark.webp" alt="Example GitHub connection. A preview-reporting warning can appear while the installation remains connected." width="2160" height="1096" loading="lazy" />
+    <img
+      src="/assets/release-v2/github-setup-dark.jpg"
+      alt="GitHub shows runtime App availability before an installation is connected."
+      width="1280"
+      height="720"
+      loading="lazy"
+    />
   </div>
-  <p>Example GitHub connection. A preview-reporting warning can appear while the installation remains connected.</p>
+  <p>
+    The installation action appears after the GitHub App environment values
+    pass startup validation.
+  </p>
 </div>
+
+After changing App permissions, approve the update in GitHub. Disconnecting removes Towbar's active installation access while leaving the runtime App identity unchanged. Use the connection status in Towbar and GitHub's webhook delivery history to diagnose access or delivery failures.
+
+## Verify access
+
+The connection card shows the installed account, account type, installation ID, and Preview reporting readiness. A healthy installation must remain active in GitHub and include Contents read access. Preview reporting also needs Pull requests and Deployments read and write access. Towbar never displays the App private key or webhook secret.
 
 ## Maintain the connection
 
-After changing App permissions, approve the updated installation in GitHub. Preview comments and statuses require their respective write permissions. If a webhook does not reach Towbar, inspect its delivery in GitHub and check the API origin, webhook path, and matching webhook secret.
-
-Next, [add a Source](/docs/sources) or configure [preview environments](/docs/previews).
+Use **Review permissions** after adding App permissions or repositories. Use **Reconnect GitHub** when GitHub suspends or removes the installation. If webhooks stop arriving, inspect the App’s recent deliveries in GitHub and confirm that the callback URL matches `TOWBAR_API_BASE_URL`. Rotating the private key or webhook secret requires updating the environment and restarting the API.

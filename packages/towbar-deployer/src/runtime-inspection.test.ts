@@ -34,6 +34,10 @@ void describe("runtime inspection", () => {
               driftReasons: [],
               driftStatus: "in_sync",
               healthStatus: "healthy",
+              ingressContainerName: null,
+              ingressImage: null,
+              ingressRestartCount: null,
+              ingressStatus: "disabled",
               memoryLimitBytes: 1073741824,
               memoryUsageBytes: 268435456,
               observedContainerName: "towbar-api-release",
@@ -86,8 +90,8 @@ void describe("runtime inspection", () => {
   void it("collects bounded container capacity signals", () => {
     assert.match(runtimeInspectionScript, /docker", "stats", "--no-stream"/);
     assert.match(runtimeInspectionScript, /collect_runtime_stats/);
-    assert.doesNotMatch(runtimeInspectionScript, /\*container_names/);
-    assert.match(runtimeInspectionScript, /if name in container_names/);
+    assert.match(runtimeInspectionScript, /runtime_metrics\(container_name/);
+    assert.match(runtimeInspectionScript, /metrics = \[runtime_metrics\(/);
     assert.match(runtimeInspectionScript, /stats_by_name/);
     assert.match(runtimeInspectionScript, /RestartCount/);
     assert.match(runtimeInspectionScript, /memoryUsageBytes/);
@@ -104,6 +108,7 @@ void it("inspects multiple sources on one server without adopting foreign object
       sourceId: `source-${name}`,
       desiredState: "running",
       health: { timeoutSeconds: 5, type: "container" },
+      ingress: null,
       release: { containerName: name, imageTag: `towbar/${name}:current` },
     }));
     const objects: Record<string, unknown> = {};

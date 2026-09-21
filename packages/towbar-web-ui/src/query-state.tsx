@@ -97,8 +97,6 @@ export function QueryError({
         {retryable ? (
           <div className="mt-3">
             <Button
-              className="min-h-11"
-              size="sm"
               variant="secondary"
               onPress={() => window.dispatchEvent(new Event("towbar:refresh"))}
             >

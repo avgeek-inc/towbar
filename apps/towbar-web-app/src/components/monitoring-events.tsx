@@ -1,4 +1,5 @@
-import { memo, useEffect, useMemo, useState } from "react";
+import { displayDateTime } from "@/lib/date-time-display";
+import { memo, useEffect, useState } from "react";
 import { Tooltip } from "@workspace/web-design-system/overlays/tooltip";
 import type { MonitoringHistory } from "@workspace/towbar-web-client";
 import {
@@ -9,15 +10,7 @@ import { useTablePagination } from "@workspace/web-design-system/hooks/use-table
 import { Pagination } from "@workspace/web-design-system/navigation/pagination";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
-const eventDateFormatter = new Intl.DateTimeFormat(undefined, {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
-const eventTooltipDateFormatter = new Intl.DateTimeFormat(undefined, {
-  dateStyle: "medium",
-  timeStyle: "long",
-});
-const formatDate = (at: string) => eventDateFormatter.format(new Date(at));
+const formatDate = displayDateTime;
 
 type Event = MonitoringHistory["events"][number];
 const columns: ResourceTableColumn<Event>[] = [
@@ -110,10 +103,7 @@ export function MonitoringEventMarker({
   viewBox?: { x?: number; y?: number };
 }) {
   const [open, setOpen] = useState(false);
-  const date = useMemo(
-    () => eventTooltipDateFormatter.format(new Date(event.at)),
-    [event.at],
-  );
+  const date = displayDateTime(event.at);
   useEffect(() => () => onActiveChange?.(false), [onActiveChange]);
   const changeOpen = (active: boolean) => {
     setOpen(active);
@@ -149,7 +139,11 @@ export function MonitoringEventMarker({
             {event.type === "deployment" ? "D" : "R"}
           </span>
         </Tooltip.Trigger>
-        <Tooltip.Content placement="top" className="max-w-xs text-xs" showArrow>
+        <Tooltip.Content
+          className="max-w-64 whitespace-normal break-normal text-xs [overflow-wrap:normal] [word-break:normal]"
+          placement="top"
+          showArrow
+        >
           <Tooltip.Arrow />
           <span className="grid gap-0.5">
             <span className="font-medium">

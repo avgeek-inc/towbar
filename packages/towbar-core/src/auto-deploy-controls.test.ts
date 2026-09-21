@@ -20,3 +20,18 @@ void test("a deployable pause affects only that deployable", () => {
     { paused: false, scope: null },
   );
 });
+
+void test("environment review pause overrides deployable control without claiming repository pause", () => {
+  assert.deepEqual(
+    evaluateAutoDeployPause({
+      sourcePaused: false,
+      environmentPaused: true,
+      deployablePaused: false,
+    }),
+    { paused: true, scope: "environment" },
+  );
+  assert.deepEqual(
+    evaluateAutoDeployPause({ sourcePaused: true, environmentPaused: true }),
+    { paused: true, scope: "source" },
+  );
+});

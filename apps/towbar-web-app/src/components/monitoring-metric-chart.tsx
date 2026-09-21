@@ -1,4 +1,11 @@
 "use client";
+import { QueryError } from "@workspace/towbar-web-ui/query-state";
+import {
+  displayChartDate,
+  displayDateTime,
+  displayTime,
+} from "@/lib/date-time-display";
+import { useLocalizedChartTicks } from "@/hooks/use-localized-timestamps";
 
 import { memo, useMemo, useState } from "react";
 import type {
@@ -123,32 +130,46 @@ export const MetricChart = memo(function MetricChart({
       ),
     [data, lines],
   );
-  const tickFormatter = useMemo(() => {
-    const formatter = new Intl.DateTimeFormat(
-      undefined,
-      Date.parse(history.endAt) - Date.parse(history.startAt) <= 86400_000
-        ? { hour: "2-digit", minute: "2-digit" }
-        : { month: "short", day: "numeric" },
-    );
-    return (value: number) => formatter.format(value);
-  }, [history.startAt, history.endAt]);
+  const { ticks, error: dateLabelError } = useLocalizedChartTicks(
+    Date.parse(history.startAt),
+    Date.parse(history.endAt),
+  );
+  const tickFormatter =
+    Date.parse(history.endAt) - Date.parse(history.startAt) <= 86400_000
+      ? displayTime
+      : displayChartDate;
   const yTickFormatter = useMemo(
     () => (value: number) => formatMetric(value, metrics[0]!.unit),
     [metrics],
   );
-  const tooltipDateFormatter = useMemo(() => {
-    const formatter = new Intl.DateTimeFormat(undefined, {
-      dateStyle: "medium",
-      timeStyle: "long",
-    });
-    return (value: unknown) => formatter.format(Number(value));
-  }, []);
+  const tooltipDateFormatter = (value: unknown) =>
+    displayDateTime(Number(value));
   const title =
     metrics.length > 1
       ? metrics[0]!.key.startsWith("network")
         ? "Network traffic"
         : "Disk I/O"
       : metrics[0]!.label;
+  const hasMetricData = lines.some((line) =>
+    data.some((row) => typeof row[line.key] === "number"),
+  );
+  if (!hasMetricData)
+    return (
+      <Widget className="min-w-0">
+        <Widget.Header>
+          <Widget.Title
+            icon={<MonitoringMetricIcon metric={metrics[0]!.key} />}
+          >
+            {title}
+          </Widget.Title>
+        </Widget.Header>
+        <Widget.Content className="grid min-h-[220px] place-items-center text-center">
+          <p className="max-w-sm text-sm text-muted">
+            No {title.toLocaleLowerCase()} measurements in this range.
+          </p>
+        </Widget.Content>
+      </Widget>
+    );
   const summary =
     metrics.length === 1
       ? series.flatMap((row) =>
@@ -168,7 +189,9 @@ export const MetricChart = memo(function MetricChart({
         endContent={
           count > 0 ? (
             <span className="text-xs tabular-nums text-muted">
-              {series.length > 1 ? "Instance avg" : "Avg"}{" "}
+              {series.length > 1
+                ? `Average across ${series.length} instances`
+                : "Average"}{" "}
               {formatMetric(sum / count, metrics[0]!.unit)} · Peak{" "}
               {formatMetric(peak, metrics[0]!.unit)}
             </span>
@@ -180,6 +203,7 @@ export const MetricChart = memo(function MetricChart({
         </Widget.Title>
       </Widget.Header>
       <Widget.Content className="min-w-0">
+        {dateLabelError ? <QueryError message={dateLabelError} /> : null}
         <LineChart
           data-range-chart={onRangeSelect ? "" : undefined}
           className={
@@ -199,6 +223,7 @@ export const MetricChart = memo(function MetricChart({
             scale="time"
             domain={timeDomain}
             allowDataOverflow
+            ticks={ticks}
             tickFormatter={tickFormatter}
             minTickGap={45}
             tick={axisTick}
@@ -304,6 +329,11 @@ export const MetricChart = memo(function MetricChart({
               </Widget.LegendItem>
             ))}
           </Widget.Legend>
+        ) : null}
+        {metrics[0]!.unit === "percent" ? (
+          <p className="typography--body-xs mt-2 text-muted">
+            Dotted line marks the 80% attention threshold.
+          </p>
         ) : null}
       </Widget.Content>
     </Widget>

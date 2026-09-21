@@ -22,6 +22,44 @@ const healthy = {
     driftStatus: "in_sync",
   },
 };
+void test("environment filters intersect with source and health without narrowing environment choices", () => {
+  const production = { ...healthy, environment: { name: "production" } };
+  const staging = {
+    ...healthy,
+    environment: { name: "staging" },
+    runtimeState: { ...healthy.runtimeState, healthStatus: "unhealthy" },
+  };
+  const otherSource = {
+    ...healthy,
+    sourceId: "22222222-2222-4222-8222-222222222222",
+    environment: { name: "testing" },
+  };
+  const items = [production, staging, otherSource, healthy];
+  const result = filterWorkloads(
+    items,
+    workloadFilters.parse({
+      sourceId,
+      environment: "staging",
+      health: "unhealthy",
+    }),
+  );
+  assert.deepEqual(result.items, [staging]);
+  assert.deepEqual(result.environments, ["production", "staging"]);
+  assert.deepEqual(result.counts, { all: 4, attention: 1 });
+  assert.deepEqual(
+    filterWorkloads(
+      items,
+      workloadFilters.parse({
+        environment: "missing",
+      }),
+    ).items,
+    [],
+  );
+  assert.deepEqual(
+    filterWorkloads(items, workloadFilters.parse({})).environments,
+    ["production", "staging", "testing"],
+  );
+});
 void test("inventory filters intersect, preserve all/attention counts, and distinguish intentional stops", () => {
   const stopped = {
     ...healthy,
@@ -151,4 +189,31 @@ void test("inventory filter validation rejects unsupported state, malformed ids 
   assert.equal(serverFilters.safeParse({ scout: "good" }).success, false);
   assert.equal(sourceFilters.safeParse({ autoSync: "true" }).success, false);
   assert.equal(sourceFilters.safeParse({ q: "x".repeat(201) }).success, false);
+});
+
+void test("workload counts count logical entities and flag any affected instance", () => {
+  const production = {
+    ...healthy,
+    entityId: "website",
+    environment: { name: "production" },
+  };
+  const staging = {
+    ...production,
+    environment: { name: "staging" },
+    serverReady: false,
+  };
+  const otherSource = { ...staging, sourceId: "other-source" };
+  const result = filterWorkloads(
+    [production, staging, otherSource],
+    workloadFilters.parse({ environment: "staging" }),
+  );
+  assert.deepEqual(result.items, [staging, otherSource]);
+  assert.deepEqual(result.counts, { all: 2, attention: 2 });
+  assert.deepEqual(
+    filterWorkloads(
+      [staging, { ...staging, environment: { name: "testing" } }],
+      workloadFilters.parse({}),
+    ).counts,
+    { all: 1, attention: 1 },
+  );
 });

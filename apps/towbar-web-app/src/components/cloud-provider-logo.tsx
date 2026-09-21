@@ -2,7 +2,7 @@ import Image from "next/image";
 import { cn } from "@workspace/web-design-system/lib/utils";
 
 export type CloudProviderId =
-  "aws" | "gcp" | "azure" | "s3" | "gcs" | "azureBlob";
+  "aws" | "gcp" | "azure" | "cloudflare" | "s3" | "r2" | "gcs" | "azureBlob";
 
 export function normalizeCloudProvider(provider: CloudProviderId): string {
   switch (provider) {
@@ -15,6 +15,8 @@ export function normalizeCloudProvider(provider: CloudProviderId): string {
     case "azureBlob":
     case "azure":
       return "azure";
+    case "r2":
+      return "cloudflare";
     default:
       return provider;
   }

@@ -10,6 +10,12 @@ import {
 } from "./inventory-status";
 
 const deployment = (input: Partial<Deployment>): Deployment => ({
+  targetEnvironment: {
+    id: "production",
+    name: "production",
+    branch: "main",
+    mappingRevision: "revision",
+  },
   appId: "deployable-1",
   commitSha: "abcdef123456",
   createdAt: "2026-08-25T12:00:00.000Z",
