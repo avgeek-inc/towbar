@@ -36,14 +36,14 @@ allowBuilds:
 
 catalog:
   "@aws-sdk/client-s3": ^3.1134.0
-  "@aws-sdk/lib-storage": 3.1127.0
+  "@aws-sdk/lib-storage": 3.1135.0
   "@aws-sdk/client-sts": ^3.1134.0
   "@eslint/js": ^9.39.4
   "@fontsource-variable/inter": ^5.3.0
-  "@heroui/react": 3.2.5
-  "@heroui/styles": 3.2.5
+  "@heroui/react": 3.2.6
+  "@heroui/styles": 3.2.6
   "@hookform/resolvers": ^5.2.2
-  "@hugeicons/core-free-icons": 4.3.0
+  "@hugeicons/core-free-icons": 4.3.3
   "@hugeicons/react": ^1.1.10
   "@sentry/nextjs": ^10.75.0
   "@tailwindcss/postcss": ^4.2.4
@@ -69,7 +69,7 @@ catalog:
   tailwindcss: ^4.2.4
   typescript: ^5.9.3
   yaml: ^2.9.1
-  zod: ^4.5.4
+  zod: ^4.6.5
 
 packageExtensions:
   "@heroui/react@3.2.4":
