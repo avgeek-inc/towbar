@@ -4,6 +4,8 @@ set -Eeuo pipefail
 release_tag="${1:-}"
 release_commit="${2:-}"
 deploy_root="${3:-/opt/towbar}"
+runtime_env_secret_id="${4:-}"
+aws_region="${5:-}"
 
 fail() {
   echo "Towbar release deployment failed: $*" >&2
@@ -28,17 +30,18 @@ for command_name in curl docker git runuser stat; do
     fail "missing required command: $command_name"
 done
 
+if [[ -n "$runtime_env_secret_id" ]]; then
+  [[ -n "$aws_region" ]] ||
+    fail "AWS region is required when a runtime environment secret is configured"
+  command -v aws >/dev/null || fail "missing required command: aws"
+fi
+
 [[ -d "$deploy_root/.git" ]] || fail "$deploy_root is not a Git checkout"
 [[ -f "$deploy_root/docker-compose.yml" ]] ||
   fail "$deploy_root/docker-compose.yml is missing"
-[[ -f "$deploy_root/.env" ]] || fail "$deploy_root/.env is missing"
-
-env_mode="$(stat -c '%a' "$deploy_root/.env")"
-if [[ "$env_mode" != 400 && "$env_mode" != 600 ]]; then
-  fail "$deploy_root/.env must be readable only by its owner"
-fi
 
 repo_owner="$(stat -c '%U' "$deploy_root")"
+repo_group="$(stat -c '%G' "$deploy_root")"
 id "$repo_owner" >/dev/null 2>&1 || fail "repository owner does not exist"
 
 git_as_owner() {
@@ -73,6 +76,28 @@ fi
 
 previous_commit="$(git_as_owner rev-parse HEAD)"
 containers_changed=false
+runtime_env_changed=false
+runtime_env_backup=""
+pending_env=""
+
+cleanup_runtime_files() {
+  [[ -z "$pending_env" ]] || rm -f "$pending_env"
+  [[ -z "$runtime_env_backup" ]] || rm -f "$runtime_env_backup"
+}
+
+restore_runtime_environment() {
+  [[ "$runtime_env_changed" == true ]] || return 0
+  if [[ -n "$runtime_env_backup" && -f "$runtime_env_backup" ]]; then
+    install \
+      -o "$repo_owner" \
+      -g "$repo_group" \
+      -m 600 \
+      "$runtime_env_backup" \
+      "$deploy_root/.env"
+  else
+    rm -f "$deploy_root/.env"
+  fi
+}
 
 rollback() {
   local exit_code="${1:-1}"
@@ -81,11 +106,13 @@ rollback() {
 
   echo "Release deployment failed; restoring checkout $previous_commit" >&2
   git_as_owner checkout --detach --force "$previous_commit"
-  if [[ "$containers_changed" == true && "$previous_commit" != "$release_commit" ]]; then
+  restore_runtime_environment
+  if [[ "$containers_changed" == true && ("$previous_commit" != "$release_commit" || "$runtime_env_changed" == true) ]]; then
     echo "Restoring the previous Towbar Compose images" >&2
     compose_for "$previous_commit" "$previous_commit" \
       up --detach --wait --remove-orphans
   fi
+  cleanup_runtime_files
   exit "$exit_code"
 }
 deployment_fail() {
@@ -96,7 +123,36 @@ trap 'rollback $?' ERR
 trap 'rollback 130' INT
 trap 'rollback 143' TERM
 
+if [[ -n "$runtime_env_secret_id" ]]; then
+  if [[ -f "$deploy_root/.env" ]]; then
+    runtime_env_backup="$(mktemp)"
+    cp "$deploy_root/.env" "$runtime_env_backup"
+    chmod 600 "$runtime_env_backup"
+  fi
+  pending_env="$(mktemp "$deploy_root/.env.pending.XXXXXX")"
+  aws secretsmanager get-secret-value \
+    --region "$aws_region" \
+    --secret-id "$runtime_env_secret_id" \
+    --query SecretString \
+    --output text >"$pending_env"
+  [[ -s "$pending_env" ]] || deployment_fail "runtime environment secret is empty"
+
+  chown "$repo_owner:$repo_group" "$pending_env"
+  chmod 600 "$pending_env"
+  mv -f "$pending_env" "$deploy_root/.env"
+  pending_env=""
+  runtime_env_changed=true
+  echo "Updated $deploy_root/.env from the configured runtime secret"
+fi
+
+[[ -f "$deploy_root/.env" ]] || deployment_fail "$deploy_root/.env is missing"
+env_mode="$(stat -c '%a' "$deploy_root/.env")"
+if [[ "$env_mode" != 400 && "$env_mode" != 600 ]]; then
+  deployment_fail "$deploy_root/.env must be readable only by its owner"
+fi
+
 git_as_owner checkout --detach --force "$release_commit"
+compose_for "$release_commit" "$release_commit" config --quiet
 
 echo "Building Towbar $release_tag ($release_commit)"
 compose_for "$release_commit" "$release_commit" \
@@ -140,4 +196,5 @@ api_version="$(
   deployment_fail "API reports $api_version instead of $release_commit"
 
 trap - ERR INT TERM
+cleanup_runtime_files
 echo "Towbar $release_tag is healthy at $release_commit"

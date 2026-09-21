@@ -71,8 +71,8 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
-      - run: bash -n infra/deploy-release.sh
-      - run: shellcheck infra/deploy-release.sh
+      - run: bash -n infra/bootstrap-release.sh infra/deploy-release.sh
+      - run: shellcheck infra/bootstrap-release.sh infra/deploy-release.sh
       - run: shellcheck infra/postgres/*.sh infra/temporal/*.sh
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
