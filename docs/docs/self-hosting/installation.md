@@ -25,7 +25,7 @@ The installer asks only how the control plane will be reached:
 
 1. Choose whether Towbar stays on the server or is published through an existing HTTPS reverse proxy.
 2. For public HTTPS, enter the dashboard URL, API URL, and number of trusted proxy hops.
-3. Review the release, URLs, configuration path, and release path, then confirm the installation.
+3. Review where Towbar will be available, then confirm the installation.
 
 Towbar generates the database passwords, credential-encryption key, and internal signing secret. It does not ask for provider credentials during installation. Optional integrations remain disabled until their environment variables are added later.
 

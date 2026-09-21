@@ -170,25 +170,22 @@ set_env_value() {
   mv "$pending" "$env_file"
 }
 
-show_install_plan() {
-  local requested_version="$1"
+show_install_summary() {
   printf '\n'
-  ui_heading "Installation plan"
-  printf '  %-18s %s\n' "Release" "$requested_version"
-  printf '  %-18s %s\n' "Availability" \
-    "$([[ "$INSTALL_MODE" == public ]] && printf 'Public HTTPS through reverse proxy' || printf 'This server only')"
-  printf '  %-18s %s\n' "Dashboard" "$INSTALL_APP_URL"
-  printf '  %-18s %s\n' "API" "$INSTALL_API_URL"
-  printf '  %-18s %s\n' "Configuration" "$TOWBAR_ENV_FILE"
-  printf '  %-18s %s\n' "Releases" "$RELEASES_DIR"
+  ui_heading "Ready to install Towbar"
   if [[ "$INSTALL_MODE" == public ]]; then
-    ui_note "  An existing host reverse proxy must terminate TLS for these URLs."
+    printf 'Dashboard  %s\n' "$INSTALL_APP_URL"
+    printf 'API        %s\n' "$INSTALL_API_URL"
+    ui_note "Your existing HTTPS reverse proxy must route both addresses to this server."
+  else
+    printf 'Towbar will stay available only on this server.\n'
+    ui_note "Open the dashboard at $INSTALL_APP_URL after installation."
   fi
   printf '\n'
 }
 
 collect_install_settings() {
-  local requested_version="$1" access_choice
+  local access_choice
   INSTALL_MODE="${TOWBAR_INSTALL_MODE:-local}"
   INSTALL_APP_URL="${TOWBAR_INSTALL_APP_URL:-http://localhost:4021}"
   INSTALL_API_URL="${TOWBAR_INSTALL_API_URL:-http://localhost:4020}"
@@ -241,7 +238,7 @@ collect_install_settings() {
     validate_proxy_hops "$INSTALL_PROXY_HOPS"
   fi
 
-  show_install_plan "$requested_version"
+  show_install_summary
   if interactive_terminal && ! prompt_confirm "Continue with this installation?"; then
     fail "installation cancelled"
   fi
@@ -281,9 +278,7 @@ preview_installation() {
 
   printf '\n%s%sTowbar is ready%s\n' \
     "$STYLE_BOLD" "$STYLE_GREEN" "$STYLE_RESET"
-  printf '  %-18s %s\n' "Dashboard" "$INSTALL_APP_URL"
-  printf '  %-18s %s\n' "API" "$INSTALL_API_URL"
-  printf '  %-18s %s\n' "Configuration" "$TOWBAR_ENV_FILE"
+  printf 'Open the dashboard at %s\n' "$INSTALL_APP_URL"
   printf '\n'
   ui_note "A one-time setup link is printed here after a real installation."
   ui_note "The browser setup asks for your team name, name, email and password."
@@ -297,7 +292,7 @@ preview_command() {
     *) fail "usage: towbar preview [--defaults]" ;;
   esac
   ui_brand
-  collect_install_settings "latest stable v2 release"
+  collect_install_settings
   preview_installation
 }
 
@@ -875,7 +870,7 @@ install_command() {
   [[ ! -L "$CURRENT_LINK" ]] || fail "Towbar is already installed; use sudo towbar upgrade"
 
   ui_brand
-  collect_install_settings "$requested_version"
+  collect_install_settings
   ui_heading "Installing Towbar"
   ui_pending_step "Inspecting the host and installing prerequisites"
   install_prerequisites
@@ -884,9 +879,7 @@ install_command() {
 
   printf '\n%s%sTowbar is ready%s\n' \
     "$STYLE_BOLD" "$STYLE_GREEN" "$STYLE_RESET"
-  printf '  %-18s %s\n' "Dashboard" "$INSTALL_APP_URL"
-  printf '  %-18s %s\n' "API" "$INSTALL_API_URL"
-  printf '  %-18s %s\n' "Configuration" "$TOWBAR_ENV_FILE"
+  printf 'Open the dashboard at %s\n' "$INSTALL_APP_URL"
   print_setup_link
   printf '\n'
   ui_note "Next: configure optional integrations in the environment file."
