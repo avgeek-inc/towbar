@@ -60,7 +60,7 @@ const envSchema = z.object({
     .min(1)
     .max(86400)
     .default(60),
-  TOWBAR_TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).max(8).default(1),
+  TOWBAR_TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).max(8).default(0),
   TOWBAR_PASSWORD_BREACH_CHECK: z
     .enum(["true", "false"])
     .default("true")

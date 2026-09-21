@@ -39,21 +39,21 @@ Set these in the API process environment or your self-hosted `.env` file and res
 ```dotenv
 TOWBAR_API_RATE_LIMIT_MAX=60
 TOWBAR_API_RATE_LIMIT_WINDOW_SECONDS=60
-TOWBAR_TRUSTED_PROXY_HOPS=1
+TOWBAR_TRUSTED_PROXY_HOPS=0
 ```
 
 | Variable                               | Default | Allowed range     |
 | -------------------------------------- | ------- | ----------------- |
 | `TOWBAR_API_RATE_LIMIT_MAX`            | `60`    | 1–100000 requests |
 | `TOWBAR_API_RATE_LIMIT_WINDOW_SECONDS` | `60`    | 1–86400 seconds   |
-| `TOWBAR_TRUSTED_PROXY_HOPS`            | `1`     | 0–8 hops          |
+| `TOWBAR_TRUSTED_PROXY_HOPS`            | `0`     | 0–8 hops          |
 
 The fixed window starts at the first request after expiry. Each key has its own persistent limit. All API and MCP keys from the same client IP also share an address window. Changing keys or alternating interfaces does not create a new allowance. The browser control plane and GitHub webhook have their own authentication behavior and are not part of this bucket.
 
-Towbar's internal gateway accounts for the default trusted hop. The installer
-adds the host HTTPS reverse proxy for a domain installation. Change this value
-only when you change that topology, and keep the unified listener private. An
-incorrect count can group every client under the proxy IP or trust a spoofed
-address.
+The API process trusts no forwarding headers by default. The Compose template
+accounts for Towbar's internal gateway, and the installer adds the host HTTPS
+reverse proxy for a domain installation. Change this value only when you change
+that topology, and keep the unified listener private. An incorrect count can
+group every client under the proxy IP or trust a spoofed address.
 
 The counter is updated atomically in PostgreSQL. A database outage fails requests rather than bypassing the limit. REST event streams count once when connected; subsequent reconnects count as new requests.
