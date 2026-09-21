@@ -31,15 +31,14 @@ origin at build time. The website URL is an external navigation target; the Comp
 
 | Variable                  | Example                      |
 | ------------------------- | ---------------------------- |
-| `TOWBAR_API_BASE_URL`     | `https://towbar.example`     |
 | `TOWBAR_APP_BASE_URL`     | `https://towbar.example`     |
 | `TOWBAR_WEBSITE_BASE_URL` | `https://www.towbar.example` |
 
-Use the same origin for the app and API. Towbar's bundled gateway routes API
-and dashboard requests through one origin.
+`TOWBAR_APP_BASE_URL` is Towbar's single public origin. The bundled gateway
+routes dashboard, API, MCP, webhook, streaming, and terminal requests through it.
 Login is rendered by the web app and sends credentialed requests to that same origin.
 External REST, MCP, and API-key management are enabled only when
-`TOWBAR_API_BASE_URL` uses HTTPS. The default local HTTP installation supports
+`TOWBAR_APP_BASE_URL` uses HTTPS. The default local HTTP installation supports
 the on-host dashboard without exposing those automation interfaces.
 
 The local profile binds `127.0.0.1:4021`. The public profile binds ports 80 and

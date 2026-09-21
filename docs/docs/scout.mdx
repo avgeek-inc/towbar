@@ -109,7 +109,7 @@ Collection is limited to 512 Towbar-labelled containers per server, four concurr
 
 The worker installs a dedicated credential scoped to one server. It only authorizes metric ingestion and cannot call the control-plane API or MCP. Updates rotate this credential. The collector and sender use separate service accounts; only the sender reads the upload configuration. Docker access is privileged, so only enable the agent on a server you trust.
 
-The configured `TOWBAR_API_BASE_URL` must be an HTTPS URL reachable from the server. The agent validates the certificate and never follows redirects with its credential. Ensure outbound DNS and HTTPS are available. Monitoring uploads have separate limits from API/MCP traffic: 120 requests per server per minute and 600 per originating IP per minute, including buffered catch-up traffic.
+The configured `TOWBAR_APP_BASE_URL` must be an HTTPS URL reachable from the server. The agent validates the certificate and never follows redirects with its credential. Ensure outbound DNS and HTTPS are available. Monitoring uploads have separate limits from API/MCP traffic: 120 requests per server per minute and 600 per originating IP per minute, including buffered catch-up traffic.
 
 ### Update, uninstall, and remove a server
 

@@ -13,6 +13,6 @@ externalApiRoutes.use("*", requireHttpsExternalAccess);
 externalApiRoutes.use("*", externalRateLimit);
 externalApiRoutes.use("*", requireApiKey("api"));
 externalApiRoutes.get("/openapi.json", (context) =>
-  context.json(createOpenApiDocument(`${getEnv().TOWBAR_API_BASE_URL}/v1/api`)),
+  context.json(createOpenApiDocument(`${getEnv().TOWBAR_APP_BASE_URL}/v1/api`)),
 );
 externalApiRoutes.route("/", controlPlaneRoutes);

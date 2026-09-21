@@ -155,7 +155,6 @@ set_install_url() {
   if [[ "$lowercase_url" == "http://localhost:4021" ]]; then
     INSTALL_MODE=local
     INSTALL_APP_URL=http://localhost:4021
-    INSTALL_API_URL=http://localhost:4021
     INSTALL_HOSTNAME=
     INSTALL_PROXY_HOPS=1
     return
@@ -168,7 +167,6 @@ set_install_url() {
   validate_https_url "$lowercase_url" "Towbar URL"
   INSTALL_MODE=public
   INSTALL_APP_URL="$lowercase_url"
-  INSTALL_API_URL="$lowercase_url"
   INSTALL_HOSTNAME="${lowercase_url#https://}"
   INSTALL_PROXY_HOPS=1
 }
@@ -230,10 +228,9 @@ apply_install_settings() {
   set_env_value "$TOWBAR_ENV_FILE" TOWBAR_BIND_ADDRESS 127.0.0.1
   set_env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_DOMAIN "$INSTALL_HOSTNAME"
   set_env_value "$TOWBAR_ENV_FILE" TOWBAR_APP_BASE_URL "$INSTALL_APP_URL"
-  set_env_value "$TOWBAR_ENV_FILE" TOWBAR_API_BASE_URL "$INSTALL_API_URL"
   set_env_value \
     "$TOWBAR_ENV_FILE" TOWBAR_GITLAB_OAUTH_REDIRECT_URI \
-    "$INSTALL_API_URL/v1/core/gitlab/oauth/callback"
+    "$INSTALL_APP_URL/v1/core/gitlab/oauth/callback"
   set_env_value \
     "$TOWBAR_ENV_FILE" TOWBAR_TRUSTED_PROXY_HOPS "$INSTALL_PROXY_HOPS"
 }
@@ -590,21 +587,20 @@ gateway_service_for() {
 }
 
 validate_config_for() {
-  local release_dir="$1" env_file="${2:-$TOWBAR_ENV_FILE}" commit install_mode profiles domain app_url api_url bind_address port
+  local release_dir="$1" env_file="${2:-$TOWBAR_ENV_FILE}" commit install_mode profiles domain app_url bind_address port
   [[ -f "$env_file" ]] || fail "$env_file is missing"
   install_mode="$(env_value "$env_file" TOWBAR_INSTALL_MODE)"
   profiles="$(env_value "$env_file" COMPOSE_PROFILES)"
   domain="$(env_value "$env_file" TOWBAR_GATEWAY_DOMAIN)"
   app_url="$(env_value "$env_file" TOWBAR_APP_BASE_URL)"
-  api_url="$(env_value "$env_file" TOWBAR_API_BASE_URL)"
   bind_address="$(env_value "$env_file" TOWBAR_BIND_ADDRESS)"
   port="$(env_value "$env_file" TOWBAR_PORT)"
   case "${install_mode:-local}" in
     local)
       [[ "${profiles:-local}" == local ]] ||
         fail "COMPOSE_PROFILES must be local when TOWBAR_INSTALL_MODE is local"
-      [[ "$app_url" == http://localhost:4021 && "$api_url" == "$app_url" ]] ||
-        fail "a local installation must use http://localhost:4021 for the app and API"
+      [[ "$app_url" == http://localhost:4021 ]] ||
+        fail "a local installation must use http://localhost:4021"
       [[ "${bind_address:-127.0.0.1}" == 127.0.0.1 && "${port:-4021}" == 4021 ]] ||
         fail "a local installation must bind 127.0.0.1:4021"
       ;;
@@ -612,8 +608,6 @@ validate_config_for() {
       [[ "$profiles" == public ]] ||
         fail "COMPOSE_PROFILES must be public when TOWBAR_INSTALL_MODE is public"
       validate_https_url "$app_url" "TOWBAR_APP_BASE_URL"
-      [[ "$api_url" == "$app_url" ]] ||
-        fail "TOWBAR_API_BASE_URL must match TOWBAR_APP_BASE_URL"
       [[ "$domain" == "${app_url#https://}" ]] ||
         fail "TOWBAR_GATEWAY_DOMAIN must match the public Towbar URL"
       ;;

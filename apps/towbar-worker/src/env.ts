@@ -9,7 +9,10 @@ const envSchema = z.object({
     (value) => (value === "" ? undefined : value),
     z.string().min(1).optional(),
   ),
-  TOWBAR_API_BASE_URL: z.string().url().default("http://127.0.0.1:4020"),
+  TOWBAR_INTERNAL_API_BASE_URL: z
+    .string()
+    .url()
+    .default("http://127.0.0.1:4020"),
   TOWBAR_INTERNAL_HMAC_SECRET: z.string().min(32),
   TOWBAR_TRIVY_IMAGE: z
     .string()

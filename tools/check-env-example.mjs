@@ -19,7 +19,6 @@ const injectedVariables = new Set(["SOURCE_COMMIT", "TOWBAR_IMAGE_TAG"]);
 const installerVariables = ["COMPOSE_PROFILES", "TOWBAR_INSTALL_MODE"];
 const activeVariables = new Set([
   "COMPOSE_PROFILES",
-  "TOWBAR_API_BASE_URL",
   "TOWBAR_APP_BASE_URL",
   "TOWBAR_BIND_ADDRESS",
   "TOWBAR_CREDENTIALS_KEY",

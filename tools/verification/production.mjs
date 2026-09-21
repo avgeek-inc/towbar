@@ -62,7 +62,6 @@ try {
     TOWBAR_BIND_ADDRESS: "127.0.0.1",
     TOWBAR_PORT: String(towbarPort),
     TOWBAR_TEMPORAL_UI_PORT: String(temporalPort),
-    TOWBAR_API_BASE_URL: `http://127.0.0.1:${towbarPort}`,
     TOWBAR_APP_BASE_URL: `http://127.0.0.1:${towbarPort}`,
     TOWBAR_WEBSITE_BASE_URL: "https://www.towbar.dev",
     TOWBAR_POSTGRES_PASSWORD: randomBytes(32).toString("hex"),
@@ -111,7 +110,7 @@ try {
     ["tools/verification/production-smoke.mjs"],
     {
       extra: {
-        VERIFY_API_URL: run.env.TOWBAR_API_BASE_URL,
+        VERIFY_API_URL: run.env.TOWBAR_APP_BASE_URL,
         VERIFY_APP_URL: run.env.TOWBAR_APP_BASE_URL,
         VERIFY_SETUP_CODE: setupCode,
       },

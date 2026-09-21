@@ -101,7 +101,7 @@ HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
       )
     )
       return originalFetch(input, init);
-    if (integrated && url.origin === process.env.TOWBAR_API_BASE_URL)
+    if (integrated && url.origin === process.env.TOWBAR_INTERNAL_API_BASE_URL)
       return originalFetch(input, init);
     if (
       integrated &&

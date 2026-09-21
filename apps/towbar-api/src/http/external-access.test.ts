@@ -6,7 +6,6 @@ process.env.DATABASE_TOWBAR_URL =
   "postgres://towbar:test@127.0.0.1:5432/towbar";
 process.env.TOWBAR_CREDENTIALS_KEY = randomBytes(32).toString("base64");
 process.env.TOWBAR_INTERNAL_HMAC_SECRET = randomBytes(32).toString("hex");
-process.env.TOWBAR_API_BASE_URL = "http://localhost:4021";
 process.env.TOWBAR_APP_BASE_URL = "http://localhost:4021";
 
 const { createApp } = await import("../app.js");

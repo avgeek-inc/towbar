@@ -71,7 +71,7 @@ sudo towbar config validate
 sudo towbar restart
 ```
 
-For an internet-reachable installation, Towbar uses one HTTPS origin for the dashboard, REST API, MCP, webhooks, streaming responses, and terminal transport. The installer writes that origin to both `TOWBAR_APP_BASE_URL` and `TOWBAR_API_BASE_URL`. `TOWBAR_WEBSITE_BASE_URL` is an external link target; Towbar does not run the website in this repository.
+For an internet-reachable installation, Towbar uses `TOWBAR_APP_BASE_URL` as the single HTTPS origin for the dashboard, REST API, MCP, webhooks, streaming responses, and terminal transport. `TOWBAR_WEBSITE_BASE_URL` is an external link target; Towbar does not run the website in this repository.
 
 The bundled Caddy gateway binds ports 80 and 443, obtains a Let's Encrypt certificate, redirects HTTP to HTTPS, and renews the certificate automatically. Its certificate and ACME account data live in persistent Docker volumes and survive upgrades and container replacement. The installer validates Caddy's configuration, verifies the live certificate, restarts the gateway once, and confirms that HTTPS recovers with the persisted certificate.
 

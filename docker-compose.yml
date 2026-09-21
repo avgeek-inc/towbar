@@ -11,9 +11,6 @@ x-backend-environment: &backend-environment
   SOURCE_COMMIT: ${SOURCE_COMMIT:-development}
   TEMPORAL_ADDRESS: temporal:7233
   TEMPORAL_NAMESPACE: default
-  TOWBAR_API_BASE_URL: ${TOWBAR_API_BASE_URL:-http://localhost:4021}
-  TOWBAR_APP_BASE_URL: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
-  TOWBAR_WEBSITE_BASE_URL: ${TOWBAR_WEBSITE_BASE_URL:-https://www.towbar.dev}
   TOWBAR_INTERNAL_HMAC_SECRET: ${TOWBAR_INTERNAL_HMAC_SECRET:?set TOWBAR_INTERNAL_HMAC_SECRET}
 
 services:
@@ -136,7 +133,9 @@ services:
     environment:
       <<: *backend-environment
       DATABASE_TOWBAR_URL: postgres://towbar_app:${TOWBAR_DATABASE_RUNTIME_PASSWORD:?set TOWBAR_DATABASE_RUNTIME_PASSWORD}@postgres:5432/towbar
+      TOWBAR_APP_BASE_URL: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
       TOWBAR_CREDENTIALS_KEY: ${TOWBAR_CREDENTIALS_KEY:?set TOWBAR_CREDENTIALS_KEY}
+      TOWBAR_WEBSITE_BASE_URL: ${TOWBAR_WEBSITE_BASE_URL:-https://www.towbar.dev}
       TOWBAR_PASSWORD_BREACH_CHECK: ${TOWBAR_PASSWORD_BREACH_CHECK:-true}
       TOWBAR_PASSWORD_VERIFY_CONCURRENCY: ${TOWBAR_PASSWORD_VERIFY_CONCURRENCY:-2}
       TOWBAR_PASSWORD_VERIFY_QUEUE_LIMIT: ${TOWBAR_PASSWORD_VERIFY_QUEUE_LIMIT:-16}
@@ -246,7 +245,7 @@ services:
         condition: service_completed_successfully
     environment:
       <<: *backend-environment
-      TOWBAR_API_BASE_URL: http://api:4023
+      TOWBAR_INTERNAL_API_BASE_URL: http://api:4023
       TOWBAR_APP_ID: ${TOWBAR_APP_ID:-}
       TOWBAR_TRIVY_IMAGE: ${TOWBAR_TRIVY_IMAGE:-aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969}
       TOWBAR_WORKER_MAX_CONCURRENT_ACTIVITIES: ${TOWBAR_WORKER_MAX_CONCURRENT_ACTIVITIES:-4}
@@ -259,7 +258,7 @@ services:
       context: .
       dockerfile: apps/towbar-web-app/Dockerfile
       args:
-        NEXT_PUBLIC_TOWBAR_API_BASE_URL: ${TOWBAR_API_BASE_URL:-http://localhost:4021}
+        NEXT_PUBLIC_TOWBAR_APP_BASE_URL: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
         NEXT_PUBLIC_TOWBAR_WEBSITE_BASE_URL: ${TOWBAR_WEBSITE_BASE_URL:-https://www.towbar.dev}
         NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
         NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${NEXT_PUBLIC_SENTRY_ENVIRONMENT:-production}

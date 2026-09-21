@@ -39,8 +39,8 @@ apiKeyRoutes.get(
     const env = getEnv();
     return c.json({
       keys: await listApiKeys(sessionUser(c)),
-      apiUrl: `${env.TOWBAR_API_BASE_URL}/v1/api`,
-      mcpUrl: `${env.TOWBAR_API_BASE_URL}/v1/mcp`,
+      apiUrl: `${env.TOWBAR_APP_BASE_URL}/v1/api`,
+      mcpUrl: `${env.TOWBAR_APP_BASE_URL}/v1/mcp`,
       rateLimit: {
         requests: env.TOWBAR_API_RATE_LIMIT_MAX,
         windowSeconds: env.TOWBAR_API_RATE_LIMIT_WINDOW_SECONDS,
