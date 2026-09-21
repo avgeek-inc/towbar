@@ -100,7 +100,7 @@ jobs:
       # v6.2.3
       - name: Configure AWS credentials
         if: env.DEPLOY_TRANSPORT == 'aws-ssm'
-        uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd
         with:
           aws-region: ${{ vars.TOWBAR_DEPLOY_AWS_REGION }}
           role-session-name: towbar-release-${{ github.run_id }}
