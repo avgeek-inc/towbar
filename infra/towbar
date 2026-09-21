@@ -98,8 +98,8 @@ prompt_choice() {
   fi
 
   printf '%s%s%s\n' "$STYLE_BOLD" "$prompt" "$STYLE_RESET" >&2
-  printf '  %s1%s  %s\n' "$STYLE_YELLOW" "$STYLE_RESET" "$first" >&2
-  printf '   2  %s\n' "$second" >&2
+  printf '  1  %s\n' "$first" >&2
+  printf '  2  %s\n' "$second" >&2
   printf '%sChoose 1 or 2 [1]: %s' "$STYLE_MUTED" "$STYLE_RESET" >&2
   read -r answer
   case "$answer" in
@@ -175,8 +175,8 @@ show_install_plan() {
   printf '\n'
   ui_heading "Installation plan"
   printf '  %-18s %s\n' "Release" "$requested_version"
-  printf '  %-18s %s\n' "Access" \
-    "$([[ "$INSTALL_MODE" == public ]] && printf 'Public HTTPS' || printf 'Local or private')"
+  printf '  %-18s %s\n' "Availability" \
+    "$([[ "$INSTALL_MODE" == public ]] && printf 'Public HTTPS through reverse proxy' || printf 'This server only')"
   printf '  %-18s %s\n' "Dashboard" "$INSTALL_APP_URL"
   printf '  %-18s %s\n' "API" "$INSTALL_API_URL"
   printf '  %-18s %s\n' "Configuration" "$TOWBAR_ENV_FILE"
@@ -200,16 +200,16 @@ collect_install_settings() {
   esac
 
   if interactive_terminal; then
-    ui_heading "How will you open Towbar?"
-    ui_note "The safe default binds the dashboard and API to this host."
+    ui_heading "Where will Towbar be available?"
+    ui_note "Keep it private, or publish it through an existing HTTPS reverse proxy."
     printf '\n'
     access_choice="$(
       prompt_choice \
-        "Choose an access model" \
-        "Local or private access (recommended)" \
-        "Public HTTPS behind a host reverse proxy"
+        "Choose where Towbar will be available" \
+        "Only on this server (recommended)" \
+        "On the internet through an HTTPS reverse proxy"
     )"
-    if [[ "$access_choice" == "Public HTTPS behind a host reverse proxy" ]]; then
+    if [[ "$access_choice" == "On the internet through an HTTPS reverse proxy" ]]; then
       INSTALL_MODE=public
       INSTALL_APP_URL="$(
         prompt_input "Dashboard URL" \

@@ -23,7 +23,7 @@ The preview uses a compact built-in terminal interface. If [Gum](https://github.
 
 The installer asks only how the control plane will be reached:
 
-1. Choose local or private access, or public HTTPS behind an existing host reverse proxy.
+1. Choose whether Towbar stays on the server or is published through an existing HTTPS reverse proxy.
 2. For public HTTPS, enter the dashboard URL, API URL, and number of trusted proxy hops.
 3. Review the release, URLs, configuration path, and release path, then confirm the installation.
 
