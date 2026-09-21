@@ -63,7 +63,6 @@ try {
     TOWBAR_PORT: String(towbarPort),
     TOWBAR_TEMPORAL_UI_PORT: String(temporalPort),
     TOWBAR_APP_BASE_URL: `http://127.0.0.1:${towbarPort}`,
-    TOWBAR_WEBSITE_BASE_URL: "https://www.towbar.dev",
     TOWBAR_POSTGRES_PASSWORD: randomBytes(32).toString("hex"),
     TOWBAR_DATABASE_RUNTIME_PASSWORD: randomBytes(32).toString("hex"),
     TOWBAR_INTERNAL_HMAC_SECRET: randomBytes(32).toString("hex"),

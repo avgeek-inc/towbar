@@ -136,8 +136,7 @@ jobs:
       - run: pnpm build
         env:
           SENTRY_ALLOW_MISSING: "true"
-          NEXT_PUBLIC_TOWBAR_API_BASE_URL: http://localhost:4021
-          NEXT_PUBLIC_TOWBAR_WEBSITE_BASE_URL: https://www.towbar.dev
+          NEXT_PUBLIC_TOWBAR_APP_BASE_URL: http://localhost:4021
 
   compose:
     runs-on: ubuntu-latest

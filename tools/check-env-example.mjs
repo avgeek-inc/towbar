@@ -31,7 +31,6 @@ const activeVariables = new Set([
   "TOWBAR_POSTGRES_PASSWORD",
   "TOWBAR_TEMPORAL_UI_PORT",
   "TOWBAR_TRUSTED_PROXY_HOPS",
-  "TOWBAR_WEBSITE_BASE_URL",
 ]);
 
 const composeVariables = [...compose.matchAll(/\$\{([A-Z][A-Z0-9_]*)/gu)].map(

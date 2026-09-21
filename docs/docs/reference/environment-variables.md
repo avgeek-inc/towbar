@@ -27,12 +27,11 @@ length.
 ## Public origins
 
 Set the Towbar origin before building images. Browser bundles embed the API
-origin at build time. The website URL is an external navigation target; the Compose stack does not host the Mintlify website.
+origin at build time.
 
-| Variable                  | Example                      |
-| ------------------------- | ---------------------------- |
-| `TOWBAR_APP_BASE_URL`     | `https://towbar.example`     |
-| `TOWBAR_WEBSITE_BASE_URL` | `https://www.towbar.example` |
+| Variable              | Example                  |
+| --------------------- | ------------------------ |
+| `TOWBAR_APP_BASE_URL` | `https://towbar.example` |
 
 `TOWBAR_APP_BASE_URL` is Towbar's single public origin. The bundled gateway
 routes dashboard, API, MCP, webhook, streaming, and terminal requests through it.
