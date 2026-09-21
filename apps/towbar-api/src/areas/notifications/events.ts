@@ -17,11 +17,6 @@ import {
 } from "./backup-notifications.js";
 import { emitNotificationEvent, notificationEventPayload } from "./service.js";
 
-import type {
-  NotificationEventPayload,
-  NotificationEventType,
-} from "@workspace/towbar-core";
-
 export async function emitDeploymentNotification(
   deploymentId: string,
   type:
@@ -189,7 +184,7 @@ export async function emitResourceOperationNotification(
   });
 }
 
-export async function emitRuntimeHealthNotification(input: {
+async function emitRuntimeHealthNotification(input: {
   checkId: string;
   entityId: string;
   entityKind: "resource" | "server";
@@ -421,9 +416,3 @@ export async function emitBackupAssuranceNotification(input: {
 function capitalize(value: string) {
   return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
 }
-
-export type EmitNotification = (
-  dedupeKey: string,
-  payload: NotificationEventPayload,
-  type: NotificationEventType,
-) => Promise<void>;

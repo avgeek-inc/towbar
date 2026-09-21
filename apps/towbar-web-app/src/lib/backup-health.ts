@@ -7,10 +7,9 @@ import type {
 type BackupOperation = Pick<ResourceOperation, "errorMessage" | "state">;
 type RetainedBackup = Pick<SourceBackup, "id">;
 
-export type BackupHealthTone =
-  "destructive" | "secondary" | "success" | "warning";
+type BackupHealthTone = "destructive" | "secondary" | "success" | "warning";
 
-export type BackupHealthStage = {
+type BackupHealthStage = {
   description: string;
   label: string;
   status: string;

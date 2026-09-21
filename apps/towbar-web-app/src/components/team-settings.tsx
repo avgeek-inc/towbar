@@ -78,7 +78,7 @@ type Dialog = {
   member?: Member;
   instance: number;
 };
-export function RoleSelect({
+function RoleSelect({
   value,
   onChange,
 }: {

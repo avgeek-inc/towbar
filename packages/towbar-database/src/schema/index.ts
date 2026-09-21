@@ -27,7 +27,6 @@ import { deploymentEnvironments } from "@workspace/towbar-core/preview";
 import type {
   DeferredAutomaticDeployment,
   NotificationCategory,
-  NotificationDestinationInput,
   NotificationEventPayload,
   NotificationEventType,
   PersistedResourceOperationRequest,
@@ -40,7 +39,6 @@ import type {
   NormalizedServer,
   RequiredSecrets,
   BackupAssuranceCheck,
-  BackupAssuranceStatus,
   RestoreOperationPhase,
   ServerPreparationStep,
   VulnerabilitySeverityTotals,

@@ -2,7 +2,7 @@ import { CloudIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { cn } from "@workspace/web-design-system/lib/utils";
 
-export const environmentIcon = CloudIcon;
+const environmentIcon = CloudIcon;
 
 export function EnvironmentIcon({
   className,

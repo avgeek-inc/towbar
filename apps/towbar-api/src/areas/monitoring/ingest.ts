@@ -18,7 +18,7 @@ import { HttpError, badRequest, unauthorized } from "../../http/errors.js";
 export function hashAgentToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
-export function matchesAgentToken(token: string, hash: string | null) {
+function matchesAgentToken(token: string, hash: string | null) {
   return Boolean(
     hash &&
     /^[a-f0-9]{64}$/u.test(hash) &&
@@ -43,7 +43,7 @@ export async function authenticateAgent(serverId: string, token: string) {
     throw unauthorized("Invalid monitoring credential");
   return agent.agent.generation;
 }
-export function validateSampleTime(collectedAt: string, now: Date) {
+function validateSampleTime(collectedAt: string, now: Date) {
   const age = now.getTime() - new Date(collectedAt).getTime();
   if (!Number.isFinite(age) || age < -120_000 || age > 2 * 3600_000)
     throw badRequest(

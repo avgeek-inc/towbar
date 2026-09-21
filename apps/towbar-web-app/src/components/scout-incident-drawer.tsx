@@ -34,7 +34,7 @@ export type IncidentDetails = {
     aggregation: "maximum" | "minimum";
   };
 };
-export const incidentTime = displayDateTime;
+const incidentTime = displayDateTime;
 
 export function ScoutIncidentDrawer({
   serverId,

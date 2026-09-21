@@ -21,7 +21,6 @@ import {
 } from "./identity.js";
 import { enqueueIdentityEmail } from "../team/email-outbox.js";
 
-export const sessionLifetimeSeconds = 7 * 24 * 60 * 60;
 export async function getInitialSetupStatus() {
   const [setup] = await getTowbarDatabase()
     .select({ completedAt: installationSetup.completedAt })

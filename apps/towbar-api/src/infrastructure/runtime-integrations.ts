@@ -16,7 +16,6 @@ import {
   gitlabConnectionConfigurationSchema,
   infisicalConnectionConfigurationSchema,
   infisicalConnectionCredentialsSchema,
-  integrationProviderSchema,
   otlpConnectionConfigurationSchema,
   otlpConnectionCredentialsSchema,
   registryConnectionConfigurationSchema,
@@ -84,15 +83,6 @@ export function getRuntimeIntegration(provider: IntegrationProvider) {
   return getRuntimeIntegrations().providers[provider] ?? null;
 }
 
-export function requireRuntimeIntegration(provider: IntegrationProvider) {
-  const connection = getRuntimeIntegration(provider);
-  if (!connection)
-    throw new Error(
-      `The ${provider} integration is not enabled in the Towbar environment`,
-    );
-  return connection;
-}
-
 export function getGitHubRuntimeConfiguration() {
   return getRuntimeIntegrations().github ?? null;
 }
@@ -106,7 +96,7 @@ export function requireGitHubRuntimeConfiguration() {
   return configuration;
 }
 
-export function getGitLabRuntimeConfiguration() {
+function getGitLabRuntimeConfiguration() {
   return getRuntimeIntegrations().gitlab ?? null;
 }
 
@@ -435,8 +425,4 @@ function jsonRecord(environment: Environment, name: string) {
       cause: error,
     });
   }
-}
-
-export function integrationProviderFromEnvironmentName(name: string) {
-  return integrationProviderSchema.parse(name);
 }

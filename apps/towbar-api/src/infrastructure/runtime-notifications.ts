@@ -17,7 +17,7 @@ type RuntimeNotificationProviderConfiguration =
   | (Required<TelegramConnectionInput> & { provider: "telegram" })
   | { provider: "discord" | "webhook" };
 
-export type RuntimeNotificationRoute = NotificationDestinationInput & {
+type RuntimeNotificationRoute = NotificationDestinationInput & {
   id: string;
 };
 

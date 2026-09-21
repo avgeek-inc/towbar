@@ -61,7 +61,7 @@ const providerNames = {
   alibaba: "Alibaba Cloud",
 } as const;
 
-export function ServerInstanceDescription({
+function ServerInstanceDescription({
   instance,
 }: {
   instance: NonNullable<NonNullable<Server["hardware"]>["instance"]>;

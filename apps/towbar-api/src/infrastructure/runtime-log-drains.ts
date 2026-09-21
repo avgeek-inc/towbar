@@ -46,9 +46,3 @@ export function getRuntimeLogDrains(
   if (environment === process.env) cached = result;
   return result;
 }
-
-export function getRuntimeLogDrain(provider: LogDrainProvider) {
-  return (
-    getRuntimeLogDrains().find((item) => item.provider === provider) ?? null
-  );
-}

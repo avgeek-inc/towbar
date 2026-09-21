@@ -168,11 +168,6 @@ export async function preflightBuildServer(
   await preflight(session, false, signal, "build");
 }
 
-export async function startAndVerifyCandidate(input: DeploymentPhaseInput) {
-  const result = await startAndVerifyCandidates(input);
-  return result.candidatePorts[0] ?? 0;
-}
-
 export async function startAndVerifyCandidates(input: DeploymentPhaseInput) {
   const resource = isNormalizedResource(input.context.app)
     ? input.context.app

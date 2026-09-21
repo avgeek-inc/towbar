@@ -353,27 +353,6 @@ export async function closeTemporalClient() {
   if (pending) await (await pending).connection.close();
 }
 
-export async function stopWorkflowsForRestore() {
-  const client = await getTemporalClient();
-  for await (const workflow of client.workflow.list({
-    query: "ExecutionStatus = 'Running'",
-  })) {
-    if (
-      workflow.taskQueue !== towbarTaskQueue ||
-      !workflow.workflowId.startsWith("towbar-")
-    )
-      continue;
-    try {
-      await client.workflow
-        .getHandle(workflow.workflowId, workflow.runId)
-        .terminate("Towbar control-plane database restore");
-    } catch (error) {
-      if (!(error instanceof Error) || error.name !== "WorkflowNotFoundError")
-        throw error;
-    }
-  }
-}
-
 async function getTemporalClient() {
   clientPromise ??= createTemporalClient().catch((error: unknown) => {
     clientPromise = undefined;

@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { requiredTestCounts } from "./test-output.mjs";
 
-export const repository = fileURLToPath(new URL("../../", import.meta.url));
+const repository = fileURLToPath(new URL("../../", import.meta.url));
 const execute = promisify(execFile);
 
 export function testEnvironment(source = process.env) {

@@ -50,11 +50,7 @@ const otlpFormat = `
   }]}]
 }]}`;
 
-function buildSink(
-  credential: LogDrainCredential,
-  serverId: string,
-  gateway?: string,
-) {
+function buildSink(credential: LogDrainCredential, gateway?: string) {
   const inputs = [`format_${credential.provider}`];
   const buffer = {
     type: "disk",
@@ -202,7 +198,7 @@ export function buildLogDrainConfiguration(
       drop_on_error: true,
       source: `metadata = ${JSON.stringify(metadata)}\nname = string!(.container_name)\ncontext = object!(get!(metadata, [name]))\n. = merge({"message": .message, "timestamp": .timestamp, "container_name": .container_name, "stream": .stream}, context)\n${extra}`,
     };
-    sinks[provider] = buildSink(credential, serverId, options.gateway);
+    sinks[provider] = buildSink(credential, options.gateway);
   }
   if (!names.size) return null;
   return {

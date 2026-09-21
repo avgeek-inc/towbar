@@ -1,4 +1,4 @@
-export type GitHubPermissionLevel = "none" | "read" | "write";
+type GitHubPermissionLevel = "none" | "read" | "write";
 
 export type GitHubPermissionReadiness = {
   contents: GitHubPermissionLevel;

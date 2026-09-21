@@ -63,7 +63,7 @@ export function auditAttribution() {
       }
     : {};
 }
-export async function resolveQueuedActor(
+async function resolveQueuedActor(
   reference: QueuedActor | null | undefined,
 ): Promise<AccessActor> {
   if (

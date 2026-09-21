@@ -92,7 +92,7 @@ export const workloadPath = (args: {
   kind: "app" | "resource";
   workloadId: string;
 }) => ({ [`${args.kind}Id`]: args.workloadId });
-export function bodyShape(method: string, route: string) {
+function bodyShape(method: string, route: string) {
   const body = operations.find(
     (op) => op.method === method && op.path === route,
   )?.body;

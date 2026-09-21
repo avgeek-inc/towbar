@@ -353,7 +353,7 @@ export async function recoverMonitoringOperations(now = new Date()) {
   return queued.length;
 }
 
-export async function finishPendingServerRemovals() {
+async function finishPendingServerRemovals() {
   const db = getTowbarDatabase();
   const pending = await db
     .select({

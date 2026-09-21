@@ -65,9 +65,9 @@ export type PrivateKeyCollection = {
   privateKeys: StoredPrivateKey[];
 };
 
-export type PrivateKeyMode = "ed25519" | "rsa" | "manual";
+type PrivateKeyMode = "ed25519" | "rsa" | "manual";
 
-export const privateKeysEndpoint = "/v1/core/settings/private-keys";
+const privateKeysEndpoint = "/v1/core/settings/private-keys";
 const addPrivateKeyOption = "__add_private_key__";
 
 function privateKeyType(privateKey: StoredPrivateKey) {
@@ -105,7 +105,7 @@ function PublicKeyLabel({ htmlFor }: { htmlFor?: string }) {
   );
 }
 
-export function PrivateKeyModal({
+function PrivateKeyModal({
   edit,
   isOpen,
   onCreated,

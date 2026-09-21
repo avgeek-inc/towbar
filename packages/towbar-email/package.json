@@ -19,7 +19,6 @@
     "react-email": "6.9.5"
   },
   "devDependencies": {
-    "@react-email/ui": "6.9.5",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@workspace/typescript-config": "workspace:*",

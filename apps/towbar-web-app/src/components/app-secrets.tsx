@@ -76,7 +76,7 @@ function secretEnvironmentIconClassName(name: string | undefined) {
   return name === "production" ? "text-danger" : "text-foreground";
 }
 
-export const stageLabels: Record<AppSecretStage, string> = {
+const stageLabels: Record<AppSecretStage, string> = {
   build: "Build",
   deployment: "Runtime",
   pre_deploy: "Pre-deploy",
