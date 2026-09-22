@@ -244,7 +244,14 @@ export function createTeamAccessFixture(
       method = request.method ?? "GET";
     try {
       if (path === "/v1/public/auth/setup-status")
-        return send(response, { setupRequired });
+        return send(response, {
+          setupRequired,
+          options: {
+            dateFormats: dateFormatOptions,
+            timeFormats: timeFormatOptions,
+            timeZones: availableTimeZones(),
+          },
+        });
       if (path === "/v1/public/auth/state") {
         const user = getUser();
         return send(response, {

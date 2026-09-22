@@ -101,6 +101,16 @@ export const auditEventCatalog = {
     metadata: [],
   },
   "email.changed": { icon: "email", label: "Email changed", metadata: [] },
+  "account.signed-up": {
+    icon: "account",
+    label: "Account signed up",
+    metadata: [],
+  },
+  "account.signed-in": {
+    icon: "account",
+    label: "Account signed in",
+    metadata: [],
+  },
   "account.operator-recovery": {
     icon: "account",
     label: "Account recovered by operator",

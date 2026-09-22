@@ -124,10 +124,10 @@ export function ServerEditor({
               </FieldLabel>
               <Input
                 id="server-ssh-username"
-                defaultValue={server?.config.ssh.username ?? "deploy"}
+                defaultValue={server?.config.ssh.username ?? "ubuntu"}
                 disabled={!canManage}
                 name="sshUsername"
-                placeholder="deploy"
+                placeholder="ubuntu"
                 required
                 variant="secondary"
               />

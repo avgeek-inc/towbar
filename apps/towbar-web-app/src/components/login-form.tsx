@@ -21,23 +21,32 @@ import { PasswordInput } from "@workspace/web-design-system/forms/password-input
 
 import Link from "next/link";
 import { SecondFactorChallenge } from "./second-factor-challenge";
+import {
+  browserDateTimePreferences,
+  DateTimePreferenceFields,
+  type DateTimePreferenceOptions,
+} from "./date-time-preference-fields";
 import type { SecondFactorMethod } from "@/lib/second-factor";
-import { AuthFrame } from "@/components/auth-frame";
+import { AuthFrame, authTextActionClassName } from "@/components/auth-frame";
 import { api } from "@/lib/api";
 import { safeNextPath } from "@/lib/safe-next-path";
+
+type SetupStatus =
+  | { setupRequired: false }
+  | { setupRequired: true; options: DateTimePreferenceOptions };
 
 export function LoginForm() {
   const params = useSearchParams();
   const next = safeNextPath(params.get("next"));
-  const [setupRequired, setSetupRequired] = useState<boolean>();
+  const [setup, setSetup] = useState<SetupStatus>();
   const [twoFactor, setTwoFactor] = useState<SecondFactorMethod[] | null>(null);
   const [statusError, setStatusError] = useState<string>();
 
   useEffect(() => {
     let active = true;
     api
-      .get<{ setupRequired: boolean }>("/v1/public/auth/setup-status")
-      .then((result) => active && setSetupRequired(result.setupRequired))
+      .get<SetupStatus>("/v1/public/auth/setup-status")
+      .then((result) => active && setSetup(result))
       .catch((error: unknown) => {
         if (!active) return;
         setStatusError(
@@ -66,7 +75,7 @@ export function LoginForm() {
       </AuthFrame>
     );
   }
-  if (setupRequired === undefined) {
+  if (setup === undefined) {
     return (
       <Skeleton
         aria-label="Loading Towbar"
@@ -74,7 +83,7 @@ export function LoginForm() {
       />
     );
   }
-  if (setupRequired) return <InitialTeamSetup />;
+  if (setup.setupRequired) return <InitialTeamSetup options={setup.options} />;
 
   if (twoFactor)
     return <SecondFactorChallenge methods={twoFactor} next={next} />;
@@ -95,10 +104,7 @@ export function LoginForm() {
         identifierLabel="Email"
         identifierType="email"
         passwordAction={
-          <Link
-            className="text-sm underline underline-offset-4"
-            href="/forgot-password"
-          >
+          <Link className={authTextActionClassName} href="/forgot-password">
             Forgot password?
           </Link>
         }
@@ -125,7 +131,7 @@ export function LoginForm() {
   );
 }
 
-function InitialTeamSetup() {
+function InitialTeamSetup({ options }: { options: DateTimePreferenceOptions }) {
   const teamId = useId();
   const nameId = useId();
   const emailId = useId();
@@ -134,6 +140,9 @@ function InitialTeamSetup() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submissionError, setSubmissionError] = useState<string>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dateTimePreferences, setDateTimePreferences] = useState(() =>
+    browserDateTimePreferences(options),
+  );
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -164,6 +173,7 @@ function InitialTeamSetup() {
     try {
       await api.post("/v1/public/auth/setup", {
         confirmPassword,
+        dateTimePreferences,
         teamName,
         displayName,
         email,
@@ -260,6 +270,20 @@ function InitialTeamSetup() {
               <FieldError>{errors.confirmPassword}</FieldError>
             ) : null}
           </Field>
+          <div className="content-grid">
+            <div className="grid gap-1">
+              <h2 className="text-sm font-medium">Date and time</h2>
+              <FieldDescription>
+                Choose how dates and times appear throughout Towbar.
+              </FieldDescription>
+            </div>
+            <DateTimePreferenceFields
+              disabled={isSubmitting}
+              onChange={setDateTimePreferences}
+              options={options}
+              preferences={dateTimePreferences}
+            />
+          </div>
         </FieldGroup>
         {submissionError ? (
           <Alert status="danger">

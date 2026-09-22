@@ -8,6 +8,9 @@ import { TowbarLockup } from "@workspace/towbar-web-ui/brand";
 
 import type { ReactNode } from "react";
 
+export const authTextActionClassName =
+  "text-sm/5 text-muted underline underline-offset-4 transition-colors hover:text-foreground";
+
 export function AuthFrame({
   children,
   description,

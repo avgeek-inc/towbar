@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import type { TestContext } from "node:test";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import * as schema from "@workspace/towbar-database/schema";
 import { getEnv } from "../../env.js";
 import type { AuthDatabase } from "../../infrastructure/database.js";
@@ -34,6 +34,22 @@ export async function assertAuthenticationSecurity({
   ) => Response | Promise<Response>;
   headersFor: (response: Response) => Headers;
 }) {
+  const accountAudit = await database
+    .select({ action: schema.auditEvents.action })
+    .from(schema.auditEvents)
+    .where(
+      and(
+        eq(schema.auditEvents.actorUserId, admin.id),
+        inArray(schema.auditEvents.action, [
+          "account.signed-up",
+          "account.signed-in",
+        ]),
+      ),
+    );
+  assert.deepEqual(
+    new Set(accountAudit.map((event) => event.action)),
+    new Set(["account.signed-up", "account.signed-in"]),
+  );
   await t.test(
     "MFA enrollment, challenges, one-use recovery, and recent authentication",
     async () => {
@@ -62,6 +78,19 @@ export async function assertAuthenticationSecurity({
         (await auth.findSession(adminHeaders))!.user.twoFactorEnabled,
         true,
       );
+      const successfulSignIns = async () =>
+        (
+          await database
+            .select({ id: schema.auditEvents.id })
+            .from(schema.auditEvents)
+            .where(
+              and(
+                eq(schema.auditEvents.action, "account.signed-in"),
+                eq(schema.auditEvents.actorUserId, admin.id),
+              ),
+            )
+        ).length;
+      const signInsBeforeChallenge = await successfulSignIns();
       const login = await request(
         "/v1/public/auth/login-email",
         new Headers({ origin }),
@@ -78,6 +107,7 @@ export async function assertAuthenticationSecurity({
         ["totp"],
       );
       assert.equal(await auth.findSession(headersFor(login)), null);
+      assert.equal(await successfulSignIns(), signInsBeforeChallenge);
       const challenge = headersFor(login);
       const recovery = await request(
         "/v1/public/auth/identity/two-factor/verify-backup-code",
@@ -89,6 +119,7 @@ export async function assertAuthenticationSecurity({
         (await auth.findSession(headersFor(recovery)))!.user.id,
         admin.id,
       );
+      assert.equal(await successfulSignIns(), signInsBeforeChallenge + 1);
       const nextLogin = await request(
         "/v1/public/auth/login-email",
         new Headers({ origin }),
