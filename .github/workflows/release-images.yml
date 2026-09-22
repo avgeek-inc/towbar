@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Stable release tag, for example v2.0.3
+        description: Stable release tag, for example v2.0.4
         required: true
         type: string
 
@@ -221,7 +221,7 @@ jobs:
             --max-time 10 \
             http://localhost:4021/health >"$evidence/health.json"
           sudo towbar version | tee "$evidence/version.log"
-          grep --fixed-strings "Towbar ${RELEASE_TAG#v}" "$evidence/version.log"
+          grep --fixed-strings "Towbar $RELEASE_TAG" "$evidence/version.log"
           sudo towbar status | tee "$evidence/status.log"
           sudo towbar doctor | tee "$evidence/doctor.log"
 
