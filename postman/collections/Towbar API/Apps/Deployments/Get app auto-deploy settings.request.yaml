@@ -1,0 +1,14 @@
+$kind: http-request
+id: f313bc8f-e387-5516-89aa-3e67a7faf915
+description:
+  "Required permissions: workload.read. Personal keys are capped by the current member
+  role; team keys use explicit grants."
+url: "{{baseUrl}}/apps/:appId/auto-deploy-control"
+method: GET
+headers:
+  Accept: application/json
+pathVariables:
+  - key: appId
+    value: "{{appId}}"
+    description: Required.
+order: 1000

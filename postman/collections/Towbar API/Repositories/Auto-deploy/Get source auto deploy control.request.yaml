@@ -1,0 +1,14 @@
+$kind: http-request
+id: 1fd4ca62-74ef-57a2-906a-b1ebba996d71
+description:
+  "Required permissions: repository.read. Personal keys are capped by the current member
+  role; team keys use explicit grants."
+url: "{{baseUrl}}/sources/:sourceId/auto-deploy-control"
+method: GET
+headers:
+  Accept: application/json
+pathVariables:
+  - key: sourceId
+    value: "{{sourceId}}"
+    description: Required.
+order: 1000

@@ -129,7 +129,7 @@ export const documentationTopics = {
     "Pause or enable automatic work for this environment. Syncing configuration and deploying are separate actions.",
   ),
   manifest: guide(
-    "reference/deployment-manifest",
+    "deployment-manifest",
     "Git stores workload configuration. The dashboard shows the last successfully synced manifest for this environment.",
   ),
   github: guide(
@@ -141,19 +141,19 @@ export const documentationTopics = {
     "Configure the GitLab OAuth application in the Towbar environment, then authorize the account Towbar should use.",
   ),
   registry: guide(
-    "reference/environment-variables#registries-storage-secrets-platform-and-telemetry",
+    "integrations/oci-registry",
     "Configure one OCI registry in the Towbar environment for private images and build transfers.",
   ),
   externalSecrets: guide(
-    "secrets#external-secret-providers",
+    "integrations/external-secrets",
     "Reference secrets from an environment-configured Infisical or Doppler provider without storing their values in manifests.",
   ),
   cloudflare: guide(
-    "domains-tls#cloudflare-tls",
+    "integrations/platform-services#cloudflare",
     "Configure Cloudflare in the Towbar environment for DNS operations, tunnel ingress, and Cloudflare TLS.",
   ),
   otlp: guide(
-    "observability-routing#opentelemetry",
+    "integrations/platform-services#opentelemetry",
     "Export workload telemetry through the OpenTelemetry integration configured in the Towbar environment.",
   ),
   aws: guide(
@@ -167,6 +167,10 @@ export const documentationTopics = {
   azure: guide(
     "integrations/azure",
     "Enable Azure Blob Storage in the Towbar environment for backup and restore files.",
+  ),
+  s3Compatible: guide(
+    "integrations/s3-compatible",
+    "Configure S3-compatible storage or Cloudflare R2 in the Towbar environment for backups and restores.",
   ),
   notifications: guide(
     "integrations/notifications",
@@ -262,9 +266,9 @@ const integrationDocumentationTopics: Record<string, Topic> = {
   newrelic: "logDrains",
   otlp: "logDrains",
   "otlp-platform": "otlp",
-  r2: "backups",
+  r2: "s3Compatible",
   registry: "registry",
-  s3: "backups",
+  s3: "s3Compatible",
   slack: "slack",
   telegram: "telegram",
   webhook: "webhook",
@@ -462,7 +466,7 @@ export const widgetDocumentation: Record<string, HeadingDocumentation> = {
     "The container image, resource type, and source configuration selected for this resource.",
   ),
   "container configuration": guide(
-    "reference/deployment-manifest#field-reference",
+    "deployment-manifest#field-reference",
     "Ports, network, CPU, memory, and storage settings declared for the container.",
   ),
   "deployment configuration": guide(

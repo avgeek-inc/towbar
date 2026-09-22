@@ -1,0 +1,14 @@
+$kind: http-request
+id: 9bf3500f-ed79-5327-abc9-760af54e4ad9
+description:
+  "Required permissions: resource.read. Personal keys are capped by the current member
+  role; team keys use explicit grants."
+url: "{{baseUrl}}/resources/:resourceId/releases"
+method: GET
+headers:
+  Accept: application/json
+pathVariables:
+  - key: resourceId
+    value: "{{resourceId}}"
+    description: Required.
+order: 4000

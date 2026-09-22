@@ -1,0 +1,24 @@
+$kind: http-request
+id: 7e2f4013-b900-5271-acfa-b4227681ab45
+description:
+  "Required permissions: resource.restore. Personal keys are capped by the current member
+  role; team keys use explicit grants."
+url: "{{baseUrl}}/resources/:resourceId/actions/restore"
+method: POST
+headers:
+  Accept: application/json
+  Idempotency-Key: string
+  Content-Type: application/json
+pathVariables:
+  - key: resourceId
+    value: "{{resourceId}}"
+    description: Required.
+body:
+  type: json
+  content: |-
+    {
+      "backupId": "00000000-0000-4000-8000-000000000000",
+      "confirmation": "replace-me",
+      "reason": "Requested through the Towbar API"
+    }
+order: 4000

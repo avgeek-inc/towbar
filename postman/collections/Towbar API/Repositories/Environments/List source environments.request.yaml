@@ -1,0 +1,14 @@
+$kind: http-request
+id: 6110dbef-7545-5dbe-99f1-4a5574323d56
+description:
+  "Required permissions: repository.read. Personal keys are capped by the current member
+  role; team keys use explicit grants."
+url: "{{baseUrl}}/sources/:sourceId/environments"
+method: GET
+headers:
+  Accept: application/json
+pathVariables:
+  - key: sourceId
+    value: "{{sourceId}}"
+    description: Required.
+order: 1000

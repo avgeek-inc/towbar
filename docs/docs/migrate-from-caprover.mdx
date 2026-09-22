@@ -1,0 +1,111 @@
+---
+title: "Migrate from CapRover"
+description: "Move CapRover apps, Captain definitions, databases, domains, and persistent data to Towbar."
+keywords:
+  [
+    "CapRover alternative",
+    "migrate from CapRover",
+    "CapRover to Towbar",
+    "self-hosted PaaS migration",
+  ]
+---
+
+CapRover and Towbar both run containers on infrastructure you control, but the
+configuration boundary is different. CapRover keeps much of the desired state
+in its control plane. Towbar expects workloads and their environment mappings
+to be reviewed in Git.
+
+## Compare the tradeoffs
+
+### Towbar
+
+#### ✅ Pros
+
+- Deployment configuration, environment mappings, and review history stay with
+  the repository instead of only in the control plane.
+- Towbar records immutable deployment inputs and includes previews, Scout
+  monitoring, deployment comparisons, vulnerability results, and database
+  recovery history.
+- Each server remains an explicit deployment target, which makes workload and
+  capacity ownership visible.
+
+#### ⚠️ Cons
+
+- Towbar has no Docker Swarm scheduler or automatic cross-node distribution.
+- It has no one-click application catalog. Every workload needs a reviewed App,
+  Resource, or Compose declaration.
+- Its managed database and Compose support is narrower, and it requires more
+  up-front configuration than a small CapRover installation.
+
+### CapRover
+
+#### ✅ Pros
+
+- CapRover offers a straightforward dashboard, CLI, one-click apps, automatic
+  HTTPS, and several deployment inputs with little setup.
+- It uses Docker Swarm and can [add worker nodes and distribute replicas](https://caprover.com/docs/app-scaling-and-cluster.html).
+- Teams already comfortable with Captain definitions can keep a compact,
+  Docker-native operating model.
+
+#### ⚠️ Cons
+
+- Much of the desired state lives in CapRover rather than in a complete
+  repository declaration.
+- Docker Swarm is part of the runtime contract, which is a poor fit if you do
+  not want to operate Swarm.
+- CapRover documents that apps with persistent data stay on one node, so adding
+  cluster nodes does not make those workloads highly available.
+
+## 1. Inventory CapRover
+
+Record every app's repository or image, Captain definition, build arguments,
+environment variables, container port, health check, instance count, domains,
+HTTPS settings, persistent directories, and service dependencies. Include
+one-click apps and databases even when you did not customize them.
+
+Create a CapRover backup for control-plane recovery, but treat application data
+separately. CapRover's [backup documentation](https://caprover.com/docs/backup-and-restore)
+notes that images and persistent directories are not included in the ordinary
+backup. Keep the source instance intact until Towbar has passed restore and
+cutover tests.
+
+## 2. Translate workloads to Git
+
+| CapRover source                          | Towbar destination                                                      |
+| ---------------------------------------- | ----------------------------------------------------------------------- |
+| Dockerfile or `captain-definition` build | Dockerfile App with explicit context, port, health, and limits          |
+| Prebuilt private image                   | Image App or Resource with the OCI registry integration                 |
+| One-click application                    | Reviewed App, Resource, or Compose project committed to your repository |
+| Database one-click app                   | Compatible managed database Resource after a tested logical restore     |
+| Persistent application directory         | Declared App volume with a planned file transfer                        |
+
+Create `towbar.yml`, add one entity file per workload, and map production and
+staging to their source branches. Do not copy generated CapRover state into the
+repository. Re-express only the configuration you intend to keep.
+
+## 3. Recreate protected values and routes
+
+Move application values into Towbar's encrypted secret stores. Configure Git,
+registry, backup, notification, external-secret, or telemetry identities in the
+Towbar runtime environment. Rotate credentials when practical instead of
+carrying old shared values into the new control plane.
+
+Declare public domains and TLS in each workload manifest. Deploy first with a
+temporary hostname so production DNS remains untouched while you verify startup,
+health checks, background work, uploads, email, OAuth callbacks, and webhooks.
+
+## 4. Move state and cut over
+
+Use the database engine's logical dump tools and restore into a matching Towbar
+database preset. For persistent directories, stop writers and copy files while
+preserving numeric ownership, permissions, links, and timestamps. Verify reads
+and writes from the destination container.
+
+At cutover, freeze source writes, repeat the final data transfer, test the
+restored state, then change DNS. Confirm TLS, deployment health, logs,
+notifications, and a manual Towbar backup. Retain the stopped CapRover instance
+for the agreed rollback window and account for any writes accepted by Towbar
+before reversing traffic.
+
+Continue with [Your first deployment](/docs/getting-started), [Resources](/docs/resources),
+and [Database restores](/docs/restores).

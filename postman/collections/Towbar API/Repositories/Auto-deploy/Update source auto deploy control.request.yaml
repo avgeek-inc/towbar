@@ -1,0 +1,21 @@
+$kind: http-request
+id: c3bf0384-8fb5-56ca-8e05-f22dbe870fff
+description:
+  "Required permissions: deployment.create. Personal keys are capped by the current
+  member role; team keys use explicit grants."
+url: "{{baseUrl}}/sources/:sourceId/auto-deploy-control"
+method: PATCH
+headers:
+  Accept: application/json
+  Content-Type: application/json
+pathVariables:
+  - key: sourceId
+    value: "{{sourceId}}"
+    description: Required.
+body:
+  type: json
+  content: |-
+    {
+      "paused": true
+    }
+order: 2000

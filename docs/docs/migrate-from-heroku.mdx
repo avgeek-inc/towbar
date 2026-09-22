@@ -1,0 +1,116 @@
+---
+title: "Migrate from Heroku"
+description: "Move Heroku apps, process types, config vars, add-ons, domains, and PostgreSQL data to Towbar."
+keywords:
+  [
+    "Heroku alternative",
+    "self-hosted Heroku alternative",
+    "migrate from Heroku",
+    "Heroku to Towbar",
+  ]
+---
+
+Moving from Heroku changes both the deployment platform and the infrastructure
+owner. Before migrating workloads, prepare the Ubuntu servers, DNS, backup
+storage, monitoring, and provider credentials that Heroku previously operated
+for you.
+
+## Compare the tradeoffs
+
+### Towbar
+
+#### ✅ Pros
+
+- You choose the servers, regions, network paths, storage providers, and cost
+  profile instead of renting an opaque dyno abstraction.
+- Deployment policy is reviewed in Git, while the Towbar instance keeps runtime
+  credentials and application secret values under your control.
+- Towbar combines deployment history, host capacity, Scout monitoring,
+  vulnerability results, backups, and restores for its supported workloads.
+
+#### ⚠️ Cons
+
+- You become responsible for host security, capacity, operating-system updates,
+  backups, disaster recovery, networking, and the Towbar control plane.
+- Towbar has no equivalent to Heroku's add-on marketplace, managed dyno fleet,
+  Private Spaces, or platform autoscaling.
+- Moving a mature Heroku app often means replacing add-ons and splitting
+  Procfile process types into several Towbar Apps.
+
+### Heroku
+
+#### ✅ Pros
+
+- Heroku's [dyno and release model](https://devcenter.heroku.com/articles/how-heroku-works)
+  handles builds, process supervision, routing, logs, scaling, and release
+  history without exposing servers.
+- Pipelines, review apps, add-ons, one-off dynos, and managed data services form
+  a mature workflow with a large ecosystem.
+- Teams can scale processes and replace infrastructure without maintaining the
+  underlying hosts.
+
+#### ⚠️ Cons
+
+- You have limited control over the host, network, and runtime internals, and
+  platform behavior can become part of the application contract.
+- Dyno filesystems are ephemeral, and durable state must live in an add-on or
+  external service.
+- Costs rise with dyno count and managed services, while moving away requires
+  replacing add-ons, config, routing, and operational assumptions.
+
+## 1. Inventory each app
+
+Record the repository and deployed branch, buildpacks or container image,
+Procfile process types, release phase, config vars, add-ons, domains, TLS,
+scheduler jobs, drains, database plans and versions, and any filesystem writes.
+Heroku [config vars](https://devcenter.heroku.com/articles/config-vars) become
+environment variables at runtime; preserve their names and scope without
+committing their values.
+
+Map the app before provisioning replacements:
+
+| Heroku concept  | Towbar destination                                                        |
+| --------------- | ------------------------------------------------------------------------- |
+| Web dyno        | Public App with an explicit start command, port, and health check         |
+| Worker dyno     | Separate private App using the same source                                |
+| Scheduler task  | App job                                                                   |
+| Config var      | Shared or workload environment secret                                     |
+| Heroku Postgres | Compatible PostgreSQL Resource after logical restore                      |
+| Redis add-on    | Compatible Redis, Dragonfly, or KeyDB Resource after compatibility review |
+| Log drain       | Environment-configured log-forwarding provider selected in the manifest   |
+
+## 2. Make the build reproducible
+
+Choose a supported Towbar builder or add a Dockerfile that reproduces the Heroku
+build and start behavior. Pin runtime versions and external images. Heroku may
+inject platform-specific variables or infer a process; declare every required
+input in the Towbar workload instead.
+
+Create separate workload files when long-running process types need different
+commands, limits, health checks, or deployment controls. Deploy them to a
+temporary hostname and verify web requests, workers, jobs, queues, email, OAuth,
+webhooks, uploads, and outbound provider access.
+
+## 3. Move add-ons and data
+
+Replace each add-on with a Towbar Resource or an external service and update the
+corresponding secret. Do not assume an add-on's connection URL, TLS behavior, or
+extensions match the replacement.
+
+Heroku Postgres backups use PostgreSQL's logical dump format. Follow Heroku's
+[export instructions](https://devcenter.heroku.com/articles/heroku-postgres-import-export),
+match the destination major version and extensions, restore to a disposable
+target, and test application migrations before the production window. Move
+uploaded files from their object store or attached service; Heroku dyno filesystems
+are ephemeral.
+
+## 4. Cut over deliberately
+
+Lower DNS TTL, enable Heroku maintenance mode or otherwise stop writes, create
+the final data export, restore it, and start Towbar workers only after verification.
+Move the production domain, then confirm TLS, health, logs, jobs, notifications,
+backups, and representative reads and writes. Retain the stopped Heroku app and
+document the data boundary for rollback.
+
+Continue with [Install Towbar](/docs/self-hosting/installation), [Apps](/docs/apps),
+and [PostgreSQL](/docs/databases/postgresql).

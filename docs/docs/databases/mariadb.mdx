@@ -1,0 +1,63 @@
+---
+title: "MariaDB"
+description: "Declare a MariaDB 11.8 resource with explicit initialization variables and native recovery."
+---
+
+Towbar's `mariadb` preset runs the reviewed MariaDB 11.8 image on amd64 or
+arm64. It listens on port `3306`, stores data in `/var/lib/mysql`, and verifies
+readiness with an authenticated `mariadb-admin ping`.
+
+## Declare the resource
+
+```yaml title=".towbar/resources/mariadb.resource.yml" highlight={3,14-19,21}
+id: mariadb
+name: MariaDB
+type: mariadb
+container:
+  network: application
+  networkAlias: mariadb
+  resources:
+    cpus: 1
+    memory: 1g
+access:
+  sshTunnel:
+    hostPort: 13307
+secrets:
+  runtime:
+    - MYSQL_ROOT_PASSWORD
+    - MYSQL_DATABASE
+    - MYSQL_USER
+    - MYSQL_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+Towbar requires `MYSQL_ROOT_PASSWORD` for its managed health and recovery
+commands. MariaDB accepts the `MYSQL_*` compatibility names shown here during
+first initialization.
+
+| Variable              | Purpose                                                   |
+| --------------------- | --------------------------------------------------------- |
+| `MYSQL_ROOT_PASSWORD` | Root credential used by Towbar's authenticated operations |
+| `MYSQL_DATABASE`      | Application database created on an empty volume           |
+| `MYSQL_USER`          | Non-root application user                                 |
+| `MYSQL_PASSWORD`      | Password for the application user                         |
+
+## Connect from an app
+
+Containers on the same network can reach `mariadb:3306`. Save application
+credentials and its connection URL with the app, not in the resource manifest.
+The optional tunnel binds port `13307` to server loopback for access over SSH.
+
+## Initialization and credential changes
+
+These variables initialize an empty data directory. They do not reconcile an
+existing MariaDB installation. Make later database and user changes with SQL,
+verify them, and then replace the saved Towbar values.
+
+## Back up and restore
+
+Towbar exports with `mariadb-dump` and imports with the MariaDB client into a
+fresh target volume. Recovery requires MariaDB major version 11. Continue with
+[Database backups](/docs/backups) and [Database restores](/docs/restores).

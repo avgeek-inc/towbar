@@ -9,7 +9,7 @@ const repositoryRoot = path.resolve(
 const checkOnly = process.argv.includes("--check");
 
 const publishedFiles = [
-  ...["repository", "app", "resource"].map((kind) => ({
+  ...["repository", "app", "compose", "resource"].map((kind) => ({
     source: `packages/towbar-core/schemas/${kind}.v2.json`,
     target: `docs/schemas/${kind}.v2.json`,
   })),

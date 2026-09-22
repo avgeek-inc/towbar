@@ -1,0 +1,14 @@
+$kind: http-request
+id: 74ffba97-c3aa-57fc-a307-98688ec7e15e
+description:
+  "Required permissions: server.read. Personal keys are capped by the current member
+  role; team keys use explicit grants."
+url: "{{baseUrl}}/servers/:serverId/apps"
+method: GET
+headers:
+  Accept: application/json
+pathVariables:
+  - key: serverId
+    value: "{{serverId}}"
+    description: Required.
+order: 1000

@@ -27,13 +27,13 @@ Open `http://localhost:3000` and check `http://localhost:3000/health`.
 Create `towbar.yml` and `.towbar/apps/hello-towbar.app.yml`, replacing the server IP and domain.
 For a first deployment to production, use:
 
-```yaml title="towbar.yml"
+```yaml title="towbar.yml" highlight={2-3}
 version: 2
 environments:
   production: {}
 ```
 
-```yaml title=".towbar/apps/hello-towbar.app.yml"
+```yaml title=".towbar/apps/hello-towbar.app.yml" highlight={4-18}
 id: hello-towbar
 name: Hello Towbar
 server: 192.0.2.10

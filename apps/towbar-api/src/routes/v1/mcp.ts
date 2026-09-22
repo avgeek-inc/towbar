@@ -40,7 +40,7 @@ mcpRoutes.all("/", async (context) => {
     actorAllows(context.get("actor"), op.permissions),
   );
   const server = new Server(
-    { name: "towbar", version: "1.5.2" },
+    { name: "towbar", version: "2.0.0" },
     {
       capabilities: { tools: {} },
       instructions:

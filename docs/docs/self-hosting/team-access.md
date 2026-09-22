@@ -1,5 +1,5 @@
 ---
-title: "Team access and account security"
+title: "Team access"
 description: "Set up Admin, Member and Viewer access, invitations, personal keys, MFA, and transactional email."
 ---
 
@@ -7,17 +7,17 @@ Towbar v2 has one team per installation. The person completing setup becomes an 
 
 ## Roles
 
-| Capability                                                                   | Admin | Member | Viewer         |
-| ---------------------------------------------------------------------------- | ----- | ------ | -------------- |
-| Read operational inventory, deployment history, monitoring and redacted logs | Yes   | Yes    | Yes            |
-| Manage repositories and sync inventory                                       | Yes   | Yes    | No             |
-| Update declared secret values and shared-secret references                   | Yes   | Yes    | No             |
-| Configure Scout Agent and alert rules                                        | Yes   | Yes    | No             |
-| Deploy, operate workloads, prepare servers, back up or restore               | Yes   | No     | No             |
-| Authorize GitHub/GitLab connections and manage SSH keys                      | Yes   | No     | No             |
-| Reveal stored workload secrets after recent authentication                   | Yes   | No     | No             |
-| Manage members, invitations, team settings and team API keys                 | Yes   | No     | No             |
-| Secure own account and manage own personal API keys                          | Yes   | Yes    | Read-only keys |
+| Capability                                                                   | Admin | Member | Viewer       |
+| ---------------------------------------------------------------------------- | ----- | ------ | ------------ |
+| Read operational inventory, deployment history, monitoring and redacted logs | ✅    | ✅     | ✅           |
+| Manage repositories and sync inventory                                       | ✅    | ✅     | ❌           |
+| Update declared secret values and shared-secret references                   | ✅    | ✅     | ❌           |
+| Configure Scout Agent and alert rules                                        | ✅    | ✅     | ❌           |
+| Deploy, operate workloads, prepare servers, back up or restore               | ✅    | ❌     | ❌           |
+| Authorize GitHub/GitLab connections and manage SSH keys                      | ✅    | ❌     | ❌           |
+| Reveal stored workload secrets after recent authentication                   | ✅    | ❌     | ❌           |
+| Manage members, invitations, team settings and team API keys                 | ✅    | ❌     | ❌           |
+| Secure own account and manage own personal API keys                          | ✅    | ✅     | 🔑 Read-only |
 
 Members manage repository configuration and inventory. Syncing as a Member and changing branch mappings pauses runtime automation. An Admin reviews the synchronized mapping under the repository's Auto-deploy settings before enabling deployment, preview and scheduled-backup automation. Removing a repository connection does not authorize runtime cleanup.
 

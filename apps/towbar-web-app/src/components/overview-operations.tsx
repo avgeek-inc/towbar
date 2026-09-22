@@ -33,7 +33,11 @@ import { DomainLink } from "./domain-link";
 import { deploymentStatusTooltip } from "./deployment-table";
 import { deploymentHref } from "@/lib/deployment-route";
 
-export function OverviewIncidents() {
+export function OverviewIncidents({
+  animateIllustration = false,
+}: {
+  animateIllustration?: boolean;
+}) {
   const query = useApiQuery<{ activeIncidents: number }>(
     "/v1/core/monitoring/summary",
     30_000,
@@ -47,7 +51,7 @@ export function OverviewIncidents() {
         </Widget.Title>
       </Widget.Header>
       <Widget.Content
-        className="relative flex min-h-30 items-center overflow-hidden pr-[38%]"
+        className="relative flex min-h-30 items-center overflow-hidden py-3.5 pr-[38%]"
         style={
           !query.error && count !== undefined
             ? {
@@ -95,7 +99,7 @@ export function OverviewIncidents() {
               alt=""
               width={512}
               height={512}
-              className="pointer-events-none absolute right-0 bottom-0 h-auto w-[38%] max-w-28 object-contain object-right-bottom"
+              className={`pointer-events-none absolute right-0 bottom-0 h-auto w-[38%] max-w-28 object-contain object-right-bottom ${animateIllustration ? "overview-metric-illustration--enter" : ""}`}
             />
           </>
         )}

@@ -1,0 +1,29 @@
+$kind: http-request
+id: 0ad7c20f-3155-5909-a963-1f046c34f9a9
+description:
+  "Required permissions: server.update. Personal keys are capped by the current member
+  role; team keys use explicit grants."
+url: "{{baseUrl}}/servers"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "buildConcurrency": 1,
+      "previewBuildConcurrency": 1,
+      "ip": "192.0.2.10",
+      "ssh": {
+        "host": "string",
+        "username": "example",
+        "port": 1
+      },
+      "proxy": {
+        "cloudflare": {
+          "enabled": true
+        }
+      }
+    }
+order: 2000

@@ -11,15 +11,7 @@ Use a dedicated Ubuntu or Debian host with persistent storage and outbound HTTPS
 
 The examples use loopback addresses for initial setup. Keep that binding until you have created the first Admin account.
 
-## Preview the onboarding
-
-You can review the complete terminal experience on macOS or Linux without root access, Docker, or filesystem changes:
-
-```bash
-./infra/towbar preview
-```
-
-The preview uses a compact built-in terminal interface. If [Gum](https://github.com/charmbracelet/gum) is already installed, Towbar uses it for the input and confirmation controls. Gum is optional and is never installed by Towbar. Use `./infra/towbar preview --defaults` for a non-interactive preview.
+## Choose the installation URL
 
 The installer asks only for the URL where the control plane will be reached. Press Enter to keep the default `http://localhost:4021` on-host installation, or enter a public HTTPS origin whose A record points to the host. Other localhost ports, HTTPS localhost URLs, URL paths, custom ports, and non-HTTPS remote URLs are rejected. Review the result, then confirm the installation.
 
@@ -108,8 +100,6 @@ sudo towbar version
 
 Use `sudo towbar upgrade` for later stable releases. See [Upgrades and recovery](/docs/self-hosting/upgrades) before upgrading an installation with production data.
 
-Towbar v2 requires a fresh database and does not upgrade a 1.x installation. Keep any existing instance and backup separate; do not point this release at its database.
-
 Open the dashboard and enter the team name, your name, email, password and confirmation. The first successful submission creates the only initial team and Admin account. Setup then closes immediately; concurrent or repeated submissions are rejected.
 
 Complete setup immediately after installation. Configure SMTP for invitations and password recovery, then add colleagues under Team Settings. See [Team access](/docs/self-hosting/team-access) for roles, MFA and invitations. If access is lost, use [Admin account recovery](/docs/self-hosting/account-recovery).
@@ -128,4 +118,4 @@ Temporal's gRPC and HTTP APIs are accessible only inside the control-plane netwo
 
 ## Continue setup
 
-Connect [GitHub](/docs/integrations/github), register and prepare a [server](/docs/servers), then follow [Your first deployment](/docs/getting-started). For public ingress and optional providers, use the [environment variable reference](/docs/reference/environment-variables).
+Connect [GitHub](/docs/integrations/github), register and prepare a [server](/docs/servers), then follow [Your first deployment](/docs/getting-started). For public ingress and optional providers, use the [environment variable reference](/docs/self-hosting/environment-variables).

@@ -10,9 +10,10 @@ export type AvatarProps = Omit<
 > & {
   email: string;
   name?: string;
+  src?: string;
 };
 
-export function Avatar({ email, name, className, ...props }: AvatarProps) {
+export function Avatar({ email, name, src, className, ...props }: AvatarProps) {
   const normalizedEmail = email.trim().toLowerCase();
   const [image, setImage] = useState<{ email: string; url: string } | null>(
     null,
@@ -60,7 +61,7 @@ export function Avatar({ email, name, className, ...props }: AvatarProps) {
         alt=""
         className="object-cover"
         referrerPolicy="no-referrer"
-        src={image?.email === normalizedEmail ? image.url : undefined}
+        src={src ?? (image?.email === normalizedEmail ? image.url : undefined)}
       />
       <HeroAvatar.Fallback aria-hidden="true">{initials}</HeroAvatar.Fallback>
     </HeroAvatar>

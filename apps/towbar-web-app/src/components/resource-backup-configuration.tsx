@@ -289,7 +289,7 @@ function ResourceBackupContent({
               <Alert.Description>
                 Enable {formatList(missingProviders)} in the Towbar API
                 environment, then restart Towbar. See the{" "}
-                <InlineLink href="https://www.towbar.dev/docs/reference/environment-variables">
+                <InlineLink href="https://www.towbar.dev/docs/self-hosting/environment-variables">
                   environment variable reference
                 </InlineLink>{" "}
                 before backups can run.

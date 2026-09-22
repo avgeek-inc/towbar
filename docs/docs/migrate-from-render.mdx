@@ -1,0 +1,111 @@
+---
+title: "Migrate from Render"
+description: "Move Render services, workers, cron jobs, environment groups, disks, and databases to Towbar."
+keywords:
+  [
+    "Render alternative",
+    "self-hosted Render alternative",
+    "migrate from Render",
+    "Render to Towbar",
+  ]
+---
+
+Render operates the service runtime and managed datastores. Towbar deploys to
+servers you own, so first account for the networking, capacity, backups,
+monitoring, and upgrades that move into your responsibility.
+
+## Compare the tradeoffs
+
+### Towbar
+
+#### ✅ Pros
+
+- Towbar runs on servers and storage accounts you control, with deployment
+  configuration reviewed as part of the application repository.
+- It keeps immutable deployment inputs, server capacity, Scout monitoring,
+  vulnerability results, and supported database recovery in one history.
+- You can choose infrastructure based on hardware, location, network access, or
+  existing commitments rather than a fixed compute catalog.
+
+#### ⚠️ Cons
+
+- Towbar does not operate the hosts for you or provide Render's managed
+  autoscaling, high-availability data plans, private network, or global platform
+  operations.
+- You must handle security updates, host failures, spare capacity, backup
+  storage, and control-plane recovery.
+- Towbar's supported service and database shapes are narrower than Render's
+  service catalog.
+
+### Render
+
+#### ✅ Pros
+
+- Render has first-class [web, private, worker, cron, workflow, static, and data
+  service types](https://render.com/docs/service-types) on managed infrastructure.
+- Blueprints can declare multi-service systems, and the platform supplies
+  private networking, metrics, logs, scaling, previews, and managed datastores.
+- Teams can operate services without provisioning or patching virtual machines.
+
+#### ⚠️ Cons
+
+- You trade host-level control for Render's compute plans, regions, platform
+  limits, and pricing.
+- Configuration can be split between a Blueprint and dashboard state, so the
+  repository is not always the complete operating record.
+- Attached persistent disks constrain scaling, and managed data or platform
+  services require separate migration procedures when leaving Render.
+
+## 1. Inventory Render
+
+Record every project environment, web service, private service, worker, cron
+job, static site, repository or image, build and start command, environment
+group, secret file, domain, health check, disk, PostgreSQL database, Key Value
+instance, and outbound provider dependency. If you use a Blueprint, keep it as
+an inventory input rather than assuming it maps directly to a Towbar manifest.
+
+| Render concept         | Towbar destination                                          |
+| ---------------------- | ----------------------------------------------------------- |
+| Web or private service | Public or private App                                       |
+| Background worker      | Separate private App                                        |
+| Cron job               | App job                                                     |
+| Environment group      | Shared secrets scoped to the intended environment           |
+| Persistent disk        | Declared App or Resource volume                             |
+| Render Postgres        | Compatible PostgreSQL Resource after logical restore        |
+| Key Value              | Compatible Redis-family Resource after compatibility review |
+
+## 2. Recreate configuration in Git
+
+Choose a Towbar builder or Dockerfile, then declare commands, ports, checks,
+limits, storage, networking, domains, and environment mappings. Render Blueprints
+can help identify fields, but Towbar intentionally validates a different policy.
+Review Render's [Blueprint reference](https://render.com/docs/blueprint-spec)
+while translating rather than copying it verbatim.
+
+Move values from service variables, environment groups, and secret files into
+Towbar secret stores. Recreate source control, registry, backup, notification,
+external-secret, and telemetry credentials in the control-plane environment.
+
+## 3. Move persistent data
+
+Render disks preserve only files beneath the configured mount path. Follow the
+[persistent disk guide](https://render.com/docs/disks), stop writers, and copy
+the intended tree while preserving ownership and permissions.
+
+For Render Postgres, use a logical export and compatible PostgreSQL client tools.
+Render's [backup documentation](https://render.com/docs/postgresql-backups)
+describes downloadable exports and `pg_dump`. Rehearse the restore against the
+destination major version and verify extensions, encodings, indexes, and row
+counts. Use engine-aware export tools for every other datastore.
+
+## 4. Cut over and verify
+
+Deploy to temporary domains and exercise web, worker, cron, database, upload,
+email, OAuth, and webhook paths. Freeze source writes, repeat the final data
+transfer, restore and verify it, then assign production domains and update DNS.
+Confirm TLS, deployment health, logs, notifications, backups, and server
+capacity. Keep the Render services stopped but recoverable for the agreed
+rollback period.
+
+Continue with [Deployment modes](/docs/platform-deployments), [Database guides](/docs/databases),
+and [Scout Agent](/docs/scout).

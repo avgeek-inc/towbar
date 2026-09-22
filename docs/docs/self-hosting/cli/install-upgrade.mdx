@@ -1,0 +1,116 @@
+---
+title: "Install and upgrade"
+description: "Install Towbar and upgrade to the latest or a selected stable release."
+---
+
+Use these commands to create an installation or replace its API, worker, dashboard, and CLI with one published release.
+
+## `towbar install`
+
+Install the release bundled with the downloaded CLI. The command accepts no arguments and must run as root on an Ubuntu or Debian host. It stops if `/opt/towbar/current` already identifies an installation.
+
+<Tabs>
+  <Tab title="Recommended">
+    Review and run the public installer:
+
+    ```bash title="Install Towbar"
+    curl -fsSL https://raw.githubusercontent.com/avgeek-inc/towbar/main/install.sh | sudo bash
+    ```
+
+    The script downloads the CLI from the repository and invokes `towbar install`.
+
+  </Tab>
+  <Tab title="Existing CLI">
+    If the CLI is already present but Towbar is not installed:
+
+    ```bash title="Install with the local CLI"
+    sudo towbar install
+    ```
+
+  </Tab>
+</Tabs>
+
+`install` asks for one URL:
+
+- Press Enter for `http://localhost:4021`, which binds the dashboard to loopback.
+- Enter a public HTTPS origin such as `https://towbar.example.com` after its A record points to the host and inbound ports 80 and 443 are open.
+
+It rejects other localhost ports, HTTPS localhost, non-HTTPS remote URLs, custom ports, paths, fragments, and invalid public hostnames.
+
+<Steps>
+  <Step title="Prepare the host">
+    Towbar verifies Linux and installs the required packages. If Docker is
+    missing, it installs Docker Engine, Buildx, and Compose v2 from Docker's
+    official APT repository.
+  </Step>
+  <Step title="Verify the release">
+    The CLI verifies that its bundled version is a published, stable release,
+    resolves the Git tag to an immutable commit, and validates the attached
+    multi-architecture image manifest.
+  </Step>
+  <Step title="Create configuration">
+    Towbar copies the environment template to `/etc/towbar/towbar.env`,
+    generates database, encryption, and signing secrets, restricts the file to
+    `root:root` mode `600`, and applies the selected access URL.
+  </Step>
+  <Step title="Start and verify Towbar">
+    The CLI pulls the release images, applies the database schema, starts the
+    stack, and verifies the API, worker, and dashboard. Public installations
+    also configure Caddy, issue a Let's Encrypt certificate, and rehearse
+    gateway recovery with persisted certificate state.
+  </Step>
+</Steps>
+
+If public HTTPS setup fails during a first installation, Towbar does not enable an HTTP fallback. It stops the attempted stack, releases ports 80 and 443, and preserves generated secrets, the downloaded release, and ACME state for a retry after DNS or firewall repair.
+
+## `towbar upgrade`
+
+Upgrade an installed control plane to the latest published stable release or an explicit reviewed version.
+
+```text title="Syntax"
+sudo towbar upgrade [VERSION]
+```
+
+| Parameter | Required | Accepted value                          | Default  | Behavior                                   |
+| --------- | -------- | --------------------------------------- | -------- | ------------------------------------------ |
+| `VERSION` | No       | Stable tag in `vMAJOR.MINOR.PATCH` form | `latest` | Selects the release to verify and install. |
+
+<Tabs>
+  <Tab title="Latest stable">
+    ```bash
+    sudo towbar upgrade
+    ```
+
+    The CLI follows the repository's latest GitHub Release redirect and validates the resulting tag.
+
+  </Tab>
+  <Tab title="Selected version">
+    ```bash
+    sudo towbar upgrade v2.1.0
+    ```
+
+    Use an explicit tag after reviewing its changelog and migration notes.
+
+  </Tab>
+  <Tab title="Alias">
+    ```bash
+    sudo towbar update v2.1.0
+    ```
+
+    `update` executes the same code path as `upgrade`.
+
+  </Tab>
+</Tabs>
+
+The selected tag must be published, non-draft, non-prerelease, and in the same major release line supported by the installed CLI. The release must include `towbar-images.json` with immutable digests for the API, worker, and dashboard images.
+
+Before replacing services, the CLI downloads the exact tagged commit, verifies release metadata, generates a configuration only when one does not exist, and validates the target Compose configuration. It then pulls the prebuilt images, runs database migrations, waits for service health, verifies public HTTPS when applicable, and checks that the running API reports the expected commit.
+
+If replacement fails, the CLI restores the previous release symlink and starts the previous service images. This protects the service replacement; it cannot reverse an incompatible database migration. Review release notes and take a database backup before upgrading production data.
+
+After success, Towbar keeps the current and immediately previous release directories and Towbar application images. It removes older unreferenced Towbar images without pruning PostgreSQL, Temporal, Caddy, application volumes, or images owned by unrelated Docker workloads.
+
+<Warning>
+  Do not use `towbar install` to upgrade an existing installation. It stops when
+  Towbar is already installed. Use `sudo towbar upgrade`.
+</Warning>

@@ -1,0 +1,46 @@
+---
+title: "Backup providers"
+description: "Choose and configure the object storage used for managed database backups and restores."
+---
+
+Towbar writes managed database recovery points to an environment-configured
+object-storage provider. Each provider has one installation-wide identity, and
+only complete configurations appear under **Manage → Integrations → Backup
+providers**.
+
+<CardGroup cols={2}>
+  <Card title="AWS S3" icon="cloud" href="/docs/integrations/aws">
+    Use an AWS access key scoped to the required buckets, prefixes, versions,
+    and KMS keys.
+  </Card>
+  <Card title="Google Cloud Storage" icon="cloud" href="/docs/integrations/gcp">
+    Use a Base64-encoded service-account key with access to the intended bucket.
+  </Card>
+  <Card title="Azure Blob Storage" icon="cloud" href="/docs/integrations/azure">
+    Use a Microsoft Entra service principal scoped to the storage account and
+    container.
+  </Card>
+  <Card
+    title="S3 compatible and R2"
+    icon="cloud"
+    href="/docs/integrations/s3-compatible"
+  >
+    Configure generic S3-compatible storage or Cloudflare R2 with an explicit
+    endpoint and access keys.
+  </Card>
+</CardGroup>
+
+## Provider configuration and backup policy are separate
+
+The control-plane environment supplies provider identity, endpoint, bucket or
+container, and optional prefix. A Resource manifest selects an enabled
+destination and declares its schedule and retention policy. Towbar never stores
+the provider credential in the manifest or returns it to the browser.
+
+A **Configured** chip means the environment shape passed validation. It does not
+prove remote permissions, object retention, or restore readiness. Create a real
+backup, verify the stored object, and complete a restore rehearsal before you
+rely on a provider for recovery.
+
+Read [Database backups](/docs/backups) for policy configuration and [Restore a
+database](/docs/restores) for compatibility and promotion rules.

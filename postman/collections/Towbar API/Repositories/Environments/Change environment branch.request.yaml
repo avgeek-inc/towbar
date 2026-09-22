@@ -1,0 +1,25 @@
+$kind: http-request
+id: 2ae51b96-7fd6-5f86-8627-9ba4f232ce64
+description:
+  "Required permissions: repository.update. Personal keys are capped by the current
+  member role; team keys use explicit grants."
+url: "{{baseUrl}}/sources/:sourceId/environments/:environmentId"
+method: PATCH
+headers:
+  Accept: application/json
+  Content-Type: application/json
+pathVariables:
+  - key: sourceId
+    value: "{{sourceId}}"
+    description: Required.
+  - key: environmentId
+    value: "{{environmentId}}"
+    description: Required.
+body:
+  type: json
+  content: |-
+    {
+      "expectedRevision": "00000000-0000-4000-8000-000000000000",
+      "branch": "main"
+    }
+order: 3000

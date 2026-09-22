@@ -1,0 +1,104 @@
+---
+title: "Migrate to Towbar"
+description: "Plan a reversible move from another PaaS to Towbar's Git-backed deployment model."
+keywords:
+  [
+    "self-hosted PaaS migration",
+    "open source PaaS alternative",
+    "Git-backed deployment platform",
+    "Coolify alternative",
+    "Dokploy alternative",
+    "CapRover alternative",
+    "Dokku alternative",
+    "Heroku alternative",
+    "Railway alternative",
+    "Render alternative",
+    "Vercel alternative",
+  ]
+---
+
+Towbar does not import another platform's control-plane database. A migration
+turns the intended workload configuration into reviewed files in Git, moves
+persistent data through engine-aware exports, verifies the new deployment, and
+then shifts traffic with a written rollback boundary.
+
+## Choose your current platform
+
+<CardGroup cols={2}>
+  <Card
+    title="Coolify"
+    icon="arrow-right-left"
+    href="/docs/migrate-from-coolify"
+  >
+    Move applications, Compose services, databases, variables, domains, and
+    persistent files from Coolify.
+  </Card>
+  <Card
+    title="Dokploy"
+    icon="arrow-right-left"
+    href="/docs/migrate-from-dokploy"
+  >
+    Convert projects, environments, applications, Compose projects, and database
+    backups from Dokploy.
+  </Card>
+  <Card
+    title="CapRover"
+    icon="arrow-right-left"
+    href="/docs/migrate-from-caprover"
+  >
+    Translate Captain definitions, one-click apps, service variables, domains,
+    and persistent directories.
+  </Card>
+  <Card title="Dokku" icon="arrow-right-left" href="/docs/migrate-from-dokku">
+    Move Git-pushed apps, Procfile processes, config, plugins, domains, and data
+    services.
+  </Card>
+  <Card title="Heroku" icon="arrow-right-left" href="/docs/migrate-from-heroku">
+    Map apps, process types, config vars, add-ons, domains, and Heroku Postgres.
+  </Card>
+  <Card
+    title="Railway"
+    icon="arrow-right-left"
+    href="/docs/migrate-from-railway"
+  >
+    Recreate projects, services, variables, volumes, databases, and public
+    routes on servers you own.
+  </Card>
+  <Card title="Render" icon="arrow-right-left" href="/docs/migrate-from-render">
+    Translate services, workers, cron jobs, environment groups, disks, and
+    managed datastores.
+  </Card>
+  <Card title="Vercel" icon="arrow-right-left" href="/docs/migrate-from-vercel">
+    Move projects, builds, functions, previews, variables, domains, cron jobs,
+    and data services.
+  </Card>
+</CardGroup>
+
+## Use the same safety sequence
+
+Every guide follows the same order because the data boundary matters more than
+the source platform:
+
+1. Inventory applications, processes, images, databases, queues, jobs, domains,
+   secrets, volumes, and provider dependencies.
+2. Map each workload to a Towbar App, Compose project, managed database, or
+   image Resource.
+3. Put deployable configuration in Git and protected values in Towbar's secret
+   stores or runtime integration environment.
+4. Deploy against temporary hostnames and test user, background, and provider
+   flows before production traffic arrives.
+5. Freeze writes, take final logical database exports and file copies, restore
+   them, and verify representative data.
+6. Move domains or DNS, monitor the new deployment, and retain the source until
+   the rollback window closes.
+
+<Warning>
+  Copying a live database volume is not a safe substitute for an engine-native
+  logical export. Match engine and major versions, test the restore on a
+  disposable target, and record when the source stopped accepting writes.
+</Warning>
+
+Start with [Core concepts](/docs/concepts), then use the guide for your current
+platform. The [deployment manifest](/docs/deployment-manifest), [database
+guides](/docs/databases), and [backup and restore workflows](/docs/backups) are
+the source of truth for the Towbar side of the move.

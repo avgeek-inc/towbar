@@ -1,0 +1,22 @@
+$kind: http-request
+id: 79f5a3e4-64b7-5b3f-a0c1-e48ce9724f51
+description:
+  "Required permissions: workload.operate. Personal keys are capped by the current member
+  role; team keys use explicit grants."
+url: "{{baseUrl}}/apps/:appId/actions/stop"
+method: POST
+headers:
+  Accept: application/json
+  Idempotency-Key: string
+  Content-Type: application/json
+pathVariables:
+  - key: appId
+    value: "{{appId}}"
+    description: Required.
+body:
+  type: json
+  content: |-
+    {
+      "service": "string"
+    }
+order: 6000

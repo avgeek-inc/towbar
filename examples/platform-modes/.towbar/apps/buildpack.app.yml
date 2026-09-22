@@ -1,0 +1,19 @@
+id: buildpack-example
+name: Cloud Native Buildpacks example
+deployment:
+  type: buildpack
+  context: examples/platform-modes/node-app
+  packImage: buildpacksio/pack@sha256:a53c4d6c297e10e680404cffda32e557b79a26d1ee4b7e6b18c0d175cb274621
+  builder: heroku/builder@sha256:84d80b3c0d242961414a3c4d0a00c3518e6de01ef936423cfbaf1b0aa0f9155c
+  configFile: project.toml
+  architecture: amd64
+  cache:
+    enabled: true
+    scope: platform-buildpack-example
+container:
+  port: 3000
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10

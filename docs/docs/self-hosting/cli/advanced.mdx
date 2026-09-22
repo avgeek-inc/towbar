@@ -1,0 +1,117 @@
+---
+title: "Advanced service access"
+description: "Use the active Towbar Compose project directly or run a diagnostic command inside a control-plane service."
+---
+
+The high-level CLI commands cover normal operation. Use `towbar compose` and `towbar exec` when troubleshooting requires a Docker Compose operation that Towbar does not wrap directly.
+
+<Warning>
+  These commands can stop services, remove containers, or delete control-plane
+  data when given destructive Docker Compose arguments. Review the exact command
+  before running it. Never use global `docker system prune` or `docker volume
+  prune` as a Towbar maintenance step.
+</Warning>
+
+## `towbar compose`
+
+Run a Docker Compose command against the active Towbar release with its project name, environment file, immutable service images, and source commit already supplied.
+
+```text title="Syntax"
+sudo towbar compose COMMAND [ARG...]
+```
+
+| Parameter | Required | Accepted value                        | Behavior                                                 |
+| --------- | -------- | ------------------------------------- | -------------------------------------------------------- |
+| `COMMAND` | Yes      | A Docker Compose subcommand           | Selects the Compose operation, such as `ps` or `config`. |
+| `ARG...`  | No       | Arguments accepted by that subcommand | Passed to Docker Compose without reinterpretation.       |
+
+<Tabs>
+  <Tab title="List all containers">
+    ```bash
+    sudo towbar compose ps --all
+    ```
+  </Tab>
+  <Tab title="Render configuration">
+    ```bash
+    sudo towbar compose config
+    ```
+
+    Rendered output can include resolved configuration. Store and share it as
+    sensitive operational data.
+
+  </Tab>
+  <Tab title="Stop without deleting data">
+    ```bash
+    sudo towbar compose down --remove-orphans
+    ```
+
+    This removes Towbar containers and its network while retaining named volumes,
+    installed releases, images, and `/etc/towbar/towbar.env`.
+
+  </Tab>
+</Tabs>
+
+The CLI requires at least one Compose subcommand. Refer to the [Docker Compose command reference](https://docs.docker.com/reference/cli/docker/compose/) for the options accepted after `COMMAND`.
+
+Use the higher-level alternatives when possible:
+
+| Instead of                                 | Prefer            | Reason                                                         |
+| ------------------------------------------ | ----------------- | -------------------------------------------------------------- |
+| `towbar compose ps`                        | `towbar status`   | Clear intent and shorter syntax                                |
+| `towbar compose logs ...`                  | `towbar logs ...` | Applies Towbar's default tail limit                            |
+| `towbar compose up ...`                    | `towbar restart`  | Validates runtime and gateway configuration before replacement |
+| Manually replacing release images or links | `towbar upgrade`  | Verifies release metadata, migrations, health, and rollback    |
+
+## `towbar exec`
+
+Run one command in a running Towbar service container.
+
+```text title="Syntax"
+sudo towbar exec SERVICE COMMAND [ARG...]
+```
+
+| Parameter | Required | Accepted value                        | Behavior                                        |
+| --------- | -------- | ------------------------------------- | ----------------------------------------------- |
+| `SERVICE` | Yes      | A running Towbar Compose service name | Selects the container to enter.                 |
+| `COMMAND` | Yes      | An executable available in the image  | Runs directly through `docker compose exec`.    |
+| `ARG...`  | No       | Arguments for the executable          | Passed to the command without shell evaluation. |
+
+```bash title="Check PostgreSQL readiness"
+sudo towbar exec postgres pg_isready -U towbar -d towbar
+```
+
+```bash title="Inspect the API process environment keys"
+sudo towbar exec api sh -lc 'env | cut -d= -f1 | sort'
+```
+
+<Info>
+  `towbar exec` does not start a stopped service and does not select a replica.
+  The service must already be running. Avoid commands that print secret values
+  or mutate the database outside a documented recovery procedure.
+</Info>
+
+## Service names
+
+The Compose project defines these service identifiers:
+
+```text
+api
+gateway
+gateway-public
+migrate
+postgres
+temporal
+temporal-namespace
+temporal-schema
+temporal-ui
+web-app
+worker
+```
+
+Local installations run `gateway`; public HTTPS installations run `gateway-public`. `migrate`, `temporal-schema`, and `temporal-namespace` are one-time jobs and normally are not available for `towbar exec` after startup.
+
+## Recovery boundaries
+
+`towbar compose down --volumes` permanently deletes the control-plane PostgreSQL volume, including Towbar state and Temporal history. It does not delete application or resource volumes on deployment servers. Follow the [uninstall guide](/docs/self-hosting/uninstall) and verify a database backup plus the matching `TOWBAR_CREDENTIALS_KEY` before using it.
+
+Container changes made through `towbar exec` are ephemeral and disappear when the service is recreated. Put lasting configuration in `/etc/towbar/towbar.env`, validate it, and apply it with `towbar restart`.

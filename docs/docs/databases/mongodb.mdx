@@ -1,0 +1,62 @@
+---
+title: "MongoDB"
+description: "Declare a MongoDB 8.0 resource with root credentials, private access, and archive-based recovery."
+---
+
+Towbar's `mongodb` preset runs the reviewed MongoDB 8.0 image on amd64 or arm64.
+It listens on port `27017`, stores data in `/data/db`, and authenticates against
+the `admin` database for health checks and managed operations.
+
+## Declare the resource
+
+```yaml title=".towbar/resources/mongodb.resource.yml" highlight={3,14-17,19}
+id: mongodb
+name: MongoDB
+type: mongodb
+container:
+  network: application
+  networkAlias: mongodb
+  resources:
+    cpus: 1
+    memory: 1g
+access:
+  sshTunnel:
+    hostPort: 17017
+secrets:
+  runtime:
+    - MONGO_INITDB_ROOT_USERNAME
+    - MONGO_INITDB_ROOT_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+Both variables are required by Towbar and initialize the root account on an
+empty data volume.
+
+| Variable                     | Purpose                                           |
+| ---------------------------- | ------------------------------------------------- |
+| `MONGO_INITDB_ROOT_USERNAME` | Root user stored in the `admin` authentication DB |
+| `MONGO_INITDB_ROOT_PASSWORD` | Root password used by health, backup, and restore |
+
+Create application-specific databases and users after MongoDB is ready. Keep
+those credentials with the consuming app rather than reusing the root account.
+
+## Connect from an app
+
+Containers on the `application` network can reach `mongodb:27017`. Include the
+appropriate authentication database in the app's secret connection string. The
+optional tunnel binds `17017` only to server loopback for access over SSH.
+
+## Initialization and credential changes
+
+The root initialization variables are used only for an empty `/data/db` volume.
+Replacing them later does not rotate the MongoDB user. Change the credential in
+MongoDB first, then update Towbar so its authenticated checks and operations
+continue to work.
+
+## Back up and restore
+
+Towbar produces a compressed `mongodump` archive and restores it with
+`mongorestore` into a fresh target volume. Recovery requires MongoDB major
+version 8. Continue with [Database backups](/docs/backups) and [Database restores](/docs/restores).

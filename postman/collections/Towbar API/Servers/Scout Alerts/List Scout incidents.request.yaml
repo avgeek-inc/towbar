@@ -1,0 +1,29 @@
+$kind: http-request
+id: 694584a5-c9ca-536e-a008-8057997df2ac
+description:
+  "Required permissions: alert.read. Personal keys are capped by the current member role;
+  team keys use explicit grants."
+url:
+  "{{baseUrl}}/servers/:serverId/scout-alerts/incidents?state=active&limit=20&before=&beforeId=&\
+  ruleId=&deployableId="
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  - key: state
+    value: active
+  - key: limit
+    value: "20"
+  - key: before
+    value: ""
+  - key: beforeId
+    value: ""
+  - key: ruleId
+    value: ""
+  - key: deployableId
+    value: ""
+pathVariables:
+  - key: serverId
+    value: "{{serverId}}"
+    description: Required.
+order: 5000

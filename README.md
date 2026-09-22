@@ -96,7 +96,7 @@ preview secrets.
 
 See the [root example](examples/towbar.yml) and
 [app example](examples/.towbar/apps/hello-towbar.app.yml), or read the
-[configuration guide](https://www.towbar.dev/docs/reference/deployment-manifest).
+[configuration guide](https://www.towbar.dev/docs/deployment-manifest).
 
 The control plane runs with Docker Compose. PostgreSQL stores state and Temporal
 coordinates durable workflows. Deployment targets are the Ubuntu hosts you

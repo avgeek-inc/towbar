@@ -1,0 +1,14 @@
+id: image-example
+name: Prebuilt image example
+buildServer: null
+deployment:
+  type: image
+  image: nginxinc/nginx-unprivileged@sha256:27985295bdb22a1ef8f712863210bd5877c0f3006494a593e86b3fe0fa55467e
+  platform: linux/amd64
+container:
+  port: 8080
+health:
+  path: /
+environments:
+  production:
+    server: 192.0.2.10

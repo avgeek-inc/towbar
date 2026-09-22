@@ -1,0 +1,24 @@
+id: static-example
+name: Static example
+deployment:
+  type: static
+  context: examples/platform-modes/static
+  output: dist
+  buildCommand: [node, build.mjs]
+  architecture: amd64
+  cache:
+    enabled: true
+    scope: platform-static-example
+  nodeImage: node:24-alpine@sha256:50c8e8ca1d27439048670df5883f32d57cf81cff6233222c893fd0d9884cbd81
+  runtimeImage: nginxinc/nginx-unprivileged@sha256:27985295bdb22a1ef8f712863210bd5877c0f3006494a593e86b3fe0fa55467e
+  spaFallback: true
+  headers:
+    Cache-Control: public, max-age=300
+    X-Content-Type-Options: nosniff
+container:
+  port: 8080
+health:
+  path: /
+environments:
+  production:
+    server: 192.0.2.10

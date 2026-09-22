@@ -1,35 +1,19 @@
 ---
 title: "Towbar blog"
-description: "Product engineering notes, release context, and practical guidance for operating Towbar."
+description: "Product notes from the people building Towbar."
 ---
 
-The Towbar blog explains the design and operational decisions behind the product. Reference documentation remains the source for exact configuration and supported behavior; posts provide context, tradeoffs, and migration advice.
+The Towbar blog is where we share why we are building Towbar, what we learn along the way, and the decisions that shape the product.
 
-<CardGroup cols={2}>
+<CardGroup cols={1}>
   <Card
-    title="Towbar v2: Git is the deployment contract"
-    icon="git-branch"
-    href="/blog/towbar-v2"
+    title="Introducing Towbar: Git-backed Open Source PaaS"
+    icon="container"
+    href="/blog/introducing-towbar"
   >
-    Why v2 keeps workload configuration in repositories while the control plane
-    owns credentials, execution, and operational history.
-  </Card>
-  <Card
-    title="Migrating from Coolify"
-    icon="arrow-right-left"
-    href="/docs/migrate-from-coolify"
-  >
-    A reversible workload-by-workload migration plan with explicit data and
-    rollback boundaries.
-  </Card>
-  <Card
-    title="Migrating from Dokploy"
-    icon="arrow-right-left"
-    href="/docs/migrate-from-dokploy"
-  >
-    Map applications, Compose projects, domains, variables, and databases into
-    Towbar.
+    Why I built Towbar, how its Git-backed model works, and what is included in
+    the first public release.
   </Card>
 </CardGroup>
 
-For release-specific changes, read the [changelog](https://github.com/avgeek-inc/towbar/blob/main/CHANGELOG.md). For exact configuration, use the [Guides](/docs), [Self-hosting](/docs/self-hosting/installation), and [Reference](/docs/reference/deployment-manifest) sections.
+For release-specific changes, read the [changelog](https://github.com/avgeek-inc/towbar/blob/main/CHANGELOG.md). For exact configuration, use the [Guides](/docs), [Self-hosting](/docs/self-hosting/installation), and [Reference](/docs/deployment-manifest) sections.

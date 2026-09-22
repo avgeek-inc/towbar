@@ -22,7 +22,7 @@ import {
   monitoringEventColor,
 } from "./monitoring-events";
 
-const axisTick = { fill: "var(--muted)", fontSize: 11 };
+const axisTick = { fill: "var(--muted)", fontSize: 10 };
 const percentageDomain = [0, 100] as const;
 const automaticDomain = [0, "auto"] as const;
 const palette = [
@@ -329,11 +329,6 @@ export const MetricChart = memo(function MetricChart({
               </Widget.LegendItem>
             ))}
           </Widget.Legend>
-        ) : null}
-        {metrics[0]!.unit === "percent" ? (
-          <p className="typography--body-xs mt-2 text-muted">
-            Dotted line marks the 80% attention threshold.
-          </p>
         ) : null}
       </Widget.Content>
     </Widget>

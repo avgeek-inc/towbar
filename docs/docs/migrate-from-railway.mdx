@@ -1,0 +1,110 @@
+---
+title: "Migrate from Railway"
+description: "Move Railway services, variables, volumes, databases, routes, and jobs to Towbar."
+keywords:
+  [
+    "Railway alternative",
+    "self-hosted Railway alternative",
+    "migrate from Railway",
+    "Railway to Towbar",
+  ]
+---
+
+Railway manages infrastructure around project services. Towbar runs on your own
+control-plane and workload servers, so the migration must replace both service
+configuration and the managed operational boundary.
+
+## Compare the tradeoffs
+
+### Towbar
+
+#### ✅ Pros
+
+- Towbar keeps workload configuration in Git and runs on infrastructure you
+  choose, including servers you already own or rent directly.
+- Immutable source and image identities, server preparation, Scout monitoring,
+  vulnerability results, and database recovery are visible in one control
+  plane.
+- Provider credentials that operate Towbar stay in the Towbar runtime
+  environment rather than in application configuration screens.
+
+#### ⚠️ Cons
+
+- Towbar does not provide Railway's managed compute, project canvas, template
+  marketplace, or automatically provisioned service networking.
+- You must size, patch, monitor, and recover the control plane and workload
+  servers yourself.
+- Its database versions, builders, and Compose policy cover fewer cases than
+  Railway's general container service model.
+
+### Railway
+
+#### ✅ Pros
+
+- Railway's [service model](https://docs.railway.com/services) makes persistent
+  services, scheduled jobs, variables, metrics, logs, public routes, and
+  volumes quick to configure.
+- Persistent, staging, and pull-request environments can isolate complete sets
+  of services without server administration.
+- Its template marketplace and visual project canvas reduce the work needed to
+  assemble a common stack.
+
+#### ⚠️ Cons
+
+- Service configuration, generated networking, variables, and volumes live in
+  Railway, so the repository may not be enough to recreate a project elsewhere.
+- You accept Railway's compute pricing, product limits, regional availability,
+  and platform outages instead of controlling the underlying hosts.
+- Volumes and template-provisioned databases still need explicit export and
+  cutover plans when leaving the platform.
+
+## 1. Inventory projects and environments
+
+For each Railway environment, list services, repositories or images, build and
+start commands, variables and references, private service names, public domains,
+health checks, replicas, cron jobs, volumes, databases, and provider dependencies.
+Record values that Railway injects automatically and decide which ones your app
+actually needs outside Railway.
+
+| Railway concept            | Towbar destination                                        |
+| -------------------------- | --------------------------------------------------------- |
+| Repository service         | App using a supported builder or Dockerfile               |
+| Image service              | Image App or Resource                                     |
+| Environment                | Towbar repository environment mapped to a branch          |
+| Shared or service variable | Shared or workload environment secret                     |
+| Volume                     | Declared App or Resource volume with a file-transfer plan |
+| Database template          | Compatible managed database Resource                      |
+| Cron service               | App job                                                   |
+
+## 2. Declare and test the workloads
+
+Create the root manifest and one file per App or Resource. Declare ports,
+health checks, storage, networking, resource limits, domains, and jobs explicitly.
+Recreate provider credentials through Towbar integrations and move protected
+application values into Towbar's encrypted secret stores.
+
+Railway volumes are mounted only at runtime and preserve data beneath their
+configured mount path. Review Railway's [volume documentation](https://docs.railway.com/volumes)
+and copy only the intended persistent tree. Preserve ownership and permissions,
+then verify the Towbar container can read and update it.
+
+## 3. Move databases
+
+Identify the actual engine, version, extensions, users, and database names
+behind each Railway template. Use its native logical export rather than a raw
+volume copy. Restore to a compatible Towbar database preset and verify indexes,
+extensions, row counts, encodings, and application migrations. Railway's
+[database reference](https://docs.railway.com/databases/reference) describes its
+template-based model; the image name alone is not enough to prove compatibility.
+
+## 4. Cut over
+
+Deploy all services against temporary hostnames and test private networking,
+public routes, workers, jobs, uploads, webhooks, and outbound integrations.
+During the production window, stop source writers, create final logical exports
+and file copies, restore and verify them, then move the domains. Confirm TLS,
+health, logs, alerts, backups, and server capacity before closing the rollback
+window.
+
+Continue with [Servers](/docs/servers), [Resources](/docs/resources), and
+[Monitoring](/docs/monitoring).

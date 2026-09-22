@@ -1,0 +1,131 @@
+---
+title: "Databases"
+description: "Choose a managed database, declare its runtime inputs, and understand Towbar's compatibility and recovery boundaries."
+---
+
+Towbar provides reviewed presets for eight database engines. Each preset defines
+an immutable default image, native data volume, authenticated health check,
+resource defaults, backup format, and fresh-target restore workflow.
+
+The resource manifest declares **which environment-variable names the database
+needs**. Their values stay out of Git and are saved separately for each Towbar
+environment under **Resource → Settings → Secrets**.
+
+## Choose an engine
+
+<CardGroup cols={2}>
+  <Card
+    title="PostgreSQL"
+    icon="/assets/database-logos/postgresql.webp"
+    href="/docs/databases/postgresql"
+  >
+    PostgreSQL 17 on amd64 or arm64, with `pg_dump` and `pg_restore` recovery.
+  </Card>
+  <Card
+    title="MySQL"
+    icon="/assets/database-logos/mysql.webp"
+    href="/docs/databases/mysql"
+  >
+    MySQL 8.4 on amd64 or arm64 with native logical backups.
+  </Card>
+  <Card
+    title="MariaDB"
+    icon="/assets/database-logos/mariadb.webp"
+    href="/docs/databases/mariadb"
+  >
+    MariaDB 11.8 on amd64 or arm64 with MariaDB-native backup tools.
+  </Card>
+  <Card
+    title="MongoDB"
+    icon="/assets/database-logos/mongodb.webp"
+    href="/docs/databases/mongodb"
+  >
+    MongoDB 8.0 on amd64 or arm64 with authenticated archive backups.
+  </Card>
+  <Card
+    title="Redis"
+    icon="/assets/database-logos/redis.webp"
+    href="/docs/databases/redis"
+  >
+    Redis 8 with password authentication and verified RDB snapshots.
+  </Card>
+  <Card
+    title="Dragonfly"
+    icon="/assets/database-logos/dragonfly.svg"
+    href="/docs/databases/dragonfly"
+  >
+    Dragonfly 1.33 with the Redis protocol and verified RDB snapshots.
+  </Card>
+  <Card
+    title="KeyDB"
+    icon="/assets/database-logos/keydb.svg"
+    href="/docs/databases/keydb"
+  >
+    KeyDB 6.3 for amd64 servers with Redis-compatible access and recovery.
+  </Card>
+  <Card
+    title="ClickHouse"
+    icon="/assets/database-logos/clickhouse.webp"
+    href="/docs/databases/clickhouse"
+  >
+    ClickHouse 25.8 on amd64 or arm64 with native archive backups.
+  </Card>
+</CardGroup>
+
+## Compatibility matrix
+
+| Type         | Supported major | Default image          | Architectures | Backup tool                  |
+| ------------ | --------------- | ---------------------- | ------------- | ---------------------------- |
+| `postgres`   | 17              | PostgreSQL 17 Alpine   | amd64, arm64  | `pg_dump` / `pg_restore`     |
+| `mysql`      | 8.4             | MySQL 8.4              | amd64, arm64  | `mysqldump` / `mysql`        |
+| `mariadb`    | 11.8            | MariaDB 11.8           | amd64, arm64  | `mariadb-dump` / `mariadb`   |
+| `mongodb`    | 8.0             | MongoDB 8.0            | amd64, arm64  | `mongodump` / `mongorestore` |
+| `redis`      | 8               | Redis 8 Alpine         | amd64, arm64  | verified RDB snapshot        |
+| `dragonfly`  | 1               | Dragonfly 1.33         | amd64, arm64  | verified RDB snapshot        |
+| `keydb`      | 6               | KeyDB 6.3              | amd64 only    | verified RDB snapshot        |
+| `clickhouse` | 25              | ClickHouse 25.8 Alpine | amd64, arm64  | native archive               |
+
+The generated [resource JSON Schema](/schemas/resource.v2.json) contains the
+reviewed image digests. Custom images must use an immutable digest and match the
+supported major version. Towbar rejects KeyDB on arm64 during admission.
+
+## Declarative runtime inputs
+
+Every database guide includes a complete resource file with `secrets.runtime`.
+That list is part of the Git-reviewed deployment contract; it contains key names
+only. A deployment remains blocked until every declared key has a value in the
+selected Towbar environment.
+
+Towbar also enforces the credential keys its authenticated health check and
+backup implementation require. Declaring the same keys in the manifest makes
+those inputs visible during review and keeps custom initialization settings
+beside the resource definition.
+
+<Warning>
+  Database image initialization variables usually apply only when the data
+  volume is empty. Changing a saved value later does not modify users,
+  databases, or passwords already stored in an initialized database. Perform
+  those changes inside the database first, then update Towbar's saved value.
+</Warning>
+
+## Persistence and networking
+
+Each preset receives one managed volume at its engine-native data path. Apps and
+resources on the same server can join a named `container.network`; the resource
+ID becomes its default network alias. Optional `access.sshTunnel.hostPort` binds
+only to `127.0.0.1` on the server for access through an SSH tunnel.
+
+Environment overrides may select different servers, resource limits, networks,
+and tunnel ports. Secret names stay common to the resource, while their values
+remain independent for production, staging, and other connected environments.
+
+## Backup and restore boundary
+
+All eight presets support Towbar-managed [database backups](/docs/backups) and
+[fresh-target restores](/docs/restores). Recovery requires the same engine and
+supported major version recorded by the backup. Towbar does not use restore as
+an in-place major upgrade or cross-engine conversion.
+
+Practice recovery with representative data before relying on a backup policy. A
+successful upload or checksum does not prove that the application can use the
+restored database.

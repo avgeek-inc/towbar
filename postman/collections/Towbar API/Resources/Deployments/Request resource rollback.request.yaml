@@ -1,0 +1,22 @@
+$kind: http-request
+id: 5eeba3a3-3a62-546a-9d3f-d6912225aedb
+description:
+  "Required permissions: deployment.create. Personal keys are capped by the current
+  member role; team keys use explicit grants."
+url: "{{baseUrl}}/resources/:resourceId/actions/rollback"
+method: POST
+headers:
+  Accept: application/json
+  Idempotency-Key: string
+  Content-Type: application/json
+pathVariables:
+  - key: resourceId
+    value: "{{resourceId}}"
+    description: Required.
+body:
+  type: json
+  content: |-
+    {
+      "releaseId": "00000000-0000-4000-8000-000000000000"
+    }
+order: 6000

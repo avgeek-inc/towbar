@@ -403,14 +403,14 @@ function ComparisonChart({
             type="number"
             domain={[0, data.query.windowMinutes * 60]}
             tickFormatter={(value) => `${Math.round(value / 60)}m`}
-            tick={{ fill: "var(--muted)", fontSize: 11 }}
+            tick={{ fill: "var(--muted)", fontSize: 10 }}
             minTickGap={35}
           />
           <LineChart.YAxis
             width="auto"
             tickMargin={4}
             tickFormatter={(value) => formatMetric(value, unit)}
-            tick={{ fill: "var(--muted)", fontSize: 11 }}
+            tick={{ fill: "var(--muted)", fontSize: 10 }}
           />
           <LineChart.Line
             dataKey="baseline"

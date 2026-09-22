@@ -5,7 +5,7 @@
   --towbar-on-yellow: oklch(1 0 0);
 }
 .dark {
-  --towbar-yellow: oklch(0.64 0.13 85);
+  --towbar-yellow: oklch(0.68 0.15 85);
   --towbar-yellow-hover: color-mix(in oklch, var(--towbar-yellow) 90%, white);
   --towbar-on-yellow: oklch(0.23 0.01 85);
 }
@@ -94,25 +94,31 @@
 }
 .towbar-home .towbar-lead {
   font-size: 19px;
-  max-width: 630px;
+  max-width: none;
   line-height: 1.6;
+}
+.towbar-home .towbar-lead > span {
+  display: block;
+}
+.towbar-home .towbar-lead-primary {
+  white-space: nowrap;
 }
 .towbar-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: 24px;
+  gap: 12px;
 }
 .towbar-home .towbar-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 28px;
-  min-height: 46px;
-  padding: 12px 20px;
+  gap: 14px;
+  min-height: 38px;
+  padding: 8px 14px;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   background: var(--towbar-yellow);
   color: var(--towbar-on-yellow);
@@ -124,16 +130,26 @@
 .towbar-home .towbar-button:active {
   transform: translateY(1px);
 }
-.towbar-secondary {
+.towbar-home .towbar-secondary {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
-  gap: 12px;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 14px;
+  gap: 10px;
+  border: 1px solid var(--towbar-line);
+  border-radius: 6px;
+  background: var(--towbar-panel);
   color: var(--towbar-ink);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
 }
-.towbar-secondary:hover,
+.towbar-home .towbar-secondary:hover {
+  background: var(--towbar-line);
+}
+.towbar-home .towbar-secondary:active {
+  transform: translateY(1px);
+}
 .towbar-link:hover {
   text-decoration: underline;
   text-underline-offset: 5px;
@@ -202,6 +218,67 @@
   font-size: 14px;
   margin: 12px 0 4px;
 }
+.towbar-section-intro {
+  max-width: 620px;
+}
+.towbar-section-intro .towbar-feature-label {
+  color: var(--towbar-heading-accent);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 14px;
+}
+.towbar-section-intro > p:not(.towbar-feature-label) {
+  margin-top: 16px;
+  font-size: 15px;
+  line-height: 1.7;
+}
+.towbar-process {
+  padding: 72px 0;
+  border-top: 1px solid var(--towbar-line);
+}
+.towbar-process ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 40px;
+  padding: 44px 0 8px;
+  margin: 0;
+  list-style: none;
+}
+.towbar-process li {
+  min-width: 0;
+}
+.towbar-process li > span {
+  display: block;
+  margin-bottom: 18px;
+  color: var(--towbar-heading-accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.towbar-process h3,
+.towbar-ownership h3 {
+  font-size: 17px;
+}
+.towbar-process li p,
+.towbar-ownership-points p {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.65;
+}
+.towbar-ownership {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 72px;
+  padding: 72px 0;
+  border-top: 1px solid var(--towbar-line);
+}
+.towbar-ownership-points {
+  border-top: 1px solid var(--towbar-line);
+}
+.towbar-ownership-points > div {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--towbar-line);
+}
 .towbar-feature {
   display: grid;
   grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.25fr);
@@ -254,6 +331,10 @@
   -webkit-user-drag: none;
 }
 @media (max-width: 900px) {
+  .towbar-ownership {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 36px;
+  }
   .towbar-feature,
   .towbar-feature:nth-child(even) {
     grid-template-columns: minmax(0, 1fr);
@@ -264,21 +345,6 @@
   .towbar-feature-copy {
     max-width: 540px;
   }
-}
-.towbar-closing {
-  border-top: 1px solid var(--towbar-line);
-  padding: 44px 0 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-}
-.towbar-closing h2 {
-  font-size: 30px;
-}
-.towbar-closing p {
-  margin-top: 10px;
-  font-size: 14px;
 }
 @media (max-width: 900px) {
   .towbar-highlights {
@@ -304,11 +370,11 @@
     font-size: 16px;
     max-width: 34ch;
   }
-  .towbar-desktop-break {
-    display: none;
+  .towbar-home .towbar-lead-primary {
+    white-space: normal;
   }
   .towbar-actions {
-    gap: 8px 20px;
+    gap: 8px;
   }
 
   .towbar-highlights {
@@ -316,13 +382,21 @@
     padding: 36px 0 24px;
     gap: 24px;
   }
-  .towbar-closing {
-    padding: 32px 0;
-    flex-direction: column;
-    text-align: center;
+  .towbar-process,
+  .towbar-ownership {
+    padding: 44px 0;
   }
-  .towbar-closing h2 {
-    font-size: 28px;
+  .towbar-process ol {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding-top: 32px;
+  }
+}
+
+/* Custom Mintlify pages hide the shared footer with an important utility. */
+@layer base {
+  body:has(.towbar-home) #footer {
+    display: flex !important;
   }
 }
 

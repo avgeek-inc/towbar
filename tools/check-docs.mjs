@@ -43,7 +43,8 @@ function navigation(node) {
   } else if (Array.isArray(node)) node.forEach(navigation);
   else if (node && typeof node === "object") {
     for (const [key, value] of Object.entries(node)) {
-      if (["tabs", "groups", "pages"].includes(key)) navigation(value);
+      if (["tabs", "dropdowns", "groups", "pages"].includes(key))
+        navigation(value);
     }
   }
 }

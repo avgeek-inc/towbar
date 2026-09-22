@@ -1,0 +1,83 @@
+---
+title: "Configuration and restart"
+description: "Find the Towbar environment file, validate changes, and restart only after every preflight succeeds."
+---
+
+Towbar keeps installation and integration configuration in a root-owned environment file. The CLI does not provide an editor or print its contents.
+
+## `towbar config path`
+
+Print the active environment-file path. The command accepts no arguments, does not require an installed release, and does not read or reveal the file.
+
+```bash title="Print the configuration path"
+towbar config path
+```
+
+```text title="Default output"
+/etc/towbar/towbar.env
+```
+
+Use the result with an editor that can write a root-owned file:
+
+```bash title="Open the environment file"
+sudo nano "$(towbar config path)"
+```
+
+## `towbar config validate`
+
+Validate the current configuration without replacing running services.
+
+```bash
+sudo towbar config validate
+```
+
+The command accepts no parameters. It requires root, Docker Engine, Compose v2, an installed release, and the current environment file.
+
+Validation covers:
+
+- required installation and database values;
+- the complete Docker Compose model;
+- API and worker environment parsing;
+- runtime integration configuration;
+- notification and log-forwarding JSON;
+- the selected local or public gateway service; and
+- Caddy configuration for the current domain and access mode.
+
+A successful validation prints `Towbar: Configuration is valid` and exits with status `0`. A failure prints the specific parser or Compose error and exits nonzero. Running services remain unchanged.
+
+## `towbar restart`
+
+Apply a valid environment change to the current release.
+
+```bash
+sudo towbar restart
+```
+
+The command accepts no parameters. It acquires the installation lock, validates the configuration, performs API, worker, integration, notification, log-forwarding, and Caddy preflights, then recreates changed services and waits for health.
+
+If a preflight fails, the CLI prints that running services were not restarted and directs the operator to `sudo towbar doctor`. If containers fail after replacement begins, the command returns nonzero and also directs the operator to diagnostics.
+
+<Steps>
+  <Step title="Back up the current file">
+    Preserve `/etc/towbar/towbar.env` in restricted storage before changing
+    production configuration. The file contains credentials and encryption keys.
+  </Step>
+  <Step title="Edit the environment">
+    ```bash sudo nano "$(towbar config path)" ```
+  </Step>
+  <Step title="Validate without restarting">
+    ```bash sudo towbar config validate ```
+  </Step>
+  <Step title="Apply the validated change">
+    ```bash sudo towbar restart ```
+  </Step>
+  <Step title="Confirm health">```bash sudo towbar doctor ```</Step>
+</Steps>
+
+<Warning>
+  Never replace `TOWBAR_CREDENTIALS_KEY` on an existing installation. Stored
+  credentials are encrypted with that key. A database backup without the
+  matching key cannot recover those records.
+</Warning>
+
+Restart reuses the installed release and immutable images. It does not look up a newer release, pull replacement application images, or rebuild Towbar. Use `towbar upgrade` when changing versions.

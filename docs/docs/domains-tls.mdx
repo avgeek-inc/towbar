@@ -18,7 +18,7 @@ Set the primary hostname without a scheme or path. A TLS declaration requires a 
 
 Add the following fields to an app, replacing the example domain:
 
-```yaml
+```yaml title=".towbar/apps/web.app.yml"
 domains:
   primary: app.example.com
   redirects:
@@ -38,7 +38,7 @@ Create the token under **Manage Account → Account API Tokens** in Cloudflare. 
 
 Use a scoped account token rather than a personal or global API key. `TOWBAR_CLOUDFLARE_ZONE_ID` is optional when the token can discover the required zones. The prepared Caddy build must contain the Cloudflare DNS module.
 
-```yaml
+```yaml title=".towbar/apps/web.app.yml"
 domains:
   primary: app.example.com
 tls:

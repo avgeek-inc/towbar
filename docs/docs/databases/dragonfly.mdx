@@ -1,0 +1,53 @@
+---
+title: "Dragonfly"
+description: "Declare a Dragonfly 1.33 resource with Redis-compatible access and verified snapshot recovery."
+---
+
+Towbar's `dragonfly` preset runs Dragonfly 1.33 on amd64 or arm64. It listens on
+port `6379`, stores snapshots in `/data`, and exposes the Redis protocol with
+password authentication.
+
+## Declare the resource
+
+```yaml title=".towbar/resources/dragonfly.resource.yml" highlight={3,14-16,18}
+id: dragonfly
+name: Dragonfly
+type: dragonfly
+container:
+  network: application
+  networkAlias: dragonfly
+  resources:
+    cpus: 0.5
+    memory: 512m
+access:
+  sshTunnel:
+    hostPort: 16380
+secrets:
+  runtime:
+    - REDIS_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+Towbar requires `REDIS_PASSWORD`, passes it to Dragonfly as `requirepass`, and
+uses it for health, backup, and restore operations.
+
+## Connect from an app
+
+Use a Redis-compatible client and connect to `dragonfly:6379` from containers on
+the `application` network. Store the connection URL in the app's runtime
+secrets. The optional tunnel binds `16380` only to server loopback.
+
+## Operational boundary
+
+Dragonfly implements the Redis protocol but has its own engine and supported
+major version. Do not treat a Towbar restore as a cross-engine conversion
+between Redis, Dragonfly, and KeyDB. Changing the password also requires a
+coordinated client update and redeployment.
+
+## Back up and restore
+
+Towbar creates and verifies an RDB snapshot and restores it into a fresh
+Dragonfly target volume. Recovery requires the Dragonfly preset and supported
+major version 1. Continue with [Database backups](/docs/backups) and [Database restores](/docs/restores).

@@ -1,0 +1,19 @@
+id: nixpacks-example
+name: Nixpacks compatibility example
+deployment:
+  type: nixpacks
+  context: examples/platform-modes/node-app
+  version: 1.41.0
+  image: ghcr.io/railwayapp/nixpacks@sha256:9fc9a803373dfdde5b0bab48f26e4d9104f721865d108316eb655ee0214c3e91
+  configFile: nixpacks.toml
+  architecture: amd64
+  cache:
+    enabled: true
+    scope: platform-nixpacks-example
+container:
+  port: 3000
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10

@@ -1,0 +1,14 @@
+$kind: http-request
+id: f91a784e-c858-5be8-960f-a9daae945630
+description:
+  "Required permissions: repository.read. Personal keys are capped by the current member
+  role; team keys use explicit grants."
+url: "{{baseUrl}}/sources/:sourceId/backups"
+method: GET
+headers:
+  Accept: application/json
+pathVariables:
+  - key: sourceId
+    value: "{{sourceId}}"
+    description: Required.
+order: 5000

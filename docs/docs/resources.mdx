@@ -15,7 +15,7 @@ Resources run from an existing container image. Use them for databases, caches, 
 | `clickhouse`                   | Analytical databases         | Authenticated checks, persistent data, native backup and restore                            |
 | `image`                        | Other containerized services | Your image and optional command, declared ports, volumes, and health checks                 |
 
-Images must have an explicit non-`latest` tag or a digest. Managed engines have reviewed digest-pinned defaults. Custom managed images must use a digest and the supported major version. See [Managed databases](/docs/managed-databases) for versions, architectures, secrets, and restore boundaries.
+Images must have an explicit non-`latest` tag or a digest. Managed engines have reviewed digest-pinned defaults. Custom managed images must use a digest and the supported major version. See [Databases](/docs/databases) for versions, architectures, declarative runtime inputs, and restore boundaries.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
@@ -53,7 +53,7 @@ verification of image provenance or security.
 
 ## Add a database
 
-```yaml title="towbar.yml"
+```yaml title="towbar.yml" highlight={2-5}
 version: 2
 environments:
   production:
@@ -61,7 +61,7 @@ environments:
       enabled: true
 ```
 
-```yaml title=".towbar/resources/database.resource.yml"
+```yaml title=".towbar/resources/database.resource.yml" highlight={3,6-18,20}
 id: database
 name: Primary database
 type: postgres
@@ -74,19 +74,41 @@ container:
 access:
   sshTunnel:
     hostPort: 15432
+secrets:
+  runtime:
+    - POSTGRES_USER
+    - POSTGRES_DB
+    - POSTGRES_PASSWORD
 environments:
-  production: {}
+  production:
+    server: 192.0.2.10
 ```
 
-Register the server, then save `POSTGRES_PASSWORD` under **Resource → Settings → Secrets**. Redis resources use `REDIS_PASSWORD`. These values are runtime secrets for the selected environment and never belong in YAML.
+Register the server, then save values for the declared keys under **Resource →
+Settings → Secrets**. The manifest contains their names, while production and
+staging keep independent encrypted values in Towbar. Each [database
+guide](/docs/databases) lists the required keys and initialization behavior for
+its engine.
 
 Deploy the resource, wait for its health check to pass, and verify connectivity from the intended client.
 
 ## Connect privately
 
-Apps and resources on the same host can share a named `container.network`. Towbar reuses the network when it exists and creates a bridge network when it is missing. A resource's `networkAlias` defaults to its ID, so the example database is reachable as `database` from containers on `app-network`.
+Apps and resources on the same host can share a named network. The resource ID
+becomes its alias unless you set another one:
 
-`access.sshTunnel.hostPort` binds only to the server's `127.0.0.1`. Forward that port over SSH for a local database client. It does not create a public Caddy route or Cloudflare record.
+```yaml title=".towbar/resources/database.resource.yml" highlight={1-5}
+container:
+  network: app-network
+  networkAlias: database
+access:
+  sshTunnel:
+    hostPort: 15432
+```
+
+Towbar creates a missing bridge network and reuses an existing one. The SSH
+tunnel port binds only to the server's `127.0.0.1`; it does not create a public
+route.
 
 ## Persist data
 

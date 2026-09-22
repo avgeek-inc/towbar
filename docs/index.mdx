@@ -7,10 +7,13 @@ mode: "custom"
 <div className="towbar-home">
   <section className="towbar-hero" aria-labelledby="hero-heading">
     <h1 id="hero-heading">Open-Source<br /><span>Git-native PaaS</span></h1>
-    <p className="towbar-lead">Deploy apps and databases from Git to servers you own.<br className="towbar-desktop-break" /> Previews, backups, and monitoring included.</p>
+    <p className="towbar-lead">
+      <span className="towbar-lead-primary">Deploy anything to servers you own, defined via Git repositories.</span>
+      <span>Previews, monitoring and batteries included.</span>
+    </p>
     <div className="towbar-actions">
-      <a className="towbar-button" href="/docs/getting-started">Deploy in minutes <span aria-hidden="true">↗</span></a>
-      <a className="towbar-secondary" href="https://github.com/avgeek-inc/towbar">Explore on GitHub <span aria-hidden="true">↗</span></a>
+      <a className="towbar-button" href="https://github.com/avgeek-inc/towbar">Explore in GitHub <span aria-hidden="true">↗</span></a>
+      <a className="towbar-secondary" href="/docs/getting-started">Get started <span aria-hidden="true">→</span></a>
     </div>
   </section>
 
@@ -71,6 +74,86 @@ mode: "custom"
     <a className="towbar-link" href="/docs/monitoring">
       Explore monitoring <span aria-hidden="true">→</span>
     </a>
+  </div>
+</section>
+
+<section className="towbar-process" aria-labelledby="process-heading">
+  <div className="towbar-section-intro">
+    <p className="towbar-feature-label">How it works</p>
+    <h2 id="process-heading">From repository to running service.</h2>
+    <p>
+      Bring the code and servers. Towbar connects the deployment workflow around
+      them.
+    </p>
+  </div>
+  <ol>
+    <li>
+      <span aria-hidden="true">01</span>
+      <h3>Install Towbar</h3>
+      <p>
+        Run the control plane on an Ubuntu host and complete the guided
+        workspace setup.
+      </p>
+    </li>
+    <li>
+      <span aria-hidden="true">02</span>
+      <h3>Connect Git and a server</h3>
+      <p>
+        Authorize GitHub or GitLab, add an SSH key, and let Towbar prepare the
+        deployment host.
+      </p>
+    </li>
+    <li>
+      <span aria-hidden="true">03</span>
+      <h3>Deploy and operate</h3>
+      <p>
+        Map branches to environments, deploy reviewed manifests, and follow
+        health from one place.
+      </p>
+    </li>
+  </ol>
+  <a className="towbar-link" href="/docs/getting-started">
+    Follow the getting-started guide <span aria-hidden="true">→</span>
+  </a>
+</section>
+
+<section className="towbar-ownership" aria-labelledby="ownership-heading">
+  <div className="towbar-section-intro">
+    <p className="towbar-feature-label">Your infrastructure</p>
+    <h2 id="ownership-heading">
+      Keep control without rebuilding the platform.
+    </h2>
+    <p>
+      Host Towbar yourself and run applications on servers you choose.
+      Configuration stays reviewable in Git while operational data stays
+      available in the dashboard.
+    </p>
+    <a className="towbar-link" href="/docs/self-hosting/installation">
+      Explore self-hosting <span aria-hidden="true">→</span>
+    </a>
+  </div>
+  <div className="towbar-ownership-points">
+    <div>
+      <h3>Your servers stay yours</h3>
+      <p>
+        Register supported Ubuntu hosts over SSH and decide where every app or
+        resource runs.
+      </p>
+    </div>
+    <div>
+      <h3>Git records the intended state</h3>
+      <p>
+        Review application, resource, domain, and environment changes alongside
+        the code.
+      </p>
+    </div>
+    <div>
+      <h3>Operations remain visible</h3>
+      <p>
+        Follow deployments, logs, metrics, incidents, backups, and vulnerability
+        findings in Towbar.
+      </p>
+    </div>
   </div>
 </section>
 
@@ -430,8 +513,4 @@ mode: "custom"
   </section>
 </div>
 
-<section className="towbar-closing" aria-labelledby="start-heading">
-  <div><h2 id="start-heading">Start with one server.</h2><p>Install Towbar with Docker Compose.</p></div>
-  <a className="towbar-button" href="/docs/self-hosting/installation">Install Towbar <span aria-hidden="true">↗</span></a>
-</section>
 </div>

@@ -1,0 +1,14 @@
+$kind: http-request
+id: 03b31475-2e0b-5cf2-ab50-6dda67fc52a8
+description:
+  "Required permissions: scout.configure. Personal keys are capped by the current member
+  role; team keys use explicit grants."
+url: "{{baseUrl}}/servers/:serverId/monitoring/actions/uninstall"
+method: POST
+headers:
+  Accept: application/json
+pathVariables:
+  - key: serverId
+    value: "{{serverId}}"
+    description: Required.
+order: 4000

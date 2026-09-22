@@ -1,0 +1,10 @@
+$kind: http-request
+id: 0fd8a0e0-d1e4-5c38-9f05-ecbfe13186f7
+description:
+  "Required permissions: system.manage. Personal keys are capped by the current member
+  role; team keys use explicit grants."
+url: "{{baseUrl}}/system-health/actions/check"
+method: POST
+headers:
+  Accept: application/json
+order: 2000

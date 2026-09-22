@@ -43,16 +43,10 @@ sudo towbar restart
 
 Do not replace `TOWBAR_CREDENTIALS_KEY`: existing encrypted records require the matching key. Changing database values in the file does not rotate credentials inside the existing PostgreSQL volume.
 
-## Towbar v2 requires a fresh installation
-
-The v2 database starts with `001_team_access_v2`. It does not support upgrading a 1.x schema, importing its password hashes or replaying its migration history. Use a separate fresh database and retain the previous instance/database/encryption key for recovery. Never delete an existing database as an upgrade step. Reconfigure the new instance explicitly before moving workload management to it.
-
-For later v2 releases, keep the usual backup and migration review process above. Downgrading application images does not roll back database changes.
-
 ## Admin account recovery
 
 Use **Forgot password** when SMTP and the account's mailbox are available. Host operators can reset an Admin password, change a lost Admin email address, or reset an authenticator for any active team member. Follow [Account recovery](/docs/self-hosting/account-recovery) for the maintenance window, commands, revoked access, and verification steps.
 
 ## Command-line operations
 
-Towbar does not deploy itself from GitHub Actions. Installation and upgrades run on the control-plane host through the `towbar` CLI, so release access and `/etc/towbar/towbar.env` remain host-owned. Run `towbar help` for the complete command list. `towbar compose COMMAND` passes an administrative command to this installation with the correct release directory, project name, and environment file.
+Towbar does not deploy itself from GitHub Actions. Installation and upgrades run on the control-plane host through the `towbar` CLI, so release access and `/etc/towbar/towbar.env` remain host-owned. See the [Towbar CLI guide](/docs/self-hosting/cli) for every command, parameter, safety check, and troubleshooting workflow.

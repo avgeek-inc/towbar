@@ -16,12 +16,14 @@ import { cn } from "../lib/utils";
 
 type Datum = Record<string, unknown>;
 type RootProps = Omit<ComponentProps<"div">, "children"> & {
+  chartMargin?: ComponentProps<typeof RechartsLineChart>["margin"];
   children: ReactNode;
   data: Datum[];
   height?: number;
   syncId?: string;
 };
 function Root({
+  chartMargin,
   children,
   className,
   data,
@@ -39,7 +41,12 @@ function Root({
       {...props}
     >
       <ResponsiveContainer height="100%" width="100%">
-        <RechartsLineChart data={data} syncId={syncId} syncMethod="value">
+        <RechartsLineChart
+          data={data}
+          margin={chartMargin}
+          syncId={syncId}
+          syncMethod="value"
+        >
           {children}
         </RechartsLineChart>
       </ResponsiveContainer>

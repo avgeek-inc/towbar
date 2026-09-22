@@ -51,7 +51,7 @@ The details vary by workload and configured hooks. Use the operation's actual st
 
 Apps and resources are manual unless `autoDeploy` is enabled. `autoDeploy: true` treats commits as deployment inputs. Apps can narrow their inputs with repository globs:
 
-```yaml title=".towbar/apps/web.app.yml"
+```yaml title=".towbar/apps/web.app.yml" highlight={2-6}
 id: web
 autoDeploy:
   inputs:
@@ -70,7 +70,7 @@ Use the Repository's pause controls to stop automatic deployment during maintena
 
 App hooks run commands around deployment. Add hook configuration under the app:
 
-```yaml
+```yaml title=".towbar/apps/web.app.yml"
 hooks:
   preDeploy:
     command: ["node", "scripts/migrate.js"]

@@ -1,0 +1,277 @@
+---
+title: "Introducing Towbar: Git-backed Open Source PaaS"
+description: "Why I built Towbar, the choices behind it, and what is included in the first public release."
+sidebarTitle: "Introducing Towbar"
+---
+
+_By [Praveen Thirumurugan](https://github.com/praveentcom) · September 22, 2026_
+
+Today I am introducing Towbar, an open-source, Git-backed platform for deploying apps, databases, and supporting services to servers you own.
+
+Towbar grew out of a problem I kept running into: I wanted the convenience of a platform as a service, but I wanted the deployment model to begin and end with Git. The repository should describe what runs. A commit should show what changed. The server should remain mine. The credentials needed to operate the platform should stay on the Towbar instance rather than pass through somebody else's hosted control plane.
+
+That sounds simple, but it affects nearly every part of a deployment platform. It changes how applications are configured, how secrets are separated from code, how previews are created, how releases are promoted, and how a failed deployment is explained. Towbar is my attempt to make those boundaries clear without asking a small team to assemble and maintain the whole platform themselves.
+
+Towbar is not intended to compete with Coolify, Dokploy, or the other open-source deployment tools that have helped make self-hosting approachable. They solve real problems and may be a better fit for many teams. Towbar follows a more specific idea: the desired state of a workload belongs in its Git repository, and the product should operate that declaration rather than create a second, dashboard-owned version of it.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/overview-light.jpg"
+      alt="Towbar overview showing deployment trends, running workloads, servers, incidents, and recent deployments."
+      width="2560"
+      height="1440"
+      loading="eager"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/overview-dark.jpg"
+      alt="Towbar overview showing deployment trends, running workloads, servers, incidents, and recent deployments."
+      width="2560"
+      height="1440"
+      loading="eager"
+    />
+  </div>
+  <p>
+    The overview keeps releases, inventory, servers, and incidents in one place.
+  </p>
+</div>
+
+## Why I built Towbar
+
+I like the speed of a deployment dashboard. I do not like discovering later that the dashboard has become the only place where the application can be understood.
+
+Configuration entered through forms is quick at first, but it is difficult to review, reproduce, and move. It can drift away from the code. It is easy to forget why a port, domain, health check, build command, or resource limit was changed. A new server or a second environment then becomes a reconstruction exercise.
+
+With Towbar, a repository contains a `towbar.yml` file and separate declarations for apps, resources, and Compose projects. Production can follow `main`, staging can follow another branch, and each environment reads its own immutable commit. A pull request can show an application change beside the deployment change it requires. If the repository moves, the deployment intent moves with it.
+
+Git is not used as decoration around a dashboard-created model. It is the model for workloads. The dashboard helps people inspect, validate, deploy, and operate what the repository declares.
+
+The second motivation was ownership. Towbar is self-hosted only. There is no Towbar cloud service and no hosted control plane that needs access to your servers, repositories, registry, backup storage, notifications, or logs. The installation runs on your infrastructure, and its state stays there.
+
+## A deliberate boundary for credentials
+
+Towbar separates the secrets that operate the platform from the secrets used by workloads.
+
+Static integration credentials are supplied through the environment of the Towbar installation. This includes registry access, backup providers, external-secret providers, notification channels, log forwarding destinations, Cloudflare, and other runtime integrations. The dashboard does not provide forms for entering the credentials that run Towbar. It lists an integration only when the instance started with a complete and valid configuration for it.
+
+GitHub installation and GitLab OAuth authorization are interactive because their providers require an account authorization flow. The application identity and webhook secrets still belong to the Towbar runtime environment. Dynamic grants and the minimum account metadata needed to use them stay in the self-hosted control plane.
+
+Workload secrets are different. Manifests declare which keys an app or resource needs, but values never go into Git. Admins and members can save encrypted build, runtime, hook, environment, preview, or shared values in Towbar. A workload must refer to a shared value explicitly, so adding a secret to the workspace does not silently inject it everywhere. Towbar records the revision used for a deployment without copying plaintext into workflow history or audit events.
+
+This split keeps the repository reviewable, keeps platform credentials out of the browser, and still gives a team a practical way to manage the values an application needs.
+
+## Repositories and environments
+
+Towbar connects to GitHub through a GitHub App and to GitLab through OAuth. It can discover repositories or projects, read immutable source archives, receive push and pull or merge request events, and report deployment results back to the provider.
+
+Each Towbar Repository can have named environments mapped to branches. The mapping is explicit: production might follow `main`, staging might follow `develop`, and another environment can follow a release branch. Syncing an environment validates the complete declaration at one commit and updates its inventory atomically. If a new declaration is invalid, Towbar keeps the last valid inventory instead of partially applying the change.
+
+A sync is not presented as a successful deployment. It means Towbar accepted a configuration revision. The subsequent deployment has its own request, execution stages, logs, health decision, release, and outcome. I wanted those two facts to remain separate because “we read the commit” and “the service is healthy” are not the same event.
+
+Automatic deployments can be enabled per workload and paused at the Repository or environment level. Manual sync and deploy controls remain available when a team wants a more deliberate release process.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/repositories-light.jpg"
+      alt="Towbar repositories with imported app and resource counts and the latest synchronized revision."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/repositories-dark.jpg"
+      alt="Towbar repositories with imported app and resource counts and the latest synchronized revision."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Repositories remain the source of the workload inventory Towbar operates.
+  </p>
+</div>
+
+## Several ways to build, one release model
+
+Applications can be deployed from:
+
+- a Dockerfile;
+- a static-site build;
+- Railpack;
+- Nixpacks;
+- Cloud Native Buildpacks;
+- an existing OCI image; or
+- a multi-service Docker Compose project.
+
+Source builders and builder images are pinned. Private OCI images are resolved through the Registry V2 API and recorded by immutable digest. The `latest` tag is rejected because it cannot identify what actually ran. A separate build server can build an image and transfer it directly to the runtime server or through a configured registry, with the digest checked again at the destination.
+
+Compose projects use repository-owned Compose files, overrides, profiles, dependencies, health checks, and named volumes. Towbar validates local includes and rejects capabilities that would break its isolation or ownership model, such as privileged containers, Docker socket mounts, host bind mounts, external Docker resources, devices, and unsafe host-port bindings. It is intentionally stricter than running `docker compose up` by hand.
+
+Every successful application deployment creates a release tied to its immutable input. Health checks decide whether a candidate is promoted. Rolling and recreate strategies cover stateless services and stateful single-writer workloads. A rollback selects a recorded release instead of rebuilding an old source tree and hoping it produces the same image.
+
+Deployment hooks cover commands that must run before or after promotion. Scheduled jobs live beside the app declaration, respect environment automation pauses, avoid overlapping executions, and do not replay a backlog after an outage.
+
+## Pull request previews
+
+Towbar can create isolated preview environments for eligible GitHub pull requests. Preview support must be enabled for the target environment and opted into by each app, so opening a pull request cannot unexpectedly clone an entire production inventory.
+
+The preview reads the proposed repository revision, creates isolated app instances, assigns separate routes and secrets, and reports status and the preview URL back to the source provider. Path-aware eligibility avoids rebuilding apps untouched by a change. Persistent resources are not cloned into previews, and preview secrets never fall back to production values.
+
+When the change closes, Towbar removes the preview containers, images, routes, and matching DNS records. The persistent production environment remains separate throughout the lifecycle.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/previews-light.jpg"
+      alt="Pull request preview deployments with their branch, URL, commit, status, and expiry."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/previews-dark.jpg"
+      alt="Pull request preview deployments with their branch, URL, commit, status, and expiry."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Each eligible pull request gets an isolated, traceable preview lifecycle.
+  </p>
+</div>
+
+## Apps, managed resources, and persistent data
+
+An app is a deployable service. A resource is a persistent service that another workload can use. Both are declared in Git, can vary by environment, and keep a stable identity and operational history even when their display names change.
+
+Towbar includes managed presets for PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Dragonfly, KeyDB, and ClickHouse. Each preset has a reviewed, digest-pinned default image, authenticated health checks, a stable data volume, a native backup format, and a fresh-target restore workflow. Image-based resources are also available for services outside those presets.
+
+Database backups can be written to S3, an S3-compatible service, Cloudflare R2, Google Cloud Storage, or Azure Blob Storage. Policies define retention and scheduling in the repository while provider credentials stay in the Towbar environment. Backup assurance records whether a recent, retained backup actually exists.
+
+Restores are designed to preserve a way back. Towbar verifies the backup, restores into a fresh target, checks the result, and switches only after validation. The previous data volume is retained until cleanup is requested. A restore is never treated as an ordinary application rollback because database state deserves a separate recovery path.
+
+## Servers remain ordinary Ubuntu servers
+
+Towbar deploys to Ubuntu servers over SSH. Registering a server includes SSH host-key verification, credential verification, preparation, and a final readiness check. Preparation installs and configures the runtime dependencies Towbar needs without turning the machine into a proprietary target.
+
+The server view shows capacity, deployed inventory, applications, resources, credentials, preparation history, Scout status, and detected orphans. Orphan cleanup is explicit. An audited browser terminal is available for operational work, with idle and maximum-session limits, while Towbar avoids recording terminal contents.
+
+Public HTTP services are routed through Caddy. Direct DNS and Cloudflare-backed DNS or tunnel workflows are supported, with TLS status kept visible. Private database access can bind to server loopback and travel through an SSH tunnel rather than becoming a public web route.
+
+## Monitoring that stays close to deployments
+
+Scout is Towbar's lightweight server agent. It reports server, app, and resource measurements so operators can inspect CPU, memory, storage, network activity, restarts, and container state from the same place as the deployment that changed them.
+
+The seven-day overview makes deployment outcomes, running inventory, servers, and active incidents visible without opening several pages. Detailed monitoring supports time ranges, environment and instance filters, and URL-backed views that can be shared with another team member.
+
+Scout Alerts add metric thresholds and public HTTP checks. Incidents keep the observations that opened and resolved them, and can route through configured notification channels. Deployment comparisons align equal observation windows so a team can compare resource use, restarts, and data coverage before and after a release rather than relying on two unrelated charts.
+
+Towbar also scans deployed images for known vulnerabilities. Findings include the affected package, severity, installed version, and available fix so an operator can connect an image result to the release that introduced it.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/performance-light.jpg"
+      alt="Towbar performance monitoring with server and workload navigation, resource charts, and deployment markers."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/performance-dark.jpg"
+      alt="Towbar performance monitoring with server and workload navigation, resource charts, and deployment markers."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Performance history stays connected to the workloads and deployments it
+    describes.
+  </p>
+</div>
+
+## Logs, notifications, and integrations
+
+Application logs can be forwarded to New Relic, Axiom, Better Stack, Datadog, OpenTelemetry OTLP, or Grafana Loki. The forwarder runs independently of application deployment workflows and uses bounded batching, memory and disk queues, retry windows, and resource limits. A slow destination should not block the application it is observing.
+
+Authentication failures stop retrying. Rate-limit responses use exponential backoff, and a destination that reaches the configured threshold is paused for 24 hours rather than hammered continuously. Towbar records provider-neutral state and bounded diagnostics without storing the destination credentials in PostgreSQL.
+
+Operational notifications can go to Slack, email through SMTP, Discord, Telegram, or a webhook. Routes select categories and destinations, while delivery history records attempts and provider-safe errors. Authentication and repeated rate-limit failures can notify the team through another configured channel.
+
+Runtime integrations also cover private OCI registries, backup storage, external secrets through Infisical or Doppler, Cloudflare, and OpenTelemetry. Provider configuration is singular per Towbar installation and visible only when its complete environment configuration passes startup validation. This keeps the UI focused on what the current instance can actually use.
+
+## Teams, access, and an audit trail
+
+Towbar supports Admin, Member, and Viewer roles. Teams can invite members, add them directly when transactional email is unavailable, and manage personal or team API keys with scoped permissions and expiry.
+
+Accounts support password sign-in, authenticator-based two-factor authentication, recovery codes, and passkeys. Browser sessions can be reviewed and revoked. Sensitive recovery operations run locally on the Towbar host and revoke affected sessions instead of creating a permanent recovery backdoor.
+
+The audit log records who performed an operation, what it targeted, how the actor authenticated, and when it happened. It avoids recording secret values. Filters for event type and user, searchable targets, and stable event identifiers make it useful during an investigation rather than merely present for compliance.
+
+For automation, HTTPS installations expose a REST API and a task-oriented MCP interface. Personal and team API keys are restricted by both their stored grants and the actor's current role. Local HTTP installations keep REST, MCP, and API-key management unavailable by design.
+
+## Installing and operating Towbar itself
+
+Towbar ships with a host installer and a small `towbar` command-line tool. A local installation stays on loopback. A public installation accepts a domain, validates DNS and ports, configures Caddy, obtains a Let's Encrypt certificate, rehearses renewal, and verifies the dashboard, API, and worker before reporting success.
+
+Release images are published for `amd64` and `arm64`. The CLI pulls immutable image digests, applies database migrations, checks service health, and verifies the running release. Upgrades retain the current and immediately previous Towbar release while removing obsolete Towbar images without touching application data or unrelated Docker workloads.
+
+Operational commands cover status, logs, configuration validation, restart, upgrade, database backup, diagnostics through `towbar doctor`, account recovery, and uninstall. A failed preflight does not replace healthy running containers. The environment file stays at a documented path on the host so it can be managed with ordinary system tools and backed up separately from the database.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/system-health-light.jpg"
+      alt="Towbar system health showing the control plane services and their current status."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/system-health-dark.jpg"
+      alt="Towbar system health showing the control plane services and their current status."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    System health keeps the self-hosted control plane observable after
+    installation.
+  </p>
+</div>
+
+## What Towbar is choosing
+
+Towbar is choosing reviewable configuration over a form for every setting. It is choosing immutable inputs over convenient but ambiguous tags. It is choosing one installation-owned configuration for a provider instead of an open-ended list of connections. It is choosing explicit restore and cleanup steps when persistent data is involved.
+
+Those choices create tradeoffs. Some Compose projects need to be adjusted before Towbar will accept them. A team that wants to configure its entire platform in a browser may prefer another tool. A company that wants a hosted service to operate its control plane should use one built for that model.
+
+I am comfortable with those limits. The goal is not to cover every possible infrastructure shape. The goal is to make the supported path predictable: review a declaration, sync an immutable revision, deploy it to a server you own, and retain enough evidence to understand what happened.
+
+## Try Towbar
+
+The documentation has three good starting points:
+
+- [Your first deployment](/docs/getting-started) walks through a small Dockerfile app from repository to verified release.
+- [Install Towbar](/docs/self-hosting/installation) covers a local or public HTTPS installation on your own server.
+- [Core concepts](/docs/concepts) explains repositories, environments, workloads, releases, and where configuration lives.
+
+If you are evaluating a move from an existing platform, the [Coolify migration guide](/docs/migrate-from-coolify) and [Dokploy migration guide](/docs/migrate-from-dokploy) lay out workload mapping, data movement, validation, cutover, and rollback. They are designed as careful, reversible migrations rather than one-click imports.
+
+Towbar is [open source on GitHub](https://github.com/avgeek-inc/towbar). Please read the code, try it on infrastructure you control, and tell me where the model is clear or where it gets in your way. If you find a bug, have an idea, or want to contribute, [open an issue](https://github.com/avgeek-inc/towbar/issues). I will take a look.
+
+This is the first post. I will write more about the architecture, the operational decisions, and what we learn from running Towbar in the open.

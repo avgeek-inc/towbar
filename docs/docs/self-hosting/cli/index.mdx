@@ -1,0 +1,97 @@
+---
+title: "Towbar CLI"
+description: "Install, inspect, configure, upgrade, and troubleshoot a self-hosted Towbar installation from the host terminal."
+sidebarTitle: "CLI overview"
+---
+
+The `towbar` command manages the control plane installed on a Towbar host. It selects the active release, loads `/etc/towbar/towbar.env`, and supplies the correct Compose project, images, and release metadata for each operation.
+
+The installer places the executable at `/usr/local/bin/towbar`. Run host-changing and Docker commands with `sudo`. Read-only commands that do not access Docker or protected files work without it.
+
+```bash title="Show CLI help"
+towbar help
+```
+
+<CardGroup cols={2}>
+  <Card
+    title="Install and upgrade"
+    icon="download"
+    href="/docs/self-hosting/cli/install-upgrade"
+  >
+    Install the bundled release or move to a reviewed stable release.
+  </Card>
+  <Card
+    title="Configuration and restart"
+    icon="settings"
+    href="/docs/self-hosting/cli/configuration"
+  >
+    Find and validate the environment file, then apply a valid change safely.
+  </Card>
+  <Card
+    title="Diagnostics and logs"
+    icon="stethoscope"
+    href="/docs/self-hosting/cli/diagnostics"
+  >
+    Inspect versions, services, logs, access, certificates, and host health.
+  </Card>
+  <Card
+    title="Advanced service access"
+    icon="terminal"
+    href="/docs/self-hosting/cli/advanced"
+  >
+    Pass commands to the installation's Docker Compose project or a service
+    container.
+  </Card>
+</CardGroup>
+
+## Command reference
+
+| Command                                | Purpose                                                | Root required | Installation required |
+| -------------------------------------- | ------------------------------------------------------ | ------------- | --------------------- |
+| `towbar help`                          | Print the command list                                 | No            | No                    |
+| `towbar version`                       | Print the installed release and CLI versions           | No            | No                    |
+| `sudo towbar install`                  | Install the release bundled with this CLI              | Yes           | No                    |
+| `sudo towbar upgrade [VERSION]`        | Install the latest or a selected stable release        | Yes           | Yes                   |
+| `sudo towbar restart`                  | Validate configuration and restart the current release | Yes           | Yes                   |
+| `towbar config path`                   | Print the active environment-file path                 | No            | No                    |
+| `sudo towbar config validate`          | Validate Compose and runtime configuration             | Yes           | Yes                   |
+| `sudo towbar doctor`                   | Run read-only installation diagnostics                 | Yes           | Yes                   |
+| `sudo towbar status`                   | Show control-plane service status                      | Yes           | Yes                   |
+| `sudo towbar logs [SERVICE...]`        | Show recent logs for every or selected services        | Yes           | Yes                   |
+| `sudo towbar exec SERVICE COMMAND`     | Run a command inside one service container             | Yes           | Yes                   |
+| `sudo towbar compose COMMAND [ARG...]` | Run a command against Towbar's Compose project         | Yes           | Yes                   |
+
+`towbar update [VERSION]` is an alias for `towbar upgrade [VERSION]`. `towbar -h` and `towbar --help` are aliases for `towbar help`; `towbar -v` and `towbar --version` are aliases for `towbar version`. Running `towbar` without a command also prints help.
+
+## How commands find the installation
+
+The CLI uses these installation-owned paths:
+
+| Path                             | Purpose                                                      |
+| -------------------------------- | ------------------------------------------------------------ |
+| `/usr/local/bin/towbar`          | Installed CLI                                                |
+| `/etc/towbar/towbar.env`         | Root-owned runtime configuration; expected mode is `600`     |
+| `/opt/towbar/current`            | Symlink to the active release                                |
+| `/opt/towbar/releases/<version>` | Downloaded source and Compose definition for one release     |
+| `/opt/towbar/VERSION`            | Installed release label                                      |
+| `/var/lock/towbar.lock`          | Prevents concurrent install, upgrade, and restart operations |
+
+The CLI reads release metadata before invoking Docker Compose. It does not depend on the shell's current directory, so the commands can be run from any directory on the control-plane host.
+
+<Info>
+  The CLI manages the Towbar control plane. Application deployments, resource
+  operations, backups, and server preparation are requested from the dashboard,
+  REST API, or MCP rather than from this host CLI.
+</Info>
+
+## Exit status and automation
+
+A successful command exits with status `0`. Invalid arguments, failed validation, unhealthy services, installation problems, or a failed diagnostic check return a nonzero status. `towbar doctor` still exits successfully when it finds warnings but no failures.
+
+Set `NO_COLOR=1` when capturing output in automation:
+
+```bash title="Capture a plain-text health report"
+sudo NO_COLOR=1 towbar doctor > towbar-doctor.txt
+```
+
+Avoid running lifecycle commands concurrently. `install`, `upgrade`, and `restart` acquire the Towbar operation lock and stop if another protected operation is active.

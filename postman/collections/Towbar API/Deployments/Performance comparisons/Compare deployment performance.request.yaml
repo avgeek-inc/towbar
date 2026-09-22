@@ -1,0 +1,36 @@
+$kind: http-request
+id: bc7afb81-24d1-5d1b-9c6b-199fabf0158f
+description:
+  "Required permissions: alert.read. Personal keys are capped by the current member role;
+  team keys use explicit grants."
+url:
+  "{{baseUrl}}/workloads/:deployableId/deployment-comparison?baselineId=00000000-0000-4000-8000-\
+  000000000000&candidateId=00000000-0000-4000-8000-000000000000&windowMinutes=30&warmupMinutes=2&re\
+  gressionPercent=0&minimumCoveragePercent=0&statistic=average&cpuFloorCores=0&memoryFloorMiB=0"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  - key: baselineId
+    value: 00000000-0000-4000-8000-000000000000
+  - key: candidateId
+    value: 00000000-0000-4000-8000-000000000000
+  - key: windowMinutes
+    value: "30"
+  - key: warmupMinutes
+    value: "2"
+  - key: regressionPercent
+    value: "0"
+  - key: minimumCoveragePercent
+    value: "0"
+  - key: statistic
+    value: average
+  - key: cpuFloorCores
+    value: "0"
+  - key: memoryFloorMiB
+    value: "0"
+pathVariables:
+  - key: deployableId
+    value: "{{deployableId}}"
+    description: Required.
+order: 2000

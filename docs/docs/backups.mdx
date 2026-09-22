@@ -9,7 +9,9 @@ Towbar backs up all eight managed database engines. Use AWS S3, generic S3, Clou
 
 Enable the storage provider in `.env`, restart the API, and confirm it appears under **Manage → Integrations → Backup providers**. Grant the runtime identity access to the buckets, containers, prefixes, and encryption keys used by workload policies.
 
-- [AWS](/docs/integrations/aws), generic S3, or R2 for S3-compatible storage.
+- [AWS](/docs/integrations/aws) for AWS S3.
+- [S3 compatible and Cloudflare R2](/docs/integrations/s3-compatible) for other
+  S3-compatible storage.
 - [Google Cloud](/docs/integrations/gcp) for Google Cloud Storage.
 - [Azure](/docs/integrations/azure) for Azure Blob Storage.
 
@@ -19,7 +21,7 @@ Deploy a healthy database resource, choose storage buckets or containers, and ke
 
 The compact policy below references the enabled AWS runtime integration by its provider name. Use `s3`, `r2`, `gcs`, or `azureBlob` for the other providers. `restoreFrom` is derived and must not be supplied with this form:
 
-```yaml
+```yaml title=".towbar/resources/postgres.resource.yml"
 backup:
   integration: aws
   schedule:
@@ -51,7 +53,7 @@ A retained recovery point keeps its original storage provider and location. Chan
 
 This complete manifest creates a PostgreSQL resource with daily backups at 03:00 UTC, retains the latest 14 recovery points, and replicates backups to AWS S3 and Google Cloud Storage:
 
-```yaml title="towbar.yml"
+```yaml title="towbar.yml" highlight={2-5}
 version: 2
 environments:
   production:
@@ -59,7 +61,7 @@ environments:
       enabled: true
 ```
 
-```yaml title=".towbar/resources/database.resource.yml"
+```yaml title=".towbar/resources/database.resource.yml" highlight={5-20}
 id: database
 name: Primary database
 type: postgres
@@ -86,7 +88,7 @@ environments:
 
 You can also target Azure Blob Storage individually:
 
-```yaml title="towbar.yml"
+```yaml title="towbar.yml" highlight={2-5}
 version: 2
 environments:
   production:
@@ -94,7 +96,7 @@ environments:
       enabled: true
 ```
 
-```yaml title=".towbar/resources/cache.resource.yml"
+```yaml title=".towbar/resources/cache.resource.yml" highlight={5-15}
 id: cache
 name: Redis cache
 type: redis
