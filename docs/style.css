@@ -108,17 +108,17 @@
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: 24px;
+  gap: 12px;
 }
 .towbar-home .towbar-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 28px;
-  min-height: 46px;
-  padding: 12px 20px;
+  gap: 14px;
+  min-height: 38px;
+  padding: 8px 14px;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   background: var(--towbar-yellow);
   color: var(--towbar-on-yellow);
@@ -133,13 +133,23 @@
 .towbar-secondary {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
-  gap: 12px;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 14px;
+  gap: 10px;
+  border: 1px solid var(--towbar-line);
+  border-radius: 6px;
+  background: var(--towbar-panel);
   color: var(--towbar-ink);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
 }
-.towbar-secondary:hover,
+.towbar-secondary:hover {
+  background: var(--towbar-line);
+}
+.towbar-secondary:active {
+  transform: translateY(1px);
+}
 .towbar-link:hover {
   text-decoration: underline;
   text-underline-offset: 5px;
@@ -314,7 +324,7 @@
     white-space: normal;
   }
   .towbar-actions {
-    gap: 8px 20px;
+    gap: 8px;
   }
 
   .towbar-highlights {
