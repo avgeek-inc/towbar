@@ -10,7 +10,10 @@ import { DetailSettingsContext, SecondaryItems } from "./secondary-sidebar";
 import { FloppyDiskIcon } from "@hugeicons/core-free-icons";
 
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
-import { HeadingHelp } from "@workspace/web-design-system/overlays/heading-help";
+import {
+  HeadingHelp,
+  type HeadingDocumentation,
+} from "@workspace/web-design-system/overlays/heading-help";
 import { NewTabIndicator } from "@workspace/web-design-system/navigation/new-tab-indicator";
 
 import Link from "next/link";
@@ -429,19 +432,23 @@ export function FormCard({
   children,
   className,
   headerEnd,
+  help,
   icon,
   title,
   ...props
 }: Omit<ComponentProps<typeof Widget>, "children" | "title"> & {
   children: ReactNode;
   headerEnd?: ReactNode;
+  help?: HeadingDocumentation | false;
   icon?: ReactNode;
   title: string;
 }) {
   return (
     <Widget {...props} className={className}>
       <Widget.Header endContent={headerEnd}>
-        <Widget.Title icon={icon}>{title}</Widget.Title>
+        <Widget.Title help={help} icon={icon}>
+          {title}
+        </Widget.Title>
       </Widget.Header>
       <Widget.Content>{children}</Widget.Content>
     </Widget>

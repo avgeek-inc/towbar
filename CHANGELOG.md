@@ -17,6 +17,9 @@ All notable changes to Towbar are documented in this file. This project follows
   chips, with tighter alignment and a simpler preparation action.
 - Mobile navigation, page headings, form controls, account identity and
   integration layouts use the available screen width more effectively.
+- Dashboard queue and deployment-trend summaries stay concise on narrow screens,
+  and integration cards avoid repeating page-level icons, help and empty-state
+  status.
 
 ### Fixed
 

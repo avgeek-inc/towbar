@@ -134,7 +134,7 @@ export function DeploymentQueue({ inline = false }: { inline?: boolean }) {
     >
       <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
         <Popover.Trigger
-          aria-label={`${pending.length} pending deployment${pending.length === 1 ? "" : "s"}. View deployment queue.`}
+          aria-label={`${pending.length} deployment${pending.length === 1 ? "" : "s"} in queue. View deployment queue.`}
           className="inline-flex h-8 min-h-8 cursor-pointer items-center gap-2 rounded-full border-transparent bg-default px-3 text-sm text-foreground shadow-none outline-none transition-[color,background-color,transform] hover:bg-default/80 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-focus motion-reduce:transition-none"
         >
           <ProgressCircle
@@ -149,7 +149,7 @@ export function DeploymentQueue({ inline = false }: { inline?: boolean }) {
             </ProgressCircle.Track>
           </ProgressCircle>
           <span aria-live="polite" className="whitespace-nowrap tabular-nums">
-            {pending.length} pending
+            {pending.length} in queue
           </span>
         </Popover.Trigger>
         <Popover.Content

@@ -23,7 +23,6 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { ActionButton, FormCard } from "@/components/page-parts";
 import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
-import { IntegrationProviderLogo } from "./integration-provider-logo";
 import { RelativeTime } from "./last-synced-time";
 
 type GitHubState = {
@@ -175,17 +174,13 @@ function GitHubConnectionCard({
         ) : null}
         <FormCard
           headerEnd={
-            <StatusBadge
-              status={
-                connection?.suspendedAt
-                  ? "suspended"
-                  : connection
-                    ? "active"
-                    : "not_configured"
-              }
-            />
+            connection ? (
+              <StatusBadge
+                status={connection.suspendedAt ? "suspended" : "active"}
+              />
+            ) : undefined
           }
-          icon={<IntegrationProviderLogo provider="github" />}
+          help={false}
           title="GitHub connection"
         >
           {connection ? (

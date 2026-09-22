@@ -288,6 +288,10 @@ a {
     @apply mt-1.5;
   }
 
+  .widget:has(> .widget__footer) > .widget__content {
+    margin-bottom: calc(var(--spacing) * 0.5);
+  }
+
   .widget__footer {
     @apply flex min-h-8 flex-wrap items-center gap-3 px-4 pt-[3px] pb-2;
   }
