@@ -152,7 +152,7 @@ EOF
 generate_config() {
   local release_dir="$1" pending_config
   CONFIG_CREATED=false
-  [[ ! -e "$TOWBAR_ENV_FILE" ]] || return
+  [[ ! -e "$TOWBAR_ENV_FILE" ]] || return 0
 
   install -d -m 0700 "$TOWBAR_CONFIG_DIR"
   pending_config="$(mktemp "$TOWBAR_CONFIG_DIR/towbar.env.XXXXXX")"
