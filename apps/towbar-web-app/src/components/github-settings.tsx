@@ -147,10 +147,12 @@ function GitHubConnectionCard({
                   : ""}
               </Alert.Description>
               {previewReporting.lastFailedAt ? (
-                <RelativeTime
-                  label="Last failed"
-                  value={previewReporting.lastFailedAt}
-                />
+                <div className="pt-2">
+                  <RelativeTime
+                    label="Last failed"
+                    value={previewReporting.lastFailedAt}
+                  />
+                </div>
               ) : null}
             </Alert.Content>
           </Alert>
@@ -188,11 +190,7 @@ function GitHubConnectionCard({
         >
           {connection ? (
             <div className="content-grid">
-              <Attributes
-                columns={1}
-                title="Connection details"
-                variant="embedded"
-              >
+              <Attributes columns={1} variant="embedded">
                 <Attributes.Item label="Account">
                   {connection.accountLogin}
                 </Attributes.Item>
