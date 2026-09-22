@@ -100,7 +100,7 @@
         "groups": [
           {
             "group": "Towbar blog",
-            "pages": ["blog/index", "blog/towbar-v2"]
+            "pages": ["blog/index", "blog/introducing-towbar"]
           }
         ]
       },

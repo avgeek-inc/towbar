@@ -108,8 +108,6 @@ sudo towbar version
 
 Use `sudo towbar upgrade` for later stable releases. See [Upgrades and recovery](/docs/self-hosting/upgrades) before upgrading an installation with production data.
 
-Towbar v2 requires a fresh database and does not upgrade a 1.x installation. Keep any existing instance and backup separate; do not point this release at its database.
-
 Open the dashboard and enter the team name, your name, email, password and confirmation. The first successful submission creates the only initial team and Admin account. Setup then closes immediately; concurrent or repeated submissions are rejected.
 
 Complete setup immediately after installation. Configure SMTP for invitations and password recovery, then add colleagues under Team Settings. See [Team access](/docs/self-hosting/team-access) for roles, MFA and invitations. If access is lost, use [Admin account recovery](/docs/self-hosting/account-recovery).
