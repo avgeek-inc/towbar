@@ -28,7 +28,7 @@ Each engine receives one managed volume at its native data path. Redeploy and au
 
 ## Backup and restore
 
-Add a backup policy with a named S3, R2, GCS, or Azure Blob integration, retention, and an optional UTC schedule. Towbar runs the engine-native export, verifies the archive, uploads it with checksum metadata, and records the engine and major version.
+Add a backup policy with the enabled AWS, S3-compatible, R2, GCS, or Azure Blob provider, retention, and an optional UTC schedule. Towbar runs the engine-native export, verifies the archive, uploads it with checksum metadata, and records the engine and major version.
 
 A restore downloads and verifies the selected object, starts a fresh isolated target volume, imports the archive, runs the authenticated health check, and switches only after the restored target is ready. A failed import retains the active database and the failed target for controlled diagnosis. Cancellation is honored before the cutover boundary.
 

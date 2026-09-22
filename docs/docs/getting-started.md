@@ -67,10 +67,10 @@ A successful sync imports **Hello Towbar** into the Repository's Apps list. If i
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/release-v2/repositories-light.jpg" alt="Repositories show their imported app and resource inventories and latest sync time." width="1280" height="720" loading="lazy" />
+    <img src="/assets/release-v2/repositories-light.jpg" alt="Repositories show their imported app and resource inventories and latest sync time." width="2560" height="1440" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/release-v2/repositories-dark.jpg" alt="Repositories show their imported app and resource inventories and latest sync time." width="1280" height="720" loading="lazy" />
+    <img src="/assets/release-v2/repositories-dark.jpg" alt="Repositories show their imported app and resource inventories and latest sync time." width="2560" height="1440" loading="lazy" />
   </div>
   <p>Repositories show their imported app and resource inventories and latest sync time.</p>
 </div>
@@ -97,10 +97,10 @@ If a stage fails, open its output and correct that failure before retrying. The 
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/release-v2/deployments-light.jpg" alt="Filter deployment history by status, trigger, and workload." width="1280" height="1210" loading="lazy" />
+    <img src="/assets/release-v2/deployments-light.jpg" alt="Filter deployment history by status, trigger, and workload." width="2560" height="1440" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/release-v2/deployments-dark.jpg" alt="Filter deployment history by status, trigger, and workload." width="1280" height="1210" loading="lazy" />
+    <img src="/assets/release-v2/deployments-dark.jpg" alt="Filter deployment history by status, trigger, and workload." width="2560" height="1440" loading="lazy" />
   </div>
   <p>Filter deployment history by status, trigger, and workload.</p>
 </div>

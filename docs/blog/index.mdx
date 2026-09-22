@@ -1,0 +1,35 @@
+---
+title: "Towbar blog"
+description: "Product engineering notes, release context, and practical guidance for operating Towbar."
+---
+
+The Towbar blog explains the design and operational decisions behind the product. Reference documentation remains the source for exact configuration and supported behavior; posts provide context, tradeoffs, and migration advice.
+
+<CardGroup cols={2}>
+  <Card
+    title="Towbar v2: Git is the deployment contract"
+    icon="git-branch"
+    href="/blog/towbar-v2"
+  >
+    Why v2 keeps workload configuration in repositories while the control plane
+    owns credentials, execution, and operational history.
+  </Card>
+  <Card
+    title="Migrating from Coolify"
+    icon="arrow-right-left"
+    href="/docs/migrate-from-coolify"
+  >
+    A reversible workload-by-workload migration plan with explicit data and
+    rollback boundaries.
+  </Card>
+  <Card
+    title="Migrating from Dokploy"
+    icon="arrow-right-left"
+    href="/docs/migrate-from-dokploy"
+  >
+    Map applications, Compose projects, domains, variables, and databases into
+    Towbar.
+  </Card>
+</CardGroup>
+
+For release-specific changes, read the [changelog](https://github.com/avgeek-inc/towbar/blob/main/CHANGELOG.md). For exact configuration, use the [Guides](/docs), [Self-hosting](/docs/self-hosting/installation), and [Reference](/docs/reference/deployment-manifest) sections.

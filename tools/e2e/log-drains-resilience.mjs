@@ -157,7 +157,12 @@ time.sleep(180)
       target.ssh("sudo cat /tmp/received.json 2>/dev/null || printf '{}'") ||
         "{}",
     );
-    if (health.otlp.status === "auth_failure" && delivery.complete) break;
+    if (
+      health.otlp.status === "auth_failure" &&
+      delivery.complete &&
+      delivery.uniqueLines === 80000
+    )
+      break;
     await delay(1000);
   }
 

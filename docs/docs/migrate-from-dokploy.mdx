@@ -1,0 +1,101 @@
+---
+title: "Migrate from Dokploy"
+description: "Move Dokploy applications, Compose projects, databases, domains, and automation to Towbar with a reversible cutover."
+---
+
+A Dokploy installation cannot be imported directly into Towbar. Recreate the desired workload configuration in Git, move persistent data through supported backup or file-transfer paths, verify the destination without production traffic, and cut over only after the new deployment is healthy.
+
+## Decide whether Towbar fits
+
+| Towbar may be a better fit when…                                                                                                                           | Staying on Dokploy may be better when…                                                                                     |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| You want apps and resources declared in reviewed repository files, with environment-to-branch mapping and immutable deployment inputs.                     | You prefer dashboard-managed applications, Compose definitions, domains, and shared variables.                             |
+| You want repository sync, preview deployments, deployment comparisons, Scout monitoring, vulnerability results, and recovery history in one control plane. | You depend on Dokploy cluster, Docker Swarm, template, remote-server, or Traefik behavior that Towbar does not reproduce.  |
+| Your managed databases match Towbar's reviewed engines and versions.                                                                                       | You need a database version, backup command, or topology outside Towbar's [compatibility matrix](/docs/managed-databases). |
+| You want one environment-configured provider identity per integration and no provider secrets editable in the dashboard.                                   | You need multiple dashboard-managed destinations or provider configurations of the same type.                              |
+
+Review actual requirements rather than migrating for feature-count parity. A general Docker or Compose feature in Dokploy may be intentionally restricted by Towbar's deployment policy.
+
+## 1. Inventory Dokploy
+
+For each project and environment, export or record:
+
+- application source, provider, repository, branch, build path, Dockerfile, build type, commands, and image;
+- Compose files and every override, profile, build, network, volume, label, port, and dependency;
+- domains, certificates, internal ports, health checks, resource limits, and deployment policy;
+- project, environment, and service variables, including all `${{project.*}}` and `${{environment.*}}` references;
+- databases, users, versions, backup destinations, schedules, and latest restore evidence; and
+- cron jobs, webhooks, notifications, registries, external secrets, monitoring, and log destinations.
+
+Dokploy supports project-, environment-, and service-level [variables](https://docs.dokploy.com/docs/core/variables). Resolve every reference to its intended Towbar scope before removing the source installation.
+
+<Warning>
+  Dokploy's [server backup](https://docs.dokploy.com/docs/core/backups) protects
+  the Dokploy control plane. Treat each application volume and database as a
+  separate migration concern.
+</Warning>
+
+## 2. Convert configuration to Git
+
+Create a `towbar.yml` root file and one entity file for each app or resource. Map Dokploy environments to Towbar environments and branches. Store configuration in the manifest and values in Towbar's encrypted secret stores.
+
+| Dokploy workload                   | Towbar destination                                             |
+| ---------------------------------- | -------------------------------------------------------------- |
+| Git application with Dockerfile    | `dockerfile` app                                               |
+| Static application                 | `static` app                                                   |
+| Registry image                     | `image` app with a non-`latest` tag or digest                  |
+| Nixpacks or Buildpacks application | Corresponding Towbar source builder after a compatibility test |
+| Docker Compose application         | Compose project after policy validation                        |
+| Supported standalone database      | Managed Resource with a compatible engine and major version    |
+| Other containerized service        | Image Resource or Compose project                              |
+
+Towbar's [Compose policy](/docs/platform-deployments#compose-projects) is stricter than a general Dokploy Compose project. Remove unsupported host bindings, Docker socket access, privileged mode, remote includes, explicit public host ports, and external namespaces, or keep that workload outside Towbar.
+
+Dokploy manages application and Compose [domains](https://docs.dokploy.com/docs/core/domains) through Traefik. In Towbar, declare domains per environment in Git, then use direct DNS or the configured Cloudflare path described in [Domains and TLS](/docs/domains-tls).
+
+## 3. Recreate integrations and secrets
+
+Configure the Towbar host environment for the Git provider, registry, backup storage, notifications, log forwarding, and any external-secret provider. Towbar exposes only valid, enabled integrations in the dashboard.
+
+Move variable values into [Shared secrets](/docs/secrets) or workload environment secrets. Preserve build/runtime intent and preview isolation rather than copying every Dokploy variable into one global scope. Rotate credentials where practical, and update OAuth callbacks, Git webhooks, CI secrets, DNS automation, email allowlists, and receiving webhooks.
+
+## 4. Deploy without production traffic
+
+Register and prepare a Towbar server. Deploy stateless services with temporary domains and automatic deployment disabled. Verify:
+
+- the intended commit or image digest;
+- build output, startup command, health check, and logs;
+- service discovery and private network aliases;
+- outbound access, background jobs, webhooks, and provider credentials; and
+- CPU, memory, disk, and startup-time headroom.
+
+Do not reuse production domains until the destination works independently.
+
+## 5. Move databases and files
+
+Dokploy documents S3-backed [database backups](https://docs.dokploy.com/docs/core/databases/backups) and [database restores](https://docs.dokploy.com/docs/core/databases/restore). Confirm the exact dump command, compression, engine, and major version before using an archive as a Towbar recovery point. When formats do not match, restore into a temporary database of the same engine first, then create a new logical export supported by the destination.
+
+For persistent application files, stop writes, copy the data into the destination volume while preserving numeric ownership and permissions, and verify the container can read and update it. Do not copy a running database volume as a migration shortcut.
+
+## 6. Cut over
+
+1. Schedule a write freeze or maintenance window.
+2. Create the final logical database backup and file synchronization.
+3. Restore and verify representative data before starting dependent workers.
+4. Exercise login, reads, writes, uploads, jobs, queues, email, OAuth, webhooks, and backup creation through a temporary hostname.
+5. Assign production domains in the Towbar manifest and update DNS when the server address changes.
+6. Confirm TLS, deployment health, logs, notifications, and restore readiness.
+
+Keep Dokploy stopped but unchanged during the rollback window. If the destination accepts production writes, account for them before returning traffic to the old deployment.
+
+## Migration checklist
+
+- [ ] Projects, environments, services, variables, domains, jobs, volumes, and dependencies are inventoried.
+- [ ] Every workload maps to a supported Towbar deployment mode.
+- [ ] Compose files pass Towbar policy validation.
+- [ ] Provider and secret scopes have been recreated without copying encrypted control-plane data.
+- [ ] Database archives and persistent files have been restored and checked on a disposable target.
+- [ ] Temporary-domain tests cover user, background, and provider flows.
+- [ ] Cutover, data freeze, rollback, and source-retention windows are documented.
+
+Continue with [Core concepts](/docs/concepts), [Your first deployment](/docs/getting-started), and [Database restores](/docs/restores).

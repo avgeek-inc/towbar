@@ -57,4 +57,4 @@ Towbar validates every Compose document before Docker Compose opens it, includin
 
 ## Integrations in a manifest
 
-Manifests refer to stable integration slugs for registries, external secrets, backup storage, telemetry, and Cloudflare Tunnel. Repository sync verifies that each connection exists, is active, matches the required provider, and grants the repository and environment access. Queued execution repeats the check so a revoked connection or reduced role cannot be bypassed by an old operation.
+Manifests refer to stable runtime provider names for registries, external secrets, backup storage, telemetry, and Cloudflare Tunnel. Repository sync verifies that the named provider is enabled and supports the required capability. Queued execution repeats the availability check so disabling or changing a provider stops work that can no longer resolve it.

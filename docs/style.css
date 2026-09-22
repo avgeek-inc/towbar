@@ -165,6 +165,8 @@
   height: auto;
   margin: 0;
   border-radius: 0;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .towbar-link {
@@ -248,6 +250,8 @@
   height: auto;
   margin: 0;
   border-radius: 0;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 @media (max-width: 900px) {
   .towbar-feature,
@@ -380,6 +384,8 @@ body:has(.towbar-home) {
   height: auto;
   margin: 0;
   border-radius: 0;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 .towbar-doc-screenshot > p {
   margin: 10px 0 0;
