@@ -65,15 +65,20 @@ documentation path.
 
 ## Release images
 
-Publishing a stable `v2.x.y` GitHub release builds the API, worker, and dashboard
-for `linux/amd64` and `linux/arm64`, publishes them to GitHub Container Registry,
-and attaches `towbar-images.json` to the release. The manifest records immutable
-image digests. The installer accepts the release only after that manifest exists.
-The same workflow then installs the published release in local mode on a disposable
+Update the root package and installer CLI versions in a release pull request. After
+it merges, create and push the matching `v2.x.y` tag from the merge commit, then run
+the **Publish release images** workflow from `main` with that tag. The workflow
+refuses a tag that does not point at the selected `main` commit.
+
+The workflow builds the API, worker, and dashboard for `linux/amd64` and
+`linux/arm64`, publishes them to GitHub Container Registry, creates a draft release,
+and attaches `towbar-images.json`. The manifest records immutable image digests. The
+workflow publishes the assembled release, installs it in local mode on a disposable
 GitHub-hosted Ubuntu runner, runs `towbar doctor`, and proves that `towbar restart`
 reuses the running application containers. Its diagnostic evidence is retained for
-14 days. A failed smoke test removes the image manifest from the release so the
-installer cannot select an unverified release.
+14 days. A failed smoke test deletes the release and tag so the installer cannot
+select it; immutable release tag names cannot be reused, so fix the failure under a
+new patch version.
 
 GHCR package visibility is separate from repository visibility. The three Towbar
 container packages must be public so an installation can pull them without GitHub
