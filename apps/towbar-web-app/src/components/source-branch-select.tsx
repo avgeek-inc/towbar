@@ -27,9 +27,9 @@ export function SourceBranchSelect({
   return (
     <Select
       aria-label={ariaLabel}
+      aria-required={required}
       fullWidth
       isDisabled={disabled}
-      isRequired={required}
       selectedKey={value || null}
       variant="secondary"
       onSelectionChange={(key) => onChange(key === null ? "" : String(key))}

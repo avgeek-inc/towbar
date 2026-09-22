@@ -370,9 +370,9 @@ function SourceCreate({
         {providerSelection}
         <div className="grid min-w-0 gap-6">
           <Select
+            aria-required={true}
             fullWidth
             isDisabled={busy}
-            isRequired
             selectedKey={fullName || null}
             variant="secondary"
             onSelectionChange={async (value) => {
