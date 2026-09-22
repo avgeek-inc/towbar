@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Stable release tag, for example v2.0.1
+        description: Stable release tag, for example v2.0.2
         required: true
         type: string
 
@@ -37,6 +37,8 @@ jobs:
           version="${RELEASE_TAG#v}"
           test "$(jq -r .version package.json)" = "$version"
           commit="$(git rev-parse 'HEAD^{commit}')"
+          tag_commit="$(git rev-parse "$RELEASE_TAG^{commit}")"
+          test "$tag_commit" = "$commit"
           created="$(git show -s --format=%cI HEAD)"
           {
             echo "commit=$commit"
