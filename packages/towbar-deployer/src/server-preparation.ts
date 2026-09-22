@@ -73,9 +73,10 @@ if command -v docker >/dev/null; then
   fi
 fi
 if test "$docker_compatible" = false; then
-  conflicts="$(dpkg-query -W -f='${"$"}{binary:Package} ${"$"}{db:Status-Abbrev}\n' \
+  conflicts="$({ dpkg-query -W -f='${"$"}{binary:Package} ${"$"}{db:Status-Abbrev}\n' \
     docker.io docker-compose docker-compose-v2 docker-doc docker-buildx \
-    podman-docker containerd runc 2>/dev/null | awk '$2 ~ /^ii/ {print $1}' | paste -sd, -)"
+    podman-docker containerd runc 2>/dev/null || true; } | \
+    awk '$2 ~ /^ii/ {print $1}' | paste -sd, -)"
   if test -n "$conflicts"; then
     printf 'Conflicting container packages are installed: %s. Remove them before continuing.\n' "$conflicts" >&2
     exit 72

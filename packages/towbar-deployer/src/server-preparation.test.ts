@@ -181,6 +181,30 @@ void test("refuses conflicting installations instead of removing them", () => {
   );
 });
 
+void test("missing Docker conflict packages do not stop fresh-server preparation", () => {
+  const script = serverPreparationScripts.installDocker;
+  const start = script.indexOf('conflicts="$({');
+  const end = script.indexOf('\n  if test -n "$conflicts"', start);
+  assert.notEqual(start, -1);
+  assert.notEqual(end, -1);
+
+  const result = spawnSync(
+    "bash",
+    [
+      "-c",
+      String.raw`
+set -euo pipefail
+dpkg-query() { return 1; }
+${script.slice(start, end)}
+printf '%s' "$conflicts"
+`,
+    ],
+    { encoding: "utf8" },
+  );
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, "");
+});
+
 void test("requires pinned SSH trust and verifies the installed services", () => {
   assert.match(serverPreparationScripts.inspectServer, /Ubuntu 22\.04/);
   assert.match(

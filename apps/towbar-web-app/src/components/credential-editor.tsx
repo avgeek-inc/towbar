@@ -356,6 +356,9 @@ function CredentialVerificationModal({
   verification: CredentialVerification | null;
 }) {
   const discoveredKeys = verification?.result?.discoveredHostKeys ?? [];
+  const orderedDiscoveredKeys = [...discoveredKeys].sort(
+    (left, right) => hostKeyPriority(left) - hostKeyPriority(right),
+  );
   const needsTrust =
     verification?.status === "failed" &&
     verification.errorCode === "HOST_KEY_NOT_TRUSTED" &&
@@ -408,28 +411,60 @@ function CredentialVerificationModal({
               ) : needsTrust ? (
                 <div className="grid gap-4">
                   {replacingIdentity ? (
-                    <p className="text-sm text-muted">
-                      This can happen after a server rebuild or IP reassignment,
-                      but it can also indicate an intercepted connection. Verify
-                      the fingerprint through your server provider before
-                      continuing.
-                    </p>
+                    <div className="grid gap-2 text-sm text-muted">
+                      <p>
+                        This can happen after a server rebuild or IP
+                        reassignment, but it can also indicate an intercepted
+                        connection.
+                      </p>
+                      <p>
+                        Verify one fingerprint through your server provider,
+                        then trust that key. Choose ED25519 when it is
+                        available.
+                      </p>
+                    </div>
                   ) : (
-                    <p className="text-sm text-muted">
-                      Confirm that this fingerprint belongs to your server.
-                      Compare it with a trusted source before continuing.
-                    </p>
+                    <div className="grid gap-2 text-sm text-muted">
+                      <p>
+                        Servers commonly present one host key for each supported
+                        algorithm. You only need to trust one verified key.
+                      </p>
+                      <p>
+                        Compare its fingerprint with a trusted source, then
+                        choose ED25519 when it is available.
+                      </p>
+                    </div>
                   )}
+                  {orderedDiscoveredKeys.some(
+                    (hostKey) => hostKey.algorithm === "ssh-ed25519",
+                  ) ? (
+                    <div className="grid gap-1 text-sm">
+                      <span className="text-muted">
+                        From a trusted console or existing SSH session:
+                      </span>
+                      <code className="overflow-x-auto rounded-lg bg-secondary px-3 py-2 text-xs">
+                        sudo ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub -E
+                        sha256
+                      </code>
+                    </div>
+                  ) : null}
                   <div className="grid gap-4">
-                    {discoveredKeys.map((hostKey) => (
+                    {orderedDiscoveredKeys.map((hostKey) => (
                       <div
                         className="grid gap-3"
                         key={`${hostKey.algorithm}:${hostKey.fingerprint}`}
                       >
                         <div className="grid min-w-0 gap-1">
-                          <span className="text-xs text-muted">
-                            {hostKey.algorithm}
-                          </span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs text-muted">
+                              {hostKeyAlgorithmName(hostKey.algorithm)}
+                            </span>
+                            {hostKey.algorithm === "ssh-ed25519" ? (
+                              <Chip size="small" variant="secondary">
+                                Recommended
+                              </Chip>
+                            ) : null}
+                          </div>
                           <code className="break-all text-sm">
                             {hostKey.fingerprint}
                           </code>
@@ -482,6 +517,20 @@ function CredentialVerificationModal({
       </Modal.Container>
     </Modal.Backdrop>
   );
+}
+
+function hostKeyPriority(hostKey: DiscoveredHostKey) {
+  if (hostKey.algorithm === "ssh-ed25519") return 0;
+  if (hostKey.algorithm.startsWith("ecdsa-")) return 1;
+  if (hostKey.algorithm === "ssh-rsa") return 2;
+  return 3;
+}
+
+function hostKeyAlgorithmName(algorithm: string) {
+  if (algorithm === "ssh-ed25519") return "ED25519";
+  if (algorithm === "ecdsa-sha2-nistp256") return "ECDSA P-256";
+  if (algorithm === "ssh-rsa") return "RSA";
+  return algorithm;
 }
 
 function ServerTlsForm({
