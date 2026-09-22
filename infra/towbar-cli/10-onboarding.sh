@@ -163,7 +163,7 @@ verify_public_ports() {
 }
 
 verify_public_prerequisites() {
-  [[ "$INSTALL_MODE" == public ]] || return
+  [[ "$INSTALL_MODE" == public ]] || return 0
   ui_pending_step "Checking the domain and HTTPS ports"
   verify_public_dns "$INSTALL_HOSTNAME"
   verify_public_ports

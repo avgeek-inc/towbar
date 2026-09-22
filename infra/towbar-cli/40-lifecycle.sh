@@ -126,7 +126,7 @@ verify_running_release() {
 
 verify_public_https() {
   local release_dir="$1" commit="$2" app_url hostname gateway_service container_id
-  [[ "$(env_value "$TOWBAR_ENV_FILE" TOWBAR_INSTALL_MODE)" == public ]] || return
+  [[ "$(env_value "$TOWBAR_ENV_FILE" TOWBAR_INSTALL_MODE)" == public ]] || return 0
   app_url="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_APP_BASE_URL)"
   hostname="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_DOMAIN)"
   gateway_service="$(gateway_service_for "$TOWBAR_ENV_FILE")"
@@ -167,7 +167,7 @@ verify_public_https() {
 
 rehearse_public_https_restart() {
   local release_dir="$1" commit="$2" gateway_service app_url hostname
-  [[ "${CONFIG_CREATED:-false}" == true && "${INSTALL_MODE:-}" == public ]] || return
+  [[ "${CONFIG_CREATED:-false}" == true && "${INSTALL_MODE:-}" == public ]] || return 0
   gateway_service="$(gateway_service_for "$TOWBAR_ENV_FILE")"
   app_url="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_APP_BASE_URL)"
   hostname="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_DOMAIN)"
