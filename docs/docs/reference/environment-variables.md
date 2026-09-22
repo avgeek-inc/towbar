@@ -7,7 +7,7 @@ Use this reference when configuring the Towbar installation. Application secrets
 
 The installer creates `/etc/towbar/towbar.env` with root ownership and mode `600`. `towbar config path` prints that location without reading the file. Edit it with an editor such as `sudo nano "$(towbar config path)"`, validate it with `sudo towbar config validate`, and apply changes with `sudo towbar restart`. Compose reads this file when creating containers; editing it alone does not update running services. The generated file lists every operator-configurable variable. Installation values and generated secrets are active; optional settings are included as commented examples that can be uncommented when needed.
 
-Towbar does not provide a configuration editor or retain rollback copies. Back up the file through your normal host configuration-management or secret-management process. Before replacing a running container, `restart` validates Compose, builds candidate images, and runs API, worker, integration, notification, log-forwarding, and Caddy configuration preflights. A failed preflight leaves the running services untouched and directs you to `sudo towbar doctor`.
+Towbar does not provide a configuration editor or retain rollback copies. Back up the file through your normal host configuration-management or secret-management process. Before replacing a running container, `restart` validates Compose and runs API, worker, integration, notification, log-forwarding, and Caddy configuration preflights against the installed release images. A failed preflight leaves the running services untouched and directs you to `sudo towbar doctor`.
 
 ## Required installation secrets
 
@@ -26,8 +26,8 @@ length.
 
 ## Public origins
 
-Set the Towbar origin before building images. Browser bundles embed the API
-origin at build time.
+The web app reads the Towbar origin at runtime. One prebuilt dashboard image can
+therefore serve localhost and public HTTPS installations.
 
 | Variable              | Example                  |
 | --------------------- | ------------------------ |
@@ -172,7 +172,7 @@ Keep worker activity capacity above the largest server build-concurrency setting
 
 ## Browser observability
 
-`NEXT_PUBLIC_SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_ENVIRONMENT` are optional dashboard build settings. Set the DSN to enable Sentry, use the environment label to distinguish installations, and review what your Sentry project collects. `sudo towbar restart` rebuilds the dashboard when either value changes.
+`NEXT_PUBLIC_SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_ENVIRONMENT` are optional dashboard runtime settings. Set the DSN to enable Sentry, use the environment label to distinguish installations, and review what your Sentry project collects. Apply either change with `sudo towbar restart`.
 
 ## Installation and upgrades
 

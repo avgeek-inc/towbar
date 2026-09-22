@@ -15,7 +15,13 @@ const template = await readFile(
   "utf8",
 );
 
-const injectedVariables = new Set(["SOURCE_COMMIT", "TOWBAR_IMAGE_TAG"]);
+const injectedVariables = new Set([
+  "SOURCE_COMMIT",
+  "TOWBAR_API_IMAGE",
+  "TOWBAR_IMAGE_TAG",
+  "TOWBAR_WEB_APP_IMAGE",
+  "TOWBAR_WORKER_IMAGE",
+]);
 const installerVariables = ["COMPOSE_PROFILES", "TOWBAR_INSTALL_MODE"];
 const activeVariables = new Set([
   "COMPOSE_PROFILES",

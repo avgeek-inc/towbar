@@ -1,7 +1,7 @@
 name: towbar
 
 x-api-image: &api-image
-  image: towbar/api:${TOWBAR_IMAGE_TAG:-local}
+  image: ${TOWBAR_API_IMAGE:-towbar/api:${TOWBAR_IMAGE_TAG:-local}}
 
 x-temporal-tools-image: &temporal-tools-image
   image: temporalio/admin-tools:1.31.1@sha256:0fa94393f6254dea05df1cdacb7a8ee95f6fb51a2ffbde0c6847a73037f788c7
@@ -232,7 +232,7 @@ services:
     networks: [platform]
 
   worker:
-    image: towbar/worker:${TOWBAR_IMAGE_TAG:-local}
+    image: ${TOWBAR_WORKER_IMAGE:-towbar/worker:${TOWBAR_IMAGE_TAG:-local}}
     build:
       context: .
       dockerfile: apps/towbar-worker/Dockerfile
@@ -252,15 +252,16 @@ services:
     networks: [platform]
 
   web-app:
-    image: towbar/web-app:${TOWBAR_IMAGE_TAG:-local}
+    image: ${TOWBAR_WEB_APP_IMAGE:-towbar/web-app:${TOWBAR_IMAGE_TAG:-local}}
     build:
       context: .
       dockerfile: apps/towbar-web-app/Dockerfile
       args:
-        NEXT_PUBLIC_TOWBAR_APP_BASE_URL: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
-        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
-        NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${NEXT_PUBLIC_SENTRY_ENVIRONMENT:-production}
         SOURCE_COMMIT: ${SOURCE_COMMIT:-development}
+    environment:
+      TOWBAR_APP_BASE_URL: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
+      NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+      NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${NEXT_PUBLIC_SENTRY_ENVIRONMENT:-production}
     restart: unless-stopped
     depends_on:
       api:

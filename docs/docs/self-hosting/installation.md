@@ -41,7 +41,7 @@ During installation, the CLI:
 2. Installs Docker Engine and Compose v2 when they are absent.
 3. Verifies the installer's exact published release and resolves its tag to an immutable commit.
 4. Downloads the release and creates the root-owned runtime configuration.
-5. Builds the API, worker, and dashboard images.
+5. Pulls the release's multi-architecture API, worker, and dashboard images from GitHub Container Registry by immutable digest. Published images include provenance and SBOM attestations.
 6. Applies the database and Temporal schemas.
 7. For a public URL, verifies DNS and ports 80 and 443, then starts the bundled Caddy gateway.
 8. Obtains a Let's Encrypt certificate, verifies the public HTTPS endpoint, and rehearses a gateway restart using the persisted certificate.
@@ -60,6 +60,8 @@ sudo towbar install
 ```
 
 The installer is versioned with Towbar. It installs the exact release declared inside the downloaded installer rather than resolving a moving `latest` release. The installed CLI verifies that release on GitHub and resolves its tag to an immutable commit before downloading source.
+
+A published release becomes installable after its **Publish release images** workflow succeeds and attaches the immutable image manifest. If that workflow is still running, the installer stops without changing the running installation and asks you to retry later.
 
 ## Configure the installation
 
@@ -89,9 +91,9 @@ The configuration commands are deliberately limited:
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `towbar config path`          | Prints the active environment-file path. It does not read or display the file.                                         |
 | `sudo towbar config validate` | Checks Compose, API, worker, integrations, notifications, log forwarding, and Caddy without changing running services. |
-| `sudo towbar restart`         | Builds candidate images and validates API, worker, integration, notification, log-forwarding, and Caddy configuration. |
+| `sudo towbar restart`         | Validates API, worker, integration, notification, log-forwarding, and Caddy configuration before replacing services.   |
 
-`restart` does not replace running containers unless every configuration preflight passes. If validation or a candidate build fails, the current services remain running and the CLI directs the operator to `sudo towbar doctor`. If a service fails after replacement begins despite those checks, the CLI stops and also directs the operator to `doctor` for the exact runtime failure.
+`restart` reuses the installed release images and does not rebuild or pull them. It does not replace running containers unless every configuration preflight passes. If validation fails, the current services remain running and the CLI directs the operator to `sudo towbar doctor`. If a service fails after replacement begins despite those checks, the CLI stops and also directs the operator to `doctor` for the exact runtime failure.
 
 Useful host commands include:
 
@@ -102,7 +104,7 @@ sudo towbar doctor
 sudo towbar version
 ```
 
-`sudo towbar doctor` performs read-only host, configuration, Docker, service, release, database, and access-mode checks. Public installations also check DNS, HTTPS routing, certificate lifetime, persisted Caddy state, and outbound access needed for releases and certificate renewal. It prints no secret values and returns a nonzero exit code when a required check fails.
+`sudo towbar doctor` performs read-only host, configuration, Docker, service, release, database, access-mode, and Towbar disk-usage checks. Public installations also check DNS, HTTPS routing, certificate lifetime, persisted Caddy state, and outbound access needed for releases and certificate renewal. It prints no secret values and returns a nonzero exit code when a required check fails.
 
 Use `sudo towbar upgrade` for later stable releases. See [Upgrades and recovery](/docs/self-hosting/upgrades) before upgrading an installation with production data.
 

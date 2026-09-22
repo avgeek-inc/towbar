@@ -31,19 +31,18 @@ type AccountSettingsPage =
   | "api-keys"
   | "mcp";
 
-const accountSettingsGroups: ReadonlyArray<{
-  title: string;
-  pages: readonly AccountSettingsPage[];
-}> = [
-  { title: "Account", pages: ["profile", "preferences"] },
-  { title: "Security", pages: ["email-password", "2fa", "sessions"] },
-  ...(hasHttpsExternalAccess
-    ? [{ title: "API & MCP", pages: ["api-keys", "mcp"] as const }]
-    : []),
-];
-
 export function AccountSettings({ page }: { page: AccountSettingsPage }) {
   const router = useRouter();
+  const accountSettingsGroups: ReadonlyArray<{
+    title: string;
+    pages: readonly AccountSettingsPage[];
+  }> = [
+    { title: "Account", pages: ["profile", "preferences"] },
+    { title: "Security", pages: ["email-password", "2fa", "sessions"] },
+    ...(hasHttpsExternalAccess()
+      ? [{ title: "API & MCP", pages: ["api-keys", "mcp"] as const }]
+      : []),
+  ];
   const titles = {
     profile: "Profile",
     preferences: "Preferences",

@@ -66,6 +66,8 @@ import { DeployableActionsMenu, RuntimeLogs } from "./runtime-operations";
 import { AutoDeployControlEditor } from "./auto-deploy-control";
 import { DomainLink } from "./domain-link";
 import { DeployableReadiness } from "./deployable-readiness";
+import { ResourceLogo } from "./deployable-identity";
+import { resourceImageBrand } from "./resource-image-brand";
 
 type ResourceRecord = Resource & {
   serverId: string;
@@ -390,6 +392,11 @@ export function ResourceDetail() {
   return (
     <DashboardPage
       icon={CubeIcon}
+      titleIcon={
+        <ResourceLogo
+          brand={resourceImageBrand(item.kind, item.config.image)}
+        />
+      }
       actions={
         detailNavigation.section === "overview" &&
         !item.archivedAt &&

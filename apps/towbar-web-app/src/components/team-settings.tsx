@@ -182,7 +182,7 @@ export function TeamSettingsShell({
     <DashboardPage title={active.label} icon={active.icon}>
       {teamSettingsGroups.map((group) => {
         const items = group.pages
-          .filter((id) => id !== "api-keys" || hasHttpsExternalAccess)
+          .filter((id) => id !== "api-keys" || hasHttpsExternalAccess())
           .map((id) => ({ id, ...teamSettingsPages[id] }))
           .filter((item) => can(item.permission));
         return items.length ? (
@@ -360,7 +360,7 @@ function TeamMembers() {
       header: "2FA",
       cell: (member) => (
         <StatusBadge
-          status={member.twoFactorEnabled ? "healthy" : "disabled"}
+          status={member.twoFactorEnabled ? "healthy" : "two_factor_disabled"}
           label={member.twoFactorEnabled ? "Enabled" : "Not enabled"}
         />
       ),

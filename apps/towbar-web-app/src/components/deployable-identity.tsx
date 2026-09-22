@@ -232,7 +232,7 @@ export function ResourceIdentity({
   );
 }
 
-function ResourceLogo({ brand }: { brand: ResourceBrand }) {
+export function ResourceLogo({ brand }: { brand: ResourceBrand }) {
   const [failed, setFailed] = useState(false);
   const fallback = "/resource-types/image.png";
   const logo = failed ? fallback : brand.logo;

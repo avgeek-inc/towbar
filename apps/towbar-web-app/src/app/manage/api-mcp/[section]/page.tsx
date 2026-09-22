@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { hasHttpsExternalAccess } from "@/lib/config";
+export const dynamic = "force-dynamic";
 const destinations: Record<string, string> = {
   "private-keys": "/team-settings/ssh-keys",
   "personal-keys": "/settings/api-keys",
@@ -14,6 +15,6 @@ export default async function Page({
   const { section } = await params;
   const target = destinations[section];
   if (!target) notFound();
-  if (!hasHttpsExternalAccess && section !== "private-keys") notFound();
+  if (!hasHttpsExternalAccess() && section !== "private-keys") notFound();
   redirect(target);
 }

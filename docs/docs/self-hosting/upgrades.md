@@ -27,7 +27,11 @@ To install a reviewed version explicitly, pass its release tag:
 sudo towbar upgrade v2.1.0
 ```
 
-The CLI accepts only published, non-prerelease v2-or-later semantic versions. It resolves the tag to an immutable Git commit, downloads that commit archive into `/opt/towbar/releases`, validates `/etc/towbar/towbar.env`, builds the release, applies migrations, waits for service health, and verifies the commit reported by the API. A failed service replacement restores the previous release symlink and images. A previous image alone is not a recovery plan for a database migration; review migration compatibility before reverting a release.
+The CLI accepts only published, non-prerelease v2-or-later semantic versions. It resolves the tag to an immutable Git commit, downloads that commit archive into `/opt/towbar/releases`, validates the release image manifest, pulls the API, worker, and dashboard images by immutable digest, validates `/etc/towbar/towbar.env`, applies migrations, waits for service health, and verifies the commit reported by the API. A failed service replacement restores the previous release symlink and images. A previous image alone is not a recovery plan for a database migration; review migration compatibility before reverting a release.
+
+The target release must have a successful **Publish release images** workflow. If its image manifest is not attached yet, the CLI stops before replacing the current release.
+
+After a successful upgrade, Towbar retains the current and immediately previous source release and application images. Older Towbar release directories and unreferenced Towbar application images are removed. Database, Temporal, Caddy, and application volumes are never pruned, and images belonging to other Docker workloads are not touched.
 
 The CLI keeps configuration outside release directories. Edit and apply it independently:
 

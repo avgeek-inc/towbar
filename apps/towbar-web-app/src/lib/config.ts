@@ -1,7 +1,12 @@
 export const config = {
-  appBaseUrl:
-    process.env.NEXT_PUBLIC_TOWBAR_APP_BASE_URL ?? "http://localhost:4021",
+  get appBaseUrl() {
+    if (process.env.NEXT_PUBLIC_TOWBAR_APP_BASE_URL)
+      return process.env.NEXT_PUBLIC_TOWBAR_APP_BASE_URL;
+    if (typeof window !== "undefined") return window.location.origin;
+    return process.env.TOWBAR_APP_BASE_URL ?? "http://localhost:4021";
+  },
 } as const;
 
-export const hasHttpsExternalAccess =
-  new URL(config.appBaseUrl).protocol === "https:";
+export function hasHttpsExternalAccess() {
+  return new URL(config.appBaseUrl).protocol === "https:";
+}

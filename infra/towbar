@@ -271,7 +271,7 @@ preview_installation() {
     "Installing Docker and prerequisites"
     "Verifying the $CLI_RELEASE release"
     "Generating installation secrets"
-    "Building the control-plane services"
+    "Downloading the control-plane images"
     "Applying the database schema"
     "Starting Towbar"
     "Verifying the API, worker and dashboard"
@@ -283,7 +283,7 @@ preview_installation() {
       "Checking DNS and HTTPS ports"
       "Verifying the $CLI_RELEASE release"
       "Generating installation secrets"
-      "Building the control-plane services"
+      "Downloading the control-plane images"
       "Applying the database schema"
       "Starting Towbar"
       "Issuing the Let's Encrypt certificate"
@@ -435,25 +435,21 @@ resolve_latest_version() {
 }
 
 verify_release() {
-  local version="$1" release_json
-  release_json="$(mktemp)"
-  curl \
+  local version="$1"
+  if ! curl \
     --fail \
     --silent \
     --show-error \
     --location \
     --proto '=https' \
     --tlsv1.2 \
-    "https://api.github.com/repos/$TOWBAR_REPOSITORY/releases/tags/$version" \
-    --output "$release_json"
-  jq -e \
-    --arg version "$version" \
-    '.tag_name == $version and .draft == false and .prerelease == false and .published_at != null' \
-    "$release_json" >/dev/null || {
-    rm -f "$release_json"
+    "https://api.github.com/repos/$TOWBAR_REPOSITORY/releases/tags/$version" |
+    jq -e \
+      --arg version "$version" \
+      '.tag_name == $version and .draft == false and .prerelease == false and .published_at != null' \
+      >/dev/null; then
     fail "$version is not a published stable release"
-  }
-  rm -f "$release_json"
+  fi
 }
 
 resolve_release_commit() {
@@ -483,6 +479,7 @@ metadata_value() {
 
 download_release() {
   local version="$1" commit="$2" release_dir staging archive source_dir package_version
+  local image_manifest owner image_prefix
   release_dir="$RELEASES_DIR/$version"
   if [[ -d "$release_dir" ]]; then
     [[ -f "$release_dir/.towbar-release" ]] ||
@@ -496,6 +493,7 @@ download_release() {
   install -d -m 0755 "$RELEASES_DIR"
   staging="$(mktemp -d "$RELEASES_DIR/.staging.XXXXXX")"
   archive="$staging/release.tar.gz"
+  image_manifest="$staging/towbar-images.json"
   cleanup_download() {
     rm -rf "$staging"
   }
@@ -513,6 +511,19 @@ download_release() {
     --tlsv1.2 \
     "https://github.com/$TOWBAR_REPOSITORY/archive/$commit.tar.gz" \
     --output "$archive"
+  if ! curl \
+    --fail \
+    --silent \
+    --show-error \
+    --location \
+    --retry 4 \
+    --retry-all-errors \
+    --proto '=https' \
+    --tlsv1.2 \
+    "https://github.com/$TOWBAR_REPOSITORY/releases/download/$version/towbar-images.json" \
+    --output "$image_manifest"; then
+    fail "Prebuilt images for Towbar $version are not published yet. Retry after the release image workflow completes."
+  fi
 
   if tar -tzf "$archive" | grep -Eq '(^/|(^|/)\.\.(/|$))'; then
     fail "release archive contains an unsafe path"
@@ -526,10 +537,28 @@ download_release() {
   package_version="$(jq -r .version "$source_dir/package.json")"
   [[ "$package_version" == "${version#v}" ]] ||
     fail "$version contains package version $package_version"
+  owner="${TOWBAR_REPOSITORY%%/*}"
+  image_prefix="ghcr.io/${owner,,}"
+  jq -e \
+    --arg version "$version" \
+    --arg commit "$commit" \
+    --arg api "$image_prefix/towbar-api@" \
+    --arg worker "$image_prefix/towbar-worker@" \
+    --arg web "$image_prefix/towbar-web-app@" \
+    '.version == $version and .commit == $commit and
+      (.images | keys == ["api", "web-app", "worker"]) and
+      (.images.api | startswith($api) and test("@sha256:[0-9a-f]{64}$")) and
+      (.images.worker | startswith($worker) and test("@sha256:[0-9a-f]{64}$")) and
+      (.images["web-app"] | startswith($web) and test("@sha256:[0-9a-f]{64}$"))' \
+    "$image_manifest" >/dev/null ||
+    fail "$version does not contain a valid immutable image manifest"
   cat >"$source_dir/.towbar-release" <<EOF
 VERSION=$version
 COMMIT=$commit
 REPOSITORY=$TOWBAR_REPOSITORY
+API_IMAGE=$(jq -r '.images.api' "$image_manifest")
+WORKER_IMAGE=$(jq -r '.images.worker' "$image_manifest")
+WEB_APP_IMAGE=$(jq -r '.images["web-app"]' "$image_manifest")
 EOF
   mv "$source_dir" "$release_dir"
   trap - EXIT
@@ -564,9 +593,16 @@ generate_config() {
 
 compose_for() {
   local release_dir="$1" commit="$2" env_file="$3" compose_profiles
+  local api_image worker_image web_app_image
   shift 3
   compose_profiles="$(env_value "$env_file" COMPOSE_PROFILES)"
+  api_image="$(metadata_value "$release_dir" API_IMAGE)"
+  worker_image="$(metadata_value "$release_dir" WORKER_IMAGE)"
+  web_app_image="$(metadata_value "$release_dir" WEB_APP_IMAGE)"
   TOWBAR_IMAGE_TAG="$commit" \
+    TOWBAR_API_IMAGE="$api_image" \
+    TOWBAR_WORKER_IMAGE="$worker_image" \
+    TOWBAR_WEB_APP_IMAGE="$web_app_image" \
     SOURCE_COMMIT="$commit" \
     COMPOSE_PROFILES="${compose_profiles:-local}" \
     docker compose \
@@ -625,7 +661,8 @@ set_current_release() {
 }
 
 verify_running_release() {
-  local release_dir="$1" commit="$2" service container_id health_status expected_image running_image gateway_service
+  local release_dir="$1" commit="$2" service container_id health_status expected_image running_image gateway_service compose_config
+  compose_config="$(compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" config --format json)"
   for service in api worker web-app; do
     container_id="$(compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q "$service")"
     if [[ -z "$container_id" ]]; then
@@ -641,11 +678,7 @@ verify_running_release() {
       printf 'Towbar: %s finished with status %s\n' "$service" "$health_status" >&2
       return 1
     fi
-    case "$service" in
-      api) expected_image="towbar/api:$commit" ;;
-      worker) expected_image="towbar/worker:$commit" ;;
-      web-app) expected_image="towbar/web-app:$commit" ;;
-    esac
+    expected_image="$(jq -r --arg service "$service" '.services[$service].image' <<<"$compose_config")"
     running_image="$(docker inspect --format '{{.Config.Image}}' "$container_id")"
     if [[ "$running_image" != "$expected_image" ]]; then
       printf \
@@ -756,6 +789,78 @@ install_cli_from_release() {
   install -o root -g root -m 0755 "$release_dir/infra/towbar" "$TOWBAR_BIN"
 }
 
+release_application_images() {
+  local release_dir="$1" commit="$2" api_image worker_image web_app_image
+  api_image="$(metadata_value "$release_dir" API_IMAGE)"
+  worker_image="$(metadata_value "$release_dir" WORKER_IMAGE)"
+  web_app_image="$(metadata_value "$release_dir" WEB_APP_IMAGE)"
+  if [[ -n "$api_image" && -n "$worker_image" && -n "$web_app_image" ]]; then
+    printf '%s\n' "$api_image" "$worker_image" "$web_app_image"
+  else
+    printf '%s\n' \
+      "towbar/api:$commit" \
+      "towbar/worker:$commit" \
+      "towbar/web-app:$commit"
+  fi
+}
+
+cleanup_old_releases() {
+  local current_release="$1" previous_release="$2" candidate resolved
+  while IFS= read -r -d '' candidate; do
+    resolved="$(readlink -f "$candidate")"
+    if [[ "$resolved" == "$current_release" || "$resolved" == "$previous_release" ]]; then
+      continue
+    fi
+    if rm -rf -- "$resolved"; then
+      ui_note "Removed old release $(basename "$resolved")."
+    else
+      ui_note "Could not remove old release $resolved."
+    fi
+  done < <(find "$RELEASES_DIR" -mindepth 1 -maxdepth 1 -type d -print0)
+}
+
+is_towbar_application_repository() {
+  [[ "$1" =~ ^towbar/(api|worker|web-app)$ ||
+    "$1" =~ ^ghcr\.io/[^/]+/towbar-(api|worker|web-app)$ ]]
+}
+
+cleanup_old_application_images() {
+  local current_release="$1" current_commit="$2" previous_release="$3" previous_commit="$4"
+  local repository image_id keep_id
+  local -a keep_ids=()
+  local -A seen_ids=()
+  while IFS= read -r image_ref; do
+    keep_id="$(docker image inspect --format '{{.Id}}' "$image_ref" 2>/dev/null || true)"
+    [[ -z "$keep_id" ]] || keep_ids+=("$keep_id")
+  done < <(
+    release_application_images "$current_release" "$current_commit"
+    if [[ -n "$previous_release" ]]; then
+      release_application_images "$previous_release" "$previous_commit"
+    fi
+  )
+
+  while read -r repository image_id; do
+    is_towbar_application_repository "$repository" || continue
+    [[ -z "${seen_ids[$image_id]:-}" ]] || continue
+    seen_ids[$image_id]=1
+    for keep_id in "${keep_ids[@]}"; do
+      [[ "$image_id" == "$keep_id" ]] && continue 2
+    done
+    if docker image rm "$image_id" >/dev/null; then
+      ui_note "Removed an obsolete $repository image."
+    else
+      ui_note "Kept $repository because Docker still references it."
+    fi
+  done < <(docker image ls --no-trunc --format '{{.Repository}} {{.ID}}' | sort -u)
+}
+
+cleanup_installation_artifacts() {
+  local current_release="$1" current_commit="$2" previous_release="$3" previous_commit="$4"
+  cleanup_old_application_images \
+    "$current_release" "$current_commit" "$previous_release" "$previous_commit"
+  cleanup_old_releases "$current_release" "$previous_release"
+}
+
 upgrade_release() {
   local requested_version="${1:-latest}" version commit release_dir
   local previous_release="" previous_commit="" containers_changed=false
@@ -832,10 +937,10 @@ upgrade_release() {
   trap 'rollback_upgrade 130' INT
   trap 'rollback_upgrade 143' TERM
 
-  ui_pending_step "Building the control-plane services"
+  ui_pending_step "Downloading the control-plane images"
   compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
-    build --quiet api worker web-app
-  ui_step "Built the control-plane services"
+    pull --quiet api worker web-app
+  ui_step "Downloaded the control-plane images"
   set_current_release "$release_dir"
   containers_changed=true
   ui_pending_step "Applying the database schema and starting $version"
@@ -861,6 +966,8 @@ upgrade_release() {
   printf '%s\n' "$version" >"$VERSION_FILE"
   install_cli_from_release "$release_dir"
   trap - ERR INT TERM
+  cleanup_installation_artifacts \
+    "$release_dir" "$commit" "$previous_release" "$previous_commit"
   log "$version is healthy at $commit"
 }
 
@@ -925,11 +1032,6 @@ restart_release() {
 
   log "Validating $TOWBAR_ENV_FILE before restarting"
   if ! (validate_config_for "$release_dir"); then
-    restart_preflight_failure
-    return 1
-  fi
-  if ! compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
-    build --quiet api worker web-app; then
     restart_preflight_failure
     return 1
   fi
@@ -1066,6 +1168,45 @@ doctor_check_host() {
   else
     doctor_record warn "System clock synchronization was not confirmed" "TLS and signed requests require an accurate clock."
   fi
+}
+
+format_kibibytes() {
+  awk -v kib="$1" 'BEGIN {
+    if (kib >= 1048576) printf "%.1f GiB", kib / 1048576;
+    else if (kib >= 1024) printf "%.1f MiB", kib / 1024;
+    else printf "%d KiB", kib;
+  }'
+}
+
+doctor_check_disk_usage() {
+  local release_kib=0 image_bytes=0 volume_kib=0 repository image_id size mountpoint volume
+  local -A seen_images=()
+
+  release_kib="$(du -sk "$RELEASES_DIR" 2>/dev/null | awk '{ print $1 }')"
+  if [[ "$release_kib" =~ ^[0-9]+$ ]]; then
+    doctor_record pass "Release storage measured" "$(format_kibibytes "$release_kib") in $RELEASES_DIR"
+  else
+    doctor_record warn "Release storage could not be measured"
+  fi
+
+  while read -r repository image_id; do
+    is_towbar_application_repository "$repository" || continue
+    [[ -z "${seen_images[$image_id]:-}" ]] || continue
+    seen_images[$image_id]=1
+    size="$(docker image inspect --format '{{.Size}}' "$image_id" 2>/dev/null || true)"
+    [[ "$size" =~ ^[0-9]+$ ]] && image_bytes=$((image_bytes + size))
+  done < <(docker image ls --no-trunc --format '{{.Repository}} {{.ID}}' 2>/dev/null | sort -u)
+  doctor_record pass "Towbar application image storage measured" \
+    "$(format_kibibytes $((image_bytes / 1024))) apparent size across ${#seen_images[@]} images"
+
+  while IFS= read -r volume; do
+    [[ -n "$volume" ]] || continue
+    mountpoint="$(docker volume inspect --format '{{.Mountpoint}}' "$volume" 2>/dev/null || true)"
+    [[ -d "$mountpoint" ]] || continue
+    size="$(du -sk "$mountpoint" 2>/dev/null | awk '{ print $1 }')"
+    [[ "$size" =~ ^[0-9]+$ ]] && volume_kib=$((volume_kib + size))
+  done < <(docker volume ls --filter label=com.docker.compose.project=towbar --quiet 2>/dev/null)
+  doctor_record pass "Towbar volume storage measured" "$(format_kibibytes "$volume_kib")"
 }
 
 doctor_check_config() {
@@ -1246,6 +1387,9 @@ doctor_command() {
   printf '\n'
 
   doctor_check_host
+  if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+    doctor_check_disk_usage
+  fi
   doctor_check_config "$release_dir"
   if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     doctor_check_services "$release_dir" "$DOCTOR_COMMIT" "$gateway_service"
@@ -1358,7 +1502,7 @@ Usage: towbar COMMAND [ARGUMENTS]
 Commands:
   install                Install the release bundled with this CLI
   upgrade [VERSION]      Upgrade to the latest or selected stable release
-  restart                Rebuild and restart with the current configuration
+  restart                Validate and restart with the current configuration
   compose COMMAND        Run a Docker Compose command for this installation
   config path            Print the configuration path
   config validate        Validate the current configuration

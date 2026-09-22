@@ -71,6 +71,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
+      - run: node tools/build-towbar-cli.mjs --check
       - run: bash -n install.sh infra/towbar
       - run: shellcheck install.sh infra/towbar
       - run: |
