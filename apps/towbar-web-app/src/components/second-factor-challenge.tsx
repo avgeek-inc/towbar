@@ -8,7 +8,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { toast } from "@workspace/web-design-system/overlays/toast";
-import { AuthFrame } from "./auth-frame";
+import { AuthFrame, authTextActionClassName } from "./auth-frame";
 import { AuthForm } from "./auth-form";
 import { api } from "@/lib/api";
 import {
@@ -73,7 +73,7 @@ export function SecondFactorChallenge({
                   methods.length > 1 ? (
                     <Button
                       variant="ghost"
-                      className="h-8 min-w-0 px-0 text-sm underline underline-offset-4"
+                      className={`h-8 min-w-0 px-0 hover:bg-transparent ${authTextActionClassName}`}
                       onPress={chooseMethod}
                     >
                       Change method
@@ -134,7 +134,7 @@ export function SecondFactorChallenge({
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
           <a
             href="/login"
-            className="inline-flex min-h-9 items-center gap-1.5 text-sm underline underline-offset-4"
+            className={`inline-flex min-h-9 items-center gap-1.5 ${authTextActionClassName}`}
           >
             <HugeiconsIcon
               icon={ArrowLeft02Icon}
@@ -146,7 +146,7 @@ export function SecondFactorChallenge({
           {method === "totp" ? (
             <Button
               variant="ghost"
-              className="h-9 min-w-0 px-0 text-sm underline underline-offset-4"
+              className={`h-9 min-w-0 px-0 hover:bg-transparent ${authTextActionClassName}`}
               onPress={() => setRecovery((value) => !value)}
             >
               {recovery ? "Use authenticator app" : "Use a recovery code"}
@@ -155,7 +155,7 @@ export function SecondFactorChallenge({
           {method === "passkey" && methods.length > 1 ? (
             <Button
               variant="ghost"
-              className="h-9 min-w-0 px-0 text-sm underline underline-offset-4"
+              className={`h-9 min-w-0 px-0 hover:bg-transparent ${authTextActionClassName}`}
               onPress={chooseMethod}
             >
               Change method

@@ -27,6 +27,7 @@ import {
   type AuthDatabase,
   getTowbarDatabase,
 } from "../../infrastructure/database.js";
+import { recordAuditEvent } from "../../infrastructure/audit.js";
 import { runPasswordOperationWithCapacityLimit } from "./password-verification.js";
 import { enqueueIdentityEmail } from "../team/email-outbox.js";
 import { enqueueVerificationEmail } from "./email-verification.js";
@@ -201,6 +202,18 @@ function identityOptions(database: AuthDatabase) {
                   identityProvisioning.getStore()?.reason === "invite" &&
                   user.emailVerified,
               },
+            });
+          },
+          after: async (user) => {
+            const provisioning = identityProvisioning.getStore();
+            if (!provisioning || provisioning.reason === "admin") return;
+            await recordAuditEvent(database, {
+              workspaceId: provisioning.workspaceId,
+              actorKind: "session",
+              actorUserId: user.id,
+              action: "account.signed-up",
+              targetType: "account",
+              targetId: user.id,
             });
           },
         },

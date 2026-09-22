@@ -11,7 +11,7 @@ import {
   type WorkspaceRole,
 } from "@workspace/towbar-access";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
-import { AuthFrame } from "./auth-frame";
+import { AuthFrame, authTextActionClassName } from "./auth-frame";
 import { AuthForm } from "./auth-form";
 import { api } from "@/lib/api";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -55,7 +55,7 @@ export function FirstPasswordForm() {
         title="Sign in to continue"
         description="Sign in with your temporary password, or open your invitation."
       >
-        <Link href="/login" className="underline">
+        <Link href="/login" className={authTextActionClassName}>
           Sign in
         </Link>
       </AuthFrame>
@@ -171,10 +171,7 @@ export function ResetPasswordForm() {
         />
       ) : null}
       {!complete ? (
-        <Link
-          href="/forgot-password"
-          className="text-sm underline underline-offset-4"
-        >
+        <Link href="/forgot-password" className={authTextActionClassName}>
           Request a new link
         </Link>
       ) : null}
@@ -186,7 +183,7 @@ function BackToSignIn() {
   return (
     <Link
       href="/login"
-      className="inline-flex w-fit items-center gap-1.5 text-sm underline underline-offset-4"
+      className={`inline-flex w-fit items-center gap-1.5 ${authTextActionClassName}`}
     >
       <HugeiconsIcon
         icon={ArrowLeft02Icon}
@@ -220,7 +217,7 @@ export function InvitationForm({ invitationId }: { invitationId: string }) {
         title="Invitation unavailable"
         description="This invitation may have expired, been revoked, or already been accepted. Ask your admin for a new link."
       >
-        <Link href="/login" className="underline">
+        <Link href="/login" className={authTextActionClassName}>
           Sign in
         </Link>
       </AuthFrame>
@@ -329,7 +326,7 @@ export function InvitationForm({ invitationId }: { invitationId: string }) {
       {!account ? (
         <Link
           href={`/login?next=${encodeURIComponent(self)}`}
-          className="underline underline-offset-4"
+          className={authTextActionClassName}
         >
           Already have an account? Sign in
         </Link>

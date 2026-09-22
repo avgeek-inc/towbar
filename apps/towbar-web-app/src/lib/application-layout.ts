@@ -222,7 +222,7 @@ export function createApplicationSidebar(
           }),
           createElement(
             "div",
-            { className: "grid min-w-0 flex-1 gap-1" },
+            { className: "grid min-w-0 flex-1 gap-0" },
             createElement(
               "span",
               { className: "truncate font-medium" },

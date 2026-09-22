@@ -10,12 +10,11 @@ import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { FormCard, ActionButton } from "./page-parts";
 import { AuthForm } from "./auth-form";
 import { useAccess } from "./access-context";
-import { RelativeTime } from "./last-synced-time";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { registerPasskey, passkeyError } from "@/lib/passkeys";
 
-type Passkey = { id: string; name: string | null; createdAt: string };
+type Passkey = { id: string; name: string | null };
 export function PasskeySettings() {
   const { user } = useAccess();
   const keys = useApiQuery<{ passkeys: Passkey[] }>(
@@ -36,7 +35,7 @@ export function PasskeySettings() {
         icon={<HugeiconsIcon icon={Key01Icon} />}
         headerEnd={
           keys.data && !keys.error ? (
-            <Chip variant="secondary">
+            <Chip variant={keys.data.passkeys.length ? "success" : "secondary"}>
               {keys.data.passkeys.length
                 ? `${keys.data.passkeys.length} added`
                 : "None added"}
@@ -61,13 +60,15 @@ export function PasskeySettings() {
                   key={key.id}
                   className="flex flex-wrap items-center justify-between gap-3 py-4 first:pt-0"
                 >
-                  <div className="min-w-0">
-                    <p className="font-medium break-words">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <HugeiconsIcon
+                      aria-hidden="true"
+                      className="size-4 shrink-0 text-muted"
+                      icon={Key01Icon}
+                    />
+                    <p className="text-sm font-medium break-words">
                       {key.name || "Passkey"}
                     </p>
-                    <div className="text-sm text-muted">
-                      <RelativeTime value={key.createdAt} label="Added" />
-                    </div>
                   </div>
                   <div className="flex gap-2">
                     <Button variant="secondary" onPress={() => edit(key)}>

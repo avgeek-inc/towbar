@@ -1,4 +1,6 @@
 import { validatePasskeyRequest } from "../../../areas/auth/passkey-requests.js";
+import { preferenceOptions } from "../../../areas/auth/preferences.js";
+import { dateTimePreferencesSchema } from "@workspace/towbar-core/date-time";
 import { eq } from "drizzle-orm";
 import { users } from "@workspace/towbar-database/schema";
 import { confirmEmailChange } from "../../../areas/auth/email-change.js";
@@ -20,6 +22,7 @@ import {
   findSession,
   getInitialSetupStatus,
   getUserIdentity,
+  recordSuccessfulSignIn,
 } from "../../../areas/auth/service.js";
 import {
   createIdentityAuth,
@@ -43,6 +46,7 @@ const loginSchema = z
 const setupSchema = z
   .object({
     confirmPassword: z.string().min(15).max(1024),
+    dateTimePreferences: dateTimePreferencesSchema,
     displayName: z.string().trim().min(1).max(120),
     teamName: z.string().trim().min(1).max(120),
     email: z.email().max(320),
@@ -61,7 +65,10 @@ publicAuthRoutes.use("*", async (context, next) => {
   await next();
 });
 publicAuthRoutes.get("/setup-status", async (context) =>
-  context.json(await getInitialSetupStatus()),
+  context.json({
+    ...(await getInitialSetupStatus()),
+    options: preferenceOptions(),
+  }),
 );
 publicAuthRoutes.post("/setup", async (context) => {
   await enforceInitialSetupRateLimit(getClientAddress(context));
@@ -241,6 +248,8 @@ publicAuthRoutes.all("/identity/*", async (context) => {
           .where(eq(users.id, before.user.id))
           .for("update");
       const response = await auth.handler(context.req.raw);
+      if (response.ok && !before && path === "/passkey/verify-authentication")
+        await recordSuccessfulSignIn(tx, response);
       if (
         response.ok &&
         before &&
@@ -272,6 +281,14 @@ publicAuthRoutes.all("/identity/*", async (context) => {
           .where(eq(users.id, before.user.id))
           .for("update");
       const response = await auth.handler(context.req.raw);
+      if (
+        response.ok &&
+        !before &&
+        ["/two-factor/verify-totp", "/two-factor/verify-backup-code"].includes(
+          path,
+        )
+      )
+        await recordSuccessfulSignIn(tx, response);
       if (
         response.ok &&
         before &&

@@ -1,5 +1,6 @@
 import { and, count, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import { isWorkspaceRole, roleActions } from "@workspace/towbar-access";
+import type { DateTimePreferences } from "@workspace/towbar-core/date-time";
 import {
   authAccounts,
   sessions,
@@ -8,7 +9,11 @@ import {
   workspaces,
 } from "@workspace/towbar-database/schema";
 import { conflict, forbidden, unauthorized } from "../../http/errors.js";
-import { getTowbarDatabase } from "../../infrastructure/database.js";
+import { recordAuditEvent } from "../../infrastructure/audit.js";
+import {
+  type AuthDatabase,
+  getTowbarDatabase,
+} from "../../infrastructure/database.js";
 import {
   createIdentityAuth,
   getIdentityAuth,
@@ -27,6 +32,7 @@ export async function createInitialAdmin(input: {
   displayName: string;
   email: string;
   password: string;
+  dateTimePreferences?: DateTimePreferences;
 }) {
   const email = input.email.trim().toLowerCase();
   await getTowbarDatabase().transaction(async (tx) => {
@@ -58,26 +64,62 @@ export async function createInitialAdmin(input: {
           },
         }),
     );
+    if (input.dateTimePreferences)
+      await tx
+        .update(users)
+        .set({ dateTimePreferences: input.dateTimePreferences })
+        .where(eq(users.id, result.user.id));
     await tx.insert(workspaceMembers).values({
       workspaceId: workspace.id,
       userId: result.user.id,
       role: "admin",
     });
   });
-  return await getIdentityAuth().api.signInEmail({
+  const response = await getIdentityAuth().api.signInEmail({
     body: { email, password: input.password },
     asResponse: true,
   });
+  await recordSuccessfulSignIn(getTowbarDatabase(), response);
+  return response;
 }
 export async function authenticatePassword(
   input: { email: string; password: string },
   headers?: Headers,
 ) {
   const email = input.email.trim().toLowerCase();
-  return await getIdentityAuth().api.signInEmail({
+  const response = await getIdentityAuth().api.signInEmail({
     body: { email, password: input.password },
     headers,
     asResponse: true,
+  });
+  await recordSuccessfulSignIn(getTowbarDatabase(), response);
+  return response;
+}
+
+export async function recordSuccessfulSignIn(
+  database: AuthDatabase,
+  response: Response,
+) {
+  if (!response.ok) return;
+  const body = (await response.clone().json()) as {
+    twoFactorRedirect?: boolean;
+    user?: { id?: string };
+  };
+  const userId = body.twoFactorRedirect ? undefined : body.user?.id;
+  if (!userId) return;
+  const [membership] = await database
+    .select({ workspaceId: workspaceMembers.workspaceId })
+    .from(workspaceMembers)
+    .where(eq(workspaceMembers.userId, userId))
+    .limit(1);
+  if (!membership) return;
+  await recordAuditEvent(database, {
+    workspaceId: membership.workspaceId,
+    actorKind: "session",
+    actorUserId: userId,
+    action: "account.signed-in",
+    targetType: "account",
+    targetId: userId,
   });
 }
 export async function getUserIdentity(userId: string) {

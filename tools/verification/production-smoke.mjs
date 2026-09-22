@@ -67,6 +67,11 @@ const data = {
   email: "verification@example.invalid",
   password,
   confirmPassword: password,
+  dateTimePreferences: {
+    dateFormat: "day-short-month-year",
+    timeFormat: "24-hour",
+    timeZone: "UTC",
+  },
 };
 response = await request(
   "/v1/public/auth/setup",

@@ -29,6 +29,7 @@ import {
   getIdentityAuth,
   identityProvisioning,
 } from "../auth/identity.js";
+import { recordSuccessfulSignIn } from "../auth/service.js";
 import { getNotificationProviderConfiguration } from "../notifications/configuration.js";
 import { lockTeam, requireTeamAdmin } from "./authorization.js";
 import { enqueueTeamEmail } from "./email-outbox.js";
@@ -571,6 +572,7 @@ export async function completeInvitationSignup(
       .where(eq(users.id, result.user.id));
     await cancelInvitationEmails(tx, id);
     await invitationAccepted(tx, row, result.user.id);
+    await recordSuccessfulSignIn(tx, response);
     return response;
   });
 }

@@ -10,14 +10,12 @@ import type {
 } from "@workspace/towbar-web-client";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { Button } from "@workspace/web-design-system/buttons/button";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { Select, ListBox } from "@workspace/web-design-system/forms/select";
-import {
-  Autocomplete,
-  SearchField,
-} from "@workspace/web-design-system/pickers/autocomplete";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { FormCard } from "./page-parts";
+import {
+  DateTimePreferenceFields,
+  type DateTimePreferenceOptions,
+} from "./date-time-preference-fields";
 import { useApiQuery, clearApiQueryCache } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 
@@ -25,17 +23,7 @@ type Preview = { instant: string; display: LocalizedTimestamp };
 type PreferencesResponse = {
   preferences: DateTimePreferences;
   preview: Preview;
-  options: {
-    dateFormats: Array<{
-      id: DateTimePreferences["dateFormat"];
-      label: string;
-    }>;
-    timeFormats: Array<{
-      id: DateTimePreferences["timeFormat"];
-      label: string;
-    }>;
-    timeZones: string[];
-  };
+  options: DateTimePreferenceOptions;
 };
 
 export function DateTimePreferencesSettings() {
@@ -124,133 +112,15 @@ function PreferencesForm({ data }: { data: PreferencesResponse }) {
   }
   return (
     <form className="grid gap-5" onSubmit={save}>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Select
-          variant="secondary"
-          fullWidth
-          isRequired
-          isDisabled={busy}
-          selectedKey={preferences.dateFormat}
-          onSelectionChange={(key) => {
-            const option = data.options.dateFormats.find(
-              (item) => item.id === key,
-            );
-            if (option)
-              setPreferences((value) => ({ ...value, dateFormat: option.id }));
-          }}
-        >
-          <Label isRequired>Date format</Label>
-          <Select.Trigger>
-            <Select.Value />
-            <Select.Indicator />
-          </Select.Trigger>
-          <Select.Popover>
-            <ListBox>
-              {data.options.dateFormats.map((option) => (
-                <ListBox.Item
-                  id={option.id}
-                  key={option.id}
-                  textValue={option.label}
-                >
-                  {option.label}
-                  <ListBox.ItemIndicator />
-                </ListBox.Item>
-              ))}
-            </ListBox>
-          </Select.Popover>
-        </Select>
-        <Select
-          variant="secondary"
-          fullWidth
-          isRequired
-          isDisabled={busy}
-          selectedKey={preferences.timeFormat}
-          onSelectionChange={(key) => {
-            const option = data.options.timeFormats.find(
-              (item) => item.id === key,
-            );
-            if (option)
-              setPreferences((value) => ({ ...value, timeFormat: option.id }));
-          }}
-        >
-          <Label isRequired>Time format</Label>
-          <Select.Trigger>
-            <Select.Value />
-            <Select.Indicator />
-          </Select.Trigger>
-          <Select.Popover>
-            <ListBox>
-              {data.options.timeFormats.map((option) => (
-                <ListBox.Item
-                  id={option.id}
-                  key={option.id}
-                  textValue={option.label}
-                >
-                  {option.label}
-                  <ListBox.ItemIndicator />
-                </ListBox.Item>
-              ))}
-            </ListBox>
-          </Select.Popover>
-        </Select>
-      </div>
-      <Select
-        fullWidth
-        isRequired
-        isDisabled={busy}
-        selectedKey={preferences.timeZone}
-        onSelectionChange={(key) => {
-          if (typeof key === "string" && data.options.timeZones.includes(key))
-            setPreferences((value) => ({ ...value, timeZone: key }));
-        }}
-      >
-        <Label isRequired>Time zone</Label>
-        <Select.Trigger>
-          <Select.Value>{preferences.timeZone}</Select.Value>
-          <Select.Indicator />
-        </Select.Trigger>
-        <Select.Popover className="w-(--trigger-width) min-w-[min(18rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden">
-          <Autocomplete.Filter
-            filter={(text, search) =>
-              text
-                .toLocaleLowerCase()
-                .includes(search.trim().toLocaleLowerCase())
-            }
-          >
-            <SearchField
-              aria-label="Search time zones"
-              className="px-2 pt-2"
-              variant="secondary"
-            >
-              <SearchField.Group className="rounded">
-                <SearchField.SearchIcon />
-                <SearchField.Input
-                  className="text-base sm:text-sm"
-                  placeholder="Search time zones…"
-                  maxLength={200}
-                  autoComplete="off"
-                  spellCheck={false}
-                  autoFocus={
-                    typeof window !== "undefined" &&
-                    window.matchMedia("(pointer: fine)").matches
-                  }
-                />
-                <SearchField.ClearButton aria-label="Clear time zone search" />
-              </SearchField.Group>
-            </SearchField>
-            <ListBox>
-              {data.options.timeZones.map((zone) => (
-                <ListBox.Item id={zone} key={zone} textValue={zone}>
-                  {zone}
-                  <ListBox.ItemIndicator />
-                </ListBox.Item>
-              ))}
-            </ListBox>
-          </Autocomplete.Filter>
-        </Select.Popover>
-      </Select>
+      <DateTimePreferenceFields
+        disabled={busy}
+        onChange={setPreferences}
+        options={data.options}
+        preferences={preferences}
+        variant="secondary"
+      />
       <div
-        className="grid min-h-16 gap-1"
+        className="grid min-h-16 gap-0"
         aria-live="polite"
         aria-busy={previewPending}
       >
