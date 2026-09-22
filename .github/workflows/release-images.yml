@@ -1,39 +1,49 @@
 name: Publish release images
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Stable release tag, for example v2.0.1
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-images-${{ github.event.release.tag_name }}
+  group: release-images-${{ inputs.release_tag }}
   cancel-in-progress: false
 
 jobs:
   prepare:
-    if: github.event.release.draft == false && github.event.release.prerelease == false
     runs-on: ubuntu-latest
     outputs:
       commit: ${{ steps.release.outputs.commit }}
+      created: ${{ steps.release.outputs.created }}
+      tag: ${{ steps.release.outputs.tag }}
       version: ${{ steps.release.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-          ref: ${{ github.event.release.tag_name }}
       - id: release
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
           [[ "$RELEASE_TAG" =~ ^v2\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
           version="${RELEASE_TAG#v}"
           test "$(jq -r .version package.json)" = "$version"
           commit="$(git rev-parse 'HEAD^{commit}')"
-          echo "commit=$commit" >>"$GITHUB_OUTPUT"
-          echo "version=$version" >>"$GITHUB_OUTPUT"
+          created="$(git show -s --format=%cI HEAD)"
+          {
+            echo "commit=$commit"
+            echo "created=$created"
+            echo "tag=$RELEASE_TAG"
+            echo "version=$version"
+          } >>"$GITHUB_OUTPUT"
 
   build:
     needs: prepare
@@ -57,7 +67,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ needs.prepare.outputs.commit }}
       - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
@@ -76,7 +86,7 @@ jobs:
           sbom: true
           build-args: SOURCE_COMMIT=${{ needs.prepare.outputs.commit }}
           labels: |
-            org.opencontainers.image.created=${{ github.event.release.published_at }}
+            org.opencontainers.image.created=${{ needs.prepare.outputs.created }}
             org.opencontainers.image.revision=${{ needs.prepare.outputs.commit }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
@@ -113,7 +123,7 @@ jobs:
       - name: Create release image manifest
         env:
           RELEASE_COMMIT: ${{ needs.prepare.outputs.commit }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
         run: |
           jq -s \
             --arg version "$RELEASE_TAG" \
@@ -131,10 +141,27 @@ jobs:
               exit 1
             fi
           done < <(jq -r '.images[]' towbar-images.json)
+      - name: Prepare draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_COMMIT: ${{ needs.prepare.outputs.commit }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            test "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" = "true"
+          else
+            gh release create "$RELEASE_TAG" \
+              --draft \
+              --generate-notes \
+              --target "$RELEASE_COMMIT" \
+              --title "$RELEASE_TAG"
+          fi
       - name: Attach image manifest to release
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
         run: gh release upload "$RELEASE_TAG" towbar-images.json --clobber
 
   local-installation-smoke:
@@ -146,8 +173,8 @@ jobs:
     steps:
       - name: Install the published release locally
         env:
-          INSTALLER_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.event.release.tag_name }}/install.sh
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INSTALLER_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ needs.prepare.outputs.tag }}/install.sh
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
         run: |
           set -euo pipefail
           evidence="$RUNNER_TEMP/towbar-local-installation"
@@ -198,7 +225,8 @@ jobs:
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
         run: gh release delete-asset "$RELEASE_TAG" towbar-images.json --yes
 
       - name: Collect service evidence
@@ -230,3 +258,16 @@ jobs:
           name: release-local-installation
           path: ${{ runner.temp }}/towbar-local-installation/
           retention-days: 14
+
+  publish:
+    needs: [prepare, local-installation-smoke]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Publish verified release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: gh release edit "$RELEASE_TAG" --draft=false --latest
