@@ -19,7 +19,7 @@ export type AuthenticatedUser = {
   capabilities?: readonly Action[];
 };
 
-export type RequestPrincipal =
+type RequestPrincipal =
   | AuthenticatedUser
   | {
       id: null;

@@ -31,7 +31,7 @@ export async function startResourceTemporal({ serverIp }) {
     server.once("listening", resolve);
     server.once("error", reject);
   });
-  process.env.TOWBAR_API_BASE_URL = `http://127.0.0.1:${server.address().port}`;
+  process.env.TOWBAR_INTERNAL_API_BASE_URL = `http://127.0.0.1:${server.address().port}`;
   const { Client, Connection } = workerRequire("@temporalio/client");
   const { NativeConnection, Worker } = workerRequire("@temporalio/worker");
   let connection, native, worker, run;

@@ -446,7 +446,7 @@ export async function revokeInvitation(user: AuthenticatedUser, id: string) {
     await audit(tx, user, "invitation.revoked", id);
   });
 }
-export async function findPendingInvitation(
+async function findPendingInvitation(
   tx: AuthDatabase,
   id: string,
   lock = false,

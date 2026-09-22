@@ -49,7 +49,7 @@ export function pullRequestNumberFromRevision({
   return messageMatch ? Number(messageMatch[1]) : null;
 }
 
-export function mergeRequestNumberFromRevision({
+function mergeRequestNumberFromRevision({
   gitRef,
 }: {
   gitRef?: string | null;

@@ -17,7 +17,7 @@ Towbar has a control plane and a deployment plane.
   public origin. The marketing and documentation website is maintained
   separately from this self-hosted control plane.
 - PostgreSQL stores control-plane state. The API uses a restricted runtime role;
-  migrations use the database owner role. Installer-code-protected initial Admin setup is an atomic,
+  migrations use the database owner role. Initial Admin setup is an atomic,
   single-use API operation.
 - Temporal provides durable queues, retries, and serialized per-server work. Separate one-time schema and namespace initialization jobs use the pinned upstream administration image; the server stores history in PostgreSQL. Its APIs stay inside the trusted control-plane network, and the operator UI is loopback-only. This internal Temporal connection does not use dashboard authentication.
 
@@ -86,7 +86,7 @@ Protect mapped branches and restrict Preview credentials accordingly.
 
 ## Trust boundaries
 
-1. Browser to the web app and API public origins.
+1. Browser to the Towbar public origin, with `/v1/*` routed to the API.
 2. GitHub or GitLab webhook to the API, authenticated with its environment-configured webhook secret.
 3. API to worker/internal routes, authenticated with HMAC signatures and replay
    protection.

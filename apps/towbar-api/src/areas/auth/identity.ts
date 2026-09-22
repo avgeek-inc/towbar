@@ -45,7 +45,7 @@ function identityOptions(database: AuthDatabase) {
   const env = getEnv();
   return {
     appName: "Towbar",
-    baseURL: env.TOWBAR_API_BASE_URL,
+    baseURL: env.TOWBAR_APP_BASE_URL,
     basePath: identityBasePath,
     secret: createHmac("sha256", env.TOWBAR_INTERNAL_HMAC_SECRET)
       .update("towbar:identity:v2")

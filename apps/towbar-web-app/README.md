@@ -76,7 +76,7 @@ control plane:
 
 ```sh
 pnpm --filter towbar-web-app dev:fixture-api
-NEXT_PUBLIC_TOWBAR_API_BASE_URL=http://127.0.0.1:4420 pnpm --filter towbar-web-app dev
+NEXT_PUBLIC_TOWBAR_APP_BASE_URL=http://127.0.0.1:4420 pnpm --filter towbar-web-app dev
 ```
 
 The fixture covers every authenticated page, including nested Source, App,

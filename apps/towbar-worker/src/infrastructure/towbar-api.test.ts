@@ -5,7 +5,7 @@ import { requestSignatureHeaders } from "@workspace/towbar-core/request-signing"
 
 import { TowbarApiError, signedApiRequest } from "./towbar-api.js";
 
-process.env.TOWBAR_API_BASE_URL = "https://api.towbar.test";
+process.env.TOWBAR_INTERNAL_API_BASE_URL = "https://api.towbar.test";
 process.env.TOWBAR_INTERNAL_HMAC_SECRET = "t".repeat(32);
 
 void describe("signed Towbar API requests", () => {

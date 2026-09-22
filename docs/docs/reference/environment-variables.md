@@ -5,7 +5,9 @@ description: "Reference for control-plane secrets, public origins, notification 
 
 Use this reference when configuring the Towbar installation. Application secrets belong in the [Shared secrets editor](/docs/secrets), and app behavior belongs in the [deployment manifest](/docs/reference/deployment-manifest).
 
-Copy `.env.example` to `.env` in the repository root. Keep it out of Git. Compose reads this file when creating containers; editing it does not update running services.
+The installer creates `/etc/towbar/towbar.env` with root ownership and mode `600`. `towbar config path` prints that location without reading the file. Edit it with an editor such as `sudo nano "$(towbar config path)"`, validate it with `sudo towbar config validate`, and apply changes with `sudo towbar restart`. Compose reads this file when creating containers; editing it alone does not update running services. The generated file lists every operator-configurable variable. Installation values and generated secrets are active; optional settings are included as commented examples that can be uncommented when needed.
+
+Towbar does not provide a configuration editor or retain rollback copies. Back up the file through your normal host configuration-management or secret-management process. Before replacing a running container, `restart` validates Compose and runs API, worker, integration, notification, log-forwarding, and Caddy configuration preflights against the installed release images. A failed preflight leaves the running services untouched and directs you to `sudo towbar doctor`.
 
 ## Required installation secrets
 
@@ -24,25 +26,25 @@ length.
 
 ## Public origins
 
-Set all three base URLs before building images. Browser bundles embed public
-URLs at build time. The website URL is an external navigation target; the Compose stack does not host the Mintlify website.
+The web app reads the Towbar origin at runtime. One prebuilt dashboard image can
+therefore serve localhost and public HTTPS installations.
 
-| Variable                  | Example                      |
-| ------------------------- | ---------------------------- |
-| `TOWBAR_API_BASE_URL`     | `https://api.towbar.example` |
-| `TOWBAR_APP_BASE_URL`     | `https://app.towbar.example` |
-| `TOWBAR_WEBSITE_BASE_URL` | `https://towbar.example`     |
+| Variable              | Example                  |
+| --------------------- | ------------------------ |
+| `TOWBAR_APP_BASE_URL` | `https://towbar.example` |
 
-Keep the app and API under the same registrable site, as in the example above,
-or proxy the API through that site. Login is rendered by the web app and sends
-credentialed requests directly to the API; there is no separate authentication
-origin.
+`TOWBAR_APP_BASE_URL` is Towbar's single public origin. The bundled gateway
+routes dashboard, API, MCP, webhook, streaming, and terminal requests through it.
+Login is rendered by the web app and sends credentialed requests to that same origin.
+External REST, MCP, and API-key management are enabled only when
+`TOWBAR_APP_BASE_URL` uses HTTPS. The default local HTTP installation supports
+the on-host dashboard without exposing those automation interfaces.
 
-The default `TOWBAR_BIND_ADDRESS=127.0.0.1` keeps services private to the host.
-Terminate TLS at a reverse proxy on that host or a private load balancer.
-`TOWBAR_TRUSTED_PROXY_HOPS` defaults to `0`, which ignores forwarding headers
-and uses the direct socket address for authentication throttling. Set it only
-to the exact number of trusted proxy hops in front of the API.
+The local profile binds `127.0.0.1:4021`. The public profile binds ports 80 and
+443, obtains and renews a Let's Encrypt certificate for `TOWBAR_GATEWAY_DOMAIN`,
+and persists Caddy's certificate state. The installer selects the profile and
+sets `TOWBAR_TRUSTED_PROXY_HOPS=1` for the bundled gateway. Change the hop count
+only if you place another controlled proxy such as a CDN in front of Towbar.
 
 ## Runtime integrations
 
@@ -74,7 +76,7 @@ GitHub stores only the selected App installation and account metadata in Postgre
 | Cloudflare           | `TOWBAR_CLOUDFLARE_ENABLED` | account ID and API token                                                          |
 | OpenTelemetry        | `TOWBAR_OTLP_ENABLED`       | endpoint; headers are supplied through `TOWBAR_OTLP_HEADERS_JSON`                 |
 
-Use the exact names in `.env.example` for optional bucket, prefix, endpoint, addressing-style, private-network, CA, zone, image, dashboard, and protocol fields. Temporary AWS sessions are intentionally unsupported because they cannot be maintained safely as static installation configuration.
+Use the exact names in the installed configuration file or `.env.example` for optional bucket, prefix, endpoint, addressing-style, private-network, CA, zone, image, dashboard, and protocol fields. Temporary AWS sessions are intentionally unsupported because they cannot be maintained safely as static installation configuration.
 
 ### Notifications
 
@@ -139,14 +141,14 @@ default is a reviewed multi-architecture pin. Recreate both the API and worker
 after changing scanner configuration:
 
 ```bash
-docker compose up --detach --force-recreate api worker
+sudo towbar compose up --detach --force-recreate api worker
 ```
 
 See [Vulnerability scanning](/docs/vulnerability-scanning) for workspace findings, scan states, and rescanning.
 
 ## Account security
 
-Initial setup requires an installer-issued single-use code. Email recovery, MFA and the local recovery command are documented in [Team access](/docs/self-hosting/team-access). The v1 owner-reset environment variables are not supported.
+Initial setup atomically creates one team and Admin, then closes permanently. Email recovery, MFA and the local recovery command are documented in [Team access](/docs/self-hosting/team-access). The v1 owner-reset environment variables are not supported.
 
 `TOWBAR_PASSWORD_BREACH_CHECK` defaults to `true`; explicitly setting `false` supports isolated installations without the password corpus service. `TOWBAR_PASSWORD_VERIFY_CONCURRENCY` defaults to `2` (range 1–8), and `TOWBAR_PASSWORD_VERIFY_QUEUE_LIMIT` defaults to `16` (range 1–100). Benchmark resource usage before raising these limits. Saturation returns a retryable busy response.
 
@@ -156,11 +158,13 @@ Register IP addresses, SSH access, and concurrency under [Servers](/docs/servers
 
 | Variable                                  | Default                    | Purpose                                                  |
 | ----------------------------------------- | -------------------------- | -------------------------------------------------------- |
+| `COMPOSE_PROFILES`                        | `local`                    | Selects the `local` or `public` gateway                  |
+| `TOWBAR_INSTALL_MODE`                     | `local`                    | Records the installer-selected access mode               |
+| `TOWBAR_GATEWAY_DOMAIN`                   | empty                      | Public hostname managed by Caddy and Let's Encrypt       |
 | `TOWBAR_WORKER_MAX_CONCURRENT_ACTIVITIES` | `4`                        | Global worker activity capacity                          |
 | `TOWBAR_APP_ID`                           | `towbar-worker` in Compose | Manifest app identity for worker self-deployment cleanup |
 | `TOWBAR_BIND_ADDRESS`                     | `127.0.0.1`                | Published Compose port binding                           |
-| `TOWBAR_API_PORT`                         | `4020`                     | API port on the host                                     |
-| `TOWBAR_APP_PORT`                         | `4021`                     | Dashboard port on the host                               |
+| `TOWBAR_PORT`                             | `4021`                     | Unified dashboard and API port on the host               |
 | `TOWBAR_TEMPORAL_UI_PORT`                 | `8233`                     | Temporal UI port on the host                             |
 | `TOWBAR_NETWORK_NAME`                     | `towbar-platform`          | Compose network name                                     |
 
@@ -168,17 +172,17 @@ Keep worker activity capacity above the largest server build-concurrency setting
 
 ## Browser observability
 
-`NEXT_PUBLIC_SENTRY_DSN` is optional. When using it, configure the dashboard build with the intended value and review what your Sentry project collects.
+`NEXT_PUBLIC_SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_ENVIRONMENT` are optional dashboard runtime settings. Set the DSN to enable Sentry, use the environment label to distinguish installations, and review what your Sentry project collects. Apply either change with `sudo towbar restart`.
 
-## Release automation
+## Installation and upgrades
 
-The optional GitHub Actions deployment environment is documented under [Upgrades and recovery](/docs/self-hosting/upgrades#automatic-release-deployment).
+Towbar installation and upgrades run on the control-plane host. See [Install Towbar](/docs/self-hosting/installation) for the installer and [Upgrades and recovery](/docs/self-hosting/upgrades) for the CLI upgrade process.
 
 ## API and MCP rate limits
 
 `TOWBAR_API_RATE_LIMIT_MAX` defaults to `60` requests and
 `TOWBAR_API_RATE_LIMIT_WINDOW_SECONDS` defaults to `60` seconds. The API and
 MCP share persistent per-key and per-IP limits. Set both variables on the API process;
-restart it after changes. Configure `TOWBAR_TRUSTED_PROXY_HOPS` for your proxy
-topology so clients are counted correctly. See [API authentication and rate
+restart it after changes. Configure `TOWBAR_TRUSTED_PROXY_HOPS` for your trusted
+proxy topology so clients are counted correctly. See [API authentication and rate
 limits](/docs/api/authentication) for bounds, response headers, and examples.

@@ -8,7 +8,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import type { NotificationCategory } from "@workspace/towbar-web-client";
 
-export const notificationRoutingCategories = [
+const notificationRoutingCategories = [
   {
     categories: ["scout"],
     icon: Alert02Icon,

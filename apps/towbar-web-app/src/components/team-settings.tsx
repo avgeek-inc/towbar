@@ -7,6 +7,7 @@ import {
 } from "@workspace/towbar-web-ui/table-cell-text";
 
 import { TeamAuditLogs } from "./team-audit-logs";
+import { hasHttpsExternalAccess } from "@/lib/config";
 import { useMemo, useState, type ComponentProps, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -77,7 +78,7 @@ type Dialog = {
   member?: Member;
   instance: number;
 };
-export function RoleSelect({
+function RoleSelect({
   value,
   onChange,
 }: {
@@ -181,6 +182,7 @@ export function TeamSettingsShell({
     <DashboardPage title={active.label} icon={active.icon}>
       {teamSettingsGroups.map((group) => {
         const items = group.pages
+          .filter((id) => id !== "api-keys" || hasHttpsExternalAccess())
           .map((id) => ({ id, ...teamSettingsPages[id] }))
           .filter((item) => can(item.permission));
         return items.length ? (
@@ -358,7 +360,7 @@ function TeamMembers() {
       header: "2FA",
       cell: (member) => (
         <StatusBadge
-          status={member.twoFactorEnabled ? "healthy" : "disabled"}
+          status={member.twoFactorEnabled ? "healthy" : "two_factor_disabled"}
           label={member.twoFactorEnabled ? "Enabled" : "Not enabled"}
         />
       ),

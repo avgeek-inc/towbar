@@ -13,12 +13,8 @@ COPY --from=pruner /repo/out/json/ ./
 RUN --mount=type=cache,id=towbar-pnpm-store,target=/pnpm/store,sharing=locked \
   pnpm install --store-dir /pnpm/store --frozen-lockfile --config.blockExoticSubdeps=false
 FROM installer AS builder
-ARG NEXT_PUBLIC_TOWBAR_API_BASE_URL=http://localhost:4020
-ARG NEXT_PUBLIC_TOWBAR_WEBSITE_BASE_URL=https://www.towbar.dev
 ARG SOURCE_COMMIT=development
 ENV NEXT_TELEMETRY_DISABLED=1 \
-  NEXT_PUBLIC_TOWBAR_API_BASE_URL=${NEXT_PUBLIC_TOWBAR_API_BASE_URL} \
-  NEXT_PUBLIC_TOWBAR_WEBSITE_BASE_URL=${NEXT_PUBLIC_TOWBAR_WEBSITE_BASE_URL} \
   SENTRY_ALLOW_MISSING=true SOURCE_COMMIT=${SOURCE_COMMIT}
 COPY --from=pruner /repo/out/full/ ./
 RUN mkdir -p apps/towbar-web-app/public \

@@ -7,11 +7,8 @@ import type { z } from "zod";
 import { HttpError, notFound, serviceUnavailable } from "../../http/errors.js";
 import { getRuntimeIntegration } from "../../infrastructure/runtime-integrations.js";
 
-export const azureCredentialPayloadSchema =
-  azureBlobConnectionCredentialsSchema;
-export type AzureCredentialPayload = z.infer<
-  typeof azureCredentialPayloadSchema
->;
+const azureCredentialPayloadSchema = azureBlobConnectionCredentialsSchema;
+type AzureCredentialPayload = z.infer<typeof azureCredentialPayloadSchema>;
 
 function runtimeCredential() {
   const connection = getRuntimeIntegration("azureBlob");
@@ -22,20 +19,6 @@ function runtimeCredential() {
     ),
     payload: azureCredentialPayloadSchema.parse(connection.credentials),
   };
-}
-
-export function getAzureCredentialMetadata(_workspaceId: string) {
-  const credential = runtimeCredential();
-  if (!credential) return Promise.resolve(null);
-  return Promise.resolve({
-    clientId: credential.payload.clientId,
-    clientSecretSuffix: credential.payload.clientSecret.slice(-4),
-    lastVerifiedAt: null,
-    source: "environment" as const,
-    status: "verified" as const,
-    tenantId: credential.payload.tenantId,
-    verificationMessage: "Configured by the Towbar runtime environment",
-  });
 }
 
 export function hasAzureCredentials(_workspaceId: string) {
@@ -75,13 +58,6 @@ export async function getAzureAccessToken(
       { cause: error },
     );
   }
-}
-
-export async function validateAzureCredentials(
-  payload: AzureCredentialPayload,
-) {
-  await getAzureAccessToken(payload);
-  return { clientId: payload.clientId, tenantId: payload.tenantId };
 }
 
 export function getDecryptedAzureCredential(input: { workspaceId: string }) {

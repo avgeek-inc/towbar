@@ -37,7 +37,6 @@ allowBuilds:
 catalog:
   "@aws-sdk/client-s3": ^3.1134.0
   "@aws-sdk/lib-storage": 3.1127.0
-  "@aws-sdk/client-sts": ^3.1134.0
   "@eslint/js": ^9.39.4
   "@fontsource-variable/inter": ^5.3.0
   "@heroui/react": 3.2.6

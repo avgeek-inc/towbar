@@ -14,7 +14,7 @@ import {
 } from "../../http/errors.js";
 import { getRuntimeIntegration } from "../../infrastructure/runtime-integrations.js";
 
-export const gcpServiceAccountKeySchema = z
+const gcpServiceAccountKeySchema = z
   .object({
     type: z.literal("service_account"),
     project_id: z.string().trim().min(1).max(128),
@@ -30,9 +30,9 @@ export const gcpServiceAccountKeySchema = z
   })
   .passthrough();
 
-export type GcpServiceAccountKey = z.infer<typeof gcpServiceAccountKeySchema>;
+type GcpServiceAccountKey = z.infer<typeof gcpServiceAccountKeySchema>;
 
-export function parseGcpServiceAccountJson(raw: string): GcpServiceAccountKey {
+function parseGcpServiceAccountJson(raw: string): GcpServiceAccountKey {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -104,11 +104,6 @@ export async function getGcpAccessToken(
   }
 }
 
-export async function validateGcpCredentials(payload: GcpServiceAccountKey) {
-  await getGcpAccessToken(payload);
-  return { clientEmail: payload.client_email, projectId: payload.project_id };
-}
-
 function runtimeCredential() {
   const connection = getRuntimeIntegration("gcs");
   if (!connection || connection.provider !== "gcs") return null;
@@ -120,19 +115,6 @@ function runtimeCredential() {
   );
   const payload = parseGcpServiceAccountJson(credentials.serviceAccountJson);
   return { configuration, payload };
-}
-
-export function getGcpCredentialMetadata(_workspaceId: string) {
-  const credential = runtimeCredential();
-  if (!credential) return Promise.resolve(null);
-  return Promise.resolve({
-    clientEmail: credential.payload.client_email,
-    lastVerifiedAt: null,
-    projectId: credential.configuration.projectId,
-    source: "environment" as const,
-    status: "verified" as const,
-    verificationMessage: "Configured by the Towbar runtime environment",
-  });
 }
 
 export function hasGcpCredentials(_workspaceId: string) {

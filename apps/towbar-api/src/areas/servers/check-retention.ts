@@ -4,7 +4,7 @@ import type { TowbarDatabase } from "@workspace/towbar-database";
 import type { CheckStatus } from "@workspace/towbar-database/schema";
 import { serverChecks } from "@workspace/towbar-database/schema";
 
-export const SERVER_CHECK_RETENTION_LIMIT = 500;
+const SERVER_CHECK_RETENTION_LIMIT = 500;
 
 type ServerCheckRetentionCandidate = {
   id: string;

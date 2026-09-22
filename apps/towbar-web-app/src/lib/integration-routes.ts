@@ -2,7 +2,7 @@ import { logDrainNames } from "./log-drain-providers";
 
 export const logForwardingRoutes = Object.keys(logDrainNames);
 
-export const notificationRoutes = [
+const notificationRoutes = [
   "slack",
   "email",
   "discord",

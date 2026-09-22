@@ -166,7 +166,7 @@ export async function admitResumedAutomaticDeployments() {
   return deploymentsQueued;
 }
 
-export async function scheduleEligibleAutomaticDeployments(input: {
+async function scheduleEligibleAutomaticDeployments(input: {
   commitSha: string;
   sourceId: string;
   sourceEnvironmentId: string;

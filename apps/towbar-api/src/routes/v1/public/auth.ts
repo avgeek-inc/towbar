@@ -45,7 +45,6 @@ const setupSchema = z
     confirmPassword: z.string().min(15).max(1024),
     displayName: z.string().trim().min(1).max(120),
     teamName: z.string().trim().min(1).max(120),
-    setupCode: z.string().min(20).max(200),
     email: z.email().max(320),
     password: z.string().min(15).max(1024),
   })

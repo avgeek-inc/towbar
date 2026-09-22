@@ -63,20 +63,23 @@ documentation path.
 - Explain security, migration, and rollback implications when applicable.
 - Preserve Source scoping and avoid logging secret values.
 
-## Linear release reporting
+## Release images
 
-Publishing a GitHub release runs `Report release to Linear`. It checks out the
-released tag and syncs its version, release notes, GitHub link, and commits since
-the previous version tag to the Linear pipeline. Include Linear issue identifiers
-such as `AVG-5` in branch names or commit messages so they can be linked to the
-release; linked GitHub pull requests are also detected.
+Publishing a stable `v2.x.y` GitHub release builds the API, worker, and dashboard
+for `linux/amd64` and `linux/arm64`, publishes them to GitHub Container Registry,
+and attaches `towbar-images.json` to the release. The manifest records immutable
+image digests. The installer accepts the release only after that manifest exists.
+The same workflow then installs the published release in local mode on a disposable
+GitHub-hosted Ubuntu runner, runs `towbar doctor`, and proves that `towbar restart`
+reuses the running application containers. Its diagnostic evidence is retained for
+14 days. A failed smoke test removes the image manifest from the release so the
+installer cannot select an unverified release.
 
-Set the repository secret `LINEAR_ACCESS_KEY` to the pipeline access key from
-Linear. A continuous pipeline creates completed releases on sync; a scheduled
-pipeline collects the release for its configured stage workflow. This reports
-GitHub publication; production deployment success is tracked separately by
-`Deploy release`. To retry reporting, rerun the failed reporting job. The release
-tag is the version identifier, so retries target the same Linear release.
+GHCR package visibility is separate from repository visibility. The three Towbar
+container packages must be public so an installation can pull them without GitHub
+credentials. The workflow verifies anonymous access before attaching the manifest.
+When a package is published for the first time, set its visibility to **Public**
+in the organization package settings and rerun the failed manifest job.
 
 Project stewardship and the current code owner are recorded in
 [MAINTAINERS.md](MAINTAINERS.md).

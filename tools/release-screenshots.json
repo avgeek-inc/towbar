@@ -1,11 +1,11 @@
 {
-  "capturedAt": "2026-09-20T17:50:07.985Z",
+  "capturedAt": "2026-09-22T06:22:33.876Z",
   "environment": "Local Towbar fixture on localhost:4021; examples are not production results",
-  "viewport": "1280 × 720 CSS pixels; full-page capture capped at 8,000 pixels",
+  "viewport": "1280 × 720 CSS pixels; selected marketing images use only the visible viewport and full-page captures are capped at 8,000 pixels",
   "screenshots": [
     {
       "name": "app-overview",
-      "route": "/apps/31111111-1111-4111-8111-222222222222/overview",
+      "route": "/apps/31111111-1111-4111-8111-555555555555/overview",
       "guides": ["docs/docs/apps.mdx", "docs/index.mdx"],
       "themes": [
         {
@@ -202,15 +202,16 @@
           "theme": "light",
           "file": "docs/assets/release-v2/overview-light.jpg",
           "width": 1280,
-          "height": 1154
+          "height": 720
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/overview-dark.jpg",
           "width": 1280,
-          "height": 1154
+          "height": 720
         }
-      ]
+      ],
+      "viewportOnly": true
     },
     {
       "name": "performance",
@@ -221,15 +222,16 @@
           "theme": "light",
           "file": "docs/assets/release-v2/performance-light.jpg",
           "width": 1280,
-          "height": 1502
+          "height": 720
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/performance-dark.jpg",
           "width": 1280,
-          "height": 1502
+          "height": 720
         }
-      ]
+      ],
+      "viewportOnly": true
     },
     {
       "name": "previews",
@@ -400,15 +402,16 @@
           "theme": "light",
           "file": "docs/assets/release-v2/server-overview-light.jpg",
           "width": 1280,
-          "height": 951
+          "height": 720
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/server-overview-dark.jpg",
           "width": 1280,
-          "height": 951
+          "height": 720
         }
-      ]
+      ],
+      "viewportOnly": true
     },
     {
       "name": "server-preparation",
@@ -514,15 +517,16 @@
           "theme": "light",
           "file": "docs/assets/release-v2/team-members-light.jpg",
           "width": 1280,
-          "height": 882
+          "height": 720
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/team-members-dark.jpg",
           "width": 1280,
-          "height": 882
+          "height": 720
         }
-      ]
+      ],
+      "viewportOnly": true
     },
     {
       "name": "vulnerabilities",
@@ -533,15 +537,16 @@
           "theme": "light",
           "file": "docs/assets/release-v2/vulnerabilities-light.jpg",
           "width": 1280,
-          "height": 1494
+          "height": 720
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/vulnerabilities-dark.jpg",
           "width": 1280,
-          "height": 1494
+          "height": 720
         }
-      ]
+      ],
+      "viewportOnly": true
     }
   ]
 }

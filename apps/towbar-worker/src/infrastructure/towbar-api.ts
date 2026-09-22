@@ -36,7 +36,7 @@ export async function signedApiRequest<T>(
   options: SignedApiRequestOptions = {},
 ) {
   const env = getEnv();
-  const target = new URL(path, env.TOWBAR_API_BASE_URL);
+  const target = new URL(path, env.TOWBAR_INTERNAL_API_BASE_URL);
   const serialized = body === undefined ? "" : JSON.stringify(body);
   const maximumAttempts = options.maximumAttempts ?? defaultMaximumAttempts;
   for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {

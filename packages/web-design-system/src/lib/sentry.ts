@@ -1,12 +1,21 @@
 import * as Sentry from "@sentry/nextjs";
 export type SentryRuntime = "browser" | "edge" | "server";
-export function initializeSentry(runtime: SentryRuntime) {
-  const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
+export type SentryRuntimeConfig = {
+  dsn?: string;
+  environment?: string;
+};
+export function initializeSentry(
+  runtime: SentryRuntime,
+  config: SentryRuntimeConfig = {},
+) {
+  const dsn = config.dsn ?? process.env.NEXT_PUBLIC_SENTRY_DSN;
   Sentry.init({
     dsn,
     enabled: Boolean(dsn),
     environment:
-      process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT ?? process.env.NODE_ENV,
+      config.environment ??
+      process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT ??
+      process.env.NODE_ENV,
     initialScope: { tags: { "towbar.runtime": runtime } },
     sendDefaultPii: false,
     tracesSampleRate: 0.1,

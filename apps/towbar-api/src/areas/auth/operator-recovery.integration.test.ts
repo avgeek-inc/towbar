@@ -31,7 +31,6 @@ void test(
     const temporaryPassword = "Temporary recovery test password 519382";
     try {
       const setup = await auth.createInitialAdmin({
-        setupCode: await auth.issueSetupCode(),
         teamName: "Recovery",
         displayName: "Admin",
         email: "admin@recovery.test",

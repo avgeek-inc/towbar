@@ -96,7 +96,7 @@ export async function requestMonitoringAgent(input: {
 }) {
   const endpoint = new URL(
     "/v1/monitoring/metrics",
-    getEnv().TOWBAR_API_BASE_URL,
+    getEnv().TOWBAR_APP_BASE_URL,
   );
   if (input.desiredState === "enabled" && endpoint.protocol !== "https:")
     throw conflict("Monitoring requires an HTTPS Towbar API URL");
@@ -250,7 +250,7 @@ export async function getMonitoringExecutionContext(
     trustedHostKeys,
     endpoint: new URL(
       "/v1/monitoring/metrics",
-      getEnv().TOWBAR_API_BASE_URL,
+      getEnv().TOWBAR_APP_BASE_URL,
     ).toString(),
     token: row.agent.encryptedToken
       ? decryptCredential<string>({
@@ -353,7 +353,7 @@ export async function recoverMonitoringOperations(now = new Date()) {
   return queued.length;
 }
 
-export async function finishPendingServerRemovals() {
+async function finishPendingServerRemovals() {
   const db = getTowbarDatabase();
   const pending = await db
     .select({

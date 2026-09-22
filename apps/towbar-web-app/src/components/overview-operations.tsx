@@ -10,7 +10,7 @@ import { DeploymentEnvironmentChip } from "./deployment-environment-chip";
 
 import { deploymentSubtitle } from "@/lib/overview";
 import Image from "next/image";
-import { AlertCircleIcon } from "@hugeicons/core-free-icons";
+import { Alert02Icon, AlertCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
   App,
@@ -47,7 +47,7 @@ export function OverviewIncidents() {
         </Widget.Title>
       </Widget.Header>
       <Widget.Content
-        className="relative flex min-h-30 items-center overflow-hidden pr-28"
+        className="relative flex min-h-30 items-center overflow-hidden pr-[38%]"
         style={
           !query.error && count !== undefined
             ? {
@@ -76,8 +76,9 @@ export function OverviewIncidents() {
                 {count}
               </InlineLink>
               <StatusBadge
+                icon={count ? <HugeiconsIcon icon={Alert02Icon} /> : undefined}
                 status={count ? "critical" : "healthy"}
-                label={count ? "Needs attention" : "All clear"}
+                label={count ? "Attention" : "All clear"}
                 tooltip={
                   count
                     ? `${count} active ${count === 1 ? "incident needs" : "incidents need"} attention.`
@@ -94,7 +95,7 @@ export function OverviewIncidents() {
               alt=""
               width={512}
               height={512}
-              className="pointer-events-none absolute right-0 bottom-0 h-28 w-28 object-contain object-right-bottom"
+              className="pointer-events-none absolute right-0 bottom-0 h-auto w-[38%] max-w-28 object-contain object-right-bottom"
             />
           </>
         )}

@@ -55,6 +55,7 @@ test("v2 migration journal describes only the 001 baseline", async () => {
     /towbar_workspace_notification_provider_configurations/u,
   );
   assert.doesNotMatch(migration, /towbar_log_drain_configurations/u);
+  assert.doesNotMatch(migration, /towbar_installation_setup/u);
   assert.doesNotMatch(
     migration,
     /towbar_(?:auth_sso|enterprise_identity|scim_)/u,
@@ -95,7 +96,10 @@ test(
       );
       await client`drop table towbar_workspaces`;
       await migrate(drizzle(client), { migrationsFolder });
-      await migrate(drizzle(client), { migrationsFolder });
+      await runTowbarMigrations({
+        databaseUrl: databaseUrl.toString(),
+        logger: { info() {}, error() {} },
+      });
       const [{ count }] =
         await client`select count(*)::int as count from drizzle.__drizzle_migrations`;
       assert.equal(count, 1);

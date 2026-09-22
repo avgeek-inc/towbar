@@ -24,7 +24,7 @@ const alwaysBlockedHosts = new Set([
  * service. Private RFC1918/ULA endpoints require the explicit connection flag;
  * loopback and link-local ranges are never accepted.
  */
-export async function assertSafeOutboundUrl(
+async function assertSafeOutboundUrl(
   raw: string,
   options: { allowPrivateNetwork?: boolean } = {},
 ) {

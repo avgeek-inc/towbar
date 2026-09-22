@@ -30,6 +30,17 @@ void describe("authentication rate limiting", () => {
     );
   });
 
+  void it("resolves the client through the internal and host gateways", () => {
+    assert.equal(
+      resolveClientAddress({
+        forwardedFor: "198.51.100.200, 203.0.113.40",
+        peerAddress: "10.0.0.5",
+        trustedProxyHops: 2,
+      }),
+      "198.51.100.200",
+    );
+  });
+
   void it("blocks one account even when attempts rotate client addresses", async () => {
     const counter = createPersistentCounter();
     const now = new Date("2026-08-23T00:00:00.000Z");

@@ -9,19 +9,18 @@ These commands bypass the usual mailbox or authenticator check. Verify the accou
 
 ## Start a recovery session
 
-SSH into the host and change to the installation directory containing `docker-compose.yml` and `.env`. Use the same Compose project name and environment overrides used during installation. Keep the database running, and stop request handling and workers while changing credentials:
+SSH into the control-plane host. Keep the database running, and stop request handling and workers while changing credentials:
 
 ```bash
-cd /opt/towbar
-docker compose stop web-app api worker
+sudo towbar compose stop web-app api worker
 ```
 
-Replace `/opt/towbar` with the actual installation directory. Stopping the control plane does not stop deployed apps. Allow active deployments and operations to finish before this maintenance window. Keep `.env`, including `TOWBAR_CREDENTIALS_KEY` and `TOWBAR_INTERNAL_HMAC_SECRET`, unchanged.
+Stopping the control plane does not stop deployed apps. Allow active deployments and operations to finish before this maintenance window. Keep `/etc/towbar/towbar.env`, including `TOWBAR_CREDENTIALS_KEY` and `TOWBAR_INTERNAL_HMAC_SECRET`, unchanged.
 
 ## Recover an Admin password
 
 ```bash
-docker compose run --rm --no-deps api node dist/cli/recover-admin.js \
+sudo towbar compose run --rm --no-deps api node dist/cli/recover-admin.js \
   --email=admin@example.com
 ```
 
@@ -34,7 +33,7 @@ Password recovery works without SMTP. The temporary password is generated with c
 Use the existing email to identify the account and the new email as a separate option:
 
 ```bash
-docker compose run --rm --no-deps api node dist/cli/recover-admin.js \
+sudo towbar compose run --rm --no-deps api node dist/cli/recover-admin.js \
   --email=old-admin@example.com --new-email=new-admin@example.com
 ```
 
@@ -45,7 +44,7 @@ This also resets the password and revokes access as described above. An address 
 This works for an active Admin, Member, or Viewer:
 
 ```bash
-docker compose run --rm --no-deps api node dist/cli/reset-user-mfa.js \
+sudo towbar compose run --rm --no-deps api node dist/cli/reset-user-mfa.js \
   --email=person@example.com
 ```
 
@@ -54,7 +53,7 @@ It removes the authenticator secret and recovery codes, revokes sessions, person
 For an Admin who lost both password and authenticator, combine recovery in one command:
 
 ```bash
-docker compose run --rm --no-deps api node dist/cli/recover-admin.js \
+sudo towbar compose run --rm --no-deps api node dist/cli/recover-admin.js \
   --email=admin@example.com --reset-mfa
 ```
 
@@ -63,8 +62,8 @@ Passkeys are separate credentials. If a device is lost or its credentials may be
 ## Resume and verify
 
 ```bash
-docker compose up --detach --wait api worker web-app
-docker compose ps
+sudo towbar compose up --detach --wait api worker web-app
+sudo towbar status
 ```
 
 Verify a fresh sign-in, the expected role, and the new authenticator or passkey. Replace revoked personal API keys in any clients that used them. Security notifications are delivered through the transactional email queue after the worker resumes; a successful command does not guarantee email delivery.

@@ -8,20 +8,40 @@ Upgrade the API, worker, and dashboard together from a reviewed release. Before 
 ## Prepare an upgrade
 
 1. Pause automatic deployments and allow active operations to finish.
-2. Back up the Towbar PostgreSQL database with your infrastructure tooling. Preserve `.env` and its credential-encryption key separately with restricted access.
-3. Record the running release and commit, and confirm the working tree contains no local code changes that the upgrade would overwrite.
-4. Check out the reviewed release, build and recreate the Compose stack, and inspect migration output.
-5. Verify System health, then deploy a small app and check its actual route before resuming automatic deployment.
+2. Back up the Towbar PostgreSQL database with your infrastructure tooling. Preserve `/etc/towbar/towbar.env` and its credential-encryption key separately with restricted access.
+3. Run `sudo towbar version` and record the installed release.
+4. Review the target release and its migration notes.
+5. Run the CLI upgrade, inspect migration output, and verify System health before resuming deployments.
 
-After selecting the release commit, recreate the stack and review startup:
+Upgrade to the latest published stable release:
 
 ```bash
-docker compose up --build --detach --wait
-docker compose ps
-docker compose logs --tail 200 migrate api worker
+sudo towbar upgrade
+sudo towbar status
+sudo towbar logs migrate api worker
 ```
 
-A previous image alone is not a recovery plan for a database migration. Review migration compatibility before reverting a release. Do not replace `TOWBAR_CREDENTIALS_KEY`: existing encrypted records require the matching key.
+To install a reviewed version explicitly, pass its release tag:
+
+```bash
+sudo towbar upgrade v2.1.0
+```
+
+The CLI accepts only published, non-prerelease v2-or-later semantic versions. It resolves the tag to an immutable Git commit, downloads that commit archive into `/opt/towbar/releases`, validates the release image manifest, pulls the API, worker, and dashboard images by immutable digest, validates `/etc/towbar/towbar.env`, applies migrations, waits for service health, and verifies the commit reported by the API. A failed service replacement restores the previous release symlink and images. A previous image alone is not a recovery plan for a database migration; review migration compatibility before reverting a release.
+
+The target release must have a successful **Publish release images** workflow. If its image manifest is not attached yet, the CLI stops before replacing the current release.
+
+After a successful upgrade, Towbar retains the current and immediately previous source release and application images. Older Towbar release directories and unreferenced Towbar application images are removed. Database, Temporal, Caddy, and application volumes are never pruned, and images belonging to other Docker workloads are not touched.
+
+The CLI keeps configuration outside release directories. Edit and apply it independently:
+
+```bash
+sudo nano "$(towbar config path)"
+sudo towbar config validate
+sudo towbar restart
+```
+
+Do not replace `TOWBAR_CREDENTIALS_KEY`: existing encrypted records require the matching key. Changing database values in the file does not rotate credentials inside the existing PostgreSQL volume.
 
 ## Towbar v2 requires a fresh installation
 
@@ -33,10 +53,6 @@ For later v2 releases, keep the usual backup and migration review process above.
 
 Use **Forgot password** when SMTP and the account's mailbox are available. Host operators can reset an Admin password, change a lost Admin email address, or reset an authenticator for any active team member. Follow [Account recovery](/docs/self-hosting/account-recovery) for the maintenance window, commands, revoked access, and verification steps.
 
-## Automatic release deployment
+## Command-line operations
 
-The included `Deploy release` workflow supports a generic Linux server over SSH
-and EC2 through AWS Systems Manager. Follow [Deploy with GitHub
-Actions](/docs/self-hosting/github-actions) to prepare the server, protect the
-GitHub environment, configure the SSH or AWS OIDC identity, and run the first
-exact-tag deployment.
+Towbar does not deploy itself from GitHub Actions. Installation and upgrades run on the control-plane host through the `towbar` CLI, so release access and `/etc/towbar/towbar.env` remain host-owned. Run `towbar help` for the complete command list. `towbar compose COMMAND` passes an administrative command to this installation with the correct release directory, project name, and environment file.

@@ -3,15 +3,10 @@
 import {
   TableCellStack,
   TableCellDescription,
-  tableCellDescriptionClassName,
 } from "@workspace/towbar-web-ui/table-cell-text";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Delete02Icon,
-  GitBranchIcon,
-  ReloadIcon,
-} from "@hugeicons/core-free-icons";
+import { Delete02Icon, ReloadIcon } from "@hugeicons/core-free-icons";
 
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import { NewTabIndicator } from "@workspace/web-design-system/navigation/new-tab-indicator";
@@ -54,32 +49,17 @@ export function PreviewEnvironments({
     {
       key: "pull-request",
       header: "Pull request",
-      className: "min-w-48",
+      className: "min-w-32",
       cell: (preview) => (
-        <TableCellStack as="div" className="justify-items-start">
-          <a
-            className="focus-visible:ring-focus rounded-md underline decoration-muted underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2"
-            href={preview.pullRequestUrl}
-            rel="noreferrer"
-            target="_blank"
-          >
-            PR #{preview.pullRequestNumber}
-            <NewTabIndicator />
-          </a>
-          <TooltipText
-            className={`${tableCellDescriptionClassName} inline-flex max-w-48 items-center gap-1 truncate`}
-            tooltip={preview.branch}
-          >
-            <HugeiconsIcon
-              aria-hidden="true"
-              icon={GitBranchIcon}
-              className="size-[1em] shrink-0"
-            />
-            <TypographyCode className="truncate py-0 text-xs/4">
-              {preview.branch}
-            </TypographyCode>
-          </TooltipText>
-        </TableCellStack>
+        <a
+          className="focus-visible:ring-focus rounded-md underline decoration-muted underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2"
+          href={preview.pullRequestUrl}
+          rel="noreferrer"
+          target="_blank"
+        >
+          PR #{preview.pullRequestNumber}
+          <NewTabIndicator />
+        </a>
       ),
     },
     ...(!appId
@@ -95,9 +75,31 @@ export function PreviewEnvironments({
     {
       key: "url",
       header: "URL",
-      className: "min-w-64",
+      className: "w-56 max-w-56",
       cell: (preview) => (
-        <DomainLink domain={preview.hostname}>{preview.hostname}</DomainLink>
+        <TooltipText
+          className="block max-w-56 truncate"
+          tooltip={preview.hostname}
+        >
+          <DomainLink className="block truncate" domain={preview.hostname}>
+            {compactPreviewHostname(preview.hostname)}
+          </DomainLink>
+        </TooltipText>
+      ),
+    },
+    {
+      key: "branch",
+      header: "Branch",
+      className: "w-48 max-w-48",
+      cell: (preview) => (
+        <TooltipText
+          className="block max-w-48 truncate"
+          tooltip={preview.branch}
+        >
+          <TypographyCode className="block truncate py-0 text-xs/4">
+            {preview.branch}
+          </TypographyCode>
+        </TooltipText>
       ),
     },
     {
@@ -220,4 +222,10 @@ export function PreviewEnvironments({
       tableClassName="min-w-[1040px]"
     />
   );
+}
+
+function compactPreviewHostname(hostname: string) {
+  const [label, ...suffix] = hostname.split(".");
+  if (!label || label.length <= 18 || suffix.length === 0) return hostname;
+  return `${label.slice(0, 15)}…${suffix.length ? `.${suffix.join(".")}` : ""}`;
 }

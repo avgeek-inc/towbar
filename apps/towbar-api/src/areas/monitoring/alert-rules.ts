@@ -318,7 +318,7 @@ export async function listScoutIncidents(
   };
 }
 
-export async function lockScoutServer(tx: ScoutTransaction, scope: ScoutScope) {
+async function lockScoutServer(tx: ScoutTransaction, scope: ScoutScope) {
   const [server] = await tx
     .select()
     .from(servers)

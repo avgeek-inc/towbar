@@ -11,9 +11,6 @@ import { readJson } from "../../../http/requests.js";
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
 export const sourceConnectionRoutes = new Hono<TowbarHonoEnvironment>();
-sourceConnectionRoutes.use("/discover", async (context, next) => {
-  await next();
-});
 sourceConnectionRoutes.post(
   "/discover",
   operation({

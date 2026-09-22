@@ -40,7 +40,7 @@ void test(
     });
     const { getTowbarDatabase, closeDatabase } =
       await import("../../infrastructure/database.js");
-    const { issueSetupCode, createInitialAdmin, getUserIdentity } =
+    const { createInitialAdmin, getUserIdentity } =
       await import("./service.js");
     const { createApiKey, resolveApiKeyPrincipal } =
       await import("../api-keys/service.js");
@@ -61,7 +61,6 @@ void test(
         displayName: "Test admin",
         email: "date-time@example.test",
         password: randomBytes(24).toString("base64url"),
-        setupCode: await issueSetupCode(),
       });
       assert.equal(login.status, 200);
       const cookies = login.headers

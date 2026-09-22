@@ -24,7 +24,7 @@ import {
 
 import type { DeploymentState } from "@workspace/towbar-core/temporal";
 
-export async function recordPreviewTerminalState(
+async function recordPreviewTerminalState(
   deploymentId: string,
   state: DeploymentState,
 ) {

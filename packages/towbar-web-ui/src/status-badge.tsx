@@ -9,6 +9,9 @@ import {
   ServerStack01Icon,
   StopIcon,
   RefreshIcon,
+  CrownIcon,
+  EyeIcon,
+  UserShield01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
@@ -89,6 +92,7 @@ const destructive = new Set([
   "suspended",
   "unhealthy",
   "not_restore_ready",
+  "two_factor_disabled",
 ]);
 
 const progress = new Set([
@@ -119,11 +123,13 @@ const progress = new Set([
 export function StatusBadge({
   status,
   context,
+  icon,
   label,
   tooltip,
 }: {
   status: string;
   context?: "runtime";
+  icon?: ReactNode;
   label?: string;
   tooltip?: ReactNode;
 }) {
@@ -135,34 +141,40 @@ export function StatusBadge({
         : destructive.has(status)
           ? "destructive"
           : "secondary";
-  const icon =
-    status === "preview"
-      ? Rocket01Icon
-      : status === "production"
-        ? ServerStack01Icon
-        : status === "restarted"
-          ? RefreshIcon
-          : status === "running" && context === "runtime"
-            ? PlayIcon
-            : status === "stopped" || status === "cancelled"
-              ? StopIcon
-              : variant === "success"
-                ? CheckmarkCircle01Icon
-                : variant === "destructive"
-                  ? AlertCircleIcon
-                  : status === "queued" ||
-                      status === "pending" ||
-                      status.startsWith("waiting")
-                    ? Clock01Icon
-                    : variant === "warning"
-                      ? progress.has(status)
-                        ? RefreshIcon
-                        : Alert02Icon
-                      : InformationCircleIcon;
+  const statusIcon =
+    status === "admin"
+      ? CrownIcon
+      : status === "member"
+        ? UserShield01Icon
+        : status === "viewer"
+          ? EyeIcon
+          : status === "preview"
+            ? Rocket01Icon
+            : status === "production"
+              ? ServerStack01Icon
+              : status === "restarted"
+                ? RefreshIcon
+                : status === "running" && context === "runtime"
+                  ? PlayIcon
+                  : status === "stopped" || status === "cancelled"
+                    ? StopIcon
+                    : variant === "success"
+                      ? CheckmarkCircle01Icon
+                      : variant === "destructive"
+                        ? AlertCircleIcon
+                        : status === "queued" ||
+                            status === "pending" ||
+                            status.startsWith("waiting")
+                          ? Clock01Icon
+                          : variant === "warning"
+                            ? progress.has(status)
+                              ? RefreshIcon
+                              : Alert02Icon
+                            : InformationCircleIcon;
   return (
     <Chip
       variant={variant}
-      icon={<HugeiconsIcon icon={icon} />}
+      icon={icon ?? <HugeiconsIcon icon={statusIcon} />}
       tooltip={tooltip ?? statusTooltip(status, context)}
     >
       {label ?? formatStatus(status)}
@@ -176,6 +188,7 @@ function statusTooltip(status: string, context?: "runtime") {
   return (
     {
       active: "This item is enabled and available for use.",
+      admin: "Admins can manage every team and deployment setting.",
       approved: "This change has been approved.",
       archived: "This item is retained for history and cannot run new work.",
       blocked: "Progress is stopped until the blocking condition is resolved.",
@@ -211,6 +224,8 @@ function statusTooltip(status: string, context?: "runtime") {
       in_sync:
         "The applied configuration matches the current source configuration.",
       live: "This revision is currently serving traffic.",
+      member:
+        "Members can manage repositories, workloads, and their own access.",
       not_restore_ready: "The available backup cannot currently be restored.",
       offline: "No recent report has been received.",
       online: "Recent reports are arriving normally.",
@@ -242,12 +257,14 @@ function statusTooltip(status: string, context?: "runtime") {
       suspended: "This item has been prevented from running.",
       synced: "The latest source synchronization completed successfully.",
       trusted: "This identity has been explicitly trusted.",
+      two_factor_disabled: "Two-factor authentication is not enabled.",
       unhealthy: "The latest health check failed.",
       unknown:
         "Towbar does not have enough recent information to determine the state.",
       untrusted: "This identity has not been trusted yet.",
       unverified: "This item has not completed verification.",
       verified: "The latest verification completed successfully.",
+      viewer: "Viewers have read-only access.",
       waiting: "The operation is waiting for a prerequisite.",
       waiting_for_server: "The operation is waiting for a server assignment.",
       waiting_for_server_capacity:

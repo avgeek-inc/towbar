@@ -215,22 +215,22 @@ async function capture(browser, screenshot, theme) {
   );
   if (problem) throw new Error(`${screenshot.name} rendered a ${problem}`);
   await evaluate(browser, "window.scrollTo(0, 0)");
-  const metrics = await browser.client.send(
-    "Page.getLayoutMetrics",
-    {},
-    browser.sessionId,
-  );
   const width = viewport.width;
-  const height = Math.max(
-    viewport.height,
-    Math.min(8_000, Math.ceil(metrics.cssContentSize.height)),
-  );
+  const metrics = screenshot.viewportOnly
+    ? undefined
+    : await browser.client.send("Page.getLayoutMetrics", {}, browser.sessionId);
+  const height = screenshot.viewportOnly
+    ? viewport.height
+    : Math.max(
+        viewport.height,
+        Math.min(8_000, Math.ceil(metrics.cssContentSize.height)),
+      );
   const result = await browser.client.send(
     "Page.captureScreenshot",
     {
       format: "jpeg",
-      quality: 90,
-      captureBeyondViewport: true,
+      quality: screenshot.viewportOnly ? 95 : 90,
+      captureBeyondViewport: !screenshot.viewportOnly,
       fromSurface: true,
       clip: { x: 0, y: 0, width, height, scale: 1 },
     },
@@ -285,6 +285,6 @@ manifest.capturedAt = new Date().toISOString();
 manifest.environment =
   "Local Towbar fixture on localhost:4021; examples are not production results";
 manifest.viewport =
-  "1280 × 720 CSS pixels; full-page capture capped at 8,000 pixels";
+  "1280 × 720 CSS pixels; selected marketing images use only the visible viewport and full-page captures are capped at 8,000 pixels";
 await updateDocumentDimensions(manifest);
 await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);

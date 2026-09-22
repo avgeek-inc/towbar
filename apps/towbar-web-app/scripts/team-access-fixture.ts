@@ -262,8 +262,6 @@ export function createTeamAccessFixture(
         const input = await body(request);
         if (!setupRequired)
           return fail(response, "This instance is already configured", 409);
-        if (input.setupCode !== "towbar-fixture-setup-code")
-          return fail(response, "Invalid setup code", 400);
         if (
           String(input.password).length < 15 ||
           input.password !== input.confirmPassword

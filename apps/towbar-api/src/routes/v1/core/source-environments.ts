@@ -23,10 +23,6 @@ const branchSchema = revisionSchema.extend({
   branch: sourceEnvironmentMappingSchema.shape.branch,
 });
 export const sourceEnvironmentRoutes = new Hono<TowbarHonoEnvironment>();
-sourceEnvironmentRoutes.use("*", async (context, next) => {
-  await next();
-});
-
 sourceEnvironmentRoutes.get(
   "/",
   operation({

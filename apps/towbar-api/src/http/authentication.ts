@@ -5,11 +5,6 @@ import { forbidden, unauthorized } from "./errors.js";
 import type { MiddlewareHandler } from "hono";
 import type { TowbarHonoEnvironment } from "./types.js";
 
-export const sessionCookieName =
-  getEnv().NODE_ENV === "production"
-    ? "__Host-towbar-session"
-    : "towbar-session";
-
 export const requireAuthenticatedUser: MiddlewareHandler<
   TowbarHonoEnvironment
 > = async (context, next) => {

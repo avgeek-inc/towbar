@@ -1,7 +1,7 @@
 name: towbar
 
 x-api-image: &api-image
-  image: towbar/api:${TOWBAR_IMAGE_TAG:-local}
+  image: ${TOWBAR_API_IMAGE:-towbar/api:${TOWBAR_IMAGE_TAG:-local}}
 
 x-temporal-tools-image: &temporal-tools-image
   image: temporalio/admin-tools:1.31.1@sha256:0fa94393f6254dea05df1cdacb7a8ee95f6fb51a2ffbde0c6847a73037f788c7
@@ -11,9 +11,6 @@ x-backend-environment: &backend-environment
   SOURCE_COMMIT: ${SOURCE_COMMIT:-development}
   TEMPORAL_ADDRESS: temporal:7233
   TEMPORAL_NAMESPACE: default
-  TOWBAR_API_BASE_URL: ${TOWBAR_API_BASE_URL:-http://localhost:4020}
-  TOWBAR_APP_BASE_URL: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
-  TOWBAR_WEBSITE_BASE_URL: ${TOWBAR_WEBSITE_BASE_URL:-https://www.towbar.dev}
   TOWBAR_INTERNAL_HMAC_SECRET: ${TOWBAR_INTERNAL_HMAC_SECRET:?set TOWBAR_INTERNAL_HMAC_SECRET}
 
 services:
@@ -136,13 +133,14 @@ services:
     environment:
       <<: *backend-environment
       DATABASE_TOWBAR_URL: postgres://towbar_app:${TOWBAR_DATABASE_RUNTIME_PASSWORD:?set TOWBAR_DATABASE_RUNTIME_PASSWORD}@postgres:5432/towbar
+      TOWBAR_APP_BASE_URL: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
       TOWBAR_CREDENTIALS_KEY: ${TOWBAR_CREDENTIALS_KEY:?set TOWBAR_CREDENTIALS_KEY}
       TOWBAR_PASSWORD_BREACH_CHECK: ${TOWBAR_PASSWORD_BREACH_CHECK:-true}
       TOWBAR_PASSWORD_VERIFY_CONCURRENCY: ${TOWBAR_PASSWORD_VERIFY_CONCURRENCY:-2}
       TOWBAR_PASSWORD_VERIFY_QUEUE_LIMIT: ${TOWBAR_PASSWORD_VERIFY_QUEUE_LIMIT:-16}
       TOWBAR_API_RATE_LIMIT_MAX: ${TOWBAR_API_RATE_LIMIT_MAX:-60}
       TOWBAR_API_RATE_LIMIT_WINDOW_SECONDS: ${TOWBAR_API_RATE_LIMIT_WINDOW_SECONDS:-60}
-      TOWBAR_TRUSTED_PROXY_HOPS: ${TOWBAR_TRUSTED_PROXY_HOPS:-0}
+      TOWBAR_TRUSTED_PROXY_HOPS: ${TOWBAR_TRUSTED_PROXY_HOPS:-1}
       TOWBAR_VULNERABILITY_SCANNING_ENABLED: ${TOWBAR_VULNERABILITY_SCANNING_ENABLED:-false}
       TOWBAR_VULNERABILITY_SCAN_MAX_AGE_HOURS: ${TOWBAR_VULNERABILITY_SCAN_MAX_AGE_HOURS:-168}
       TOWBAR_GITHUB_ENABLED: ${TOWBAR_GITHUB_ENABLED:-false}
@@ -232,11 +230,9 @@ services:
       TOWBAR_LOG_DRAIN_LOKI_ENABLED: ${TOWBAR_LOG_DRAIN_LOKI_ENABLED:-false}
       TOWBAR_LOG_DRAIN_LOKI_CONFIG_JSON: ${TOWBAR_LOG_DRAIN_LOKI_CONFIG_JSON:-}
     networks: [platform]
-    ports:
-      - "${TOWBAR_BIND_ADDRESS:-127.0.0.1}:${TOWBAR_API_PORT:-4020}:4020"
 
   worker:
-    image: towbar/worker:${TOWBAR_IMAGE_TAG:-local}
+    image: ${TOWBAR_WORKER_IMAGE:-towbar/worker:${TOWBAR_IMAGE_TAG:-local}}
     build:
       context: .
       dockerfile: apps/towbar-worker/Dockerfile
@@ -248,7 +244,7 @@ services:
         condition: service_completed_successfully
     environment:
       <<: *backend-environment
-      TOWBAR_API_BASE_URL: http://api:4023
+      TOWBAR_INTERNAL_API_BASE_URL: http://api:4023
       TOWBAR_APP_ID: ${TOWBAR_APP_ID:-}
       TOWBAR_TRIVY_IMAGE: ${TOWBAR_TRIVY_IMAGE:-aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969}
       TOWBAR_WORKER_MAX_CONCURRENT_ACTIVITIES: ${TOWBAR_WORKER_MAX_CONCURRENT_ACTIVITIES:-4}
@@ -256,21 +252,85 @@ services:
     networks: [platform]
 
   web-app:
-    image: towbar/web-app:${TOWBAR_IMAGE_TAG:-local}
+    image: ${TOWBAR_WEB_APP_IMAGE:-towbar/web-app:${TOWBAR_IMAGE_TAG:-local}}
     build:
       context: .
       dockerfile: apps/towbar-web-app/Dockerfile
       args:
-        NEXT_PUBLIC_TOWBAR_API_BASE_URL: ${TOWBAR_API_BASE_URL:-http://localhost:4020}
-        NEXT_PUBLIC_TOWBAR_WEBSITE_BASE_URL: ${TOWBAR_WEBSITE_BASE_URL:-https://www.towbar.dev}
         SOURCE_COMMIT: ${SOURCE_COMMIT:-development}
+    environment:
+      TOWBAR_APP_BASE_URL: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
+      NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+      NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${NEXT_PUBLIC_SENTRY_ENVIRONMENT:-production}
     restart: unless-stopped
     depends_on:
       api:
         condition: service_healthy
     networks: [platform]
+
+  gateway:
+    image: caddy:2.11.4-alpine@sha256:de23def33b17fb5d1290b0f6c2add1d70780e52341896c00a4c8a2a2fe9d355e
+    profiles: [local]
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+      web-app:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--output-document=/dev/null",
+          "http://127.0.0.1:4021/health",
+        ]
+      interval: 20s
+      timeout: 5s
+      start_period: 5s
+      retries: 5
+    volumes:
+      - ./infra/gateway/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [platform]
     ports:
-      - "${TOWBAR_BIND_ADDRESS:-127.0.0.1}:${TOWBAR_APP_PORT:-4021}:4021"
+      - "${TOWBAR_BIND_ADDRESS:-127.0.0.1}:${TOWBAR_PORT:-4021}:4021"
+
+  gateway-public:
+    image: caddy:2.11.4-alpine@sha256:de23def33b17fb5d1290b0f6c2add1d70780e52341896c00a4c8a2a2fe9d355e
+    profiles: [public]
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+      web-app:
+        condition: service_healthy
+    environment:
+      TOWBAR_GATEWAY_DOMAIN: ${TOWBAR_GATEWAY_DOMAIN:-localhost.invalid}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--output-document=/dev/null",
+          "http://127.0.0.1:2019/config/",
+        ]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 18
+    volumes:
+      - ./infra/gateway/Caddyfile.public:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [platform]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
 
 networks:
   platform:
@@ -278,3 +338,5 @@ networks:
 
 volumes:
   postgres-data:
+  caddy-data:
+  caddy-config:

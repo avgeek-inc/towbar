@@ -4,7 +4,7 @@ import { cn } from "@workspace/web-design-system/lib/utils";
 export type CloudProviderId =
   "aws" | "gcp" | "azure" | "cloudflare" | "s3" | "r2" | "gcs" | "azureBlob";
 
-export function normalizeCloudProvider(provider: CloudProviderId): string {
+function normalizeCloudProvider(provider: CloudProviderId): string {
   switch (provider) {
     case "s3":
     case "aws":

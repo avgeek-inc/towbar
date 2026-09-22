@@ -5,15 +5,17 @@ description: "Find the failing stage and recover from common setup, deployment, 
 
 Start with the last successful stage. Repository sync, deployment admission, build, promotion, and runtime health are separate operations; success in one does not prove the next completed.
 
+Run `sudo towbar doctor` before changing installation state. It checks the host, protected configuration file, Docker, required services, installed release, database readiness, and the active local or public access path without making changes. Public mode also checks DNS, HTTPS, certificate lifetime and persistence, GitHub access, and Let's Encrypt access. It omits secret values and exits nonzero when a required check fails.
+
 ## Setup and connectivity
 
-| Symptom                                      | Check                                     | Next action                                                                                                                 |
-| -------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Compose does not start                       | Required `.env` values and migration logs | Run `docker compose config --quiet`, then inspect `migrate` and `api` logs                                                  |
-| Login works locally but fails behind a proxy | App/API origins and trusted proxy hops    | Check [public origins](/docs/reference/environment-variables#public-origins) and rebuild browser assets after changing URLs |
-| Repository missing                           | GitHub App installation access            | Grant access to the repository and approve required permissions                                                             |
-| Repository sync fails                        | Manifest error and referenced server IPs  | Fix the reported field or register the server, then sync again                                                              |
-| Server Setup Pending                         | SSH trust and preparation result          | Verify the host fingerprint, then complete server preparation                                                               |
+| Symptom                                    | Check                                            | Next action                                                                                                                                               |
+| ------------------------------------------ | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Compose does not start                     | Required configuration values and migration logs | Run `sudo towbar config validate`, then inspect `sudo towbar logs migrate api`                                                                            |
+| Login works locally but fails behind HTTPS | Towbar public origin                             | Check [public origins](/docs/reference/environment-variables#public-origins), validate the environment file, and restart Towbar after changing the origin |
+| Repository missing                         | GitHub App installation access                   | Grant access to the repository and approve required permissions                                                                                           |
+| Repository sync fails                      | Manifest error and referenced server IPs         | Fix the reported field or register the server, then sync again                                                                                            |
+| Server Setup Pending                       | SSH trust and preparation result                 | Verify the host fingerprint, then complete server preparation                                                                                             |
 
 ## Deployment problems
 

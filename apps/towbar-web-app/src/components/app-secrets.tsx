@@ -55,7 +55,6 @@ import {
 } from "@workspace/web-design-system/forms/field";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { toast } from "@workspace/web-design-system/overlays/toast";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
@@ -76,7 +75,7 @@ function secretEnvironmentIconClassName(name: string | undefined) {
   return name === "production" ? "text-danger" : "text-foreground";
 }
 
-export const stageLabels: Record<AppSecretStage, string> = {
+const stageLabels: Record<AppSecretStage, string> = {
   build: "Build",
   deployment: "Runtime",
   pre_deploy: "Pre-deploy",
@@ -615,9 +614,9 @@ function SecretVariablesEditor({
                         className={`col-span-full flex min-h-10 min-w-0 items-center ${canManageKeys ? "sm:col-span-3" : "sm:col-span-4"}`}
                       >
                         <span className="flex min-w-0 flex-wrap items-center gap-2">
-                          <TypographyCode className="break-all">
+                          <span className="break-all font-mono text-sm">
                             {key}
-                          </TypographyCode>
+                          </span>
                           {binding.inheritedOrigins[key] ? (
                             <Chip
                               size="small"

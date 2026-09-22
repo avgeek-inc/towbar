@@ -3,14 +3,14 @@ title: Automation workflows
 description: Deploy and roll back apps, reconcile repositories, manage secrets, and follow asynchronous Towbar operations.
 ---
 
-All examples use your own API host and a Bearer API key. Use an Edit key for permitted mutations. Deployment and infrastructure operations require administrative grants. Personal keys remain bounded by the owner’s current team role; team keys retain their explicit service grants.
+All examples use your own Towbar host and a Bearer API key. Use an Edit key for permitted mutations. Deployment and infrastructure operations require administrative grants. Personal keys remain bounded by the owner’s current team role; team keys retain their explicit service grants.
 
 ## Deploy an app
 
 List `/apps` to find an app UUID, then request a deployment:
 
 ```bash
-curl -X POST "https://YOUR_API_HOST/v1/api/apps/$APP_ID/actions/deploy" \
+curl -X POST "https://YOUR_TOWBAR_HOST/v1/api/apps/$APP_ID/actions/deploy" \
   -H "Authorization: Bearer $TOWBAR_API_KEY" \
   -H "Idempotency-Key: $ACTION_ID"
 ```
@@ -22,7 +22,7 @@ Terminal deployment states are `succeeded`, `succeeded_with_warnings`, `failed`,
 To stream deployment updates:
 
 ```bash
-curl -N "https://YOUR_API_HOST/v1/api/deployments/$DEPLOYMENT_ID/events" \
+curl -N "https://YOUR_TOWBAR_HOST/v1/api/deployments/$DEPLOYMENT_ID/events" \
   -H "Authorization: Bearer $TOWBAR_API_KEY" \
   -H 'Accept: text/event-stream'
 ```
@@ -46,7 +46,7 @@ Automatic deployment controls can be read or changed at `/sources/{sourceId}/aut
 Read `/settings/secrets` for workspace bindings and their revisions. Repository, app, and resource secret routes use the same model. Reads expose names and revision metadata, never plaintext values.
 
 ```bash
-curl -X PATCH 'https://YOUR_API_HOST/v1/api/settings/secrets/production/deployment' \
+curl -X PATCH 'https://YOUR_TOWBAR_HOST/v1/api/settings/secrets/production/deployment' \
   -H "Authorization: Bearer $TOWBAR_API_KEY" \
   -H 'Content-Type: application/json' \
   --data-binary @secret-change.json

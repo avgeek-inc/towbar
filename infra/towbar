@@ -1,0 +1,1533 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+CLI_VERSION="2.0.1"
+CLI_RELEASE="v$CLI_VERSION"
+TOWBAR_ROOT="${TOWBAR_ROOT:-/opt/towbar}"
+TOWBAR_CONFIG_DIR="${TOWBAR_CONFIG_DIR:-/etc/towbar}"
+TOWBAR_ENV_FILE="${TOWBAR_ENV_FILE:-$TOWBAR_CONFIG_DIR/towbar.env}"
+TOWBAR_REPOSITORY="${TOWBAR_REPOSITORY:-avgeek-inc/towbar}"
+TOWBAR_BIN="${TOWBAR_BIN:-/usr/local/bin/towbar}"
+RELEASES_DIR="$TOWBAR_ROOT/releases"
+CURRENT_LINK="$TOWBAR_ROOT/current"
+VERSION_FILE="$TOWBAR_ROOT/VERSION"
+LOCK_FILE="${TOWBAR_LOCK_FILE:-/var/lock/towbar.lock}"
+
+STYLE_RESET=""
+STYLE_BOLD=""
+STYLE_MUTED=""
+STYLE_YELLOW=""
+STYLE_GREEN=""
+STYLE_RED=""
+INSTALL_FAILURE_CONTEXT=""
+
+setup_styles() {
+  if [[ -t 1 && -z "${NO_COLOR:-}" && "${TERM:-dumb}" != dumb ]]; then
+    STYLE_RESET=$'\033[0m'
+    STYLE_BOLD=$'\033[1m'
+    STYLE_MUTED=$'\033[38;5;245m'
+    STYLE_YELLOW=$'\033[38;5;214m'
+    STYLE_GREEN=$'\033[38;5;78m'
+    STYLE_RED=$'\033[38;5;203m'
+  fi
+}
+
+setup_styles
+
+log() {
+  printf 'Towbar: %s\n' "$*"
+}
+
+fail() {
+  printf '%sTowbar: %s%s\n' "$STYLE_RED" "$*" "$STYLE_RESET" >&2
+  exit 1
+}
+
+ui_brand() {
+  if gum_available; then
+    gum style \
+      --border rounded \
+      --border-foreground 214 \
+      --padding "0 2" \
+      --margin "1 0" \
+      --bold \
+      "TOWBAR" \
+      "Self-hosted deployments, ready on your infrastructure."
+    printf '\n'
+    return
+  fi
+  printf '\n%s%sTOWBAR%s\n' "$STYLE_BOLD" "$STYLE_YELLOW" "$STYLE_RESET"
+  printf '%sSelf-hosted deployments, ready on your infrastructure.%s\n\n' \
+    "$STYLE_MUTED" "$STYLE_RESET"
+}
+
+ui_heading() {
+  printf '%s%s%s\n' "$STYLE_BOLD" "$1" "$STYLE_RESET"
+}
+
+ui_success_heading() {
+  printf '%s%s%s%s\n' "$STYLE_BOLD" "$STYLE_GREEN" "$1" "$STYLE_RESET"
+}
+
+ui_note() {
+  printf '%s%s%s\n' "$STYLE_MUTED" "$1" "$STYLE_RESET"
+}
+
+ui_step() {
+  printf '%s✓%s  %s\n' "$STYLE_GREEN" "$STYLE_RESET" "$1"
+}
+
+ui_pending_step() {
+  printf '%s○%s  %s\n' "$STYLE_YELLOW" "$STYLE_RESET" "$1"
+}
+
+ui_failure_step() {
+  printf '%s✗%s  %s\n' "$STYLE_RED" "$STYLE_RESET" "$1" >&2
+}
+
+interactive_terminal() {
+  [[ -t 0 && -t 1 && "${TOWBAR_NON_INTERACTIVE:-0}" != 1 ]]
+}
+
+gum_available() {
+  interactive_terminal && command -v gum >/dev/null 2>&1
+}
+
+prompt_install_url() {
+  local default_url="$1" answer
+  if gum_available; then
+    answer="$(
+      gum input \
+        --cursor.foreground 214 \
+        --prompt.foreground 214 \
+        --prompt "› " \
+        --header "Specify URL (Enter to continue with $default_url):" \
+        --header.foreground 250 \
+        --placeholder "$default_url"
+    )"
+  else
+    printf '%sSpecify URL%s %s(Enter to continue with %s):%s ' \
+      "$STYLE_BOLD" "$STYLE_RESET" "$STYLE_MUTED" "$default_url" \
+      "$STYLE_RESET" >&2
+    read -r answer
+  fi
+  printf '%s\n' "${answer:-$default_url}"
+}
+
+prompt_confirm() {
+  local prompt="$1" answer
+  if gum_available; then
+    gum confirm \
+      --affirmative "Install" \
+      --negative "Cancel" \
+      --prompt.foreground 214 \
+      "$prompt"
+    return
+  fi
+
+  printf '%s%s [Y/n]: %s' "$STYLE_BOLD" "$prompt" "$STYLE_RESET" >&2
+  read -r answer
+  [[ "$answer" =~ ^[Nn]$ ]] && return 1
+  [[ -z "$answer" || "$answer" =~ ^[Yy]$ ]]
+}
+
+validate_https_url() {
+  local url="${1%/}" hostname label
+  local -a hostname_labels
+  [[ "$url" =~ ^https://[^/?#@[:space:]]+$ ]] ||
+    fail "$2 must be an HTTPS origin without a path or port"
+  hostname="${url#https://}"
+  [[ ${#hostname} -le 253 && "$hostname" == *.* ]] ||
+    fail "$2 must use a valid public hostname"
+  IFS=. read -r -a hostname_labels <<<"$hostname"
+  for label in "${hostname_labels[@]}"; do
+    [[ ${#label} -ge 1 && ${#label} -le 63 ]] ||
+      fail "$2 contains an invalid hostname label"
+    [[ "$label" =~ ^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$ ]] ||
+      fail "$2 contains an invalid hostname label"
+  done
+}
+
+set_install_url() {
+  local requested_url="${1%/}" lowercase_url
+  lowercase_url="$(printf '%s' "$requested_url" | tr '[:upper:]' '[:lower:]')"
+
+  if [[ "$lowercase_url" == "http://localhost:4021" ]]; then
+    INSTALL_MODE=local
+    INSTALL_APP_URL=http://localhost:4021
+    INSTALL_HOSTNAME=
+    INSTALL_PROXY_HOPS=1
+    return
+  fi
+
+  if [[ "$lowercase_url" =~ ^https?://localhost([:/?#]|$) ]]; then
+    fail "localhost is supported only as http://localhost:4021"
+  fi
+
+  validate_https_url "$lowercase_url" "Towbar URL"
+  INSTALL_MODE=public
+  INSTALL_APP_URL="$lowercase_url"
+  INSTALL_HOSTNAME="${lowercase_url#https://}"
+  INSTALL_PROXY_HOPS=1
+}
+
+set_env_value() {
+  local env_file="$1" key="$2" value="$3" pending
+  pending="$(mktemp "${env_file}.XXXXXX")"
+  awk \
+    -v key="$key" \
+    -v value="$value" \
+    'BEGIN { FS = OFS = "="; found = 0 }
+      $1 == key { print key, value; found = 1; next }
+      { print }
+      END { if (!found) print key, value }' \
+    "$env_file" >"$pending"
+  chmod 600 "$pending"
+  mv "$pending" "$env_file"
+}
+
+env_value() {
+  local env_file="$1" key="$2"
+  awk -F= -v key="$key" '$1 == key { print substr($0, length(key) + 2); exit }' \
+    "$env_file"
+}
+
+show_install_summary() {
+  printf '\n'
+  ui_success_heading "Ready to install Towbar"
+  if [[ "$INSTALL_MODE" == public ]]; then
+    printf 'Towbar will be available at %s.\n' "$INSTALL_APP_URL"
+    ui_note "Towbar will verify DNS and configure HTTPS automatically."
+  else
+    printf 'Towbar will stay available only on this server.\n'
+    ui_note "Open the dashboard at $INSTALL_APP_URL after installation."
+  fi
+  printf '\n'
+}
+
+collect_install_settings() {
+  local requested_url="${TOWBAR_INSTALL_URL:-http://localhost:4021}"
+
+  if interactive_terminal; then
+    ui_heading "Where will Towbar be available?"
+    ui_note "Keep it private, or enter a public HTTPS domain with an A record pointing here."
+    printf '\n'
+    requested_url="$(prompt_install_url "$requested_url")"
+  fi
+
+  set_install_url "$requested_url"
+  show_install_summary
+  if interactive_terminal && ! prompt_confirm "Continue with this installation?"; then
+    fail "installation cancelled"
+  fi
+}
+
+apply_install_settings() {
+  set_env_value "$TOWBAR_ENV_FILE" COMPOSE_PROFILES "$INSTALL_MODE"
+  set_env_value "$TOWBAR_ENV_FILE" TOWBAR_INSTALL_MODE "$INSTALL_MODE"
+  set_env_value "$TOWBAR_ENV_FILE" TOWBAR_BIND_ADDRESS 127.0.0.1
+  set_env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_DOMAIN "$INSTALL_HOSTNAME"
+  set_env_value "$TOWBAR_ENV_FILE" TOWBAR_APP_BASE_URL "$INSTALL_APP_URL"
+  set_env_value \
+    "$TOWBAR_ENV_FILE" TOWBAR_GITLAB_OAUTH_REDIRECT_URI \
+    "$INSTALL_APP_URL/v1/core/gitlab/oauth/callback"
+  set_env_value \
+    "$TOWBAR_ENV_FILE" TOWBAR_TRUSTED_PROXY_HOPS "$INSTALL_PROXY_HOPS"
+}
+
+verify_public_dns() {
+  local hostname="$1" addresses
+  addresses="$(
+    getent ahostsv4 "$hostname" 2>/dev/null |
+      awk '$2 == "STREAM" { print $1 }' |
+      sort -u
+  )"
+  [[ -n "$addresses" ]] ||
+    fail "$hostname does not have a resolvable A record; point it to this server and try again"
+  ui_step "$hostname resolves to $(tr '\n' ' ' <<<"$addresses" | xargs)"
+}
+
+verify_public_ports() {
+  local port
+  for port in 80 443; do
+    if ss -H -ltn "sport = :$port" | grep -q .; then
+      fail "port $port is already in use; Towbar needs ports 80 and 443 for automatic HTTPS"
+    fi
+  done
+  ui_step "Ports 80 and 443 are available for HTTPS"
+}
+
+verify_public_prerequisites() {
+  [[ "$INSTALL_MODE" == public ]] || return
+  ui_pending_step "Checking the domain and HTTPS ports"
+  verify_public_dns "$INSTALL_HOSTNAME"
+  verify_public_ports
+}
+
+preview_installation() {
+  local delay="${TOWBAR_PREVIEW_DELAY:-0.12}" step
+  local -a steps=(
+    "Inspecting the host"
+    "Installing Docker and prerequisites"
+    "Verifying the $CLI_RELEASE release"
+    "Generating installation secrets"
+    "Downloading the control-plane images"
+    "Applying the database schema"
+    "Starting Towbar"
+    "Verifying the API, worker and dashboard"
+  )
+  if [[ "$INSTALL_MODE" == public ]]; then
+    steps=(
+      "Inspecting the host"
+      "Installing Docker and prerequisites"
+      "Checking DNS and HTTPS ports"
+      "Verifying the $CLI_RELEASE release"
+      "Generating installation secrets"
+      "Downloading the control-plane images"
+      "Applying the database schema"
+      "Starting Towbar"
+      "Issuing the Let's Encrypt certificate"
+      "Verifying HTTPS and certificate renewal"
+      "Verifying the API, worker and dashboard"
+    )
+  fi
+
+  printf '\n'
+  ui_heading "Installing Towbar"
+  for step in "${steps[@]}"; do
+    if [[ -t 1 && -n "$STYLE_YELLOW" ]]; then
+      ui_pending_step "$step"
+      sleep "$delay"
+      printf '\033[1A\033[2K'
+    fi
+    ui_step "$step"
+  done
+
+  printf '\n%s%sTowbar is ready%s\n' \
+    "$STYLE_BOLD" "$STYLE_GREEN" "$STYLE_RESET"
+  printf 'Open the dashboard at %s\n' "$INSTALL_APP_URL"
+  printf '\n'
+  ui_note "The dashboard URL is printed here after a real installation."
+  ui_note "The browser setup asks for your team name, name, email and password."
+}
+
+preview_command() {
+  [[ $# -le 1 ]] || fail "usage: towbar preview [--defaults]"
+  case "${1:-}" in
+    "") ;;
+    --defaults) TOWBAR_NON_INTERACTIVE=1 ;;
+    *) fail "usage: towbar preview [--defaults]" ;;
+  esac
+  ui_brand
+  collect_install_settings
+  preview_installation
+}
+
+require_root() {
+  ((EUID == 0)) || fail "this command must run as root; use sudo towbar $*"
+}
+
+require_linux() {
+  [[ "$(uname -s)" == Linux ]] || fail "Towbar installation supports Linux hosts"
+}
+
+validate_repository() {
+  [[ "$TOWBAR_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] ||
+    fail "TOWBAR_REPOSITORY must be a GitHub owner/repository pair"
+}
+
+validate_version() {
+  [[ "$1" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] ||
+    fail "release must be a stable semantic version such as v2.0.0"
+  [[ "${BASH_REMATCH[1]}" == "${CLI_VERSION%%.*}" ]] ||
+    fail "Towbar CLI $CLI_VERSION supports only v${CLI_VERSION%%.*} releases"
+}
+
+acquire_lock() {
+  install -d -m 0755 "$(dirname "$LOCK_FILE")"
+  exec 9>"$LOCK_FILE"
+  flock --nonblock 9 || fail "another Towbar operation is running"
+}
+
+require_runtime_tools() {
+  local command_name
+  for command_name in curl docker git jq openssl tar; do
+    command -v "$command_name" >/dev/null ||
+      fail "missing required command: $command_name"
+  done
+  docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is required"
+}
+
+install_prerequisites() {
+  require_linux
+  command -v apt-get >/dev/null ||
+    fail "automatic installation currently supports Ubuntu and Debian"
+
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update
+  apt-get install --yes ca-certificates curl git iproute2 jq openssl tar util-linux
+
+  if command -v docker >/dev/null; then
+    docker compose version >/dev/null 2>&1 ||
+      fail "Docker is installed without Compose v2; install the Docker Compose plugin"
+    systemctl enable --now docker
+    return
+  fi
+
+  # Supplied by every supported distribution.
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  case "${ID:-}" in
+    ubuntu | debian) ;;
+    *) fail "automatic Docker installation supports Ubuntu and Debian" ;;
+  esac
+
+  apt-get remove --yes \
+    containerd docker-compose docker-compose-v2 docker-doc docker.io \
+    podman-docker runc >/dev/null 2>&1 || true
+  install -m 0755 -d /etc/apt/keyrings
+  curl \
+    --fail \
+    --silent \
+    --show-error \
+    --location \
+    --proto '=https' \
+    --tlsv1.2 \
+    "https://download.docker.com/linux/$ID/gpg" \
+    --output /etc/apt/keyrings/docker.asc
+  chmod a+r /etc/apt/keyrings/docker.asc
+
+  distro_codename="${UBUNTU_CODENAME:-${VERSION_CODENAME:-}}"
+  [[ -n "$distro_codename" ]] || fail "could not determine the distribution codename"
+  cat >/etc/apt/sources.list.d/docker.sources <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/$ID
+Suites: $distro_codename
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+
+  apt-get update
+  apt-get install --yes \
+    containerd.io docker-buildx-plugin docker-ce docker-ce-cli \
+    docker-compose-plugin
+  systemctl enable --now docker
+}
+
+resolve_latest_version() {
+  local effective_url version
+  effective_url="$(
+    curl \
+      --fail \
+      --silent \
+      --show-error \
+      --location \
+      --proto '=https' \
+      --tlsv1.2 \
+      --output /dev/null \
+      --write-out '%{url_effective}' \
+      "https://github.com/$TOWBAR_REPOSITORY/releases/latest"
+  )"
+  version="${effective_url##*/}"
+  validate_version "$version"
+  printf '%s\n' "$version"
+}
+
+verify_release() {
+  local version="$1"
+  if ! curl \
+    --fail \
+    --silent \
+    --show-error \
+    --location \
+    --proto '=https' \
+    --tlsv1.2 \
+    "https://api.github.com/repos/$TOWBAR_REPOSITORY/releases/tags/$version" |
+    jq -e \
+      --arg version "$version" \
+      '.tag_name == $version and .draft == false and .prerelease == false and .published_at != null' \
+      >/dev/null; then
+    fail "$version is not a published stable release"
+  fi
+}
+
+resolve_release_commit() {
+  local version="$1" refs commit
+  refs="$(
+    git ls-remote \
+      "https://github.com/$TOWBAR_REPOSITORY.git" \
+      "refs/tags/$version" \
+      "refs/tags/$version^{}"
+  )"
+  commit="$(
+    awk \
+      -v tag_ref="refs/tags/$version" \
+      -v peeled_ref="refs/tags/$version^{}" \
+      '$2 == tag_ref { tag = $1 } $2 == peeled_ref { peeled = $1 } END { print peeled != "" ? peeled : tag }' \
+      <<<"$refs"
+  )"
+  [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || fail "could not resolve $version to a commit"
+  printf '%s\n' "$commit"
+}
+
+metadata_value() {
+  local release_dir="$1" key="$2"
+  awk -F= -v key="$key" '$1 == key { print substr($0, length(key) + 2); exit }' \
+    "$release_dir/.towbar-release"
+}
+
+download_release() {
+  local version="$1" commit="$2" release_dir staging archive source_dir package_version
+  local image_manifest owner image_prefix
+  release_dir="$RELEASES_DIR/$version"
+  if [[ -d "$release_dir" ]]; then
+    [[ -f "$release_dir/.towbar-release" ]] ||
+      fail "$release_dir exists without Towbar release metadata"
+    [[ "$(metadata_value "$release_dir" COMMIT)" == "$commit" ]] ||
+      fail "$release_dir does not match the published release commit"
+    printf '%s\n' "$release_dir"
+    return
+  fi
+
+  install -d -m 0755 "$RELEASES_DIR"
+  staging="$(mktemp -d "$RELEASES_DIR/.staging.XXXXXX")"
+  archive="$staging/release.tar.gz"
+  image_manifest="$staging/towbar-images.json"
+  cleanup_download() {
+    rm -rf "$staging"
+  }
+  trap cleanup_download EXIT
+
+  log "Downloading $version at immutable commit $commit" >&2
+  curl \
+    --fail \
+    --silent \
+    --show-error \
+    --location \
+    --retry 4 \
+    --retry-all-errors \
+    --proto '=https' \
+    --tlsv1.2 \
+    "https://github.com/$TOWBAR_REPOSITORY/archive/$commit.tar.gz" \
+    --output "$archive"
+  if ! curl \
+    --fail \
+    --silent \
+    --show-error \
+    --location \
+    --retry 4 \
+    --retry-all-errors \
+    --proto '=https' \
+    --tlsv1.2 \
+    "https://github.com/$TOWBAR_REPOSITORY/releases/download/$version/towbar-images.json" \
+    --output "$image_manifest"; then
+    fail "Prebuilt images for Towbar $version are not published yet. Retry after the release image workflow completes."
+  fi
+
+  if tar -tzf "$archive" | grep -Eq '(^/|(^|/)\.\.(/|$))'; then
+    fail "release archive contains an unsafe path"
+  fi
+  tar -xzf "$archive" -C "$staging"
+  source_dir="$(find "$staging" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+  [[ -n "$source_dir" ]] || fail "release archive did not contain a source directory"
+  [[ -f "$source_dir/docker-compose.yml" && -f "$source_dir/.env.example" && -f "$source_dir/infra/towbar" ]] ||
+    fail "release archive is missing Towbar installation files"
+
+  package_version="$(jq -r .version "$source_dir/package.json")"
+  [[ "$package_version" == "${version#v}" ]] ||
+    fail "$version contains package version $package_version"
+  owner="${TOWBAR_REPOSITORY%%/*}"
+  image_prefix="ghcr.io/${owner,,}"
+  jq -e \
+    --arg version "$version" \
+    --arg commit "$commit" \
+    --arg api "$image_prefix/towbar-api@" \
+    --arg worker "$image_prefix/towbar-worker@" \
+    --arg web "$image_prefix/towbar-web-app@" \
+    '.version == $version and .commit == $commit and
+      (.images | keys == ["api", "web-app", "worker"]) and
+      (.images.api | startswith($api) and test("@sha256:[0-9a-f]{64}$")) and
+      (.images.worker | startswith($worker) and test("@sha256:[0-9a-f]{64}$")) and
+      (.images["web-app"] | startswith($web) and test("@sha256:[0-9a-f]{64}$"))' \
+    "$image_manifest" >/dev/null ||
+    fail "$version does not contain a valid immutable image manifest"
+  cat >"$source_dir/.towbar-release" <<EOF
+VERSION=$version
+COMMIT=$commit
+REPOSITORY=$TOWBAR_REPOSITORY
+API_IMAGE=$(jq -r '.images.api' "$image_manifest")
+WORKER_IMAGE=$(jq -r '.images.worker' "$image_manifest")
+WEB_APP_IMAGE=$(jq -r '.images["web-app"]' "$image_manifest")
+EOF
+  mv "$source_dir" "$release_dir"
+  trap - EXIT
+  cleanup_download
+  printf '%s\n' "$release_dir"
+}
+
+generate_config() {
+  local release_dir="$1" pending_config
+  CONFIG_CREATED=false
+  [[ ! -e "$TOWBAR_ENV_FILE" ]] || return
+
+  install -d -m 0700 "$TOWBAR_CONFIG_DIR"
+  pending_config="$(mktemp "$TOWBAR_CONFIG_DIR/towbar.env.XXXXXX")"
+  awk \
+    -v postgres_password="$(openssl rand -hex 32)" \
+    -v runtime_password="$(openssl rand -hex 32)" \
+    -v credentials_key="$(openssl rand -base64 32 | tr -d '\n')" \
+    -v hmac_secret="$(openssl rand -hex 32)" \
+    'BEGIN { FS = OFS = "=" }
+      $1 == "TOWBAR_POSTGRES_PASSWORD" { $2 = postgres_password }
+      $1 == "TOWBAR_DATABASE_RUNTIME_PASSWORD" { $2 = runtime_password }
+      $1 == "TOWBAR_CREDENTIALS_KEY" { $2 = credentials_key }
+      $1 == "TOWBAR_INTERNAL_HMAC_SECRET" { $2 = hmac_secret }
+      { print }' \
+    "$release_dir/.env.example" >"$pending_config"
+  chmod 600 "$pending_config"
+  mv "$pending_config" "$TOWBAR_ENV_FILE"
+  CONFIG_CREATED=true
+  log "Created $TOWBAR_ENV_FILE with generated installation secrets"
+}
+
+compose_for() {
+  local release_dir="$1" commit="$2" env_file="$3" compose_profiles
+  local api_image worker_image web_app_image
+  shift 3
+  compose_profiles="$(env_value "$env_file" COMPOSE_PROFILES)"
+  api_image="$(metadata_value "$release_dir" API_IMAGE)"
+  worker_image="$(metadata_value "$release_dir" WORKER_IMAGE)"
+  web_app_image="$(metadata_value "$release_dir" WEB_APP_IMAGE)"
+  TOWBAR_IMAGE_TAG="$commit" \
+    TOWBAR_API_IMAGE="$api_image" \
+    TOWBAR_WORKER_IMAGE="$worker_image" \
+    TOWBAR_WEB_APP_IMAGE="$web_app_image" \
+    SOURCE_COMMIT="$commit" \
+    COMPOSE_PROFILES="${compose_profiles:-local}" \
+    docker compose \
+      --env-file "$env_file" \
+      --project-directory "$release_dir" \
+      --file "$release_dir/docker-compose.yml" \
+      "$@"
+}
+
+gateway_service_for() {
+  local env_file="$1" install_mode
+  install_mode="$(env_value "$env_file" TOWBAR_INSTALL_MODE)"
+  if [[ "$install_mode" == public ]]; then
+    printf 'gateway-public\n'
+  else
+    printf 'gateway\n'
+  fi
+}
+
+validate_config_for() {
+  local release_dir="$1" env_file="${2:-$TOWBAR_ENV_FILE}" commit install_mode profiles domain app_url bind_address port
+  [[ -f "$env_file" ]] || fail "$env_file is missing"
+  install_mode="$(env_value "$env_file" TOWBAR_INSTALL_MODE)"
+  profiles="$(env_value "$env_file" COMPOSE_PROFILES)"
+  domain="$(env_value "$env_file" TOWBAR_GATEWAY_DOMAIN)"
+  app_url="$(env_value "$env_file" TOWBAR_APP_BASE_URL)"
+  bind_address="$(env_value "$env_file" TOWBAR_BIND_ADDRESS)"
+  port="$(env_value "$env_file" TOWBAR_PORT)"
+  case "${install_mode:-local}" in
+    local)
+      [[ "${profiles:-local}" == local ]] ||
+        fail "COMPOSE_PROFILES must be local when TOWBAR_INSTALL_MODE is local"
+      [[ "$app_url" == http://localhost:4021 ]] ||
+        fail "a local installation must use http://localhost:4021"
+      [[ "${bind_address:-127.0.0.1}" == 127.0.0.1 && "${port:-4021}" == 4021 ]] ||
+        fail "a local installation must bind 127.0.0.1:4021"
+      ;;
+    public)
+      [[ "$profiles" == public ]] ||
+        fail "COMPOSE_PROFILES must be public when TOWBAR_INSTALL_MODE is public"
+      validate_https_url "$app_url" "TOWBAR_APP_BASE_URL"
+      [[ "$domain" == "${app_url#https://}" ]] ||
+        fail "TOWBAR_GATEWAY_DOMAIN must match the public Towbar URL"
+      ;;
+    *) fail "TOWBAR_INSTALL_MODE must be local or public" ;;
+  esac
+  commit="$(metadata_value "$release_dir" COMMIT)"
+  compose_for "$release_dir" "$commit" "$env_file" config --quiet
+}
+
+set_current_release() {
+  local release_dir="$1" pending_link="$TOWBAR_ROOT/.current.next"
+  rm -f "$pending_link"
+  ln -s "$release_dir" "$pending_link"
+  mv -Tf "$pending_link" "$CURRENT_LINK"
+}
+
+verify_running_release() {
+  local release_dir="$1" commit="$2" service container_id health_status expected_image running_image gateway_service compose_config
+  compose_config="$(compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" config --format json)"
+  for service in api worker web-app; do
+    container_id="$(compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q "$service")"
+    if [[ -z "$container_id" ]]; then
+      printf 'Towbar: %s container was not created\n' "$service" >&2
+      return 1
+    fi
+    health_status="$(
+      docker inspect \
+        --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
+        "$container_id"
+    )"
+    if [[ "$health_status" != healthy ]]; then
+      printf 'Towbar: %s finished with status %s\n' "$service" "$health_status" >&2
+      return 1
+    fi
+    expected_image="$(jq -r --arg service "$service" '.services[$service].image' <<<"$compose_config")"
+    running_image="$(docker inspect --format '{{.Config.Image}}' "$container_id")"
+    if [[ "$running_image" != "$expected_image" ]]; then
+      printf \
+        'Towbar: %s runs %s instead of %s\n' \
+        "$service" "$running_image" "$expected_image" >&2
+      return 1
+    fi
+  done
+
+  gateway_service="$(gateway_service_for "$TOWBAR_ENV_FILE")"
+  container_id="$(
+    compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q "$gateway_service"
+  )"
+  if [[ -z "$container_id" ]]; then
+    printf 'Towbar: %s container was not created\n' "$gateway_service" >&2
+    return 1
+  fi
+  health_status="$(
+    docker inspect \
+      --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
+      "$container_id"
+  )"
+  if [[ "$health_status" != healthy ]]; then
+    printf 'Towbar: %s finished with status %s\n' "$gateway_service" "$health_status" >&2
+    return 1
+  fi
+
+  container_id="$(compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q api)"
+  api_version="$(
+    docker exec "$container_id" node -e \
+      'fetch("http://127.0.0.1:4020/health").then((response) => response.json()).then((body) => process.stdout.write(body.version ?? ""))'
+  )"
+  if [[ "$api_version" != "$commit" ]]; then
+    printf 'Towbar: API reports %s instead of %s\n' "$api_version" "$commit" >&2
+    return 1
+  fi
+}
+
+verify_public_https() {
+  local release_dir="$1" commit="$2" app_url hostname gateway_service container_id
+  [[ "$(env_value "$TOWBAR_ENV_FILE" TOWBAR_INSTALL_MODE)" == public ]] || return
+  app_url="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_APP_BASE_URL)"
+  hostname="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_DOMAIN)"
+  gateway_service="$(gateway_service_for "$TOWBAR_ENV_FILE")"
+
+  if ! curl \
+    --fail \
+    --silent \
+    --show-error \
+    --location \
+    --retry 24 \
+    --retry-all-errors \
+    --retry-delay 5 \
+    --connect-timeout 10 \
+    --max-time 30 \
+    --noproxy '*' \
+    --proto '=https' \
+    --resolve "$hostname:443:127.0.0.1" \
+    --tlsv1.2 \
+    "$app_url/health" >/dev/null; then
+    compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
+      logs --tail 100 "$gateway_service" >&2 || true
+    ui_failure_step "Let's Encrypt certificate issuance or HTTPS verification failed"
+    printf \
+      'Towbar: HTTPS verification failed. Confirm %s points to this server and ports 80 and 443 are reachable.\n' \
+      "$hostname" >&2
+    return 1
+  fi
+
+  container_id="$(
+    compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q "$gateway_service"
+  )"
+  docker exec "$container_id" caddy validate \
+    --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
+  docker exec "$container_id" sh -eu -c \
+    'test -n "$(find /data/caddy/certificates -type f -name "$1.crt" -print -quit)"' \
+    sh "$hostname"
+}
+
+rehearse_public_https_restart() {
+  local release_dir="$1" commit="$2" gateway_service app_url hostname
+  [[ "${CONFIG_CREATED:-false}" == true && "${INSTALL_MODE:-}" == public ]] || return
+  gateway_service="$(gateway_service_for "$TOWBAR_ENV_FILE")"
+  app_url="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_APP_BASE_URL)"
+  hostname="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_DOMAIN)"
+  compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" restart "$gateway_service"
+  compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
+    up --detach --wait "$gateway_service"
+  curl \
+    --fail \
+    --silent \
+    --show-error \
+    --location \
+    --retry 12 \
+    --retry-all-errors \
+    --retry-delay 2 \
+    --connect-timeout 10 \
+    --max-time 30 \
+    --noproxy '*' \
+    --proto '=https' \
+    --resolve "$hostname:443:127.0.0.1" \
+    --tlsv1.2 \
+    "$app_url/health" >/dev/null
+}
+
+install_cli_from_release() {
+  local release_dir="$1"
+  install -o root -g root -m 0755 "$release_dir/infra/towbar" "$TOWBAR_BIN"
+}
+
+release_application_images() {
+  local release_dir="$1" commit="$2" api_image worker_image web_app_image
+  api_image="$(metadata_value "$release_dir" API_IMAGE)"
+  worker_image="$(metadata_value "$release_dir" WORKER_IMAGE)"
+  web_app_image="$(metadata_value "$release_dir" WEB_APP_IMAGE)"
+  if [[ -n "$api_image" && -n "$worker_image" && -n "$web_app_image" ]]; then
+    printf '%s\n' "$api_image" "$worker_image" "$web_app_image"
+  else
+    printf '%s\n' \
+      "towbar/api:$commit" \
+      "towbar/worker:$commit" \
+      "towbar/web-app:$commit"
+  fi
+}
+
+cleanup_old_releases() {
+  local current_release="$1" previous_release="$2" candidate resolved
+  while IFS= read -r -d '' candidate; do
+    resolved="$(readlink -f "$candidate")"
+    if [[ "$resolved" == "$current_release" || "$resolved" == "$previous_release" ]]; then
+      continue
+    fi
+    if rm -rf -- "$resolved"; then
+      ui_note "Removed old release $(basename "$resolved")."
+    else
+      ui_note "Could not remove old release $resolved."
+    fi
+  done < <(find "$RELEASES_DIR" -mindepth 1 -maxdepth 1 -type d -print0)
+}
+
+is_towbar_application_repository() {
+  [[ "$1" =~ ^towbar/(api|worker|web-app)$ ||
+    "$1" =~ ^ghcr\.io/[^/]+/towbar-(api|worker|web-app)$ ]]
+}
+
+cleanup_old_application_images() {
+  local current_release="$1" current_commit="$2" previous_release="$3" previous_commit="$4"
+  local repository image_id keep_id
+  local -a keep_ids=()
+  local -A seen_ids=()
+  while IFS= read -r image_ref; do
+    keep_id="$(docker image inspect --format '{{.Id}}' "$image_ref" 2>/dev/null || true)"
+    [[ -z "$keep_id" ]] || keep_ids+=("$keep_id")
+  done < <(
+    release_application_images "$current_release" "$current_commit"
+    if [[ -n "$previous_release" ]]; then
+      release_application_images "$previous_release" "$previous_commit"
+    fi
+  )
+
+  while read -r repository image_id; do
+    is_towbar_application_repository "$repository" || continue
+    [[ -z "${seen_ids[$image_id]:-}" ]] || continue
+    seen_ids[$image_id]=1
+    for keep_id in "${keep_ids[@]}"; do
+      [[ "$image_id" == "$keep_id" ]] && continue 2
+    done
+    if docker image rm "$image_id" >/dev/null; then
+      ui_note "Removed an obsolete $repository image."
+    else
+      ui_note "Kept $repository because Docker still references it."
+    fi
+  done < <(docker image ls --no-trunc --format '{{.Repository}} {{.ID}}' | sort -u)
+}
+
+cleanup_installation_artifacts() {
+  local current_release="$1" current_commit="$2" previous_release="$3" previous_commit="$4"
+  cleanup_old_application_images \
+    "$current_release" "$current_commit" "$previous_release" "$previous_commit"
+  cleanup_old_releases "$current_release" "$previous_release"
+}
+
+upgrade_release() {
+  local requested_version="${1:-latest}" version commit release_dir
+  local previous_release="" previous_commit="" containers_changed=false
+
+  require_root upgrade
+  require_linux
+  require_runtime_tools
+  validate_repository
+  acquire_lock
+
+  if [[ "$requested_version" == latest ]]; then
+    ui_pending_step "Resolving the latest stable release"
+    version="$(resolve_latest_version)"
+  else
+    version="$requested_version"
+    validate_version "$version"
+  fi
+  verify_release "$version"
+  commit="$(resolve_release_commit "$version")"
+  ui_step "Verified $version at immutable commit ${commit:0:12}"
+  release_dir="$(download_release "$version" "$commit")"
+  generate_config "$release_dir"
+  if [[ -n "${INSTALL_MODE:-}" ]]; then
+    apply_install_settings
+    if [[ "$CONFIG_CREATED" == true ]]; then
+      ui_step "Created the encrypted runtime configuration"
+    else
+      ui_step "Updated the installation access settings"
+    fi
+  fi
+  validate_config_for "$release_dir"
+
+  if [[ -L "$CURRENT_LINK" ]]; then
+    previous_release="$(readlink -f "$CURRENT_LINK")"
+    [[ -f "$previous_release/.towbar-release" ]] ||
+      fail "the current release is missing Towbar metadata"
+    previous_commit="$(metadata_value "$previous_release" COMMIT)"
+  fi
+
+  rollback_upgrade() {
+    local exit_code="${1:-1}"
+    trap - ERR INT TERM
+    set +e
+    if [[ -n "$previous_release" ]]; then
+      log "Upgrade failed; restoring $(metadata_value "$previous_release" VERSION)"
+      set_current_release "$previous_release"
+      if [[ "$containers_changed" == true ]]; then
+        compose_for "$previous_release" "$previous_commit" "$TOWBAR_ENV_FILE" \
+          up --detach --wait --remove-orphans
+      fi
+    elif [[ "$containers_changed" == true ]]; then
+      compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" down --remove-orphans
+      rm -f "$CURRENT_LINK"
+    fi
+    if [[ "$INSTALL_FAILURE_CONTEXT" == public_https ]]; then
+      printf '\n' >&2
+      if [[ -n "$previous_release" ]]; then
+        printf '%sThe new release did not pass HTTPS verification.%s\n' \
+          "$STYLE_RED" "$STYLE_RESET" >&2
+        printf 'The previous Towbar release was restored.\n' >&2
+        printf 'Inspect the Caddy output above, correct the problem, and run: sudo towbar upgrade\n' >&2
+      else
+        printf '%sTowbar could not finish HTTPS setup.%s\n' \
+          "$STYLE_RED" "$STYLE_RESET" >&2
+        printf 'No public HTTP fallback was enabled, and ports 80 and 443 were released.\n' >&2
+        printf 'The generated secrets, downloaded release, and ACME state were preserved.\n' >&2
+        printf 'Confirm the A record points to this server and that inbound ports 80 and 443 are open.\n' >&2
+        printf 'After correcting the problem, run: sudo towbar install\n' >&2
+      fi
+    fi
+    exit "$exit_code"
+  }
+  trap 'rollback_upgrade $?' ERR
+  trap 'rollback_upgrade 130' INT
+  trap 'rollback_upgrade 143' TERM
+
+  ui_pending_step "Downloading the control-plane images"
+  compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
+    pull --quiet api worker web-app
+  ui_step "Downloaded the control-plane images"
+  set_current_release "$release_dir"
+  containers_changed=true
+  ui_pending_step "Applying the database schema and starting $version"
+  compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
+    up --detach --wait --remove-orphans
+  ui_step "Started the control plane"
+  if [[ "$(env_value "$TOWBAR_ENV_FILE" TOWBAR_INSTALL_MODE)" == public ]]; then
+    ui_pending_step "Issuing and verifying the Let's Encrypt certificate"
+    INSTALL_FAILURE_CONTEXT=public_https
+    verify_public_https "$release_dir" "$commit"
+    ui_step "Verified HTTPS and automatic certificate renewal"
+    if [[ "$CONFIG_CREATED" == true && "${INSTALL_MODE:-}" == public ]]; then
+      ui_pending_step "Rehearsing an HTTPS gateway restart"
+      rehearse_public_https_restart "$release_dir" "$commit"
+      ui_step "HTTPS recovered with the persisted certificate"
+    fi
+    INSTALL_FAILURE_CONTEXT=""
+  fi
+  ui_pending_step "Verifying the API, worker and dashboard"
+  verify_running_release "$release_dir" "$commit"
+  ui_step "Verified the API, worker and dashboard"
+
+  printf '%s\n' "$version" >"$VERSION_FILE"
+  install_cli_from_release "$release_dir"
+  trap - ERR INT TERM
+  cleanup_installation_artifacts \
+    "$release_dir" "$commit" "$previous_release" "$previous_commit"
+  log "$version is healthy at $commit"
+}
+
+current_release_dir() {
+  [[ -L "$CURRENT_LINK" ]] || fail "Towbar is not installed"
+  readlink -f "$CURRENT_LINK"
+}
+
+preflight_runtime_configuration() {
+  local release_dir="$1" commit="$2" gateway_service gateway_image gateway_config gateway_domain
+  gateway_service="$(gateway_service_for "$TOWBAR_ENV_FILE")"
+
+  compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
+    run --rm --no-deps --entrypoint node api \
+    --input-type=module --eval \
+    'const { getEnv } = await import("./dist/env.js");
+     const { getRuntimeIntegrations } = await import("./dist/infrastructure/runtime-integrations.js");
+     const { getRuntimeLogDrains } = await import("./dist/infrastructure/runtime-log-drains.js");
+     const { getRuntimeNotifications } = await import("./dist/infrastructure/runtime-notifications.js");
+     getEnv(); getRuntimeIntegrations(); getRuntimeLogDrains(); getRuntimeNotifications();' ||
+    return 1
+  compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
+    run --rm --no-deps --entrypoint node worker \
+    --input-type=module --eval \
+    'const { getEnv } = await import("./dist/env.js"); getEnv();' ||
+    return 1
+
+  gateway_image="$(
+    compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
+      config --format json |
+      jq -r --arg service "$gateway_service" '.services[$service].image'
+  )" || return 1
+  if [[ -z "$gateway_image" || "$gateway_image" == null ]]; then
+    printf 'Towbar: could not resolve the %s image\n' "$gateway_service" >&2
+    return 1
+  fi
+  gateway_config="$release_dir/infra/gateway/Caddyfile"
+  gateway_domain="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_DOMAIN)"
+  if [[ "$gateway_service" == gateway-public ]]; then
+    gateway_config="$release_dir/infra/gateway/Caddyfile.public"
+  fi
+  docker run --rm --interactive \
+    --entrypoint caddy \
+    --env "TOWBAR_GATEWAY_DOMAIN=$gateway_domain" \
+    "$gateway_image" \
+    validate --config - --adapter caddyfile <"$gateway_config" || return 1
+}
+
+restart_preflight_failure() {
+  ui_failure_step "Configuration preflight failed"
+  printf 'Towbar: Running services were not restarted.\n' >&2
+  printf 'Towbar: Run sudo towbar doctor to inspect the installation.\n' >&2
+}
+
+restart_release() {
+  local release_dir commit
+  require_root restart
+  require_runtime_tools
+  acquire_lock
+  release_dir="$(current_release_dir)"
+  commit="$(metadata_value "$release_dir" COMMIT)"
+
+  log "Validating $TOWBAR_ENV_FILE before restarting"
+  if ! (validate_config_for "$release_dir"); then
+    restart_preflight_failure
+    return 1
+  fi
+  if ! preflight_runtime_configuration "$release_dir" "$commit"; then
+    restart_preflight_failure
+    return 1
+  fi
+
+  log "Configuration preflight passed; restarting Towbar"
+  if ! compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
+    up --detach --wait --remove-orphans; then
+    ui_failure_step "Towbar did not become healthy after restart"
+    printf 'Towbar: Run sudo towbar doctor to inspect the failure.\n' >&2
+    return 1
+  fi
+  if ! verify_running_release "$release_dir" "$commit"; then
+    ui_failure_step "The restarted services did not pass release verification"
+    printf 'Towbar: Run sudo towbar doctor to inspect the failure.\n' >&2
+    return 1
+  fi
+  log "Configuration applied"
+}
+
+config_command() {
+  local release_dir commit
+  case "${1:-}" in
+    path) printf '%s\n' "$TOWBAR_ENV_FILE" ;;
+    validate)
+      require_root config validate
+      require_runtime_tools
+      release_dir="$(current_release_dir)"
+      commit="$(metadata_value "$release_dir" COMMIT)"
+      validate_config_for "$release_dir"
+      preflight_runtime_configuration "$release_dir" "$commit"
+      log "Configuration is valid"
+      ;;
+    *) fail "usage: towbar config {path|validate}" ;;
+  esac
+}
+
+doctor_record() {
+  local status="$1" message="$2" detail="${3:-}"
+
+  case "$status" in
+    pass)
+      DOCTOR_PASS_COUNT=$((DOCTOR_PASS_COUNT + 1))
+      ui_step "$message"
+      ;;
+    warn)
+      DOCTOR_WARN_COUNT=$((DOCTOR_WARN_COUNT + 1))
+      ui_pending_step "$message"
+      ;;
+    fail)
+      DOCTOR_FAIL_COUNT=$((DOCTOR_FAIL_COUNT + 1))
+      ui_failure_step "$message"
+      ;;
+  esac
+  if [[ -n "$detail" ]]; then
+    ui_note "   $detail"
+  fi
+}
+
+doctor_check_host() {
+  local os_id architecture memory_kib disk_kib disk_gib command_name
+  os_id="$(awk -F= '$1 == "ID" { value = $2; gsub(/\"/, "", value); print value; exit }' /etc/os-release 2>/dev/null || true)"
+  case "$os_id" in
+    ubuntu | debian)
+      doctor_record pass "Supported Linux distribution" "$os_id"
+      ;;
+    *)
+      doctor_record fail "Unsupported Linux distribution" "Towbar supports Ubuntu and Debian; detected ${os_id:-unknown}."
+      ;;
+  esac
+
+  architecture="$(uname -m)"
+  case "$architecture" in
+    x86_64 | aarch64 | arm64)
+      doctor_record pass "Supported host architecture" "$architecture"
+      ;;
+    *)
+      doctor_record warn "Unverified host architecture" "$architecture"
+      ;;
+  esac
+
+  for command_name in curl docker git jq openssl tar; do
+    if command -v "$command_name" >/dev/null 2>&1; then
+      doctor_record pass "$command_name is available"
+    else
+      doctor_record fail "$command_name is missing"
+    fi
+  done
+
+  if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+    doctor_record pass "Docker Engine is reachable" "$(docker version --format '{{.Server.Version}}' 2>/dev/null || true)"
+  else
+    doctor_record fail "Docker Engine is not reachable" "Start Docker, then rerun sudo towbar doctor."
+  fi
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    doctor_record pass "Docker Compose v2 is available" "$(docker compose version --short 2>/dev/null || true)"
+  else
+    doctor_record fail "Docker Compose v2 is unavailable"
+  fi
+
+  disk_kib="$(df -Pk "$TOWBAR_ROOT" 2>/dev/null | awk 'NR == 2 { print $4 }')"
+  if [[ "$disk_kib" =~ ^[0-9]+$ ]]; then
+    disk_gib="$(awk -v kib="$disk_kib" 'BEGIN { printf "%.1f", kib / 1048576 }')"
+    if ((disk_kib < 2097152)); then
+      doctor_record fail "Host disk space is critically low" "$disk_gib GiB available. Free at least 2 GiB before operating Towbar."
+    elif ((disk_kib < 10485760)); then
+      doctor_record warn "Host disk space is low" "$disk_gib GiB available; 10 GiB or more is recommended for builds and upgrades."
+    else
+      doctor_record pass "Host disk space is available" "$disk_gib GiB free"
+    fi
+  else
+    doctor_record warn "Host disk space could not be measured"
+  fi
+
+  memory_kib="$(awk '/^MemTotal:/ { print $2; exit }' /proc/meminfo 2>/dev/null || true)"
+  if [[ "$memory_kib" =~ ^[0-9]+$ ]]; then
+    if ((memory_kib < 1048576)); then
+      doctor_record fail "Host memory is below 1 GiB" "Towbar may not start reliably on this host."
+    elif ((memory_kib < 2097152)); then
+      doctor_record warn "Host memory is below 2 GiB" "Builds and concurrent workflows may be constrained."
+    else
+      doctor_record pass "Host memory is available" "$(awk -v kib="$memory_kib" 'BEGIN { printf "%.1f GiB", kib / 1048576 }')"
+    fi
+  else
+    doctor_record warn "Host memory could not be measured"
+  fi
+
+  if command -v timedatectl >/dev/null 2>&1 && \
+    [[ "$(timedatectl show --property=NTPSynchronized --value 2>/dev/null || true)" == yes ]]; then
+    doctor_record pass "System clock is synchronized"
+  else
+    doctor_record warn "System clock synchronization was not confirmed" "TLS and signed requests require an accurate clock."
+  fi
+}
+
+format_kibibytes() {
+  awk -v kib="$1" 'BEGIN {
+    if (kib >= 1048576) printf "%.1f GiB", kib / 1048576;
+    else if (kib >= 1024) printf "%.1f MiB", kib / 1024;
+    else printf "%d KiB", kib;
+  }'
+}
+
+doctor_check_disk_usage() {
+  local release_kib=0 image_bytes=0 volume_kib=0 repository image_id size mountpoint volume
+  local -A seen_images=()
+
+  release_kib="$(du -sk "$RELEASES_DIR" 2>/dev/null | awk '{ print $1 }')"
+  if [[ "$release_kib" =~ ^[0-9]+$ ]]; then
+    doctor_record pass "Release storage measured" "$(format_kibibytes "$release_kib") in $RELEASES_DIR"
+  else
+    doctor_record warn "Release storage could not be measured"
+  fi
+
+  while read -r repository image_id; do
+    is_towbar_application_repository "$repository" || continue
+    [[ -z "${seen_images[$image_id]:-}" ]] || continue
+    seen_images[$image_id]=1
+    size="$(docker image inspect --format '{{.Size}}' "$image_id" 2>/dev/null || true)"
+    [[ "$size" =~ ^[0-9]+$ ]] && image_bytes=$((image_bytes + size))
+  done < <(docker image ls --no-trunc --format '{{.Repository}} {{.ID}}' 2>/dev/null | sort -u)
+  doctor_record pass "Towbar application image storage measured" \
+    "$(format_kibibytes $((image_bytes / 1024))) apparent size across ${#seen_images[@]} images"
+
+  while IFS= read -r volume; do
+    [[ -n "$volume" ]] || continue
+    mountpoint="$(docker volume inspect --format '{{.Mountpoint}}' "$volume" 2>/dev/null || true)"
+    [[ -d "$mountpoint" ]] || continue
+    size="$(du -sk "$mountpoint" 2>/dev/null | awk '{ print $1 }')"
+    [[ "$size" =~ ^[0-9]+$ ]] && volume_kib=$((volume_kib + size))
+  done < <(docker volume ls --filter label=com.docker.compose.project=towbar --quiet 2>/dev/null)
+  doctor_record pass "Towbar volume storage measured" "$(format_kibibytes "$volume_kib")"
+}
+
+doctor_check_config() {
+  local release_dir="$1" ownership mode app_url
+  if [[ ! -f "$TOWBAR_ENV_FILE" ]]; then
+    doctor_record fail "Runtime configuration is missing" "$TOWBAR_ENV_FILE"
+    return
+  fi
+
+  ownership="$(stat -c '%U:%G' "$TOWBAR_ENV_FILE" 2>/dev/null || true)"
+  mode="$(stat -c '%a' "$TOWBAR_ENV_FILE" 2>/dev/null || true)"
+  if [[ "$ownership" == root:root && "$mode" == 600 ]]; then
+    doctor_record pass "Runtime configuration is protected" "$TOWBAR_ENV_FILE is owned by root:root with mode 600."
+  else
+    doctor_record fail "Runtime configuration permissions are unsafe" "Expected root:root mode 600; found ${ownership:-unknown} mode ${mode:-unknown}."
+  fi
+
+  if (validate_config_for "$release_dir") >/dev/null 2>&1; then
+    app_url="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_APP_BASE_URL)"
+    doctor_record pass "Runtime configuration is valid" "$DOCTOR_MODE mode at $app_url"
+  else
+    doctor_record fail "Runtime configuration is invalid" "Run sudo towbar config validate for the exact error."
+  fi
+}
+
+doctor_check_services() {
+  local release_dir="$1" commit="$2" gateway_service="$3"
+  local service container_id health_status restart_count
+  local -a services=(postgres temporal temporal-ui api worker web-app "$gateway_service")
+
+  for service in "${services[@]}"; do
+    container_id="$(compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q "$service" 2>/dev/null || true)"
+    if [[ -z "$container_id" ]]; then
+      doctor_record fail "$service is not running"
+      continue
+    fi
+    health_status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_id" 2>/dev/null || true)"
+    if [[ "$health_status" == healthy || "$health_status" == running ]]; then
+      doctor_record pass "$service is healthy" "$health_status"
+    else
+      doctor_record fail "$service is unhealthy" "Status: ${health_status:-unknown}. Inspect sudo towbar logs $service."
+    fi
+    restart_count="$(docker inspect --format '{{.RestartCount}}' "$container_id" 2>/dev/null || true)"
+    if [[ "$restart_count" =~ ^[0-9]+$ ]] && ((restart_count >= 3)); then
+      doctor_record warn "$service has restarted repeatedly" "$restart_count restarts"
+    fi
+  done
+
+  if compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
+    exec -T postgres pg_isready -U towbar -d towbar >/dev/null 2>&1; then
+    doctor_record pass "PostgreSQL accepts Towbar connections"
+  else
+    doctor_record fail "PostgreSQL rejected the readiness check"
+  fi
+
+  if (verify_running_release "$release_dir" "$commit") >/dev/null 2>&1; then
+    doctor_record pass "Running services match the installed release" "${DOCTOR_VERSION} at ${commit:0:12}"
+  else
+    doctor_record fail "Running services do not match the installed release" "Run sudo towbar logs, then sudo towbar restart after correcting the failure."
+  fi
+}
+
+doctor_check_local_access() {
+  local release_dir="$1" commit="$2" gateway_service="$3" container_id published
+  container_id="$(compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q "$gateway_service" 2>/dev/null || true)"
+  published="$(docker port "$container_id" 4021/tcp 2>/dev/null || true)"
+  if [[ "$published" == 127.0.0.1:4021 ]]; then
+    doctor_record pass "Dashboard is restricted to this host" "$published"
+  else
+    doctor_record fail "Local dashboard binding is not isolated" "Expected 127.0.0.1:4021; found ${published:-no published port}."
+  fi
+  if curl --fail --silent --show-error --max-time 10 http://127.0.0.1:4021/health >/dev/null 2>&1; then
+    doctor_record pass "Local dashboard responds"
+  else
+    doctor_record fail "Local dashboard does not respond" "Check sudo towbar logs gateway web-app."
+  fi
+  doctor_record pass "External API and MCP access are disabled" "Public automation access requires a Towbar HTTPS installation."
+}
+
+doctor_check_public_access() {
+  local release_dir="$1" commit="$2" gateway_service="$3"
+  local container_id hostname app_url addresses published_http published_https api_status certificate issuer expiry
+  container_id="$(compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q "$gateway_service" 2>/dev/null || true)"
+  hostname="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_DOMAIN)"
+  app_url="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_APP_BASE_URL)"
+  published_http="$(docker port "$container_id" 80/tcp 2>/dev/null || true)"
+  published_https="$(docker port "$container_id" 443/tcp 2>/dev/null || true)"
+  if [[ -n "$published_http" && -n "$published_https" ]]; then
+    doctor_record pass "HTTPS gateway publishes ports 80 and 443"
+  else
+    doctor_record fail "HTTPS gateway ports are incomplete" "HTTP: ${published_http:-missing}; HTTPS: ${published_https:-missing}."
+  fi
+
+  addresses="$(getent ahostsv4 "$hostname" 2>/dev/null | awk '$2 == "STREAM" { print $1 }' | sort -u | paste -sd, - || true)"
+  if [[ -n "$addresses" ]]; then
+    doctor_record pass "Public hostname has an A record" "$hostname resolves to $addresses."
+  else
+    doctor_record fail "Public hostname does not resolve" "Create an A record for $hostname."
+  fi
+
+  if curl \
+    --fail --silent --show-error --location --connect-timeout 10 --max-time 20 \
+    --noproxy '*' --proto '=https' --resolve "$hostname:443:127.0.0.1" \
+    --tlsv1.2 "$app_url/health" >/dev/null 2>&1; then
+    doctor_record pass "Public HTTPS dashboard responds" "$app_url"
+  else
+    doctor_record fail "Public HTTPS dashboard verification failed" "Inspect sudo towbar logs $gateway_service."
+  fi
+
+  api_status="$(curl \
+    --silent --output /dev/null --write-out '%{http_code}' \
+    --connect-timeout 10 --max-time 20 --noproxy '*' --proto '=https' \
+    --resolve "$hostname:443:127.0.0.1" --tlsv1.2 \
+    "$app_url/v1/core/session" 2>/dev/null || true)"
+  case "$api_status" in
+    200 | 401 | 403)
+      doctor_record pass "REST API is routed through the HTTPS origin" "HTTP $api_status from $app_url/v1/core/session"
+      ;;
+    *)
+      doctor_record fail "REST API routing failed" "HTTP ${api_status:-000} from the public origin."
+      ;;
+  esac
+
+  certificate="$(timeout 15 openssl s_client -connect 127.0.0.1:443 -servername "$hostname" </dev/null 2>/dev/null | openssl x509 -outform PEM 2>/dev/null || true)"
+  if [[ -n "$certificate" ]]; then
+    issuer="$(openssl x509 -noout -issuer <<<"$certificate" 2>/dev/null | sed 's/^issuer=//' || true)"
+    expiry="$(openssl x509 -noout -enddate <<<"$certificate" 2>/dev/null | sed 's/^notAfter=//' || true)"
+    if openssl x509 -checkend 604800 -noout <<<"$certificate" >/dev/null 2>&1; then
+      doctor_record pass "TLS certificate is valid for more than seven days" "Expires $expiry; issuer $issuer"
+    else
+      doctor_record fail "TLS certificate expires within seven days" "Expires ${expiry:-unknown}; inspect Caddy renewal logs."
+    fi
+  else
+    doctor_record fail "TLS certificate could not be inspected"
+  fi
+
+  if docker exec "$container_id" sh -eu -c \
+    'test -n "$(find /data/caddy/certificates -type f -name "$1.crt" -print -quit)"' \
+    sh "$hostname" >/dev/null 2>&1; then
+    doctor_record pass "Caddy certificate state is persisted"
+  else
+    doctor_record fail "Caddy certificate state was not found" "A gateway replacement may need to issue a new certificate."
+  fi
+
+  if curl --fail --silent --show-error --max-time 10 \
+    https://api.github.com/rate_limit >/dev/null 2>&1; then
+    doctor_record pass "GitHub is reachable for releases and source access"
+  else
+    doctor_record warn "GitHub could not be reached" "Upgrades and GitHub-backed workflows may fail."
+  fi
+  if curl --fail --silent --show-error --max-time 10 \
+    https://acme-v02.api.letsencrypt.org/directory >/dev/null 2>&1; then
+    doctor_record pass "Let's Encrypt is reachable for certificate renewal"
+  else
+    doctor_record warn "Let's Encrypt could not be reached" "Automatic certificate renewal may fail."
+  fi
+}
+
+doctor_command() {
+  local release_dir gateway_service warning_label
+  require_root doctor
+  require_linux
+  [[ $# -eq 0 ]] || fail "usage: towbar doctor"
+
+  release_dir="$(current_release_dir)"
+  [[ -f "$release_dir/.towbar-release" ]] || fail "the current release is missing Towbar metadata"
+  DOCTOR_VERSION="$(metadata_value "$release_dir" VERSION)"
+  DOCTOR_COMMIT="$(metadata_value "$release_dir" COMMIT)"
+  DOCTOR_MODE="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_INSTALL_MODE 2>/dev/null || true)"
+  DOCTOR_MODE="${DOCTOR_MODE:-local}"
+  gateway_service="$(gateway_service_for "$TOWBAR_ENV_FILE")"
+  DOCTOR_PASS_COUNT=0
+  DOCTOR_WARN_COUNT=0
+  DOCTOR_FAIL_COUNT=0
+  ui_brand
+  ui_heading "Checking Towbar"
+  ui_note "$DOCTOR_VERSION · $DOCTOR_MODE mode · ${DOCTOR_COMMIT:0:12}"
+  printf '\n'
+
+  doctor_check_host
+  if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+    doctor_check_disk_usage
+  fi
+  doctor_check_config "$release_dir"
+  if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+    doctor_check_services "$release_dir" "$DOCTOR_COMMIT" "$gateway_service"
+    case "$DOCTOR_MODE" in
+      local) doctor_check_local_access "$release_dir" "$DOCTOR_COMMIT" "$gateway_service" ;;
+      public) doctor_check_public_access "$release_dir" "$DOCTOR_COMMIT" "$gateway_service" ;;
+      *) doctor_record fail "Installation mode is invalid" "$DOCTOR_MODE" ;;
+    esac
+  fi
+
+  printf '\n'
+  if ((DOCTOR_FAIL_COUNT > 0)); then
+    warning_label=warnings
+    ((DOCTOR_WARN_COUNT == 1)) && warning_label=warning
+    ui_failure_step "Towbar needs attention: $DOCTOR_FAIL_COUNT failed, $DOCTOR_WARN_COUNT $warning_label, $DOCTOR_PASS_COUNT passed"
+  elif ((DOCTOR_WARN_COUNT > 0)); then
+    warning_label=warnings
+    ((DOCTOR_WARN_COUNT == 1)) && warning_label=warning
+    ui_success_heading "Towbar is healthy with $DOCTOR_WARN_COUNT $warning_label"
+    ui_note "$DOCTOR_PASS_COUNT checks passed."
+  else
+    ui_success_heading "Towbar is healthy"
+    ui_note "$DOCTOR_PASS_COUNT checks passed."
+  fi
+
+  ((DOCTOR_FAIL_COUNT == 0))
+}
+
+compose_command() {
+  local release_dir commit
+  require_root compose
+  require_runtime_tools
+  [[ $# -ge 2 ]] || fail "usage: towbar compose COMMAND [ARG...]"
+  release_dir="$(current_release_dir)"
+  commit="$(metadata_value "$release_dir" COMMIT)"
+  shift
+  compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" "$@"
+}
+
+status_command() {
+  local release_dir commit
+  require_root status
+  require_runtime_tools
+  release_dir="$(current_release_dir)"
+  commit="$(metadata_value "$release_dir" COMMIT)"
+  compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps
+}
+
+logs_command() {
+  local release_dir commit
+  require_root logs
+  require_runtime_tools
+  release_dir="$(current_release_dir)"
+  commit="$(metadata_value "$release_dir" COMMIT)"
+  shift
+  compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
+    logs --tail "${TOWBAR_LOG_TAIL:-200}" "$@"
+}
+
+exec_command() {
+  local release_dir commit service
+  require_root exec
+  require_runtime_tools
+  service="${2:-}"
+  [[ -n "$service" && $# -ge 3 ]] ||
+    fail "usage: towbar exec SERVICE COMMAND [ARG...]"
+  release_dir="$(current_release_dir)"
+  commit="$(metadata_value "$release_dir" COMMIT)"
+  shift 2
+  compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" exec "$service" "$@"
+}
+
+version_command() {
+  if [[ -f "$VERSION_FILE" ]]; then
+    printf 'Towbar %s\n' "$(cat "$VERSION_FILE")"
+  else
+    printf 'Towbar is not installed\n'
+  fi
+  printf 'CLI %s\n' "$CLI_VERSION"
+}
+
+install_command() {
+  [[ $# -eq 0 ]] || fail "usage: towbar install"
+  require_root install
+  require_linux
+  validate_repository
+  [[ ! -L "$CURRENT_LINK" ]] || fail "Towbar is already installed; use sudo towbar upgrade"
+
+  ui_brand
+  collect_install_settings
+  ui_heading "Installing Towbar"
+  ui_pending_step "Inspecting the host and installing prerequisites"
+  install_prerequisites
+  ui_step "Host prerequisites are ready"
+  verify_public_prerequisites
+  upgrade_release "$CLI_RELEASE"
+
+  printf '\n%s%sTowbar is ready%s\n' \
+    "$STYLE_BOLD" "$STYLE_GREEN" "$STYLE_RESET"
+  printf 'Open the dashboard at %s\n' "$INSTALL_APP_URL"
+  printf '\n'
+  ui_note "Next: configure optional integrations in the environment file."
+  ui_note "Manage this installation with sudo towbar status, logs and upgrade."
+}
+
+usage() {
+  cat <<'EOF'
+Usage: towbar COMMAND [ARGUMENTS]
+
+Commands:
+  install                Install the release bundled with this CLI
+  upgrade [VERSION]      Upgrade to the latest or selected stable release
+  restart                Validate and restart with the current configuration
+  compose COMMAND        Run a Docker Compose command for this installation
+  config path            Print the configuration path
+  config validate        Validate the current configuration
+  doctor                 Run read-only installation diagnostics
+  status                 Show Compose service status
+  logs [SERVICE...]      Show recent service logs
+  exec SERVICE COMMAND   Run a command in a Towbar service
+  preview [--defaults]   Preview installation onboarding without making changes
+  version                Show the installed release and CLI versions
+  help                   Show this help
+EOF
+}
+
+case "${1:-help}" in
+  compose) compose_command "$@" ;;
+  config) shift; config_command "$@" ;;
+  doctor) shift; doctor_command "$@" ;;
+  exec) exec_command "$@" ;;
+  help | --help | -h) usage ;;
+  install) shift; install_command "$@" ;;
+  logs) logs_command "$@" ;;
+  preview) shift; preview_command "$@" ;;
+  restart) restart_release ;;
+  status) status_command ;;
+  upgrade | update) shift; upgrade_release "${1:-latest}" ;;
+  version | --version | -v) version_command ;;
+  *) fail "unknown command: $1; run towbar help" ;;
+esac

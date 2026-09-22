@@ -34,26 +34,6 @@ export const deliveriesQuery = z
   })
   .refine(pairedCursor, "A cursor needs both before and beforeId");
 
-export function notificationDestinationLabel(
-  provider: string,
-  config: Record<string, unknown>,
-) {
-  if (provider === "smtp" && Array.isArray(config.recipients))
-    return config.recipients
-      .filter((value): value is string => typeof value === "string")
-      .join(", ");
-  if (provider === "slack" && typeof config.channelId === "string")
-    return config.channelId;
-  if (provider === "telegram" && typeof config.chatId === "string")
-    return (
-      config.chatId +
-      (typeof config.messageThreadId === "number"
-        ? ` / Topic ${config.messageThreadId}`
-        : "")
-    );
-  const host = provider === "discord" ? config.webhookHost : config.urlHost;
-  return typeof host === "string" ? host : provider;
-}
 export async function listNotificationDeliveries(
   input: z.infer<typeof deliveriesQuery> & {
     workspaceId: string;

@@ -9,7 +9,7 @@ Towbar uses one GitHub App per installation. The App identity and secrets live o
 
 Create a GitHub App with repository Contents and Metadata read access. Grant Pull requests and Deployments read and write access when using Preview deployments. Subscribe to `push`, `pull_request`, and `installation` events.
 
-Set the webhook URL to `${TOWBAR_API_BASE_URL}/v1/public/webhooks/github` and the setup URL to `${TOWBAR_APP_BASE_URL}/manage/integrations/github`, with redirect enabled. Generate a private key, then configure:
+Set the webhook URL to `${TOWBAR_APP_BASE_URL}/v1/public/webhooks/github` and the setup URL to `${TOWBAR_APP_BASE_URL}/manage/integrations/github`, with redirect enabled. Generate a private key, then configure:
 
 ```dotenv
 TOWBAR_GITHUB_ENABLED=true
@@ -59,4 +59,4 @@ The connection card shows the installed account, account type, installation ID, 
 
 ## Maintain the connection
 
-Use **Review permissions** after adding App permissions or repositories. Use **Reconnect GitHub** when GitHub suspends or removes the installation. If webhooks stop arriving, inspect the App’s recent deliveries in GitHub and confirm that the callback URL matches `TOWBAR_API_BASE_URL`. Rotating the private key or webhook secret requires updating the environment and restarting the API.
+Use **Review permissions** after adding App permissions or repositories. Use **Reconnect GitHub** when GitHub suspends or removes the installation. If webhooks stop arriving, inspect the App’s recent deliveries in GitHub and confirm that the callback URL uses `TOWBAR_APP_BASE_URL`. Rotating the private key or webhook secret requires updating the environment and restarting the API.

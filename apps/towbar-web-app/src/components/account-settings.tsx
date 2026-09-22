@@ -20,20 +20,29 @@ import {
   EmailPasswordSettings,
   SessionSettings,
 } from "./settings-pages";
+import { hasHttpsExternalAccess } from "@/lib/config";
 
-export function AccountSettings({
-  page,
-}: {
-  page:
-    | "profile"
-    | "preferences"
-    | "email-password"
-    | "sessions"
-    | "2fa"
-    | "api-keys"
-    | "mcp";
-}) {
+type AccountSettingsPage =
+  | "profile"
+  | "preferences"
+  | "email-password"
+  | "sessions"
+  | "2fa"
+  | "api-keys"
+  | "mcp";
+
+export function AccountSettings({ page }: { page: AccountSettingsPage }) {
   const router = useRouter();
+  const accountSettingsGroups: ReadonlyArray<{
+    title: string;
+    pages: readonly AccountSettingsPage[];
+  }> = [
+    { title: "Account", pages: ["profile", "preferences"] },
+    { title: "Security", pages: ["email-password", "2fa", "sessions"] },
+    ...(hasHttpsExternalAccess()
+      ? [{ title: "API & MCP", pages: ["api-keys", "mcp"] as const }]
+      : []),
+  ];
   const titles = {
     profile: "Profile",
     preferences: "Preferences",
@@ -54,13 +63,7 @@ export function AccountSettings({
   };
   return (
     <DashboardPage title={titles[page]} icon={icons[page]}>
-      {(
-        [
-          { title: "Account", pages: ["profile", "preferences"] },
-          { title: "Security", pages: ["email-password", "2fa", "sessions"] },
-          { title: "API & MCP", pages: ["api-keys", "mcp"] },
-        ] as const
-      ).map((group) => (
+      {accountSettingsGroups.map((group) => (
         <SecondaryItems
           key={group.title}
           title={group.title}

@@ -3,9 +3,8 @@ import { randomBytes } from "node:crypto";
 
 const api = process.env.VERIFY_API_URL;
 const app = process.env.VERIFY_APP_URL;
-const code = process.env.VERIFY_SETUP_CODE;
 assert.ok(
-  api && app && code,
+  api && app,
   "The disposable production runner must supply setup context",
 );
 for (const endpoint of [api, app]) {
@@ -68,7 +67,6 @@ const data = {
   email: "verification@example.invalid",
   password,
   confirmPassword: password,
-  setupCode: code,
 };
 response = await request(
   "/v1/public/auth/setup",

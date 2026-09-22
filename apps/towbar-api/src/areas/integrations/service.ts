@@ -79,7 +79,7 @@ export function encryptIntegrationCredentials(
   });
 }
 
-export function decryptIntegration(
+function decryptIntegration(
   connection: Connection,
 ): Extract<ProviderConnection, { provider: "gitlab" }> {
   if (connection.provider !== "gitlab")

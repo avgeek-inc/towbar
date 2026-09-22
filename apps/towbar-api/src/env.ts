@@ -35,9 +35,7 @@ const envSchema = z.object({
     }
   }),
   TOWBAR_INTERNAL_HMAC_SECRET: z.string().min(32),
-  TOWBAR_API_BASE_URL: z.string().url().default("http://localhost:4020"),
   TOWBAR_APP_BASE_URL: z.string().url().default("http://localhost:4021"),
-  TOWBAR_WEBSITE_BASE_URL: z.string().url().default("https://www.towbar.dev"),
   TOWBAR_VULNERABILITY_SCANNING_ENABLED: z
     .enum(["true", "false"])
     .default("false")

@@ -5,22 +5,24 @@ description: Connect Codex, Cursor, VS Code, Claude Code, or another Streamable 
 
 Towbar's MCP server provides task-oriented tools for discovering infrastructure, deploying workloads, diagnosing failures, and managing secrets. Tools combine related reads and use direct inputs while preserving the API's workspace boundaries and role checks. You do not need to install a separate Towbar MCP process.
 
+MCP requires an HTTPS Towbar installation. It is unavailable in the default local HTTP installation.
+
 ## Connect
 
 1. Open **Manage → My Settings → API Keys** and create an API key.
 2. Choose **Read only** for discovery. Use **Full access** when you want the client to deploy or change settings.
-3. Copy the MCP URL shown in the page. It ends in `/v1/mcp` on your API host.
+3. Copy the MCP URL shown in the page. It ends in `/v1/mcp` on your Towbar host.
 4. Add the appropriate client configuration below, reconnect, and ask: **“List my Towbar apps.”**
 
 Transport is **Streamable HTTP**. Authentication is the `Authorization: Bearer ...` header on every request. Towbar does not provide an OAuth browser sign-in flow for MCP. Clients that only support OAuth connectors cannot connect directly; use a client that supports custom bearer headers.
 
 <Tabs>
   <Tab title="Codex">
-    Add this to `~/.codex/config.toml`, replacing the API host:
+    Add this to `~/.codex/config.toml`, replacing the Towbar host:
 
     ```toml
     [mcp_servers.towbar]
-    url = "https://YOUR_API_HOST/v1/mcp"
+    url = "https://YOUR_TOWBAR_HOST/v1/mcp"
     bearer_token_env_var = "TOWBAR_API_KEY"
     ```
 
@@ -29,7 +31,7 @@ Transport is **Streamable HTTP**. Authentication is the `Authorization: Bearer .
     Alternatively, register the same configuration with the CLI:
 
     ```bash
-    codex mcp add towbar --url 'https://YOUR_API_HOST/v1/mcp' \
+    codex mcp add towbar --url 'https://YOUR_TOWBAR_HOST/v1/mcp' \
       --bearer-token-env-var TOWBAR_API_KEY
     ```
 
@@ -45,7 +47,7 @@ Transport is **Streamable HTTP**. Authentication is the `Authorization: Bearer .
     {
       "mcpServers": {
         "towbar": {
-          "url": "https://YOUR_API_HOST/v1/mcp",
+          "url": "https://YOUR_TOWBAR_HOST/v1/mcp",
           "headers": { "Authorization": "Bearer YOUR_TOWBAR_API_KEY" }
         }
       }
@@ -71,7 +73,7 @@ Transport is **Streamable HTTP**. Authentication is the `Authorization: Bearer .
       "servers": {
         "towbar": {
           "type": "http",
-          "url": "https://YOUR_API_HOST/v1/mcp",
+          "url": "https://YOUR_TOWBAR_HOST/v1/mcp",
           "headers": { "Authorization": "Bearer ${input:towbar-key}" }
         }
       }
@@ -85,7 +87,7 @@ Transport is **Streamable HTTP**. Authentication is the `Authorization: Bearer .
     Set `TOWBAR_API_KEY` securely in your shell, then run:
 
     ```bash
-    claude mcp add --transport http towbar 'https://YOUR_API_HOST/v1/mcp' \
+    claude mcp add --transport http towbar 'https://YOUR_TOWBAR_HOST/v1/mcp' \
       --header "Authorization: Bearer $TOWBAR_API_KEY"
     ```
 
@@ -98,7 +100,7 @@ Transport is **Streamable HTTP**. Authentication is the `Authorization: Bearer .
     | Field | Value |
     | --- | --- |
     | Transport | Streamable HTTP |
-    | URL | `https://YOUR_API_HOST/v1/mcp` |
+    | URL | `https://YOUR_TOWBAR_HOST/v1/mcp` |
     | Header | `Authorization: Bearer YOUR_TOWBAR_API_KEY` |
 
     Use the client's normal MCP initialization flow. Do not configure the REST URL as an MCP server or use the legacy HTTP+SSE transport.
@@ -169,7 +171,7 @@ Keep human approval enabled in your client for mutations. Tools permitted by Edi
 | `403`                              | Origin is allowed and the requested operation is permitted.                                       |
 | `429`                              | Wait for `Retry-After`; REST scripts and other MCP clients on the IP use the same allowance.      |
 | No mutation tools                  | Use an Edit key with the required grants. Administrative actions need administrative permissions. |
-| Connection or certificate error    | Use the API host, `/v1/mcp`, HTTPS, and a publicly trusted certificate.                           |
+| Connection or certificate error    | Use the Towbar host, `/v1/mcp`, HTTPS, and a publicly trusted certificate.                        |
 | OAuth login appears                | Configure bearer headers; this endpoint does not implement OAuth discovery or authorization.      |
 | `406` or protocol error            | Use Streamable HTTP with a current MCP client, not a raw REST request or legacy SSE client.       |
 | Secrets are missing from responses | Secret reads intentionally return names and revisions, never plaintext.                           |

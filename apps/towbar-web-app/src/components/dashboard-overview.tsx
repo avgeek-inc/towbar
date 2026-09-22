@@ -127,7 +127,7 @@ export function DashboardOverview() {
       detailCount: activeApps.filter(
         (item) => item.runtimeState.observedState === "running",
       ).length,
-      detailLabel: "instances running",
+      detailLabel: "running",
       value: groupDeployableInstances(activeApps).length,
     },
     {
@@ -139,7 +139,7 @@ export function DashboardOverview() {
       detailCount: activeResources.filter(
         (item) => item.runtimeState.observedState === "running",
       ).length,
-      detailLabel: "instances running",
+      detailLabel: "running",
       value: groupDeployableInstances(activeResources).length,
     },
     {
@@ -179,7 +179,7 @@ export function DashboardOverview() {
                   {metric.label}
                 </Widget.Title>
               </Widget.Header>
-              <Widget.Content className="relative flex min-h-30 items-center overflow-hidden pr-28">
+              <Widget.Content className="relative flex min-h-30 items-center overflow-hidden pr-[38%]">
                 <div className="grid justify-items-start gap-3">
                   <InlineLink
                     href={metric.href}
@@ -199,7 +199,7 @@ export function DashboardOverview() {
                   alt=""
                   width={512}
                   height={512}
-                  className="pointer-events-none absolute right-0 bottom-0 h-28 w-28 object-contain object-right-bottom"
+                  className="pointer-events-none absolute right-0 bottom-0 h-auto w-[38%] max-w-28 object-contain object-right-bottom"
                 />
               </Widget.Content>
             </Widget>

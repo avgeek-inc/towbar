@@ -45,8 +45,7 @@ try {
     "--format",
     "{{.ServerVersion}}",
   ]);
-  const [apiPort, appPort, temporalPort, temporalApiPort] =
-    await availablePorts(4);
+  const [towbarPort, temporalPort, temporalApiPort] = await availablePorts(3);
   const override = path.join(run.directory, "test-ports.json");
   await writeFile(
     override,
@@ -57,15 +56,13 @@ try {
   );
   compose.push("--file", override);
   Object.assign(run.env, {
+    COMPOSE_PROFILES: "local",
     TOWBAR_IMAGE_TAG: project,
     TOWBAR_NETWORK_NAME: `${project}-platform`,
     TOWBAR_BIND_ADDRESS: "127.0.0.1",
-    TOWBAR_API_PORT: String(apiPort),
-    TOWBAR_APP_PORT: String(appPort),
+    TOWBAR_PORT: String(towbarPort),
     TOWBAR_TEMPORAL_UI_PORT: String(temporalPort),
-    TOWBAR_API_BASE_URL: `http://127.0.0.1:${apiPort}`,
-    TOWBAR_APP_BASE_URL: `http://127.0.0.1:${appPort}`,
-    TOWBAR_WEBSITE_BASE_URL: "https://www.towbar.dev",
+    TOWBAR_APP_BASE_URL: `http://127.0.0.1:${towbarPort}`,
     TOWBAR_POSTGRES_PASSWORD: randomBytes(32).toString("hex"),
     TOWBAR_DATABASE_RUNTIME_PASSWORD: randomBytes(32).toString("hex"),
     TOWBAR_INTERNAL_HMAC_SECRET: randomBytes(32).toString("hex"),
@@ -90,31 +87,14 @@ try {
     [...compose, "up", "--detach", "--wait", "--wait-timeout", "300"],
     { timeoutMs: 360_000 },
   );
-  const output = await run.capture("docker", [
-    ...compose,
-    "exec",
-    "-T",
-    "api",
-    "node",
-    "dist/cli/setup-code.js",
-  ]);
-  const setupUrl = output.match(
-    /http:\/\/127\.0\.0\.1:\d+\/setup#code=\S+/,
-  )?.[0];
-  const setupCode =
-    setupUrl &&
-    new URLSearchParams(new URL(setupUrl).hash.slice(1)).get("code");
-  if (!setupCode)
-    throw new Error("The production CLI did not issue a setup code");
   await run.step(
     "onboarding",
     "node",
     ["tools/verification/production-smoke.mjs"],
     {
       extra: {
-        VERIFY_API_URL: run.env.TOWBAR_API_BASE_URL,
+        VERIFY_API_URL: run.env.TOWBAR_APP_BASE_URL,
         VERIFY_APP_URL: run.env.TOWBAR_APP_BASE_URL,
-        VERIFY_SETUP_CODE: setupCode,
       },
       timeoutMs: 120_000,
     },
@@ -181,7 +161,7 @@ try {
     async () => {
       if (configured) {
         // The project and network names are freshly generated, never inherited.
-        // Keep logs to state/health output: API logs can contain the one-time setup URL.
+        // Keep diagnostics to state and health output; do not collect application logs.
         await run.capture("docker", [
           ...compose,
           "down",

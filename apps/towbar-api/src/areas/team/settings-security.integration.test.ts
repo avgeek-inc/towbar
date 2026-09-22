@@ -31,7 +31,6 @@ void test(
     try {
       assert((await auth.getInitialSetupStatus()).setupRequired);
       const setup = await auth.createInitialAdmin({
-        setupCode: await auth.issueSetupCode(),
         teamName: "Settings test",
         displayName: "Admin",
         email: "admin@settings.test",

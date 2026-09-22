@@ -1,0 +1,12 @@
+{
+	servers {
+		trusted_proxies static private_ranges
+		trusted_proxies_strict
+	}
+}
+
+:4021 {
+	@api path /v1/*
+	reverse_proxy @api api:4020
+	reverse_proxy web-app:4021
+}

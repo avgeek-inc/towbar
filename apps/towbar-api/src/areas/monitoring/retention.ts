@@ -7,7 +7,7 @@ import {
 } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 
-export function mergeMonitoringAggregates(
+function mergeMonitoringAggregates(
   left: MonitoringAggregates,
   right: MonitoringAggregates,
 ): MonitoringAggregates {
