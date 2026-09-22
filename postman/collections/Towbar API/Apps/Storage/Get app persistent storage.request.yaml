@@ -1,0 +1,14 @@
+$kind: http-request
+id: e9ac7db6-a093-5af2-9f69-94b317abbe6a
+description:
+  "Required permissions: workload.read. Personal keys are capped by the current member
+  role; team keys use explicit grants."
+url: "{{baseUrl}}/apps/:appId/storage"
+method: GET
+headers:
+  Accept: application/json
+pathVariables:
+  - key: appId
+    value: "{{appId}}"
+    description: Required.
+order: 1000

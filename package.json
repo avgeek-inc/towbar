@@ -1,6 +1,6 @@
 {
   "name": "towbar",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "Opinionated, source-driven deployments to Ubuntu servers you own.",
   "keywords": [
     "deployment",
@@ -42,6 +42,8 @@
     "verify:production": "node tools/verification/production.mjs",
     "format": "prettier --write \"**/*.{css,json,md,mdx,mjs,ts,tsx,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{css,json,md,mdx,mjs,ts,tsx,yml,yaml}\"",
+    "postman:generate": "node tools/generate-postman-collection.mjs",
+    "postman:check": "node tools/generate-postman-collection.mjs --check",
     "docs:api": "pnpm --filter towbar-api prebuild && pnpm --filter towbar-api exec tsx scripts/export-responses.ts && pnpm --filter towbar-api exec tsx scripts/export-api.ts",
     "docs:sync": "node tools/sync-docs.mjs",
     "docs:check": "node tools/sync-docs.mjs --check && node tools/check-docs.mjs",
@@ -59,7 +61,8 @@
     "@workspace/typescript-config": "workspace:*",
     "prettier": "catalog:",
     "turbo": "^2.10.13",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "yaml": "catalog:"
   },
   "packageManager": "pnpm@11.5.3+sha512.7ac1c919341c213a34dc0d02afb7143c5c26ac26ee8c4782deea821b8ac64d2134a081fd8941dae6e29bbb48f58dfc2b7fbceeccc07cb2f09d219d342a4969ed",
   "engines": {

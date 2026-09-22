@@ -22,7 +22,7 @@ that targets a connected environment's mapped branch with previews enabled build
 to one stable PR URL. Draft pull requests are supported. Resources are not
 cloned, and production shared or App secrets are never inherited.
 
-```yaml title=".towbar/apps/hello-towbar.app.yml"
+```yaml title=".towbar/apps/hello-towbar.app.yml" highlight={2-5}
 id: hello-towbar
 preview:
   enabled: true

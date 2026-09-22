@@ -1,0 +1,17 @@
+id: compose-example
+name: Compose example
+file: examples/platform-modes/compose/compose.yml
+overrides:
+  - examples/platform-modes/compose/compose.production.yml
+profiles: [production]
+strategy: maintenance
+services:
+  web:
+    port: 3000
+    domains: [compose.example.com]
+    ingress:
+      type: proxy
+  cache: {}
+environments:
+  production:
+    server: 192.0.2.10

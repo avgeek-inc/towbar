@@ -1,0 +1,19 @@
+id: railpack-example
+name: Railpack example
+deployment:
+  type: railpack
+  context: examples/platform-modes/node-app
+  version: 0.36.1
+  image: ghcr.io/railwayapp/railpack-frontend@sha256:b9166320856c8bbb88789e89077d5a66a7d4cef8afa2e1e232307fb9a92c094e
+  configFile: railpack.json
+  architecture: amd64
+  cache:
+    enabled: true
+    scope: platform-railpack-example
+container:
+  port: 3000
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10

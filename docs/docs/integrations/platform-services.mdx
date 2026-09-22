@@ -1,0 +1,58 @@
+---
+title: "Platform services"
+description: "Configure Cloudflare for ingress and OpenTelemetry for workload telemetry export."
+---
+
+Platform services extend how Towbar exposes and observes workloads. Cloudflare
+can manage owned DNS records and tunnel ingress. OpenTelemetry sends selected
+logs, metrics, and traces through a managed, isolated Collector.
+
+## Cloudflare
+
+```dotenv
+TOWBAR_CLOUDFLARE_ENABLED=true
+TOWBAR_CLOUDFLARE_ACCOUNT_ID=<account-id>
+TOWBAR_CLOUDFLARE_ZONE_ID=<optional-zone-id>
+TOWBAR_CLOUDFLARE_API_TOKEN=<scoped-account-token>
+TOWBAR_CLOUDFLARE_CLOUDFLARED_IMAGE=<reviewed-image-and-digest>
+```
+
+Use an account API token restricted to the zones and DNS operations Towbar
+owns. `TOWBAR_CLOUDFLARE_ZONE_ID` is optional when the token can discover the
+required zones. The cloudflared image must use Towbar's reviewed pinned image.
+Continue with [Domains and TLS](/docs/domains-tls#cloudflare-tls) for DNS mode,
+tunnel ingress, and ownership boundaries.
+
+## OpenTelemetry
+
+```dotenv
+TOWBAR_OTLP_ENABLED=true
+TOWBAR_OTLP_ENDPOINT=https://collector.example.com
+TOWBAR_OTLP_DASHBOARD_URL=https://observability.example.com
+TOWBAR_OTLP_PROTOCOL=http/protobuf
+TOWBAR_OTLP_ALLOW_PRIVATE_NETWORK=false
+TOWBAR_OTLP_HEADERS_JSON={"Authorization":"Bearer replace-me"}
+```
+
+The endpoint and authentication headers remain in the API runtime environment.
+The dashboard URL is optional and provides a safe link to the backend. Enable
+private-network access only when the collector intentionally uses an internal
+address.
+
+A workload selects the integration and signal policy in its manifest:
+
+```yaml title=".towbar/apps/web.app.yml" highlight={4-8}
+container:
+  port: 3000
+  network: production-apps
+telemetry:
+  integration: otlp
+  signals: [logs, metrics, traces]
+  protocol: otlp-grpc
+  sampling: 0.25
+```
+
+Read [OpenTelemetry routing](/docs/observability-routing) for isolation,
+backpressure, redaction, cardinality, and failure behavior. Verify receipt in
+the destination; a configured or applied state does not prove that the backend
+indexed and retained the signals.

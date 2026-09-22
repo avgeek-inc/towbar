@@ -17,7 +17,7 @@ const { createOpenApiDocument, operations } =
   await import("../src/areas/external-api/catalogue.js");
 const { mcpTools } = await import("../src/areas/external-api/mcp-tools.js");
 const root = resolve(import.meta.dirname, "../../..");
-const doc = createOpenApiDocument("https://api.example.com/v1/api");
+const doc = createOpenApiDocument("https://towbar.example.com/v1/api");
 const output = await format(JSON.stringify(doc), { parser: "json" });
 const target = resolve(root, "docs/api-reference/openapi.json");
 if (process.argv.includes("--check")) {
@@ -65,8 +65,11 @@ for (const file of await readdir(resolve(root, "docs/api-reference"))) {
 }
 const configPath = resolve(root, "docs/docs.json");
 const config = JSON.parse(await readFile(configPath, "utf8"));
+const navigationItems = config.navigation.dropdowns ?? config.navigation.tabs;
+const navigationLabel = config.navigation.dropdowns ? "dropdown" : "tab";
 const navigation = {
-  tab: "API & MCP",
+  [navigationLabel]: "API & MCP",
+  ...(navigationLabel === "dropdown" ? { icon: "square-terminal" } : {}),
   // Each MDX page references its spec; a tab-level spec also generates duplicate groups.
   groups: [
     {
@@ -90,18 +93,15 @@ const navigation = {
     })),
   ],
 };
-const current = config.navigation.tabs.findIndex(
-  (tab: { tab: string }) => tab.tab === "API & MCP",
+const current = navigationItems.findIndex(
+  (item: Record<string, string>) => item[navigationLabel] === "API & MCP",
 );
 if (process.argv.includes("--check")) {
-  if (
-    JSON.stringify(config.navigation.tabs[current]) !==
-    JSON.stringify(navigation)
-  )
+  if (JSON.stringify(navigationItems[current]) !== JSON.stringify(navigation))
     throw new Error("API navigation is stale. Run pnpm docs:api.");
 } else {
-  if (current >= 0) config.navigation.tabs[current] = navigation;
-  else config.navigation.tabs.push(navigation);
+  if (current >= 0) navigationItems[current] = navigation;
+  else navigationItems.push(navigation);
   await writeFile(
     configPath,
     await format(JSON.stringify(config), { parser: "json" }),

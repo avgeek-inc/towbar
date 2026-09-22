@@ -1,0 +1,57 @@
+---
+title: "KeyDB"
+description: "Declare a KeyDB 6.3 resource for amd64 servers with Redis-compatible authentication and recovery."
+---
+
+Towbar's `keydb` preset runs KeyDB 6.3 and is available only on amd64 servers.
+It listens on port `6379`, stores data in `/data`, enables append-only
+persistence, and exposes the Redis protocol with password authentication.
+
+<Warning>
+  KeyDB is not available on arm64. Towbar rejects the resource before deployment
+  when the target server architecture is incompatible.
+</Warning>
+
+## Declare the resource
+
+```yaml title=".towbar/resources/keydb.resource.yml" highlight={3,14-16,18}
+id: keydb
+name: KeyDB
+type: keydb
+container:
+  network: application
+  networkAlias: keydb
+  resources:
+    cpus: 0.5
+    memory: 512m
+access:
+  sshTunnel:
+    hostPort: 16381
+secrets:
+  runtime:
+    - REDIS_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+`REDIS_PASSWORD` is required. Towbar passes it to the managed KeyDB command and
+uses it for authenticated health, backup, and restore operations.
+
+## Connect from an app
+
+Use a Redis-compatible client against `keydb:6379` from the shared network.
+Keep its URL in the consuming app's runtime secrets. The optional tunnel binds
+`16381` only to server loopback.
+
+## Operational boundary
+
+Changing the password requires coordinated client configuration and a
+redeployment. Redis, Dragonfly, and KeyDB are separate managed engine types;
+Towbar does not perform cross-engine restores between them.
+
+## Back up and restore
+
+Towbar creates a verified RDB snapshot and restores it into a fresh KeyDB target
+volume before cutover. Recovery requires KeyDB major version 6 on amd64.
+Continue with [Database backups](/docs/backups) and [Database restores](/docs/restores).

@@ -25,9 +25,10 @@ void test("published YAML examples match the v2 repository parser", () => {
   let checked = 0;
   for (const file of files(docs)) {
     for (const match of readFileSync(file, "utf8").matchAll(
-      /```yaml[^\n]*\n([\s\S]*?)```/g,
+      /```yaml([^\n]*)\n([\s\S]*?)```/g,
     )) {
-      const snippet = match[1]!;
+      const header = match[1]!;
+      const snippet = match[2]!;
       const value = parse(snippet) as Record<string, unknown>;
       assert.doesNotThrow(
         () => {
@@ -35,22 +36,44 @@ void test("published YAML examples match the v2 repository parser", () => {
             parseRepositoryManifest(snippet);
             return;
           }
-          const kind = value.type || value.backup ? "resource" : "app";
+          const kind = header.includes(".compose.yml")
+            ? "compose"
+            : header.includes(".resource.yml") || value.type || value.backup
+              ? "resource"
+              : "app";
+          const container: Record<string, unknown> =
+            value.container &&
+            typeof value.container === "object" &&
+            !Array.isArray(value.container)
+              ? (value.container as Record<string, unknown>)
+              : {};
           const entity = {
             id: "web",
             name: "Web",
             server: "192.0.2.10",
+            environments: { production: {} },
+            ...value,
             ...(kind === "resource" ? { type: "postgres" } : {}),
+            ...(kind === "compose"
+              ? { file: "compose.yml", services: {} }
+              : {}),
             ...(kind === "app"
               ? {
                   ...(!value.deployment ? { dockerfile: "Dockerfile" } : {}),
-                  container: { port: 3000 },
-                  domains: { primary: "app.example.com" },
-                  tls: { mode: "direct" },
+                  container: { port: 3000, ...container },
+                  domains: value.domains ?? { primary: "app.example.com" },
+                  tls: value.tls ?? { mode: "direct" },
+                  ...(Array.isArray(container.volumes) && !value.rollout
+                    ? {
+                        rollout: {
+                          type: "recreate",
+                          maintenanceMode: true,
+                          reason: "The app uses a single-writer volume",
+                        },
+                      }
+                    : {}),
                 }
               : {}),
-            environments: { production: {} },
-            ...value,
           };
           const environments = Object.fromEntries(
             Object.keys(entity.environments).map((name) => [
@@ -65,13 +88,13 @@ void test("published YAML examples match the v2 repository parser", () => {
               branch: "main",
               files: [
                 {
-                  path: `.towbar/${kind}s/example.${kind}.yml`,
+                  path: `.towbar/${kind === "compose" ? "compose" : `${kind}s`}/example.${kind}.yml`,
                   content: stringify(entity),
                 },
               ],
             });
         },
-        `${path.relative(docs, file)}: invalid YAML example`,
+        `${path.relative(docs, file)} (${header.trim() || "untitled"}, ${snippet.split("\n")[0]}): invalid YAML example`,
       );
       checked++;
     }

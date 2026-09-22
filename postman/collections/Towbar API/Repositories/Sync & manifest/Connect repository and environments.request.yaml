@@ -1,0 +1,26 @@
+$kind: http-request
+id: e7b6c9c8-e684-53bd-8ec2-a19c203b11c9
+description:
+  "Required permissions: repository.connect. Personal keys are capped by the current
+  member role; team keys use explicit grants."
+url: "{{baseUrl}}/sources/connect"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "repositoryOwner": "example-inc",
+      "repositoryName": "example-app",
+      "environments": [
+        {
+          "environment": "production",
+          "branch": "main"
+        }
+      ],
+      "provider": "github",
+      "githubInstallationId": "00000000-0000-4000-8000-000000000000"
+    }
+order: 2000

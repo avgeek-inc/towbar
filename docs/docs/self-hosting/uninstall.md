@@ -12,7 +12,7 @@ The Towbar control plane and the apps deployed to target servers have separate l
 3. If you are retiring the target servers too, use Towbar's workload and server cleanup controls while the control plane is available. Review each container and volume; volume deletion permanently removes its files.
 4. Disable Scout Agent on targets that will continue running independently. Remove or update GitHub webhooks that still target this installation.
 
-Do not delete backups or workload volumes as part of stopping Towbar. See [Server cleanup](/docs/servers#clean-up-leftover-workloads) and [Persistent app files](/docs/reference/deployment-manifest#persistent-app-storage) for their separate retention behavior.
+Do not delete backups or workload volumes as part of stopping Towbar. See [Server cleanup](/docs/servers#clean-up-leftover-workloads) and [Persistent app files](/docs/deployment-manifest#persistent-app-storage) for their separate retention behavior.
 
 ## Stop and remove the control plane
 

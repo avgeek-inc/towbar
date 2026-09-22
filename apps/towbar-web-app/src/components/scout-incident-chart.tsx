@@ -45,7 +45,7 @@ export const ScoutIncidentChart = memo(function ScoutIncidentChart({
               type="number"
               domain={[start, Math.max(start + 1000, end)]}
               tickCount={4}
-              tick={{ fontSize: 11 }}
+              tick={{ fontSize: 10 }}
               ticks={ticks}
               tickFormatter={
                 end - start > 86400_000 ? displayChartDate : displayTime
@@ -54,7 +54,7 @@ export const ScoutIncidentChart = memo(function ScoutIncidentChart({
             />
             <LineChart.YAxis
               width={http ? 88 : 65}
-              tick={{ fontSize: 11 }}
+              tick={{ fontSize: 10 }}
               domain={
                 http
                   ? [0, 1]

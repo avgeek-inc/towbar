@@ -14,83 +14,30 @@
   "icons": { "library": "lucide" },
   "styling": { "eyebrows": "breadcrumbs", "codeblocks": "system" },
   "navigation": {
-    "tabs": [
+    "dropdowns": [
       {
-        "tab": "Guides",
+        "dropdown": "Introduction",
+        "icon": "book-open",
         "groups": [
           {
             "group": "Get started",
-            "pages": ["docs/index", "docs/concepts", "docs/getting-started"]
-          },
-          {
-            "group": "Migrate to Towbar",
-            "pages": ["docs/migrate-from-coolify", "docs/migrate-from-dokploy"]
-          },
-          {
-            "group": "Deploy",
             "pages": [
-              "docs/repositories",
-              "docs/servers",
-              "docs/apps",
-              "docs/platform-deployments",
-              "docs/resources",
-              "docs/managed-databases",
-              "docs/deployments",
-              "docs/previews",
-              "docs/domains-tls",
-              "docs/secrets"
+              "docs/index",
+              "docs/concepts",
+              "docs/architecture",
+              "docs/getting-started"
             ]
           },
           {
-            "group": "Operate",
-            "pages": [
-              "docs/monitoring",
-              "docs/scout",
-              "docs/scout-alerts",
-              "docs/deployment-comparisons",
-              "docs/observability-routing",
-              "docs/vulnerability-scanning",
-              "docs/backups",
-              "docs/restores",
-              "docs/troubleshooting"
-            ]
-          },
-          {
-            "group": "Integrations",
-            "pages": [
-              "docs/integrations/index",
-              "docs/integrations/github",
-              "docs/integrations/gitlab",
-              "docs/integrations/aws",
-              "docs/integrations/gcp",
-              "docs/integrations/azure",
-              "docs/integrations/notifications",
-              "docs/integrations/log-drains"
-            ]
-          },
-          {
-            "group": "Manage",
-            "pages": [
-              "docs/team-settings",
-              "docs/personal-settings",
-              "docs/ssh-keys"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "Self-hosting & CLI",
-        "groups": [
-          {
-            "group": "Run Towbar",
+            "group": "Self-host Towbar",
             "pages": [
               "docs/self-hosting/installation",
               "docs/self-hosting/team-access",
               "docs/self-hosting/upgrades",
               "docs/self-hosting/account-recovery",
               "docs/self-hosting/uninstall",
-              "docs/self-hosting/architecture",
-              "docs/self-hosting/security"
+              "docs/self-hosting/security",
+              "docs/self-hosting/environment-variables"
             ]
           },
           {
@@ -102,32 +49,142 @@
               "docs/self-hosting/cli/diagnostics",
               "docs/self-hosting/cli/advanced"
             ]
-          }
-        ]
-      },
-      {
-        "tab": "Blog",
-        "groups": [
+          },
           {
-            "group": "Towbar blog",
-            "pages": ["blog/index", "blog/introducing-towbar"]
-          }
-        ]
-      },
-      {
-        "tab": "Reference",
-        "groups": [
-          {
-            "group": "Configuration",
+            "group": "Migrate to Towbar",
             "pages": [
-              "docs/reference/deployment-manifest",
-              "docs/reference/environment-variables"
+              "docs/migrations",
+              "docs/migrate-from-coolify",
+              "docs/migrate-from-dokploy",
+              "docs/migrate-from-caprover",
+              "docs/migrate-from-dokku",
+              "docs/migrate-from-heroku",
+              "docs/migrate-from-railway",
+              "docs/migrate-from-render",
+              "docs/migrate-from-vercel"
             ]
           }
         ]
       },
       {
-        "tab": "API & MCP",
+        "dropdown": "Deploy",
+        "icon": "rocket",
+        "groups": [
+          {
+            "group": "Infrastructure",
+            "pages": ["docs/repositories", "docs/servers"]
+          },
+          {
+            "group": "Applications",
+            "pages": ["docs/apps", "docs/platform-deployments"]
+          },
+          { "group": "Resources", "pages": ["docs/resources"] },
+          {
+            "group": "Delivery",
+            "pages": [
+              "docs/deployments",
+              "docs/previews",
+              "docs/domains-tls",
+              "docs/secrets"
+            ]
+          },
+          { "group": "Manifest", "pages": ["docs/deployment-manifest"] }
+        ]
+      },
+      {
+        "dropdown": "Databases",
+        "icon": "database",
+        "groups": [
+          { "group": "Overview", "pages": ["docs/databases/index"] },
+          {
+            "group": "Database guides",
+            "pages": [
+              "docs/databases/postgresql",
+              "docs/databases/mysql",
+              "docs/databases/mariadb",
+              "docs/databases/mongodb",
+              "docs/databases/redis",
+              "docs/databases/dragonfly",
+              "docs/databases/keydb",
+              "docs/databases/clickhouse"
+            ]
+          },
+          {
+            "group": "Data protection",
+            "pages": ["docs/backups", "docs/restores"]
+          }
+        ]
+      },
+      {
+        "dropdown": "Operate",
+        "icon": "activity",
+        "groups": [
+          {
+            "group": "Observe and troubleshoot",
+            "pages": [
+              "docs/monitoring",
+              "docs/scout",
+              "docs/scout-alerts",
+              "docs/deployment-comparisons",
+              "docs/observability-routing",
+              "docs/vulnerability-scanning",
+              "docs/troubleshooting"
+            ]
+          },
+          {
+            "group": "Workspace",
+            "pages": [
+              "docs/team-settings",
+              "docs/personal-settings",
+              "docs/ssh-keys"
+            ]
+          }
+        ]
+      },
+      {
+        "dropdown": "Integrations",
+        "icon": "plug",
+        "groups": [
+          { "group": "Overview", "pages": ["docs/integrations/index"] },
+          {
+            "group": "Source control",
+            "pages": ["docs/integrations/github", "docs/integrations/gitlab"]
+          },
+          {
+            "group": "Container registries",
+            "pages": ["docs/integrations/oci-registry"]
+          },
+          {
+            "group": "Backup providers",
+            "pages": [
+              "docs/integrations/backup-providers",
+              "docs/integrations/aws",
+              "docs/integrations/gcp",
+              "docs/integrations/azure",
+              "docs/integrations/s3-compatible"
+            ]
+          },
+          {
+            "group": "External secrets",
+            "pages": ["docs/integrations/external-secrets"]
+          },
+          {
+            "group": "Platform services",
+            "pages": ["docs/integrations/platform-services"]
+          },
+          {
+            "group": "Notifications",
+            "pages": ["docs/integrations/notifications"]
+          },
+          {
+            "group": "Log forwarding",
+            "pages": ["docs/integrations/log-drains"]
+          }
+        ]
+      },
+      {
+        "dropdown": "API & MCP",
+        "icon": "square-terminal",
         "groups": [
           {
             "group": "Get started",
@@ -504,6 +561,16 @@
             ]
           }
         ]
+      },
+      {
+        "dropdown": "Blog",
+        "icon": "newspaper",
+        "groups": [
+          {
+            "group": "Towbar blog",
+            "pages": ["blog/index", "blog/introducing-towbar"]
+          }
+        ]
       }
     ]
   },
@@ -524,10 +591,7 @@
             "label": "Install Towbar",
             "href": "/docs/self-hosting/installation"
           },
-          {
-            "label": "Manifest reference",
-            "href": "/docs/reference/deployment-manifest"
-          }
+          { "label": "Manifest reference", "href": "/docs/deployment-manifest" }
         ]
       },
       {
@@ -571,6 +635,20 @@
       "sameAs": ["https://github.com/avgeek-inc/towbar"]
     }
   },
-  "redirects": [],
+  "redirects": [
+    { "source": "/docs/managed-databases", "destination": "/docs/databases" },
+    {
+      "source": "/docs/reference/deployment-manifest",
+      "destination": "/docs/deployment-manifest"
+    },
+    {
+      "source": "/docs/reference/environment-variables",
+      "destination": "/docs/self-hosting/environment-variables"
+    },
+    {
+      "source": "/docs/self-hosting/architecture",
+      "destination": "/docs/architecture"
+    }
+  ],
   "metadata": { "timestamp": true }
 }

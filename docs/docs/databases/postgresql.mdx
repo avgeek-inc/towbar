@@ -1,0 +1,68 @@
+---
+title: "PostgreSQL"
+description: "Declare a PostgreSQL 17 resource, its initialization variables, networking, persistence, and recovery policy."
+---
+
+Towbar's `postgres` preset runs the reviewed PostgreSQL 17 Alpine image on amd64
+or arm64. It listens on port `5432`, stores data in a managed volume at
+`/var/lib/postgresql/data`, and uses `pg_isready` for authenticated readiness.
+
+## Declare the resource
+
+```yaml title=".towbar/resources/postgres.resource.yml" highlight={3,14-18,20}
+id: postgres
+name: PostgreSQL
+type: postgres
+container:
+  network: application
+  networkAlias: postgres
+  resources:
+    cpus: 1
+    memory: 1g
+access:
+  sshTunnel:
+    hostPort: 15432
+secrets:
+  runtime:
+    - POSTGRES_USER
+    - POSTGRES_DB
+    - POSTGRES_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+Save all three values under **Resource → Settings → Secrets** for production.
+`POSTGRES_PASSWORD` is required by Towbar. Declaring `POSTGRES_USER` and
+`POSTGRES_DB` makes the application role and initial database explicit instead
+of relying on the image defaults of `postgres`.
+
+| Variable            | Purpose                                                       |
+| ------------------- | ------------------------------------------------------------- |
+| `POSTGRES_USER`     | Superuser created when the data volume is initialized         |
+| `POSTGRES_DB`       | Initial database and the target used by Towbar's health check |
+| `POSTGRES_PASSWORD` | Password required for initialization and managed operations   |
+
+## Connect from an app
+
+An app on the `application` network can connect to `postgres:5432`. Store its
+connection URL as an app runtime secret, for example
+`postgresql://USER:PASSWORD@postgres:5432/DATABASE`. Do not commit the URL or
+password to either manifest.
+
+The SSH tunnel port is bound only to `127.0.0.1` on the server. Forward
+`15432` over SSH when an operator needs to use a local database client.
+
+## Initialization and password changes
+
+The official image consumes these variables only when the data directory is
+empty. Changing `POSTGRES_USER`, `POSTGRES_DB`, or `POSTGRES_PASSWORD` after the
+first successful deployment does not rename the role, create a database, or
+rotate the stored password. Apply the SQL change first, then update the Towbar
+secret so health checks, backups, and restores use the new credential.
+
+## Back up and restore
+
+Towbar exports PostgreSQL with `pg_dump` and restores with `pg_restore` into a
+fresh target volume. Recovery requires PostgreSQL major version 17. Continue
+with [Database backups](/docs/backups) and [Database restores](/docs/restores).

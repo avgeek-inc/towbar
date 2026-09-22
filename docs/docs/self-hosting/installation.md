@@ -11,15 +11,7 @@ Use a dedicated Ubuntu or Debian host with persistent storage and outbound HTTPS
 
 The examples use loopback addresses for initial setup. Keep that binding until you have created the first Admin account.
 
-## Preview the onboarding
-
-You can review the complete terminal experience on macOS or Linux without root access, Docker, or filesystem changes:
-
-```bash
-./infra/towbar preview
-```
-
-The preview uses a compact built-in terminal interface. If [Gum](https://github.com/charmbracelet/gum) is already installed, Towbar uses it for the input and confirmation controls. Gum is optional and is never installed by Towbar. Use `./infra/towbar preview --defaults` for a non-interactive preview.
+## Choose the installation URL
 
 The installer asks only for the URL where the control plane will be reached. Press Enter to keep the default `http://localhost:4021` on-host installation, or enter a public HTTPS origin whose A record points to the host. Other localhost ports, HTTPS localhost URLs, URL paths, custom ports, and non-HTTPS remote URLs are rejected. Review the result, then confirm the installation.
 
@@ -126,4 +118,4 @@ Temporal's gRPC and HTTP APIs are accessible only inside the control-plane netwo
 
 ## Continue setup
 
-Connect [GitHub](/docs/integrations/github), register and prepare a [server](/docs/servers), then follow [Your first deployment](/docs/getting-started). For public ingress and optional providers, use the [environment variable reference](/docs/reference/environment-variables).
+Connect [GitHub](/docs/integrations/github), register and prepare a [server](/docs/servers), then follow [Your first deployment](/docs/getting-started). For public ingress and optional providers, use the [environment variable reference](/docs/self-hosting/environment-variables).

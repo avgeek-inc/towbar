@@ -1,32 +1,9 @@
 ---
 title: "Install and upgrade"
-description: "Preview onboarding, install Towbar, and upgrade to the latest or a selected stable release."
+description: "Install Towbar and upgrade to the latest or a selected stable release."
 ---
 
 Use these commands to create an installation or replace its API, worker, dashboard, and CLI with one published release.
-
-## `towbar preview`
-
-Preview the terminal onboarding without requiring root, Docker, or an existing installation. The command does not write files, install packages, create containers, or contact Let's Encrypt.
-
-```bash title="Interactive preview"
-./infra/towbar preview
-```
-
-| Parameter    | Required | Accepted value | Behavior                                                                     |
-| ------------ | -------- | -------------- | ---------------------------------------------------------------------------- |
-| `--defaults` | No       | Flag           | Skips prompts and previews the default `http://localhost:4021` installation. |
-
-```bash title="Non-interactive preview"
-./infra/towbar preview --defaults
-```
-
-Use the repository copy while evaluating the installer. After installation, the same command is available as `towbar preview`.
-
-<Info>
-  The preview animates the expected installation stages. A checkmark in preview
-  output is illustrative; it is not evidence that the host passed that check.
-</Info>
 
 ## `towbar install`
 

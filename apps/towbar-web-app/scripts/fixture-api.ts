@@ -115,6 +115,7 @@ const terminalStates = new Set<DeploymentState>([
 ]);
 
 const user: TowbarUser = {
+  avatarUrl: "/avatars/praveen-light-transparent.png",
   email: "admin@example.com",
   id: "71111111-1111-4111-8111-111111111111",
   name: "Towbar Admin",
@@ -998,7 +999,7 @@ let systemHealth: SystemHealth = {
     },
   ],
   status: "healthy",
-  version: "1.0.2-fixture",
+  version: "2.0.5-fixture",
 };
 
 function fixtureSystemHealth(): SystemHealth {

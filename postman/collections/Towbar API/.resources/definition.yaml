@@ -1,0 +1,35 @@
+# Generated from docs/api-reference/openapi.json. Run pnpm postman:generate to update.
+$kind: collection
+id: 91e21e3a-cd9d-5b00-9723-f93167c0c092
+description: >-
+  Manage your Towbar control plane with a bearer API key. Keys inherit current workspace
+  permissions.
+
+
+  Towbar exposes the REST API only on HTTPS installations. Select the Towbar API environment, set
+  baseUrl to your Towbar URL followed by /v1/api, and enter your API key as a local environment
+  value.
+variables:
+  appId: ""
+  deployableId: ""
+  deploymentId: ""
+  environment: ""
+  environmentId: ""
+  hostKeyId: ""
+  incidentId: ""
+  operationId: ""
+  ownerId: ""
+  previewEnvironmentId: ""
+  resourceId: ""
+  ruleId: ""
+  serverId: ""
+  sourceId: ""
+  stage: ""
+  syncId: ""
+  verificationId: ""
+auth:
+  - id: afdceab3-c7a6-5e57-ad31-7943aa72e378
+    type: bearer
+    name: Towbar API key
+    credentials:
+      token: "{{apiKey}}"

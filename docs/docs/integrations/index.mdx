@@ -29,7 +29,10 @@ GitHub and GitLab require a second connection step after their runtime identity 
 
 A partial enabled configuration fails validation instead of creating a broken dashboard entry. Secrets are read by the process that needs them and are not returned to the browser. GitLab OAuth grants are encrypted in PostgreSQL; GitHub stores only selected installation metadata.
 
-Use the [environment variable reference](/docs/reference/environment-variables#runtime-integrations) for exact names. Continue with the provider-specific guides for [GitHub](/docs/integrations/github), [GitLab](/docs/integrations/gitlab), [AWS](/docs/integrations/aws), [Google Cloud](/docs/integrations/gcp), [Azure](/docs/integrations/azure), [notifications](/docs/integrations/notifications), and [log forwarding](/docs/integrations/log-drains).
+Use the [environment variable guide](/docs/self-hosting/environment-variables#runtime-integrations)
+for exact names. The sidebar follows the same provider categories as the
+application: Source control, Container registries, Backup providers, External
+secrets, Platform services, Notifications, and Log forwarding.
 
 ## Provider access
 

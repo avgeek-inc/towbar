@@ -1,0 +1,24 @@
+$kind: http-request
+id: 3bca9e52-0f63-5a45-a2c2-a87297c0a85a
+description:
+  "Required permissions: repository.disconnect. Personal keys are capped by the current
+  member role; team keys use explicit grants."
+url: "{{baseUrl}}/sources/:sourceId/environments/:environmentId"
+method: DELETE
+headers:
+  Accept: application/json
+  Content-Type: application/json
+pathVariables:
+  - key: sourceId
+    value: "{{sourceId}}"
+    description: Required.
+  - key: environmentId
+    value: "{{environmentId}}"
+    description: Required.
+body:
+  type: json
+  content: |-
+    {
+      "expectedRevision": "00000000-0000-4000-8000-000000000000"
+    }
+order: 4000

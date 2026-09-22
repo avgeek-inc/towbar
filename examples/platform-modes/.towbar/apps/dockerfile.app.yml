@@ -1,0 +1,18 @@
+id: dockerfile-example
+name: Dockerfile example
+deployment:
+  type: dockerfile
+  context: examples/platform-modes/node-app
+  dockerfile: examples/platform-modes/node-app/Dockerfile
+  target: runtime
+  architecture: amd64
+  cache:
+    enabled: true
+    scope: platform-dockerfile-example
+container:
+  port: 3000
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10

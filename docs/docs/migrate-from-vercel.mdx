@@ -1,0 +1,280 @@
+---
+title: "Migrate from Vercel"
+description: "Move Vercel projects, builds, functions, previews, environment variables, domains, cron jobs, and data services to Towbar."
+keywords:
+  [
+    "Vercel alternative",
+    "self-hosted Vercel alternative",
+    "open source Vercel alternative",
+    "migrate from Vercel",
+    "Vercel to Towbar",
+  ]
+---
+
+Vercel and Towbar use Git as the starting point, but they run applications in
+different ways. Vercel provides a managed frontend cloud with framework-aware
+builds, serverless and edge runtimes, generated deployment URLs, and managed
+platform services. Towbar builds containerized workloads and runs them on
+servers you own.
+
+Static sites and applications that already run as conventional web servers are
+the most direct migrations. An application that depends on Vercel Functions,
+Edge Runtime, Middleware, Incremental Static Regeneration, image optimization,
+or Vercel-specific routing needs a compatibility review and may need code
+changes before it can run in a container.
+
+## Compare the tradeoffs
+
+### Towbar
+
+#### ✅ Pros
+
+- Towbar runs ordinary containers on servers you control, so applications can
+  use long-lived processes, private networks, local volumes, and custom system
+  packages without fitting a serverless runtime.
+- Workload policy, domains, jobs, resource limits, and environment membership
+  live in Git rather than in project settings spread across a hosted platform.
+- Infrastructure credentials and application secrets remain on the Towbar
+  installation.
+
+#### ⚠️ Cons
+
+- Towbar has no global edge network, serverless autoscaling, framework-aware CDN,
+  managed image optimization, or Vercel collaboration layer.
+- Vercel Functions, Edge Runtime, Middleware, ISR, and platform routing may need
+  application changes before they work in a persistent container.
+- You operate capacity, security updates, host recovery, observability, and the
+  control plane. Towbar previews also do not clone database Resources.
+
+### Vercel
+
+#### ✅ Pros
+
+- Vercel's [Git integration](https://vercel.com/docs/git) provides automatic
+  production and preview deployments, generated URLs, status checks, and a
+  polished review workflow with no server administration.
+- Its framework integrations, edge network, Functions, caching, image pipeline,
+  and frontend observability remove substantial application and infrastructure
+  work.
+- Serverless scaling suits bursty request workloads that would otherwise need
+  capacity planning.
+
+#### ⚠️ Cons
+
+- Platform-specific runtimes, routing, caching, image behavior, and framework
+  features can make a later container migration a code project rather than a
+  configuration change.
+- You accept Vercel's regions, quotas, supported runtimes, platform behavior,
+  and usage pricing instead of controlling the underlying compute.
+- Stateful services come from Blob, Marketplace providers, or external systems,
+  so a complete migration crosses several products and data boundaries.
+
+## 1. Decide whether the workload is portable
+
+Map every Vercel feature to an explicit destination before changing production:
+
+| Vercel concept                                 | Towbar destination                                                              |
+| ---------------------------------------------- | ------------------------------------------------------------------------------- |
+| Git-connected project                          | Repository environment and one or more Apps                                     |
+| Static build output                            | `static` App                                                                    |
+| Framework or Node.js server                    | Containerized App using a Dockerfile or supported source builder                |
+| Vercel Function                                | Route in a long-running App, or a separate private or public App                |
+| Edge Function or Middleware                    | Application or proxy logic after a runtime-compatibility review                 |
+| Preview deployment                             | Opt-in Towbar preview environment                                               |
+| Production, Preview, and Development variables | Production, preview, and local-development values kept in their intended scopes |
+| Cron job                                       | App job                                                                         |
+| Custom domain                                  | Manifest domain with direct or Cloudflare-managed TLS                           |
+| Marketplace database                           | Compatible Towbar Resource or external service after an engine-aware migration  |
+| Vercel Blob                                    | External object storage or another compatible service after copying objects     |
+
+Vercel's [runtime documentation](https://vercel.com/docs/functions/configuring-functions/runtime)
+describes Node.js, Python, Ruby, Go, and Edge function environments. A Towbar
+App is a persistent container process, so do not assume function isolation,
+automatic concurrency, regional execution, duration limits, or edge APIs will
+carry over unchanged. Keep a workload on Vercel until you have removed or
+replaced every platform dependency it still needs.
+
+## 2. Inventory the Vercel project
+
+Record the following for each project:
+
+- Git provider, repository, production branch, root directory, framework
+  preset, install command, build command, output directory, and Node.js version;
+- Production, Preview, branch-specific, custom-environment, and Development
+  variables, including Vercel-provided system variables the code reads;
+- Functions, runtimes, regions, duration or memory settings, background work,
+  and scheduled jobs;
+- redirects, rewrites, headers, trailing-slash behavior, image configuration,
+  and any other `vercel.json` or `vercel.ts` policy;
+- production and preview domains, DNS ownership, certificates, OAuth callback
+  URLs, webhooks, and allowlists; and
+- Blob stores, Marketplace storage integrations, external databases, queues,
+  caches, analytics, observability, and other provider dependencies.
+
+Use Vercel's [project settings](https://vercel.com/docs/project-configuration/project-settings),
+[build settings](https://vercel.com/docs/builds/configure-a-build), and
+[`vercel.json` reference](https://vercel.com/docs/project-configuration/vercel-json)
+as the source inventory. Towbar does not interpret `vercel.json`; translate the
+behavior your application still needs into application code, its web server or
+proxy, and the Towbar manifest.
+
+If the source repository is on Bitbucket or Azure DevOps, move or mirror it to
+GitHub or GitLab before connecting it to Towbar.
+
+## 3. Make the application run as a container
+
+Choose a supported source builder or add a Dockerfile. The application must
+start without the Vercel runtime, listen on the container network interface,
+use a fixed internal port, and expose an unauthenticated health endpoint.
+
+This example declares a Dockerfile build, the runtime port, a health check, and
+the production server:
+
+```yaml title=".towbar/apps/web.app.yml" highlight={3-6,8-11,14-15}
+id: web
+name: Web
+deployment:
+  type: dockerfile
+  context: .
+  dockerfile: Dockerfile
+container:
+  port: 3000
+health:
+  path: /health
+  timeoutSeconds: 60
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+Run the production image locally before connecting the repository. Test dynamic
+routes, API endpoints, uploads, cache behavior, redirects, headers, and image
+delivery. Framework code that works in local development may still depend on a
+Vercel adapter or managed runtime in production.
+
+## 4. Move variables and secrets by scope
+
+Vercel variables can target Production, Preview, Development, custom
+environments, or individual preview branches. Review Vercel's [environment
+variable scopes](https://vercel.com/docs/environment-variables) and preserve
+that separation instead of copying every value into one shared set.
+
+Declare only the names the App needs in Git:
+
+```yaml title=".towbar/apps/web.app.yml"
+secrets:
+  build:
+    - PACKAGE_TOKEN
+  runtime:
+    - DATABASE_URL
+```
+
+Store the corresponding values in Towbar's [Secrets settings](/docs/secrets).
+Production and preview values remain separate, and secret values do not belong
+in the repository. Replace Vercel system variables such as generated deployment
+URLs with explicit application configuration where the code still needs them.
+
+## 5. Recreate previews and Git automation
+
+Vercel's Git integration creates production deployments from the production
+branch and preview deployments from other branches and pull requests. Towbar
+previews are opt-in per App, deploy eligible same-repository pull requests, and
+use separate preview secrets.
+
+```yaml title=".towbar/apps/web.app.yml" highlight={2-5}
+id: web
+preview:
+  enabled: true
+  domain: preview.example.com
+  ttlHours: 72
+```
+
+Prepare wildcard DNS for direct TLS or configure the Cloudflare integration
+before testing previews. Towbar does not clone Resources for previews, so point
+preview Apps at disposable or non-production dependencies. Compare the behavior
+with Vercel's [Git deployments](https://vercel.com/docs/git) and [generated URL
+model](https://vercel.com/docs/deployments/generated-urls), then test pull
+request creation, updates, closure, and cleanup.
+
+## 6. Move functions, cron jobs, and routing
+
+Convert request functions into routes handled by the long-running application,
+or split independently scaled processes into separate Apps. Replace Edge
+Runtime APIs and region-dependent behavior deliberately. Long-lived workers
+should run as private Apps rather than being started by an HTTP request.
+
+Vercel Cron invokes an HTTP function on a schedule. In Towbar, declare the
+command that should run against the deployed App image:
+
+```yaml title=".towbar/apps/web.app.yml"
+jobs:
+  - name: daily-report
+    description: Generate the daily report
+    command: ["node", "scripts/report.js"]
+    schedule:
+      cron: "0 2 * * *"
+      timezone: UTC
+    timeoutSeconds: 300
+    enabled: true
+```
+
+Move redirects, rewrites, and response headers into the framework, application,
+or container web server. Verify each rule against the current
+[`vercel.json` configuration](https://vercel.com/docs/project-configuration/vercel-json)
+rather than copying the file and assuming equivalent routing.
+
+## 7. Move data and files
+
+Vercel Marketplace storage provisions third-party databases and injects their
+credentials into projects. Identify the actual provider, engine, version,
+extensions, region, connection mode, and export procedure behind each
+integration. Use an engine-native logical export, restore it to a compatible
+Towbar [database Resource](/docs/databases) or external service, then verify
+schema, indexes, row counts, encodings, extensions, and application migrations.
+
+For Vercel Blob, list and download every required object before cutover. The
+[`vercel blob` CLI](https://vercel.com/docs/cli/blob) supports listing and
+downloading objects, but your migration also needs to preserve application
+metadata, access rules, content types, and public URLs. Update stored URLs or
+add a compatibility redirect if the object origin changes.
+
+Do not move durable uploads into a container filesystem unless the App declares
+and operates an appropriate persistence and recovery model. External object
+storage is usually the clearer replacement for Vercel Blob.
+
+## 8. Rehearse the cutover
+
+1. Deploy the Towbar Apps against temporary domains with automatic deployment
+   disabled.
+2. Test pages, API routes, authentication, functions converted to server
+   routes, workers, jobs, uploads, redirects, headers, email, OAuth, webhooks,
+   previews, logs, and alerts.
+3. Lower DNS TTL where you control it. Stop or make source writers read-only,
+   then repeat the final database and object transfer.
+4. Restore and verify representative data before starting Towbar workers.
+5. Add the production domains to the manifest, deploy, and update DNS. Towbar
+   uses Caddy to issue and renew certificates after the hostnames reach the
+   target server.
+6. Confirm HTTPS, health, logs, scheduled jobs, previews, backups, and server
+   capacity before closing the rollback window.
+
+Keep the Vercel project intact until the rollback window closes. Once Towbar
+accepts new writes, switching DNS back does not reconcile data created after
+cutover.
+
+## Migration checklist
+
+- [ ] Every project, deployment mode, function, route, variable scope, domain,
+      datastore, object store, job, and integration is inventoried.
+- [ ] Every Vercel-specific runtime feature has a tested replacement or an
+      explicit decision to remain on Vercel.
+- [ ] The production container starts locally, listens on the expected port,
+      and passes its health check.
+- [ ] Towbar manifests pass schema validation and contain no secret values.
+- [ ] Preview environments use isolated secrets and non-production data.
+- [ ] Database and object migrations have been rehearsed and verified.
+- [ ] Cutover, rollback, owners, timing, and the write boundary are documented.
+
+Continue with [Deployment modes](/docs/platform-deployments), [Preview
+environments](/docs/previews), [Domains and TLS](/docs/domains-tls), and
+[Databases](/docs/databases).

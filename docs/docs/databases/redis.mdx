@@ -1,0 +1,53 @@
+---
+title: "Redis"
+description: "Declare a Redis 8 resource with password authentication, persistent data, and RDB recovery."
+---
+
+Towbar's `redis` preset runs Redis 8 Alpine on amd64 or arm64. It listens on port
+`6379`, stores data in `/data`, enables append-only persistence, and requires
+password authentication for health and managed operations.
+
+## Declare the resource
+
+```yaml title=".towbar/resources/redis.resource.yml" highlight={3,14-16,18}
+id: redis
+name: Redis
+type: redis
+container:
+  network: application
+  networkAlias: redis
+  resources:
+    cpus: 0.5
+    memory: 512m
+access:
+  sshTunnel:
+    hostPort: 16379
+secrets:
+  runtime:
+    - REDIS_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+`REDIS_PASSWORD` is required. Towbar injects it into the managed Redis command
+and uses the same value for authenticated health checks, backups, and restores.
+
+## Connect from an app
+
+Containers on the `application` network can reach `redis:6379`. Save a URL such
+as `redis://:PASSWORD@redis:6379/0` in the app's runtime secrets. The optional
+SSH tunnel binds `16379` only to server loopback.
+
+## Change the password
+
+Replacing `REDIS_PASSWORD` changes the command used by the next deployment, but
+it is still an operational credential change. Coordinate clients before
+redeploying, verify that they use the new value, and keep a tested rollback path.
+
+## Back up and restore
+
+Towbar requests and verifies an RDB snapshot. Restore starts a fresh isolated
+target, verifies the dataset, re-enables append-only persistence, and promotes
+the target only after it is ready. Recovery requires Redis major version 8.
+Continue with [Database backups](/docs/backups) and [Database restores](/docs/restores).

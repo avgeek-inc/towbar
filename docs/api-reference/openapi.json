@@ -5,7 +5,7 @@
     "version": "2.0.0",
     "description": "Manage your Towbar control plane with a bearer API key. Keys inherit current workspace permissions."
   },
-  "servers": [{ "url": "https://api.example.com/v1/api" }],
+  "servers": [{ "url": "https://towbar.example.com/v1/api" }],
   "components": {
     "schemas": {
       "Response_3": {

@@ -1,0 +1,22 @@
+$kind: http-request
+id: e56c98fc-7b66-54e7-9314-efbc79a44eeb
+description:
+  "Required permissions: server.credentials. Personal keys are capped by the current
+  member role; team keys use explicit grants."
+url: "{{baseUrl}}/servers/:serverId/credentials/actions/verify-private-key"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+pathVariables:
+  - key: serverId
+    value: "{{serverId}}"
+    description: Required.
+body:
+  type: json
+  content: |-
+    {
+      "expectedRevision": "00000000-0000-4000-8000-000000000000",
+      "privateKeyId": "00000000-0000-4000-8000-000000000000"
+    }
+order: 3000

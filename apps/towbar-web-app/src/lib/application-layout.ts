@@ -218,6 +218,7 @@ export function createApplicationSidebar(
             email: user.email,
             name: user.name,
             size: "md",
+            src: user.avatarUrl,
           }),
           createElement(
             "div",

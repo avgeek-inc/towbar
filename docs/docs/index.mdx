@@ -7,6 +7,40 @@ Towbar is an open source deployment platform for Ubuntu servers you control.
 Define apps and resources in Git, register your servers in Towbar, and follow
 each deployment from its source commit to the running service.
 
+## Browse the documentation
+
+Choose a section to see its focused sidebar. You can switch sections at any
+time from the documentation menu.
+
+<CardGroup cols={2}>
+  <Card title="Introduction" icon="book-open" href="/docs/getting-started">
+    Understand Towbar, install and operate the control plane, use the CLI,
+    deploy your first app, or move an existing workload.
+  </Card>
+  <Card title="Deploy" icon="rocket" href="/docs/repositories">
+    Connect repositories and servers, define apps, and operate deployments,
+    releases, previews, domains, and secrets.
+  </Card>
+  <Card title="Databases" icon="database" href="/docs/databases">
+    Choose a managed engine and declare its runtime inputs, persistence, private
+    access, backups, and restores.
+  </Card>
+  <Card title="Operate" icon="activity" href="/docs/monitoring">
+    Monitor workloads, configure Scout Agent and alerts, compare deployments,
+    investigate failures, and manage your workspace.
+  </Card>
+  <Card title="Integrations" icon="plug" href="/docs/integrations">
+    Connect source control, backup storage, notifications, secret providers, log
+    forwarding, and telemetry.
+  </Card>
+  <Card title="API & MCP" icon="square-terminal" href="/docs/api/overview">
+    Automate Towbar through its REST API or connect an AI client through MCP.
+  </Card>
+  <Card title="Blog" icon="newspaper" href="/blog">
+    Read launch news, product context, and the decisions behind Towbar.
+  </Card>
+</CardGroup>
+
 ## Start with the overview
 
 The homepage pairs the seven-day **Deployments trend** with app, resource, server, and active-incident counts. Click a count to open its list page. Status chips summarize the inventory, and the incident card changes appearance when attention is needed. The recent deployments table shows each workload, environment, ID, status, and request time.
@@ -38,6 +72,14 @@ Repositories, servers, workloads, deployments, and releases.
 
 <CardGroup cols={2}>
   <Card
+    title="Migration guides"
+    icon="arrow-right-left"
+    href="/docs/migrations"
+  >
+    Start with a platform-neutral checklist and choose the guide for your
+    current deployment platform.
+  </Card>
+  <Card
     title="Migrate from Coolify"
     icon="arrow-right-left"
     href="/docs/migrate-from-coolify"
@@ -52,6 +94,29 @@ Repositories, servers, workloads, deployments, and releases.
   >
     Map applications, Compose projects, variables, domains, and databases into
     Towbar's deployment model.
+  </Card>
+  <Card
+    title="Migrate from CapRover or Dokku"
+    icon="arrow-right-left"
+    href="/docs/migrate-from-caprover"
+  >
+    Move self-hosted apps, service configuration, domains, plugins, databases,
+    and persistent files.
+  </Card>
+  <Card
+    title="Migrate from a cloud PaaS"
+    icon="arrow-right-left"
+    href="/docs/migrate-from-heroku"
+  >
+    Plan a move from Heroku, Railway, or Render to servers you operate.
+  </Card>
+  <Card
+    title="Migrate from Vercel"
+    icon="arrow-right-left"
+    href="/docs/migrate-from-vercel"
+  >
+    Move projects, functions, previews, domains, variables, and data services
+    into containerized workloads.
   </Card>
 </CardGroup>
 
@@ -97,7 +162,7 @@ Search and filter selections are stored in the URL. Opening a copied URL restore
 | Understand a failed operation | [Health and capacity](/docs/monitoring) and [Troubleshooting](/docs/troubleshooting) |
 | Configure Slack or email      | [Notifications](/docs/integrations/notifications)                                    |
 | Review available providers    | [Integrations](/docs/integrations)                                                   |
-| Look up a manifest field      | [Deployment manifest](/docs/reference/deployment-manifest)                           |
+| Look up a manifest field      | [Deployment manifest](/docs/deployment-manifest)                                     |
 
 ## Monitor and investigate
 
@@ -120,6 +185,7 @@ Towbar is designed for teams that manage their own Ubuntu hosts and trust the
 repositories they deploy. Builds run on those hosts. Host administration, DNS,
 backup storage, and repository access remain under your control.
 
-Before exposing an installation publicly, review [installation configuration](/docs/reference/environment-variables)
-and the [security model](/docs/self-hosting/security). For implementation details, see the
-[architecture](/docs/self-hosting/architecture).
+Before exposing an installation publicly, review [installation
+configuration](/docs/self-hosting/environment-variables) and the [security
+model](/docs/self-hosting/security). For implementation details, see the
+[architecture](/docs/architecture).

@@ -1,0 +1,14 @@
+$kind: http-request
+id: a2bf7222-7afd-5273-a996-ff1badecc01d
+description:
+  "Required permissions: scout.read. Personal keys are capped by the current member role;
+  team keys use explicit grants."
+url: "{{baseUrl}}/servers/:serverId/monitoring"
+method: GET
+headers:
+  Accept: application/json
+pathVariables:
+  - key: serverId
+    value: "{{serverId}}"
+    description: Required.
+order: 1000

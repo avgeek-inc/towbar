@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-09-22T11:01:18.663Z",
+  "capturedAt": "2026-09-22T18:06:27.409Z",
   "environment": "Local Towbar fixture on localhost:4021; examples are not production results",
   "viewport": "1280 × 720 CSS pixels rendered at 2× density (2560 × 1440); every image is limited to the visible viewport",
   "screenshots": [
@@ -196,7 +196,7 @@
     {
       "name": "overview",
       "route": "/",
-      "guides": ["docs/index.mdx"],
+      "guides": ["docs/index.mdx", "docs/blog/introducing-towbar.mdx"],
       "themes": [
         {
           "theme": "light",
@@ -215,7 +215,11 @@
     {
       "name": "performance",
       "route": "/servers/21111111-1111-4111-8111-111111111111/performance",
-      "guides": ["docs/docs/scout.mdx", "docs/index.mdx"],
+      "guides": [
+        "docs/docs/scout.mdx",
+        "docs/index.mdx",
+        "docs/blog/introducing-towbar.mdx"
+      ],
       "themes": [
         {
           "theme": "light",
@@ -237,7 +241,8 @@
       "guides": [
         "docs/docs/domains-tls.mdx",
         "docs/docs/previews.md",
-        "docs/index.mdx"
+        "docs/index.mdx",
+        "docs/blog/introducing-towbar.mdx"
       ],
       "themes": [
         {
@@ -260,7 +265,8 @@
       "guides": [
         "docs/docs/getting-started.md",
         "docs/docs/repositories.mdx",
-        "docs/index.mdx"
+        "docs/index.mdx",
+        "docs/blog/introducing-towbar.mdx"
       ],
       "themes": [
         {
@@ -489,7 +495,10 @@
     {
       "name": "system-health",
       "route": "/system-health",
-      "guides": ["docs/docs/monitoring.mdx"],
+      "guides": [
+        "docs/docs/monitoring.mdx",
+        "docs/blog/introducing-towbar.mdx"
+      ],
       "themes": [
         {
           "theme": "light",

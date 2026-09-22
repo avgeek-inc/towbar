@@ -1,0 +1,17 @@
+$kind: http-request
+id: fb494f41-3341-5386-8887-9f11333c9c92
+description:
+  "Required permissions: repository.read. Personal keys are capped by the current member
+  role; team keys use explicit grants."
+url: "{{baseUrl}}/sources/:sourceId/syncs/:syncId"
+method: GET
+headers:
+  Accept: application/json
+pathVariables:
+  - key: sourceId
+    value: "{{sourceId}}"
+    description: Required.
+  - key: syncId
+    value: "{{syncId}}"
+    description: Required.
+order: 5000

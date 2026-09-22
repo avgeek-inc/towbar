@@ -3,9 +3,13 @@ title: API & MCP
 description: Automate your Towbar control plane with a REST API or connect an AI client through MCP.
 ---
 
-Towbar exposes infrastructure operations through REST and MCP. Manage repositories, apps, resources, servers, deployments, previews, secrets, integration settings, and your current identity using your current workspace permissions.
+<Warning>
+  The REST API, MCP, and API-key management are available only when Towbar is
+  installed at a public HTTPS URL. For security, they are disabled on
+  localhost-only installations.
+</Warning>
 
-REST, MCP, and API-key management require an HTTPS Towbar installation. They are unavailable in the default local HTTP installation.
+Towbar exposes infrastructure operations through REST and MCP. Manage repositories, apps, resources, servers, deployments, previews, secrets, integration settings, and your current identity using your current workspace permissions.
 
 | Interface             | Endpoint                          | Authentication |
 | --------------------- | --------------------------------- | -------------- |

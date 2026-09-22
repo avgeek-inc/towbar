@@ -6,6 +6,7 @@ import type {
   ResourceType,
 } from "@workspace/towbar-core";
 export type TowbarUser = {
+  avatarUrl?: string;
   email: string;
   id: string;
   name: string;

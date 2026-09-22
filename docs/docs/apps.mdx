@@ -36,7 +36,7 @@ Towbar uses repository manifests for deployment configuration. The dashboard val
 
 These files define a service that listens on port 3000 and responds at `/health`:
 
-```yaml title="towbar.yml"
+```yaml title="towbar.yml" highlight={2-5}
 version: 2
 environments:
   production:
@@ -44,7 +44,7 @@ environments:
       enabled: true
 ```
 
-```yaml title=".towbar/apps/web.app.yml"
+```yaml title=".towbar/apps/web.app.yml" highlight={4-19}
 id: web
 name: Web
 server: 192.0.2.10
@@ -72,15 +72,48 @@ Replace the server IP and domain, register the server, and point DNS at it befor
 
 ## Choose a health endpoint
 
-Use an HTTP path that can respond without interactive authentication. The health timeout must allow the service to start. A passing build alone does not make the candidate ready for traffic.
+Use an HTTP path that can respond without interactive authentication. Allow
+enough time for the service to start:
+
+```yaml title=".towbar/apps/web.app.yml"
+health:
+  path: /health
+  timeoutSeconds: 60
+```
+
+A passing build alone does not make the candidate ready for traffic.
 
 Omit `domains` and `tls` for an app that does not need public routing. The dashboard describes it as **Not publicly exposed**. Private connectivity still needs the appropriate Docker network and host network rules.
 
 ## Supply configuration
 
-Set build and runtime values in the app's [Secrets settings](/docs/secrets). Reference workspace or Repository values explicitly with `{{globals.KEY}}` or `{{source.KEY}}`; repository and workload values stay separate for production and previews. Global references intentionally reuse the workspace value. Use BuildKit secret mounts when a build needs credentials.
+Declare the names an app needs, then set their values in its
+[Secrets settings](/docs/secrets):
 
-CPU and memory allocations are declared under `container.resources`. The inventory shows the configured capacity and observed usage relative to it; an unavailable measurement is not zero usage.
+```yaml title=".towbar/apps/web.app.yml"
+secrets:
+  build:
+    - PACKAGE_TOKEN
+  runtime:
+    - DATABASE_URL
+```
+
+Reference workspace or Repository values in Towbar with `{{globals.KEY}}` or
+`{{source.KEY}}`. Repository and workload values stay separate for production
+and previews. Use BuildKit secret mounts when a build needs credentials.
+
+Set the app's capacity beside its port:
+
+```yaml title=".towbar/apps/web.app.yml" highlight={3-5}
+container:
+  port: 3000
+  resources:
+    cpus: 1
+    memory: 1g
+```
+
+Inventory compares observed usage with these limits. An unavailable measurement
+is not zero usage.
 
 ## Deploy and verify
 
@@ -95,7 +128,7 @@ container from the deployed app image, with its runtime secrets, network,
 resource limits and persistent volumes. It does not publish the app's ports or
 claim its network alias.
 
-```yaml
+```yaml title=".towbar/apps/web.app.yml"
 jobs:
   - name: daily-report
     description: Generate the daily report

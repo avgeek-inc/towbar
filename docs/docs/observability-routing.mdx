@@ -9,7 +9,7 @@ Towbar uses the environment-configured OpenTelemetry integration to run a manage
 
 Configure OpenTelemetry through the `TOWBAR_OTLP_*` runtime variables with an HTTPS endpoint, `http/protobuf` or `grpc`, optional authentication headers, an optional backend dashboard URL, and explicit private-network policy. The read-only integration page links to that dashboard without storing backend credentials. In the workload manifest, reference the integration and choose `logs`, `metrics`, `traces`, or a combination:
 
-```yaml
+```yaml title=".towbar/apps/web.app.yml" highlight={4-10}
 container:
   port: 3000
   network: production-apps

@@ -1,0 +1,62 @@
+---
+title: "OCI registry"
+description: "Configure one private OCI registry for image deployments and build transfers."
+---
+
+Towbar uses one installation-wide OCI Registry V2 identity. It can authenticate
+private prebuilt-image deployments and transfer an image from a dedicated build
+server to a runtime server without changing the image digest.
+
+Configure the control-plane environment:
+
+```dotenv
+TOWBAR_REGISTRY_ENABLED=true
+TOWBAR_REGISTRY_HOST=registry.example.com
+TOWBAR_REGISTRY_USERNAME=towbar
+TOWBAR_REGISTRY_PASSWORD=<password-or-access-token>
+TOWBAR_REGISTRY_ALLOW_PRIVATE_NETWORK=false
+```
+
+`TOWBAR_REGISTRY_HOST` is the registry hostname, optionally followed by a port.
+Leave private-network access disabled for an internet registry. Enable it only
+when the registry intentionally resolves to an internal address reachable from
+the Towbar control plane.
+
+Run `sudo towbar config validate`, then `sudo towbar restart`. **OCI registry**
+appears under **Manage → Integrations → Container registries** only after the
+enabled configuration passes startup validation. The dashboard shows the
+hostname and username, but never returns the password or token.
+
+## Use it for a private image
+
+Reference the integration slug `registry` from an image deployment:
+
+```yaml title=".towbar/apps/api.app.yml"
+deployment:
+  type: image
+  image: registry.example.com/acme/api:2.4.0
+  registry: registry
+```
+
+Towbar contacts the Registry V2 API, follows supported bearer challenges,
+resolves the tag to an immutable digest, and records both references. A changed
+digest at execution time fails the deployment instead of silently running a
+different image. Private registry endpoints must use HTTPS.
+
+## Use it for build transfer
+
+A dedicated build server can push the verified image through the same registry:
+
+```yaml title=".towbar/apps/api.app.yml"
+buildServer:
+  ip: 192.0.2.20
+  transfer: registry
+  registry: registry
+```
+
+Grant only the pull and push permissions needed for the intended repositories.
+After rotating the token, validate and restart Towbar, deploy one private image,
+and revoke the previous credential only after both resolution and pull succeed.
+
+See [Prebuilt images and build servers](/docs/platform-deployments#prebuilt-images)
+and the [environment variable guide](/docs/self-hosting/environment-variables#registries-storage-secrets-platform-and-telemetry).

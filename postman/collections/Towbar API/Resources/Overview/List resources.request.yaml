@@ -1,0 +1,29 @@
+$kind: http-request
+id: 86abbc92-d5c2-560d-b145-7c6448affce0
+description:
+  "Required permissions: resource.read. Personal keys are capped by the current member
+  role; team keys use explicit grants."
+url:
+  "{{baseUrl}}/resources?q=&view=all&sourceId=&environment=&serverIp=&resourceType=image&running\
+  =running&health=healthy"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  - key: q
+    value: ""
+  - key: view
+    value: all
+  - key: sourceId
+    value: ""
+  - key: environment
+    value: ""
+  - key: serverIp
+    value: ""
+  - key: resourceType
+    value: image
+  - key: running
+    value: running
+  - key: health
+    value: healthy
+order: 1000

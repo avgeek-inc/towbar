@@ -5,7 +5,7 @@
   --towbar-on-yellow: oklch(1 0 0);
 }
 .dark {
-  --towbar-yellow: oklch(0.64 0.13 85);
+  --towbar-yellow: oklch(0.68 0.15 85);
   --towbar-yellow-hover: color-mix(in oklch, var(--towbar-yellow) 90%, white);
   --towbar-on-yellow: oklch(0.23 0.01 85);
 }
@@ -130,7 +130,7 @@
 .towbar-home .towbar-button:active {
   transform: translateY(1px);
 }
-.towbar-secondary {
+.towbar-home .towbar-secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -144,10 +144,10 @@
   font-size: 13px;
   font-weight: 600;
 }
-.towbar-secondary:hover {
+.towbar-home .towbar-secondary:hover {
   background: var(--towbar-line);
 }
-.towbar-secondary:active {
+.towbar-home .towbar-secondary:active {
   transform: translateY(1px);
 }
 .towbar-link:hover {
@@ -330,37 +330,8 @@
   user-select: none;
   -webkit-user-drag: none;
 }
-.towbar-migrations {
-  display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  gap: 72px;
-  padding: 72px 0;
-  border-top: 1px solid var(--towbar-line);
-}
-.towbar-migration-links {
-  border-top: 1px solid var(--towbar-line);
-}
-.towbar-migration-links > div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  min-height: 92px;
-  padding: 18px 2px;
-  border-bottom: 1px solid var(--towbar-line);
-}
-.towbar-migration-links h3 {
-  font-size: 15px;
-}
-.towbar-migration-links p {
-  margin-top: 6px;
-  color: var(--towbar-muted);
-  font-size: 13px;
-  line-height: 1.5;
-}
 @media (max-width: 900px) {
-  .towbar-ownership,
-  .towbar-migrations {
+  .towbar-ownership {
     grid-template-columns: minmax(0, 1fr);
     gap: 36px;
   }
@@ -374,21 +345,6 @@
   .towbar-feature-copy {
     max-width: 540px;
   }
-}
-.towbar-closing {
-  border-top: 1px solid var(--towbar-line);
-  padding: 44px 0 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-}
-.towbar-closing h2 {
-  font-size: 30px;
-}
-.towbar-closing p {
-  margin-top: 10px;
-  font-size: 14px;
 }
 @media (max-width: 900px) {
   .towbar-highlights {
@@ -427,8 +383,7 @@
     gap: 24px;
   }
   .towbar-process,
-  .towbar-ownership,
-  .towbar-migrations {
+  .towbar-ownership {
     padding: 44px 0;
   }
   .towbar-process ol {
@@ -436,13 +391,12 @@
     gap: 28px;
     padding-top: 32px;
   }
-  .towbar-closing {
-    padding: 32px 0;
-    flex-direction: column;
-    text-align: center;
-  }
-  .towbar-closing h2 {
-    font-size: 28px;
+}
+
+/* Custom Mintlify pages hide the shared footer with an important utility. */
+@layer base {
+  body:has(.towbar-home) #footer {
+    display: flex !important;
   }
 }
 

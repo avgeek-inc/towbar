@@ -1,0 +1,359 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+    },
+    "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "description": { "type": "string", "maxLength": 500 },
+    "autoDeploy": { "default": false, "type": "boolean" },
+    "server": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "string"
+    },
+    "file": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "overrides": {
+      "default": [],
+      "maxItems": 10,
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 1024 }
+    },
+    "profiles": {
+      "default": [],
+      "maxItems": 20,
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 128 }
+    },
+    "services": {
+      "default": {},
+      "type": "object",
+      "propertyNames": { "type": "string", "minLength": 1, "maxLength": 128 },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "domains": {
+            "maxItems": 20,
+            "type": "array",
+            "items": { "type": "string", "minLength": 1, "maxLength": 253 }
+          },
+          "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+          "ingress": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "const": "proxy" }
+                },
+                "required": ["type"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "const": "cloudflare-tunnel" },
+                  "integration": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                  },
+                  "tunnel": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "access": { "default": false, "type": "boolean" }
+                },
+                "required": ["type", "integration"],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "telemetry": {
+            "type": "object",
+            "properties": {
+              "integration": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+              },
+              "signals": {
+                "minItems": 1,
+                "maxItems": 3,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["logs", "metrics", "traces"]
+                }
+              },
+              "protocol": {
+                "default": "otlp-grpc",
+                "type": "string",
+                "enum": ["otlp-http", "otlp-grpc"]
+              },
+              "sampling": {
+                "default": 1,
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "redactAttributes": {
+                "maxItems": 100,
+                "type": "array",
+                "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+              },
+              "cardinalityLimit": {
+                "default": 10000,
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 1000000
+              }
+            },
+            "required": ["integration", "signals"],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "externalSecrets": {
+      "type": "object",
+      "propertyNames": { "type": "string", "minLength": 1, "maxLength": 256 },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "integration": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "secret": { "type": "string", "minLength": 1, "maxLength": 1024 },
+          "field": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "version": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "use": { "type": "string", "enum": ["runtime", "build"] }
+        },
+        "required": ["integration", "secret", "use"],
+        "additionalProperties": false
+      }
+    },
+    "strategy": {
+      "default": "recreate",
+      "type": "string",
+      "enum": ["recreate", "maintenance"]
+    },
+    "secrets": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "runtime": {
+          "default": [],
+          "maxItems": 200,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "environments": {
+      "type": "object",
+      "propertyNames": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]{0,62}$",
+        "not": {
+          "enum": [
+            "preview",
+            "previews",
+            "__proto__",
+            "constructor",
+            "prototype"
+          ]
+        }
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "description": { "type": "string", "maxLength": 500 },
+          "autoDeploy": { "default": false, "type": "boolean" },
+          "server": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "string"
+          },
+          "file": { "type": "string", "minLength": 1, "maxLength": 1024 },
+          "overrides": {
+            "default": [],
+            "maxItems": 10,
+            "type": "array",
+            "items": { "type": "string", "minLength": 1, "maxLength": 1024 }
+          },
+          "profiles": {
+            "default": [],
+            "maxItems": 20,
+            "type": "array",
+            "items": { "type": "string", "minLength": 1, "maxLength": 128 }
+          },
+          "services": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "domains": {
+                  "maxItems": 20,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 253
+                  }
+                },
+                "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+                "ingress": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": { "type": "string", "const": "proxy" }
+                      },
+                      "required": ["type"],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "cloudflare-tunnel"
+                        },
+                        "integration": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                        },
+                        "tunnel": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "access": { "default": false, "type": "boolean" }
+                      },
+                      "required": ["type", "integration"],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "telemetry": {
+                  "type": "object",
+                  "properties": {
+                    "integration": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                    },
+                    "signals": {
+                      "minItems": 1,
+                      "maxItems": 3,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": ["logs", "metrics", "traces"]
+                      }
+                    },
+                    "protocol": {
+                      "default": "otlp-grpc",
+                      "type": "string",
+                      "enum": ["otlp-http", "otlp-grpc"]
+                    },
+                    "sampling": {
+                      "default": 1,
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "redactAttributes": {
+                      "maxItems": 100,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    },
+                    "cardinalityLimit": {
+                      "default": 10000,
+                      "type": "integer",
+                      "minimum": 100,
+                      "maximum": 1000000
+                    }
+                  },
+                  "required": ["integration", "signals"],
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "externalSecrets": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "integration": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                },
+                "secret": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "field": { "type": "string", "minLength": 1, "maxLength": 256 },
+                "version": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "use": { "type": "string", "enum": ["runtime", "build"] }
+              },
+              "required": ["integration", "secret", "use"],
+              "additionalProperties": false
+            }
+          },
+          "strategy": {
+            "default": "recreate",
+            "type": "string",
+            "enum": ["recreate", "maintenance"]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": ["id", "name", "environments"],
+  "description": "Entity defaults are merged with the selected environment before full validation during sync. Branch mappings and secret values are managed in Towbar.",
+  "$id": "https://www.towbar.dev/schemas/compose.v2.json"
+}

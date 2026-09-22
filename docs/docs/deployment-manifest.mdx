@@ -1,0 +1,270 @@
+---
+title: "Deployment manifest"
+description: "Declare environments in towbar.yml and configure apps and resources in separate entity files."
+---
+
+Towbar reads `towbar.yml`, then discovers app, Compose, and resource files under
+`.towbar/`. Each file declares one workload. Branch mappings and credential
+values stay in Towbar instead of Git.
+
+Download the [root example](/examples/towbar.yaml) and
+[app example](/examples/hello-towbar.app.yaml). Editor schemas are available for
+[the root](/schemas/repository.v2.json), [apps](/schemas/app.v2.json),
+[Compose](/schemas/compose.v2.json), and [resources](/schemas/resource.v2.json).
+
+## Declare environments
+
+The root file names the environments available to entity files. Enable previews
+only for environments that should accept eligible pull requests:
+
+```yaml title="towbar.yml" highlight={2-6}
+version: 2
+environments:
+  production: {}
+  staging:
+    previews:
+      enabled: true
+```
+
+Map each environment to a branch in **Repository → Environments**. Branch names,
+server addresses, and entity directories are not root fields.
+
+## Declare an app
+
+<span id="field-reference" />
+
+Common fields apply to every selected environment. Each entry under
+`environments` adds or overrides environment-specific values:
+
+```yaml title=".towbar/apps/web.app.yml" highlight={1-4,14-20}
+id: web
+name: Web
+deployment:
+  type: dockerfile
+  dockerfile: Dockerfile
+  context: .
+container:
+  port: 3000
+health:
+  path: /health
+secrets:
+  runtime:
+    - DATABASE_URL
+environments:
+  production:
+    server: 192.0.2.10
+    domains:
+      primary: app.example.com
+  staging:
+    server: 192.0.2.11
+```
+
+Register both servers before syncing. Objects merge recursively; arrays replace
+the common array. `id`, `name`, `secrets`, `preview`, and resource `type` remain
+at entity level and cannot be overridden.
+
+An entity's `id` remains stable across file moves and display-name changes.
+Removing an entity or one of its environment entries archives that instance
+after a successful sync. A failed sync preserves the last valid configuration
+and saved secret values.
+
+## Deploy automatically
+
+Set `autoDeploy: true` to deploy whenever a mapped-branch commit changes the
+workload. Use `autoDeploy.inputs` to limit an app to relevant repository paths:
+
+```yaml title=".towbar/apps/web.app.yml" highlight={3-7}
+id: web
+name: Web
+autoDeploy:
+  inputs:
+    - package.json
+    - pnpm-lock.yaml
+    - apps/web/**
+```
+
+Input paths are repository-relative. Include shared packages and build files
+that can change the result. Initial connection, branch changes, and **Sync now**
+import configuration without deploying it.
+
+## Declare secret names
+
+Commit the required key names, then enter their values in Towbar:
+
+```yaml title=".towbar/apps/web.app.yml" highlight={3-10}
+id: web
+name: Web
+secrets:
+  build:
+    - PACKAGE_TOKEN
+  runtime:
+    - DATABASE_URL
+  preDeploy:
+    - MIGRATION_TOKEN
+  postDeploy: []
+```
+
+Resources accept only `secrets.runtime`. New keys sync as unset, retained keys
+keep their values, and removed declarations delete their stored values for the
+synced environment. A missing value blocks deployment rather than sync. See
+[Shared secrets](/docs/secrets) for references and reveal controls.
+
+## Join a private network
+
+Apps and resources can share a Docker network. Resource aliases default to the
+resource ID; an SSH tunnel binds only to server loopback:
+
+```yaml title=".towbar/resources/postgres.resource.yml" highlight={4-8}
+id: postgres
+name: PostgreSQL
+type: postgres
+container:
+  network: application
+  networkAlias: postgres
+access:
+  sshTunnel:
+    hostPort: 15432
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+Use distinct aliases or networks when environments share a server. Towbar
+rejects alias and tunnel-port conflicts.
+
+## Enable previews
+
+Enable previews in `towbar.yml`, then opt each app in with its base domain and
+optional expiry:
+
+```yaml title=".towbar/apps/web.app.yml" highlight={3-6}
+id: web
+name: Web
+preview:
+  enabled: true
+  domain: preview.example.com
+  ttlHours: 72
+environments:
+  staging:
+    server: 192.0.2.11
+```
+
+Eligible same-repository pull requests target the branch mapped to that
+environment and use the immutable PR head. Preview secrets are isolated under
+`preview:<environment>` and never fall back to persistent environment values.
+Resources do not create previews. See [Preview environments](/docs/previews).
+
+## Add domains and TLS
+
+Put domains in the environment that owns them. Keep `tls` common when all
+environments use the same certificate mode:
+
+```yaml title=".towbar/apps/web.app.yml" highlight={3-4,7-8}
+id: web
+name: Web
+tls:
+  mode: direct
+environments:
+  production:
+    server: 192.0.2.10
+    domains:
+      primary: app.example.com
+```
+
+Towbar rejects a hostname already owned elsewhere in the workspace. See
+[Domains and TLS](/docs/domains-tls) for direct and Cloudflare validation.
+
+## Persistent app storage
+
+Declare Docker-managed named volumes under `container.volumes`. A persistent
+volume requires a recreate rollout because it has one writer:
+
+```yaml title=".towbar/apps/files.app.yml" highlight={3-6,9-11}
+id: files
+name: File uploads
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: The app uses a single-writer volume
+container:
+  port: 3000
+  volumes:
+    - name: uploads
+      mountPath: /app/uploads
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+Create the mount directory in the image with ownership for its runtime user.
+Volumes survive restarts, redeployments, and image rollback. Environments and
+previews never share a volume, and environment overrides replace the entire
+volume list. Host-directory bind mounts are not accepted.
+
+When adding a volume to an app that already has data at its mount path, choose
+the initial source explicitly:
+
+```yaml title=".towbar/apps/files.app.yml" highlight={5}
+container:
+  port: 3000
+  volumes:
+    - name: uploads
+      mountPath: /app/uploads
+      initialData: previous-container
+```
+
+`previous-container` imports the directory from the stopped previous container;
+`image` initializes it from the new image. The choice applies only to a new
+volume. A missing known volume blocks deployment instead of silently creating
+empty storage.
+
+Persistent storage remains on its server. Towbar blocks reassignment after an
+app has storage history and does not back up or copy app volumes. Use storage or
+infrastructure tooling appropriate for the server.
+
+## Schedule an application job
+
+Each job runs a command from the deployed app image with the app's runtime
+secrets, network, limits, and volumes:
+
+```yaml title=".towbar/apps/web.app.yml" highlight={3-11}
+id: web
+name: Web
+jobs:
+  - name: daily-report
+    description: Generate the daily report
+    command: [node, scripts/report.js]
+    schedule:
+      cron: "0 2 * * *"
+      timezone: UTC
+    timeoutSeconds: 300
+    enabled: true
+```
+
+Schedules use UTC and have one-minute resolution. Environment overrides replace
+the whole `jobs` list; set `jobs: []` to disable jobs in one environment. See
+[Scheduled jobs](/docs/apps#scheduled-jobs) for execution and retry behavior.
+
+## Forward logs
+
+Reference one or more configured log-forwarding integrations by name:
+
+```yaml title=".towbar/apps/web.app.yml" highlight={3-5}
+id: web
+name: Web
+logDrains:
+  - betterstack
+  - otlp
+```
+
+Environment overrides replace the list; use `[]` to disable forwarding in one
+environment. Credentials stay in Towbar. See
+[Log forwarding](/docs/integrations/log-drains) for provider setup and delivery
+limits.
+
+## Validate before syncing
+
+Associate the matching JSON Schema with each file in your editor. Schemas check
+file structure. Repository sync also validates the merged environment,
+registered servers, stable identity, provider availability, and cross-workload
+conflicts against an immutable commit.

@@ -21,12 +21,18 @@ export function Button({
   ...props
 }: ButtonProps) {
   const variantClass = variant === "danger-ghost" && "button--danger-ghost";
+  const resolvedVariant =
+    variant === "danger-ghost"
+      ? "ghost"
+      : variant === "danger"
+        ? "danger-soft"
+        : variant;
   return (
     <HeroButton
       {...props}
       type={type}
       size="sm"
-      variant={variant === "danger-ghost" ? "ghost" : variant}
+      variant={resolvedVariant}
       className={
         typeof className === "function"
           ? (state) => cn(variantClass, className(state))
@@ -74,10 +80,16 @@ export function buttonVariants({
   variant,
   ...props
 }: ButtonVariantOptions = {}) {
+  const resolvedVariant =
+    variant === "danger-ghost"
+      ? "ghost"
+      : variant === "danger"
+        ? "danger-soft"
+        : variant;
   return heroButtonVariants({
     ...props,
     size: "sm",
-    variant: variant === "danger-ghost" ? "ghost" : variant,
+    variant: resolvedVariant,
     className: cn(
       variant === "danger-ghost" && "button--danger-ghost",
       classValue,

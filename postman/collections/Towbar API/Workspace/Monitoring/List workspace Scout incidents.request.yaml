@@ -1,0 +1,21 @@
+$kind: http-request
+id: 38bef20d-8bc9-5674-86da-754ada593a2c
+description:
+  "Required permissions: alert.read. Personal keys are capped by the current member role;
+  team keys use explicit grants."
+url: "{{baseUrl}}/monitoring/incidents?state=active&severity=all&before=&beforeId=&limit=20"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  - key: state
+    value: active
+  - key: severity
+    value: all
+  - key: before
+    value: ""
+  - key: beforeId
+    value: ""
+  - key: limit
+    value: "20"
+order: 1000

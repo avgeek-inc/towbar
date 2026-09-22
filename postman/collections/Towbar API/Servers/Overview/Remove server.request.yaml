@@ -1,0 +1,14 @@
+$kind: http-request
+id: e10884f6-3620-5214-af4d-56912b60fe2f
+description:
+  "Required permissions: server.remove. Personal keys are capped by the current member
+  role; team keys use explicit grants."
+url: "{{baseUrl}}/servers/:serverId"
+method: DELETE
+headers:
+  Accept: application/json
+pathVariables:
+  - key: serverId
+    value: "{{serverId}}"
+    description: Required.
+order: 5000

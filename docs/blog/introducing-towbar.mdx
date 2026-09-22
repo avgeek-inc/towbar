@@ -14,6 +14,30 @@ That sounds simple, but it affects nearly every part of a deployment platform. I
 
 Towbar is not intended to compete with Coolify, Dokploy, or the other open-source deployment tools that have helped make self-hosting approachable. They solve real problems and may be a better fit for many teams. Towbar follows a more specific idea: the desired state of a workload belongs in its Git repository, and the product should operate that declaration rather than create a second, dashboard-owned version of it.
 
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/overview-light.jpg"
+      alt="Towbar overview showing deployment trends, running workloads, servers, incidents, and recent deployments."
+      width="2560"
+      height="1440"
+      loading="eager"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/overview-dark.jpg"
+      alt="Towbar overview showing deployment trends, running workloads, servers, incidents, and recent deployments."
+      width="2560"
+      height="1440"
+      loading="eager"
+    />
+  </div>
+  <p>
+    The overview keeps releases, inventory, servers, and incidents in one place.
+  </p>
+</div>
+
 ## Why I built Towbar
 
 I like the speed of a deployment dashboard. I do not like discovering later that the dashboard has become the only place where the application can be understood.
@@ -48,6 +72,30 @@ A sync is not presented as a successful deployment. It means Towbar accepted a c
 
 Automatic deployments can be enabled per workload and paused at the Repository or environment level. Manual sync and deploy controls remain available when a team wants a more deliberate release process.
 
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/repositories-light.jpg"
+      alt="Towbar repositories with imported app and resource counts and the latest synchronized revision."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/repositories-dark.jpg"
+      alt="Towbar repositories with imported app and resource counts and the latest synchronized revision."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Repositories remain the source of the workload inventory Towbar operates.
+  </p>
+</div>
+
 ## Several ways to build, one release model
 
 Applications can be deployed from:
@@ -75,6 +123,30 @@ Towbar can create isolated preview environments for eligible GitHub pull request
 The preview reads the proposed repository revision, creates isolated app instances, assigns separate routes and secrets, and reports status and the preview URL back to the source provider. Path-aware eligibility avoids rebuilding apps untouched by a change. Persistent resources are not cloned into previews, and preview secrets never fall back to production values.
 
 When the change closes, Towbar removes the preview containers, images, routes, and matching DNS records. The persistent production environment remains separate throughout the lifecycle.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/previews-light.jpg"
+      alt="Pull request preview deployments with their branch, URL, commit, status, and expiry."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/previews-dark.jpg"
+      alt="Pull request preview deployments with their branch, URL, commit, status, and expiry."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Each eligible pull request gets an isolated, traceable preview lifecycle.
+  </p>
+</div>
 
 ## Apps, managed resources, and persistent data
 
@@ -104,6 +176,31 @@ Scout Alerts add metric thresholds and public HTTP checks. Incidents keep the ob
 
 Towbar also scans deployed images for known vulnerabilities. Findings include the affected package, severity, installed version, and available fix so an operator can connect an image result to the release that introduced it.
 
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/performance-light.jpg"
+      alt="Towbar performance monitoring with server and workload navigation, resource charts, and deployment markers."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/performance-dark.jpg"
+      alt="Towbar performance monitoring with server and workload navigation, resource charts, and deployment markers."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Performance history stays connected to the workloads and deployments it
+    describes.
+  </p>
+</div>
+
 ## Logs, notifications, and integrations
 
 Application logs can be forwarded to New Relic, Axiom, Better Stack, Datadog, OpenTelemetry OTLP, or Grafana Loki. The forwarder runs independently of application deployment workflows and uses bounded batching, memory and disk queues, retry windows, and resource limits. A slow destination should not block the application it is observing.
@@ -131,6 +228,31 @@ Towbar ships with a host installer and a small `towbar` command-line tool. A loc
 Release images are published for `amd64` and `arm64`. The CLI pulls immutable image digests, applies database migrations, checks service health, and verifies the running release. Upgrades retain the current and immediately previous Towbar release while removing obsolete Towbar images without touching application data or unrelated Docker workloads.
 
 Operational commands cover status, logs, configuration validation, restart, upgrade, database backup, diagnostics through `towbar doctor`, account recovery, and uninstall. A failed preflight does not replace healthy running containers. The environment file stays at a documented path on the host so it can be managed with ordinary system tools and backed up separately from the database.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/system-health-light.jpg"
+      alt="Towbar system health showing the control plane services and their current status."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/system-health-dark.jpg"
+      alt="Towbar system health showing the control plane services and their current status."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    System health keeps the self-hosted control plane observable after
+    installation.
+  </p>
+</div>
 
 ## What Towbar is choosing
 

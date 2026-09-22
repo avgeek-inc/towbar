@@ -1,0 +1,16 @@
+workspace:
+  id: 65e5f1d1-d348-4996-86fa-44651ba9f4d1
+
+localResources:
+  collections:
+    - ../postman/collections/Towbar API
+  environments:
+    - ../postman/environments/Towbar API.environment.yaml
+  specs:
+    - ../docs/api-reference/openapi.json
+
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+
+cloudResources:
+  globals:
+    ../postman/globals/workspace.globals.yaml: ac774614-d93c-4ce7-8fdd-a6e97d66d4a7

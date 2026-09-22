@@ -1,0 +1,10 @@
+name: Towbar API
+values:
+  - key: baseUrl
+    value: https://towbar.example.com/v1/api
+    enabled: true
+  - key: apiKey
+    value: ""
+    type: secret
+    enabled: true
+color: 60

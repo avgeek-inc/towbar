@@ -182,13 +182,46 @@ a {
     background:
       linear-gradient(
         135deg,
-        color-mix(in oklch, var(--color-yellow-600) 28%, transparent) 0%,
-        color-mix(in oklch, var(--color-yellow-600) 14%, transparent) 50%,
-        color-mix(in oklch, var(--color-yellow-600) 5%, transparent) 100%
+        color-mix(in oklch, var(--color-yellow-300) 16%, transparent) 0%,
+        color-mix(in oklch, var(--color-yellow-300) 8%, transparent) 50%,
+        color-mix(in oklch, var(--color-yellow-300) 2%, transparent) 100%
       ),
-      color-mix(in oklch, var(--surface) 70%, transparent);
+      color-mix(in oklch, var(--surface) 82%, transparent);
     -webkit-backdrop-filter: blur(16px);
     backdrop-filter: blur(16px);
+  }
+
+  .dark .sidebar-identity {
+    background:
+      linear-gradient(
+        135deg,
+        color-mix(in oklch, var(--color-yellow-900) 16%, transparent) 0%,
+        color-mix(in oklch, var(--color-yellow-900) 8%, transparent) 50%,
+        color-mix(in oklch, var(--color-yellow-900) 2%, transparent) 100%
+      ),
+      color-mix(in oklch, var(--surface) 86%, transparent);
+  }
+
+  .overview-metric-illustration--enter {
+    transform-origin: right bottom;
+    animation: overview-metric-illustration-enter 220ms
+      cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+
+  @keyframes overview-metric-illustration-enter {
+    from {
+      transform: scale(0.95);
+    }
+
+    to {
+      transform: scale(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .overview-metric-illustration--enter {
+      animation: none;
+    }
   }
 
   @media (prefers-reduced-transparency: reduce) {
@@ -257,7 +290,7 @@ a {
   }
 
   .widget__footer {
-    @apply flex min-h-8 flex-wrap items-center gap-3 px-4 pt-1 pb-2;
+    @apply flex min-h-8 flex-wrap items-center gap-3 px-4 pt-[3px] pb-2;
   }
 
   .widget__legend {

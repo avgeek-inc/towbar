@@ -1,7 +1,8 @@
 # Platform deployment examples
 
-`towbar.yml` declares one workload for each supported application deployment
-mode plus a multi-service Compose workload. Every runtime and tool image is
+`towbar.yml` declares the environment and default build server. Files under
+`.towbar/apps` declare one workload for each supported application deployment
+mode, while `.towbar/compose` contains the multi-service Compose workload. Every runtime and tool image is
 pinned by digest. Replace the documentation-only server address and domain
 before connecting this manifest to a disposable test environment.
 

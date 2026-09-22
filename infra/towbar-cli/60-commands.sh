@@ -90,7 +90,6 @@ Commands:
   status                 Show Compose service status
   logs [SERVICE...]      Show recent service logs
   exec SERVICE COMMAND   Run a command in a Towbar service
-  preview [--defaults]   Preview installation onboarding without making changes
   version                Show the installed release and CLI versions
   help                   Show this help
 EOF
@@ -104,7 +103,6 @@ case "${1:-help}" in
   help | --help | -h) usage ;;
   install) shift; install_command "$@" ;;
   logs) logs_command "$@" ;;
-  preview) shift; preview_command "$@" ;;
   restart) restart_release ;;
   status) status_command ;;
   upgrade | update) shift; upgrade_release "${1:-latest}" ;;

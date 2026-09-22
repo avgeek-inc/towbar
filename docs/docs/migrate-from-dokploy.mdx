@@ -1,20 +1,59 @@
 ---
 title: "Migrate from Dokploy"
 description: "Move Dokploy applications, Compose projects, databases, domains, and automation to Towbar with a reversible cutover."
+keywords:
+  [
+    "Dokploy alternative",
+    "migrate from Dokploy",
+    "Dokploy to Towbar",
+    "Git-backed PaaS migration",
+  ]
 ---
 
 A Dokploy installation cannot be imported directly into Towbar. Recreate the desired workload configuration in Git, move persistent data through supported backup or file-transfer paths, verify the destination without production traffic, and cut over only after the new deployment is healthy.
 
-## Decide whether Towbar fits
+## Compare the tradeoffs
 
-| Towbar may be a better fit when…                                                                                                                           | Staying on Dokploy may be better when…                                                                                     |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| You want apps and resources declared in reviewed repository files, with environment-to-branch mapping and immutable deployment inputs.                     | You prefer dashboard-managed applications, Compose definitions, domains, and shared variables.                             |
-| You want repository sync, preview deployments, deployment comparisons, Scout monitoring, vulnerability results, and recovery history in one control plane. | You depend on Dokploy cluster, Docker Swarm, template, remote-server, or Traefik behavior that Towbar does not reproduce.  |
-| Your managed databases match Towbar's reviewed engines and versions.                                                                                       | You need a database version, backup command, or topology outside Towbar's [compatibility matrix](/docs/managed-databases). |
-| You want one environment-configured provider identity per integration and no provider secrets editable in the dashboard.                                   | You need multiple dashboard-managed destinations or provider configurations of the same type.                              |
+### Towbar
 
-Review actual requirements rather than migrating for feature-count parity. A general Docker or Compose feature in Dokploy may be intentionally restricted by Towbar's deployment policy.
+#### ✅ Pros
+
+- Apps, Resources, environments, domains, jobs, and deployment policy live in
+  reviewed Git files and resolve from an immutable source revision.
+- Preview secrets stay separate from production, and repository sync,
+  deployment history, Scout monitoring, vulnerability results, and recovery
+  records share one model.
+- Integrations are enabled from the Towbar runtime environment rather than
+  accumulating provider credentials in control-plane forms.
+
+#### ⚠️ Cons
+
+- Towbar does not provide Docker Swarm cluster scheduling, Dokploy's template
+  breadth, or the same degree of raw Traefik and Compose control.
+- Supported databases and Compose features are deliberately narrow. A valid
+  Dokploy stack may fail Towbar admission.
+- You must model the workload in Towbar manifests before deploying it; there is
+  no dashboard-only shortcut for an ad hoc service.
+
+### Dokploy
+
+#### ✅ Pros
+
+- Dokploy's [application and Compose features](https://docs.dokploy.com/docs/core/features)
+  cover several builders, raw Compose, templates, terminals, metrics, logs,
+  domains, volumes, backups, and direct Traefik configuration.
+- Docker Swarm settings and replicas suit teams already operating Swarm.
+- A separate build server can build an Application once and publish it through
+  a registry to deployment servers.
+
+#### ⚠️ Cons
+
+- Important desired state can live in Dokploy's database and dashboard rather
+  than beside the application source.
+- Its broader raw Docker, Compose, Swarm, and Traefik controls leave more
+  low-level decisions with the operator.
+- Build servers and remote-server deployment do not cover every path. Dokploy
+  documents that build servers are unavailable for Compose deployments.
 
 ## 1. Inventory Dokploy
 

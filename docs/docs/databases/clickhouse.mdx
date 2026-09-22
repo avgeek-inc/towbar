@@ -1,0 +1,59 @@
+---
+title: "ClickHouse"
+description: "Declare a ClickHouse 25.8 resource with an explicit user, database, private access, and native recovery."
+---
+
+Towbar's `clickhouse` preset runs ClickHouse 25.8 Alpine on amd64 or arm64. It
+uses HTTP port `8123`, stores data in `/var/lib/clickhouse`, and performs
+authenticated checks with `clickhouse-client`.
+
+## Declare the resource
+
+```yaml title=".towbar/resources/clickhouse.resource.yml" highlight={3,14-18,20}
+id: clickhouse
+name: ClickHouse
+type: clickhouse
+container:
+  network: application
+  networkAlias: clickhouse
+  resources:
+    cpus: 1
+    memory: 1g
+access:
+  sshTunnel:
+    hostPort: 18123
+secrets:
+  runtime:
+    - CLICKHOUSE_USER
+    - CLICKHOUSE_PASSWORD
+    - CLICKHOUSE_DB
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+Towbar requires `CLICKHOUSE_USER` and `CLICKHOUSE_PASSWORD`. `CLICKHOUSE_DB`
+makes the initial application database explicit.
+
+| Variable              | Purpose                                                   |
+| --------------------- | --------------------------------------------------------- |
+| `CLICKHOUSE_USER`     | User created when the data volume is initialized          |
+| `CLICKHOUSE_PASSWORD` | Credential used by health, backup, and restore operations |
+| `CLICKHOUSE_DB`       | Initial application database                              |
+
+## Connect from an app
+
+Containers on the `application` network can use the ClickHouse HTTP interface at
+`clickhouse:8123`. Save credentials and the final connection URL in the app's
+runtime secrets. The optional tunnel binds `18123` only to server loopback.
+
+## Initialization and credential changes
+
+Initialization variables apply to an empty data directory. Replacing them does
+not reconcile users or databases already stored by ClickHouse. Apply those
+changes in ClickHouse, verify the new login, and then update Towbar.
+
+## Back up and restore
+
+Towbar uses ClickHouse's native backup archive and restores all non-system
+databases into a fresh target volume. Recovery requires ClickHouse major version 25. Continue with [Database backups](/docs/backups) and [Database restores](/docs/restores).
