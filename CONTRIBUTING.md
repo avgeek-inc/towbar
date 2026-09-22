@@ -69,6 +69,11 @@ Publishing a stable `v2.x.y` GitHub release builds the API, worker, and dashboar
 for `linux/amd64` and `linux/arm64`, publishes them to GitHub Container Registry,
 and attaches `towbar-images.json` to the release. The manifest records immutable
 image digests. The installer accepts the release only after that manifest exists.
+The same workflow then installs the published release in local mode on a disposable
+GitHub-hosted Ubuntu runner, runs `towbar doctor`, and proves that `towbar restart`
+reuses the running application containers. Its diagnostic evidence is retained for
+14 days. A failed smoke test removes the image manifest from the release so the
+installer cannot select an unverified release.
 
 GHCR package visibility is separate from repository visibility. The three Towbar
 container packages must be public so an installation can pull them without GitHub
