@@ -1,0 +1,106 @@
+---
+title: "Migrate from Coolify"
+description: "Move Coolify applications, databases, domains, secrets, and automation to Towbar with a reversible cutover."
+---
+
+There is no safe one-click conversion from a Coolify instance to Towbar. Treat the move as a workload migration: inventory the current configuration, express the intended state in Towbar manifests, copy persistent data with the application stopped or read-only, verify the new deployment, and move traffic last.
+
+Coolify's own [application migration guide](https://coolify.io/docs/applications/operations/migrate-between-instances) follows the same principle: recreate configuration on the destination, test through a temporary domain, migrate each stateful dependency deliberately, and retain the source for rollback.
+
+## Decide whether Towbar fits
+
+| Towbar may be a better fit when…                                                                                                      | Staying on Coolify may be better when…                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| You want workload configuration reviewed in Git as a versioned Towbar manifest.                                                       | You prefer creating and editing most workload configuration in the dashboard.                                                          |
+| You want environments mapped to branches, immutable source archives, deployment history, previews, and policy checks in one workflow. | You rely on Coolify service templates, arbitrary dashboard-defined Compose services, or a provider/build path Towbar does not support. |
+| You want one self-hosted team with Admin, Member, and Viewer roles and tightly scoped personal or team API keys.                      | You need Coolify-specific project, environment, team, or cloud-service behavior.                                                       |
+| Your databases match Towbar's reviewed managed-engine versions and you want isolated restore promotion with rollback protection.      | Your database version, topology, or backup format falls outside Towbar's [compatibility matrix](/docs/managed-databases).              |
+
+This comparison is about fit, not an automatic claim that one platform is safer or faster. Validate the exact workload, build method, persistence model, and recovery procedure before choosing.
+
+## 1. Inventory Coolify
+
+For every application, record:
+
+- repository or image, branch, base directory, build method, Dockerfile or Compose paths, build and start commands;
+- domains, internal ports, health checks, replicas, CPU and memory limits, and restart behavior;
+- runtime variables, build variables, preview variables, and shared-variable references;
+- persistent volumes, directories, files, owners, permissions, and mount paths;
+- scheduled tasks, webhooks, preview settings, log drains, and external dependencies; and
+- the current commit or immutable image digest.
+
+For every database, record its engine, major version, database names, users, extensions, volume size, connection consumers, backup format, backup destination, retention, and the result of the latest restore test. Coolify documents application variables separately from [database variables](https://coolify.io/docs/databases/configuration/environment-variables), so inspect both.
+
+<Warning>
+  A Coolify control-plane backup is not a workload-data migration. Coolify's
+  [instance backup
+  documentation](https://coolify.io/docs/core/backup-and-recovery/instance-backup)
+  explicitly separates its own database from application, database, and volume
+  data.
+</Warning>
+
+## 2. Map each workload
+
+Choose a Towbar deployment mode for every application:
+
+| Coolify workload                    | Towbar destination                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------------ |
+| Git repository with a Dockerfile    | `dockerfile` app                                                                     |
+| Static build output                 | `static` app                                                                         |
+| Prebuilt container image            | `image` app with a non-`latest` tag or digest                                        |
+| Nixpacks or Buildpacks source build | `nixpacks`, `railpack`, or `buildpack` app after a compatibility test                |
+| Git-managed Compose project         | Compose project after reviewing Towbar's restrictions                                |
+| Standalone supported database       | Managed Resource with the same supported engine and major version                    |
+| Other stateful service              | Image Resource or Compose project after validating persistence, health, and recovery |
+
+Read [Deployment modes](/docs/platform-deployments) before moving Compose. Towbar rejects privileged containers, Docker socket mounts, host bind mounts, fixed public host ports, remote includes, external namespaces, and several other patterns that a general Compose installation may permit.
+
+Create `towbar.yml` and one entity file per app or resource. Run schema validation in the repository before connecting it, then connect each environment to its branch. Keep automatic deployments disabled during migration.
+
+## 3. Recreate credentials and integrations
+
+Configure GitHub or GitLab, registries, backup storage, notifications, log forwarding, Cloudflare, and external-secret providers in Towbar's host environment. Only correctly configured providers appear under **Manage → Integrations**.
+
+Copy application values into [Shared secrets](/docs/secrets) or workload environment secrets. Do not copy Coolify's encrypted database rows or encryption key into Towbar. Rotate long-lived credentials where practical, and update OAuth callback URLs, provider webhooks, CI secrets, and allowlists for the new Towbar origin.
+
+## 4. Prepare a destination server
+
+Install Towbar on a separate control-plane host, register the destination server, verify its SSH host key, and complete Server Preparation. You can reuse a workload server only after checking port, network, volume-name, and proxy conflicts. A separate destination is easier to test and roll back.
+
+Deploy stateless apps first through temporary domains. Verify the expected commit or image digest, health check, logs, outbound access, scheduled jobs, and private service connections.
+
+## 5. Move persistent data
+
+Use an engine-aware logical backup for databases. Coolify supports engine-specific backup and restore flows for several engines; review its current [backup](https://coolify.io/docs/databases/backups) and [restore](https://coolify.io/docs/databases/restore) instructions and compare the archive with Towbar's supported format and major version.
+
+For application volumes or directories:
+
+1. Create the destination volume and confirm the expected container user.
+2. Stop writes on the source.
+3. Copy the files while preserving ownership, permissions, links, and timestamps.
+4. Start the destination and verify reads, writes, uploads, and background work.
+
+Do not copy the live filesystem of a running database as a substitute for a logical backup. For a large dataset, rehearse the transfer and measure the final synchronization window before scheduling the cutover.
+
+## 6. Cut over and verify
+
+1. Lower DNS TTL ahead of the change when you control DNS directly.
+2. Stop source writes and create the final database backup or file synchronization.
+3. Restore into Towbar, verify representative records, then start dependent apps.
+4. Test login, writes, uploads, jobs, queues, email, OAuth, webhooks, backups, and alerts through a temporary hostname.
+5. Assign the production domain in the manifest, sync, deploy, and update DNS if the server address changed.
+6. Confirm TLS, health, logs, a manual deployment, a backup, and notification delivery.
+
+Keep Coolify stopped but intact for the agreed rollback window. If Towbar accepts new writes after cutover, returning DNS to the old service is not enough; reconcile that data before rollback.
+
+## Migration checklist
+
+- [ ] Every workload, dependency, secret, domain, job, webhook, and volume is inventoried.
+- [ ] Every Towbar manifest passes schema validation and review.
+- [ ] The target server is prepared and has enough CPU, memory, and disk headroom.
+- [ ] Persistent data has a tested, engine-aware migration path.
+- [ ] Temporary-domain tests cover critical user and background flows.
+- [ ] Production cutover and rollback owners, times, and data boundaries are written down.
+- [ ] Towbar backups and a restore rehearsal succeed before the source is removed.
+
+Continue with [Your first deployment](/docs/getting-started), [Database backups](/docs/backups), and [Troubleshooting](/docs/troubleshooting).

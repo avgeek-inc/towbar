@@ -30,7 +30,7 @@ Freshness reports whether the latest scheduled recovery point meets its recovery
 
 ### Provider credential permissions
 
-The workspace cloud integration needs read access to the declared backup storage:
+The runtime provider identity needs read access to the declared backup storage:
 
 - **AWS S3, Cloudflare R2, and generic S3-compatible storage**: object read access on the declared bucket and prefix, including the retained object version where supported. AWS KMS backups also need decrypt access to the selected key.
 - **Google Cloud**: `storage.objects.get` on the bucket and prefix, plus Cloud KMS decrypt permissions if CMEK is enabled.
@@ -39,8 +39,8 @@ The workspace cloud integration needs read access to the declared backup storage
 The target Server must be prepared, have a healthy current Resource release, use one Towbar-owned database volume, and have free Docker storage of at least three times the backup size (with a 1 GiB minimum).
 
 <div className="towbar-doc-screenshot">
-<div className="towbar-product-light"><img src="/assets/release-v2/restore-source-light.jpg" alt="A restorable backup still needs configured provider credentials before Restore is available." width="1280" height="720" loading="lazy" /></div>
-<div className="towbar-product-dark"><img src="/assets/release-v2/restore-source-dark.jpg" alt="A restorable backup still needs configured provider credentials before Restore is available." width="1280" height="720" loading="lazy" /></div>
+<div className="towbar-product-light"><img src="/assets/release-v2/restore-source-light.jpg" alt="A restorable backup still needs configured provider credentials before Restore is available." width="2560" height="1440" loading="lazy" /></div>
+<div className="towbar-product-dark"><img src="/assets/release-v2/restore-source-dark.jpg" alt="A restorable backup still needs configured provider credentials before Restore is available." width="2560" height="1440" loading="lazy" /></div>
 <p>A restorable backup still needs configured provider credentials before Restore is available.</p>
 </div>
 

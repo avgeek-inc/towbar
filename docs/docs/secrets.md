@@ -64,10 +64,10 @@ Shared Preview values and app references can be saved independently and are used
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/release-v2/shared-secrets-light.jpg" alt="Shared secret names remain visible while their saved values are masked." width="1280" height="720" loading="lazy" />
+    <img src="/assets/release-v2/shared-secrets-light.jpg" alt="Shared secret names remain visible while their saved values are masked." width="2560" height="1440" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/release-v2/shared-secrets-dark.jpg" alt="Shared secret names remain visible while their saved values are masked." width="1280" height="720" loading="lazy" />
+    <img src="/assets/release-v2/shared-secrets-dark.jpg" alt="Shared secret names remain visible while their saved values are masked." width="2560" height="1440" loading="lazy" />
   </div>
   <p>Shared secret names remain visible while their saved values are masked.</p>
 </div>
@@ -92,9 +92,9 @@ References: [Docker build secrets](https://docs.docker.com/build/building/secret
 
 ## External secret providers
 
-Admins can add one Infisical or Doppler configuration under **Integrations → External secrets**. Grant each connection only to the repositories and environments that may reference it. A manifest stores the integration slug, provider secret name, optional field/version, and whether it is needed at runtime or build time; it never stores the value.
+An operator can enable one Infisical or Doppler identity in the Towbar runtime environment. The provider appears under **Manage → Integrations → External secrets** only when its required values pass startup validation. Scope that machine identity to the provider projects and paths Towbar workloads may reference. A manifest stores the runtime provider name, provider secret name, optional field/version, and whether it is needed at runtime or build time; it never stores the value.
 
-At deployment execution Towbar records the resolved provider version without the value. Infisical retries request that same version. Doppler's read API does not expose version-addressed retrieval, so Towbar records a keyed snapshot fingerprint and fails closed if a repeated resolution returns a different value; Doppler manifest references therefore reject `version`. Queued execution repeats the connection and scope checks. A disabled connection, denied scope, unavailable version, changed snapshot, or failed provider request stops the operation before promotion.
+At deployment execution Towbar records the resolved provider version without the value. Infisical retries request that same version. Doppler's read API does not expose version-addressed retrieval, so Towbar records a keyed snapshot fingerprint and fails closed if a repeated resolution returns a different value; Doppler manifest references therefore reject `version`. Queued execution repeats provider availability and remote authorization checks. A disabled provider, denied scope, unavailable version, changed snapshot, or failed provider request stops the operation before promotion.
 
 Runtime values are supplied through the existing encrypted transient secret path. Dockerfile builds use BuildKit secret mounts. Static commands use a short-lived protected environment. Railpack, Nixpacks, and Buildpacks reject build-stage external secrets because those tools cannot currently guarantee that an environment value will stay out of the image and shared cache.
 
@@ -108,7 +108,7 @@ Read workspace metadata with `GET /v1/core/settings/secrets` and update it with 
 
 Mutations accept `{ "expectedRevision": null, "set": { "KEY": "new value" }, "delete": [] }`. Use `null` only for an unconfigured slot, then use its returned revision for later edits. Send only explicitly changed values; metadata and placeholders are never replacement values. A stale revision returns HTTP 409. Metadata includes local keys, available reference names, revisions, and pending changes. Legacy `inheritedKeys` and `inheritedOrigins` fields are empty. Secret mutations never enqueue work.
 
-Server credential metadata uses `GET /v1/core/servers/{id}/credentials`. Cloudflare `apiToken` changes use `PATCH` on that path. Submit the stored key’s `privateKeyId` and the current `expectedRevision` to `POST /v1/core/servers/{id}/credentials/actions/verify-private-key`, poll its verification resource, and trust a discovered host key only after comparing its fingerprint independently. Towbar attaches the selected stored key only after SSH authentication succeeds. Metadata and mutation responses contain no values and disable caching. Secret writes require Admin or Member access. Server credentials are administered separately and credential reveal requires a recently authenticated Admin browser session. Slack bot tokens and SMTP passwords are encrypted workspace settings; provider metadata responses never return them.
+Server credential metadata uses `GET /v1/core/servers/{id}/credentials`. Submit the stored key’s `privateKeyId` and the current `expectedRevision` to `POST /v1/core/servers/{id}/credentials/actions/verify-private-key`, poll its verification resource, and trust a discovered host key only after comparing its fingerprint independently. Towbar attaches the selected stored key only after SSH authentication succeeds. Metadata and mutation responses contain no values and disable caching. Secret writes require Admin or Member access. Server credentials are administered separately and credential reveal requires a recently authenticated Admin browser session. Cloudflare, Slack, SMTP, and other provider credentials remain in the API runtime environment; provider metadata responses never return them.
 
 Removing a server revokes its host-key trust. Restoring that server later requires fresh host-key discovery and explicit trust.
 

@@ -15,6 +15,7 @@ const chrome =
   process.env.CHROME_PATH ??
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const viewport = { width: 1280, height: 720 };
+const deviceScaleFactor = 2;
 
 const delay = (milliseconds) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -123,7 +124,12 @@ async function startBrowser(theme) {
   await client.send("Runtime.enable", {}, sessionId);
   await client.send(
     "Emulation.setDeviceMetricsOverride",
-    { ...viewport, deviceScaleFactor: 1, mobile: false },
+    { ...viewport, deviceScaleFactor, mobile: false },
+    sessionId,
+  );
+  await client.send(
+    "Emulation.setPageScaleFactor",
+    { pageScaleFactor: 1 },
     sessionId,
   );
   await client.send(
@@ -198,6 +204,49 @@ async function prepareScreenshot(browser, name) {
   await delay(500);
 }
 
+async function preparePageForCapture(browser) {
+  const captureStyles = `
+    html { scroll-behavior: auto !important; }
+    *, *::before, *::after {
+      animation: none !important;
+      caret-color: transparent !important;
+      transition: none !important;
+    }
+    ::selection { background: transparent !important; color: inherit !important; }
+    nextjs-portal, [data-next-badge-root], [data-nextjs-toast] {
+      display: none !important;
+    }
+  `;
+  const captureState = await evaluate(
+    browser,
+    `(() => {
+      window.scrollTo(0, 0);
+      window.getSelection()?.removeAllRanges();
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      document
+        .querySelectorAll("nextjs-portal, [data-next-badge-root], [data-nextjs-toast]")
+        .forEach((element) => element.remove());
+      const style = document.createElement("style");
+      style.dataset.towbarScreenshot = "true";
+      style.textContent = ${JSON.stringify(captureStyles)};
+      document.head.append(style);
+      return {
+        hasNextDevelopmentUi: Boolean(
+          document.querySelector("nextjs-portal, [data-next-badge-root], [data-nextjs-toast]"),
+        ),
+        hasSelection: !window.getSelection()?.isCollapsed,
+      };
+    })()`,
+  );
+  if (captureState.hasNextDevelopmentUi)
+    throw new Error("Next.js development UI is still visible before capture");
+  if (captureState.hasSelection)
+    throw new Error("Text selection is still active before capture");
+  await delay(100);
+}
+
 async function capture(browser, screenshot, theme) {
   const url = new URL(screenshot.route, appOrigin).toString();
   await browser.client.send("Page.navigate", { url }, browser.sessionId);
@@ -214,34 +263,32 @@ async function capture(browser, screenshot, theme) {
     })()`,
   );
   if (problem) throw new Error(`${screenshot.name} rendered a ${problem}`);
-  await evaluate(browser, "window.scrollTo(0, 0)");
-  const width = viewport.width;
-  const metrics = screenshot.viewportOnly
-    ? undefined
-    : await browser.client.send("Page.getLayoutMetrics", {}, browser.sessionId);
-  const height = screenshot.viewportOnly
-    ? viewport.height
-    : Math.max(
-        viewport.height,
-        Math.min(8_000, Math.ceil(metrics.cssContentSize.height)),
-      );
+  await preparePageForCapture(browser);
   const result = await browser.client.send(
     "Page.captureScreenshot",
     {
       format: "jpeg",
-      quality: screenshot.viewportOnly ? 95 : 90,
-      captureBeyondViewport: !screenshot.viewportOnly,
+      quality: 100,
+      captureBeyondViewport: false,
       fromSurface: true,
-      clip: { x: 0, y: 0, width, height, scale: 1 },
+      clip: {
+        x: 0,
+        y: 0,
+        width: viewport.width,
+        height: viewport.height,
+        scale: 1,
+      },
     },
     browser.sessionId,
   );
   const target = screenshot.themes.find((item) => item.theme === theme);
   if (!target) throw new Error(`${screenshot.name} has no ${theme} target`);
   await writeFile(path.join(repository, target.file), result.data, "base64");
-  target.width = width;
-  target.height = height;
-  console.log(`${theme.padEnd(5)} ${screenshot.name} ${width}x${height}`);
+  target.width = viewport.width * deviceScaleFactor;
+  target.height = viewport.height * deviceScaleFactor;
+  console.log(
+    `${theme.padEnd(5)} ${screenshot.name} ${target.width}x${target.height}`,
+  );
 }
 
 async function updateDocumentDimensions(manifest) {
@@ -285,6 +332,6 @@ manifest.capturedAt = new Date().toISOString();
 manifest.environment =
   "Local Towbar fixture on localhost:4021; examples are not production results";
 manifest.viewport =
-  "1280 × 720 CSS pixels; selected marketing images use only the visible viewport and full-page captures are capped at 8,000 pixels";
+  "1280 × 720 CSS pixels rendered at 2× density (2560 × 1440); every image is limited to the visible viewport";
 await updateDocumentDimensions(manifest);
 await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);

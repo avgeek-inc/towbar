@@ -159,6 +159,7 @@ async function checkReleaseScreenshots() {
     ),
   );
   const names = new Set();
+  const requiredDimensions = { width: 2560, height: 1440 };
   for (const screenshot of manifest.screenshots) {
     if (names.has(screenshot.name))
       failures.push(`Duplicate release screenshot: ${screenshot.name}`);
@@ -181,6 +182,13 @@ async function checkReleaseScreenshots() {
         if (actual.width !== theme.width || actual.height !== theme.height)
           failures.push(
             `${theme.file}: manifest says ${theme.width}x${theme.height}, image is ${actual.width}x${actual.height}`,
+          );
+        if (
+          actual.width !== requiredDimensions.width ||
+          actual.height !== requiredDimensions.height
+        )
+          failures.push(
+            `${theme.file}: release screenshots must be 2x viewport captures (${requiredDimensions.width}x${requiredDimensions.height})`,
           );
       } catch (error) {
         failures.push(`${theme.file}: ${error.message}`);

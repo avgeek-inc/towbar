@@ -23,6 +23,10 @@
             "pages": ["docs/index", "docs/concepts", "docs/getting-started"]
           },
           {
+            "group": "Migrate to Towbar",
+            "pages": ["docs/migrate-from-coolify", "docs/migrate-from-dokploy"]
+          },
+          {
             "group": "Deploy",
             "pages": [
               "docs/repositories",
@@ -54,6 +58,7 @@
           {
             "group": "Integrations",
             "pages": [
+              "docs/integrations/index",
               "docs/integrations/github",
               "docs/integrations/gitlab",
               "docs/integrations/aws",
@@ -64,7 +69,7 @@
             ]
           },
           {
-            "group": "Workspace",
+            "group": "Manage",
             "pages": [
               "docs/team-settings",
               "docs/personal-settings",
@@ -87,6 +92,15 @@
               "docs/self-hosting/architecture",
               "docs/self-hosting/security"
             ]
+          }
+        ]
+      },
+      {
+        "tab": "Blog",
+        "groups": [
+          {
+            "group": "Towbar blog",
+            "pages": ["blog/index", "blog/towbar-v2"]
           }
         ]
       },
