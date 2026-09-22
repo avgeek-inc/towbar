@@ -10,10 +10,12 @@ import type {
 } from "@workspace/towbar-web-client";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { Button } from "@workspace/web-design-system/buttons/button";
-import { Input } from "@workspace/web-design-system/forms/input";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { Select, ListBox } from "@workspace/web-design-system/forms/select";
-import { ComboBox } from "@workspace/web-design-system/pickers/combo-box";
+import {
+  Autocomplete,
+  SearchField,
+} from "@workspace/web-design-system/pickers/autocomplete";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { FormCard } from "./page-parts";
 import { useApiQuery, clearApiQueryCache } from "@/hooks/use-api-query";
@@ -192,7 +194,7 @@ function PreferencesForm({ data }: { data: PreferencesResponse }) {
           </Select.Popover>
         </Select>
       </div>
-      <ComboBox
+      <Select
         fullWidth
         isRequired
         isDisabled={busy}
@@ -203,21 +205,50 @@ function PreferencesForm({ data }: { data: PreferencesResponse }) {
         }}
       >
         <Label isRequired>Time zone</Label>
-        <ComboBox.InputGroup>
-          <Input variant="secondary" placeholder="Search time zones" />
-          <ComboBox.Trigger />
-        </ComboBox.InputGroup>
-        <ComboBox.Popover>
-          <ListBox>
-            {data.options.timeZones.map((zone) => (
-              <ListBox.Item id={zone} key={zone} textValue={zone}>
-                {zone}
-                <ListBox.ItemIndicator />
-              </ListBox.Item>
-            ))}
-          </ListBox>
-        </ComboBox.Popover>
-      </ComboBox>
+        <Select.Trigger>
+          <Select.Value>{preferences.timeZone}</Select.Value>
+          <Select.Indicator />
+        </Select.Trigger>
+        <Select.Popover className="w-(--trigger-width) min-w-[min(18rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden">
+          <Autocomplete.Filter
+            filter={(text, search) =>
+              text
+                .toLocaleLowerCase()
+                .includes(search.trim().toLocaleLowerCase())
+            }
+          >
+            <SearchField
+              aria-label="Search time zones"
+              className="px-2 pt-2"
+              variant="secondary"
+            >
+              <SearchField.Group className="rounded">
+                <SearchField.SearchIcon />
+                <SearchField.Input
+                  className="text-base sm:text-sm"
+                  placeholder="Search time zones…"
+                  maxLength={200}
+                  autoComplete="off"
+                  spellCheck={false}
+                  autoFocus={
+                    typeof window !== "undefined" &&
+                    window.matchMedia("(pointer: fine)").matches
+                  }
+                />
+                <SearchField.ClearButton aria-label="Clear time zone search" />
+              </SearchField.Group>
+            </SearchField>
+            <ListBox>
+              {data.options.timeZones.map((zone) => (
+                <ListBox.Item id={zone} key={zone} textValue={zone}>
+                  {zone}
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+              ))}
+            </ListBox>
+          </Autocomplete.Filter>
+        </Select.Popover>
+      </Select>
       <div
         className="grid min-h-16 gap-1"
         aria-live="polite"

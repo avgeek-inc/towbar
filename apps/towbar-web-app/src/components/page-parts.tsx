@@ -308,6 +308,7 @@ export function ActionButton<T>({
   onSuccess,
   permission,
   pendingLabel = "Working…",
+  redirectOnSuccess,
   success,
   variant = "secondary",
 }: {
@@ -324,6 +325,7 @@ export function ActionButton<T>({
   onSuccess?: (result: T) => void;
   permission?: Action;
   pendingLabel?: string;
+  redirectOnSuccess?: (result: T) => string;
   success: string;
   variant?: "danger" | "primary" | "secondary";
 }) {
@@ -335,6 +337,10 @@ export function ActionButton<T>({
     setBusy(true);
     try {
       const result = await action();
+      if (redirectOnSuccess) {
+        window.location.assign(redirectOnSuccess(result));
+        await new Promise<never>(() => undefined);
+      }
       toast.success(success);
       onSuccess?.(result);
       refreshApiQueries();

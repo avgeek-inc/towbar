@@ -150,10 +150,10 @@ export function HistoryFilter({
           >
             <SearchField
               aria-label={`Search ${label.toLowerCase()}`}
-              className="p-2"
+              className="px-2 pt-2"
               variant="secondary"
             >
-              <SearchField.Group>
+              <SearchField.Group className="rounded">
                 <SearchField.SearchIcon />
                 <SearchField.Input
                   className="text-base sm:text-sm"

@@ -20,16 +20,19 @@ const columns = {
   3: "grid-cols-2 lg:grid-cols-3",
 } as const;
 
-export interface AttributesProps extends Omit<
+type AttributesSharedProps = Omit<
   ComponentPropsWithRef<"div">,
   "children" | "title"
-> {
+> & {
   children: ReactNode;
   columns?: AttributesColumns;
   icon?: ReactNode;
-  title: ReactNode;
-  variant?: AttributesVariant;
-}
+};
+export type AttributesProps = AttributesSharedProps &
+  (
+    | { title?: ReactNode; variant: "embedded" }
+    | { title: ReactNode; variant?: Exclude<AttributesVariant, "embedded"> }
+  );
 const Root = forwardRef<HTMLDivElement, AttributesProps>(
   (
     {
@@ -51,15 +54,17 @@ const Root = forwardRef<HTMLDivElement, AttributesProps>(
             className={cn("grid min-w-0 gap-1", className)}
             {...props}
           >
-            <span className="inline-flex min-w-0 items-center gap-2 text-xs font-medium text-muted">
-              {icon ? (
-                <span aria-hidden="true" className="inline-flex shrink-0">
-                  {icon}
-                </span>
-              ) : null}
-              <span className="truncate">{title}</span>
-              <HeadingHelp title={typeof title === "string" ? title : ""} />
-            </span>
+            {title != null ? (
+              <span className="inline-flex min-w-0 items-center gap-2 text-xs font-medium text-muted">
+                {icon ? (
+                  <span aria-hidden="true" className="inline-flex shrink-0">
+                    {icon}
+                  </span>
+                ) : null}
+                <span className="truncate">{title}</span>
+                <HeadingHelp title={typeof title === "string" ? title : ""} />
+              </span>
+            ) : null}
             <dl className="grid">{children}</dl>
           </div>
         </VariantContext.Provider>

@@ -28,7 +28,10 @@ import { Label } from "@workspace/web-design-system/forms/label";
 import { Select } from "@workspace/web-design-system/forms/select";
 import { Modal } from "@workspace/web-design-system/overlays/modal";
 import { toast } from "@workspace/web-design-system/overlays/toast";
-import { ComboBox } from "@workspace/web-design-system/pickers/combo-box";
+import {
+  Autocomplete,
+  SearchField,
+} from "@workspace/web-design-system/pickers/autocomplete";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -366,11 +369,10 @@ function SourceCreate({
       <div className="grid gap-6">
         {providerSelection}
         <div className="grid min-w-0 gap-6">
-          <ComboBox
-            className="gap-3"
+          <Select
+            aria-required={true}
             fullWidth
             isDisabled={busy}
-            isRequired
             selectedKey={fullName || null}
             variant="secondary"
             onSelectionChange={async (value) => {
@@ -404,22 +406,34 @@ function SourceCreate({
                   repositoryName: repository.name,
                   discoveryBranch: repository.defaultBranch,
                 });
-                setDiscovered(result.environments);
+                const productionWasDiscovered = result.environments.some(
+                  (environment) => environment.name === "production",
+                );
+                const discoveredEnvironments = productionWasDiscovered
+                  ? result.environments
+                  : [
+                      { name: "production", previewsEnabled: false },
+                      ...result.environments,
+                    ];
+                setDiscovered(discoveredEnvironments);
                 setSelectedEnvironments(
-                  result.environments.map((environment) => environment.name),
+                  discoveredEnvironments.map((environment) => environment.name),
                 );
                 setMappings(
                   Object.fromEntries(
-                    result.environments.map((environment) => [
+                    discoveredEnvironments.map((environment) => [
                       environment.name,
-                      environment.name === "production"
+                      environment.name === "production" &&
+                      productionWasDiscovered
                         ? repository.defaultBranch
                         : "",
                     ]),
                   ),
                 );
               } catch (error) {
-                setDiscovered([]);
+                setDiscovered([{ name: "production", previewsEnabled: false }]);
+                setSelectedEnvironments(["production"]);
+                setMappings({ production: "" });
                 setDiscoveryError(
                   error instanceof Error
                     ? error.message
@@ -431,63 +445,92 @@ function SourceCreate({
             }}
           >
             <Label isRequired>Repository</Label>
-            <ComboBox.InputGroup className="relative">
-              <Input
-                className={
-                  selected?.private ? "min-w-0 pr-16 sm:pr-28" : "min-w-0"
-                }
-                placeholder="Search repositories…"
-              />
-              {selected?.private ? (
-                <span
-                  className="pointer-events-none absolute inset-y-0 right-10 flex items-center gap-1.5 text-xs text-muted"
-                  title="Private repository"
-                >
-                  <HugeiconsIcon
-                    icon={Shield01Icon}
-                    className="size-4"
-                    aria-hidden="true"
-                  />
-                  <span className="hidden sm:inline">Private</span>
+            <Select.Trigger>
+              <Select.Value className="flex min-w-0 flex-1 items-center gap-2">
+                <span className="min-w-0 flex-1 truncate">
+                  {selected?.fullName ?? "Choose a repository"}
                 </span>
-              ) : null}
-              <ComboBox.Trigger />
-            </ComboBox.InputGroup>
-            <ComboBox.Popover>
-              <ListBox>
-                {repositories.data.repositories.map((repo) => (
-                  <ListBox.Item
-                    key={repo.id}
-                    id={repo.fullName}
-                    textValue={repo.fullName}
+                {selected?.private ? (
+                  <span
+                    className="flex shrink-0 items-center gap-1.5 text-xs text-muted"
+                    title="Private repository"
                   >
-                    <span className="min-w-0 flex-1 truncate">
-                      {repo.fullName}
-                    </span>
-                    {repo.private ? (
-                      <span className="ml-auto mr-6 flex shrink-0 items-center gap-1.5 text-xs text-muted">
-                        <HugeiconsIcon
-                          icon={Shield01Icon}
-                          className="size-4"
-                          aria-hidden="true"
-                        />
-                        Private
+                    <HugeiconsIcon
+                      icon={Shield01Icon}
+                      className="size-4"
+                      aria-hidden="true"
+                    />
+                  </span>
+                ) : null}
+              </Select.Value>
+              <Select.Indicator />
+            </Select.Trigger>
+            <Select.Popover className="w-(--trigger-width) min-w-[min(18rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden">
+              <Autocomplete.Filter
+                filter={(text, search) =>
+                  text
+                    .toLocaleLowerCase()
+                    .includes(search.trim().toLocaleLowerCase())
+                }
+              >
+                <SearchField
+                  aria-label="Search repositories"
+                  className="px-2 pt-2"
+                  variant="secondary"
+                >
+                  <SearchField.Group className="rounded">
+                    <SearchField.SearchIcon />
+                    <SearchField.Input
+                      className="text-base sm:text-sm"
+                      placeholder="Search repositories…"
+                      maxLength={200}
+                      autoComplete="off"
+                      spellCheck={false}
+                      autoFocus={
+                        typeof window !== "undefined" &&
+                        window.matchMedia("(pointer: fine)").matches
+                      }
+                    />
+                    <SearchField.ClearButton aria-label="Clear repository search" />
+                  </SearchField.Group>
+                </SearchField>
+                <ListBox>
+                  {repositories.data.repositories.map((repo) => (
+                    <ListBox.Item
+                      key={repo.id}
+                      id={repo.fullName}
+                      textValue={repo.fullName}
+                    >
+                      <span className="min-w-0 flex-1 truncate">
+                        {repo.fullName}
                       </span>
-                    ) : null}
-                    <ListBox.ItemIndicator />
-                  </ListBox.Item>
-                ))}
-              </ListBox>
-            </ComboBox.Popover>
-          </ComboBox>
+                      {repo.private ? (
+                        <span
+                          aria-label="Private repository"
+                          className="ml-auto mr-6 flex shrink-0 items-center text-muted"
+                          title="Private repository"
+                        >
+                          <HugeiconsIcon
+                            icon={Shield01Icon}
+                            className="size-4"
+                            aria-hidden="true"
+                          />
+                        </span>
+                      ) : null}
+                      <ListBox.ItemIndicator />
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Autocomplete.Filter>
+            </Select.Popover>
+          </Select>
         </div>
         {discovered ? (
           <div className="grid min-w-0 gap-4">
             {discoveryError ? (
               <p className="text-xs text-muted">
-                Could not suggest environments from the default branch:{" "}
-                {discoveryError} Add a mapping below; Towbar will validate its
-                selected branch.
+                Could not suggest environments from the default branch.
+                Configure your environments and it&apos;s branches to continue.
               </p>
             ) : null}
             {branches.error ? (
@@ -510,7 +553,7 @@ function SourceCreate({
             {discovered.map((environment) => (
               <div
                 key={environment.name}
-                className="grid grid-cols-1 items-center gap-x-4 gap-y-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
+                className="grid grid-cols-1 items-center gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
               >
                 <div className="col-start-1 row-start-1 flex min-h-9 min-w-0 items-center">
                   <Checkbox
