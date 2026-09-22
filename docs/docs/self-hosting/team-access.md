@@ -1,5 +1,5 @@
 ---
-title: "Team access and account security"
+title: "Team access"
 description: "Set up Admin, Member and Viewer access, invitations, personal keys, MFA, and transactional email."
 ---
 
