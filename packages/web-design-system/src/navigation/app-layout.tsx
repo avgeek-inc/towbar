@@ -145,7 +145,7 @@ export function AppLayout({
               <Drawer.Dialog
                 id="application-navigation"
                 aria-label="Navigation"
-                className="group/navigation grid w-72 max-w-[calc(100vw-1rem)] grid-cols-1 overflow-hidden bg-background p-0 has-[[data-secondary-menu]]:w-[min(28rem,calc(100vw-1rem))] has-[[data-secondary-menu]]:grid-cols-2 sm:w-72"
+                className="group/navigation grid w-72 max-w-[calc(100vw-1rem)] grid-cols-1 overflow-hidden bg-background p-0 has-[[data-secondary-menu]]:w-[min(28rem,calc(100vw-1rem))] has-[[data-secondary-menu]]:grid-cols-[calc(50%-0.75rem)_calc(50%+0.75rem)] sm:w-72"
               >
                 <div
                   className="relative min-h-0 min-w-0"

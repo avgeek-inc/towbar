@@ -5,6 +5,28 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.7] - 2026-09-23
+
+### Changed
+
+- SSH host verification now selects the ED25519 host key when available and
+  presents one recommended fingerprint for approval.
+- Successful SSH verification for a pending server now continues directly to
+  server preparation.
+- Server preparation timelines use their status icons without duplicate status
+  chips, with tighter alignment and a simpler preparation action.
+- Mobile navigation, page headings, form controls, account identity and
+  integration layouts use the available screen width more effectively.
+
+### Fixed
+
+- Fresh Ubuntu servers no longer stop before Docker installation when optional
+  conflicting packages are absent.
+- SSH checks and server-preparation steps return actionable, step-specific
+  guidance when the remote command exits without diagnostic output.
+- Narrow integration pages keep widgets at full width until the remaining
+  content area can comfortably fit two columns.
+
 ## [2.0.0] - 2026-09-20
 
 ### Added
@@ -87,5 +109,6 @@ All notable changes to Towbar are documented in this file. This project follows
 - Branch mapping errors remain visible beside the edit form while preserving
   the entered branch and previous mapping.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.7...HEAD
+[2.0.7]: https://github.com/avgeek-inc/towbar/releases/tag/v2.0.7
 [2.0.0]: https://github.com/avgeek-inc/towbar/releases/tag/v2.0.0

@@ -3,6 +3,7 @@ import {
   createPreparationLog,
   redactPreparationOutput,
 } from "./server-preparation-log.js";
+import { preparationCommandFailureMessage } from "./server-preparation-errors.js";
 import { HostKeyNotTrustedError, SshSession } from "./ssh.js";
 
 import type { ServerPreparationStepId } from "@workspace/towbar-core";
@@ -350,7 +351,11 @@ export async function prepareServer(
       status: "succeeded",
     });
   } catch (error) {
-    const message = preparationErrorMessage(error, sensitiveValues);
+    const message = preparationErrorMessage(
+      error,
+      sensitiveValues,
+      "connecting",
+    );
     await connectionLog.append("stderr", `${message}\n`);
     await connectionLog.finish();
     await hooks.step({
@@ -540,7 +545,11 @@ async function runStep(input: {
     });
     return output;
   } catch (error) {
-    const message = preparationErrorMessage(error, input.sensitiveValues);
+    const message = preparationErrorMessage(
+      error,
+      input.sensitiveValues,
+      input.id,
+    );
     await input.log.append("stderr", `${message}\n`);
     await input.log.finish();
     await input.hooks.step({
@@ -555,13 +564,17 @@ async function runStep(input: {
 export function preparationErrorMessage(
   error: unknown,
   sensitiveValues: string[] = [],
+  stepId?: ServerPreparationStepId,
 ) {
   if (error instanceof HostKeyNotTrustedError) {
     return "The server SSH host key is not trusted";
   }
   const detail =
     error instanceof CommandError
-      ? error.stderr.trim() || error.stdout.trim() || error.message
+      ? error.stderr.trim() ||
+        error.stdout.trim() ||
+        preparationCommandFailureMessage(stepId) ||
+        error.message
       : error instanceof Error
         ? error.message
         : "Server preparation failed";

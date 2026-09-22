@@ -39,7 +39,7 @@ export function NotificationIntegration({ provider }: { provider: Provider }) {
     (route) => route.provider === provider,
   );
   return (
-    <div className="content-grid lg:grid-cols-2 lg:items-start">
+    <div className="content-grid grid-cols-[repeat(auto-fill,minmax(min(28rem,100%),1fr))] items-start">
       <FormCard
         title="Runtime configuration"
         icon={<NotificationProviderIcon provider={provider} />}

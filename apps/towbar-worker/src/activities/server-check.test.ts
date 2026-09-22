@@ -55,3 +55,10 @@ void test("preserves safe non-command errors", () => {
     "Server check failed",
   );
 });
+
+void test("replaces an empty SSH process failure with actionable guidance", () => {
+  assert.equal(
+    safeErrorMessage(new CommandError("ssh exited unsuccessfully", "", "")),
+    "The SSH check failed before the server returned a diagnostic. Verify the selected private key, SSH username, SSH port, and firewall rules, then try again.",
+  );
+});

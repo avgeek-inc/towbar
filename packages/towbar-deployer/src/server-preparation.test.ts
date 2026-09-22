@@ -363,3 +363,15 @@ void test("retains the end of long diagnostics and actual conflict guidance", ()
     "SSH connection timed out",
   );
 });
+
+void test("describes silent SSH preparation failures by step", () => {
+  const error = new CommandError("ssh exited unsuccessfully", "", "");
+  assert.equal(
+    preparationErrorMessage(error, [], "connecting"),
+    "The SSH connection failed before the server returned a diagnostic. Verify the selected private key, SSH username, SSH port, and firewall rules, then try again.",
+  );
+  assert.equal(
+    preparationErrorMessage(error, [], "installing_docker"),
+    "Docker setup stopped without reporting a reason. Check APT and the Docker service logs on the server, then retry.",
+  );
+});

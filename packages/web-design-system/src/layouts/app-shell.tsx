@@ -151,7 +151,11 @@ export function ApplicationNavbar({
             onPress={onSidebarToggle}
             variant="ghost"
           >
-            <HugeiconsIcon aria-hidden="true" icon={Menu01Icon} size={20} />
+            <HugeiconsIcon
+              aria-hidden="true"
+              className="size-[22px] lg:size-5"
+              icon={Menu01Icon}
+            />
           </Button>
         ) : (
           <RoutedLink
@@ -171,7 +175,10 @@ export function ApplicationNavbar({
           </RoutedLink>
         )}
         {hasSidebar && breadcrumbItems ? (
-          <BreadcrumbTrail items={breadcrumbItems} />
+          <BreadcrumbTrail
+            className="hidden lg:block"
+            items={breadcrumbItems}
+          />
         ) : null}
       </div>
       <nav

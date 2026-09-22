@@ -59,11 +59,6 @@ export function PrepareServerButton(props: ServerPreparationProps) {
       success="Server preparation queued"
       variant="primary"
     >
-      <HugeiconsIcon
-        aria-hidden="true"
-        icon={Settings01Icon}
-        className="size-4 shrink-0"
-      />
       {busy
         ? "Preparing server"
         : props.setupStatus === "failed"
@@ -239,17 +234,6 @@ function PreparationStep({
   const running =
     step.status === "running" && model.preparation?.status === "running";
   const completed = step.status === "succeeded";
-  const label = model.historyUnavailable
-    ? "Not recorded"
-    : completed
-      ? "Completed"
-      : failed
-        ? "Failed"
-        : running
-          ? "In progress"
-          : model.preparation?.status === "failed"
-            ? "Not run"
-            : "Pending";
   const details =
     step.message ??
     (model.historyUnavailable
@@ -270,7 +254,6 @@ function PreparationStep({
       id={step.id}
       title={step.title}
       description={step.description}
-      label={label}
       status={
         completed
           ? "succeeded"

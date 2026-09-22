@@ -29,7 +29,7 @@ export function GitLabSettings() {
   const connection = query.data.connections[0] ?? null;
 
   return (
-    <div className="content-grid lg:grid-cols-2 lg:items-start">
+    <div className="content-grid grid-cols-[repeat(auto-fill,minmax(min(28rem,100%),1fr))] items-start">
       <FormCard
         title="GitLab connection"
         icon={<IntegrationProviderLogo provider="gitlab" />}

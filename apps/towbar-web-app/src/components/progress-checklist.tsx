@@ -13,14 +13,12 @@ import {
 import { Accordion } from "@workspace/web-design-system/data-display/accordion";
 import { Spinner } from "@workspace/web-design-system/feedback/spinner";
 import { cn } from "@workspace/web-design-system/lib/utils";
-import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 export function ProgressChecklistItem({
   id,
   title,
   description,
   status,
-  label,
   href,
   children,
 }: {
@@ -29,7 +27,6 @@ export function ProgressChecklistItem({
   description: ReactNode;
   status:
     "failed" | "running" | "skipped" | "succeeded" | "waiting" | "cancelled";
-  label?: string;
   href?: string;
   children: ReactNode;
 }) {
@@ -40,7 +37,7 @@ export function ProgressChecklistItem({
   const running = status === "running";
   const cancelled = status === "cancelled";
   const triggerClassName = cn(
-    "flex items-center gap-3 rounded-xl p-2 text-left transition-colors disabled:cursor-default disabled:opacity-100 disabled:hover:bg-transparent",
+    "flex items-start gap-3 rounded-xl p-2 text-left transition-colors disabled:cursor-default disabled:opacity-100 disabled:hover:bg-transparent",
     (canExpand || href) &&
       "hover:bg-default/80 data-[hovered=true]:bg-default/80",
   );
@@ -49,7 +46,7 @@ export function ProgressChecklistItem({
       <span
         aria-hidden="true"
         className={cn(
-          "inline-flex size-9 shrink-0 items-center justify-center rounded-lg",
+          "mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-lg",
           completed
             ? "bg-success-soft text-success-soft-foreground"
             : failed
@@ -83,44 +80,17 @@ export function ProgressChecklistItem({
             {description}
           </span>
         </span>
-        <StatusBadge
-          status={
-            completed
-              ? "succeeded"
-              : failed
-                ? "failed"
-                : running
-                  ? "running"
-                  : status === "waiting"
-                    ? "not_started"
-                    : status
-          }
-          label={
-            label ??
-            (completed
-              ? "Completed"
-              : failed
-                ? "Failed"
-                : running
-                  ? "In progress"
-                  : status === "skipped"
-                    ? "Skipped"
-                    : cancelled
-                      ? "Cancelled"
-                      : "Pending")
-          }
-        />
       </span>
       {href ? (
         <HugeiconsIcon
           aria-hidden="true"
           icon={ArrowRight02Icon}
-          className="size-4 shrink-0 text-muted"
+          className="size-4 shrink-0 self-center text-muted"
         />
       ) : canExpand ? (
-        <Accordion.Indicator className="shrink-0 text-muted" />
+        <Accordion.Indicator className="shrink-0 self-center text-muted" />
       ) : (
-        <span aria-hidden="true" className="size-4 shrink-0" />
+        <span aria-hidden="true" className="size-4 shrink-0 self-center" />
       )}
     </>
   );

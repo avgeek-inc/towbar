@@ -69,6 +69,7 @@ export function safeErrorMessage(error: unknown) {
       return "The server refused the SSH connection. Check the SSH port and that the SSH service is running.";
     if (/no route to host/iu.test(error.stderr))
       return "The server could not be reached over SSH. Check its network and firewall rules.";
+    return "The SSH check failed before the server returned a diagnostic. Verify the selected private key, SSH username, SSH port, and firewall rules, then try again.";
   }
   return error instanceof Error
     ? error.message.slice(0, 1_000)
