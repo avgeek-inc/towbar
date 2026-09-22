@@ -57,7 +57,9 @@ export function GitLabSettings() {
             </Attributes>
             <div className="flex flex-wrap gap-3">
               <ActionButton
-                action={openGitLabAuthorization}
+                action={createGitLabAuthorization}
+                pendingLabel="Opening GitLab…"
+                redirectOnSuccess={(result) => result.authorizationUrl}
                 success="Opening GitLab"
               >
                 Reauthorize GitLab
@@ -89,7 +91,9 @@ export function GitLabSettings() {
             </EmptyState.Header>
             <EmptyState.Content>
               <ActionButton
-                action={openGitLabAuthorization}
+                action={createGitLabAuthorization}
+                pendingLabel="Opening GitLab…"
+                redirectOnSuccess={(result) => result.authorizationUrl}
                 success="Opening GitLab"
               >
                 <HugeiconsIcon icon={Add01Icon} className="size-4" />
@@ -103,9 +107,8 @@ export function GitLabSettings() {
   );
 }
 
-async function openGitLabAuthorization() {
-  const result = await api.post<{ authorizationUrl: string }>(
+async function createGitLabAuthorization() {
+  return await api.post<{ authorizationUrl: string }>(
     "/v1/core/gitlab/oauth/start",
   );
-  window.location.assign(result.authorizationUrl);
 }

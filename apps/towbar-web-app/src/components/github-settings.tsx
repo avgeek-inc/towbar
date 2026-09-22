@@ -95,7 +95,12 @@ function GitHubConnectionCard({
     connection.permissionReadiness.preview === "ready";
   const action = connection ? (
     connection.suspendedAt ? (
-      <ActionButton action={openGitHubInstallation} success="Opening GitHub">
+      <ActionButton
+        action={createGitHubInstallation}
+        pendingLabel="Opening GitHub…"
+        redirectOnSuccess={(result) => result.url}
+        success="Opening GitHub"
+      >
         <HugeiconsIcon icon={ReloadIcon} className="size-4" />
         Reconnect GitHub
       </ActionButton>
@@ -116,7 +121,12 @@ function GitHubConnectionCard({
       </ActionButton>
     )
   ) : (
-    <ActionButton action={openGitHubInstallation} success="Opening GitHub">
+    <ActionButton
+      action={createGitHubInstallation}
+      pendingLabel="Opening GitHub…"
+      redirectOnSuccess={(result) => result.url}
+      success="Opening GitHub"
+    >
       <HugeiconsIcon icon={Add01Icon} className="size-4" />
       Install GitHub App
     </ActionButton>
@@ -201,7 +211,9 @@ function GitHubConnectionCard({
               <div className="flex flex-wrap gap-3">
                 {!connection.suspendedAt && !previewPermissionsReady ? (
                   <ActionButton
-                    action={openGitHubInstallation}
+                    action={createGitHubInstallation}
+                    pendingLabel="Opening GitHub…"
+                    redirectOnSuccess={(result) => result.url}
                     success="Opening GitHub"
                   >
                     <HugeiconsIcon icon={Shield01Icon} className="size-4" />
@@ -229,9 +241,8 @@ function GitHubConnectionCard({
   );
 }
 
-async function openGitHubInstallation() {
-  const response = await api.post<{ url: string }>(
+async function createGitHubInstallation() {
+  return await api.post<{ url: string }>(
     "/v1/core/github/actions/installation-url",
   );
-  window.location.assign(response.url);
 }
