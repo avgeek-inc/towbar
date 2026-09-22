@@ -55,10 +55,10 @@ export function SourceBranchSelect({
         >
           <SearchField
             aria-label="Search branches"
-            className="p-2"
+            className="px-2 pt-2"
             variant="secondary"
           >
-            <SearchField.Group>
+            <SearchField.Group className="rounded">
               <SearchField.SearchIcon />
               <SearchField.Input
                 className="text-base sm:text-sm"

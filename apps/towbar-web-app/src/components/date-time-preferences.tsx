@@ -219,10 +219,10 @@ function PreferencesForm({ data }: { data: PreferencesResponse }) {
           >
             <SearchField
               aria-label="Search time zones"
-              className="p-2"
+              className="px-2 pt-2"
               variant="secondary"
             >
-              <SearchField.Group>
+              <SearchField.Group className="rounded">
                 <SearchField.SearchIcon />
                 <SearchField.Input
                   className="text-base sm:text-sm"
