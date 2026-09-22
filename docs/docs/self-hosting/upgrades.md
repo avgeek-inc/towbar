@@ -49,4 +49,4 @@ Use **Forgot password** when SMTP and the account's mailbox are available. Host 
 
 ## Command-line operations
 
-Towbar does not deploy itself from GitHub Actions. Installation and upgrades run on the control-plane host through the `towbar` CLI, so release access and `/etc/towbar/towbar.env` remain host-owned. Run `towbar help` for the complete command list. `towbar compose COMMAND` passes an administrative command to this installation with the correct release directory, project name, and environment file.
+Towbar does not deploy itself from GitHub Actions. Installation and upgrades run on the control-plane host through the `towbar` CLI, so release access and `/etc/towbar/towbar.env` remain host-owned. See the [Towbar CLI guide](/docs/self-hosting/cli) for every command, parameter, safety check, and troubleshooting workflow.

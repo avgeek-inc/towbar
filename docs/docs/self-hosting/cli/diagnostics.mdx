@@ -1,0 +1,125 @@
+---
+title: "Diagnostics, status, and logs"
+description: "Inspect the installed version, service state, recent output, and complete host health without changing Towbar."
+---
+
+These commands are read-only. They do not deploy workloads or change the Towbar control plane.
+
+## `towbar status`
+
+Show the Docker Compose process table for the active Towbar release.
+
+```bash
+sudo towbar status
+```
+
+The command accepts no parameters. It requires root, Docker Engine, Compose v2, and an installed release. Use it to see container state, health, published ports, and whether a service repeatedly exits.
+
+## `towbar logs`
+
+Show recent output from every service or a selected list of Compose services.
+
+```text title="Syntax"
+sudo towbar logs [SERVICE...]
+```
+
+| Parameter    | Required | Accepted value                           | Default      | Behavior                                |
+| ------------ | -------- | ---------------------------------------- | ------------ | --------------------------------------- |
+| `SERVICE...` | No       | One or more Towbar Compose service names | All services | Limits output to the selected services. |
+
+The CLI asks Docker Compose for the most recent 200 lines by default. Set `TOWBAR_LOG_TAIL` for a different limit. Additional Docker Compose log options, such as `--follow`, are passed through.
+
+<Tabs>
+  <Tab title="All services">```bash sudo towbar logs ```</Tab>
+  <Tab title="Selected services">```bash sudo towbar logs api worker ```</Tab>
+  <Tab title="Follow output">
+    ```bash sudo towbar logs --follow api worker ```
+  </Tab>
+  <Tab title="More history">
+    ```bash sudo TOWBAR_LOG_TAIL=1000 towbar logs api ```
+  </Tab>
+</Tabs>
+
+| Service              | Role                                                        |
+| -------------------- | ----------------------------------------------------------- |
+| `api`                | Dashboard API, authentication, provider callbacks, and REST |
+| `worker`             | Temporal workflows and infrastructure operations            |
+| `web-app`            | Operator dashboard                                          |
+| `postgres`           | Control-plane and Temporal database                         |
+| `temporal`           | Durable workflow server                                     |
+| `temporal-ui`        | Loopback-only Temporal operator UI                          |
+| `gateway`            | Local loopback gateway                                      |
+| `gateway-public`     | Public HTTPS gateway                                        |
+| `migrate`            | One-time Towbar database migration                          |
+| `temporal-schema`    | One-time Temporal database schema setup                     |
+| `temporal-namespace` | One-time Temporal namespace setup                           |
+
+The selected installation runs either `gateway` or `gateway-public`. One-time services normally exit successfully and may have useful logs even though they do not stay running.
+
+## `towbar doctor`
+
+Run a complete, read-only health inspection and print a pass, warning, or failure for each check.
+
+```bash
+sudo towbar doctor
+```
+
+The command accepts no parameters. It returns nonzero when any required check fails. Warnings alone do not make it fail.
+
+<AccordionGroup>
+  <Accordion title="Host and tools" icon="server">
+    Checks the Linux distribution, CPU architecture, required executables,
+    Docker Engine, Compose v2, available disk, host memory, and clock
+    synchronization.
+  </Accordion>
+  <Accordion title="Disk usage" icon="hard-drive">
+    Measures downloaded Towbar releases, Towbar-managed application images, and
+    control-plane volumes. It reports apparent usage without deleting anything.
+  </Accordion>
+  <Accordion title="Configuration" icon="file-check">
+    Verifies that the environment file exists, is owned by `root:root` with mode
+    `600`, and passes the same configuration parsing used by the running
+    release.
+  </Accordion>
+  <Accordion title="Services and database" icon="activity">
+    Checks every long-running service, restart counts, PostgreSQL readiness, and
+    whether running containers match the installed release commit.
+  </Accordion>
+  <Accordion title="Local access" icon="lock-keyhole">
+    Confirms that the local gateway publishes only `127.0.0.1:4021`, the
+    dashboard health endpoint responds, and external REST and MCP access remain
+    disabled.
+  </Accordion>
+  <Accordion title="Public HTTPS" icon="shield-check">
+    Confirms ports 80 and 443, DNS resolution, dashboard HTTPS, API routing, the
+    certificate lifetime and issuer, persisted Caddy certificate state, GitHub
+    reachability, and Let's Encrypt reachability.
+  </Accordion>
+</AccordionGroup>
+
+Use the detail printed under a failed check as the next action. Run `towbar logs` for the named service, correct the underlying host or configuration problem, validate configuration, then restart only when the preflight passes.
+
+## `towbar version`
+
+Print the installed Towbar release and the CLI version.
+
+```bash
+towbar version
+```
+
+```text title="Installed example"
+Towbar v2.0.4
+CLI 2.0.4
+```
+
+If the CLI exists without an installation, the first line is `Towbar is not installed`. `towbar -v` and `towbar --version` are aliases.
+
+## `towbar help`
+
+Print every top-level command and its short syntax.
+
+```bash
+towbar help
+```
+
+`towbar -h`, `towbar --help`, and `towbar` with no command produce the same output. An unknown command exits nonzero and suggests `towbar help`.

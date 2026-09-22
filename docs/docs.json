@@ -79,7 +79,7 @@
         ]
       },
       {
-        "tab": "Self-hosting",
+        "tab": "Self-hosting & CLI",
         "groups": [
           {
             "group": "Run Towbar",
@@ -91,6 +91,16 @@
               "docs/self-hosting/uninstall",
               "docs/self-hosting/architecture",
               "docs/self-hosting/security"
+            ]
+          },
+          {
+            "group": "CLI",
+            "pages": [
+              "docs/self-hosting/cli/index",
+              "docs/self-hosting/cli/install-upgrade",
+              "docs/self-hosting/cli/configuration",
+              "docs/self-hosting/cli/diagnostics",
+              "docs/self-hosting/cli/advanced"
             ]
           }
         ]
