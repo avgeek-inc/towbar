@@ -164,8 +164,21 @@ jobs:
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
         run: gh release upload "$RELEASE_TAG" towbar-images.json --clobber
 
-  local-installation-smoke:
+  publish:
     needs: [prepare, manifest]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Publish assembled release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: gh release edit "$RELEASE_TAG" --draft=false --latest
+
+  local-installation-smoke:
+    needs: [prepare, publish]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -221,13 +234,13 @@ jobs:
           test "$after" = "$before"
           test "$(sudo find /opt/towbar/releases -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 1
 
-      - name: Withdraw the installer manifest after a failed smoke test
+      - name: Withdraw a release that fails installation
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
-        run: gh release delete-asset "$RELEASE_TAG" towbar-images.json --yes
+        run: gh release delete "$RELEASE_TAG" --cleanup-tag --yes
 
       - name: Collect service evidence
         if: always()
@@ -258,16 +271,3 @@ jobs:
           name: release-local-installation
           path: ${{ runner.temp }}/towbar-local-installation/
           retention-days: 14
-
-  publish:
-    needs: [prepare, local-installation-smoke]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Publish verified release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
-        run: gh release edit "$RELEASE_TAG" --draft=false --latest
