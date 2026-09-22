@@ -94,8 +94,14 @@
 }
 .towbar-home .towbar-lead {
   font-size: 19px;
-  max-width: 630px;
+  max-width: none;
   line-height: 1.6;
+}
+.towbar-home .towbar-lead > span {
+  display: block;
+}
+.towbar-home .towbar-lead-primary {
+  white-space: nowrap;
 }
 .towbar-actions {
   display: flex;
@@ -304,8 +310,8 @@
     font-size: 16px;
     max-width: 34ch;
   }
-  .towbar-desktop-break {
-    display: none;
+  .towbar-home .towbar-lead-primary {
+    white-space: normal;
   }
   .towbar-actions {
     gap: 8px 20px;
