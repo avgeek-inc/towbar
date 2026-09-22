@@ -32,11 +32,11 @@ try {
   upload(
     "receiver.py",
     `import http.server,ssl,json,threading,gzip
-counts={};seen=set();complete=False;lock=threading.Lock()
+counts={};seen=set();ready=False;complete=False;lock=threading.Lock()
 class Handler(http.server.BaseHTTPRequestHandler):
  def log_message(self,*args): pass
  def do_POST(self):
-  global complete
+  global ready,complete
   length=int(self.headers.get('Content-Length',0));data=self.rfile.read(length)
   with lock:
    if self.path=='/loki':
@@ -44,9 +44,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
     for stream in json.loads(data)['streams']:
      for value in stream['values']:
       message=json.loads(value[1])['message']
-      if message=='LOAD_COMPLETE': complete=True
+      if message=='LOAD_READY': ready=True
+      elif message=='LOAD_COMPLETE': complete=True
       elif ':' in message: seen.add(int(message.split(':',1)[0]))
-    counts['uniqueLines']=len(seen);counts['complete']=complete
+    counts['uniqueLines']=len(seen);counts['ready']=ready;counts['complete']=complete
    counts[self.path]=counts.get(self.path,0)+1
    with open('/tmp/received.json','w') as f: json.dump(counts,f)
   self.send_response(401 if self.path=='/otlp' else 200)
@@ -98,7 +99,9 @@ c=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER);c.load_cert_chain('/tmp/receiver.crt',
   await reconcileLogDrains(context);
   upload(
     "load.py",
-    `import time,sys,json
+    `import time,sys,json,os
+print('LOAD_READY',flush=True)
+while not os.path.exists('/control/start'): time.sleep(.1)
 start=time.monotonic()
 for i in range(80000):
  print(str(i)+':'+('x'*8192))
@@ -114,6 +117,23 @@ time.sleep(180)
   target.ssh(
     `docker run -d --name log-load --label towbar.managed=true --memory 64m --cpus 0.5 --log-opt max-size=1g --log-opt max-file=1 --mount type=bind,src=/root/load.py,dst=/load.py,readonly --mount type=bind,src=/root/log-load-control,dst=/control ${logDrainGatewayImage} python -u /load.py`,
   );
+  let sourceReady = false;
+  const sourceDeadline = Date.now() + 30000;
+  while (Date.now() < sourceDeadline) {
+    const raw = target.ssh(
+      "sudo cat /tmp/received.json 2>/dev/null || printf '{}'",
+    );
+    if (JSON.parse(raw || "{}").ready) {
+      sourceReady = true;
+      break;
+    }
+    await delay(500);
+  }
+  assert(
+    sourceReady,
+    "The forwarder must attach to the application log stream",
+  );
+  target.ssh("sudo touch /root/log-load-control/start");
   const unrelated = target.ssh(
     `docker run --rm --memory 32m --cpus 0.25 ${logDrainGatewayImage} python -c 'print("application-work-complete")'`,
   );
