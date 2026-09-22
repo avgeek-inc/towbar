@@ -34,6 +34,7 @@ import {
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
+import { TableCellDescription } from "@workspace/towbar-web-ui/table-cell-text";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
 import {
   ToggleButton,
@@ -432,7 +433,13 @@ function ServerInventory({
   const columns: ResourceTableColumn<Server>[] = [
     {
       cell: (server) => (
-        <ServerIpLink ip={server.canonicalIp} hardware={server.hardware} />
+        <ServerIpLink
+          ip={server.canonicalIp}
+          description={
+            server.setupStatus === "pending" ? "Pending Setup" : undefined
+          }
+          hardware={server.hardware}
+        />
       ),
       className: "w-full min-w-52 tabular-nums",
       header: "Server",
@@ -446,9 +453,11 @@ function ServerInventory({
     },
     {
       cell: (server) =>
-        server.hardware?.cpuCount
-          ? `${server.hardware.cpuCount} vCPU`
-          : "Unknown",
+        server.hardware?.cpuCount ? (
+          `${server.hardware.cpuCount} vCPU`
+        ) : (
+          <TableCellDescription>Unknown</TableCellDescription>
+        ),
       className:
         "hidden min-w-32 whitespace-nowrap tabular-nums 2xl:table-cell",
       headerClassName: "hidden 2xl:table-cell",
@@ -457,9 +466,11 @@ function ServerInventory({
     },
     {
       cell: (server) =>
-        server.hardware?.memoryBytes
-          ? formatBytes(server.hardware.memoryBytes)
-          : "Unknown",
+        server.hardware?.memoryBytes ? (
+          formatBytes(server.hardware.memoryBytes)
+        ) : (
+          <TableCellDescription>Unknown</TableCellDescription>
+        ),
       className:
         "hidden min-w-36 whitespace-nowrap tabular-nums 2xl:table-cell",
       headerClassName: "hidden 2xl:table-cell",

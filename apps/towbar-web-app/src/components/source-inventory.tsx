@@ -268,10 +268,12 @@ export function SourceResources({
 
 export function ServerIpLink({
   ip,
+  description,
   hardware,
   serverId,
 }: {
   ip: string;
+  description?: string;
   hardware?: Server["hardware"];
   serverId?: string;
 }) {
@@ -286,7 +288,7 @@ export function ServerIpLink({
         <span>{ip}</span>
       </span>
       <TableCellDescription>
-        <ServerHardwareDescription hardware={hardware} />
+        {description ?? <ServerHardwareDescription hardware={hardware} />}
       </TableCellDescription>
     </TableCellStack>
   );

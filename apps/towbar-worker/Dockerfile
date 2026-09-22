@@ -37,7 +37,12 @@ RUN apk add --no-cache \
   curl=8.22.0-r2 \
   nodejs-24-minimal=24.21.0-r1 \
   nodejs-24-minimal-compat=24.21.0-r1 \
-  openssh-client=10.5_p1-r1
+  openssh-client=10.5_p1-r1 \
+  openssh-keygen=10.5_p1-r1 \
+  openssh-keyscan=10.5_p1-r1 \
+  && command -v ssh >/dev/null \
+  && command -v ssh-keygen >/dev/null \
+  && command -v ssh-keyscan >/dev/null
 COPY --from=builder --chown=65532:65532 /prod/towbar-worker ./
 COPY --from=builder --chown=65532:65532 /repo/apps/towbar-worker/dist ./dist
 COPY --from=monitoring-builder --chown=65532:65532 /out/ /app/monitoring-agent/
