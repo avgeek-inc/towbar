@@ -20,7 +20,7 @@ The public schemas are generated from the validation contracts with
 `pnpm --filter @workspace/towbar-core schemas`. Tests check that the committed
 schemas remain current. The repository parser resolves one environment at an
 immutable commit, validates merged defaults and overrides, and returns required
-secret declarations separately from runtime configuration. Version 1 is rejected.
+secret declarations separately from runtime configuration.
 
 Preview-enabled environments admit same-repository PRs targeting their mapped
 branches. Apps must also opt in. Preview values are isolated from persistent

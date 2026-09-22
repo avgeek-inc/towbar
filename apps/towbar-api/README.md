@@ -19,7 +19,7 @@ pnpm --filter towbar-api build
 
 Production uses separate runtime and migrator PostgreSQL credentials. Keep the internal HMAC secret and `TOWBAR_CREDENTIALS_KEY` outside PostgreSQL. Static integration and notification credentials come directly from the API process environment; the database stores only dynamic provider authorizations such as GitLab OAuth grants and GitHub installations.
 
-The production image includes `node dist/cli/migrate.js` and `node dist/cli/recover-admin.js --email=admin@example.com [--reset-mfa]`. Towbar v2 requires a fresh database using the `001_team_access_v2` baseline. It does not upgrade a 1.x schema.
+The production image includes `node dist/cli/migrate.js` and `node dist/cli/recover-admin.js --email=admin@example.com [--reset-mfa]`.
 
 Better Auth owns password hashing, sessions, MFA, invitation verification and API token mechanics. Towbar's wrappers enforce Admin/Member/Viewer capabilities and reject raw signup/organization/key endpoints. Initial setup atomically creates one team and Admin, then closes permanently. Email-based recovery and optional TOTP are available under Personal Settings. Local operator recovery generates a temporary password, revokes sessions/personal keys and forces replacement. It is never an HTTP operation.
 

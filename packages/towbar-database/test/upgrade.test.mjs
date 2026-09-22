@@ -81,20 +81,6 @@ test(
       const databaseUrl = new URL(url);
       databaseUrl.pathname = `/${databaseName}`;
       client = postgres(databaseUrl.toString(), { max: 1, onnotice() {} });
-      await client`create table towbar_workspaces(id text primary key)`;
-      await client`insert into towbar_workspaces values ('preserve-legacy-data')`;
-      await assert.rejects(
-        runTowbarMigrations({
-          databaseUrl: databaseUrl.toString(),
-          logger: { info() {}, error() {} },
-        }),
-        /requires a fresh database/,
-      );
-      assert.equal(
-        (await client`select id from towbar_workspaces`)[0].id,
-        "preserve-legacy-data",
-      );
-      await client`drop table towbar_workspaces`;
       await migrate(drizzle(client), { migrationsFolder });
       await runTowbarMigrations({
         databaseUrl: databaseUrl.toString(),

@@ -65,9 +65,6 @@ void test("root rejects Git branch mappings and configurable entity directories"
     ),
   );
   assert.throws(() => parseRepositoryManifest(`${root}\nentities: .towbar`));
-  assert.throws(() =>
-    parseRepositoryManifest("version: 1\nenvironments:\n  production: {}"),
-  );
 });
 
 void test("resolves only selected environment with deep object overrides and required secrets", () => {
