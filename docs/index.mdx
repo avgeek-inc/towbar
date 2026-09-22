@@ -77,6 +77,86 @@ mode: "custom"
   </div>
 </section>
 
+<section className="towbar-process" aria-labelledby="process-heading">
+  <div className="towbar-section-intro">
+    <p className="towbar-feature-label">How it works</p>
+    <h2 id="process-heading">From repository to running service.</h2>
+    <p>
+      Bring the code and servers. Towbar connects the deployment workflow around
+      them.
+    </p>
+  </div>
+  <ol>
+    <li>
+      <span aria-hidden="true">01</span>
+      <h3>Install Towbar</h3>
+      <p>
+        Run the control plane on an Ubuntu host and complete the guided
+        workspace setup.
+      </p>
+    </li>
+    <li>
+      <span aria-hidden="true">02</span>
+      <h3>Connect Git and a server</h3>
+      <p>
+        Authorize GitHub or GitLab, add an SSH key, and let Towbar prepare the
+        deployment host.
+      </p>
+    </li>
+    <li>
+      <span aria-hidden="true">03</span>
+      <h3>Deploy and operate</h3>
+      <p>
+        Map branches to environments, deploy reviewed manifests, and follow
+        health from one place.
+      </p>
+    </li>
+  </ol>
+  <a className="towbar-link" href="/docs/getting-started">
+    Follow the getting-started guide <span aria-hidden="true">→</span>
+  </a>
+</section>
+
+<section className="towbar-ownership" aria-labelledby="ownership-heading">
+  <div className="towbar-section-intro">
+    <p className="towbar-feature-label">Your infrastructure</p>
+    <h2 id="ownership-heading">
+      Keep control without rebuilding the platform.
+    </h2>
+    <p>
+      Host Towbar yourself and run applications on servers you choose.
+      Configuration stays reviewable in Git while operational data stays
+      available in the dashboard.
+    </p>
+    <a className="towbar-link" href="/docs/self-hosting/installation">
+      Explore self-hosting <span aria-hidden="true">→</span>
+    </a>
+  </div>
+  <div className="towbar-ownership-points">
+    <div>
+      <h3>Your servers stay yours</h3>
+      <p>
+        Register supported Ubuntu hosts over SSH and decide where every app or
+        resource runs.
+      </p>
+    </div>
+    <div>
+      <h3>Git records the intended state</h3>
+      <p>
+        Review application, resource, domain, and environment changes alongside
+        the code.
+      </p>
+    </div>
+    <div>
+      <h3>Operations remain visible</h3>
+      <p>
+        Follow deployments, logs, metrics, incidents, backups, and vulnerability
+        findings in Towbar.
+      </p>
+    </div>
+  </div>
+</section>
+
 <div className="towbar-features">
   <section className="towbar-feature" aria-labelledby="repositories-heading">
     <div className="towbar-feature-copy">
@@ -432,6 +512,39 @@ mode: "custom"
     </div>
   </section>
 </div>
+
+<section className="towbar-migrations" aria-labelledby="migrations-heading">
+  <div className="towbar-section-intro">
+    <p className="towbar-feature-label">Migration guides</p>
+    <h2 id="migrations-heading">Move one workload at a time.</h2>
+    <p>
+      Recreate configuration in Git, rehearse persistent-data transfers, and
+      keep the existing platform available until the new deployment is verified.
+    </p>
+  </div>
+  <div className="towbar-migration-links">
+    <div>
+      <div>
+        <h3>From Coolify</h3>
+        <p>Plan apps, databases, secrets, domains, and rollback.</p>
+      </div>
+      <a className="towbar-link" href="/docs/migrate-from-coolify">
+        Read the guide <span aria-hidden="true">→</span>
+      </a>
+    </div>
+    <div>
+      <div>
+        <h3>From Dokploy</h3>
+        <p>
+          Translate projects, Compose services, variables, and persistent data.
+        </p>
+      </div>
+      <a className="towbar-link" href="/docs/migrate-from-dokploy">
+        Read the guide <span aria-hidden="true">→</span>
+      </a>
+    </div>
+  </div>
+</section>
 
 <section className="towbar-closing" aria-labelledby="start-heading">
   <div><h2 id="start-heading">Start with one server.</h2><p>Install Towbar with Docker Compose.</p></div>
