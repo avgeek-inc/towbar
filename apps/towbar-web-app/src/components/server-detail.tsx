@@ -7,7 +7,6 @@ import {
   Activity01Icon,
   Alert02Icon,
   AlertCircleIcon,
-  CheckmarkCircle01Icon,
   ComputerActivityIcon,
   DashboardCircleIcon,
   CubeIcon,
@@ -475,18 +474,7 @@ export function ServerDetail() {
                   >
                     <HugeiconsIcon aria-hidden="true" icon={Alert02Icon} />
                   </span>
-                ) : (
-                  <span
-                    aria-label="Server setup completed"
-                    role="img"
-                    className="inline-flex text-success-soft-foreground [&_svg]:size-4"
-                  >
-                    <HugeiconsIcon
-                      aria-hidden="true"
-                      icon={CheckmarkCircle01Icon}
-                    />
-                  </span>
-                ),
+                ) : undefined,
               icon: <HugeiconsIcon icon={Settings01Icon} />,
               content: <ServerPreparationChecklist {...preparationProps} />,
             },
@@ -604,18 +592,7 @@ export function ServerDetail() {
                             icon={Alert02Icon}
                           />
                         </span>
-                      ) : (
-                        <span
-                          aria-label="Credentials verified"
-                          className="inline-flex text-success-soft-foreground [&_svg]:size-4"
-                          role="img"
-                        >
-                          <HugeiconsIcon
-                            aria-hidden="true"
-                            icon={CheckmarkCircle01Icon}
-                          />
-                        </span>
-                      ),
+                      ) : undefined,
                       content: (
                         <ServerEditor
                           canManage={server.data.canManageServer}
