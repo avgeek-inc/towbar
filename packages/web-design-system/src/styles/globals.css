@@ -64,11 +64,10 @@ a {
     @apply py-[10px];
   }
 
-  /* Keep form controls touch-friendly on coarse pointers, then use the same
-     compact rhythm as small buttons on desktop. Editable text remains 16px on
-     touch devices so mobile browsers do not zoom the page on focus. */
+  /* Match the compact mobile button rhythm across single-line controls, while
+     keeping editable text at 16px so mobile browsers do not zoom on focus. */
   .input {
-    @apply h-11 px-3 py-2 text-base;
+    @apply h-[34px] px-2.5 py-1 text-base;
   }
 
   .textarea {
@@ -77,7 +76,7 @@ a {
 
   .select__trigger,
   .autocomplete__trigger {
-    @apply min-h-11 px-3 py-2;
+    @apply min-h-[34px] px-2.5 py-1;
   }
 
   .select__value,
@@ -86,16 +85,16 @@ a {
   }
 
   .input-group {
-    @apply min-h-11;
+    @apply min-h-[34px];
   }
 
   .input-group__input,
   .search-field__input {
-    @apply px-3 py-2 text-base;
+    @apply px-2.5 py-1 text-base;
   }
 
   .search-field__group {
-    @apply h-11;
+    @apply h-[34px];
   }
 
   .select__popover,
@@ -116,7 +115,7 @@ a {
   .combo-box__popover [data-slot="list-box-item"],
   .autocomplete__popover [data-slot="list-box-item"],
   .dropdown__popover [data-slot="menu-item"] {
-    @apply min-h-11 gap-2 rounded-lg px-2.5 py-1.5;
+    @apply min-h-[34px] gap-2 rounded-lg px-2 py-1;
   }
 
   @media (pointer: fine) {
@@ -287,6 +286,10 @@ a {
 
   .widget__content:first-child {
     @apply mt-1.5;
+  }
+
+  .widget:has(> .widget__footer) > .widget__content {
+    margin-bottom: calc(var(--spacing) * 0.5);
   }
 
   .widget__footer {

@@ -3,6 +3,7 @@ import {
   createPreparationLog,
   redactPreparationOutput,
 } from "./server-preparation-log.js";
+import { preparationCommandFailureMessage } from "./server-preparation-errors.js";
 import { HostKeyNotTrustedError, SshSession } from "./ssh.js";
 
 import type { ServerPreparationStepId } from "@workspace/towbar-core";
@@ -73,9 +74,10 @@ if command -v docker >/dev/null; then
   fi
 fi
 if test "$docker_compatible" = false; then
-  conflicts="$(dpkg-query -W -f='${"$"}{binary:Package} ${"$"}{db:Status-Abbrev}\n' \
+  conflicts="$({ dpkg-query -W -f='${"$"}{binary:Package} ${"$"}{db:Status-Abbrev}\n' \
     docker.io docker-compose docker-compose-v2 docker-doc docker-buildx \
-    podman-docker containerd runc 2>/dev/null | awk '$2 ~ /^ii/ {print $1}' | paste -sd, -)"
+    podman-docker containerd runc 2>/dev/null || true; } | \
+    awk '$2 ~ /^ii/ {print $1}' | paste -sd, -)"
   if test -n "$conflicts"; then
     printf 'Conflicting container packages are installed: %s. Remove them before continuing.\n' "$conflicts" >&2
     exit 72
@@ -349,7 +351,11 @@ export async function prepareServer(
       status: "succeeded",
     });
   } catch (error) {
-    const message = preparationErrorMessage(error, sensitiveValues);
+    const message = preparationErrorMessage(
+      error,
+      sensitiveValues,
+      "connecting",
+    );
     await connectionLog.append("stderr", `${message}\n`);
     await connectionLog.finish();
     await hooks.step({
@@ -539,7 +545,11 @@ async function runStep(input: {
     });
     return output;
   } catch (error) {
-    const message = preparationErrorMessage(error, input.sensitiveValues);
+    const message = preparationErrorMessage(
+      error,
+      input.sensitiveValues,
+      input.id,
+    );
     await input.log.append("stderr", `${message}\n`);
     await input.log.finish();
     await input.hooks.step({
@@ -554,13 +564,17 @@ async function runStep(input: {
 export function preparationErrorMessage(
   error: unknown,
   sensitiveValues: string[] = [],
+  stepId?: ServerPreparationStepId,
 ) {
   if (error instanceof HostKeyNotTrustedError) {
     return "The server SSH host key is not trusted";
   }
   const detail =
     error instanceof CommandError
-      ? error.stderr.trim() || error.stdout.trim() || error.message
+      ? error.stderr.trim() ||
+        error.stdout.trim() ||
+        preparationCommandFailureMessage(stepId) ||
+        error.message
       : error instanceof Error
         ? error.message
         : "Server preparation failed";

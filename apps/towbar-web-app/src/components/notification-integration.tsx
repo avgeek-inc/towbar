@@ -1,10 +1,8 @@
 "use client";
 
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
-import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { useApiQuery } from "@/hooks/use-api-query";
-import { NotificationProviderIcon } from "./notification-provider-icon";
 import { FormCard } from "./page-parts";
 
 type Provider = "discord" | "slack" | "smtp" | "telegram" | "webhook";
@@ -39,12 +37,8 @@ export function NotificationIntegration({ provider }: { provider: Provider }) {
     (route) => route.provider === provider,
   );
   return (
-    <div className="content-grid lg:grid-cols-2 lg:items-start">
-      <FormCard
-        title="Runtime configuration"
-        icon={<NotificationProviderIcon provider={provider} />}
-        headerEnd={<StatusBadge status="configured" label="Configured" />}
-      >
+    <div className="content-grid grid-cols-[repeat(auto-fill,minmax(min(28rem,100%),1fr))] items-start">
+      <FormCard title="Runtime configuration" help={false}>
         <div className="grid gap-3">
           <p className="text-sm text-muted">
             This provider and its notification routes are configured by the

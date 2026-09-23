@@ -1,6 +1,7 @@
 import { ApplicationFailure, Context } from "@temporalio/activity";
 
 import {
+  CommandError,
   HostKeyNotTrustedError,
   checkServer,
 } from "@workspace/towbar-deployer";
@@ -54,7 +55,22 @@ export async function executeServerCheckActivity(checkId: string) {
   }
 }
 
-function safeErrorMessage(error: unknown) {
+export function safeErrorMessage(error: unknown) {
+  if (error instanceof CommandError) {
+    if (/permission denied \(publickey(?:,[^)]+)?\)/iu.test(error.stderr))
+      return "SSH authentication failed. The selected private key is not authorized for the configured SSH username.";
+    if (
+      /connection (?:timed out|timeout)|operation timed out/iu.test(
+        error.stderr,
+      )
+    )
+      return "The SSH connection timed out. Check the server address, SSH port, and firewall rules.";
+    if (/connection refused/iu.test(error.stderr))
+      return "The server refused the SSH connection. Check the SSH port and that the SSH service is running.";
+    if (/no route to host/iu.test(error.stderr))
+      return "The server could not be reached over SSH. Check its network and firewall rules.";
+    return "The SSH check failed before the server returned a diagnostic. Verify the selected private key, SSH username, SSH port, and firewall rules, then try again.";
+  }
   return error instanceof Error
     ? error.message.slice(0, 1_000)
     : "Server check failed";

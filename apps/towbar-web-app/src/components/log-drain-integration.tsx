@@ -9,7 +9,6 @@ import { NewTabIndicator } from "@workspace/web-design-system/navigation/new-tab
 import { useApiQuery } from "@/hooks/use-api-query";
 import { documentationTopics } from "@/lib/documentation";
 import { logDrainNames, logDrainStatus } from "@/lib/log-drain-providers";
-import { IntegrationProviderLogo } from "./integration-provider-logo";
 import { RelativeTime } from "./last-synced-time";
 import { FormCard } from "./page-parts";
 
@@ -53,10 +52,10 @@ export function LogDrainIntegration({
   );
 
   return (
-    <div className="content-grid lg:grid-cols-2 lg:items-start">
+    <div className="content-grid grid-cols-[repeat(auto-fill,minmax(min(28rem,100%),1fr))] items-start">
       <FormCard
         title="Runtime configuration"
-        icon={<IntegrationProviderLogo provider={provider} />}
+        help={false}
         headerEnd={<StatusBadge {...logDrainStatus(configuration)} />}
       >
         <div className="grid gap-4">

@@ -43,7 +43,7 @@ function TitledPage({
           yPadding="none"
         >
           <header className="flex flex-wrap items-center justify-between gap-5">
-            <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-3 pl-2 sm:pl-0">
               <TypographyHeading
                 className="flex min-w-0 items-center text-xl font-medium"
                 elementType="h3"

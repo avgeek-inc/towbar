@@ -245,7 +245,7 @@ function OverviewActivity() {
         className="flex-wrap gap-3"
         endContent={
           deploymentItems.length ? (
-            <Widget.Legend className="flex-wrap">
+            <Widget.Legend className="hidden flex-wrap sm:flex">
               {activitySeries.map((series) => (
                 <Widget.LegendItem color={series.color} key={series.key}>
                   {series.label}
@@ -320,8 +320,7 @@ function OverviewActivity() {
         <Widget.Footer>
           <Widget.FooterDescription className="tabular-nums">
             Last 7 days: {activitySummary.successRate}% successful ·{" "}
-            {activitySummary.failed} failed · median duration{" "}
-            {activitySummary.medianDuration}
+            {activitySummary.failed} failed
           </Widget.FooterDescription>
         </Widget.Footer>
       ) : null}
@@ -343,25 +342,9 @@ function summarizeDeploymentActivity(deployments: Deployment[]) {
   const succeeded = completed.filter((deployment) =>
     deployment.state.startsWith("succeeded"),
   ).length;
-  const durations = completed
-    .filter((deployment) => deployment.startedAt && deployment.finishedAt)
-    .map(
-      (deployment) =>
-        new Date(deployment.finishedAt!).getTime() -
-        new Date(deployment.startedAt!).getTime(),
-    )
-    .filter((duration) => duration >= 0)
-    .sort((left, right) => left - right);
-  const median = durations[Math.floor(durations.length / 2)];
   return {
     failed: completed.filter((deployment) => deployment.state === "failed")
       .length,
-    medianDuration:
-      median === undefined
-        ? "unavailable"
-        : median < 60_000
-          ? `${Math.max(1, Math.round(median / 1000))} sec`
-          : `${Math.round(median / 60_000)} min`,
     successRate: Math.round((succeeded / completed.length) * 100),
   };
 }

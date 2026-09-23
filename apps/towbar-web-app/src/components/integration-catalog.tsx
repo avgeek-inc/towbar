@@ -1,7 +1,6 @@
 import React from "react";
-import { MailSend01Icon, Settings01Icon } from "@hugeicons/core-free-icons";
+import { MailSend01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
 import { NewTabIndicator } from "@workspace/web-design-system/navigation/new-tab-indicator";
 
@@ -158,12 +157,8 @@ function EnvironmentProvider({
 }) {
   const metadata = environmentProviders[provider];
   return (
-    <div className="content-grid lg:grid-cols-2 lg:items-start">
-      <FormCard
-        title="Runtime configuration"
-        icon={<HugeiconsIcon icon={Settings01Icon} />}
-        headerEnd={<StatusBadge status="configured" label="Configured" />}
-      >
+    <div className="content-grid grid-cols-[repeat(auto-fill,minmax(min(28rem,100%),1fr))] items-start">
+      <FormCard title="Runtime configuration" help={false}>
         <div className="grid gap-3">
           <div className="grid gap-2">
             <p className="text-sm text-muted">{metadata.description}</p>

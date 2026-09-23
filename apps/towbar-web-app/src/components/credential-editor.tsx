@@ -9,6 +9,7 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import { HugeiconsIcon } from "@hugeicons/react";
+import { useRouter } from "next/navigation";
 
 import { useEffect, useState, type FormEvent } from "react";
 import type {
@@ -74,6 +75,7 @@ export function ServerCredentials({
       hostKeys={hostKeys.data.hostKeys}
       refresh={query.refresh}
       serverId={server.id}
+      preparationPending={server.setupStatus === "pending"}
       selectedPrivateKeyId={query.data.selectedPrivateKeyId}
     />
   );
@@ -100,6 +102,7 @@ function ServerCredentialForm({
   credential,
   endpoint,
   hostKeys,
+  preparationPending,
   refresh,
   serverId,
   selectedPrivateKeyId,
@@ -108,10 +111,12 @@ function ServerCredentialForm({
   credential: SecretMetadata;
   endpoint: string;
   hostKeys: TrustedHostKey[];
+  preparationPending: boolean;
   refresh: () => void;
   serverId: string;
   selectedPrivateKeyId: string | null;
 }) {
+  const router = useRouter();
   const [selectedKeyId, setSelectedKeyId] = useState(selectedPrivateKeyId);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -127,6 +132,18 @@ function ServerCredentialForm({
       !latest || hostKey.createdAt > latest.createdAt ? hostKey : latest,
     undefined,
   );
+
+  function finishVerification(continuePreparation = false) {
+    if (verificationActive || trustingFingerprint) return;
+    if (verification?.status === "succeeded") {
+      refresh();
+      refreshApiQueries();
+      toast.success("SSH private key verified and saved");
+    }
+    setVerificationOpen(false);
+    setVerification(null);
+    if (continuePreparation) router.push(`/servers/${serverId}/preparation`);
+  }
 
   async function startVerification(privateKeyId = selectedKeyId) {
     if (!privateKeyId) {
@@ -315,18 +332,11 @@ function ServerCredentialForm({
         canRetry={Boolean(selectedKeyId)}
         hostKeys={hostKeys}
         isOpen={verificationOpen}
+        preparationPending={preparationPending}
         trustingFingerprint={trustingFingerprint}
         verification={verification}
-        onClose={() => {
-          if (verificationActive || trustingFingerprint) return;
-          if (verification?.status === "succeeded") {
-            refresh();
-            refreshApiQueries();
-            toast.success("SSH private key verified and saved");
-          }
-          setVerificationOpen(false);
-          setVerification(null);
-        }}
+        onClose={() => finishVerification()}
+        onContinue={() => finishVerification(true)}
         onRetry={() => void startVerification()}
         onTrust={(hostKey) => void trustAndVerify(hostKey)}
       />
@@ -340,8 +350,10 @@ function CredentialVerificationModal({
   isOpen,
   hostKeys,
   onClose,
+  onContinue,
   onRetry,
   onTrust,
+  preparationPending,
   trustingFingerprint,
   verification,
 }: {
@@ -350,12 +362,23 @@ function CredentialVerificationModal({
   isOpen: boolean;
   hostKeys: TrustedHostKey[];
   onClose: () => void;
+  onContinue: () => void;
   onRetry: () => void;
   onTrust: (hostKey: DiscoveredHostKey) => void;
   trustingFingerprint?: string;
+  preparationPending: boolean;
   verification: CredentialVerification | null;
 }) {
   const discoveredKeys = verification?.result?.discoveredHostKeys ?? [];
+  const orderedDiscoveredKeys = [...discoveredKeys].sort(
+    (left, right) => hostKeyPriority(left) - hostKeyPriority(right),
+  );
+  const recommendedHostKey = orderedDiscoveredKeys.find(
+    (hostKey) => hostKey.algorithm === "ssh-ed25519",
+  );
+  const displayedHostKeys = recommendedHostKey
+    ? [recommendedHostKey]
+    : orderedDiscoveredKeys;
   const needsTrust =
     verification?.status === "failed" &&
     verification.errorCode === "HOST_KEY_NOT_TRUSTED" &&
@@ -381,7 +404,9 @@ function CredentialVerificationModal({
                 ) : null}
                 {replacingIdentity
                   ? "Server identity changed"
-                  : "Verify SSH private key"}
+                  : verification?.status === "succeeded"
+                    ? "SSH connection verified"
+                    : "Verify SSH private key"}
               </span>
             </Modal.Heading>
           </Modal.Header>
@@ -397,39 +422,56 @@ function CredentialVerificationModal({
                   Connecting to the server with this private key…
                 </div>
               ) : verification.status === "succeeded" ? (
-                <div className="grid gap-2">
-                  <p className="font-medium text-success-soft-foreground">
-                    SSH connection verified
-                  </p>
-                  <p className="text-sm text-muted">
-                    The private key is now saved for this server.
-                  </p>
-                </div>
+                <p className="text-sm text-muted">
+                  The private key is now saved for this server.
+                </p>
               ) : needsTrust ? (
                 <div className="grid gap-4">
                   {replacingIdentity ? (
+                    <div className="grid gap-2 text-sm text-muted">
+                      <p>
+                        This can happen after a server rebuild or IP
+                        reassignment, but it can also indicate an intercepted
+                        connection.
+                      </p>
+                      <p>
+                        {recommendedHostKey
+                          ? "Towbar selected the ED25519 host key. Trust it to continue."
+                          : "Verify and trust one of the host keys below to continue."}
+                      </p>
+                    </div>
+                  ) : recommendedHostKey ? (
                     <p className="text-sm text-muted">
-                      This can happen after a server rebuild or IP reassignment,
-                      but it can also indicate an intercepted connection. Verify
-                      the fingerprint through your server provider before
-                      continuing.
+                      Towbar selected the ED25519 host key. Trust it to
+                      continue.
                     </p>
                   ) : (
-                    <p className="text-sm text-muted">
-                      Confirm that this fingerprint belongs to your server.
-                      Compare it with a trusted source before continuing.
-                    </p>
+                    <div className="grid gap-2 text-sm text-muted">
+                      <p>
+                        Servers commonly present one host key for each supported
+                        algorithm. You only need to trust one verified key.
+                      </p>
+                      <p>Trust one of the host keys below to continue.</p>
+                    </div>
                   )}
                   <div className="grid gap-4">
-                    {discoveredKeys.map((hostKey) => (
+                    {displayedHostKeys.map((hostKey) => (
                       <div
                         className="grid gap-3"
                         key={`${hostKey.algorithm}:${hostKey.fingerprint}`}
                       >
                         <div className="grid min-w-0 gap-1">
-                          <span className="text-xs text-muted">
-                            {hostKey.algorithm}
-                          </span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {hostKey.algorithm === "ssh-ed25519" ? (
+                              <Chip size="small" variant="secondary">
+                                ED25519
+                              </Chip>
+                            ) : (
+                              <span className="text-xs text-muted">
+                                {hostKeyAlgorithmName(hostKey.algorithm)}
+                              </span>
+                            )}
+                          </div>
                           <code className="break-all text-sm">
                             {hostKey.fingerprint}
                           </code>
@@ -472,7 +514,11 @@ function CredentialVerificationModal({
                     </Button>
                   ) : null}
                   {verification?.status === "succeeded" ? (
-                    <Button onPress={onClose}>Done</Button>
+                    <Button onPress={preparationPending ? onContinue : onClose}>
+                      {preparationPending
+                        ? "Continue server preparation"
+                        : "Done"}
+                    </Button>
                   ) : null}
                 </div>
               ) : null}
@@ -482,6 +528,20 @@ function CredentialVerificationModal({
       </Modal.Container>
     </Modal.Backdrop>
   );
+}
+
+function hostKeyPriority(hostKey: DiscoveredHostKey) {
+  if (hostKey.algorithm === "ssh-ed25519") return 0;
+  if (hostKey.algorithm.startsWith("ecdsa-")) return 1;
+  if (hostKey.algorithm === "ssh-rsa") return 2;
+  return 3;
+}
+
+function hostKeyAlgorithmName(algorithm: string) {
+  if (algorithm === "ssh-ed25519") return "ED25519";
+  if (algorithm === "ecdsa-sha2-nistp256") return "ECDSA P-256";
+  if (algorithm === "ssh-rsa") return "RSA";
+  return algorithm;
 }
 
 function ServerTlsForm({

@@ -211,7 +211,7 @@ export function createApplicationSidebar(
           "div",
           {
             className:
-              "sidebar-identity flex min-w-0 items-start gap-2.5 px-4 py-4 text-sm",
+              "sidebar-identity flex min-w-0 items-center gap-2.5 px-4 py-4 text-sm",
           },
           createElement(Avatar, {
             "aria-hidden": true,
@@ -219,6 +219,7 @@ export function createApplicationSidebar(
             name: user.name,
             size: "md",
             src: user.avatarUrl,
+            className: "size-9 shrink-0",
           }),
           createElement(
             "div",

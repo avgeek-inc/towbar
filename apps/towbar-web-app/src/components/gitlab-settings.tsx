@@ -10,7 +10,6 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { ActionButton, FormCard } from "./page-parts";
-import { IntegrationProviderLogo } from "./integration-provider-logo";
 
 type Connection = {
   description: string;
@@ -29,15 +28,14 @@ export function GitLabSettings() {
   const connection = query.data.connections[0] ?? null;
 
   return (
-    <div className="content-grid lg:grid-cols-2 lg:items-start">
+    <div className="content-grid grid-cols-[repeat(auto-fill,minmax(min(28rem,100%),1fr))] items-start">
       <FormCard
         title="GitLab connection"
-        icon={<IntegrationProviderLogo provider="gitlab" />}
+        help={false}
         headerEnd={
-          <StatusBadge
-            status={connection ? "active" : "not_configured"}
-            label={connection ? "Connected" : "Not connected"}
-          />
+          connection ? (
+            <StatusBadge status="active" label="Connected" />
+          ) : undefined
         }
       >
         {connection ? (
