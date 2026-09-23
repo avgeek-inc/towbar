@@ -163,7 +163,7 @@ export function AccountMenu({
                 className="size-4 text-danger"
                 icon={Logout03Icon}
               />
-              Logout
+              <span className="text-danger">Logout</span>
             </Dropdown.Item>
           </Dropdown.Section>
         </Dropdown.Menu>
