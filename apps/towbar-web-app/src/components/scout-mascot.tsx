@@ -16,6 +16,8 @@ export function ScoutMascot({
       aria-hidden="true"
       width={size}
       height={size}
+      loading="eager"
+      decoding="sync"
       className="pointer-events-none shrink-0 select-none object-contain"
       unoptimized
     />

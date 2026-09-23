@@ -44,6 +44,8 @@ export function IntegrationProviderLogo({
         aria-hidden={!alt}
         width={size}
         height={size}
+        loading="eager"
+        decoding="sync"
         unoptimized
         className={cn(
           "size-4 shrink-0 object-contain",
@@ -60,6 +62,8 @@ export function IntegrationProviderLogo({
           aria-hidden={!alt}
           width={size}
           height={size}
+          loading="eager"
+          decoding="sync"
           unoptimized
           className={cn(
             "hidden size-4 shrink-0 object-contain dark:block",

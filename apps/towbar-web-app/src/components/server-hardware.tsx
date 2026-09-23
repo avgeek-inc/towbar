@@ -90,6 +90,8 @@ function ProviderLogo({ provider }: { provider: keyof typeof providerNames }) {
         src={`/cloud-providers/${provider}.svg`}
         width={provider === "aws" ? 24 : 16}
         height={16}
+        loading="eager"
+        decoding="sync"
         className="h-[1em] w-auto object-contain"
         unoptimized
       />

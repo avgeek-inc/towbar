@@ -20,7 +20,6 @@ import {
   GitBranchIcon,
   Undo02Icon,
 } from "@hugeicons/core-free-icons";
-import { usePathname } from "next/navigation";
 import { cn } from "@workspace/web-design-system/lib/utils";
 import { useMobileNavigation } from "@workspace/web-design-system/navigation/app-layout";
 
@@ -34,7 +33,6 @@ const SecondaryContext = createContext<{
 export function SecondarySidebarLayout({ children }: { children: ReactNode }) {
   const [host, setHost] = useState<HTMLElement | null>(null);
   const mobileNavigation = useMobileNavigation();
-  const pathname = usePathname();
   return (
     <SecondaryContext.Provider
       value={{
@@ -47,7 +45,6 @@ export function SecondarySidebarLayout({ children }: { children: ReactNode }) {
           <div className="h-full overflow-y-auto overscroll-contain px-3 py-4 has-[[data-secondary-header]]:py-2">
             <nav
               aria-label="Page navigation"
-              key={pathname}
               className="grid content-start gap-3"
               ref={setHost}
             />

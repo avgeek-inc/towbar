@@ -10,15 +10,18 @@ import { Skeleton } from "@workspace/web-design-system/feedback/skeleton";
 
 export function QueryLoading({
   variant = "detail",
+  immediate = false,
 }: {
   variant?: "dashboard" | "detail" | "list" | "table";
+  immediate?: boolean;
 }) {
-  const [showSkeleton, setShowSkeleton] = useState(false);
+  const [showSkeleton, setShowSkeleton] = useState(immediate);
 
   useEffect(() => {
+    if (immediate) return;
     const timeout = window.setTimeout(() => setShowSkeleton(true), 600);
     return () => window.clearTimeout(timeout);
-  }, []);
+  }, [immediate]);
 
   if (!showSkeleton) {
     return (

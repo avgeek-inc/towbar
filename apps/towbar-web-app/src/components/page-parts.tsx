@@ -141,10 +141,12 @@ export function DashboardPage({
 
 export function PageTabs({
   aliases,
+  canonicalizeDefault = true,
   defaultValue,
   tabs,
 }: {
   aliases?: Record<string, string>;
+  canonicalizeDefault?: boolean;
   defaultValue: string;
   tabs: Array<{
     badge?: ReactNode;
@@ -183,6 +185,7 @@ export function PageTabs({
 
   useEffect(() => {
     if (
+      canonicalizeDefault &&
       detail.base &&
       (!detail.pathname.slice(detail.base.length) ||
         searchParams.has("section") ||
@@ -198,7 +201,7 @@ export function PageTabs({
         ),
       );
     }
-  }, [detail, searchParams, selectedKey]);
+  }, [canonicalizeDefault, detail, searchParams, selectedKey]);
 
   function selectSection(key: Key) {
     const value = String(key);

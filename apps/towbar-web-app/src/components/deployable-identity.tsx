@@ -141,6 +141,8 @@ export function AppLogo({
           className={`object-contain ${size === "small" ? "size-6" : "size-8"} ${loaded ? "" : "absolute opacity-0"}`}
           height={pixels}
           loader={externalImageLoader}
+          loading="eager"
+          decoding="sync"
           unoptimized
           width={pixels}
           src={`https://${domain}/favicon.ico`}
@@ -267,6 +269,8 @@ export function ResourceLogo({ brand }: { brand: ResourceBrand }) {
         height={32}
         width={32}
         src={logo}
+        loading="eager"
+        decoding="sync"
         unoptimized
         onError={() => setFailed(true)}
       />
@@ -277,6 +281,8 @@ export function ResourceLogo({ brand }: { brand: ResourceBrand }) {
           height={32}
           width={32}
           src={dark}
+          loading="eager"
+          decoding="sync"
           unoptimized
           onError={() => setFailed(true)}
         />
