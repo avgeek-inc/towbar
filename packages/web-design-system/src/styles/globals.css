@@ -5,6 +5,8 @@
 
 @theme {
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --text-xs: 0.72rem;
+  --text-xs--line-height: calc(1 / 0.72);
   --text-md: 1rem;
 }
 
