@@ -387,6 +387,7 @@ export function AppDetail() {
           {
             value: "incidents",
             label: "Incidents",
+            contentOwnsTitle: true,
             group: "Monitor",
             icon: <HugeiconsIcon icon={AlertCircleIcon} />,
             content: (

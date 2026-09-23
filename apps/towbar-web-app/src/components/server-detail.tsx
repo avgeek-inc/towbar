@@ -518,6 +518,7 @@ export function ServerDetail() {
             {
               value: "incidents",
               label: "Incidents",
+              contentOwnsTitle: true,
               group: "Monitor",
               icon: <HugeiconsIcon icon={AlertCircleIcon} />,
               content: <ScoutIncidents serverId={serverId} />,

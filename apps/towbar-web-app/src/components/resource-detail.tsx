@@ -315,6 +315,7 @@ export function ResourceDetail() {
     {
       value: "incidents",
       label: "Incidents",
+      contentOwnsTitle: true,
       group: "Monitor",
       icon: <HugeiconsIcon icon={AlertCircleIcon} />,
       content: (
