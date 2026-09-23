@@ -107,7 +107,7 @@ const FooterDescription = forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("min-w-0 flex-1 text-xs text-muted", className)}
+    className={cn("min-w-0 flex-1 text-xs text-muted opacity-75", className)}
     data-slot="widget-footer-description"
     {...props}
   />
