@@ -327,6 +327,7 @@ function SecretVariablesEditor({
   }, [canReveal]);
   const keys = [...binding.keys].sort();
   const visibleKeys = keys.filter((key) => !deletedKeys.includes(key));
+  const emptyStage = !fileMode && !keys.length && !newEntries.length;
   const hasChanges =
     (fileMode &&
       (fileText !== initialFile || Boolean(binding.missingKeys?.length))) ||
@@ -501,6 +502,13 @@ function SecretVariablesEditor({
     }
   }
 
+  function addVariable() {
+    setNewEntries((current) => [
+      ...current,
+      { id: crypto.randomUUID(), key: "", value: "" },
+    ]);
+  }
+
   const stageLabel = stageLabels[binding.stage];
   return (
     <form onSubmit={submit}>
@@ -570,7 +578,7 @@ function SecretVariablesEditor({
                   />
                 </div>
               ) : null}
-              {!fileMode && !visibleKeys.length && !newEntries.length ? (
+              {emptyStage ? (
                 <EmptyState>
                   <EmptyState.Header>
                     <EmptyState.Title>
@@ -582,6 +590,23 @@ function SecretVariablesEditor({
                         : "Declare required keys in the entity YAML and sync this environment."}
                     </EmptyState.Description>
                   </EmptyState.Header>
+                  {canManage && canManageKeys ? (
+                    <EmptyState.Content>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        isDisabled={busy}
+                        onPress={addVariable}
+                      >
+                        <HugeiconsIcon
+                          aria-hidden="true"
+                          icon={Add01Icon}
+                          className="size-4 shrink-0"
+                        />
+                        Add variable
+                      </Button>
+                    </EmptyState.Content>
+                  ) : null}
                 </EmptyState>
               ) : null}
               {!fileMode &&
@@ -590,11 +615,9 @@ function SecretVariablesEditor({
                   {visibleKeys.map((key) => (
                     <div
                       key={key}
-                      className="grid grid-cols-8 items-center md:gap-2"
+                      className="grid min-w-0 sm:grid-cols-2 sm:gap-2"
                     >
-                      <div
-                        className={`col-span-full flex min-h-10 min-w-0 items-center ${canManageKeys ? "sm:col-span-3" : "sm:col-span-4"}`}
-                      >
+                      <div className="flex min-h-10 min-w-0 items-center gap-2">
                         <span className="flex min-w-0 flex-wrap items-center gap-2">
                           <span className="break-all font-mono text-sm">
                             {key}
@@ -617,12 +640,30 @@ function SecretVariablesEditor({
                             </Chip>
                           ) : null}
                         </span>
+                        {canManageKeys ? (
+                          <Button
+                            type="button"
+                            isIconOnly
+                            variant="ghost"
+                            aria-label={`Remove ${key}`}
+                            isDisabled={!canManage || busy}
+                            onPress={() =>
+                              setDeletedKeys((current) => [...current, key])
+                            }
+                          >
+                            <HugeiconsIcon
+                              aria-hidden="true"
+                              icon={Delete02Icon}
+                              className="size-4 shrink-0"
+                            />
+                          </Button>
+                        ) : null}
                         <span
                           aria-hidden="true"
-                          className="ml-3 hidden min-w-0 flex-1 border-t border-dashed border-separator opacity-50 lg:block"
+                          className="hidden min-w-0 flex-1 border-t border-dashed border-separator opacity-50 lg:block"
                         />
                       </div>
-                      <div className="col-span-full min-w-0 sm:col-span-4">
+                      <div className="min-w-0">
                         <SecretValueInput
                           label={`Value for ${key}`}
                           value={replacements[key] ?? ""}
@@ -657,15 +698,44 @@ function SecretVariablesEditor({
                           }
                         />
                       </div>
-                      {canManageKeys ? (
+                    </div>
+                  ))}
+                  {newEntries.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="grid min-w-0 gap-2 sm:grid-cols-2"
+                    >
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Input
+                          aria-label="Variable name"
+                          className="min-w-0 flex-1 font-mono"
+                          variant="secondary"
+                          placeholder="VARIABLE_NAME"
+                          autoComplete="off"
+                          spellCheck={false}
+                          value={entry.key}
+                          disabled={!canManage || busy}
+                          onChange={(event) => {
+                            const value = event.currentTarget.value;
+                            setNewEntries((current) =>
+                              current.map((item) =>
+                                item.id === entry.id
+                                  ? { ...item, key: value }
+                                  : item,
+                              ),
+                            );
+                          }}
+                        />
                         <Button
                           type="button"
                           isIconOnly
                           variant="ghost"
-                          aria-label={`Remove ${key}`}
+                          aria-label="Remove new variable"
                           isDisabled={!canManage || busy}
                           onPress={() =>
-                            setDeletedKeys((current) => [...current, key])
+                            setNewEntries((current) =>
+                              current.filter((item) => item.id !== entry.id),
+                            )
                           }
                         >
                           <HugeiconsIcon
@@ -674,35 +744,8 @@ function SecretVariablesEditor({
                             className="size-4 shrink-0"
                           />
                         </Button>
-                      ) : null}
-                    </div>
-                  ))}
-                  {newEntries.map((entry) => (
-                    <div
-                      key={entry.id}
-                      className="grid grid-cols-8 items-center md:gap-2"
-                    >
-                      <Input
-                        aria-label="Variable name"
-                        className="col-span-full font-mono sm:col-span-3"
-                        variant="secondary"
-                        placeholder="VARIABLE_NAME"
-                        autoComplete="off"
-                        spellCheck={false}
-                        value={entry.key}
-                        disabled={!canManage || busy}
-                        onChange={(event) => {
-                          const value = event.currentTarget.value;
-                          setNewEntries((current) =>
-                            current.map((item) =>
-                              item.id === entry.id
-                                ? { ...item, key: value }
-                                : item,
-                            ),
-                          );
-                        }}
-                      />
-                      <div className="col-span-full min-w-0 sm:col-span-4">
+                      </div>
+                      <div className="min-w-0">
                         <SecretValueInput
                           label={`Value for ${entry.key || "new variable"}`}
                           value={entry.value}
@@ -718,24 +761,6 @@ function SecretVariablesEditor({
                           }
                         />
                       </div>
-                      <Button
-                        type="button"
-                        isIconOnly
-                        variant="ghost"
-                        aria-label="Remove new variable"
-                        isDisabled={!canManage || busy}
-                        onPress={() =>
-                          setNewEntries((current) =>
-                            current.filter((item) => item.id !== entry.id),
-                          )
-                        }
-                      >
-                        <HugeiconsIcon
-                          aria-hidden="true"
-                          icon={Delete02Icon}
-                          className="size-4 shrink-0"
-                        />
-                      </Button>
                     </div>
                   ))}
                 </div>
@@ -743,19 +768,16 @@ function SecretVariablesEditor({
               {error ? (
                 <FieldError className="whitespace-pre-line">{error}</FieldError>
               ) : null}
-              {canManage && (fileMode || keys.length > 0 || canManageKeys) ? (
+              {canManage &&
+              !emptyStage &&
+              (fileMode || keys.length > 0 || canManageKeys) ? (
                 <div className="flex flex-wrap gap-2">
                   {!fileMode && canManageKeys ? (
                     <Button
                       type="button"
                       variant="secondary"
                       isDisabled={busy}
-                      onPress={() =>
-                        setNewEntries((current) => [
-                          ...current,
-                          { id: crypto.randomUUID(), key: "", value: "" },
-                        ])
-                      }
+                      onPress={addVariable}
                     >
                       <HugeiconsIcon
                         aria-hidden="true"
