@@ -522,7 +522,7 @@ function SecretVariablesEditor({
             }}
           >
             <Tabs.ListContainer
-              className={keys.length > 0 ? "mb-4 w-fit" : "hidden"}
+              className={keys.length > 0 ? "mb-2 w-fit" : "hidden"}
             >
               <Tabs.List aria-label="Secret editing mode">
                 <Tabs.Tab
@@ -590,7 +590,7 @@ function SecretVariablesEditor({
                   {visibleKeys.map((key) => (
                     <div
                       key={key}
-                      className="grid grid-cols-8 items-center gap-2 md:gap-3"
+                      className="grid grid-cols-8 items-center md:gap-2"
                     >
                       <div
                         className={`col-span-full flex min-h-10 min-w-0 items-center ${canManageKeys ? "sm:col-span-3" : "sm:col-span-4"}`}
@@ -676,7 +676,7 @@ function SecretVariablesEditor({
                   {newEntries.map((entry) => (
                     <div
                       key={entry.id}
-                      className="grid grid-cols-8 items-center gap-2 md:gap-3"
+                      className="grid grid-cols-8 items-center md:gap-2"
                     >
                       <Input
                         aria-label="Variable name"
