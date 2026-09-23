@@ -154,10 +154,11 @@ export function MonitoringHistory({
             {updating ? "Updating charts…" : ""}
           </span>
         </div>
-        <div className="flex max-w-full flex-wrap items-center gap-2">
+        <div className="grid w-full min-w-0 grid-cols-2 items-center gap-2 sm:flex sm:w-auto sm:max-w-full sm:flex-wrap">
           {workload && history.series.length > 1 ? (
             <HistorySelect
               label="Instance"
+              mobileFullWidth
               value={instance}
               onChange={setInstance}
               options={[
@@ -305,12 +306,14 @@ function MonitoringEmptyState({
 }
 function HistorySelect({
   label,
+  mobileFullWidth = false,
   value,
   onChange,
   onReselect,
   options,
 }: {
   label: string;
+  mobileFullWidth?: boolean;
   value: string;
   onChange: (value: string) => void;
   onReselect?: (value: string) => void;
@@ -323,7 +326,7 @@ function HistorySelect({
         if (key) onChange(String(key));
       }}
       variant="secondary"
-      className={`${label === "Time range" ? "w-56" : "w-44"} max-w-full shrink-0`}
+      className={`${mobileFullWidth ? "col-span-2" : ""} w-full min-w-0 ${label === "Time range" ? "sm:w-56" : "sm:w-44"} sm:max-w-full sm:shrink-0`}
     >
       <Label className="sr-only">{label}</Label>
       <Select.Trigger>
