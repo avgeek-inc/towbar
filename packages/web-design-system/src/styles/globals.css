@@ -202,34 +202,32 @@ a {
   }
 
   .sidebar-identity {
-    background:
-      linear-gradient(
+    background: transparent;
+  }
+
+  @media (min-width: 64rem) and (hover: hover) {
+    .sidebar-identity:hover {
+      background: linear-gradient(
         135deg,
         color-mix(in oklch, var(--color-yellow-300) 16%, transparent) 0%,
         color-mix(in oklch, var(--color-yellow-300) 8%, transparent) 50%,
         color-mix(in oklch, var(--color-yellow-300) 2%, transparent) 100%
-      ),
-      color-mix(in oklch, var(--surface) 82%, transparent);
-    -webkit-backdrop-filter: blur(16px);
-    backdrop-filter: blur(16px);
-  }
+      );
+    }
 
-  .dark .sidebar-identity {
-    background:
-      linear-gradient(
+    .dark .sidebar-identity:hover {
+      background: linear-gradient(
         135deg,
         color-mix(in oklch, var(--color-yellow-900) 16%, transparent) 0%,
         color-mix(in oklch, var(--color-yellow-900) 8%, transparent) 50%,
         color-mix(in oklch, var(--color-yellow-900) 2%, transparent) 100%
-      ),
-      color-mix(in oklch, var(--surface) 86%, transparent);
+      );
+    }
   }
 
   @media (prefers-reduced-transparency: reduce) {
-    .sidebar-identity {
-      background-color: var(--surface);
-      -webkit-backdrop-filter: none;
-      backdrop-filter: none;
+    .sidebar-identity:hover {
+      background: var(--surface);
     }
   }
 

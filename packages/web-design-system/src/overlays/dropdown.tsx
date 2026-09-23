@@ -1,3 +1,3 @@
 "use client";
 
-export { Dropdown } from "@heroui/react";
+export { Dropdown, Header } from "@heroui/react";
