@@ -10,6 +10,7 @@ import {
 } from "@workspace/towbar-core";
 import {
   getEnvironmentSecretOwner,
+  getInstanceSecretReadiness,
   listEnvironmentSecrets,
   listSecretEnvironments,
   updateEnvironmentSecrets,
@@ -86,6 +87,27 @@ export function environmentSecretRoutes(
       });
     },
   );
+  if (kind === "app" || kind === "resource")
+    routes.get(
+      "/readiness",
+      operation({
+        permissions: ["secret.list"],
+        responseSchema: 'environment-secrets.ts:get:"/readiness"',
+        summary: "Get deployment secret readiness",
+        response: "Whether all required secrets can be resolved.",
+        status: 200,
+      }),
+      async (context) =>
+        context.json(
+          await getInstanceSecretReadiness({
+            appId: readUuidPathParameter(
+              context.req.param("ownerId")!,
+              "ownerId",
+            ),
+            workspaceId: context.get("user").workspaceId,
+          }),
+        ),
+    );
   routes.patch(
     "/:environment/:stage",
     operation({

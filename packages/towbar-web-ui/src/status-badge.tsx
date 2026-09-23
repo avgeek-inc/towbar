@@ -247,7 +247,7 @@ function statusTooltip(status: string, context?: "runtime") {
       revoked: "This credential has been revoked and can no longer be used.",
       running: "The operation is currently in progress.",
       server_setup_pending:
-        "Complete server preparation before workloads can run here.",
+        "Complete server setup before workloads can run here.",
       stale:
         "The most recent result is older than the expected reporting window.",
       stopped: "The workload is not currently running.",
@@ -274,7 +274,7 @@ function statusTooltip(status: string, context?: "runtime") {
       waiting_for_server_operation:
         "Another server operation must finish first.",
       waiting_for_server_preparation:
-        "The operation is waiting for server preparation to complete.",
+        "The operation is waiting for server setup to complete.",
       warning: "This condition needs attention but is not currently critical.",
     } as Record<string, string | undefined>
   )[status];

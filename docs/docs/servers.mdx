@@ -52,9 +52,11 @@ Preparation installs or validates Docker Engine 29 or newer with Buildx per-buil
 
 ## Prepare the runtime
 
-Choose **Prepare server** from the server's Overview or **Server Preparation** page. The checklist groups connection and host checks under **Server Inspection**, followed by the installation and verification steps under **Prerequisites**. Progress updates automatically; expand a step to see the connection result, inspection findings, installed services, and captured terminal output. Terminal output is redacted and retained up to the most recent 32,768 characters per step. Workloads remain **Server Setup Pending** until preparation succeeds.
+Choose **Set up server** from the server's Overview or **Server Setup** page. The checklist groups connection and host checks under **Server Inspection**, followed by the installation and verification steps under **Prerequisites**. Progress updates automatically; expand a step to see the connection result, inspection findings, installed services, and captured terminal output. Terminal output is redacted and retained up to the most recent 32,768 characters per step. Workloads remain **Server Setup Pending** until setup succeeds.
 
-Overview shows a preparation prompt before preparation starts or when a failed attempt needs a retry. The full checklist and recorded output remain available under **Server Preparation**, next to Overview in the server sidebar. A yellow warning marks a server that needs preparation; a spinner marks a queued or running preparation. If preparation fails, the failed step opens with its details so you can resolve the issue and retry.
+Overview shows a setup prompt before setup starts or when a failed attempt needs a retry. The full checklist and recorded output remain available under **Server Setup**, next to Overview in the server sidebar. A yellow warning marks a server that needs setup; a spinner marks queued or running setup. If setup fails, the failed step opens with its details so you can resolve the issue and retry.
+
+After setup succeeds, Towbar immediately queues a health check so capacity and workload status do not wait for the next scheduled check.
 
 Towbar reuses compatible installations. It does not remove conflicting packages or overwrite an unmanaged Caddy binary. If a step fails, read its output and error before changing the host. Retry after resolving the conflict; use a fresh host when ownership of existing services is unclear.
 
@@ -64,7 +66,7 @@ If the server presents a different host key, Towbar pauses the connection and as
   <div className="towbar-product-light">
     <img
       src="/assets/release-v2/server-preparation-light.jpg"
-      alt="Server Preparation keeps the complete inspection and prerequisites checklist available after setup finishes."
+      alt="Server Setup keeps the complete inspection and prerequisites checklist available after setup finishes."
       width="2560"
       height="1440"
       loading="lazy"
@@ -73,14 +75,14 @@ If the server presents a different host key, Towbar pauses the connection and as
   <div className="towbar-product-dark">
     <img
       src="/assets/release-v2/server-preparation-dark.jpg"
-      alt="Server Preparation keeps the complete inspection and prerequisites checklist available after setup finishes."
+      alt="Server Setup keeps the complete inspection and prerequisites checklist available after setup finishes."
       width="2560"
       height="1440"
       loading="lazy"
     />
   </div>
   <p>
-    Server Preparation keeps the complete inspection and prerequisites checklist
+    Server Setup keeps the complete inspection and prerequisites checklist
     available after setup finishes.
   </p>
 </div>

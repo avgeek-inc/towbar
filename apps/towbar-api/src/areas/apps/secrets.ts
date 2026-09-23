@@ -19,7 +19,7 @@ import {
   sources,
 } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
-import { notFound, unprocessable } from "../../http/errors.js";
+import { HttpError, notFound, unprocessable } from "../../http/errors.js";
 import {
   mutateSecret,
   readSecretMetadata,
@@ -387,6 +387,61 @@ export async function assertRequiredInstanceSecrets(
     if (metadata.declared && metadata.keys.length)
       await resolveEnvironmentStage({ ...input, environment, stage }, database);
   }
+}
+
+export async function getInstanceSecretReadiness(input: {
+  appId: string;
+  workspaceId: string;
+}) {
+  const database = getTowbarDatabase();
+  const [app] = await database
+    .select({
+      requiredSecrets: apps.requiredSecrets,
+      sourceId: apps.sourceId,
+    })
+    .from(apps)
+    .where(
+      and(
+        eq(apps.id, input.appId),
+        eq(apps.workspaceId, input.workspaceId),
+        isNull(apps.archivedAt),
+      ),
+    )
+    .limit(1);
+  if (!app) throw notFound("App");
+  const environment = await instanceSecretEnvironment(
+    {
+      appId: input.appId,
+      workspaceId: input.workspaceId,
+    },
+    database,
+  );
+  for (const stage of secretStages) {
+    const required = requiredKeysForStage(app.requiredSecrets, stage);
+    if (!required.length) continue;
+    try {
+      const resolved = await resolveEnvironmentStage(
+        {
+          appId: input.appId,
+          environment,
+          sourceId: app.sourceId,
+          stage,
+          workspaceId: input.workspaceId,
+        },
+        database,
+      );
+      if (required.some((key) => !Object.hasOwn(resolved.values, key)))
+        return { ready: false };
+    } catch (error) {
+      if (
+        error instanceof HttpError &&
+        error.code === "SECRET_REFERENCE_INVALID"
+      )
+        return { ready: false };
+      throw error;
+    }
+  }
+  return { ready: true };
 }
 
 export async function listSecretEnvironments(owner: SecretOwner) {

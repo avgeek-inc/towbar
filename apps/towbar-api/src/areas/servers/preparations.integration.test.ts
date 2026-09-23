@@ -9,6 +9,7 @@ import {
   serverPreparationStepLogMaxLength,
 } from "@workspace/towbar-core";
 import {
+  serverChecks,
   serverPreparations,
   servers,
   users,
@@ -151,6 +152,63 @@ void test(
       );
       steps[0]!.log = "x".repeat(serverPreparationStepLogMaxLength + 1);
       assert.equal((await send({ status: "running", steps })).status, 400);
+
+      const successfulPreparationId = randomUUID();
+      const successfulSteps = createServerPreparationSteps().map((step) => ({
+        ...step,
+        finishedAt: new Date().toISOString(),
+        message: "Completed",
+        startedAt: new Date().toISOString(),
+        status: "succeeded" as const,
+      }));
+      await db.insert(serverPreparations).values({
+        id: successfulPreparationId,
+        serverId,
+        configDigest: "test",
+        status: "running",
+        steps: successfulSteps,
+      });
+      const completed = await api.request(
+        `/preparations/${successfulPreparationId}/events`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            result: {},
+            status: "succeeded",
+            steps: successfulSteps,
+          }),
+        },
+      );
+      assert.equal(completed.status, 200);
+      const checks = await db
+        .select({ id: serverChecks.id })
+        .from(serverChecks)
+        .where(eq(serverChecks.serverId, serverId));
+      assert.equal(checks.length, 1);
+      assert.equal(
+        (
+          await api.request(`/preparations/${successfulPreparationId}/events`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              result: {},
+              status: "succeeded",
+              steps: successfulSteps,
+            }),
+          })
+        ).status,
+        200,
+      );
+      assert.equal(
+        (
+          await db
+            .select({ id: serverChecks.id })
+            .from(serverChecks)
+            .where(eq(serverChecks.serverId, serverId))
+        ).length,
+        1,
+      );
     } finally {
       await db.delete(workspaces).where(eq(workspaces.id, workspaceId));
       await db.delete(users).where(eq(users.id, userId));

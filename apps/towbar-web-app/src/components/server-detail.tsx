@@ -471,16 +471,13 @@ export function ServerDetail() {
             },
             {
               value: "preparation",
-              label: "Server Preparation",
+              label: "Server Setup",
               badge:
                 preparationIndicator === "busy" ? (
-                  <Spinner
-                    size="sm"
-                    aria-label="Server preparation in progress"
-                  />
+                  <Spinner size="sm" aria-label="Server setup in progress" />
                 ) : preparationIndicator === "warning" ? (
                   <span
-                    aria-label="Server preparation required"
+                    aria-label="Server setup required"
                     role="img"
                     className="inline-flex text-warning-soft-foreground [&_svg]:size-4"
                   >
@@ -488,7 +485,7 @@ export function ServerDetail() {
                   </span>
                 ) : (
                   <span
-                    aria-label="Server preparation completed"
+                    aria-label="Server setup completed"
                     role="img"
                     className="inline-flex text-success-soft-foreground [&_svg]:size-4"
                   >

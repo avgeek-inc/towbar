@@ -147,10 +147,10 @@ export function SourceEnvironments({
             key: "actions",
             header: "Actions",
             headerClassName: "text-end",
-            className: "whitespace-nowrap text-end",
+            className: "min-w-52 whitespace-nowrap text-end",
             cell: (item) =>
               canManage && !item.disconnectedAt ? (
-                <div className="flex flex-wrap justify-end gap-2">
+                <div className="flex flex-nowrap justify-end gap-2">
                   <ActionButton
                     action={() => api.post(`${endpoint}/${item.id}/syncs`)}
                     confirm={{

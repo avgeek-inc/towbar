@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 TOWBAR_REPOSITORY="${TOWBAR_REPOSITORY:-avgeek-inc/towbar}"
-INSTALLER_VERSION="v2.0.8"
+INSTALLER_VERSION="v2.0.9"
 TOWBAR_CLI_URL="${TOWBAR_CLI_URL:-https://raw.githubusercontent.com/$TOWBAR_REPOSITORY/$INSTALLER_VERSION/infra/towbar}"
 TOWBAR_BIN="${TOWBAR_BIN:-/usr/local/bin/towbar}"
 

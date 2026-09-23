@@ -74,6 +74,6 @@ export function assertPublicOperationNames(
     new Set(operations.map((op) => op.name)).size,
     operations.length,
   );
-  assert.equal(operations.length, 136);
+  assert.equal(operations.length, 138);
   assert(operations.every((op) => op.name.length <= 64));
 }

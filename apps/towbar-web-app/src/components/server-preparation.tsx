@@ -46,24 +46,24 @@ export function PrepareServerButton(props: ServerPreparationProps) {
         api.post(`/v1/core/servers/${props.serverId}/actions/prepare`)
       }
       confirm={{
-        actionLabel: "Prepare server",
+        actionLabel: "Set up server",
         description:
           "Towbar will connect with the trusted SSH host key, install or validate Docker Engine, Caddy, and Python, then verify the host. Existing conflicting services are not removed automatically.",
-        title: "Prepare this server?",
+        title: "Set up this server?",
       }}
       isDisabled={
         Boolean(props.item.archivedAt) || busy || props.credentialsPending
       }
       onSuccess={() => router.push(`/servers/${props.serverId}/preparation`)}
       pendingLabel="Queueing…"
-      success="Server preparation queued"
+      success="Server setup queued"
       variant="primary"
     >
       {busy
-        ? "Preparing server"
+        ? "Setting up server"
         : props.setupStatus === "failed"
-          ? "Retry preparation"
-          : "Prepare server"}
+          ? "Retry setup"
+          : "Set up server"}
     </ActionButton>
   );
   return props.credentialsPending && !busy ? (
@@ -101,7 +101,7 @@ export function ServerPreparationOverview(props: ServerPreparationProps) {
         }
       >
         <Widget.Title icon={<HugeiconsIcon icon={Settings01Icon} />}>
-          Server preparation
+          Server setup
         </Widget.Title>
       </Widget.Header>
       <Widget.Content className="p-2">
@@ -109,7 +109,7 @@ export function ServerPreparationOverview(props: ServerPreparationProps) {
           allowsMultipleExpanded
           hideSeparator
           className="grid gap-2"
-          aria-label="Server preparation checklist"
+          aria-label="Server setup checklist"
         >
           <ProgressChecklistItem
             id="ssh-key"
@@ -129,14 +129,14 @@ export function ServerPreparationOverview(props: ServerPreparationProps) {
           </ProgressChecklistItem>
           <ProgressChecklistItem
             id="prepare-server"
-            title="Prepare server"
+            title="Set up server"
             description="Install and verify the services needed for deployments."
             status={props.setupStatus === "failed" ? "failed" : "waiting"}
             href={`/servers/${props.serverId}/preparation`}
           >
             <p className="text-sm break-words text-danger-soft-foreground">
               {model.preparation?.errorMessage ??
-                "Preparation stopped before the server was ready. Review the steps in Server Preparation for details."}
+                "Setup stopped before the server was ready. Review the steps in Server Setup for details."}
             </p>
           </ProgressChecklistItem>
         </Accordion>
@@ -162,7 +162,7 @@ export function ServerPreparationChecklist(props: ServerPreparationProps) {
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Server preparation stopped</Alert.Title>
+            <Alert.Title>Server setup stopped</Alert.Title>
             <Alert.Description>
               {model.preparation.errorMessage}
               <ConfigurationLinks serverId={props.serverId} />
@@ -241,14 +241,14 @@ function PreparationStep({
       : completed
         ? "No further details were recorded for this step."
         : failed
-          ? "This step failed. Review the preparation error before retrying."
+          ? "This step failed. Review the setup error before retrying."
           : running
             ? "This step is in progress. Details update automatically."
             : model.preparation?.status === "failed"
-              ? "This step did not run because preparation stopped."
+              ? "This step did not run because setup stopped."
               : model.preparation
-                ? "Waiting for preparation to reach this step."
-                : "This step runs when server preparation starts.");
+                ? "Waiting for setup to reach this step."
+                : "This step runs when server setup starts.");
   return (
     <ProgressChecklistItem
       id={step.id}

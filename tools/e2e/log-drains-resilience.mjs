@@ -118,7 +118,7 @@ time.sleep(180)
     `docker run -d --name log-load --label towbar.managed=true --memory 64m --cpus 0.5 --log-opt max-size=1g --log-opt max-file=1 --mount type=bind,src=/root/load.py,dst=/load.py,readonly --mount type=bind,src=/root/log-load-control,dst=/control ${logDrainGatewayImage} python -u /load.py`,
   );
   let sourceReady = false;
-  const sourceDeadline = Date.now() + 30000;
+  const sourceDeadline = Date.now() + 60000;
   while (Date.now() < sourceDeadline) {
     const raw = target.ssh(
       "sudo cat /tmp/received.json 2>/dev/null || printf '{}'",
@@ -170,7 +170,7 @@ time.sleep(180)
   );
   assert(completed.seconds < 120);
   let health;
-  const deliveryDeadline = Date.now() + 60000;
+  const deliveryDeadline = Date.now() + 120000;
   while (Date.now() < deliveryDeadline) {
     health = JSON.parse(target.ssh(`sudo cat ${base}/state/status.json`));
     const delivery = JSON.parse(

@@ -9,6 +9,7 @@ import type { ServerPreparationStep } from "@workspace/towbar-core";
 import {
   apps,
   auditEvents,
+  serverChecks,
   serverPreparations,
   servers,
   sshHostKeys,
@@ -17,8 +18,12 @@ import {
 
 import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
-import { enqueueServerPreparation } from "../../infrastructure/temporal.js";
+import {
+  enqueueServerCheck,
+  enqueueServerPreparation,
+} from "../../infrastructure/temporal.js";
 import { resolveServerCredentials } from "../secrets/store.js";
+import { pruneServerCheckHistory } from "./check-retention.js";
 import { sshLoginSecretSchema } from "./service.js";
 
 const publicServerPreparationSelection = {
@@ -289,13 +294,17 @@ export async function updateServerPreparation(
     return toPublicServerPreparation(preparation);
   }
 
-  return await getTowbarDatabase().transaction(async (transaction) => {
+  const outcome = await getTowbarDatabase().transaction(async (transaction) => {
     const [current] = await transaction
       .select({
+        serverConfig: servers.config,
+        canonicalIp: servers.canonicalIp,
         configDigest: serverPreparations.configDigest,
+        requestedBy: serverPreparations.requestedBy,
         serverConfigDigest: servers.configDigest,
         serverId: serverPreparations.serverId,
         status: serverPreparations.status,
+        workspaceId: servers.workspaceId,
       })
       .from(serverPreparations)
       .innerJoin(servers, eq(servers.id, serverPreparations.serverId))
@@ -310,7 +319,7 @@ export async function updateServerPreparation(
         .where(eq(serverPreparations.id, preparationId))
         .limit(1);
       if (!existing) throw notFound("Server preparation");
-      return existing;
+      return { check: null, result: existing };
     }
 
     const finishedAt = new Date();
@@ -355,8 +364,52 @@ export async function updateServerPreparation(
         })
         .where(eq(servers.id, current.serverId));
     }
-    return toPublicServerPreparation(preparation);
+    const [check] =
+      status === "succeeded"
+        ? await transaction
+            .insert(serverChecks)
+            .values({
+              requestedBy: current.requestedBy,
+              requestedByActor: {
+                grants: ["server.credentials"],
+                kind: "system",
+                source: "worker",
+                workspaceId: current.workspaceId,
+              },
+              serverId: current.serverId,
+            })
+            .returning()
+        : [];
+    return {
+      check: check
+        ? {
+            buildConcurrency: current.serverConfig.buildConcurrency ?? 1,
+            checkId: check.id,
+            serverId: current.serverId,
+            serverIp: current.canonicalIp,
+          }
+        : null,
+      result: toPublicServerPreparation(preparation),
+    };
   });
+  if (outcome.check) {
+    try {
+      await enqueueServerCheck(outcome.check);
+    } catch {
+      const database = getTowbarDatabase();
+      await database
+        .update(serverChecks)
+        .set({
+          errorCode: "TEMPORAL_UNAVAILABLE",
+          errorMessage: "Server check queue is unavailable",
+          finishedAt: new Date(),
+          status: "failed",
+        })
+        .where(eq(serverChecks.id, outcome.check.checkId));
+      await pruneServerCheckHistory(database, outcome.check.serverId);
+    }
+  }
+  return outcome.result;
 }
 
 function toPublicServerPreparation(
