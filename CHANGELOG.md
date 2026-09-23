@@ -5,16 +5,61 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.10] - 2026-09-24
+
 ### Added
 
 - Notification history can be cleared from the header, and each notification
   opens the app, resource, server, or settings page that needs attention.
+- The sidebar identity opens an account menu with profile, preferences,
+  security, API keys, changelog, documentation, feedback, and sign-out actions.
+- Server inventory shows CPU and memory utilization beneath capacity, with the
+  measurement time available on hover and both capacity columns visible on mobile.
+- Deployment lists and the overview's recent deployments show app or resource
+  logos when available, plus the workload type beneath its name.
+- Passkeys show their creation date beneath the name.
 
 ### Changed
 
 - Deployment history gives requested time, branch, and commit their own table
   columns.
 - Authentication panels use tighter padding on mobile screens.
+- Deployment and resource overviews use clearer environment chips, simpler
+  headings, a highlighted manual deploy action, and roomier mobile image names.
+- Deployment comparisons use clearer assessment colors and a shorter navigation
+  label; the status tooltip puts requested and finished times on separate lines.
+- Overview illustrations have spring hover motion, and timestamp tooltips align
+  to the left of their values.
+- Repository onboarding uses tighter environment mapping rows, while inventory
+  shows repository context in a branch tooltip instead of a separate column.
+- Shared-secret empty states center the Add Variable action, and variable rows
+  keep the delete control beside the name on desktop and mobile. Secret editors
+  have tighter mobile spacing and desktop leader lines.
+- Resource health-check settings have their own section. Cloudflare TLS shows
+  its brand beside DNS mode and uses clearer validation copy; displayed domain
+  names have a muted underline.
+- Performance and incident filters sit in their page headers. Mobile performance
+  filters and labels fit more cleanly, and Scout Agent setup uses clearer copy
+  and more compact actions.
+- The server terminal has a simpler layout and asks for confirmation before
+  disconnecting. Completed setup checks no longer clutter server navigation.
+- Widget headers use 22px buttons, widget footers use quieter descriptions,
+  setup-step details use extra-small text, and `text-xs` is 0.72rem.
+- Mobile small buttons are 28px tall with 12px horizontal padding; mobile tables
+  size columns to their content, and page titles use a smaller inset.
+- Credential and Cloudflare TLS widgets omit icons already present in their page
+  headings. Popovers have a subtle edge, and the sidebar identity gradient
+  appears only on desktop hover.
+- The sidebar identity has more space between its labels, and sign-out
+  confirmation shows an icon on its action button.
+- Email senders include a display name, and message previews use complete
+  sentences. The verification email has more space between its action and link.
+- Notification integration settings identify configured routes and their
+  destinations more clearly.
+- Session revoke controls retain their label while a request is in progress;
+  team member names no longer carry a redundant self label.
+- Auto-deploy descriptions use normal weight, select controls reserve room for
+  indicators, and editor tab labels stay stable while loading.
 
 ### Fixed
 
@@ -22,13 +67,25 @@ All notable changes to Towbar are documented in this file. This project follows
   generic page titles, and cached product artwork no longer flashes during
   navigation.
 - The sign-out action keeps its danger background visible without requiring
-  hover.
+  hover, and Escape no longer closes the mobile sidebar.
+- GitLab branch selectors load all available branch pages, including branches
+  found by searching beyond the first page.
+- Verification emails are dispatched promptly after being queued.
+- System health reports the packaged release version and refreshes Temporal
+  checks automatically instead of relying on manual checks.
+- Safari reauthentication no longer prompts to save the password.
+- Deployment chart date labels no longer clip, and mobile Actions headers align
+  with their controls.
+- The deployment queue and notification center render reliably through
+  navigation and refreshes.
 
 ### Removed
 
 - Repository-level shared secrets and `{{source.KEY}}` references. Reusable
   values now live in workspace Shared Secrets, while workload-specific values
   stay with each App or Resource.
+- The verification dialog's request-limit explanation, failed environment
+  discovery fallback copy, and redundant comparison-gap explanation.
 
 ## [2.0.9] - 2026-09-23
 
@@ -167,7 +224,8 @@ All notable changes to Towbar are documented in this file. This project follows
 - Branch mapping errors remain visible beside the edit form while preserving
   the entered branch and previous mapping.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.9...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.10...HEAD
+[2.0.10]: https://github.com/avgeek-inc/towbar/compare/v2.0.9...v2.0.10
 [2.0.9]: https://github.com/avgeek-inc/towbar/compare/v2.0.8...v2.0.9
 [2.0.8]: https://github.com/avgeek-inc/towbar/releases/tag/v2.0.8
 [2.0.7]: https://github.com/avgeek-inc/towbar/releases/tag/v2.0.7
