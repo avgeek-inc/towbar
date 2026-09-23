@@ -999,7 +999,7 @@ let systemHealth: SystemHealth = {
     },
   ],
   status: "healthy",
-  version: "2.0.8-fixture",
+  version: "2.0.9-fixture",
 };
 
 function fixtureSystemHealth(): SystemHealth {

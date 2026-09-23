@@ -5,6 +5,8 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.9] - 2026-09-23
+
 ### Added
 
 - First-deployment guidance now reports whether required app or resource
@@ -18,6 +20,8 @@ All notable changes to Towbar are documented in this file. This project follows
   documentation.
 - Resource Settings places Secrets before Backup and Restore, and Repository
   environment actions remain on one row on narrow screens.
+- Secondary navigation counts use the same muted treatment as primary
+  navigation counts.
 
 ### Fixed
 
@@ -138,7 +142,8 @@ All notable changes to Towbar are documented in this file. This project follows
 - Branch mapping errors remain visible beside the edit form while preserving
   the entered branch and previous mapping.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.8...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.9...HEAD
+[2.0.9]: https://github.com/avgeek-inc/towbar/compare/v2.0.8...v2.0.9
 [2.0.8]: https://github.com/avgeek-inc/towbar/releases/tag/v2.0.8
 [2.0.7]: https://github.com/avgeek-inc/towbar/releases/tag/v2.0.7
 [2.0.0]: https://github.com/avgeek-inc/towbar/releases/tag/v2.0.0

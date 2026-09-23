@@ -197,7 +197,7 @@ export function SecondaryItems({
             ) : null}
             <span className="min-w-0 flex-1 break-words">{item.label}</span>
             {item.badge ? (
-              <span className="shrink-0 text-xs font-mono tabular-nums">
+              <span className="shrink-0 text-xs font-mono tabular-nums text-muted">
                 {item.badge}
               </span>
             ) : null}
