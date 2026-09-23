@@ -33,6 +33,11 @@ import { DeploymentDuration } from "./elapsed-time";
 import { RelativeTime } from "./last-synced-time";
 import { AppLogo, ResourceLogo } from "./deployable-identity";
 import { resourceImageBrand } from "./resource-image-brand";
+import { deploymentSubtitle } from "@/lib/overview";
+import {
+  TableCellDescription,
+  TableCellStack,
+} from "@workspace/towbar-web-ui/table-cell-text";
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { SecondarySection } from "./secondary-sidebar";
@@ -51,24 +56,34 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
   {
     key: "deployable",
     header: "App / Resource",
-    cell: (item) => (
-      <InlineLink
-        className="inline-flex min-w-0 items-center gap-2"
-        href={`/${item.deployableKind === "app" ? "apps" : "resources"}/${item.appId}`}
-      >
-        {item.deployableKind === "app" || item.deployableKind === "compose" ? (
-          <AppLogo domain={item.deployableDomain ?? undefined} />
-        ) : (
-          <ResourceLogo
-            brand={resourceImageBrand(
-              item.deployableKind,
-              item.deployableImage ?? "",
-            )}
-          />
-        )}
-        <span className="truncate">{item.deployableName}</span>
-      </InlineLink>
-    ),
+    cell: (item) => {
+      const subtitle =
+        deploymentSubtitle(item, item.deployableDomain ?? undefined) ?? "App";
+      return (
+        <InlineLink
+          className="inline-flex min-w-0 items-center gap-2"
+          href={`/${item.deployableKind === "app" ? "apps" : "resources"}/${item.appId}`}
+        >
+          {item.deployableKind === "app" ||
+          item.deployableKind === "compose" ? (
+            <AppLogo domain={item.deployableDomain ?? undefined} />
+          ) : (
+            <ResourceLogo
+              brand={resourceImageBrand(
+                item.deployableKind,
+                item.deployableImage ?? "",
+              )}
+            />
+          )}
+          <TableCellStack className="min-w-0">
+            <span className="truncate">{item.deployableName}</span>
+            <TableCellDescription className="truncate">
+              {subtitle}
+            </TableCellDescription>
+          </TableCellStack>
+        </InlineLink>
+      );
+    },
     className: "min-w-56",
   },
   {
