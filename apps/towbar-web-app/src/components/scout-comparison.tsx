@@ -454,8 +454,7 @@ function ComparisonChart({
         </div>
         <p className="text-xs text-muted">
           Coverage: baseline {metric.baseline.coveragePercent.toFixed(0)}% ·
-          compared {metric.candidate.coveragePercent.toFixed(0)}%. Gaps have no
-          measurement.
+          compared {metric.candidate.coveragePercent.toFixed(0)}%.
         </p>
       </Widget.Content>
     </Widget>
