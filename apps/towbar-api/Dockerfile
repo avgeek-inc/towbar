@@ -35,6 +35,7 @@ RUN apk upgrade --no-cache \
 COPY --from=builder --chown=towbar:towbar /prod/towbar-api ./
 COPY --from=builder --chown=towbar:towbar /repo/apps/towbar-api/dist ./dist
 COPY --from=builder --chown=towbar:towbar /repo/packages/towbar-database/drizzle ./packages/towbar-database/drizzle
+COPY --from=pruner --chown=towbar:towbar /repo/package.json ./release-package.json
 USER towbar
 EXPOSE 4020 4023
 HEALTHCHECK --interval=20s --timeout=5s --start-period=15s --retries=5 \
