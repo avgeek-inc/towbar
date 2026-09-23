@@ -146,7 +146,7 @@ export function DeploymentTriggerChip({
   return (
     <Chip
       size="small"
-      variant="secondary"
+      variant={trigger === "manual" ? "warning" : "secondary"}
       tooltip={
         trigger === "auto_deploy"
           ? "Queued automatically after a repository change."
