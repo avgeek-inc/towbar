@@ -43,8 +43,8 @@
   min-height: inherit;
   align-items: flex-start;
   justify-content: center;
-  padding-block: calc(var(--spacing) * 12);
-  padding-inline: calc(var(--spacing) * 5);
+  padding-block: calc(var(--spacing) * 8);
+  padding-inline: calc(var(--spacing) * 4);
 }
 
 [data-slot="identity-auth-content"] {
@@ -56,6 +56,7 @@
 @media (min-width: 640px) {
   [data-slot="identity-auth-form-panel"] {
     align-items: center;
+    padding-block: calc(var(--spacing) * 12);
     padding-inline: calc(var(--spacing) * 6);
   }
 }
