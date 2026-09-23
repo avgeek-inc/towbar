@@ -247,13 +247,6 @@
                   "api-reference/get_sources_by_id_backups",
                   "api-reference/get_sources_by_id_previews"
                 ]
-              },
-              {
-                "group": "Secrets",
-                "pages": [
-                  "api-reference/get_sources_by_id_secrets",
-                  "api-reference/patch_sources_by_id_secrets_by_environment_by_stage"
-                ]
               }
             ]
           },

@@ -249,10 +249,14 @@ export function DeploymentDetail() {
       icon={Rocket01Icon}
       actions={actions}
       badge={
-        <StatusBadge
-          status={displayStatus}
-          tooltip={deploymentStatusTooltip(item)}
-        />
+        (detail.section ??
+          (terminal.has(item.state) ? "overview" : "progress")) ===
+        "overview" ? (
+          <StatusBadge
+            status={displayStatus}
+            tooltip={deploymentStatusTooltip(item)}
+          />
+        ) : undefined
       }
       breadcrumbAncestors={breadcrumbAncestors}
       breadcrumbLabel={activeSectionTitle}

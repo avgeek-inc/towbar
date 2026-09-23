@@ -31,9 +31,11 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { DashboardPage, PageTabs } from "@/components/page-parts";
 import { formatDate } from "@/components/dashboard-overview";
 import { useApiQuery } from "@/hooks/use-api-query";
+import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
 
 export function SourceSyncDetail() {
+  const detailNavigation = useDetailNavigation();
   const { sourceId, syncId } = useParams<{
     sourceId: string;
     syncId: string;
@@ -79,10 +81,16 @@ export function SourceSyncDetail() {
     ? legacyCounts.apps + legacyCounts.resources + legacyCounts.servers
     : changes.length;
   const hasLegacyScope = !sync.environment || !sync.mappingRevision;
+  const defaultSection =
+    sync.status === "failed" && issueCount ? "issues" : "overview";
   return (
     <DashboardPage
       icon={RefreshIcon}
-      badge={<StatusBadge status={sync.status} />}
+      badge={
+        (detailNavigation.section ?? defaultSection) === "overview" ? (
+          <StatusBadge status={sync.status} />
+        ) : undefined
+      }
       breadcrumbAncestors={breadcrumbAncestors}
       title={`Sync ${sync.id.slice(0, 8)}`}
       titleContent={
@@ -93,9 +101,7 @@ export function SourceSyncDetail() {
       }
     >
       <PageTabs
-        defaultValue={
-          sync.status === "failed" && issueCount ? "issues" : "overview"
-        }
+        defaultValue={defaultSection}
         tabs={[
           {
             value: "overview",

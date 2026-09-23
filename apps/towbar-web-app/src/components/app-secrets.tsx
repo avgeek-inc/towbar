@@ -10,7 +10,6 @@ import {
   Add01Icon,
   Delete02Icon,
   FloppyDiskIcon,
-  Key01Icon,
   LockIcon,
   Menu01Icon,
   PackageIcon,
@@ -149,21 +148,6 @@ export function GlobalSecrets() {
   );
 }
 
-export function SourceSecrets({
-  active,
-  sourceId,
-}: {
-  active: boolean;
-  sourceId: string;
-}) {
-  return (
-    <EnvironmentSecretSettings
-      active={active}
-      endpoint={`/v1/core/sources/${sourceId}/secrets`}
-    />
-  );
-}
-
 function EnvironmentSecretSettings({
   active,
   endpoint,
@@ -284,7 +268,7 @@ function EnvironmentEditors({
         <QueryLoading />
       ) : binding ? (
         <SecretVariablesEditor
-          key={`${endpoint}:${binding.environment}:${binding.stage}:${binding.revision}:${binding.inheritedRevisions.global}:${binding.inheritedRevisions.source}`}
+          key={`${endpoint}:${binding.environment}:${binding.stage}:${binding.revision}:${binding.inheritedRevisions.global}`}
           endpoint={endpoint}
           binding={binding}
           canManage={data.canManageSecrets}
@@ -522,9 +506,7 @@ function SecretVariablesEditor({
     <form onSubmit={submit}>
       <Widget className="min-w-0">
         <Widget.Header>
-          <Widget.Title icon={<HugeiconsIcon icon={Key01Icon} />}>
-            {stageLabel} secrets
-          </Widget.Title>
+          <Widget.Title help={false}>{stageLabel} secrets</Widget.Title>
         </Widget.Header>
         <Widget.Content className="content-grid min-w-0">
           {fileMode && binding.missingKeys?.length ? (
@@ -866,9 +848,7 @@ function SecretValueInput({
     : value;
   const hasReference =
     visible &&
-    /\{\{\s*(globals|source)\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}/u.test(
-      displayedValue,
-    );
+    /\{\{\s*globals\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}/u.test(displayedValue);
   return (
     <InputGroup fullWidth variant="secondary">
       <InputGroup.Prefix>

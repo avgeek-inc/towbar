@@ -15,9 +15,7 @@ export async function testBulkReveal({
   db,
   api,
   appId,
-  sourceId,
   slot,
-  sharedSlot,
   globalSlot,
   workspaceId,
   otherWorkspaceId,
@@ -30,11 +28,9 @@ export async function testBulkReveal({
   db: ReturnType<typeof getTowbarDatabase>;
   api: Hono<TowbarHonoEnvironment>;
   appId: string;
-  sourceId: string;
   workspaceId: string;
   otherWorkspaceId: string;
   slot: SecretSlot;
-  sharedSlot: SecretSlot;
   globalSlot: SecretSlot;
   manifest: Manifest;
   appConfig: NonNullable<Manifest["apps"]>[number];
@@ -59,7 +55,6 @@ export async function testBulkReveal({
       setWorkspace(workspaceId);
       for (const [route, target] of [
         [path, slot],
-        [`/sources/${sourceId}/secrets/production/deployment`, sharedSlot],
         ["/settings/secrets/production/deployment", globalSlot],
       ] as const) {
         const expected = await readSecretValues(target);
@@ -87,9 +82,8 @@ export async function testBulkReveal({
       const bulk = events.filter(
         (event) => event.metadata && "keyCount" in event.metadata,
       );
-      assert.equal(bulk.length, 4);
+      assert.equal(bulk.length, 3);
       assert(!JSON.stringify(bulk).includes("line one"));
-      assert(!JSON.stringify(bulk).includes("shared-value"));
       await db
         .update(apps)
         .set({ kind: "postgres", config: manifest.resources![0]! })

@@ -291,24 +291,6 @@ export async function assertEnvironmentManifestSnapshots(input: {
   stagingId: string;
 }) {
   const { getEnvironmentManifest } = await import("./environments.js");
-  const { listEnvironmentSecrets } = await import("../apps/secrets.js");
-  const owner = {
-    type: "source" as const,
-    id: input.sourceId,
-    workspaceId: input.workspaceId,
-  };
-  const prodBindings = await listEnvironmentSecrets(owner, "production");
-  const stageBindings = await listEnvironmentSecrets(owner, "staging");
-  const prodApps = prodBindings.find(
-    (binding) => binding.stage === "deployment",
-  )!.affectedDeployables;
-  const stageApps = stageBindings.find(
-    (binding) => binding.stage === "deployment",
-  )!.affectedDeployables;
-  assert.equal(prodApps.length, 1);
-  assert.equal(stageApps.length, 1);
-  assert.notEqual(prodApps[0]!.id, stageApps[0]!.id);
-
   const production = await getEnvironmentManifest({
     ...input,
     environmentId: input.productionId,

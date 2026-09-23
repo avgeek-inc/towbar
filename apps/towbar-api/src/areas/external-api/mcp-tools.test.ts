@@ -183,7 +183,7 @@ void test("workload inspection combines configuration, releases and runtime oper
   }
 });
 void test("secret scopes are explicit and revision/conflicting-key checks are preserved", async () => {
-  for (const scope of ["workspace", "source", "app", "resource"] as const) {
+  for (const scope of ["workspace", "app", "resource"] as const) {
     const h = harness();
     const target = scope === "workspace" ? {} : { targetId: uuid };
     await get("secrets_inspect").run({ scope, ...target }, h.context);
@@ -216,7 +216,11 @@ void test("secret scopes are explicit and revision/conflicting-key checks are pr
       z.ZodError,
     );
   }
-  for (const args of [{ scope: "workspace", targetId: uuid }, { scope: "app" }])
+  for (const args of [
+    { scope: "workspace", targetId: uuid },
+    { scope: "app" },
+    { scope: "source", targetId: uuid },
+  ])
     await assert.rejects(
       () => get("secrets_inspect").run(args, harness().context),
       z.ZodError,

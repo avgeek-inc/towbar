@@ -84,8 +84,8 @@ export function createDeclaredSecretsFixture(instances: {
           updatedAt: null,
           inheritedKeys: [],
           inheritedOrigins: {},
-          inheritedRevisions: { global: null, source: null },
-          availableReferences: { globals: [], source: [] },
+          inheritedRevisions: { global: null },
+          availableReferences: { globals: [] },
           pendingChanges: Boolean(stored.revision),
           affectedDeployables: [],
         };

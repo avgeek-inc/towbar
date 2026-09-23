@@ -2317,7 +2317,7 @@ export function createFixtureApiServer({
       return;
     }
     const revealMatch = path.match(
-      /^\/v1\/core\/(sources|apps|resources)\/([^/]+)\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)\/reveal(?:-all)?$/,
+      /^\/v1\/core\/(apps|resources)\/([^/]+)\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)\/reveal(?:-all)?$/,
     );
     const globalRevealMatch = path.match(
       /^\/v1\/core\/settings\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)\/reveal(?:-all)?$/,
@@ -2359,7 +2359,7 @@ export function createFixtureApiServer({
       return;
     }
     const mutationMatch = path.match(
-      /^\/v1\/core\/(sources|apps|resources)\/([^/]+)\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)$/,
+      /^\/v1\/core\/(apps|resources)\/([^/]+)\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)$/,
     );
     const globalSecretMutationMatch = path.match(
       /^\/v1\/core\/settings\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)$/,
@@ -3173,12 +3173,6 @@ function getFixturePayload(
         destinations: notificationDestinations.map(publicNotificationRoute),
         providers: notificationProviderState,
       };
-    if (child === "secrets")
-      return getFixtureSourceSecrets(
-        searchParams.get("environment") === "preview"
-          ? "preview"
-          : "production",
-      );
   }
   const fixedPayloads = new Map<string, unknown>([
     [
@@ -3351,12 +3345,6 @@ function getFixturePayload(
 
   if (path === "/v1/core/settings/secrets") {
     return getFixtureGlobalSecrets("production");
-  }
-
-  if (path === `/v1/core/sources/${source.id}/secrets`) {
-    return getFixtureSourceSecrets(
-      searchParams.get("environment") === "preview" ? "preview" : "production",
-    );
   }
 
   const deployableSecretReadinessMatch = path.match(
@@ -3670,16 +3658,11 @@ function getFixtureGlobalSecrets(
     "global",
   );
 }
-function getFixtureSourceSecrets(
-  environment: "production" | "preview",
-): AppSecretsResponse {
-  return getFixtureSecretsResponse(source.id, environment, false, "source");
-}
 function getFixtureSecretsResponse(
   id: string,
   environment: "production" | "preview",
   resource: boolean,
-  scope: "global" | "source" | "deployable" = "deployable",
+  scope: "global" | "deployable" = "deployable",
 ): AppSecretsResponse {
   const stages = resource
     ? ["deployment" as const]
@@ -3696,23 +3679,15 @@ function getFixtureSecretsResponse(
         scope !== "global"
           ? fixtureMetadata(`${user.workspaceId}:production:${stage}`)
           : { keys: [], revision: null };
-      const shared =
-        scope === "deployable"
-          ? fixtureMetadata(`${source.id}:production:${stage}`)
-          : { keys: [], revision: null };
-      if (scope === "deployable" && environment === "preview") {
-        Object.assign(shared, fixtureMetadata(`${source.id}:preview:${stage}`));
-      }
       return {
         ...local,
         environment,
         stage,
         inheritedKeys: [],
         inheritedOrigins: {},
-        availableReferences: { globals: global.keys, source: shared.keys },
+        availableReferences: { globals: global.keys },
         inheritedRevisions: {
           global: global.revision,
-          source: shared.revision,
         },
         pendingChanges: scope === "deployable" && Boolean(local.revision),
         affectedDeployables:
@@ -3728,20 +3703,7 @@ function getFixtureSecretsResponse(
                   name: `PR #${preview.pullRequestNumber}`,
                   kind: "preview" as const,
                 }))
-            : scope === "source"
-              ? [...apps, ...resources]
-                  .filter(
-                    (item) => stage === "deployment" || item.kind === "app",
-                  )
-                  .map((item) => ({
-                    id: item.id,
-                    name: item.name,
-                    kind:
-                      item.kind === "app"
-                        ? ("app" as const)
-                        : ("resource" as const),
-                  }))
-              : [],
+            : [],
       };
     }),
   };

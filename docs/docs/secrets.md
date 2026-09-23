@@ -7,26 +7,24 @@ Towbar manages deployment secrets without requiring an external secrets account.
 
 ## Choose the right scope
 
-| Location                               | Purpose                                                                                |
-| -------------------------------------- | -------------------------------------------------------------------------------------- |
-| Manage → Shared secrets                | Reusable workspace values for each stage, shared across environments                   |
-| Repository → Settings → Shared secrets | Reusable values for one Repository                                                     |
-| App → Settings → Secrets               | Named-environment and isolated preview values for one app                              |
-| Resource → Settings → Secrets          | Environment-specific runtime values, including `POSTGRES_PASSWORD` or `REDIS_PASSWORD` |
-| Server → Settings → Credentials        | Select a stored SSH key                                                                |
-| Server → Settings → Cloudflare TLS     | Cloudflare TLS and its Account API token                                               |
+| Location                           | Purpose                                                                                |
+| ---------------------------------- | -------------------------------------------------------------------------------------- |
+| Manage → Shared secrets            | Reusable workspace values for each stage, shared across environments                   |
+| App → Settings → Secrets           | Named-environment and isolated preview values for one app                              |
+| Resource → Settings → Secrets      | Environment-specific runtime values, including `POSTGRES_PASSWORD` or `REDIS_PASSWORD` |
+| Server → Settings → Credentials    | Select a stored SSH key                                                                |
+| Server → Settings → Cloudflare TLS | Cloudflare TLS and its Account API token                                               |
 
 Shared secrets are available for reference; they are not automatically added to Repositories, apps, or resources. Configure each variable where it is needed:
 
 ```dotenv
 API_TOKEN={{globals.API_TOKEN}}
-DATABASE_PASSWORD={{source.DATABASE_PASSWORD}}
 AUTH_HEADER=Bearer {{globals.API_TOKEN}}
 ```
 
-`globals` reads a value from **Manage → Shared secrets**. `source` reads a value from the app or resource's own Repository. A Repository value can reference a global value; apps and resources can reference either scope. Global values are literal, and Repository values cannot reference other Repository values. References may be embedded in a larger value. Missing or invalid references stop deployment with an error that does not include secret values.
+`globals` reads a value from **Manage → Shared secrets**. Apps and resources can reference this workspace scope; global values are literal. References may be embedded in a larger value. Missing or invalid references stop deployment with an error that does not include secret values.
 
-Repository references use the same environment and stage as the child variable. Preview values use `preview:<environment>`; for example, a staging preview reads `preview:staging` repository values, never staging or production repository values. Global references use the workspace value for the selected stage across all environments, including previews. Reference a global value only when it is appropriate to share it with that environment. Resources use their own environment runtime values. Empty strings are valid values. Removing a required key from the entity YAML deletes its saved value on the next successful sync of that environment. It does not restore an inherited value. Hooks receive values only when that hook is configured.
+Global references use the workspace value for the selected stage across all environments, including previews. Reference a global value only when it is appropriate to share it with that environment. Resources use their own environment runtime values. Empty strings are valid values. Removing a required key from the entity YAML deletes its saved value on the next successful sync of that environment. It does not restore an inherited value. Hooks receive values only when that hook is configured.
 
 ### Required keys
 
@@ -40,7 +38,7 @@ secret keys remain editable in Towbar.
 
 ## Form and File modes
 
-For workspace Shared secrets, choose Build, Runtime, Pre-deploy, or Post-deploy in the secondary sidebar. These workspace values are shared across environments when explicitly referenced. On an app or Repository, both environment and stage stay inside the page. Use the **Form** and **File** tabs inside the secrets widget. The mode switch is hidden when no keys are declared. Members can update values in Form mode without revealing existing values. In-page environment and stage selectors use dropdowns on mobile and tabs on larger screens.
+For workspace Shared secrets, choose Build, Runtime, Pre-deploy, or Post-deploy in the secondary sidebar. These workspace values are shared across environments when explicitly referenced. On an app, both environment and stage stay inside the page. Use the **Form** and **File** tabs inside the secrets widget. The mode switch is hidden when no keys are declared. Members can update values in Form mode without revealing existing values. In-page environment and stage selectors use dropdowns on mobile and tabs on larger screens.
 
 **Form** edits one key and value at a time. Configured values show a masked placeholder; use the eye icon to reveal or hide one value. Valid shared-reference expressions are highlighted in yellow.
 
@@ -48,7 +46,7 @@ For workspace Shared secrets, choose Build, Runtime, Pre-deploy, or Post-deploy 
 
 ```dotenv
 LOG_LEVEL="info"
-PACKAGE_TOKEN="{{source.PACKAGE_REGISTRY_TOKEN}}"
+PACKAGE_TOKEN="{{globals.PACKAGE_REGISTRY_TOKEN}}"
 AUTH_HEADER="Bearer {{globals.API_TOKEN}}"
 ```
 
@@ -60,7 +58,7 @@ The editor shows locally configured keys. Click the eye icon to reveal a stored 
 
 **Save** stores changes for the next execution. It does not restart containers or enqueue deployment. Deploy the affected app or resource separately when you are ready. Build changes require rebuilding the image. Runtime changes require a replacement deployment. Image rollback uses current secrets and does not restore revoked credentials.
 
-Shared Preview values and app references can be saved independently and are used by later eligible Preview deployments. Towbar rechecks pull request eligibility and rejects deployment while another deployment or cleanup is active.
+Preview app values are isolated from production values and are used by later eligible Preview deployments. Towbar rechecks pull request eligibility and rejects deployment while another deployment or cleanup is active.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
@@ -104,7 +102,7 @@ Provider values are redacted from API responses, MCP output, command logs, opera
 
 For scripts, use the [public API](/docs/api/workflows#update-secrets-safely) with a personal or team API key. The `/v1/core` routes below are dashboard routes authenticated by a browser session. API keys cannot use reveal endpoints.
 
-Read workspace metadata with `GET /v1/core/settings/secrets` and update it with `PATCH /v1/core/settings/secrets/production/{stage}`. The `production` segment is the storage identifier for workspace values; those values are shared across environments. Repository and app metadata use `GET /v1/core/{sources|apps}/{id}/secrets?environment=production`, with `environment=preview:staging`, for example, selecting staging’s isolated Preview scope. Resources use `/v1/core/resources/{id}/secrets?environment=staging` and support runtime values for their own named environment. App and resource IDs identify environment instances; requests for a different instance environment are rejected. Stage identifiers are `build`, `deployment` (runtime), `pre_deploy`, and `post_deploy`.
+Read workspace metadata with `GET /v1/core/settings/secrets` and update it with `PATCH /v1/core/settings/secrets/production/{stage}`. The `production` segment is the storage identifier for workspace values; those values are shared across environments. App metadata uses `GET /v1/core/apps/{id}/secrets?environment=production`, with `environment=preview:staging`, for example, selecting staging’s isolated Preview scope. Resources use `/v1/core/resources/{id}/secrets?environment=staging` and support runtime values for their own named environment. App and resource IDs identify environment instances; requests for a different instance environment are rejected. Stage identifiers are `build`, `deployment` (runtime), `pre_deploy`, and `post_deploy`.
 
 Mutations accept `{ "expectedRevision": null, "set": { "KEY": "new value" }, "delete": [] }`. Use `null` only for an unconfigured slot, then use its returned revision for later edits. Send only explicitly changed values; metadata and placeholders are never replacement values. A stale revision returns HTTP 409. Metadata includes local keys, available reference names, revisions, and pending changes. Legacy `inheritedKeys` and `inheritedOrigins` fields are empty. Secret mutations never enqueue work.
 
@@ -114,7 +112,7 @@ Removing a server revokes its host-key trust. Restoring that server later requir
 
 After saving, queue a deployment for the selected environment instance through the app/resource deploy action, or a selected preview with `POST /v1/core/previews/{id}/actions/deploy`. Report any queue failure separately from the successful save.
 
-To reveal one stored environment value, send `POST` to the secret stage path followed by `/reveal`, with `{ "key": "ENV_KEY" }`. For example, `/v1/core/apps/{id}/secrets/production/deployment/reveal`. The response contains `value` and `revision`, uses `Cache-Control: no-store`, and records a value-free audit event. Workspace and Repository paths support the same operation. Reveal does not resolve references or save changes.
+To reveal one stored environment value, send `POST` to the secret stage path followed by `/reveal`, with `{ "key": "ENV_KEY" }`. For example, `/v1/core/apps/{id}/secrets/production/deployment/reveal`. The response contains `value` and `revision`, uses `Cache-Control: no-store`, and records a value-free audit event. Workspace paths support the same operation. Reveal does not resolve references or save changes.
 
 To reveal all stored values for one environment and stage, send `POST` to the same stage path followed by `/reveal-all`, with `{}`. The response contains `values` (a key/value object) and one `revision`. File mode uses this single request. It has the same Admin and workspace restrictions, returns stored reference expressions without resolving them, disables caching, and records a value-free audit event with the key count. It does not fetch other scopes, environments, or stages.
 
