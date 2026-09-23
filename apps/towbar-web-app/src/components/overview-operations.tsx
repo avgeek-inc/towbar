@@ -32,12 +32,11 @@ import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
 import { DomainLink } from "./domain-link";
 import { deploymentStatusTooltip } from "./deployment-table";
 import { deploymentHref } from "@/lib/deployment-route";
+import illustrationStyles from "./overview-illustration.module.css";
+import { AppLogo, ResourceLogo } from "./deployable-identity";
+import { resourceImageBrand } from "./resource-image-brand";
 
-export function OverviewIncidents({
-  animateIllustration = false,
-}: {
-  animateIllustration?: boolean;
-}) {
+export function OverviewIncidents() {
   const query = useApiQuery<{ activeIncidents: number }>(
     "/v1/core/monitoring/summary",
     30_000,
@@ -51,7 +50,7 @@ export function OverviewIncidents({
         </Widget.Title>
       </Widget.Header>
       <Widget.Content
-        className="relative flex min-h-30 items-center overflow-hidden py-3.5 pr-[38%]"
+        className={`${illustrationStyles.card} relative flex min-h-30 items-center overflow-hidden py-3.5 pr-[38%]`}
         style={
           !query.error && count !== undefined
             ? {
@@ -99,7 +98,9 @@ export function OverviewIncidents({
               alt=""
               width={512}
               height={512}
-              className={`pointer-events-none absolute right-0 bottom-0 h-auto w-[38%] max-w-28 object-contain object-right-bottom ${animateIllustration ? "overview-metric-illustration--enter" : ""}`}
+              className={`${illustrationStyles.illustration} pointer-events-none absolute right-0 bottom-0 h-auto w-[38%] max-w-28 object-contain object-right-bottom`}
+              preload
+              unoptimized
             />
           </>
         )}
@@ -115,33 +116,45 @@ function deploymentColumns(
     {
       key: "deployment",
       header: "Recent deployments",
-      className: "min-w-40",
+      className: "min-w-52",
       cell: (item) => {
-        const detail = deploymentSubtitle(
-          item,
-          apps.find((app) => app.id === item.appId)?.config.domains?.primary,
-        );
+        const appDomain = apps.find((app) => app.id === item.appId)?.config
+          .domains?.primary;
+        const detail = deploymentSubtitle(item, appDomain);
         return (
-          <TableCellStack as="div">
-            <span>{item.deployableName}</span>
-            {detail ? (
-              item.deployableKind === "app" ? (
-                <DomainLink
-                  className={`${tableCellDescriptionClassName} max-w-48 truncate`}
-                  domain={detail}
-                >
-                  {detail}
-                </DomainLink>
-              ) : (
-                <TableCellDescription
-                  className="max-w-48 truncate"
-                  title={detail}
-                >
-                  {detail}
-                </TableCellDescription>
-              )
-            ) : null}
-          </TableCellStack>
+          <div className="flex min-w-0 items-center gap-2">
+            {item.deployableKind === "app" ||
+            item.deployableKind === "compose" ? (
+              <AppLogo domain={item.deployableDomain ?? appDomain} />
+            ) : (
+              <ResourceLogo
+                brand={resourceImageBrand(
+                  item.deployableKind,
+                  item.deployableImage ?? "",
+                )}
+              />
+            )}
+            <TableCellStack as="div" className="min-w-0">
+              <span>{item.deployableName}</span>
+              {detail ? (
+                item.deployableKind === "app" ? (
+                  <DomainLink
+                    className={`${tableCellDescriptionClassName} max-w-48 truncate`}
+                    domain={detail}
+                  >
+                    {detail}
+                  </DomainLink>
+                ) : (
+                  <TableCellDescription
+                    className="max-w-48 truncate"
+                    title={detail}
+                  >
+                    {detail}
+                  </TableCellDescription>
+                )
+              ) : null}
+            </TableCellStack>
+          </div>
         );
       },
     },

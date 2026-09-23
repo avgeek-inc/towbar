@@ -999,7 +999,7 @@ let systemHealth: SystemHealth = {
     },
   ],
   status: "healthy",
-  version: "2.0.9-fixture",
+  version: "2.0.10-fixture",
 };
 
 function fixtureSystemHealth(): SystemHealth {
@@ -3127,11 +3127,18 @@ function getFixturePayload(
       ].sort(),
       deployments: ordered
         .slice((page - 1) * limit, page * limit)
-        .map((item) => ({
-          ...item,
-          deployableName:
-            deployables.get(item.appId)?.name ?? "Unknown workload",
-        })),
+        .map((item) => {
+          const deployable = deployables.get(item.appId);
+          return {
+            ...item,
+            deployableDomain: deployable?.config.domains?.primary ?? null,
+            deployableImage:
+              deployable && "image" in deployable.config
+                ? deployable.config.image
+                : null,
+            deployableName: deployable?.name ?? "Unknown workload",
+          };
+        }),
       pagination: {
         page,
         limit,
@@ -4155,17 +4162,20 @@ function createNotificationEventFixture(
   id: string,
   eventType: string,
 ): NotificationEvent {
+  const isPreview = eventType.startsWith("preview.");
   const category =
     eventType === "notification.test"
       ? "test"
-      : eventType.startsWith("preview.")
+      : isPreview
         ? "previews"
         : "deployments";
-  const payload = {
-    details: {},
+  const payload: NotificationEvent["payload"] = {
+    details: isPreview
+      ? {}
+      : { deployableId: fixtureIds.app, deployableKind: "app" },
     entity: {
-      id: fixtureIds.deployment,
-      kind: "deployment",
+      id: isPreview ? fixtureIds.preview : fixtureIds.deployment,
+      kind: isPreview ? "preview" : "deployment",
       name: "Example Website",
     },
     message:

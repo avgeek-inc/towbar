@@ -45,7 +45,7 @@ export async function sendSmtpEmail(
   });
   try {
     const result = await transport.sendMail({
-      from: provider.from,
+      from: { name: "Towbar", address: provider.from },
       messageId: `<${input.messageId}@towbar.invalid>`,
       subject: input.subject,
       text: input.text,

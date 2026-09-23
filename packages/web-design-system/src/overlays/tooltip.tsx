@@ -20,6 +20,7 @@ export type { TooltipProps } from "@heroui/react";
 export function TooltipText({
   as: Tag = "span",
   tooltip,
+  placement = "top",
   children,
   className,
   dateTime,
@@ -28,6 +29,7 @@ export function TooltipText({
   as?: "span" | "time" | "code";
   dateTime?: string;
   tooltip?: ReactNode;
+  placement?: ComponentProps<typeof HeroTooltip.Content>["placement"];
 }) {
   if (!tooltip) {
     return createElement(Tag, { ...props, className, dateTime }, children);
@@ -49,7 +51,7 @@ export function TooltipText({
       </Tooltip.Trigger>
       <Tooltip.Content
         className="max-w-64 whitespace-normal break-normal text-xs [overflow-wrap:normal] [word-break:normal]"
-        placement="top"
+        placement={placement}
         showArrow
       >
         <Tooltip.Arrow />

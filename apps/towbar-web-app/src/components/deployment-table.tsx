@@ -121,11 +121,19 @@ export function DeploymentTable({
 
 export function deploymentStatusTooltip(deployment: Deployment) {
   const status = getDeploymentDisplayStatus(deployment).split("_").join(" ");
-  const requested = `Requested ${formatTooltipDate(deployment.createdAt)}.`;
-  const finished = deployment.finishedAt
-    ? ` Finished ${formatTooltipDate(deployment.finishedAt)}.`
-    : "";
-  return `${status.charAt(0).toUpperCase()}${status.slice(1)}. ${requested}${finished}`;
+  return (
+    <div className="grid gap-0.5 text-left">
+      <span>{`${status.charAt(0).toUpperCase()}${status.slice(1)}.`}</span>
+      <span className="whitespace-nowrap">
+        Requested {formatTooltipDate(deployment.createdAt)}.
+      </span>
+      {deployment.finishedAt ? (
+        <span className="whitespace-nowrap">
+          Finished {formatTooltipDate(deployment.finishedAt)}.
+        </span>
+      ) : null}
+    </div>
+  );
 }
 
 function formatTooltipDate(value: string) {
@@ -146,7 +154,7 @@ export function DeploymentTriggerChip({
   return (
     <Chip
       size="small"
-      variant="secondary"
+      variant={trigger === "manual" ? "warning" : "secondary"}
       tooltip={
         trigger === "auto_deploy"
           ? "Queued automatically after a repository change."

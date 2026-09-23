@@ -69,6 +69,8 @@ import { DeployableReadiness } from "./deployable-readiness";
 import { ResourceLogo } from "./deployable-identity";
 import { resourceImageBrand } from "./resource-image-brand";
 import { FirstDeployment } from "./first-deployment";
+import { EnvironmentChip } from "./environment-chip";
+import { CloudProviderLogo } from "./cloud-provider-logo";
 
 type ResourceRecord = Resource & {
   serverId: string;
@@ -144,15 +146,7 @@ export function ResourceDetail() {
     );
   }
   if (!resource.data || !deployments.data || !releases.data || !source.data) {
-    return (
-      <DashboardPage
-        icon={CubeIcon}
-        breadcrumbAncestors={resourcesBreadcrumb}
-        title="Resource"
-      >
-        <QueryLoading />
-      </DashboardPage>
-    );
+    return <QueryLoading variant="detail" />;
   }
 
   const item = resource.data.resource;
@@ -233,9 +227,11 @@ export function ResourceDetail() {
               </Attributes.Item>
             ) : null}
             <Attributes.Item label="Environment">
-              <TypographyCode>
-                {item.environment?.name ?? "Unmapped"}
-              </TypographyCode>
+              {item.environment ? (
+                <EnvironmentChip name={item.environment.name} />
+              ) : (
+                "Unmapped"
+              )}
             </Attributes.Item>
             <Attributes.Item
               icon={<HugeiconsIcon icon={ServerStack01Icon} />}
@@ -295,6 +291,7 @@ export function ResourceDetail() {
     {
       value: "performance",
       label: "Performance",
+      contentOwnsTitle: true,
       group: "Monitor",
       icon: <HugeiconsIcon icon={Activity01Icon} />,
       content: (
@@ -318,6 +315,7 @@ export function ResourceDetail() {
     {
       value: "incidents",
       label: "Incidents",
+      contentOwnsTitle: true,
       group: "Monitor",
       icon: <HugeiconsIcon icon={AlertCircleIcon} />,
       content: (
@@ -327,6 +325,7 @@ export function ResourceDetail() {
     {
       value: "compare-deployments",
       label: "Compare deployments",
+      sidebarLabel: "Compare",
       group: "Monitor",
       icon: <HugeiconsIcon icon={GitCompareIcon} />,
       content: <ScoutCompareDeployments deployableId={resourceId} />,
@@ -469,17 +468,6 @@ export function ResourceDetail() {
           </div>
         ) : undefined
       }
-      badge={
-        (detailNavigation.section ?? "overview") === "overview" ? (
-          <StatusBadge
-            status={
-              lifecycleStatus === "active"
-                ? item.runtimeState.healthStatus
-                : lifecycleStatus
-            }
-          />
-        ) : undefined
-      }
       breadcrumbAncestors={resourcesBreadcrumb}
       title={item.name}
     >
@@ -609,7 +597,7 @@ function ResourceConfiguration({ item }: { item: ResourceRecord }) {
         title="Image configuration"
         variant="card"
       >
-        <Attributes.Item label="Image">
+        <Attributes.Item label="Image" className="col-span-2 md:col-span-1">
           <TypographyCode className="break-all">
             {item.config.image}
           </TypographyCode>
@@ -657,13 +645,11 @@ function ResourceConfiguration({ item }: { item: ResourceRecord }) {
         <Attributes.Item label="Memory limit">
           {item.config.container.resources.memory}
         </Attributes.Item>
-        <Attributes.Item label="Health check">
-          {renderHealth(item.config.health)}
-        </Attributes.Item>
         <Attributes.Item label="Persistent volumes">
           {renderVolumes(item.config.container.volumes)}
         </Attributes.Item>
       </Attributes>
+      <ResourceHealthCheck health={item.config.health} />
       <Attributes
         icon={<HugeiconsIcon icon={Rocket01Icon} />}
         columns={2}
@@ -695,11 +681,16 @@ function ResourceConfiguration({ item }: { item: ResourceRecord }) {
             : "None"}
         </Attributes.Item>
         <Attributes.Item label="TLS">
-          {item.config.tls?.mode === "cloudflare-dns"
-            ? "Cloudflare DNS"
-            : item.config.tls?.mode === "direct"
-              ? "Direct"
-              : "Not configured"}
+          {item.config.tls?.mode === "cloudflare-dns" ? (
+            <span className="inline-flex items-center gap-1.5">
+              <CloudProviderLogo provider="cloudflare" />
+              Cloudflare DNS
+            </span>
+          ) : item.config.tls?.mode === "direct" ? (
+            "Direct"
+          ) : (
+            "Not configured"
+          )}
         </Attributes.Item>
       </Attributes>
     </div>
@@ -750,30 +741,41 @@ function ResourceConnectionDetails({ item }: { item: ResourceRecord }) {
   );
 }
 
-function renderHealth(health: Resource["config"]["health"]) {
-  if (health.type === "http") {
-    return (
-      <span className="grid gap-1">
-        <TypographyCode>{health.path}</TypographyCode>
-        <span className="typography--body-xs font-normal text-muted">
-          HTTP · {health.timeoutSeconds} second timeout
-        </span>
-      </span>
-    );
-  }
-  if (health.type === "command") {
-    return (
-      <span className="grid gap-1">
-        <TypographyCode className="break-all">
-          {health.command.join(" ")}
-        </TypographyCode>
-        <span className="typography--body-xs font-normal text-muted">
-          {health.timeoutSeconds} second timeout
-        </span>
-      </span>
-    );
-  }
-  return `Container health · ${health.timeoutSeconds} second timeout`;
+function ResourceHealthCheck({
+  health,
+}: {
+  health: Resource["config"]["health"];
+}) {
+  return (
+    <Attributes
+      icon={<HugeiconsIcon icon={Activity01Icon} />}
+      columns={2}
+      title="Health check"
+      variant="card"
+    >
+      <Attributes.Item label="Check type">
+        {health.type === "http"
+          ? "HTTP"
+          : health.type === "command"
+            ? "Command"
+            : "Container"}
+      </Attributes.Item>
+      <Attributes.Item label="Timeout">
+        {health.timeoutSeconds} seconds
+      </Attributes.Item>
+      {health.type === "http" ? (
+        <Attributes.Item label="Endpoint path" className="col-span-2">
+          <TypographyCode className="break-all">{health.path}</TypographyCode>
+        </Attributes.Item>
+      ) : health.type === "command" ? (
+        <Attributes.Item label="Command" className="col-span-2">
+          <TypographyCode className="break-all">
+            {health.command.join(" ")}
+          </TypographyCode>
+        </Attributes.Item>
+      ) : null}
+    </Attributes>
+  );
 }
 
 function renderVolumes(volumes: Resource["config"]["container"]["volumes"]) {

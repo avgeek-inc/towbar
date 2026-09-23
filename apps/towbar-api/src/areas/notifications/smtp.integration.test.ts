@@ -19,7 +19,7 @@ void test("SMTP sends HTML and plain text over verified TLS for every team templ
       secure: true,
       username: "fixture",
       password: "fixture-password",
-      from: "Towbar <towbar@example.test>",
+      from: "towbar@example.test",
     };
     const dependencies = {
       resolveAddress: (host: string) => {
@@ -82,6 +82,7 @@ void test("SMTP sends HTML and plain text over verified TLS for every team templ
       );
       assert(!message.includes(provider.password));
       assert.match(message, /To: recipient@example.test/);
+      assert.match(message, /From: Towbar <towbar@example\.test>/);
     }
     await assert.rejects(
       sendSmtpEmail(

@@ -7,6 +7,7 @@ import type {
 import { getEnv } from "../../env.js";
 import { pingDatabase } from "../../infrastructure/database.js";
 import { wakeMaintenanceWorkflow } from "../../infrastructure/temporal.js";
+import { getReleaseVersion } from "../../release-version.js";
 import {
   listSystemHealthSignals,
   recordSystemHealthSignal,
@@ -22,9 +23,7 @@ export async function getSystemHealth(
 ): Promise<SystemHealth> {
   await pingDatabase();
   const signals = await listSystemHealthSignals(workspaceId);
-  const byComponent = new Map(
-    signals.map((signal) => [signal.component, signal]),
-  );
+  const byComponent = latestSignalsByComponent(signals);
   const env = getEnv();
   const version = env.TOWBAR_COMMIT_SHA ?? env.SOURCE_COMMIT;
   const checks: SystemHealthCheck[] = [
@@ -43,7 +42,7 @@ export async function getSystemHealth(
         "Run checks to verify that Temporal accepts maintenance work.",
       id: "temporal",
       signal: byComponent.get("temporal"),
-      staleAfterMs: 24 * 60 * 60_000,
+      staleAfterMs: 15 * 60_000,
       title: "Temporal",
     }),
     signalCheck({
@@ -59,42 +58,48 @@ export async function getSystemHealth(
     checkedAt: new Date().toISOString(),
     checks,
     status: highestStatus(checks.map((check) => check.status)),
-    version,
+    version: getReleaseVersion(),
   };
 }
 
 export async function runSystemHealthChecks(workspaceId: string) {
-  const env = getEnv();
-  const version = env.TOWBAR_COMMIT_SHA ?? env.SOURCE_COMMIT;
-  await checkTemporal(workspaceId, version);
+  await runTemporalHealthCheck();
   return await getSystemHealth(workspaceId);
 }
 
-async function checkTemporal(workspaceId: string, version: string) {
+export async function runTemporalHealthCheck() {
+  const env = getEnv();
+  const version = env.TOWBAR_COMMIT_SHA ?? env.SOURCE_COMMIT;
+  let accepted: boolean;
   try {
     await wakeMaintenanceWorkflow();
-    await recordSystemHealthSignal({
-      component: "temporal",
-      details: {},
-      key: `${workspaceId}:temporal`,
-      message:
-        "Temporal accepted a signal for the durable maintenance workflow.",
-      status: "healthy",
-      version,
-      workspaceId,
-    });
+    accepted = true;
   } catch {
-    await recordSystemHealthSignal({
-      component: "temporal",
-      details: {},
-      key: `${workspaceId}:temporal`,
-      message:
-        "Temporal did not accept maintenance work. Check its endpoint and credentials.",
-      status: "critical",
-      version,
-      workspaceId,
-    });
+    accepted = false;
   }
+  await recordSystemHealthSignal({
+    component: "temporal",
+    details: {},
+    key: "temporal-maintenance",
+    message: accepted
+      ? "Temporal accepted a signal for the durable maintenance workflow."
+      : "Temporal did not accept maintenance work. Check its endpoint and credentials.",
+    status: accepted ? "healthy" : "critical",
+    version,
+    workspaceId: null,
+  });
+}
+
+export function latestSignalsByComponent<
+  T extends { component: string; checkedAt: Date },
+>(signals: T[]) {
+  const latest = new Map<string, T>();
+  for (const signal of signals) {
+    const previous = latest.get(signal.component);
+    if (!previous || signal.checkedAt > previous.checkedAt)
+      latest.set(signal.component, signal);
+  }
+  return latest;
 }
 
 function signalCheck(input: {

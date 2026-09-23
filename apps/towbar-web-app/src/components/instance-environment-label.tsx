@@ -5,12 +5,15 @@ import {
 import { GitBranchIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { InstanceEnvironment } from "@workspace/towbar-web-client";
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import { EnvironmentIcon } from "./environment-icon";
 
 export function InstanceEnvironmentLabel({
   environment,
+  repositoryName,
 }: {
   environment: InstanceEnvironment | null;
+  repositoryName?: string;
 }) {
   if (!environment) return <span className="text-muted">—</span>;
   return (
@@ -25,7 +28,12 @@ export function InstanceEnvironmentLabel({
           icon={GitBranchIcon}
           className="size-[1em] shrink-0"
         />
-        <span className="font-mono">{environment.branch}</span>
+        <TooltipText
+          className="font-mono"
+          tooltip={repositoryName ? `Repository: ${repositoryName}` : undefined}
+        >
+          {environment.branch}
+        </TooltipText>
         {environment.disconnectedAt ? " · Disconnected" : ""}
       </TableCellDescription>
     </TableCellStack>

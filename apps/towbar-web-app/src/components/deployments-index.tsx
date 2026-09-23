@@ -1,18 +1,8 @@
 "use client";
 
-import {
-  TableCellStack,
-  TableCellDescription,
-} from "@workspace/towbar-web-ui/table-cell-text";
-
 import { DeploymentEnvironmentChip } from "./deployment-environment-chip";
 
-import {
-  DashboardCircleIcon,
-  CubeIcon,
-  FilterResetIcon,
-  Rocket01Icon,
-} from "@hugeicons/core-free-icons";
+import { FilterResetIcon, Rocket01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect } from "react";
 import {
@@ -41,6 +31,13 @@ import {
 } from "./deployment-table";
 import { DeploymentDuration } from "./elapsed-time";
 import { RelativeTime } from "./last-synced-time";
+import { AppLogo, ResourceLogo } from "./deployable-identity";
+import { resourceImageBrand } from "./resource-image-brand";
+import { deploymentSubtitle } from "@/lib/overview";
+import {
+  TableCellDescription,
+  TableCellStack,
+} from "@workspace/towbar-web-ui/table-cell-text";
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { SecondarySection } from "./secondary-sidebar";
@@ -52,45 +49,68 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
     key: "id",
     header: "Deployment ID",
     cell: (item) => (
-      <TableCellStack>
-        <TypographyCode title={item.id}>{item.id.slice(0, 8)}</TypographyCode>
-        <span className="2xl:hidden">
-          <RelativeTime label="Requested" value={item.createdAt} />
-        </span>
-      </TableCellStack>
+      <TypographyCode title={item.id}>{item.id.slice(0, 8)}</TypographyCode>
     ),
     className: "min-w-40",
   },
   {
     key: "deployable",
     header: "App / Resource",
-    cell: (item) => (
-      <TableCellStack>
+    cell: (item) => {
+      const subtitle =
+        deploymentSubtitle(item, item.deployableDomain ?? undefined) ?? "App";
+      return (
         <InlineLink
           className="inline-flex min-w-0 items-center gap-2"
           href={`/${item.deployableKind === "app" ? "apps" : "resources"}/${item.appId}`}
         >
-          <HugeiconsIcon
-            aria-hidden="true"
-            className="size-4 shrink-0"
-            icon={
-              item.deployableKind === "app" ? DashboardCircleIcon : CubeIcon
-            }
-          />
-          <span className="truncate">{item.deployableName}</span>
+          {item.deployableKind === "app" ||
+          item.deployableKind === "compose" ? (
+            <AppLogo domain={item.deployableDomain ?? undefined} />
+          ) : (
+            <ResourceLogo
+              brand={resourceImageBrand(
+                item.deployableKind,
+                item.deployableImage ?? "",
+              )}
+            />
+          )}
+          <TableCellStack className="min-w-0">
+            <span className="truncate">{item.deployableName}</span>
+            <TableCellDescription className="truncate">
+              {subtitle}
+            </TableCellDescription>
+          </TableCellStack>
         </InlineLink>
-        <TableCellDescription className="flex items-center gap-1.5 2xl:hidden">
-          <TypographyCode className="py-0 text-xs/4">
-            {item.targetEnvironment.branch}
-          </TypographyCode>
-          <span aria-hidden="true">·</span>
-          <TypographyCode className="py-0 text-xs/4" title={item.commitSha}>
-            {item.commitSha.slice(0, 8)}
-          </TypographyCode>
-        </TableCellDescription>
-      </TableCellStack>
-    ),
+      );
+    },
     className: "min-w-56",
+  },
+  {
+    key: "branch",
+    header: "Branch",
+    cell: (item) => (
+      <TypographyCode title={item.targetEnvironment.branch}>
+        {item.targetEnvironment.branch}
+      </TypographyCode>
+    ),
+    className: "min-w-32 whitespace-nowrap",
+  },
+  {
+    key: "commit",
+    header: "Commit",
+    cell: (item) => (
+      <TypographyCode title={item.commitSha}>
+        {item.commitSha.slice(0, 8)}
+      </TypographyCode>
+    ),
+    className: "min-w-32 whitespace-nowrap",
+  },
+  {
+    key: "requested",
+    header: "Requested",
+    cell: (item) => <RelativeTime label="Requested" value={item.createdAt} />,
+    className: "min-w-40 whitespace-nowrap",
   },
   {
     key: "environment",
@@ -103,13 +123,6 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
     header: "Trigger",
     cell: (item) => <DeploymentTriggerChip trigger={item.trigger} />,
     className: "hidden whitespace-nowrap 2xl:table-cell",
-    headerClassName: "hidden 2xl:table-cell",
-  },
-  {
-    key: "requested",
-    header: "Requested",
-    cell: (item) => <RelativeTime label="Requested" value={item.createdAt} />,
-    className: "hidden min-w-40 whitespace-nowrap 2xl:table-cell",
     headerClassName: "hidden 2xl:table-cell",
   },
   {
@@ -297,7 +310,7 @@ export function DeploymentsIndex() {
             getRowHref={deploymentHref}
             getRowKey={(item) => item.id}
             items={query.data.deployments}
-            tableClassName="min-w-[700px] 2xl:min-w-[1040px]"
+            tableClassName="min-w-[1040px] 2xl:min-w-[1280px]"
           />
         )}
         {(pagination.totalPages ?? 0) > 1 ? (

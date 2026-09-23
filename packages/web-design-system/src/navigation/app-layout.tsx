@@ -83,24 +83,16 @@ export function AppLayout({
   }, [onSidebarOpenChange, pathname]);
 
   useEffect(() => {
-    if (!sidebarOpen && !toggleShortcut) return;
+    if (!toggleShortcut) return;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && sidebarOpen && isDesktop) {
-        onSidebarOpenChange?.(false);
-        return;
-      }
-      if (
-        toggleShortcut &&
-        event.key.toLowerCase() === "b" &&
-        (event.metaKey || event.ctrlKey)
-      ) {
+      if (event.key.toLowerCase() === "b" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         onSidebarOpenChange?.(!sidebarOpen);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isDesktop, onSidebarOpenChange, sidebarOpen, toggleShortcut]);
+  }, [onSidebarOpenChange, sidebarOpen, toggleShortcut]);
 
   return (
     <NavigationContext.Provider value={navigate}>
@@ -139,6 +131,7 @@ export function AppLayout({
         {sidebar ? (
           <Drawer.Backdrop
             isOpen={sidebarOpen && !isDesktop}
+            isKeyboardDismissDisabled
             onOpenChange={onSidebarOpenChange}
           >
             <Drawer.Content placement="left">

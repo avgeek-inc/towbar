@@ -17,7 +17,7 @@ import {
   ServerStack01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useEffect, useState, type ComponentProps } from "react";
+import type { ComponentProps } from "react";
 import Image from "next/image";
 import type {
   App,
@@ -42,6 +42,7 @@ import { useApiQuery } from "@/hooks/use-api-query";
 
 import { buildDeploymentActivity } from "@/lib/overview";
 import { ServerIpLink } from "./source-inventory";
+import illustrationStyles from "./overview-illustration.module.css";
 
 const activitySeries = [
   { color: "var(--accent-soft-foreground)", key: "total", label: "Requested" },
@@ -55,20 +56,6 @@ const activitySeries = [
 const activityAxisTick = { fill: "var(--muted)", fontSize: 10 } as const;
 
 export function DashboardOverview() {
-  const [animateMetricImages, setAnimateMetricImages] = useState(false);
-  useEffect(() => {
-    const navigation = performance.getEntriesByType("navigation")[0];
-    if (!navigation?.name) return;
-    const initialPath = new URL(navigation.name).pathname;
-    const root = document.documentElement;
-    if (
-      initialPath !== globalThis.location.pathname ||
-      root.dataset.overviewMetricImagesAnimated === "true"
-    )
-      return;
-    root.dataset.overviewMetricImagesAnimated = "true";
-    setAnimateMetricImages(true);
-  }, []);
   const apps = useApiQuery<{ apps: App[] }>("/v1/core/apps", 30_000);
   const resources = useApiQuery<{ resources: Resource[] }>(
     "/v1/core/resources",
@@ -123,7 +110,7 @@ export function DashboardOverview() {
     {
       key: "actions",
       header: "Actions",
-      headerClassName: "text-end",
+      headerClassName: "text-start md:text-end",
       cell: (server) => (
         <ButtonLink href={`/servers/${server.id}/overview`} variant="secondary">
           Complete Setup
@@ -195,7 +182,9 @@ export function DashboardOverview() {
                   {metric.label}
                 </Widget.Title>
               </Widget.Header>
-              <Widget.Content className="relative flex min-h-30 items-center overflow-hidden py-3.5 pr-[38%]">
+              <Widget.Content
+                className={`${illustrationStyles.card} relative flex min-h-30 items-center overflow-hidden py-3.5 pr-[38%]`}
+              >
                 <div className="grid justify-items-start gap-3">
                   <InlineLink
                     href={metric.href}
@@ -215,12 +204,14 @@ export function DashboardOverview() {
                   alt=""
                   width={512}
                   height={512}
-                  className={`pointer-events-none absolute right-0 bottom-0 h-auto w-[38%] max-w-28 object-contain object-right-bottom ${animateMetricImages ? "overview-metric-illustration--enter" : ""}`}
+                  className={`${illustrationStyles.illustration} pointer-events-none absolute right-0 bottom-0 h-auto w-[38%] max-w-28 object-contain object-right-bottom`}
+                  preload
+                  unoptimized
                 />
               </Widget.Content>
             </Widget>
           ))}
-          <OverviewIncidents animateIllustration={animateMetricImages} />
+          <OverviewIncidents />
         </div>
       </div>
       <OverviewDeployments apps={appItems} />
@@ -267,7 +258,7 @@ function OverviewActivity() {
         ) : deploymentItems.length ? (
           <LineChart
             aria-label="Deployment activity over the last 7 days"
-            chartMargin={{ bottom: -8, left: -8 }}
+            chartMargin={{ bottom: 0, left: -8 }}
             className="min-w-0"
             data={activity}
             height={240}

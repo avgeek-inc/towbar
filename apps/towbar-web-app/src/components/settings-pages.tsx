@@ -219,6 +219,7 @@ export function SessionSettings() {
                 "That browser will lose access immediately and must sign in again.",
               title: "Revoke this session?",
             }}
+            preserveLabelWhilePending
             success="Session revoked"
             variant="danger"
           >

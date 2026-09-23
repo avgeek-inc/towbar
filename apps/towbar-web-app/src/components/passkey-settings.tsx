@@ -12,9 +12,10 @@ import { AuthForm } from "./auth-form";
 import { useAccess } from "./access-context";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
+import { displayDate } from "@/lib/date-time-display";
 import { registerPasskey, passkeyError } from "@/lib/passkeys";
 
-type Passkey = { id: string; name: string | null };
+type Passkey = { id: string; name: string | null; createdAt: string };
 export function PasskeySettings() {
   const { user } = useAccess();
   const keys = useApiQuery<{ passkeys: Passkey[] }>(
@@ -60,15 +61,16 @@ export function PasskeySettings() {
                   key={key.id}
                   className="flex flex-wrap items-center justify-between gap-3 py-4 first:pt-0"
                 >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <HugeiconsIcon
-                      aria-hidden="true"
-                      className="size-4 shrink-0 text-muted"
-                      icon={Key01Icon}
-                    />
+                  <div className="min-w-0">
                     <p className="text-sm font-medium break-words">
                       {key.name || "Passkey"}
                     </p>
+                    <time
+                      className="text-sm text-muted"
+                      dateTime={key.createdAt}
+                    >
+                      Created {displayDate(key.createdAt)}
+                    </time>
                   </div>
                   <div className="flex gap-2">
                     <Button variant="secondary" onPress={() => edit(key)}>

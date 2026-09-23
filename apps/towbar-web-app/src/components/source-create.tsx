@@ -145,7 +145,6 @@ function SourceCreate({
   );
 
   const [customEnvironment, setCustomEnvironment] = useState("");
-  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
   const [discovered, setDiscovered] = useState<
     { name: string; previewsEnabled: boolean }[] | null
   >(null);
@@ -195,7 +194,6 @@ function SourceCreate({
         setDiscovered(null);
         setSelectedEnvironments([]);
         setMappings({});
-        setDiscoveryError(null);
       }}
     >
       <Label isRequired>Provider</Label>
@@ -382,7 +380,6 @@ function SourceCreate({
               setSelectedEnvironments([]);
               setMappings({});
               setCustomEnvironment("");
-              setDiscoveryError(null);
               const repository = repositories.data?.repositories.find(
                 (repo) => repo.fullName === name,
               );
@@ -430,15 +427,10 @@ function SourceCreate({
                     ]),
                   ),
                 );
-              } catch (error) {
+              } catch {
                 setDiscovered([{ name: "production", previewsEnabled: false }]);
                 setSelectedEnvironments(["production"]);
                 setMappings({ production: "" });
-                setDiscoveryError(
-                  error instanceof Error
-                    ? error.message
-                    : "Could not read the default branch.",
-                );
               } finally {
                 setBusy(false);
               }
@@ -527,90 +519,89 @@ function SourceCreate({
         </div>
         {discovered ? (
           <div className="grid min-w-0 gap-4">
-            {discoveryError ? (
-              <p className="text-xs text-muted">
-                Could not suggest environments from the default branch.
-                Configure your environments and it&apos;s branches to continue.
-              </p>
-            ) : null}
-            {branches.error ? (
-              <p className="text-xs text-danger">
-                Could not load branches: {branches.error}
-              </p>
-            ) : null}
-            <div
-              className="hidden gap-4 text-xs text-muted sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
-              aria-hidden="true"
-            >
-              <span>Environment</span>
-              <span>
-                Deployment branch{" "}
-                <span aria-hidden="true" className="text-danger">
-                  *
-                </span>
-              </span>
-            </div>
-            {discovered.map((environment) => (
+            <div className="grid min-w-0 gap-3">
+              {branches.error ? (
+                <p className="text-xs text-danger">
+                  Could not load branches: {branches.error}
+                </p>
+              ) : null}
               <div
-                key={environment.name}
-                className="grid grid-cols-1 items-center gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
+                className="hidden gap-4 text-xs text-muted sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
+                aria-hidden="true"
               >
-                <div className="col-start-1 row-start-1 flex min-h-9 min-w-0 items-center">
-                  <Checkbox
-                    variant="secondary"
-                    isDisabled={busy}
-                    isSelected={selectedEnvironments.includes(environment.name)}
-                    onChange={(checked) => {
-                      const name = environment.name;
-                      setSelectedEnvironments((current) =>
-                        checked
-                          ? [...current, name]
-                          : current.filter((item) => item !== name),
-                      );
-                      if (
-                        !checked &&
-                        name !== "production" &&
-                        name !== "staging"
-                      ) {
-                        setDiscovered(
-                          (current) =>
-                            current?.filter((item) => item.name !== name) ?? [],
-                        );
-                        setMappings((current) => {
-                          const next = { ...current };
-                          delete next[name];
-                          return next;
-                        });
-                      }
-                    }}
-                  >
-                    <Checkbox.Content>
-                      <Checkbox.Control>
-                        <Checkbox.Indicator />
-                      </Checkbox.Control>
-                      <Label>{environment.name}</Label>
-                    </Checkbox.Content>
-                  </Checkbox>
-                </div>
-                <div className="relative row-start-2 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1">
-                  <SourceBranchSelect
-                    ariaLabel={`${environment.name} deployment branch`}
-                    branches={branches.data?.branches ?? []}
-                    disabled={
-                      busy || !selectedEnvironments.includes(environment.name)
-                    }
-                    required={selectedEnvironments.includes(environment.name)}
-                    value={mappings[environment.name] ?? ""}
-                    onChange={(branch) => {
-                      setMappings((current) => ({
-                        ...current,
-                        [environment.name]: branch,
-                      }));
-                    }}
-                  />
-                </div>
+                <span>Environment</span>
+                <span>
+                  Deployment branch{" "}
+                  <span aria-hidden="true" className="text-danger">
+                    *
+                  </span>
+                </span>
               </div>
-            ))}
+              {discovered.map((environment) => (
+                <div
+                  key={environment.name}
+                  className="grid grid-cols-1 items-center gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
+                >
+                  <div className="col-start-1 row-start-1 flex min-h-9 min-w-0 items-center">
+                    <Checkbox
+                      variant="secondary"
+                      isDisabled={busy}
+                      isSelected={selectedEnvironments.includes(
+                        environment.name,
+                      )}
+                      onChange={(checked) => {
+                        const name = environment.name;
+                        setSelectedEnvironments((current) =>
+                          checked
+                            ? [...current, name]
+                            : current.filter((item) => item !== name),
+                        );
+                        if (
+                          !checked &&
+                          name !== "production" &&
+                          name !== "staging"
+                        ) {
+                          setDiscovered(
+                            (current) =>
+                              current?.filter((item) => item.name !== name) ??
+                              [],
+                          );
+                          setMappings((current) => {
+                            const next = { ...current };
+                            delete next[name];
+                            return next;
+                          });
+                        }
+                      }}
+                    >
+                      <Checkbox.Content>
+                        <Checkbox.Control>
+                          <Checkbox.Indicator />
+                        </Checkbox.Control>
+                        <Label>{environment.name}</Label>
+                      </Checkbox.Content>
+                    </Checkbox>
+                  </div>
+                  <div className="relative row-start-2 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1">
+                    <SourceBranchSelect
+                      ariaLabel={`${environment.name} deployment branch`}
+                      branches={branches.data?.branches ?? []}
+                      disabled={
+                        busy || !selectedEnvironments.includes(environment.name)
+                      }
+                      required={selectedEnvironments.includes(environment.name)}
+                      value={mappings[environment.name] ?? ""}
+                      onChange={(branch) => {
+                        setMappings((current) => ({
+                          ...current,
+                          [environment.name]: branch,
+                        }));
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
             {discovered ? (
               <div className="grid gap-2 border-t border-separator pt-4">
                 <Label htmlFor="new-environment">Add another environment</Label>

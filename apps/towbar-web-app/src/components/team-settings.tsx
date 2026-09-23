@@ -270,7 +270,6 @@ function TeamGeneral() {
   );
 }
 function TeamMembers() {
-  const { user } = useAccess();
   const [offset, setOffset] = useState(0);
   const members = useApiQuery<{ members: Member[]; total: number }>(
     `/v1/core/team/members?offset=${offset}&limit=25`,
@@ -326,10 +325,7 @@ function TeamMembers() {
       header: "Member",
       cell: (member) => (
         <TableCellStack as="div">
-          <span>
-            {member.name}
-            {member.userId === user?.id ? " (you)" : ""}
-          </span>
+          <span>{member.name}</span>
           <TableCellDescription className="break-words">
             {member.email}
           </TableCellDescription>

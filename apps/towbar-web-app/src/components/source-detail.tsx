@@ -117,23 +117,7 @@ export function SourceDetail() {
         <QueryError message={error} />
       </DashboardPage>
     );
-  if (!source.data || !syncs.data)
-    return (
-      <DashboardPage
-        icon={SourceCodeIcon}
-        titleIcon={
-          <IntegrationProviderLogo
-            provider={repository?.provider ?? "github"}
-            className="size-6"
-            size={24}
-          />
-        }
-        breadcrumbAncestors={sourcesBreadcrumb}
-        title="Repository"
-      >
-        <QueryLoading />
-      </DashboardPage>
-    );
+  if (!source.data || !syncs.data) return <QueryLoading variant="detail" />;
 
   const item = source.data.source;
   const latestSync = syncs.data.syncs[0];

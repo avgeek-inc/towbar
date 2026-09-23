@@ -4,7 +4,6 @@ import {
   CheckmarkCircle01Icon,
   FloppyDiskIcon,
   InformationCircleIcon,
-  Key01Icon,
   ReloadIcon,
 } from "@hugeicons/core-free-icons";
 
@@ -29,7 +28,6 @@ import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { FormCard } from "@/components/page-parts";
 import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
-import { CloudProviderLogo } from "./cloud-provider-logo";
 import { formatDate } from "./dashboard-overview";
 import { PrivateKeySelector, type StoredPrivateKey } from "./private-key-store";
 
@@ -277,7 +275,6 @@ function ServerCredentialForm({
           )
         ) : null
       }
-      icon={<HugeiconsIcon icon={Key01Icon} />}
       title="Server credentials"
     >
       <form className="content-grid w-full" onSubmit={submit}>
@@ -594,10 +591,7 @@ function ServerTlsForm({
   }
 
   return (
-    <FormCard
-      icon={<CloudProviderLogo provider="cloudflare" />}
-      title="Cloudflare TLS"
-    >
+    <FormCard title="Cloudflare TLS">
       <form className="content-grid w-full" onSubmit={submit}>
         <Switch
           isDisabled={!canManage || busy}
@@ -611,8 +605,7 @@ function ServerTlsForm({
             <span className="grid gap-1">
               <Label>Enable Cloudflare TLS</Label>
               <span className="text-sm text-muted">
-                Use Cloudflare DNS validation for workloads configured with
-                Cloudflare TLS on this server.
+                Use Cloudflare DNS validation for applicable workloads.
               </span>
             </span>
           </Switch.Content>

@@ -140,10 +140,6 @@ export function EmailSettings() {
                 We’ll send a confirmation link to{" "}
                 <span className="break-words font-medium">{user.email}</span>.
               </p>
-              <FieldDescription>
-                You can request up to 5 confirmation emails in 24 hours, at
-                least one minute apart.
-              </FieldDescription>
               <div className="flex flex-wrap justify-end gap-3">
                 <Button
                   variant="secondary"

@@ -6,6 +6,7 @@ import { integrationFetch } from "../../infrastructure/outbound-network.js";
 import { serviceUnavailable } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { resolveIntegration } from "../integrations/service.js";
+import { collectGitLabBranches } from "./branch-pages.js";
 
 const projectSchema = z.object({
   default_branch: z.string().nullable(),
@@ -24,7 +25,6 @@ const groupSchema = z.object({
   visibility: z.enum(["private", "internal", "public"]),
   web_url: z.url(),
 });
-const branchSchema = z.object({ name: z.string() });
 const maxGitLabDiscoveryResponseBytes = 4 * 1_024 * 1_024;
 
 async function readGitLabDiscoveryJson(response: Response) {
@@ -202,24 +202,16 @@ export async function listGitLabBranches(input: {
   const project = encodeURIComponent(
     `${input.repositoryOwner}/${input.repositoryName}`,
   );
-  const branches: string[] = [];
-  for (let page = 1; page <= 20; page += 1) {
-    const response = await gitlabRequest(
-      connection,
-      `/projects/${project}/repository/branches?per_page=100&page=${page}`,
-    );
-    const batch = z
-      .array(branchSchema)
-      .parse(await readGitLabDiscoveryJson(response));
-    branches.push(...batch.map((branch) => branch.name));
-    const next = Number(response.headers.get("x-next-page"));
-    if (!next || batch.length < 100) break;
-    if (page === 20)
-      throw serviceUnavailable(
-        "GitLab returned more than 2,000 branches. Narrow the repository before connecting it.",
-      );
-  }
-  return [...new Set(branches)].sort((left, right) =>
-    left.localeCompare(right),
-  );
+  return collectGitLabBranches({
+    maxPages: 20,
+    readJson: readGitLabDiscoveryJson,
+    requestPage: (page) =>
+      gitlabRequest(
+        connection,
+        `/projects/${project}/repository/branches?per_page=100&page=${page}`,
+      ),
+    tooManyError: serviceUnavailable(
+      "GitLab returned more than 2,000 branches. Narrow the repository before connecting it.",
+    ),
+  });
 }

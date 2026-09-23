@@ -1,10 +1,19 @@
 "use client";
-import { FieldDescription } from "@workspace/web-design-system/forms/field";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { Button } from "@workspace/web-design-system/buttons/button";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+} from "@workspace/web-design-system/forms/field";
+import { Input } from "@workspace/web-design-system/forms/input";
+import { Label } from "@workspace/web-design-system/forms/label";
+import { PasswordInput } from "@workspace/web-design-system/forms/password-input";
 import { Modal } from "@workspace/web-design-system/overlays/modal";
-import { AuthForm } from "./auth-form";
+import { toast } from "@workspace/web-design-system/overlays/toast";
 import { api } from "@/lib/api";
 import { useAccess } from "./access-context";
+
 export function ReauthenticationDialog() {
   const { user } = useAccess();
   const [open, setOpen] = useState(false);
@@ -45,39 +54,143 @@ export function ReauthenticationDialog() {
             <FieldDescription className="mb-4">
               Confirm your password to continue with this sensitive action.
             </FieldDescription>
-            <AuthForm
-              variant="secondary"
-              errorPresentation="toast"
-              fields={[
-                {
-                  name: "password",
-                  label: "Password",
-                  type: "password",
-                  autoComplete: "current-password",
-                  required: true,
-                  maxLength: 1024,
-                },
-                ...(user?.twoFactorEnabled
-                  ? [
-                      {
-                        name: "code",
-                        label: "Authenticator code",
-                        autoComplete: "one-time-code",
-                        required: true,
-                        maxLength: 6,
-                      },
-                    ]
-                  : []),
-              ]}
-              submitLabel="Confirm"
-              onSubmit={async (values) => {
-                await api.post("/v1/core/session/reauthenticate", values);
-                finish(true);
-              }}
-            />
+            {open ? (
+              <ReauthenticationFields
+                email={user?.email ?? ""}
+                twoFactorEnabled={Boolean(user?.twoFactorEnabled)}
+                onConfirmed={() => finish(true)}
+              />
+            ) : null}
           </Modal.Body>
         </Modal.Dialog>
       </Modal.Container>
     </Modal.Backdrop>
+  );
+}
+
+function ReauthenticationFields({
+  email,
+  twoFactorEnabled,
+  onConfirmed,
+}: {
+  email: string;
+  twoFactorEnabled: boolean;
+  onConfirmed: () => void;
+}) {
+  const passwordId = useId();
+  const codeId = useId();
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const codeRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [invalid, setInvalid] = useState<"password" | "code" | null>(null);
+
+  async function confirm() {
+    if (busy) return;
+    const password = passwordRef.current?.value ?? "";
+    const code = codeRef.current?.value ?? "";
+    if (!password) {
+      setInvalid("password");
+      passwordRef.current?.focus();
+      return;
+    }
+    if (twoFactorEnabled && !/^\d{6}$/u.test(code)) {
+      setInvalid("code");
+      codeRef.current?.focus();
+      return;
+    }
+    setInvalid(null);
+    setBusy(true);
+    try {
+      await api.post("/v1/core/session/reauthenticate", {
+        password,
+        ...(twoFactorEnabled ? { code } : {}),
+      });
+      onConfirmed();
+    } catch (error) {
+      toast.danger(
+        error instanceof Error
+          ? error.message
+          : "Unable to continue. Try again.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      role="form"
+      aria-label="Confirm identity"
+      aria-busy={busy}
+      className="content-grid"
+      onKeyDown={(event) => {
+        if (event.key === "Enter" && event.target instanceof HTMLInputElement) {
+          event.preventDefault();
+          void confirm();
+        }
+      }}
+    >
+      <input
+        aria-hidden="true"
+        autoComplete="username"
+        className="sr-only"
+        defaultValue={email}
+        name="username"
+        tabIndex={-1}
+        type="text"
+      />
+      <Field>
+        <Label htmlFor={passwordId} isRequired>
+          Password
+        </Label>
+        <PasswordInput
+          id={passwordId}
+          ref={passwordRef}
+          name="password"
+          variant="secondary"
+          autoComplete="current-password"
+          maxLength={1024}
+          aria-invalid={invalid === "password"}
+          onChange={() => setInvalid(null)}
+          disabled={busy}
+        />
+        {invalid === "password" ? (
+          <FieldError>Enter your password.</FieldError>
+        ) : null}
+      </Field>
+      {twoFactorEnabled ? (
+        <Field>
+          <Label htmlFor={codeId} isRequired>
+            Authenticator code
+          </Label>
+          <Input
+            id={codeId}
+            ref={codeRef}
+            name="code"
+            variant="secondary"
+            type="text"
+            autoComplete="one-time-code"
+            inputMode="numeric"
+            pattern="[0-9]{6}"
+            maxLength={6}
+            aria-invalid={invalid === "code"}
+            onInput={(event) => {
+              if (!/^\d{0,6}$/u.test(event.currentTarget.value))
+                event.currentTarget.value = "";
+              setInvalid(null);
+            }}
+            disabled={busy}
+          />
+          {invalid === "code" ? (
+            <FieldError>Enter the six-digit authenticator code.</FieldError>
+          ) : null}
+        </Field>
+      ) : null}
+      <div className="flex">
+        <Button isDisabled={busy} onPress={() => void confirm()}>
+          {busy ? "Please wait…" : "Confirm"}
+        </Button>
+      </div>
+    </div>
   );
 }

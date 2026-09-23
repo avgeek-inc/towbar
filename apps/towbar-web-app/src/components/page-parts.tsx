@@ -92,7 +92,7 @@ export function DashboardPage({
     <PageSelectionContext.Provider value={setSelection}>
       <ApplicationPage
         actions={selection?.actions ?? actions}
-        badge={badge}
+        badge={selection ? selection.badge : badge}
         breadcrumbAncestors={
           selection?.keepEntityName
             ? [...breadcrumbAncestors, { label: title }]
@@ -168,6 +168,7 @@ export function PageTabs({
             | "info";
         };
     label: string;
+    sidebarLabel?: string;
     value: string;
   }>;
 }) {
@@ -238,7 +239,7 @@ export function PageTabs({
           .filter((tab) => !tab.group && tab.value !== "settings")
           .map((tab) => ({
             id: tab.value,
-            label: tab.label,
+            label: tab.sidebarLabel ?? tab.label,
             icon: tab.icon,
             destructive: tab.destructive,
             badge:
@@ -270,7 +271,7 @@ export function PageTabs({
             .filter((tab) => tab.group === group)
             .map((tab) => ({
               id: tab.value,
-              label: tab.label,
+              label: tab.sidebarLabel ?? tab.label,
               icon: tab.icon,
               destructive: tab.destructive,
               badge:
@@ -311,6 +312,7 @@ export function ActionButton<T>({
   onSuccess,
   permission,
   pendingLabel = "Working…",
+  preserveLabelWhilePending = false,
   redirectOnSuccess,
   success,
   variant = "secondary",
@@ -328,6 +330,7 @@ export function ActionButton<T>({
   onSuccess?: (result: T) => void;
   permission?: Action;
   pendingLabel?: string;
+  preserveLabelWhilePending?: boolean;
   redirectOnSuccess?: (result: T) => string;
   success: string;
   variant?: "danger" | "primary" | "secondary";
@@ -354,10 +357,11 @@ export function ActionButton<T>({
     }
   }
 
+  const showPendingState = busy && !preserveLabelWhilePending;
   const triggerContent =
-    busy && isIconOnly ? (
+    showPendingState && isIconOnly ? (
       <Spinner aria-label={pendingLabel} size="sm" />
-    ) : busy ? (
+    ) : showPendingState ? (
       <>
         <Spinner aria-label={pendingLabel} size="sm" />
         {pendingLabel}
@@ -409,7 +413,7 @@ export function ActionButton<T>({
                   void runAction();
                 }}
               >
-                {busy ? (
+                {showPendingState ? (
                   <>
                     <Spinner aria-label={pendingLabel} size="sm" />
                     {pendingLabel}

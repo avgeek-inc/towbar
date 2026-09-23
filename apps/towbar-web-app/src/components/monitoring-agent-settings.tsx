@@ -66,18 +66,16 @@ function MonitoringAgentForm({
           <Widget.Title>Scout Agent</Widget.Title>
         </Widget.Header>
         <Widget.Content className="grid gap-5">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
             <ScoutMascot />
             <div className="grid min-w-0 gap-2">
               <p className="font-medium">
                 Scout Agent, your monitoring powerhouse.
               </p>
               <p className="max-w-3xl text-sm text-muted">
-                Monitor performance and metrics of the server and its apps and
-                resources with updates every 30 seconds. Scout Agent helps you
-                monitor all the metrics in real time and configure alert and
-                incident thresholds so that you get notified whenever the
-                resources need attention.
+                Monitor server, app, and resource performance in real time.
+                Configure alert and incident thresholds to be notified when
+                something needs attention.
               </p>
             </div>
           </div>
@@ -147,7 +145,7 @@ function MonitoringAgentForm({
             </Checkbox>
           ) : null}
           {canManage ? (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex items-center gap-2">
               <ActionButton
                 action={() =>
                   api.post(`${endpoint}/actions/install`, {
@@ -162,13 +160,13 @@ function MonitoringAgentForm({
                         title: "Update Scout Agent?",
                         description:
                           "Install the latest version of Scout Agent. Reporting may pause briefly.",
-                        actionLabel: "Update Scout Agent",
+                        actionLabel: "Update Agent",
                       }
                     : {
                         title: "Install Scout Agent?",
                         description:
                           "Install Scout Agent on this server and begin collecting performance data.",
-                        actionLabel: "Install Scout Agent",
+                        actionLabel: "Install Agent",
                       }
                 }
                 onSuccess={() => {
@@ -180,7 +178,7 @@ function MonitoringAgentForm({
                 variant="primary"
               >
                 <ScoutIcon name={installed ? "refresh" : "install"} />
-                {installed ? "Update Scout Agent" : "Install Scout Agent"}
+                {installed ? "Update Agent" : "Install Agent"}
               </ActionButton>
               {installed || agent.status === "failed" ? (
                 <ActionButton
@@ -190,14 +188,14 @@ function MonitoringAgentForm({
                     title: "Uninstall Scout Agent?",
                     description:
                       "Stop monitoring and remove Scout Agent. Existing history is kept for your selected retention period.",
-                    actionLabel: "Uninstall Scout Agent",
+                    actionLabel: "Uninstall Agent",
                   }}
                   success="Scout Agent removal queued"
                   pendingLabel="Queuing…"
                   variant="danger"
                 >
                   <ScoutIcon name="delete" />
-                  Uninstall Scout Agent
+                  Uninstall Agent
                 </ActionButton>
               ) : null}
             </div>

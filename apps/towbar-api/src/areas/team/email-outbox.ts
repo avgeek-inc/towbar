@@ -113,7 +113,7 @@ export async function enqueueIdentityEmail(
     .where(eq(workspaces.id, workspaceId))
     .limit(1);
   if (!workspace) return;
-  await enqueueTeamEmail(database, {
+  return await enqueueTeamEmail(database, {
     workspaceId,
     recipient: input.email,
     template: input.template,

@@ -62,15 +62,7 @@ export function SourceSyncDetail() {
   }
 
   if (!query.data) {
-    return (
-      <DashboardPage
-        icon={RefreshIcon}
-        breadcrumbAncestors={breadcrumbAncestors}
-        title="Repository sync"
-      >
-        <QueryLoading />
-      </DashboardPage>
-    );
+    return <QueryLoading variant="detail" />;
   }
 
   const sync = query.data.sync;

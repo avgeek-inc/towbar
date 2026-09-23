@@ -6,7 +6,7 @@ import {
 } from "@workspace/towbar-web-ui/table-cell-text";
 
 import { SCOUT_ALERT_RULE_LIMIT_PER_ENTITY } from "@workspace/towbar-core/scout-alerts";
-import { Alert02Icon } from "@hugeicons/core-free-icons";
+import { Alert02Icon, AlertCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ScoutIcon } from "./scout-icons";
 import { useState } from "react";
@@ -72,6 +72,32 @@ export function ScoutAlerts({
     query.refresh();
     incidents.refresh();
   };
+  const incidentTitle =
+    view === "incidents" ? (
+      <PageSelectionTitle
+        label="Incidents"
+        icon={<HugeiconsIcon icon={AlertCircleIcon} />}
+        keepEntityName
+        actions={
+          <div className="w-44">
+            <ScoutSelect
+              label="Incident status"
+              hideLabel
+              value={state}
+              onChange={(value) => {
+                setState(value);
+                setCursors([""]);
+              }}
+              options={[
+                { id: "active", label: "Active" },
+                { id: "resolved", label: "Resolved" },
+                { id: "all", label: "All incidents" },
+              ]}
+            />
+          </div>
+        }
+      />
+    ) : null;
   if (!query.data)
     return (
       <>
@@ -82,6 +108,7 @@ export function ScoutAlerts({
             keepEntityName
           />
         ) : null}
+        {incidentTitle}
         <Widget>
           <Widget.Content className="min-h-64">
             {query.error ? (
@@ -362,25 +389,7 @@ export function ScoutAlerts({
       ) : null}
       {view === "incidents" ? (
         <section className="grid min-w-0 gap-4" aria-label="Scout incidents">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <h2 className="text-lg font-medium">Incidents</h2>
-            <div className="w-44">
-              <ScoutSelect
-                label="Incident status"
-                hideLabel
-                value={state}
-                onChange={(value) => {
-                  setState(value);
-                  setCursors([""]);
-                }}
-                options={[
-                  { id: "active", label: "Active" },
-                  { id: "resolved", label: "Resolved" },
-                  { id: "all", label: "All incidents" },
-                ]}
-              />
-            </div>
-          </div>
+          {incidentTitle}
           {incidents.error ? <QueryError message={incidents.error} /> : null}
           {incidents.data ? (
             <ResourceTable

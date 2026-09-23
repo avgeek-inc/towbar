@@ -139,15 +139,7 @@ export function DeploymentDetail() {
       </DashboardPage>
     );
   if (!stream.deployment || !stream.steps || !stream.logs)
-    return (
-      <DashboardPage
-        icon={Rocket01Icon}
-        breadcrumbAncestors={deployableBreadcrumb}
-        title="Deployment"
-      >
-        <QueryLoading />
-      </DashboardPage>
-    );
+    return <QueryLoading variant="detail" />;
 
   const item = stream.deployment;
   const repository = source.data?.source;

@@ -66,6 +66,7 @@ import { DomainLink } from "./domain-link";
 import { DeployableReadiness } from "./deployable-readiness";
 import { AppLogo } from "./deployable-identity";
 import { FirstDeployment } from "./first-deployment";
+import { EnvironmentChip } from "./environment-chip";
 
 type AppRecord = App & {
   serverId: string;
@@ -119,15 +120,7 @@ export function AppDetail() {
       </DashboardPage>
     );
   if (!app.data || !deployments.data || !releases.data || !source.data)
-    return (
-      <DashboardPage
-        icon={DashboardCircleIcon}
-        breadcrumbAncestors={appsBreadcrumb}
-        title="App"
-      >
-        <QueryLoading />
-      </DashboardPage>
-    );
+    return <QueryLoading variant="detail" />;
 
   const item = app.data.app;
   const usesCloudflareTunnel =
@@ -239,17 +232,6 @@ export function AppDetail() {
           </div>
         ) : undefined
       }
-      badge={
-        (detailNavigation.section ?? "overview") === "overview" ? (
-          <StatusBadge
-            status={
-              lifecycleStatus === "active"
-                ? item.runtimeState.healthStatus
-                : lifecycleStatus
-            }
-          />
-        ) : undefined
-      }
       breadcrumbAncestors={appsBreadcrumb}
       title={item.name}
       titleIcon={appLogo}
@@ -308,9 +290,11 @@ export function AppDetail() {
                     </Attributes.Item>
                   ) : null}
                   <Attributes.Item label="Environment">
-                    <TypographyCode>
-                      {item.environment?.name ?? "Unmapped"}
-                    </TypographyCode>
+                    {item.environment ? (
+                      <EnvironmentChip name={item.environment.name} />
+                    ) : (
+                      "Unmapped"
+                    )}
                   </Attributes.Item>
                   <Attributes.Item
                     icon={<HugeiconsIcon icon={ServerStack01Icon} />}
@@ -379,6 +363,7 @@ export function AppDetail() {
           {
             value: "performance",
             label: "Performance",
+            contentOwnsTitle: true,
             group: "Monitor",
             icon: <HugeiconsIcon icon={Activity01Icon} />,
             content: (
@@ -402,6 +387,7 @@ export function AppDetail() {
           {
             value: "incidents",
             label: "Incidents",
+            contentOwnsTitle: true,
             group: "Monitor",
             icon: <HugeiconsIcon icon={AlertCircleIcon} />,
             content: (
@@ -411,6 +397,7 @@ export function AppDetail() {
           {
             value: "compare-deployments",
             label: "Compare deployments",
+            sidebarLabel: "Compare",
             group: "Monitor",
             icon: <HugeiconsIcon icon={GitCompareIcon} />,
             content: <ScoutCompareDeployments deployableId={appId} />,

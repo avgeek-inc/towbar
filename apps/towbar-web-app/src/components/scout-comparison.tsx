@@ -260,6 +260,12 @@ const assessmentLabel = {
   informational: "Activity comparison",
 };
 
+function assessmentVariant(assessment: ComparisonMetric["assessment"]) {
+  if (assessment === "decreased") return "success";
+  if (assessment === "increased") return "destructive";
+  return "warning";
+}
+
 function comparisonAssessmentTooltip(metric: ComparisonMetric) {
   if (metric.assessment === "insufficient_data")
     return "There are not enough measurements in both windows to compare this metric.";
@@ -357,9 +363,7 @@ function ComparisonChart({
           <Chip
             size="small"
             tooltip={comparisonAssessmentTooltip(metric)}
-            variant={
-              metric.assessment === "increased" ? "warning" : "secondary"
-            }
+            variant={assessmentVariant(metric.assessment)}
           >
             {assessmentLabel[metric.assessment]}
           </Chip>
@@ -450,8 +454,7 @@ function ComparisonChart({
         </div>
         <p className="text-xs text-muted">
           Coverage: baseline {metric.baseline.coveragePercent.toFixed(0)}% ·
-          compared {metric.candidate.coveragePercent.toFixed(0)}%. Gaps have no
-          measurement.
+          compared {metric.candidate.coveragePercent.toFixed(0)}%.
         </p>
       </Widget.Content>
     </Widget>

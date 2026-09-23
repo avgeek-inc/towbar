@@ -20,7 +20,6 @@ import { createElement } from "react";
 
 import packageManifest from "../../../../package.json";
 import { TowbarBrandLogo } from "@workspace/towbar-web-ui/brand";
-import { Avatar } from "@workspace/web-design-system/data-display/avatar";
 import type {
   ApplicationPolicy,
   HeaderConfig,
@@ -206,37 +205,6 @@ export function createApplicationSidebar(
 ) {
   return {
     ...sidebar,
-    footerContent: user
-      ? createElement(
-          "div",
-          {
-            className:
-              "sidebar-identity flex min-w-0 items-center gap-2.5 px-4 py-4 text-sm",
-          },
-          createElement(Avatar, {
-            "aria-hidden": true,
-            email: user.email,
-            name: user.name,
-            size: "md",
-            src: user.avatarUrl,
-            className: "size-9 shrink-0",
-          }),
-          createElement(
-            "div",
-            { className: "grid min-w-0 flex-1 gap-0" },
-            createElement(
-              "span",
-              { className: "truncate font-medium" },
-              user.name,
-            ),
-            createElement(
-              "span",
-              { className: "truncate text-xs text-foreground/70" },
-              user.teamName,
-            ),
-          ),
-        )
-      : undefined,
     groups: sidebar.groups
       .map((group) => ({
         ...group,

@@ -7,7 +7,6 @@ import {
   Activity01Icon,
   Alert02Icon,
   AlertCircleIcon,
-  CheckmarkCircle01Icon,
   ComputerActivityIcon,
   DashboardCircleIcon,
   CubeIcon,
@@ -196,15 +195,7 @@ export function ServerDetail() {
     !preparations.data ||
     (can("server.remove") && !orphans.data)
   )
-    return (
-      <DashboardPage
-        icon={ServerStack01Icon}
-        breadcrumbAncestors={serversBreadcrumb}
-        title="Server"
-      >
-        <QueryLoading />
-      </DashboardPage>
-    );
+    return <QueryLoading variant="detail" />;
 
   const item = server.data.server;
   const appCount = apps.data?.apps.filter(
@@ -483,18 +474,7 @@ export function ServerDetail() {
                   >
                     <HugeiconsIcon aria-hidden="true" icon={Alert02Icon} />
                   </span>
-                ) : (
-                  <span
-                    aria-label="Server setup completed"
-                    role="img"
-                    className="inline-flex text-success-soft-foreground [&_svg]:size-4"
-                  >
-                    <HugeiconsIcon
-                      aria-hidden="true"
-                      icon={CheckmarkCircle01Icon}
-                    />
-                  </span>
-                ),
+                ) : undefined,
               icon: <HugeiconsIcon icon={Settings01Icon} />,
               content: <ServerPreparationChecklist {...preparationProps} />,
             },
@@ -507,7 +487,6 @@ export function ServerDetail() {
                     content: (
                       <ServerTerminal
                         serverId={serverId}
-                        username={item.config.ssh.username}
                         host={item.config.ssh.host ?? item.canonicalIp}
                         credentialsPending={credentialsPending}
                       />
@@ -518,6 +497,7 @@ export function ServerDetail() {
             {
               value: "performance",
               label: "Performance",
+              contentOwnsTitle: true,
               group: "Monitor",
               icon: <HugeiconsIcon icon={Activity01Icon} />,
               content: (
@@ -538,6 +518,7 @@ export function ServerDetail() {
             {
               value: "incidents",
               label: "Incidents",
+              contentOwnsTitle: true,
               group: "Monitor",
               icon: <HugeiconsIcon icon={AlertCircleIcon} />,
               content: <ScoutIncidents serverId={serverId} />,
@@ -612,18 +593,7 @@ export function ServerDetail() {
                             icon={Alert02Icon}
                           />
                         </span>
-                      ) : (
-                        <span
-                          aria-label="Credentials verified"
-                          className="inline-flex text-success-soft-foreground [&_svg]:size-4"
-                          role="img"
-                        >
-                          <HugeiconsIcon
-                            aria-hidden="true"
-                            icon={CheckmarkCircle01Icon}
-                          />
-                        </span>
-                      ),
+                      ) : undefined,
                       content: (
                         <ServerEditor
                           canManage={server.data.canManageServer}

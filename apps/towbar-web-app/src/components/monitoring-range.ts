@@ -1,7 +1,7 @@
 export type CustomMonitoringRange = { startAt: string; endAt: string };
 export const monitoringRanges = [
-  { id: "15m", label: "Last 15 minutes", days: 1 },
-  { id: "30m", label: "Last 30 minutes", days: 1 },
+  { id: "15m", label: "Last 15 min", days: 1 },
+  { id: "30m", label: "Last 30 min", days: 1 },
   { id: "1h", label: "Last hour", days: 1 },
   { id: "6h", label: "Last 6 hours", days: 1 },
   { id: "24h", label: "Last 24 hours", days: 1 },

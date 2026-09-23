@@ -6,7 +6,7 @@ import { EmptyState } from "@workspace/web-design-system/data-display/empty-stat
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { ThemeSwitcher } from "@workspace/web-design-system/controls/theme-switcher";
 import { AlertDialog } from "@workspace/web-design-system/overlays/alert-dialog";
-import { clearApiQueryCache } from "@/hooks/use-api-query";
+import { clearApiQueryCache, refreshApiQueries } from "@/hooks/use-api-query";
 import { SecondarySidebarLayout } from "./secondary-sidebar";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -41,6 +41,7 @@ import {
 import { RelativeTimeProvider } from "./last-synced-time";
 import { DeploymentQueue } from "@/components/deployment-queue";
 import { NotificationCenter } from "@/components/notification-center";
+import { AccountMenu } from "@/components/account-menu";
 import { HeadingHelpContext } from "@workspace/web-design-system/overlays/heading-help";
 import { headingDocumentation } from "@/lib/documentation";
 
@@ -49,6 +50,7 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const navigate = useCallback((href: string) => router.push(href), [router]);
   const [user, setUser] = useState<TowbarUser | null>();
+  const [isSignOutConfirming, setIsSignOutConfirming] = useState(false);
   const apps = useApiQuery<{ apps: App[] }>(
     user && !user.mustChangePassword ? "/v1/core/apps" : null,
     30_000,
@@ -89,14 +91,14 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
   const isSessionTransition = pathname === "/logout";
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
-      if (event.key === "towbar:preferences-revision") clearApiQueryCache();
+      if (event.key === "towbar:preferences-revision") refreshApiQueries();
     };
-    window.addEventListener("towbar:preferences-changed", clearApiQueryCache);
+    window.addEventListener("towbar:preferences-changed", refreshApiQueries);
     window.addEventListener("storage", onStorage);
     return () => {
       window.removeEventListener(
         "towbar:preferences-changed",
-        clearApiQueryCache,
+        refreshApiQueries,
       );
       window.removeEventListener("storage", onStorage);
     };
@@ -168,20 +170,28 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  const sidebar = createApplicationSidebar(
-    {
-      apps: apps.data
-        ? groupDeployableInstances(apps.data.apps).length
-        : undefined,
-      resources: resources.data
-        ? groupDeployableInstances(resources.data.resources).length
-        : undefined,
-      servers: servers.data?.servers.length,
-      sources: sources.data?.sources.length,
-    },
-    monitoring.error ? undefined : monitoring.data,
-    user,
-  );
+  const sidebar = {
+    ...createApplicationSidebar(
+      {
+        apps: apps.data
+          ? groupDeployableInstances(apps.data.apps).length
+          : undefined,
+        resources: resources.data
+          ? groupDeployableInstances(resources.data.resources).length
+          : undefined,
+        servers: servers.data?.servers.length,
+        sources: sources.data?.sources.length,
+      },
+      monitoring.error ? undefined : monitoring.data,
+      user,
+    ),
+    footerContent: (
+      <AccountMenu
+        user={user}
+        onLogoutRequest={() => setIsSignOutConfirming(true)}
+      />
+    ),
+  };
   return (
     <AccessContext.Provider value={user}>
       <HeadingHelpContext.Provider
@@ -198,7 +208,9 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
                     <NotificationCenter />
                     <div className="flex items-center gap-1">
                       <ThemeSwitcher size="small" />
-                      <HeaderSignOut onSignOut={() => router.push("/logout")} />
+                      <HeaderSignOut
+                        onSignOutRequest={() => setIsSignOutConfirming(true)}
+                      />
                     </div>
                   </div>
                 }
@@ -246,62 +258,76 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
             </SecondarySidebarLayout>
           </AppLayout>
         </AppShell>
+        <SignOutConfirmation
+          isOpen={isSignOutConfirming}
+          onOpenChange={setIsSignOutConfirming}
+          onSignOut={() => router.push("/logout")}
+        />
         <ReauthenticationDialog />
       </HeadingHelpContext.Provider>
     </AccessContext.Provider>
   );
 }
 
-function HeaderSignOut({ onSignOut }: { onSignOut: () => void }) {
-  const [isConfirming, setIsConfirming] = useState(false);
+function HeaderSignOut({ onSignOutRequest }: { onSignOutRequest: () => void }) {
   return (
-    <>
-      <Button
-        aria-label="Sign out"
-        className="size-8 min-h-8 min-w-8 rounded-full p-0"
-        isIconOnly
-        onPress={() => setIsConfirming(true)}
-        variant="danger-ghost"
-      >
-        <HugeiconsIcon
-          aria-hidden="true"
-          className="size-4"
-          icon={Logout03Icon}
-        />
-      </Button>
-      <AlertDialog.Backdrop
-        isOpen={isConfirming}
-        onOpenChange={setIsConfirming}
-      >
-        <AlertDialog.Container>
-          <AlertDialog.Dialog>
-            <AlertDialog.Header>
-              <AlertDialog.Heading>Sign out of Towbar?</AlertDialog.Heading>
-            </AlertDialog.Header>
-            <AlertDialog.Body>
-              This ends the current Towbar session on this browser. To manage
-              other sessions, check your personal settings.
-            </AlertDialog.Body>
-            <AlertDialog.Footer>
-              <Button
-                onPress={() => setIsConfirming(false)}
-                variant="secondary"
-              >
-                Stay signed in
-              </Button>
-              <Button
-                onPress={() => {
-                  setIsConfirming(false);
-                  onSignOut();
-                }}
-                variant="danger"
-              >
-                Sign out
-              </Button>
-            </AlertDialog.Footer>
-          </AlertDialog.Dialog>
-        </AlertDialog.Container>
-      </AlertDialog.Backdrop>
-    </>
+    <Button
+      aria-label="Sign out"
+      className="size-8 min-h-8 min-w-8 rounded-full p-0"
+      isIconOnly
+      onPress={onSignOutRequest}
+      variant="danger"
+    >
+      <HugeiconsIcon
+        aria-hidden="true"
+        className="size-4"
+        icon={Logout03Icon}
+      />
+    </Button>
+  );
+}
+
+function SignOutConfirmation({
+  isOpen,
+  onOpenChange,
+  onSignOut,
+}: {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSignOut: () => void;
+}) {
+  return (
+    <AlertDialog.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
+      <AlertDialog.Container>
+        <AlertDialog.Dialog>
+          <AlertDialog.Header>
+            <AlertDialog.Heading>Sign out of Towbar?</AlertDialog.Heading>
+          </AlertDialog.Header>
+          <AlertDialog.Body>
+            This ends the current Towbar session on this browser. To manage
+            other sessions, check your personal settings.
+          </AlertDialog.Body>
+          <AlertDialog.Footer>
+            <Button onPress={() => onOpenChange(false)} variant="secondary">
+              Stay signed in
+            </Button>
+            <Button
+              onPress={() => {
+                onOpenChange(false);
+                onSignOut();
+              }}
+              variant="danger"
+            >
+              <HugeiconsIcon
+                aria-hidden="true"
+                className="size-4"
+                icon={Logout03Icon}
+              />
+              Sign out
+            </Button>
+          </AlertDialog.Footer>
+        </AlertDialog.Dialog>
+      </AlertDialog.Container>
+    </AlertDialog.Backdrop>
   );
 }

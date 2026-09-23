@@ -13,7 +13,7 @@ export function DomainLink({
   return (
     <a
       className={cn(
-        "focus-visible:ring-focus inline-flex min-w-0 max-w-full items-center rounded-sm decoration-dotted decoration-muted underline-offset-4 outline-none pointer-fine:hover:underline focus-visible:underline focus-visible:ring-2",
+        "focus-visible:ring-focus inline-flex min-w-0 max-w-full items-center rounded-sm outline-none focus-visible:ring-2",
         className,
       )}
       href={`https://${domain}`}
@@ -22,7 +22,9 @@ export function DomainLink({
       title={title}
       {...props}
     >
-      <span className="min-w-0 truncate">{children}</span>
+      <span className="min-w-0 truncate underline decoration-dashed decoration-muted underline-offset-4">
+        {children}
+      </span>
       {target === "_blank" ? <NewTabIndicator /> : null}
     </a>
   );

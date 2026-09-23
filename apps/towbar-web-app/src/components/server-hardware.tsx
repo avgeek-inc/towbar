@@ -91,6 +91,7 @@ function ProviderLogo({ provider }: { provider: keyof typeof providerNames }) {
         width={provider === "aws" ? 24 : 16}
         height={16}
         className="h-[1em] w-auto object-contain"
+        unoptimized
       />
     </TooltipText>
   );

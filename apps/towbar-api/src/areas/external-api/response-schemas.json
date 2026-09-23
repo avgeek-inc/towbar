@@ -15629,6 +15629,12 @@
       "type": "object",
       "properties": {
         "deployableName": { "type": "string" },
+        "deployableDomain": {
+          "anyOf": [{ "type": "null" }, { "type": "string" }]
+        },
+        "deployableImage": {
+          "anyOf": [{ "type": "null" }, { "type": "string" }]
+        },
         "appId": { "type": "string" },
         "targetEnvironment": { "$ref": "#/components/schemas/Response_99" },
         "commitSha": { "type": "string" },
@@ -15737,6 +15743,8 @@
       },
       "required": [
         "deployableName",
+        "deployableDomain",
+        "deployableImage",
         "appId",
         "targetEnvironment",
         "commitSha",
@@ -18627,6 +18635,7 @@
             { "type": "string", "format": "date-time" }
           ]
         },
+        "cycle": { "type": "number" },
         "provider": {
           "anyOf": [
             { "type": "string", "const": "discord" },
@@ -18636,7 +18645,6 @@
             { "type": "string", "const": "webhook" }
           ]
         },
-        "cycle": { "type": "number" },
         "category": {
           "anyOf": [
             { "type": "string", "const": "test" },
@@ -18677,8 +18685,8 @@
         "entityId",
         "title",
         "nextAttemptAt",
-        "provider",
         "cycle",
+        "provider",
         "category",
         "eventId",
         "attemptCount",

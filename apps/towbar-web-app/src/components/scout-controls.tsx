@@ -198,7 +198,7 @@ export function ScoutSelect({
               key={option.id}
               textValue={option.label}
             >
-              <span className="flex min-w-0 flex-1 items-center gap-2">
+              <span className="flex min-w-0 flex-1 items-center gap-2 pr-8">
                 <ScoutOptionIcon value={option.id} label={label} />
                 <span className="truncate">{option.label}</span>
                 {option.detail ? (
