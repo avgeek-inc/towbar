@@ -214,30 +214,39 @@ a {
 
   .sidebar-identity {
     background: transparent;
+    transform: none !important;
+    transition-property: background-color, box-shadow;
+    --sidebar-identity-gradient: linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--color-yellow-300) 16%, transparent) 0%,
+      color-mix(in oklch, var(--color-yellow-300) 8%, transparent) 50%,
+      color-mix(in oklch, var(--color-yellow-300) 2%, transparent) 100%
+    );
+  }
+
+  .dark .sidebar-identity {
+    --sidebar-identity-gradient: linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--color-yellow-900) 16%, transparent) 0%,
+      color-mix(in oklch, var(--color-yellow-900) 8%, transparent) 50%,
+      color-mix(in oklch, var(--color-yellow-900) 2%, transparent) 100%
+    );
+  }
+
+  @media (min-width: 64rem) {
+    .sidebar-identity[aria-expanded="true"] {
+      background: var(--sidebar-identity-gradient);
+    }
   }
 
   @media (min-width: 64rem) and (hover: hover) {
     .sidebar-identity:hover {
-      background: linear-gradient(
-        135deg,
-        color-mix(in oklch, var(--color-yellow-300) 16%, transparent) 0%,
-        color-mix(in oklch, var(--color-yellow-300) 8%, transparent) 50%,
-        color-mix(in oklch, var(--color-yellow-300) 2%, transparent) 100%
-      );
-    }
-
-    .dark .sidebar-identity:hover {
-      background: linear-gradient(
-        135deg,
-        color-mix(in oklch, var(--color-yellow-900) 16%, transparent) 0%,
-        color-mix(in oklch, var(--color-yellow-900) 8%, transparent) 50%,
-        color-mix(in oklch, var(--color-yellow-900) 2%, transparent) 100%
-      );
+      background: var(--sidebar-identity-gradient);
     }
   }
 
   @media (prefers-reduced-transparency: reduce) {
-    .sidebar-identity:hover {
+    .sidebar-identity:is(:hover, [aria-expanded="true"]) {
       background: var(--surface);
     }
   }
