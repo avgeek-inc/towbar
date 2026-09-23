@@ -16,7 +16,7 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { FieldLabel } from "@workspace/web-design-system/forms/field";
+import { Field, FieldLabel } from "@workspace/web-design-system/forms/field";
 import { Modal } from "@workspace/web-design-system/overlays/modal";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
@@ -265,26 +265,31 @@ export function SourceEnvironments({
                   }
                 }}
               >
-                <FieldLabel isRequired>Deployment branch</FieldLabel>
-                <SourceBranchSelect
-                  ariaLabel={`${editing?.name ?? "Environment"} branch`}
-                  branches={branches}
-                  required
-                  value={branch}
-                  onChange={(nextBranch) => {
-                    setBranch(nextBranch);
-                    setSaveError(null);
-                  }}
-                />
-                {saveError ? (
-                  <p
-                    id="environment-branch-error"
-                    role="alert"
-                    className="text-sm text-danger"
-                  >
-                    {saveError}
-                  </p>
-                ) : null}
+                <Field className="gap-3">
+                  <FieldLabel htmlFor="edit-environment-branch" isRequired>
+                    Deployment branch
+                  </FieldLabel>
+                  <SourceBranchSelect
+                    ariaLabel={`${editing?.name ?? "Environment"} branch`}
+                    branches={branches}
+                    required
+                    triggerId="edit-environment-branch"
+                    value={branch}
+                    onChange={(nextBranch) => {
+                      setBranch(nextBranch);
+                      setSaveError(null);
+                    }}
+                  />
+                  {saveError ? (
+                    <p
+                      id="environment-branch-error"
+                      role="alert"
+                      className="text-sm text-danger"
+                    >
+                      {saveError}
+                    </p>
+                  ) : null}
+                </Field>
                 <div className="flex justify-end gap-2">
                   <Button
                     variant="secondary"
