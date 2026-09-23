@@ -643,13 +643,11 @@ function ResourceConfiguration({ item }: { item: ResourceRecord }) {
         <Attributes.Item label="Memory limit">
           {item.config.container.resources.memory}
         </Attributes.Item>
-        <Attributes.Item label="Health check">
-          {renderHealth(item.config.health)}
-        </Attributes.Item>
         <Attributes.Item label="Persistent volumes">
           {renderVolumes(item.config.container.volumes)}
         </Attributes.Item>
       </Attributes>
+      <ResourceHealthCheck health={item.config.health} />
       <Attributes
         icon={<HugeiconsIcon icon={Rocket01Icon} />}
         columns={2}
@@ -736,30 +734,41 @@ function ResourceConnectionDetails({ item }: { item: ResourceRecord }) {
   );
 }
 
-function renderHealth(health: Resource["config"]["health"]) {
-  if (health.type === "http") {
-    return (
-      <span className="grid gap-1">
-        <TypographyCode>{health.path}</TypographyCode>
-        <span className="typography--body-xs font-normal text-muted">
-          HTTP · {health.timeoutSeconds} second timeout
-        </span>
-      </span>
-    );
-  }
-  if (health.type === "command") {
-    return (
-      <span className="grid gap-1">
-        <TypographyCode className="break-all">
-          {health.command.join(" ")}
-        </TypographyCode>
-        <span className="typography--body-xs font-normal text-muted">
-          {health.timeoutSeconds} second timeout
-        </span>
-      </span>
-    );
-  }
-  return `Container health · ${health.timeoutSeconds} second timeout`;
+function ResourceHealthCheck({
+  health,
+}: {
+  health: Resource["config"]["health"];
+}) {
+  return (
+    <Attributes
+      icon={<HugeiconsIcon icon={Activity01Icon} />}
+      columns={2}
+      title="Health check"
+      variant="card"
+    >
+      <Attributes.Item label="Check type">
+        {health.type === "http"
+          ? "HTTP"
+          : health.type === "command"
+            ? "Command"
+            : "Container"}
+      </Attributes.Item>
+      <Attributes.Item label="Timeout">
+        {health.timeoutSeconds} seconds
+      </Attributes.Item>
+      {health.type === "http" ? (
+        <Attributes.Item label="Endpoint path" className="col-span-2">
+          <TypographyCode className="break-all">{health.path}</TypographyCode>
+        </Attributes.Item>
+      ) : health.type === "command" ? (
+        <Attributes.Item label="Command" className="col-span-2">
+          <TypographyCode className="break-all">
+            {health.command.join(" ")}
+          </TypographyCode>
+        </Attributes.Item>
+      ) : null}
+    </Attributes>
+  );
 }
 
 function renderVolumes(volumes: Resource["config"]["container"]["volumes"]) {
