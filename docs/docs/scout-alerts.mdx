@@ -5,7 +5,7 @@ description: Configure metric alerts, public HTTP checks, and Slack or email not
 
 Scout Alerts turns performance measurements into incidents you can act on. Open **Server → Monitor → Alerts** to create rules and inspect active or resolved incidents. Each server, app, or resource page shows only its own rules and incidents in **Monitor → Alerts**. New rules automatically monitor the entity whose page you are viewing.
 
-No rules are enabled automatically. The dotted 80% line in performance charts is a visual reference, not a notification threshold.
+Towbar does not create alert rules automatically. The dotted 80% line in performance charts is a visual reference, not a notification threshold.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
@@ -34,9 +34,9 @@ No rules are enabled automatically. The dotted 80% line in performance charts is
 1. Choose **Create rule**, enter a rule name, then choose a metric.
 2. The current server, app, or resource is selected automatically. Workload rules select **Production** or **Previews**; preview rules consider the selected workload's preview instances together.
 3. Set the threshold and direction. **At least** and **At most** include the threshold itself. For metrics and public HTTP checks, choose how long the condition must remain true: 1, 2, 5, 10, 15, or 30 minutes.
-4. Choose whether the rule is enabled, then save. All configured notification destinations receive alerts and recoveries automatically.
+4. Save the rule. It starts active, and all configured notification destinations receive alerts and recoveries automatically.
 
-A server without notification destinations still creates incidents in Towbar. Adding a destination does not send an immediate test; a firing incident becomes eligible on the next evaluation. Admins and Members can create, change, enable, disable, or delete rules. Viewers can inspect them.
+A server without notification destinations still creates incidents in Towbar. Adding a destination does not send an immediate test; a firing incident becomes eligible on the next evaluation. Admins and Members can create, change, pause, resume, or delete rules. Viewers can inspect them.
 
 | Example rule            | Trigger                              | Recovery                            |
 | ----------------------- | ------------------------------------ | ----------------------------------- |
@@ -46,7 +46,7 @@ A server without notification destinations still creates incidents in Towbar. Ad
 | Container restart loop  | At least 3 restarts within 5 minutes | Fewer than 3 restarts in the window |
 | Scout stopped reporting | No report collected for 3 minutes    | Reports resume                      |
 
-The examples above are starting points for your own thresholds. New metric and HTTP rules created in the dashboard default to a one-minute duration. A breach must remain continuous for the selected duration; missing or stale readings cannot complete it. Existing rules without a duration continue to fire on the first qualifying reading until you choose a duration. Restart rules instead count events in a configurable 1-to-60-minute window, and missing-report rules use their report-age threshold. An incident recovers on the first fresh measurement that no longer meets the trigger condition. Each incident sends one firing notification, with no repeats while active. Each server, app, or resource supports up to 10 alert rules, including disabled rules. Delete a rule to free a slot. Production and preview rules share the same entity limit. A server supports up to 100 rules across all its entities, including at most 10 public HTTP checks.
+The examples above are starting points for your own thresholds. New metric and HTTP rules created in the dashboard default to a one-minute duration. A breach must remain continuous for the selected duration; missing or stale readings cannot complete it. Existing rules without a duration continue to fire on the first qualifying reading until you choose a duration. Restart rules instead count events in a configurable 1-to-60-minute window, and missing-report rules use their report-age threshold. An incident recovers on the first fresh measurement that no longer meets the trigger condition. Each incident sends one firing notification, with no repeats while active. New rules start active; use **Pause** and **Resume** in the rule list to control evaluation. Each server, app, or resource supports up to 10 alert rules, including paused rules. Delete a rule to free a slot. Production and preview rules share the same entity limit. A server supports up to 100 rules across all its entities, including at most 10 public HTTP checks.
 
 ## Workspace monitoring
 
@@ -100,7 +100,7 @@ Host and workload gauges use the reported metric units. The editor presents byte
 
 Metric rules require Scout Agent to be enabled. Missing-report rules include an installation grace period and do not alert on intentional uninstall. Public HTTP checks are performed by the control plane and do not require an installed agent.
 
-Deleting or disabling a rule, changing its condition, or removing its monitored workload closes its incident with an explicit reason. That is different from recovery and does not send a recovery notification. Active incidents remain visible; resolved incidents follow the server's Scout retention setting, defaulting to 15 days when no agent is installed.
+Deleting or pausing a rule, changing its condition, or removing its monitored workload closes its incident with an explicit reason. That is different from recovery and does not send a recovery notification. Active incidents remain visible; resolved incidents follow the server's Scout retention setting, defaulting to 15 days when no agent is installed.
 
 ## Public HTTP checks
 

@@ -333,7 +333,7 @@ export function ActionButton<T>({
   preserveLabelWhilePending?: boolean;
   redirectOnSuccess?: (result: T) => string;
   success: string;
-  variant?: "danger" | "primary" | "secondary";
+  variant?: "danger" | "primary" | "secondary" | "warning";
 }) {
   const { can } = useAccess();
   const [busy, setBusy] = useState(false);
@@ -407,7 +407,13 @@ export function ActionButton<T>({
               </Button>
               <Button
                 isDisabled={busy || isDisabled}
-                variant={variant === "danger" ? "danger" : "primary"}
+                variant={
+                  variant === "danger"
+                    ? "danger"
+                    : variant === "warning"
+                      ? "warning"
+                      : "primary"
+                }
                 onPress={() => {
                   setIsConfirming(false);
                   void runAction();
