@@ -1,4 +1,5 @@
 import { attachServerTerminal } from "./areas/servers/terminal-transport.js";
+import { runTemporalHealthCheck } from "./areas/system-health/service.js";
 import type { Server } from "node:http";
 import {
   wakeAppJobsWorkflow,
@@ -14,7 +15,6 @@ import { getRuntimeLogDrains } from "./infrastructure/runtime-log-drains.js";
 import { getRuntimeNotifications } from "./infrastructure/runtime-notifications.js";
 import {
   closeTemporalClient,
-  wakeMaintenanceWorkflow,
   wakeScoutAlertsWorkflow,
 } from "./infrastructure/temporal.js";
 
@@ -48,14 +48,29 @@ const internalServer = serve(
   },
 );
 
-void wakeMaintenanceWorkflow().catch((error: unknown) => {
-  console.error("Towbar maintenance workflow could not be started", error);
-});
+let temporalHealthCheckRunning = false;
+function checkTemporalHealth() {
+  if (temporalHealthCheckRunning) return;
+  temporalHealthCheckRunning = true;
+  void runTemporalHealthCheck()
+    .catch((error: unknown) => {
+      console.error(
+        "Towbar Temporal health check could not be recorded",
+        error,
+      );
+    })
+    .finally(() => {
+      temporalHealthCheckRunning = false;
+    });
+}
+checkTemporalHealth();
+const temporalHealthCheckTimer = setInterval(checkTemporalHealth, 5 * 60_000);
 void wakeScoutAlertsWorkflow().catch((error: unknown) => {
   console.error("Scout alert workflow could not be started", error);
 });
 
 async function shutdown() {
+  clearInterval(temporalHealthCheckTimer);
   closeTerminals();
   server.close();
   internalServer.close();
