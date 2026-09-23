@@ -8,6 +8,7 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { useAccess } from "./access-context";
 import { ActionButton } from "./page-parts";
+import { EnvironmentChip } from "./environment-chip";
 type Environment = {
   id: string;
   name: string;
@@ -44,8 +45,8 @@ export function EnvironmentAutomationControls({
               key={environment.id}
               className="flex flex-wrap items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
             >
-              <div className="grid gap-1">
-                <span>{environment.name}</span>
+              <div className="grid justify-items-start gap-1">
+                <EnvironmentChip name={environment.name} />
                 <span className="text-sm text-muted">{environment.branch}</span>
               </div>
               <div className="flex items-center gap-3">

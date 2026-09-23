@@ -26,6 +26,7 @@ import { useApiQuery, refreshApiQueries } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { SourceBranchSelect } from "./source-branch-select";
 import { formatDate } from "./dashboard-overview";
+import { EnvironmentChip } from "./environment-chip";
 
 export type SourceEnvironment = {
   id: string;
@@ -71,7 +72,7 @@ export function SourceEnvironments({
           {
             key: "name",
             header: "Environment",
-            cell: (item) => item.name,
+            cell: (item) => <EnvironmentChip name={item.name} />,
           },
           {
             key: "branch",

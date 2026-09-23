@@ -6,7 +6,7 @@ import { GitBranchIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { InstanceEnvironment } from "@workspace/towbar-web-client";
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
-import { EnvironmentIcon } from "./environment-icon";
+import { EnvironmentChip } from "./environment-chip";
 
 export function InstanceEnvironmentLabel({
   environment,
@@ -17,11 +17,8 @@ export function InstanceEnvironmentLabel({
 }) {
   if (!environment) return <span className="text-muted">—</span>;
   return (
-    <TableCellStack>
-      <span className="inline-flex items-center gap-2">
-        <EnvironmentIcon name={environment.name} />
-        <span>{environment.name}</span>
-      </span>
+    <TableCellStack className="justify-items-start">
+      <EnvironmentChip name={environment.name} />
       <TableCellDescription className="inline-flex items-center gap-1">
         <HugeiconsIcon
           aria-hidden="true"

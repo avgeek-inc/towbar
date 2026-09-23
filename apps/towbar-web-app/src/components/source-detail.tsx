@@ -14,6 +14,7 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import { ElapsedTime } from "./elapsed-time";
+import { EnvironmentChip } from "./environment-chip";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
@@ -125,7 +126,12 @@ export function SourceDetail() {
     {
       key: "environment",
       header: "Environment",
-      cell: (sync) => sync.environment?.name ?? "Not recorded",
+      cell: (sync) =>
+        sync.environment ? (
+          <EnvironmentChip name={sync.environment.name} />
+        ) : (
+          "Not recorded"
+        ),
       className: "min-w-36",
     },
     {

@@ -33,6 +33,7 @@ import { formatDate } from "@/components/dashboard-overview";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import { useSourceBreadcrumbs } from "./source-breadcrumbs";
+import { EnvironmentChip } from "./environment-chip";
 
 export function SourceSyncDetail() {
   const detailNavigation = useDetailNavigation();
@@ -122,7 +123,11 @@ export function SourceSyncDetail() {
                     variant="card"
                   >
                     <Attributes.Item label="Environment">
-                      {sync.environment?.name ?? "Legacy sync"}
+                      {sync.environment ? (
+                        <EnvironmentChip name={sync.environment.name} />
+                      ) : (
+                        "Legacy sync"
+                      )}
                     </Attributes.Item>
                     <Attributes.Item label="Mapping revision">
                       {sync.mappingRevision ? (
