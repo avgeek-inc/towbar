@@ -487,7 +487,6 @@ export function ServerDetail() {
                     content: (
                       <ServerTerminal
                         serverId={serverId}
-                        username={item.config.ssh.username}
                         host={item.config.ssh.host ?? item.canonicalIp}
                         credentialsPending={credentialsPending}
                       />

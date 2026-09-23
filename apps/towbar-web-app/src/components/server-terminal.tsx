@@ -4,14 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Terminal } from "@xterm/xterm";
 import type { FitAddon } from "@xterm/addon-fit";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  CommandLineIcon,
-  Link01Icon,
-  Unlink01Icon,
-} from "@hugeicons/core-free-icons";
+import { Link01Icon, Unlink01Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { QueryError } from "@workspace/towbar-web-ui/query-state";
 import { api } from "@/lib/api";
 import { config } from "@/lib/config";
@@ -22,12 +17,10 @@ import "@xterm/xterm/css/xterm.css";
 type Status = "idle" | "connecting" | "connected" | "disconnected";
 export function ServerTerminal({
   serverId,
-  username,
   host,
   credentialsPending,
 }: {
   serverId: string;
-  username: string;
   host: string;
   credentialsPending: boolean;
 }) {
@@ -221,29 +214,10 @@ export function ServerTerminal({
   return (
     <Widget>
       <Widget.Header className="flex-wrap gap-y-2">
-        <Widget.Title
-          className="shrink-0 whitespace-nowrap"
-          icon={<HugeiconsIcon icon={CommandLineIcon} />}
-        >
+        <Widget.Title className="shrink-0 whitespace-nowrap">
           SSH terminal
         </Widget.Title>
         <div className="ml-auto flex items-center gap-3">
-          <StatusBadge
-            status={
-              status === "connected"
-                ? "healthy"
-                : status === "connecting"
-                  ? "running"
-                  : "unknown"
-            }
-            label={
-              status === "connected"
-                ? "Connected"
-                : status === "connecting"
-                  ? "Connecting"
-                  : "Disconnected"
-            }
-          />
           {status === "connected" || status === "connecting" ? (
             <Button
               className="h-6! gap-1.5 px-2.5 text-xs font-normal before:absolute before:inset-x-0 before:-inset-y-2 [&_svg]:size-3.5!"
@@ -255,7 +229,7 @@ export function ServerTerminal({
                 if (terminal.current)
                   terminal.current.options.disableStdin = true;
                 setStatus("disconnected");
-                setMessage("Disconnected");
+                setMessage(undefined);
               }}
             >
               <HugeiconsIcon icon={Unlink01Icon} className="size-4" />
@@ -295,15 +269,18 @@ export function ServerTerminal({
             <InlineLink href={`/servers/${serverId}/settings/credentials`}>
               Open Credentials
             </InlineLink>
-          ) : (
-            <span>
-              {username}@{host} · Disconnects after 15 minutes without input or
-              one hour.
+          ) : null}
+          {message && message !== "Disconnected" ? (
+            <span className="block" role="status">
+              {message}
             </span>
-          )}
-          <span className="mt-1 block" role="status">
-            {message ??
-              "Connections are audited. Terminal contents are not recorded by Towbar."}
+          ) : null}
+          <span
+            className={
+              message && message !== "Disconnected" ? "mt-1 block" : "block"
+            }
+          >
+            Terminal contents are not recorded by Towbar. Use with caution.
           </span>
         </Widget.FooterDescription>
       </Widget.Footer>
