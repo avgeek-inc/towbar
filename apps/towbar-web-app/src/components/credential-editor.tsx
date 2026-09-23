@@ -28,7 +28,6 @@ import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { FormCard } from "@/components/page-parts";
 import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
-import { CloudProviderLogo } from "./cloud-provider-logo";
 import { formatDate } from "./dashboard-overview";
 import { PrivateKeySelector, type StoredPrivateKey } from "./private-key-store";
 
@@ -592,10 +591,7 @@ function ServerTlsForm({
   }
 
   return (
-    <FormCard
-      icon={<CloudProviderLogo provider="cloudflare" />}
-      title="Cloudflare TLS"
-    >
+    <FormCard title="Cloudflare TLS">
       <form className="content-grid w-full" onSubmit={submit}>
         <Switch
           isDisabled={!canManage || busy}
