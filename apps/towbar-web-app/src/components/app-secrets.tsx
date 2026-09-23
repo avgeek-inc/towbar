@@ -548,7 +548,7 @@ function SecretVariablesEditor({
                     icon={SourceCodeIcon}
                     size={14}
                   />
-                  {busy && !fileMode ? "Loading…" : "Editor"}
+                  Editor
                   <Tabs.Indicator />
                 </Tabs.Tab>
               </Tabs.List>
