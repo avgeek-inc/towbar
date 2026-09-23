@@ -269,6 +269,10 @@ a {
     @apply mt-0.5 flex min-h-8 items-center justify-between gap-3 px-4;
   }
 
+  .widget__header :is(button, .button) {
+    @apply h-5.5! min-h-5.5!;
+  }
+
   .widget__title {
     @apply text-muted text-sm font-semibold;
   }
