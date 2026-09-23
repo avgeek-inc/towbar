@@ -17,6 +17,15 @@
 
 :root {
   --workspace-page-content-width: 80rem;
+  --chart-requested: oklch(0.527 0.138 254.2);
+  --chart-succeeded: oklch(0.539 0.109 151.7);
+  --chart-failed: oklch(0.522 0.148 24.9);
+}
+
+.dark {
+  --chart-requested: oklch(0.691 0.142 253.8);
+  --chart-succeeded: oklch(0.773 0.141 150.8);
+  --chart-failed: oklch(0.672 0.143 24.6);
 }
 
 html {
