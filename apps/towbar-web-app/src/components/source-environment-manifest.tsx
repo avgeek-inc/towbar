@@ -144,7 +144,9 @@ export function SourceEnvironmentManifest({ sourceId }: { sourceId: string }) {
                   className="size-[1em] shrink-0"
                   icon={GitBranchIcon}
                 />
-                <TypographyCode>{environment.branch}</TypographyCode>
+                <TypographyCode className="rounded-none bg-transparent p-0">
+                  {environment.branch}
+                </TypographyCode>
                 <span aria-hidden="true">@</span>
                 <TypographyCode title={snapshot.data.manifest?.commitSha}>
                   {snapshot.data.manifest?.commitSha.slice(0, 12)}

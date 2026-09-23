@@ -84,7 +84,9 @@ export function SourceEnvironments({
                   aria-hidden="true"
                   className="size-[1em] shrink-0 text-muted"
                 />
-                <TypographyCode>{item.branch}</TypographyCode>
+                <TypographyCode className="rounded-none bg-transparent p-0">
+                  {item.branch}
+                </TypographyCode>
               </span>
             ),
           },
