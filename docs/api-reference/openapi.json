@@ -8113,6 +8113,7 @@
               { "type": "string", "format": "date-time" }
             ]
           },
+          "cycle": { "type": "number" },
           "provider": {
             "anyOf": [
               { "type": "string", "const": "discord" },
@@ -8122,7 +8123,6 @@
               { "type": "string", "const": "webhook" }
             ]
           },
-          "cycle": { "type": "number" },
           "category": {
             "anyOf": [
               { "type": "string", "const": "test" },
@@ -8163,8 +8163,8 @@
           "entityId",
           "title",
           "nextAttemptAt",
-          "provider",
           "cycle",
+          "provider",
           "category",
           "eventId",
           "attemptCount",
