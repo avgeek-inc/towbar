@@ -85,12 +85,11 @@ export type AppSecretBinding = {
   stage: AppSecretStage;
   keys: string[];
   inheritedKeys: string[];
-  availableReferences?: { globals: string[]; source: string[] };
-  inheritedOrigins: Record<string, "global" | "source">;
+  availableReferences?: { globals: string[] };
+  inheritedOrigins: Record<string, "global">;
   revision: string | null;
   inheritedRevisions: {
     global: string | null;
-    source: string | null;
   };
   updatedAt: string | null;
   pendingChanges: boolean;

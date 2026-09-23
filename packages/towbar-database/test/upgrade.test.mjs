@@ -11,16 +11,17 @@ import { runTowbarMigrations } from "../dist/migrate.js";
 const url = process.env.TOWBAR_TEST_DATABASE_URL;
 const migrationsFolder = fileURLToPath(new URL("../drizzle", import.meta.url));
 
-test("v2 migration journal describes only the 001 baseline", async () => {
+test("v2 migration journal keeps the baseline and source-secret cleanup", async () => {
   const files = (await readdir(migrationsFolder)).filter((name) =>
     name.endsWith(".sql"),
   );
-  assert.deepEqual(files, ["001_team_access_v2.sql"]);
+  assert.deepEqual(files, ["0002_curvy_wasp.sql", "001_team_access_v2.sql"]);
   const journal = JSON.parse(
     await readFile(`${migrationsFolder}/meta/_journal.json`, "utf8"),
   );
-  assert.equal(journal.entries.length, 1);
+  assert.equal(journal.entries.length, 2);
   assert.equal(journal.entries[0].tag, "001_team_access_v2");
+  assert.equal(journal.entries[1].tag, "0002_curvy_wasp");
   const migration = await readFile(
     `${migrationsFolder}/001_team_access_v2.sql`,
     "utf8",
@@ -63,6 +64,12 @@ test("v2 migration journal describes only the 001 baseline", async () => {
   assert.doesNotMatch(migration, /'(?:oidc|saml|scim)'/u);
   assert.doesNotMatch(migration, /fluent[ -]?bit/iu);
   assert.doesNotMatch(migration, /aws.?secrets.?manager/iu);
+  const cleanup = await readFile(
+    `${migrationsFolder}/0002_curvy_wasp.sql`,
+    "utf8",
+  );
+  assert.match(cleanup, /DELETE FROM "towbar_managed_secrets"/u);
+  assert.doesNotMatch(cleanup, /'source:' \|\|/u);
 });
 
 test(
@@ -88,7 +95,7 @@ test(
       });
       const [{ count }] =
         await client`select count(*)::int as count from drizzle.__drizzle_migrations`;
-      assert.equal(count, 1);
+      assert.equal(count, 2);
       const roles =
         await client`select enumlabel from pg_enum join pg_type on pg_type.oid = enumtypid where typname = 'towbar_workspace_role' order by enumsortorder`;
       assert.deepEqual(

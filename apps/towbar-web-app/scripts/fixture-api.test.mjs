@@ -29,7 +29,6 @@ const readRoutes = [
   `/v1/core/sources/${fixtureIds.source}/environments`,
   `/v1/core/sources/${fixtureIds.source}/syncs`,
   `/v1/core/sources/${fixtureIds.source}/auto-deploy-control`,
-  `/v1/core/sources/${fixtureIds.source}/secrets`,
   `/v1/core/sources/${fixtureIds.source}/apps`,
   `/v1/core/sources/${fixtureIds.source}/capacity`,
   `/v1/core/sources/${fixtureIds.source}/resources`,
@@ -467,7 +466,6 @@ test("the local fixture supports write-only stage edits and rejects stale revisi
     assert.deepEqual(previewBuild.inheritedKeys, []);
     assert.deepEqual(previewBuild.availableReferences, {
       globals: ["GLOBAL_PACKAGE_TOKEN"],
-      source: ["SOURCE_PREVIEW_TOKEN"],
     });
     const revealed = await fetch(`${endpoint}/production/deployment/reveal`, {
       method: "POST",

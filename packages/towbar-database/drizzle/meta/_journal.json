@@ -8,6 +8,13 @@
       "when": 1789914151368,
       "tag": "001_team_access_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790167876319,
+      "tag": "0002_curvy_wasp",
+      "breakpoints": true
     }
   ]
 }

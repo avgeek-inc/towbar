@@ -25,7 +25,7 @@ import { readJson, readUuidPathParameter } from "../../../http/requests.js";
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
 
 export function environmentSecretRoutes(
-  kind: "workspace" | "source" | "app" | "resource",
+  kind: "workspace" | "app" | "resource",
 ) {
   const environment = (value: string | undefined) =>
     kind === "workspace" ? "production" : secretEnvironmentSchema.parse(value);
@@ -59,7 +59,7 @@ export function environmentSecretRoutes(
         kind === "workspace"
           ? ({ type: "workspace", workspaceId: user.workspaceId } as const)
           : ({
-              type: kind === "source" ? ("source" as const) : ("app" as const),
+              type: "app" as const,
               id: readUuidPathParameter(
                 context.req.param("ownerId")!,
                 "ownerId",
@@ -128,7 +128,7 @@ export function environmentSecretRoutes(
             kind === "workspace"
               ? { type: "workspace", workspaceId: user.workspaceId }
               : {
-                  type: kind === "source" ? "source" : "app",
+                  type: "app",
                   id: readUuidPathParameter(
                     context.req.param("ownerId")!,
                     "ownerId",
@@ -191,7 +191,7 @@ export function environmentSecretRoutes(
       kind === "workspace"
         ? { type: "workspace" as const, workspaceId: user.workspaceId }
         : {
-            type: kind === "source" ? ("source" as const) : ("app" as const),
+            type: "app" as const,
             id: readUuidPathParameter(context.req.param("ownerId")!, "ownerId"),
             workspaceId: user.workspaceId,
           };

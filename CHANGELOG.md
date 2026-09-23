@@ -5,6 +5,12 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+### Removed
+
+- Repository-level shared secrets and `{{source.KEY}}` references. Reusable
+  values now live in workspace Shared Secrets, while workload-specific values
+  stay with each App or Resource.
+
 ## [2.0.9] - 2026-09-23
 
 ### Added

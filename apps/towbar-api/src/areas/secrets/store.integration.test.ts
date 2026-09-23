@@ -93,16 +93,10 @@ void test(
         proxy: { cloudflare: { enabled: true } },
       }),
       appConfig = manifest.apps[0]!;
-    const sourceOwner = { type: "source" as const, id: sourceId, workspaceId };
     const workspaceOwner = { type: "workspace" as const, workspaceId };
     const appOwner = { type: "app" as const, id: appId, workspaceId };
     const slot = {
       ...appOwner,
-      environment: "production" as const,
-      stage: "deployment",
-    };
-    const sharedSlot = {
-      ...sourceOwner,
       environment: "production" as const,
       stage: "deployment",
     };
@@ -148,7 +142,6 @@ void test(
       "/resources/:ownerId/secrets",
       environmentSecretRoutes("resource"),
     );
-    api.route("/sources/:ownerId/secrets", environmentSecretRoutes("source"));
     api.route("/settings/secrets", environmentSecretRoutes("workspace"));
     api.route("/servers/:serverId/credentials", serverCredentialRoutes);
     const patch = async (path: string, body: unknown) =>
@@ -326,10 +319,8 @@ void test(
         actorUserId,
         sourceId,
         appId,
-        sourceOwner,
         appOwner,
         globalSlot,
-        sharedSlot,
         slot,
       });
       await t.test(
@@ -391,7 +382,7 @@ void test(
             (
               await patch(path, {
                 ...change,
-                set: { TOKEN: "{{source.TOKEN}}" },
+                set: { TOKEN: "{{globals.TOKEN}}" },
               })
             ).status,
             200,
@@ -439,9 +430,7 @@ void test(
         db,
         api,
         appId,
-        sourceId,
         slot,
-        sharedSlot,
         globalSlot,
         workspaceId,
         otherWorkspaceId,
@@ -495,7 +484,7 @@ void test(
         appId,
         appConfig,
         serverConfig,
-        sharedSlot,
+        globalSlot,
         patch,
         api,
         setWorkspaceRole: (role) => {
@@ -509,7 +498,6 @@ void test(
         appId,
         workspaceId,
         otherWorkspaceId,
-        sourceId,
         serverId,
         serverConfig,
         slot,

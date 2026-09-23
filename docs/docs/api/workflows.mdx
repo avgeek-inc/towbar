@@ -43,7 +43,7 @@ Automatic deployment controls can be read or changed at `/sources/{sourceId}/aut
 
 ## Update secrets safely
 
-Read `/settings/secrets` for workspace bindings and their revisions. Repository, app, and resource secret routes use the same model. Reads expose names and revision metadata, never plaintext values.
+Read `/settings/secrets` for workspace bindings and their revisions. App and resource secret routes use the same model. Reads expose names and revision metadata, never plaintext values.
 
 ```bash
 curl -X PATCH 'https://YOUR_TOWBAR_HOST/v1/api/settings/secrets/production/deployment' \

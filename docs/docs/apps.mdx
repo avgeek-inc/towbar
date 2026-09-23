@@ -98,9 +98,9 @@ secrets:
     - DATABASE_URL
 ```
 
-Reference workspace or Repository values in Towbar with `{{globals.KEY}}` or
-`{{source.KEY}}`. Repository and workload values stay separate for production
-and previews. Use BuildKit secret mounts when a build needs credentials.
+Reference workspace values in Towbar with `{{globals.KEY}}`. App values stay
+separate for production and previews. Use BuildKit secret mounts when a build
+needs credentials.
 
 Set the app's capacity beside its port:
 

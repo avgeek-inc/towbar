@@ -50,7 +50,6 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { RelativeTime } from "./last-synced-time";
 import { formatDate } from "./dashboard-overview";
-import { SourceSecrets } from "./app-secrets";
 import {
   SourceNotifications,
   type NotificationDestinationsResponse,
@@ -276,16 +275,18 @@ export function SourceDetail() {
       }
       breadcrumbAncestors={sourcesBreadcrumb}
       badge={
-        latestSync ? (
-          <InlineLink
-            className="inline-flex items-center"
-            href={`/repositories/${sourceId}/syncs/${latestSync.id}`}
-          >
-            <SyncStatusChip sync={latestSync} />
-          </InlineLink>
-        ) : (
-          <SyncStatusChip />
-        )
+        (detailNavigation.section ?? "environments") === "environments" ? (
+          latestSync ? (
+            <InlineLink
+              className="inline-flex items-center"
+              href={`/repositories/${sourceId}/syncs/${latestSync.id}`}
+            >
+              <SyncStatusChip sync={latestSync} />
+            </InlineLink>
+          ) : (
+            <SyncStatusChip />
+          )
+        ) : undefined
       }
       title={item.repositoryName}
       titleContent={
@@ -434,7 +435,7 @@ function SourceSettings({
     <SourceSubtabs
       ariaLabel="Repository settings"
       collapseOnMobile
-      defaultSelectedKey="secrets"
+      defaultSelectedKey="auto-deploy"
       tabs={[
         {
           value: "auto-deploy",
@@ -452,21 +453,15 @@ function SourceSettings({
             />
           ),
         },
-        {
-          value: "secrets",
-          label: "Shared secrets",
-          content: <SourceSecrets active={isActive} sourceId={sourceId} />,
-        },
         ...(canManage
           ? [
               {
                 value: "danger",
-                label: "Danger zone",
+                label: "Delete repository",
+                destructive: true,
+                group: "Danger zone",
                 content: (
-                  <FormCard
-                    icon={<HugeiconsIcon icon={Delete02Icon} />}
-                    title="Danger zone"
-                  >
+                  <FormCard help={false} title="Danger zone">
                     <div className="content-grid">
                       <p className="max-w-3xl text-sm text-muted">
                         Deleting a Repository removes its imported inventory and
@@ -568,7 +563,10 @@ function SourceSubtabs({
   selectedKey?: string;
   tabs: Array<{
     content: ReactNode;
+    destructive?: boolean;
     disabledReason?: string;
+    group?: string;
+    icon?: ReactNode;
     isDisabled?: boolean;
     label: string;
     value: string;

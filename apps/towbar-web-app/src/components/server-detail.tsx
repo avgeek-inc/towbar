@@ -742,10 +742,7 @@ export function ServerDetail() {
                             group: "Danger zone",
                             icon: <HugeiconsIcon icon={ServerOffIcon} />,
                             content: (
-                              <FormCard
-                                icon={<HugeiconsIcon icon={Delete02Icon} />}
-                                title="Danger zone"
-                              >
+                              <FormCard help={false} title="Danger zone">
                                 <div className="content-grid">
                                   <p className="max-w-3xl text-sm text-muted">
                                     Remove this server and forget its stored

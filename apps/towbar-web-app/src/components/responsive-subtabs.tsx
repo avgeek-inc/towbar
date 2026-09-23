@@ -78,11 +78,11 @@ export function ResponsiveSubtabs({
       routeSection &&
       detailSettings !== false &&
       active &&
-      !detail.subpage
+      (!detail.subpage || active.value !== requested)
     ) {
       detail.router.replace(detail.href(routeSection, active.value, true));
     }
-  }, [detail, routeSection, detailSettings, active]);
+  }, [detail, routeSection, detailSettings, active, requested]);
   function select(key: string) {
     if (routeSection && detail.base) {
       detail.router.push(detail.href(routeSection, key));

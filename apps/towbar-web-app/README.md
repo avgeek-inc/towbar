@@ -17,11 +17,11 @@ Pending` until the Server is ready.
 App and Resource pages show observed health/drift and bounded runtime actions.
 Infrastructure settings and lifecycle are projections of the Source manifest;
 removal and restoration happen through Git and Source sync. Secrets are
-editor-owned and independent of sync. Shared secrets and Source settings store
-Production and Preview values separately for build, runtime, pre-deploy, and
-post-deploy stages. Apps reference shared values explicitly with
-`{{globals.ENV_KEY}}` or `{{source.ENV_KEY}}`; there is no automatic inheritance.
-Resources support Production runtime secrets only. Owners edit in Form or .env
+editor-owned and independent of sync. Global shared secrets provide reusable
+workspace values, while App settings store Production and Preview values
+separately for build, runtime, pre-deploy, and post-deploy stages. Apps reference
+workspace values explicitly with `{{globals.ENV_KEY}}`; there is no automatic
+inheritance. Resources support Production runtime secrets only. Owners edit in Form or .env
 File mode, with owner-only reveal. File mode loads the selected scope’s values
 through one bulk-reveal request. Ordinary reads return metadata, not plaintext.
 Saving secrets does not enqueue a deployment.

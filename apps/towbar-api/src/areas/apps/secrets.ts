@@ -15,8 +15,6 @@ import {
   apps,
   deployments,
   previewEnvironments,
-  sourceEnvironments,
-  sources,
 } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { HttpError, notFound, unprocessable } from "../../http/errors.js";
@@ -56,34 +54,6 @@ export async function listEnvironmentSecrets(
   )
     throw unprocessable("Resources do not support preview secrets");
   const stages = ownership.resource ? ["deployment" as const] : secretStages;
-  const affected =
-    owner.type === "source"
-      ? await getTowbarDatabase()
-          .select({
-            id: apps.id,
-            name: apps.name,
-            kind: apps.kind,
-            config: apps.config,
-          })
-          .from(apps)
-          .innerJoin(
-            sourceEnvironments,
-            eq(sourceEnvironments.id, apps.sourceEnvironmentId),
-          )
-          .where(
-            and(
-              eq(apps.sourceId, owner.id),
-              eq(apps.workspaceId, owner.workspaceId),
-              isNull(apps.archivedAt),
-              eq(
-                sourceEnvironments.name,
-                environment.startsWith("preview:")
-                  ? environment.slice(8)
-                  : environment,
-              ),
-            ),
-          )
-      : [];
   const previewTargets =
     owner.type === "app" &&
     (environment === "preview" || environment.startsWith("preview:"))
@@ -145,43 +115,16 @@ export async function listEnvironmentSecrets(
               stage,
             })
           : { keys: [], revision: null, updatedAt: null };
-      const shared =
-        owner.type === "app"
-          ? await readSecretMetadata({
-              workspaceId: owner.workspaceId,
-              type: "source",
-              id: ownership.sourceId!,
-              environment,
-              stage,
-            })
-          : { keys: [], revision: null, updatedAt: null };
       const localValues =
         owner.type === "app"
           ? await readSecretValues({ ...owner, environment, stage })
           : { values: {} };
-      const sourceValues =
-        owner.type === "app" &&
-        secretReferenceDependencies(localValues.values, {}).shared
-          ? await readSecretValues({
-              type: "source",
-              id: ownership.sourceId!,
-              workspaceId: owner.workspaceId,
-              environment,
-              stage,
-            })
-          : { values: {} };
-      const dependencies = secretReferenceDependencies(
-        localValues.values,
-        sourceValues.values,
-      );
+      const dependencies = secretReferenceDependencies(localValues.values);
       const revisions = successfulDeployments[0]?.revisions;
       const hasPendingRevisions = (
         deploymentRevisions?: Record<string, string | null> | null,
       ) =>
         local.revision !== (deploymentRevisions?.[`${stage}:local`] ?? null) ||
-        (dependencies.shared &&
-          shared.revision !==
-            (deploymentRevisions?.[`${stage}:shared`] ?? null)) ||
         (dependencies.global &&
           global.revision !==
             (deploymentRevisions?.[`${stage}:global`] ?? null));
@@ -190,11 +133,10 @@ export async function listEnvironmentSecrets(
         environment,
         ...local,
         inheritedKeys: [] as string[],
-        inheritedOrigins: {} as Record<string, "global" | "source">,
-        availableReferences: { globals: global.keys, source: shared.keys },
+        inheritedOrigins: {} as Record<string, "global">,
+        availableReferences: { globals: global.keys },
         inheritedRevisions: {
           global: global.revision,
-          source: shared.revision,
         },
         pendingChanges:
           owner.type === "app" &&
@@ -214,30 +156,7 @@ export async function listEnvironmentSecrets(
               name: `PR #${preview.pullRequestNumber}`,
               kind: "preview" as const,
             }))
-          : affected
-              .filter(
-                (app) =>
-                  (!(
-                    environment === "preview" ||
-                    environment.startsWith("preview:")
-                  ) ||
-                    (!isNormalizedResource(app.config) &&
-                      Boolean(app.config.preview?.enabled))) &&
-                  (stage === "deployment" ||
-                    (!isNormalizedResource(app.config) &&
-                      (stage === "build" ||
-                        Boolean(
-                          app.config.hooks[
-                            stage === "pre_deploy" ? "preDeploy" : "postDeploy"
-                          ],
-                        )))),
-              )
-              .map((app) => ({
-                id: app.id,
-                name: app.name,
-                kind:
-                  app.kind === "app" ? ("app" as const) : ("resource" as const),
-              })),
+          : [],
       };
     }),
   );
@@ -299,13 +218,7 @@ export async function resolveEnvironmentStage(
     { ...slot, type: "app", id: input.appId },
     database,
   );
-  const shared = secretReferenceDependencies(local.values, {}).shared
-    ? await readSecretValues(
-        { ...slot, type: "source", id: input.sourceId },
-        database,
-      )
-    : empty;
-  const dependencies = secretReferenceDependencies(local.values, shared.values);
+  const dependencies = secretReferenceDependencies(local.values);
   const global = dependencies.global
     ? await readSecretValues(
         { ...slot, type: "workspace", environment: "production" },
@@ -313,10 +226,9 @@ export async function resolveEnvironmentStage(
       )
     : empty;
   return {
-    values: resolveValues(local.values, global.values, shared.values),
+    values: resolveValues(local.values, global.values),
     revisions: {
       [`${input.stage}:local`]: local.revision,
-      [`${input.stage}:shared`]: dependencies.shared ? shared.revision : null,
       [`${input.stage}:global`]: dependencies.global ? global.revision : null,
     },
   };
@@ -325,11 +237,10 @@ export async function resolveEnvironmentStage(
 function resolveValues(
   local: Record<string, string>,
   global: Record<string, string>,
-  shared: Record<string, string>,
 ) {
   try {
     validateSecretReferences(local, "app");
-    return resolveSecretReferences(local, global, shared);
+    return resolveSecretReferences(local, global);
   } catch (error) {
     throw unprocessable(
       error instanceof Error
@@ -461,17 +372,5 @@ export async function listSecretEnvironments(owner: SecretOwner) {
       ? [environment.name]
       : [environment.name, `preview:${environment.name}`];
   }
-  const rows = await getTowbarDatabase()
-    .selectDistinct({ name: sourceEnvironments.name })
-    .from(sourceEnvironments)
-    .innerJoin(sources, eq(sources.id, sourceEnvironments.sourceId))
-    .where(
-      and(
-        eq(sources.workspaceId, owner.workspaceId),
-        owner.type === "source" ? eq(sources.id, owner.id) : undefined,
-      ),
-    )
-    .orderBy(sourceEnvironments.name);
-  const names = rows.map((row) => row.name);
-  return names.flatMap((name) => [name, `preview:${name}`]);
+  throw unprocessable("Server credentials use their dedicated settings page");
 }

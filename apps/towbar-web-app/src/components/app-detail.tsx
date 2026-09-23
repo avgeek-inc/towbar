@@ -240,13 +240,15 @@ export function AppDetail() {
         ) : undefined
       }
       badge={
-        <StatusBadge
-          status={
-            lifecycleStatus === "active"
-              ? item.runtimeState.healthStatus
-              : lifecycleStatus
-          }
-        />
+        (detailNavigation.section ?? "overview") === "overview" ? (
+          <StatusBadge
+            status={
+              lifecycleStatus === "active"
+                ? item.runtimeState.healthStatus
+                : lifecycleStatus
+            }
+          />
+        ) : undefined
       }
       breadcrumbAncestors={appsBreadcrumb}
       title={item.name}

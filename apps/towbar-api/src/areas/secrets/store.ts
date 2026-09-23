@@ -6,7 +6,6 @@ import {
   applySecretMutation,
   decryptCredential,
   encryptCredential,
-  isNormalizedResource,
   parseCredentialsMasterKey,
   requiredKeysForStage,
   validateSecretObject,
@@ -17,7 +16,6 @@ import {
   serverCredentialVerifications,
   servers,
   sourceEnvironments,
-  sources,
   sshHostKeys,
   workspaces,
 } from "@workspace/towbar-database/schema";
@@ -32,7 +30,6 @@ export type SecretDatabase = Pick<
 >;
 export type SecretOwner = { workspaceId: string } & (
   | { type: "workspace" }
-  | { type: "source"; id: string }
   | { type: "app"; id: string }
   | { type: "server"; id: string }
 );
@@ -60,8 +57,7 @@ export async function requireSecretOwner(
     if (!workspace) throw notFound("Workspace");
     return { sourceId: null, appId: null, serverId: null };
   }
-  const table =
-    owner.type === "source" ? sources : owner.type === "app" ? apps : servers;
+  const table = owner.type === "app" ? apps : servers;
   const [row] = await database
     .select()
     .from(table)
@@ -76,11 +72,7 @@ export async function requireSecretOwner(
   if (!row) throw notFound(owner.type);
   return {
     sourceId:
-      owner.type === "source"
-        ? owner.id
-        : owner.type === "app"
-          ? (row as typeof apps.$inferSelect).sourceId
-          : null,
+      owner.type === "app" ? (row as typeof apps.$inferSelect).sourceId : null,
     appId: owner.type === "app" ? owner.id : null,
     serverId: owner.type === "server" ? owner.id : null,
   };
@@ -97,49 +89,6 @@ export function secretSlotFilter(slot: SecretSlot) {
 
 async function declaredKeysForSlot(slot: SecretSlot, database: SecretDatabase) {
   if (slot.type === "workspace" || slot.type === "server") return null;
-  if (slot.type !== "app") {
-    const environment = slot.environment.startsWith("preview:")
-      ? slot.environment.slice(8)
-      : slot.environment;
-    const declarations = await database
-      .select({
-        config: apps.config,
-        requiredSecrets: apps.requiredSecrets,
-      })
-      .from(apps)
-      .innerJoin(
-        sourceEnvironments,
-        and(
-          eq(sourceEnvironments.id, apps.sourceEnvironmentId),
-          eq(sourceEnvironments.sourceId, apps.sourceId),
-        ),
-      )
-      .where(
-        and(
-          eq(apps.workspaceId, slot.workspaceId),
-          isNull(apps.archivedAt),
-          eq(sourceEnvironments.name, environment),
-          slot.environment.startsWith("preview:")
-            ? eq(apps.kind, "app")
-            : undefined,
-          slot.type === "source" ? eq(apps.sourceId, slot.id) : undefined,
-        ),
-      );
-    return [
-      ...new Set(
-        declarations
-          .filter(
-            (item) =>
-              !slot.environment.startsWith("preview:") ||
-              (!isNormalizedResource(item.config) &&
-                Boolean(item.config.preview?.enabled)),
-          )
-          .flatMap((item) =>
-            requiredKeysForStage(item.requiredSecrets, slot.stage),
-          ),
-      ),
-    ].sort();
-  }
   const [instance] = await database
     .select({
       declarations: apps.requiredSecrets,

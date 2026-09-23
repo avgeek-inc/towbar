@@ -470,13 +470,15 @@ export function ResourceDetail() {
         ) : undefined
       }
       badge={
-        <StatusBadge
-          status={
-            lifecycleStatus === "active"
-              ? item.runtimeState.healthStatus
-              : lifecycleStatus
-          }
-        />
+        (detailNavigation.section ?? "overview") === "overview" ? (
+          <StatusBadge
+            status={
+              lifecycleStatus === "active"
+                ? item.runtimeState.healthStatus
+                : lifecycleStatus
+            }
+          />
+        ) : undefined
       }
       breadcrumbAncestors={resourcesBreadcrumb}
       title={item.name}

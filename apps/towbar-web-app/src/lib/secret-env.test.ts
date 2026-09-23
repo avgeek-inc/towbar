@@ -9,7 +9,7 @@ import {
 test("round trips values without interpolation or lost whitespace", () => {
   const values: Array<[string, string]> = [
     ["TOKEN", ' a#b=c\\d"e\nnext\t '],
-    ["REF", "{{source.TOKEN}}"],
+    ["REF", "{{globals.TOKEN}}"],
     ["EMPTY", ""],
     ["STARS", "********"],
   ];

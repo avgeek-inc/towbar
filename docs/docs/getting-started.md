@@ -83,7 +83,7 @@ Choose **Prepare Server** and follow the steps until the host is **Ready**. If p
 
 ## 4. Save application secrets
 
-If your app needs secrets, declare their keys in the entity file’s top-level `secrets` field and sync the production environment. Open the production app instance’s **Settings → Secrets** page and fill the declared build, runtime, or hook values, then save. New required keys appear as unset; missing values block deployment, but do not block sync. To reuse a shared value, set the app variable to `{{globals.KEY}}` or `{{source.KEY}}`. Shared values are not injected automatically.
+If your app needs secrets, declare their keys in the entity file’s top-level `secrets` field and sync the production environment. Open the production app instance’s **Settings → Secrets** page and fill the declared build, runtime, or hook values, then save. New required keys appear as unset; missing values block deployment, but do not block sync. To reuse a workspace value, set the app variable to `{{globals.KEY}}`. Shared values are not injected automatically.
 
 The Hello Towbar example needs no secrets, so you can skip this step for your first deployment.
 

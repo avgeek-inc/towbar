@@ -24,7 +24,6 @@ export async function testSecretLifecycle({
   appId,
   workspaceId,
   otherWorkspaceId,
-  sourceId,
   serverId,
   serverConfig,
   slot,
@@ -34,7 +33,6 @@ export async function testSecretLifecycle({
   appId: string;
   workspaceId: string;
   otherWorkspaceId: string;
-  sourceId: string;
   serverId: string;
   serverConfig: ReturnType<typeof normalizeServerConfiguration>;
   slot: SecretSlot;
@@ -116,7 +114,7 @@ export async function testSecretLifecycle({
         .from(managedSecrets)
         .where(
           and(
-            eq(managedSecrets.owner, `source:${sourceId}`),
+            eq(managedSecrets.owner, `workspace:${workspaceId}`),
             eq(managedSecrets.stage, "deployment"),
           ),
         );
@@ -144,7 +142,7 @@ export async function testSecretLifecycle({
         .select()
         .from(auditEvents)
         .where(eq(auditEvents.workspaceId, workspaceId));
-      assert(!JSON.stringify(audit).includes("shared-value"));
+      assert(!JSON.stringify(audit).includes("global-value"));
       assert(!JSON.stringify(audit).includes("test-slack-token"));
       await db.delete(releases).where(eq(releases.appId, appId));
       await db.delete(deployments).where(eq(deployments.appId, appId));

@@ -31,7 +31,7 @@ export async function testManagedSecretExecution({
   appId,
   appConfig,
   serverConfig,
-  sharedSlot,
+  globalSlot,
   patch,
   setWorkspaceRole,
   api,
@@ -46,7 +46,7 @@ export async function testManagedSecretExecution({
   appId: string;
   appConfig: NormalizedApp;
   serverConfig: NormalizedServer;
-  sharedSlot: SecretSlot;
+  globalSlot: SecretSlot;
   patch: (path: string, body: unknown) => Promise<Response>;
   setWorkspaceRole: (role: "admin" | "member") => void;
 }) {
@@ -63,7 +63,7 @@ export async function testManagedSecretExecution({
         { ...appOwner, environment: "production", stage: "pre_deploy" },
         {
           expectedRevision: null,
-          set: { MIGRATION: "{{source.MIGRATION}}" },
+          set: { MIGRATION: "{{globals.MIGRATION}}" },
           delete: [],
         },
         actorUserId,
@@ -154,11 +154,11 @@ export async function testManagedSecretExecution({
       });
       const resolved = await resolveDeploymentSecrets(deploymentId);
       assert.equal(resolved.cloudflare?.apiToken, cloudflareToken);
-      assert.equal(resolved.runtime.TOKEN, "shared-value");
+      assert.equal(resolved.runtime.TOKEN, "global-value");
       assert.equal(resolved.hooks.preDeploy.MIGRATION, "production-only");
-      const metadata = await readSecretMetadata(sharedSlot);
+      const metadata = await readSecretMetadata(globalSlot);
       await mutateSecret(
-        sharedSlot,
+        globalSlot,
         {
           expectedRevision: metadata.revision,
           set: { TOKEN: "rotated" },
@@ -166,13 +166,13 @@ export async function testManagedSecretExecution({
         },
         actorUserId,
       );
-      assert.equal(resolved.runtime.TOKEN, "shared-value");
+      assert.equal(resolved.runtime.TOKEN, "global-value");
       const [snapshot] = await db
         .select()
         .from(deployments)
         .where(eq(deployments.id, deploymentId));
       assert(snapshot?.secretRevisions);
-      assert(!JSON.stringify(snapshot).includes("shared-value"));
+      assert(!JSON.stringify(snapshot).includes("global-value"));
       await db
         .update(deployments)
         .set({
@@ -212,7 +212,7 @@ export async function testManagedSecretExecution({
                 ? { GLOBAL_PREVIEW: "{{globals.GLOBAL_PREVIEW}}" }
                 : {}),
               ...(stage === "pre_deploy"
-                ? { SOURCE_PREVIEW: "{{source.SOURCE_PREVIEW}}" }
+                ? { SOURCE_PREVIEW: "preview-local" }
                 : {}),
             },
             delete: [],
@@ -268,7 +268,7 @@ export async function testManagedSecretExecution({
       });
       assert.deepEqual(resolved.hooks.preDeploy, {
         PREVIEW_ONLY: "pre_deploy-preview",
-        SOURCE_PREVIEW: "source-preview",
+        SOURCE_PREVIEW: "preview-local",
       });
       assert.deepEqual(resolved.hooks.postDeploy, {
         PREVIEW_ONLY: "post_deploy-preview",

@@ -67,71 +67,43 @@ void test("manifests reject secret assignments at every former scope", () => {
     assert.throws(() => parseResolvedManifest(manifest));
 });
 
-void test("only explicit references add shared values, including embedded and chained references", () => {
+void test("only explicit global references add shared values", () => {
   const globals = { TOKEN: "global$&", EMPTY: "", UNUSED: "hidden" };
-  const source = {
-    TOKEN: "source",
-    CHAIN: "Bearer {{globals.TOKEN}}",
-    BROKEN: "{{source.MISSING}}",
-  };
-  assert.deepEqual(resolveSecretReferences({}, globals, source), {});
+  assert.deepEqual(resolveSecretReferences({}, globals), {});
   assert.deepEqual(
     resolveSecretReferences(
       {
         TOKEN: "local",
-        AUTH: "{{source.CHAIN}}",
+        AUTH: "Bearer {{globals.TOKEN}}",
         EMPTY: "{{globals.EMPTY}}",
-        URL: "token={{source.TOKEN}}",
       },
       globals,
-      source,
     ),
-    { TOKEN: "local", AUTH: "Bearer global$&", EMPTY: "", URL: "token=source" },
+    { TOKEN: "local", AUTH: "Bearer global$&", EMPTY: "" },
   );
   assert.throws(
-    () =>
-      resolveSecretReferences(
-        { SECRET: "{{globals.MISSING}}" },
-        globals,
-        source,
-      ),
+    () => resolveSecretReferences({ SECRET: "{{globals.MISSING}}" }, globals),
     /unavailable globals reference/,
-  );
-  assert.throws(
-    () =>
-      resolveSecretReferences({ SECRET: "{{source.BROKEN}}" }, globals, source),
-    /cannot reference source at this scope/,
   );
   assert.throws(
     () => resolveSecretReferences({ SECRET: "{{globals.toString}}" }, globals),
     /unavailable globals reference/,
   );
-  assert.deepEqual(
-    secretReferenceDependencies({ AUTH: "{{source.CHAIN}}" }, source),
-    { global: true, shared: true },
-  );
-  assert.deepEqual(secretReferenceDependencies({ TOKEN: "literal" }, source), {
+  assert.deepEqual(secretReferenceDependencies({ AUTH: "{{globals.TOKEN}}" }), {
+    global: true,
+  });
+  assert.deepEqual(secretReferenceDependencies({ TOKEN: "literal" }), {
     global: false,
-    shared: false,
   });
 });
 void test("reference syntax respects scope and errors do not contain values", () => {
-  assert.throws(
-    () =>
-      resolveSecretReferences(
-        { TOKEN: "{{source.LEGACY}}" },
-        {},
-        { LEGACY: "{{globals.BAD" },
-      ),
-    /invalid reference/,
-  );
   assert.doesNotThrow(() =>
-    validateSecretReferences({ TOKEN: "{{globals.KEY}}" }, "source"),
+    validateSecretReferences({ TOKEN: "{{globals.KEY}}" }, "app"),
   );
   for (const [scope, value] of [
     ["workspace", "{{globals.KEY}}"],
-    ["source", "{{source.KEY}}"],
     ["app", "{{globals.bad-name}}"],
+    ["app", "{{source.KEY}}"],
     ["app", "{{source.SECRET"],
   ] as const)
     assert.throws(
