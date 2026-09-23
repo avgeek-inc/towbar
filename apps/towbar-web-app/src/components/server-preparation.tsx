@@ -266,7 +266,7 @@ function PreparationStep({
     >
       <p
         className={cn(
-          "text-sm break-words",
+          "text-xs break-words",
           failed ? "text-danger-soft-foreground" : "text-muted",
         )}
       >
