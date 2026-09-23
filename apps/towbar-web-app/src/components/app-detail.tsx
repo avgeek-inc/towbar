@@ -363,6 +363,7 @@ export function AppDetail() {
           {
             value: "performance",
             label: "Performance",
+            contentOwnsTitle: true,
             group: "Monitor",
             icon: <HugeiconsIcon icon={Activity01Icon} />,
             content: (

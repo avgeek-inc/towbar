@@ -290,6 +290,7 @@ export function ResourceDetail() {
     {
       value: "performance",
       label: "Performance",
+      contentOwnsTitle: true,
       group: "Monitor",
       icon: <HugeiconsIcon icon={Activity01Icon} />,
       content: (

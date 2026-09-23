@@ -92,7 +92,7 @@ export function DashboardPage({
     <PageSelectionContext.Provider value={setSelection}>
       <ApplicationPage
         actions={selection?.actions ?? actions}
-        badge={badge}
+        badge={selection ? selection.badge : badge}
         breadcrumbAncestors={
           selection?.keepEntityName
             ? [...breadcrumbAncestors, { label: title }]

@@ -1,10 +1,11 @@
 "use client";
 import { usePageQuery, useQueryChoice } from "@/hooks/use-page-query";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Settings01Icon } from "@hugeicons/core-free-icons";
+import { Activity01Icon, Settings01Icon } from "@hugeicons/core-free-icons";
 import { ScoutOptionIcon } from "./scout-icons";
 
 import { useCallback, useDeferredValue, useId, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import type { MonitoringHistory as History } from "@workspace/towbar-web-client";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Label } from "@workspace/web-design-system/forms/label";
@@ -18,6 +19,7 @@ import { MonitoringEvents } from "./monitoring-events";
 import { type ChartMetric } from "./monitoring-metric-chart";
 import { MonitoringChartSlot } from "./monitoring-chart-slot";
 import { MonitoringStatus } from "./monitoring-agent-settings";
+import { PageSelectionTitle } from "./page-selection-title";
 
 import { MonitoringRangePicker } from "./monitoring-range-picker";
 import {
@@ -127,18 +129,18 @@ export function MonitoringHistory({
   );
   if (!history)
     return (
-      <Widget>
-        <Widget.Header>
-          <Widget.Title>Performance</Widget.Title>
-        </Widget.Header>
-        <Widget.Content className="min-h-64">
-          {query.error ? (
-            <QueryError message={query.error} />
-          ) : (
-            <QueryLoading />
-          )}
-        </Widget.Content>
-      </Widget>
+      <>
+        <PerformancePageTitle />
+        <Widget>
+          <Widget.Content className="min-h-64">
+            {query.error ? (
+              <QueryError message={query.error} />
+            ) : (
+              <QueryLoading />
+            )}
+          </Widget.Content>
+        </Widget>
+      </>
     );
   const hasPoints = history.series.some((row) => row.points.length > 0);
   const hasSelectedPoints = series.some((row) => row.points.length > 0);
@@ -146,62 +148,61 @@ export function MonitoringHistory({
   const selectedServer = serverId ?? history.serverId;
   return (
     <section className="grid min-w-0 gap-4" aria-label="Performance history">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h2 className="font-medium">Performance</h2>
-          <MonitoringStatus agent={agent} />
-          <span role="status" className="sr-only">
-            {updating ? "Updating charts…" : ""}
-          </span>
-        </div>
-        <div className="grid w-full min-w-0 grid-cols-2 items-center gap-2 sm:flex sm:w-auto sm:max-w-full sm:flex-wrap">
-          {workload && history.series.length > 1 ? (
+      <PerformancePageTitle
+        agent={agent}
+        actions={
+          <div className="grid w-full min-w-0 grid-cols-2 items-center gap-2 sm:flex sm:w-auto sm:max-w-full sm:flex-wrap">
+            {workload && history.series.length > 1 ? (
+              <HistorySelect
+                label="Instance"
+                mobileFullWidth
+                value={instance}
+                onChange={setInstance}
+                options={[
+                  { id: "all", label: "All instances" },
+                  ...history.series.map((row) => ({
+                    id: row.id,
+                    label: `Container · ${row.id.slice(0, 8)}`,
+                  })),
+                ]}
+              />
+            ) : null}
             <HistorySelect
-              label="Instance"
-              mobileFullWidth
-              value={instance}
-              onChange={setInstance}
+              label="Aggregation"
+              value={view}
+              onChange={setView}
               options={[
-                { id: "all", label: "All instances" },
-                ...history.series.map((row) => ({
-                  id: row.id,
-                  label: `Container · ${row.id.slice(0, 8)}`,
-                })),
+                { id: "average", label: "Avg" },
+                { id: "peak", label: "Peak" },
               ]}
             />
-          ) : null}
-          <HistorySelect
-            label="Aggregation"
-            value={view}
-            onChange={setView}
-            options={[
-              { id: "average", label: "Avg" },
-              { id: "peak", label: "Peak" },
-            ]}
-          />
-          <HistorySelect
-            label="Time range"
-            value={custom ? "custom" : range}
-            onChange={(value) => {
-              if (value === "custom") {
-                setPickerOpen(true);
-                return;
-              }
-              update({
-                range: value === "15m" ? null : value,
-                startAt: null,
-                endAt: null,
-              });
-            }}
-            onReselect={(value) => {
-              if (value === "custom") setPickerOpen(true);
-            }}
-            options={monitoringRanges.filter(
-              (row) => row.days <= agent.retentionDays,
-            )}
-          />
-        </div>
-      </div>
+            <HistorySelect
+              label="Time range"
+              value={custom ? "custom" : range}
+              onChange={(value) => {
+                if (value === "custom") {
+                  setPickerOpen(true);
+                  return;
+                }
+                update({
+                  range: value === "15m" ? null : value,
+                  startAt: null,
+                  endAt: null,
+                });
+              }}
+              onReselect={(value) => {
+                if (value === "custom") setPickerOpen(true);
+              }}
+              options={monitoringRanges.filter(
+                (row) => row.days <= agent.retentionDays,
+              )}
+            />
+          </div>
+        }
+      />
+      <span role="status" className="sr-only">
+        {updating ? "Updating charts…" : ""}
+      </span>
       {pickerOpen ? (
         <MonitoringRangePicker
           initial={custom ?? { startAt: history.startAt, endAt: history.endAt }}
@@ -252,6 +253,23 @@ export function MonitoringHistory({
         </>
       )}
     </section>
+  );
+}
+function PerformancePageTitle({
+  actions,
+  agent,
+}: {
+  actions?: ReactNode;
+  agent?: History["agent"];
+}) {
+  return (
+    <PageSelectionTitle
+      actions={actions}
+      badge={agent ? <MonitoringStatus agent={agent} /> : undefined}
+      icon={<HugeiconsIcon icon={Activity01Icon} />}
+      keepEntityName
+      label="Performance"
+    />
   );
 }
 function MonitoringEmptyState({
