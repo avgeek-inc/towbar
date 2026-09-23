@@ -4,7 +4,6 @@ import {
   CheckmarkCircle01Icon,
   FloppyDiskIcon,
   InformationCircleIcon,
-  Key01Icon,
   ReloadIcon,
 } from "@hugeicons/core-free-icons";
 
@@ -277,7 +276,6 @@ function ServerCredentialForm({
           )
         ) : null
       }
-      icon={<HugeiconsIcon icon={Key01Icon} />}
       title="Server credentials"
     >
       <form className="content-grid w-full" onSubmit={submit}>

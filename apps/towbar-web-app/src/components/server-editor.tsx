@@ -1,9 +1,5 @@
 "use client";
-import {
-  ArrowRight01Icon,
-  FloppyDiskIcon,
-  Key01Icon,
-} from "@hugeicons/core-free-icons";
+import { ArrowRight01Icon, FloppyDiskIcon } from "@hugeicons/core-free-icons";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -84,7 +80,6 @@ export function ServerEditor({
   return (
     <div className="content-grid">
       <FormCard
-        icon={<HugeiconsIcon icon={Key01Icon} />}
         title={
           editing ? "Connection and capacity" : "Server identity and capacity"
         }
