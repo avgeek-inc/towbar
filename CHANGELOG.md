@@ -5,6 +5,8 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.8] - 2026-09-23
+
 ### Fixed
 
 - GitHub repository connections store the selected installation's internal
@@ -117,6 +119,7 @@ All notable changes to Towbar are documented in this file. This project follows
 - Branch mapping errors remain visible beside the edit form while preserving
   the entered branch and previous mapping.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.7...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.8...HEAD
+[2.0.8]: https://github.com/avgeek-inc/towbar/releases/tag/v2.0.8
 [2.0.7]: https://github.com/avgeek-inc/towbar/releases/tag/v2.0.7
 [2.0.0]: https://github.com/avgeek-inc/towbar/releases/tag/v2.0.0
