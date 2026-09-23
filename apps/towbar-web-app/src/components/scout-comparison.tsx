@@ -260,6 +260,12 @@ const assessmentLabel = {
   informational: "Activity comparison",
 };
 
+function assessmentVariant(assessment: ComparisonMetric["assessment"]) {
+  if (assessment === "decreased") return "success";
+  if (assessment === "increased") return "destructive";
+  return "warning";
+}
+
 function comparisonAssessmentTooltip(metric: ComparisonMetric) {
   if (metric.assessment === "insufficient_data")
     return "There are not enough measurements in both windows to compare this metric.";
@@ -357,9 +363,7 @@ function ComparisonChart({
           <Chip
             size="small"
             tooltip={comparisonAssessmentTooltip(metric)}
-            variant={
-              metric.assessment === "increased" ? "warning" : "secondary"
-            }
+            variant={assessmentVariant(metric.assessment)}
           >
             {assessmentLabel[metric.assessment]}
           </Chip>
