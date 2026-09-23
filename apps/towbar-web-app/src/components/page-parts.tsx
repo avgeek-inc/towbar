@@ -168,6 +168,7 @@ export function PageTabs({
             | "info";
         };
     label: string;
+    sidebarLabel?: string;
     value: string;
   }>;
 }) {
@@ -238,7 +239,7 @@ export function PageTabs({
           .filter((tab) => !tab.group && tab.value !== "settings")
           .map((tab) => ({
             id: tab.value,
-            label: tab.label,
+            label: tab.sidebarLabel ?? tab.label,
             icon: tab.icon,
             destructive: tab.destructive,
             badge:
@@ -270,7 +271,7 @@ export function PageTabs({
             .filter((tab) => tab.group === group)
             .map((tab) => ({
               id: tab.value,
-              label: tab.label,
+              label: tab.sidebarLabel ?? tab.label,
               icon: tab.icon,
               destructive: tab.destructive,
               badge:

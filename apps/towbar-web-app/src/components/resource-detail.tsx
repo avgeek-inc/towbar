@@ -323,6 +323,7 @@ export function ResourceDetail() {
     {
       value: "compare-deployments",
       label: "Compare deployments",
+      sidebarLabel: "Compare",
       group: "Monitor",
       icon: <HugeiconsIcon icon={GitCompareIcon} />,
       content: <ScoutCompareDeployments deployableId={resourceId} />,
