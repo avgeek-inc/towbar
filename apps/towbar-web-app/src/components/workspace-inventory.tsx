@@ -458,9 +458,7 @@ function ServerInventory({
         ) : (
           <TableCellDescription>Unknown</TableCellDescription>
         ),
-      className:
-        "hidden min-w-32 whitespace-nowrap tabular-nums 2xl:table-cell",
-      headerClassName: "hidden 2xl:table-cell",
+      className: "min-w-32 whitespace-nowrap tabular-nums",
       header: "CPU capacity",
       key: "max-cpu",
     },
@@ -471,9 +469,7 @@ function ServerInventory({
         ) : (
           <TableCellDescription>Unknown</TableCellDescription>
         ),
-      className:
-        "hidden min-w-36 whitespace-nowrap tabular-nums 2xl:table-cell",
-      headerClassName: "hidden 2xl:table-cell",
+      className: "min-w-36 whitespace-nowrap tabular-nums",
       header: "Memory capacity",
       key: "max-memory",
     },
