@@ -2196,7 +2196,7 @@
     },
     "scout-alerts.ts:post:\"/rules\"": {
       "allOf": [
-        { "$ref": "#/components/schemas/Response_87" },
+        { "$ref": "#/components/schemas/Response_85" },
         {
           "type": "object",
           "properties": {
@@ -2266,7 +2266,7 @@
     },
     "scout-alerts.ts:put:\"/rules/:ruleId\"": {
       "allOf": [
-        { "$ref": "#/components/schemas/Response_89" },
+        { "$ref": "#/components/schemas/Response_87" },
         {
           "type": "object",
           "properties": {
@@ -2337,7 +2337,7 @@
     "scout-alerts.ts:delete:\"/rules/:ruleId\"": {},
     "scout-alerts.ts:get:\"/incidents\"": {
       "allOf": [
-        { "$ref": "#/components/schemas/Response_90" },
+        { "$ref": "#/components/schemas/Response_88" },
         {
           "type": "object",
           "properties": {
@@ -2407,7 +2407,7 @@
     },
     "scout-alerts.ts:get:\"/incidents/:incidentId\"": {
       "allOf": [
-        { "$ref": "#/components/schemas/Response_91" },
+        { "$ref": "#/components/schemas/Response_90" },
         {
           "type": "object",
           "properties": {
@@ -11515,6 +11515,7 @@
         },
         "threshold": { "type": "number" },
         "windowSeconds": { "type": "number" },
+        "durationSeconds": { "type": "number" },
         "aggregation": {
           "anyOf": [
             { "type": "string", "const": "average" },
@@ -11528,12 +11529,14 @@
         "operator",
         "threshold",
         "windowSeconds",
+        "durationSeconds",
         "aggregation"
       ]
     },
     "Response_51": {
       "type": "object",
       "properties": {
+        "condition": { "$ref": "#/components/schemas/Response_52" },
         "id": { "type": "string" },
         "ruleId": { "type": "string" },
         "workspaceId": { "type": "string" },
@@ -11548,7 +11551,6 @@
         },
         "ruleName": { "type": "string" },
         "severity": { "type": "string" },
-        "condition": { "$ref": "#/components/schemas/Response_52" },
         "openedAt": { "type": "string", "format": "date-time" },
         "conditionStartedAt": { "type": "string", "format": "date-time" },
         "resolvedAt": {
@@ -11570,6 +11572,7 @@
         "notificationSequence": { "type": "number" }
       },
       "required": [
+        "condition",
         "id",
         "ruleId",
         "workspaceId",
@@ -11579,7 +11582,6 @@
         "ruleRevision",
         "ruleName",
         "severity",
-        "condition",
         "openedAt",
         "conditionStartedAt",
         "resolvedAt",
@@ -12051,92 +12053,10 @@
         "reason"
       ]
     },
-    "Response_83": {
-      "type": "object",
-      "properties": {
-        "url": { "type": "string" },
-        "method": {
-          "anyOf": [
-            { "type": "string", "const": "GET" },
-            { "type": "string", "const": "HEAD" }
-          ]
-        },
-        "intervalSeconds": { "type": "number" },
-        "timeoutSeconds": { "type": "number" },
-        "expectedStatusMin": { "type": "number" },
-        "expectedStatusMax": { "type": "number" },
-        "maxRedirects": { "type": "number" }
-      },
-      "required": [
-        "url",
-        "method",
-        "intervalSeconds",
-        "timeoutSeconds",
-        "expectedStatusMin",
-        "expectedStatusMax",
-        "maxRedirects"
-      ]
-    },
-    "Response_82": {
-      "type": "object",
-      "properties": {
-        "metric": {
-          "anyOf": [
-            { "type": "string", "const": "cpuPercent" },
-            { "type": "string", "const": "cpuCores" },
-            { "type": "string", "const": "cpuLimitCores" },
-            { "type": "string", "const": "memoryUsedBytes" },
-            { "type": "string", "const": "memoryTotalBytes" },
-            { "type": "string", "const": "memoryLimitBytes" },
-            { "type": "string", "const": "memoryPercent" },
-            { "type": "string", "const": "swapUsedBytes" },
-            { "type": "string", "const": "swapTotalBytes" },
-            { "type": "string", "const": "diskTotalBytes" },
-            { "type": "string", "const": "diskUsedBytes" },
-            { "type": "string", "const": "diskPercent" },
-            { "type": "string", "const": "dockerDiskTotalBytes" },
-            { "type": "string", "const": "dockerDiskUsedBytes" },
-            { "type": "string", "const": "dockerDiskPercent" },
-            { "type": "string", "const": "diskReadBytesPerSecond" },
-            { "type": "string", "const": "diskWriteBytesPerSecond" },
-            { "type": "string", "const": "networkRxBytesPerSecond" },
-            { "type": "string", "const": "networkTxBytesPerSecond" },
-            { "type": "string", "const": "uptimeSeconds" },
-            { "type": "string", "const": "load1" },
-            { "type": "string", "const": "load5" },
-            { "type": "string", "const": "load15" },
-            { "type": "string", "const": "restarts" },
-            { "type": "string", "const": "missingReports" },
-            { "type": "string", "const": "httpAvailability" }
-          ]
-        },
-        "operator": {
-          "anyOf": [
-            { "type": "string", "const": "above" },
-            { "type": "string", "const": "below" }
-          ]
-        },
-        "threshold": { "type": "number" },
-        "windowSeconds": { "type": "number" },
-        "aggregation": {
-          "anyOf": [
-            { "type": "string", "const": "average" },
-            { "type": "string", "const": "peak" }
-          ]
-        },
-        "http": { "$ref": "#/components/schemas/Response_83" }
-      },
-      "required": [
-        "metric",
-        "operator",
-        "threshold",
-        "windowSeconds",
-        "aggregation"
-      ]
-    },
     "Response_80": {
       "type": "object",
       "properties": {
+        "condition": { "$ref": "#/components/schemas/Response_52" },
         "httpCheck": {
           "anyOf": [
             { "type": "null" },
@@ -12151,7 +12071,6 @@
         "enabled": { "type": "boolean" },
         "severity": { "type": "string" },
         "environment": { "type": "string" },
-        "condition": { "$ref": "#/components/schemas/Response_82" },
         "evaluationState": { "type": "string" },
         "evaluatedAt": {
           "anyOf": [
@@ -12172,6 +12091,7 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": [
+        "condition",
         "httpCheck",
         "id",
         "workspaceId",
@@ -12181,7 +12101,6 @@
         "enabled",
         "severity",
         "environment",
-        "condition",
         "evaluationState",
         "evaluatedAt",
         "observedValue",
@@ -12190,7 +12109,7 @@
         "updatedAt"
       ]
     },
-    "Response_84": {
+    "Response_82": {
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -12214,7 +12133,7 @@
       },
       "required": ["id", "name", "sourceId", "kind"]
     },
-    "Response_85": {
+    "Response_83": {
       "type": "object",
       "properties": {
         "categories": {
@@ -12245,7 +12164,7 @@
       },
       "required": ["categories", "enabled", "id", "provider", "source"]
     },
-    "Response_86": {
+    "Response_84": {
       "type": "object",
       "properties": {
         "discord": { "type": "boolean" },
@@ -12265,13 +12184,13 @@
         },
         "workloads": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_84" }
+          "items": { "$ref": "#/components/schemas/Response_82" }
         },
         "destinations": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_85" }
+          "items": { "$ref": "#/components/schemas/Response_83" }
         },
-        "providers": { "$ref": "#/components/schemas/Response_86" },
+        "providers": { "$ref": "#/components/schemas/Response_84" },
         "canManage": { "type": "boolean" }
       },
       "required": [
@@ -12282,28 +12201,144 @@
         "canManage"
       ]
     },
-    "Response_88": { "type": "object" },
+    "Response_86": { "type": "object" },
+    "Response_85": {
+      "type": "object",
+      "properties": { "rule": { "$ref": "#/components/schemas/Response_86" } },
+      "required": ["rule"]
+    },
     "Response_87": {
       "type": "object",
-      "properties": { "rule": { "$ref": "#/components/schemas/Response_88" } },
+      "properties": { "rule": { "$ref": "#/components/schemas/Response_86" } },
       "required": ["rule"]
     },
     "Response_89": {
       "type": "object",
-      "properties": { "rule": { "$ref": "#/components/schemas/Response_88" } },
-      "required": ["rule"]
+      "properties": {
+        "condition": { "$ref": "#/components/schemas/Response_52" },
+        "id": { "type": "string" },
+        "ruleId": { "type": "string" },
+        "workspaceId": { "type": "string" },
+        "serverId": { "type": "string" },
+        "deployableId": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
+        "environment": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
+        "ruleRevision": {
+          "anyOf": [
+            { "type": "null" },
+            { "type": "string", "format": "date-time" }
+          ]
+        },
+        "ruleName": { "type": "string" },
+        "severity": { "type": "string" },
+        "openedAt": { "type": "string", "format": "date-time" },
+        "conditionStartedAt": { "type": "string", "format": "date-time" },
+        "resolvedAt": {
+          "anyOf": [
+            { "type": "null" },
+            { "type": "string", "format": "date-time" }
+          ]
+        },
+        "resolutionReason": {
+          "anyOf": [{ "type": "null" }, { "type": "string" }]
+        },
+        "lastValue": { "anyOf": [{ "type": "null" }, { "type": "number" }] },
+        "lastNotifiedAt": {
+          "anyOf": [
+            { "type": "null" },
+            { "type": "string", "format": "date-time" }
+          ]
+        },
+        "notificationSequence": { "type": "number" }
+      },
+      "required": [
+        "condition",
+        "id",
+        "ruleId",
+        "workspaceId",
+        "serverId",
+        "deployableId",
+        "environment",
+        "ruleRevision",
+        "ruleName",
+        "severity",
+        "openedAt",
+        "conditionStartedAt",
+        "resolvedAt",
+        "resolutionReason",
+        "lastValue",
+        "lastNotifiedAt",
+        "notificationSequence"
+      ]
     },
-    "Response_90": {
+    "Response_88": {
       "type": "object",
       "properties": {
         "incidents": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_51" }
+          "items": { "$ref": "#/components/schemas/Response_89" }
         },
         "nextBefore": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
         "nextBeforeId": { "anyOf": [{ "type": "null" }, { "type": "string" }] }
       },
       "required": ["incidents", "nextBefore", "nextBeforeId"]
+    },
+    "Response_91": {
+      "type": "object",
+      "properties": {
+        "condition": { "$ref": "#/components/schemas/Response_52" },
+        "id": { "type": "string" },
+        "ruleId": { "type": "string" },
+        "workspaceId": { "type": "string" },
+        "serverId": { "type": "string" },
+        "deployableId": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
+        "environment": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
+        "ruleRevision": {
+          "anyOf": [
+            { "type": "null" },
+            { "type": "string", "format": "date-time" }
+          ]
+        },
+        "ruleName": { "type": "string" },
+        "severity": { "type": "string" },
+        "openedAt": { "type": "string", "format": "date-time" },
+        "conditionStartedAt": { "type": "string", "format": "date-time" },
+        "resolvedAt": {
+          "anyOf": [
+            { "type": "null" },
+            { "type": "string", "format": "date-time" }
+          ]
+        },
+        "resolutionReason": {
+          "anyOf": [{ "type": "null" }, { "type": "string" }]
+        },
+        "lastValue": { "anyOf": [{ "type": "null" }, { "type": "number" }] },
+        "lastNotifiedAt": {
+          "anyOf": [
+            { "type": "null" },
+            { "type": "string", "format": "date-time" }
+          ]
+        },
+        "notificationSequence": { "type": "number" }
+      },
+      "required": [
+        "condition",
+        "id",
+        "ruleId",
+        "workspaceId",
+        "serverId",
+        "deployableId",
+        "environment",
+        "ruleRevision",
+        "ruleName",
+        "severity",
+        "openedAt",
+        "conditionStartedAt",
+        "resolvedAt",
+        "resolutionReason",
+        "lastValue",
+        "lastNotifiedAt",
+        "notificationSequence"
+      ]
     },
     "Response_92": {
       "type": "object",
@@ -12349,10 +12384,10 @@
         "aggregation"
       ]
     },
-    "Response_91": {
+    "Response_90": {
       "type": "object",
       "properties": {
-        "incident": { "$ref": "#/components/schemas/Response_51" },
+        "incident": { "$ref": "#/components/schemas/Response_91" },
         "entity": { "$ref": "#/components/schemas/Response_92" },
         "history": { "$ref": "#/components/schemas/Response_93" }
       },
@@ -18572,7 +18607,7 @@
           "type": "array",
           "items": { "$ref": "#/components/schemas/Response_402" }
         },
-        "providers": { "$ref": "#/components/schemas/Response_86" }
+        "providers": { "$ref": "#/components/schemas/Response_84" }
       },
       "required": ["canManageNotifications", "destinations", "providers"]
     },
@@ -18763,7 +18798,7 @@
       "type": "object",
       "properties": {
         "configurations": { "$ref": "#/components/schemas/Response_407" },
-        "providers": { "$ref": "#/components/schemas/Response_86" }
+        "providers": { "$ref": "#/components/schemas/Response_84" }
       },
       "required": ["configurations", "providers"]
     },

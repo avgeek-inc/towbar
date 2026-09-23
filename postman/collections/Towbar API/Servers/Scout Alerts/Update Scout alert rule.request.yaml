@@ -37,6 +37,7 @@ body:
         "operator": "above",
         "threshold": 0,
         "windowSeconds": 300,
+        "durationSeconds": 0,
         "aggregation": "average"
       }
     }

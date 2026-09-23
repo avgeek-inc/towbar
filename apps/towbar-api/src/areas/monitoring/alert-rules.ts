@@ -6,6 +6,7 @@ import {
   type ScoutAlertRuleInput,
   digestValue,
   scoutAlertRuleSchema,
+  withScoutAlertDuration,
 } from "@workspace/towbar-core";
 import {
   apps,
@@ -90,6 +91,7 @@ export async function listScoutAlertRules(
   return {
     rules: rules.map((rule) => ({
       ...rule,
+      condition: withScoutAlertDuration(rule.condition),
       httpCheck: checks.find((check) => check.rule_id === rule.id) ?? null,
     })),
     workloads,
@@ -145,7 +147,8 @@ export async function saveScoutAlertRule(
       if (old.deployableId !== rule.deployableId)
         await assertEntityRuleCapacity(tx, input, rule.deployableId);
       const conditionChanged =
-        digestValue(old.condition) !== digestValue(rule.condition) ||
+        digestValue(withScoutAlertDuration(old.condition)) !==
+          digestValue(rule.condition) ||
         old.deployableId !== rule.deployableId ||
         old.environment !== "production";
       if (conditionChanged || !rule.enabled)
@@ -311,7 +314,10 @@ export async function listScoutIncidents(
     .orderBy(desc(scoutAlertIncidents.openedAt), desc(scoutAlertIncidents.id))
     .limit(limit + 1);
   return {
-    incidents: rows.slice(0, limit),
+    incidents: rows.slice(0, limit).map((incident) => ({
+      ...incident,
+      condition: withScoutAlertDuration(incident.condition),
+    })),
     nextBefore:
       rows.length > limit ? rows[limit - 1]!.openedAt.toISOString() : null,
     nextBeforeId: rows.length > limit ? rows[limit - 1]!.id : null,

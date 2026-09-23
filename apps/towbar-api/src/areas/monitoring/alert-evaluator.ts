@@ -311,7 +311,7 @@ async function getRuleObservations(
         and(
           eq(scoutHttpChecks.ruleId, rule.id),
           sql`date_trunc('milliseconds',${scoutHttpChecks.ruleRevision})=${rule.updatedAt.toISOString()}::timestamptz`,
-          sql`${scoutHttpChecks.scheduledAt} >= ${new Date(now.getTime() - 2 * condition.http!.intervalSeconds * 1000).toISOString()}::timestamptz`,
+          sql`${scoutHttpChecks.scheduledAt} >= ${new Date(now.getTime() - ((condition.durationSeconds ?? 0) + 2 * condition.http!.intervalSeconds) * 1000).toISOString()}::timestamptz`,
           lte(scoutHttpChecks.scheduledAt, now),
         ),
       )
@@ -363,7 +363,9 @@ async function getRuleObservations(
     }
   } else if (condition.metric !== "missingReports") {
     const historySeconds =
-      (condition.metric === "restarts" ? condition.windowSeconds : 0) + 120;
+      (condition.metric === "restarts"
+        ? condition.windowSeconds
+        : (condition.durationSeconds ?? 0)) + 120;
     const scope = rule.deployableId
       ? sql`${monitoringSamples.deployableId}=${rule.deployableId}::uuid and ${monitoringSamples.previewId} is null`
       : condition.metric === "restarts"

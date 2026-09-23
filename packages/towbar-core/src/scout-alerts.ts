@@ -5,6 +5,9 @@ import {
 } from "./monitoring.js";
 
 export const SCOUT_ALERT_RULE_LIMIT_PER_ENTITY = 10;
+export const SCOUT_ALERT_DURATIONS_SECONDS = [
+  60, 120, 300, 600, 900, 1800,
+] as const;
 
 export const scoutAlertMetrics = [
   ...monitoringMetricNames.filter((name) => name !== "restartCount"),
@@ -62,6 +65,18 @@ export const scoutAlertConditionSchema = z
     operator: z.enum(["above", "below"]).default("above"),
     threshold: z.number().finite().nonnegative().max(1e18),
     windowSeconds: z.number().int().min(60).max(3600).default(300),
+    durationSeconds: z
+      .number()
+      .int()
+      .min(0)
+      .max(1800)
+      .refine(
+        (value) =>
+          value === 0 ||
+          SCOUT_ALERT_DURATIONS_SECONDS.some((duration) => duration === value),
+        "Choose a duration of 1, 2, 5, 10, 15, or 30 minutes",
+      )
+      .default(0),
     aggregation: z.enum(["average", "peak"]).default("average"),
   })
   .strict()
@@ -111,8 +126,25 @@ export const scoutAlertConditionSchema = z
         path: ["threshold"],
         message: "Choose at least one restart",
       });
+    if (
+      ["restarts", "missingReports"].includes(value.metric) &&
+      value.durationSeconds !== 0
+    )
+      ctx.addIssue({
+        code: "custom",
+        path: ["durationSeconds"],
+        message: "This metric has its own counting interval",
+      });
   });
 export type ScoutAlertCondition = z.infer<typeof scoutAlertConditionSchema>;
+
+export function withScoutAlertDuration(
+  condition: ScoutAlertCondition,
+): ScoutAlertCondition {
+  return condition.durationSeconds === undefined
+    ? { ...condition, durationSeconds: 0 }
+    : condition;
+}
 
 export const scoutAlertRuleSchema = z
   .object({
@@ -166,6 +198,7 @@ export const scoutAlertPresets: Array<{
       operator: "above",
       threshold: 90,
       windowSeconds: 300,
+      durationSeconds: 0,
       aggregation: "average",
     },
   },
@@ -178,6 +211,7 @@ export const scoutAlertPresets: Array<{
       operator: "above",
       threshold: 90,
       windowSeconds: 300,
+      durationSeconds: 0,
       aggregation: "average",
     },
   },
@@ -190,6 +224,7 @@ export const scoutAlertPresets: Array<{
       operator: "above",
       threshold: 90,
       windowSeconds: 300,
+      durationSeconds: 0,
       aggregation: "average",
     },
   },
@@ -202,6 +237,7 @@ export const scoutAlertPresets: Array<{
       operator: "above",
       threshold: 3,
       windowSeconds: 300,
+      durationSeconds: 0,
       aggregation: "peak",
     },
   },
@@ -214,6 +250,7 @@ export const scoutAlertPresets: Array<{
       operator: "above",
       threshold: 180,
       windowSeconds: 300,
+      durationSeconds: 0,
       aggregation: "peak",
     },
   },
@@ -226,7 +263,7 @@ export type ScoutConditionResult = {
   since: number | null;
 };
 
-/** Evaluate the latest fresh reading. Missing data cannot trigger or prove recovery. */
+/** A sustained breach needs fresh, consecutive readings. Missing data cannot trigger or prove recovery. */
 export function evaluateScoutCondition(
   condition: ScoutAlertCondition,
   observations: ScoutObservation[],
@@ -255,10 +292,40 @@ export function evaluateScoutCondition(
     condition.operator === "above"
       ? latest.value >= condition.threshold
       : latest.value <= condition.threshold;
+  if (!firing)
+    return { state: "healthy", value: latest.value, since: latest.at };
+  if (!condition.durationSeconds)
+    return { state: "firing", value: latest.value, since: latest.at };
+
+  const ordered = observations
+    .filter((point) => Number.isFinite(point.at) && point.at <= latest.at)
+    .sort((a, b) => b.at - a.at);
+  const continuityGapMs = condition.http
+    ? condition.http.intervalSeconds * 1500
+    : 45_000;
+  let since = latest.at;
+  let previousAt = latest.at;
+  for (const point of ordered) {
+    if (point.at >= previousAt) continue;
+    if (previousAt - point.at > continuityGapMs) break;
+    if (
+      point.value === null ||
+      !Number.isFinite(point.value) ||
+      (condition.operator === "above"
+        ? point.value < condition.threshold
+        : point.value > condition.threshold)
+    )
+      break;
+    since = point.at;
+    previousAt = point.at;
+  }
   return {
-    state: firing ? "firing" : "healthy",
+    state:
+      latest.at - since >= condition.durationSeconds * 1000
+        ? "firing"
+        : "pending",
     value: latest.value,
-    since: latest.at,
+    since,
   };
 }
 

@@ -135,8 +135,13 @@ export function scoutValue(value: number | null, metric: string) {
     : `${(value / definition.factor).toLocaleString(undefined, { maximumFractionDigits: 2 })}${definition.unit === "%" ? "" : " "}${definition.unit}`.trim();
 }
 export function conditionDescription(condition: ScoutAlertCondition) {
-  if (condition.metric === "httpAvailability") return `Endpoint unavailable`;
-  return `${metricDefinition(condition.metric).label} ${condition.operator === "above" ? "at least" : "at most"} ${scoutValue(condition.threshold, condition.metric)}${condition.metric === "restarts" ? ` in ${condition.windowSeconds / 60} minutes` : ""}`;
+  const duration = condition.durationSeconds ?? 0;
+  const durationText = duration
+    ? ` for ${duration / 60} ${duration === 60 ? "minute" : "minutes"}`
+    : "";
+  if (condition.metric === "httpAvailability")
+    return `Endpoint unavailable${durationText}`;
+  return `${metricDefinition(condition.metric).label} ${condition.operator === "above" ? "at least" : "at most"} ${scoutValue(condition.threshold, condition.metric)}${condition.metric === "restarts" ? ` in ${condition.windowSeconds / 60} minutes` : durationText}`;
 }
 export function ScoutSelect({
   label,
@@ -234,12 +239,17 @@ export function ScoutNumber({
 }) {
   const id = useId();
   return (
-    <Field>
-      <FieldLabel htmlFor={id} isRequired>
+    <Field className="min-w-0">
+      <FieldLabel
+        htmlFor={id}
+        isRequired
+        className="min-w-0 whitespace-nowrap text-foreground"
+      >
         {label}
       </FieldLabel>
       <Input
         id={id}
+        className="w-full min-w-0"
         type="number"
         required
         min={min}

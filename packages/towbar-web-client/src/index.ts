@@ -20,6 +20,7 @@ export type {
 } from "@workspace/towbar-core";
 
 export {
+  SCOUT_ALERT_DURATIONS_SECONDS,
   scoutAlertPresets,
   scoutAlertRuleSchema,
 } from "@workspace/towbar-core/scout-alerts";

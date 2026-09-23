@@ -1,5 +1,6 @@
 import { and, desc, eq, isNull, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
+import { withScoutAlertDuration } from "@workspace/towbar-core";
 import {
   apps,
   scoutAlertIncidents,
@@ -87,7 +88,13 @@ export async function listWorkspaceIncidents(
     .where(workspaceFilter(workspaceId, input))
     .orderBy(desc(scoutAlertIncidents.openedAt), desc(scoutAlertIncidents.id))
     .limit(input.limit + 1);
-  const items = rows.slice(0, input.limit);
+  const items = rows.slice(0, input.limit).map((item) => ({
+    ...item,
+    incident: {
+      ...item.incident,
+      condition: withScoutAlertDuration(item.incident.condition),
+    },
+  }));
   const last = items.at(-1)?.incident;
   return {
     items,
