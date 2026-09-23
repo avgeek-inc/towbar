@@ -595,7 +595,7 @@ function ResourceConfiguration({ item }: { item: ResourceRecord }) {
         title="Image configuration"
         variant="card"
       >
-        <Attributes.Item label="Image">
+        <Attributes.Item label="Image" className="col-span-2 md:col-span-1">
           <TypographyCode className="break-all">
             {item.config.image}
           </TypographyCode>
