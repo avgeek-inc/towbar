@@ -3,8 +3,8 @@ import test from "node:test";
 import { aggregateMonitoringValues } from "./monitoring.js";
 import {
   evaluateScoutCondition,
-  scoutAlertPresets,
   scoutAlertConditionSchema,
+  scoutAlertPresets,
   scoutAlertRuleSchema,
   scoutGaugeObservations,
   scoutRestartObservations,
