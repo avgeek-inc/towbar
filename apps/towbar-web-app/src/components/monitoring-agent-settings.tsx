@@ -145,7 +145,7 @@ function MonitoringAgentForm({
             </Checkbox>
           ) : null}
           {canManage ? (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex items-center gap-2">
               <ActionButton
                 action={() =>
                   api.post(`${endpoint}/actions/install`, {
@@ -160,13 +160,13 @@ function MonitoringAgentForm({
                         title: "Update Scout Agent?",
                         description:
                           "Install the latest version of Scout Agent. Reporting may pause briefly.",
-                        actionLabel: "Update Scout Agent",
+                        actionLabel: "Update Agent",
                       }
                     : {
                         title: "Install Scout Agent?",
                         description:
                           "Install Scout Agent on this server and begin collecting performance data.",
-                        actionLabel: "Install Scout Agent",
+                        actionLabel: "Install Agent",
                       }
                 }
                 onSuccess={() => {
@@ -178,7 +178,7 @@ function MonitoringAgentForm({
                 variant="primary"
               >
                 <ScoutIcon name={installed ? "refresh" : "install"} />
-                {installed ? "Update Scout Agent" : "Install Scout Agent"}
+                {installed ? "Update Agent" : "Install Agent"}
               </ActionButton>
               {installed || agent.status === "failed" ? (
                 <ActionButton
@@ -188,14 +188,14 @@ function MonitoringAgentForm({
                     title: "Uninstall Scout Agent?",
                     description:
                       "Stop monitoring and remove Scout Agent. Existing history is kept for your selected retention period.",
-                    actionLabel: "Uninstall Scout Agent",
+                    actionLabel: "Uninstall Agent",
                   }}
                   success="Scout Agent removal queued"
                   pendingLabel="Queuing…"
                   variant="danger"
                 >
                   <ScoutIcon name="delete" />
-                  Uninstall Scout Agent
+                  Uninstall Agent
                 </ActionButton>
               ) : null}
             </div>
