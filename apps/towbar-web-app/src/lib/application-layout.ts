@@ -14,7 +14,6 @@ import {
   SecurityCheckIcon,
   ServerStack01Icon,
   UserAccountIcon,
-  Settings01Icon,
 } from "@hugeicons/core-free-icons";
 import { createElement } from "react";
 
@@ -156,20 +155,6 @@ const sidebar = {
       items: [
         {
           kind: "link",
-          id: "settings",
-          label: "My Settings",
-          href: "/settings",
-          icon: Settings01Icon,
-        },
-        {
-          kind: "link",
-          id: "team-settings",
-          label: "Team Settings",
-          href: "/team-settings/general",
-          icon: UserAccountIcon,
-        },
-        {
-          kind: "link",
           id: "integrations",
           label: "Integrations",
           href: "/manage/integrations",
@@ -181,6 +166,13 @@ const sidebar = {
           label: "Shared Secrets",
           href: "/manage/shared-secrets",
           icon: Key01Icon,
+        },
+        {
+          kind: "link",
+          id: "team-settings",
+          label: "Team Settings",
+          href: "/team-settings/general",
+          icon: UserAccountIcon,
         },
         {
           kind: "link",
