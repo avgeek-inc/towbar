@@ -66,18 +66,16 @@ function MonitoringAgentForm({
           <Widget.Title>Scout Agent</Widget.Title>
         </Widget.Header>
         <Widget.Content className="grid gap-5">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
             <ScoutMascot />
             <div className="grid min-w-0 gap-2">
               <p className="font-medium">
                 Scout Agent, your monitoring powerhouse.
               </p>
               <p className="max-w-3xl text-sm text-muted">
-                Monitor performance and metrics of the server and its apps and
-                resources with updates every 30 seconds. Scout Agent helps you
-                monitor all the metrics in real time and configure alert and
-                incident thresholds so that you get notified whenever the
-                resources need attention.
+                Monitor server, app, and resource performance in real time.
+                Configure alert and incident thresholds to be notified when
+                something needs attention.
               </p>
             </div>
           </div>
