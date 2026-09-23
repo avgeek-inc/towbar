@@ -231,17 +231,6 @@ export function AppDetail() {
           </div>
         ) : undefined
       }
-      badge={
-        (detailNavigation.section ?? "overview") === "overview" ? (
-          <StatusBadge
-            status={
-              lifecycleStatus === "active"
-                ? item.runtimeState.healthStatus
-                : lifecycleStatus
-            }
-          />
-        ) : undefined
-      }
       breadcrumbAncestors={appsBreadcrumb}
       title={item.name}
       titleIcon={appLogo}
