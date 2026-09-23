@@ -50,7 +50,7 @@ export function TooltipText({
         {children}
       </Tooltip.Trigger>
       <Tooltip.Content
-        className="max-w-64 whitespace-normal break-normal text-xs [overflow-wrap:normal] [word-break:normal]"
+        className="max-w-[min(16rem,calc(100vw-2rem))] whitespace-normal text-xs [overflow-wrap:anywhere]"
         placement={placement}
         showArrow
       >
