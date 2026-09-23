@@ -74,10 +74,14 @@ function ServerCapacitySubscription({
 }
 
 export function useInventoryRuntimeCapacity() {
-  const capacities = useContext(CapacityContext);
+  const capacities = useInventoryServerCapacity();
   return new Map(
     Array.from(capacities.values()).flatMap((capacity) =>
       capacity.runtimes.map((runtime) => [runtime.id, runtime] as const),
     ),
   );
+}
+
+export function useInventoryServerCapacity() {
+  return useContext(CapacityContext);
 }
