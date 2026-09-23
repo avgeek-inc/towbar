@@ -1,6 +1,5 @@
 "use client";
 import { useAccess } from "./access-context";
-import { IntegrationProviderLogo } from "./integration-provider-logo";
 import {
   InventorySidebar,
   useInventoryQuery,
@@ -41,7 +40,7 @@ import {
   ToggleButtonGroup,
 } from "@workspace/web-design-system/buttons/toggle-button";
 
-import { DashboardPage, InlineLink } from "@/components/page-parts";
+import { DashboardPage } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { useQueryChoice } from "@/hooks/use-page-query";
 import {
@@ -298,19 +297,22 @@ function DeployableInventoryTable({
       key: "name",
     },
     {
-      cell: (item) => (
-        <InstanceEnvironmentLabel environment={item.environment} />
-      ),
+      cell: (item) => {
+        const source = sourcesById.get(item.sourceId);
+        return (
+          <InstanceEnvironmentLabel
+            environment={item.environment}
+            repositoryName={
+              source
+                ? `${source.repositoryOwner}/${source.repositoryName}`
+                : undefined
+            }
+          />
+        );
+      },
       className: "min-w-32",
       header: "Environment",
       key: "environment",
-    },
-    {
-      cell: (item) => <SourceLink source={sourcesById.get(item.sourceId)} />,
-      className: "hidden min-w-40 2xl:table-cell",
-      headerClassName: "hidden 2xl:table-cell",
-      header: "Repository",
-      key: "source",
     },
     {
       cell: (item) => (
@@ -397,24 +399,8 @@ function DeployableInventoryTable({
       }
       getRowKey={(item) => item.id}
       items={items}
-      tableClassName="min-w-[680px] 2xl:min-w-[1040px]"
+      tableClassName="min-w-[680px]"
     />
-  );
-}
-
-function SourceLink({ source }: { source?: Source }) {
-  if (!source) return "Unknown Repository";
-  const name = `${source.repositoryOwner}/${source.repositoryName}`;
-  return (
-    <InlineLink
-      className="inline-flex min-w-0 items-center gap-2"
-      href={`/repositories/${source.id}`}
-    >
-      <IntegrationProviderLogo provider="github" />
-      <TooltipText className="truncate" tooltip={name}>
-        {source.repositoryName}
-      </TooltipText>
-    </InlineLink>
   );
 }
 
