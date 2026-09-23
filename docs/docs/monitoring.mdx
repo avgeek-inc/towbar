@@ -21,7 +21,7 @@ Use workspace **Incidents** to review active or resolved conditions across every
 
 ## System health
 
-Open **Manage → System health** and choose **Run checks**.
+Open **Manage → System health** to see the latest control-plane checks, their observation times, and the running version. Towbar checks Temporal at startup and every five minutes. Choose **Run checks** when you need a fresh result immediately. A check marked stale is older than 15 minutes.
 
 | Section       | Checks                                     | What to investigate                                                                 |
 | ------------- | ------------------------------------------ | ----------------------------------------------------------------------------------- |
@@ -62,7 +62,7 @@ A deployment can succeed and later become unhealthy. Check the latest runtime st
 
 Allocation is the limit declared for a workload. Usage is the latest observed consumption relative to that allocation. CPU percentages account for the number of allocated CPUs; memory percentages use the configured memory limit.
 
-Server capacity columns describe the host's maximum capacity. They do not represent an app's allocation. Missing measurements display as unavailable rather than zero. Review the observation timestamp if the server cannot be reached.
+On **Servers → All servers**, the CPU and memory capacity columns describe each host's maximum capacity, not an app's allocation. When Scout has measured usage, each capacity has a **% used** line below it; hover or focus that line to see when the sample was recorded. These columns are also available on mobile through the horizontally scrollable table. Missing measurements display as **Not measured**, rather than zero.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">

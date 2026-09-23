@@ -3,7 +3,9 @@ title: "Personal settings"
 description: "Manage your profile, sign-in methods, browser sessions, and personal API keys."
 ---
 
-Open **Manage → My Settings**. These settings affect your own account. Your team role determines which operational actions you can take, but every user can secure their account and review their sessions.
+Open **Manage → My Settings**, or select your name at the bottom of the sidebar for quick links to Profile, Preferences, Auth & Security, and My API Keys. The account menu also links to the changelog and documentation, opens an email for feedback, and lets you log out.
+
+These settings affect your own account. Your team role determines which operational actions you can take, but every user can secure their account and review their sessions.
 
 ## Profile
 
@@ -65,7 +67,7 @@ An account created by an admin starts with a temporary password. The user must r
 
 The Sessions table lists your active browser sessions, when each was last used, and when it expires. **This browser** identifies your current session. Revoke a session when you no longer use or recognize it.
 
-Use the sign-out icon beside the theme switcher in the header to end the current browser session. The confirmation links back to these settings for managing other sessions. Signing out does not revoke your personal API keys.
+Choose **Logout** from the account menu, or use the sign-out icon beside the theme switcher in the header, to end the current browser session. The confirmation links back to these settings for managing other sessions. Signing out does not revoke your personal API keys.
 
 ## Two-factor Auth
 
@@ -83,7 +85,7 @@ Towbar may ask you to authenticate again before a sensitive change if your last 
 
 A passkey verifies your identity after you enter your email and password. Your browser asks for device verification, such as a fingerprint, face scan, or PIN. The biometric data stays with the device.
 
-Under **Two-factor Auth → Passkeys**, add a passkey and give it a name you will recognize. You can rename it later or remove one you no longer use. Removing it from Towbar stops that credential from signing in to this installation; it does not delete the copy stored in your password manager.
+Under **Two-factor Auth → Passkeys**, add a passkey and give it a name you will recognize. Its creation date appears below the name. You can rename it later or remove one you no longer use. Removing it from Towbar stops that credential from signing in to this installation; it does not delete the copy stored in your password manager.
 
 Sign in with your email and password first. If you configured both an authenticator app and a passkey, choose which method to use. With only an authenticator, Towbar opens the code form; with only a passkey, it requests the passkey automatically. On localhost, the browser remembers your last successful method and uses it again if it is still configured and supported. You can choose another configured method or retry a cancelled passkey request. Keep your password and recovery options available. Passkeys belong to the Towbar site's domain, so moving the installation to a different domain requires new passkeys. Production installations need HTTPS; localhost is supported for development.
 
