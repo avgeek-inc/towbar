@@ -141,13 +141,10 @@ export async function testManagedSecretInheritance({
         .where(eq(managedSecrets.owner, `app:${appId}`));
       assert(stored);
       assert(!JSON.stringify(stored).includes("local-value"));
-      await assert.rejects(
-        mutateSecret(
-          slot,
-          { expectedRevision: saved.revision, set: {}, delete: ["TOKEN"] },
-          actorUserId,
-        ),
-        /declared|required|managed/i,
+      const cleared = await mutateSecret(
+        slot,
+        { expectedRevision: saved.revision, set: {}, delete: ["TOKEN"] },
+        actorUserId,
       );
       assert.equal(
         (
@@ -159,20 +156,39 @@ export async function testManagedSecretInheritance({
             stage: "deployment",
           })
         ).values.TOKEN,
-        "local-value",
+        undefined,
+      );
+      assert((await readSecretMetadata(slot)).missingKeys.includes("TOKEN"));
+      const restored = await mutateSecret(
+        slot,
+        {
+          expectedRevision: cleared.revision,
+          set: { TOKEN: "local-value" },
+          delete: [],
+        },
+        actorUserId,
       );
       const shared = await readSecretMetadata(sharedSlot);
-      await assert.rejects(
-        mutateSecret(
-          sharedSlot,
-          {
-            expectedRevision: shared.revision,
-            set: {},
-            delete: ["TOKEN"],
-          },
-          actorUserId,
-        ),
-        /declared|required|managed/i,
+      const sharedCleared = await mutateSecret(
+        sharedSlot,
+        {
+          expectedRevision: shared.revision,
+          set: {},
+          delete: ["TOKEN"],
+        },
+        actorUserId,
+      );
+      assert(
+        (await readSecretMetadata(sharedSlot)).missingKeys.includes("TOKEN"),
+      );
+      await mutateSecret(
+        sharedSlot,
+        {
+          expectedRevision: sharedCleared.revision,
+          set: { TOKEN: "shared-value" },
+          delete: [],
+        },
+        actorUserId,
       );
       assert.equal(
         (
@@ -189,7 +205,7 @@ export async function testManagedSecretInheritance({
       await mutateSecret(
         slot,
         {
-          expectedRevision: saved.revision,
+          expectedRevision: restored.revision,
           set: {
             TOKEN: "{{source.TOKEN}}",
             COMMON: "{{source.COMMON}}",
