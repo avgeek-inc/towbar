@@ -196,15 +196,7 @@ export function ServerDetail() {
     !preparations.data ||
     (can("server.remove") && !orphans.data)
   )
-    return (
-      <DashboardPage
-        icon={ServerStack01Icon}
-        breadcrumbAncestors={serversBreadcrumb}
-        title="Server"
-      >
-        <QueryLoading />
-      </DashboardPage>
-    );
+    return <QueryLoading variant="detail" />;
 
   const item = server.data.server;
   const appCount = apps.data?.apps.filter(

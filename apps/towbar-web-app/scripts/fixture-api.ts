@@ -4155,17 +4155,20 @@ function createNotificationEventFixture(
   id: string,
   eventType: string,
 ): NotificationEvent {
+  const isPreview = eventType.startsWith("preview.");
   const category =
     eventType === "notification.test"
       ? "test"
-      : eventType.startsWith("preview.")
+      : isPreview
         ? "previews"
         : "deployments";
-  const payload = {
-    details: {},
+  const payload: NotificationEvent["payload"] = {
+    details: isPreview
+      ? {}
+      : { deployableId: fixtureIds.app, deployableKind: "app" },
     entity: {
-      id: fixtureIds.deployment,
-      kind: "deployment",
+      id: isPreview ? fixtureIds.preview : fixtureIds.deployment,
+      kind: isPreview ? "preview" : "deployment",
       name: "Example Website",
     },
     message:

@@ -6,7 +6,7 @@ import { EmptyState } from "@workspace/web-design-system/data-display/empty-stat
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { ThemeSwitcher } from "@workspace/web-design-system/controls/theme-switcher";
 import { AlertDialog } from "@workspace/web-design-system/overlays/alert-dialog";
-import { clearApiQueryCache } from "@/hooks/use-api-query";
+import { clearApiQueryCache, refreshApiQueries } from "@/hooks/use-api-query";
 import { SecondarySidebarLayout } from "./secondary-sidebar";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -89,14 +89,14 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
   const isSessionTransition = pathname === "/logout";
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
-      if (event.key === "towbar:preferences-revision") clearApiQueryCache();
+      if (event.key === "towbar:preferences-revision") refreshApiQueries();
     };
-    window.addEventListener("towbar:preferences-changed", clearApiQueryCache);
+    window.addEventListener("towbar:preferences-changed", refreshApiQueries);
     window.addEventListener("storage", onStorage);
     return () => {
       window.removeEventListener(
         "towbar:preferences-changed",
-        clearApiQueryCache,
+        refreshApiQueries,
       );
       window.removeEventListener("storage", onStorage);
     };
@@ -261,7 +261,7 @@ function HeaderSignOut({ onSignOut }: { onSignOut: () => void }) {
         className="size-8 min-h-8 min-w-8 rounded-full p-0"
         isIconOnly
         onPress={() => setIsConfirming(true)}
-        variant="danger-ghost"
+        variant="danger"
       >
         <HugeiconsIcon
           aria-hidden="true"

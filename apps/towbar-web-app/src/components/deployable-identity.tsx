@@ -28,6 +28,9 @@ function externalImageLoader({ src }: ImageLoaderProps) {
   return src;
 }
 
+const loadedAppLogoDomains = new Set<string>();
+const failedAppLogoDomains = new Set<string>();
+
 export function AppIdentity({
   app,
   healthStatus = app.runtimeState.healthStatus,
@@ -106,8 +109,20 @@ export function AppLogo({
   domain: string | undefined;
   size?: "default" | "small";
 }) {
-  const [loaded, setLoaded] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [result, setResult] = useState<{
+    domain: string;
+    status: "failed" | "loaded";
+  }>();
+  const loaded = Boolean(
+    domain &&
+    (loadedAppLogoDomains.has(domain) ||
+      (result?.domain === domain && result.status === "loaded")),
+  );
+  const failed = Boolean(
+    domain &&
+    (failedAppLogoDomains.has(domain) ||
+      (result?.domain === domain && result.status === "failed")),
+  );
   const pixels = size === "small" ? 24 : 32;
   return (
     <span
@@ -129,13 +144,18 @@ export function AppLogo({
           unoptimized
           width={pixels}
           src={`https://${domain}/favicon.ico`}
-          onError={() => setFailed(true)}
+          onError={() => {
+            failedAppLogoDomains.add(domain);
+            setResult({ domain, status: "failed" });
+          }}
           onLoad={(event) => {
             const image = event.currentTarget;
             if (image.naturalWidth > 0 && image.naturalHeight > 0) {
-              setLoaded(true);
+              loadedAppLogoDomains.add(domain);
+              setResult({ domain, status: "loaded" });
             } else {
-              setFailed(true);
+              failedAppLogoDomains.add(domain);
+              setResult({ domain, status: "failed" });
             }
           }}
           referrerPolicy="no-referrer"
@@ -247,6 +267,7 @@ export function ResourceLogo({ brand }: { brand: ResourceBrand }) {
         height={32}
         width={32}
         src={logo}
+        unoptimized
         onError={() => setFailed(true)}
       />
       {dark ? (
@@ -256,6 +277,7 @@ export function ResourceLogo({ brand }: { brand: ResourceBrand }) {
           height={32}
           width={32}
           src={dark}
+          unoptimized
           onError={() => setFailed(true)}
         />
       ) : null}

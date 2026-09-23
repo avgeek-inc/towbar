@@ -30,6 +30,8 @@ export async function emitDeploymentNotification(
     .select({
       appName: apps.name,
       commitSha: deployments.commitSha,
+      deployableId: deployments.appId,
+      deployableKind: deployments.deployableKind,
       environment: deployments.environment,
       errorCode: deployments.errorCode,
       errorMessage: deployments.errorMessage,
@@ -50,6 +52,8 @@ export async function emitDeploymentNotification(
     payload: notificationEventPayload({
       details: {
         commit: deployment.commitSha.slice(0, 12),
+        deployableId: deployment.deployableId,
+        deployableKind: deployment.deployableKind,
         environment: deployment.environment,
         errorCode: deployment.errorCode,
       },

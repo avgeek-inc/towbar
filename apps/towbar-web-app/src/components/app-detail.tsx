@@ -119,15 +119,7 @@ export function AppDetail() {
       </DashboardPage>
     );
   if (!app.data || !deployments.data || !releases.data || !source.data)
-    return (
-      <DashboardPage
-        icon={DashboardCircleIcon}
-        breadcrumbAncestors={appsBreadcrumb}
-        title="App"
-      >
-        <QueryLoading />
-      </DashboardPage>
-    );
+    return <QueryLoading variant="detail" />;
 
   const item = app.data.app;
   const usesCloudflareTunnel =

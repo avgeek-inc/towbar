@@ -3,17 +3,21 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Notification02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import Link from "next/link";
 
 import type { NotificationEvent } from "@workspace/towbar-web-client";
 import { usePageVisibilityInterval } from "@workspace/web-design-system/hooks/use-page-visibility-interval";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Popover } from "@workspace/web-design-system/overlays/popover";
 import { ScrollShadow } from "@workspace/web-design-system/utilities/scroll-shadow";
+import { Button } from "@workspace/web-design-system/buttons/button";
 
 import { api } from "@/lib/api";
+import { notificationHref } from "@/lib/notification-route";
 import { formatDate } from "./dashboard-overview";
 
 const seenAtStorageKey = "towbar-notifications-seen-at";
+const clearedAtStorageKey = "towbar-notifications-cleared-at";
 
 type NotificationListResponse = { notifications: NotificationEvent[] };
 
@@ -22,11 +26,16 @@ export function NotificationCenter() {
   const [notifications, setNotifications] = useState<NotificationEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [seenAt, setSeenAt] = useState(0);
+  const [clearedAt, setClearedAt] = useState(0);
 
   useEffect(() => {
     const stored = Number(window.localStorage.getItem(seenAtStorageKey));
     if (Number.isFinite(stored) && stored > 0) {
       setSeenAt(stored);
+    }
+    const cleared = Number(window.localStorage.getItem(clearedAtStorageKey));
+    if (Number.isFinite(cleared) && cleared > 0) {
+      setClearedAt(cleared);
     }
   }, []);
 
@@ -67,13 +76,33 @@ export function NotificationCenter() {
     return () => window.clearTimeout(timer);
   }, [isOpen, notifications]);
 
-  const unreadCount = useMemo(
+  const visibleNotifications = useMemo(
     () =>
       notifications.filter(
+        (notification) =>
+          new Date(notification.occurredAt).getTime() > clearedAt,
+      ),
+    [clearedAt, notifications],
+  );
+  const unreadCount = useMemo(
+    () =>
+      visibleNotifications.filter(
         (notification) => new Date(notification.occurredAt).getTime() > seenAt,
       ).length,
-    [notifications, seenAt],
+    [seenAt, visibleNotifications],
   );
+  const clearAll = useCallback(() => {
+    const nextClearedAt = Math.max(
+      Date.now(),
+      ...notifications.map((notification) =>
+        new Date(notification.occurredAt).getTime(),
+      ),
+    );
+    window.localStorage.setItem(clearedAtStorageKey, String(nextClearedAt));
+    window.localStorage.setItem(seenAtStorageKey, String(nextClearedAt));
+    setClearedAt(nextClearedAt);
+    setSeenAt(nextClearedAt);
+  }, [notifications]);
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
@@ -98,7 +127,18 @@ export function NotificationCenter() {
       >
         <Popover.Dialog className="p-0 outline-none">
           <Widget>
-            <Widget.Header>
+            <Widget.Header
+              endContent={
+                <Button
+                  className="min-h-8 px-2 text-xs"
+                  isDisabled={visibleNotifications.length === 0}
+                  onPress={clearAll}
+                  variant="ghost"
+                >
+                  Clear All
+                </Button>
+              }
+            >
               <Popover.Heading className="flex min-w-0">
                 <Widget.Title
                   icon={<HugeiconsIcon icon={Notification02Icon} />}
@@ -113,41 +153,44 @@ export function NotificationCenter() {
                   <p className="px-4 py-6 text-center text-sm text-muted">
                     Loading notifications…
                   </p>
-                ) : notifications.length === 0 ? (
+                ) : visibleNotifications.length === 0 ? (
                   <p className="px-4 py-6 text-center text-sm text-muted">
                     No notifications yet
                   </p>
                 ) : (
                   <ul className="divide-y divide-separator">
-                    {notifications.map((notification) => (
-                      <li
-                        className="flex gap-3 px-4 py-3"
-                        key={notification.id}
-                      >
-                        <span
-                          aria-hidden="true"
-                          className={`mt-1 size-2 shrink-0 rounded-full ${notificationTone(notification.type)}`}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-3">
-                            <p className="text-sm font-medium">
-                              {notification.payload.title}
+                    {visibleNotifications.map((notification) => (
+                      <li key={notification.id}>
+                        <Link
+                          className="flex gap-3 rounded-xl px-4 py-3 outline-none transition-colors hover:bg-default/60 focus-visible:bg-default/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
+                          href={notificationHref(notification)}
+                          onClick={() => setIsOpen(false)}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`mt-1 size-2 shrink-0 rounded-full ${notificationTone(notification.type)}`}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-3">
+                              <p className="text-sm font-medium">
+                                {notification.payload.title}
+                              </p>
+                              <time
+                                className="shrink-0 text-xs text-muted"
+                                dateTime={notification.occurredAt}
+                              >
+                                {formatDate(notification.occurredAt)}
+                              </time>
+                            </div>
+                            <p className="mt-0.5 text-sm text-muted">
+                              {notification.payload.message}
                             </p>
-                            <time
-                              className="shrink-0 text-xs text-muted"
-                              dateTime={notification.occurredAt}
-                            >
-                              {formatDate(notification.occurredAt)}
-                            </time>
+                            <p className="mt-1 text-xs text-muted">
+                              {notification.payload.source?.name ??
+                                notification.payload.entity.name}
+                            </p>
                           </div>
-                          <p className="mt-0.5 text-sm text-muted">
-                            {notification.payload.message}
-                          </p>
-                          <p className="mt-1 text-xs text-muted">
-                            {notification.payload.source?.name ??
-                              notification.payload.entity.name}
-                          </p>
-                        </div>
+                        </Link>
                       </li>
                     ))}
                   </ul>

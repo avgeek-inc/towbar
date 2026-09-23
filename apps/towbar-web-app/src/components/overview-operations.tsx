@@ -33,11 +33,7 @@ import { DomainLink } from "./domain-link";
 import { deploymentStatusTooltip } from "./deployment-table";
 import { deploymentHref } from "@/lib/deployment-route";
 
-export function OverviewIncidents({
-  animateIllustration = false,
-}: {
-  animateIllustration?: boolean;
-}) {
+export function OverviewIncidents() {
   const query = useApiQuery<{ activeIncidents: number }>(
     "/v1/core/monitoring/summary",
     30_000,
@@ -99,7 +95,9 @@ export function OverviewIncidents({
               alt=""
               width={512}
               height={512}
-              className={`pointer-events-none absolute right-0 bottom-0 h-auto w-[38%] max-w-28 object-contain object-right-bottom ${animateIllustration ? "overview-metric-illustration--enter" : ""}`}
+              className="pointer-events-none absolute right-0 bottom-0 h-auto w-[38%] max-w-28 object-contain object-right-bottom"
+              preload
+              unoptimized
             />
           </>
         )}

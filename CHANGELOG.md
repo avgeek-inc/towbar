@@ -5,6 +5,25 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+### Added
+
+- Notification history can be cleared from the header, and each notification
+  opens the app, resource, server, or settings page that needs attention.
+
+### Changed
+
+- Deployment history gives requested time, branch, and commit their own table
+  columns.
+- Authentication panels use tighter padding on mobile screens.
+
+### Fixed
+
+- Detail navigation keeps its loading state stable instead of briefly showing
+  generic page titles, and cached product artwork no longer flashes during
+  navigation.
+- The sign-out action keeps its danger background visible without requiring
+  hover.
+
 ### Removed
 
 - Repository-level shared secrets and `{{source.KEY}}` references. Reusable

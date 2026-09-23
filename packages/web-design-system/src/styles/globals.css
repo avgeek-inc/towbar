@@ -201,28 +201,6 @@ a {
       color-mix(in oklch, var(--surface) 86%, transparent);
   }
 
-  .overview-metric-illustration--enter {
-    transform-origin: right bottom;
-    animation: overview-metric-illustration-enter 220ms
-      cubic-bezier(0.32, 0.72, 0, 1) both;
-  }
-
-  @keyframes overview-metric-illustration-enter {
-    from {
-      transform: scale(0.95);
-    }
-
-    to {
-      transform: scale(1);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .overview-metric-illustration--enter {
-      animation: none;
-    }
-  }
-
   @media (prefers-reduced-transparency: reduce) {
     .sidebar-identity {
       background-color: var(--surface);

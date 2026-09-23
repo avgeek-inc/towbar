@@ -17,7 +17,7 @@ import {
   ServerStack01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useEffect, useState, type ComponentProps } from "react";
+import type { ComponentProps } from "react";
 import Image from "next/image";
 import type {
   App,
@@ -55,20 +55,6 @@ const activitySeries = [
 const activityAxisTick = { fill: "var(--muted)", fontSize: 10 } as const;
 
 export function DashboardOverview() {
-  const [animateMetricImages, setAnimateMetricImages] = useState(false);
-  useEffect(() => {
-    const navigation = performance.getEntriesByType("navigation")[0];
-    if (!navigation?.name) return;
-    const initialPath = new URL(navigation.name).pathname;
-    const root = document.documentElement;
-    if (
-      initialPath !== globalThis.location.pathname ||
-      root.dataset.overviewMetricImagesAnimated === "true"
-    )
-      return;
-    root.dataset.overviewMetricImagesAnimated = "true";
-    setAnimateMetricImages(true);
-  }, []);
   const apps = useApiQuery<{ apps: App[] }>("/v1/core/apps", 30_000);
   const resources = useApiQuery<{ resources: Resource[] }>(
     "/v1/core/resources",
@@ -215,12 +201,14 @@ export function DashboardOverview() {
                   alt=""
                   width={512}
                   height={512}
-                  className={`pointer-events-none absolute right-0 bottom-0 h-auto w-[38%] max-w-28 object-contain object-right-bottom ${animateMetricImages ? "overview-metric-illustration--enter" : ""}`}
+                  className="pointer-events-none absolute right-0 bottom-0 h-auto w-[38%] max-w-28 object-contain object-right-bottom"
+                  preload
+                  unoptimized
                 />
               </Widget.Content>
             </Widget>
           ))}
-          <OverviewIncidents animateIllustration={animateMetricImages} />
+          <OverviewIncidents />
         </div>
       </div>
       <OverviewDeployments apps={appItems} />

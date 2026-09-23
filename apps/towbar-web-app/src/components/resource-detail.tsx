@@ -144,15 +144,7 @@ export function ResourceDetail() {
     );
   }
   if (!resource.data || !deployments.data || !releases.data || !source.data) {
-    return (
-      <DashboardPage
-        icon={CubeIcon}
-        breadcrumbAncestors={resourcesBreadcrumb}
-        title="Resource"
-      >
-        <QueryLoading />
-      </DashboardPage>
-    );
+    return <QueryLoading variant="detail" />;
   }
 
   const item = resource.data.resource;

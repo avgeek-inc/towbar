@@ -11,8 +11,7 @@ Object.assign(globalThis, { React });
 void test("Towbar lockup uses the Towbar brand assets", () => {
   const markup = renderToStaticMarkup(React.createElement(TowbarLockup));
 
-  assert.match(markup, /brands\/towbar\/logo\/light-transparent-edge/u);
-  assert.match(markup, /brands\/towbar\/logo\/dark-transparent-edge/u);
+  assert.match(markup, /\/brand\/towbar-logo\.png/u);
   assert.doesNotMatch(markup, /brands\/company\/logo/u);
   assert.match(markup, />Towbar<\/span>/u);
 });
@@ -20,6 +19,6 @@ void test("Towbar lockup uses the Towbar brand assets", () => {
 void test("Towbar favicon uses the managed brand asset", () => {
   const source = getTowbarBrandFaviconSource();
 
-  assert.match(source, /brands\/towbar\/favicon/u);
+  assert.equal(source, "/brand/towbar-favicon.png");
   assert.doesNotMatch(source, /towbar-mark\.svg/u);
 });
