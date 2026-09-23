@@ -12,7 +12,7 @@ import {
   Section,
   Text,
 } from "react-email";
-import { render, toPlainText } from "react-email";
+import { render } from "react-email";
 import {
   isWorkspaceRole,
   roleDescriptions,
@@ -189,6 +189,11 @@ function message(
         : undefined,
   };
 }
+function previewText(content: Message) {
+  const opening = content.paragraphs[0]?.replace(/\s+/g, " ").trim();
+  if (!opening) return "There is an update in Towbar.";
+  return /[.!?]$/.test(opening) ? opening : `${opening}.`;
+}
 function EmailShell({ message: content }: { message: Message }) {
   const actionUrl = content.actionUrl ? new URL(content.actionUrl) : null;
   if (actionUrl && !["http:", "https:"].includes(actionUrl.protocol))
@@ -207,7 +212,7 @@ function EmailShell({ message: content }: { message: Message }) {
           fontStyle="normal"
         />
       </Head>
-      <Preview>{content.title}</Preview>
+      <Preview>{previewText(content)}</Preview>
       <Body
         style={{
           backgroundColor: emailTheme.background,
@@ -335,10 +340,21 @@ function EmailShell({ message: content }: { message: Message }) {
 }
 async function renderMessage(content: Message) {
   const html = await render(<EmailShell message={content} />);
+  const text = [
+    previewText(content),
+    ...content.paragraphs.slice(1),
+    content.code ? `Verification code: ${content.code}` : null,
+    content.actionUrl
+      ? `${content.actionLabel ?? "Open Towbar"}: ${content.actionUrl}`
+      : null,
+    content.teamName,
+  ]
+    .filter((part) => part !== null)
+    .join("\n\n");
   return {
     subject: `[Towbar] ${content.title}`.replace(/[\r\n]/g, " ").slice(0, 255),
     html,
-    text: toPlainText(html),
+    text,
   };
 }
 export function renderTransactionalEmail(
