@@ -615,7 +615,7 @@ function SecretVariablesEditor({
                   {visibleKeys.map((key) => (
                     <div
                       key={key}
-                      className="grid min-w-0 sm:grid-cols-2 sm:gap-2"
+                      className="grid min-w-0 gap-2 sm:grid-cols-2"
                     >
                       <div className="flex min-h-10 min-w-0 items-center gap-2">
                         <span className="flex min-w-0 flex-wrap items-center gap-2">
@@ -641,62 +641,66 @@ function SecretVariablesEditor({
                           ) : null}
                         </span>
                         {canManageKeys ? (
-                          <Button
-                            type="button"
-                            isIconOnly
-                            variant="ghost"
-                            aria-label={`Remove ${key}`}
-                            isDisabled={!canManage || busy}
+                          <SecretRowDeleteButton
+                            className="sm:hidden"
+                            label={`Remove ${key}`}
+                            disabled={!canManage || busy}
                             onPress={() =>
                               setDeletedKeys((current) => [...current, key])
                             }
-                          >
-                            <HugeiconsIcon
-                              aria-hidden="true"
-                              icon={Delete02Icon}
-                              className="size-4 shrink-0"
-                            />
-                          </Button>
+                          />
                         ) : null}
                         <span
                           aria-hidden="true"
                           className="hidden min-w-0 flex-1 border-t border-dashed border-separator opacity-50 lg:block"
                         />
                       </div>
-                      <div className="min-w-0">
-                        <SecretValueInput
-                          label={`Value for ${key}`}
-                          value={replacements[key] ?? ""}
-                          configured={
-                            !Object.hasOwn(replacements, key) &&
-                            !binding.missingKeys?.includes(key)
-                          }
-                          disabled={!canManage || busy}
-                          reveal={
-                            canReveal
-                              ? async () => {
-                                  const result = await api.post<{
-                                    value: string;
-                                    revision: string | null;
-                                  }>(
-                                    `${endpoint}/${binding.environment}/${binding.stage}/reveal`,
-                                    { key },
-                                  );
-                                  if (result.revision !== binding.revision)
-                                    throw new Error(
-                                      "This secret changed. Refresh before viewing it.",
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div className="min-w-0 flex-1">
+                          <SecretValueInput
+                            label={`Value for ${key}`}
+                            value={replacements[key] ?? ""}
+                            configured={
+                              !Object.hasOwn(replacements, key) &&
+                              !binding.missingKeys?.includes(key)
+                            }
+                            disabled={!canManage || busy}
+                            reveal={
+                              canReveal
+                                ? async () => {
+                                    const result = await api.post<{
+                                      value: string;
+                                      revision: string | null;
+                                    }>(
+                                      `${endpoint}/${binding.environment}/${binding.stage}/reveal`,
+                                      { key },
                                     );
-                                  return result.value;
-                                }
-                              : undefined
-                          }
-                          onChange={(value) =>
-                            setReplacements((current) => ({
-                              ...current,
-                              [key]: value,
-                            }))
-                          }
-                        />
+                                    if (result.revision !== binding.revision)
+                                      throw new Error(
+                                        "This secret changed. Refresh before viewing it.",
+                                      );
+                                    return result.value;
+                                  }
+                                : undefined
+                            }
+                            onChange={(value) =>
+                              setReplacements((current) => ({
+                                ...current,
+                                [key]: value,
+                              }))
+                            }
+                          />
+                        </div>
+                        {canManageKeys ? (
+                          <SecretRowDeleteButton
+                            className="hidden sm:inline-flex"
+                            label={`Remove ${key}`}
+                            disabled={!canManage || busy}
+                            onPress={() =>
+                              setDeletedKeys((current) => [...current, key])
+                            }
+                          />
+                        ) : null}
                       </div>
                     </div>
                   ))}
@@ -726,37 +730,41 @@ function SecretVariablesEditor({
                             );
                           }}
                         />
-                        <Button
-                          type="button"
-                          isIconOnly
-                          variant="ghost"
-                          aria-label="Remove new variable"
-                          isDisabled={!canManage || busy}
+                        <SecretRowDeleteButton
+                          className="sm:hidden"
+                          label="Remove new variable"
+                          disabled={!canManage || busy}
                           onPress={() =>
                             setNewEntries((current) =>
                               current.filter((item) => item.id !== entry.id),
                             )
                           }
-                        >
-                          <HugeiconsIcon
-                            aria-hidden="true"
-                            icon={Delete02Icon}
-                            className="size-4 shrink-0"
-                          />
-                        </Button>
+                        />
                       </div>
-                      <div className="min-w-0">
-                        <SecretValueInput
-                          label={`Value for ${entry.key || "new variable"}`}
-                          value={entry.value}
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div className="min-w-0 flex-1">
+                          <SecretValueInput
+                            label={`Value for ${entry.key || "new variable"}`}
+                            value={entry.value}
+                            disabled={!canManage || busy}
+                            onChange={(value) =>
+                              setNewEntries((current) =>
+                                current.map((item) =>
+                                  item.id === entry.id
+                                    ? { ...item, value }
+                                    : item,
+                                ),
+                              )
+                            }
+                          />
+                        </div>
+                        <SecretRowDeleteButton
+                          className="hidden sm:inline-flex"
+                          label="Remove new variable"
                           disabled={!canManage || busy}
-                          onChange={(value) =>
+                          onPress={() =>
                             setNewEntries((current) =>
-                              current.map((item) =>
-                                item.id === entry.id
-                                  ? { ...item, value }
-                                  : item,
-                              ),
+                              current.filter((item) => item.id !== entry.id),
                             )
                           }
                         />
@@ -802,6 +810,36 @@ function SecretVariablesEditor({
         </Widget.Content>
       </Widget>
     </form>
+  );
+}
+
+function SecretRowDeleteButton({
+  className,
+  label,
+  disabled,
+  onPress,
+}: {
+  className: string;
+  label: string;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Button
+      type="button"
+      isIconOnly
+      variant="ghost"
+      className={className}
+      aria-label={label}
+      isDisabled={disabled}
+      onPress={onPress}
+    >
+      <HugeiconsIcon
+        aria-hidden="true"
+        icon={Delete02Icon}
+        className="size-4 shrink-0"
+      />
+    </Button>
   );
 }
 
