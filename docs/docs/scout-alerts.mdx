@@ -33,7 +33,7 @@ No rules are enabled automatically. The dotted 80% line in performance charts is
 
 1. Choose **Create rule**, enter a rule name, then choose a metric.
 2. The current server, app, or resource is selected automatically. Workload rules select **Production** or **Previews**; preview rules consider the selected workload's preview instances together.
-3. Set the threshold and direction. **At least** and **At most** include the threshold itself.
+3. Set the threshold and direction. **At least** and **At most** include the threshold itself. For metrics and public HTTP checks, choose how long the condition must remain true: 1, 2, 5, 10, 15, or 30 minutes.
 4. Choose whether the rule is enabled, then save. All configured notification destinations receive alerts and recoveries automatically.
 
 A server without notification destinations still creates incidents in Towbar. Adding a destination does not send an immediate test; a firing incident becomes eligible on the next evaluation. Admins and Members can create, change, enable, disable, or delete rules. Viewers can inspect them.
@@ -46,7 +46,7 @@ A server without notification destinations still creates incidents in Towbar. Ad
 | Container restart loop  | At least 3 restarts within 5 minutes | Fewer than 3 restarts in the window |
 | Scout stopped reporting | No report collected for 3 minutes    | Reports resume                      |
 
-The examples above are starting points for your own thresholds. Configure restart counting windows from 1 to 60 minutes. Alerts fire on the first fresh qualifying reading, with no additional waiting period. An incident recovers on the first fresh measurement that no longer meets the trigger condition. Each incident sends one firing notification, with no repeats while active. Each server, app, or resource supports up to 10 alert rules, including disabled rules. Delete a rule to free a slot. Production and preview rules share the same entity limit. A server supports up to 100 rules across all its entities, including at most 10 public HTTP checks.
+The examples above are starting points for your own thresholds. New metric and HTTP rules created in the dashboard default to a one-minute duration. A breach must remain continuous for the selected duration; missing or stale readings cannot complete it. Existing rules without a duration continue to fire on the first qualifying reading until you choose a duration. Restart rules instead count events in a configurable 1-to-60-minute window, and missing-report rules use their report-age threshold. An incident recovers on the first fresh measurement that no longer meets the trigger condition. Each incident sends one firing notification, with no repeats while active. Each server, app, or resource supports up to 10 alert rules, including disabled rules. Delete a rule to free a slot. Production and preview rules share the same entity limit. A server supports up to 100 rules across all its entities, including at most 10 public HTTP checks.
 
 ## Workspace monitoring
 
@@ -110,7 +110,7 @@ Choose **Public HTTP endpoint** as a server rule's metric. Set a public HTTP or 
 - A total timeout from 1 to 10 seconds, including DNS resolution and redirects.
 - A healthy HTTP status range, defaulting to 200–299.
 - Zero to three redirects; redirects are not followed by default.
-- An unavailable result triggers an alert immediately. Recovery follows the first successful check.
+- Unavailable results must continue for the selected duration before opening an incident. Recovery follows the first successful check.
 
 An unexpected status, timeout, DNS/connection failure, or invalid TLS certificate counts as unavailable. A blocked destination is shown as a check error and cannot establish recovery. Each redirect is resolved and validated separately. Private, loopback, link-local, reserved, and metadata-service addresses are blocked, including mixed public/private DNS answers. Connections are pinned to the validated address. Only ports 80 and 443 are accepted; custom headers, credentials, cookies, and request bodies are not supported. Response bodies are not buffered or retained.
 

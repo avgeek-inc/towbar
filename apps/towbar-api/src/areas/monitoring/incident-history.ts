@@ -1,5 +1,6 @@
 import { type SQL, and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
+import { withScoutAlertDuration } from "@workspace/towbar-core";
 import { apps, scoutAlertIncidents } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { notFound } from "../../http/errors.js";
@@ -94,7 +95,10 @@ export async function getScoutIncident(
     }),
   );
   return {
-    incident,
+    incident: {
+      ...incident,
+      condition: withScoutAlertDuration(incident.condition),
+    },
     entity: {
       id: incident.deployableId ?? input.serverId,
       name:

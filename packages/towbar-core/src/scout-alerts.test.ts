@@ -4,6 +4,7 @@ import { aggregateMonitoringValues } from "./monitoring.js";
 import {
   evaluateScoutCondition,
   scoutAlertPresets,
+  scoutAlertConditionSchema,
   scoutAlertRuleSchema,
   scoutGaugeObservations,
   scoutRestartObservations,
@@ -67,6 +68,70 @@ void test("uses the latest reading across blackouts, unordered history, and retr
       now,
     ).state,
     "healthy",
+  );
+});
+void test("waits for a continuous threshold breach and recovers on the first clear reading", () => {
+  const sustained = { ...condition, durationSeconds: 60 };
+  assert.equal(
+    evaluateScoutCondition(sustained, observations(95).slice(-2), now).state,
+    "pending",
+  );
+  assert.deepEqual(
+    evaluateScoutCondition(sustained, observations(95).slice(-3), now),
+    { state: "firing", value: 95, since: now - 60_000 },
+  );
+  assert.equal(
+    evaluateScoutCondition(
+      sustained,
+      [...observations(95).slice(-3), { at: now, value: 89 }],
+      now,
+    ).state,
+    "healthy",
+  );
+  assert.equal(
+    evaluateScoutCondition(
+      sustained,
+      [
+        { at: now - 60_000, value: 95 },
+        { at: now, value: 95 },
+      ],
+      now,
+    ).state,
+    "pending",
+  );
+});
+void test("HTTP failures use their check interval for sustained duration", () => {
+  const http = scoutAlertConditionSchema.parse({
+    metric: "httpAvailability",
+    threshold: 1,
+    durationSeconds: 120,
+    http: {
+      url: "https://example.com/health",
+      intervalSeconds: 60,
+    },
+  });
+  assert.equal(
+    evaluateScoutCondition(
+      http,
+      [
+        { at: now - 120_000, value: 1 },
+        { at: now - 60_000, value: 1 },
+        { at: now, value: 1 },
+      ],
+      now,
+    ).state,
+    "firing",
+  );
+  assert.equal(
+    evaluateScoutCondition(
+      http,
+      [
+        { at: now - 120_000, value: 1 },
+        { at: now, value: 1 },
+      ],
+      now,
+    ).state,
+    "pending",
   );
 });
 void test("counts restarts within the window but not counter resets or replacement identities", () => {
@@ -133,6 +198,28 @@ void test("gauge observations preserve absent metrics and worst-instance semanti
 void test("rejects removed recovery, repeat, and destination controls and unsafe configuration", () => {
   const rule = { name: "Memory", condition };
   assert(scoutAlertRuleSchema.safeParse(rule).success);
+  assert.equal(
+    scoutAlertRuleSchema.parse({
+      name: "Legacy rule",
+      condition: {
+        metric: "memoryPercent",
+        threshold: 80,
+      },
+    }).condition.durationSeconds,
+    0,
+  );
+  assert(
+    !scoutAlertRuleSchema.safeParse({
+      ...rule,
+      condition: { ...condition, durationSeconds: 180 },
+    }).success,
+  );
+  assert(
+    !scoutAlertRuleSchema.safeParse({
+      ...rule,
+      condition: { ...condition, metric: "restarts", durationSeconds: 60 },
+    }).success,
+  );
   assert(
     !scoutAlertRuleSchema.safeParse({
       ...rule,

@@ -131,7 +131,7 @@ export function ScoutOptionIcon({
     return <MonitoringMetricIcon metric={value} />;
   }
   if (label === "Method") return <ScoutIcon name="http" />;
-  if (label === "Time range" || label === "Mute duration")
+  if (["Time range", "Mute duration", "Duration"].includes(label))
     return <ScoutIcon name="time" />;
   if (label === "Baseline" || label === "Compare with")
     return <ScoutIcon name="preview" />;

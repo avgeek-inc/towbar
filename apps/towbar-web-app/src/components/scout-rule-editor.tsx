@@ -3,6 +3,7 @@ import { ScoutIcon } from "./scout-icons";
 import { ScoutHttpEditor } from "./scout-http-editor";
 import { useId, useState, type FormEvent } from "react";
 import {
+  SCOUT_ALERT_DURATIONS_SECONDS,
   scoutAlertPresets,
   scoutAlertRuleSchema,
   type ScoutAlertRuleInput,
@@ -56,6 +57,7 @@ export function ScoutRuleEditor({
           severity: "warning",
           condition: {
             ...scoutAlertPresets.find((p) => p.id === "memory")!.condition,
+            durationSeconds: 60,
           },
           deployableId: deployableId ?? null,
         },
@@ -70,6 +72,18 @@ export function ScoutRuleEditor({
   const isCounter = ["missingReports", "restarts", "httpAvailability"].includes(
     draft.condition.metric,
   );
+  const hasDuration = !["missingReports", "restarts"].includes(
+    draft.condition.metric,
+  );
+  const durationOptions = [
+    ...(initial && draft.condition.durationSeconds === 0
+      ? [{ id: "0", label: "Immediately" }]
+      : []),
+    ...SCOUT_ALERT_DURATIONS_SECONDS.map((seconds) => ({
+      id: String(seconds),
+      label: `${seconds / 60} ${seconds === 60 ? "minute" : "minutes"}`,
+    })),
+  ];
   async function save(event: FormEvent) {
     event.preventDefault();
     if (saving) return;
@@ -186,7 +200,9 @@ export function ScoutRuleEditor({
                         condition({
                           metric,
                           threshold: 1,
-
+                          durationSeconds: hasDuration
+                            ? draft.condition.durationSeconds
+                            : 60,
                           operator: "above",
                           http: {
                             url: "",
@@ -211,9 +227,16 @@ export function ScoutRuleEditor({
                               metric:
                                 metric as ScoutAlertRuleInput["condition"]["metric"],
                               threshold: metricDefinition(metric).factor,
-
                               operator: "above",
                             }),
+                        durationSeconds: [
+                          "missingReports",
+                          "restarts",
+                        ].includes(metric)
+                          ? 0
+                          : hasDuration
+                            ? draft.condition.durationSeconds
+                            : 60,
                       });
                     }}
                   />
@@ -267,6 +290,19 @@ export function ScoutRuleEditor({
                     />
                   </div>
                 )}
+                {hasDuration ? (
+                  <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+                    <ScoutSelect
+                      label="Duration"
+                      required
+                      value={String(draft.condition.durationSeconds)}
+                      options={durationOptions}
+                      onChange={(value) =>
+                        condition({ durationSeconds: Number(value) })
+                      }
+                    />
+                  </div>
+                ) : null}
                 {fieldErrors["condition.threshold"] ? (
                   <p className="text-sm text-danger">
                     {fieldErrors["condition.threshold"]}
