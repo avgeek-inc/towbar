@@ -46,6 +46,12 @@ a {
 }
 
 @layer components {
+  .popover {
+    box-shadow:
+      var(--overlay-shadow),
+      0 0 0 1px var(--border);
+  }
+
   .button.button--sm {
     @apply h-7 gap-1.5 px-3 text-xs/4;
 
