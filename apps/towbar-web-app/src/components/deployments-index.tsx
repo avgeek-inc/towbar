@@ -2,12 +2,7 @@
 
 import { DeploymentEnvironmentChip } from "./deployment-environment-chip";
 
-import {
-  DashboardCircleIcon,
-  CubeIcon,
-  FilterResetIcon,
-  Rocket01Icon,
-} from "@hugeicons/core-free-icons";
+import { FilterResetIcon, Rocket01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect } from "react";
 import {
@@ -36,6 +31,8 @@ import {
 } from "./deployment-table";
 import { DeploymentDuration } from "./elapsed-time";
 import { RelativeTime } from "./last-synced-time";
+import { AppLogo, ResourceLogo } from "./deployable-identity";
+import { resourceImageBrand } from "./resource-image-brand";
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { SecondarySection } from "./secondary-sidebar";
@@ -59,11 +56,16 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
         className="inline-flex min-w-0 items-center gap-2"
         href={`/${item.deployableKind === "app" ? "apps" : "resources"}/${item.appId}`}
       >
-        <HugeiconsIcon
-          aria-hidden="true"
-          className="size-4 shrink-0"
-          icon={item.deployableKind === "app" ? DashboardCircleIcon : CubeIcon}
-        />
+        {item.deployableKind === "app" || item.deployableKind === "compose" ? (
+          <AppLogo domain={item.deployableDomain ?? undefined} />
+        ) : (
+          <ResourceLogo
+            brand={resourceImageBrand(
+              item.deployableKind,
+              item.deployableImage ?? "",
+            )}
+          />
+        )}
         <span className="truncate">{item.deployableName}</span>
       </InlineLink>
     ),

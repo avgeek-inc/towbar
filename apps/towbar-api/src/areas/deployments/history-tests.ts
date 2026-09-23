@@ -170,6 +170,14 @@ export async function testDeploymentHistory({
         assert.equal(all.pagination.total, 3);
         assert.equal(all.pagination.totalPages, 3);
         assert.equal(all.deployments[0]?.id, ids[2]);
+        assert.equal(all.deployments[0]?.deployableImage, resourceConfig.image);
+        assert.equal(all.deployments[0]?.deployableDomain, null);
+        const appHistory = await query({ type: "app", limit: 1 });
+        assert.equal(
+          appHistory.deployments[0]?.deployableDomain,
+          appConfig.domains?.primary,
+        );
+        assert.equal(appHistory.deployments[0]?.deployableImage, null);
         const filtered = await query({
           state: "failed",
           type: "resource",

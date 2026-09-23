@@ -3127,11 +3127,18 @@ function getFixturePayload(
       ].sort(),
       deployments: ordered
         .slice((page - 1) * limit, page * limit)
-        .map((item) => ({
-          ...item,
-          deployableName:
-            deployables.get(item.appId)?.name ?? "Unknown workload",
-        })),
+        .map((item) => {
+          const deployable = deployables.get(item.appId);
+          return {
+            ...item,
+            deployableDomain: deployable?.config.domains?.primary ?? null,
+            deployableImage:
+              deployable && "image" in deployable.config
+                ? deployable.config.image
+                : null,
+            deployableName: deployable?.name ?? "Unknown workload",
+          };
+        }),
       pagination: {
         page,
         limit,

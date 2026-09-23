@@ -77,6 +77,12 @@ export async function listDeploymentHistory({
       .select({
         ...publicDeploymentSelection,
         deployableName: apps.name,
+        deployableDomain: sql<
+          string | null
+        >`${deployments.appSnapshot}->'domains'->>'primary'`,
+        deployableImage: sql<
+          string | null
+        >`${deployments.appSnapshot}->>'image'`,
       })
       .from(deployments)
       .innerJoin(

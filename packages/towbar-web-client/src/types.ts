@@ -657,6 +657,8 @@ export type PaginationMetadata = {
 };
 
 export type DeploymentHistoryItem = Deployment & {
+  deployableDomain: string | null;
+  deployableImage: string | null;
   deployableName: string;
 };
 
