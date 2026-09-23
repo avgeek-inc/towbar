@@ -277,13 +277,13 @@ async function mutateSecretInDatabase(
       "SECRET_VERSION_CHANGED",
     );
   const declaredKeys = await declaredKeysForSlot(slot, database);
+  const mutatedKeys = [...Object.keys(mutation.set), ...mutation.delete];
   if (
     declaredKeys !== null &&
-    (mutation.delete.length > 0 ||
-      Object.keys(mutation.set).some((key) => !declaredKeys.includes(key)))
+    mutatedKeys.some((key) => !declaredKeys.includes(key))
   ) {
     throw unprocessable(
-      "Required secret keys are managed in YAML. Edit values here; sync YAML to add or remove keys.",
+      "Required secret keys are managed in YAML. Edit or clear declared values here; sync YAML to add or remove keys.",
       "SECRET_DECLARATIONS_MANAGED",
     );
   }

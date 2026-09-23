@@ -3359,6 +3359,21 @@ function getFixturePayload(
     );
   }
 
+  const deployableSecretReadinessMatch = path.match(
+    /^\/v1\/core\/(apps|resources)\/([^/]+)\/secrets\/readiness$/,
+  );
+  if (deployableSecretReadinessMatch) {
+    const deployable =
+      deployableSecretReadinessMatch[1] === "apps"
+        ? apps.find((item) => item.id === deployableSecretReadinessMatch[2])
+        : resources.find(
+            (item) => item.id === deployableSecretReadinessMatch[2],
+          );
+    return deployable
+      ? { ready: deployable.id !== resources[1]!.id }
+      : undefined;
+  }
+
   const deployableSecretsMatch = path.match(
     /^\/v1\/core\/(apps|resources)\/([^/]+)\/secrets$/,
   );

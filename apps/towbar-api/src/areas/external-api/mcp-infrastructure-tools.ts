@@ -294,7 +294,7 @@ export const infrastructureTools: McpTool[] = [
   tool(
     "secrets_update",
     "Update environment secrets",
-    "Set/delete named secrets in one environment and lifecycle stage. Use expectedRevision from towbar_secrets_inspect (null only for an empty slot). A conflict requires rereading and reconciling changes. Never returns plaintext values.",
+    "Set or clear named secret values in one environment and lifecycle stage. Clearing a YAML-declared secret keeps its declaration and marks its value as missing. Use expectedRevision from towbar_secrets_inspect (null only for an empty slot). A conflict requires rereading and reconciling changes. Never returns plaintext values.",
     secretTarget
       .safeExtend({
         environment: secretEnvironmentSchema,

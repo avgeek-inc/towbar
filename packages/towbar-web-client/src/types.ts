@@ -105,6 +105,9 @@ export type AppSecretsResponse = {
   bindings: AppSecretBinding[];
   canManageSecrets: boolean;
 };
+export type InstanceSecretReadiness = {
+  ready: boolean;
+};
 export type SecretMetadata = {
   keys: string[];
   revision: string | null;

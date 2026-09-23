@@ -2230,7 +2230,7 @@ Read-only operation. Required permissions: `secret.list`, `sharedSecret.list`.
 
 `towbar_secrets_update`
 
-Set/delete named secrets in one environment and lifecycle stage. Use expectedRevision from towbar_secrets_inspect (null only for an empty slot). A conflict requires rereading and reconciling changes. Never returns plaintext values.
+Set or clear named secret values in one environment and lifecycle stage. Clearing a YAML-declared secret keeps its declaration and marks its value as missing. Use expectedRevision from towbar_secrets_inspect (null only for an empty slot). A conflict requires rereading and reconciling changes. Never returns plaintext values.
 
 Edit access required. Required permissions: `secret.update`, `sharedSecret.update`.
 

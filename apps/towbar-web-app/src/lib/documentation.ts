@@ -372,7 +372,7 @@ export function documentationTopic(pathname: string): Topic | undefined {
 }
 
 export const widgetDocumentation: Record<string, HeadingDocumentation> = {
-  "server preparation": documentationTopics.preparation,
+  "server setup": documentationTopics.preparation,
   "server inspection": guide(
     "servers#prepare-the-runtime",
     "Check SSH access and inspect the operating system and permissions before installing services.",

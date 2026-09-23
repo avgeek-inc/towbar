@@ -313,6 +313,7 @@
                 "group": "Secrets",
                 "pages": [
                   "api-reference/get_apps_by_id_secrets",
+                  "api-reference/get_apps_by_id_secrets_readiness",
                   "api-reference/patch_apps_by_id_secrets_by_environment_by_stage"
                 ]
               }
@@ -369,6 +370,7 @@
                 "group": "Secrets",
                 "pages": [
                   "api-reference/get_resources_by_id_secrets",
+                  "api-reference/get_resources_by_id_secrets_readiness",
                   "api-reference/patch_resources_by_id_secrets_by_environment_by_stage"
                 ]
               }

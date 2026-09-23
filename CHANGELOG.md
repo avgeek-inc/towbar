@@ -5,6 +5,25 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+### Added
+
+- First-deployment guidance now reports whether required app or resource
+  secrets still need configuration and offers the next relevant action.
+- Successful server setup immediately queues a health check so capacity and
+  workload status refresh without waiting for the scheduled check.
+
+### Changed
+
+- Server Preparation is now named Server Setup throughout the dashboard and
+  documentation.
+- Resource Settings places Secrets before Backup and Restore, and Repository
+  environment actions remain on one row on narrow screens.
+
+### Fixed
+
+- YAML-declared secret values can be cleared from their app or resource while
+  preserving the declaration for later configuration.
+
 ## [2.0.8] - 2026-09-23
 
 ### Fixed

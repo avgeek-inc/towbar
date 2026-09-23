@@ -21,8 +21,7 @@ const checklistSteps = [
     id: "inspecting",
     group: "inspection",
     title: "Inspect server",
-    description:
-      "Check the operating system and permissions needed for preparation.",
+    description: "Check the operating system and permissions needed for setup.",
   },
   {
     id: "installing_prerequisites",

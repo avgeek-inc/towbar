@@ -65,6 +65,7 @@ import { AutoDeployControlEditor } from "./auto-deploy-control";
 import { DomainLink } from "./domain-link";
 import { DeployableReadiness } from "./deployable-readiness";
 import { AppLogo } from "./deployable-identity";
+import { FirstDeployment } from "./first-deployment";
 
 type AppRecord = App & {
   serverId: string;
@@ -158,6 +159,7 @@ export function AppDetail() {
       icon={DashboardCircleIcon}
       actions={
         detailNavigation.section === "overview" &&
+        Boolean(latestDeployment) &&
         !item.archivedAt &&
         can("deployment.create") ? (
           <div className="flex flex-wrap justify-end gap-2">
@@ -337,40 +339,38 @@ export function AppDetail() {
                     </InlineLink>
                   </Attributes.Item>
                 </Attributes>
-                <Attributes
-                  icon={<HugeiconsIcon icon={Rocket01Icon} />}
-                  columns={2}
-                  title="Last deployment attempt"
-                  variant="card"
-                >
-                  <Attributes.Item label="Status">
-                    {latestDeployment ? (
+                {latestDeployment ? (
+                  <Attributes
+                    icon={<HugeiconsIcon icon={Rocket01Icon} />}
+                    columns={2}
+                    title="Last deployment attempt"
+                    variant="card"
+                  >
+                    <Attributes.Item label="Status">
                       <StatusBadge
                         status={getDeploymentDisplayStatus(latestDeployment)}
                         tooltip={deploymentStatusTooltip(latestDeployment)}
                       />
-                    ) : (
-                      "Not deployed"
-                    )}
-                  </Attributes.Item>
-                  <Attributes.Item label="Commit">
-                    {latestDeployment ? (
+                    </Attributes.Item>
+                    <Attributes.Item label="Commit">
                       <TypographyCode title={latestDeployment.commitSha}>
                         {latestDeployment.commitSha.slice(0, 12)}
                       </TypographyCode>
-                    ) : (
-                      "None"
-                    )}
-                  </Attributes.Item>
-                  <Attributes.Item label="Requested">
-                    {latestDeployment
-                      ? formatDate(latestDeployment.createdAt)
-                      : "Not requested"}
-                  </Attributes.Item>
-                  <Attributes.Item label="Auto-deploy">
-                    {item.config.autoDeploy ? "Enabled" : "Disabled"}
-                  </Attributes.Item>
-                </Attributes>
+                    </Attributes.Item>
+                    <Attributes.Item label="Requested">
+                      {formatDate(latestDeployment.createdAt)}
+                    </Attributes.Item>
+                    <Attributes.Item label="Auto-deploy">
+                      {item.config.autoDeploy ? "Enabled" : "Disabled"}
+                    </Attributes.Item>
+                  </Attributes>
+                ) : item.serverReady ? (
+                  <FirstDeployment
+                    canDeploy={can("deployment.create")}
+                    deployableId={appId}
+                    type="app"
+                  />
+                ) : null}
               </div>
             ),
           },

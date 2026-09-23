@@ -39,6 +39,8 @@ void test(
     const { executeEnvironmentSync } = await import("./environment-sync.js");
     const { assertRequiredInstanceSecrets, listSecretEnvironments } =
       await import("../apps/secrets.js");
+    const { assertDeclaredSecretValueCanBeCleared } =
+      await import("./environment-secret-clear-tests.js");
     const { getInstanceEnvironment, lockDeploymentEnvironment } =
       await import("../apps/instance-environment.js");
     const { readSecretValues, readSecretMetadata, mutateSecret } =
@@ -212,6 +214,16 @@ void test(
           delete: [],
         },
         userId,
+      );
+      await t.test(
+        "declared values can be cleared without removing their YAML declarations",
+        async () =>
+          assertDeclaredSecretValueCanBeCleared({
+            appId: stage.id,
+            slot,
+            userId,
+            workspaceId,
+          }),
       );
       await t.test("values cannot cross environment boundaries", async () => {
         assert.deepEqual(

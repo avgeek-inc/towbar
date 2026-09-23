@@ -515,9 +515,7 @@ function CredentialVerificationModal({
                   ) : null}
                   {verification?.status === "succeeded" ? (
                     <Button onPress={preparationPending ? onContinue : onClose}>
-                      {preparationPending
-                        ? "Continue server preparation"
-                        : "Done"}
+                      {preparationPending ? "Continue server setup" : "Done"}
                     </Button>
                   ) : null}
                 </div>
