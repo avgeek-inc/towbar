@@ -83,8 +83,12 @@ a {
     .table__cell {
       @apply px-3;
       width: auto !important;
-      min-width: 0 !important;
       white-space: nowrap;
+    }
+
+    .table__column,
+    .table__cell:not(.resource-identity-cell) {
+      min-width: 0 !important;
     }
   }
 

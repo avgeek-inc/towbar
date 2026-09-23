@@ -300,7 +300,10 @@ function DeployableInventoryTable({
         ) : (
           <ResourceIdentity resource={item} />
         ),
-      className: "w-full min-w-64",
+      className:
+        kind === "resource"
+          ? "resource-identity-cell w-full min-w-[22rem]"
+          : "w-full min-w-64",
       wrapRowLink: false,
       header: kind === "app" ? "App" : "Resource",
       key: "name",

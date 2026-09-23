@@ -122,7 +122,7 @@ function resourceColumns(
   return [
     {
       cell: (resource) => <ResourceIdentity resource={resource} />,
-      className: "min-w-64",
+      className: "resource-identity-cell min-w-[22rem]",
       wrapRowLink: false,
       header: "Resource Name",
       key: "name",
