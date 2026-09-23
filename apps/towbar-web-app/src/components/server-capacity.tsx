@@ -168,17 +168,15 @@ export function ServerDeployableTable({
                 runtime?.healthStatus ?? item.runtimeState.healthStatus;
               return (
                 <Table.Row id={item.id} key={item.id}>
-                  <Table.Cell>
-                    <div className="min-w-80">
-                      {isApp(item) ? (
-                        <AppIdentity app={item} healthStatus={healthStatus} />
-                      ) : (
-                        <ResourceIdentity
-                          resource={item}
-                          healthStatus={healthStatus}
-                        />
-                      )}
-                    </div>
+                  <Table.Cell className="lg:min-w-80">
+                    {isApp(item) ? (
+                      <AppIdentity app={item} healthStatus={healthStatus} />
+                    ) : (
+                      <ResourceIdentity
+                        resource={item}
+                        healthStatus={healthStatus}
+                      />
+                    )}
                   </Table.Cell>
                   <Table.Cell>
                     <StatusBadge status={healthStatus} />

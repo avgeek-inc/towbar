@@ -64,6 +64,22 @@ a {
     @apply py-[10px];
   }
 
+  @media (max-width: 63.999rem) {
+    .table__content {
+      width: max-content;
+      min-width: 100% !important;
+      table-layout: auto;
+    }
+
+    .table__column,
+    .table__cell {
+      @apply px-3;
+      width: auto !important;
+      min-width: 0 !important;
+      white-space: nowrap;
+    }
+  }
+
   /* Match the compact mobile button rhythm across single-line controls, while
      keeping editable text at 16px so mobile browsers do not zoom on focus. */
   .input {
