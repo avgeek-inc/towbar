@@ -70,6 +70,7 @@ import { ResourceLogo } from "./deployable-identity";
 import { resourceImageBrand } from "./resource-image-brand";
 import { FirstDeployment } from "./first-deployment";
 import { EnvironmentChip } from "./environment-chip";
+import { CloudProviderLogo } from "./cloud-provider-logo";
 
 type ResourceRecord = Resource & {
   serverId: string;
@@ -679,11 +680,16 @@ function ResourceConfiguration({ item }: { item: ResourceRecord }) {
             : "None"}
         </Attributes.Item>
         <Attributes.Item label="TLS">
-          {item.config.tls?.mode === "cloudflare-dns"
-            ? "Cloudflare DNS"
-            : item.config.tls?.mode === "direct"
-              ? "Direct"
-              : "Not configured"}
+          {item.config.tls?.mode === "cloudflare-dns" ? (
+            <span className="inline-flex items-center gap-1.5">
+              <CloudProviderLogo provider="cloudflare" />
+              Cloudflare DNS
+            </span>
+          ) : item.config.tls?.mode === "direct" ? (
+            "Direct"
+          ) : (
+            "Not configured"
+          )}
         </Attributes.Item>
       </Attributes>
     </div>
