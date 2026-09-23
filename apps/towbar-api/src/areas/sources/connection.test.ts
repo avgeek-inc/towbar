@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { sourceConnectionSchema } from "./connection.js";
+import {
+  sourceConnectionSchema,
+  sourceInstallationRecordId,
+} from "./connection.js";
 
 const repository = {
   githubInstallationId: "11111111-1111-4111-8111-111111111111",
@@ -32,5 +35,28 @@ void test("connection accepts more than twenty named mappings without a discover
     sourceConnectionSchema.safeParse({ ...repository, environments: [] })
       .success,
     false,
+  );
+});
+
+void test("connection stores the GitHub installation record UUID", () => {
+  const connection = sourceConnectionSchema.parse({
+    ...repository,
+    environments: [{ environment: "production", branch: "main" }],
+  });
+
+  assert.equal(
+    sourceInstallationRecordId(connection),
+    repository.githubInstallationId,
+  );
+  assert.equal(
+    sourceInstallationRecordId({
+      provider: "gitlab",
+      integration: "gitlab",
+      providerRepositoryId: "123456",
+      repositoryOwner: "example",
+      repositoryName: "service",
+      environments: [{ environment: "production", branch: "main" }],
+    }),
+    null,
   );
 });

@@ -64,6 +64,12 @@ export const sourceConnectionSchema = z.intersection(
   repositoryProviderSchema,
 );
 
+export function sourceInstallationRecordId(
+  input: z.infer<typeof sourceConnectionSchema>,
+) {
+  return input.provider === "github" ? input.githubInstallationId : null;
+}
+
 export async function discoverSource(
   input: z.infer<typeof sourceDiscoverySchema> & { workspaceId: string },
 ) {
@@ -135,8 +141,7 @@ export async function connectRepositorySource(
       .values({
         workspaceId: input.workspaceId,
         provider: connection.provider,
-        integrationInstallationId:
-          connection.provider === "github" ? connection.installationId : null,
+        integrationInstallationId: sourceInstallationRecordId(input),
         integrationAuthorizationId:
           connection.provider === "gitlab" ? connection.connectionId : null,
         providerRepositoryId:

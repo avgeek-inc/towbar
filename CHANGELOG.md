@@ -5,6 +5,11 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+### Fixed
+
+- GitHub repository connections store the selected installation's internal
+  record ID, allowing newly connected repositories to be imported successfully.
+
 ## [2.0.7] - 2026-09-23
 
 ### Changed
