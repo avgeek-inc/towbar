@@ -2,6 +2,7 @@ import { and, desc, eq, gt } from "drizzle-orm";
 import { APIError } from "better-auth/api";
 import { transactionalEmails, users } from "@workspace/towbar-database/schema";
 import type { AuthDatabase } from "../../infrastructure/database.js";
+import { enqueueTransactionalEmail } from "../../infrastructure/temporal.js";
 import { enqueueIdentityEmail } from "../team/email-outbox.js";
 
 export async function enqueueVerificationEmail(
@@ -15,7 +16,7 @@ export async function enqueueVerificationEmail(
     workspaceId?: string;
   },
 ) {
-  await database.transaction(async (tx) => {
+  const outboxId = await database.transaction(async (tx) => {
     const [user] = await tx
       .select()
       .from(users)
@@ -55,9 +56,11 @@ export async function enqueueVerificationEmail(
         message:
           "Wait at least one minute before requesting another confirmation email.",
       });
-    await enqueueIdentityEmail(tx, {
+    return await enqueueIdentityEmail(tx, {
       ...input,
       template: "email-verification",
     });
   });
+  if (outboxId)
+    await enqueueTransactionalEmail(outboxId, 0).catch(() => undefined);
 }
