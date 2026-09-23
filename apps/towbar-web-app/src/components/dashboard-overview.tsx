@@ -42,6 +42,7 @@ import { useApiQuery } from "@/hooks/use-api-query";
 
 import { buildDeploymentActivity } from "@/lib/overview";
 import { ServerIpLink } from "./source-inventory";
+import illustrationStyles from "./overview-illustration.module.css";
 
 const activitySeries = [
   { color: "var(--accent-soft-foreground)", key: "total", label: "Requested" },
@@ -181,7 +182,9 @@ export function DashboardOverview() {
                   {metric.label}
                 </Widget.Title>
               </Widget.Header>
-              <Widget.Content className="relative flex min-h-30 items-center overflow-hidden py-3.5 pr-[38%]">
+              <Widget.Content
+                className={`${illustrationStyles.card} relative flex min-h-30 items-center overflow-hidden py-3.5 pr-[38%]`}
+              >
                 <div className="grid justify-items-start gap-3">
                   <InlineLink
                     href={metric.href}
@@ -201,7 +204,7 @@ export function DashboardOverview() {
                   alt=""
                   width={512}
                   height={512}
-                  className="pointer-events-none absolute right-0 bottom-0 h-auto w-[38%] max-w-28 object-contain object-right-bottom"
+                  className={`${illustrationStyles.illustration} pointer-events-none absolute right-0 bottom-0 h-auto w-[38%] max-w-28 object-contain object-right-bottom`}
                   preload
                   unoptimized
                 />

@@ -32,6 +32,7 @@ import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
 import { DomainLink } from "./domain-link";
 import { deploymentStatusTooltip } from "./deployment-table";
 import { deploymentHref } from "@/lib/deployment-route";
+import illustrationStyles from "./overview-illustration.module.css";
 
 export function OverviewIncidents() {
   const query = useApiQuery<{ activeIncidents: number }>(
@@ -47,7 +48,7 @@ export function OverviewIncidents() {
         </Widget.Title>
       </Widget.Header>
       <Widget.Content
-        className="relative flex min-h-30 items-center overflow-hidden py-3.5 pr-[38%]"
+        className={`${illustrationStyles.card} relative flex min-h-30 items-center overflow-hidden py-3.5 pr-[38%]`}
         style={
           !query.error && count !== undefined
             ? {
@@ -95,7 +96,7 @@ export function OverviewIncidents() {
               alt=""
               width={512}
               height={512}
-              className="pointer-events-none absolute right-0 bottom-0 h-auto w-[38%] max-w-28 object-contain object-right-bottom"
+              className={`${illustrationStyles.illustration} pointer-events-none absolute right-0 bottom-0 h-auto w-[38%] max-w-28 object-contain object-right-bottom`}
               preload
               unoptimized
             />
