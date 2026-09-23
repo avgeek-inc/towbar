@@ -300,6 +300,7 @@ function EmailShell({ message: content }: { message: Message }) {
                   lineHeight: "20px",
                   color: emailTheme.muted,
                   overflowWrap: "anywhere",
+                  margin: "28px 0 0",
                 }}
               >
                 Or open this link:{" "}
