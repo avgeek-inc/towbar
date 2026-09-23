@@ -15,8 +15,6 @@ import {
   Field,
   FieldLabel,
 } from "@workspace/web-design-system/forms/field";
-import { Checkbox } from "@workspace/web-design-system/forms/checkbox";
-import { Label } from "@workspace/web-design-system/forms/label";
 import { Modal } from "@workspace/web-design-system/overlays/modal";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { api } from "@/lib/api";
@@ -322,18 +320,6 @@ export function ScoutRuleEditor({
                   ) : null}
                 </div>
               </fieldset>
-              <Checkbox
-                variant="secondary"
-                isSelected={draft.enabled}
-                onChange={(enabled) => setDraft({ ...draft, enabled })}
-              >
-                <Checkbox.Content>
-                  <Checkbox.Control>
-                    <Checkbox.Indicator />
-                  </Checkbox.Control>
-                  <Label>Enable this rule</Label>
-                </Checkbox.Content>
-              </Checkbox>
               <FieldDescription>
                 {conditionDescription(draft.condition)}
               </FieldDescription>

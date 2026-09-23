@@ -156,7 +156,7 @@ export function ScoutAlerts({
             <ScoutIcon
               name={
                 !r.enabled
-                  ? "disabled"
+                  ? "paused"
                   : r.evaluationState === "healthy"
                     ? "resolved"
                     : r.evaluationState === "firing"
@@ -186,7 +186,7 @@ export function ScoutAlerts({
           }
         >
           {!r.enabled
-            ? "Disabled"
+            ? "Paused"
             : ({
                 healthy: "Healthy",
                 firing: "Alerting",
@@ -248,7 +248,7 @@ export function ScoutAlerts({
               Edit
             </Button>
             <ActionButton
-              variant="secondary"
+              variant="warning"
               action={() =>
                 api.put(`${endpoint}/rules/${r.id}`, {
                   name: r.name,
@@ -259,13 +259,13 @@ export function ScoutAlerts({
                 })
               }
               onSuccess={refresh}
-              success={r.enabled ? "Rule disabled" : "Rule enabled"}
+              success={r.enabled ? "Rule paused" : "Rule resumed"}
             >
-              <ScoutIcon name={r.enabled ? "disabled" : "enabled"} />
-              {r.enabled ? "Disable" : "Enable"}
+              <ScoutIcon name={r.enabled ? "paused" : "running"} />
+              {r.enabled ? "Pause" : "Resume"}
             </ActionButton>
             <ActionButton
-              variant="secondary"
+              variant="danger"
               action={() => api.delete(`${endpoint}/rules/${r.id}`)}
               onSuccess={refresh}
               confirm={{
@@ -383,7 +383,7 @@ export function ScoutAlerts({
             getRowKey={(r) => r.id}
             items={rules}
             emptyTitle="No alert rules yet"
-            emptyDescription="Create a rule with a metric and threshold. Rules are enabled only when you create them."
+            emptyDescription="Create a rule with a metric and threshold. New rules start active and can be paused at any time."
           />
         </section>
       ) : null}
@@ -404,7 +404,7 @@ export function ScoutAlerts({
               }
               emptyDescription={
                 state === "active"
-                  ? "Incidents appear here when an enabled rule meets its alert condition."
+                  ? "Incidents appear here when an active rule meets its alert condition."
                   : "History follows this server’s Scout retention setting."
               }
             />
@@ -463,7 +463,7 @@ function ruleStatusTooltip(rule: ScoutRule) {
   const evaluated = rule.evaluatedAt
     ? ` Last evaluated ${formatDate(rule.evaluatedAt)}.`
     : "";
-  if (!rule.enabled) return "This rule is disabled and is not being evaluated.";
+  if (!rule.enabled) return "This rule is paused and is not being evaluated.";
   const description =
     {
       healthy: "The latest reading is within the configured threshold.",

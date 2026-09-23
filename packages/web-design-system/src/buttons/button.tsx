@@ -6,7 +6,9 @@ import type { ComponentProps } from "react";
 import { cn } from "../lib/utils";
 
 export type ButtonVariant =
-  NonNullable<ComponentProps<typeof HeroButton>["variant"]> | "danger-ghost";
+  | NonNullable<ComponentProps<typeof HeroButton>["variant"]>
+  | "danger-ghost"
+  | "warning";
 export type ButtonProps = Omit<
   ComponentProps<typeof HeroButton>,
   "size" | "variant"
@@ -20,13 +22,20 @@ export function Button({
   variant,
   ...props
 }: ButtonProps) {
-  const variantClass = variant === "danger-ghost" && "button--danger-ghost";
+  const variantClass =
+    variant === "danger-ghost"
+      ? "button--danger-ghost"
+      : variant === "warning"
+        ? "button--warning-soft"
+        : undefined;
   const resolvedVariant =
     variant === "danger-ghost"
       ? "ghost"
       : variant === "danger"
         ? "danger-soft"
-        : variant;
+        : variant === "warning"
+          ? "secondary"
+          : variant;
   return (
     <HeroButton
       {...props}
@@ -85,13 +94,16 @@ export function buttonVariants({
       ? "ghost"
       : variant === "danger"
         ? "danger-soft"
-        : variant;
+        : variant === "warning"
+          ? "secondary"
+          : variant;
   return heroButtonVariants({
     ...props,
     size: "sm",
     variant: resolvedVariant,
     className: cn(
       variant === "danger-ghost" && "button--danger-ghost",
+      variant === "warning" && "button--warning-soft",
       classValue,
       className,
     ),
