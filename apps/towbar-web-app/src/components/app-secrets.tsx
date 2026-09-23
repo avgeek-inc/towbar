@@ -617,6 +617,10 @@ function SecretVariablesEditor({
                             </Chip>
                           ) : null}
                         </span>
+                        <span
+                          aria-hidden="true"
+                          className="ml-3 hidden min-w-0 flex-1 border-t border-dashed border-separator opacity-50 lg:block"
+                        />
                       </div>
                       <div className="col-span-full min-w-0 sm:col-span-4">
                         <SecretValueInput
