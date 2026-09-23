@@ -611,8 +611,7 @@ function ServerTlsForm({
             <span className="grid gap-1">
               <Label>Enable Cloudflare TLS</Label>
               <span className="text-sm text-muted">
-                Use Cloudflare DNS validation for workloads configured with
-                Cloudflare TLS on this server.
+                Use Cloudflare DNS validation for applicable workloads.
               </span>
             </span>
           </Switch.Content>
