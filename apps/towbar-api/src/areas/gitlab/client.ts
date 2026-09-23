@@ -2,6 +2,7 @@ import { z } from "zod";
 import { integrationFetch } from "../../infrastructure/outbound-network.js";
 import type { ProviderConnection } from "@workspace/towbar-core";
 import type { GitHubPullRequest } from "../github/client.js";
+import { collectGitLabBranches } from "./branch-pages.js";
 
 type GitLabConnection = Extract<ProviderConnection, { provider: "gitlab" }>;
 const maxGitLabJsonBytes = 2 * 1_024 * 1_024;
@@ -105,25 +106,19 @@ export async function listGitLabRepositoryBranches(
     connection: GitLabConnection;
   },
 ) {
-  const names = new Set<string>();
-  for (let page = 1; page <= 100; page += 1) {
-    const response = await request(
-      input.connection,
-      projectIdentifier(input),
-      `/repository/branches?per_page=100&page=${page}`,
-    );
-    const branches = z
-      .array(z.object({ name: z.string().min(1) }))
-      .parse(await readGitLabJson(response));
-    for (const branch of branches) names.add(branch.name);
-    const next = Number(response.headers.get("x-next-page"));
-    if (!next || branches.length < 100) break;
-    if (page === 100)
-      throw new Error(
-        "GitLab returned more than 10,000 branches. Narrow the repository before connecting it.",
-      );
-  }
-  return [...names].sort();
+  return collectGitLabBranches({
+    maxPages: 100,
+    readJson: readGitLabJson,
+    requestPage: (page) =>
+      request(
+        input.connection,
+        projectIdentifier(input),
+        `/repository/branches?per_page=100&page=${page}`,
+      ),
+    tooManyError: new Error(
+      "GitLab returned more than 10,000 branches. Narrow the repository before connecting it.",
+    ),
+  });
 }
 
 export async function fetchGitLabMergeRequest(
