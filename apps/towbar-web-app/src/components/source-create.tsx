@@ -145,7 +145,6 @@ function SourceCreate({
   );
 
   const [customEnvironment, setCustomEnvironment] = useState("");
-  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
   const [discovered, setDiscovered] = useState<
     { name: string; previewsEnabled: boolean }[] | null
   >(null);
@@ -195,7 +194,6 @@ function SourceCreate({
         setDiscovered(null);
         setSelectedEnvironments([]);
         setMappings({});
-        setDiscoveryError(null);
       }}
     >
       <Label isRequired>Provider</Label>
@@ -382,7 +380,6 @@ function SourceCreate({
               setSelectedEnvironments([]);
               setMappings({});
               setCustomEnvironment("");
-              setDiscoveryError(null);
               const repository = repositories.data?.repositories.find(
                 (repo) => repo.fullName === name,
               );
@@ -430,15 +427,10 @@ function SourceCreate({
                     ]),
                   ),
                 );
-              } catch (error) {
+              } catch {
                 setDiscovered([{ name: "production", previewsEnabled: false }]);
                 setSelectedEnvironments(["production"]);
                 setMappings({ production: "" });
-                setDiscoveryError(
-                  error instanceof Error
-                    ? error.message
-                    : "Could not read the default branch.",
-                );
               } finally {
                 setBusy(false);
               }
@@ -527,12 +519,6 @@ function SourceCreate({
         </div>
         {discovered ? (
           <div className="grid min-w-0 gap-4">
-            {discoveryError ? (
-              <p className="text-xs text-muted">
-                Could not suggest environments from the default branch.
-                Configure your environments and it&apos;s branches to continue.
-              </p>
-            ) : null}
             {branches.error ? (
               <p className="text-xs text-danger">
                 Could not load branches: {branches.error}
