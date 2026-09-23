@@ -296,6 +296,11 @@ function HeaderSignOut({ onSignOut }: { onSignOut: () => void }) {
                 }}
                 variant="danger"
               >
+                <HugeiconsIcon
+                  aria-hidden="true"
+                  className="size-4"
+                  icon={Logout03Icon}
+                />
                 Sign out
               </Button>
             </AlertDialog.Footer>
