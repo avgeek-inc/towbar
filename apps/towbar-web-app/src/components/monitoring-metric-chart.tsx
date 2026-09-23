@@ -190,8 +190,8 @@ export const MetricChart = memo(function MetricChart({
           count > 0 ? (
             <span className="text-xs tabular-nums text-muted">
               {series.length > 1
-                ? `Average across ${series.length} instances`
-                : "Average"}{" "}
+                ? `Avg across ${series.length} instances`
+                : "Avg"}{" "}
               {formatMetric(sum / count, metrics[0]!.unit)} · Peak{" "}
               {formatMetric(peak, metrics[0]!.unit)}
             </span>

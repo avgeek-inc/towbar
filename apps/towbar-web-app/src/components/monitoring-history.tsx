@@ -37,7 +37,7 @@ const hostMetrics: ChartMetric[][] = [
     { key: "diskReadBytesPerSecond", label: "Disk read", unit: "rate" },
     { key: "diskWriteBytesPerSecond", label: "Disk written", unit: "rate" },
   ],
-  [{ key: "load1", label: "Load average (1 minute)", unit: "number" }],
+  [{ key: "load1", label: "Load average (1 min)", unit: "number" }],
 ];
 const workloadMetrics: ChartMetric[][] = [
   [{ key: "cpuPercent", label: "CPU usage", unit: "percent" }],
@@ -175,7 +175,7 @@ export function MonitoringHistory({
             value={view}
             onChange={setView}
             options={[
-              { id: "average", label: "Average" },
+              { id: "average", label: "Avg" },
               { id: "peak", label: "Peak" },
             ]}
           />
