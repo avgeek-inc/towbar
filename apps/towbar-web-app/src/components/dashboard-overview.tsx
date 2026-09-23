@@ -110,7 +110,7 @@ export function DashboardOverview() {
     {
       key: "actions",
       header: "Actions",
-      headerClassName: "text-end",
+      headerClassName: "text-start md:text-end",
       cell: (server) => (
         <ButtonLink href={`/servers/${server.id}/overview`} variant="secondary">
           Complete Setup
