@@ -66,6 +66,7 @@ import { DomainLink } from "./domain-link";
 import { DeployableReadiness } from "./deployable-readiness";
 import { AppLogo } from "./deployable-identity";
 import { FirstDeployment } from "./first-deployment";
+import { EnvironmentChip } from "./environment-chip";
 
 type AppRecord = App & {
   serverId: string;
@@ -289,9 +290,11 @@ export function AppDetail() {
                     </Attributes.Item>
                   ) : null}
                   <Attributes.Item label="Environment">
-                    <TypographyCode>
-                      {item.environment?.name ?? "Unmapped"}
-                    </TypographyCode>
+                    {item.environment ? (
+                      <EnvironmentChip name={item.environment.name} />
+                    ) : (
+                      "Unmapped"
+                    )}
                   </Attributes.Item>
                   <Attributes.Item
                     icon={<HugeiconsIcon icon={ServerStack01Icon} />}

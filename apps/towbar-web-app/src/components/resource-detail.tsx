@@ -69,6 +69,7 @@ import { DeployableReadiness } from "./deployable-readiness";
 import { ResourceLogo } from "./deployable-identity";
 import { resourceImageBrand } from "./resource-image-brand";
 import { FirstDeployment } from "./first-deployment";
+import { EnvironmentChip } from "./environment-chip";
 
 type ResourceRecord = Resource & {
   serverId: string;
@@ -225,9 +226,11 @@ export function ResourceDetail() {
               </Attributes.Item>
             ) : null}
             <Attributes.Item label="Environment">
-              <TypographyCode>
-                {item.environment?.name ?? "Unmapped"}
-              </TypographyCode>
+              {item.environment ? (
+                <EnvironmentChip name={item.environment.name} />
+              ) : (
+                "Unmapped"
+              )}
             </Attributes.Item>
             <Attributes.Item
               icon={<HugeiconsIcon icon={ServerStack01Icon} />}
