@@ -50,6 +50,7 @@ export function RelativeTime({
     <TooltipText
       as="time"
       tooltip={formatted.timezone}
+      placement="left"
       aria-label={`${label}: ${formatted.absolute} ${formatted.timezone}${formatted.relative ? `, ${formatted.relative}` : ""}`}
       className={`${tableCellStackClassName} whitespace-nowrap tabular-nums`}
       dateTime={value}
