@@ -4,10 +4,12 @@ import { EnvironmentIcon } from "./environment-icon";
 export function EnvironmentChip({
   name,
   showIcon = true,
+  showTooltip = true,
   tooltip = `Environment: ${name}`,
 }: {
   name: string;
   showIcon?: boolean;
+  showTooltip?: boolean;
   tooltip?: string;
 }) {
   return (
@@ -19,7 +21,7 @@ export function EnvironmentChip({
           <EnvironmentIcon className="text-current" name={name} />
         ) : undefined
       }
-      tooltip={tooltip}
+      tooltip={showTooltip ? tooltip : undefined}
     >
       {name}
     </Chip>

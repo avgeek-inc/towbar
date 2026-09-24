@@ -88,7 +88,11 @@ export function HistoryFilter({
         </p>
       )}
     >
-      <ListBox.Item id="all" textValue={`All ${label.toLowerCase()}`}>
+      <ListBox.Item
+        id="all"
+        textValue={`All ${label.toLowerCase()}`}
+        className="pr-8!"
+      >
         {allIcon ? (
           <span className="shrink-0" aria-hidden="true">
             {allIcon}
@@ -103,6 +107,7 @@ export function HistoryFilter({
           key={option.id}
           textValue={option.searchText ?? option.label}
           aria-label={option.ariaLabel ?? option.label}
+          className="pr-8!"
         >
           {option.icon ? (
             <span className="shrink-0" aria-hidden="true">
@@ -128,20 +133,20 @@ export function HistoryFilter({
       <Label>{label}</Label>
       <Select.Trigger>
         <Select.Value>
-          <span className="flex min-w-0 items-center gap-2">
+          <span className="flex min-w-0 max-w-full items-center gap-2">
             {selectedIcon ? (
-              <span className="shrink-0" aria-hidden="true">
+              <span
+                className="flex size-4 shrink-0 items-center justify-center leading-none [&>span]:size-4 [&_img]:size-4 [&_svg]:size-4"
+                aria-hidden="true"
+              >
                 {selectedIcon}
               </span>
             ) : null}
-            <span className="truncate">
+            <span className="min-w-0 flex-1 truncate">
               {selected?.selectedLabel ??
                 selected?.label ??
                 `All ${label.toLowerCase()}`}
             </span>
-            {selected?.trailing ? (
-              <span className="shrink-0">{selected.trailing}</span>
-            ) : null}
           </span>
         </Select.Value>
         <Select.Indicator />

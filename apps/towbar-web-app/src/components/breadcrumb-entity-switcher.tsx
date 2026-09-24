@@ -185,19 +185,19 @@ export function BreadcrumbEntitySwitcher({
                 textValue={option.label}
               >
                 {option.identity?.kind === "app" ? (
-                  <AppLogo domain={option.identity.domain} size="small" />
+                  <AppLogo domain={option.identity.domain} size="compact" />
                 ) : option.identity?.kind === "resource" ? (
-                  <ResourceLogo brand={option.identity.brand} size="small" />
+                  <ResourceLogo brand={option.identity.brand} size="compact" />
                 ) : option.identity?.kind === "server" ? (
                   <CloudProviderLogo
                     provider={option.identity.provider}
-                    className="size-6"
-                    size={24}
+                    className="size-4"
+                    size={16}
                   />
                 ) : (
                   <HugeiconsIcon
                     aria-hidden="true"
-                    className="size-5 shrink-0 text-muted"
+                    className="size-4 shrink-0 text-muted"
                     icon={icon}
                   />
                 )}

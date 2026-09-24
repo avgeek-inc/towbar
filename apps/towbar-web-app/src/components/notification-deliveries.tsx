@@ -133,7 +133,7 @@ export function NotificationDeliveries() {
               app.config.domains?.primary ??
               app.config.domains?.redirects[0]?.host
             }
-            size="small"
+            size="compact"
           />
         ),
       })),
@@ -145,7 +145,7 @@ export function NotificationDeliveries() {
         icon: (
           <ResourceLogo
             brand={resourceImageBrand(resource.kind, resource.config.image)}
-            size="small"
+            size="compact"
           />
         ),
       })),
@@ -157,11 +157,11 @@ export function NotificationDeliveries() {
         icon: server.hardware?.instance ? (
           <CloudProviderLogo
             provider={server.hardware.instance.provider}
-            className="size-6"
-            size={24}
+            className="size-4"
+            size={16}
           />
         ) : (
-          <HugeiconsIcon icon={ServerStack01Icon} className="size-5" />
+          <HugeiconsIcon icon={ServerStack01Icon} className="size-4" />
         ),
       })),
     ],
@@ -204,7 +204,10 @@ export function NotificationDeliveries() {
         return (
           <span className="inline-flex min-w-28 max-w-48 items-center gap-2 whitespace-normal">
             {entity?.icon ? (
-              <span className="shrink-0" aria-hidden="true">
+              <span
+                className="inline-flex size-4 shrink-0 items-center justify-center [&>span]:size-4 [&_img]:size-4 [&_svg]:size-4"
+                aria-hidden="true"
+              >
                 {entity.icon}
               </span>
             ) : null}
@@ -297,7 +300,11 @@ export function NotificationDeliveries() {
                 .join(" "),
               icon: entity.icon,
               trailing: entity.environment ? (
-                <EnvironmentChip name={entity.environment} showIcon={false} />
+                <EnvironmentChip
+                  name={entity.environment}
+                  showIcon={false}
+                  showTooltip={false}
+                />
               ) : undefined,
             }))}
             searchPlaceholder="Search apps, resources or servers"
