@@ -65,7 +65,7 @@ function DeploymentStateIndicator({ deployment }: { deployment: Deployment }) {
       {isWaiting ? (
         <span
           aria-hidden="true"
-          className="size-3.5 shrink-0 rounded-full border-[1.5px] border-warning"
+          className="size-3 shrink-0 rounded-full border-[1.5px] border-warning"
         />
       ) : (
         <ProgressCircle
