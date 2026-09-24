@@ -201,6 +201,13 @@ a {
     --button-bg-pressed: var(--danger-soft-hover);
   }
 
+  .button--warning-soft {
+    --button-bg: var(--warning-soft);
+    --button-bg-hover: var(--warning-soft-hover);
+    --button-bg-pressed: var(--warning-soft-hover);
+    --button-fg: var(--warning-soft-foreground);
+  }
+
   .sidebar-identity {
     background: transparent;
   }
