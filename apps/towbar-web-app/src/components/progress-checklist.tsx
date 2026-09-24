@@ -19,6 +19,7 @@ export function ProgressChecklistItem({
   title,
   description,
   status,
+  runningTone = "accent",
   href,
   children,
 }: {
@@ -27,6 +28,7 @@ export function ProgressChecklistItem({
   description: ReactNode;
   status:
     "failed" | "running" | "skipped" | "succeeded" | "waiting" | "cancelled";
+  runningTone?: "accent" | "warning";
   href?: string;
   children: ReactNode;
 }) {
@@ -52,12 +54,14 @@ export function ProgressChecklistItem({
             : failed
               ? "bg-danger-soft text-danger-soft-foreground"
               : running
-                ? "bg-accent-soft text-accent-soft-foreground"
+                ? runningTone === "warning"
+                  ? "bg-warning-soft text-warning-soft-foreground"
+                  : "bg-accent-soft text-accent-soft-foreground"
                 : "bg-default text-muted",
         )}
       >
         {running ? (
-          <Spinner size="sm" />
+          <Spinner color="current" size="sm" />
         ) : (
           <HugeiconsIcon
             className="size-5"

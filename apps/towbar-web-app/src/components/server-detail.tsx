@@ -503,7 +503,12 @@ export function ServerDetail() {
               label: "Server Setup",
               badge:
                 preparationIndicator === "busy" ? (
-                  <Spinner size="sm" aria-label="Server setup in progress" />
+                  <Spinner
+                    color="current"
+                    size="sm"
+                    className="text-warning-soft-foreground"
+                    aria-label="Server setup in progress"
+                  />
                 ) : preparationIndicator === "warning" ? (
                   <span
                     aria-label="Server setup required"

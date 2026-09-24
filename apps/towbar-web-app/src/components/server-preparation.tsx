@@ -276,6 +276,7 @@ function PreparationStep({
       id={step.id}
       title={step.title}
       description={step.description}
+      runningTone="warning"
       status={
         completed
           ? "succeeded"
