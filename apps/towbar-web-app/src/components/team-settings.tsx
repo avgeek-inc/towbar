@@ -17,7 +17,6 @@ import {
   Add01Icon,
   Mail01Icon,
   FileSearchIcon,
-  ComputerTerminal01Icon,
 } from "@hugeicons/core-free-icons";
 import {
   roleLabels,
@@ -119,7 +118,7 @@ function RoleSelect({
   );
 }
 export type TeamSettingsPage =
-  "members" | "general" | "api-keys" | "audit-logs" | "ssh-keys";
+  "members" | "general" | "api-keys" | "audit-logs";
 
 const teamSettingsPages: Record<
   TeamSettingsPage,
@@ -149,16 +148,11 @@ const teamSettingsPages: Record<
     label: "Audit Logs",
     permission: "team.read",
   },
-  "ssh-keys": {
-    icon: ComputerTerminal01Icon,
-    label: "SSH keys",
-    permission: "privateKey.manage",
-  },
 };
 
 const teamSettingsGroups = [
   { title: "Account", pages: ["general", "members"] },
-  { title: "Security", pages: ["api-keys", "audit-logs", "ssh-keys"] },
+  { title: "Security", pages: ["api-keys", "audit-logs"] },
 ] as const satisfies Array<{
   title: string;
   pages: readonly TeamSettingsPage[];

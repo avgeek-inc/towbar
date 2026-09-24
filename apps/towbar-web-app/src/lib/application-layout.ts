@@ -2,6 +2,7 @@ import type { Action } from "@workspace/towbar-access";
 import type { TowbarUser } from "@workspace/towbar-web-client";
 import {
   ComputerIcon,
+  ComputerTerminal01Icon,
   AlertCircleIcon,
   DashboardCircleIcon,
   DashboardSquare01Icon,
@@ -162,6 +163,13 @@ const sidebar = {
         },
         {
           kind: "link",
+          id: "ssh-keys",
+          label: "SSH keys",
+          href: "/manage/ssh-keys",
+          icon: ComputerTerminal01Icon,
+        },
+        {
+          kind: "link",
           id: "shared-secrets",
           label: "Shared Secrets",
           href: "/manage/shared-secrets",
@@ -204,15 +212,11 @@ export function createApplicationSidebar(
           const permissions: Record<string, Action> = {
             health: "system.read",
             integrations: "integration.manage",
+            "ssh-keys": "privateKey.manage",
             "shared-secrets": "sharedSecret.list",
           };
           if (item.id === "team-settings")
-            return (
-              !user ||
-              ["team.read", "privateKey.manage"].some((permission) =>
-                user.capabilities?.includes(permission as Action),
-              )
-            );
+            return !user || user.capabilities?.includes("team.read");
           return (
             !user ||
             !permissions[item.id] ||

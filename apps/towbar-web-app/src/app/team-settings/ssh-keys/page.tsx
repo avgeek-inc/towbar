@@ -1,10 +1,5 @@
-import { ApiMcpSettings } from "@/components/api-mcp-settings";
-import { TeamSettingsShell } from "@/components/team-settings";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return (
-    <TeamSettingsShell page="ssh-keys">
-      <ApiMcpSettings section="private-keys" />
-    </TeamSettingsShell>
-  );
+  redirect("/manage/ssh-keys");
 }

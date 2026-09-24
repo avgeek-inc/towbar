@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { hasHttpsExternalAccess } from "@/lib/config";
 export const dynamic = "force-dynamic";
 const destinations: Record<string, string> = {
-  "private-keys": "/team-settings/ssh-keys",
+  "private-keys": "/manage/ssh-keys",
   "personal-keys": "/settings/api-keys",
   "team-keys": "/team-settings/api-keys",
   mcp: "/settings/mcp",
