@@ -1,15 +1,23 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { AppDetail } from "@/components/app-detail";
 
 export default async function Page({
   params,
 }: {
-  params: Promise<{ sectionPath: string[] }>;
+  params: Promise<{ appId: string; sectionPath: string[] }>;
 }) {
-  const { sectionPath } = await params;
+  const { appId, sectionPath } = await params;
   const [section, child] = sectionPath;
+  if (section === "notifications" && !child)
+    redirect(`/apps/${appId}/settings/notifications`);
   const children: Record<string, string[]> = {
-    settings: ["configuration", "preview", "auto-deploy", "secrets"],
+    settings: [
+      "configuration",
+      "preview",
+      "auto-deploy",
+      "secrets",
+      "notifications",
+    ],
   };
   if (
     !section ||
@@ -18,7 +26,6 @@ export default async function Page({
       "performance",
       "alerts",
       "incidents",
-      "notifications",
       "compare-deployments",
       "deployments",
       "previews",

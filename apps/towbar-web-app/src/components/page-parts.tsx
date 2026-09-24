@@ -251,6 +251,11 @@ export function PageTabs({
   }
 
   const active = tabs.find((tab) => tab.value === selectedKey);
+  const groupedTabs = [
+    ...new Set(tabs.filter((tab) => tab.group).map((tab) => tab.group!)),
+  ].sort((left, right) =>
+    left === right ? 0 : left === "Ship" ? -1 : right === "Ship" ? 1 : 0,
+  );
   return (
     <>
       {selectedKey !== "settings" && active && !active.contentOwnsTitle ? (
@@ -288,9 +293,7 @@ export function PageTabs({
               )),
           }))}
       />
-      {[
-        ...new Set(tabs.filter((tab) => tab.group).map((tab) => tab.group!)),
-      ].map((group) => (
+      {groupedTabs.map((group) => (
         <SecondaryItems
           key={group}
           title={group}

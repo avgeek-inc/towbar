@@ -1,13 +1,15 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ResourceDetail } from "@/components/resource-detail";
 
 export default async function Page({
   params,
 }: {
-  params: Promise<{ sectionPath: string[] }>;
+  params: Promise<{ resourceId: string; sectionPath: string[] }>;
 }) {
-  const { sectionPath } = await params;
+  const { resourceId, sectionPath } = await params;
   const [section, child] = sectionPath;
+  if (section === "notifications" && !child)
+    redirect(`/resources/${resourceId}/settings/notifications`);
   const children: Record<string, string[]> = {
     settings: [
       "configuration",
@@ -17,6 +19,7 @@ export default async function Page({
       "restore",
       "auto-deploy",
       "secrets",
+      "notifications",
     ],
   };
   if (
@@ -26,7 +29,6 @@ export default async function Page({
       "performance",
       "alerts",
       "incidents",
-      "notifications",
       "compare-deployments",
       "deployments",
       "logs",

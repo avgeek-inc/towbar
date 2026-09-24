@@ -26,7 +26,6 @@ import {
   ServerStack01Icon,
   Settings01Icon,
   Key01Icon,
-  Notification01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
@@ -339,15 +338,6 @@ export function ResourceDetail() {
       ),
     },
     {
-      value: "notifications",
-      label: "Notifications",
-      group: "Monitor",
-      icon: <HugeiconsIcon icon={Notification01Icon} />,
-      content: (
-        <DeployableNotifications notifications={item.config.notifications} />
-      ),
-    },
-    {
       value: "compare-deployments",
       label: "Compare deployments",
       sidebarLabel: "Compare",
@@ -365,6 +355,7 @@ export function ResourceDetail() {
     {
       value: "deployments",
       label: "Deployments",
+      group: "Ship",
       icon: <HugeiconsIcon icon={Rocket01Icon} />,
       indicator: {
         label: String(orderedDeployments.length),
@@ -549,6 +540,13 @@ function ResourceSettings({
       value: "secrets",
       label: "Secrets",
       content: <ResourceSecrets resourceId={resourceId} />,
+    },
+    {
+      value: "notifications",
+      label: "Notifications",
+      content: (
+        <DeployableNotifications notifications={item.config.notifications} />
+      ),
     },
     ...(item.kind === "image"
       ? []

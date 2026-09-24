@@ -420,17 +420,6 @@ export function AppDetail() {
             ),
           },
           {
-            value: "notifications",
-            label: "Notifications",
-            group: "Monitor",
-            icon: <HugeiconsIcon icon={Notification01Icon} />,
-            content: (
-              <DeployableNotifications
-                notifications={item.config.notifications}
-              />
-            ),
-          },
-          {
             value: "compare-deployments",
             label: "Compare deployments",
             sidebarLabel: "Compare",
@@ -448,6 +437,7 @@ export function AppDetail() {
           {
             value: "deployments",
             label: "Deployments",
+            group: "Ship",
             icon: <HugeiconsIcon icon={Rocket01Icon} />,
             indicator: {
               label: String(orderedDeployments.length),
@@ -466,6 +456,7 @@ export function AppDetail() {
                 {
                   value: "previews",
                   label: "Previews",
+                  group: "Ship",
                   icon: <HugeiconsIcon icon={GitBranchIcon} />,
                   indicator: previews.data
                     ? {
@@ -555,6 +546,14 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
           appId={appId}
           previewsEnabled={item.config.preview?.enabled === true}
         />
+      ),
+    },
+    {
+      value: "notifications",
+      label: "Notifications",
+      icon: <HugeiconsIcon icon={Notification01Icon} />,
+      content: (
+        <DeployableNotifications notifications={item.config.notifications} />
       ),
     },
   ];
