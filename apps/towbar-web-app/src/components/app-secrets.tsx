@@ -300,7 +300,8 @@ function SecretVariablesEditor({
       ? "sharedSecret.reveal"
       : "secret.reveal",
   );
-  const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<"mode" | "save" | null>(null);
+  const busy = busyAction !== null;
   const [replacements, setReplacements] = useState<Record<string, string>>({});
   const [deletedKeys, setDeletedKeys] = useState<string[]>([]);
   const [newEntries, setNewEntries] = useState<
@@ -358,7 +359,7 @@ function SecretVariablesEditor({
   async function toggleMode() {
     if (busy) return;
     const request = ++modeRequest.current;
-    setBusy(true);
+    setBusyAction("mode");
     try {
       if (fileMode) {
         const changes = fileChanges();
@@ -441,7 +442,7 @@ function SecretVariablesEditor({
             : "Could not open file mode.",
         );
     } finally {
-      if (request === modeRequest.current) setBusy(false);
+      if (request === modeRequest.current) setBusyAction(null);
     }
   }
 
@@ -477,7 +478,7 @@ function SecretVariablesEditor({
       setError("Change at least one secret.");
       return;
     }
-    setBusy(true);
+    setBusyAction("save");
     setError(undefined);
     try {
       await api.patch(`${endpoint}/${binding.environment}/${binding.stage}`, {
@@ -498,7 +499,7 @@ function SecretVariablesEditor({
           : "Secrets could not be saved",
       );
     } finally {
-      setBusy(false);
+      setBusyAction(null);
     }
   }
 
@@ -801,7 +802,7 @@ function SecretVariablesEditor({
                       icon={FloppyDiskIcon}
                       className="size-4 shrink-0"
                     />
-                    {busy ? "Saving…" : "Save"}
+                    {busyAction === "save" ? "Saving…" : "Save"}
                   </Button>
                 </div>
               ) : null}
