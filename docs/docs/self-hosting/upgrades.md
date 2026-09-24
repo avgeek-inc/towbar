@@ -8,7 +8,7 @@ Upgrade the API, worker, and dashboard together from a reviewed release. Before 
 ## Prepare an upgrade
 
 1. Pause automatic deployments and allow active operations to finish.
-2. Back up the Towbar PostgreSQL database with your infrastructure tooling. Preserve `/etc/towbar/towbar.env` and its credential-encryption key separately with restricted access.
+2. Preserve `/etc/towbar/towbar.yml` and its credential-encryption key with restricted access.
 3. Run `sudo towbar version` and record the installed release.
 4. Review the target release and its migration notes.
 5. Run the CLI upgrade, inspect migration output, and verify System health before resuming deployments.
@@ -27,7 +27,7 @@ To install a reviewed version explicitly, pass its release tag:
 sudo towbar upgrade v2.1.0
 ```
 
-The CLI accepts only published, non-prerelease v2-or-later semantic versions. It resolves the tag to an immutable Git commit, downloads that commit archive into `/opt/towbar/releases`, validates the release image manifest, pulls the API, worker, and dashboard images by immutable digest, validates `/etc/towbar/towbar.env`, applies migrations, waits for service health, and verifies the commit reported by the API. A failed service replacement restores the previous release symlink and images. A previous image alone is not a recovery plan for a database migration; review migration compatibility before reverting a release.
+The CLI accepts only published, non-prerelease v2-or-later semantic versions. It resolves the tag to an immutable Git commit, downloads that commit archive into `/opt/towbar/releases`, validates the release image manifest, pulls the API, worker, and dashboard images by immutable digest, validates `/etc/towbar/towbar.yml`, applies migrations, waits for service health, and verifies the commit reported by the API. A failed service replacement restores the previous release symlink and images. A previous image alone is not a recovery plan for a database migration; review migration compatibility before reverting a release.
 
 The target release must have a successful **Publish release images** workflow. If its image manifest is not attached yet, the CLI stops before replacing the current release.
 
@@ -41,7 +41,7 @@ sudo towbar config validate
 sudo towbar restart
 ```
 
-Do not replace `TOWBAR_CREDENTIALS_KEY`: existing encrypted records require the matching key. Changing database values in the file does not rotate credentials inside the existing PostgreSQL volume.
+Do not replace `security.credentialsKey`: existing encrypted records require the matching key. Changing database values in the file does not rotate credentials inside the existing PostgreSQL volume.
 
 ## Admin account recovery
 
@@ -49,4 +49,4 @@ Use **Forgot password** when SMTP and the account's mailbox are available. Host 
 
 ## Command-line operations
 
-Towbar does not deploy itself from GitHub Actions. Installation and upgrades run on the control-plane host through the `towbar` CLI, so release access and `/etc/towbar/towbar.env` remain host-owned. See the [Towbar CLI guide](/docs/self-hosting/cli) for every command, parameter, safety check, and troubleshooting workflow.
+Towbar does not deploy itself from GitHub Actions. Installation and upgrades run on the control-plane host through the `towbar` CLI, so release access and `/etc/towbar/towbar.yml` remain host-owned. See the [Towbar CLI guide](/docs/self-hosting/cli) for every command, parameter, safety check, and troubleshooting workflow.

@@ -15,12 +15,10 @@ import {
   getProviderIcon,
   integrationGroups,
   logForwardingProviders,
-  notificationDeliveries,
-  notificationProviders,
   type ProviderGroup,
 } from "./integration-catalog";
 
-function ProviderPage({
+export function ProviderPage({
   groups,
   provider,
   statuses,
@@ -62,10 +60,12 @@ function ProviderPage({
 
   return (
     <>
-      <PageSelectionTitle
-        label={activeProvider.label}
-        icon={getProviderIcon(activeProvider.value, "size-6")}
-      />
+      {activeProvider.contentOwnsTitle ? null : (
+        <PageSelectionTitle
+          label={activeProvider.label}
+          icon={getProviderIcon(activeProvider.value, "size-6")}
+        />
+      )}
       {groups.map((group) => (
         <SecondaryItems
           key={group.value}
@@ -106,16 +106,9 @@ export function Integrations({ integration }: { integration: string }) {
     30_000,
   );
   const drains = useApiQuery<LogDrainState>("/v1/core/log-drains", 30_000);
-  const notifications = useApiQuery<{
-    providers: Record<
-      "discord" | "slack" | "smtp" | "telegram" | "webhook",
-      boolean
-    >;
-  }>("/v1/core/notifications/providers", 30_000);
-  const error = integrations.error ?? drains.error ?? notifications.error;
+  const error = integrations.error ?? drains.error;
   if (error) return <QueryError message={error} />;
-  if (!integrations.data || !drains.data || !notifications.data)
-    return <QueryLoading />;
+  if (!integrations.data || !drains.data) return <QueryLoading />;
 
   const enabled = new Set(
     integrations.data.integrations.map((item) => item.provider),
@@ -139,16 +132,6 @@ export function Integrations({ integration }: { integration: string }) {
       value: "log-forwarding",
       label: "Log forwarding",
       providers: logProviders,
-    });
-
-  const enabledNotifications = notificationProviders.filter(
-    (item) => notifications.data!.providers[item.provider],
-  );
-  if (enabledNotifications.length)
-    groups.push({
-      value: "notifications",
-      label: "Notifications",
-      providers: [...enabledNotifications, notificationDeliveries],
     });
 
   const statuses: Record<string, string> = Object.fromEntries([

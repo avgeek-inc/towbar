@@ -1,19 +1,27 @@
 ---
 title: "Log forwarding"
-description: "Configure reliable server log drains through runtime environment JSON."
+description: "Configure reliable server log drains in Towbar's YAML configuration."
 ---
 
-Towbar supports New Relic, Axiom, Better Stack, Datadog, OpenTelemetry OTLP, and Grafana Loki. Each destination is enabled in the API environment and appears under **Manage → Integrations → Log forwarding** only after its JSON passes startup validation.
+Towbar supports New Relic, Axiom, Better Stack, Datadog, OpenTelemetry OTLP, and Grafana Loki. Each destination is enabled in `/etc/towbar/towbar.yml` and appears under **Manage → Integrations → Log forwarding** only after its configuration passes startup validation.
 
-Use `TOWBAR_LOG_DRAIN_<PROVIDER>_ENABLED=true` with `TOWBAR_LOG_DRAIN_<PROVIDER>_CONFIG_JSON`. For example:
+Set `logForwarding.<provider>.enabled` and its native `config` map. For example:
 
-```dotenv
-TOWBAR_LOG_DRAIN_OTLP_ENABLED=true
-TOWBAR_LOG_DRAIN_OTLP_CONFIG_JSON={"endpoint":"https://collector.example.com","auth":"bearer","username":"","apiKey":"replace-me","headers":[],"caCertificate":""}
+```yaml title="/etc/towbar/towbar.yml"
+logForwarding:
+  otlp:
+    enabled: true
+    config:
+      endpoint: https://collector.example.com
+      auth: bearer
+      username: ""
+      apiKey: replace-me
+      headers: []
+      caCertificate: ""
 ```
 
 The configuration document is never stored in PostgreSQL or returned to the UI. Towbar derives a SHA-256 revision from it and reconciles that revision to prepared servers. PostgreSQL retains only provider-neutral applied state, health, bounded diagnostics, backoff state, and incident history.
 
 Application logs are collected independently of deployment workflows. The forwarder uses bounded batching, memory and disk queues, retry windows, and resource limits so a slow provider cannot block an app. Authentication failures stop retries and mark the provider accordingly. Repeated HTTP 429 responses use exponential backoff; after the third rate-limit response the destination is marked rate-limited and deferred for 24 hours. Towbar emits one configured service-health notification when either terminal condition is reached.
 
-The runtime page shows whether the current environment revision is applied to each server and its latest health. Generate application traffic and confirm receipt in the destination when validating a new configuration; an applied state alone proves reconciliation, not provider retention.
+The runtime page shows whether the current configuration revision is applied to each server and its latest health. Generate application traffic and confirm receipt in the destination when validating a new configuration; an applied state alone proves reconciliation, not provider retention.

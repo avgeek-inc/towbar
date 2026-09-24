@@ -291,13 +291,24 @@ upgrade_release() {
   release_dir="$(download_release "$version" "$commit")"
   generate_config "$release_dir"
   if [[ -n "${INSTALL_MODE:-}" ]]; then
-    apply_install_settings
+    if [[ -f "$TOWBAR_YAML_FILE" ]]; then
+      ensure_yaml_tooling
+      python3 "$(config_helper_for "$release_dir")" set-installation \
+        --yaml "$TOWBAR_YAML_FILE" \
+        --mode "$INSTALL_MODE" \
+        --app-url "$INSTALL_APP_URL" \
+        --gateway-domain "$INSTALL_HOSTNAME" \
+        --proxy-hops "$INSTALL_PROXY_HOPS"
+    else
+      apply_install_settings
+    fi
     if [[ "$CONFIG_CREATED" == true ]]; then
       ui_step "Created the encrypted runtime configuration"
     else
       ui_step "Updated the installation access settings"
     fi
   fi
+  prepare_runtime_config "$release_dir"
   validate_config_for "$release_dir"
 
   if [[ -L "$CURRENT_LINK" ]]; then
@@ -315,7 +326,7 @@ upgrade_release() {
       log "Upgrade failed; restoring $(metadata_value "$previous_release" VERSION)"
       set_current_release "$previous_release"
       if [[ "$containers_changed" == true ]]; then
-        compose_for "$previous_release" "$previous_commit" "$TOWBAR_ENV_FILE" \
+        compose_for "$previous_release" "$previous_commit" "$TOWBAR_COMMITTED_ENV_FILE" \
           up --detach --wait --remove-orphans
       fi
     elif [[ "$containers_changed" == true ]]; then
@@ -370,8 +381,9 @@ upgrade_release() {
   verify_running_release "$release_dir" "$commit"
   ui_step "Verified the API, worker and dashboard"
 
-  printf '%s\n' "$version" >"$VERSION_FILE"
   install_cli_from_release "$release_dir"
+  commit_runtime_config
+  printf '%s\n' "$version" >"$VERSION_FILE"
   trap - ERR INT TERM
   cleanup_installation_artifacts \
     "$release_dir" "$commit" "$previous_release" "$previous_commit"
@@ -437,7 +449,8 @@ restart_release() {
   release_dir="$(current_release_dir)"
   commit="$(metadata_value "$release_dir" COMMIT)"
 
-  log "Validating $TOWBAR_ENV_FILE before restarting"
+  prepare_runtime_config "$release_dir"
+  log "Validating $TOWBAR_YAML_FILE before restarting"
   if ! (validate_config_for "$release_dir"); then
     restart_preflight_failure
     return 1
@@ -459,20 +472,30 @@ restart_release() {
     printf 'Towbar: Run sudo towbar doctor to inspect the failure.\n' >&2
     return 1
   fi
+  commit_runtime_config
   log "Configuration applied"
 }
 
 config_command() {
   local release_dir commit
   case "${1:-}" in
-    path) printf '%s\n' "$TOWBAR_ENV_FILE" ;;
+    path)
+      if [[ -f "$TOWBAR_YAML_FILE" || ! -f "$TOWBAR_ENV_FILE" ]]; then
+        printf '%s\n' "$TOWBAR_YAML_FILE"
+      else
+        printf '%s\n' "$TOWBAR_ENV_FILE"
+      fi
+      ;;
     validate)
       require_root config validate
       require_runtime_tools
+      acquire_lock
       release_dir="$(current_release_dir)"
       commit="$(metadata_value "$release_dir" COMMIT)"
+      prepare_runtime_config "$release_dir"
       validate_config_for "$release_dir"
       preflight_runtime_configuration "$release_dir" "$commit"
+      discard_runtime_config
       log "Configuration is valid"
       ;;
     *) fail "usage: towbar config {path|validate}" ;;

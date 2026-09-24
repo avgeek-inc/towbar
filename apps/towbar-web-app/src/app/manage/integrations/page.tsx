@@ -8,6 +8,13 @@ export default async function Page({
   searchParams: Promise<{ integration?: string }>;
 }) {
   const requested = (await searchParams).integration;
+  if (
+    requested &&
+    ["slack", "email", "discord", "telegram", "webhook", "deliveries"].includes(
+      requested,
+    )
+  )
+    redirect(`/manage/notifications/${requested}`);
   redirect(
     `/manage/integrations/${isIntegrationRoute(requested) ? requested : "github"}`,
   );

@@ -20,7 +20,7 @@ import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { getEnv } from "../../env.js";
 import { enqueueDeliveries } from "../notifications/delivery-service.js";
 import { type ScoutTransaction, resolveRuleIncidents } from "./alert-rules.js";
-import { getRuntimeNotifications } from "../../infrastructure/runtime-notifications.js";
+import { notificationRoutesForWorkspace } from "../notifications/email-destinations.js";
 
 /** Bounded, oldest-first work selection. A rule lock makes concurrent sweeps idempotent. */
 export async function evaluateScoutAlerts(
@@ -205,9 +205,9 @@ async function queueScoutNotification(
   type: "scout.firing" | "scout.recovered",
   now: Date,
 ) {
-  const destinations = getRuntimeNotifications().routes.filter((route) =>
-    route.categories.includes("scout"),
-  );
+  const destinations = (
+    await notificationRoutesForWorkspace(rule.workspaceId)
+  ).filter((route) => route.categories.includes("scout"));
   if (!destinations.length) return [];
   let eligible = destinations;
   if (type === "scout.recovered") {

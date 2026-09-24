@@ -19,7 +19,7 @@ void test("maps notification events to independent subscription categories", () 
     notificationCategoryForEvent("deployment.failed"),
     "deployments",
   );
-  assert.equal(notificationCategoryForEvent("preview.ready"), "previews");
+  assert.equal(notificationCategoryForEvent("preview.ready"), "deployments");
   assert.equal(notificationCategoryForEvent("runtime.recovered"), "health");
   assert.equal(
     notificationCategoryForEvent("log-drain.pipeline_failed"),
@@ -36,7 +36,7 @@ void test("maps notification events to independent subscription categories", () 
 
 void test("accepts provider targets without provider credentials", () => {
   const slack = notificationDestinationInputSchema.parse({
-    categories: ["deployments", "previews"],
+    categories: ["deployments"],
     config: { channelId: "C12345678" },
     enabled: true,
     provider: "slack",
@@ -55,7 +55,7 @@ void test("accepts provider targets without provider credentials", () => {
 
   for (const destination of [
     {
-      config: { webhookUrl: "https://discord.com/api/webhooks/1/token" },
+      config: { webhookId: "1", webhookToken: "token" },
       provider: "discord",
     },
     {
@@ -106,7 +106,7 @@ void test("accepts category routes for URL and Telegram providers", () => {
   );
   assert.equal(
     telegramTopicRoutingInputSchema.parse({
-      routes: [{ category: "previews", messageThreadId: 23 }],
+      routes: [{ category: "deployments", messageThreadId: 23 }],
     }).routes[0]?.messageThreadId,
     23,
   );

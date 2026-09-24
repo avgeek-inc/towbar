@@ -945,6 +945,180 @@ export const notificationDeliveries = pgTable(
   ],
 );
 
+export const notificationEmailRouting = pgTable(
+  "towbar_notification_email_routing",
+  {
+    workspaceId: uuid("workspace_id")
+      .primaryKey()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    migratedAt: timestamp("migrated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+);
+
+export const notificationEmailDestinations = pgTable(
+  "towbar_notification_email_destinations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    email: varchar("email", { length: 320 }).notNull(),
+    deployments: boolean("deployments").default(false).notNull(),
+    health: boolean("health").default(false).notNull(),
+    backupsAndRestores: boolean("backups_and_restores")
+      .default(false)
+      .notNull(),
+    scout: boolean("scout").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_notification_email_destination").on(
+      table.workspaceId,
+      table.email,
+    ),
+  ],
+);
+
+export const notificationSlackRouting = pgTable(
+  "towbar_notification_slack_routing",
+  {
+    workspaceId: uuid("workspace_id")
+      .primaryKey()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    migratedAt: timestamp("migrated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+);
+
+export const notificationSlackDestinations = pgTable(
+  "towbar_notification_slack_destinations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    channelId: varchar("channel_id", { length: 80 }).notNull(),
+    legacyRouteIds: jsonb("legacy_route_ids")
+      .$type<string[]>()
+      .default([])
+      .notNull(),
+    deployments: boolean("deployments").default(false).notNull(),
+    health: boolean("health").default(false).notNull(),
+    backupsAndRestores: boolean("backups_and_restores")
+      .default(false)
+      .notNull(),
+    scout: boolean("scout").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_notification_slack_destination").on(
+      table.workspaceId,
+      table.channelId,
+    ),
+  ],
+);
+
+export const notificationDiscordRouteSettings = pgTable(
+  "towbar_notification_discord_route_settings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    routeId: varchar("route_id", { length: 255 }).notNull(),
+    deployments: boolean("deployments").default(false).notNull(),
+    backupsAndRestores: boolean("backups_and_restores")
+      .default(false)
+      .notNull(),
+    alertsAndIncidents: boolean("alerts_and_incidents")
+      .default(false)
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_notification_discord_route_setting").on(
+      table.workspaceId,
+      table.routeId,
+    ),
+  ],
+);
+
+export const notificationWebhookRouteSettings = pgTable(
+  "towbar_notification_webhook_route_settings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    routeId: varchar("route_id", { length: 255 }).notNull(),
+    deployments: boolean("deployments").default(false).notNull(),
+    backupsAndRestores: boolean("backups_and_restores")
+      .default(false)
+      .notNull(),
+    alertsAndIncidents: boolean("alerts_and_incidents")
+      .default(false)
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_notification_webhook_route_setting").on(
+      table.workspaceId,
+      table.routeId,
+    ),
+  ],
+);
+
+export const notificationTelegramRouting = pgTable(
+  "towbar_notification_telegram_routing",
+  {
+    workspaceId: uuid("workspace_id")
+      .primaryKey()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    migratedAt: timestamp("migrated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+);
+
+export const notificationTelegramDestinations = pgTable(
+  "towbar_notification_telegram_destinations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    chatId: varchar("chat_id", { length: 21 }).notNull(),
+    // Zero represents the main chat so the unique index also covers destinations without a topic.
+    messageThreadId: integer("message_thread_id").default(0).notNull(),
+    legacyRouteIds: jsonb("legacy_route_ids")
+      .$type<string[]>()
+      .default([])
+      .notNull(),
+    deployments: boolean("deployments").default(false).notNull(),
+    backupsAndRestores: boolean("backups_and_restores")
+      .default(false)
+      .notNull(),
+    alertsAndIncidents: boolean("alerts_and_incidents")
+      .default(false)
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_notification_telegram_destination").on(
+      table.workspaceId,
+      table.chatId,
+      table.messageThreadId,
+    ),
+  ],
+);
+
 export const notificationDeliveryAttempts = pgTable(
   "towbar_notification_delivery_attempts",
   {

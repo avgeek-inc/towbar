@@ -3,13 +3,15 @@ title: "AWS"
 description: "Enable one runtime AWS identity for resource backups and restores."
 ---
 
-AWS is optional. Enable it only when a resource backup policy uses AWS S3. Configure the API process and restart it:
+AWS is optional. Enable it only when a resource backup policy uses AWS S3. Add this to `/etc/towbar/towbar.yml`, then run `sudo towbar config validate` and `sudo towbar restart`:
 
-```dotenv
-TOWBAR_AWS_ENABLED=true
-TOWBAR_AWS_REGION=us-east-1
-TOWBAR_AWS_ACCESS_KEY_ID=<access-key-id>
-TOWBAR_AWS_SECRET_ACCESS_KEY=<secret-access-key>
+```yaml title="/etc/towbar/towbar.yml"
+integrations:
+  aws:
+    enabled: true
+    region: us-east-1
+    accessKeyId: <access-key-id>
+    secretAccessKey: <secret-access-key>
 ```
 
 Temporary AWS sessions are not supported because they are not maintainable as static installation configuration. Scope the identity to the required buckets, prefixes, object versions, and KMS keys. Towbar shows AWS only when all enabled values pass startup validation and never returns the credential in the UI or API.
@@ -39,4 +41,4 @@ Temporary AWS sessions are not supported because they are not maintainable as st
   </p>
 </div>
 
-Confirm permissions with a real [resource backup and restore](/docs/backups) before relying on the configuration. Rotate the key in `.env`, recreate the API container, verify a backup, and then retire the old key.
+Confirm permissions with a real [resource backup and restore](/docs/backups) before relying on the configuration. Rotate the key in `towbar.yml`, restart Towbar, verify a backup, and then retire the old key.

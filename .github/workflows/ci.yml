@@ -78,6 +78,12 @@ jobs:
           infra/towbar help
           infra/towbar version
       - run: shellcheck infra/postgres/*.sh infra/temporal/*.sh
+      - name: Verify YAML runtime configuration migration
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes python3-yaml
+          python3 tools/test-runtime-config.py
+          bash tools/test-towbar-cli-migration.sh
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
       - run: pnpm format:check

@@ -15,7 +15,7 @@ SSH into the control-plane host. Keep the database running, and stop request han
 sudo towbar compose stop web-app api worker
 ```
 
-Stopping the control plane does not stop deployed apps. Allow active deployments and operations to finish before this maintenance window. Keep `/etc/towbar/towbar.env`, including `TOWBAR_CREDENTIALS_KEY` and `TOWBAR_INTERNAL_HMAC_SECRET`, unchanged.
+Stopping the control plane does not stop deployed apps. Allow active deployments and operations to finish before this maintenance window. Keep `/etc/towbar/towbar.yml`, including `security.credentialsKey` and `security.internalHmacSecret`, unchanged.
 
 ## Recover an Admin password
 

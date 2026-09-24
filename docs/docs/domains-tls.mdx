@@ -32,11 +32,11 @@ Point the hostname at the target server. Allow inbound HTTP and HTTPS traffic re
 
 ## Cloudflare TLS
 
-Set `TOWBAR_CLOUDFLARE_ENABLED=true`, `TOWBAR_CLOUDFLARE_ACCOUNT_ID`, and `TOWBAR_CLOUDFLARE_API_TOKEN` on the API process, then restart Towbar. The Cloudflare integration and the per-server **Cloudflare TLS** toggle appear only after the complete environment configuration passes startup validation.
+Set `integrations.cloudflare.enabled: true`, `accountId`, and `apiToken` in `/etc/towbar/towbar.yml`, then validate and restart Towbar. The Cloudflare integration and the per-server **Cloudflare TLS** toggle appear only after the complete configuration passes startup validation.
 
 Create the token under **Manage Account → Account API Tokens** in Cloudflare. Grant **Zone → Zone → Read**, **Zone → DNS → Edit**, and **Zone → Zone Settings → Read**, restricted to the zones Towbar should manage. Zone Settings Read lets Towbar verify that SSL/TLS mode is Full (strict). Creating account tokens requires the Super Administrator role. See [Cloudflare's account-token guide](https://developers.cloudflare.com/fundamentals/api/get-started/account-owned-tokens/).
 
-Use a scoped account token rather than a personal or global API key. `TOWBAR_CLOUDFLARE_ZONE_ID` is optional when the token can discover the required zones. The prepared Caddy build must contain the Cloudflare DNS module.
+Use a scoped account token rather than a personal or global API key. `integrations.cloudflare.zoneId` is optional when the token can discover the required zones. The prepared Caddy build must contain the Cloudflare DNS module.
 
 ```yaml title=".towbar/apps/web.app.yml"
 domains:

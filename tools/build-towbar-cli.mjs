@@ -8,6 +8,7 @@ const target = path.join(repository, "infra/towbar");
 const fragments = [
   "00-runtime.sh",
   "10-onboarding.sh",
+  "15-config.sh",
   "20-host.sh",
   "30-release.sh",
   "40-lifecycle.sh",

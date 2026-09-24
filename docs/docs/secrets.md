@@ -17,7 +17,7 @@ Towbar manages deployment secrets without requiring an external secrets account.
 
 Shared secrets are available for reference; they are not automatically added to Repositories, apps, or resources. Configure each variable where it is needed:
 
-```dotenv
+```text
 API_TOKEN={{globals.API_TOKEN}}
 AUTH_HEADER=Bearer {{globals.API_TOKEN}}
 ```
@@ -42,9 +42,9 @@ For workspace Shared secrets, choose Build, Runtime, Pre-deploy, or Post-deploy 
 
 **Form** edits one key and value at a time. Configured values show a masked placeholder; use the eye icon to reveal or hide one value. Valid shared-reference expressions are highlighted in yellow.
 
-**File** is available to Admins because it fetches and reveals the stored values for the selected scope, environment, and stage in a `.env` editor. Edit one `KEY=value` assignment per line. Quoted values, multiline quoted strings, comments, and optional `export` prefixes are supported. Quote values containing `#` to keep it as part of the value. Duplicate keys and invalid syntax must be corrected before saving or switching back to Form. Comments and formatting are not stored.
+**File** is available to Admins because it fetches and reveals the stored values for the selected scope, environment, and stage in a text editor. Edit one `KEY=value` assignment per line. Quoted values, multiline quoted strings, comments, and optional `export` prefixes are supported. Quote values containing `#` to keep it as part of the value. Duplicate keys and invalid syntax must be corrected before saving or switching back to Form. Comments and formatting are not stored.
 
-```dotenv
+```text
 LOG_LEVEL="info"
 PACKAGE_TOKEN="{{globals.PACKAGE_REGISTRY_TOKEN}}"
 AUTH_HEADER="Bearer {{globals.API_TOKEN}}"
@@ -118,7 +118,7 @@ To reveal all stored values for one environment and stage, send `POST` to the sa
 
 ## Storage and recovery
 
-Secret records are encrypted in PostgreSQL using the separately configured 32-byte `TOWBAR_CREDENTIALS_KEY`. Authenticated encryption binds each record to its workspace, owner, environment, stage, and identity. Values are resolved by the API for execution and sent over the authenticated internal worker path. An Admin can also retrieve one stored value through the explicit reveal operation. Temporal history, metadata responses, deployment snapshots, and audit events contain no plaintext values.
+Secret records are encrypted in PostgreSQL using the separately configured 32-byte `security.credentialsKey`. Authenticated encryption binds each record to its workspace, owner, environment, stage, and identity. Values are resolved by the API for execution and sent over the authenticated internal worker path. An Admin can also retrieve one stored value through the explicit reveal operation. Temporal history, metadata responses, deployment snapshots, and audit events contain no plaintext values.
 
 Back up the Towbar database and preserve its encryption key separately. Restore both to recover secret configuration. A database-only backup cannot recover secrets without the matching key. Do not replace the key on an existing installation without re-encrypting its stored credentials; there is no automatic key rotation or secret history in this release.
 

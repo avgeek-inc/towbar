@@ -76,8 +76,9 @@ export function SourceNotifications({
   return (
     <div className="content-grid">
       <p className="text-sm text-muted">
-        Notification routes are managed by the Towbar runtime environment.
-        Values and secrets are not shown in the application.
+        Email destinations are managed under Manage → Notifications → Email.
+        Other provider routes remain runtime-managed. Credentials are not shown
+        here.
       </p>
       <ResourceTable<NotificationDestination>
         ariaLabel="Notification routes"
@@ -85,7 +86,7 @@ export function SourceNotifications({
         items={visible}
         getRowKey={(destination) => destination.id}
         emptyTitle="No notification routes"
-        emptyDescription="No environment route is enabled for this scope."
+        emptyDescription="No notification destination is configured."
       />
     </div>
   );

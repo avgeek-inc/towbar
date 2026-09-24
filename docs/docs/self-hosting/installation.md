@@ -15,7 +15,7 @@ The examples use loopback addresses for initial setup. Keep that binding until y
 
 The installer asks only for the URL where the control plane will be reached. Press Enter to keep the default `http://localhost:4021` on-host installation, or enter a public HTTPS origin whose A record points to the host. Other localhost ports, HTTPS localhost URLs, URL paths, custom ports, and non-HTTPS remote URLs are rejected. Review the result, then confirm the installation.
 
-Towbar generates the database passwords, credential-encryption key, and internal signing secret. It does not ask for provider credentials during installation. Optional integrations remain disabled until their environment variables are added later.
+Towbar generates the database passwords, credential-encryption key, and internal signing secret. It does not ask for provider credentials during installation. Optional integrations remain disabled until they are configured in the runtime YAML file.
 
 ## Install the control plane
 
@@ -57,7 +57,7 @@ A published release becomes installable after its **Publish release images** wor
 
 ## Configure the installation
 
-Towbar keeps operator configuration outside versioned release directories at `/etc/towbar/towbar.env`. The file is owned by root with mode `600`, remains in place across upgrades, and can be edited with the host editor of your choice:
+Towbar keeps operator configuration outside versioned release directories at `/etc/towbar/towbar.yml`. The file is owned by root with mode `600`, remains in place across upgrades, and can be edited with the host editor of your choice:
 
 ```bash
 sudo nano "$(towbar config path)"
@@ -65,7 +65,7 @@ sudo towbar config validate
 sudo towbar restart
 ```
 
-For an internet-reachable installation, Towbar uses `TOWBAR_APP_BASE_URL` as the single HTTPS origin for the dashboard, REST API, MCP, webhooks, streaming responses, and terminal transport.
+For an internet-reachable installation, Towbar uses `installation.appUrl` as the single HTTPS origin for the dashboard, REST API, MCP, webhooks, streaming responses, and terminal transport.
 
 The bundled Caddy gateway binds ports 80 and 443, obtains a Let's Encrypt certificate, redirects HTTP to HTTPS, and renews the certificate automatically. Its certificate and ACME account data live in persistent Docker volumes and survive upgrades and container replacement. The installer validates Caddy's configuration, verifies the live certificate, restarts the gateway once, and confirms that HTTPS recovers with the persisted certificate.
 
@@ -75,13 +75,13 @@ If certificate issuance fails after the containers start, the installer prints t
 
 The gateway routes `/v1/*` to the API and all other paths to the dashboard, so those service boundaries do not leak into host configuration. The default local installation instead publishes only `127.0.0.1:4021`; it does not bind public HTTP or HTTPS ports.
 
-Use `towbar config path` with any editor that can save the root-owned file. Towbar does not wrap the editor or retain configuration copies. Back up the file through your normal host configuration-management or secret-management process before changing it.
+Use `towbar config path` with any editor that can save the root-owned YAML file. Towbar does not wrap the editor.
 
 The configuration commands are deliberately limited:
 
 | Command                       | Behavior                                                                                                               |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `towbar config path`          | Prints the active environment-file path. It does not read or display the file.                                         |
+| `towbar config path`          | Prints the active YAML configuration path. It does not read or display the file.                                       |
 | `sudo towbar config validate` | Checks Compose, API, worker, integrations, notifications, log forwarding, and Caddy without changing running services. |
 | `sudo towbar restart`         | Validates API, worker, integration, notification, log-forwarding, and Caddy configuration before replacing services.   |
 
@@ -114,8 +114,8 @@ The `migrate`, `temporal-schema`, and `temporal-namespace` containers are one-ti
 
 Temporal uses pinned upstream server and administration images. Startup applies versioned SQL schemas and creates the default namespace if absent. Repeating startup preserves existing workflow state. Do not delete PostgreSQL volumes to resolve a startup failure.
 
-Temporal's gRPC and HTTP APIs are accessible only inside the control-plane network. Its operator UI binds to `127.0.0.1` even if you change `TOWBAR_BIND_ADDRESS` for the dashboard and API. Access the operator UI through an SSH tunnel; it is not protected by Towbar's dashboard login and must not be exposed publicly.
+Temporal's gRPC and HTTP APIs are accessible only inside the control-plane network. Its operator UI binds to `127.0.0.1` even if you change `installation.bindAddress` for the dashboard and API. Access the operator UI through an SSH tunnel; it is not protected by Towbar's dashboard login and must not be exposed publicly.
 
 ## Continue setup
 
-Connect [GitHub](/docs/integrations/github), register and prepare a [server](/docs/servers), then follow [Your first deployment](/docs/getting-started). For public ingress and optional providers, use the [environment variable reference](/docs/self-hosting/environment-variables).
+Connect [GitHub](/docs/integrations/github), register and prepare a [server](/docs/servers), then follow [Your first deployment](/docs/getting-started). For public ingress and optional providers, use the [runtime configuration reference](/docs/self-hosting/environment-variables).

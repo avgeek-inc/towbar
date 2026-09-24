@@ -1,0 +1,48 @@
+import { getRuntimeNotificationRoute } from "../../infrastructure/runtime-notifications.js";
+import { discordNotificationRoute } from "./discord-destinations.js";
+import { webhookNotificationRoute } from "./webhook-destinations.js";
+import { emailNotificationRoute } from "./email-destinations.js";
+import {
+  legacyTelegramNotificationRoute,
+  telegramNotificationRoute,
+  telegramRoutingMigrated,
+} from "./telegram-destinations.js";
+import {
+  legacySlackNotificationRoute,
+  slackNotificationRoute,
+} from "./slack-destinations.js";
+
+export async function resolveNotificationDeliveryRoute(
+  workspaceId: string,
+  destinationId: string,
+  provider: string,
+) {
+  if (provider === "discord")
+    return discordNotificationRoute(workspaceId, destinationId);
+  if (provider === "webhook")
+    return webhookNotificationRoute(workspaceId, destinationId);
+  if (destinationId.startsWith("email-"))
+    return emailNotificationRoute(workspaceId, destinationId);
+  if (provider === "telegram") {
+    const workspaceRoute = await telegramNotificationRoute(
+      workspaceId,
+      destinationId,
+    );
+    if (workspaceRoute) return workspaceRoute;
+    return (await telegramRoutingMigrated(workspaceId))
+      ? legacyTelegramNotificationRoute(workspaceId, destinationId)
+      : getRuntimeNotificationRoute(destinationId);
+  }
+  if (destinationId.startsWith("slack-"))
+    return (
+      (await slackNotificationRoute(workspaceId, destinationId)) ??
+      getRuntimeNotificationRoute(destinationId) ??
+      (await legacySlackNotificationRoute(workspaceId, destinationId))
+    );
+  return (
+    getRuntimeNotificationRoute(destinationId) ??
+    (provider === "slack"
+      ? await legacySlackNotificationRoute(workspaceId, destinationId)
+      : null)
+  );
+}

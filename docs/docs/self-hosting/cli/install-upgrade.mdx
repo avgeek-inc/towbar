@@ -49,9 +49,9 @@ It rejects other localhost ports, HTTPS localhost, non-HTTPS remote URLs, custom
     multi-architecture image manifest.
   </Step>
   <Step title="Create configuration">
-    Towbar copies the environment template to `/etc/towbar/towbar.env`,
-    generates database, encryption, and signing secrets, restricts the file to
-    `root:root` mode `600`, and applies the selected access URL.
+    Towbar generates database, encryption, and signing secrets, writes
+    `/etc/towbar/towbar.yml` with `root:root` mode `600`, and applies the
+    selected access URL.
   </Step>
   <Step title="Start and verify Towbar">
     The CLI pulls the release images, applies the database schema, starts the
@@ -104,7 +104,7 @@ sudo towbar upgrade [VERSION]
 
 The selected tag must be published, non-draft, non-prerelease, and in the same major release line supported by the installed CLI. The release must include `towbar-images.json` with immutable digests for the API, worker, and dashboard images.
 
-Before replacing services, the CLI downloads the exact tagged commit, verifies release metadata, generates a configuration only when one does not exist, and validates the target Compose configuration. It then pulls the prebuilt images, runs database migrations, waits for service health, verifies public HTTPS when applicable, and checks that the running API reports the expected commit.
+Before replacing services, the CLI downloads the exact tagged commit, verifies release metadata, and validates the YAML and target Compose configuration. It then pulls the prebuilt images, runs database migrations, waits for service health, verifies public HTTPS when applicable, and checks that the running API reports the expected commit.
 
 If replacement fails, the CLI restores the previous release symlink and starts the previous service images. This protects the service replacement; it cannot reverse an incompatible database migration. Review release notes and take a database backup before upgrading production data.
 

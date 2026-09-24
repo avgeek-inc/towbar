@@ -14,7 +14,11 @@ import {
   type LogDrainProvider,
 } from "./log-drain-integration";
 import { NotificationDeliveries } from "./notification-deliveries";
-import { NotificationIntegration } from "./notification-integration";
+import { WebhookNotificationIntegration } from "./webhook-notification-integration";
+import { EmailNotificationIntegration } from "./email-notification-integration";
+import { SlackNotificationIntegration } from "./slack-notification-integration";
+import { DiscordNotificationIntegration } from "./discord-notification-integration";
+import { TelegramNotificationIntegration } from "./telegram-notification-integration";
 import { NotificationProviderIcon } from "./notification-provider-icon";
 import { FormCard } from "./page-parts";
 import { documentationTopics } from "@/lib/documentation";
@@ -24,6 +28,7 @@ export type ProviderItem = {
   provider: string;
   label: string;
   content: React.ReactNode;
+  contentOwnsTitle?: boolean;
 };
 
 export type ProviderGroup = {
@@ -262,31 +267,36 @@ export const notificationProviders = [
     value: "slack",
     provider: "slack",
     label: "Slack",
-    content: <NotificationIntegration provider="slack" />,
+    contentOwnsTitle: true,
+    content: <SlackNotificationIntegration />,
   },
   {
     value: "email",
     provider: "smtp",
     label: "Email",
-    content: <NotificationIntegration provider="smtp" />,
+    contentOwnsTitle: true,
+    content: <EmailNotificationIntegration />,
   },
   {
     value: "discord",
     provider: "discord",
     label: "Discord",
-    content: <NotificationIntegration provider="discord" />,
+    contentOwnsTitle: true,
+    content: <DiscordNotificationIntegration />,
   },
   {
     value: "telegram",
     provider: "telegram",
     label: "Telegram",
-    content: <NotificationIntegration provider="telegram" />,
+    contentOwnsTitle: true,
+    content: <TelegramNotificationIntegration />,
   },
   {
     value: "webhook",
     provider: "webhook",
     label: "Webhook push",
-    content: <NotificationIntegration provider="webhook" />,
+    contentOwnsTitle: true,
+    content: <WebhookNotificationIntegration />,
   },
 ] as const;
 

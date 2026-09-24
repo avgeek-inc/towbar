@@ -536,7 +536,7 @@ function SecretVariablesEditor({
               <Tabs.List aria-label="Secret editing mode">
                 <Tabs.Tab
                   id="form"
-                  className="h-7 min-w-0 gap-1.5 px-3 text-xs"
+                  className="h-8 min-w-0 gap-1.5 px-3 text-xs"
                   isDisabled={busy}
                 >
                   <HugeiconsIcon
@@ -549,7 +549,7 @@ function SecretVariablesEditor({
                 </Tabs.Tab>
                 <Tabs.Tab
                   id="file"
-                  className="h-7 min-w-0 gap-1.5 px-3 text-xs"
+                  className="h-8 min-w-0 gap-1.5 px-3 text-xs"
                   isDisabled={busy || !canManage}
                 >
                   <HugeiconsIcon

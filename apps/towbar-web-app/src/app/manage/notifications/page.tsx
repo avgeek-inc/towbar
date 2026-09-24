@@ -15,6 +15,6 @@ export default async function Page({
 }) {
   const requested = (await searchParams).provider;
   redirect(
-    `/manage/integrations/${requested && notifications.has(requested) ? requested : "slack"}`,
+    `/manage/notifications/${requested && notifications.has(requested) ? requested : "email"}`,
   );
 }

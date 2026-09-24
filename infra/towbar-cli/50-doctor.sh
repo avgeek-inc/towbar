@@ -136,18 +136,43 @@ doctor_check_disk_usage() {
 }
 
 doctor_check_config() {
-  local release_dir="$1" ownership mode app_url
+  local release_dir="$1" ownership mode app_url config_path helper
+  config_path="$TOWBAR_YAML_FILE"
+  if [[ ! -f "$config_path" ]]; then
+    if [[ -f "$TOWBAR_ENV_FILE" ]]; then
+      doctor_record warn "Runtime configuration uses the legacy environment file" "The next upgrade or restart will convert it to $TOWBAR_YAML_FILE."
+      config_path="$TOWBAR_ENV_FILE"
+    else
+      doctor_record fail "Runtime configuration is missing" "$TOWBAR_YAML_FILE"
+      return
+    fi
+  fi
   if [[ ! -f "$TOWBAR_ENV_FILE" ]]; then
-    doctor_record fail "Runtime configuration is missing" "$TOWBAR_ENV_FILE"
+    doctor_record fail "Derived Compose configuration is missing" "$TOWBAR_ENV_FILE"
     return
   fi
 
-  ownership="$(stat -c '%U:%G' "$TOWBAR_ENV_FILE" 2>/dev/null || true)"
-  mode="$(stat -c '%a' "$TOWBAR_ENV_FILE" 2>/dev/null || true)"
+  ownership="$(stat -c '%U:%G' "$config_path" 2>/dev/null || true)"
+  mode="$(stat -c '%a' "$config_path" 2>/dev/null || true)"
   if [[ "$ownership" == root:root && "$mode" == 600 ]]; then
-    doctor_record pass "Runtime configuration is protected" "$TOWBAR_ENV_FILE is owned by root:root with mode 600."
+    doctor_record pass "Runtime configuration is protected" "$config_path is owned by root:root with mode 600."
   else
     doctor_record fail "Runtime configuration permissions are unsafe" "Expected root:root mode 600; found ${ownership:-unknown} mode ${mode:-unknown}."
+  fi
+  if [[ "$config_path" != "$TOWBAR_ENV_FILE" ]]; then
+    ownership="$(stat -c '%U:%G' "$TOWBAR_ENV_FILE" 2>/dev/null || true)"
+    mode="$(stat -c '%a' "$TOWBAR_ENV_FILE" 2>/dev/null || true)"
+    if [[ "$ownership" != root:root || "$mode" != 600 ]]; then
+      doctor_record fail "Derived Compose configuration permissions are unsafe" "Expected root:root mode 600; found ${ownership:-unknown} mode ${mode:-unknown}."
+    fi
+  fi
+
+  if [[ "$config_path" == "$TOWBAR_YAML_FILE" ]]; then
+    helper="$(config_helper_for "$release_dir")"
+    if ! python3 "$helper" compare --yaml "$TOWBAR_YAML_FILE" --env "$TOWBAR_ENV_FILE" >/dev/null 2>&1; then
+      doctor_record fail "Runtime configuration is not applied" "Run sudo towbar config validate, then sudo towbar restart."
+      return
+    fi
   fi
 
   if (validate_config_for "$release_dir") >/dev/null 2>&1; then

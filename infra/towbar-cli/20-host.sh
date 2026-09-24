@@ -40,7 +40,7 @@ install_prerequisites() {
 
   export DEBIAN_FRONTEND=noninteractive
   apt-get update
-  apt-get install --yes ca-certificates curl git iproute2 jq openssl tar util-linux
+  apt-get install --yes ca-certificates curl git iproute2 jq openssl python3 python3-yaml tar util-linux
 
   if command -v docker >/dev/null; then
     docker compose version >/dev/null 2>&1 ||

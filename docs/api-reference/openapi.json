@@ -1507,7 +1507,6 @@
               "anyOf": [
                 { "type": "string", "const": "health" },
                 { "type": "string", "const": "scout" },
-                { "type": "string", "const": "previews" },
                 { "type": "string", "const": "deployments" },
                 { "type": "string", "const": "backups" },
                 { "type": "string", "const": "restores" }
@@ -8057,13 +8056,228 @@
       "Response_402": {
         "type": "object",
         "properties": {
+          "chatId": { "type": "string" },
+          "messageThreadId": {
+            "anyOf": [{ "type": "null" }, { "type": "number" }]
+          },
+          "deployments": { "type": "boolean" },
+          "backupsAndRestores": { "type": "boolean" },
+          "alertsAndIncidents": { "type": "boolean" },
+          "id": { "type": "string" }
+        },
+        "required": [
+          "chatId",
+          "messageThreadId",
+          "deployments",
+          "backupsAndRestores",
+          "alertsAndIncidents",
+          "id"
+        ]
+      },
+      "Response_401": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_402" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_403": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_402" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_404": {
+        "type": "object",
+        "properties": { "status": { "type": "string", "const": "accepted" } },
+        "required": ["status"]
+      },
+      "Response_406": {
+        "type": "object",
+        "properties": {
+          "routeId": { "type": "string" },
+          "webhookId": { "type": "string" },
+          "deployments": { "type": "boolean" },
+          "backupsAndRestores": { "type": "boolean" },
+          "alertsAndIncidents": { "type": "boolean" }
+        },
+        "required": [
+          "routeId",
+          "webhookId",
+          "deployments",
+          "backupsAndRestores",
+          "alertsAndIncidents"
+        ]
+      },
+      "Response_405": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_406" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_407": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_406" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_408": {
+        "type": "object",
+        "properties": { "status": { "type": "string", "const": "accepted" } },
+        "required": ["status"]
+      },
+      "Response_410": {
+        "type": "object",
+        "properties": {
+          "routeId": { "type": "string" },
+          "label": { "type": "string" },
+          "hostname": { "type": "string" },
+          "deployments": { "type": "boolean" },
+          "backupsAndRestores": { "type": "boolean" },
+          "alertsAndIncidents": { "type": "boolean" }
+        },
+        "required": [
+          "routeId",
+          "label",
+          "hostname",
+          "deployments",
+          "backupsAndRestores",
+          "alertsAndIncidents"
+        ]
+      },
+      "Response_409": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_410" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_411": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_410" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_412": {
+        "type": "object",
+        "properties": { "status": { "type": "string", "const": "accepted" } },
+        "required": ["status"]
+      },
+      "Response_414": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "channelId": { "type": "string" },
+          "deployments": { "type": "boolean" },
+          "backupsAndRestores": { "type": "boolean" },
+          "scout": { "type": "boolean" }
+        },
+        "required": [
+          "id",
+          "channelId",
+          "deployments",
+          "backupsAndRestores",
+          "scout"
+        ]
+      },
+      "Response_413": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_414" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_415": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_414" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_416": {
+        "type": "object",
+        "properties": { "status": { "type": "string", "const": "accepted" } },
+        "required": ["status"]
+      },
+      "Response_418": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "email": { "type": "string" },
+          "deployments": { "type": "boolean" },
+          "backupsAndRestores": { "type": "boolean" },
+          "scout": { "type": "boolean" }
+        },
+        "required": [
+          "id",
+          "email",
+          "deployments",
+          "backupsAndRestores",
+          "scout"
+        ]
+      },
+      "Response_417": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_418" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_419": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_418" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_420": {
+        "type": "object",
+        "properties": { "status": { "type": "string", "const": "accepted" } },
+        "required": ["status"]
+      },
+      "Response_422": {
+        "type": "object",
+        "properties": {
           "categories": {
             "type": "array",
             "items": {
               "anyOf": [
                 { "type": "string", "const": "health" },
                 { "type": "string", "const": "scout" },
-                { "type": "string", "const": "previews" },
                 { "type": "string", "const": "deployments" },
                 { "type": "string", "const": "backups" },
                 { "type": "string", "const": "restores" }
@@ -8081,23 +8295,28 @@
               { "type": "string", "const": "webhook" }
             ]
           },
-          "source": { "type": "string", "const": "environment" }
+          "source": {
+            "anyOf": [
+              { "type": "string", "const": "environment" },
+              { "type": "string", "const": "control-plane" }
+            ]
+          }
         },
         "required": ["categories", "enabled", "id", "provider", "source"]
       },
-      "Response_401": {
+      "Response_421": {
         "type": "object",
         "properties": {
           "canManageNotifications": { "type": "boolean" },
           "destinations": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_402" }
+            "items": { "$ref": "#/components/schemas/Response_422" }
           },
           "providers": { "$ref": "#/components/schemas/Response_84" }
         },
         "required": ["canManageNotifications", "destinations", "providers"]
       },
-      "Response_404": {
+      "Response_424": {
         "type": "object",
         "properties": {
           "destination": { "type": "string" },
@@ -8171,7 +8390,6 @@
               { "type": "string", "const": "test" },
               { "type": "string", "const": "health" },
               { "type": "string", "const": "scout" },
-              { "type": "string", "const": "previews" },
               { "type": "string", "const": "deployments" },
               { "type": "string", "const": "backups" },
               { "type": "string", "const": "restores" }
@@ -8217,7 +8435,7 @@
           "entityName"
         ]
       },
-      "Response_405": {
+      "Response_425": {
         "type": "object",
         "properties": {
           "before": { "type": "string" },
@@ -8225,76 +8443,76 @@
         },
         "required": ["before", "beforeId"]
       },
-      "Response_403": {
+      "Response_423": {
         "type": "object",
         "properties": {
           "items": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_404" }
+            "items": { "$ref": "#/components/schemas/Response_424" }
           },
           "nextCursor": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_405" }
+              { "$ref": "#/components/schemas/Response_425" }
             ]
           }
         },
         "required": ["items", "nextCursor"]
       },
-      "Response_408": {
+      "Response_428": {
         "type": "object",
         "properties": {
           "source": { "type": "string", "const": "environment" }
         },
         "required": ["source"]
       },
-      "Response_409": {
+      "Response_429": {
         "type": "object",
         "properties": {
           "source": { "type": "string", "const": "environment" }
         },
         "required": ["source"]
       },
-      "Response_410": {
+      "Response_430": {
         "type": "object",
         "properties": {
           "source": { "type": "string", "const": "environment" }
         },
         "required": ["source"]
       },
-      "Response_407": {
+      "Response_427": {
         "type": "object",
         "properties": {
           "slack": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_408" }
+              { "$ref": "#/components/schemas/Response_428" }
             ]
           },
           "smtp": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_409" }
+              { "$ref": "#/components/schemas/Response_429" }
             ]
           },
           "telegram": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_410" }
+              { "$ref": "#/components/schemas/Response_430" }
             ]
           }
         },
         "required": ["slack", "smtp", "telegram"]
       },
-      "Response_406": {
+      "Response_426": {
         "type": "object",
         "properties": {
-          "configurations": { "$ref": "#/components/schemas/Response_407" },
+          "configurations": { "$ref": "#/components/schemas/Response_427" },
           "providers": { "$ref": "#/components/schemas/Response_84" }
         },
         "required": ["configurations", "providers"]
       },
-      "Response_414": {
+      "Response_434": {
         "type": "object",
         "properties": {
           "id": { "type": "string" },
@@ -8315,7 +8533,7 @@
         },
         "required": ["id", "kind", "name"]
       },
-      "Response_415": {
+      "Response_435": {
         "type": "object",
         "properties": {
           "id": { "type": "string" },
@@ -8323,17 +8541,17 @@
         },
         "required": ["id", "name"]
       },
-      "Response_413": {
+      "Response_433": {
         "type": "object",
         "properties": {
           "details": { "$ref": "#/components/schemas/Record_249" },
-          "entity": { "$ref": "#/components/schemas/Response_414" },
+          "entity": { "$ref": "#/components/schemas/Response_434" },
           "message": { "type": "string" },
           "occurredAt": { "type": "string" },
           "source": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_415" }
+              { "$ref": "#/components/schemas/Response_435" }
             ]
           },
           "title": { "type": "string" }
@@ -8347,7 +8565,7 @@
           "title"
         ]
       },
-      "Response_412": {
+      "Response_432": {
         "type": "object",
         "properties": {
           "category": {
@@ -8355,7 +8573,6 @@
               { "type": "string", "const": "test" },
               { "type": "string", "const": "health" },
               { "type": "string", "const": "scout" },
-              { "type": "string", "const": "previews" },
               { "type": "string", "const": "deployments" },
               { "type": "string", "const": "backups" },
               { "type": "string", "const": "restores" }
@@ -8364,7 +8581,7 @@
           "createdAt": { "type": "string", "format": "date-time" },
           "id": { "type": "string" },
           "occurredAt": { "type": "string", "format": "date-time" },
-          "payload": { "$ref": "#/components/schemas/Response_413" },
+          "payload": { "$ref": "#/components/schemas/Response_433" },
           "type": {
             "anyOf": [
               { "type": "string", "const": "deployment.queued" },
@@ -8408,12 +8625,12 @@
           "type"
         ]
       },
-      "Response_411": {
+      "Response_431": {
         "type": "object",
         "properties": {
           "notifications": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_412" }
+            "items": { "$ref": "#/components/schemas/Response_432" }
           }
         },
         "required": ["notifications"]

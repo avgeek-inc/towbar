@@ -128,11 +128,11 @@ export function SecuritySettings() {
                 changed();
               }}
             >
-              <p className="text-muted text-sm">
+              <FieldDescription>
                 {mode === "disable"
                   ? "Future sign-ins will use only your password."
                   : "Your previous recovery codes will stop working."}
-              </p>
+              </FieldDescription>
             </AuthForm>
           ) : (
             <div className="flex flex-wrap gap-3">

@@ -91,11 +91,14 @@ export async function deliverNotification(input: {
     if (input.providerConfiguration.provider !== "telegram") {
       throw invalidProviderConfiguration("Telegram");
     }
+    const routeConfig = telegramNotificationConfigSchema.parse(input.config);
+    const chatId = routeConfig.chatId ?? input.providerConfiguration.chatId;
+    if (!chatId) throw invalidProviderConfiguration("Telegram chat");
     return await sendTelegramNotification({
       config: {
-        ...telegramNotificationConfigSchema.parse(input.config),
+        ...routeConfig,
         botToken: input.providerConfiguration.botToken,
-        chatId: input.providerConfiguration.chatId,
+        chatId,
       },
       eventId: input.eventId,
       payload,

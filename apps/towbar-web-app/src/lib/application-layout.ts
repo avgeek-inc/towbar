@@ -10,6 +10,7 @@ import {
   GitBranchIcon,
   HealthIcon,
   Key01Icon,
+  Notification01Icon,
   PlugSocketIcon,
   Rocket01Icon,
   SecurityCheckIcon,
@@ -170,6 +171,13 @@ const sidebar = {
         },
         {
           kind: "link",
+          id: "notifications",
+          label: "Notifications",
+          href: "/manage/notifications",
+          icon: Notification01Icon,
+        },
+        {
+          kind: "link",
           id: "shared-secrets",
           label: "Shared Secrets",
           href: "/manage/shared-secrets",
@@ -212,6 +220,7 @@ export function createApplicationSidebar(
           const permissions: Record<string, Action> = {
             health: "system.read",
             integrations: "integration.manage",
+            notifications: "notification.manage",
             "ssh-keys": "privateKey.manage",
             "shared-secrets": "sharedSecret.list",
           };

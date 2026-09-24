@@ -33,7 +33,14 @@ test("manage navigation exposes each feature at its primary destination", () => 
   assert.equal(adminWorkspace?.label, "Manage");
   assert.deepEqual(
     adminWorkspace?.items.map((item) => item.id),
-    ["integrations", "ssh-keys", "shared-secrets", "team-settings", "health"],
+    [
+      "integrations",
+      "ssh-keys",
+      "notifications",
+      "shared-secrets",
+      "team-settings",
+      "health",
+    ],
   );
 
   const member = createApplicationSidebar({}, undefined, fixtureUser("member"));

@@ -175,25 +175,6 @@
       ]
     },
     {
-      "name": "notifications-slack",
-      "route": "/manage/integrations/slack",
-      "guides": ["docs/docs/integrations/notifications.mdx"],
-      "themes": [
-        {
-          "theme": "light",
-          "file": "docs/assets/release-v2/notifications-slack-light.jpg",
-          "width": 2560,
-          "height": 1440
-        },
-        {
-          "theme": "dark",
-          "file": "docs/assets/release-v2/notifications-slack-dark.jpg",
-          "width": 2560,
-          "height": 1440
-        }
-      ]
-    },
-    {
       "name": "overview",
       "route": "/",
       "guides": ["docs/index.mdx", "docs/blog/introducing-towbar.mdx"],

@@ -5,6 +5,7 @@ node_modules/
 .next/
 dist/
 coverage/
+__pycache__/
 *.log
 .DS_Store
 .env

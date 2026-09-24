@@ -4,7 +4,7 @@ description: "Install, inspect, configure, upgrade, and troubleshoot a self-host
 sidebarTitle: "CLI overview"
 ---
 
-The `towbar` command manages the control plane installed on a Towbar host. It selects the active release, loads `/etc/towbar/towbar.env`, and supplies the correct Compose project, images, and release metadata for each operation.
+The `towbar` command manages the control plane installed on a Towbar host. It selects the active release, reads `/etc/towbar/towbar.yml`, and supplies the correct Compose project, images, and release metadata for each operation.
 
 The installer places the executable at `/usr/local/bin/towbar`. Run host-changing and Docker commands with `sudo`. Read-only commands that do not access Docker or protected files work without it.
 
@@ -25,7 +25,7 @@ towbar help
     icon="settings"
     href="/docs/self-hosting/cli/configuration"
   >
-    Find and validate the environment file, then apply a valid change safely.
+    Find and validate the YAML configuration, then apply a valid change safely.
   </Card>
   <Card
     title="Diagnostics and logs"
@@ -53,7 +53,7 @@ towbar help
 | `sudo towbar install`                  | Install the release bundled with this CLI              | Yes           | No                    |
 | `sudo towbar upgrade [VERSION]`        | Install the latest or a selected stable release        | Yes           | Yes                   |
 | `sudo towbar restart`                  | Validate configuration and restart the current release | Yes           | Yes                   |
-| `towbar config path`                   | Print the active environment-file path                 | No            | No                    |
+| `towbar config path`                   | Print the active configuration path                    | No            | No                    |
 | `sudo towbar config validate`          | Validate Compose and runtime configuration             | Yes           | Yes                   |
 | `sudo towbar doctor`                   | Run read-only installation diagnostics                 | Yes           | Yes                   |
 | `sudo towbar status`                   | Show control-plane service status                      | Yes           | Yes                   |
@@ -70,7 +70,7 @@ The CLI uses these installation-owned paths:
 | Path                             | Purpose                                                      |
 | -------------------------------- | ------------------------------------------------------------ |
 | `/usr/local/bin/towbar`          | Installed CLI                                                |
-| `/etc/towbar/towbar.env`         | Root-owned runtime configuration; expected mode is `600`     |
+| `/etc/towbar/towbar.yml`         | Root-owned runtime configuration; expected mode is `600`     |
 | `/opt/towbar/current`            | Symlink to the active release                                |
 | `/opt/towbar/releases/<version>` | Downloaded source and Compose definition for one release     |
 | `/opt/towbar/VERSION`            | Installed release label                                      |
@@ -94,4 +94,4 @@ Set `NO_COLOR=1` when capturing output in automation:
 sudo NO_COLOR=1 towbar doctor > towbar-doctor.txt
 ```
 
-Avoid running lifecycle commands concurrently. `install`, `upgrade`, and `restart` acquire the Towbar operation lock and stop if another protected operation is active.
+Avoid running lifecycle commands concurrently. `install`, `upgrade`, `restart`, and `config validate` acquire the Towbar operation lock and stop if another protected operation is active.

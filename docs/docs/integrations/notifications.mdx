@@ -1,98 +1,72 @@
 ---
 title: "Notifications"
-description: "Configure operational notification providers and routes in the Towbar runtime environment."
+description: "Configure notification providers and destinations."
 ---
 
-Operational notification configuration lives only in `TOWBAR_NOTIFICATION_CONFIG_JSON`. The dashboard shows active providers, category routes, and persisted delivery history without exposing credentials or editing controls.
+Provider credentials remain in `/etc/towbar/towbar.yml`. Email recipients, Slack channels, and Telegram chats and topics are managed in **Manage → Notifications**. Discord webhook credentials and webhook push endpoint URLs, headers, and signing secrets remain in runtime configuration. Their notification subscriptions are managed in Towbar. The Providers list shows every provider, including those awaiting runtime configuration.
 
-Set `TOWBAR_NOTIFICATIONS_ENABLED=true`, provide a JSON document with `providers` and `routes`, then restart the API. Invalid JSON, duplicate route IDs, missing provider credentials, or invalid destinations fail startup.
+Set `notifications.enabled: true`, add `providers` and any routes that remain runtime-managed, then run `sudo towbar restart`. Invalid YAML, duplicate route IDs, missing provider credentials, or invalid destinations fail validation.
 
-```json
-{
-  "providers": {
-    "slack": { "botToken": "xoxb-..." },
-    "smtp": {
-      "from": "towbar@example.com",
-      "host": "smtp.example.com",
-      "port": 587,
-      "secure": false,
-      "username": "towbar",
-      "password": "replace-me"
-    },
-    "telegram": { "botToken": "123456:...", "chatId": "-100123456" }
-  },
-  "routes": [
-    {
-      "id": "deployments-slack",
-      "provider": "slack",
-      "enabled": true,
-      "categories": ["deployments", "previews"],
-      "config": { "channelId": "C0123456789" }
-    },
-    {
-      "id": "operations-email",
-      "provider": "smtp",
-      "enabled": true,
-      "categories": ["health", "backups", "restores"],
-      "config": { "recipients": ["operations@example.com"] }
-    }
-  ]
-}
+```yaml title="/etc/towbar/towbar.yml"
+notifications:
+  enabled: true
+  providers:
+    slack:
+      botToken: "xoxb-..."
+    discord:
+      - webhookId: "123456789012345678"
+        webhookToken: "..."
+    smtp:
+      from: towbar@example.com
+      host: smtp.example.com
+      port: 587
+      secure: false
+      username: towbar
+      password: "..."
+    telegram:
+      botToken: "123456:..."
+    webhook:
+      - id: operations
+        label: Operations
+        url: https://hooks.example.com/events
+        headers:
+          Authorization: "Bearer ..."
+        signingSecret: "..."
+  routes: []
 ```
 
-Slack routes use channel IDs. SMTP routes use recipient arrays. Telegram routes can set a topic `messageThreadId`. Discord routes contain their incoming `webhookUrl`, and generic webhook routes contain their public HTTPS `url`; those two providers need no entry under `providers`.
-
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/notifications-slack-light.jpg"
-      alt="Configured notification providers and their delivery history appear inside Integrations."
-      width="2560"
-      height="1440"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/notifications-slack-dark.jpg"
-      alt="Configured notification providers and their delivery history appear inside Integrations."
-      width="2560"
-      height="1440"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    Only providers enabled by the runtime configuration appear in the
-    Integrations sidebar.
-  </p>
-</div>
+Slack destinations use channel IDs. Telegram destinations use a chat ID and optional topic ID. Discord uses an array of webhook ID and token pairs under `providers.discord`. Webhook push uses an array of endpoints under `providers.webhook`. Preview events follow Deployments for every provider. Health and Scout events both follow Alerts & Incidents. Existing runtime routes with a `previews` category are accepted as deployment routes for compatibility.
 
 ## Configure Slack
 
-Add one Slack bot token under `providers.slack`, then add a route for each channel and category combination. Put the channel ID in `config.channelId`. Install the bot in every target channel before restarting Towbar.
+Add one Slack bot token under `providers.slack` and restart Towbar. Open **Manage → Notifications → Slack** to add each channel ID in **Destinations**. Invite the bot to each channel before testing it. Choose Deployments (including previews), Backup & Restore, and Alerts & Incidents per channel; checkbox changes save immediately. Existing runtime Slack routes appear in the table until the first change, when they move to workspace-owned destinations. Towbar keeps their route IDs for already queued deliveries, so those runtime routes can then be removed.
 
 ## Configure email
 
-Add the SMTP host, port, TLS mode, sender, username, and password under `providers.smtp`. Each SMTP route declares a `config.recipients` array. The same SMTP provider also sends invitation, email-change, password-reset, and other transactional messages to the affected account.
+Add the SMTP host, port, TLS mode, sender, username, and password under `providers.smtp`. Then open **Manage → Notifications → Email** and add each operational email address in **Destinations**. Destination controls appear only when SMTP is configured. For each address, choose Deployments (including previews), Backup & Restore, and Alerts & Incidents. Changes to subscriptions save immediately. Existing runtime SMTP routes appear in the table until the first change, when they move to workspace-owned destinations. The same SMTP provider also sends invitation, email-change, password-reset, and other transactional messages to the affected account; these are independent of operational destinations.
 
 ## Configure Discord
 
-Discord uses an incoming webhook per route. Put its full HTTPS URL in `config.webhookUrl`; no shared provider credential is required. Limit the webhook to the intended channel and rotate it in Discord if it is exposed.
+Add one `{ "webhookId", "webhookToken" }` entry per Discord destination under `providers.discord`. Towbar creates one route per pair and shows only the webhook ID in **Manage → Notifications → Discord**; tokens are never returned by the destination API. New webhooks start with no subscriptions. Choose Deployments, Backup & Restore, and Alerts & Incidents for each webhook. Changes save immediately, and Test sends a sample notification after confirmation. Add or remove pairs in runtime configuration and restart Towbar. Existing `routes` entries with `config.webhookUrl` continue to work with their original route IDs for queued deliveries; remove them when migrating to the new array to avoid sending duplicate notifications. Limit each webhook to the intended channel and rotate its token in Discord if it is exposed.
 
 ## Configure Telegram
 
-Add the bot token and chat ID under `providers.telegram`. A route may set `config.messageThreadId` when the destination is a forum topic. Ensure the bot can post to the configured chat before restarting Towbar.
+Add one bot token under `providers.telegram` and restart Towbar. Open **Manage → Notifications → Telegram** to add a numeric chat ID. Supply an optional Topic ID to send into a forum topic; leave it blank for the main chat. The same chat can have multiple destination rows for different topics. Select Deployments, Backup & Restore, and Alerts & Incidents for each destination; checkbox changes save immediately. New destinations start with all categories unchecked. Test sends a sample notification after confirmation. Ensure the bot is a member of each chat and can post there.
+
+Existing runtime Telegram routes appear in the table until the first change, when their chat/topic pairs move to workspace-owned destinations. Towbar keeps their route IDs for already queued deliveries. Legacy `providers.telegram.chatId` and `routes[].config.messageThreadId` remain accepted during migration; remove them after moving routing to the control plane.
 
 ## Configure webhook push
 
-Generic webhook routes put a public HTTPS `url` directly in their route configuration. Towbar rejects credentials in the URL, private-network destinations, and unsupported ports. Authenticate the request at the receiving service using infrastructure controls appropriate for that endpoint.
+Add one `{ "id", "label", "url", "signingSecret" }` entry per endpoint under `providers.webhook`. `headers` is an optional map of additional request headers, such as `Authorization`; keep its values in runtime configuration. IDs must be unique and stable because they identify queued deliveries. The full URL, header values, and signing secret are never returned by the destination API. Towbar shows the label and hostname in **Manage → Notifications → Webhook push**. Select Deployments, Backup & Restore, and Alerts & Incidents for each endpoint; changes save immediately. Test sends a sample notification after confirmation. New endpoints start with no subscriptions.
 
-Towbar stores provider-neutral events, route IDs, delivery attempts, retry state, provider outcomes, and thread identifiers. Credentials are resolved from the current runtime configuration only when a delivery runs. Removing a route stops future matching deliveries without erasing history. Account and team transactional email uses the configured SMTP provider but selects the affected account as recipient rather than an operational route.
+Towbar POSTs the JSON body with the configured headers and an `x-towbar-signature-256` header. Verify the signature against the exact raw request body by computing HMAC-SHA256 over `<x-towbar-timestamp>.<raw body>` with the endpoint's signing secret. Reject missing signatures and stale timestamps at the receiver. Towbar rejects URLs with username/password components or custom ports, private-network destinations, redirects, and reserved delivery header overrides. Existing `routes` webhook entries continue to work with their original route IDs; migrate them to `providers.webhook` without duplicating subscriptions. Legacy routes are not signed unless they include a `signingSecret` in their config.
+
+Towbar stores provider-neutral events, route IDs, delivery attempts, retry state, provider outcomes, and thread identifiers. Credentials are resolved from the current runtime configuration only when a delivery runs. Removing a destination stops future matching deliveries without erasing history. Account and team transactional email uses the configured SMTP provider but selects the affected account as recipient rather than an operational destination.
 
 ## Delivery history
 
-Open **Manage → Integrations → Notifications → Deliveries** to filter and inspect persisted delivery history. A succeeded delivery means the provider accepted it; it does not prove a person read it.
+Open **Manage → Notifications → Health → Deliveries** to filter and inspect persisted delivery history. A succeeded delivery means the provider accepted it; it does not prove a person read it.
 
 ## Diagnose delivery
 
-Use the delivery row’s status, attempt timestamps, and provider-safe error to distinguish routing, authentication, rate-limit, and temporary transport failures. Correct environment configuration and restart the API for authentication failures. Towbar retries transient failures with bounded backoff; repeated rate limits pause the affected destination rather than blocking application workflows.
+Use the delivery row’s status, attempt timestamps, and provider-safe error to distinguish routing, authentication, rate-limit, and temporary transport failures. Correct credentials in `towbar.yml`, then validate and restart Towbar for authentication failures. Towbar retries transient failures with bounded backoff; repeated rate limits pause the affected destination rather than blocking application workflows.

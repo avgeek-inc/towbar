@@ -22,7 +22,7 @@ import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueueNotificationDelivery } from "../../infrastructure/temporal.js";
 import { getNotificationProviderConfiguration } from "./configuration.js";
 import { NotificationProviderError, deliverNotification } from "./providers.js";
-import { getRuntimeNotificationRoute } from "../../infrastructure/runtime-notifications.js";
+import { resolveNotificationDeliveryRoute } from "./delivery-route.js";
 
 const maximumAutomaticAttempts = 5;
 
@@ -162,7 +162,11 @@ async function claimAttempt(input: {
     if (delivery.cycle !== input.cycle || delivery.state === "succeeded") {
       return { outcome: { outcome: "stale" as const } };
     }
-    const route = getRuntimeNotificationRoute(delivery.destinationId);
+    const route = await resolveNotificationDeliveryRoute(
+      delivery.workspaceId,
+      delivery.destinationId,
+      delivery.provider,
+    );
     if (!route || route.provider !== delivery.provider) {
       await transaction
         .update(notificationDeliveries)

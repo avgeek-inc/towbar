@@ -11,17 +11,30 @@ import { runTowbarMigrations } from "../dist/migrate.js";
 const url = process.env.TOWBAR_TEST_DATABASE_URL;
 const migrationsFolder = fileURLToPath(new URL("../drizzle", import.meta.url));
 
-test("v2 migration journal keeps the baseline and source-secret cleanup", async () => {
+test("migration journal keeps the baseline and notification destinations", async () => {
   const files = (await readdir(migrationsFolder)).filter((name) =>
     name.endsWith(".sql"),
   );
-  assert.deepEqual(files, ["0002_curvy_wasp.sql", "001_team_access_v2.sql"]);
+  assert.deepEqual(files, [
+    "0002_curvy_wasp.sql",
+    "0003_sad_gabe_jones.sql",
+    "0004_brainy_alice.sql",
+    "0005_high_reptil.sql",
+    "0006_broken_hammerhead.sql",
+    "0007_military_darkhawk.sql",
+    "001_team_access_v2.sql",
+  ]);
   const journal = JSON.parse(
     await readFile(`${migrationsFolder}/meta/_journal.json`, "utf8"),
   );
-  assert.equal(journal.entries.length, 2);
+  assert.equal(journal.entries.length, 7);
   assert.equal(journal.entries[0].tag, "001_team_access_v2");
   assert.equal(journal.entries[1].tag, "0002_curvy_wasp");
+  assert.equal(journal.entries[2].tag, "0003_sad_gabe_jones");
+  assert.equal(journal.entries[3].tag, "0004_brainy_alice");
+  assert.equal(journal.entries[4].tag, "0005_high_reptil");
+  assert.equal(journal.entries[5].tag, "0006_broken_hammerhead");
+  assert.equal(journal.entries[6].tag, "0007_military_darkhawk");
   const migration = await readFile(
     `${migrationsFolder}/001_team_access_v2.sql`,
     "utf8",
@@ -70,6 +83,50 @@ test("v2 migration journal keeps the baseline and source-secret cleanup", async 
   );
   assert.match(cleanup, /DELETE FROM "towbar_managed_secrets"/u);
   assert.doesNotMatch(cleanup, /'source:' \|\|/u);
+  const email = await readFile(
+    `${migrationsFolder}/0003_sad_gabe_jones.sql`,
+    "utf8",
+  );
+  assert.match(email, /CREATE TABLE "towbar_notification_email_destinations"/u);
+  assert.match(email, /CREATE TABLE "towbar_notification_email_routing"/u);
+  const slack = await readFile(
+    `${migrationsFolder}/0004_brainy_alice.sql`,
+    "utf8",
+  );
+  assert.match(slack, /CREATE TABLE "towbar_notification_slack_destinations"/u);
+  assert.match(slack, /CREATE TABLE "towbar_notification_slack_routing"/u);
+  assert.doesNotMatch(slack, /towbar_notification_email_destinations/u);
+  const discord = await readFile(
+    `${migrationsFolder}/0005_high_reptil.sql`,
+    "utf8",
+  );
+  assert.match(
+    discord,
+    /CREATE TABLE "towbar_notification_discord_route_settings"/u,
+  );
+  assert.doesNotMatch(discord, /towbar_notification_slack_destinations/u);
+  const webhook = await readFile(
+    `${migrationsFolder}/0007_military_darkhawk.sql`,
+    "utf8",
+  );
+  assert.match(
+    webhook,
+    /CREATE TABLE "towbar_notification_webhook_route_settings"/u,
+  );
+  assert.doesNotMatch(webhook, /towbar_notification_discord_route_settings/u);
+  const telegram = await readFile(
+    `${migrationsFolder}/0006_broken_hammerhead.sql`,
+    "utf8",
+  );
+  assert.match(
+    telegram,
+    /CREATE TABLE "towbar_notification_telegram_destinations"/u,
+  );
+  assert.match(
+    telegram,
+    /CREATE TABLE "towbar_notification_telegram_routing"/u,
+  );
+  assert.doesNotMatch(telegram, /towbar_notification_discord_route_settings/u);
 });
 
 test(
@@ -95,7 +152,7 @@ test(
       });
       const [{ count }] =
         await client`select count(*)::int as count from drizzle.__drizzle_migrations`;
-      assert.equal(count, 2);
+      assert.equal(count, 5);
       const roles =
         await client`select enumlabel from pg_enum join pg_type on pg_type.oid = enumtypid where typname = 'towbar_workspace_role' order by enumsortorder`;
       assert.deepEqual(

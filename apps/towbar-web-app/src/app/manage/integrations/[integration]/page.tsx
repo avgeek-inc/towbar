@@ -1,5 +1,5 @@
 import { PlugSocketIcon } from "@hugeicons/core-free-icons";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -14,6 +14,12 @@ export default async function Page({
   params: Promise<{ integration: string }>;
 }) {
   const { integration } = await params;
+  if (
+    ["slack", "email", "discord", "telegram", "webhook", "deliveries"].includes(
+      integration,
+    )
+  )
+    redirect(`/manage/notifications/${integration}`);
   if (!isIntegrationRoute(integration)) notFound();
   return (
     <DashboardPage title="Integrations" icon={PlugSocketIcon}>

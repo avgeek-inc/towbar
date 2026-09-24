@@ -32,10 +32,10 @@ function Header({ className, ...props }: ComponentProps<"div">) {
   );
 }
 function Title({ className, ...props }: ComponentProps<"h3">) {
-  return <h3 className={cn("text-base font-semibold", className)} {...props} />;
+  return <h3 className={cn("text-base font-medium", className)} {...props} />;
 }
 function Description({ className, ...props }: ComponentProps<"p">) {
-  return <p className={cn("text-xs/4 text-muted", className)} {...props} />;
+  return <p className={cn("text-sm text-muted", className)} {...props} />;
 }
 function Content({ className, ...props }: ComponentProps<"div">) {
   return (

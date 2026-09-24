@@ -88,7 +88,7 @@ export function AutoDeployControlEditor({
                 </Switch.Control>
                 <span className="grid gap-1">
                   <Label>Pause automatic deployments</Label>
-                  <span className="text-sm font-normal text-muted">
+                  <span className="text-xs font-normal text-muted">
                     {inheritedPause
                       ? query.data.autoDeploy.effective.scope === "environment"
                         ? "Automatic deployments are paused for this environment. Ask an Admin to review its branch mapping."
