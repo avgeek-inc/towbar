@@ -225,6 +225,13 @@ export function ServerDetail() {
     return <QueryLoading variant="detail" />;
 
   const item = server.data.server;
+  const providerIcon = item.hardware?.instance ? (
+    <CloudProviderLogo
+      provider={item.hardware.instance.provider}
+      className="size-6"
+      size={24}
+    />
+  ) : undefined;
   const appCount = apps.data?.apps.filter(
     (app) => app.serverIp === item.canonicalIp && !app.archivedAt,
   ).length;
@@ -394,6 +401,7 @@ export function ServerDetail() {
       breadcrumbAncestors={serversBreadcrumb}
       breadcrumbSwitcher={{ id: serverId, kind: "servers" }}
       title={item.canonicalIp}
+      titleIcon={providerIcon}
     >
       <div className="content-grid">
         <PageTabs
@@ -403,7 +411,7 @@ export function ServerDetail() {
             {
               value: "overview",
               label: "Overview",
-              icon: <HugeiconsIcon icon={ServerStack01Icon} />,
+              icon: providerIcon ?? <HugeiconsIcon icon={ServerStack01Icon} />,
               content: (
                 <div className="content-grid">
                   <ServerPreparationOverview {...preparationProps} />

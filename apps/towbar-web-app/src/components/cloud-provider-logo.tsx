@@ -2,7 +2,19 @@ import Image from "next/image";
 import { cn } from "@workspace/web-design-system/lib/utils";
 
 export type CloudProviderId =
-  "aws" | "gcp" | "azure" | "cloudflare" | "s3" | "r2" | "gcs" | "azureBlob";
+  | "aws"
+  | "gcp"
+  | "azure"
+  | "oracle"
+  | "hetzner"
+  | "digitalocean"
+  | "linode"
+  | "alibaba"
+  | "cloudflare"
+  | "s3"
+  | "r2"
+  | "gcs"
+  | "azureBlob";
 
 function normalizeCloudProvider(provider: CloudProviderId): string {
   switch (provider) {

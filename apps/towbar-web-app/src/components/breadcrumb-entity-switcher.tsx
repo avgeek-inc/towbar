@@ -18,6 +18,7 @@ import {
 import { useApiQuery } from "@/hooks/use-api-query";
 import { groupDeployableInstances } from "@/lib/deployable-groups";
 import { AppLogo, ResourceLogo } from "./deployable-identity";
+import { CloudProviderLogo, type CloudProviderId } from "./cloud-provider-logo";
 import { resourceImageBrand, type ResourceBrand } from "./resource-image-brand";
 
 export type BreadcrumbEntityKind = "apps" | "resources" | "servers";
@@ -39,7 +40,8 @@ type SwitchOption = {
   id: string;
   identity?:
     | { kind: "app"; domain: string | undefined }
-    | { kind: "resource"; brand: ResourceBrand };
+    | { kind: "resource"; brand: ResourceBrand }
+    | { kind: "server"; provider: CloudProviderId };
   instanceIds: string[];
   label: string;
 };
@@ -85,6 +87,12 @@ export function BreadcrumbEntitySwitcher({
       ? (query.data?.servers ?? []).map((server) => ({
           archived: Boolean(server.archivedAt),
           id: server.id,
+          identity: server.hardware?.instance
+            ? {
+                kind: "server" as const,
+                provider: server.hardware.instance.provider,
+              }
+            : undefined,
           instanceIds: [server.id],
           label: server.canonicalIp,
         }))
@@ -180,6 +188,12 @@ export function BreadcrumbEntitySwitcher({
                   <AppLogo domain={option.identity.domain} size="small" />
                 ) : option.identity?.kind === "resource" ? (
                   <ResourceLogo brand={option.identity.brand} size="small" />
+                ) : option.identity?.kind === "server" ? (
+                  <CloudProviderLogo
+                    provider={option.identity.provider}
+                    className="size-6"
+                    size={24}
+                  />
                 ) : (
                   <HugeiconsIcon
                     aria-hidden="true"
