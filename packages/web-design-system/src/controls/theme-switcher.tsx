@@ -23,7 +23,7 @@ export function ThemeSwitcher({
 }: ThemeSwitcherProps) {
   const { isHydrated, resolvedTheme, setThemeMode } = useTheme();
   const nextTheme = resolvedTheme === "dark" ? "light" : "dark";
-  const icon = nextTheme === "light" ? Sun03Icon : Moon02Icon;
+  const icon = resolvedTheme === "dark" ? Moon02Icon : Sun03Icon;
   const actionLabel = `${label}: switch to ${nextTheme} theme`;
 
   return (
