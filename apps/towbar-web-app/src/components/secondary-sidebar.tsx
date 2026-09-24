@@ -101,9 +101,13 @@ export function SecondaryEntityHeader({
           >
             {icon}
           </span>
-          <TooltipText className="min-w-0 flex-1 truncate" tooltip={title}>
-            {children}
-          </TooltipText>
+          {typeof children === "string" ? (
+            <TooltipText className="min-w-0 flex-1 truncate" tooltip={title}>
+              {children}
+            </TooltipText>
+          ) : (
+            <span className="min-w-0 flex-1">{children}</span>
+          )}
         </div>,
         host,
       )
