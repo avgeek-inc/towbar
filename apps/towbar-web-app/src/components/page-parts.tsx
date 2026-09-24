@@ -214,7 +214,9 @@ export function PageTabs({
         searchParams.has("section") ||
         searchParams.has("settings"))
     ) {
-      detail.router.replace(
+      window.history.replaceState(
+        null,
+        "",
         detail.href(
           selectedKey,
           selectedKey === "settings"
@@ -230,7 +232,8 @@ export function PageTabs({
     const value = String(key);
     if (value === selectedKey) return;
     if (detail.base) {
-      detail.router.push(detail.href(value));
+      window.history.pushState(null, "", detail.href(value));
+      window.scrollTo(0, 0);
       return;
     }
     const params = new URLSearchParams(searchParams.toString());

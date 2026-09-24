@@ -254,20 +254,27 @@ export function ResourceIdentity({
   );
 }
 
-export function ResourceLogo({ brand }: { brand: ResourceBrand }) {
+export function ResourceLogo({
+  brand,
+  size = "default",
+}: {
+  brand: ResourceBrand;
+  size?: "default" | "small";
+}) {
   const [failed, setFailed] = useState(false);
   const fallback = "/resource-types/image.png";
   const logo = failed ? fallback : brand.logo;
   const dark = failed ? undefined : brand.logoDark;
+  const pixels = size === "small" ? 24 : 32;
   return (
     <span
-      className={`inline-flex size-8 shrink-0 items-center justify-center ${brand.darkBackground && !failed ? "rounded-sm bg-zinc-800 p-0.5" : ""} ${brand.darkPlate && !failed ? "rounded-sm dark:bg-white dark:p-0.5" : ""}`}
+      className={`inline-flex shrink-0 items-center justify-center ${size === "small" ? "size-6" : "size-8"} ${brand.darkBackground && !failed ? "rounded-sm bg-zinc-800 p-0.5" : ""} ${brand.darkPlate && !failed ? "rounded-sm dark:bg-white dark:p-0.5" : ""}`}
     >
       <Image
         alt=""
-        className={`max-h-full max-w-full size-8 object-contain ${dark ? "dark:hidden" : ""}`}
-        height={32}
-        width={32}
+        className={`max-h-full max-w-full object-contain ${size === "small" ? "size-6" : "size-8"} ${dark ? "dark:hidden" : ""}`}
+        height={pixels}
+        width={pixels}
         src={logo}
         loading="eager"
         decoding="sync"
@@ -277,9 +284,9 @@ export function ResourceLogo({ brand }: { brand: ResourceBrand }) {
       {dark ? (
         <Image
           alt=""
-          className="hidden size-8 object-contain dark:block"
-          height={32}
-          width={32}
+          className={`hidden object-contain dark:block ${size === "small" ? "size-6" : "size-8"}`}
+          height={pixels}
+          width={pixels}
           src={dark}
           loading="eager"
           decoding="sync"

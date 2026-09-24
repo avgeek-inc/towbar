@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext, useLayoutEffect } from "react";
 import type { Dispatch, SetStateAction, ReactNode } from "react";
 
 export type PageSelection = {
@@ -22,9 +22,9 @@ export function PageSelectionTitle({
   keepEntityName = false,
 }: PageSelection) {
   const setSelection = useContext(PageSelectionContext);
-  useEffect(() => {
+  useLayoutEffect(() => {
     setSelection?.({ actions, badge, label, keepEntityName, icon });
-    return () => setSelection?.(null);
   }, [setSelection, actions, badge, label, keepEntityName, icon]);
+  useLayoutEffect(() => () => setSelection?.(null), [setSelection]);
   return null;
 }

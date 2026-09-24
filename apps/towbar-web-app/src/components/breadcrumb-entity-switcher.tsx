@@ -17,6 +17,8 @@ import {
 
 import { useApiQuery } from "@/hooks/use-api-query";
 import { groupDeployableInstances } from "@/lib/deployable-groups";
+import { AppLogo, ResourceLogo } from "./deployable-identity";
+import { resourceImageBrand, type ResourceBrand } from "./resource-image-brand";
 
 export type BreadcrumbEntityKind = "apps" | "resources" | "servers";
 
@@ -35,11 +37,17 @@ const entityIcons = {
 type SwitchOption = {
   archived: boolean;
   id: string;
+  identity?:
+    | { kind: "app"; domain: string | undefined }
+    | { kind: "resource"; brand: ResourceBrand };
   instanceIds: string[];
   label: string;
 };
 
-function deployableOptions(items: (App | Resource)[]): SwitchOption[] {
+function deployableOptions<T extends App | Resource>(
+  items: T[],
+  identity: (item: T) => SwitchOption["identity"],
+): SwitchOption[] {
   return groupDeployableInstances(items).map((group) => {
     const preferred =
       group.items.find(
@@ -50,6 +58,7 @@ function deployableOptions(items: (App | Resource)[]): SwitchOption[] {
     return {
       archived: group.items.every((item) => Boolean(item.archivedAt)),
       id: preferred.id,
+      identity: identity(preferred),
       instanceIds: group.items.map((item) => item.id),
       label: preferred.name,
     };
@@ -71,7 +80,7 @@ export function BreadcrumbEntitySwitcher({
     resources?: Resource[];
     servers?: Server[];
   }>(`/v1/core/${kind}`, 30_000);
-  const options = (
+  const options: SwitchOption[] = (
     kind === "servers"
       ? (query.data?.servers ?? []).map((server) => ({
           archived: Boolean(server.archivedAt),
@@ -79,11 +88,17 @@ export function BreadcrumbEntitySwitcher({
           instanceIds: [server.id],
           label: server.canonicalIp,
         }))
-      : deployableOptions(
-          kind === "apps"
-            ? (query.data?.apps ?? [])
-            : (query.data?.resources ?? []),
-        )
+      : kind === "apps"
+        ? deployableOptions(query.data?.apps ?? [], (app) => ({
+            kind: "app",
+            domain:
+              app.config.domains?.primary ??
+              app.config.domains?.redirects[0]?.host,
+          }))
+        : deployableOptions(query.data?.resources ?? [], (resource) => ({
+            kind: "resource",
+            brand: resourceImageBrand(resource.kind, resource.config.image),
+          }))
   ).sort((left, right) => left.label.localeCompare(right.label));
   if (!options.some((option) => option.instanceIds.includes(currentId))) {
     options.unshift({
@@ -109,7 +124,7 @@ export function BreadcrumbEntitySwitcher({
     >
       <Select.Trigger className="h-auto! min-h-0! max-w-40 gap-1 rounded-sm! border-0! bg-transparent! px-0! py-0! text-sm font-medium text-foreground shadow-none! hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:max-w-64">
         <Select.Value className="min-w-0 truncate">{label}</Select.Value>
-        <Select.Indicator className="size-3 shrink-0 text-muted" />
+        <Select.Indicator className="static! size-3 shrink-0 text-muted" />
       </Select.Trigger>
       <Select.Popover className="w-72 max-w-[calc(100vw-2rem)] overflow-hidden">
         <Autocomplete.Filter
@@ -161,11 +176,17 @@ export function BreadcrumbEntitySwitcher({
                 key={option.id}
                 textValue={option.label}
               >
-                <HugeiconsIcon
-                  aria-hidden="true"
-                  className="size-4 shrink-0 text-muted"
-                  icon={icon}
-                />
+                {option.identity?.kind === "app" ? (
+                  <AppLogo domain={option.identity.domain} size="small" />
+                ) : option.identity?.kind === "resource" ? (
+                  <ResourceLogo brand={option.identity.brand} size="small" />
+                ) : (
+                  <HugeiconsIcon
+                    aria-hidden="true"
+                    className="size-5 shrink-0 text-muted"
+                    icon={icon}
+                  />
+                )}
                 <span className="min-w-0 flex-1 truncate">{option.label}</span>
                 {option.archived ? (
                   <span className="text-xs text-muted">Archived</span>
