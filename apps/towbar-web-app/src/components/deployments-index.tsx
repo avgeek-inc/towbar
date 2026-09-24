@@ -2,11 +2,7 @@
 
 import { DeploymentEnvironmentChip } from "./deployment-environment-chip";
 
-import {
-  FilterResetIcon,
-  GitBranchIcon,
-  Rocket01Icon,
-} from "@hugeicons/core-free-icons";
+import { FilterResetIcon, Rocket01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect } from "react";
 import {
@@ -109,19 +105,7 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
   {
     key: "environment",
     header: "Environment",
-    cell: (item) => (
-      <TableCellStack className="justify-items-start">
-        <DeploymentEnvironmentChip deployment={item} />
-        <TableCellDescription className="inline-flex items-center gap-1">
-          <HugeiconsIcon
-            aria-hidden="true"
-            icon={GitBranchIcon}
-            className="size-[1em] shrink-0"
-          />
-          <span className="font-mono">{item.targetEnvironment.branch}</span>
-        </TableCellDescription>
-      </TableCellStack>
-    ),
+    cell: (item) => <DeploymentEnvironmentChip deployment={item} />,
     className: "min-w-36 whitespace-nowrap",
   },
   {

@@ -150,7 +150,6 @@ export function AppsIndex() {
           items={apps.data.apps}
           kind="app"
           servers={servers.data.servers}
-          sources={sources.data.sources}
         />
       )}
     </DashboardPage>
@@ -198,7 +197,6 @@ export function ResourcesIndex() {
           items={resources.data.resources}
           kind="resource"
           servers={servers.data.servers}
-          sources={sources.data.sources}
         />
       )}
     </DashboardPage>
@@ -272,7 +270,6 @@ type DeployableInventoryProps = {
   items: App[] | Resource[];
   kind: "app" | "resource";
   servers: Server[];
-  sources: Source[];
 };
 
 function DeployableInventoryTable({
@@ -280,7 +277,6 @@ function DeployableInventoryTable({
   items,
   kind,
   servers,
-  sources,
 }: DeployableInventoryProps) {
   const [layout] = useQueryChoice("layout", inventoryLayouts, "unified");
   const filtered = useInventoryQuery(
@@ -288,7 +284,6 @@ function DeployableInventoryTable({
   ).includes("?");
   const runtimeById = useInventoryRuntimeCapacity();
   const activeDeploymentStates = getActiveDeploymentStates(deployments);
-  const sourcesById = new Map(sources.map((source) => [source.id, source]));
   const serversByIp = new Map(
     servers.map((server) => [server.canonicalIp, server]),
   );
@@ -309,19 +304,9 @@ function DeployableInventoryTable({
       key: "name",
     },
     {
-      cell: (item) => {
-        const source = sourcesById.get(item.sourceId);
-        return (
-          <InstanceEnvironmentLabel
-            environment={item.environment}
-            repositoryName={
-              source
-                ? `${source.repositoryOwner}/${source.repositoryName}`
-                : undefined
-            }
-          />
-        );
-      },
+      cell: (item) => (
+        <InstanceEnvironmentLabel environment={item.environment} />
+      ),
       className: "min-w-32",
       header: "Environment",
       key: "environment",
