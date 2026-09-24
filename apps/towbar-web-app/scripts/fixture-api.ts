@@ -4085,6 +4085,16 @@ function advancePreparationFixture(
     pythonVersion: "Python 3.12.3",
   };
   preparation.status = "succeeded";
+  serverChecks.unshift({
+    createdAt: now,
+    errorCode: null,
+    errorMessage: null,
+    finishedAt: null,
+    id: randomUUID(),
+    result: null,
+    startedAt: null,
+    status: "queued",
+  });
 }
 
 function createBackupFixture(

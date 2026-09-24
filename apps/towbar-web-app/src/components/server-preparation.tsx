@@ -35,7 +35,11 @@ export type ServerPreparationProps = {
   setupStatus: Server["setupStatus"];
 };
 
-export function PrepareServerButton(props: ServerPreparationProps) {
+export function PrepareServerButton(
+  props: ServerPreparationProps & {
+    onQueued?: (preparationId: string) => void;
+  },
+) {
   const { can } = useAccess();
   const router = useRouter();
   if (!can("server.prepare") || props.setupStatus === "ready") return null;
@@ -59,7 +63,10 @@ export function PrepareServerButton(props: ServerPreparationProps) {
       isDisabled={
         Boolean(props.item.archivedAt) || busy || props.credentialsPending
       }
-      onSuccess={() => router.push(`/servers/${props.serverId}/preparation`)}
+      onSuccess={({ preparation }) => {
+        props.onQueued?.(preparation.id);
+        router.push(`/servers/${props.serverId}/preparation`);
+      }}
       pendingLabel="Queueing…"
       success="Server setup queued"
       variant="primary"
@@ -146,13 +153,27 @@ export function ServerPreparationOverview(props: ServerPreparationProps) {
   );
 }
 
-export function ServerPreparationChecklist(props: ServerPreparationProps) {
+export function ServerPreparationChecklist(
+  props: ServerPreparationProps & { redirectingToOverview: boolean },
+) {
   const model = preparationChecklist(
     props.latestPreparation,
     props.setupStatus,
   );
   return (
     <div className="grid gap-6">
+      {props.redirectingToOverview ? (
+        <Alert status="success">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>Server setup complete</Alert.Title>
+            <Alert.Description>
+              The first server check is scheduled. Opening Overview in 5
+              seconds.
+            </Alert.Description>
+          </Alert.Content>
+        </Alert>
+      ) : null}
       {model.historyUnavailable ? (
         <p className="text-sm text-muted">
           Detailed step history is unavailable for this server.
