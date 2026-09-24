@@ -576,7 +576,12 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
       value: "secrets",
       label: "Secrets",
       icon: <HugeiconsIcon icon={Key01Icon} />,
-      content: <AppSecrets appId={appId} />,
+      content: (
+        <AppSecrets
+          appId={appId}
+          previewsEnabled={item.config.preview?.enabled === true}
+        />
+      ),
     },
   ];
 
