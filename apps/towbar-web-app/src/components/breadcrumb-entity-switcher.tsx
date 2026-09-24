@@ -145,7 +145,7 @@ export function BreadcrumbEntitySwitcher({
             className="px-2 pt-2"
             variant="secondary"
           >
-            <SearchField.Group className="rounded-[5px]">
+            <SearchField.Group className="rounded-md">
               <SearchField.SearchIcon />
               <SearchField.Input
                 className="text-base sm:text-sm"

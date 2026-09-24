@@ -23,7 +23,7 @@ const notificationRoutingCategories = [
     categories: ["backups", "restores"],
     icon: Archive01Icon,
     key: "backupsAndRestores",
-    label: "Backups & restores",
+    label: "Backup & Restore",
   },
 ] as const satisfies Array<{
   categories: NotificationCategory[];
