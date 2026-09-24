@@ -233,6 +233,7 @@ export function AppDetail() {
         ) : undefined
       }
       breadcrumbAncestors={appsBreadcrumb}
+      breadcrumbSwitcher={{ id: appId, kind: "apps" }}
       title={item.name}
       titleIcon={appLogo}
     >
@@ -323,6 +324,14 @@ export function AppDetail() {
                     <InlineLink href={`/repositories/${item.sourceId}`}>
                       {source.data.source.repositoryName}
                     </InlineLink>
+                  </Attributes.Item>
+                  <Attributes.Item
+                    icon={<HugeiconsIcon icon={GitBranchIcon} />}
+                    label="Branch"
+                  >
+                    <span className="break-words font-mono">
+                      {item.config.sourceBranch ?? "main"}
+                    </span>
                   </Attributes.Item>
                 </Attributes>
                 {latestDeployment ? (

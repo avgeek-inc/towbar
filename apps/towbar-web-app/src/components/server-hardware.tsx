@@ -19,7 +19,7 @@ export function ServerHardwareDescription({
       <span>Unknown Instance Type</span>
     );
   return (
-    <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
       {hardware.instance ? (
         <ProviderLogo provider={hardware.instance.provider} />
       ) : null}
@@ -90,6 +90,8 @@ function ProviderLogo({ provider }: { provider: keyof typeof providerNames }) {
         src={`/cloud-providers/${provider}.svg`}
         width={provider === "aws" ? 24 : 16}
         height={16}
+        loading="eager"
+        decoding="sync"
         className="h-[1em] w-auto object-contain"
         unoptimized
       />

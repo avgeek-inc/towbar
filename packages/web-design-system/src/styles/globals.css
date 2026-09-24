@@ -17,6 +17,15 @@
 
 :root {
   --workspace-page-content-width: 80rem;
+  --chart-requested: oklch(0.627 0.138 254.2);
+  --chart-succeeded: oklch(0.639 0.109 151.7);
+  --chart-failed: oklch(0.622 0.148 24.9);
+}
+
+.dark {
+  --chart-requested: oklch(0.591 0.142 253.8);
+  --chart-succeeded: oklch(0.673 0.141 150.8);
+  --chart-failed: oklch(0.572 0.143 24.6);
 }
 
 html {
@@ -46,6 +55,10 @@ a {
 }
 
 @layer components {
+  .tooltip [data-slot="tooltip-arrow-edge"] {
+    stroke: color-mix(in oklab, var(--overlay) 82%, var(--foreground) 18%);
+  }
+
   .popover {
     box-shadow:
       var(--overlay-shadow),
@@ -83,8 +96,12 @@ a {
     .table__cell {
       @apply px-3;
       width: auto !important;
-      min-width: 0 !important;
       white-space: nowrap;
+    }
+
+    .table__column,
+    .table__cell:not(.resource-identity-cell) {
+      min-width: 0 !important;
     }
   }
 
@@ -210,30 +227,39 @@ a {
 
   .sidebar-identity {
     background: transparent;
+    transform: none !important;
+    transition-property: background-color, box-shadow;
+    --sidebar-identity-gradient: linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--color-yellow-300) 16%, transparent) 0%,
+      color-mix(in oklch, var(--color-yellow-300) 8%, transparent) 50%,
+      color-mix(in oklch, var(--color-yellow-300) 2%, transparent) 100%
+    );
+  }
+
+  .dark .sidebar-identity {
+    --sidebar-identity-gradient: linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--color-yellow-900) 16%, transparent) 0%,
+      color-mix(in oklch, var(--color-yellow-900) 8%, transparent) 50%,
+      color-mix(in oklch, var(--color-yellow-900) 2%, transparent) 100%
+    );
+  }
+
+  @media (min-width: 64rem) {
+    .sidebar-identity[aria-expanded="true"] {
+      background: var(--sidebar-identity-gradient);
+    }
   }
 
   @media (min-width: 64rem) and (hover: hover) {
     .sidebar-identity:hover {
-      background: linear-gradient(
-        135deg,
-        color-mix(in oklch, var(--color-yellow-300) 16%, transparent) 0%,
-        color-mix(in oklch, var(--color-yellow-300) 8%, transparent) 50%,
-        color-mix(in oklch, var(--color-yellow-300) 2%, transparent) 100%
-      );
-    }
-
-    .dark .sidebar-identity:hover {
-      background: linear-gradient(
-        135deg,
-        color-mix(in oklch, var(--color-yellow-900) 16%, transparent) 0%,
-        color-mix(in oklch, var(--color-yellow-900) 8%, transparent) 50%,
-        color-mix(in oklch, var(--color-yellow-900) 2%, transparent) 100%
-      );
+      background: var(--sidebar-identity-gradient);
     }
   }
 
   @media (prefers-reduced-transparency: reduce) {
-    .sidebar-identity:hover {
+    .sidebar-identity:is(:hover, [aria-expanded="true"]) {
       background: var(--surface);
     }
   }

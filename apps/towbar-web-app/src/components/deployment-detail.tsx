@@ -139,7 +139,15 @@ export function DeploymentDetail() {
       </DashboardPage>
     );
   if (!stream.deployment || !stream.steps || !stream.logs)
-    return <QueryLoading variant="detail" />;
+    return (
+      <DashboardPage
+        icon={Rocket01Icon}
+        breadcrumbAncestors={deployableBreadcrumb}
+        title="Deployment"
+      >
+        <QueryLoading variant="detail" immediate />
+      </DashboardPage>
+    );
 
   const item = stream.deployment;
   const repository = source.data?.source;
@@ -332,6 +340,7 @@ export function DeploymentDetail() {
         </Alert>
       ) : null}
       <PageTabs
+        canonicalizeDefault={false}
         defaultValue={terminal.has(item.state) ? "overview" : "progress"}
         tabs={[
           {

@@ -29,6 +29,7 @@ void test("detail routes keep help scoped to the feature being viewed", () => {
     ["/team-settings/audit-logs", "auditLogs"],
     ["/manage/integrations/deliveries", "deliveries"],
     ["/team-settings/ssh-keys", "keys"],
+    ["/manage/ssh-keys", "keys"],
     ["/manage/shared-secrets", "secrets"],
     ["/monitoring/incidents", "incidents"],
   ] as const;

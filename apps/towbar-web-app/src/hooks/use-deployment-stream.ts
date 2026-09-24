@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type {
   Deployment,
@@ -38,14 +38,21 @@ export function useDeploymentStream(deploymentId: string) {
   const [error, setError] = useState<string>();
   const [connection, setConnection] = useState<ConnectionState>("connecting");
   const [revision, setRevision] = useState(0);
+  const previousDeploymentId = useRef(deploymentId);
 
   useEffect(() => {
     const refresh = () => setRevision((value) => value + 1);
+    const clear = () => {
+      setDeployment(undefined);
+      setSteps(undefined);
+      setLogs(undefined);
+      refresh();
+    };
     window.addEventListener("towbar:refresh", refresh);
-    window.addEventListener("towbar:clear-private-data", refresh);
+    window.addEventListener("towbar:clear-private-data", clear);
     return () => {
       window.removeEventListener("towbar:refresh", refresh);
-      window.removeEventListener("towbar:clear-private-data", refresh);
+      window.removeEventListener("towbar:clear-private-data", clear);
     };
   }, []);
 
@@ -53,9 +60,12 @@ export function useDeploymentStream(deploymentId: string) {
     let active = true;
     let completed = false;
     let events: EventSource | undefined;
-    setDeployment(undefined);
-    setSteps(undefined);
-    setLogs(undefined);
+    if (previousDeploymentId.current !== deploymentId) {
+      previousDeploymentId.current = deploymentId;
+      setDeployment(undefined);
+      setSteps(undefined);
+      setLogs(undefined);
+    }
     setError(undefined);
     setConnection("connecting");
 

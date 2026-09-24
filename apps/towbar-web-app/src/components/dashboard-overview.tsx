@@ -45,13 +45,13 @@ import { ServerIpLink } from "./source-inventory";
 import illustrationStyles from "./overview-illustration.module.css";
 
 const activitySeries = [
-  { color: "var(--accent-soft-foreground)", key: "total", label: "Requested" },
+  { color: "var(--chart-requested)", key: "total", label: "Requested" },
   {
-    color: "var(--success-soft-foreground)",
+    color: "var(--chart-succeeded)",
     key: "succeeded",
     label: "Succeeded",
   },
-  { color: "var(--danger-soft-foreground)", key: "failed", label: "Failed" },
+  { color: "var(--chart-failed)", key: "failed", label: "Failed" },
 ];
 const activityAxisTick = { fill: "var(--muted)", fontSize: 10 } as const;
 

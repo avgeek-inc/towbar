@@ -315,7 +315,8 @@ export function documentationTopic(pathname: string): Topic | undefined {
     if (/\/(2fa|security)$/.test(path)) return "security";
     return "profile";
   }
-  if (path === "/manage/private-keys") return "keys";
+  if (path === "/manage/ssh-keys" || path === "/manage/private-keys")
+    return "keys";
   if (path === "/manage/shared-secrets") return "secrets";
   if (path.startsWith("/manage/notifications")) {
     const provider = path.split("/")[3];

@@ -44,7 +44,9 @@ export function BreadcrumbTrail({
                   /
                 </span>
               ) : null}
-              {item.href && !isLast ? (
+              {item.content ? (
+                item.content
+              ) : item.href && !isLast ? (
                 <a
                   className="block min-w-0 max-w-40 truncate text-muted hover:text-foreground sm:max-w-64"
                   href={item.href}

@@ -4,7 +4,12 @@ import type { SidebarIcon } from "./sidebar-icons";
 
 export type ApplicationKind = "public" | "product" | "internal";
 export type ContentWidth = "small" | "compact" | "relaxed" | "broad" | "full";
-export type AppShellBreadcrumbItem = { href?: string; label: string };
+export type AppShellBreadcrumbItem = {
+  content?: ReactNode;
+  contentKey?: string;
+  href?: string;
+  label: string;
+};
 export type AppShellBreadcrumbItems = readonly [
   AppShellBreadcrumbItem,
   ...AppShellBreadcrumbItem[],

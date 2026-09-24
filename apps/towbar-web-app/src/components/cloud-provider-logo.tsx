@@ -2,7 +2,19 @@ import Image from "next/image";
 import { cn } from "@workspace/web-design-system/lib/utils";
 
 export type CloudProviderId =
-  "aws" | "gcp" | "azure" | "cloudflare" | "s3" | "r2" | "gcs" | "azureBlob";
+  | "aws"
+  | "gcp"
+  | "azure"
+  | "oracle"
+  | "hetzner"
+  | "digitalocean"
+  | "linode"
+  | "alibaba"
+  | "cloudflare"
+  | "s3"
+  | "r2"
+  | "gcs"
+  | "azureBlob";
 
 function normalizeCloudProvider(provider: CloudProviderId): string {
   switch (provider) {
@@ -42,6 +54,8 @@ export function CloudProviderLogo({
       aria-hidden={!alt}
       width={size}
       height={size}
+      loading="eager"
+      decoding="sync"
       unoptimized
       className={cn("size-4 shrink-0 object-contain", className)}
     />

@@ -80,7 +80,6 @@ const Root = forwardRef<HTMLDivElement, AttributesProps>(
             <Widget.Title
               icon={icon}
               className="min-w-0 truncate text-xs font-medium text-muted"
-              title={typeof title === "string" ? title : undefined}
             >
               {title}
             </Widget.Title>

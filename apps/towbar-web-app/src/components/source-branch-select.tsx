@@ -12,6 +12,7 @@ export function SourceBranchSelect({
   branches,
   disabled = false,
   required = false,
+  triggerId,
   value,
   onChange,
 }: {
@@ -19,6 +20,7 @@ export function SourceBranchSelect({
   branches: string[];
   disabled?: boolean;
   required?: boolean;
+  triggerId?: string;
   value: string;
   onChange: (branch: string) => void;
 }) {
@@ -34,7 +36,7 @@ export function SourceBranchSelect({
       variant="secondary"
       onSelectionChange={(key) => onChange(key === null ? "" : String(key))}
     >
-      <Select.Trigger>
+      <Select.Trigger id={triggerId}>
         <Select.Value className="flex min-w-0 flex-1 items-center overflow-hidden">
           <span className="flex min-w-0 items-center gap-2">
             <HugeiconsIcon

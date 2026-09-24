@@ -135,6 +135,7 @@ const source: Source = {
   provider: "github",
   repositoryName: "platform",
   repositoryOwner: "example-inc",
+  repositoryUrl: "https://github.com/example-inc/platform",
   status: "active",
   updatedAt: fixtureNow,
 };
@@ -145,16 +146,19 @@ const sources: Source[] = [
     ...source,
     id: fixtureIds.docsSource,
     repositoryName: "documentation",
+    repositoryUrl: "https://github.com/example-inc/documentation",
   },
   {
     ...source,
     id: fixtureIds.analyticsSource,
     repositoryName: "analytics",
+    repositoryUrl: "https://github.com/example-inc/analytics",
   },
   {
     ...source,
     id: fixtureIds.sandboxSource,
     repositoryName: "sandbox",
+    repositoryUrl: "https://github.com/example-inc/sandbox",
   },
 ];
 
@@ -4085,6 +4089,16 @@ function advancePreparationFixture(
     pythonVersion: "Python 3.12.3",
   };
   preparation.status = "succeeded";
+  serverChecks.unshift({
+    createdAt: now,
+    errorCode: null,
+    errorMessage: null,
+    finishedAt: null,
+    id: randomUUID(),
+    result: null,
+    startedAt: null,
+    status: "queued",
+  });
 }
 
 function createBackupFixture(

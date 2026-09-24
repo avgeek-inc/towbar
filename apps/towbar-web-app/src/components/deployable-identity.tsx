@@ -59,14 +59,31 @@ export function AppIdentity({
           exposed={domains.length > 0}
           health={healthStatus}
         />
-        {primaryDomain ? (
+        {primaryDomain && domains.length === 1 ? (
+          <TooltipText
+            className={`${tableCellDescriptionClassName} flex max-w-64 min-w-0 items-center gap-0.5 truncate`}
+            tooltip={primaryDomain}
+          >
+            <DomainLink
+              className="truncate"
+              domain={primaryDomain}
+              showTooltip={false}
+            >
+              {primaryDomain}
+            </DomainLink>
+          </TooltipText>
+        ) : primaryDomain ? (
           <Tooltip>
             <Tooltip.Trigger
               render={(props) => <span {...props} />}
               aria-label={`Domains: ${domains.join(", ")}`}
               className={`${tableCellDescriptionClassName} flex max-w-64 min-w-0 items-center gap-0.5 outline-none focus-visible:ring-2 focus-visible:ring-focus rounded-sm`}
             >
-              <DomainLink className="truncate" domain={primaryDomain}>
+              <DomainLink
+                className="truncate"
+                domain={primaryDomain}
+                showTooltip={false}
+              >
                 {primaryDomain}
               </DomainLink>
               {domains.length > 1 ? (
@@ -87,6 +104,7 @@ export function AppIdentity({
                     className="whitespace-nowrap"
                     domain={domain}
                     key={domain}
+                    showTooltip={false}
                   >
                     {domain}
                   </DomainLink>
@@ -141,6 +159,8 @@ export function AppLogo({
           className={`object-contain ${size === "small" ? "size-6" : "size-8"} ${loaded ? "" : "absolute opacity-0"}`}
           height={pixels}
           loader={externalImageLoader}
+          loading="eager"
+          decoding="sync"
           unoptimized
           width={pixels}
           src={`https://${domain}/favicon.ico`}
@@ -252,31 +272,42 @@ export function ResourceIdentity({
   );
 }
 
-export function ResourceLogo({ brand }: { brand: ResourceBrand }) {
+export function ResourceLogo({
+  brand,
+  size = "default",
+}: {
+  brand: ResourceBrand;
+  size?: "default" | "small";
+}) {
   const [failed, setFailed] = useState(false);
   const fallback = "/resource-types/image.png";
   const logo = failed ? fallback : brand.logo;
   const dark = failed ? undefined : brand.logoDark;
+  const pixels = size === "small" ? 24 : 32;
   return (
     <span
-      className={`inline-flex size-8 shrink-0 items-center justify-center ${brand.darkBackground && !failed ? "rounded-sm bg-zinc-800 p-0.5" : ""} ${brand.darkPlate && !failed ? "rounded-sm dark:bg-white dark:p-0.5" : ""}`}
+      className={`inline-flex shrink-0 items-center justify-center ${size === "small" ? "size-6" : "size-8"} ${brand.darkBackground && !failed ? "rounded-sm bg-zinc-800 p-0.5" : ""} ${brand.darkPlate && !failed ? "rounded-sm dark:bg-white dark:p-0.5" : ""}`}
     >
       <Image
         alt=""
-        className={`max-h-full max-w-full size-8 object-contain ${dark ? "dark:hidden" : ""}`}
-        height={32}
-        width={32}
+        className={`max-h-full max-w-full object-contain ${size === "small" ? "size-6" : "size-8"} ${dark ? "dark:hidden" : ""}`}
+        height={pixels}
+        width={pixels}
         src={logo}
+        loading="eager"
+        decoding="sync"
         unoptimized
         onError={() => setFailed(true)}
       />
       {dark ? (
         <Image
           alt=""
-          className="hidden size-8 object-contain dark:block"
-          height={32}
-          width={32}
+          className={`hidden object-contain dark:block ${size === "small" ? "size-6" : "size-8"}`}
+          height={pixels}
+          width={pixels}
           src={dark}
+          loading="eager"
+          decoding="sync"
           unoptimized
           onError={() => setFailed(true)}
         />

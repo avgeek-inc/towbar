@@ -144,14 +144,19 @@ export function SourceEnvironmentManifest({ sourceId }: { sourceId: string }) {
                   className="size-[1em] shrink-0"
                   icon={GitBranchIcon}
                 />
-                <TypographyCode>{environment.branch}</TypographyCode>
+                <TypographyCode className="rounded-none bg-transparent p-0">
+                  {environment.branch}
+                </TypographyCode>
                 <span aria-hidden="true">@</span>
-                <TypographyCode title={snapshot.data.manifest?.commitSha}>
+                <TypographyCode
+                  className="rounded-none bg-transparent p-0"
+                  title={snapshot.data.manifest?.commitSha}
+                >
                   {snapshot.data.manifest?.commitSha.slice(0, 12)}
                 </TypographyCode>
               </span>
               <a
-                className="rounded-sm text-sm text-accent underline decoration-dotted underline-offset-4 hover:decoration-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+                className="rounded-sm text-sm text-accent decoration-dashed! decoration-muted! underline-offset-4 hover:underline! focus-visible:underline! focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
                 href={`https://github.com/${encodeURIComponent(source.data.source.repositoryOwner)}/${encodeURIComponent(source.data.source.repositoryName)}/blob/${encodeURIComponent(snapshot.data.manifest?.commitSha ?? environment.branch)}/${file.path
                   .split("/")
                   .map(encodeURIComponent)

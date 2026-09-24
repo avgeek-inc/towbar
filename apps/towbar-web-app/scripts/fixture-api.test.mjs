@@ -1059,6 +1059,15 @@ test("the local fixture covers server preparation and deployable readiness", asy
       preparation.steps.every((step) => step.status === "succeeded"),
       true,
     );
+    const checksResponse = await fetch(
+      `${baseUrl}/v1/core/servers/${fixtureIds.server}/checks`,
+    );
+    const checksPayload = await checksResponse.json();
+    assert.equal(checksPayload.latestCheck.status, "queued");
+    assert.ok(
+      Date.parse(checksPayload.latestCheck.createdAt) >
+        Date.parse(preparation.createdAt),
+    );
 
     const serverResponse = await fetch(
       `${baseUrl}/v1/core/servers/${fixtureIds.server}`,

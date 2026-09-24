@@ -18,7 +18,10 @@ export function routePermission(pathname: string): Action | null {
     pathname.startsWith("/team-settings/integrations")
   )
     return "integration.manage";
-  if (pathname.startsWith("/team-settings/ssh-keys"))
+  if (
+    pathname.startsWith("/manage/ssh-keys") ||
+    pathname.startsWith("/team-settings/ssh-keys")
+  )
     return "privateKey.manage";
   if (
     pathname.startsWith("/manage/shared-secrets") ||

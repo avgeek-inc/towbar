@@ -20,7 +20,6 @@ import {
   GitBranchIcon,
   Undo02Icon,
 } from "@hugeicons/core-free-icons";
-import { usePathname } from "next/navigation";
 import { cn } from "@workspace/web-design-system/lib/utils";
 import { useMobileNavigation } from "@workspace/web-design-system/navigation/app-layout";
 
@@ -34,7 +33,6 @@ const SecondaryContext = createContext<{
 export function SecondarySidebarLayout({ children }: { children: ReactNode }) {
   const [host, setHost] = useState<HTMLElement | null>(null);
   const mobileNavigation = useMobileNavigation();
-  const pathname = usePathname();
   return (
     <SecondaryContext.Provider
       value={{
@@ -47,7 +45,6 @@ export function SecondarySidebarLayout({ children }: { children: ReactNode }) {
           <div className="h-full overflow-y-auto overscroll-contain px-3 py-4 has-[[data-secondary-header]]:py-2">
             <nav
               aria-label="Page navigation"
-              key={pathname}
               className="grid content-start gap-3"
               ref={setHost}
             />
@@ -104,9 +101,13 @@ export function SecondaryEntityHeader({
           >
             {icon}
           </span>
-          <TooltipText className="min-w-0 flex-1 truncate" tooltip={title}>
-            {children}
-          </TooltipText>
+          {typeof children === "string" ? (
+            <TooltipText className="min-w-0 flex-1 truncate" tooltip={title}>
+              {children}
+            </TooltipText>
+          ) : (
+            <span className="min-w-0 flex-1">{children}</span>
+          )}
         </div>,
         host,
       )
@@ -197,7 +198,7 @@ export function SecondaryItems({
             ) : null}
             <span className="min-w-0 flex-1 break-words">{item.label}</span>
             {item.badge ? (
-              <span className="shrink-0 text-xs font-mono tabular-nums text-muted">
+              <span className="inline-flex shrink-0 items-center text-xs font-mono tabular-nums text-muted">
                 {item.badge}
               </span>
             ) : null}

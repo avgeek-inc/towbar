@@ -2,6 +2,7 @@
 
 import {
   BookOpen01Icon,
+  GithubIcon,
   Key01Icon,
   Logout03Icon,
   Mail01Icon,
@@ -24,6 +25,7 @@ import {
 const changelogUrl =
   "https://github.com/avgeek-inc/towbar/blob/main/CHANGELOG.md";
 const documentationUrl = "https://www.towbar.dev/docs";
+const repositoryUrl = "https://github.com/avgeek-inc/towbar";
 
 export function AccountMenu({
   user,
@@ -48,6 +50,9 @@ export function AccountMenu({
         break;
       case "documentation":
         window.open(documentationUrl, "_blank", "noopener,noreferrer");
+        break;
+      case "repository":
+        window.open(repositoryUrl, "_blank", "noopener,noreferrer");
         break;
       case "feedback":
         window.location.href = "mailto:feedback@towbar.dev";
@@ -144,6 +149,14 @@ export function AccountMenu({
               />
               Documentation
             </Dropdown.Item>
+            <Dropdown.Item id="repository" textValue="Repo / Contribute">
+              <HugeiconsIcon
+                aria-hidden="true"
+                className="size-4 text-muted"
+                icon={GithubIcon}
+              />
+              Repo / Contribute
+            </Dropdown.Item>
             <Dropdown.Item id="feedback" textValue="Feedback">
               <HugeiconsIcon
                 aria-hidden="true"
@@ -157,13 +170,13 @@ export function AccountMenu({
             aria-label="Session"
             className="mt-1.5 w-full border-t border-separator pt-1.5"
           >
-            <Dropdown.Item id="logout" textValue="Logout" variant="danger">
+            <Dropdown.Item id="logout" textValue="Sign out" variant="danger">
               <HugeiconsIcon
                 aria-hidden="true"
                 className="size-4 text-danger"
                 icon={Logout03Icon}
               />
-              Logout
+              <span className="text-danger">Sign out</span>
             </Dropdown.Item>
           </Dropdown.Section>
         </Dropdown.Menu>

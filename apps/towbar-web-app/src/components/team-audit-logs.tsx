@@ -9,6 +9,7 @@ import { useState } from "react";
 import type { AuditEventIcon as AuditEventIconName } from "@workspace/towbar-web-client";
 import { AuditEventIcon } from "./audit-event-icon";
 import { Avatar } from "@workspace/web-design-system/data-display/avatar";
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import { QueryError } from "@workspace/towbar-web-ui/query-state";
 import type { ResourceTableColumn } from "@workspace/towbar-web-ui/resource-table";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -98,11 +99,10 @@ export function TeamAuditLogs() {
           <span className="capitalize">
             {event.targetType === "source" ? "Repository" : event.targetType}
           </span>
-          <TableCellDescription
-            className="truncate font-mono"
-            title={event.targetId ?? undefined}
-          >
-            {event.targetId ?? "—"}
+          <TableCellDescription className="truncate font-mono">
+            <TooltipText tooltip={event.targetId ?? undefined}>
+              {event.targetId ?? "—"}
+            </TooltipText>
           </TableCellDescription>
         </TableCellStack>
       ),

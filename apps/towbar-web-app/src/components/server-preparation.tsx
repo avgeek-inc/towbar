@@ -35,35 +35,43 @@ export type ServerPreparationProps = {
   setupStatus: Server["setupStatus"];
 };
 
-export function PrepareServerButton(props: ServerPreparationProps) {
+export function PrepareServerButton(
+  props: ServerPreparationProps & {
+    onQueued?: (preparationId: string) => void;
+  },
+) {
   const { can } = useAccess();
   const router = useRouter();
   if (!can("server.prepare") || props.setupStatus === "ready") return null;
   const busy = props.setupStatus === "preparing";
+  const actionLabel =
+    props.setupStatus === "failed" ? "Retry setup" : "Resume Setup";
   const button = (
     <ActionButton<{ preparation: ServerPreparation }>
       action={() =>
         api.post(`/v1/core/servers/${props.serverId}/actions/prepare`)
       }
       confirm={{
-        actionLabel: "Set up server",
+        actionLabel,
         description:
           "Towbar will connect with the trusted SSH host key, install or validate Docker Engine, Caddy, and Python, then verify the host. Existing conflicting services are not removed automatically.",
-        title: "Set up this server?",
+        title:
+          props.setupStatus === "failed"
+            ? "Retry server setup?"
+            : "Resume server setup?",
       }}
       isDisabled={
         Boolean(props.item.archivedAt) || busy || props.credentialsPending
       }
-      onSuccess={() => router.push(`/servers/${props.serverId}/preparation`)}
+      onSuccess={({ preparation }) => {
+        props.onQueued?.(preparation.id);
+        router.push(`/servers/${props.serverId}/preparation`);
+      }}
       pendingLabel="Queueing…"
       success="Server setup queued"
       variant="primary"
     >
-      {busy
-        ? "Setting up server"
-        : props.setupStatus === "failed"
-          ? "Retry setup"
-          : "Set up server"}
+      {busy ? "Setting up server" : actionLabel}
     </ActionButton>
   );
   return props.credentialsPending && !busy ? (
@@ -145,13 +153,27 @@ export function ServerPreparationOverview(props: ServerPreparationProps) {
   );
 }
 
-export function ServerPreparationChecklist(props: ServerPreparationProps) {
+export function ServerPreparationChecklist(
+  props: ServerPreparationProps & { redirectingToOverview: boolean },
+) {
   const model = preparationChecklist(
     props.latestPreparation,
     props.setupStatus,
   );
   return (
     <div className="grid gap-6">
+      {props.redirectingToOverview ? (
+        <Alert status="success">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>Server setup complete</Alert.Title>
+            <Alert.Description>
+              The first server check is scheduled. Opening Overview in 5
+              seconds.
+            </Alert.Description>
+          </Alert.Content>
+        </Alert>
+      ) : null}
       {model.historyUnavailable ? (
         <p className="text-sm text-muted">
           Detailed step history is unavailable for this server.
@@ -254,6 +276,7 @@ function PreparationStep({
       id={step.id}
       title={step.title}
       description={step.description}
+      runningTone="warning"
       status={
         completed
           ? "succeeded"

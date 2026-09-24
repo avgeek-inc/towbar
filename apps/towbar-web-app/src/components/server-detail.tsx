@@ -39,7 +39,7 @@ import { ServerHardwareDescription } from "./server-hardware";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type {
   App,
   MonitoringAgentStatus,
@@ -80,6 +80,7 @@ import { api } from "@/lib/api";
 import { Spinner } from "@workspace/web-design-system/feedback/spinner";
 import { serverPreparationIndicator } from "@/lib/server-preparation-visibility";
 import { reconcileServerSetupStatus } from "@/lib/server-preparation-status";
+import { hasScheduledPostSetupCheck } from "@/lib/server-preparation-redirect";
 import { RelativeTime } from "./last-synced-time";
 import { formatDate } from "./dashboard-overview";
 import { ServerHostCapacity, ServerDeployableTable } from "./server-capacity";
@@ -153,7 +154,33 @@ export function ServerDetail() {
     `/v1/core/servers/${serverId}/preparations`,
     3_000,
   );
-  const latestPreparationStatus = preparations.data?.preparations[0]?.status;
+  const latestPreparation = preparations.data?.preparations[0];
+  const latestPreparationId = latestPreparation?.id;
+  const latestPreparationStatus = latestPreparation?.status;
+  const [activePreparationId, setActivePreparationId] = useState<string | null>(
+    null,
+  );
+  useEffect(() => {
+    if (
+      detailNavigation.section === "preparation" &&
+      (latestPreparationStatus === "queued" ||
+        latestPreparationStatus === "running") &&
+      latestPreparationId
+    )
+      setActivePreparationId(latestPreparationId);
+  }, [detailNavigation.section, latestPreparationId, latestPreparationStatus]);
+  const redirectingToOverview =
+    detailNavigation.section === "preparation" &&
+    activePreparationId === latestPreparationId &&
+    hasScheduledPostSetupCheck(latestPreparation, checks.data?.latestCheck);
+  useEffect(() => {
+    if (!redirectingToOverview) return;
+    const timer = window.setTimeout(
+      () => router.replace(`/servers/${serverId}/overview`),
+      5_000,
+    );
+    return () => window.clearTimeout(timer);
+  }, [redirectingToOverview, router, serverId]);
   const refreshServer = server.refresh;
   useEffect(() => {
     if (
@@ -198,6 +225,13 @@ export function ServerDetail() {
     return <QueryLoading variant="detail" />;
 
   const item = server.data.server;
+  const providerIcon = item.hardware?.instance ? (
+    <CloudProviderLogo
+      provider={item.hardware.instance.provider}
+      className="size-6"
+      size={24}
+    />
+  ) : undefined;
   const appCount = apps.data?.apps.filter(
     (app) => app.serverIp === item.canonicalIp && !app.archivedAt,
   ).length;
@@ -211,7 +245,6 @@ export function ServerDetail() {
     (item) => item.kind !== "volume",
   );
   const latestCheck = checks.data.latestCheck;
-  const latestPreparation = preparations.data.preparations[0];
   const setupStatus = reconcileServerSetupStatus(
     item.setupStatus,
     latestPreparation?.status,
@@ -322,7 +355,10 @@ export function ServerDetail() {
       icon={ServerStack01Icon}
       actions={
         detailNavigation.section === "preparation" ? (
-          <PrepareServerButton {...preparationProps} />
+          <PrepareServerButton
+            {...preparationProps}
+            onQueued={setActivePreparationId}
+          />
         ) : detailNavigation.section === "checks" &&
           can("server.credentials") ? (
           <ActionButton
@@ -363,7 +399,9 @@ export function ServerDetail() {
         ) : undefined
       }
       breadcrumbAncestors={serversBreadcrumb}
+      breadcrumbSwitcher={{ id: serverId, kind: "servers" }}
       title={item.canonicalIp}
+      titleIcon={providerIcon}
     >
       <div className="content-grid">
         <PageTabs
@@ -465,7 +503,12 @@ export function ServerDetail() {
               label: "Server Setup",
               badge:
                 preparationIndicator === "busy" ? (
-                  <Spinner size="sm" aria-label="Server setup in progress" />
+                  <Spinner
+                    color="current"
+                    size="sm"
+                    className="text-warning-soft-foreground"
+                    aria-label="Server setup in progress"
+                  />
                 ) : preparationIndicator === "warning" ? (
                   <span
                     aria-label="Server setup required"
@@ -476,7 +519,12 @@ export function ServerDetail() {
                   </span>
                 ) : undefined,
               icon: <HugeiconsIcon icon={Settings01Icon} />,
-              content: <ServerPreparationChecklist {...preparationProps} />,
+              content: (
+                <ServerPreparationChecklist
+                  {...preparationProps}
+                  redirectingToOverview={redirectingToOverview}
+                />
+              ),
             },
             ...(can("server.terminal")
               ? [

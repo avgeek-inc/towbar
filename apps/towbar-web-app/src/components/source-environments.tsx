@@ -16,7 +16,7 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { FieldLabel } from "@workspace/web-design-system/forms/field";
+import { Field, FieldLabel } from "@workspace/web-design-system/forms/field";
 import { Modal } from "@workspace/web-design-system/overlays/modal";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
@@ -26,6 +26,7 @@ import { useApiQuery, refreshApiQueries } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { SourceBranchSelect } from "./source-branch-select";
 import { formatDate } from "./dashboard-overview";
+import { EnvironmentChip } from "./environment-chip";
 
 export type SourceEnvironment = {
   id: string;
@@ -71,7 +72,7 @@ export function SourceEnvironments({
           {
             key: "name",
             header: "Environment",
-            cell: (item) => item.name,
+            cell: (item) => <EnvironmentChip name={item.name} />,
           },
           {
             key: "branch",
@@ -83,7 +84,9 @@ export function SourceEnvironments({
                   aria-hidden="true"
                   className="size-[1em] shrink-0 text-muted"
                 />
-                <TypographyCode>{item.branch}</TypographyCode>
+                <TypographyCode className="rounded-none bg-transparent p-0">
+                  {item.branch}
+                </TypographyCode>
               </span>
             ),
           },
@@ -264,26 +267,31 @@ export function SourceEnvironments({
                   }
                 }}
               >
-                <FieldLabel isRequired>Deployment branch</FieldLabel>
-                <SourceBranchSelect
-                  ariaLabel={`${editing?.name ?? "Environment"} branch`}
-                  branches={branches}
-                  required
-                  value={branch}
-                  onChange={(nextBranch) => {
-                    setBranch(nextBranch);
-                    setSaveError(null);
-                  }}
-                />
-                {saveError ? (
-                  <p
-                    id="environment-branch-error"
-                    role="alert"
-                    className="text-sm text-danger"
-                  >
-                    {saveError}
-                  </p>
-                ) : null}
+                <Field className="gap-3">
+                  <FieldLabel htmlFor="edit-environment-branch" isRequired>
+                    Deployment branch
+                  </FieldLabel>
+                  <SourceBranchSelect
+                    ariaLabel={`${editing?.name ?? "Environment"} branch`}
+                    branches={branches}
+                    required
+                    triggerId="edit-environment-branch"
+                    value={branch}
+                    onChange={(nextBranch) => {
+                      setBranch(nextBranch);
+                      setSaveError(null);
+                    }}
+                  />
+                  {saveError ? (
+                    <p
+                      id="environment-branch-error"
+                      role="alert"
+                      className="text-sm text-danger"
+                    >
+                      {saveError}
+                    </p>
+                  ) : null}
+                </Field>
                 <div className="flex justify-end gap-2">
                   <Button
                     variant="secondary"

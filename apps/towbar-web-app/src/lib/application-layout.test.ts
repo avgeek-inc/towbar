@@ -33,7 +33,7 @@ test("manage navigation exposes each feature at its primary destination", () => 
   assert.equal(adminWorkspace?.label, "Manage");
   assert.deepEqual(
     adminWorkspace?.items.map((item) => item.id),
-    ["settings", "team-settings", "integrations", "shared-secrets", "health"],
+    ["integrations", "ssh-keys", "shared-secrets", "team-settings", "health"],
   );
 
   const member = createApplicationSidebar({}, undefined, fixtureUser("member"));
@@ -42,7 +42,7 @@ test("manage navigation exposes each feature at its primary destination", () => 
   );
   assert.deepEqual(
     memberWorkspace?.items.map((item) => item.id),
-    ["settings", "shared-secrets"],
+    ["shared-secrets"],
   );
   const memberSharedSecrets = memberWorkspace?.items.find(
     (item) => item.id === "shared-secrets",
@@ -55,10 +55,8 @@ test("manage navigation exposes each feature at its primary destination", () => 
 
   const viewer = createApplicationSidebar({}, undefined, fixtureUser("viewer"));
   assert.deepEqual(
-    viewer.groups
-      .find((group) => group.id === "workspace")
-      ?.items.map((item) => item.id),
-    ["settings"],
+    viewer.groups.find((group) => group.id === "workspace"),
+    undefined,
   );
 });
 
@@ -68,6 +66,7 @@ test("management routes preserve their specific permission boundaries", () => {
     "integration.manage",
   );
   assert.equal(routePermission("/team-settings/ssh-keys"), "privateKey.manage");
+  assert.equal(routePermission("/manage/ssh-keys"), "privateKey.manage");
   assert.equal(routePermission("/manage/shared-secrets"), "sharedSecret.list");
   assert.equal(
     routePermission("/team-settings/integrations/github"),

@@ -2,6 +2,7 @@
 
 import { forwardRef, type ComponentPropsWithRef, type ReactNode } from "react";
 import { cn } from "../lib/utils";
+import { TooltipText } from "../overlays/tooltip";
 import { WidgetContentContext } from "./widget-context";
 import {
   HeadingHelp,
@@ -62,7 +63,13 @@ const Title = forwardRef<HTMLSpanElement, WidgetTitleProps>(
           {icon}
         </span>
       ) : null}
-      {children}
+      {typeof children === "string" ? (
+        <TooltipText className="min-w-0 truncate" tooltip={children}>
+          {children}
+        </TooltipText>
+      ) : (
+        children
+      )}
       <HeadingHelp
         title={
           Array.isArray(children)

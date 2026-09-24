@@ -99,11 +99,14 @@ export function SourceEnvironmentConnect({
                   />
                 </Field>
                 <Field>
-                  <FieldLabel isRequired>Branch</FieldLabel>
+                  <FieldLabel htmlFor="connect-environment-branch" isRequired>
+                    Branch
+                  </FieldLabel>
                   <SourceBranchSelect
                     ariaLabel="Branch"
                     branches={branches}
                     required
+                    triggerId="connect-environment-branch"
                     value={branch}
                     onChange={setBranch}
                   />

@@ -11,6 +11,7 @@ import { Link } from "@heroui/react";
 import { InformationCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { NewTabIndicator } from "../navigation/new-tab-indicator";
+import { TooltipArrowShape } from "./tooltip";
 
 export type HeadingDocumentation = {
   description: string;
@@ -60,16 +61,7 @@ export function HeadingHelp({
         offset={7}
       >
         <OverlayArrow>
-          <svg
-            data-slot="overlay-arrow"
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path d="M0 0C5.48483 8 6.5 8 12 0Z" />
-          </svg>
+          <TooltipArrowShape />
         </OverlayArrow>
         <span className="grid gap-2">
           <span>{documentation.description}</span>

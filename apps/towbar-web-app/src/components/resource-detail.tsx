@@ -18,6 +18,7 @@ import {
   SecurityCheckIcon,
   CubeIcon,
   FileViewIcon,
+  GitBranchIcon,
   GitCompareIcon,
   Link01Icon,
   PackageIcon,
@@ -252,6 +253,14 @@ export function ResourceDetail() {
                 {source.data.source.repositoryName}
               </InlineLink>
             </Attributes.Item>
+            <Attributes.Item
+              icon={<HugeiconsIcon icon={GitBranchIcon} />}
+              label="Branch"
+            >
+              <span className="break-words font-mono">
+                {item.config.sourceBranch ?? "main"}
+              </span>
+            </Attributes.Item>
           </Attributes>
           {latestDeployment ? (
             <Attributes
@@ -469,6 +478,7 @@ export function ResourceDetail() {
         ) : undefined
       }
       breadcrumbAncestors={resourcesBreadcrumb}
+      breadcrumbSwitcher={{ id: resourceId, kind: "resources" }}
       title={item.name}
     >
       <InstanceEnvironmentChoice item={item} kind="resources" />
