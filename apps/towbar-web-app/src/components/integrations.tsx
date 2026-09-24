@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import type { IntegrationProvider } from "@workspace/towbar-core";
-import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 
@@ -31,15 +31,20 @@ function ProviderPage({
   statuses: Record<string, string | undefined>;
   basePath: string;
 }) {
-  const router = useRouter();
+  const pathname = usePathname();
+  const selectedProvider = pathname.startsWith(`${basePath}/`)
+    ? pathname.slice(basePath.length + 1)
+    : provider;
   const providers = groups.flatMap((group) => group.providers);
-  const activeProvider = providers.find((item) => item.value === provider);
+  const activeProvider = providers.find(
+    (item) => item.value === selectedProvider,
+  );
   const fallbackProvider = providers[0]?.value;
 
   useEffect(() => {
     if (!activeProvider && fallbackProvider)
-      router.replace(`${basePath}/${fallbackProvider}`);
-  }, [activeProvider, basePath, fallbackProvider, router]);
+      window.history.replaceState(null, "", `${basePath}/${fallbackProvider}`);
+  }, [activeProvider, basePath, fallbackProvider]);
 
   if (!fallbackProvider)
     return (
@@ -66,7 +71,11 @@ function ProviderPage({
           key={group.value}
           title={group.label}
           selected={activeProvider.value}
-          onSelect={(value) => router.push(`${basePath}/${value}`)}
+          onSelect={(value) => {
+            if (value === activeProvider.value) return;
+            window.history.pushState(null, "", `${basePath}/${value}`);
+            window.scrollTo(0, 0);
+          }}
           items={group.providers.map((item) => ({
             id: item.value,
             label: item.label,
