@@ -1,5 +1,9 @@
 import { listAppJobs, requestAppJob } from "../../../areas/apps/jobs.js";
 import { getAppStorage } from "../../../areas/apps/storage.js";
+import {
+  deliveriesQuery,
+  listNotificationDeliveries,
+} from "../../../areas/event-history/deliveries.js";
 import { actorAllows } from "@workspace/towbar-access";
 import {
   filterWorkloads,
@@ -86,6 +90,31 @@ appRoutes.get(
     return context.json({
       app: await getApp(context.req.param("appId"), user.workspaceId),
     });
+  },
+);
+
+appRoutes.get(
+  "/:appId/notifications/deliveries",
+  operation({
+    permissions: ["workload.read"],
+    query: deliveriesQuery,
+    responseSchema: 'apps.ts:get:"/:appId/notifications/deliveries"',
+    summary: "List app notification deliveries",
+    response: "Paginated notification deliveries for this app.",
+  }),
+  async (context) => {
+    const workspaceId = context.get("user").workspaceId;
+    const appId = context.req.param("appId");
+    await getApp(appId, workspaceId);
+    context.header("Cache-Control", "no-store");
+    return context.json(
+      await listNotificationDeliveries({
+        ...deliveriesQuery.parse(context.req.query()),
+        appId,
+        deployableKind: "app",
+        workspaceId,
+      }),
+    );
   },
 );
 

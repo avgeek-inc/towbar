@@ -4,13 +4,12 @@ import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
 import { and, eq, sql } from "drizzle-orm";
 import {
+  type ManifestNotifications,
   digestValue,
-  isNormalizedResource,
   normalizeServerConfiguration,
 } from "@workspace/towbar-core";
 import {
   apps,
-  previewPullRequestReports,
   servers,
   sourceEnvironments,
   sourceSyncs,
@@ -18,6 +17,11 @@ import {
   users,
   workspaces,
 } from "@workspace/towbar-database/schema";
+
+import {
+  assertManifestNotificationSync,
+  assertScopedDeliveryHistory,
+} from "./environment-notification-tests.js";
 
 const url = process.env.TOWBAR_TEST_DATABASE_URL;
 void test(
@@ -60,12 +64,14 @@ void test(
     const root = "version: 2\nenvironments:\n  production: {}\n  staging: {}\n";
     let keys = ["TOKEN", "EMPTY"];
     let broken = false;
+    let notifications: ManifestNotifications | undefined;
     let snapshotCommit = "a".repeat(40);
     const dependencies = environmentSyncDependencies(() => ({
       root,
       snapshotCommit,
       keys,
       broken,
+      notifications,
     }));
     try {
       const { seedEnvironmentTeam } =
@@ -480,75 +486,14 @@ void test(
       await t.test(
         "preview discovery uses mapped branches and retains cleanup work when disabled",
         async () => {
-          const { scheduleSourcePreviewReconciliations } =
-            await import("../previews/reconciliation-scheduler.js");
-          const current = await database
-            .select()
-            .from(apps)
-            .where(eq(apps.id, stage.id));
-          assert(current[0] && !isNormalizedResource(current[0].config));
-          const configBefore = current[0].config;
-          const branches: string[] = [];
-          const queued: number[] = [];
-          const dependencies = {
-            listPullRequests: (input: { baseBranch: string }) => {
-              branches.push(input.baseBranch);
-              return Promise.resolve([7, 9]);
-            },
-            enqueue: (input: { pullRequestNumber: number }) => {
-              queued.push(input.pullRequestNumber);
-              return Promise.resolve({
-                workflowId: `preview-test-${input.pullRequestNumber}`,
-              });
-            },
-          };
-          try {
-            await database
-              .update(sourceEnvironments)
-              .set({ previewsEnabled: true })
-              .where(eq(sourceEnvironments.id, staging!.id));
-            await database
-              .update(apps)
-              .set({
-                config: {
-                  ...configBefore,
-                  preview: {
-                    enabled: true,
-                    domain: "preview.example.com",
-                    ttlHours: 72,
-                  },
-                },
-              })
-              .where(eq(apps.id, stage.id));
-            await database.insert(previewPullRequestReports).values({
-              sourceId,
-              workspaceId,
-              pullRequestNumber: 9,
-              branch: "feature",
-              latestCommitSha: "b".repeat(40),
-            });
-            await scheduleSourcePreviewReconciliations(sourceId, dependencies);
-            assert.deepEqual(branches, ["develop"]);
-            assert.deepEqual(queued, [7, 9]);
-            branches.length = 0;
-            queued.length = 0;
-            await database
-              .update(sourceEnvironments)
-              .set({ previewsEnabled: false })
-              .where(eq(sourceEnvironments.id, staging!.id));
-            await scheduleSourcePreviewReconciliations(sourceId, dependencies);
-            assert.deepEqual(branches, []);
-            assert.deepEqual(queued, [9]);
-          } finally {
-            await database
-              .update(apps)
-              .set({ config: configBefore })
-              .where(eq(apps.id, stage.id));
-            await database
-              .update(sourceEnvironments)
-              .set({ previewsEnabled: false })
-              .where(eq(sourceEnvironments.id, staging!.id));
-          }
+          const { assertPreviewDiscovery } =
+            await import("./environment-preview-tests.js");
+          await assertPreviewDiscovery({
+            stageId: stage.id,
+            stagingId: staging!.id,
+            sourceId,
+            workspaceId,
+          });
         },
       );
       await t.test(
@@ -577,6 +522,30 @@ void test(
             userId,
           });
         },
+      );
+      await t.test(
+        "sync updates manifest notification subscriptions",
+        async () => {
+          keys = ["EMPTY", "ADDED"];
+          await assertManifestNotificationSync({
+            stageId: stage.id,
+            workspaceId,
+            sync: () => sync(staging!),
+            setNotifications: (value) => {
+              notifications = value;
+            },
+          });
+        },
+      );
+      await t.test("delivery history is scoped to its deployable", () =>
+        withActor(actor, () =>
+          assertScopedDeliveryHistory({
+            workspaceId,
+            sourceId,
+            stage,
+            production: prod,
+          }),
+        ),
       );
       await t.test(
         "changed branch mapping rejects a previously queued sync",

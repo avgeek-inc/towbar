@@ -48,6 +48,7 @@ export async function emitDeploymentNotification(
   if (!deployment) return;
   const status = type.slice("deployment.".length).replaceAll("_", " ");
   await emitNotificationEvent({
+    appId: deployment.deployableId,
     dedupeKey: `${type}:${deployment.id}`,
     payload: notificationEventPayload({
       details: {
@@ -87,6 +88,7 @@ export async function emitPreviewNotification(
 ) {
   const [preview] = await getTowbarDatabase()
     .select({
+      appId: previewEnvironments.appId,
       appName: apps.name,
       branch: previewEnvironments.branch,
       errorMessage: previewEnvironments.errorMessage,
@@ -106,6 +108,7 @@ export async function emitPreviewNotification(
   if (!preview) return;
   const status = type.slice("preview.".length).replaceAll("_", " ");
   await emitNotificationEvent({
+    appId: preview.appId,
     dedupeKey: `${type}:${preview.id}:${preview.updatedAt.toISOString()}`,
     payload: notificationEventPayload({
       details: {
@@ -164,6 +167,7 @@ export async function emitResourceOperationNotification(
         )
       : null;
   await emitNotificationEvent({
+    appId: operation.resourceId ?? undefined,
     dedupeKey: `${type}:${operation.id}`,
     payload: notificationEventPayload({
       details: backupCopy ? {} : { errorCode: operation.errorCode },
@@ -270,6 +274,7 @@ async function emitRuntimeHealthEvent(input: {
   workspaceId: string;
 }) {
   await emitNotificationEvent({
+    appId: input.entityKind === "server" ? undefined : input.entityId,
     dedupeKey: `${input.type}:${input.reason ?? "health"}:${input.entityKind}:${input.entityId}:${input.sourceId}:${input.checkId}`,
     payload: notificationEventPayload({
       entity: {
@@ -362,6 +367,7 @@ export async function emitBackupStaleNotification(input: {
   if (!resource) return;
   const copy = backupStaleNotificationCopy(resource.name, input.occurrence);
   await emitNotificationEvent({
+    appId: input.resourceId,
     dedupeKey: `backup.stale:${input.resourceId}:${input.occurrence.toISOString()}`,
     payload: notificationEventPayload({
       details: copy.details,
@@ -399,6 +405,7 @@ export async function emitBackupAssuranceNotification(input: {
   if (!resource) return;
   const copy = backupNotRestorableNotificationCopy(resource.name);
   await emitNotificationEvent({
+    appId: input.resourceId,
     dedupeKey: `backup.not_restorable:${input.resourceId}:${input.backupId ?? "missing"}:${input.checkedAt.toISOString()}`,
     payload: notificationEventPayload({
       details: {},

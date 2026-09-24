@@ -1,5 +1,10 @@
 import { type LogDrainProvider, logDrainsSchema } from "./log-drains.js";
 import { type AppJob, appJobSchema } from "./app-jobs.js";
+import {
+  type ManifestNotifications,
+  manifestNotificationsSchema,
+  normalizeManifestNotifications,
+} from "./notifications.js";
 /* eslint-disable max-lines -- The versioned manifest schema, normalized DTO, and parser stay together so their public contract cannot drift across modules. */
 
 import { isIP } from "node:net";
@@ -517,6 +522,7 @@ export const appSchema = z
   .object({
     jobs: z.array(appJobSchema).max(20).optional(),
     logDrains: logDrainsSchema.optional(),
+    notifications: manifestNotificationsSchema.optional(),
     autoDeploy: appAutoDeploySchema.optional(),
     vulnerabilityScanning: z.boolean().optional(),
     id: z.string().trim().regex(appIdPattern),
@@ -914,6 +920,7 @@ export const resourceSchema = z
     autoDeploy: z.boolean().optional(),
     backup: resourceBackupSchema.optional(),
     logDrains: logDrainsSchema.optional(),
+    notifications: manifestNotificationsSchema.optional(),
     externalSecrets: z
       .record(z.string().trim().min(1).max(256), externalSecretReferenceSchema)
       .optional(),
@@ -1245,6 +1252,7 @@ export type NormalizedDeploymentHook = {
 
 export type NormalizedApp = {
   logDrains?: LogDrainProvider[];
+  notifications?: ManifestNotifications;
   jobs?: AppJob[];
   kind?: "app";
   autoDeploy: boolean;
@@ -1292,6 +1300,7 @@ export type NormalizedApp = {
 
 export type NormalizedResource = {
   logDrains?: LogDrainProvider[];
+  notifications?: ManifestNotifications;
   externalSecrets?: Record<
     string,
     z.infer<typeof externalSecretReferenceSchema>
@@ -1425,6 +1434,13 @@ export function normalizeDeploymentManifest(
           ...(app.logDrains?.length
             ? { logDrains: [...app.logDrains].sort() }
             : {}),
+          ...(app.notifications
+            ? {
+                notifications: normalizeManifestNotifications(
+                  app.notifications,
+                ),
+              }
+            : {}),
           ...(app.jobs?.length
             ? {
                 jobs: [...app.jobs].sort((a, b) =>
@@ -1521,6 +1537,13 @@ export function normalizeDeploymentManifest(
           compose: [...parsed.compose]
             .map((workload) => ({
               ...workload,
+              ...(workload.notifications
+                ? {
+                    notifications: normalizeManifestNotifications(
+                      workload.notifications,
+                    ),
+                  }
+                : {}),
               container: { port: 0 as const, volumes: [] as [] },
               context: ".",
               deploymentInputs: [workload.file, ...workload.overrides],
@@ -1644,6 +1667,11 @@ function normalizeResource(
     ...normalizeResourceAccess(resource.access),
     ...(resource.logDrains?.length
       ? { logDrains: [...resource.logDrains].sort() }
+      : {}),
+    ...(resource.notifications
+      ? {
+          notifications: normalizeManifestNotifications(resource.notifications),
+        }
       : {}),
     ...(resource.externalSecrets
       ? { externalSecrets: resource.externalSecrets }

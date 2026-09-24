@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
-import { createFixtureApiServer } from "./fixture-api.ts";
+import { createFixtureApiServer, fixtureIds } from "./fixture-api.ts";
 async function fixture(role, run) {
   const server = createFixtureApiServer({ role });
   server.listen(0, "127.0.0.1");
@@ -112,5 +112,26 @@ test("members and viewers cannot read team-wide histories", async () => {
         "notifications/deliveries",
       ])
         assert.equal((await request(path)).status, 403);
+    });
+});
+test("app and resource delivery histories are scoped and readable without notification management", async () => {
+  for (const role of ["admin", "member", "viewer"])
+    await fixture(role, async (request) => {
+      const app = await (
+        await request(`apps/${fixtureIds.app}/notifications/deliveries`)
+      ).json();
+      const resource = await (
+        await request(
+          `resources/${fixtureIds.resource}/notifications/deliveries`,
+        )
+      ).json();
+      assert(app.items.length > 0);
+      assert(resource.items.length > 0);
+      assert(app.items.every((item) => item.deployableId === fixtureIds.app));
+      assert(
+        resource.items.every(
+          (item) => item.deployableId === fixtureIds.resource,
+        ),
+      );
     });
 });

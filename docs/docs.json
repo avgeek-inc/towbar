@@ -299,6 +299,12 @@
                 "pages": ["api-reference/get_apps_by_id_previews"]
               },
               {
+                "group": "Notifications",
+                "pages": [
+                  "api-reference/get_apps_by_id_notifications_deliveries"
+                ]
+              },
+              {
                 "group": "Scout Agent",
                 "pages": ["api-reference/get_apps_by_id_metrics"]
               },
@@ -353,6 +359,12 @@
                   "api-reference/post_resources_by_id_actions_restore",
                   "api-reference/post_resources_by_id_actions_restore_cleanup",
                   "api-reference/post_resources_by_id_operations_by_id_actions_cancel"
+                ]
+              },
+              {
+                "group": "Notifications",
+                "pages": [
+                  "api-reference/get_resources_by_id_notifications_deliveries"
                 ]
               },
               {

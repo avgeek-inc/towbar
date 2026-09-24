@@ -109,10 +109,12 @@ function deliveryStatus(item: Delivery) {
     </Chip>
   );
 }
-export function NotificationDeliveries() {
-  const history = useEventHistory<Delivery>(
-    "/v1/core/notifications/deliveries",
-  );
+export function NotificationDeliveries({
+  path = "/v1/core/notifications/deliveries",
+}: {
+  path?: string;
+}) {
+  const history = useEventHistory<Delivery>(path);
   const [selected, setSelected] = useState<Delivery | null>(null);
   const [open, setOpen] = useState(false);
   const columns: ResourceTableColumn<Delivery>[] = [

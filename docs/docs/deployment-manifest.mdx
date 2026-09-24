@@ -68,6 +68,50 @@ Removing an entity or one of its environment entries archives that instance
 after a successful sync. A failed sync preserves the last valid configuration
 and saved secret values.
 
+## Route notifications for one app or resource
+
+Workspace destinations in **Manage → Notifications** receive events across all
+apps and resources. Add `notifications` to an app, Compose workload, or resource
+file to send that entity's events to additional destinations. These subscriptions
+take effect when the environment sync succeeds; no deployment is needed.
+
+```yaml title=".towbar/apps/web.app.yml"
+notifications:
+  email:
+    - address: web-ops@example.com
+      deployments: true
+      backupsAndRestores: false
+      alertsAndIncidents: true
+  slack:
+    - channelId: C12345678
+      deployments: true
+      backupsAndRestores: false
+      alertsAndIncidents: true
+  discord:
+    - webhookId: "123456789012345678"
+      deployments: false
+      backupsAndRestores: false
+      alertsAndIncidents: true
+  telegram:
+    - chatId: "-1001234567890"
+      messageThreadId: 42
+      deployments: true
+      backupsAndRestores: false
+      alertsAndIncidents: false
+```
+
+Each destination must enable at least one category. Deployments includes
+previews; Alerts & Incidents includes service health and Scout alerts. The same
+shape works in resource files. Use `messageThreadId` only for a Telegram forum
+topic. Webhook push is available only as a workspace destination.
+
+Keep SMTP, Slack bot, Discord webhook token, and Telegram bot credentials in
+`/etc/towbar/towbar.yml`. A manifest destination sends only while its provider
+is configured there. For Discord, `webhookId` must match a runtime-configured
+webhook pair. The app or resource **Monitor → Notifications** page shows the
+synced destinations and subscriptions without edit controls; **Deliveries**
+shows that entity's delivery history.
+
 ## Deploy automatically
 
 Set `autoDeploy: true` to deploy whenever a mapped-branch commit changes the

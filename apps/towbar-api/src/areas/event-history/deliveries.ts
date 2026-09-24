@@ -6,11 +6,16 @@ import {
   notificationProviderSchema,
 } from "@workspace/towbar-core";
 import {
+  apps,
   notificationDeliveries,
   notificationEvents,
 } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { requireActor } from "../auth/actor-context.js";
+import {
+  manifestNotificationAppId,
+  manifestNotificationLabels,
+} from "../notifications/manifest-destinations.js";
 import {
   cursorTimestamp,
   historyCursor,
@@ -39,9 +44,17 @@ export async function listNotificationDeliveries(
     workspaceId: string;
     sourceId?: string;
     serverId?: string;
+    appId?: string;
+    deployableKind?: "app" | "resource";
   },
 ) {
-  requireActor(input.workspaceId, ["notification.manage"]);
+  requireActor(input.workspaceId, [
+    input.appId
+      ? input.deployableKind === "resource"
+        ? "resource.read"
+        : "workload.read"
+      : "notification.manage",
+  ]);
   const search = searchPattern(input.search);
   const rows = await getTowbarDatabase()
     .select({
@@ -82,6 +95,9 @@ export async function listNotificationDeliveries(
         input.serverId
           ? eq(notificationEvents.serverId, input.serverId)
           : undefined,
+        input.appId
+          ? sql`${notificationEvents.payload}->'details'->>'deployableId' = ${input.appId}`
+          : undefined,
         input.provider
           ? eq(notificationDeliveries.provider, input.provider)
           : undefined,
@@ -115,11 +131,36 @@ export async function listNotificationDeliveries(
     )
     .limit(input.limit + 1);
   const page = historyPage(rows, input.limit);
+  const manifestAppIds = [
+    ...new Set(
+      page.items
+        .map((row) => manifestNotificationAppId(row.destinationId))
+        .filter((id): id is string => id !== null),
+    ),
+  ];
+  const manifestLabels = new Map<string, string>();
+  if (manifestAppIds.length) {
+    const owners = await getTowbarDatabase()
+      .select({ id: apps.id, config: apps.config })
+      .from(apps)
+      .where(
+        and(
+          eq(apps.workspaceId, input.workspaceId),
+          inArray(apps.id, manifestAppIds),
+        ),
+      );
+    for (const owner of owners)
+      for (const [id, label] of manifestNotificationLabels(
+        owner.id,
+        owner.config.notifications,
+      ))
+        manifestLabels.set(id, label);
+  }
   return {
     ...page,
     items: page.items.map((row) => ({
       ...row,
-      destination: row.destinationId,
+      destination: manifestLabels.get(row.destinationId) ?? row.destinationId,
     })),
   };
 }

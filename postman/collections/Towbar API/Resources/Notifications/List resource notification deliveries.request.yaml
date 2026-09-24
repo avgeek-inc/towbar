@@ -1,0 +1,31 @@
+$kind: http-request
+id: 672a4cff-e74a-58f4-827e-fd0e631a5ce6
+description:
+  "Required permissions: resource.read. Personal keys are capped by the current member
+  role; team keys use explicit grants."
+url:
+  "{{baseUrl}}/resources/:resourceId/notifications/deliveries?limit=25&before=&beforeId=&search=\
+  &provider=slack&category=&state=pending"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  - key: limit
+    value: "25"
+  - key: before
+    value: ""
+  - key: beforeId
+    value: ""
+  - key: search
+    value: ""
+  - key: provider
+    value: slack
+  - key: category
+    value: ""
+  - key: state
+    value: pending
+pathVariables:
+  - key: resourceId
+    value: "{{resourceId}}"
+    description: Required.
+order: 1000

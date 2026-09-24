@@ -194,6 +194,41 @@ const apps: FixtureApp[] = [
     servers[1]!,
   ),
 ];
+apps[1]!.config.notifications = {
+  email: [
+    {
+      address: "website-ops@example.com",
+      deployments: true,
+      backupsAndRestores: false,
+      alertsAndIncidents: true,
+    },
+  ],
+  slack: [
+    {
+      channelId: "C12345678",
+      deployments: true,
+      backupsAndRestores: false,
+      alertsAndIncidents: true,
+    },
+  ],
+  discord: [
+    {
+      webhookId: "123456789012345678",
+      deployments: false,
+      backupsAndRestores: false,
+      alertsAndIncidents: true,
+    },
+  ],
+  telegram: [
+    {
+      chatId: "-1001234567890",
+      messageThreadId: 42,
+      deployments: true,
+      backupsAndRestores: false,
+      alertsAndIncidents: false,
+    },
+  ],
+};
 
 const resources: FixtureResource[] = [
   createResourceFixture(
@@ -267,6 +302,16 @@ const resources: FixtureResource[] = [
     servers[1]!,
   ),
 ];
+resources[0]!.config.notifications = {
+  email: [
+    {
+      address: "database-ops@example.com",
+      deployments: false,
+      backupsAndRestores: true,
+      alertsAndIncidents: true,
+    },
+  ],
+};
 
 apps.push({
   ...createAppFixture(

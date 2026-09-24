@@ -1,14 +1,17 @@
+import type { ManifestNotifications } from "@workspace/towbar-core";
+
 export function environmentSyncDependencies(
   state: () => {
     root: string;
     snapshotCommit: string;
     keys: string[];
     broken: boolean;
+    notifications?: ManifestNotifications;
   },
 ) {
   return {
     snapshot: () => {
-      const { root, snapshotCommit, keys, broken } = state();
+      const { root, snapshotCommit, keys, broken, notifications } = state();
       return Promise.resolve({
         commitSha: snapshotCommit,
         root,
@@ -26,6 +29,7 @@ export function environmentSyncDependencies(
               dockerfile: "Dockerfile",
               container: { port: 3000 },
               secrets: { runtime: keys },
+              ...(notifications ? { notifications } : {}),
               environments: {
                 production: {
                   server: "192.0.2.10",

@@ -1,6 +1,7 @@
 import path from "node:path";
 
 import { z } from "zod";
+import { manifestNotificationsSchema } from "./notifications.js";
 
 function containsAsciiControlCharacter(value: string): boolean {
   return Array.from(value).some((character) => {
@@ -351,6 +352,7 @@ const composeServicePolicySchema = z
 
 export const composeWorkloadSchema = z
   .object({
+    notifications: manifestNotificationsSchema.optional(),
     id: z.string().regex(/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/u),
     name: z.string().trim().min(1).max(120),
     description: z.string().trim().max(500).optional(),

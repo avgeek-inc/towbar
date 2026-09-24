@@ -5,6 +5,13 @@ description: "Configure notification providers and destinations."
 
 Provider credentials remain in `/etc/towbar/towbar.yml`. Email recipients, Slack channels, and Telegram chats and topics are managed in **Manage → Notifications**. Discord webhook credentials and webhook push endpoint URLs, headers, and signing secrets remain in runtime configuration. Their notification subscriptions are managed in Towbar. The Providers list shows every provider, including those awaiting runtime configuration.
 
+These workspace destinations receive matching events from every app and
+resource. You can also declare additional email, Slack, Discord, and Telegram
+destinations in an individual [app or resource manifest](/docs/deployment-manifest#route-notifications-for-one-app-or-resource).
+They appear as read-only subscriptions under that entity's **Monitor →
+Notifications** page after a successful sync. Webhook push remains
+workspace-only.
+
 Set `notifications.enabled: true`, add `providers` and any routes that remain runtime-managed, then run `sudo towbar restart`. Invalid YAML, duplicate route IDs, missing provider credentials, or invalid destinations fail validation.
 
 ```yaml title="/etc/towbar/towbar.yml"
@@ -66,6 +73,9 @@ Towbar stores provider-neutral events, route IDs, delivery attempts, retry state
 ## Delivery history
 
 Open **Manage → Notifications → Health → Deliveries** to filter and inspect persisted delivery history. A succeeded delivery means the provider accepted it; it does not prove a person read it.
+The global list includes deliveries to both workspace and manifest destinations.
+An app or resource's **Monitor → Deliveries** page shows only that entity's
+notifications.
 
 ## Diagnose delivery
 

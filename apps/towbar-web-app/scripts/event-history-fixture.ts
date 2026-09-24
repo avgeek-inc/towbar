@@ -91,6 +91,10 @@ export function eventHistoryFixture(
         .replace(/^./, (letter) => letter.toUpperCase()),
       entityId: id(2, index),
       entityName: index % 2 ? "Example Website" : "192.0.2.10",
+      deployableId:
+        index % 2
+          ? "31111111-1111-4111-8111-222222222222"
+          : "41111111-1111-4111-8111-111111111111",
       sourceId: null,
       serverId: null,
       state,
@@ -118,7 +122,12 @@ export function eventHistoryFixture(
     return true;
   }
   return (request: IncomingMessage, response: ServerResponse, url: URL) => {
+    const scopedDelivery =
+      /^\/v1\/core\/(?:apps|resources)\/([a-f0-9-]{36})\/notifications\/deliveries$/u.exec(
+        url.pathname,
+      );
     if (
+      !scopedDelivery &&
       ![
         "/v1/core/team/audit-logs",
         "/v1/core/team/audit-logs/filters",
@@ -126,7 +135,7 @@ export function eventHistoryFixture(
       ].includes(url.pathname)
     )
       return false;
-    if (getUser()?.workspaceRole !== "admin")
+    if (!getUser() || (!scopedDelivery && getUser()?.workspaceRole !== "admin"))
       return send(
         response,
         { error: { message: "Only admins can view event history." } },
@@ -175,6 +184,7 @@ export function eventHistoryFixture(
         )
       : deliveries.filter(
           (delivery) =>
+            (!scopedDelivery || delivery.deployableId === scopedDelivery[1]) &&
             (!q.get("provider") || q.get("provider") === delivery.provider) &&
             (!q.get("state") || q.get("state") === delivery.state) &&
             (!q.get("category") ||
