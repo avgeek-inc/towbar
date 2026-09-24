@@ -19,6 +19,7 @@ import type {
 } from "@workspace/towbar-web-client";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import {
   ResourceTable,
@@ -145,11 +146,8 @@ function deploymentColumns(
                     {detail}
                   </DomainLink>
                 ) : (
-                  <TableCellDescription
-                    className="max-w-48 truncate"
-                    title={detail}
-                  >
-                    {detail}
+                  <TableCellDescription className="max-w-48 truncate">
+                    <TooltipText tooltip={detail}>{detail}</TooltipText>
                   </TableCellDescription>
                 )
               ) : null}

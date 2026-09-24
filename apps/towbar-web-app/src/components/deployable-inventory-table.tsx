@@ -5,6 +5,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import type { App, Resource } from "@workspace/towbar-web-client";
 import { ResourceTable } from "@workspace/towbar-web-ui/resource-table";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import { groupDeployableInstances } from "@/lib/deployable-groups";
 
 export function DeployableInventoryTable<T extends App | Resource>({
@@ -28,8 +29,10 @@ export function DeployableInventoryTable<T extends App | Resource>({
                 group.items[0]!.kind === "app" ? DashboardCircleIcon : CubeIcon
               }
             />
-            <h2 className="truncate text-base" title={group.manifestId}>
-              {group.manifestId}
+            <h2 className="truncate text-base">
+              <TooltipText tooltip={group.manifestId} tabIndex={-1}>
+                {group.manifestId}
+              </TooltipText>
             </h2>
             <Chip
               className="shrink-0"

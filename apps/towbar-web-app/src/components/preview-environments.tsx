@@ -81,7 +81,11 @@ export function PreviewEnvironments({
           className="block max-w-56 truncate"
           tooltip={preview.hostname}
         >
-          <DomainLink className="block truncate" domain={preview.hostname}>
+          <DomainLink
+            className="block truncate"
+            domain={preview.hostname}
+            showTooltip={false}
+          >
             {compactPreviewHostname(preview.hostname)}
           </DomainLink>
         </TooltipText>

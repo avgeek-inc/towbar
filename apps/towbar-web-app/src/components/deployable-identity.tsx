@@ -59,14 +59,31 @@ export function AppIdentity({
           exposed={domains.length > 0}
           health={healthStatus}
         />
-        {primaryDomain ? (
+        {primaryDomain && domains.length === 1 ? (
+          <TooltipText
+            className={`${tableCellDescriptionClassName} flex max-w-64 min-w-0 items-center gap-0.5 truncate`}
+            tooltip={primaryDomain}
+          >
+            <DomainLink
+              className="truncate"
+              domain={primaryDomain}
+              showTooltip={false}
+            >
+              {primaryDomain}
+            </DomainLink>
+          </TooltipText>
+        ) : primaryDomain ? (
           <Tooltip>
             <Tooltip.Trigger
               render={(props) => <span {...props} />}
               aria-label={`Domains: ${domains.join(", ")}`}
               className={`${tableCellDescriptionClassName} flex max-w-64 min-w-0 items-center gap-0.5 outline-none focus-visible:ring-2 focus-visible:ring-focus rounded-sm`}
             >
-              <DomainLink className="truncate" domain={primaryDomain}>
+              <DomainLink
+                className="truncate"
+                domain={primaryDomain}
+                showTooltip={false}
+              >
                 {primaryDomain}
               </DomainLink>
               {domains.length > 1 ? (
@@ -87,6 +104,7 @@ export function AppIdentity({
                     className="whitespace-nowrap"
                     domain={domain}
                     key={domain}
+                    showTooltip={false}
                   >
                     {domain}
                   </DomainLink>
