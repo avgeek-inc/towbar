@@ -5,6 +5,50 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.11] - 2026-09-24
+
+### Added
+
+- Scout metric and public HTTP alerts can require a sustained breach for 1, 2,
+  5, 10, 15, or 30 minutes before opening an incident.
+- App, Resource, and Server detail breadcrumbs offer a searchable switcher with
+  the corresponding application, resource, or cloud-provider logo.
+- App and Resource overviews show the effective repository branch beside the
+  repository.
+
+### Changed
+
+- Scout alert actions are Pause and Resume, with yellow controls, while Delete
+  is red. New rules start active, and create and edit forms no longer show an
+  enabled checkbox.
+- SSH keys move into the primary Manage sidebar, and key-type chips are yellow.
+- Resource inventory gives logos, names, and status indicators more room;
+  environment chips and branch details are consistent across inventory and
+  deployment lists.
+- Overview deployment charts use separate colors tuned for light and dark
+  themes. Server setup uses yellow progress indicators and calls its pending
+  action Resume Setup.
+- Account navigation adds a repository link and uses Sign out for its red
+  action. Secret editors, branch controls, revision links, and tooltip borders
+  have more consistent spacing and interaction states.
+- The self-hosting and dashboard guides include refreshed release screenshots
+  and current account, server-capacity, and deployment details.
+
+### Fixed
+
+- Switching detail sections keeps the secondary sidebar mounted, prevents
+  identity images from flashing after text, and avoids a blank interval when
+  opening deployment details.
+- Deployment details keep their shell visible during loading and preserve the
+  current snapshot during refresh. Links open the intended section directly.
+- After server setup queues its first check, the setup page returns to Overview
+  after five seconds.
+- Tooltips that repeat their trigger appear only when text is clipped; long
+  revision tooltips stay within the viewport. Secret-row connector lines are
+  readable in both themes.
+- The log-forwarding resilience test keeps emitting its readiness marker until
+  the forwarder attaches, avoiding an intermittent startup failure in CI.
+
 ## [2.0.10] - 2026-09-24
 
 ### Added
@@ -224,7 +268,8 @@ All notable changes to Towbar are documented in this file. This project follows
 - Branch mapping errors remain visible beside the edit form while preserving
   the entered branch and previous mapping.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.10...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.11...HEAD
+[2.0.11]: https://github.com/avgeek-inc/towbar/compare/v2.0.10...v2.0.11
 [2.0.10]: https://github.com/avgeek-inc/towbar/compare/v2.0.9...v2.0.10
 [2.0.9]: https://github.com/avgeek-inc/towbar/compare/v2.0.8...v2.0.9
 [2.0.8]: https://github.com/avgeek-inc/towbar/releases/tag/v2.0.8
