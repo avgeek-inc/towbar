@@ -89,7 +89,7 @@ export function AccountMenu({
         className="w-60 max-w-[calc(100vw-2rem)] rounded-2xl border border-separator"
         placement="top start"
       >
-        <div className="border-b border-separator px-3 py-3">
+        <div className="grid gap-0.25 border-b border-separator px-3 py-3">
           <div className="truncate text-sm font-medium">{user.name}</div>
           <div className="truncate text-xs text-muted">{user.email}</div>
         </div>
