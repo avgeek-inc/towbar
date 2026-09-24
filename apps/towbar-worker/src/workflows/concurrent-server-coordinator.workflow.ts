@@ -1,4 +1,5 @@
 import {
+  CancellationScope,
   condition,
   defineSignal,
   executeChild,
@@ -27,6 +28,16 @@ const { executeServerCheckActivity } = proxyActivities<typeof activities>({
   heartbeatTimeout: "30 seconds",
   retry: { maximumAttempts: 1 },
   startToCloseTimeout: "2 minutes",
+});
+const { markServerCheckInterruptedActivity } = proxyActivities<
+  typeof activities
+>({
+  retry: {
+    initialInterval: "2 seconds",
+    maximumAttempts: 10,
+    maximumInterval: "30 seconds",
+  },
+  startToCloseTimeout: "5 minutes",
 });
 const { executeServerPreparationActivity } = proxyActivities<typeof activities>(
   {
@@ -132,7 +143,13 @@ export async function runConcurrentServerCoordinatorWorkflow() {
 
 function executeServerWork(item: ServerWorkItem) {
   if (item.kind === "server-check") {
-    return executeServerCheckActivity(item.id).then(() => undefined);
+    return executeServerCheckActivity(item.id)
+      .catch(() =>
+        CancellationScope.nonCancellable(() =>
+          markServerCheckInterruptedActivity(item.id),
+        ),
+      )
+      .then(() => undefined);
   }
   if (item.kind === "server-preparation") {
     return executeServerPreparationActivity(item.id).then(() => undefined);

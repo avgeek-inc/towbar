@@ -27,6 +27,7 @@ import {
 
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { requestServerCheck } from "../servers/service.js";
+import { recoverInterruptedServerChecks } from "../servers/checks.js";
 import { requestExpiredPreviewCleanups } from "../previews/cleanup.js";
 import { enqueueDueNotificationDeliveries } from "../notifications/delivery-service.js";
 import { emitBackupStaleNotification } from "../notifications/events.js";
@@ -52,6 +53,7 @@ export async function runMaintenanceSweep() {
   const transactionalEmailsQueued = await enqueueDueTransactionalEmails();
   const notificationDeliveriesQueued = await enqueueDueNotificationDeliveries();
   const vulnerabilityScansQueued = await enqueueDueVulnerabilityScans();
+  const checksRecovered = await recoverInterruptedServerChecks();
   const activeServers = await getTowbarDatabase()
     .select({
       id: servers.id,
@@ -108,6 +110,7 @@ export async function runMaintenanceSweep() {
     backupsAssured,
     backupsQueued,
     checksQueued,
+    checksRecovered,
     notificationDeliveriesQueued,
     transactionalEmailsQueued,
     previewCleanupsQueued,
