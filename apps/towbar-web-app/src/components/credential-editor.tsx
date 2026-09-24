@@ -460,7 +460,7 @@ function CredentialVerificationModal({
                         <div className="grid min-w-0 gap-1">
                           <div className="flex flex-wrap items-center gap-2">
                             {hostKey.algorithm === "ssh-ed25519" ? (
-                              <Chip size="small" variant="secondary">
+                              <Chip size="small" variant="yellow">
                                 ED25519
                               </Chip>
                             ) : (
