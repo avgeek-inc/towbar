@@ -58,6 +58,10 @@ function Grid(props: ComponentProps<typeof CartesianGrid>) {
   return <CartesianGrid stroke="var(--separator)" {...props} />;
 }
 
+function ChartTooltip(props: ComponentProps<typeof Tooltip>) {
+  return <Tooltip isAnimationActive={false} {...props} />;
+}
+
 type TooltipEntry = {
   color?: string;
   dataKey?: string | number;
@@ -121,7 +125,7 @@ export const LineChart = Object.assign(Root, {
   Line,
   Root,
   ReferenceLine,
-  Tooltip,
+  Tooltip: ChartTooltip,
   TooltipContent,
   XAxis,
   YAxis,
