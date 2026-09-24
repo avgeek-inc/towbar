@@ -602,9 +602,9 @@ function ServerTlsForm({
             <Switch.Control>
               <Switch.Thumb />
             </Switch.Control>
-            <span className="grid gap-1">
-              <Label>Enable Cloudflare TLS</Label>
-              <span className="text-sm text-muted">
+            <span className="grid gap-0.5">
+              <Label className="font-normal">Enable Cloudflare TLS</Label>
+              <span className="text-sm font-normal text-muted">
                 Use Cloudflare DNS validation for applicable workloads.
               </span>
             </span>
