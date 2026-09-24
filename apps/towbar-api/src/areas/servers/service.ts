@@ -408,10 +408,17 @@ export async function getServerCheckExecutionContext(checkId: string) {
     : [];
   const currentReleaseByDeployable =
     selectCurrentProductionReleaseByDeployable(retainedReleases);
-  await getTowbarDatabase()
+  const [started] = await getTowbarDatabase()
     .update(serverChecks)
     .set({ startedAt: new Date(), status: "running" })
-    .where(eq(serverChecks.id, checkId));
+    .where(
+      and(
+        eq(serverChecks.id, checkId),
+        inArray(serverChecks.status, ["queued", "running"]),
+      ),
+    )
+    .returning({ id: serverChecks.id });
+  if (!started) throw conflict("Server check is already complete");
   return {
     ...context,
     ownedDeployableIds: ownership.map((item) => item.id),
@@ -492,11 +499,32 @@ export async function finishServerCheck(
         result: input.result ?? null,
         status: input.status,
       })
-      .where(eq(serverChecks.id, checkId))
+      .where(
+        and(
+          eq(serverChecks.id, checkId),
+          inArray(serverChecks.status, ["queued", "running"]),
+        ),
+      )
       .returning();
-    if (!check) throw notFound("Server check");
+    if (!check) {
+      const [existing] = await transaction
+        .select()
+        .from(serverChecks)
+        .where(eq(serverChecks.id, checkId))
+        .limit(1);
+      if (!existing) throw notFound("Server check");
+      return {
+        check: existing,
+        runtimeTransitions: [],
+        serverBecameUnhealthy: false,
+        serverRecovered: false,
+      };
+    }
     const [previousCheck] = await transaction
-      .select({ status: serverChecks.status })
+      .select({
+        errorCode: serverChecks.errorCode,
+        status: serverChecks.status,
+      })
       .from(serverChecks)
       .where(
         and(
@@ -633,7 +661,9 @@ export async function finishServerCheck(
       serverBecameUnhealthy:
         input.status === "failed" && previousCheck?.status !== "failed",
       serverRecovered:
-        input.status === "succeeded" && previousCheck?.status === "failed",
+        input.status === "succeeded" &&
+        previousCheck?.status === "failed" &&
+        previousCheck.errorCode !== "SERVER_CHECK_INTERRUPTED",
     };
   });
   await emitServerCheckNotifications({

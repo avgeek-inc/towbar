@@ -55,6 +55,13 @@ export async function executeServerCheckActivity(checkId: string) {
   }
 }
 
+export async function markServerCheckInterruptedActivity(checkId: string) {
+  await signedApiRequest(
+    "POST",
+    `/v1/internal/server-checks/${checkId}/interrupt`,
+  );
+}
+
 export function safeErrorMessage(error: unknown) {
   if (error instanceof CommandError) {
     if (/permission denied \(publickey(?:,[^)]+)?\)/iu.test(error.stderr))

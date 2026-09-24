@@ -10,6 +10,7 @@ import {
   getServerCredentialVerificationExecutionContext,
 } from "../../../areas/servers/credential-verification.js";
 import { readJson, readUuidPathParameter } from "../../../http/requests.js";
+import { markServerCheckInterrupted } from "../../../areas/servers/checks.js";
 
 const checkId = (value: string) => readUuidPathParameter(value, "checkId");
 
@@ -49,3 +50,10 @@ internalServerCheckRoutes.post("/:checkId/events", async (context) => {
       (await finishServerCheck(id, body)),
   });
 });
+internalServerCheckRoutes.post("/:checkId/interrupt", async (context) =>
+  context.json({
+    check: await markServerCheckInterrupted(
+      checkId(context.req.param("checkId")),
+    ),
+  }),
+);
