@@ -246,7 +246,7 @@ export function SourceDetail() {
               confirm={{
                 actionLabel: "Sync",
                 description:
-                  "Towbar will refresh each environment’s inventory from its mapped branch. This does not deploy workloads. Member-initiated syncs pause runtime automation until an Admin enables it.",
+                  "Towbar will refresh each environment’s inventory from its mapped branch. This does not deploy workloads.",
                 title: "Sync environments now?",
               }}
               pendingLabel="Queueing sync…"

@@ -225,7 +225,7 @@ function statusTooltip(status: string, context?: "runtime") {
         "The applied configuration matches the current source configuration.",
       live: "This revision is currently serving traffic.",
       member:
-        "Members can manage repositories, workloads, and their own access.",
+        "Members can update secret values and alert rules, and manage their own access.",
       not_restore_ready: "The available backup cannot currently be restored.",
       offline: "No recent report has been received.",
       online: "Recent reports are arriving normally.",

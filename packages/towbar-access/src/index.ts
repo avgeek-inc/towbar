@@ -14,7 +14,7 @@ export const roleDescriptions: Record<WorkspaceRole, string> = {
   admin:
     "Full access, including team, integrations, infrastructure, and credentials.",
   member:
-    "Manage repositories, secret values, and Scout Agent. View operational activity.",
+    "Manage secret values, Scout Agent, and alert rules. View repositories and operational activity.",
   viewer: "View operational activity without changing shared resources.",
 };
 export function isWorkspaceRole(value: unknown): value is WorkspaceRole {
@@ -65,7 +65,6 @@ const viewerPermissions = {
 } as const satisfies RolePermissions;
 const memberPermissions = {
   ...viewerPermissions,
-  repository: statements.repository,
   secret: ["list", "update"],
   sharedSecret: ["list", "update", "reference"],
   scout: ["read", "configure"],

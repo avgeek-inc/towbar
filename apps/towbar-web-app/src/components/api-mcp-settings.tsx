@@ -442,7 +442,7 @@ function CreateKey({
                 [
                   "edit",
                   "Edit",
-                  "Manage repositories, update secrets, and configure Scout within your role.",
+                  "Update secrets and configure Scout within your role.",
                 ] as [string, string, string],
               ]
             : []),
