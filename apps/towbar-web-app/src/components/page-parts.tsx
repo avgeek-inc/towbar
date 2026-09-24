@@ -46,6 +46,10 @@ import { ApplicationPage } from "@workspace/web-page-sections/page";
 import type { BreadcrumbAncestors } from "@workspace/web-page-sections/page";
 
 import { refreshApiQueries } from "@/hooks/use-api-query";
+import {
+  BreadcrumbEntitySwitcher,
+  type BreadcrumbEntityKind,
+} from "./breadcrumb-entity-switcher";
 
 const appBreadcrumb = [{ href: "/", label: "Towbar" }] as const;
 export const sourcesBreadcrumb = [
@@ -70,6 +74,7 @@ export function DashboardPage({
   badge,
   breadcrumbAncestors = appBreadcrumb,
   breadcrumbLabel,
+  breadcrumbSwitcher,
   children,
   icon,
   title,
@@ -80,6 +85,7 @@ export function DashboardPage({
   badge?: ReactNode;
   breadcrumbAncestors?: BreadcrumbAncestors;
   breadcrumbLabel?: string;
+  breadcrumbSwitcher?: { id: string; kind: BreadcrumbEntityKind };
   children: ReactNode;
   icon: ComponentProps<typeof HugeiconsIcon>["icon"];
   title: string;
@@ -88,6 +94,16 @@ export function DashboardPage({
 }) {
   const [selection, setSelection] = useState<PageSelection | null>(null);
   const heading = selection ? selection.label : title;
+  const switcher = breadcrumbSwitcher ? (
+    <BreadcrumbEntitySwitcher
+      currentId={breadcrumbSwitcher.id}
+      kind={breadcrumbSwitcher.kind}
+      label={title}
+    />
+  ) : undefined;
+  const switcherKey = breadcrumbSwitcher
+    ? `${breadcrumbSwitcher.kind}:${breadcrumbSwitcher.id}`
+    : undefined;
   return (
     <PageSelectionContext.Provider value={setSelection}>
       <ApplicationPage
@@ -95,8 +111,15 @@ export function DashboardPage({
         badge={selection ? selection.badge : badge}
         breadcrumbAncestors={
           selection?.keepEntityName
-            ? [...breadcrumbAncestors, { label: title }]
+            ? [
+                ...breadcrumbAncestors,
+                { content: switcher, contentKey: switcherKey, label: title },
+              ]
             : breadcrumbAncestors
+        }
+        breadcrumbContent={selection?.keepEntityName ? undefined : switcher}
+        breadcrumbContentKey={
+          selection?.keepEntityName ? undefined : switcherKey
         }
         breadcrumbLabel={breadcrumbLabel}
         title={heading}

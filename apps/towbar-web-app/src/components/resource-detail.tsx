@@ -469,6 +469,7 @@ export function ResourceDetail() {
         ) : undefined
       }
       breadcrumbAncestors={resourcesBreadcrumb}
+      breadcrumbSwitcher={{ id: resourceId, kind: "resources" }}
       title={item.name}
     >
       <InstanceEnvironmentChoice item={item} kind="resources" />

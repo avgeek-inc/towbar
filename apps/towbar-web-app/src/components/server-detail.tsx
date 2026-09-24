@@ -392,6 +392,7 @@ export function ServerDetail() {
         ) : undefined
       }
       breadcrumbAncestors={serversBreadcrumb}
+      breadcrumbSwitcher={{ id: serverId, kind: "servers" }}
       title={item.canonicalIp}
     >
       <div className="content-grid">

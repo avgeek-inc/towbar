@@ -16,7 +16,14 @@ export function AppShellBreadcrumb({
   const registrationRef = useRef({ items, title });
   const { registerBreadcrumb, unregisterBreadcrumb } =
     useRequiredAppShell("AppShellBreadcrumb");
-  const registrationKey = JSON.stringify({ items, title });
+  const registrationKey = JSON.stringify({
+    items: items.map(({ contentKey, href, label }) => ({
+      contentKey,
+      href,
+      label,
+    })),
+    title,
+  });
 
   registrationRef.current = { items, title };
 

@@ -7,14 +7,16 @@ import {
   TypographyParagraph,
 } from "@workspace/web-design-system/typography/typography";
 export type BreadcrumbAncestors = readonly [
-  { href?: string; label: string },
-  ...{ href?: string; label: string }[],
+  AppShellBreadcrumbItems[number],
+  ...AppShellBreadcrumbItems[number][],
 ];
 type Shared = Omit<ComponentProps<typeof Page>, "lead">;
 export interface ApplicationPageProps extends Shared {
   actions?: ReactNode;
   badge?: ReactNode;
   breadcrumbAncestors: BreadcrumbAncestors;
+  breadcrumbContent?: ReactNode;
+  breadcrumbContentKey?: string;
   breadcrumbLabel?: string;
   description?: string;
   title: string;
@@ -25,6 +27,8 @@ function TitledPage({
   actions,
   badge,
   breadcrumbAncestors: _breadcrumbAncestors,
+  breadcrumbContent: _breadcrumbContent,
+  breadcrumbContentKey: _breadcrumbContentKey,
   breadcrumbLabel: _breadcrumbLabel,
   children,
   description,
@@ -68,10 +72,20 @@ function TitledPage({
   );
 }
 export function ApplicationPage(props: ApplicationPageProps) {
-  const { breadcrumbAncestors, breadcrumbLabel, title } = props;
+  const {
+    breadcrumbAncestors,
+    breadcrumbContent,
+    breadcrumbContentKey,
+    breadcrumbLabel,
+    title,
+  } = props;
   const breadcrumbItems = [
     ...breadcrumbAncestors,
-    { label: breadcrumbLabel ?? title },
+    {
+      content: breadcrumbContent,
+      contentKey: breadcrumbContentKey,
+      label: breadcrumbLabel ?? title,
+    },
   ] as AppShellBreadcrumbItems;
 
   return (

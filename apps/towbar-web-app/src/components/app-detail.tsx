@@ -233,6 +233,7 @@ export function AppDetail() {
         ) : undefined
       }
       breadcrumbAncestors={appsBreadcrumb}
+      breadcrumbSwitcher={{ id: appId, kind: "apps" }}
       title={item.name}
       titleIcon={appLogo}
     >
