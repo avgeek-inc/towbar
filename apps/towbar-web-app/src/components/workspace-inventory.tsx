@@ -75,7 +75,7 @@ function InventoryViewToggle({ kind }: { kind: "Apps" | "Resources" }) {
   const [layout, setLayout] = useQueryChoice(
     "layout",
     inventoryLayouts,
-    "grouped",
+    "unified",
   );
   return (
     <ToggleButtonGroup
@@ -282,7 +282,7 @@ function DeployableInventoryTable({
   servers,
   sources,
 }: DeployableInventoryProps) {
-  const [layout] = useQueryChoice("layout", inventoryLayouts, "grouped");
+  const [layout] = useQueryChoice("layout", inventoryLayouts, "unified");
   const filtered = useInventoryQuery(
     kind === "app" ? "apps" : "resources",
   ).includes("?");
