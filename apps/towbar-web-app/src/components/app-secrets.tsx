@@ -652,7 +652,7 @@ function SecretVariablesEditor({
                         ) : null}
                         <span
                           aria-hidden="true"
-                          className="hidden min-w-0 flex-1 border-t border-dashed border-separator opacity-50 lg:block"
+                          className="hidden min-w-0 flex-1 border-t border-dashed border-muted/50 lg:block"
                         />
                       </div>
                       <div className="flex min-w-0 items-center gap-2">
