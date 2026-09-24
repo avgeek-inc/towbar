@@ -16,11 +16,42 @@ function TooltipRoot(props: TooltipProps) {
   return <HeroTooltip closeDelay={100} delay={250} {...props} />;
 }
 
+export function TooltipArrowShape() {
+  return (
+    <svg
+      aria-hidden="true"
+      data-slot="overlay-arrow"
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+    >
+      <path
+        className="fill-overlay stroke-none"
+        d="M0 0C5.48483 8 6.5 8 12 0Z"
+      />
+      <path
+        className="fill-none"
+        data-slot="tooltip-arrow-edge"
+        d="M0 0C5.48483 8 6.5 8 12 0"
+        strokeWidth="1"
+      />
+    </svg>
+  );
+}
+
+function TooltipArrow(props: ComponentProps<typeof HeroTooltip.Arrow>) {
+  return (
+    <HeroTooltip.Arrow {...props}>
+      <TooltipArrowShape />
+    </HeroTooltip.Arrow>
+  );
+}
+
 export const Tooltip = Object.assign(TooltipRoot, {
   Root: TooltipRoot,
   Trigger: HeroTooltip.Trigger,
   Content: HeroTooltip.Content,
-  Arrow: HeroTooltip.Arrow,
+  Arrow: TooltipArrow,
 });
 export type { TooltipProps } from "@heroui/react";
 

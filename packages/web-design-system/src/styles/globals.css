@@ -55,6 +55,10 @@ a {
 }
 
 @layer components {
+  .tooltip [data-slot="tooltip-arrow-edge"] {
+    stroke: color-mix(in oklab, var(--overlay) 82%, var(--foreground) 18%);
+  }
+
   .popover {
     box-shadow:
       var(--overlay-shadow),
