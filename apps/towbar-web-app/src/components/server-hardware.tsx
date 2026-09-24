@@ -19,7 +19,7 @@ export function ServerHardwareDescription({
       <span>Unknown Instance Type</span>
     );
   return (
-    <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
       {hardware.instance ? (
         <ProviderLogo provider={hardware.instance.provider} />
       ) : null}
