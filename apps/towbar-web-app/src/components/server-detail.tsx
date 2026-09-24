@@ -411,7 +411,7 @@ export function ServerDetail() {
             {
               value: "overview",
               label: "Overview",
-              icon: providerIcon ?? <HugeiconsIcon icon={ServerStack01Icon} />,
+              icon: <HugeiconsIcon icon={ServerStack01Icon} />,
               content: (
                 <div className="content-grid">
                   <ServerPreparationOverview {...preparationProps} />
