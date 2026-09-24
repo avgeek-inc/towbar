@@ -69,6 +69,9 @@ export function HistoryFilter({
     label: string;
     icon?: ReactNode;
     searchText?: string;
+    trailing?: ReactNode;
+    selectedLabel?: string;
+    ariaLabel?: string;
   }[];
   onChange: (value: string) => void;
   allIcon?: ReactNode;
@@ -99,16 +102,17 @@ export function HistoryFilter({
           id={option.id}
           key={option.id}
           textValue={option.searchText ?? option.label}
-          aria-label={option.label}
+          aria-label={option.ariaLabel ?? option.label}
         >
           {option.icon ? (
             <span className="shrink-0" aria-hidden="true">
               {option.icon}
             </span>
           ) : null}
-          <span className="min-w-0 flex-1 whitespace-normal">
-            {option.label}
-          </span>
+          <span className="min-w-0 flex-1 truncate">{option.label}</span>
+          {option.trailing ? (
+            <span className="shrink-0">{option.trailing}</span>
+          ) : null}
           <ListBox.ItemIndicator />
         </ListBox.Item>
       ))}
@@ -131,8 +135,13 @@ export function HistoryFilter({
               </span>
             ) : null}
             <span className="truncate">
-              {selected?.label ?? `All ${label.toLowerCase()}`}
+              {selected?.selectedLabel ??
+                selected?.label ??
+                `All ${label.toLowerCase()}`}
             </span>
+            {selected?.trailing ? (
+              <span className="shrink-0">{selected.trailing}</span>
+            ) : null}
           </span>
         </Select.Value>
         <Select.Indicator />

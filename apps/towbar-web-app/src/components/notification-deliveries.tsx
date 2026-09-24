@@ -6,11 +6,7 @@ import {
 } from "@workspace/towbar-web-ui/table-cell-text";
 
 import { useMemo, useState } from "react";
-import {
-  CubeIcon,
-  DashboardCircleIcon,
-  ServerStack01Icon,
-} from "@hugeicons/core-free-icons";
+import { ServerStack01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { App, Resource, Server } from "@workspace/towbar-web-client";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -19,6 +15,10 @@ import {
   notificationHistoryCategories,
 } from "./notification-categories";
 import { NotificationProviderIcon } from "./notification-provider-icon";
+import { AppLogo, ResourceLogo } from "./deployable-identity";
+import { CloudProviderLogo } from "./cloud-provider-logo";
+import { EnvironmentChip } from "./environment-chip";
+import { resourceImageBrand } from "./resource-image-brand";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import type { ResourceTableColumn } from "@workspace/towbar-web-ui/resource-table";
 import { RelativeTime } from "./last-synced-time";
@@ -124,22 +124,45 @@ export function NotificationDeliveries() {
       ...(apps.data?.apps ?? []).map((app) => ({
         id: app.id,
         name: app.name,
-        kind: app.environment ? `App · ${app.environment.name}` : "App",
-        icon: DashboardCircleIcon,
+        kind: "App",
+        environment: app.environment?.name,
+        icon: (
+          <AppLogo
+            key={app.config.domains?.primary ?? "no-domain"}
+            domain={
+              app.config.domains?.primary ??
+              app.config.domains?.redirects[0]?.host
+            }
+            size="small"
+          />
+        ),
       })),
       ...(resources.data?.resources ?? []).map((resource) => ({
         id: resource.id,
         name: resource.name,
-        kind: resource.environment
-          ? `Resource · ${resource.environment.name}`
-          : "Resource",
-        icon: CubeIcon,
+        kind: "Resource",
+        environment: resource.environment?.name,
+        icon: (
+          <ResourceLogo
+            brand={resourceImageBrand(resource.kind, resource.config.image)}
+            size="small"
+          />
+        ),
       })),
       ...(servers.data?.servers ?? []).map((server) => ({
         id: server.id,
         name: server.canonicalIp,
         kind: "Server",
-        icon: ServerStack01Icon,
+        environment: null,
+        icon: server.hardware?.instance ? (
+          <CloudProviderLogo
+            provider={server.hardware.instance.provider}
+            className="size-6"
+            size={24}
+          />
+        ) : (
+          <HugeiconsIcon icon={ServerStack01Icon} className="size-5" />
+        ),
       })),
     ],
     [apps.data, resources.data, servers.data],
@@ -179,17 +202,16 @@ export function NotificationDeliveries() {
       cell: (item) => {
         const entity = item.targetId ? entityById.get(item.targetId) : null;
         return (
-          <TableCellStack
-            as="div"
-            className="min-w-28 max-w-48 whitespace-normal"
-          >
+          <span className="inline-flex min-w-28 max-w-48 items-center gap-2 whitespace-normal">
+            {entity?.icon ? (
+              <span className="shrink-0" aria-hidden="true">
+                {entity.icon}
+              </span>
+            ) : null}
             <span className="break-words">
               {entity?.name ?? item.entityName}
             </span>
-            {entity ? (
-              <TableCellDescription>{entity.kind}</TableCellDescription>
-            ) : null}
-          </TableCellStack>
+          </span>
         );
       },
     },
@@ -266,8 +288,17 @@ export function NotificationDeliveries() {
             allIcon={<ScoutIcon name="all" />}
             options={entities.map((entity) => ({
               id: entity.id,
-              label: `${entity.name} · ${entity.kind}`,
-              icon: <HugeiconsIcon icon={entity.icon} className="size-4" />,
+              label: entity.name,
+              ariaLabel: [entity.name, entity.kind, entity.environment]
+                .filter(Boolean)
+                .join(", "),
+              searchText: [entity.name, entity.kind, entity.environment]
+                .filter(Boolean)
+                .join(" "),
+              icon: entity.icon,
+              trailing: entity.environment ? (
+                <EnvironmentChip name={entity.environment} showIcon={false} />
+              ) : undefined,
             }))}
             searchPlaceholder="Search apps, resources or servers"
             onChange={(value) => history.setFilter("entityId", value)}
