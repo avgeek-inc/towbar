@@ -36,6 +36,7 @@ import type { ReactNode } from "react";
 import type {
   App,
   Deployment,
+  PreviewEnvironment,
   Release,
   RuntimeState,
   Source,
@@ -104,6 +105,12 @@ export function AppDetail() {
   );
   const deployments = useApiQuery<{ deployments: Deployment[] }>(
     `/v1/core/apps/${appId}/deployments`,
+    5_000,
+  );
+  const previews = useApiQuery<{ previews: PreviewEnvironment[] }>(
+    app.data?.app.config.preview?.enabled
+      ? `/v1/core/apps/${appId}/previews`
+      : null,
     5_000,
   );
   const releases = useApiQuery<{ releases: Release[] }>(
@@ -460,10 +467,16 @@ export function AppDetail() {
                   value: "previews",
                   label: "Previews",
                   icon: <HugeiconsIcon icon={GitBranchIcon} />,
+                  indicator: previews.data
+                    ? {
+                        label: String(previews.data.previews.length),
+                        variant: "secondary" as const,
+                      }
+                    : undefined,
                   content: (
                     <PreviewEnvironments
-                      appId={appId}
-                      sourceId={item.sourceId}
+                      previews={previews.data?.previews}
+                      error={previews.error}
                     />
                   ),
                 },

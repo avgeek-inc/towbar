@@ -16,7 +16,6 @@ import {
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { ActionButton, InlineLink } from "@/components/page-parts";
-import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { deploymentHref } from "@/lib/deployment-route";
 import { RelativeTime } from "./last-synced-time";
@@ -24,21 +23,14 @@ import { formatDate } from "./dashboard-overview";
 import { DomainLink } from "./domain-link";
 
 export function PreviewEnvironments({
-  appId,
-  sourceId,
+  previews,
+  error,
 }: {
-  appId?: string;
-  sourceId: string;
+  previews?: PreviewEnvironment[];
+  error?: string;
 }) {
-  const endpoint = appId
-    ? `/v1/core/apps/${appId}/previews`
-    : `/v1/core/sources/${sourceId}/previews`;
-  const query = useApiQuery<{ previews: PreviewEnvironment[] }>(
-    endpoint,
-    5_000,
-  );
-  if (query.error) return <QueryError message={query.error} />;
-  if (!query.data) return <QueryLoading variant="list" />;
+  if (error) return <QueryError message={error} />;
+  if (!previews) return <QueryLoading variant="list" />;
 
   const columns: ResourceTableColumn<PreviewEnvironment>[] = [
     {
@@ -57,16 +49,6 @@ export function PreviewEnvironments({
         </a>
       ),
     },
-    ...(!appId
-      ? [
-          {
-            key: "app",
-            header: "App",
-            className: "min-w-44",
-            cell: (preview: PreviewEnvironment) => preview.appName,
-          },
-        ]
-      : []),
     {
       key: "url",
       header: "URL",
@@ -216,7 +198,7 @@ export function PreviewEnvironments({
       emptyDescription="Enable Preview for an app, then open a same-repository pull request targeting the Repository branch."
       emptyTitle="No Preview deployments"
       getRowKey={(preview) => preview.id}
-      items={query.data.previews}
+      items={previews}
       tableClassName="min-w-[1040px]"
     />
   );
