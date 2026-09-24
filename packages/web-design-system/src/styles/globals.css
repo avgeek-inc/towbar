@@ -66,7 +66,7 @@ a {
   }
 
   .button.button--sm {
-    @apply h-7 gap-1.5 px-3 text-xs/4;
+    @apply h-[34px] gap-1.5 px-3 text-xs/4;
 
     & svg:not([data-slot="spinner"] svg, [data-slot="link-icon"] svg) {
       @apply my-0 size-3.5;
@@ -78,7 +78,7 @@ a {
   }
 
   .button.button--sm.button--icon-only {
-    @apply w-7 px-0;
+    @apply w-[34px] px-0;
   }
 
   .table__column {
@@ -160,8 +160,16 @@ a {
   }
 
   @media (pointer: fine) {
+    .button.button--sm {
+      @apply h-8;
+    }
+
+    .button.button--sm.button--icon-only {
+      @apply w-8;
+    }
+
     .input {
-      @apply h-8 px-2.5 py-1.5 text-sm;
+      @apply h-8 px-2.5 py-1 text-sm;
     }
 
     .textarea {

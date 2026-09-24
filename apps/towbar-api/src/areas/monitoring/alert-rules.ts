@@ -18,7 +18,7 @@ import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { badRequest, conflict, notFound } from "../../http/errors.js";
 import { getServer } from "../servers/service.js";
 import { notificationProviderAvailability } from "../notifications/configuration.js";
-import { getRuntimeNotifications } from "../../infrastructure/runtime-notifications.js";
+import { notificationRoutesForWorkspace } from "../notifications/email-destinations.js";
 
 export type ScoutScope = { serverId: string; workspaceId: string };
 type Database = ReturnType<typeof getTowbarDatabase>;
@@ -67,8 +67,8 @@ export async function listScoutAlertRules(
       .orderBy(apps.name)
       .limit(512),
   ]);
-  const destinations = getRuntimeNotifications()
-    .routes.filter((route) => route.categories.includes("scout"))
+  const destinations = (await notificationRoutesForWorkspace(scope.workspaceId))
+    .filter((route) => route.categories.includes("scout"))
     .map((route) => ({
       categories: route.categories,
       enabled: true,

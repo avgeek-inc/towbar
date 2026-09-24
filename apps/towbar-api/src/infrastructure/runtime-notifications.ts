@@ -4,17 +4,19 @@ import {
   type NotificationProvider,
   type SlackConnectionInput,
   type TelegramConnectionInput,
+  discordWebhookCredentialsSchema,
   emailConnectionInputSchema,
   notificationDestinationInputSchema,
   slackConnectionInputSchema,
   telegramConnectionInputSchema,
+  webhookNotificationConfigSchema,
 } from "@workspace/towbar-core";
 import { z } from "zod";
 
 type RuntimeNotificationProviderConfiguration =
   | (SlackConnectionInput & { appBaseUrl: string; provider: "slack" })
   | (EmailConnectionInput & { provider: "smtp"; subjectPrefix: "Towbar" })
-  | (Required<TelegramConnectionInput> & { provider: "telegram" })
+  | (TelegramConnectionInput & { botToken: string; provider: "telegram" })
   | { provider: "discord" | "webhook" };
 
 type RuntimeNotificationRoute = NotificationDestinationInput & {
@@ -49,6 +51,36 @@ const runtimeNotificationsSchema = z
             botToken: telegramConnectionInputSchema.shape.botToken.unwrap(),
           })
           .optional(),
+        discord: z
+          .array(discordWebhookCredentialsSchema)
+          .max(100)
+          .refine(
+            (webhooks) =>
+              new Set(webhooks.map((webhook) => webhook.webhookId)).size ===
+              webhooks.length,
+            "Configure each Discord webhook ID only once",
+          )
+          .optional(),
+        webhook: z
+          .array(
+            webhookNotificationConfigSchema.extend({
+              id: z
+                .string()
+                .trim()
+                .regex(/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/u)
+                .max(56),
+              label: z.string().trim().min(1).max(100),
+              signingSecret: z.string().min(32).max(512),
+            }),
+          )
+          .max(100)
+          .refine(
+            (endpoints) =>
+              new Set(endpoints.map((endpoint) => endpoint.id)).size ===
+              endpoints.length,
+            "Configure each webhook endpoint ID only once",
+          )
+          .optional(),
       })
       .strict(),
     routes: z.array(routeSchema).max(100),
@@ -74,10 +106,48 @@ const runtimeNotificationsSchema = z
           message: `The ${route.provider} provider is required by this route`,
           path: ["routes", index, "provider"],
         });
+      if (
+        route.provider === "telegram" &&
+        !route.config.chatId &&
+        !value.providers.telegram?.chatId
+      )
+        context.addIssue({
+          code: "custom",
+          message:
+            "A legacy Telegram route needs a chat ID in its route or provider configuration",
+          path: ["routes", index, "config", "chatId"],
+        });
+    }
+    for (const [index, webhook] of (value.providers.discord ?? []).entries()) {
+      const id = `discord-${webhook.webhookId}`;
+      if (ids.has(id))
+        context.addIssue({
+          code: "custom",
+          message: "Notification route identifiers must be unique",
+          path: ["providers", "discord", index, "webhookId"],
+        });
+      ids.add(id);
+    }
+    for (const [index, endpoint] of (value.providers.webhook ?? []).entries()) {
+      const id = `webhook-${endpoint.id}`;
+      if (ids.has(id))
+        context.addIssue({
+          code: "custom",
+          message: "Notification route identifiers must be unique",
+          path: ["providers", "webhook", index, "id"],
+        });
+      ids.add(id);
     }
   });
 
 let cached: RuntimeNotifications | undefined;
+
+function hasWebhookRoutes(value: z.infer<typeof runtimeNotificationsSchema>) {
+  return (
+    (value.providers.webhook?.length ?? 0) > 0 ||
+    value.routes.some((route) => route.provider === "webhook")
+  );
+}
 
 export function getRuntimeNotifications(
   environment: Record<string, string | undefined> = process.env,
@@ -100,14 +170,15 @@ export function getRuntimeNotifications(
       cause: error,
     });
   }
+  normalizePreviewRouteCategories(value);
   const parsed = runtimeNotificationsSchema.parse(value);
   const providers: RuntimeNotifications["providers"] = {
-    discord: parsed.routes.some((route) => route.provider === "discord")
-      ? { provider: "discord" }
-      : undefined,
-    webhook: parsed.routes.some((route) => route.provider === "webhook")
-      ? { provider: "webhook" }
-      : undefined,
+    discord:
+      (parsed.providers.discord?.length ?? 0) > 0 ||
+      parsed.routes.some((route) => route.provider === "discord")
+        ? { provider: "discord" }
+        : undefined,
+    webhook: hasWebhookRoutes(parsed) ? { provider: "webhook" } : undefined,
     slack: parsed.providers.slack
       ? {
           ...parsed.providers.slack,
@@ -129,10 +200,60 @@ export function getRuntimeNotifications(
   };
   const result = {
     providers,
-    routes: parsed.routes.filter((route) => route.enabled),
+    routes: [
+      ...parsed.routes.filter((route) => route.enabled),
+      ...(parsed.providers.discord ?? []).map((webhook) => ({
+        id: `discord-${webhook.webhookId}`,
+        provider: "discord" as const,
+        enabled: true,
+        categories: [],
+        config: webhook,
+      })),
+      ...(parsed.providers.webhook ?? []).map((endpoint) => ({
+        id: `webhook-${endpoint.id}`,
+        provider: "webhook" as const,
+        enabled: true,
+        categories: [],
+        config: {
+          url: endpoint.url,
+          headers: endpoint.headers,
+          signingSecret: endpoint.signingSecret,
+          label: endpoint.label,
+        },
+      })),
+    ],
   };
   if (environment === process.env) cached = result;
   return result;
+}
+
+function normalizePreviewRouteCategories(value: unknown) {
+  if (
+    value &&
+    typeof value === "object" &&
+    "routes" in value &&
+    Array.isArray(value.routes)
+  ) {
+    for (const route of value.routes) {
+      if (
+        route &&
+        typeof route === "object" &&
+        "categories" in route &&
+        Array.isArray(route.categories)
+      ) {
+        const categories = new Set(
+          route.categories.map((category: unknown) =>
+            category === "previews" ? "deployments" : category,
+          ),
+        );
+        if (categories.has("health") || categories.has("scout")) {
+          categories.add("health");
+          categories.add("scout");
+        }
+        route.categories = [...categories];
+      }
+    }
+  }
 }
 
 export function getRuntimeNotificationRoute(id: string) {

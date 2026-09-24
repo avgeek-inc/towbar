@@ -75,7 +75,7 @@ function Indicator({ className, ...props }: ComponentProps<"span">) {
     <span
       aria-current={index === currentStep ? "step" : undefined}
       className={cn(
-        "relative z-10 grid size-7 shrink-0 place-items-center rounded-full border text-xs font-semibold",
+        "relative z-10 grid size-8 shrink-0 place-items-center rounded-full border text-xs font-semibold",
         index <= currentStep
           ? "border-accent bg-accent text-accent-foreground"
           : "border-separator bg-surface text-muted",
@@ -108,8 +108,8 @@ function Separator({ className, ...props }: ComponentProps<"span">) {
       aria-hidden
       className={cn(
         orientation === "horizontal"
-          ? "mt-3.5 h-px min-w-6 flex-1 bg-separator"
-          : "absolute bottom-0 left-3.5 top-7 w-px bg-separator",
+          ? "mt-4 h-px min-w-6 flex-1 bg-separator"
+          : "absolute bottom-0 left-4 top-8 w-px bg-separator",
         className,
       )}
       {...props}

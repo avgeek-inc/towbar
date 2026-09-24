@@ -152,7 +152,7 @@ EOF
 generate_config() {
   local release_dir="$1" pending_config
   CONFIG_CREATED=false
-  [[ ! -e "$TOWBAR_ENV_FILE" ]] || return 0
+  [[ ! -e "$TOWBAR_ENV_FILE" && ! -e "$TOWBAR_YAML_FILE" ]] || return 0
 
   install -d -m 0700 "$TOWBAR_CONFIG_DIR"
   pending_config="$(mktemp "$TOWBAR_CONFIG_DIR/towbar.env.XXXXXX")"
@@ -171,5 +171,5 @@ generate_config() {
   chmod 600 "$pending_config"
   mv "$pending_config" "$TOWBAR_ENV_FILE"
   CONFIG_CREATED=true
-  log "Created $TOWBAR_ENV_FILE with generated installation secrets"
+  log "Generated installation secrets"
 }

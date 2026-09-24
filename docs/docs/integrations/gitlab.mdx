@@ -1,25 +1,27 @@
 ---
 title: "GitLab"
-description: "Configure a GitLab OAuth application in the runtime environment and authorize one account."
+description: "Configure a GitLab OAuth application in Towbar's YAML configuration and authorize one account."
 ---
 
-Towbar supports one GitLab OAuth authorization per workspace. OAuth application identity, client secret, webhook secret, base URL, and private-network policy live only in the API runtime environment. PostgreSQL stores the encrypted OAuth grant and account metadata needed to refresh it.
+Towbar supports one GitLab OAuth authorization per workspace. OAuth application identity, client secret, webhook secret, base URL, and private-network policy live in `/etc/towbar/towbar.yml`. PostgreSQL stores the encrypted OAuth grant and account metadata needed to refresh it.
 
 ## Configure OAuth
 
 Create an OAuth application in GitLab with the `api` and `read_repository` scopes. Set its callback to the exact API callback URL, then configure:
 
-```dotenv
-TOWBAR_GITLAB_ENABLED=true
-TOWBAR_GITLAB_BASE_URL=https://gitlab.com
-TOWBAR_GITLAB_ALLOW_PRIVATE_NETWORK=false
-TOWBAR_GITLAB_OAUTH_CLIENT_ID=<application-id>
-TOWBAR_GITLAB_OAUTH_CLIENT_SECRET=<application-secret>
-TOWBAR_GITLAB_OAUTH_REDIRECT_URI=https://towbar.example/v1/core/gitlab/oauth/callback
-TOWBAR_GITLAB_WEBHOOK_SECRET=<shared-webhook-secret>
+```yaml title="/etc/towbar/towbar.yml"
+integrations:
+  gitlab:
+    enabled: true
+    baseUrl: https://gitlab.com
+    allowPrivateNetwork: false
+    oauthClientId: <application-id>
+    oauthClientSecret: <application-secret>
+    oauthRedirectUri: https://towbar.example/v1/core/gitlab/oauth/callback
+    webhookSecret: <shared-webhook-secret>
 ```
 
-Private-network access must be enabled deliberately for an internal self-managed GitLab instance. Restart the API after changing these values.
+Private-network access must be enabled deliberately for an internal self-managed GitLab instance. Validate and restart Towbar after changing these values.
 
 ## Authorize and connect repositories
 

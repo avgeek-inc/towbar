@@ -5,6 +5,8 @@ import type {
   NotificationEventPayload,
   NotificationEventType,
 } from "@workspace/towbar-core";
+import { createHmac } from "node:crypto";
+import { discordWebhookCredentialsSchema } from "@workspace/towbar-core";
 
 import { NotificationProviderError } from "./provider-error.js";
 
@@ -12,24 +14,21 @@ const providerTimeoutMs = 10_000;
 
 export async function sendDiscordNotification(
   input: {
-    config: { webhookUrl: string };
+    config: { webhookId: string; webhookToken: string };
     eventId: string;
     payload: NotificationEventPayload;
   },
   request: typeof fetch = fetch,
 ) {
-  const url = new URL(input.config.webhookUrl);
-  if (
-    url.protocol !== "https:" ||
-    !["discord.com", "discordapp.com"].includes(url.hostname) ||
-    !/^\/api\/webhooks\/[^/]+\/[^/]+/u.test(url.pathname)
-  ) {
+  if (!discordWebhookCredentialsSchema.safeParse(input.config).success)
     throw new NotificationProviderError(
       "INVALID_DISCORD_WEBHOOK",
-      "Enter a Discord webhook URL from discord.com",
+      "Enter a valid Discord webhook ID and token",
       false,
     );
-  }
+  const url = new URL(
+    `https://discord.com/api/webhooks/${input.config.webhookId}/${input.config.webhookToken}`,
+  );
   url.searchParams.set("wait", "true");
   const response = await providerRequest(
     "Discord",
@@ -51,7 +50,7 @@ export async function sendTelegramNotification(
     config: {
       botToken: string;
       chatId: string;
-      messageThreadId: number;
+      messageThreadId?: number;
     };
     eventId: string;
     payload: NotificationEventPayload;
@@ -64,7 +63,9 @@ export async function sendTelegramNotification(
     {
       body: JSON.stringify({
         chat_id: input.config.chatId,
-        message_thread_id: input.config.messageThreadId,
+        ...(input.config.messageThreadId === undefined
+          ? {}
+          : { message_thread_id: input.config.messageThreadId }),
         text: renderPlainText(input.payload, input.eventId).slice(0, 4_096),
       }),
       headers: { "content-type": "application/json" },
@@ -77,7 +78,11 @@ export async function sendTelegramNotification(
 
 export async function sendWebhookNotification(
   input: {
-    config: { url: string };
+    config: {
+      url: string;
+      headers?: Record<string, string>;
+      signingSecret?: string;
+    };
     eventId: string;
     eventType: NotificationEventType;
     payload: NotificationEventPayload;
@@ -85,19 +90,33 @@ export async function sendWebhookNotification(
   request: typeof fetch = fetch,
 ) {
   const url = await requirePublicHttpsUrl(input.config.url);
+  const body = JSON.stringify({
+    event: { id: input.eventId, type: input.eventType },
+    payload: input.payload,
+  });
+  const timestamp = Math.floor(Date.now() / 1_000).toString();
+  const signature = input.config.signingSecret
+    ? createHmac("sha256", input.config.signingSecret)
+        .update(`${timestamp}.${body}`)
+        .digest("hex")
+    : null;
   const response = await providerRequest(
     "Webhook",
     url,
     {
-      body: JSON.stringify({
-        event: { id: input.eventId, type: input.eventType },
-        payload: input.payload,
-      }),
+      body,
       headers: {
+        ...input.config.headers,
         "content-type": "application/json",
         "user-agent": "Towbar-Notifications/1.0",
         "x-towbar-event-id": input.eventId,
         "x-towbar-event-type": input.eventType,
+        ...(signature
+          ? {
+              "x-towbar-timestamp": timestamp,
+              "x-towbar-signature-256": `sha256=${signature}`,
+            }
+          : {}),
       },
       method: "POST",
     },

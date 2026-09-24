@@ -6,6 +6,9 @@ CLI_RELEASE="v$CLI_VERSION"
 TOWBAR_ROOT="${TOWBAR_ROOT:-/opt/towbar}"
 TOWBAR_CONFIG_DIR="${TOWBAR_CONFIG_DIR:-/etc/towbar}"
 TOWBAR_ENV_FILE="${TOWBAR_ENV_FILE:-$TOWBAR_CONFIG_DIR/towbar.env}"
+TOWBAR_YAML_FILE="${TOWBAR_YAML_FILE:-$TOWBAR_CONFIG_DIR/towbar.yml}"
+TOWBAR_COMMITTED_ENV_FILE="$TOWBAR_ENV_FILE"
+TOWBAR_PENDING_ENV_FILE=""
 TOWBAR_REPOSITORY="${TOWBAR_REPOSITORY:-avgeek-inc/towbar}"
 TOWBAR_BIN="${TOWBAR_BIN:-/usr/local/bin/towbar}"
 RELEASES_DIR="$TOWBAR_ROOT/releases"
@@ -264,6 +267,60 @@ verify_public_prerequisites() {
   verify_public_ports
 }
 
+config_helper_for() {
+  local release_dir="$1" helper="$1/infra/runtime_config.py"
+  [[ -f "$helper" ]] || fail "$release_dir does not support YAML runtime configuration"
+  printf '%s\n' "$helper"
+}
+
+ensure_yaml_tooling() {
+  command -v python3 >/dev/null || fail "Python 3 is required for YAML configuration"
+  if python3 -c 'import yaml' >/dev/null 2>&1; then
+    return
+  fi
+  command -v apt-get >/dev/null || fail "install python3-yaml to use YAML configuration"
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update
+  apt-get install --yes python3-yaml
+  python3 -c 'import yaml' >/dev/null || fail "python3-yaml is unavailable"
+}
+
+prepare_runtime_config() {
+  local release_dir="$1" helper
+  helper="$(config_helper_for "$release_dir")"
+  ensure_yaml_tooling
+  if [[ ! -f "$TOWBAR_YAML_FILE" ]]; then
+    [[ -f "$TOWBAR_COMMITTED_ENV_FILE" ]] || fail "runtime configuration is missing"
+    if [[ -f "$VERSION_FILE" ]]; then
+      python3 "$helper" migrate \
+        --env "$TOWBAR_COMMITTED_ENV_FILE" --yaml "$TOWBAR_YAML_FILE" --preserve-legacy
+    else
+      python3 "$helper" migrate \
+        --env "$TOWBAR_COMMITTED_ENV_FILE" --yaml "$TOWBAR_YAML_FILE"
+    fi
+    ui_step "Converted runtime configuration to $TOWBAR_YAML_FILE"
+  fi
+  TOWBAR_PENDING_ENV_FILE="$(mktemp "$TOWBAR_CONFIG_DIR/.towbar.env.XXXXXX")"
+  trap 'discard_runtime_config' EXIT
+  python3 "$helper" render --yaml "$TOWBAR_YAML_FILE" --env "$TOWBAR_PENDING_ENV_FILE"
+  TOWBAR_ENV_FILE="$TOWBAR_PENDING_ENV_FILE"
+}
+
+discard_runtime_config() {
+  if [[ -n "$TOWBAR_PENDING_ENV_FILE" ]]; then
+    rm -f "$TOWBAR_PENDING_ENV_FILE"
+    TOWBAR_PENDING_ENV_FILE=""
+  fi
+  TOWBAR_ENV_FILE="$TOWBAR_COMMITTED_ENV_FILE"
+}
+
+commit_runtime_config() {
+  [[ -n "$TOWBAR_PENDING_ENV_FILE" ]] || return 0
+  mv -f "$TOWBAR_PENDING_ENV_FILE" "$TOWBAR_COMMITTED_ENV_FILE"
+  TOWBAR_PENDING_ENV_FILE=""
+  TOWBAR_ENV_FILE="$TOWBAR_COMMITTED_ENV_FILE"
+}
+
 require_root() {
   ((EUID == 0)) || fail "this command must run as root; use sudo towbar $*"
 }
@@ -306,7 +363,7 @@ install_prerequisites() {
 
   export DEBIAN_FRONTEND=noninteractive
   apt-get update
-  apt-get install --yes ca-certificates curl git iproute2 jq openssl tar util-linux
+  apt-get install --yes ca-certificates curl git iproute2 jq openssl python3 python3-yaml tar util-linux
 
   if command -v docker >/dev/null; then
     docker compose version >/dev/null 2>&1 ||
@@ -510,7 +567,7 @@ EOF
 generate_config() {
   local release_dir="$1" pending_config
   CONFIG_CREATED=false
-  [[ ! -e "$TOWBAR_ENV_FILE" ]] || return 0
+  [[ ! -e "$TOWBAR_ENV_FILE" && ! -e "$TOWBAR_YAML_FILE" ]] || return 0
 
   install -d -m 0700 "$TOWBAR_CONFIG_DIR"
   pending_config="$(mktemp "$TOWBAR_CONFIG_DIR/towbar.env.XXXXXX")"
@@ -529,7 +586,7 @@ generate_config() {
   chmod 600 "$pending_config"
   mv "$pending_config" "$TOWBAR_ENV_FILE"
   CONFIG_CREATED=true
-  log "Created $TOWBAR_ENV_FILE with generated installation secrets"
+  log "Generated installation secrets"
 }
 
 compose_for() {
@@ -825,13 +882,24 @@ upgrade_release() {
   release_dir="$(download_release "$version" "$commit")"
   generate_config "$release_dir"
   if [[ -n "${INSTALL_MODE:-}" ]]; then
-    apply_install_settings
+    if [[ -f "$TOWBAR_YAML_FILE" ]]; then
+      ensure_yaml_tooling
+      python3 "$(config_helper_for "$release_dir")" set-installation \
+        --yaml "$TOWBAR_YAML_FILE" \
+        --mode "$INSTALL_MODE" \
+        --app-url "$INSTALL_APP_URL" \
+        --gateway-domain "$INSTALL_HOSTNAME" \
+        --proxy-hops "$INSTALL_PROXY_HOPS"
+    else
+      apply_install_settings
+    fi
     if [[ "$CONFIG_CREATED" == true ]]; then
       ui_step "Created the encrypted runtime configuration"
     else
       ui_step "Updated the installation access settings"
     fi
   fi
+  prepare_runtime_config "$release_dir"
   validate_config_for "$release_dir"
 
   if [[ -L "$CURRENT_LINK" ]]; then
@@ -849,7 +917,7 @@ upgrade_release() {
       log "Upgrade failed; restoring $(metadata_value "$previous_release" VERSION)"
       set_current_release "$previous_release"
       if [[ "$containers_changed" == true ]]; then
-        compose_for "$previous_release" "$previous_commit" "$TOWBAR_ENV_FILE" \
+        compose_for "$previous_release" "$previous_commit" "$TOWBAR_COMMITTED_ENV_FILE" \
           up --detach --wait --remove-orphans
       fi
     elif [[ "$containers_changed" == true ]]; then
@@ -904,8 +972,9 @@ upgrade_release() {
   verify_running_release "$release_dir" "$commit"
   ui_step "Verified the API, worker and dashboard"
 
-  printf '%s\n' "$version" >"$VERSION_FILE"
   install_cli_from_release "$release_dir"
+  commit_runtime_config
+  printf '%s\n' "$version" >"$VERSION_FILE"
   trap - ERR INT TERM
   cleanup_installation_artifacts \
     "$release_dir" "$commit" "$previous_release" "$previous_commit"
@@ -971,7 +1040,8 @@ restart_release() {
   release_dir="$(current_release_dir)"
   commit="$(metadata_value "$release_dir" COMMIT)"
 
-  log "Validating $TOWBAR_ENV_FILE before restarting"
+  prepare_runtime_config "$release_dir"
+  log "Validating $TOWBAR_YAML_FILE before restarting"
   if ! (validate_config_for "$release_dir"); then
     restart_preflight_failure
     return 1
@@ -993,20 +1063,30 @@ restart_release() {
     printf 'Towbar: Run sudo towbar doctor to inspect the failure.\n' >&2
     return 1
   fi
+  commit_runtime_config
   log "Configuration applied"
 }
 
 config_command() {
   local release_dir commit
   case "${1:-}" in
-    path) printf '%s\n' "$TOWBAR_ENV_FILE" ;;
+    path)
+      if [[ -f "$TOWBAR_YAML_FILE" || ! -f "$TOWBAR_ENV_FILE" ]]; then
+        printf '%s\n' "$TOWBAR_YAML_FILE"
+      else
+        printf '%s\n' "$TOWBAR_ENV_FILE"
+      fi
+      ;;
     validate)
       require_root config validate
       require_runtime_tools
+      acquire_lock
       release_dir="$(current_release_dir)"
       commit="$(metadata_value "$release_dir" COMMIT)"
+      prepare_runtime_config "$release_dir"
       validate_config_for "$release_dir"
       preflight_runtime_configuration "$release_dir" "$commit"
+      discard_runtime_config
       log "Configuration is valid"
       ;;
     *) fail "usage: towbar config {path|validate}" ;;
@@ -1151,18 +1231,43 @@ doctor_check_disk_usage() {
 }
 
 doctor_check_config() {
-  local release_dir="$1" ownership mode app_url
+  local release_dir="$1" ownership mode app_url config_path helper
+  config_path="$TOWBAR_YAML_FILE"
+  if [[ ! -f "$config_path" ]]; then
+    if [[ -f "$TOWBAR_ENV_FILE" ]]; then
+      doctor_record warn "Runtime configuration uses the legacy environment file" "The next upgrade or restart will convert it to $TOWBAR_YAML_FILE."
+      config_path="$TOWBAR_ENV_FILE"
+    else
+      doctor_record fail "Runtime configuration is missing" "$TOWBAR_YAML_FILE"
+      return
+    fi
+  fi
   if [[ ! -f "$TOWBAR_ENV_FILE" ]]; then
-    doctor_record fail "Runtime configuration is missing" "$TOWBAR_ENV_FILE"
+    doctor_record fail "Derived Compose configuration is missing" "$TOWBAR_ENV_FILE"
     return
   fi
 
-  ownership="$(stat -c '%U:%G' "$TOWBAR_ENV_FILE" 2>/dev/null || true)"
-  mode="$(stat -c '%a' "$TOWBAR_ENV_FILE" 2>/dev/null || true)"
+  ownership="$(stat -c '%U:%G' "$config_path" 2>/dev/null || true)"
+  mode="$(stat -c '%a' "$config_path" 2>/dev/null || true)"
   if [[ "$ownership" == root:root && "$mode" == 600 ]]; then
-    doctor_record pass "Runtime configuration is protected" "$TOWBAR_ENV_FILE is owned by root:root with mode 600."
+    doctor_record pass "Runtime configuration is protected" "$config_path is owned by root:root with mode 600."
   else
     doctor_record fail "Runtime configuration permissions are unsafe" "Expected root:root mode 600; found ${ownership:-unknown} mode ${mode:-unknown}."
+  fi
+  if [[ "$config_path" != "$TOWBAR_ENV_FILE" ]]; then
+    ownership="$(stat -c '%U:%G' "$TOWBAR_ENV_FILE" 2>/dev/null || true)"
+    mode="$(stat -c '%a' "$TOWBAR_ENV_FILE" 2>/dev/null || true)"
+    if [[ "$ownership" != root:root || "$mode" != 600 ]]; then
+      doctor_record fail "Derived Compose configuration permissions are unsafe" "Expected root:root mode 600; found ${ownership:-unknown} mode ${mode:-unknown}."
+    fi
+  fi
+
+  if [[ "$config_path" == "$TOWBAR_YAML_FILE" ]]; then
+    helper="$(config_helper_for "$release_dir")"
+    if ! python3 "$helper" compare --yaml "$TOWBAR_YAML_FILE" --env "$TOWBAR_ENV_FILE" >/dev/null 2>&1; then
+      doctor_record fail "Runtime configuration is not applied" "Run sudo towbar config validate, then sudo towbar restart."
+      return
+    fi
   fi
 
   if (validate_config_for "$release_dir") >/dev/null 2>&1; then
@@ -1432,7 +1537,7 @@ install_command() {
     "$STYLE_BOLD" "$STYLE_GREEN" "$STYLE_RESET"
   printf 'Open the dashboard at %s\n' "$INSTALL_APP_URL"
   printf '\n'
-  ui_note "Next: configure optional integrations in the environment file."
+  ui_note "Next: configure optional integrations in the YAML configuration file."
   ui_note "Manage this installation with sudo towbar status, logs and upgrade."
 }
 

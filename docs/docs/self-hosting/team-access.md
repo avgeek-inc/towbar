@@ -50,13 +50,13 @@ Queued operations retain their requesting identity and permissions. Towbar reche
 
 Under **My Settings**, use Profile for your display name, Email & Password for sign-in details, Sessions for active sessions, and **Two-factor Auth** for authenticator apps, recovery codes, and passkeys. Store recovery codes separately; each code is single-use. Admins should enable MFA.
 
-Passwords require 15–1,024 characters. Password managers and paste are supported. Password creation checks the Have I Been Pwned corpus using only a five-character SHA-1 prefix, padded responses and a five-second deadline; the full password and hash are not sent. Corpus outages fail the change with a retry message. The offline escape hatch `TOWBAR_PASSWORD_BREACH_CHECK=false` disables that check explicitly; keep it enabled for internet-connected deployments.
+Passwords require 15–1,024 characters. Password managers and paste are supported. Password creation checks the Have I Been Pwned corpus using only a five-character SHA-1 prefix, padded responses and a five-second deadline; the full password and hash are not sent. Corpus outages fail the change with a retry message. The offline escape hatch `security.passwordBreachCheck: false` disables that check explicitly; keep it enabled for internet-connected deployments.
 
 Forgot password sends a short-lived, single-use link when SMTP is configured. Responses do not disclose whether an email exists. A successful reset revokes sessions and requires normal sign-in. Use the [local recovery command](/docs/self-hosting/account-recovery) if email or the authenticator is unavailable.
 
 ## Transactional email
 
-Configure SMTP in `TOWBAR_NOTIFICATION_CONFIG_JSON` and restart the API. Port 465 usually uses implicit TLS; a submission port such as 587 uses STARTTLS. Towbar requires encrypted delivery and validates the server certificate. The SMTP hostname must resolve to public addresses; private network relays are not supported by this transport.
+Configure SMTP under `notifications.providers.smtp` in `/etc/towbar/towbar.yml` and run `sudo towbar restart`. Port 465 usually uses implicit TLS; a submission port such as 587 uses STARTTLS. Towbar requires encrypted delivery and validates the server certificate. The SMTP hostname must resolve to public addresses; private network relays are not supported by this transport.
 
 Use a verified sender domain and apply the SMTP provider's SPF, DKIM and DMARC instructions. Test the SMTP configuration and an invitation with a mailbox you control before relying on password recovery. Notification category recipients control deployment/incident mail; account and team messages always use their server-selected recipients and are independent of those categories. The subject prefix is fixed to `[Towbar]`.
 
@@ -68,6 +68,6 @@ Profile contains your display name. Email & Password has separate email and pass
 
 Authenticator setup opens the QR code directly after a recent sign-in. Activation requires a valid code. Replacing recovery codes or disabling the authenticator requires a current code and is rate-limited. Sensitive account changes require authentication within the last ten minutes; older sessions use the shared confirmation dialog.
 
-Passkeys use WebAuthn with device verification required, such as a PIN or biometric check. Register, rename, and remove them under **My Settings → Two-factor Auth**, and use them as a second factor after signing in with your email and password. If both an authenticator and a passkey are configured, users can choose either method. Set `TOWBAR_APP_BASE_URL` to the stable HTTPS origin users visit: this determines the WebAuthn relying-party domain. Localhost is supported for development. Changing that domain requires registering new passkeys. A password reset does not bypass a configured second factor.
+Passkeys use WebAuthn with device verification required, such as a PIN or biometric check. Register, rename, and remove them under **My Settings → Two-factor Auth**, and use them as a second factor after signing in with your email and password. If both an authenticator and a passkey are configured, users can choose either method. Set `installation.appUrl` to the stable HTTPS origin users visit: this determines the WebAuthn relying-party domain. Localhost is supported for development. Changing that domain requires registering new passkeys. A password reset does not bypass a configured second factor.
 
 Team Settings opens General first, followed by Members and API Keys. Admins can edit member names and roles, add users with a temporary password, and confirm before resending or revoking an invitation. User email changes are verified through the user's Email & Password page.

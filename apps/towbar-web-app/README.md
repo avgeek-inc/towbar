@@ -84,6 +84,17 @@ Resource, Server, Deployment, and Source Sync routes. It
 listens on port 4420 to remain isolated from the normal Towbar API development
 port.
 
+The local fixture presents Email notifications with SMTP configured and a seeded
+destination. Set `TOWBAR_FIXTURE_SMTP_CONFIGURED=false` when starting the fixture
+API to review the missing-credentials empty state instead.
+Set `TOWBAR_FIXTURE_SLACK_CONFIGURED=true` to review Slack channel destinations,
+subscriptions, and the test confirmation. With the flag unset, Slack shows the
+missing-credentials empty state.
+Set `TOWBAR_FIXTURE_DISCORD_CONFIGURED=true` to review a configured Discord
+route with editable subscriptions and a test confirmation. With the flag unset,
+Discord shows the missing-configuration widget.
+Set `TOWBAR_FIXTURE_TELEGRAM_CONFIGURED=true` to review Telegram chat and topic destinations, subscriptions, and the test confirmation. Without it, Telegram shows the missing-credentials widget.
+
 To test two-factor sign-in, open `/login` and use `2fa@example.com` with
 password `Towbar fixture passphrase 2026`, then enter authenticator code
 `123456`. This fixture account starts with 2FA enabled; no enrollment is needed.

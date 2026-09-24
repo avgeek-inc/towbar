@@ -1379,6 +1379,11 @@ const workflowStates: DeploymentState[] = [
 export function createFixtureApiServer({
   githubAppConnected = false,
   notificationProvidersConfigured = false,
+  smtpConfigured = notificationProvidersConfigured,
+  slackConfigured = notificationProvidersConfigured,
+  discordConfigured = notificationProvidersConfigured,
+  telegramConfigured = notificationProvidersConfigured,
+  webhookConfigured = notificationProvidersConfigured,
   logDrainTestOutcome,
   role,
   authState,
@@ -1387,6 +1392,11 @@ export function createFixtureApiServer({
 }: TeamFixtureOptions & {
   githubAppConnected?: boolean;
   notificationProvidersConfigured?: boolean;
+  smtpConfigured?: boolean;
+  slackConfigured?: boolean;
+  discordConfigured?: boolean;
+  telegramConfigured?: boolean;
+  webhookConfigured?: boolean;
   logDrainTestOutcome?: "sent" | "auth_failure" | "rate_limited";
 } = {}) {
   const teamAccess = createTeamAccessFixture(user, {
@@ -1409,11 +1419,11 @@ export function createFixtureApiServer({
   const githubAppConfiguration = fixtureGitHubConfiguration;
   const githubInstallationState = "fixture-github-installation-state";
   const notificationProviderState = {
-    discord: notificationProvidersConfigured,
-    slack: notificationProvidersConfigured,
-    smtp: notificationProvidersConfigured,
-    telegram: notificationProvidersConfigured,
-    webhook: notificationProvidersConfigured,
+    discord: discordConfigured,
+    slack: slackConfigured,
+    smtp: smtpConfigured,
+    telegram: telegramConfigured,
+    webhook: webhookConfigured,
   };
   const connections = createSourceConnectionFixture({
     existing: sources,
@@ -1639,6 +1649,76 @@ export function createFixtureApiServer({
         })),
   });
   const eventHistory = eventHistoryFixture(teamAccess.getUser, user);
+  let emailDestinations = [
+    {
+      id: "a1111111-1111-4111-8111-555555555555",
+      email: "operations@example.com",
+      deployments: true,
+      backupsAndRestores: true,
+      scout: true,
+    },
+  ];
+  let slackDestinations = slackConfigured
+    ? [
+        {
+          id: "a2222222-2222-4222-8222-222222222222",
+          channelId: "C12345678",
+          deployments: true,
+          backupsAndRestores: true,
+          scout: true,
+        },
+      ]
+    : [];
+  let discordDestinations = discordConfigured
+    ? [
+        {
+          routeId: "discord-123456789012345678",
+          webhookId: "123456789012345678",
+          deployments: true,
+          backupsAndRestores: false,
+          alertsAndIncidents: true,
+        },
+        {
+          routeId: "discord-223456789012345678",
+          webhookId: "223456789012345678",
+          deployments: false,
+          backupsAndRestores: true,
+          alertsAndIncidents: false,
+        },
+      ]
+    : [];
+  let webhookDestinations = webhookConfigured
+    ? [
+        {
+          routeId: "webhook-operations",
+          label: "Operations",
+          hostname: "hooks.example.com",
+          deployments: true,
+          backupsAndRestores: false,
+          alertsAndIncidents: true,
+        },
+        {
+          routeId: "webhook-archive",
+          label: "Archive",
+          hostname: "events.example.org",
+          deployments: false,
+          backupsAndRestores: true,
+          alertsAndIncidents: false,
+        },
+      ]
+    : [];
+  let telegramDestinations = telegramConfigured
+    ? [
+        {
+          id: "a3333333-3333-4333-8333-333333333333",
+          chatId: "-1001234567890",
+          messageThreadId: null as number | null,
+          deployments: true,
+          backupsAndRestores: false,
+          alertsAndIncidents: true,
+        },
+      ]
+    : [];
   const fixtureServer = createServer(async (request, response) => {
     useFixtureLocalization(response, teamAccess.getPreferences);
     if (!authorizeFixtureCorsRequest(response, request.headers.origin)) return;
@@ -1653,6 +1733,286 @@ export function createFixtureApiServer({
     if (eventHistory(request, response, requestUrl)) return;
     if (await teamAccess.handle(request, response, requestUrl)) return;
     if (await logDrains(request, response, path)) return;
+    if (
+      path === "/v1/core/notifications/telegram/destinations/test" &&
+      request.method === "POST"
+    ) {
+      if (!notificationProviderState.telegram)
+        return writeJson(response, 400, {
+          error: { message: "Configure Telegram before testing destinations" },
+        });
+      const body = (await readRequestJson(request)) as {
+        chatId?: string;
+        messageThreadId?: number | null;
+      };
+      if (
+        !telegramDestinations.some(
+          (row) =>
+            row.chatId === body.chatId &&
+            row.messageThreadId === body.messageThreadId,
+        )
+      )
+        return writeJson(response, 404, {
+          error: { message: "Telegram destination was not found" },
+        });
+      return writeJson(response, 200, { status: "accepted" });
+    }
+    if (path === "/v1/core/notifications/telegram/destinations") {
+      if (request.method === "GET")
+        return writeJson(response, 200, { destinations: telegramDestinations });
+      if (request.method === "PUT") {
+        if (!notificationProviderState.telegram)
+          return writeJson(response, 400, {
+            error: { message: "Configure Telegram before saving destinations" },
+          });
+        const body = (await readRequestJson(request)) as {
+          destinations?: typeof telegramDestinations;
+        };
+        if (
+          !Array.isArray(body.destinations) ||
+          body.destinations.some(
+            (row) =>
+              !/^-?\d{1,20}$/.test(row.chatId) ||
+              (row.messageThreadId !== null &&
+                (!Number.isInteger(row.messageThreadId) ||
+                  row.messageThreadId < 1 ||
+                  row.messageThreadId > 2_147_483_647)) ||
+              typeof row.deployments !== "boolean" ||
+              typeof row.backupsAndRestores !== "boolean" ||
+              typeof row.alertsAndIncidents !== "boolean",
+          ) ||
+          new Set(
+            body.destinations.map(
+              (row) => `${row.chatId}:${row.messageThreadId ?? 0}`,
+            ),
+          ).size !== body.destinations.length
+        )
+          return writeJson(response, 400, {
+            error: { message: "Invalid Telegram destinations" },
+          });
+        const existingIds = new Map(
+          telegramDestinations.map((row) => [
+            `${row.chatId}:${row.messageThreadId ?? 0}`,
+            row.id,
+          ]),
+        );
+        telegramDestinations = body.destinations.map((row) => ({
+          ...row,
+          id:
+            existingIds.get(`${row.chatId}:${row.messageThreadId ?? 0}`) ??
+            randomUUID(),
+        }));
+        return writeJson(response, 200, { destinations: telegramDestinations });
+      }
+    }
+    if (
+      path === "/v1/core/notifications/discord/destinations/test" &&
+      request.method === "POST"
+    ) {
+      if (!notificationProviderState.discord)
+        return writeJson(response, 400, {
+          error: { message: "Configure Discord before testing routes" },
+        });
+      const body = (await readRequestJson(request)) as { routeId?: string };
+      if (!discordDestinations.some((row) => row.routeId === body.routeId))
+        return writeJson(response, 404, {
+          error: { message: "Discord destination was not found" },
+        });
+      return writeJson(response, 200, { status: "accepted" });
+    }
+    if (path === "/v1/core/notifications/discord/destinations") {
+      if (request.method === "GET")
+        return writeJson(response, 200, { destinations: discordDestinations });
+      if (request.method === "PUT") {
+        if (!notificationProviderState.discord)
+          return writeJson(response, 400, {
+            error: { message: "Configure Discord before saving destinations" },
+          });
+        const body = (await readRequestJson(request)) as {
+          destinations?: typeof discordDestinations;
+        };
+        if (
+          !Array.isArray(body.destinations) ||
+          body.destinations.some(
+            (row) =>
+              !discordDestinations.some(
+                (existing) =>
+                  existing.routeId === row.routeId &&
+                  existing.webhookId === row.webhookId,
+              ) ||
+              typeof row.deployments !== "boolean" ||
+              typeof row.backupsAndRestores !== "boolean" ||
+              typeof row.alertsAndIncidents !== "boolean",
+          ) ||
+          new Set(body.destinations.map((row) => row.routeId)).size !==
+            body.destinations.length
+        )
+          return writeJson(response, 400, {
+            error: { message: "Invalid Discord destinations" },
+          });
+        const updates = new Map(
+          body.destinations.map((row) => [row.routeId, row]),
+        );
+        discordDestinations = discordDestinations.map(
+          (row) => updates.get(row.routeId) ?? row,
+        );
+        return writeJson(response, 200, { destinations: discordDestinations });
+      }
+    }
+    if (
+      path === "/v1/core/notifications/webhook/destinations/test" &&
+      request.method === "POST"
+    ) {
+      if (!notificationProviderState.webhook)
+        return writeJson(response, 400, {
+          error: { message: "Configure webhook endpoints before testing" },
+        });
+      const body = (await readRequestJson(request)) as { routeId?: string };
+      if (!webhookDestinations.some((row) => row.routeId === body.routeId))
+        return writeJson(response, 404, {
+          error: { message: "Webhook destination was not found" },
+        });
+      return writeJson(response, 200, { status: "accepted" });
+    }
+    if (path === "/v1/core/notifications/webhook/destinations") {
+      if (request.method === "GET")
+        return writeJson(response, 200, { destinations: webhookDestinations });
+      if (request.method === "PUT") {
+        if (!notificationProviderState.webhook)
+          return writeJson(response, 400, {
+            error: { message: "Configure webhook endpoints before saving" },
+          });
+        const body = (await readRequestJson(request)) as {
+          destinations?: typeof webhookDestinations;
+        };
+        if (
+          !Array.isArray(body.destinations) ||
+          body.destinations.some(
+            (row) =>
+              !webhookDestinations.some(
+                (existing) =>
+                  existing.routeId === row.routeId &&
+                  existing.label === row.label &&
+                  existing.hostname === row.hostname,
+              ) ||
+              typeof row.deployments !== "boolean" ||
+              typeof row.backupsAndRestores !== "boolean" ||
+              typeof row.alertsAndIncidents !== "boolean",
+          ) ||
+          new Set(body.destinations.map((row) => row.routeId)).size !==
+            body.destinations.length
+        )
+          return writeJson(response, 400, {
+            error: { message: "Invalid webhook destinations" },
+          });
+        const updates = new Map(
+          body.destinations.map((row) => [row.routeId, row]),
+        );
+        webhookDestinations = webhookDestinations.map(
+          (row) => updates.get(row.routeId) ?? row,
+        );
+        return writeJson(response, 200, { destinations: webhookDestinations });
+      }
+    }
+    if (
+      path === "/v1/core/notifications/email/destinations/test" &&
+      request.method === "POST"
+    ) {
+      if (!notificationProviderState.smtp)
+        return writeJson(response, 400, {
+          error: {
+            message: "Configure SMTP before testing email destinations",
+          },
+        });
+      const body = (await readRequestJson(request)) as { email?: string };
+      if (!emailDestinations.some((row) => row.email === body.email))
+        return writeJson(response, 404, {
+          error: { message: "Email destination was not found" },
+        });
+      return writeJson(response, 200, { status: "accepted" });
+    }
+    if (path === "/v1/core/notifications/email/destinations") {
+      if (request.method === "GET")
+        return writeJson(response, 200, { destinations: emailDestinations });
+      if (request.method === "PUT") {
+        if (!notificationProviderState.smtp)
+          return writeJson(response, 400, {
+            error: {
+              message:
+                "Configure SMTP in the runtime before adding email destinations",
+            },
+          });
+        const body = (await readRequestJson(request)) as {
+          destinations?: typeof emailDestinations;
+        };
+        if (!Array.isArray(body.destinations))
+          return writeJson(response, 400, {
+            error: { message: "Invalid email destinations" },
+          });
+        const existingIds = new Map(
+          emailDestinations.map((row) => [row.email, row.id]),
+        );
+        emailDestinations = body.destinations.map((row) => ({
+          ...row,
+          id: existingIds.get(row.email) ?? randomUUID(),
+        }));
+        return writeJson(response, 200, { destinations: emailDestinations });
+      }
+    }
+    if (
+      path === "/v1/core/notifications/slack/destinations/test" &&
+      request.method === "POST"
+    ) {
+      if (!notificationProviderState.slack)
+        return writeJson(response, 400, {
+          error: { message: "Configure Slack before testing channels" },
+        });
+      const body = (await readRequestJson(request)) as { channelId?: string };
+      if (!slackDestinations.some((row) => row.channelId === body.channelId))
+        return writeJson(response, 404, {
+          error: { message: "Slack destination was not found" },
+        });
+      return writeJson(response, 200, { status: "accepted" });
+    }
+    if (path === "/v1/core/notifications/slack/destinations") {
+      if (request.method === "GET")
+        return writeJson(response, 200, { destinations: slackDestinations });
+      if (request.method === "PUT") {
+        if (!notificationProviderState.slack)
+          return writeJson(response, 400, {
+            error: {
+              message:
+                "Configure Slack bot credentials in the runtime before adding channels",
+            },
+          });
+        const body = (await readRequestJson(request)) as {
+          destinations?: typeof slackDestinations;
+        };
+        if (
+          !Array.isArray(body.destinations) ||
+          body.destinations.some(
+            (row) =>
+              !/^[A-Z][A-Z0-9]{1,79}$/.test(row.channelId) ||
+              typeof row.deployments !== "boolean" ||
+              typeof row.backupsAndRestores !== "boolean" ||
+              typeof row.scout !== "boolean",
+          ) ||
+          new Set(body.destinations.map((row) => row.channelId)).size !==
+            body.destinations.length
+        )
+          return writeJson(response, 400, {
+            error: { message: "Invalid Slack destinations" },
+          });
+        const existingIds = new Map(
+          slackDestinations.map((row) => [row.channelId, row.id]),
+        );
+        slackDestinations = body.destinations.map((row) => ({
+          ...row,
+          id: existingIds.get(row.channelId) ?? randomUUID(),
+        }));
+        return writeJson(response, 200, { destinations: slackDestinations });
+      }
+    }
     if (path === "/v1/core/integrations" && request.method === "GET") {
       return writeJson(response, 200, {
         integrations: [
@@ -4485,6 +4845,19 @@ if (entrypoint && import.meta.url === pathToFileURL(entrypoint).href) {
     smtpAvailable: process.env.TOWBAR_FIXTURE_SMTP_UNAVAILABLE !== "true",
     githubAppConnected: process.env.TOWBAR_FIXTURE_GITHUB_CONNECTED === "true",
     notificationProvidersConfigured:
+      process.env.TOWBAR_FIXTURE_NOTIFICATION_PROVIDERS_CONFIGURED === "true",
+    smtpConfigured: process.env.TOWBAR_FIXTURE_SMTP_CONFIGURED !== "false",
+    slackConfigured:
+      process.env.TOWBAR_FIXTURE_SLACK_CONFIGURED === "true" ||
+      process.env.TOWBAR_FIXTURE_NOTIFICATION_PROVIDERS_CONFIGURED === "true",
+    discordConfigured:
+      process.env.TOWBAR_FIXTURE_DISCORD_CONFIGURED === "true" ||
+      process.env.TOWBAR_FIXTURE_NOTIFICATION_PROVIDERS_CONFIGURED === "true",
+    telegramConfigured:
+      process.env.TOWBAR_FIXTURE_TELEGRAM_CONFIGURED === "true" ||
+      process.env.TOWBAR_FIXTURE_NOTIFICATION_PROVIDERS_CONFIGURED === "true",
+    webhookConfigured:
+      process.env.TOWBAR_FIXTURE_WEBHOOK_CONFIGURED === "true" ||
       process.env.TOWBAR_FIXTURE_NOTIFICATION_PROVIDERS_CONFIGURED === "true",
   }).listen(port, "127.0.0.1", () => {
     console.info(`Towbar fixture API ready at http://127.0.0.1:${port}`);

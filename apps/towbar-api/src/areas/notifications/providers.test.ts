@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createHmac } from "node:crypto";
 
 import {
   notificationEventPayloadSchema,
@@ -15,6 +16,7 @@ import {
   sendTelegramNotification,
 } from "./providers.js";
 import { backupStaleNotificationCopy } from "./backup-notifications.js";
+import { sendWebhookNotification } from "./external-providers.js";
 
 void test("accepts Slack channel IDs without storing credentials", () => {
   assert.deepEqual(
@@ -182,8 +184,8 @@ void test("sends Discord and Telegram messages to their fixed provider hosts", a
   await sendDiscordNotification(
     {
       config: {
-        webhookUrl:
-          "https://discord.com/api/webhooks/123456/secret-token-value",
+        webhookId: "123456",
+        webhookToken: "secret-token-value",
       },
       eventId: "event-discord",
       payload: deploymentPayload,
@@ -202,9 +204,26 @@ void test("sends Discord and Telegram messages to their fixed provider hosts", a
     },
     request,
   );
-  assert.match(calls[0]!, /^https:\/\/discord\.com\/api\/webhooks\//u);
+  assert.equal(
+    new URL(calls[0]!).pathname,
+    "/api/webhooks/123456/secret-token-value",
+  );
+  assert.equal(new URL(calls[0]!).searchParams.get("wait"), "true");
   assert.match(calls[1]!, /^https:\/\/api\.telegram\.org\/bot/u);
   assert.equal(JSON.parse(bodies[1]!).message_thread_id, 42);
+  await sendTelegramNotification(
+    {
+      config: {
+        botToken: "123456:telegram-bot-secret-token",
+        chatId: "-100123456",
+      },
+      eventId: "event-telegram-main-chat",
+      payload: deploymentPayload,
+    },
+    request,
+  );
+  assert.equal(JSON.parse(bodies[2]!).chat_id, "-100123456");
+  assert.equal("message_thread_id" in JSON.parse(bodies[2]!), false);
 });
 
 void test("rejects webhook endpoints with credentials or custom ports", async () => {
@@ -215,5 +234,39 @@ void test("rejects webhook endpoints with credentials or custom ports", async ()
   await assert.rejects(
     requirePublicHttpsUrl("https://example.com:8443/hook"),
     /public HTTPS URL/u,
+  );
+});
+
+void test("webhook push applies configured headers and signs the exact body", async () => {
+  const calls: Array<{ body: string; headers: Headers }> = [];
+  const request: typeof fetch = (_url, init) => {
+    calls.push({
+      body: String(init?.body),
+      headers: new Headers(init?.headers),
+    });
+    return Promise.resolve(new Response(null, { status: 204 }));
+  };
+  await sendWebhookNotification(
+    {
+      config: {
+        url: "https://1.1.1.1/events",
+        headers: { Authorization: "Bearer private-token" },
+        signingSecret: "a-signing-secret-with-at-least-32-characters",
+      },
+      eventId: "event-webhook",
+      eventType: "notification.test",
+      payload: deploymentPayload,
+    },
+    request,
+  );
+  const sent = calls[0];
+  assert.ok(sent);
+  assert.equal(sent.headers.get("authorization"), "Bearer private-token");
+  assert.equal(sent.headers.get("x-towbar-event-id"), "event-webhook");
+  const timestamp = sent.headers.get("x-towbar-timestamp");
+  assert.ok(timestamp);
+  assert.equal(
+    sent.headers.get("x-towbar-signature-256"),
+    `sha256=${createHmac("sha256", "a-signing-secret-with-at-least-32-characters").update(`${timestamp}.${sent.body}`).digest("hex")}`,
   );
 });

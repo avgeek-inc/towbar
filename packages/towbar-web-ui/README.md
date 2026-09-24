@@ -25,8 +25,8 @@ own the wrapper, use `tableCellStackClassName` and
 
 Use `size="sm"` for every table action, including `Button`, `ButtonLink`,
 `ActionButton`, and `CopyTextButton`. The shared design system applies this
-size to every color variant: 28px height, 12px text, 14px icons and spinners,
-and a 6px gap. Below the desktop breakpoint, the height is 36px for touch.
+size to every color variant: 32px desktop height, 12px text, 14px icons and
+spinners, and a 6px gap. On touch devices, the height is 34px.
 Icon-only buttons use the same height and width.
 
 Let the button size its icons; do not add custom icon dimensions or button

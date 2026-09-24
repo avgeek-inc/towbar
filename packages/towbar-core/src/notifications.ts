@@ -12,7 +12,6 @@ export type NotificationProvider = z.infer<typeof notificationProviderSchema>;
 
 export const notificationCategories = [
   "deployments",
-  "previews",
   "health",
   "backups",
   "restores",
@@ -121,7 +120,10 @@ export type NotificationEventPayload = z.infer<
 >;
 
 const notificationDestinationBaseSchema = z.object({
-  categories: z.array(notificationCategorySchema).min(1).max(6),
+  categories: z
+    .array(notificationCategorySchema)
+    .min(1)
+    .max(notificationCategories.length),
   enabled: z.boolean(),
 });
 
@@ -140,26 +142,57 @@ export const smtpNotificationConfigSchema = z
   })
   .strict();
 
-export const discordNotificationConfigSchema = z
+export const discordWebhookCredentialsSchema = z
   .object({
-    webhookUrl: z
+    webhookId: z
       .string()
-      .url()
-      .max(2_048)
-      .refine((value) => {
-        const url = new URL(value);
-        return (
-          url.protocol === "https:" &&
-          ["discord.com", "discordapp.com"].includes(url.hostname) &&
-          /^\/api\/webhooks\/[^/]+\/[^/]+/u.test(url.pathname)
-        );
-      }, "Enter a Discord webhook URL"),
+      .trim()
+      .regex(/^\d{1,20}$/u, "Enter a Discord webhook ID"),
+    webhookToken: z
+      .string()
+      .trim()
+      .min(1)
+      .max(512)
+      .regex(/^[A-Za-z0-9_-]+$/u, "Enter a Discord webhook token"),
   })
   .strict();
 
+const legacyDiscordWebhookUrlSchema = z
+  .string()
+  .url()
+  .max(2_048)
+  .refine((value) => {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      ["discord.com", "discordapp.com"].includes(url.hostname) &&
+      /^\/api\/webhooks\/\d{1,20}\/[A-Za-z0-9_-]+$/u.test(url.pathname) &&
+      !url.search &&
+      !url.hash
+    );
+  }, "Enter a Discord webhook URL");
+
+export const discordNotificationConfigSchema = z.union([
+  discordWebhookCredentialsSchema,
+  z
+    .object({ webhookUrl: legacyDiscordWebhookUrlSchema })
+    .strict()
+    .transform(({ webhookUrl }) => {
+      const [, , , webhookId, webhookToken] = new URL(
+        webhookUrl,
+      ).pathname.split("/");
+      return discordWebhookCredentialsSchema.parse({ webhookId, webhookToken });
+    }),
+]);
+
 export const telegramNotificationConfigSchema = z
   .object({
-    messageThreadId: z.number().int().positive().max(2_147_483_647),
+    chatId: z
+      .string()
+      .trim()
+      .regex(/^-?\d{1,20}$/u, "Enter a Telegram chat ID")
+      .optional(),
+    messageThreadId: z.number().int().positive().max(2_147_483_647).optional(),
   })
   .strict();
 
@@ -178,6 +211,28 @@ export const webhookNotificationConfigSchema = z
           !url.port
         );
       }, "Enter a public HTTPS URL without credentials or a custom port"),
+    headers: z
+      .record(
+        z.string().regex(/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/u),
+        z
+          .string()
+          .max(4_096)
+          .refine((value) => !/[\r\n]/u.test(value)),
+      )
+      .refine((headers) => Object.keys(headers).length <= 20)
+      .refine(
+        (headers) =>
+          Object.keys(headers).every(
+            (name) =>
+              !/^(?:content-type|content-length|host|connection|transfer-encoding|user-agent|x-towbar-.*)$/iu.test(
+                name,
+              ),
+          ),
+        "Reserved delivery headers cannot be overridden",
+      )
+      .optional(),
+    signingSecret: z.string().min(32).max(512).optional(),
+    label: z.string().trim().min(1).max(100).optional(),
   })
   .strict();
 
@@ -281,8 +336,6 @@ export const emailRoutingInputSchema = z
   })
   .strict();
 
-const discordWebhookUrlSchema =
-  discordNotificationConfigSchema.shape.webhookUrl;
 const webhookUrlSchema = webhookNotificationConfigSchema.shape.url;
 
 export const discordRoutingInputSchema = z
@@ -291,7 +344,7 @@ export const discordRoutingInputSchema = z
       z
         .object({
           category: notificationCategorySchema,
-          webhookUrl: discordWebhookUrlSchema.optional(),
+          webhookUrl: legacyDiscordWebhookUrlSchema.optional(),
         })
         .strict(),
     ),
@@ -319,7 +372,11 @@ export const telegramConnectionInputSchema = z
       .max(256)
       .regex(/^\d{5,20}:[A-Za-z0-9_-]{20,}$/u, "Enter a Telegram bot token")
       .optional(),
-    chatId: z.string().trim().min(1).max(128),
+    chatId: z
+      .string()
+      .trim()
+      .regex(/^-?\d{1,20}$/u, "Enter a Telegram chat ID")
+      .optional(),
   })
   .strict();
 
@@ -331,7 +388,7 @@ export const telegramTopicRoutingInputSchema = z
           .object({
             category: notificationCategorySchema,
             messageThreadId:
-              telegramNotificationConfigSchema.shape.messageThreadId,
+              telegramNotificationConfigSchema.shape.messageThreadId.unwrap(),
           })
           .strict(),
       )
@@ -373,7 +430,7 @@ export function notificationCategoryForEvent(
   type: NotificationEventType,
 ): NotificationCategory | "test" {
   if (type.startsWith("deployment.")) return "deployments";
-  if (type.startsWith("preview.")) return "previews";
+  if (type.startsWith("preview.")) return "deployments";
   if (
     type.startsWith("runtime.") ||
     type.startsWith("log-drain.") ||

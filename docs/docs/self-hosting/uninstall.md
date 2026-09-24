@@ -8,7 +8,7 @@ The Towbar control plane and the apps deployed to target servers have separate l
 ## Before stopping Towbar
 
 1. Pause automatic deployments and scheduled operations. Let active deployments, backups, restores, and server setup finish.
-2. Keep a verified copy of the Towbar PostgreSQL database and `/etc/towbar/towbar.env` in restricted storage. Encrypted credentials in the database need `TOWBAR_CREDENTIALS_KEY`. Record the installed release with `sudo towbar version`.
+2. Keep a verified copy of the Towbar PostgreSQL database and `/etc/towbar/towbar.yml` in restricted storage. Encrypted credentials in the database need `security.credentialsKey`. Record the installed release with `sudo towbar version`.
 3. If you are retiring the target servers too, use Towbar's workload and server cleanup controls while the control plane is available. Review each container and volume; volume deletion permanently removes its files.
 4. Disable Scout Agent on targets that will continue running independently. Remove or update GitHub webhooks that still target this installation.
 
@@ -23,7 +23,7 @@ sudo towbar status
 sudo towbar compose down --remove-orphans
 ```
 
-The command removes Towbar's containers and network. It retains the PostgreSQL volume, local images, versioned releases, and `/etc/towbar/towbar.env`. Towbar API, dashboard, scheduler, and worker are now stopped.
+The command removes Towbar's containers and network. It retains the PostgreSQL volume, local images, versioned releases, and `/etc/towbar/towbar.yml`. Towbar API, dashboard, scheduler, and worker are now stopped.
 
 To resume with the retained state:
 

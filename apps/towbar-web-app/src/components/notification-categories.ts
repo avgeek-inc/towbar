@@ -1,8 +1,6 @@
 import {
-  Activity01Icon,
   Alert02Icon,
   Archive01Icon,
-  GitPullRequestIcon,
   Rocket01Icon,
   TestTube01Icon,
 } from "@hugeicons/core-free-icons";
@@ -10,7 +8,7 @@ import type { NotificationCategory } from "@workspace/towbar-web-client";
 
 const notificationRoutingCategories = [
   {
-    categories: ["scout"],
+    categories: ["health", "scout"],
     icon: Alert02Icon,
     key: "scout",
     label: "Alerts & incidents",
@@ -20,18 +18,6 @@ const notificationRoutingCategories = [
     icon: Rocket01Icon,
     key: "deployments",
     label: "Deployment updates",
-  },
-  {
-    categories: ["previews"],
-    icon: GitPullRequestIcon,
-    key: "previews",
-    label: "Preview updates",
-  },
-  {
-    categories: ["health"],
-    icon: Activity01Icon,
-    key: "health",
-    label: "Service health",
   },
   {
     categories: ["backups", "restores"],
@@ -57,6 +43,10 @@ export const notificationHistoryCategories = [
 ] as const;
 
 export function notificationCategoryPresentation(category: string) {
+  if (category === "previews")
+    return notificationHistoryCategories.find(
+      (group) => group.key === "deployments",
+    );
   return notificationHistoryCategories.find((group) =>
     group.categories.some((value) => value === category),
   );

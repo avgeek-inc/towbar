@@ -9,32 +9,37 @@ logs, metrics, and traces through a managed, isolated Collector.
 
 ## Cloudflare
 
-```dotenv
-TOWBAR_CLOUDFLARE_ENABLED=true
-TOWBAR_CLOUDFLARE_ACCOUNT_ID=<account-id>
-TOWBAR_CLOUDFLARE_ZONE_ID=<optional-zone-id>
-TOWBAR_CLOUDFLARE_API_TOKEN=<scoped-account-token>
-TOWBAR_CLOUDFLARE_CLOUDFLARED_IMAGE=<reviewed-image-and-digest>
+```yaml title="/etc/towbar/towbar.yml"
+integrations:
+  cloudflare:
+    enabled: true
+    accountId: <account-id>
+    zoneId: <optional-zone-id>
+    apiToken: <scoped-account-token>
+    cloudflaredImage: <reviewed-image-and-digest>
 ```
 
 Use an account API token restricted to the zones and DNS operations Towbar
-owns. `TOWBAR_CLOUDFLARE_ZONE_ID` is optional when the token can discover the
+owns. `integrations.cloudflare.zoneId` is optional when the token can discover the
 required zones. The cloudflared image must use Towbar's reviewed pinned image.
 Continue with [Domains and TLS](/docs/domains-tls#cloudflare-tls) for DNS mode,
 tunnel ingress, and ownership boundaries.
 
 ## OpenTelemetry
 
-```dotenv
-TOWBAR_OTLP_ENABLED=true
-TOWBAR_OTLP_ENDPOINT=https://collector.example.com
-TOWBAR_OTLP_DASHBOARD_URL=https://observability.example.com
-TOWBAR_OTLP_PROTOCOL=http/protobuf
-TOWBAR_OTLP_ALLOW_PRIVATE_NETWORK=false
-TOWBAR_OTLP_HEADERS_JSON={"Authorization":"Bearer replace-me"}
+```yaml title="/etc/towbar/towbar.yml"
+integrations:
+  otlp:
+    enabled: true
+    endpoint: https://collector.example.com
+    dashboardUrl: https://observability.example.com
+    protocol: http/protobuf
+    allowPrivateNetwork: false
+    headers:
+      Authorization: Bearer replace-me
 ```
 
-The endpoint and authentication headers remain in the API runtime environment.
+The endpoint and authentication headers remain in the protected YAML configuration.
 The dashboard URL is optional and provides a safe link to the backend. Enable
 private-network access only when the collector intentionally uses an internal
 address.

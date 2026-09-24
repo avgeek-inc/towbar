@@ -71,7 +71,7 @@ install_command() {
     "$STYLE_BOLD" "$STYLE_GREEN" "$STYLE_RESET"
   printf 'Open the dashboard at %s\n' "$INSTALL_APP_URL"
   printf '\n'
-  ui_note "Next: configure optional integrations in the environment file."
+  ui_note "Next: configure optional integrations in the YAML configuration file."
   ui_note "Manage this installation with sudo towbar status, logs and upgrade."
 }
 

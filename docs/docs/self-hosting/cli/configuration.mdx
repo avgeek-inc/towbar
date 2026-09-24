@@ -1,25 +1,25 @@
 ---
 title: "Configuration and restart"
-description: "Find the Towbar environment file, validate changes, and restart only after every preflight succeeds."
+description: "Edit Towbar's YAML configuration, validate changes, and restart only after every preflight succeeds."
 ---
 
-Towbar keeps installation and integration configuration in a root-owned environment file. The CLI does not provide an editor or print its contents.
+Towbar keeps installation and integration configuration in `/etc/towbar/towbar.yml`, owned by `root:root` with mode `600`. The CLI does not provide an editor or print its contents.
 
 ## `towbar config path`
 
-Print the active environment-file path. The command accepts no arguments, does not require an installed release, and does not read or reveal the file.
+Print the active configuration path. The command accepts no arguments, does not require an installed release, and does not read or reveal the file.
 
 ```bash title="Print the configuration path"
 towbar config path
 ```
 
 ```text title="Default output"
-/etc/towbar/towbar.env
+/etc/towbar/towbar.yml
 ```
 
 Use the result with an editor that can write a root-owned file:
 
-```bash title="Open the environment file"
+```bash title="Open the YAML file"
 sudo nano "$(towbar config path)"
 ```
 
@@ -31,7 +31,7 @@ Validate the current configuration without replacing running services.
 sudo towbar config validate
 ```
 
-The command accepts no parameters. It requires root, Docker Engine, Compose v2, an installed release, and the current environment file.
+The command accepts no parameters. It requires root, Docker Engine, Compose v2, an installed release, and the current configuration.
 
 Validation covers:
 
@@ -39,7 +39,7 @@ Validation covers:
 - the complete Docker Compose model;
 - API and worker environment parsing;
 - runtime integration configuration;
-- notification and log-forwarding JSON;
+- notification and log-forwarding configuration;
 - the selected local or public gateway service; and
 - Caddy configuration for the current domain and access mode.
 
@@ -47,7 +47,7 @@ A successful validation prints `Towbar: Configuration is valid` and exits with s
 
 ## `towbar restart`
 
-Apply a valid environment change to the current release.
+Apply a valid YAML change to the current release.
 
 ```bash
 sudo towbar restart
@@ -59,10 +59,10 @@ If a preflight fails, the CLI prints that running services were not restarted an
 
 <Steps>
   <Step title="Back up the current file">
-    Preserve `/etc/towbar/towbar.env` in restricted storage before changing
+    Preserve `/etc/towbar/towbar.yml` in restricted storage before changing
     production configuration. The file contains credentials and encryption keys.
   </Step>
-  <Step title="Edit the environment">
+  <Step title="Edit the YAML configuration">
     ```bash sudo nano "$(towbar config path)" ```
   </Step>
   <Step title="Validate without restarting">
@@ -75,7 +75,7 @@ If a preflight fails, the CLI prints that running services were not restarted an
 </Steps>
 
 <Warning>
-  Never replace `TOWBAR_CREDENTIALS_KEY` on an existing installation. Stored
+  Never replace `security.credentialsKey` on an existing installation. Stored
   credentials are encrypted with that key. A database backup without the
   matching key cannot recover those records.
 </Warning>

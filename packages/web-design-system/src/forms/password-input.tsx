@@ -20,7 +20,7 @@ export function PasswordInput({ className, ...props }: PasswordInputProps) {
         aria-label={visible ? "Hide password" : "Show password"}
         aria-pressed={visible}
         disabled={props.disabled}
-        className="absolute inset-y-0 right-1 my-auto grid size-9 place-items-center rounded-full text-muted outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50 md:size-7"
+        className="absolute inset-y-0 right-1 my-auto grid size-9 place-items-center rounded-full text-muted outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50 md:size-8"
         onClick={() => setVisible((value) => !value)}
       >
         <HugeiconsIcon

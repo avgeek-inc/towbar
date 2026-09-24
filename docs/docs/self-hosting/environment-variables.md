@@ -1,26 +1,49 @@
 ---
-title: "Environment variables"
-description: "Reference for control-plane secrets, public origins, notification providers, and worker settings."
+title: "Runtime configuration"
+description: "Reference for Towbar's YAML configuration, including secrets, integrations, notifications, and worker settings."
 ---
 
 Use this reference when configuring the Towbar installation. Application secrets belong in the [Shared secrets editor](/docs/secrets), and app behavior belongs in the [deployment manifest](/docs/deployment-manifest).
 
-The installer creates `/etc/towbar/towbar.env` with root ownership and mode `600`. `towbar config path` prints that location without reading the file. Edit it with an editor such as `sudo nano "$(towbar config path)"`, validate it with `sudo towbar config validate`, and apply changes with `sudo towbar restart`. Compose reads this file when creating containers; editing it alone does not update running services. The generated file lists every operator-configurable variable. Installation values and generated secrets are active; optional settings are included as commented examples that can be uncommented when needed.
+The installer creates `/etc/towbar/towbar.yml` with root ownership and mode `600`. `towbar config path` prints that location without reading the file. Edit it with an editor such as `sudo nano "$(towbar config path)"`, validate it with `sudo towbar config validate`, and apply changes with `sudo towbar restart`. Editing YAML alone does not update running services.
 
-Towbar does not provide a configuration editor or retain rollback copies. Back up the file through your normal host configuration-management or secret-management process. Before replacing a running container, `restart` validates Compose and runs API, worker, integration, notification, log-forwarding, and Caddy configuration preflights against the installed release images. A failed preflight leaves the running services untouched and directs you to `sudo towbar doctor`.
+Towbar does not provide a configuration editor. Before replacing a running container, `restart` validates the YAML and Compose model, then runs API, worker, integration, notification, log-forwarding, and Caddy preflights against the installed release images. A failed preflight leaves the running services untouched and directs you to `sudo towbar doctor`.
+
+```yaml title="/etc/towbar/towbar.yml"
+version: 1
+installation:
+  mode: public
+  appUrl: https://towbar.example.com
+  gatewayDomain: towbar.example.com
+database:
+  postgresPassword: "..."
+  runtimePassword: "..."
+security:
+  credentialsKey: "..."
+  internalHmacSecret: "..."
+integrations:
+  github:
+    enabled: true
+    appId: "12345"
+    appSlug: towbar
+    privateKeyBase64: "..."
+    webhookSecret: "..."
+```
+
+Optional provider objects can be added under `integrations`, `notifications`, and `logForwarding`. Keep identifiers and secrets quoted when they contain only digits or YAML-special characters. Unknown settings and duplicate YAML keys are rejected.
 
 ## Required installation secrets
 
-| Variable                           | Purpose                                 |
-| ---------------------------------- | --------------------------------------- |
-| `TOWBAR_POSTGRES_PASSWORD`         | PostgreSQL owner and migration password |
-| `TOWBAR_DATABASE_RUNTIME_PASSWORD` | Restricted API database password        |
-| `TOWBAR_CREDENTIALS_KEY`           | Encrypts stored secrets and credentials |
-| `TOWBAR_INTERNAL_HMAC_SECRET`      | Signs API and worker internal requests  |
+| YAML setting                  | Purpose                                 |
+| ----------------------------- | --------------------------------------- |
+| `database.postgresPassword`   | PostgreSQL owner and migration password |
+| `database.runtimePassword`    | Restricted API database password        |
+| `security.credentialsKey`     | Encrypts stored secrets and credentials |
+| `security.internalHmacSecret` | Signs API and worker internal requests  |
 
 Generate the PostgreSQL passwords and HMAC secret independently with
 `openssl rand -hex 32`. Hex output is URL-safe for the Compose database URLs.
-`TOWBAR_CREDENTIALS_KEY` must instead be a separate 32-byte Base64 value from
+`security.credentialsKey` must instead be a separate 32-byte Base64 value from
 `openssl rand -base64 32 | tr -d '\n'`; Towbar rejects any other decoded key
 length.
 
@@ -29,92 +52,94 @@ length.
 The web app reads the Towbar origin at runtime. One prebuilt dashboard image can
 therefore serve localhost and public HTTPS installations.
 
-| Variable              | Example                  |
+| YAML setting          | Example                  |
 | --------------------- | ------------------------ |
-| `TOWBAR_APP_BASE_URL` | `https://towbar.example` |
+| `installation.appUrl` | `https://towbar.example` |
 
-`TOWBAR_APP_BASE_URL` is Towbar's single public origin. The bundled gateway
+`installation.appUrl` is Towbar's single public origin. The bundled gateway
 routes dashboard, API, MCP, webhook, streaming, and terminal requests through it.
 Login is rendered by the web app and sends credentialed requests to that same origin.
 External REST, MCP, and API-key management are enabled only when
-`TOWBAR_APP_BASE_URL` uses HTTPS. The default local HTTP installation supports
+`installation.appUrl` uses HTTPS. The default local HTTP installation supports
 the on-host dashboard without exposing those automation interfaces.
 
 The local profile binds `127.0.0.1:4021`. The public profile binds ports 80 and
-443, obtains and renews a Let's Encrypt certificate for `TOWBAR_GATEWAY_DOMAIN`,
+443, obtains and renews a Let's Encrypt certificate for `installation.gatewayDomain`,
 and persists Caddy's certificate state. The installer selects the profile and
-sets `TOWBAR_TRUSTED_PROXY_HOPS=1` for the bundled gateway. Change the hop count
+sets `security.trustedProxyHops: 1` for the bundled gateway. Change the hop count
 only if you place another controlled proxy such as a CDN in front of Towbar.
 
 ## Runtime integrations
 
-Towbar integrations are configured only in the API process environment. The dashboard never accepts or reveals provider credentials. An integration appears in the UI only after its `TOWBAR_<PROVIDER>_ENABLED` flag is `true` and every required value is valid. The API validates all enabled integrations before it begins listening; a partial configuration fails startup instead of leaving a broken provider visible.
+Towbar integrations are configured in the root-owned YAML file. The dashboard never accepts or reveals provider credentials. An integration appears in the UI only after its `integrations.<provider>.enabled` setting is `true` and every required value is valid. The API validates all enabled integrations before it begins listening; a partial configuration fails startup instead of leaving a broken provider visible.
 
-Set secret values directly. Towbar does not support `_FILE` variants. Encode multiline values as Base64 where the variable name ends in `_BASE64`, and pass structured maps through the documented JSON variables. Restart the API after changing integration configuration.
+Set secret values directly. Towbar does not support external file references. Encode multiline values as Base64 where the YAML setting ends in `Base64`. Structured maps and lists are native YAML. Run `sudo towbar restart` after changing integration configuration.
 
 ### Source control
 
-| Provider     | Required variables                                                                                                                                                | Optional variables                                              |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| GitHub App   | `TOWBAR_GITHUB_ENABLED`, `TOWBAR_GITHUB_APP_ID`, `TOWBAR_GITHUB_APP_SLUG`, `TOWBAR_GITHUB_PRIVATE_KEY_BASE64`, `TOWBAR_GITHUB_WEBHOOK_SECRET`                     | `TOWBAR_GITHUB_API_URL`                                         |
-| GitLab OAuth | `TOWBAR_GITLAB_ENABLED`, `TOWBAR_GITLAB_OAUTH_CLIENT_ID`, `TOWBAR_GITLAB_OAUTH_CLIENT_SECRET`, `TOWBAR_GITLAB_OAUTH_REDIRECT_URI`, `TOWBAR_GITLAB_WEBHOOK_SECRET` | `TOWBAR_GITLAB_BASE_URL`, `TOWBAR_GITLAB_ALLOW_PRIVATE_NETWORK` |
+| Provider     | Required YAML settings                                                                                   | Optional settings                |
+| ------------ | -------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| GitHub App   | `integrations.github.enabled`, `appId`, `appSlug`, `privateKeyBase64`, `webhookSecret`                   | `apiUrl`                         |
+| GitLab OAuth | `integrations.gitlab.enabled`, `oauthClientId`, `oauthClientSecret`, `oauthRedirectUri`, `webhookSecret` | `baseUrl`, `allowPrivateNetwork` |
 
-GitHub stores only the selected App installation and account metadata in PostgreSQL. GitLab stores only an encrypted, revocable OAuth grant and short-lived PKCE authorization attempts. App identity, OAuth client secrets, webhook secrets, and provider endpoints remain in the runtime environment.
+GitHub stores only the selected App installation and account metadata in PostgreSQL. GitLab stores only an encrypted, revocable OAuth grant and short-lived PKCE authorization attempts. App identity, OAuth client secrets, webhook secrets, and provider endpoints remain in the protected YAML file.
 
 ### Registries, storage, secrets, platform, and telemetry
 
-| Provider             | Enable flag                 | Required values                                                                   |
-| -------------------- | --------------------------- | --------------------------------------------------------------------------------- |
-| OCI registry         | `TOWBAR_REGISTRY_ENABLED`   | `TOWBAR_REGISTRY_HOST`, `TOWBAR_REGISTRY_PASSWORD`; username is optional          |
-| AWS                  | `TOWBAR_AWS_ENABLED`        | `TOWBAR_AWS_REGION`, `TOWBAR_AWS_ACCESS_KEY_ID`, `TOWBAR_AWS_SECRET_ACCESS_KEY`   |
-| S3 compatible        | `TOWBAR_S3_ENABLED`         | region, access key ID, and secret access key; endpoint/bucket/prefix are optional |
-| Cloudflare R2        | `TOWBAR_R2_ENABLED`         | endpoint, region, access key ID, and secret access key                            |
-| Google Cloud Storage | `TOWBAR_GCS_ENABLED`        | project ID and `TOWBAR_GCS_SERVICE_ACCOUNT_JSON_BASE64`                           |
-| Azure Blob Storage   | `TOWBAR_AZURE_ENABLED`      | storage account, tenant ID, client ID, and client secret                          |
-| Infisical            | `TOWBAR_INFISICAL_ENABLED`  | client ID and client secret                                                       |
-| Doppler              | `TOWBAR_DOPPLER_ENABLED`    | service token                                                                     |
-| Cloudflare           | `TOWBAR_CLOUDFLARE_ENABLED` | account ID and API token                                                          |
-| OpenTelemetry        | `TOWBAR_OTLP_ENABLED`       | endpoint; headers are supplied through `TOWBAR_OTLP_HEADERS_JSON`                 |
+| Provider             | Enable setting                    | Required values                                            |
+| -------------------- | --------------------------------- | ---------------------------------------------------------- |
+| OCI registry         | `integrations.registry.enabled`   | `host`, `password`; `username` is optional                 |
+| AWS                  | `integrations.aws.enabled`        | `region`, `accessKeyId`, `secretAccessKey`                 |
+| S3 compatible        | `integrations.s3.enabled`         | `region`, `accessKeyId`, `secretAccessKey`                 |
+| Cloudflare R2        | `integrations.r2.enabled`         | `endpoint`, `region`, `accessKeyId`, `secretAccessKey`     |
+| Google Cloud Storage | `integrations.gcs.enabled`        | `projectId`, `serviceAccountJsonBase64`                    |
+| Azure Blob Storage   | `integrations.azure.enabled`      | `storageAccount`, `tenantId`, `clientId`, `clientSecret`   |
+| Infisical            | `integrations.infisical.enabled`  | `clientId`, `clientSecret`                                 |
+| Doppler              | `integrations.doppler.enabled`    | `token`                                                    |
+| Cloudflare           | `integrations.cloudflare.enabled` | `accountId`, `apiToken`                                    |
+| OpenTelemetry        | `integrations.otlp.enabled`       | `endpoint`; request headers go in the native `headers` map |
 
-Use the exact names in the installed configuration file or `.env.example` for optional bucket, prefix, endpoint, addressing-style, private-network, CA, zone, image, dashboard, and protocol fields. Temporary AWS sessions are intentionally unsupported because they cannot be maintained safely as static installation configuration.
+Other supported fields include bucket, prefix, endpoint, addressing style, private-network access, CA certificate, zone, image, dashboard URL, and protocol under the corresponding provider. Temporary AWS sessions are intentionally unsupported because they cannot be maintained safely as static installation configuration.
 
 ### Notifications
 
-Set `TOWBAR_NOTIFICATIONS_ENABLED=true` and place provider credentials plus routes in `TOWBAR_NOTIFICATION_CONFIG_JSON`. The document has a `providers` object for Slack, SMTP, and Telegram credentials, and a `routes` array for enabled category destinations. Discord and generic webhook credentials live directly in their route because each route has its own URL. Route IDs must be unique, and every non-webhook route must have its provider configured.
+Set `notifications.enabled: true` and add provider credentials under `notifications.providers`. Manage Email, Slack, and Telegram destinations in the dashboard. Discord webhook credentials and webhook push endpoint URLs, headers, and signing secrets stay in YAML; their subscriptions are managed in the dashboard. Route IDs, Discord webhook IDs, and webhook endpoint IDs must be unique.
 
-```json
-{
-  "providers": {
-    "smtp": {
-      "from": "towbar@example.com",
-      "host": "smtp.example.com",
-      "port": 587,
-      "secure": false,
-      "username": "towbar",
-      "password": "replace-me"
-    }
-  },
-  "routes": [
-    {
-      "id": "operations-email",
-      "provider": "smtp",
-      "enabled": true,
-      "categories": ["deployments", "health"],
-      "config": { "recipients": ["operations@example.com"] }
-    }
-  ]
-}
+```yaml title="/etc/towbar/towbar.yml"
+notifications:
+  enabled: true
+  providers:
+    smtp:
+      from: towbar@example.com
+      host: smtp.example.com
+      port: 587
+      secure: false
+      username: towbar
+      password: "..."
+    discord:
+      - webhookId: "123456789012345678"
+        webhookToken: "..."
+    telegram:
+      botToken: "123456:..."
+    webhook:
+      - id: operations
+        label: Operations
+        url: https://hooks.example.com/events
+        headers:
+          Authorization: "Bearer ..."
+        signingSecret: "..."
+  routes: []
 ```
 
 The dashboard shows the active providers and routes without returning credentials. Notification events, delivery attempts, provider outcomes, and thread identifiers remain persisted for reliable retries and audit history.
 
 ### Log forwarding
 
-Each supported drain has `TOWBAR_LOG_DRAIN_<PROVIDER>_ENABLED` and `TOWBAR_LOG_DRAIN_<PROVIDER>_CONFIG_JSON`. Providers are `NEWRELIC`, `AXIOM`, `BETTERSTACK`, `DATADOG`, `OTLP`, and `LOKI`. The JSON shape is provider-specific and includes the ingest credential. Towbar hashes the JSON to derive a revision; it does not persist the configuration document. Per-server applied state, delivery health, backoff, and diagnostics remain in PostgreSQL.
+Each supported drain has `logForwarding.<provider>.enabled` and a native YAML `config` map. Providers are `newrelic`, `axiom`, `betterstack`, `datadog`, `otlp`, and `loki`. The config shape is provider-specific and includes the ingest credential. Towbar hashes the rendered JSON to derive a revision; it does not persist the configuration document. Per-server applied state, delivery health, backoff, and diagnostics remain in PostgreSQL.
 
 ## Image vulnerability scanning
 
-Set `TOWBAR_VULNERABILITY_SCANNING_ENABLED=true` to make image scanning
+Set `worker.vulnerabilityScanning.enabled: true` to make image scanning
 available to Repositories. Each App must then opt in explicitly in its deployment
 manifest:
 
@@ -134,45 +159,43 @@ shows severity totals, actionable findings, scanner metadata, and stale or
 failed states. Disabling the App policy stops new scans without deleting prior
 results.
 
-`TOWBAR_VULNERABILITY_SCAN_MAX_AGE_HOURS` controls when completed results are
-labelled stale and defaults to `168` hours. `TOWBAR_TRIVY_IMAGE` configures the
+`worker.vulnerabilityScanning.maxAgeHours` controls when completed results are
+labelled stale and defaults to `168` hours. `worker.vulnerabilityScanning.trivyImage` configures the
 worker-side scanner and must pin both a Trivy tag and image digest. The shipped
-default is a reviewed multi-architecture pin. Recreate both the API and worker
-after changing scanner configuration:
+default is a reviewed multi-architecture pin. Restart Towbar after changing scanner configuration:
 
 ```bash
-sudo towbar compose up --detach --force-recreate api worker
+sudo towbar restart
 ```
 
 See [Vulnerability scanning](/docs/vulnerability-scanning) for workspace findings, scan states, and rescanning.
 
 ## Account security
 
-Initial setup atomically creates one team and Admin, then closes permanently. Email recovery, MFA and the local recovery command are documented in [Team access](/docs/self-hosting/team-access). The v1 owner-reset environment variables are not supported.
+Initial setup atomically creates one team and Admin, then closes permanently. Email recovery, MFA and the local recovery command are documented in [Team access](/docs/self-hosting/team-access).
 
-`TOWBAR_PASSWORD_BREACH_CHECK` defaults to `true`; explicitly setting `false` supports isolated installations without the password corpus service. `TOWBAR_PASSWORD_VERIFY_CONCURRENCY` defaults to `2` (range 1–8), and `TOWBAR_PASSWORD_VERIFY_QUEUE_LIMIT` defaults to `16` (range 1–100). Benchmark resource usage before raising these limits. Saturation returns a retryable busy response.
+`security.passwordBreachCheck` defaults to `true`; explicitly setting `false` supports isolated installations without the password corpus service. `security.passwordVerifyConcurrency` defaults to `2` (range 1–8), and `security.passwordVerifyQueueLimit` defaults to `16` (range 1–100). Benchmark resource usage before raising these limits. Saturation returns a retryable busy response.
 
 ## Servers and worker capacity
 
-Register IP addresses, SSH access, and concurrency under [Servers](/docs/servers). These settings do not belong in the manifest. Cloudflare and [AWS credentials](/docs/integrations/aws) are optional runtime integrations configured in the API environment.
+Register IP addresses, SSH access, and concurrency under [Servers](/docs/servers). These settings do not belong in the manifest. Cloudflare and [AWS credentials](/docs/integrations/aws) are optional integrations configured in YAML.
 
-| Variable                                  | Default                    | Purpose                                                  |
-| ----------------------------------------- | -------------------------- | -------------------------------------------------------- |
-| `COMPOSE_PROFILES`                        | `local`                    | Selects the `local` or `public` gateway                  |
-| `TOWBAR_INSTALL_MODE`                     | `local`                    | Records the installer-selected access mode               |
-| `TOWBAR_GATEWAY_DOMAIN`                   | empty                      | Public hostname managed by Caddy and Let's Encrypt       |
-| `TOWBAR_WORKER_MAX_CONCURRENT_ACTIVITIES` | `4`                        | Global worker activity capacity                          |
-| `TOWBAR_APP_ID`                           | `towbar-worker` in Compose | Manifest app identity for worker self-deployment cleanup |
-| `TOWBAR_BIND_ADDRESS`                     | `127.0.0.1`                | Published Compose port binding                           |
-| `TOWBAR_PORT`                             | `4021`                     | Unified dashboard and API port on the host               |
-| `TOWBAR_TEMPORAL_UI_PORT`                 | `8233`                     | Temporal UI port on the host                             |
-| `TOWBAR_NETWORK_NAME`                     | `towbar-platform`          | Compose network name                                     |
+| YAML setting                     | Default                    | Purpose                                                  |
+| -------------------------------- | -------------------------- | -------------------------------------------------------- |
+| `installation.mode`              | `local`                    | Selects the `local` or `public` gateway                  |
+| `installation.gatewayDomain`     | empty                      | Public hostname managed by Caddy and Let's Encrypt       |
+| `worker.maxConcurrentActivities` | `4`                        | Global worker activity capacity                          |
+| `worker.appId`                   | `towbar-worker` in Compose | Manifest app identity for worker self-deployment cleanup |
+| `installation.bindAddress`       | `127.0.0.1`                | Published Compose port binding                           |
+| `installation.port`              | `4021`                     | Unified dashboard and API port on the host               |
+| `installation.temporalUiPort`    | `8233`                     | Temporal UI port on the host                             |
+| `installation.networkName`       | `towbar-platform`          | Compose network name                                     |
 
 Keep worker activity capacity above the largest server build-concurrency setting, leaving room for sync and maintenance. Restrict the Temporal UI to administrators.
 
 ## Browser observability
 
-`NEXT_PUBLIC_SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_ENVIRONMENT` are optional dashboard runtime settings. Set the DSN to enable Sentry, use the environment label to distinguish installations, and review what your Sentry project collects. Apply either change with `sudo towbar restart`.
+`observability.sentry.dsn` and `observability.sentry.environment` are optional dashboard runtime settings. Set the DSN to enable Sentry, use the environment label to distinguish installations, and review what your Sentry project collects. Apply either change with `sudo towbar restart`.
 
 ## Installation and upgrades
 
@@ -180,9 +203,9 @@ Towbar installation and upgrades run on the control-plane host. See [Install Tow
 
 ## API and MCP rate limits
 
-`TOWBAR_API_RATE_LIMIT_MAX` defaults to `60` requests and
-`TOWBAR_API_RATE_LIMIT_WINDOW_SECONDS` defaults to `60` seconds. The API and
-MCP share persistent per-key and per-IP limits. Set both variables on the API process;
-restart it after changes. Configure `TOWBAR_TRUSTED_PROXY_HOPS` for your trusted
+`security.apiRateLimit.max` defaults to `60` requests and
+`security.apiRateLimit.windowSeconds` defaults to `60` seconds. The API and
+MCP share persistent per-key and per-IP limits. Set both YAML values and
+restart after changes. Configure `security.trustedProxyHops` for your trusted
 proxy topology so clients are counted correctly. See [API authentication and rate
 limits](/docs/api/authentication) for bounds, response headers, and examples.

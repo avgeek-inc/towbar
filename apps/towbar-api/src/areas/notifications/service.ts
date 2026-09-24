@@ -1,4 +1,5 @@
 import { desc, eq } from "drizzle-orm";
+import { z } from "zod";
 import {
   type NotificationEventPayload,
   type NotificationEventType,
@@ -12,10 +13,10 @@ import {
 
 import { badRequest } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
-import { getRuntimeNotifications } from "../../infrastructure/runtime-notifications.js";
 import { getServer } from "../servers/service.js";
 import { getSource } from "../sources/service.js";
 import { enqueueDeliveries } from "./delivery-service.js";
+import { notificationRoutesForWorkspace } from "./email-destinations.js";
 
 export async function listNotificationDestinations(input: {
   sourceId?: string;
@@ -23,13 +24,20 @@ export async function listNotificationDestinations(input: {
   workspaceId: string;
 }) {
   await requireNotificationScope(input);
-  return getRuntimeNotifications().routes.map((route) => ({
-    categories: route.categories,
-    enabled: true,
-    id: route.id,
-    provider: route.provider,
-    source: "environment" as const,
-  }));
+  return (await notificationRoutesForWorkspace(input.workspaceId)).map(
+    (route) => ({
+      categories: route.categories,
+      enabled: true,
+      id: route.id,
+      provider: route.provider,
+      source:
+        route.id.startsWith("email-") ||
+        (route.id.startsWith("slack-") &&
+          z.string().uuid().safeParse(route.id.slice(6)).success)
+          ? ("control-plane" as const)
+          : ("environment" as const),
+    }),
+  );
 }
 
 export async function listNotificationEvents(input: {
@@ -63,10 +71,13 @@ export async function emitNotificationEvent(input: {
   await requireNotificationScope(input);
   const payload = notificationEventPayloadSchema.parse(input.payload);
   const category = notificationCategoryForEvent(input.type);
-  const routes = getRuntimeNotifications().routes.filter(
+  const routes = (
+    await notificationRoutesForWorkspace(input.workspaceId)
+  ).filter(
     (route) =>
       (!input.targetDestinationId || route.id === input.targetDestinationId) &&
-      (category === "test" || route.categories.includes(category)),
+      (category === "test" ||
+        route.categories.some((routeCategory) => routeCategory === category)),
   );
   const result = await getTowbarDatabase().transaction(async (transaction) => {
     const [createdEvent] = await transaction

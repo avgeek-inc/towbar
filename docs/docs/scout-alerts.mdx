@@ -118,7 +118,7 @@ These checks measure availability **from your Towbar control plane**. They are n
 
 ## Notification destinations
 
-Configure provider credentials and category routes with `TOWBAR_NOTIFICATIONS_ENABLED` and `TOWBAR_NOTIFICATION_CONFIG_JSON`, then restart the API. See [notifications](/docs/integrations/notifications) for the schema. Server and workload alerts use the matching environment-configured routes.
+Configure provider credentials under `notifications` in `/etc/towbar/towbar.yml`, select destination categories in the dashboard, then run `sudo towbar restart`. See [notifications](/docs/integrations/notifications) for the schema. Server and workload alerts use the matching routes.
 
 Every valid route is active until the runtime environment changes; there are no per-rule channel selections. Incidents and notification delivery are separate: an active incident does not prove that a provider received the message. Inspect delivery outcomes in the notification center.
 

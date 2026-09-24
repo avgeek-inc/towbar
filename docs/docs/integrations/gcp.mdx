@@ -3,14 +3,16 @@ title: "Google Cloud"
 description: "Enable one runtime service account for Google Cloud Storage backups and restores."
 ---
 
-Create a service account scoped to the required buckets, objects, versions, and encryption keys. Encode its JSON key and configure the API process:
+Create a service account scoped to the required buckets, objects, versions, and encryption keys. Encode its JSON key and add this to `/etc/towbar/towbar.yml`:
 
-```dotenv
-TOWBAR_GCS_ENABLED=true
-TOWBAR_GCS_PROJECT_ID=example-project
-TOWBAR_GCS_BUCKET=example-backups
-TOWBAR_GCS_PREFIX=towbar
-TOWBAR_GCS_SERVICE_ACCOUNT_JSON_BASE64=<base64-encoded-json>
+```yaml title="/etc/towbar/towbar.yml"
+integrations:
+  gcs:
+    enabled: true
+    projectId: example-project
+    bucket: example-backups
+    prefix: towbar
+    serviceAccountJsonBase64: <base64-encoded-json>
 ```
 
-Restart the API. Towbar validates the enabled configuration before listening, shows Google Cloud Storage only when it is valid, and never stores or returns the service-account JSON. Confirm the effective IAM policy with a real [resource backup and restore](/docs/backups). Rotate by updating the environment, recreating the API container, verifying an operation, and then revoking the old key.
+Validate and restart Towbar. It shows Google Cloud Storage only when the configuration is valid and never returns the service-account JSON. Confirm the effective IAM policy with a real [resource backup and restore](/docs/backups). Rotate by updating `towbar.yml`, restarting Towbar, verifying an operation, and then revoking the old key.
