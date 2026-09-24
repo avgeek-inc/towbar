@@ -209,7 +209,7 @@ export function ResourceDetail() {
               {item.serverReady ? (
                 <StatusBadge status={item.runtimeState.healthStatus} />
               ) : (
-                "Not checked"
+                <StatusBadge status="not_checked" />
               )}
             </Attributes.Item>
             <Attributes.Item label="Runtime">
