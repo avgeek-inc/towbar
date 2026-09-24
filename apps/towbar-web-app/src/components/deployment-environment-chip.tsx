@@ -3,8 +3,10 @@ import { EnvironmentChip } from "./environment-chip";
 
 export function DeploymentEnvironmentChip({
   deployment,
+  showIcon = true,
 }: {
   deployment: Pick<Deployment, "environment" | "targetEnvironment">;
+  showIcon?: boolean;
 }) {
   const preview = deployment.environment === "preview";
   const environmentName = preview
@@ -13,6 +15,7 @@ export function DeploymentEnvironmentChip({
   return (
     <EnvironmentChip
       name={environmentName}
+      showIcon={showIcon}
       tooltip={
         preview
           ? `Pull-request preview targeting ${deployment.targetEnvironment.name}`

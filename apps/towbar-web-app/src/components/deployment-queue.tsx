@@ -2,7 +2,7 @@
 
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 
-import { GitBranchIcon, Rocket01Icon } from "@hugeicons/core-free-icons";
+import { Rocket01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { useMemo, useState } from "react";
@@ -15,7 +15,6 @@ import type {
   Resource,
 } from "@workspace/towbar-web-client";
 import { Button } from "@workspace/web-design-system/buttons/button";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { ProgressCircle } from "@workspace/web-design-system/feedback/progress-circle";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Popover } from "@workspace/web-design-system/overlays/popover";
@@ -26,6 +25,7 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { deploymentHref } from "@/lib/deployment-route";
 import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
 import { DeploymentEnvironmentChip } from "./deployment-environment-chip";
+import { ElapsedTime } from "./elapsed-time";
 
 const terminalDeploymentStates = new Set<DeploymentState>([
   "cancelled",
@@ -74,13 +74,13 @@ function DeploymentStateIndicator({ deployment }: { deployment: Deployment }) {
           isIndeterminate
           size="sm"
         >
-          <ProgressCircle.Track>
-            <ProgressCircle.TrackCircle />
-            <ProgressCircle.FillCircle />
+          <ProgressCircle.Track className="!size-4">
+            <ProgressCircle.TrackCircle strokeWidth={3} />
+            <ProgressCircle.FillCircle strokeWidth={3} />
           </ProgressCircle.Track>
         </ProgressCircle>
       )}
-      <span className="typography--body-sm text-muted">
+      <span className="typography--body-xs text-muted">
         {formatStatus(getDeploymentDisplayStatus(deployment))}
       </span>
     </span>
@@ -174,6 +174,9 @@ export function DeploymentQueue({ inline = false }: { inline?: boolean }) {
                         deployableNames.get(deployment.appId) ??
                         "Unavailable deployable";
                       const blocker = queueBlockerLabel(deployment);
+                      const isWaiting = waitingDeploymentStates.has(
+                        deployment.state,
+                      );
                       return (
                         <Button
                           className="h-auto min-h-16 w-full items-start justify-between gap-4 rounded-none px-4 py-3 text-start"
@@ -181,27 +184,30 @@ export function DeploymentQueue({ inline = false }: { inline?: boolean }) {
                           variant="ghost"
                           onPress={() => openDeployment(deployment)}
                         >
-                          <span className="grid min-w-0 flex-1 gap-0.5">
-                            <TooltipText
-                              className="min-w-0 truncate"
-                              tooltip={deployableName}
-                            >
-                              {deployableName}
-                            </TooltipText>
-                            <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                          <span className="grid min-w-0 flex-1 gap-1">
+                            <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                              <TooltipText
+                                className="min-w-0 truncate"
+                                tooltip={deployableName}
+                              >
+                                {deployableName}
+                              </TooltipText>
                               <DeploymentEnvironmentChip
                                 deployment={deployment}
+                                showIcon={false}
                               />
-                              <Chip
-                                size="small"
-                                variant="secondary"
-                                tooltip={`Branch: ${deployment.targetEnvironment.branch}`}
-                                icon={<HugeiconsIcon icon={GitBranchIcon} />}
-                              >
-                                <span className="max-w-32 truncate">
-                                  {deployment.targetEnvironment.branch}
-                                </span>
-                              </Chip>
+                            </span>
+                            <span className="typography--body-xs text-muted">
+                              <ElapsedTime
+                                startedAt={
+                                  isWaiting
+                                    ? deployment.createdAt
+                                    : (deployment.startedAt ??
+                                      deployment.createdAt)
+                                }
+                                finishedAt={null}
+                                status="running"
+                              />
                             </span>
                           </span>
                           <span className="grid shrink-0 justify-items-end gap-0.5">
