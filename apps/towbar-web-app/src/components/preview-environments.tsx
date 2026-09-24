@@ -100,7 +100,7 @@ export function PreviewEnvironments({
           className="block max-w-48 truncate"
           tooltip={preview.branch}
         >
-          <TypographyCode className="block truncate py-0 text-xs/4">
+          <TypographyCode className="block truncate rounded-none bg-transparent p-0 text-xs/4">
             {preview.branch}
           </TypographyCode>
         </TooltipText>
