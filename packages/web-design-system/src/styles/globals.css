@@ -85,23 +85,27 @@ a {
     @apply py-[10px];
   }
 
-  @media (max-width: 63.999rem) {
-    .table__content {
-      width: max-content;
-      min-width: 100% !important;
-      table-layout: auto;
-    }
+  .table__content {
+    width: max-content;
+    min-width: 100% !important;
+    table-layout: auto;
+  }
 
+  .table__column,
+  .table__cell {
+    width: auto !important;
+    white-space: nowrap;
+  }
+
+  .table__column,
+  .table__cell:not(.resource-identity-cell) {
+    min-width: 0 !important;
+  }
+
+  @media (max-width: 63.999rem) {
     .table__column,
     .table__cell {
       @apply px-3;
-      width: auto !important;
-      white-space: nowrap;
-    }
-
-    .table__column,
-    .table__cell:not(.resource-identity-cell) {
-      min-width: 0 !important;
     }
   }
 
