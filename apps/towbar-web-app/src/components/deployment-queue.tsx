@@ -143,14 +143,14 @@ export function DeploymentQueue({ inline = false }: { inline?: boolean }) {
             isIndeterminate
             size="sm"
           >
-            <ProgressCircle.Track className="!size-4">
+            <ProgressCircle.Track className="!size-3.5">
               <ProgressCircle.TrackCircle />
               <ProgressCircle.FillCircle />
             </ProgressCircle.Track>
           </ProgressCircle>
           <span
             aria-live="polite"
-            className="whitespace-nowrap tabular-nums motion-safe:animate-pulse"
+            className="text-sm font-medium whitespace-nowrap tabular-nums motion-safe:animate-pulse"
           >
             {pending.length} in queue
           </span>
