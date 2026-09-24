@@ -17,15 +17,15 @@
 
 :root {
   --workspace-page-content-width: 80rem;
-  --chart-requested: oklch(0.567 0.138 254.2);
-  --chart-succeeded: oklch(0.579 0.109 151.7);
-  --chart-failed: oklch(0.562 0.148 24.9);
+  --chart-requested: oklch(0.627 0.138 254.2);
+  --chart-succeeded: oklch(0.639 0.109 151.7);
+  --chart-failed: oklch(0.622 0.148 24.9);
 }
 
 .dark {
-  --chart-requested: oklch(0.651 0.142 253.8);
-  --chart-succeeded: oklch(0.733 0.141 150.8);
-  --chart-failed: oklch(0.632 0.143 24.6);
+  --chart-requested: oklch(0.591 0.142 253.8);
+  --chart-succeeded: oklch(0.673 0.141 150.8);
+  --chart-failed: oklch(0.572 0.143 24.6);
 }
 
 html {
