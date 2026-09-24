@@ -189,7 +189,18 @@ export function ResourceDetail() {
       label: "Overview",
       icon: <HugeiconsIcon icon={CubeIcon} />,
       content: (
-        <div className="content-grid lg:grid-cols-2">
+        <div
+          className={
+            latestDeployment ? "content-grid lg:grid-cols-2" : "content-grid"
+          }
+        >
+          {!latestDeployment && item.serverReady ? (
+            <FirstDeployment
+              canDeploy={can("deployment.create")}
+              deployableId={resourceId}
+              type="resource"
+            />
+          ) : null}
           <Attributes
             icon={<HugeiconsIcon icon={CubeIcon} />}
             columns={2}
@@ -289,12 +300,6 @@ export function ResourceDetail() {
                 {formatDeploymentTrigger(latestDeployment.trigger)}
               </Attributes.Item>
             </Attributes>
-          ) : item.serverReady ? (
-            <FirstDeployment
-              canDeploy={can("deployment.create")}
-              deployableId={resourceId}
-              type="resource"
-            />
           ) : null}
         </div>
       ),

@@ -255,7 +255,20 @@ export function AppDetail() {
             label: "Overview",
             icon: <HugeiconsIcon icon={DashboardCircleIcon} />,
             content: (
-              <div className="content-grid lg:grid-cols-2">
+              <div
+                className={
+                  latestDeployment
+                    ? "content-grid lg:grid-cols-2"
+                    : "content-grid"
+                }
+              >
+                {!latestDeployment && item.serverReady ? (
+                  <FirstDeployment
+                    canDeploy={can("deployment.create")}
+                    deployableId={appId}
+                    type="app"
+                  />
+                ) : null}
                 <Attributes
                   icon={<HugeiconsIcon icon={DashboardCircleIcon} />}
                   columns={2}
@@ -361,12 +374,6 @@ export function AppDetail() {
                       {item.config.autoDeploy ? "Enabled" : "Disabled"}
                     </Attributes.Item>
                   </Attributes>
-                ) : item.serverReady ? (
-                  <FirstDeployment
-                    canDeploy={can("deployment.create")}
-                    deployableId={appId}
-                    type="app"
-                  />
                 ) : null}
               </div>
             ),
