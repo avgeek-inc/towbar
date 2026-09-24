@@ -40,16 +40,21 @@ export function PrepareServerButton(props: ServerPreparationProps) {
   const router = useRouter();
   if (!can("server.prepare") || props.setupStatus === "ready") return null;
   const busy = props.setupStatus === "preparing";
+  const actionLabel =
+    props.setupStatus === "failed" ? "Retry setup" : "Resume Setup";
   const button = (
     <ActionButton<{ preparation: ServerPreparation }>
       action={() =>
         api.post(`/v1/core/servers/${props.serverId}/actions/prepare`)
       }
       confirm={{
-        actionLabel: "Set up server",
+        actionLabel,
         description:
           "Towbar will connect with the trusted SSH host key, install or validate Docker Engine, Caddy, and Python, then verify the host. Existing conflicting services are not removed automatically.",
-        title: "Set up this server?",
+        title:
+          props.setupStatus === "failed"
+            ? "Retry server setup?"
+            : "Resume server setup?",
       }}
       isDisabled={
         Boolean(props.item.archivedAt) || busy || props.credentialsPending
@@ -59,11 +64,7 @@ export function PrepareServerButton(props: ServerPreparationProps) {
       success="Server setup queued"
       variant="primary"
     >
-      {busy
-        ? "Setting up server"
-        : props.setupStatus === "failed"
-          ? "Retry setup"
-          : "Set up server"}
+      {busy ? "Setting up server" : actionLabel}
     </ActionButton>
   );
   return props.credentialsPending && !busy ? (
