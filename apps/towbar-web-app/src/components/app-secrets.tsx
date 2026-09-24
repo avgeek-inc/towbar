@@ -232,9 +232,9 @@ function EnvironmentEditors({
       <div className="flex min-w-0 flex-wrap items-end gap-4">
         {environment && onEnvironmentChange ? (
           <div className="grid w-full min-w-0 gap-2 md:w-auto">
-            <p className="text-xs text-muted">Environment</p>
+            <p className="text-xs font-medium text-muted">Target</p>
             <ResponsiveChoice
-              label="Environment"
+              label="Target"
               value={environment}
               onChange={onEnvironmentChange}
               options={environments.map((name) => ({
@@ -248,7 +248,7 @@ function EnvironmentEditors({
         ) : null}
         {binding && data ? (
           <div className="grid w-full min-w-0 gap-2 md:w-auto">
-            <p className="text-xs text-muted">Secret stage</p>
+            <p className="text-xs font-medium text-muted">Secret stage</p>
             <ResponsiveChoice
               label="Secret stage"
               value={binding.stage}
