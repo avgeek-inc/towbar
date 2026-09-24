@@ -18,6 +18,7 @@ import {
   SecurityCheckIcon,
   CubeIcon,
   FileViewIcon,
+  GitBranchIcon,
   GitCompareIcon,
   Link01Icon,
   PackageIcon,
@@ -251,6 +252,14 @@ export function ResourceDetail() {
               <InlineLink href={`/repositories/${item.sourceId}`}>
                 {source.data.source.repositoryName}
               </InlineLink>
+            </Attributes.Item>
+            <Attributes.Item
+              icon={<HugeiconsIcon icon={GitBranchIcon} />}
+              label="Branch"
+            >
+              <span className="break-words font-mono">
+                {item.config.sourceBranch ?? "main"}
+              </span>
             </Attributes.Item>
           </Attributes>
           {latestDeployment ? (

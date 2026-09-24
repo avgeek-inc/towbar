@@ -325,6 +325,14 @@ export function AppDetail() {
                       {source.data.source.repositoryName}
                     </InlineLink>
                   </Attributes.Item>
+                  <Attributes.Item
+                    icon={<HugeiconsIcon icon={GitBranchIcon} />}
+                    label="Branch"
+                  >
+                    <span className="break-words font-mono">
+                      {item.config.sourceBranch ?? "main"}
+                    </span>
+                  </Attributes.Item>
                 </Attributes>
                 {latestDeployment ? (
                   <Attributes
