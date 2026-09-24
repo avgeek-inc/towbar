@@ -211,9 +211,16 @@ export function NotificationDeliveries() {
                 {entity.icon}
               </span>
             ) : null}
-            <span className="break-words">
-              {entity?.name ?? item.entityName}
-            </span>
+            <TableCellStack>
+              <span className="break-words">
+                {entity?.name ?? item.entityName}
+              </span>
+              {entity?.environment ? (
+                <TableCellDescription>
+                  {entity.environment}
+                </TableCellDescription>
+              ) : null}
+            </TableCellStack>
           </span>
         );
       },
