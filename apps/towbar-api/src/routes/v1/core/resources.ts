@@ -1,9 +1,5 @@
 import { actorAllows } from "@workspace/towbar-access";
 import {
-  deliveriesQuery,
-  listNotificationDeliveries,
-} from "../../../areas/event-history/deliveries.js";
-import {
   filterWorkloads,
   workloadFilters,
 } from "@workspace/towbar-core/inventory";
@@ -109,31 +105,6 @@ resourceRoutes.get(
         user.workspaceId,
       ),
     });
-  },
-);
-
-resourceRoutes.get(
-  "/:resourceId/notifications/deliveries",
-  operation({
-    permissions: ["resource.read"],
-    query: deliveriesQuery,
-    responseSchema: 'resources.ts:get:"/:resourceId/notifications/deliveries"',
-    summary: "List resource notification deliveries",
-    response: "Paginated notification deliveries for this resource.",
-  }),
-  async (context) => {
-    const workspaceId = context.get("user").workspaceId;
-    const appId = context.req.param("resourceId");
-    await getResource(appId, workspaceId);
-    context.header("Cache-Control", "no-store");
-    return context.json(
-      await listNotificationDeliveries({
-        ...deliveriesQuery.parse(context.req.query()),
-        appId,
-        deployableKind: "resource",
-        workspaceId,
-      }),
-    );
   },
 );
 

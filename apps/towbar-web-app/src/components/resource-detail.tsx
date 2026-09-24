@@ -26,7 +26,6 @@ import {
   ServerStack01Icon,
   Settings01Icon,
   Key01Icon,
-  MailSend01Icon,
   Notification01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -75,7 +74,6 @@ import { FirstDeployment } from "./first-deployment";
 import { EnvironmentChip } from "./environment-chip";
 import { CloudProviderLogo } from "./cloud-provider-logo";
 import { DeployableNotifications } from "./deployable-notifications";
-import { NotificationDeliveries } from "./notification-deliveries";
 
 type ResourceRecord = Resource & {
   serverId: string;
@@ -342,17 +340,6 @@ export function ResourceDetail() {
       icon: <HugeiconsIcon icon={Notification01Icon} />,
       content: (
         <DeployableNotifications notifications={item.config.notifications} />
-      ),
-    },
-    {
-      value: "deliveries",
-      label: "Deliveries",
-      group: "Monitor",
-      icon: <HugeiconsIcon icon={MailSend01Icon} />,
-      content: (
-        <NotificationDeliveries
-          path={`/v1/core/resources/${resourceId}/notifications/deliveries`}
-        />
       ),
     },
     {

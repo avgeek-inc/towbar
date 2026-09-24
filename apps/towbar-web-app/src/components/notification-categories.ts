@@ -17,7 +17,7 @@ const notificationRoutingCategories = [
     categories: ["deployments"],
     icon: Rocket01Icon,
     key: "deployments",
-    label: "Deployment updates",
+    label: "Deployments",
   },
   {
     categories: ["backups", "restores"],

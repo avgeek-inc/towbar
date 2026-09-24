@@ -114,24 +114,18 @@ test("members and viewers cannot read team-wide histories", async () => {
         assert.equal((await request(path)).status, 403);
     });
 });
-test("app and resource delivery histories are scoped and readable without notification management", async () => {
-  for (const role of ["admin", "member", "viewer"])
-    await fixture(role, async (request) => {
-      const app = await (
-        await request(`apps/${fixtureIds.app}/notifications/deliveries`)
+test("global delivery history filters apps, resources, and servers", async () => {
+  await fixture("admin", async (request) => {
+    for (const entityId of [
+      fixtureIds.app,
+      fixtureIds.resource,
+      fixtureIds.server,
+    ]) {
+      const result = await (
+        await request(`notifications/deliveries?entityId=${entityId}`)
       ).json();
-      const resource = await (
-        await request(
-          `resources/${fixtureIds.resource}/notifications/deliveries`,
-        )
-      ).json();
-      assert(app.items.length > 0);
-      assert(resource.items.length > 0);
-      assert(app.items.every((item) => item.deployableId === fixtureIds.app));
-      assert(
-        resource.items.every(
-          (item) => item.deployableId === fixtureIds.resource,
-        ),
-      );
-    });
+      assert(result.items.length > 0);
+      assert(result.items.every((item) => item.targetId === entityId));
+    }
+  });
 });

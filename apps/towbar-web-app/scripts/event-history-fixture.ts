@@ -62,10 +62,35 @@ export function eventHistoryFixture(
   });
   const providers = ["slack", "smtp", "discord", "telegram", "webhook"];
   const states = ["succeeded", "pending", "retrying", "failed", "delivering"];
+  const targets = [
+    {
+      id: "31111111-1111-4111-8111-222222222222",
+      name: "Example Website",
+      kind: "app",
+    },
+    {
+      id: "41111111-1111-4111-8111-111111111111",
+      name: "Primary Postgres",
+      kind: "resource",
+    },
+    {
+      id: "21111111-1111-4111-8111-111111111111",
+      name: "192.0.2.10",
+      kind: "server",
+    },
+  ];
   const deliveries = Array.from({ length: 48 }, (_, index) => {
     const provider = providers[index % providers.length]!;
     const state = states[Math.floor(index / providers.length) % states.length]!;
     const type = notificationEventTypes[index % notificationEventTypes.length]!;
+    const target =
+      type.startsWith("deployment.") || type.startsWith("preview.")
+        ? targets[0]!
+        : type.startsWith("backup.") || type.startsWith("restore.")
+          ? targets[1]!
+          : type.startsWith("server.")
+            ? targets[2]!
+            : targets[index % targets.length]!;
     const createdAt = new Date(now - index * 60_000).toISOString();
     return {
       id: id(5, index),
@@ -89,14 +114,11 @@ export function eventHistoryFixture(
         .split(".")
         .join(" ")
         .replace(/^./, (letter) => letter.toUpperCase()),
-      entityId: id(2, index),
-      entityName: index % 2 ? "Example Website" : "192.0.2.10",
-      deployableId:
-        index % 2
-          ? "31111111-1111-4111-8111-222222222222"
-          : "41111111-1111-4111-8111-111111111111",
+      entityId: target.kind === "server" ? target.id : id(2, index),
+      entityName: target.name,
+      targetId: target.id,
       sourceId: null,
-      serverId: null,
+      serverId: target.kind === "server" ? target.id : null,
       state,
       attemptCount: state === "pending" ? 0 : state === "retrying" ? 2 : 1,
       cycle: 1,
@@ -122,12 +144,7 @@ export function eventHistoryFixture(
     return true;
   }
   return (request: IncomingMessage, response: ServerResponse, url: URL) => {
-    const scopedDelivery =
-      /^\/v1\/core\/(?:apps|resources)\/([a-f0-9-]{36})\/notifications\/deliveries$/u.exec(
-        url.pathname,
-      );
     if (
-      !scopedDelivery &&
       ![
         "/v1/core/team/audit-logs",
         "/v1/core/team/audit-logs/filters",
@@ -135,7 +152,7 @@ export function eventHistoryFixture(
       ].includes(url.pathname)
     )
       return false;
-    if (!getUser() || (!scopedDelivery && getUser()?.workspaceRole !== "admin"))
+    if (!getUser() || getUser()?.workspaceRole !== "admin")
       return send(
         response,
         { error: { message: "Only admins can view event history." } },
@@ -184,7 +201,7 @@ export function eventHistoryFixture(
         )
       : deliveries.filter(
           (delivery) =>
-            (!scopedDelivery || delivery.deployableId === scopedDelivery[1]) &&
+            (!q.get("entityId") || q.get("entityId") === delivery.targetId) &&
             (!q.get("provider") || q.get("provider") === delivery.provider) &&
             (!q.get("state") || q.get("state") === delivery.state) &&
             (!q.get("category") ||

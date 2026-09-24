@@ -36,25 +36,16 @@ export const deliveriesQuery = z
       ])
       .optional(),
     state: notificationDeliveryStateSchema.optional(),
+    entityId: z.string().uuid().optional(),
   })
   .refine(pairedCursor, "A cursor needs both before and beforeId");
 
 export async function listNotificationDeliveries(
   input: z.infer<typeof deliveriesQuery> & {
     workspaceId: string;
-    sourceId?: string;
-    serverId?: string;
-    appId?: string;
-    deployableKind?: "app" | "resource";
   },
 ) {
-  requireActor(input.workspaceId, [
-    input.appId
-      ? input.deployableKind === "resource"
-        ? "resource.read"
-        : "workload.read"
-      : "notification.manage",
-  ]);
+  requireActor(input.workspaceId, ["notification.manage"]);
   const search = searchPattern(input.search);
   const rows = await getTowbarDatabase()
     .select({
@@ -67,6 +58,10 @@ export async function listNotificationDeliveries(
       title: sql<string>`${notificationEvents.payload}->>'title'`,
       entityId: sql<string>`${notificationEvents.payload}->'entity'->>'id'`,
       entityName: sql<string>`${notificationEvents.payload}->'entity'->>'name'`,
+      targetId: sql<string | null>`coalesce(
+        ${notificationEvents.payload}->'details'->>'deployableId',
+        ${notificationEvents.payload}->'entity'->>'id'
+      )`,
       sourceId: notificationEvents.sourceId,
       serverId: notificationEvents.serverId,
       state: notificationDeliveries.state,
@@ -89,14 +84,11 @@ export async function listNotificationDeliveries(
     )
     .where(
       and(
-        input.sourceId
-          ? eq(notificationEvents.sourceId, input.sourceId)
-          : undefined,
-        input.serverId
-          ? eq(notificationEvents.serverId, input.serverId)
-          : undefined,
-        input.appId
-          ? sql`${notificationEvents.payload}->'details'->>'deployableId' = ${input.appId}`
+        input.entityId
+          ? or(
+              sql`${notificationEvents.payload}->'details'->>'deployableId' = ${input.entityId}`,
+              sql`${notificationEvents.payload}->'entity'->>'id' = ${input.entityId}`,
+            )
           : undefined,
         input.provider
           ? eq(notificationDeliveries.provider, input.provider)

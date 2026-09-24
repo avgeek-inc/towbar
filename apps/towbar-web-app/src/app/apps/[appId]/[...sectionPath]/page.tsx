@@ -19,7 +19,6 @@ export default async function Page({
       "alerts",
       "incidents",
       "notifications",
-      "deliveries",
       "compare-deployments",
       "deployments",
       "previews",

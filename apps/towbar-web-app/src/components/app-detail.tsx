@@ -28,7 +28,6 @@ import {
   ServerStack01Icon,
   Settings01Icon,
   Key01Icon,
-  MailSend01Icon,
   Notification01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -70,7 +69,6 @@ import { AppLogo } from "./deployable-identity";
 import { FirstDeployment } from "./first-deployment";
 import { EnvironmentChip } from "./environment-chip";
 import { DeployableNotifications } from "./deployable-notifications";
-import { NotificationDeliveries } from "./notification-deliveries";
 
 type AppRecord = App & {
   serverId: string;
@@ -415,17 +413,6 @@ export function AppDetail() {
             content: (
               <DeployableNotifications
                 notifications={item.config.notifications}
-              />
-            ),
-          },
-          {
-            value: "deliveries",
-            label: "Deliveries",
-            group: "Monitor",
-            icon: <HugeiconsIcon icon={MailSend01Icon} />,
-            content: (
-              <NotificationDeliveries
-                path={`/v1/core/apps/${appId}/notifications/deliveries`}
               />
             ),
           },

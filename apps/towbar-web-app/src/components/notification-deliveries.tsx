@@ -5,8 +5,15 @@ import {
   TableCellDescription,
 } from "@workspace/towbar-web-ui/table-cell-text";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import {
+  CubeIcon,
+  DashboardCircleIcon,
+  ServerStack01Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import type { App, Resource, Server } from "@workspace/towbar-web-client";
+import { useApiQuery } from "@/hooks/use-api-query";
 import {
   notificationCategoryPresentation,
   notificationHistoryCategories,
@@ -50,6 +57,7 @@ type Delivery = {
   title: string;
   entityId: string;
   entityName: string;
+  targetId: string | null;
   sourceId: string | null;
   serverId: string | null;
   state: keyof typeof stateLabels;
@@ -61,20 +69,9 @@ type Delivery = {
   createdAt: string;
   deliveredAt: string | null;
 };
-function deliveryStatusIcon(
-  state: Delivery["state"],
-  context: "chip" | "filter",
-) {
+function deliveryStatusIcon(state: Delivery["state"]) {
   return (
-    <span
-      className={
-        state === "succeeded"
-          ? context === "chip"
-            ? "text-success"
-            : "text-success-soft-foreground"
-          : undefined
-      }
-    >
+    <span className={state === "succeeded" ? "text-success" : undefined}>
       <ScoutIcon
         name={
           state === "succeeded"
@@ -98,7 +95,7 @@ function deliveryStatus(item: Delivery) {
             ? "destructive"
             : "secondary"
       }
-      icon={deliveryStatusIcon(item.state, "chip")}
+      icon={deliveryStatusIcon(item.state)}
       tooltip={
         item.state === "succeeded"
           ? "The provider accepted this notification."
@@ -109,12 +106,48 @@ function deliveryStatus(item: Delivery) {
     </Chip>
   );
 }
-export function NotificationDeliveries({
-  path = "/v1/core/notifications/deliveries",
-}: {
-  path?: string;
-}) {
-  const history = useEventHistory<Delivery>(path);
+export function NotificationDeliveries() {
+  const history = useEventHistory<Delivery>(
+    "/v1/core/notifications/deliveries",
+  );
+  const apps = useApiQuery<{ apps: App[] }>("/v1/core/apps", 30_000);
+  const resources = useApiQuery<{ resources: Resource[] }>(
+    "/v1/core/resources",
+    30_000,
+  );
+  const servers = useApiQuery<{ servers: Server[] }>(
+    "/v1/core/servers",
+    30_000,
+  );
+  const entities = useMemo(
+    () => [
+      ...(apps.data?.apps ?? []).map((app) => ({
+        id: app.id,
+        name: app.name,
+        kind: app.environment ? `App · ${app.environment.name}` : "App",
+        icon: DashboardCircleIcon,
+      })),
+      ...(resources.data?.resources ?? []).map((resource) => ({
+        id: resource.id,
+        name: resource.name,
+        kind: resource.environment
+          ? `Resource · ${resource.environment.name}`
+          : "Resource",
+        icon: CubeIcon,
+      })),
+      ...(servers.data?.servers ?? []).map((server) => ({
+        id: server.id,
+        name: server.canonicalIp,
+        kind: "Server",
+        icon: ServerStack01Icon,
+      })),
+    ],
+    [apps.data, resources.data, servers.data],
+  );
+  const entityById = useMemo(
+    () => new Map(entities.map((entity) => [entity.id, entity])),
+    [entities],
+  );
   const [selected, setSelected] = useState<Delivery | null>(null);
   const [open, setOpen] = useState(false);
   const columns: ResourceTableColumn<Delivery>[] = [
@@ -137,9 +170,28 @@ export function NotificationDeliveries({
           >
             {item.title}
           </button>
-          <TableCellDescription>{item.entityName}</TableCellDescription>
         </TableCellStack>
       ),
+    },
+    {
+      key: "entity",
+      header: "Entity",
+      cell: (item) => {
+        const entity = item.targetId ? entityById.get(item.targetId) : null;
+        return (
+          <TableCellStack
+            as="div"
+            className="min-w-28 max-w-48 whitespace-normal"
+          >
+            <span className="break-words">
+              {entity?.name ?? item.entityName}
+            </span>
+            {entity ? (
+              <TableCellDescription>{entity.kind}</TableCellDescription>
+            ) : null}
+          </TableCellStack>
+        );
+      },
     },
     {
       key: "destination",
@@ -209,17 +261,16 @@ export function NotificationDeliveries({
             onChange={(value) => history.setFilter("category", value)}
           />
           <HistoryFilter
-            label="Statuses"
-            value={history.filters.state}
+            label="Resources"
+            value={history.filters.entityId}
             allIcon={<ScoutIcon name="all" />}
-            options={(Object.keys(stateLabels) as Delivery["state"][]).map(
-              (id) => ({
-                id,
-                label: stateLabels[id],
-                icon: deliveryStatusIcon(id, "filter"),
-              }),
-            )}
-            onChange={(value) => history.setFilter("state", value)}
+            options={entities.map((entity) => ({
+              id: entity.id,
+              label: `${entity.name} · ${entity.kind}`,
+              icon: <HugeiconsIcon icon={entity.icon} className="size-4" />,
+            }))}
+            searchPlaceholder="Search apps, resources or servers"
+            onChange={(value) => history.setFilter("entityId", value)}
           />
         </div>
         <HistorySearch
@@ -254,7 +305,14 @@ export function NotificationDeliveries({
               value={<DeliveryCategory category={selected.category} />}
             />
             <EventDetail label="Event type" value={selected.type} />
-            <EventDetail label="Entity" value={selected.entityName} />
+            <EventDetail
+              label="Entity"
+              value={
+                (selected.targetId &&
+                  entityById.get(selected.targetId)?.name) ||
+                selected.entityName
+              }
+            />
             <EventDetail
               label="Queued"
               value={<RelativeTime value={selected.createdAt} label="Queued" />}

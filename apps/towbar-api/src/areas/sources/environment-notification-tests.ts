@@ -123,8 +123,7 @@ export async function assertScopedDeliveryHistory(input: {
   const query = deliveriesQuery.parse({});
   const scoped = await listNotificationDeliveries({
     ...query,
-    appId: input.stage.id,
-    deployableKind: "app",
+    entityId: input.stage.id,
     workspaceId: input.workspaceId,
   });
   const global = await listNotificationDeliveries({
