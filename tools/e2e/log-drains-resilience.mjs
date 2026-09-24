@@ -100,14 +100,15 @@ c=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER);c.load_cert_chain('/tmp/receiver.crt',
   upload(
     "load.py",
     `import time,sys,json,os
-print('LOAD_READY',flush=True)
-while not os.path.exists('/control/start'): time.sleep(.1)
+while not os.path.exists('/control/start'):
+ print('LOAD_READY',flush=True)
+ time.sleep(.5)
 start=time.monotonic()
 for i in range(80000):
  print(str(i)+':'+('x'*8192))
  if i%1000==0: time.sleep(.1)
 print('LOAD_COMPLETE',flush=True)
-with open('/control/load-result.json','w') as f: json.dump({'seconds':time.monotonic()-start,'lines':80001},f)
+with open('/control/load-result.json','w') as f: json.dump({'seconds':time.monotonic()-start,'lines':80000},f)
 time.sleep(180)
 `,
   );
