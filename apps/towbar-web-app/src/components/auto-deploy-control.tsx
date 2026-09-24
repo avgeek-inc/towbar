@@ -14,7 +14,6 @@ import { Switch } from "@workspace/web-design-system/forms/switch";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
-import { EnvironmentAutomationControls } from "./environment-automation-controls";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 
@@ -92,7 +91,7 @@ export function AutoDeployControlEditor({
                   <span className="text-sm font-normal text-muted">
                     {inheritedPause
                       ? query.data.autoDeploy.effective.scope === "environment"
-                        ? "Automatic deployments are paused for this environment. Review its branch mapping in Repository auto-deploy settings."
+                        ? "Automatic deployments are paused for this environment. Ask an Admin to review its branch mapping."
                         : "Automatic deployments are currently paused for the entire Repository."
                       : "Running and queued deployments continue, and manual deployments remain available."}
                   </span>
@@ -118,9 +117,6 @@ export function AutoDeployControlEditor({
           </Widget.Content>
         </Widget>
       </form>
-      {type === "source" ? (
-        <EnvironmentAutomationControls sourceId={id} />
-      ) : null}
     </div>
   );
 }

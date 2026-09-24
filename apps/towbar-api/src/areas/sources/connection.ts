@@ -95,6 +95,7 @@ export async function connectRepositorySource(
     actorUserId: string | null;
   },
 ) {
+  const actor = requireActor(input.workspaceId, ["repository.connect"]);
   const connection = await repositoryConnection(input);
   const resolved: {
     environment: string;
@@ -159,10 +160,7 @@ export async function connectRepositorySource(
           name: mapping.environment,
           branch: mapping.branch,
           previewsEnabled: mapping.previewsEnabled,
-          autoDeployPaused: !actorAllows(
-            requireActor(input.workspaceId, ["repository.connect"]),
-            ["deployment.create"],
-          ),
+          autoDeployPaused: !actorAllows(actor, ["deployment.create"]),
         })),
       )
       .returning();

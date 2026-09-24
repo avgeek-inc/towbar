@@ -242,7 +242,7 @@ void test(
       );
       const queued = withActor(
         (await keys.findApiKey(personalToken))!.actor,
-        () => captureQueuedActor(admin.workspaceId, ["repository.sync"]),
+        () => captureQueuedActor(admin.workspaceId, ["secret.update"]),
       );
       await t.test(
         "demotion immediately caps personal keys and queued work, and promotion cannot restore grants",
@@ -250,11 +250,11 @@ void test(
           await teams.updateMemberRole(admin, member.id, "viewer");
           const capped = (await keys.findApiKey(personalToken))!;
           assert.equal(capped.key.access, "read");
-          assert.equal(actorAllows(capped.actor, ["repository.sync"]), false);
+          assert.equal(actorAllows(capped.actor, ["secret.update"]), false);
           assert.equal(actorAllows(capped.actor, ["repository.read"]), true);
           await assert.rejects(
             authorizeQueuedEffect(queued.requestedByActor, admin.workspaceId, [
-              "repository.sync",
+              "secret.update",
             ]),
           );
           memberHeaders = headersFor(

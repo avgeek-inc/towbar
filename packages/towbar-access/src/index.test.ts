@@ -25,7 +25,6 @@ test("roles separate operational reads, member edits, and administration", () =>
       assert.equal(roleAllows(role, action), true, `${role}: ${action}`);
   }
   for (const action of [
-    "repository.connect",
     "secret.update",
     "sharedSecret.reference",
     "scout.configure",
@@ -35,6 +34,10 @@ test("roles separate operational reads, member edits, and administration", () =>
     assert.equal(roleAllows("viewer", action), false);
   }
   for (const action of [
+    "repository.connect",
+    "repository.update",
+    "repository.sync",
+    "repository.disconnect",
     "deployment.create",
     "server.prepare",
     "server.terminal",

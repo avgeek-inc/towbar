@@ -75,6 +75,7 @@ export async function connectSourceEnvironment(input: {
   branch: string;
   actorUserId: string | null;
 }) {
+  const actor = requireActor(input.workspaceId, ["repository.connect"]);
   const mapping = sourceEnvironmentMappingSchema.parse({
     environment: input.environment,
     branch: input.branch,
@@ -108,10 +109,7 @@ export async function connectSourceEnvironment(input: {
       previewsEnabled: resolved.manifest.previewsEnabled,
       mappingRevision: randomUUID(),
       disconnectedAt: null,
-      autoDeployPaused: !actorAllows(
-        requireActor(input.workspaceId, ["repository.connect"]),
-        ["deployment.create"],
-      ),
+      autoDeployPaused: !actorAllows(actor, ["deployment.create"]),
       updatedAt: new Date(),
     };
     const [environment] = existing
@@ -143,6 +141,7 @@ export async function updateEnvironmentBranch(input: {
   expectedRevision: string;
   actorUserId: string | null;
 }) {
+  const actor = requireActor(input.workspaceId, ["repository.update"]);
   const source = await sourceRepository(input.sourceId, input.workspaceId);
   const [environment] = await getTowbarDatabase()
     .select()
@@ -169,7 +168,9 @@ export async function updateEnvironmentBranch(input: {
       .update(sourceEnvironments)
       .set({
         branch: mapping.branch,
-        autoDeployPaused: true,
+        ...(!actorAllows(actor, ["deployment.create"])
+          ? { autoDeployPaused: true }
+          : {}),
         mappingRevision: randomUUID(),
         updatedAt: new Date(),
       })

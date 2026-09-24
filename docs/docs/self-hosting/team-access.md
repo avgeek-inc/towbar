@@ -10,7 +10,7 @@ Towbar v2 has one team per installation. The person completing setup becomes an 
 | Capability                                                                   | Admin | Member | Viewer       |
 | ---------------------------------------------------------------------------- | ----- | ------ | ------------ |
 | Read operational inventory, deployment history, monitoring and redacted logs | ✅    | ✅     | ✅           |
-| Manage repositories and sync inventory                                       | ✅    | ✅     | ❌           |
+| Connect repositories, change branch mappings and sync inventory              | ✅    | ❌     | ❌           |
 | Update declared secret values and shared-secret references                   | ✅    | ✅     | ❌           |
 | Configure Scout Agent and alert rules                                        | ✅    | ✅     | ❌           |
 | Deploy, operate workloads, prepare servers, back up or restore               | ✅    | ❌     | ❌           |
@@ -19,7 +19,7 @@ Towbar v2 has one team per installation. The person completing setup becomes an 
 | Manage members, invitations, team settings and team API keys                 | ✅    | ❌     | ❌           |
 | Secure own account and manage own personal API keys                          | ✅    | ✅     | 🔑 Read-only |
 
-Members manage repository configuration and inventory. Syncing as a Member and changing branch mappings pauses runtime automation. An Admin reviews the synchronized mapping under the repository's Auto-deploy settings before enabling deployment, preview and scheduled-backup automation. Removing a repository connection does not authorize runtime cleanup.
+Members can inspect repository configuration and inventory. Admins manage connections, branch mappings, and synchronization. Removing a repository connection does not authorize runtime cleanup.
 
 Secrets can be changed without revealing their existing values. Members can preserve masked values or replace them and can use shared references; they cannot reveal or export stored secrets. Viewers do not see secret-management pages.
 
