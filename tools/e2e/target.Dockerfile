@@ -1,7 +1,13 @@
 FROM docker:29-dind AS docker
 FROM caddy:2 AS caddy
 FROM ubuntu:24.04
-RUN apt-get update \
+COPY --from=caddy /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+RUN if [ "$(dpkg --print-architecture)" = amd64 ]; then \
+      sed -i 's|^URIs: .*|URIs: https://mirrors.edge.kernel.org/ubuntu/|' /etc/apt/sources.list.d/ubuntu.sources; \
+    else \
+      sed -i 's|^URIs: http://|URIs: https://|' /etc/apt/sources.list.d/ubuntu.sources; \
+    fi \
+    && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       bash openssh-server python3 curl coreutils util-linux sudo ca-certificates \
       iptables iproute2 procps xz-utils systemd systemd-sysv \
