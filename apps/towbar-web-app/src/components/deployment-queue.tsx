@@ -65,7 +65,7 @@ function DeploymentStateIndicator({ deployment }: { deployment: Deployment }) {
       {isWaiting ? (
         <span
           aria-hidden="true"
-          className="size-3.5 shrink-0 rounded-full border-2 border-warning"
+          className="size-3.5 shrink-0 rounded-full border-[1.5px] border-warning"
         />
       ) : (
         <ProgressCircle
@@ -80,7 +80,7 @@ function DeploymentStateIndicator({ deployment }: { deployment: Deployment }) {
           </ProgressCircle.Track>
         </ProgressCircle>
       )}
-      <span className="typography--body-xs text-muted">
+      <span className="typography--body-xs font-normal text-muted">
         {formatStatus(getDeploymentDisplayStatus(deployment))}
       </span>
     </span>
@@ -135,7 +135,7 @@ export function DeploymentQueue({ inline = false }: { inline?: boolean }) {
       <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
         <Popover.Trigger
           aria-label={`${pending.length} deployment${pending.length === 1 ? "" : "s"} in queue. View deployment queue.`}
-          className="inline-flex h-8 min-h-8 cursor-pointer items-center gap-2 rounded-full border-transparent bg-default px-3 text-sm text-foreground shadow-none outline-none transition-[color,background-color,transform] hover:bg-default/80 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-focus motion-reduce:transition-none"
+          className="inline-flex h-8 min-h-8 cursor-pointer items-center gap-2 rounded-full border-transparent bg-default px-3 text-sm text-muted shadow-none outline-none transition-[color,background-color,transform] hover:bg-default/80 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-focus motion-reduce:transition-none"
         >
           <ProgressCircle
             aria-label="Deployments in progress"
@@ -143,7 +143,7 @@ export function DeploymentQueue({ inline = false }: { inline?: boolean }) {
             isIndeterminate
             size="sm"
           >
-            <ProgressCircle.Track>
+            <ProgressCircle.Track className="!size-4.5">
               <ProgressCircle.TrackCircle />
               <ProgressCircle.FillCircle />
             </ProgressCircle.Track>
@@ -179,15 +179,15 @@ export function DeploymentQueue({ inline = false }: { inline?: boolean }) {
                       );
                       return (
                         <Button
-                          className="h-auto min-h-16 w-full items-start justify-between gap-4 rounded-none px-4 py-3 text-start"
+                          className="h-auto min-h-16 w-full items-start justify-between gap-4 rounded-none px-4 py-3 text-start font-normal"
                           key={deployment.id}
                           variant="ghost"
                           onPress={() => openDeployment(deployment)}
                         >
-                          <span className="grid min-w-0 flex-1 gap-1">
+                          <span className="grid min-w-0 flex-1">
                             <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                               <TooltipText
-                                className="min-w-0 truncate"
+                                className="min-w-0 truncate text-sm font-normal"
                                 tooltip={deployableName}
                               >
                                 {deployableName}
@@ -197,7 +197,7 @@ export function DeploymentQueue({ inline = false }: { inline?: boolean }) {
                                 showIcon={false}
                               />
                             </span>
-                            <span className="typography--body-xs text-muted">
+                            <span className="typography--body-xs font-normal text-muted">
                               <ElapsedTime
                                 startedAt={
                                   isWaiting
@@ -213,7 +213,7 @@ export function DeploymentQueue({ inline = false }: { inline?: boolean }) {
                           <span className="grid shrink-0 justify-items-end gap-0.5">
                             <DeploymentStateIndicator deployment={deployment} />
                             {blocker ? (
-                              <span className="typography--body-xs max-w-48 text-end text-muted">
+                              <span className="typography--body-xs max-w-48 text-end font-normal text-muted">
                                 {blocker}
                               </span>
                             ) : null}

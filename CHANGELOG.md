@@ -27,7 +27,8 @@ All notable changes to Towbar are documented in this file. This project follows
   redundant Environment automation card is removed.
 - Apps and Resources open in the unified inventory view by default. Inventory
   and deployment rows omit repeated branch labels; the deployment queue shows
-  an environment chip and live elapsed duration.
+  an environment chip and live elapsed duration with compact, consistent status
+  indicators.
 - Cloudflare TLS switch copy uses regular-weight text and tighter spacing.
 
 ### Fixed
