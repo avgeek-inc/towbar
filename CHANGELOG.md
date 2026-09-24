@@ -5,6 +5,39 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.12] - 2026-09-24
+
+### Added
+
+- Self-hosted runtime settings use `/etc/towbar/towbar.yml`, with grouped
+  provider credentials and validation before lifecycle commands. Existing
+  installations convert their supported settings while preserving rollback
+  configuration; fresh installations create YAML directly.
+- Email, Slack, Discord, Telegram, and webhook notification destinations can
+  be managed and tested in the control plane. Destinations choose Deployments,
+  Backup & Restore, and Alerts & Incidents independently, while provider
+  credentials remain in runtime configuration.
+- Notification provider pages show configuration empty states and destination
+  tables, with updated self-hosting and integration guides.
+
+### Changed
+
+- Repository connections, branch mappings, and manual syncs require Admin
+  access. Branch changes retain the existing automation pause state, and the
+  redundant Environment automation card is removed.
+- Apps and Resources open in the unified inventory view by default. Inventory
+  and deployment rows omit repeated branch labels; the deployment queue shows
+  an environment chip and live elapsed duration.
+- Cloudflare TLS switch copy uses regular-weight text and tighter spacing.
+
+### Fixed
+
+- Interrupted server checks become failed checks, and maintenance recovers
+  stale running records so scheduled checks resume after worker restarts.
+- Line-chart tooltips follow the pointer without a delayed transform, and
+  switching integration providers keeps the sidebar mounted to avoid logo
+  flashes.
+
 ## [2.0.11] - 2026-09-24
 
 ### Added
@@ -268,7 +301,8 @@ All notable changes to Towbar are documented in this file. This project follows
 - Branch mapping errors remain visible beside the edit form while preserving
   the entered branch and previous mapping.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.11...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.12...HEAD
+[2.0.12]: https://github.com/avgeek-inc/towbar/compare/v2.0.11...v2.0.12
 [2.0.11]: https://github.com/avgeek-inc/towbar/compare/v2.0.10...v2.0.11
 [2.0.10]: https://github.com/avgeek-inc/towbar/compare/v2.0.9...v2.0.10
 [2.0.9]: https://github.com/avgeek-inc/towbar/compare/v2.0.8...v2.0.9
