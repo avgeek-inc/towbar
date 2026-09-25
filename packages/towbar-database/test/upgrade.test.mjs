@@ -170,7 +170,7 @@ test(
       });
       const [{ count }] =
         await client`select count(*)::int as count from drizzle.__drizzle_migrations`;
-      assert.equal(count, 8);
+      assert.equal(count, 9);
       const roles =
         await client`select enumlabel from pg_enum join pg_type on pg_type.oid = enumtypid where typname = 'towbar_workspace_role' order by enumsortorder`;
       assert.deepEqual(
@@ -181,6 +181,7 @@ test(
         await client`select table_name, column_name from information_schema.columns where table_schema = 'public'`;
       for (const [table, column] of [
         ["towbar_servers", "canonical_ip"],
+        ["towbar_servers", "name"],
         ["towbar_apps", "required_secrets"],
         ["towbar_deployments", "target_environment"],
         ["towbar_deployments", "requested_by_actor"],
