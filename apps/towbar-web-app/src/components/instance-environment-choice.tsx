@@ -1,10 +1,12 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import type { App, Resource } from "@workspace/towbar-web-client";
 import { ListBox } from "@workspace/web-design-system/collections/list-box";
 import { Select } from "@workspace/web-design-system/forms/select";
-import { useApiQuery } from "@/hooks/use-api-query";
+import { Spinner } from "@workspace/web-design-system/feedback/spinner";
+import { prefetchApiQueries, useApiQuery } from "@/hooks/use-api-query";
 import { SecondarySection } from "./secondary-sidebar";
 import { EnvironmentIcon } from "./environment-icon";
 
@@ -17,6 +19,14 @@ export function InstanceEnvironmentChoice({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [switchingTo, setSwitchingTo] = useState<string | null>(null);
+  const pendingSwitch = useRef<string | null>(null);
+  useEffect(() => {
+    return () => {
+      pendingSwitch.current = null;
+    };
+  }, []);
+  const isSwitching = switchingTo !== null && switchingTo !== item.id;
   const query = useApiQuery<{ apps?: App[]; resources?: Resource[] }>(
     item.entityId ? `/v1/core/sources/${item.sourceId}/${kind}` : null,
   );
@@ -51,6 +61,7 @@ export function InstanceEnvironmentChoice({
         <Select
           aria-label="Environment"
           fullWidth
+          isDisabled={isSwitching}
           selectedKey={item.id}
           variant="secondary"
           onSelectionChange={(key) => {
@@ -59,7 +70,19 @@ export function InstanceEnvironmentChoice({
               id !== item.id &&
               instances.some((instance) => instance.id === id)
             ) {
-              router.push(`${base}/${id}${section}`);
+              pendingSwitch.current = id;
+              setSwitchingTo(id);
+              const href = `${base}/${id}${section}`;
+              router.prefetch(href);
+              const navigate = () => {
+                if (pendingSwitch.current === id) router.push(href);
+              };
+              void prefetchApiQueries([
+                `/v1/core/${kind}/${id}`,
+                `/v1/core/sources/${item.sourceId}`,
+                `/v1/core/${kind}/${id}/deployments`,
+                `/v1/core/${kind}/${id}/releases`,
+              ]).then(navigate, navigate);
             }
           }}
         >
@@ -73,7 +96,15 @@ export function InstanceEnvironmentChoice({
                 </span>
               </span>
             </Select.Value>
-            <Select.Indicator />
+            {isSwitching ? (
+              <Spinner
+                aria-label="Switching environment"
+                color="current"
+                size="sm"
+              />
+            ) : (
+              <Select.Indicator />
+            )}
           </Select.Trigger>
           <Select.Popover>
             <ListBox>
