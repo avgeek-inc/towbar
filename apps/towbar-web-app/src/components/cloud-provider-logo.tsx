@@ -13,8 +13,7 @@ export type CloudProviderId =
   | "cloudflare"
   | "s3"
   | "r2"
-  | "gcs"
-  | "azureBlob";
+  | "gcs";
 
 function normalizeCloudProvider(provider: CloudProviderId): string {
   switch (provider) {
@@ -24,7 +23,6 @@ function normalizeCloudProvider(provider: CloudProviderId): string {
     case "gcs":
     case "gcp":
       return "gcp";
-    case "azureBlob":
     case "azure":
       return "azure";
     case "r2":

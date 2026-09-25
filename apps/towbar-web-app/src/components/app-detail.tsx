@@ -70,7 +70,6 @@ import { AppLogo } from "./deployable-identity";
 import { FirstDeployment } from "./first-deployment";
 import { EnvironmentChip } from "./environment-chip";
 import { DeployableNotifications } from "./deployable-notifications";
-import { DeployableLogForwarding } from "./deployable-log-forwarding";
 
 type AppRecord = App & {
   serverId: string;
@@ -406,23 +405,6 @@ export function AppDetail() {
               />
             ),
           },
-          ...(item.config.kind !== "compose" && item.config.logDrains?.length
-            ? [
-                {
-                  value: "log-forwarding",
-                  label: "Log forwarding",
-                  group: "Monitor",
-                  icon: <HugeiconsIcon icon={FileViewIcon} />,
-                  content: (
-                    <DeployableLogForwarding
-                      providers={item.config.logDrains}
-                      attributes={item.config.logDrainAttributes}
-                      serverId={item.serverId}
-                    />
-                  ),
-                },
-              ]
-            : []),
           {
             value: "performance",
             label: "Performance",

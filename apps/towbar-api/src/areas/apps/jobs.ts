@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import {
   digestValue,
+  digestWithoutNotificationSubscriptions,
   isNormalizedResource,
   latestAppJobOccurrence,
 } from "@workspace/towbar-core";
@@ -67,7 +68,8 @@ async function jobTarget(appId: string, workspaceId: string) {
     !target.archivedAt &&
     target.serverPreparedAt &&
     target.serverPreparedConfigDigest === target.serverConfigDigest &&
-    digestValue(release.config) === digestValue(target.config),
+    digestWithoutNotificationSubscriptions(release.config) ===
+      digestWithoutNotificationSubscriptions(target.config),
   );
   return {
     ...target,

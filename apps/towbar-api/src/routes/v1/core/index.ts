@@ -1,4 +1,3 @@
-import { logDrainRoutes } from "./log-drains.js";
 import { integrationRoutes } from "./integrations.js";
 import { gitlabRoutes } from "./gitlab.js";
 import { serverTerminalRoutes } from "./server-terminal.js";
@@ -41,7 +40,6 @@ export const controlPlaneRoutes = new Hono<TowbarHonoEnvironment>();
 controlPlaneRoutes.use("*", localizeJsonResponse);
 controlPlaneRoutes.route("/", preferenceRoutes);
 
-controlPlaneRoutes.route("/log-drains", logDrainRoutes);
 controlPlaneRoutes.route("/integrations", integrationRoutes);
 controlPlaneRoutes.route("/gitlab", gitlabRoutes);
 controlPlaneRoutes.route("/team", teamRoutes);

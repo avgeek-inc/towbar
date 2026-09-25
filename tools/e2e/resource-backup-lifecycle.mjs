@@ -83,7 +83,6 @@ export async function runBackupLifecycle({
   };
   const secrets = {
     aws: null,
-    azure: null,
     gcp: null,
     login: { privateKey: await readFile(target.key, "utf8") },
     runtime: { REDIS_PASSWORD: "test-staging" },

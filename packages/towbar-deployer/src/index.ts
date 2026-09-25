@@ -21,7 +21,3 @@ export * from "./ssh.js";
 export * from "./types.js";
 export * from "./monitoring-agent.js";
 export { CommandError } from "./process.js";
-
-export * from "./log-drains.js";
-export * from "./log-drain-test.js";
-export * from "./otel-collector.js";

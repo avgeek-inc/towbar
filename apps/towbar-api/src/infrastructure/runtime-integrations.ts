@@ -3,8 +3,6 @@ import { createPrivateKey } from "node:crypto";
 import {
   type IntegrationProvider,
   type ProviderConnection,
-  azureBlobConnectionConfigurationSchema,
-  azureBlobConnectionCredentialsSchema,
   cloudflareConnectionConfigurationSchema,
   cloudflareConnectionCredentialsSchema,
   dopplerConnectionConfigurationSchema,
@@ -16,8 +14,6 @@ import {
   gitlabConnectionConfigurationSchema,
   infisicalConnectionConfigurationSchema,
   infisicalConnectionCredentialsSchema,
-  otlpConnectionConfigurationSchema,
-  otlpConnectionCredentialsSchema,
   registryConnectionConfigurationSchema,
   registryConnectionCredentialsSchema,
   s3ConnectionConfigurationSchema,
@@ -31,16 +27,10 @@ const enabledSchema = z.enum(["true", "false"]);
 const booleanSchema = z
   .enum(["true", "false"])
   .transform((value) => value === "true");
-const jsonRecordSchema = z.record(z.string(), z.string());
 
 export type IntegrationCapability = {
   category:
-    | "backup"
-    | "external-secrets"
-    | "observability"
-    | "registry"
-    | "source-control"
-    | "platform";
+    "backup" | "external-secrets" | "registry" | "source-control" | "platform";
   provider: IntegrationProvider;
 };
 
@@ -213,20 +203,6 @@ export function parseRuntimeIntegrations(
         ),
       }),
   });
-  addProvider(environment, providers, capabilities, "azureBlob", "backup", {
-    configuration: () =>
-      azureBlobConnectionConfigurationSchema.parse({
-        container: value(environment, "TOWBAR_AZURE_CONTAINER"),
-        prefix: value(environment, "TOWBAR_AZURE_PREFIX"),
-        storageAccount: required(environment, "TOWBAR_AZURE_STORAGE_ACCOUNT"),
-      }),
-    credentials: () =>
-      azureBlobConnectionCredentialsSchema.parse({
-        clientId: required(environment, "TOWBAR_AZURE_CLIENT_ID"),
-        clientSecret: required(environment, "TOWBAR_AZURE_CLIENT_SECRET"),
-        tenantId: required(environment, "TOWBAR_AZURE_TENANT_ID"),
-      }),
-  });
   addProvider(
     environment,
     providers,
@@ -279,23 +255,6 @@ export function parseRuntimeIntegrations(
     credentials: () =>
       cloudflareConnectionCredentialsSchema.parse({
         apiToken: required(environment, "TOWBAR_CLOUDFLARE_API_TOKEN"),
-      }),
-  });
-  addProvider(environment, providers, capabilities, "otlp", "observability", {
-    configuration: () =>
-      otlpConnectionConfigurationSchema.parse({
-        allowPrivateNetwork: boolean(
-          environment,
-          "TOWBAR_OTLP_ALLOW_PRIVATE_NETWORK",
-          false,
-        ),
-        dashboardUrl: value(environment, "TOWBAR_OTLP_DASHBOARD_URL"),
-        endpoint: required(environment, "TOWBAR_OTLP_ENDPOINT"),
-        protocol: value(environment, "TOWBAR_OTLP_PROTOCOL") ?? "http/protobuf",
-      }),
-    credentials: () =>
-      otlpConnectionCredentialsSchema.parse({
-        headers: jsonRecord(environment, "TOWBAR_OTLP_HEADERS_JSON"),
       }),
   });
 
@@ -378,8 +337,7 @@ function addProvider<
 }
 
 function isEnabled(environment: Environment, provider: string) {
-  const environmentProvider =
-    provider === "azureBlob" ? "AZURE" : provider.toUpperCase();
+  const environmentProvider = provider.toUpperCase();
   const name = `TOWBAR_${environmentProvider}_ENABLED`;
   const raw = value(environment, name);
   if (raw === undefined) return false;
@@ -413,16 +371,4 @@ function decodeBase64(raw: string, name: string) {
 function optionalBase64(environment: Environment, name: string) {
   const raw = value(environment, name);
   return raw ? decodeBase64(raw, name) : undefined;
-}
-
-function jsonRecord(environment: Environment, name: string) {
-  const raw = value(environment, name);
-  if (!raw) return {};
-  try {
-    return jsonRecordSchema.parse(JSON.parse(raw));
-  } catch (error) {
-    throw new Error(`${name} must contain a JSON object with string values`, {
-      cause: error,
-    });
-  }
 }

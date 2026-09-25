@@ -303,32 +303,6 @@ export const externalSecretReferenceSchema = z
   })
   .strict();
 
-export const telemetrySchema = z
-  .object({
-    integration: integrationReferenceSchema,
-    signals: z
-      .array(z.enum(["logs", "metrics", "traces"]))
-      .min(1)
-      .max(3)
-      .refine(
-        (signals) => new Set(signals).size === signals.length,
-        "Duplicate telemetry signal",
-      ),
-    protocol: z.enum(["otlp-http", "otlp-grpc"]).default("otlp-grpc"),
-    sampling: z.number().min(0).max(1).default(1),
-    redactAttributes: z
-      .array(z.string().trim().min(1).max(256))
-      .max(100)
-      .optional(),
-    cardinalityLimit: z.number().int().min(100).max(1_000_000).default(10_000),
-  })
-  .strict();
-export type TelemetryPolicy = z.infer<typeof telemetrySchema>;
-
-export function managedTelemetryNetworkName(serverId: string) {
-  return `towbar-telemetry-${serverId.toLowerCase()}`;
-}
-
 export const ingressSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("proxy") }).strict(),
   z
@@ -346,7 +320,6 @@ const composeServicePolicySchema = z
     domains: z.array(z.string().trim().min(1).max(253)).max(20).optional(),
     port: z.number().int().min(1).max(65_535).optional(),
     ingress: ingressSchema.optional(),
-    telemetry: telemetrySchema.optional(),
   })
   .strict();
 

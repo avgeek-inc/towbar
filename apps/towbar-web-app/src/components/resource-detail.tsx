@@ -75,7 +75,6 @@ import { FirstDeployment } from "./first-deployment";
 import { EnvironmentChip } from "./environment-chip";
 import { CloudProviderLogo } from "./cloud-provider-logo";
 import { DeployableNotifications } from "./deployable-notifications";
-import { DeployableLogForwarding } from "./deployable-log-forwarding";
 
 type ResourceRecord = Resource & {
   serverId: string;
@@ -122,7 +121,6 @@ export function ResourceDetail() {
   );
   const assurances = useApiQuery<{
     awsConfigured: boolean;
-    azureConfigured?: boolean;
     canRestore: boolean;
     gcpConfigured?: boolean;
     missingCredentialMessage?: string;
@@ -171,17 +169,15 @@ export function ResourceDetail() {
     assuranceData &&
     ((backup.s3 && !assuranceData.awsConfigured) ||
       (backup.gcs && !assuranceData.gcpConfigured) ||
-      (backup.azureBlob && !assuranceData.azureConfigured)),
+      false),
   );
   const restoreProvider =
-    backup?.restoreFrom ??
-    (backup?.s3 ? "s3" : backup?.gcs ? "gcs" : "azureBlob");
+    backup?.restoreFrom ?? (backup?.s3 ? "s3" : backup?.gcs ? "gcs" : "s3");
   const missingRestoreCredentials = Boolean(
     backup &&
     assuranceData &&
     ((restoreProvider === "s3" && !assuranceData.awsConfigured) ||
-      (restoreProvider === "gcs" && !assuranceData.gcpConfigured) ||
-      (restoreProvider === "azureBlob" && !assuranceData.azureConfigured)),
+      (restoreProvider === "gcs" && !assuranceData.gcpConfigured)),
   );
   const tabs = [
     {
@@ -318,23 +314,6 @@ export function ResourceDetail() {
         />
       ),
     },
-    ...(item.config.logDrains?.length
-      ? [
-          {
-            value: "log-forwarding",
-            label: "Log forwarding",
-            group: "Monitor",
-            icon: <HugeiconsIcon icon={FileViewIcon} />,
-            content: (
-              <DeployableLogForwarding
-                providers={item.config.logDrains}
-                attributes={item.config.logDrainAttributes}
-                serverId={item.serverId}
-              />
-            ),
-          },
-        ]
-      : []),
     {
       value: "performance",
       label: "Performance",

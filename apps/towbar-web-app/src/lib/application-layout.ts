@@ -10,7 +10,6 @@ import {
   GitBranchIcon,
   HealthIcon,
   Key01Icon,
-  FileViewIcon,
   Notification01Icon,
   PlugSocketIcon,
   Rocket01Icon,
@@ -158,17 +157,17 @@ const sidebar = {
       items: [
         {
           kind: "link",
-          id: "integrations",
-          label: "Integrations",
-          href: "/manage/integrations",
-          icon: PlugSocketIcon,
-        },
-        {
-          kind: "link",
           id: "ssh-keys",
           label: "SSH keys",
           href: "/manage/ssh-keys",
           icon: ComputerTerminal01Icon,
+        },
+        {
+          kind: "link",
+          id: "shared-secrets",
+          label: "Shared Secrets",
+          href: "/manage/shared-secrets",
+          icon: Key01Icon,
         },
         {
           kind: "link",
@@ -179,17 +178,10 @@ const sidebar = {
         },
         {
           kind: "link",
-          id: "log-forwarding",
-          label: "Log forwarding",
-          href: "/manage/log-forwarding",
-          icon: FileViewIcon,
-        },
-        {
-          kind: "link",
-          id: "shared-secrets",
-          label: "Shared Secrets",
-          href: "/manage/shared-secrets",
-          icon: Key01Icon,
+          id: "integrations",
+          label: "Integrations",
+          href: "/manage/integrations",
+          icon: PlugSocketIcon,
         },
         {
           kind: "link",
@@ -228,7 +220,6 @@ export function createApplicationSidebar(
           const permissions: Record<string, Action> = {
             health: "system.read",
             integrations: "integration.manage",
-            "log-forwarding": "integration.manage",
             notifications: "notification.manage",
             "ssh-keys": "privateKey.manage",
             "shared-secrets": "sharedSecret.list",

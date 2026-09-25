@@ -63,7 +63,6 @@ const sectionOrder = [
   "GitHub",
   "GitLab",
   "AWS",
-  "Azure",
   "GCP",
   "Lifecycle",
 ];

@@ -3,36 +3,34 @@ title: "Integrations"
 description: "Understand which providers Towbar supports, where credentials live, and when each integration appears."
 ---
 
-Towbar integrations are enabled by the control-plane runtime configuration. The dashboard does not collect provider secrets. **Manage → Integrations** shows valid enabled platform integrations; **Manage → Notifications** and **Manage → Log forwarding** list every supported provider and show an empty state when its runtime configuration is missing.
+Towbar integrations are enabled by the control-plane runtime configuration. The dashboard does not collect provider secrets. **Manage → Integrations** shows valid enabled platform integrations; **Manage → Notifications** lists every supported notification provider and shows an empty state when its runtime configuration is missing.
 
 GitHub and GitLab require a second connection step after their runtime identity is valid. GitHub installs a GitHub App on an account or organization. GitLab authorizes one account through OAuth. Other providers become available as soon as their YAML configuration is valid and the API restarts.
 
 ## Supported integrations
 
-| Category           | Providers                                                                      | Used for                                                                                      |
-| ------------------ | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| Source control     | GitHub App, GitLab OAuth                                                       | Repository discovery, immutable source archives, webhooks, previews, and deployment reporting |
-| Container registry | OCI Registry V2                                                                | Private image pulls and image transfer between build and runtime servers                      |
-| Backup storage     | AWS S3, S3-compatible, Cloudflare R2, Google Cloud Storage, Azure Blob Storage | Managed-database backup objects and restore sources                                           |
-| External secrets   | Infisical, Doppler                                                             | Resolving referenced values during deployment without placing them in Git                     |
-| Platform services  | Cloudflare, OpenTelemetry                                                      | DNS or tunnel operations, and workload telemetry export                                       |
-| Notifications      | Slack, email through SMTP, Discord, Telegram, webhook push                     | Transactional mail and category-based operational notifications                               |
-| Log forwarding     | New Relic, Axiom, Better Stack, Datadog, OpenTelemetry OTLP, Grafana Loki      | Batched workload-log delivery independent of deployment workflows                             |
+| Category           | Providers                                                  | Used for                                                                                      |
+| ------------------ | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Source control     | GitHub App, GitLab OAuth                                   | Repository discovery, immutable source archives, webhooks, previews, and deployment reporting |
+| Container registry | OCI Registry V2                                            | Private image pulls and image transfer between build and runtime servers                      |
+| Backup storage     | AWS S3, S3-compatible, Cloudflare R2, Google Cloud Storage | Managed-database backup objects and restore sources                                           |
+| External secrets   | Infisical, Doppler                                         | Resolving referenced values during deployment without placing them in Git                     |
+| Platform services  | Cloudflare                                                 | DNS and tunnel operations                                                                     |
+| Notifications      | Slack, email through SMTP, Discord, Telegram, webhook push | Transactional mail and category-based operational notifications                               |
 
 ## Configuration model
 
 1. Edit `/etc/towbar/towbar.yml` on the control-plane host.
-2. Enable the provider and add its required values. Structured notification and log-forwarding settings use YAML maps and lists.
+2. Enable the provider and add its required values. Structured notification settings use YAML maps and lists.
 3. Run `sudo towbar config validate`.
 4. Apply the change with `sudo towbar restart`.
-5. Open **Manage → Integrations**, **Notifications**, or **Log forwarding** to verify the provider's status.
+5. Open **Manage → Integrations** or **Notifications** to verify the provider's status.
 
 A partial enabled configuration fails validation instead of creating a broken dashboard entry. Secrets are read by the process that needs them and are not returned to the browser. GitLab OAuth grants are encrypted in PostgreSQL; GitHub stores only selected installation metadata.
 
 Use the [runtime configuration guide](/docs/self-hosting/environment-variables#runtime-integrations)
 for exact names. Integrations groups source control, registries, backup
-providers, external secrets, and platform services. Notifications and log
-forwarding have their own Manage pages.
+providers, external secrets, and platform services. Notifications has its own Manage page.
 
 ## Provider access
 
@@ -42,4 +40,4 @@ After rotating a credential, validate and restart Towbar, exercise one real oper
 
 ## Removing an integration
 
-Pause dependent automation first. Disable the provider, validate, and restart. It disappears from **Manage → Integrations** or shows an unconfigured state under **Notifications** or **Log forwarding**. Existing operational history remains, but queued or future work that requires the missing provider fails closed. Remove manifests or routes that still reference it, then revoke the remote credential.
+Pause dependent automation first. Disable the provider, validate, and restart. It disappears from **Manage → Integrations** or shows an unconfigured state under **Notifications**. Existing operational history remains, but queued or future work that requires the missing provider fails closed. Remove manifests or routes that still reference it, then revoke the remote credential.

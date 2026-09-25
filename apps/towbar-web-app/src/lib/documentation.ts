@@ -20,10 +20,6 @@ export const documentationTopics = {
     "integrations/notifications#delivery-history",
     "Review notification delivery status across providers, including attempts, errors, and retry times.",
   ),
-  logDrains: guide(
-    "integrations/log-drains",
-    "Enable log forwarding in the Towbar environment, then select destinations in app and resource manifests.",
-  ),
   overview: guide(
     "#start-with-the-overview",
     "Check workload health, recent deployments, server capacity, and incidents across your team.",
@@ -152,10 +148,6 @@ export const documentationTopics = {
     "integrations/platform-services#cloudflare",
     "Configure Cloudflare in the Towbar environment for DNS operations, tunnel ingress, and Cloudflare TLS.",
   ),
-  otlp: guide(
-    "integrations/platform-services#opentelemetry",
-    "Export workload telemetry through the OpenTelemetry integration configured in the Towbar environment.",
-  ),
   aws: guide(
     "integrations/aws",
     "Enable AWS credentials in the Towbar environment for database backups in S3.",
@@ -163,10 +155,6 @@ export const documentationTopics = {
   gcp: guide(
     "integrations/gcp",
     "Enable a service account in the Towbar environment for Cloud Storage backups and restores.",
-  ),
-  azure: guide(
-    "integrations/azure",
-    "Enable Azure Blob Storage in the Towbar environment for backup and restore files.",
   ),
   s3Compatible: guide(
     "integrations/s3-compatible",
@@ -249,12 +237,8 @@ export const documentationTopics = {
 type Topic = keyof typeof documentationTopics;
 
 const integrationDocumentationTopics: Record<string, Topic> = {
-  axiom: "logDrains",
   aws: "aws",
-  azure: "azure",
-  betterstack: "logDrains",
   cloudflare: "cloudflare",
-  datadog: "logDrains",
   discord: "discord",
   doppler: "externalSecrets",
   email: "email",
@@ -262,10 +246,6 @@ const integrationDocumentationTopics: Record<string, Topic> = {
   github: "github",
   gitlab: "gitlab",
   infisical: "externalSecrets",
-  loki: "logDrains",
-  newrelic: "logDrains",
-  otlp: "logDrains",
-  "otlp-platform": "otlp",
   r2: "s3Compatible",
   registry: "registry",
   s3: "s3Compatible",
@@ -326,7 +306,6 @@ export function documentationTopic(pathname: string): Topic | undefined {
       ? (provider as Topic)
       : "notifications";
   }
-  if (path.startsWith("/manage/log-forwarding")) return "logDrains";
   if (path.startsWith("/manage/integrations"))
     return integrationDocumentationTopic(path);
   if (path.startsWith("/repositories/") && /\/(danger|danger-zone)$/.test(path))
@@ -494,7 +473,6 @@ export const widgetDocumentation: Record<string, HeadingDocumentation> = {
   "restore progress": documentationTopics.restores,
   "aws credentials": documentationTopics.aws,
   "google cloud credentials": documentationTopics.gcp,
-  "azure credentials": documentationTopics.azure,
   "restore source": documentationTopics.restores,
   "latest log capture": documentationTopics.logs,
   "github app": documentationTopics.github,
@@ -580,11 +558,7 @@ export function headingDocumentation(
           "Delete this repository's inventory and history from Towbar. Running containers and data need a separate cleanup.",
         )
       : documentationTopics.removal;
-  if (
-    /^(aws s3|google cloud storage|azure blob storage) configuration$/.test(
-      name,
-    )
-  )
+  if (/^(aws s3|google cloud storage) configuration$/.test(name))
     return documentationTopics.backups;
   if (["critical", "high", "medium", "low", "unknown"].includes(name))
     return documentationTopics.vulnerabilities;

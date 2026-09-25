@@ -20,6 +20,7 @@ prepare_runtime_config() {
   local release_dir="$1" helper
   helper="$(config_helper_for "$release_dir")"
   ensure_yaml_tooling
+  TOWBAR_CONFIG_HELPER="$helper"
   if [[ ! -f "$TOWBAR_YAML_FILE" ]]; then
     [[ -f "$TOWBAR_COMMITTED_ENV_FILE" ]] || fail "runtime configuration is missing"
     if [[ -f "$VERSION_FILE" ]]; then

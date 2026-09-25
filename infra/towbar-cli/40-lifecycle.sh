@@ -404,9 +404,8 @@ preflight_runtime_configuration() {
     --input-type=module --eval \
     'const { getEnv } = await import("./dist/env.js");
      const { getRuntimeIntegrations } = await import("./dist/infrastructure/runtime-integrations.js");
-     const { getRuntimeLogDrains } = await import("./dist/infrastructure/runtime-log-drains.js");
      const { getRuntimeNotifications } = await import("./dist/infrastructure/runtime-notifications.js");
-     getEnv(); getRuntimeIntegrations(); getRuntimeLogDrains(); getRuntimeNotifications();' ||
+     getEnv(); getRuntimeIntegrations(); getRuntimeNotifications();' ||
     return 1
   compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
     run --rm --no-deps --entrypoint node worker \

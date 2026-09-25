@@ -25,7 +25,6 @@ const categoryByRoot: Record<string, string> = {
   gitlab: "Integrations",
   integrations: "Integrations",
   aws: "Integrations",
-  azure: "Integrations",
   gcp: "Integrations",
 };
 
@@ -61,7 +60,6 @@ export const sectionOrder = [
   "GitHub",
   "GitLab",
   "AWS",
-  "Azure",
   "GCP",
   "Lifecycle",
 ];
@@ -145,7 +143,6 @@ const rules: Record<string, Array<[string, RegExp]>> = {
   gitlab: [["GitLab", /^\/gitlab(?:\/|$)/]],
   integrations: [["Connections", /^\/integrations(?:\/|$)/]],
   aws: [["AWS", /^\/aws$/]],
-  azure: [["Azure", /^\/azure$/]],
   gcp: [["GCP", /^\/gcp$/]],
 };
 

@@ -71,15 +71,4 @@ void test("links operational notifications to the relevant page", () => {
     notificationHref(notification("backup", { type: "backup.failed" })),
     "/resources/entity-id/backup",
   );
-  assert.equal(
-    notificationHref(
-      notification("server", {
-        details: {
-          configuration: "https://towbar.example/manage/integrations/axiom",
-        },
-        type: "log-drain.auth_failure",
-      }),
-    ),
-    "/manage/integrations/axiom",
-  );
 });

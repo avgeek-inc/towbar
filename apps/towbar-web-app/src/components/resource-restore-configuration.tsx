@@ -74,7 +74,6 @@ export function ResourceRestoreConfiguration({
   const assurances = useApiQuery<{
     assurances: BackupAssurance[];
     awsConfigured: boolean;
-    azureConfigured?: boolean;
     canRestore: boolean;
     gcpConfigured?: boolean;
     missingCredentialMessage?: string;
@@ -117,34 +116,22 @@ export function ResourceRestoreConfiguration({
   );
 
   const restoreProvider =
-    backup.restoreFrom ?? (backup.s3 ? "s3" : backup.gcs ? "gcs" : "azureBlob");
+    backup.restoreFrom ?? (backup.s3 ? "s3" : backup.gcs ? "gcs" : "s3");
   const restoreProviderLabel =
-    restoreProvider === "gcs"
-      ? "Google Cloud Storage"
-      : restoreProvider === "azureBlob"
-        ? "Azure Blob Storage"
-        : "AWS S3";
+    restoreProvider === "gcs" ? "Google Cloud Storage" : "AWS S3";
   const restoreProviderName =
-    restoreProvider === "gcs"
-      ? "Google Cloud"
-      : restoreProvider === "azureBlob"
-        ? "Azure"
-        : "AWS";
+    restoreProvider === "gcs" ? "Google Cloud" : "AWS";
   const restoreProviderConfigured =
     restoreProvider === "gcs"
       ? Boolean(assuranceData.gcpConfigured)
-      : restoreProvider === "azureBlob"
-        ? Boolean(assuranceData.azureConfigured)
-        : Boolean(assuranceData.awsConfigured);
+      : Boolean(assuranceData.awsConfigured);
 
   const restoreLocationUri =
     restoreProvider === "s3" && backup.s3
       ? `s3://${backup.s3.bucket}/${backup.s3.prefix || "towbar"}`
       : restoreProvider === "gcs" && backup.gcs
         ? `gs://${backup.gcs.bucket}/${backup.gcs.prefix || "towbar"}`
-        : restoreProvider === "azureBlob" && backup.azureBlob
-          ? `az://${backup.azureBlob.storageAccount}/${backup.azureBlob.container}/${backup.azureBlob.prefix || "towbar"}`
-          : "Not configured";
+        : "Not configured";
 
   const restoreColumns: ResourceTableColumn<SourceBackup>[] = [
     {
@@ -229,7 +216,7 @@ export function ResourceRestoreConfiguration({
             <Alert.Description>
               Add {restoreProviderName} credentials in{" "}
               <InlineLink
-                href={`/manage/integrations/${restoreProvider === "s3" ? "aws" : restoreProvider === "gcs" ? "gcp" : "azure"}`}
+                href={`/manage/integrations/${restoreProvider === "gcs" ? "gcp" : "aws"}`}
               >
                 Manage → Integrations
               </InlineLink>{" "}

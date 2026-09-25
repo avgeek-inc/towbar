@@ -35,7 +35,7 @@ expiry, latest deployment status, and an owner cleanup action from the App
 page. Preview references resolve only Preview values and are edited independently
 from Production bindings.
 Database Resource pages expose verified backup policy, manual capture, and
-retained S3, Google Cloud Storage, and Azure Blob Storage artifact metadata. When configured by the manifest, the Resource
+retained S3, Google Cloud Storage artifact metadata. When configured by the manifest, the Resource
 connection view exposes non-secret private-network and SSH-tunnel coordinates
 for tools such as TablePlus. Owners can restore an individually assured,
 retained PostgreSQL or Redis backup through an isolated candidate, validated

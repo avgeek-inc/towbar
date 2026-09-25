@@ -289,6 +289,7 @@ prepare_runtime_config() {
   local release_dir="$1" helper
   helper="$(config_helper_for "$release_dir")"
   ensure_yaml_tooling
+  TOWBAR_CONFIG_HELPER="$helper"
   if [[ ! -f "$TOWBAR_YAML_FILE" ]]; then
     [[ -f "$TOWBAR_COMMITTED_ENV_FILE" ]] || fail "runtime configuration is missing"
     if [[ -f "$VERSION_FILE" ]]; then
@@ -995,9 +996,8 @@ preflight_runtime_configuration() {
     --input-type=module --eval \
     'const { getEnv } = await import("./dist/env.js");
      const { getRuntimeIntegrations } = await import("./dist/infrastructure/runtime-integrations.js");
-     const { getRuntimeLogDrains } = await import("./dist/infrastructure/runtime-log-drains.js");
      const { getRuntimeNotifications } = await import("./dist/infrastructure/runtime-notifications.js");
-     getEnv(); getRuntimeIntegrations(); getRuntimeLogDrains(); getRuntimeNotifications();' ||
+     getEnv(); getRuntimeIntegrations(); getRuntimeNotifications();' ||
     return 1
   compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
     run --rm --no-deps --entrypoint node worker \

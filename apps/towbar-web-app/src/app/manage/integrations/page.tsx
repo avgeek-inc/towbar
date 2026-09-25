@@ -1,9 +1,6 @@
 import { redirect } from "next/navigation";
 
-import {
-  isIntegrationRoute,
-  isLogForwardingRoute,
-} from "@/lib/integration-routes";
+import { isIntegrationRoute } from "@/lib/integration-routes";
 
 export default async function Page({
   searchParams,
@@ -18,8 +15,6 @@ export default async function Page({
     )
   )
     redirect(`/manage/notifications/${requested}`);
-  if (isLogForwardingRoute(requested))
-    redirect(`/manage/log-forwarding/${requested}`);
   redirect(
     `/manage/integrations/${isIntegrationRoute(requested) ? requested : "github"}`,
   );

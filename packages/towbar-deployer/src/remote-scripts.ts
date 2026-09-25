@@ -599,19 +599,6 @@ if test -n "$network_name"; then
 fi
 if test -n "$resource_cpus"; then runtime_args+=(--cpus "$resource_cpus"); fi
 if test -n "$resource_memory"; then runtime_args+=(--memory "$resource_memory"); fi
-telemetry_environment="${"$"}{TOWBAR_TELEMETRY_ENV_JSON-}"
-if test -z "$telemetry_environment"; then telemetry_environment='{}'; fi
-while IFS=$'\t' read -r key encoded; do
-  runtime_args+=(--env "$key=$(printf '%s' "$encoded" | base64 -d)")
-done < <(/usr/bin/python3 - "$telemetry_environment" <<'PYTHON'
-import base64, json, sys
-value = json.loads(sys.argv[1])
-if not isinstance(value, dict) or any(not isinstance(k, str) or not isinstance(v, str) for k, v in value.items()):
-    raise SystemExit("Invalid telemetry environment")
-for key, item in value.items():
-    print(key + "\t" + base64.b64encode(item.encode()).decode())
-PYTHON
-)
 for ((index = 0; index < volume_count; index += 1)); do
   logical_name="$1"
   mount_path="$2"

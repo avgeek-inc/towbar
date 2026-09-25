@@ -14,8 +14,7 @@ const deployable = normalizeDeploymentManifest({
       backup: {
         s3: { bucket: "s3-backups", region: "us-west-2" },
         gcs: { bucket: "gcs-backups" },
-        azureBlob: { container: "backups", storageAccount: "storageacct" },
-        restoreFrom: "azureBlob",
+        restoreFrom: "gcs",
       },
     },
   ],
@@ -27,12 +26,11 @@ const secrets = {
     region: "us-east-1",
   },
   gcp: { projectId: "test", serviceAccountKey: "{}" },
-  azure: { clientId: "test", clientSecret: "test", tenantId: "test" },
 };
 
 void test("retained provider wins over every current manifest provider", async () => {
-  for (const current of ["s3", "gcs", "azureBlob"] as const) {
-    for (const recorded of ["s3", "gcs", "azureBlob", undefined] as const) {
+  for (const current of ["s3", "gcs"] as const) {
+    for (const recorded of ["s3", "gcs", undefined] as const) {
       const selected = initializeBackupStorages(
         {
           deployable: {

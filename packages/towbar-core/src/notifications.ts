@@ -32,10 +32,6 @@ export const notificationEventTypes = [
   "preview.cleaned_up",
   "runtime.unhealthy",
   "runtime.recovered",
-  "log-drain.auth_failure",
-  "log-drain.pipeline_failed",
-  "log-drain.pipeline_recovered",
-  "log-drain.rate_limited",
   "server.maintenance.succeeded",
   "server.maintenance.failed",
   "backup.stale",
@@ -560,11 +556,7 @@ export function notificationCategoryForEvent(
 ): NotificationCategory | "test" {
   if (type.startsWith("deployment.")) return "deployments";
   if (type.startsWith("preview.")) return "deployments";
-  if (
-    type.startsWith("runtime.") ||
-    type.startsWith("log-drain.") ||
-    type.startsWith("server.maintenance.")
-  )
+  if (type.startsWith("runtime.") || type.startsWith("server.maintenance."))
     return "health";
   if (type.startsWith("backup.")) return "backups";
   if (type.startsWith("scout.")) return "scout";

@@ -290,32 +290,6 @@ Schedules use UTC and have one-minute resolution. Environment overrides replace
 the whole `jobs` list; set `jobs: []` to disable jobs in one environment. See
 [Scheduled jobs](/docs/apps#scheduled-jobs) for execution and retry behavior.
 
-## Forward logs
-
-Select one or more runtime-configured log-forwarding providers by name for an app or resource:
-
-```yaml title=".towbar/apps/web.app.yml" highlight={3-5}
-id: web
-name: Web
-logDrains:
-  - betterstack
-  - otlp
-logDrainAttributes:
-  betterstack:
-    team: storefront
-  otlp:
-    team: storefront
-```
-
-Environment overrides replace the list; use `[]` to disable forwarding in one
-environment. This selection applies to the workload's container logs. Provider
-endpoints and credentials stay in the Towbar runtime, while Towbar adds app,
-deployment, environment, and server context to each forwarded record.
-`logDrainAttributes` adds non-sensitive context for a selected provider. See
-[Log forwarding](/docs/integrations/log-drains) for provider setup and delivery
-limits. If a base manifest defines attributes, also set
-`logDrainAttributes: {}` when an environment override sets `logDrains: []`.
-
 ## Validate before syncing
 
 Associate the matching JSON Schema with each file in your editor. Schemas check

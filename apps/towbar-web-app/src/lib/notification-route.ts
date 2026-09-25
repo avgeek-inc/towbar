@@ -20,8 +20,6 @@ export function notificationHref(
   if (entity.kind === "preview")
     return source ? `/repositories/${source.id}/environments` : "/apps";
   if (entity.kind === "server") {
-    if (notification.type.startsWith("log-drain."))
-      return "/manage/integrations";
     if (notification.type.startsWith("scout."))
       return `/servers/${entity.id}/incidents`;
     if (notification.type.startsWith("server.maintenance."))

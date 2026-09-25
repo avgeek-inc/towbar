@@ -75,44 +75,6 @@ void describe("Resource operation scripts", () => {
 });
 
 void describe("buildBackupResult", () => {
-  void it("produces valid schema for Azure-only backup without region", () => {
-    const result = resourceOperationInternal.buildBackupResult({
-      backup: {
-        azureBlob: {
-          container: "backups",
-          prefix: "databases",
-          storageAccount: "storageacct",
-        },
-        restoreFrom: "azureBlob",
-        retention: { keepLast: 7 },
-      },
-      checksum:
-        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      deletedBackupIds: [],
-      destinationResults: [
-        {
-          bucket: "backups",
-          encryption: "Microsoft-managed",
-          key: "databases/source-1/backup-1/dump.sql",
-          provider: "azureBlob",
-          storageAccount: "storageacct",
-        },
-      ],
-      engine: "postgres",
-      engineMajorVersion: 17,
-      format: "postgres-custom",
-      operationId: "31111111-1111-4111-8111-222222222222",
-      sizeBytes: 1024,
-      warnings: [],
-    });
-
-    const parsed = backupOperationResultSchema.parse(result);
-    assert.equal(parsed.bucket, "backups");
-    assert.equal(parsed.storageAccount, "storageacct");
-    assert.equal(parsed.region, undefined);
-    assert.equal(parsed.restoreFrom, "azureBlob");
-  });
-
   void it("produces valid schema for GCS-only backup without region", () => {
     const result = resourceOperationInternal.buildBackupResult({
       backup: {

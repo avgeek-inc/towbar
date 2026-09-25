@@ -260,36 +260,3 @@ This exercises real Redis persistence, archive transfer, checksum validation,
 remote import and promotion. The storage adapter replaces cloud object storage;
 it does not prove cloud-provider transport, API admission or operation-result
 persistence. The target and all its volumes are removed on completion.
-
-## Log forwarder lifecycle
-
-`node tools/e2e/log-drains-lifecycle.mjs` checks the production installer over
-non-root, pinned SSH on an isolated Docker target: configuration permissions,
-container hardening, idempotency, key rotation, host-key refusal and removal.
-No running workload is selected, so it sends no logs to a cloud account. The
-separate deployer Docker integration test uses local HTTP receivers to verify
-actual container output and all six provider payload/authentication formats.
-The OTLP payload is also decoded by an OpenTelemetry Collector.
-
-```sh
-python3 packages/towbar-deployer/src/log-drain-gateway.test.py
-TOWBAR_LOG_DRAIN_DOCKER_TEST=1 pnpm --filter @workspace/towbar-deployer exec tsx --test src/log-drains.integration.test.ts
-node tools/e2e/log-drain-delivery-test.mjs
-node tools/e2e/log-drains-resilience.mjs
-```
-
-Build core and deployer packages before running these scripts. The delivery test
-uses a local TLS receiver to check successful delivery, private CA validation,
-authentication failure persistence, trusted SSH, and temporary-container cleanup.
-The resilience test writes 80,001 log lines while one destination rejects
-authentication. It checks complete delivery to a healthy destination, batching,
-no repeat authentication requests, bounded queues and memory, unrelated
-application execution, no collector restart/OOM, and reconciliation without
-restarting the stream. Local receiver tests do not prove ingestion into a real
-provider account. Test targets and containers are removed afterward.
-
-Controller unit tests advance a simulated clock to verify exponential backoff,
-Retry-After, the third-429 cooldown, restart persistence, credential recovery,
-and credential-safe error responses. API tests verify RBAC, team isolation and
-notification deduplication; Temporal tests verify workflow replay and that a
-busy log-forwarding queue does not occupy deployment queue capacity.

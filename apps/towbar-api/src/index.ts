@@ -1,17 +1,13 @@
 import { attachServerTerminal } from "./areas/servers/terminal-transport.js";
 import { runTemporalHealthCheck } from "./areas/system-health/service.js";
 import type { Server } from "node:http";
-import {
-  wakeAppJobsWorkflow,
-  wakeLogDrainsWorkflow,
-} from "./infrastructure/temporal.js";
+import { wakeAppJobsWorkflow } from "./infrastructure/temporal.js";
 import { serve } from "@hono/node-server";
 
 import { app, internalApp } from "./app.js";
 import { getEnv } from "./env.js";
 import { closeDatabase } from "./infrastructure/database.js";
 import { getRuntimeIntegrations } from "./infrastructure/runtime-integrations.js";
-import { getRuntimeLogDrains } from "./infrastructure/runtime-log-drains.js";
 import { getRuntimeNotifications } from "./infrastructure/runtime-notifications.js";
 import {
   closeTemporalClient,
@@ -20,7 +16,6 @@ import {
 
 const env = getEnv();
 getRuntimeIntegrations();
-getRuntimeLogDrains();
 getRuntimeNotifications();
 const server = serve(
   {
@@ -84,7 +79,3 @@ process.once("SIGTERM", () => void shutdown());
 void wakeAppJobsWorkflow().catch((error: unknown) => {
   console.error("Unable to start app job scheduler", error);
 });
-
-void wakeLogDrainsWorkflow().catch(() =>
-  console.error("Unable to start log forwarding scheduler"),
-);

@@ -70,7 +70,7 @@ Stable App and Resource aliases share a bounded host lock while checking ownersh
 Runtime operations target only the current retained container and re-check its
 Towbar ownership labels. PostgreSQL backups use validated `pg_dump` archives;
 Redis backups use validated RDB snapshots. Backups upload to declared S3, GCS,
-and Azure Blob destinations and verify checksum and encryption metadata.
+destinations and verify checksum and encryption metadata.
 Retention retries any recovery point whose copies were not all deleted.
 Owner-requested restores use the retained backup’s original provider and
 location, validate an isolated candidate, and promote it with rollback-volume

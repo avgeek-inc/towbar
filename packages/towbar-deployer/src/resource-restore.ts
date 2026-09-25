@@ -146,7 +146,6 @@ async function verifyRestoreObject(plan: RestorePlan) {
   const object = await storage.headObject({
     bucket: result.bucket,
     key: result.key,
-    ...(result.storageAccount ? { storageAccount: result.storageAccount } : {}),
     ...(result.objectVersionId ? { versionId: result.objectVersionId } : {}),
   });
   const matches =
@@ -226,9 +225,6 @@ export async function executeManagedRestore(input: ManagedRestoreInput) {
       localPath: localBackup,
       maximumBytes: result.sizeBytes,
       signal,
-      ...(result.storageAccount
-        ? { storageAccount: result.storageAccount }
-        : {}),
       ...(result.objectVersionId ? { versionId: result.objectVersionId } : {}),
     });
     await progress(

@@ -23,7 +23,6 @@ const readRoutes = [
   "/v1/core/monitoring/vulnerabilities",
   "/v1/core/system-health",
   "/v1/core/integrations",
-  "/v1/core/log-drains",
   "/v1/core/settings/secrets",
   `/v1/core/sources/${fixtureIds.source}`,
   `/v1/core/sources/${fixtureIds.source}/environments`,

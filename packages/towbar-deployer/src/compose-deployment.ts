@@ -19,16 +19,9 @@ import {
   reconcileCloudflareTunnelRoutes,
 } from "./cloudflare.js";
 import { collectSensitiveValues } from "./secrets.js";
-import {
-  configureCaddyScript,
-  ensureNetworkRemoteScript,
-} from "./remote-scripts.js";
+import { configureCaddyScript } from "./remote-scripts.js";
 import { validateComposeRepository } from "./compose-security.js";
-import {
-  isNormalizedCompose,
-  managedTelemetryNetworkName,
-} from "@workspace/towbar-core";
-import { otelResourceAttributes } from "./otel-resource-attributes.js";
+import { isNormalizedCompose } from "@workspace/towbar-core";
 
 import type {
   DeploymentExecutionContext,
@@ -52,7 +45,6 @@ export function buildComposeServiceOverride(
   return {
     services: Object.fromEntries(
       Object.entries(app.services).map(([service, policy]) => {
-        const telemetry = policy.telemetry;
         return [
           service,
           {
@@ -65,36 +57,6 @@ export function buildComposeServiceOverride(
             },
             ...(policy.domains?.length && policy.port
               ? { ports: [`127.0.0.1::${policy.port}`] }
-              : {}),
-            ...(telemetry
-              ? {
-                  environment: {
-                    OTEL_EXPORTER_OTLP_ENDPOINT:
-                      telemetry.protocol === "otlp-http"
-                        ? "http://towbar-otel:4318"
-                        : "http://towbar-otel:4317",
-                    OTEL_EXPORTER_OTLP_PROTOCOL:
-                      telemetry.protocol === "otlp-http"
-                        ? "http/protobuf"
-                        : "grpc",
-                    OTEL_SERVICE_NAME: `${app.name}/${service}`,
-                    OTEL_RESOURCE_ATTRIBUTES: otelResourceAttributes({
-                      "deployment.environment.name": environment,
-                      "towbar.app.id": deployableId,
-                      "towbar.compose.service": service,
-                      "towbar.deployment.id": identity?.deploymentId,
-                      "towbar.repository.id": sourceId,
-                      "towbar.server.id": identity?.serverId,
-                      "towbar.team.id": identity?.workspaceId,
-                    }),
-                    ...(telemetry.signals.includes("traces")
-                      ? {
-                          OTEL_TRACES_SAMPLER: "parentbased_traceidratio",
-                          OTEL_TRACES_SAMPLER_ARG: String(telemetry.sampling),
-                        }
-                      : {}),
-                  },
-                }
               : {}),
           },
         ];
@@ -116,8 +78,6 @@ strategy="$8"
 policies_json="$9"
 deployable_id="${"$"}{10}"
 source_id="${"$"}{11}"
-telemetry_network="${"$"}{12}"
-telemetry_services_json="${"$"}{13}"
 rm -rf -- "$staged" "$previous"
 install -d -m 700 "$staged/source"
 expanded_bytes="$(gzip -cd "$archive" | wc -c)"
@@ -176,7 +136,6 @@ compose=(docker compose --project-name "$project" --env-file "$staged/runtime.en
 rm -f "$staged/config.initial.json"
 printf '%s' "$files_json" >"$staged/compose-files.json"
 printf '%s' "$profiles_json" >"$staged/compose-profiles.json"
-printf '%s' "$telemetry_services_json" >"$staged/telemetry-services.json"
 python3 - "$staged/config.json" "$staged/source" "$project" <<'PYTHON'
 import json, pathlib, re, sys
 config = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
@@ -257,18 +216,6 @@ for collection in ("volumes", "networks", "configs", "secrets"):
 PYTHON
 if test -d "$stable"; then mv "$stable" "$previous"; fi
 mv "$staged" "$stable"
-connect_telemetry_services() {
-  local services_json="$1"
-  while IFS= read -r service; do
-    test -n "$service" || continue
-    while IFS= read -r container_id; do
-      test -n "$container_id" || continue
-      if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "$container_id" | python3 -c 'import json,sys; raise SystemExit(0 if sys.argv[1] in json.load(sys.stdin) else 1)' "$telemetry_network"; then
-        docker network connect "$telemetry_network" "$container_id"
-      fi
-    done < <(docker ps --filter "label=com.docker.compose.project=$project" --filter "label=com.docker.compose.service=$service" --format '{{.ID}}')
-  done < <(python3 -c 'import json,sys; print("\n".join(json.loads(sys.argv[1])))' "$services_json")
-}
 restore_previous() {
   status="$?"
   rm -f -- "$archive" "${"$"}{archive}.env"
@@ -287,7 +234,6 @@ for profile in json.loads(sys.argv[3]): print("--profile"); print(profile)
 PYTHON
 )
       if docker compose --project-name "$project" --env-file "$stable/runtime.env" "${"$"}{old_args[@]}" up --detach --remove-orphans --wait --wait-timeout 300 >/dev/null 2>&1; then
-        connect_telemetry_services "$(cat "$stable/telemetry-services.json" 2>/dev/null || printf '[]')" || true
       fi
     fi
   fi
@@ -318,7 +264,6 @@ fi
 up_args=(--detach --build --remove-orphans --wait --wait-timeout 300)
 if test "$strategy" = recreate; then up_args+=(--force-recreate); fi
 "${"$"}{live[@]}" up "${"$"}{up_args[@]}"
-connect_telemetry_services "$telemetry_services_json"
 "${"$"}{live[@]}" ps
 python3 - "$project" "$policies_json" <<'PYTHON'
 import json, re, subprocess, sys
@@ -368,7 +313,6 @@ project="$3"
 files_json="$4"
 profiles_json="$5"
 runtime="$6"
-telemetry_network="$7"
 if test -d "$stable"; then
   mapfile -t current_args < <(python3 - "$stable/source" "$files_json" "$profiles_json" <<'PYTHON'
 import json, pathlib, sys
@@ -419,15 +363,6 @@ for profile in json.loads(sys.argv[3]): print("--profile"); print(profile)
 PYTHON
 )
   docker compose --project-name "$project" --env-file "$stable/runtime.env" "${"$"}{old_args[@]}" up --detach --remove-orphans --wait --wait-timeout 300
-  while IFS= read -r service; do
-    test -n "$service" || continue
-    while IFS= read -r container_id; do
-      test -n "$container_id" || continue
-      if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "$container_id" | python3 -c 'import json,sys; raise SystemExit(0 if sys.argv[1] in json.load(sys.stdin) else 1)' "$telemetry_network"; then
-        docker network connect "$telemetry_network" "$container_id"
-      fi
-    done < <(docker ps --filter "label=com.docker.compose.project=$project" --filter "label=com.docker.compose.service=$service" --format '{{.ID}}')
-  done < <(python3 -c 'import json,pathlib,sys; path=pathlib.Path(sys.argv[1]); print("\n".join(json.loads(path.read_text()) if path.is_file() else []))' "$stable/telemetry-services.json")
 fi
 `;
 
@@ -504,11 +439,6 @@ export async function executeComposeDeployment(input: {
   const base = `/var/lib/towbar/compose/${runtime}`;
   const remoteArchive = `/tmp/towbar-compose-${context.deploymentId}.tar.gz`;
   const project = `towbar-${runtime}`.slice(0, 63);
-  const telemetryNetwork = managedTelemetryNetworkName(context.serverId);
-  const telemetryServices = Object.entries(context.app.services)
-    .filter(([, policy]) => Boolean(policy.telemetry))
-    .map(([service]) => service)
-    .sort();
   const files = [
     context.app.file,
     ...context.app.overrides,
@@ -520,10 +450,6 @@ export async function executeComposeDeployment(input: {
   let candidateStarted = false;
   let cloudflareTunnelTransition: CloudflareTunnelTransition | undefined;
   try {
-    await session.run(ensureNetworkRemoteScript, [telemetryNetwork], {
-      signal,
-      timeoutMs: 30_000,
-    });
     await transition(hooks, "transferring", "Transferring Compose source");
     await session.upload(archive, remoteArchive, { signal });
     await session.upload(environment, `${remoteArchive}.env`, { signal });
@@ -557,8 +483,6 @@ export async function executeComposeDeployment(input: {
         JSON.stringify(context.app.services),
         context.deployableId,
         context.sourceId,
-        telemetryNetwork,
-        JSON.stringify(telemetryServices),
       ],
       {
         signal,
@@ -705,7 +629,6 @@ export async function executeComposeDeployment(input: {
             JSON.stringify(files),
             JSON.stringify(context.app.profiles),
             runtime,
-            telemetryNetwork,
           ],
           { signal: undefined, timeoutMs: 10 * 60_000 },
         )

@@ -39,7 +39,6 @@ export default async function Page({
       "backup",
       "restore",
       "logs",
-      "log-forwarding",
       "settings",
       "vulnerabilities",
     ].includes(section) ||

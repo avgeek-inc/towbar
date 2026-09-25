@@ -134,6 +134,5 @@ export function Integrations({ integration }: { integration: string }) {
 export {
   getProviderIcon,
   integrationGroups,
-  logForwardingProviders,
   notificationProviders,
 } from "./integration-catalog";

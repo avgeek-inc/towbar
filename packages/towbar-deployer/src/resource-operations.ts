@@ -509,7 +509,6 @@ function resolveBackupStorages(
     : [];
   if (!namedProvider && backup.s3) configuredProviders.push("s3");
   if (!namedProvider && backup.gcs) configuredProviders.push("gcs");
-  if (!namedProvider && backup.azureBlob) configuredProviders.push("azureBlob");
 
   if (configuredProviders.length === 0) {
     throw new Error(
@@ -557,7 +556,6 @@ function getDestinationUploadParams(
           .join("/"),
         kmsKeyId: undefined,
         region: configuration.region,
-        storageAccount: undefined,
       };
     }
     if (namedStorage.provider === "gcs") {
@@ -576,30 +574,9 @@ function getDestinationUploadParams(
           .join("/"),
         kmsKeyId: undefined,
         region: undefined,
-        storageAccount: undefined,
       };
     }
-    if (namedStorage.provider !== "azureBlob")
-      throw new Error("Named backup integration provider is unsupported");
-    if (!namedStorage.configuration.container)
-      throw new Error(
-        "Azure Blob integration must configure a default container",
-      );
-    return {
-      bucket: namedStorage.configuration.container,
-      encryption: "Microsoft-managed",
-      key: [
-        namedStorage.configuration.prefix || "towbar",
-        sourceId,
-        operationId,
-        fileKey,
-      ]
-        .filter(Boolean)
-        .join("/"),
-      kmsKeyId: undefined,
-      region: undefined,
-      storageAccount: namedStorage.configuration.storageAccount,
-    };
+    throw new Error("Named backup integration provider is unsupported");
   }
   if (provider === "s3") {
     const s3Prefix = backup.s3?.prefix || "towbar";
@@ -609,7 +586,6 @@ function getDestinationUploadParams(
       key: [s3Prefix, sourceId, operationId, fileKey].filter(Boolean).join("/"),
       kmsKeyId: backup.s3?.kmsKeyId,
       region: backup.s3?.region ?? defaultAwsRegion,
-      storageAccount: undefined,
     };
   }
   if (provider === "gcs") {
@@ -622,20 +598,9 @@ function getDestinationUploadParams(
         .join("/"),
       kmsKeyId: undefined,
       region: backup.gcs?.region,
-      storageAccount: undefined,
     };
   }
-  const azurePrefix = backup.azureBlob?.prefix || "towbar";
-  return {
-    bucket: backup.azureBlob?.container ?? "",
-    encryption: "Microsoft-managed",
-    key: [azurePrefix, sourceId, operationId, fileKey]
-      .filter(Boolean)
-      .join("/"),
-    kmsKeyId: undefined,
-    region: undefined,
-    storageAccount: backup.azureBlob?.storageAccount,
-  };
+  throw new Error("Backup provider is unsupported");
 }
 
 async function uploadAndVerifyDestination(params: {
@@ -667,14 +632,12 @@ async function uploadAndVerifyDestination(params: {
     },
     signal: params.signal,
     sizeBytes: params.sizeBytes,
-    ...(config.storageAccount ? { storageAccount: config.storageAccount } : {}),
   });
 
   const verified = await storage.headObject({
     bucket: config.bucket,
     key: config.key,
     ...(upload.versionId ? { versionId: upload.versionId } : {}),
-    ...(config.storageAccount ? { storageAccount: config.storageAccount } : {}),
   });
 
   if (
@@ -701,7 +664,6 @@ async function uploadAndVerifyDestination(params: {
     ...(upload.versionId ? { objectVersion: upload.versionId } : {}),
     provider: params.provider,
     ...(config.region ? { region: config.region } : {}),
-    ...(config.storageAccount ? { storageAccount: config.storageAccount } : {}),
   };
 }
 
@@ -711,7 +673,6 @@ async function cleanupRetentionBackups(
     destinations?: readonly BackupDestinationResult[];
     id: string;
     key: string;
-    storageAccount?: string;
   }[],
   configuredProviders: readonly BackupProvider[],
   availableStorages: Partial<Record<BackupProvider, BackupStorage>>,
@@ -728,7 +689,6 @@ async function cleanupRetentionBackups(
             bucket: candidate.bucket,
             key: candidate.key,
             provider,
-            storageAccount: candidate.storageAccount,
           }));
 
     for (const dest of destinations) {
@@ -743,9 +703,6 @@ async function cleanupRetentionBackups(
           key: dest.key,
           ...("objectVersion" in dest && dest.objectVersion
             ? { versionId: dest.objectVersion }
-            : {}),
-          ...(dest.storageAccount
-            ? { storageAccount: dest.storageAccount }
             : {}),
         });
         anySucceeded = true;
@@ -804,9 +761,6 @@ function buildBackupResult(params: {
     ...(region ? { region } : {}),
     restoreFrom: primaryDest.provider,
     sizeBytes: params.sizeBytes,
-    ...(primaryDest.storageAccount
-      ? { storageAccount: primaryDest.storageAccount }
-      : {}),
     verifiedAt: new Date().toISOString(),
     warnings: params.warnings,
   };

@@ -1,5 +1,5 @@
 import { and, eq, isNull } from "drizzle-orm";
-import { digestValue } from "@workspace/towbar-core";
+import { digestWithoutNotificationSubscriptions } from "@workspace/towbar-core";
 import {
   apps,
   sourceEnvironments,
@@ -43,7 +43,8 @@ export async function requireActiveAutomation(input: {
     (input.mappingRevision &&
       target.mappingRevision !== input.mappingRevision) ||
     (input.config &&
-      digestValue(target.config) !== digestValue(input.config)) ||
+      digestWithoutNotificationSubscriptions(target.config) !==
+        digestWithoutNotificationSubscriptions(input.config)) ||
     (input.preview && !target.previewsEnabled)
   ) {
     throw forbidden(

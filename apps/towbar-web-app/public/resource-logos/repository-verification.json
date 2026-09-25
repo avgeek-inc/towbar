@@ -70,16 +70,6 @@
     "verifiedOn": "2026-09-07"
   },
   {
-    "repository": "otel/opentelemetry-collector",
-    "source": "https://hub.docker.com/v2/repositories/otel/opentelemetry-collector/",
-    "verifiedOn": "2026-09-07"
-  },
-  {
-    "repository": "otel/opentelemetry-collector-contrib",
-    "source": "https://hub.docker.com/v2/repositories/otel/opentelemetry-collector-contrib/",
-    "verifiedOn": "2026-09-07"
-  },
-  {
     "repository": "grafana/tempo",
     "source": "https://hub.docker.com/v2/repositories/grafana/tempo/",
     "verifiedOn": "2026-09-07"

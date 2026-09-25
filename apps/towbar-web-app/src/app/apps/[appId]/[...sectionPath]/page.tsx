@@ -30,7 +30,6 @@ export default async function Page({
       "deployments",
       "previews",
       "logs",
-      "log-forwarding",
       "storage",
       "jobs",
       "settings",

@@ -220,12 +220,6 @@ export type WorkspaceGcpCredential = {
   serviceAccountKey: string;
 };
 
-export type WorkspaceAzureCredential = {
-  clientId: string;
-  clientSecret: string;
-  tenantId: string;
-};
-
 export type ResourceOperationExecutionContext = {
   cleanupExpected: {
     ownedDeployableIds?: string[];
@@ -247,7 +241,6 @@ export type ResourceOperationExecutionContext = {
     destinations?: import("@workspace/towbar-core").BackupDestinationResult[];
     id: string;
     key: string;
-    storageAccount?: string;
   }>;
   restoreBackup: {
     createdAt: string;
@@ -262,7 +255,6 @@ export type ResourceOperationExecutionContext = {
 
 export type ResourceOperationSecrets = {
   aws: WorkspaceAwsCredential | null;
-  azure: WorkspaceAzureCredential | null;
   gcp: WorkspaceGcpCredential | null;
   login: SshLoginSecret;
   namedStorage: NamedBackupStorageConnection | null;
@@ -277,7 +269,6 @@ export type BackupStorage = {
   deleteObject(input: {
     bucket: string;
     key: string;
-    storageAccount?: string;
     versionId?: string;
   }): Promise<void>;
   download(input: {
@@ -286,13 +277,11 @@ export type BackupStorage = {
     localPath: string;
     maximumBytes?: number;
     signal?: AbortSignal;
-    storageAccount?: string;
     versionId?: string;
   }): Promise<void>;
   headObject(input: {
     bucket: string;
     key: string;
-    storageAccount?: string;
     versionId?: string;
   }): Promise<{
     checksum?: string;
@@ -318,7 +307,6 @@ export type BackupStorage = {
     metadata: Record<string, string>;
     signal?: AbortSignal;
     sizeBytes: number;
-    storageAccount?: string;
   }): Promise<{ versionId?: string }>;
 };
 

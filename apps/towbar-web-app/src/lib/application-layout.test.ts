@@ -34,11 +34,10 @@ test("manage navigation exposes each feature at its primary destination", () => 
   assert.deepEqual(
     adminWorkspace?.items.map((item) => item.id),
     [
-      "integrations",
       "ssh-keys",
-      "notifications",
-      "log-forwarding",
       "shared-secrets",
+      "notifications",
+      "integrations",
       "team-settings",
       "health",
     ],
@@ -76,7 +75,7 @@ test("management routes preserve their specific permission boundaries", () => {
   assert.equal(routePermission("/team-settings/ssh-keys"), "privateKey.manage");
   assert.equal(routePermission("/manage/ssh-keys"), "privateKey.manage");
   assert.equal(
-    routePermission("/manage/log-forwarding/newrelic"),
+    routePermission("/manage/integrations/github"),
     "integration.manage",
   );
   assert.equal(routePermission("/manage/shared-secrets"), "sharedSecret.list");

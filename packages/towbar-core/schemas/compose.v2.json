@@ -169,50 +169,6 @@
                 "additionalProperties": false
               }
             ]
-          },
-          "telemetry": {
-            "type": "object",
-            "properties": {
-              "integration": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 64,
-                "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
-              },
-              "signals": {
-                "minItems": 1,
-                "maxItems": 3,
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "enum": ["logs", "metrics", "traces"]
-                }
-              },
-              "protocol": {
-                "default": "otlp-grpc",
-                "type": "string",
-                "enum": ["otlp-http", "otlp-grpc"]
-              },
-              "sampling": {
-                "default": 1,
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1
-              },
-              "redactAttributes": {
-                "maxItems": 100,
-                "type": "array",
-                "items": { "type": "string", "minLength": 1, "maxLength": 256 }
-              },
-              "cardinalityLimit": {
-                "default": 10000,
-                "type": "integer",
-                "minimum": 100,
-                "maximum": 1000000
-              }
-            },
-            "required": ["integration", "signals"],
-            "additionalProperties": false
           }
         },
         "additionalProperties": false
@@ -454,54 +410,6 @@
                       "additionalProperties": false
                     }
                   ]
-                },
-                "telemetry": {
-                  "type": "object",
-                  "properties": {
-                    "integration": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 64,
-                      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
-                    },
-                    "signals": {
-                      "minItems": 1,
-                      "maxItems": 3,
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "enum": ["logs", "metrics", "traces"]
-                      }
-                    },
-                    "protocol": {
-                      "default": "otlp-grpc",
-                      "type": "string",
-                      "enum": ["otlp-http", "otlp-grpc"]
-                    },
-                    "sampling": {
-                      "default": 1,
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    },
-                    "redactAttributes": {
-                      "maxItems": 100,
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 256
-                      }
-                    },
-                    "cardinalityLimit": {
-                      "default": 10000,
-                      "type": "integer",
-                      "minimum": 100,
-                      "maximum": 1000000
-                    }
-                  },
-                  "required": ["integration", "signals"],
-                  "additionalProperties": false
                 }
               },
               "additionalProperties": false

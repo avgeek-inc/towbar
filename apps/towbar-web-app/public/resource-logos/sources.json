@@ -737,16 +737,6 @@
     "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/trino.svg"
   },
   {
-    "product": "OpenTelemetry",
-    "repositories": [
-      "otel/opentelemetry-collector",
-      "otel/opentelemetry-collector-contrib"
-    ],
-    "file": "opentelemetry.svg",
-    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/opentelemetry.svg",
-    "darkFile": "opentelemetry-light.svg"
-  },
-  {
     "product": "Grafana Tempo",
     "repositories": ["grafana/tempo", "grafana/tempo-query"],
     "file": "tempo.webp",

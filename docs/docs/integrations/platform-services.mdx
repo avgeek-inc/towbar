@@ -1,11 +1,9 @@
 ---
 title: "Platform services"
-description: "Configure Cloudflare for ingress and OpenTelemetry for workload telemetry export."
+description: "Configure Cloudflare for ingress and DNS operations."
 ---
 
-Platform services extend how Towbar exposes and observes workloads. Cloudflare
-can manage owned DNS records and tunnel ingress. OpenTelemetry sends selected
-logs, metrics, and traces through a managed, isolated Collector.
+Cloudflare can manage owned DNS records and tunnel ingress.
 
 ## Cloudflare
 
@@ -24,40 +22,3 @@ owns. `integrations.cloudflare.zoneId` is optional when the token can discover t
 required zones. The cloudflared image must use Towbar's reviewed pinned image.
 Continue with [Domains and TLS](/docs/domains-tls#cloudflare-tls) for DNS mode,
 tunnel ingress, and ownership boundaries.
-
-## OpenTelemetry
-
-```yaml title="/etc/towbar/towbar.yml"
-integrations:
-  otlp:
-    enabled: true
-    endpoint: https://collector.example.com
-    dashboardUrl: https://observability.example.com
-    protocol: http/protobuf
-    allowPrivateNetwork: false
-    headers:
-      Authorization: Bearer replace-me
-```
-
-The endpoint and authentication headers remain in the protected YAML configuration.
-The dashboard URL is optional and provides a safe link to the backend. Enable
-private-network access only when the collector intentionally uses an internal
-address.
-
-A workload selects the integration and signal policy in its manifest:
-
-```yaml title=".towbar/apps/web.app.yml" highlight={4-8}
-container:
-  port: 3000
-  network: production-apps
-telemetry:
-  integration: otlp
-  signals: [logs, metrics, traces]
-  protocol: otlp-grpc
-  sampling: 0.25
-```
-
-Read [OpenTelemetry routing](/docs/observability-routing) for isolation,
-backpressure, redaction, cardinality, and failure behavior. Verify receipt in
-the destination; a configured or applied state does not prove that the backend
-indexed and retained the signals.

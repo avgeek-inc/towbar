@@ -56,7 +56,7 @@ function tunnelPolicy(app: NormalizedDeployable) {
 
 export async function resolveDeploymentSecrets(deploymentId: string) {
   return await getTowbarDatabase().transaction(
-    // eslint-disable-next-line complexity -- One transaction resolves all mutually dependent runtime, source, build, ingress, and telemetry credentials.
+    // eslint-disable-next-line complexity -- One transaction resolves all mutually dependent runtime, source, build, and ingress credentials.
     async (database) => {
       const deployment = await getSecretDeployment(deploymentId, database);
       const app = deployment.appSnapshot;

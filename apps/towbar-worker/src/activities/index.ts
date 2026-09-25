@@ -12,5 +12,3 @@ export * from "./scout-alerts.js";
 export * from "./transactional-email.js";
 
 export * from "./app-jobs.js";
-
-export * from "./log-drains.js";

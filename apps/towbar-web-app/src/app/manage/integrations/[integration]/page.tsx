@@ -6,10 +6,7 @@ import { QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
 import { Integrations } from "@/components/integrations";
 import { DashboardPage } from "@/components/page-parts";
-import {
-  isIntegrationRoute,
-  isLogForwardingRoute,
-} from "@/lib/integration-routes";
+import { isIntegrationRoute } from "@/lib/integration-routes";
 
 export default async function Page({
   params,
@@ -23,8 +20,6 @@ export default async function Page({
     )
   )
     redirect(`/manage/notifications/${integration}`);
-  if (isLogForwardingRoute(integration))
-    redirect(`/manage/log-forwarding/${integration}`);
   if (!isIntegrationRoute(integration)) notFound();
   return (
     <DashboardPage title="Integrations" icon={PlugSocketIcon}>

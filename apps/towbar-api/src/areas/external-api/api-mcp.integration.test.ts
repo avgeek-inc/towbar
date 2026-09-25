@@ -236,7 +236,6 @@ void test(
           const excluded: Array<[string, string, string]> = [
             ["GET", "/notifications", "get_notifications"],
             ["GET", "/notifications/providers", "get_notifications_providers"],
-            ["GET", "/log-drains", "get_log_drains"],
             [
               "GET",
               `/sources/${randomUUID()}/notifications/destinations`,

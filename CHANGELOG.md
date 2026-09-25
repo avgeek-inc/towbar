@@ -80,8 +80,6 @@ All notable changes to Towbar are documented in this file. This project follows
 - Tooltips that repeat their trigger appear only when text is clipped; long
   revision tooltips stay within the viewport. Secret-row connector lines are
   readable in both themes.
-- The log-forwarding resilience test keeps emitting its readiness marker until
-  the forwarder attaches, avoiding an intermittent startup failure in CI.
 
 ## [2.0.10] - 2026-09-24
 
@@ -237,9 +235,6 @@ All notable changes to Towbar are documented in this file. This project follows
   management.
 - Persistent server preparation checklists with inspection details, prerequisite
   installation output and terminal logs.
-- Runtime-configured log forwarding for New Relic, Axiom, Better Stack, Datadog,
-  OpenTelemetry and Loki. App and resource manifests select destinations; a
-  bounded gateway sends container output independently from deployment work.
 - Host-only administrator recovery and two-factor reset commands, plus uninstall
   and recovery documentation.
 - Named environments for apps and resources, including production and staging.

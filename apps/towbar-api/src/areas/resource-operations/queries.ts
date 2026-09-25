@@ -235,9 +235,6 @@ export async function getRetentionBackups(
         destinations: normalized.destinations,
         id: backup.id,
         key: result.key,
-        ...(result.storageAccount
-          ? { storageAccount: result.storageAccount }
-          : {}),
       };
     });
 }

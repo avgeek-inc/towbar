@@ -2,10 +2,7 @@ import { recordAuditEvent } from "../../infrastructure/audit.js";
 import { auditAttribution } from "../auth/actor-context.js";
 import { captureQueuedActor } from "../auth/actor-context.js";
 import { randomUUID } from "node:crypto";
-import {
-  enqueueMonitoringAgent,
-  wakeLogDrainsWorkflow,
-} from "../../infrastructure/temporal.js";
+import { enqueueMonitoringAgent } from "../../infrastructure/temporal.js";
 import { and, eq, inArray, isNull, notInArray } from "drizzle-orm";
 
 import {
@@ -23,7 +20,6 @@ import {
   resourceOperations,
   serverChecks,
   serverCredentialVerifications,
-  serverLogDrains,
   serverPreparations,
   servers,
   sshHostKeys,
@@ -252,35 +248,6 @@ export async function removeServer(input: {
         "Wait for active server operations to finish before removing this server.",
         "SERVER_BUSY",
       );
-    const [forwarder] = await transaction
-      .select()
-      .from(serverLogDrains)
-      .where(
-        and(
-          eq(serverLogDrains.serverId, server.id),
-          eq(serverLogDrains.integrationKind, "log-forwarding"),
-        ),
-      )
-      .for("update");
-    if (forwarder && forwarder.status !== "disabled") {
-      await transaction
-        .update(serverLogDrains)
-        .set({
-          removalRequested: true,
-          requestedByActor: captureQueuedActor(input.workspaceId, [
-            "server.remove",
-          ]).requestedByActor,
-          status: "pending",
-          errorMessage: null,
-        })
-        .where(
-          and(
-            eq(serverLogDrains.serverId, server.id),
-            eq(serverLogDrains.integrationKind, "log-forwarding"),
-          ),
-        );
-      return { serverId: server.id, logDrains: true as const };
-    }
     const [agent] = await transaction
       .select()
       .from(monitoringAgents)
@@ -366,10 +333,6 @@ export async function removeServer(input: {
       ...auditAttribution(),
     });
   });
-  if (pending) {
-    if ("logDrains" in pending)
-      await wakeLogDrainsWorkflow().catch(() => undefined);
-    else await enqueueMonitoringAgent(pending).catch(() => undefined);
-  }
+  if (pending) await enqueueMonitoringAgent(pending).catch(() => undefined);
   return { pending: Boolean(pending) };
 }

@@ -86,8 +86,8 @@ repository. Re-express only the configuration you intend to keep.
 ## 3. Recreate protected values and routes
 
 Move application values into Towbar's encrypted secret stores. Configure Git,
-registry, backup, notification, external-secret, or telemetry identities in the
-Towbar runtime environment. Rotate credentials when practical instead of
+registry, backup, notification, or external-secret identities in the
+protected Towbar configuration. Rotate credentials when practical instead of
 carrying old shared values into the new control plane.
 
 Declare public domains and TLS in each workload manifest. Deploy first with a

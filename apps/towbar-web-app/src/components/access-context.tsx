@@ -15,7 +15,6 @@ export function routePermission(pathname: string): Action | null {
   if (pathname === "/servers/new") return "server.update";
   if (
     pathname.startsWith("/manage/integrations") ||
-    pathname.startsWith("/manage/log-forwarding") ||
     pathname.startsWith("/team-settings/integrations")
   )
     return "integration.manage";
