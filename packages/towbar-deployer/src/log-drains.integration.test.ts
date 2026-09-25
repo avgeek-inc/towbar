@@ -20,6 +20,50 @@ const dockerLogs = (name: string) => {
   const result = spawnSync("docker", ["logs", name], { encoding: "utf8" });
   return result.stdout + result.stderr;
 };
+void test("provider-specific manifest attributes are included in log records", () => {
+  const config = buildLogDrainConfiguration(
+    "11111111-1111-4111-8111-111111111111",
+    [
+      {
+        kind: "container",
+        appId: "app",
+        deploymentId: "deployment",
+        repositoryId: "repository",
+        teamId: "team",
+        containerName: "towbar-app",
+        name: "Website",
+        environment: "production",
+        providers: ["axiom", "otlp"],
+        attributes: { axiom: { team: "payments" }, otlp: { tier: "critical" } },
+      },
+    ],
+    [
+      {
+        provider: "axiom",
+        apiKey: "test_token_1234",
+        dataset: "logs",
+        ingestHost: "us-east-1.aws.edge.axiom.co",
+      },
+      {
+        provider: "otlp",
+        endpoint: "https://collector.example.com/v1/logs",
+        auth: "none",
+        username: "",
+        apiKey: "",
+        headers: [],
+        caCertificate: "",
+      },
+    ],
+  );
+  assert(config);
+  assert.match(JSON.stringify(config.transforms.format_axiom), /payments/);
+  assert.doesNotMatch(
+    JSON.stringify(config.transforms.format_axiom),
+    /critical/,
+  );
+  assert.match(JSON.stringify(config.transforms.format_otlp), /critical/);
+  assert.match(JSON.stringify(config.transforms.format_otlp), /tier/);
+});
 void test(
   "Vector forwards only selected container logs using every provider contract",
   { skip: process.env.TOWBAR_LOG_DRAIN_DOCKER_TEST !== "1", timeout: 120_000 },
@@ -78,6 +122,10 @@ void test(
           name: "Website",
           environment: "production",
           providers: credentials.map((c) => c.provider),
+          attributes: {
+            axiom: { team: "payments" },
+            otlp: { tier: "critical" },
+          },
         },
       ],
       credentials,
@@ -278,6 +326,8 @@ void test(
         assert.equal(record.environment, "production");
         assert.equal(record.container_name, app);
         assert.equal(record.label, undefined);
+        if (credential.provider === "axiom")
+          assert.equal(record.team, "payments");
       }
       docker("stop", `${agent}-collector`);
       docker(
@@ -309,6 +359,8 @@ void test(
         app,
         "log.iostream",
         "timeUnixNano",
+        "tier",
+        "critical",
       ])
         assert(received.includes(value), `Missing OTLP field ${value}`);
       assert(!received.includes("excluded-output"));

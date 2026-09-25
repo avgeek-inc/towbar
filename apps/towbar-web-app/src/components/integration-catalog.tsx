@@ -258,6 +258,7 @@ export const logForwardingProviders = Object.entries(logDrainNames).map(
     value,
     provider: value,
     label,
+    contentOwnsTitle: true,
     content: <LogDrainIntegration provider={value as LogDrainProvider} />,
   }),
 );

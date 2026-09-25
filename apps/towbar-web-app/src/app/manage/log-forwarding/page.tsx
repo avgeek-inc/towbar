@@ -9,6 +9,6 @@ export default async function Page({
 }) {
   const requested = (await searchParams).provider;
   redirect(
-    `/manage/integrations/${isLogForwardingRoute(requested) ? requested : "newrelic"}`,
+    `/manage/log-forwarding/${isLogForwardingRoute(requested) ? requested : "newrelic"}`,
   );
 }

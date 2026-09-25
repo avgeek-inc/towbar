@@ -6,10 +6,30 @@ const configuredProviders = [
   "axiom",
   "betterstack",
   "datadog",
-  "loki",
   "newrelic",
   "otlp",
 ] as const satisfies readonly LogDrainProvider[];
+
+const publicSettings: Partial<
+  Record<LogDrainProvider, Record<string, string | boolean>>
+> = {
+  newrelic: { region: "us", apiKeyConfigured: true },
+  axiom: {
+    dataset: "production",
+    ingestHost: "us-east-1.aws.edge.axiom.co",
+    apiKeyConfigured: true,
+  },
+  betterstack: {
+    ingestHost: "in.logs.betterstack.com",
+    apiKeyConfigured: true,
+  },
+  datadog: { site: "datadoghq.com", apiKeyConfigured: true },
+  otlp: {
+    endpoint: "https://collector.example.com/v1/logs",
+    auth: "bearer",
+    apiKeyConfigured: true,
+  },
+};
 
 export function logDrainsFixture(options: {
   canManage: () => boolean;
@@ -21,7 +41,10 @@ export function logDrainsFixture(options: {
     response: ServerResponse,
     pathname: string,
   ) => {
-    if (pathname !== "/v1/core/log-drains") return false;
+    const usageServerId = pathname.match(
+      /^\/v1\/core\/log-drains\/usage\/([0-9a-f-]{36})$/,
+    )?.[1];
+    if (pathname !== "/v1/core/log-drains" && !usageServerId) return false;
     const json = (body: unknown, status = 200) => {
       response.writeHead(status, {
         "content-type": "application/json",
@@ -30,6 +53,50 @@ export function logDrainsFixture(options: {
       response.end(fixtureJson(response, body));
       return true;
     };
+    const servers = options.testServers();
+    const server = servers[0];
+    const unhealthyStatus =
+      options.testOutcome === "auth_failure"
+        ? "auth_failure"
+        : options.testOutcome === "rate_limited"
+          ? "rate_limited"
+          : null;
+    const health = (provider: LogDrainProvider) =>
+      ({
+        provider,
+        revision: `fixture-${provider}`,
+        status: unhealthyStatus ?? "configured",
+        rateLimitCount: unhealthyStatus === "rate_limited" ? 3 : 0,
+        failureCount: unhealthyStatus ? 3 : 0,
+        lastHttpStatus:
+          unhealthyStatus === "rate_limited"
+            ? 429
+            : unhealthyStatus
+              ? 401
+              : 200,
+        retryAt:
+          unhealthyStatus === "rate_limited"
+            ? new Date(Date.now() + 86_400_000).toISOString()
+            : null,
+        changedAt: new Date().toISOString(),
+        lastSuccessAt: unhealthyStatus ? null : new Date().toISOString(),
+        incidentId: null,
+        acceptedBatches: unhealthyStatus ? 0 : 120,
+        droppedBatches: unhealthyStatus === "auth_failure" ? 3 : 0,
+      }) satisfies LogDrainHealth;
+    if (usageServerId) {
+      if (request.method !== "GET")
+        return json({ error: { message: "Not found" } }, 404);
+      if (!servers.some((item) => item.id === usageServerId))
+        return json({ error: { message: "Server was not found" } }, 404);
+      return json({
+        checkedAt: new Date().toISOString(),
+        providers: configuredProviders.map((provider) => ({
+          provider,
+          health: health(provider),
+        })),
+      });
+    }
     if (!options.canManage())
       return json(
         { error: { message: "Your role does not permit this action" } },
@@ -38,47 +105,23 @@ export function logDrainsFixture(options: {
     if (request.method !== "GET")
       return json({ error: { message: "Not found" } }, 404);
 
-    const server = options.testServers()[0];
-    const unhealthyStatus =
-      options.testOutcome === "auth_failure"
-        ? "auth_failure"
-        : options.testOutcome === "rate_limited"
-          ? "rate_limited"
-          : null;
     return json({
       configurations: configuredProviders.map((provider) => ({
         provider,
+        ...publicSettings[provider],
         revision: `fixture-${provider}`,
         source: "environment",
         state: "enabled",
-        health:
-          server && unhealthyStatus
-            ? [
-                {
-                  provider,
-                  revision: `fixture-${provider}`,
-                  status: unhealthyStatus,
-                  serverId: server.id,
-                  serverName: server.name,
-                  rateLimitCount: unhealthyStatus === "rate_limited" ? 3 : 0,
-                  failureCount: unhealthyStatus === "rate_limited" ? 3 : 1,
-                  lastHttpStatus:
-                    unhealthyStatus === "rate_limited" ? 429 : 401,
-                  retryAt:
-                    unhealthyStatus === "rate_limited"
-                      ? new Date(Date.now() + 86_400_000).toISOString()
-                      : null,
-                  changedAt: new Date().toISOString(),
-                  lastSuccessAt: null,
-                  incidentId: "fixture-log-drain-incident",
-                  acceptedBatches: 0,
-                  droppedBatches: 0,
-                } satisfies LogDrainHealth & {
-                  serverId: string;
-                  serverName: string;
-                },
-              ]
-            : [],
+        health: server
+          ? [
+              {
+                ...health(provider),
+                serverId: server.id,
+                serverName: server.name,
+                checkedAt: new Date().toISOString(),
+              },
+            ]
+          : [],
       })),
     });
   };

@@ -30,7 +30,7 @@ export type LogDrainExecutionContext = {
   credentials: LogDrainCredential[];
 };
 
-const otlpFormat = `
+const otlpFormat = (attributeNames: string[]) => `
 . = {"resourceLogs": [{
   "resource": {"attributes": [
     {"key": "service.name", "value": {"stringValue": .service}},
@@ -41,7 +41,12 @@ const otlpFormat = `
     {"key": "towbar.deployment.id", "value": {"stringValue": .deployment_id}},
     {"key": "towbar.repository.id", "value": {"stringValue": .repository_id}},
     {"key": "towbar.server.id", "value": {"stringValue": .server_id}},
-    {"key": "towbar.team.id", "value": {"stringValue": .team_id}}
+    {"key": "towbar.team.id", "value": {"stringValue": .team_id}}${attributeNames
+      .map(
+        (name) => `,
+    {"key": ${JSON.stringify(name)}, "value": {"stringValue": to_string(.${name}) ?? ""}}`,
+      )
+      .join("")}
   ]},
   "scopeLogs": [{"scope": {"name": "towbar.container-logs"}, "logRecords": [{
     "timeUnixNano": to_unix_timestamp!(.timestamp, unit: "nanoseconds"),
@@ -171,6 +176,7 @@ export function buildLogDrainConfiguration(
             repository_id: target.repositoryId,
             server_id: serverId,
             team_id: target.teamId,
+            ...(target.attributes?.[provider] ?? {}),
           },
         ];
       }),
@@ -182,7 +188,15 @@ export function buildLogDrainConfiguration(
     };
     const extra =
       provider === "otlp"
-        ? otlpFormat
+        ? otlpFormat(
+            [
+              ...new Set(
+                selected.flatMap((target) =>
+                  Object.keys(target.attributes?.[provider] ?? {}),
+                ),
+              ),
+            ].sort(),
+          )
         : provider === "axiom"
           ? "._time = del(.timestamp)"
           : provider === "betterstack"

@@ -31,7 +31,7 @@ import {
   Notification01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useParams, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import type {
   App,
@@ -70,6 +70,7 @@ import { AppLogo } from "./deployable-identity";
 import { FirstDeployment } from "./first-deployment";
 import { EnvironmentChip } from "./environment-chip";
 import { DeployableNotifications } from "./deployable-notifications";
+import { DeployableLogForwarding } from "./deployable-log-forwarding";
 
 type AppRecord = App & {
   serverId: string;
@@ -92,9 +93,7 @@ function tunnelStatusTooltip(runtime: RuntimeState) {
 
 export function AppDetail() {
   const detailNavigation = useDetailNavigation();
-  const { appId } = useParams<{
-    appId: string;
-  }>();
+  const appId = usePathname().split("/")[2]!;
   const router = useRouter();
   const { can } = useAccess();
   const app = useApiQuery<{ app: App & { serverId: string } }>(
@@ -407,6 +406,23 @@ export function AppDetail() {
               />
             ),
           },
+          ...(item.config.kind !== "compose" && item.config.logDrains?.length
+            ? [
+                {
+                  value: "log-forwarding",
+                  label: "Log forwarding",
+                  group: "Monitor",
+                  icon: <HugeiconsIcon icon={FileViewIcon} />,
+                  content: (
+                    <DeployableLogForwarding
+                      providers={item.config.logDrains}
+                      attributes={item.config.logDrainAttributes}
+                      serverId={item.serverId}
+                    />
+                  ),
+                },
+              ]
+            : []),
           {
             value: "performance",
             label: "Performance",

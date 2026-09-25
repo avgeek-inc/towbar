@@ -51,7 +51,7 @@ test("every integration navigation target has a distinct accepted route", () => 
   assert.equal(isIntegrationRoute("unknown-provider"), false);
 });
 
-test("log forwarding providers are part of the integration route set", () => {
+test("log forwarding providers have routes and legacy integration redirects", () => {
   const navigationTargets = logForwardingProviders.map(
     (provider) => provider.value,
   );
@@ -60,7 +60,7 @@ test("log forwarding providers are part of the integration route set", () => {
   assert(navigationTargets.every((target) => isLogForwardingRoute(target)));
   assert(
     navigationTargets.every((target) => isIntegrationRoute(target)),
-    "log forwarding routes must be available inside integrations",
+    "legacy integration routes must remain recognized for redirects",
   );
   assert(
     navigationTargets.every((target) => getProviderIcon(target) !== null),

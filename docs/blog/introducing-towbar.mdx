@@ -54,7 +54,7 @@ The second motivation was ownership. Towbar is self-hosted only. There is no Tow
 
 Towbar separates the secrets that operate the platform from the secrets used by workloads.
 
-Static integration credentials are supplied through the environment of the Towbar installation. This includes registry access, backup providers, external-secret providers, notification channels, log forwarding destinations, Cloudflare, and other runtime integrations. The dashboard does not provide forms for entering the credentials that run Towbar. It lists an integration only when the instance started with a complete and valid configuration for it.
+Static integration credentials are supplied through the Towbar runtime configuration. This includes registry access, backup providers, external-secret providers, notification channels, log forwarding destinations, Cloudflare, and other runtime integrations. The dashboard does not provide forms for entering the credentials that run Towbar. Notifications and log forwarding list their supported providers and show when configuration is missing.
 
 GitHub installation and GitLab OAuth authorization are interactive because their providers require an account authorization flow. The application identity and webhook secrets still belong to the Towbar runtime environment. Dynamic grants and the minimum account metadata needed to use them stay in the self-hosted control plane.
 

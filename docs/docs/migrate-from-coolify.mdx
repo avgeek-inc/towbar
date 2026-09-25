@@ -98,7 +98,7 @@ Create `towbar.yml` and one entity file per app or resource. Run schema validati
 
 ## 3. Recreate credentials and integrations
 
-Configure GitHub or GitLab, registries, backup storage, notifications, log forwarding, Cloudflare, and external-secret providers in Towbar's host environment. Only correctly configured providers appear under **Manage → Integrations**.
+Configure GitHub or GitLab, registries, backup storage, notifications, log forwarding, Cloudflare, and external-secret providers in Towbar's runtime configuration. Check platform providers under **Manage → Integrations**, and notification and log-forwarding providers on their own Manage pages.
 
 Copy application values into [Shared secrets](/docs/secrets) or workload environment secrets. Do not copy Coolify's encrypted database rows or encryption key into Towbar. Rotate long-lived credentials where practical, and update OAuth callback URLs, provider webhooks, CI secrets, and allowlists for the new Towbar origin.
 

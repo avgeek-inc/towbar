@@ -22,7 +22,7 @@ import {
 } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { requireActor } from "../auth/actor-context.js";
-import { conflict } from "../../http/errors.js";
+import { conflict, notFound } from "../../http/errors.js";
 import { reportLogDrainHealth } from "./health.js";
 import { resolveServerCredentials } from "../secrets/store.js";
 import { emitNotificationEvent } from "../notifications/service.js";
@@ -76,10 +76,52 @@ export async function listLogDrains(workspaceId: string) {
               ...health,
               serverId: agent.serverId,
               serverName: agent.name,
+              checkedAt: agent.checkedAt,
             })),
         ),
       }),
     ),
+  };
+}
+
+export async function getServerLogDrainUsage(
+  workspaceId: string,
+  serverId: string,
+) {
+  requireActor(workspaceId, ["server.read"]);
+  const [server] = await getTowbarDatabase()
+    .select({ id: servers.id })
+    .from(servers)
+    .where(
+      and(
+        eq(servers.id, serverId),
+        eq(servers.workspaceId, workspaceId),
+        isNull(servers.archivedAt),
+      ),
+    );
+  if (!server) throw notFound("Server");
+  const [state] = await getTowbarDatabase()
+    .select({
+      health: serverLogDrains.health,
+      checkedAt: serverLogDrains.checkedAt,
+    })
+    .from(serverLogDrains)
+    .where(
+      and(
+        eq(serverLogDrains.serverId, serverId),
+        eq(serverLogDrains.workspaceId, workspaceId),
+        eq(serverLogDrains.integrationKind, "log-forwarding"),
+      ),
+    );
+  return {
+    checkedAt: state?.checkedAt ?? null,
+    providers: getRuntimeLogDrains().map(({ provider, revision }) => ({
+      provider,
+      health:
+        state?.health.find(
+          (item) => item.provider === provider && item.revision === revision,
+        ) ?? null,
+    })),
   };
 }
 
@@ -194,6 +236,7 @@ export async function getLogDrainExecutionContext(serverId: string) {
             kind: "container" as const,
             name: row.name,
             providers,
+            attributes: row.config.logDrainAttributes,
             environment: row.previewId
               ? `preview-${row.previewId}`
               : row.environment,
@@ -355,7 +398,7 @@ export async function completeLogDrainReconciliation(
     errorMessage: !result.succeeded
       ? "Could not apply log forwarding. Check SSH access, Docker and outbound HTTPS."
       : result.missing?.length
-        ? `Configure ${result.missing.join(", ")} in Integrations.`
+        ? `Configure ${result.missing.join(", ")} under Manage → Log forwarding.`
         : null,
     ...(result.succeeded
       ? {

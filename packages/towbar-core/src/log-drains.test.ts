@@ -3,6 +3,7 @@ import test from "node:test";
 import { stringify } from "yaml";
 import { normalizeDeploymentManifest } from "./manifest.js";
 import {
+  logDrainAttributesSchema,
   logDrainCredentialSchema,
   logDrainEndpoint,
   logDrainProviders,
@@ -51,6 +52,49 @@ void test("log manifests select team destinations, replace environment lists and
   ])
     assert.throws(() => resolve(invalid));
 });
+void test("environment overrides can clear inherited log forwarding context", () => {
+  const input = {
+    branch: "main",
+    root: stringify({
+      version: 2,
+      environments: { production: {}, staging: {} },
+    }),
+    files: [
+      {
+        path: ".towbar/apps/web.app.yml",
+        content: stringify({
+          id: "web",
+          name: "Website",
+          dockerfile: "Dockerfile",
+          container: { port: 3000 },
+          logDrains: ["axiom"],
+          logDrainAttributes: { axiom: { team: "storefront" } },
+          environments: {
+            production: { server: "192.0.2.10" },
+            staging: {
+              server: "192.0.2.11",
+              logDrains: [],
+              logDrainAttributes: {},
+            },
+          },
+        }),
+      },
+    ],
+  };
+  const production = resolveRepositoryEnvironment({
+    ...input,
+    environment: "production",
+  });
+  const staging = resolveRepositoryEnvironment({
+    ...input,
+    environment: "staging",
+  });
+  assert.deepEqual(production.manifest.apps[0]?.logDrainAttributes, {
+    axiom: { team: "storefront" },
+  });
+  assert.equal(staging.manifest.apps[0]?.logDrains, undefined);
+  assert.deepEqual(staging.manifest.apps[0]?.logDrainAttributes, {});
+});
 void test("log destinations enforce provider-owned HTTPS endpoints and reject injected credentials", () => {
   const valid = {
     provider: "axiom",
@@ -95,10 +139,45 @@ void test("resources preserve their normalized log destinations", () => {
         type: "redis",
         server: "192.0.2.10",
         logDrains: ["datadog", "axiom"],
+        logDrainAttributes: { axiom: { team: "payments", tier: "critical" } },
       },
     ],
   });
   assert.deepEqual(manifest.resources![0]!.logDrains, ["axiom", "datadog"]);
+  assert.deepEqual(manifest.resources![0]!.logDrainAttributes, {
+    axiom: { team: "payments", tier: "critical" },
+  });
+});
+
+void test("log context is provider-specific and cannot replace Towbar fields", () => {
+  assert.deepEqual(
+    logDrainAttributesSchema.parse({ axiom: { team: "payments" } }),
+    {
+      axiom: { team: "payments" },
+    },
+  );
+  for (const attributes of [
+    { axiom: { message: "override" } },
+    { axiom: { team: "{{secret}}" } },
+    { axiom: { "bad-key": "value" } },
+    { unknown: { team: "value" } },
+  ])
+    assert.throws(() => logDrainAttributesSchema.parse(attributes));
+  assert.throws(() =>
+    normalizeDeploymentManifest({
+      version: 2,
+      resources: [
+        {
+          id: "redis",
+          name: "Redis",
+          type: "redis",
+          server: "192.0.2.10",
+          logDrains: ["axiom"],
+          logDrainAttributes: { datadog: { team: "payments" } },
+        },
+      ],
+    }),
+  );
 });
 
 void test("custom destinations require HTTPS and validate authentication and header boundaries", () => {

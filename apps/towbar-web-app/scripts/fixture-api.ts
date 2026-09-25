@@ -229,6 +229,11 @@ apps[1]!.config.notifications = {
     },
   ],
 };
+apps[1]!.config.logDrains = ["axiom", "loki"];
+if (apps[1]!.config.kind !== "compose")
+  apps[1]!.config.logDrainAttributes = {
+    axiom: { team: "storefront", tier: "critical" },
+  };
 
 const resources: FixtureResource[] = [
   createResourceFixture(
@@ -311,6 +316,10 @@ resources[0]!.config.notifications = {
       alertsAndIncidents: true,
     },
   ],
+};
+resources[1]!.config.logDrains = ["axiom"];
+resources[1]!.config.logDrainAttributes = {
+  axiom: { team: "storefront" },
 };
 
 apps.push({
@@ -1686,12 +1695,10 @@ export function createFixtureApiServer({
     testOutcome: logDrainTestOutcome,
     canManage: () => teamAccess.getUser()?.workspaceRole === "admin",
     testServers: () =>
-      servers
-        .filter((server) => server.preparedAt && server.setupStatus === "ready")
-        .map((server) => ({
-          id: server.id,
-          name: `${server.canonicalIp} (local fixture)`,
-        })),
+      servers.map((server) => ({
+        id: server.id,
+        name: `${server.canonicalIp} (local fixture)`,
+      })),
   });
   const eventHistory = eventHistoryFixture(teamAccess.getUser, user);
   let emailDestinations = [

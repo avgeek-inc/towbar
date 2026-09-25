@@ -94,7 +94,7 @@ Dokploy manages application and Compose [domains](https://docs.dokploy.com/docs/
 
 ## 3. Recreate integrations and secrets
 
-Configure the Towbar host environment for the Git provider, registry, backup storage, notifications, log forwarding, and any external-secret provider. Towbar exposes only valid, enabled integrations in the dashboard.
+Configure the Towbar runtime for the Git provider, registry, backup storage, notifications, log forwarding, and any external-secret provider. Platform integrations appear when configured; Notifications and Log forwarding list all supported providers and show which need configuration.
 
 Move variable values into [Shared secrets](/docs/secrets) or workload environment secrets. Preserve build/runtime intent and preview isolation rather than copying every Dokploy variable into one global scope. Rotate credentials where practical, and update OAuth callbacks, Git webhooks, CI secrets, DNS automation, email allowlists, and receiving webhooks.
 

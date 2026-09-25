@@ -1,4 +1,9 @@
-import { type LogDrainProvider, logDrainsSchema } from "./log-drains.js";
+import {
+  type LogDrainAttributes,
+  type LogDrainProvider,
+  logDrainAttributesSchema,
+  logDrainsSchema,
+} from "./log-drains.js";
 import { type AppJob, appJobSchema } from "./app-jobs.js";
 import {
   type ManifestNotifications,
@@ -522,6 +527,7 @@ export const appSchema = z
   .object({
     jobs: z.array(appJobSchema).max(20).optional(),
     logDrains: logDrainsSchema.optional(),
+    logDrainAttributes: logDrainAttributesSchema.optional(),
     notifications: manifestNotificationsSchema.optional(),
     autoDeploy: appAutoDeploySchema.optional(),
     vulnerabilityScanning: z.boolean().optional(),
@@ -757,6 +763,14 @@ export const appSchema = z
         path: ["telemetry", "signals"],
       });
     }
+    for (const provider of Object.keys(app.logDrainAttributes ?? {})) {
+      if (!app.logDrains?.includes(provider as LogDrainProvider))
+        context.addIssue({
+          code: "custom",
+          message: `Select '${provider}' in logDrains before adding its attributes`,
+          path: ["logDrainAttributes", provider],
+        });
+    }
     if (app.container.networkAlias && app.preview) {
       context.addIssue({
         code: "custom",
@@ -920,6 +934,7 @@ export const resourceSchema = z
     autoDeploy: z.boolean().optional(),
     backup: resourceBackupSchema.optional(),
     logDrains: logDrainsSchema.optional(),
+    logDrainAttributes: logDrainAttributesSchema.optional(),
     notifications: manifestNotificationsSchema.optional(),
     externalSecrets: z
       .record(z.string().trim().min(1).max(256), externalSecretReferenceSchema)
@@ -993,6 +1008,14 @@ export const resourceSchema = z
           "Choose either OTLP log export or log drains for this resource to prevent duplicate forwarding",
         path: ["telemetry", "signals"],
       });
+    }
+    for (const provider of Object.keys(resource.logDrainAttributes ?? {})) {
+      if (!resource.logDrains?.includes(provider as LogDrainProvider))
+        context.addIssue({
+          code: "custom",
+          message: `Select '${provider}' in logDrains before adding its attributes`,
+          path: ["logDrainAttributes", provider],
+        });
     }
     const volumes = resource.container?.volumes ?? [];
     findDuplicates(volumes.map((volume) => volume.name)).forEach((name) =>
@@ -1252,6 +1275,7 @@ export type NormalizedDeploymentHook = {
 
 export type NormalizedApp = {
   logDrains?: LogDrainProvider[];
+  logDrainAttributes?: LogDrainAttributes;
   notifications?: ManifestNotifications;
   jobs?: AppJob[];
   kind?: "app";
@@ -1300,6 +1324,7 @@ export type NormalizedApp = {
 
 export type NormalizedResource = {
   logDrains?: LogDrainProvider[];
+  logDrainAttributes?: LogDrainAttributes;
   notifications?: ManifestNotifications;
   externalSecrets?: Record<
     string,
@@ -1433,6 +1458,9 @@ export function normalizeDeploymentManifest(
           kind: "app" as const,
           ...(app.logDrains?.length
             ? { logDrains: [...app.logDrains].sort() }
+            : {}),
+          ...(app.logDrainAttributes
+            ? { logDrainAttributes: app.logDrainAttributes }
             : {}),
           ...(app.notifications
             ? {
@@ -1667,6 +1695,9 @@ function normalizeResource(
     ...normalizeResourceAccess(resource.access),
     ...(resource.logDrains?.length
       ? { logDrains: [...resource.logDrains].sort() }
+      : {}),
+    ...(resource.logDrainAttributes
+      ? { logDrainAttributes: resource.logDrainAttributes }
       : {}),
     ...(resource.notifications
       ? {

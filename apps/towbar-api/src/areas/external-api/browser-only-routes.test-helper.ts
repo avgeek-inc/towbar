@@ -13,6 +13,7 @@ export const expectedBrowserOnlyRoutes = new Set([
   "GET /deployments/:deploymentId/source-revision",
   "GET /gitlab/oauth/callback",
   "GET /log-drains",
+  "GET /log-drains/usage/:serverId",
   "GET /monitoring/summary",
   "GET /notifications",
   "GET /notifications/deliveries",

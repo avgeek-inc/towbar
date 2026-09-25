@@ -186,7 +186,7 @@ export function mergeEnvironmentConfiguration(
   for (const [key, value] of Object.entries(overrides)) {
     const existing = result[key];
     result[key] =
-      isObject(existing) && isObject(value)
+      key !== "logDrainAttributes" && isObject(existing) && isObject(value)
         ? mergeEnvironmentConfiguration(existing, value)
         : value;
   }

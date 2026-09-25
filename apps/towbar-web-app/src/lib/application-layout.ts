@@ -10,6 +10,7 @@ import {
   GitBranchIcon,
   HealthIcon,
   Key01Icon,
+  FileViewIcon,
   Notification01Icon,
   PlugSocketIcon,
   Rocket01Icon,
@@ -175,6 +176,13 @@ const sidebar = {
           label: "Notifications",
           href: "/manage/notifications",
           icon: Notification01Icon,
+        },
+        {
+          kind: "link",
+          id: "log-forwarding",
+          label: "Log forwarding",
+          href: "/manage/log-forwarding",
+          icon: FileViewIcon,
         },
         {
           kind: "link",

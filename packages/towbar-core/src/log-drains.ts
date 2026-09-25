@@ -37,6 +37,57 @@ export const logDrainsSchema = z
     (items) => new Set(items).size === items.length,
     "Log destinations must be unique",
   );
+const reservedLogAttributes = new Set([
+  "message",
+  "timestamp",
+  "container_name",
+  "stream",
+  "service",
+  "app_id",
+  "compose_service",
+  "deployment_id",
+  "environment",
+  "repository_id",
+  "server_id",
+  "team_id",
+]);
+export const logDrainAttributesSchema = z.partialRecord(
+  logDrainProviderSchema,
+  z
+    .record(
+      z
+        .string()
+        .regex(
+          /^[a-z][a-z0-9_]{0,63}$/,
+          "Use lowercase letters, numbers and underscores",
+        ),
+      z
+        .string()
+        .trim()
+        .min(1)
+        .max(256)
+        .refine(
+          (value) =>
+            [...value].every((character) => {
+              const code = character.charCodeAt(0);
+              return code >= 32 && code !== 127;
+            }) &&
+            !value.includes("{{") &&
+            !value.includes("}}"),
+          "Use plain text without control characters or templates",
+        ),
+    )
+    .refine(
+      (attributes) => Object.keys(attributes).length <= 16,
+      "Use at most 16 attributes per provider",
+    )
+    .refine(
+      (attributes) =>
+        Object.keys(attributes).every((key) => !reservedLogAttributes.has(key)),
+      "Do not override Towbar log fields",
+    ),
+);
+export type LogDrainAttributes = z.infer<typeof logDrainAttributesSchema>;
 const apiKey = z
   .string()
   .min(8)
@@ -314,6 +365,7 @@ export type LogDrainTarget = {
   environment: string;
   kind: "container";
   providers: LogDrainProvider[];
+  attributes?: LogDrainAttributes;
 };
 
 export function logDrainEndpoint(credential: LogDrainCredential) {

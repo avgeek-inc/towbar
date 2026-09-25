@@ -93,6 +93,25 @@
         "enum": ["newrelic", "axiom", "betterstack", "datadog", "otlp", "loki"]
       }
     },
+    "logDrainAttributes": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "enum": ["newrelic", "axiom", "betterstack", "datadog", "otlp", "loki"]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "additionalProperties": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
     "notifications": {
       "type": "object",
       "properties": {
@@ -569,6 +588,32 @@
                 "otlp",
                 "loki"
               ]
+            }
+          },
+          "logDrainAttributes": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "enum": [
+                "newrelic",
+                "axiom",
+                "betterstack",
+                "datadog",
+                "otlp",
+                "loki"
+              ]
+            },
+            "additionalProperties": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,63}$"
+              },
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
             }
           },
           "notifications": {

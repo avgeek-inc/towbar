@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { App, Resource } from "@workspace/towbar-web-client";
 import { ListBox } from "@workspace/web-design-system/collections/list-box";
@@ -17,7 +17,6 @@ export function InstanceEnvironmentChoice({
   item: App | Resource;
   kind: "apps" | "resources";
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const [switchingTo, setSwitchingTo] = useState<string | null>(null);
   const pendingSwitch = useRef<string | null>(null);
@@ -26,6 +25,12 @@ export function InstanceEnvironmentChoice({
       pendingSwitch.current = null;
     };
   }, []);
+  useEffect(() => {
+    if (pendingSwitch.current === item.id) {
+      pendingSwitch.current = null;
+      setSwitchingTo(null);
+    }
+  }, [item.id]);
   const isSwitching = switchingTo !== null && switchingTo !== item.id;
   const query = useApiQuery<{ apps?: App[]; resources?: Resource[] }>(
     item.entityId ? `/v1/core/sources/${item.sourceId}/${kind}` : null,
@@ -73,9 +78,9 @@ export function InstanceEnvironmentChoice({
               pendingSwitch.current = id;
               setSwitchingTo(id);
               const href = `${base}/${id}${section}`;
-              router.prefetch(href);
               const navigate = () => {
-                if (pendingSwitch.current === id) router.push(href);
+                if (pendingSwitch.current === id)
+                  window.history.pushState(null, "", href);
               };
               void prefetchApiQueries([
                 `/v1/core/${kind}/${id}`,
