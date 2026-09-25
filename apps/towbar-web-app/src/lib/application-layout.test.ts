@@ -37,6 +37,7 @@ test("manage navigation exposes each feature at its primary destination", () => 
       "integrations",
       "ssh-keys",
       "notifications",
+      "log-forwarding",
       "shared-secrets",
       "team-settings",
       "health",
@@ -74,6 +75,10 @@ test("management routes preserve their specific permission boundaries", () => {
   );
   assert.equal(routePermission("/team-settings/ssh-keys"), "privateKey.manage");
   assert.equal(routePermission("/manage/ssh-keys"), "privateKey.manage");
+  assert.equal(
+    routePermission("/manage/log-forwarding/newrelic"),
+    "integration.manage",
+  );
   assert.equal(routePermission("/manage/shared-secrets"), "sharedSecret.list");
   assert.equal(
     routePermission("/team-settings/integrations/github"),

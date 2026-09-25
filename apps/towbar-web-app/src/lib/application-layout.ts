@@ -228,6 +228,7 @@ export function createApplicationSidebar(
           const permissions: Record<string, Action> = {
             health: "system.read",
             integrations: "integration.manage",
+            "log-forwarding": "integration.manage",
             notifications: "notification.manage",
             "ssh-keys": "privateKey.manage",
             "shared-secrets": "sharedSecret.list",
