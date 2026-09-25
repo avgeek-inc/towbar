@@ -3,7 +3,6 @@ import { chmod, mkdir, stat, statfs, writeFile } from "node:fs/promises";
 import { setTimeout as wait } from "node:timers/promises";
 /* eslint-disable max-lines -- Deployment phases share stateful rollback invariants that must remain visible in one module. */
 import { createHash } from "node:crypto";
-import { otelResourceAttributes } from "./otel-resource-attributes.js";
 import path from "node:path";
 
 import {
@@ -60,7 +59,6 @@ import type {
 import {
   isNormalizedCompose,
   isNormalizedResource,
-  managedTelemetryNetworkName,
 } from "@workspace/towbar-core";
 import type {
   NormalizedApp,
@@ -240,7 +238,7 @@ async function startAndVerifyNamedCandidate(
     : null;
   const startResult = resource
     ? await input.session.run(
-        `export TOWBAR_APP_ID="$1" TOWBAR_CLEANUP_ID="$2" TOWBAR_DEPLOYMENT_ID="$3" TOWBAR_COMMIT_SHA="$4" TOWBAR_SOURCE_ID="$5" TOWBAR_DEPLOYABLE_ID="$6" TOWBAR_TELEMETRY_ENV_JSON="$7"\nshift 7\n${startResourceRemoteScript}`,
+        `export TOWBAR_APP_ID="$1" TOWBAR_CLEANUP_ID="$2" TOWBAR_DEPLOYMENT_ID="$3" TOWBAR_COMMIT_SHA="$4" TOWBAR_SOURCE_ID="$5" TOWBAR_DEPLOYABLE_ID="$6"\nshift 6\n${startResourceRemoteScript}`,
         [
           resource.id,
           deploymentCleanupId(input.context),
@@ -248,7 +246,6 @@ async function startAndVerifyNamedCandidate(
           input.context.commitSha,
           input.context.sourceId,
           input.context.deployableId,
-          telemetryEnvironment(input.context),
           input.remoteDirectory,
           containerName,
           input.imageTag,
@@ -275,7 +272,7 @@ async function startAndVerifyNamedCandidate(
         },
       )
     : await input.session.run(
-        `export TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3" TOWBAR_SOURCE_ID="$4" TOWBAR_DEPLOYABLE_ID="$5" TOWBAR_VOLUME_ARGS_JSON="$6" TOWBAR_TELEMETRY_ENV_JSON="$7"\nshift 7\n${startRemoteScript}`,
+        `export TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3" TOWBAR_SOURCE_ID="$4" TOWBAR_DEPLOYABLE_ID="$5" TOWBAR_VOLUME_ARGS_JSON="$6"\nshift 6\n${startRemoteScript}`,
         [
           deploymentRuntimeId(input.context),
           input.context.deploymentId,
@@ -283,7 +280,6 @@ async function startAndVerifyNamedCandidate(
           input.context.sourceId,
           input.context.deployableId,
           deploymentVolumeArguments(input.context),
-          telemetryEnvironment(input.context),
           input.remoteDirectory,
           containerName,
           input.imageTag,
@@ -363,45 +359,9 @@ async function startAndVerifyNamedCandidate(
   return candidatePort;
 }
 
-function telemetryEnvironment(context: DeploymentPhaseInput["context"]) {
-  const app = context.app;
-  if (isNormalizedCompose(app)) return "{}";
-  const telemetry = app.telemetry;
-  if (!telemetry) return "{}";
-  const endpoint =
-    telemetry.protocol === "otlp-http"
-      ? "http://towbar-otel:4318"
-      : "http://towbar-otel:4317";
-  return JSON.stringify({
-    OTEL_EXPORTER_OTLP_ENDPOINT: endpoint,
-    OTEL_EXPORTER_OTLP_PROTOCOL:
-      telemetry.protocol === "otlp-http" ? "http/protobuf" : "grpc",
-    OTEL_SERVICE_NAME: app.name,
-    OTEL_RESOURCE_ATTRIBUTES: otelResourceAttributes({
-      "deployment.environment.name": context.environmentName,
-      "towbar.app.id": context.deployableId,
-      "towbar.deployment.id": context.deploymentId,
-      "towbar.repository.id": context.sourceId,
-      "towbar.server.id": context.serverId,
-      "towbar.team.id": context.workspaceId,
-    }),
-    ...(telemetry.signals.includes("traces")
-      ? {
-          OTEL_TRACES_SAMPLER: "parentbased_traceidratio",
-          OTEL_TRACES_SAMPLER_ARG: String(telemetry.sampling),
-        }
-      : { OTEL_SDK_DISABLED: "false" }),
-  });
-}
-
 function deploymentNetwork(context: DeploymentExecutionContext) {
   if (isNormalizedCompose(context.app)) return null;
-  return (
-    context.app.container.network ??
-    (context.app.telemetry
-      ? managedTelemetryNetworkName(context.serverId)
-      : null)
-  );
+  return context.app.container.network ?? null;
 }
 
 async function startRollingCandidates(

@@ -5,6 +5,7 @@ import {
 } from "./scout-delivery-state.js";
 import { and, asc, eq, lte, or, sql } from "drizzle-orm";
 import { ZodError } from "zod";
+import { notificationCategoryForEvent } from "@workspace/towbar-core";
 
 import {
   apps,
@@ -167,7 +168,12 @@ async function claimAttempt(input: {
       delivery.destinationId,
       delivery.provider,
     );
-    if (!route || route.provider !== delivery.provider) {
+    const category = notificationCategoryForEvent(delivery.eventType);
+    if (
+      !route ||
+      route.provider !== delivery.provider ||
+      (category !== "test" && !route.categories.includes(category))
+    ) {
       await transaction
         .update(notificationDeliveries)
         .set({

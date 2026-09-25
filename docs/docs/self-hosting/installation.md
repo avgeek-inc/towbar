@@ -79,11 +79,11 @@ Use `towbar config path` with any editor that can save the root-owned YAML file.
 
 The configuration commands are deliberately limited:
 
-| Command                       | Behavior                                                                                                               |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `towbar config path`          | Prints the active YAML configuration path. It does not read or display the file.                                       |
-| `sudo towbar config validate` | Checks Compose, API, worker, integrations, notifications, log forwarding, and Caddy without changing running services. |
-| `sudo towbar restart`         | Validates API, worker, integration, notification, log-forwarding, and Caddy configuration before replacing services.   |
+| Command                       | Behavior                                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `towbar config path`          | Prints the active YAML configuration path. It does not read or display the file.                       |
+| `sudo towbar config validate` | Checks Compose, API, worker, integrations, notifications, and Caddy without changing running services. |
+| `sudo towbar restart`         | Validates API, worker, integration, notification, and Caddy configuration before replacing services.   |
 
 `restart` reuses the installed release images and does not rebuild or pull them. It does not replace running containers unless every configuration preflight passes. If validation fails, the current services remain running and the CLI directs the operator to `sudo towbar doctor`. If a service fails after replacement begins despite those checks, the CLI stops and also directs the operator to `doctor` for the exact runtime failure.
 

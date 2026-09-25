@@ -6,11 +6,16 @@ import {
   notificationProviderSchema,
 } from "@workspace/towbar-core";
 import {
+  apps,
   notificationDeliveries,
   notificationEvents,
 } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { requireActor } from "../auth/actor-context.js";
+import {
+  manifestNotificationAppId,
+  manifestNotificationLabels,
+} from "../notifications/manifest-destinations.js";
 import {
   cursorTimestamp,
   historyCursor,
@@ -31,14 +36,13 @@ export const deliveriesQuery = z
       ])
       .optional(),
     state: notificationDeliveryStateSchema.optional(),
+    entityId: z.string().uuid().optional(),
   })
   .refine(pairedCursor, "A cursor needs both before and beforeId");
 
 export async function listNotificationDeliveries(
   input: z.infer<typeof deliveriesQuery> & {
     workspaceId: string;
-    sourceId?: string;
-    serverId?: string;
   },
 ) {
   requireActor(input.workspaceId, ["notification.manage"]);
@@ -54,6 +58,10 @@ export async function listNotificationDeliveries(
       title: sql<string>`${notificationEvents.payload}->>'title'`,
       entityId: sql<string>`${notificationEvents.payload}->'entity'->>'id'`,
       entityName: sql<string>`${notificationEvents.payload}->'entity'->>'name'`,
+      targetId: sql<string | null>`coalesce(
+        ${notificationEvents.payload}->'details'->>'deployableId',
+        ${notificationEvents.payload}->'entity'->>'id'
+      )`,
       sourceId: notificationEvents.sourceId,
       serverId: notificationEvents.serverId,
       state: notificationDeliveries.state,
@@ -76,11 +84,11 @@ export async function listNotificationDeliveries(
     )
     .where(
       and(
-        input.sourceId
-          ? eq(notificationEvents.sourceId, input.sourceId)
-          : undefined,
-        input.serverId
-          ? eq(notificationEvents.serverId, input.serverId)
+        input.entityId
+          ? or(
+              sql`${notificationEvents.payload}->'details'->>'deployableId' = ${input.entityId}`,
+              sql`${notificationEvents.payload}->'entity'->>'id' = ${input.entityId}`,
+            )
           : undefined,
         input.provider
           ? eq(notificationDeliveries.provider, input.provider)
@@ -115,11 +123,36 @@ export async function listNotificationDeliveries(
     )
     .limit(input.limit + 1);
   const page = historyPage(rows, input.limit);
+  const manifestAppIds = [
+    ...new Set(
+      page.items
+        .map((row) => manifestNotificationAppId(row.destinationId))
+        .filter((id): id is string => id !== null),
+    ),
+  ];
+  const manifestLabels = new Map<string, string>();
+  if (manifestAppIds.length) {
+    const owners = await getTowbarDatabase()
+      .select({ id: apps.id, config: apps.config })
+      .from(apps)
+      .where(
+        and(
+          eq(apps.workspaceId, input.workspaceId),
+          inArray(apps.id, manifestAppIds),
+        ),
+      );
+    for (const owner of owners)
+      for (const [id, label] of manifestNotificationLabels(
+        owner.id,
+        owner.config.notifications,
+      ))
+        manifestLabels.set(id, label);
+  }
   return {
     ...page,
     items: page.items.map((row) => ({
       ...row,
-      destination: row.destinationId,
+      destination: manifestLabels.get(row.destinationId) ?? row.destinationId,
     })),
   };
 }

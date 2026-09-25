@@ -156,6 +156,75 @@ void test("resources declare runtime secrets only", () => {
   }
 });
 
+void test("sync resolves per-entity notification destinations without credentials", () => {
+  const notifications = {
+    email: [
+      {
+        address: "Ops@Example.com",
+        deployments: true,
+        backupsAndRestores: false,
+        alertsAndIncidents: true,
+      },
+    ],
+    slack: [
+      {
+        channelId: "C12345678",
+        deployments: false,
+        backupsAndRestores: true,
+        alertsAndIncidents: false,
+      },
+    ],
+    discord: [
+      {
+        webhookId: "123456789",
+        deployments: true,
+        backupsAndRestores: false,
+        alertsAndIncidents: false,
+      },
+    ],
+    telegram: [
+      {
+        chatId: "-1001234567890",
+        messageThreadId: 42,
+        deployments: false,
+        backupsAndRestores: false,
+        alertsAndIncidents: true,
+      },
+    ],
+  };
+  const resource = {
+    id: "database",
+    name: "Database",
+    type: "postgres",
+    notifications,
+    environments: { staging: { server: "192.0.2.11" } },
+  };
+  const result = resolve({ ...app, notifications }, "staging", resource);
+  assert.equal(
+    result.manifest.apps[0]?.notifications?.email?.[0]?.address,
+    "ops@example.com",
+  );
+  assert.deepEqual(
+    result.manifest.resources?.[0]?.notifications,
+    result.manifest.apps[0]?.notifications,
+  );
+  assert.notEqual(result.digest, resolve().digest);
+  assert.throws(() =>
+    resolve({
+      ...app,
+      notifications: {
+        discord: [{ ...notifications.discord[0], webhookToken: "secret" }],
+      },
+    }),
+  );
+  assert.throws(() =>
+    resolve({
+      ...app,
+      notifications: { webhook: [{ url: "https://hooks.example.com" }] },
+    }),
+  );
+});
+
 void test("rejects unknown environments and identity overrides", () => {
   assert.throws(
     () => resolve({ ...app, environments: { typo: { server: "192.0.2.11" } } }),

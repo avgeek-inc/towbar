@@ -10,12 +10,12 @@ import {
   Add01Icon,
   Delete02Icon,
   FloppyDiskIcon,
+  GitBranchIcon,
+  GitCommitIcon,
   LockIcon,
   Menu01Icon,
   PackageIcon,
   PlayIcon,
-  Rocket01Icon,
-  CloudIcon,
   SourceCodeIcon,
   ViewIcon,
   ViewOffSlashIcon,
@@ -67,11 +67,7 @@ function isPreviewEnvironment(name: string | undefined) {
 }
 
 function secretEnvironmentIcon(name: string | undefined) {
-  return isPreviewEnvironment(name) ? Rocket01Icon : CloudIcon;
-}
-
-function secretEnvironmentIconClassName(name: string | undefined) {
-  return name === "production" ? "text-danger" : "text-foreground";
+  return isPreviewEnvironment(name) ? GitBranchIcon : GitCommitIcon;
 }
 
 const stageLabels: Record<AppSecretStage, string> = {
@@ -81,12 +77,19 @@ const stageLabels: Record<AppSecretStage, string> = {
   post_deploy: "Post-deploy",
 };
 
-export function AppSecrets({ appId }: { appId: string }) {
+export function AppSecrets({
+  appId,
+  previewsEnabled,
+}: {
+  appId: string;
+  previewsEnabled: boolean;
+}) {
   const active = useDetailNavigation().section === "settings";
   return (
     <EnvironmentSecretSettings
       active={active}
       endpoint={`/v1/core/apps/${appId}/secrets`}
+      previewsEnabled={previewsEnabled}
     />
   );
 }
@@ -151,13 +154,17 @@ export function GlobalSecrets() {
 function EnvironmentSecretSettings({
   active,
   endpoint,
+  previewsEnabled,
 }: {
   active: boolean;
   endpoint: string;
+  previewsEnabled: boolean;
 }) {
   const { search, update } = usePageQuery();
   const defaults = useApiQuery<AppSecretsResponse>(active ? endpoint : null);
-  const environments = defaults.data?.environments ?? [];
+  const environments = (defaults.data?.environments ?? []).filter(
+    (name) => previewsEnabled || !isPreviewEnvironment(name),
+  );
   const requested = search.get("environment");
   const environment =
     environments.find((name) => name === requested) ?? environments[0];
@@ -185,7 +192,7 @@ function EnvironmentSecretSettings({
 }
 
 function secretEnvironmentLabel(name: string) {
-  return isPreviewEnvironment(name) ? name.replace(/^preview:/, "") : name;
+  return isPreviewEnvironment(name) ? "preview" : "mainline";
 }
 
 const stageIcons = {
@@ -230,7 +237,7 @@ function EnvironmentEditors({
   return (
     <div className="grid min-w-0 gap-4">
       <div className="flex min-w-0 flex-wrap items-end gap-4">
-        {environment && onEnvironmentChange ? (
+        {environments.length > 1 && environment && onEnvironmentChange ? (
           <div className="grid w-full min-w-0 gap-2 md:w-auto">
             <p className="text-xs font-medium text-muted">Target</p>
             <ResponsiveChoice
@@ -241,7 +248,6 @@ function EnvironmentEditors({
                 value: name,
                 label: secretEnvironmentLabel(name),
                 icon: secretEnvironmentIcon(name),
-                iconClassName: secretEnvironmentIconClassName(name),
               }))}
             />
           </div>

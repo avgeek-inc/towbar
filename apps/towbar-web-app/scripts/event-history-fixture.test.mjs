@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
-import { createFixtureApiServer } from "./fixture-api.ts";
+import { createFixtureApiServer, fixtureIds } from "./fixture-api.ts";
 async function fixture(role, run) {
   const server = createFixtureApiServer({ role });
   server.listen(0, "127.0.0.1");
@@ -113,4 +113,19 @@ test("members and viewers cannot read team-wide histories", async () => {
       ])
         assert.equal((await request(path)).status, 403);
     });
+});
+test("global delivery history filters apps, resources, and servers", async () => {
+  await fixture("admin", async (request) => {
+    for (const entityId of [
+      fixtureIds.app,
+      fixtureIds.resource,
+      fixtureIds.server,
+    ]) {
+      const result = await (
+        await request(`notifications/deliveries?entityId=${entityId}`)
+      ).json();
+      assert(result.items.length > 0);
+      assert(result.items.every((item) => item.targetId === entityId));
+    }
+  });
 });

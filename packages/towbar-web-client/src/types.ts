@@ -215,9 +215,8 @@ export type BackupDestinationResult = {
   encryption?: string;
   key: string;
   objectVersion?: string;
-  provider: "azureBlob" | "gcs" | "s3";
+  provider: "gcs" | "r2" | "s3";
   region?: string;
-  storageAccount?: string;
 };
 
 export type BackupResult = {
@@ -242,9 +241,8 @@ export type BackupResult = {
   metadataVersion?: 1;
   objectVersionId?: string;
   region: string;
-  restoreFrom?: "azureBlob" | "gcs" | "s3";
+  restoreFrom?: "gcs" | "r2" | "s3";
   sizeBytes: number;
-  storageAccount?: string;
   verifiedAt: string;
   warnings: string[];
 };
@@ -609,17 +607,6 @@ export type GcpCredentialMetadata = {
   lastVerifiedAt: string | null;
   projectId: string;
   status: "unverified" | "verified" | "failed";
-  updatedAt: string;
-  verificationMessage: string | null;
-};
-
-export type AzureCredentialMetadata = {
-  clientId: string;
-  clientSecretSuffix: string;
-  createdAt: string;
-  lastVerifiedAt: string | null;
-  status: "unverified" | "verified" | "failed";
-  tenantId: string;
   updatedAt: string;
   verificationMessage: string | null;
 };

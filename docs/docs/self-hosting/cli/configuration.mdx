@@ -39,7 +39,7 @@ Validation covers:
 - the complete Docker Compose model;
 - API and worker environment parsing;
 - runtime integration configuration;
-- notification and log-forwarding configuration;
+- notification configuration;
 - the selected local or public gateway service; and
 - Caddy configuration for the current domain and access mode.
 
@@ -53,7 +53,7 @@ Apply a valid YAML change to the current release.
 sudo towbar restart
 ```
 
-The command accepts no parameters. It acquires the installation lock, validates the configuration, performs API, worker, integration, notification, log-forwarding, and Caddy preflights, then recreates changed services and waits for health.
+The command accepts no parameters. It acquires the installation lock, validates the configuration, performs API, worker, integration, notification, and Caddy preflights, then recreates changed services and waits for health.
 
 If a preflight fails, the CLI prints that running services were not restarted and directs the operator to `sudo towbar doctor`. If containers fail after replacement begins, the command returns nonzero and also directs the operator to diagnostics.
 

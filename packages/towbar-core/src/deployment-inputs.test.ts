@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  digestWithoutNotificationSubscriptions,
   getDeployableDeploymentDigest,
   getSourceInputDigest,
   shouldDeployForChangedPaths,
@@ -48,6 +49,22 @@ void test("hashes only selected repository inputs", () => {
   assert.equal(initial.fallback, false);
   assert.deepEqual(initial.matchedPaths, ["apps/api/src/index.ts"]);
   assert.equal(initial.digest, unrelatedChange.digest);
+});
+
+void test("notification-only changes preserve job readiness but job changes do not", () => {
+  const deployed = { jobs: [{ name: "report" }], kind: "app" };
+  const subscribed = {
+    ...deployed,
+    notifications: { email: [{ address: "ops@example.com" }] },
+  };
+  assert.equal(
+    digestWithoutNotificationSubscriptions(deployed),
+    digestWithoutNotificationSubscriptions(subscribed),
+  );
+  assert.notEqual(
+    digestWithoutNotificationSubscriptions(deployed),
+    digestWithoutNotificationSubscriptions({ ...subscribed, jobs: [] }),
+  );
 });
 
 void test("falls back to the commit when no path contract is configured or the tree is incomplete", () => {
@@ -157,6 +174,16 @@ void test("deployment metadata and scheduling controls do not change the runtime
         description: "Display-only description",
         deploymentInputs: ["packages/shared/**"],
         name: "Renamed Web",
+        notifications: {
+          email: [
+            {
+              address: "ops@example.com",
+              deployments: true,
+              backupsAndRestores: false,
+              alertsAndIncidents: false,
+            },
+          ],
+        },
         sourceBranch: "release",
         vulnerabilityScanning: true,
       },

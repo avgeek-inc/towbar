@@ -46,8 +46,8 @@ integrations:
     appSlug: towbar
     privateKeyBase64: "..."
     webhookSecret: "..."
-  # GitLab, registry, AWS, S3, R2, GCS, Azure, Infisical, Doppler,
-  # Cloudflare, and OTLP follow the same provider-shaped pattern.
+  # GitLab, registry, AWS, S3, R2, GCS, Infisical, Doppler,
+  # and Cloudflare follow the same provider-shaped pattern.
 
 notifications:
   enabled: true
@@ -65,13 +65,6 @@ notifications:
           Authorization: "Bearer ..."
         signingSecret: "..."
 
-logForwarding:
-  newRelic:
-    enabled: true
-    config:
-      # Native YAML fields replace the current CONFIG_JSON string.
-      licenseKey: "..."
-
 observability:
   sentry:
     dsn: https://example@sentry.example/1
@@ -80,8 +73,8 @@ observability:
 
 The example shows the hierarchy, not a complete field inventory. The
 implementation must map every supported active key from `.env.example`,
-including rate limits, vulnerability scanning, all integrations, all log
-forwarders, and optional browser observability. Provider JSON documents become
+including rate limits, vulnerability scanning, integrations, notifications,
+and optional browser observability. Provider JSON documents become
 native YAML maps and lists. Values that are identifiers or secrets remain
 strings even when they contain only digits. Defaults may be omitted; the CLI
 must render the same effective values as the current release.
@@ -150,7 +143,7 @@ upgrader that replaces the CLI before starting the upgrade; the existing
 ## Verification before release
 
 - Convert representative local and public 2.0.11 fixtures, including every
-  supported integration, notification provider, log forwarder, and special
+  supported integration, notification provider, and special
   character in a secret; compare the effective rendered environment.
 - Exercise repeated migration, existing YAML, unknown keys, invalid JSON,
   malformed YAML, interrupted atomic writes, and rollback after service

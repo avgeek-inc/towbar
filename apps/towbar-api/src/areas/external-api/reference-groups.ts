@@ -25,7 +25,6 @@ const categoryByRoot: Record<string, string> = {
   gitlab: "Integrations",
   integrations: "Integrations",
   aws: "Integrations",
-  azure: "Integrations",
   gcp: "Integrations",
 };
 
@@ -43,6 +42,7 @@ export const sectionOrder = [
   "Inventory",
   "Capacity",
   "Monitoring",
+  "Notifications",
   "Scout Agent",
   "Scout Alerts",
   "Performance comparisons",
@@ -60,7 +60,6 @@ export const sectionOrder = [
   "GitHub",
   "GitLab",
   "AWS",
-  "Azure",
   "GCP",
   "Lifecycle",
 ];
@@ -83,6 +82,7 @@ const rules: Record<string, Array<[string, RegExp]>> = {
     ["Overview", /^\/sources(?:\/[^/]+)?$/],
   ],
   apps: [
+    ["Notifications", /\/notifications\/deliveries$/],
     ["Scheduled jobs", /\/jobs$|\/actions\/run-job$/],
     ["Storage", /\/storage$/],
     ["Scout Agent", /\/metrics$/],
@@ -96,6 +96,7 @@ const rules: Record<string, Array<[string, RegExp]>> = {
     ["Overview", /^\/apps(?:\/[^/]+)?$/],
   ],
   resources: [
+    ["Notifications", /\/notifications\/deliveries$/],
     ["Scout Agent", /\/metrics$/],
     ["Secrets", /\/secrets(?:\/|$)/],
     [
@@ -142,7 +143,6 @@ const rules: Record<string, Array<[string, RegExp]>> = {
   gitlab: [["GitLab", /^\/gitlab(?:\/|$)/]],
   integrations: [["Connections", /^\/integrations(?:\/|$)/]],
   aws: [["AWS", /^\/aws$/]],
-  azure: [["Azure", /^\/azure$/]],
   gcp: [["GCP", /^\/gcp$/]],
 };
 

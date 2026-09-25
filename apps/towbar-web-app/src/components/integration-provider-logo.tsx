@@ -10,19 +10,10 @@ const providerLogos = {
   slack: "/integration-logos/slack.svg",
   discord: "/integration-logos/discord.svg",
   telegram: "/integration-logos/telegram.svg",
-  newrelic: "/integration-logos/newrelic.svg",
-  axiom: "/integration-logos/axiom.ico",
-  betterstack: "/integration-logos/betterstack.png",
-  datadog: "/integration-logos/datadog.svg",
-  otlp: "/integration-logos/otlp.svg",
-  loki: "/integration-logos/loki.svg",
 } as const;
 
-const darkProviderLogos: Partial<Record<keyof typeof providerLogos, string>> = {
-  newrelic: "/integration-logos/newrelic-dark.svg",
-  datadog: "/integration-logos/datadog-dark.svg",
-  otlp: "/integration-logos/otlp-dark.svg",
-};
+const darkProviderLogos: Partial<Record<keyof typeof providerLogos, string>> =
+  {};
 
 export function IntegrationProviderLogo({
   provider,
@@ -50,7 +41,6 @@ export function IntegrationProviderLogo({
         className={cn(
           "size-4 shrink-0 object-contain",
           provider === "github" && "dark:invert",
-          provider === "axiom" && "rounded-sm bg-black",
           darkLogo && "dark:hidden",
           className,
         )}

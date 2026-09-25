@@ -3,23 +3,22 @@ title: "Database backups"
 description: "Protect managed databases with runtime-configured object-storage providers."
 ---
 
-Towbar backs up all eight managed database engines. Use AWS S3, generic S3, Cloudflare R2, Google Cloud Storage, or Azure Blob Storage. The manifest stores the runtime provider name, location policy, retention, and schedule; provider credentials remain in the API environment.
+Towbar backs up all eight managed database engines. Use AWS S3, generic S3, Cloudflare R2, or Google Cloud Storage. The manifest stores the runtime provider name, location policy, retention, and schedule; provider credentials remain in the protected Towbar configuration.
 
 ## Prerequisites
 
-Enable the storage provider in `/etc/towbar/towbar.yml`, validate and restart Towbar, and confirm it appears under **Manage → Integrations → Backup providers**. Grant the runtime identity access to the buckets, containers, prefixes, and encryption keys used by workload policies.
+Enable the storage provider in `/etc/towbar/towbar.yml`, validate and restart Towbar, and confirm it appears under **Manage → Integrations → Backup providers**. Grant the runtime identity access to the buckets, prefixes, and encryption keys used by workload policies.
 
 - [AWS](/docs/integrations/aws) for AWS S3.
 - [S3 compatible and Cloudflare R2](/docs/integrations/s3-compatible) for other
   S3-compatible storage.
 - [Google Cloud](/docs/integrations/gcp) for Google Cloud Storage.
-- [Azure](/docs/integrations/azure) for Azure Blob Storage.
 
-Deploy a healthy database resource, choose storage buckets or containers, and keep permissions scoped to the declared paths. Backup schedules remain paused if a declared destination lacks credentials (indicated by a warning indicator in the secondary sidebar).
+Deploy a healthy database resource, choose storage buckets, and keep permissions scoped to the declared paths. Backup schedules remain paused if a declared destination lacks credentials (indicated by a warning indicator in the secondary sidebar).
 
 ## Runtime provider configuration
 
-The compact policy below references the enabled AWS runtime integration by its provider name. Use `s3`, `r2`, `gcs`, or `azureBlob` for the other providers. `restoreFrom` is derived and must not be supplied with this form:
+The compact policy below references the enabled AWS runtime integration by its provider name. Use `s3`, `r2`, or `gcs` for the other providers. `restoreFrom` is derived and must not be supplied with this form:
 
 ```yaml title=".towbar/resources/postgres.resource.yml"
 backup:
@@ -39,13 +38,12 @@ The original three-provider object remains accepted within the clean-break v2 ma
 
 - **AWS S3 (`s3`)**: Declare `bucket`, optional `prefix` (defaults to `towbar`), optional `region` (defaults to the runtime AWS integration region), and optional `encryption` (`AES256` or `aws:kms`). When using `encryption: aws:kms`, supply `kmsKeyId`.
 - **Google Cloud Storage (`gcs`)**: Declare `bucket`, optional `prefix` (defaults to `towbar`), and optional `region`. Encryption uses Google-managed keys or Cloud KMS keys (CMEK) configured on the bucket.
-- **Azure Blob Storage (`azureBlob`)**: Declare `container`, `storageAccount`, and optional `prefix` (defaults to `towbar`). Encryption uses Microsoft-managed keys.
 
 ### Multi-destination backups
 
-To store backups across multiple clouds simultaneously, declare more than one destination block (`s3`, `gcs`, `azureBlob`). Towbar executes backups to all declared destinations concurrently and verifies restore-readiness on each.
+To store backups across multiple clouds simultaneously, declare more than one destination block (`s3`, `gcs`). Towbar executes backups to all declared destinations concurrently and verifies restore-readiness on each.
 
-When multiple destinations are declared, specify `restoreFrom` (`s3`, `gcs`, or `azureBlob`) to identify which provider serves as the authoritative source for database restores. If only one destination is declared, `restoreFrom` defaults to that provider automatically.
+When multiple destinations are declared, specify `restoreFrom` (`s3` or `gcs`) to identify which provider serves as the authoritative source for database restores. If only one destination is declared, `restoreFrom` defaults to that provider automatically.
 
 A retained recovery point keeps its original storage provider and location. Changing the manifest’s `restoreFrom` later affects new backups; it does not redirect an older backup to another cloud. Keep credentials for the retained provider available until those recovery points expire. If retention cannot delete every stored copy, Towbar keeps the recovery point eligible for another cleanup attempt.
 
@@ -86,35 +84,6 @@ environments:
   production: {}
 ```
 
-You can also target Azure Blob Storage individually:
-
-```yaml title="towbar.yml" highlight={2-5}
-version: 2
-environments:
-  production:
-    previews:
-      enabled: true
-```
-
-```yaml title=".towbar/resources/cache.resource.yml" highlight={5-15}
-id: cache
-name: Redis cache
-type: redis
-server: 192.0.2.10
-backup:
-  schedule:
-    cron: 0 4 * * *
-    timezone: UTC
-  retention:
-    keepLast: 7
-  azureBlob:
-    storageAccount: prodbackups
-    container: database-archives
-    prefix: redis
-environments:
-  production: {}
-```
-
 Replace the host and storage values, then save `POSTGRES_PASSWORD` in the resource's runtime secrets. Sync the Repository and open **Resource → Settings → Backup**.
 
 Schedules use five-field UTC cron expressions and cannot run more frequently than hourly. Retention accepts 1–100 backups and defaults to 7. Omitting `schedule` leaves backups manual.
@@ -124,7 +93,7 @@ Schedules use five-field UTC cron expressions and cannot run more frequently tha
 In the secondary sidebar under **Resource → Settings → Backup**, Towbar provides an operational dashboard for your database backups:
 
 1. **Credentials & health alert**: Displays an immediate warning if a manifest destination is not enabled by the Towbar YAML configuration.
-2. **Provider destination tabs**: Each configured destination (`AWS S3`, `Cloudflare R2`, generic S3-compatible storage, `Google Cloud Storage`, or `Azure Blob Storage`) appears with its provider identity and exact object location.
+2. **Provider destination tabs**: Each configured destination (`AWS S3`, `Cloudflare R2`, generic S3-compatible storage, `Google Cloud Storage`) appears with its provider identity and exact object location.
 3. **Provider configuration card**: Inside each tab, view the destination URI, encryption mode, credentials status, backup schedule, and retention limit. The schedule shows cron notation; hover or focus it for a plain-language description.
 4. **Retained backups table**: Positioned directly beneath the configuration card, listing recovery points with creation timestamp, size, engine version, format, and object key.
 

@@ -21,8 +21,8 @@ void test("returns only integrations explicitly enabled by the environment", () 
 
 void test("fails startup when an enabled integration is incomplete", () => {
   assert.throws(
-    () => parseRuntimeIntegrations({ TOWBAR_AZURE_ENABLED: "true" }),
-    /TOWBAR_AZURE_STORAGE_ACCOUNT is required/u,
+    () => parseRuntimeIntegrations({ TOWBAR_GCS_ENABLED: "true" }),
+    /TOWBAR_GCS_PROJECT_ID is required/u,
   );
 });
 

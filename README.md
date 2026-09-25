@@ -138,7 +138,7 @@ model, and direct links into the implementation.
   workspace access.
 - **[Integrations](https://www.towbar.dev/docs/integrations)** — source control,
   registries, backup destinations, external secrets, platform services,
-  notifications, and log forwarding.
+  and notifications.
 - **[API & MCP](https://www.towbar.dev/docs/api)** — authentication, endpoints,
   MCP tools, and automation workflows.
 

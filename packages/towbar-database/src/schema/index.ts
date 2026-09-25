@@ -43,7 +43,6 @@ import type {
   ServerPreparationStep,
   VulnerabilitySeverityTotals,
   ScoutAlertCondition,
-  LogDrainHealth,
   IntegrationScope,
   IntegrationProvider,
 } from "@workspace/towbar-core";
@@ -2657,59 +2656,3 @@ export const scoutHttpChecks = pgTable(
     ),
   ],
 );
-
-export const serverIntegrationStates = pgTable(
-  "towbar_server_integration_states",
-  {
-    integrationKind: varchar("integration_kind", { length: 64 })
-      .default("log-forwarding")
-      .notNull(),
-    health: jsonb("health").$type<LogDrainHealth[]>().notNull().default([]),
-    details: jsonb("details")
-      .$type<{
-        otlp?: {
-          active: boolean;
-          digest: string;
-          persistentQueue: boolean;
-          queueSize: number;
-          signals: Array<"logs" | "metrics" | "traces">;
-          slug: string | null;
-          metrics: {
-            enqueueFailures: Record<"logs" | "metrics" | "traces", number>;
-            queueCapacity: number;
-            queueDepth: number;
-            sendFailures: Record<"logs" | "metrics" | "traces", number>;
-          } | null;
-        };
-      }>()
-      .notNull()
-      .default({}),
-    removalRequested: boolean("removal_requested").notNull().default(false),
-    requestedByActor:
-      jsonb("requested_by_actor").$type<
-        (typeof monitoringAgents.$inferSelect)["requestedByActor"]
-      >(),
-    serverId: uuid("server_id")
-      .notNull()
-      .references(() => servers.id, { onDelete: "cascade" }),
-    workspaceId: uuid("workspace_id")
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
-    appliedDigest: varchar("applied_digest", { length: 64 }),
-    status: varchar("status", { length: 16 }).notNull().default("pending"),
-    errorMessage: varchar("error_message", { length: 500 }),
-    checkedAt: timestamp("checked_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    appliedAt: timestamp("applied_at", { withTimezone: true }),
-  },
-  (table) => [
-    primaryKey({ columns: [table.serverId, table.integrationKind] }),
-    index("idx_towbar_server_integration_workspace_kind").on(
-      table.workspaceId,
-      table.integrationKind,
-    ),
-  ],
-);
-
-export const serverLogDrains = serverIntegrationStates;

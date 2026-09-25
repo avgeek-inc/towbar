@@ -8,11 +8,6 @@ import { CloudProviderLogo } from "./cloud-provider-logo";
 import { GitHubSettings } from "./github-settings";
 import { GitLabSettings } from "./gitlab-settings";
 import { IntegrationProviderLogo } from "./integration-provider-logo";
-import {
-  LogDrainIntegration,
-  logDrainNames,
-  type LogDrainProvider,
-} from "./log-drain-integration";
 import { NotificationDeliveries } from "./notification-deliveries";
 import { WebhookNotificationIntegration } from "./webhook-notification-integration";
 import { EmailNotificationIntegration } from "./email-notification-integration";
@@ -48,7 +43,6 @@ const notificationIconProviders = {
 const cloudIconProviders = {
   aws: "aws",
   gcp: "gcp",
-  azure: "azure",
   s3: "s3",
   r2: "r2",
   cloudflare: "cloudflare",
@@ -60,7 +54,6 @@ const brandedIconProviders = {
   registry: "registry",
   infisical: "infisical",
   doppler: "doppler",
-  "otlp-platform": "otlp",
 } as const;
 
 export function getProviderIcon(value: string, className?: string) {
@@ -93,13 +86,6 @@ export function getProviderIcon(value: string, className?: string) {
         className={className}
       />
     );
-  if (Object.hasOwn(logDrainNames, value))
-    return (
-      <IntegrationProviderLogo
-        provider={value as LogDrainProvider}
-        className={className}
-      />
-    );
   return null;
 }
 
@@ -108,11 +94,6 @@ const environmentProviders = {
     description:
       "AWS S3 is available to resource backup and restore workflows.",
     documentation: documentationTopics.aws.href,
-  },
-  azure: {
-    description:
-      "Azure Blob Storage is available to resource backup and restore workflows.",
-    documentation: documentationTopics.azure.href,
   },
   cloudflare: {
     description:
@@ -131,10 +112,6 @@ const environmentProviders = {
   infisical: {
     description: "Infisical is available for external secret references.",
     documentation: documentationTopics.externalSecrets.href,
-  },
-  "otlp-platform": {
-    description: "OpenTelemetry export is enabled for this Towbar instance.",
-    documentation: documentationTopics.otlp.href,
   },
   r2: {
     description:
@@ -230,7 +207,6 @@ export const integrationGroups = [
     providers: [
       environmentProvider("aws", "aws", "AWS S3"),
       environmentProvider("gcp", "gcs", "Google Cloud Storage"),
-      environmentProvider("azure", "azureBlob", "Azure Blob Storage"),
       environmentProvider("s3", "s3", "S3 compatible"),
       environmentProvider("r2", "r2", "Cloudflare R2"),
     ],
@@ -246,21 +222,9 @@ export const integrationGroups = [
   {
     value: "platform-providers",
     label: "Platform services",
-    providers: [
-      environmentProvider("cloudflare", "cloudflare", "Cloudflare"),
-      environmentProvider("otlp-platform", "otlp", "OpenTelemetry"),
-    ],
+    providers: [environmentProvider("cloudflare", "cloudflare", "Cloudflare")],
   },
 ] satisfies ProviderGroup[];
-
-export const logForwardingProviders = Object.entries(logDrainNames).map(
-  ([value, label]) => ({
-    value,
-    provider: value,
-    label,
-    content: <LogDrainIntegration provider={value as LogDrainProvider} />,
-  }),
-);
 
 export const notificationProviders = [
   {

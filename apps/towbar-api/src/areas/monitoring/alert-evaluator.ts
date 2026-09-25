@@ -21,6 +21,7 @@ import { getEnv } from "../../env.js";
 import { enqueueDeliveries } from "../notifications/delivery-service.js";
 import { type ScoutTransaction, resolveRuleIncidents } from "./alert-rules.js";
 import { notificationRoutesForWorkspace } from "../notifications/email-destinations.js";
+import { manifestNotificationRoutesForApp } from "../notifications/manifest-destinations.js";
 
 /** Bounded, oldest-first work selection. A rule lock makes concurrent sweeps idempotent. */
 export async function evaluateScoutAlerts(
@@ -206,8 +207,18 @@ async function queueScoutNotification(
   now: Date,
 ) {
   const destinations = (
-    await notificationRoutesForWorkspace(rule.workspaceId)
-  ).filter((route) => route.categories.includes("scout"));
+    await Promise.all([
+      notificationRoutesForWorkspace(rule.workspaceId),
+      context.workload
+        ? manifestNotificationRoutesForApp(
+            context.workload.id,
+            rule.workspaceId,
+          )
+        : Promise.resolve([]),
+    ])
+  )
+    .flat()
+    .filter((route) => route.categories.includes("scout"));
   if (!destinations.length) return [];
   let eligible = destinations;
   if (type === "scout.recovered") {
@@ -256,6 +267,7 @@ async function queueScoutNotification(
           name: context.workload?.name ?? context.server.canonicalIp,
         },
         details: {
+          ...(context.workload ? { deployableId: context.workload.id } : {}),
           incidentId: incident.id,
           ruleId: rule.id,
           severity: rule.severity,

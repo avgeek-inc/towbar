@@ -17,13 +17,13 @@ const notificationRoutingCategories = [
     categories: ["deployments"],
     icon: Rocket01Icon,
     key: "deployments",
-    label: "Deployment updates",
+    label: "Deployments",
   },
   {
     categories: ["backups", "restores"],
     icon: Archive01Icon,
     key: "backupsAndRestores",
-    label: "Backups & restores",
+    label: "Backup & Restore",
   },
 ] as const satisfies Array<{
   categories: NotificationCategory[];

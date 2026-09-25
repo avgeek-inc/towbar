@@ -12,11 +12,7 @@ const execute = promisify(execFile);
 export function testEnvironment(source = process.env) {
   const env = { ...source };
   for (const key of Object.keys(env))
-    if (
-      /^(?:DATABASE_|TOWBAR_|TEMPORAL_|AWS_|AZURE_|GOOGLE_|GCLOUD_|GCP_)/.test(
-        key,
-      )
-    )
+    if (/^(?:DATABASE_|TOWBAR_|TEMPORAL_|AWS_|GOOGLE_|GCLOUD_|GCP_)/.test(key))
       delete env[key];
   return { ...env, CI: "1", SENTRY_ALLOW_MISSING: "true", NODE_ENV: "test" };
 }

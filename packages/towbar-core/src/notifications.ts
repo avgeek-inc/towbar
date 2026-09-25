@@ -32,10 +32,6 @@ export const notificationEventTypes = [
   "preview.cleaned_up",
   "runtime.unhealthy",
   "runtime.recovered",
-  "log-drain.auth_failure",
-  "log-drain.pipeline_failed",
-  "log-drain.pipeline_recovered",
-  "log-drain.rate_limited",
   "server.maintenance.succeeded",
   "server.maintenance.failed",
   "backup.stale",
@@ -195,6 +191,135 @@ export const telegramNotificationConfigSchema = z
     messageThreadId: z.number().int().positive().max(2_147_483_647).optional(),
   })
   .strict();
+
+const manifestSubscriptionSchema = z
+  .object({
+    deployments: z.boolean(),
+    backupsAndRestores: z.boolean(),
+    alertsAndIncidents: z.boolean(),
+  })
+  .refine(
+    (value) => Object.values(value).some(Boolean),
+    "Enable at least one notification category",
+  );
+
+function uniqueDestinations<T>(rows: T[], key: (row: T) => string): boolean {
+  return new Set(rows.map(key)).size === rows.length;
+}
+
+export const manifestNotificationsSchema = z
+  .object({
+    email: z
+      .array(
+        manifestSubscriptionSchema
+          .safeExtend({ address: z.string().trim().email().max(320) })
+          .strict(),
+      )
+      .max(100)
+      .refine(
+        (rows) => uniqueDestinations(rows, (row) => row.address.toLowerCase()),
+        "Each email address can appear only once",
+      )
+      .optional(),
+    slack: z
+      .array(
+        manifestSubscriptionSchema
+          .safeExtend({
+            channelId: slackNotificationConfigSchema.shape.channelId,
+          })
+          .strict(),
+      )
+      .max(100)
+      .refine(
+        (rows) => uniqueDestinations(rows, (row) => row.channelId),
+        "Each Slack channel can appear only once",
+      )
+      .optional(),
+    discord: z
+      .array(
+        manifestSubscriptionSchema
+          .safeExtend({
+            webhookId: discordWebhookCredentialsSchema.shape.webhookId,
+          })
+          .strict(),
+      )
+      .max(100)
+      .refine(
+        (rows) => uniqueDestinations(rows, (row) => row.webhookId),
+        "Each Discord webhook ID can appear only once",
+      )
+      .optional(),
+    telegram: z
+      .array(
+        manifestSubscriptionSchema
+          .safeExtend({
+            chatId: telegramNotificationConfigSchema.shape.chatId.unwrap(),
+            messageThreadId:
+              telegramNotificationConfigSchema.shape.messageThreadId.optional(),
+          })
+          .strict(),
+      )
+      .max(100)
+      .refine(
+        (rows) =>
+          uniqueDestinations(
+            rows,
+            (row) => `${row.chatId}:${row.messageThreadId ?? 0}`,
+          ),
+        "Each Telegram chat and topic can appear only once",
+      )
+      .optional(),
+  })
+  .strict()
+  .refine(
+    (value) =>
+      Object.values(value).reduce(
+        (total, rows) => total + (rows?.length ?? 0),
+        0,
+      ) <= 100,
+    "At most 100 notification destinations are supported per entity",
+  );
+
+export type ManifestNotifications = z.infer<typeof manifestNotificationsSchema>;
+
+export function normalizeManifestNotifications(
+  value: ManifestNotifications | undefined,
+): ManifestNotifications | undefined {
+  if (!value) return undefined;
+  const normalized = {
+    ...(value.email?.length
+      ? {
+          email: value.email
+            .map((row) => ({ ...row, address: row.address.toLowerCase() }))
+            .sort((a, b) => a.address.localeCompare(b.address)),
+        }
+      : {}),
+    ...(value.slack?.length
+      ? {
+          slack: [...value.slack].sort((a, b) =>
+            a.channelId.localeCompare(b.channelId),
+          ),
+        }
+      : {}),
+    ...(value.discord?.length
+      ? {
+          discord: [...value.discord].sort((a, b) =>
+            a.webhookId.localeCompare(b.webhookId),
+          ),
+        }
+      : {}),
+    ...(value.telegram?.length
+      ? {
+          telegram: [...value.telegram].sort(
+            (a, b) =>
+              a.chatId.localeCompare(b.chatId) ||
+              (a.messageThreadId ?? 0) - (b.messageThreadId ?? 0),
+          ),
+        }
+      : {}),
+  };
+  return Object.keys(normalized).length ? normalized : undefined;
+}
 
 export const webhookNotificationConfigSchema = z
   .object({
@@ -431,11 +556,7 @@ export function notificationCategoryForEvent(
 ): NotificationCategory | "test" {
   if (type.startsWith("deployment.")) return "deployments";
   if (type.startsWith("preview.")) return "deployments";
-  if (
-    type.startsWith("runtime.") ||
-    type.startsWith("log-drain.") ||
-    type.startsWith("server.maintenance.")
-  )
+  if (type.startsWith("runtime.") || type.startsWith("server.maintenance."))
     return "health";
   if (type.startsWith("backup.")) return "backups";
   if (type.startsWith("scout.")) return "scout";

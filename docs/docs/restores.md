@@ -3,7 +3,7 @@ title: "Database restores"
 description: "Validate a retained database backup, restore it in isolation, and promote it with rollback protection."
 ---
 
-Towbar supports manual restores with validation and rollback protection for manifest-managed PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Dragonfly, KeyDB, and ClickHouse resources. Retained backups may use the enabled AWS S3, Cloudflare R2, generic S3-compatible, Google Cloud Storage (GCS), or Azure Blob Storage runtime integration. Restores are never started automatically.
+Towbar supports manual restores with validation and rollback protection for manifest-managed PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Dragonfly, KeyDB, and ClickHouse resources. Retained backups may use the enabled AWS S3, Cloudflare R2, generic S3-compatible, Google Cloud Storage (GCS) runtime integration. Restores are never started automatically.
 
 ## Dedicated restore page
 
@@ -22,7 +22,7 @@ A retained backup must be marked restore-ready on the Resource's **Restore** pag
 - freshness relative to the declared backup schedule;
 - object existence and plausible size across the authoritative storage provider;
 - matching SHA-256 checksum metadata;
-- declared encryption (AES-256 or AWS KMS for S3; Google-managed or CMEK for GCS; Microsoft-managed for Azure Blob);
+- declared encryption (AES-256 or AWS KMS for S3; Google-managed or CMEK for GCS);
 - matching database engine and major version; and
 - the engine-specific archive format (`pg_restore`, SQL, MongoDB archive, engine-specific RDB, or ClickHouse native backup).
 
@@ -34,7 +34,6 @@ The runtime provider identity needs read access to the declared backup storage:
 
 - **AWS S3, Cloudflare R2, and generic S3-compatible storage**: object read access on the declared bucket and prefix, including the retained object version where supported. AWS KMS backups also need decrypt access to the selected key.
 - **Google Cloud**: `storage.objects.get` on the bucket and prefix, plus Cloud KMS decrypt permissions if CMEK is enabled.
-- **Azure**: Blob read access (`Storage Blob Data Reader` or `Contributor`) on the storage account and container.
 
 The target Server must be prepared, have a healthy current Resource release, use one Towbar-owned database volume, and have free Docker storage of at least three times the backup size (with a 1 GiB minimum).
 

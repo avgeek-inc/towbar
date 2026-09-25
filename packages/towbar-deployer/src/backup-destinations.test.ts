@@ -43,7 +43,6 @@ void test("GCS upload records verified CMEK encryption for assurance and restore
       encryption: "Google-managed",
       kmsKeyId: undefined,
       region: undefined,
-      storageAccount: undefined,
     },
     engine: "postgres",
     engineMajorVersion: 17,

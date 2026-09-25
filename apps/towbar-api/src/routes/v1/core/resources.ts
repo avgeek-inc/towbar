@@ -26,7 +26,6 @@ import {
   requestRestoreCleanup,
 } from "../../../areas/resource-operations/service.js";
 import { hasAwsCredentials } from "../../../areas/aws/service.js";
-import { hasAzureCredentials } from "../../../areas/azure/service.js";
 import { hasGcpCredentials } from "../../../areas/gcp/service.js";
 import { badRequest } from "../../../http/errors.js";
 import { readJson } from "../../../http/requests.js";
@@ -229,9 +228,8 @@ resourceRoutes.get(
   }),
   async (context) => {
     const user = context.get("user");
-    const [awsConfigured, azureConfigured, gcpConfigured] = await Promise.all([
+    const [awsConfigured, gcpConfigured] = await Promise.all([
       hasAwsCredentials(user.workspaceId),
-      hasAzureCredentials(user.workspaceId),
       hasGcpCredentials(user.workspaceId),
     ]);
     return context.json({
@@ -244,7 +242,6 @@ resourceRoutes.get(
         user.workspaceId,
       ),
       awsConfigured,
-      azureConfigured,
       canRestore: actorAllows(context.get("actor"), ["resource.restore"]),
       gcpConfigured,
     });

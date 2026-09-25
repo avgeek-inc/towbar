@@ -150,7 +150,6 @@ export async function requestDeployableOperation(input: {
     await requireBackupCredentials(input.workspaceId, {
       s3: Boolean(resource.backup!.s3),
       gcs: Boolean(resource.backup!.gcs),
-      azureBlob: Boolean(resource.backup!.azureBlob),
     });
   }
   return await admitOperation({
@@ -227,8 +226,7 @@ export async function requestResourceRestore(input: {
   if (!backup) throw notFound("Retained backup");
   const storedBackup = backupOperationResultSchema.parse(backup.result);
   await requireBackupCredentials(input.workspaceId, {
-    [storedBackup.restoreFrom ??
-    (storedBackup.storageAccount ? "azureBlob" : "s3")]: true,
+    [storedBackup.restoreFrom ?? "s3"]: true,
   });
   const admitted = await admitOperation({
     appSnapshot: resource,

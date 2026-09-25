@@ -186,6 +186,25 @@ void test(
       };
       const run = () => withActor(actor, () => requestAppJob(request));
       assert.equal((await listAppJobs(appId, workspaceId)).ready, true);
+      await db
+        .update(apps)
+        .set({
+          config: {
+            ...config,
+            notifications: {
+              email: [
+                {
+                  address: "ops@example.com",
+                  deployments: true,
+                  backupsAndRestores: false,
+                  alertsAndIncidents: false,
+                },
+              ],
+            },
+          },
+        })
+        .where(eq(apps.id, appId));
+      assert.equal((await listAppJobs(appId, workspaceId)).ready, true);
       await assert.rejects(listAppJobs(appId, randomUUID()), /not found/i);
       await assert.rejects(
         withActor({ ...actor, role: "viewer" }, () => requestAppJob(request)),

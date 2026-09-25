@@ -16,10 +16,6 @@ import {
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { getDecryptedAwsCredential } from "../aws/service.js";
 import {
-  getAzureAccessToken,
-  getDecryptedAzureCredential,
-} from "../azure/service.js";
-import {
   getDecryptedGcpCredential,
   getGcpAccessToken,
 } from "../gcp/service.js";
@@ -42,10 +38,6 @@ async function inspectBackupObject(input: {
 
   if (input.result.restoreFrom === "gcs") {
     return inspectGcsBackupObject(input.result, input.workspaceId);
-  }
-
-  if (input.result.restoreFrom === "azureBlob") {
-    return inspectAzureBackupObject(input.result, input.workspaceId);
   }
 
   return inspectS3BackupObject(input.result, input.workspaceId);
@@ -88,68 +80,6 @@ async function inspectGcsBackupObject(
         metadata["towbar-metadata-version"],
       ),
       sizeBytes: data.size ? Number(data.size) : undefined,
-    };
-  } catch {
-    return { exists: false, error: "unavailable" };
-  }
-}
-
-async function inspectAzureBackupObject(
-  result: BackupOperationResult,
-  workspaceId: string,
-): Promise<AssuredObject> {
-  try {
-    const credential = await getDecryptedAzureCredential({ workspaceId });
-    const token = await getAzureAccessToken(credential.payload);
-    const targetDest =
-      result.destinations?.find((dest) => dest.provider === "azureBlob") ??
-      result;
-    const storageAccount =
-      ("storageAccount" in targetDest && targetDest.storageAccount) ||
-      result.storageAccount;
-    if (!storageAccount) {
-      return { error: "unavailable", exists: false };
-    }
-    const container = targetDest.bucket;
-    const blobPath = targetDest.key
-      .split("/")
-      .map(encodeURIComponent)
-      .join("/");
-    const url = `https://${encodeURIComponent(storageAccount)}.blob.core.windows.net/${encodeURIComponent(container)}/${blobPath}`;
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "x-ms-version": "2024-11-04",
-      },
-      method: "HEAD",
-    });
-    if (response.status === 404) return { exists: false };
-    if (response.status === 401 || response.status === 403) {
-      return { exists: false, error: "access_denied" };
-    }
-    if (!response.ok) return { exists: false, error: "unavailable" };
-    const headers = response.headers;
-    const contentLength = headers.get("content-length");
-    return {
-      checksum: headers.get("x-ms-meta-towbar_checksum") ?? undefined,
-      encryption:
-        headers.get("x-ms-server-encrypted") === "true"
-          ? "Microsoft-managed"
-          : undefined,
-      engine: parseBackupEngine(
-        headers.get("x-ms-meta-towbar_engine") ?? undefined,
-      ),
-      engineMajorVersion: parsePositiveInteger(
-        headers.get("x-ms-meta-towbar_engine_major_version") ?? undefined,
-      ),
-      exists: true,
-      format: parseBackupFormat(
-        headers.get("x-ms-meta-towbar_format") ?? undefined,
-      ),
-      metadataVersion: parsePositiveInteger(
-        headers.get("x-ms-meta-towbar_metadata_version") ?? undefined,
-      ),
-      sizeBytes: contentLength ? Number(contentLength) : undefined,
     };
   } catch {
     return { exists: false, error: "unavailable" };

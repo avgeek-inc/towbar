@@ -15,7 +15,6 @@ export const auditEventIcons = [
   "terminal",
   "scout",
   "alert",
-  "log-forwarding",
   "restore",
   "cleanup",
 ] as const;
@@ -236,26 +235,6 @@ export const auditEventCatalog = {
     icon: "alert",
     label: "Alert rule deleted",
     metadata: ["ruleId"],
-  },
-  "log-drain.updated": {
-    icon: "log-forwarding",
-    label: "Log forwarding credentials updated",
-    metadata: [],
-  },
-  "log-drain.deleted": {
-    icon: "log-forwarding",
-    label: "Log forwarding provider disconnected",
-    metadata: [],
-  },
-  "log-drain.revealed": {
-    icon: "log-forwarding",
-    label: "Log forwarding credentials revealed",
-    metadata: [],
-  },
-  "log-drain.test-requested": {
-    icon: "log-forwarding",
-    label: "Log forwarding test requested",
-    metadata: [],
   },
   "resource.restore.requested": {
     icon: "restore",

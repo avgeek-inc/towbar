@@ -34,14 +34,12 @@ type Connection = typeof integrationAuthorizations.$inferSelect;
 
 const purposeByProvider: Record<IntegrationProvider, IntegrationPurpose> = {
   aws: "backup",
-  azureBlob: "backup",
   cloudflare: "ingress",
   doppler: "secret",
   gcs: "backup",
   github: "source",
   gitlab: "source",
   infisical: "secret",
-  otlp: "telemetry",
   r2: "backup",
   registry: "image",
   s3: "backup",

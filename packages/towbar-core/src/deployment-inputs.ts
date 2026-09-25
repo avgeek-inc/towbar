@@ -112,6 +112,14 @@ export function getDeployableDeploymentDigest(input: {
   });
 }
 
+export function digestWithoutNotificationSubscriptions(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return digestValue(value);
+  const config = { ...value };
+  Reflect.deleteProperty(config, "notifications");
+  return digestValue(config);
+}
+
 function getDeploymentRuntimeConfig(deployable: NormalizedDeployable) {
   const value = { ...deployable } as Record<string, unknown>;
   delete value.autoDeploy;
@@ -121,6 +129,7 @@ function getDeploymentRuntimeConfig(deployable: NormalizedDeployable) {
   delete value.description;
   delete value.deploymentInputs;
   delete value.name;
+  delete value.notifications;
   delete value.preview;
   delete value.sourceBranch;
   delete value.vulnerabilityScanning;

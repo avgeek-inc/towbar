@@ -234,7 +234,6 @@ function restoreSecrets(engine: Engine): ResourceOperationSecrets {
       region: "ap-south-1",
       secretAccessKey: "fixture",
     },
-    azure: null,
     gcp: null,
     namedStorage: null,
     login: { privateKey: "fixture" },

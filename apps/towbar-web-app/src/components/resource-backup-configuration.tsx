@@ -35,7 +35,7 @@ import { api } from "@/lib/api";
 import { getBackupHealth } from "@/lib/backup-health";
 import { formatDate } from "./dashboard-overview";
 
-type ProviderKey = "s3" | "gcs" | "azureBlob";
+type ProviderKey = "s3" | "gcs";
 
 type ConfiguredProvider = {
   id: ProviderKey;
@@ -61,7 +61,6 @@ export function ResourceBackupConfiguration({
   const assurances = useApiQuery<{
     assurances: BackupAssurance[];
     awsConfigured: boolean;
-    azureConfigured?: boolean;
     canRestore: boolean;
     gcpConfigured?: boolean;
     missingCredentialMessage?: string;
@@ -116,8 +115,6 @@ export function ResourceBackupConfiguration({
     missingProviders.push("AWS S3");
   if (backup.gcs && !assuranceData.gcpConfigured)
     missingProviders.push("Google Cloud Storage");
-  if (backup.azureBlob && !assuranceData.azureConfigured)
-    missingProviders.push("Azure Blob Storage");
   const credentialsConfigured = missingProviders.length === 0;
 
   const configuredProviders: ConfiguredProvider[] = [];
@@ -137,15 +134,6 @@ export function ResourceBackupConfiguration({
       providerName: "Google Cloud",
       locationUri: `gs://${backup.gcs.bucket}/${backup.gcs.prefix || "towbar"}`,
       credentialsConfigured: Boolean(assuranceData.gcpConfigured),
-    });
-  }
-  if (backup.azureBlob) {
-    configuredProviders.push({
-      id: "azureBlob",
-      label: "Azure Blob Storage",
-      providerName: "Azure",
-      locationUri: `az://${backup.azureBlob.storageAccount}/${backup.azureBlob.container}/${backup.azureBlob.prefix || "towbar"}`,
-      credentialsConfigured: Boolean(assuranceData.azureConfigured),
     });
   }
 
@@ -386,9 +374,6 @@ function ProviderDestinationCard({
           </Attributes.Item>
         </>
       ) : null}
-      {provider.id === "azureBlob" && backup.azureBlob ? (
-        <Attributes.Item label="Encryption">Microsoft-managed</Attributes.Item>
-      ) : null}
       <Attributes.Item label="Schedule">
         {backup.schedule ? (
           <TypographyCode
@@ -526,7 +511,6 @@ function getDestinationInfo(
   encryption?: string;
   key?: string;
   region?: string;
-  storageAccount?: string;
 } | null {
   const dest = backupItem.result.destinations?.find(
     (d) => d.provider === providerId,
@@ -537,7 +521,6 @@ function getDestinationInfo(
       encryption: dest.encryption,
       key: dest.key,
       region: dest.region,
-      storageAccount: dest.storageAccount,
     };
   }
   // Fallback for legacy records created before multi-destination fan-out
@@ -547,7 +530,6 @@ function getDestinationInfo(
       encryption: backupItem.result.encryption,
       key: backupItem.result.key,
       region: backupItem.result.region,
-      storageAccount: backupItem.result.storageAccount,
     };
   }
   return null;

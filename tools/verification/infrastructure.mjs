@@ -12,7 +12,6 @@ const databases = {
   TOWBAR_RECOVERY_TEST_DATABASE_URL: "recovery",
   TOWBAR_TERMINAL_TEST_DATABASE_URL: "terminal",
   TOWBAR_HISTORY_TEST_DATABASE_URL: "history",
-  TOWBAR_LOG_DRAIN_TEST_DATABASE_URL: "logdrain",
 };
 
 export function disposableInfrastructure(run) {

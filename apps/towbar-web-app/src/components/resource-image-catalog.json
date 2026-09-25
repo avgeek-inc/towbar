@@ -727,16 +727,6 @@
     "logo": "/resource-logos/trino.svg"
   },
   {
-    "id": "opentelemetry",
-    "label": "OpenTelemetry",
-    "repositories": [
-      "otel/opentelemetry-collector",
-      "otel/opentelemetry-collector-contrib"
-    ],
-    "logo": "/resource-logos/opentelemetry.svg",
-    "logoDark": "/resource-logos/opentelemetry-light.svg"
-  },
-  {
     "id": "tempo",
     "label": "Grafana Tempo",
     "repositories": ["grafana/tempo", "grafana/tempo-query"],

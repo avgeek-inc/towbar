@@ -185,9 +185,8 @@ export type BackupDestinationResult = {
   encryption?: string;
   key: string;
   objectVersion?: string;
-  provider: "azureBlob" | "gcs" | "r2" | "s3";
+  provider: "gcs" | "r2" | "s3";
   region?: string;
-  storageAccount?: string;
 };
 
 export type BackupOperationResult = {
@@ -213,9 +212,8 @@ export type BackupOperationResult = {
   metadataVersion?: 1;
   objectVersionId?: string;
   region?: string;
-  restoreFrom?: "azureBlob" | "gcs" | "r2" | "s3";
+  restoreFrom?: "gcs" | "r2" | "s3";
   sizeBytes: number;
-  storageAccount?: string;
   verifiedAt: string;
   warnings: string[];
 };
@@ -224,7 +222,7 @@ export function normalizeBackupOperationResult(
   result: BackupOperationResult,
 ): BackupOperationResult & {
   destinations: BackupDestinationResult[];
-  restoreFrom: "azureBlob" | "gcs" | "r2" | "s3";
+  restoreFrom: "gcs" | "r2" | "s3";
 } {
   const destinations =
     result.destinations && result.destinations.length > 0
@@ -266,9 +264,8 @@ export const backupOperationResultSchema = z
             encryption: z.string().trim().max(128).optional(),
             key: z.string().trim().min(1).max(2_048),
             objectVersion: z.string().trim().min(1).max(1_024).optional(),
-            provider: z.enum(["s3", "r2", "gcs", "azureBlob"]),
+            provider: z.enum(["s3", "r2", "gcs"]),
             region: z.string().trim().min(1).max(64).optional(),
-            storageAccount: z.string().trim().min(1).max(128).optional(),
           })
           .strict(),
       )
@@ -292,9 +289,8 @@ export const backupOperationResultSchema = z
     metadataVersion: z.literal(1).optional(),
     objectVersionId: z.string().trim().min(1).max(1_024).optional(),
     region: z.string().trim().min(1).max(64).optional(),
-    restoreFrom: z.enum(["s3", "r2", "gcs", "azureBlob"]).optional(),
+    restoreFrom: z.enum(["s3", "r2", "gcs"]).optional(),
     sizeBytes: z.number().int().nonnegative().max(maximumBackupBytes),
-    storageAccount: z.string().trim().min(1).max(128).optional(),
     verifiedAt: z.string().datetime(),
     warnings: z.array(z.string().max(500)),
   })

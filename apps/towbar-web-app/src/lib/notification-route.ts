@@ -20,8 +20,6 @@ export function notificationHref(
   if (entity.kind === "preview")
     return source ? `/repositories/${source.id}/environments` : "/apps";
   if (entity.kind === "server") {
-    if (notification.type.startsWith("log-drain."))
-      return "/manage/integrations";
     if (notification.type.startsWith("scout."))
       return `/servers/${entity.id}/incidents`;
     if (notification.type.startsWith("server.maintenance."))
@@ -30,10 +28,8 @@ export function notificationHref(
   }
   if (entity.kind === "app") return `/apps/${entity.id}/overview`;
   if (entity.kind === "resource") return `/resources/${entity.id}/overview`;
-  if (entity.kind === "backup")
-    return `/resources/${entity.id}/settings/backup`;
-  if (entity.kind === "restore")
-    return `/resources/${entity.id}/settings/restore`;
+  if (entity.kind === "backup") return `/resources/${entity.id}/backup`;
+  if (entity.kind === "restore") return `/resources/${entity.id}/restore`;
   if (entity.kind === "source")
     return `/repositories/${entity.id}/environments`;
   return "/manage/notifications";

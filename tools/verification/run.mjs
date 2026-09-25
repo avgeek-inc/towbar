@@ -1,7 +1,7 @@
 import { verificationRun } from "./runtime.mjs";
 import { disposableInfrastructure } from "./infrastructure.mjs";
 
-const groups = ["api", "docker", "app", "resources", "forwarding", "scanner"];
+const groups = ["api", "docker", "app", "resources", "scanner"];
 const group = process.argv[2];
 if (!groups.includes(group))
   throw new Error(`Choose a required group: ${groups.join(", ")}`);
@@ -74,11 +74,8 @@ try {
       "deployer",
       "@workspace/towbar-deployer",
       ["src/**/*.test.ts"],
-      { TOWBAR_DOCKER_TESTS: "true", TOWBAR_LOG_DRAIN_DOCKER_TEST: "1" },
+      { TOWBAR_DOCKER_TESTS: "true" },
     );
-    await run.step("log-gateway", "python3", [
-      "packages/towbar-deployer/src/log-drain-gateway.test.py",
-    ]);
   }
   if (group === "app") {
     await lifecycle("app", "app-lifecycle", {
@@ -96,11 +93,6 @@ try {
     await lifecycle("redis-backup", "resource-lifecycle", {
       TOWBAR_TEST_BACKUP: "1",
     });
-  }
-  if (group === "forwarding") {
-    await lifecycle("log-installer", "log-drains-lifecycle");
-    await lifecycle("log-delivery", "log-drain-delivery-test");
-    await lifecycle("log-resilience", "log-drains-resilience");
   }
   if (group === "scanner") await lifecycle("scanner", "trivy-lifecycle");
 } catch (error) {

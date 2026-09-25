@@ -1,10 +1,5 @@
 "use client";
 
-import {
-  TableCellStack,
-  TableCellDescription,
-} from "@workspace/towbar-web-ui/table-cell-text";
-
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Delete02Icon, ReloadIcon } from "@hugeicons/core-free-icons";
 
@@ -21,7 +16,6 @@ import {
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { ActionButton, InlineLink } from "@/components/page-parts";
-import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { deploymentHref } from "@/lib/deployment-route";
 import { RelativeTime } from "./last-synced-time";
@@ -29,21 +23,14 @@ import { formatDate } from "./dashboard-overview";
 import { DomainLink } from "./domain-link";
 
 export function PreviewEnvironments({
-  appId,
-  sourceId,
+  previews,
+  error,
 }: {
-  appId?: string;
-  sourceId: string;
+  previews?: PreviewEnvironment[];
+  error?: string;
 }) {
-  const endpoint = appId
-    ? `/v1/core/apps/${appId}/previews`
-    : `/v1/core/sources/${sourceId}/previews`;
-  const query = useApiQuery<{ previews: PreviewEnvironment[] }>(
-    endpoint,
-    5_000,
-  );
-  if (query.error) return <QueryError message={query.error} />;
-  if (!query.data) return <QueryLoading variant="list" />;
+  if (error) return <QueryError message={error} />;
+  if (!previews) return <QueryLoading variant="list" />;
 
   const columns: ResourceTableColumn<PreviewEnvironment>[] = [
     {
@@ -62,16 +49,6 @@ export function PreviewEnvironments({
         </a>
       ),
     },
-    ...(!appId
-      ? [
-          {
-            key: "app",
-            header: "App",
-            className: "min-w-44",
-            cell: (preview: PreviewEnvironment) => preview.appName,
-          },
-        ]
-      : []),
     {
       key: "url",
       header: "URL",
@@ -100,7 +77,7 @@ export function PreviewEnvironments({
           className="block max-w-48 truncate"
           tooltip={preview.branch}
         >
-          <TypographyCode className="block truncate py-0 text-xs/4">
+          <TypographyCode className="block truncate rounded-none bg-transparent p-0 text-xs/4">
             {preview.branch}
           </TypographyCode>
         </TooltipText>
@@ -117,6 +94,28 @@ export function PreviewEnvironments({
       ),
     },
     {
+      key: "deployment",
+      header: "Deployment",
+      className: "min-w-36 whitespace-nowrap",
+      cell: (preview) =>
+        preview.latestDeploymentId ? (
+          <InlineLink
+            href={deploymentHref({
+              appId: preview.appId,
+              deployableKind: "app",
+              id: preview.latestDeploymentId,
+            })}
+            title={preview.latestDeploymentId}
+          >
+            <TypographyCode>
+              {preview.latestDeploymentId.slice(0, 8)}
+            </TypographyCode>
+          </InlineLink>
+        ) : (
+          <span className="text-muted">—</span>
+        ),
+    },
+    {
       key: "expires",
       header: "Expires",
       className: "min-w-48 whitespace-nowrap",
@@ -129,22 +128,10 @@ export function PreviewEnvironments({
       header: "Status",
       className: "min-w-56",
       cell: (preview) => (
-        <TableCellStack as="div" className="justify-items-start">
-          <StatusBadge
-            status={preview.status}
-            tooltip={
-              preview.status === "cleanup_failed" && preview.errorMessage
-                ? preview.errorMessage
-                : undefined
-            }
-          />
-          {preview.status === "cleanup_failed" &&
-          preview.nextCleanupAttemptAt ? (
-            <TableCellDescription className="whitespace-nowrap tabular-nums">
-              Retry scheduled {formatDate(preview.nextCleanupAttemptAt)}
-            </TableCellDescription>
-          ) : null}
-        </TableCellStack>
+        <StatusBadge
+          status={preview.status}
+          tooltip={previewCleanupTooltip(preview)}
+        />
       ),
     },
     {
@@ -153,17 +140,6 @@ export function PreviewEnvironments({
       className: "whitespace-nowrap",
       cell: (preview) => (
         <div className="flex items-center gap-2">
-          {preview.latestDeploymentId ? (
-            <InlineLink
-              href={deploymentHref({
-                appId: preview.appId,
-                deployableKind: "app",
-                id: preview.latestDeploymentId,
-              })}
-            >
-              Deployment
-            </InlineLink>
-          ) : null}
           {preview.status === "cleanup_failed" ? (
             <ActionButton
               ariaLabel={`Retry cleanup for PR #${preview.pullRequestNumber}`}
@@ -222,9 +198,30 @@ export function PreviewEnvironments({
       emptyDescription="Enable Preview for an app, then open a same-repository pull request targeting the Repository branch."
       emptyTitle="No Preview deployments"
       getRowKey={(preview) => preview.id}
-      items={query.data.previews}
+      items={previews}
       tableClassName="min-w-[1040px]"
     />
+  );
+}
+
+function previewCleanupTooltip(preview: PreviewEnvironment) {
+  if (
+    preview.status !== "cleanup_failed" ||
+    (!preview.errorMessage && !preview.nextCleanupAttemptAt)
+  ) {
+    return undefined;
+  }
+
+  return (
+    <span className="grid gap-1">
+      <span>
+        {preview.errorMessage ??
+          "Cleanup stopped before every item could be removed."}
+      </span>
+      {preview.nextCleanupAttemptAt ? (
+        <span>Retry scheduled {formatDate(preview.nextCleanupAttemptAt)}</span>
+      ) : null}
+    </span>
   );
 }
 

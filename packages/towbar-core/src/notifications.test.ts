@@ -21,14 +21,6 @@ void test("maps notification events to independent subscription categories", () 
   );
   assert.equal(notificationCategoryForEvent("preview.ready"), "deployments");
   assert.equal(notificationCategoryForEvent("runtime.recovered"), "health");
-  assert.equal(
-    notificationCategoryForEvent("log-drain.pipeline_failed"),
-    "health",
-  );
-  assert.equal(
-    notificationCategoryForEvent("log-drain.pipeline_recovered"),
-    "health",
-  );
   assert.equal(notificationCategoryForEvent("backup.stale"), "backups");
   assert.equal(notificationCategoryForEvent("restore.rolled_back"), "restores");
   assert.equal(notificationCategoryForEvent("notification.test"), "test");

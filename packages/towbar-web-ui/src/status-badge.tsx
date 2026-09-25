@@ -91,6 +91,7 @@ const destructive = new Set([
   "cleanup_failed",
   "suspended",
   "unhealthy",
+  "not_checked",
   "not_restore_ready",
   "two_factor_disabled",
 ]);
@@ -227,6 +228,7 @@ function statusTooltip(status: string, context?: "runtime") {
       member:
         "Members can update secret values and alert rules, and manage their own access.",
       not_restore_ready: "The available backup cannot currently be restored.",
+      not_checked: "Health checks cannot run until server setup is complete.",
       offline: "No recent report has been received.",
       online: "Recent reports are arriving normally.",
       passed: "The latest check completed successfully.",
@@ -282,6 +284,7 @@ function statusTooltip(status: string, context?: "runtime") {
 
 export function formatStatus(status: string) {
   if (status === "none") return "No health check";
+  if (status === "not_checked") return "Not checked";
   return status
     .split("_")
     .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)

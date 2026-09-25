@@ -17,7 +17,6 @@ import {
 import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { getDecryptedAwsCredential } from "../aws/service.js";
-import { getDecryptedAzureCredential } from "../azure/service.js";
 import { getDecryptedGcpCredential } from "../gcp/service.js";
 import {
   requireResourcePasswords,
@@ -185,13 +184,12 @@ export async function resolveOperationSecrets(operationId: string) {
       if (operation.request.type === "restore")
         requireResourcePasswords(operation.app?.kind, runtime);
 
-      const { aws, azure, gcp, sensitiveStorageValues } =
+      const { aws, gcp, sensitiveStorageValues } =
         await resolveCloudStorageSecrets(operation, database);
       const namedStorage = await resolveNamedStorage(operation, database);
 
       return {
         aws,
-        azure,
         gcp,
         login,
         namedStorage,
@@ -241,7 +239,7 @@ async function resolveNamedStorage(
   const resolved = await resolveIntegration({
     workspaceId: operation.workspaceId,
     slug: integration,
-    providers: ["s3", "r2", "gcs", "azureBlob"],
+    providers: ["s3", "r2", "gcs"],
     target: {
       kind: "repository",
       purpose: "backup",
@@ -250,7 +248,7 @@ async function resolveNamedStorage(
     },
   });
   const input = resolved.connectionInput;
-  if (!["s3", "r2", "gcs", "azureBlob"].includes(input.provider))
+  if (!["s3", "r2", "gcs"].includes(input.provider))
     throw conflict("Backup integration is not object storage");
   return input as import("@workspace/towbar-core").NamedBackupStorageConnection;
 }
@@ -261,9 +259,7 @@ function namedStorageSensitiveValues(
   if (!storage) return [];
   if (storage.provider === "s3" || storage.provider === "r2")
     return [storage.credentials.secretAccessKey];
-  if (storage.provider === "gcs")
-    return [storage.credentials.serviceAccountJson];
-  return [(storage.credentials as { clientSecret: string }).clientSecret];
+  return [storage.credentials.serviceAccountJson];
 }
 
 function extractBackupConfig(
@@ -284,7 +280,7 @@ async function resolveTargetRestoreProvider(
     request: { type: string; backupId?: string };
   },
   database?: SecretDatabase,
-): Promise<"s3" | "gcs" | "azureBlob" | undefined> {
+): Promise<"s3" | "gcs" | undefined> {
   if (operation.request.type !== "restore" || !operation.request.backupId) {
     return undefined;
   }
@@ -301,9 +297,7 @@ async function resolveTargetRestoreProvider(
   if (!parsed.success) {
     return undefined;
   }
-  const provider =
-    parsed.data.restoreFrom ??
-    (parsed.data.storageAccount ? "azureBlob" : "s3");
+  const provider = parsed.data.restoreFrom ?? "s3";
   return provider === "r2" ? undefined : provider;
 }
 
@@ -311,10 +305,10 @@ function determineRequiredProviders(
   requiresBackup: boolean,
   backupConfig:
     import("@workspace/towbar-core").NormalizedResource["backup"] | undefined,
-  restoreFromProvider?: "s3" | "gcs" | "azureBlob",
+  restoreFromProvider?: "s3" | "gcs",
 ) {
   if (!requiresBackup) {
-    return { needsAws: false, needsAzure: false, needsGcp: false };
+    return { needsAws: false, needsGcp: false };
   }
   return {
     needsAws:
@@ -322,11 +316,6 @@ function determineRequiredProviders(
       Boolean(backupConfig.s3) ||
       backupConfig.restoreFrom === "s3" ||
       restoreFromProvider === "s3",
-    needsAzure: Boolean(
-      backupConfig?.azureBlob ||
-      backupConfig?.restoreFrom === "azureBlob" ||
-      restoreFromProvider === "azureBlob",
-    ),
     needsGcp: Boolean(
       backupConfig?.gcs ||
       backupConfig?.restoreFrom === "gcs" ||
@@ -349,20 +338,15 @@ async function resolveCloudStorageSecrets(
     operation,
     database,
   );
-  const { needsAws, needsAzure, needsGcp } = determineRequiredProviders(
+  const { needsAws, needsGcp } = determineRequiredProviders(
     requiresBackup,
     backupConfig,
     restoreFromProvider,
   );
 
-  const [awsCredential, azureCredential, gcpCredential] = await Promise.all([
+  const [awsCredential, gcpCredential] = await Promise.all([
     needsAws
       ? getDecryptedAwsCredential({
-          workspaceId: operation.workspaceId,
-        }).catch(() => null)
-      : null,
-    needsAzure
-      ? getDecryptedAzureCredential({
           workspaceId: operation.workspaceId,
         }).catch(() => null)
       : null,
@@ -377,14 +361,6 @@ async function resolveCloudStorageSecrets(
     ? { ...awsCredential.payload, region: awsCredential.region }
     : null;
 
-  const azure = azureCredential
-    ? {
-        clientId: azureCredential.clientId,
-        clientSecret: azureCredential.payload.clientSecret,
-        tenantId: azureCredential.tenantId,
-      }
-    : null;
-
   const gcp = gcpCredential
     ? {
         projectId: gcpCredential.projectId,
@@ -394,11 +370,10 @@ async function resolveCloudStorageSecrets(
 
   const sensitiveStorageValues = [
     ...(awsCredential ? [awsCredential.payload.secretAccessKey] : []),
-    ...(azureCredential ? [azureCredential.payload.clientSecret] : []),
     ...(gcpCredential ? [gcpCredential.payload.private_key] : []),
   ];
 
-  return { aws, azure, gcp, sensitiveStorageValues };
+  return { aws, gcp, sensitiveStorageValues };
 }
 
 function requireOperationSource(sourceId: string | null) {

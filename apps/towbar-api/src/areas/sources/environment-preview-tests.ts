@@ -6,10 +6,91 @@ import {
   isNormalizedCompose,
   isNormalizedResource,
 } from "@workspace/towbar-core";
-import { sourceEnvironments } from "@workspace/towbar-database/schema";
-import type { apps, servers } from "@workspace/towbar-database/schema";
+import {
+  previewPullRequestReports,
+  sourceEnvironments,
+} from "@workspace/towbar-database/schema";
+import { apps, type servers } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { getInstanceEnvironment } from "../apps/instance-environment.js";
+
+export async function assertPreviewDiscovery(input: {
+  stageId: string;
+  stagingId: string;
+  sourceId: string;
+  workspaceId: string;
+}) {
+  const database = getTowbarDatabase();
+  const { scheduleSourcePreviewReconciliations } =
+    await import("../previews/reconciliation-scheduler.js");
+  const [current] = await database
+    .select()
+    .from(apps)
+    .where(eq(apps.id, input.stageId));
+  assert(current && !isNormalizedResource(current.config));
+  const configBefore = current.config;
+  const branches: string[] = [];
+  const queued: number[] = [];
+  const dependencies = {
+    listPullRequests: (request: { baseBranch: string }) => {
+      branches.push(request.baseBranch);
+      return Promise.resolve([7, 9]);
+    },
+    enqueue: (request: { pullRequestNumber: number }) => {
+      queued.push(request.pullRequestNumber);
+      return Promise.resolve({
+        workflowId: `preview-test-${request.pullRequestNumber}`,
+      });
+    },
+  };
+  try {
+    await database
+      .update(sourceEnvironments)
+      .set({ previewsEnabled: true })
+      .where(eq(sourceEnvironments.id, input.stagingId));
+    await database
+      .update(apps)
+      .set({
+        config: {
+          ...configBefore,
+          preview: {
+            enabled: true,
+            domain: "preview.example.com",
+            ttlHours: 72,
+          },
+        },
+      })
+      .where(eq(apps.id, input.stageId));
+    await database.insert(previewPullRequestReports).values({
+      sourceId: input.sourceId,
+      workspaceId: input.workspaceId,
+      pullRequestNumber: 9,
+      branch: "feature",
+      latestCommitSha: "b".repeat(40),
+    });
+    await scheduleSourcePreviewReconciliations(input.sourceId, dependencies);
+    assert.deepEqual(branches, ["develop"]);
+    assert.deepEqual(queued, [7, 9]);
+    branches.length = 0;
+    queued.length = 0;
+    await database
+      .update(sourceEnvironments)
+      .set({ previewsEnabled: false })
+      .where(eq(sourceEnvironments.id, input.stagingId));
+    await scheduleSourcePreviewReconciliations(input.sourceId, dependencies);
+    assert.deepEqual(branches, []);
+    assert.deepEqual(queued, [9]);
+  } finally {
+    await database
+      .update(apps)
+      .set({ config: configBefore })
+      .where(eq(apps.id, input.stageId));
+    await database
+      .update(sourceEnvironments)
+      .set({ previewsEnabled: false })
+      .where(eq(sourceEnvironments.id, input.stagingId));
+  }
+}
 
 export async function assertPreviewAdmissionGuards({
   stage,

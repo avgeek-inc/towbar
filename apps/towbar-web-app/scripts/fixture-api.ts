@@ -1,5 +1,4 @@
 import { eventHistoryFixture } from "./event-history-fixture.ts";
-import { logDrainsFixture } from "./log-drains-fixture.ts";
 import { terminalFixture } from "./terminal-fixture.ts";
 import {
   createTeamAccessFixture,
@@ -194,7 +193,41 @@ const apps: FixtureApp[] = [
     servers[1]!,
   ),
 ];
-
+apps[1]!.config.notifications = {
+  email: [
+    {
+      address: "website-ops@example.com",
+      deployments: true,
+      backupsAndRestores: false,
+      alertsAndIncidents: true,
+    },
+  ],
+  slack: [
+    {
+      channelId: "C12345678",
+      deployments: true,
+      backupsAndRestores: false,
+      alertsAndIncidents: true,
+    },
+  ],
+  discord: [
+    {
+      webhookId: "123456789012345678",
+      deployments: false,
+      backupsAndRestores: false,
+      alertsAndIncidents: true,
+    },
+  ],
+  telegram: [
+    {
+      chatId: "-1001234567890",
+      messageThreadId: 42,
+      deployments: true,
+      backupsAndRestores: false,
+      alertsAndIncidents: false,
+    },
+  ],
+};
 const resources: FixtureResource[] = [
   createResourceFixture(
     fixtureIds.resource,
@@ -267,6 +300,16 @@ const resources: FixtureResource[] = [
     servers[1]!,
   ),
 ];
+resources[0]!.config.notifications = {
+  email: [
+    {
+      address: "database-ops@example.com",
+      deployments: false,
+      backupsAndRestores: true,
+      alertsAndIncidents: true,
+    },
+  ],
+};
 
 apps.push({
   ...createAppFixture(
@@ -1384,7 +1427,6 @@ export function createFixtureApiServer({
   discordConfigured = notificationProvidersConfigured,
   telegramConfigured = notificationProvidersConfigured,
   webhookConfigured = notificationProvidersConfigured,
-  logDrainTestOutcome,
   role,
   authState,
   smtpAvailable,
@@ -1397,7 +1439,6 @@ export function createFixtureApiServer({
   discordConfigured?: boolean;
   telegramConfigured?: boolean;
   webhookConfigured?: boolean;
-  logDrainTestOutcome?: "sent" | "auth_failure" | "rate_limited";
 } = {}) {
   const teamAccess = createTeamAccessFixture(user, {
     role,
@@ -1512,14 +1553,9 @@ export function createFixtureApiServer({
           ? { oauthClientId: "towbar-fixture-client" }
           : provider === "s3" || provider === "r2"
             ? { accessKeyId: "FIXTUREACCESSKEY" }
-            : provider === "azureBlob"
-              ? {
-                  tenantId: "fixture-tenant-id",
-                  clientId: "fixture-client-id",
-                }
-              : provider === "infisical"
-                ? { clientId: "fixture-client-id" }
-                : {},
+            : provider === "infisical"
+              ? { clientId: "fixture-client-id" }
+              : {},
     scopes: [
       purpose === "identity" || purpose === "backup"
         ? { kind: "control-plane", purpose }
@@ -1588,17 +1624,6 @@ export function createFixtureApiServer({
       "backup",
     ),
     integrationFixture(
-      "azureBlob",
-      "azure-production",
-      "Azure Blob Storage",
-      {
-        storageAccount: "towbarfixture",
-        container: "towbar-backups",
-        prefix: "towbar",
-      },
-      "backup",
-    ),
-    integrationFixture(
       "infisical",
       "infisical-production",
       "Infisical",
@@ -1624,30 +1649,7 @@ export function createFixtureApiServer({
       },
       "ingress",
     ),
-    integrationFixture(
-      "otlp",
-      "otel-production",
-      "OpenTelemetry",
-      {
-        endpoint: "https://otel.example.com",
-        dashboardUrl: "https://observe.example.com",
-        protocol: "grpc",
-        allowPrivateNetwork: false,
-      },
-      "telemetry",
-    ),
   ];
-  const logDrains = logDrainsFixture({
-    testOutcome: logDrainTestOutcome,
-    canManage: () => teamAccess.getUser()?.workspaceRole === "admin",
-    testServers: () =>
-      servers
-        .filter((server) => server.preparedAt && server.setupStatus === "ready")
-        .map((server) => ({
-          id: server.id,
-          name: `${server.canonicalIp} (local fixture)`,
-        })),
-  });
   const eventHistory = eventHistoryFixture(teamAccess.getUser, user);
   let emailDestinations = [
     {
@@ -1732,7 +1734,6 @@ export function createFixtureApiServer({
     const path = requestUrl.pathname;
     if (eventHistory(request, response, requestUrl)) return;
     if (await teamAccess.handle(request, response, requestUrl)) return;
-    if (await logDrains(request, response, path)) return;
     if (
       path === "/v1/core/notifications/telegram/destinations/test" &&
       request.method === "POST"
@@ -2021,13 +2022,11 @@ export function createFixtureApiServer({
           { category: "registry", provider: "registry" },
           { category: "backup", provider: "aws" },
           { category: "backup", provider: "gcs" },
-          { category: "backup", provider: "azureBlob" },
           { category: "backup", provider: "s3" },
           { category: "backup", provider: "r2" },
           { category: "secrets", provider: "infisical" },
           { category: "secrets", provider: "doppler" },
           { category: "platform", provider: "cloudflare" },
-          { category: "platform", provider: "otlp" },
         ],
       });
     }
@@ -3763,7 +3762,6 @@ function getFixturePayload(
       assurance: assurances[0] ?? null,
       assurances,
       awsConfigured: true,
-      azureConfigured: true,
       canRestore: true,
       gcpConfigured: true,
     };
@@ -4273,11 +4271,6 @@ function createResourceFixture(
       backup:
         kind === "postgres"
           ? {
-              azureBlob: {
-                container: "backups",
-                prefix: manifestId,
-                storageAccount: "towbarfixture",
-              },
               gcs: {
                 bucket: "towbar-fixture-gcs-backups",
                 prefix: manifestId,
@@ -4502,13 +4495,6 @@ function createBackupFixture(
           key: `${resource.manifestId}/${createdAt.replaceAll(":", "-")}.dump`,
           provider: "gcs",
           region: "asia-south1",
-        },
-        {
-          bucket: "backups",
-          encryption: "Microsoft-managed",
-          key: `${resource.manifestId}/${createdAt.replaceAll(":", "-")}.dump`,
-          provider: "azureBlob",
-          storageAccount: "towbarfixture",
         },
       ],
       encryption: "AES256",
@@ -4836,12 +4822,6 @@ if (entrypoint && import.meta.url === pathToFileURL(entrypoint).href) {
       requestedState === "temporary-password"
         ? requestedState
         : "authenticated",
-    logDrainTestOutcome:
-      process.env.TOWBAR_FIXTURE_LOG_DRAIN_TEST_OUTCOME === "auth_failure"
-        ? "auth_failure"
-        : process.env.TOWBAR_FIXTURE_LOG_DRAIN_TEST_OUTCOME === "rate_limited"
-          ? "rate_limited"
-          : "sent",
     smtpAvailable: process.env.TOWBAR_FIXTURE_SMTP_UNAVAILABLE !== "true",
     githubAppConnected: process.env.TOWBAR_FIXTURE_GITHUB_CONNECTED === "true",
     notificationProvidersConfigured:

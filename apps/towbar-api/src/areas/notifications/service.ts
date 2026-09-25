@@ -17,6 +17,7 @@ import { getServer } from "../servers/service.js";
 import { getSource } from "../sources/service.js";
 import { enqueueDeliveries } from "./delivery-service.js";
 import { notificationRoutesForWorkspace } from "./email-destinations.js";
+import { manifestNotificationRoutesForApp } from "./manifest-destinations.js";
 
 export async function listNotificationDestinations(input: {
   sourceId?: string;
@@ -60,6 +61,7 @@ export async function listNotificationEvents(input: {
 }
 
 export async function emitNotificationEvent(input: {
+  appId?: string;
   dedupeKey: string;
   payload: NotificationEventPayload;
   sourceId?: string;
@@ -69,16 +71,30 @@ export async function emitNotificationEvent(input: {
   workspaceId: string;
 }) {
   await requireNotificationScope(input);
-  const payload = notificationEventPayloadSchema.parse(input.payload);
+  const payload = notificationEventPayloadSchema.parse({
+    ...input.payload,
+    details: {
+      ...input.payload.details,
+      ...(input.appId ? { deployableId: input.appId } : {}),
+    },
+  });
   const category = notificationCategoryForEvent(input.type);
   const routes = (
-    await notificationRoutesForWorkspace(input.workspaceId)
-  ).filter(
-    (route) =>
-      (!input.targetDestinationId || route.id === input.targetDestinationId) &&
-      (category === "test" ||
-        route.categories.some((routeCategory) => routeCategory === category)),
-  );
+    await Promise.all([
+      notificationRoutesForWorkspace(input.workspaceId),
+      input.appId
+        ? manifestNotificationRoutesForApp(input.appId, input.workspaceId)
+        : Promise.resolve([]),
+    ])
+  )
+    .flat()
+    .filter(
+      (route) =>
+        (!input.targetDestinationId ||
+          route.id === input.targetDestinationId) &&
+        (category === "test" ||
+          route.categories.some((routeCategory) => routeCategory === category)),
+    );
   const result = await getTowbarDatabase().transaction(async (transaction) => {
     const [createdEvent] = await transaction
       .insert(notificationEvents)

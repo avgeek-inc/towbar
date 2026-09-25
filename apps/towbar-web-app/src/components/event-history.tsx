@@ -69,6 +69,9 @@ export function HistoryFilter({
     label: string;
     icon?: ReactNode;
     searchText?: string;
+    trailing?: ReactNode;
+    selectedLabel?: string;
+    ariaLabel?: string;
   }[];
   onChange: (value: string) => void;
   allIcon?: ReactNode;
@@ -85,7 +88,11 @@ export function HistoryFilter({
         </p>
       )}
     >
-      <ListBox.Item id="all" textValue={`All ${label.toLowerCase()}`}>
+      <ListBox.Item
+        id="all"
+        textValue={`All ${label.toLowerCase()}`}
+        className="pr-8!"
+      >
         {allIcon ? (
           <span className="shrink-0" aria-hidden="true">
             {allIcon}
@@ -99,16 +106,18 @@ export function HistoryFilter({
           id={option.id}
           key={option.id}
           textValue={option.searchText ?? option.label}
-          aria-label={option.label}
+          aria-label={option.ariaLabel ?? option.label}
+          className="pr-8!"
         >
           {option.icon ? (
             <span className="shrink-0" aria-hidden="true">
               {option.icon}
             </span>
           ) : null}
-          <span className="min-w-0 flex-1 whitespace-normal">
-            {option.label}
-          </span>
+          <span className="min-w-0 flex-1 truncate">{option.label}</span>
+          {option.trailing ? (
+            <span className="shrink-0">{option.trailing}</span>
+          ) : null}
           <ListBox.ItemIndicator />
         </ListBox.Item>
       ))}
@@ -124,14 +133,19 @@ export function HistoryFilter({
       <Label>{label}</Label>
       <Select.Trigger>
         <Select.Value>
-          <span className="flex min-w-0 items-center gap-2">
+          <span className="flex min-w-0 max-w-full items-center gap-2">
             {selectedIcon ? (
-              <span className="shrink-0" aria-hidden="true">
+              <span
+                className="flex size-4 shrink-0 items-center justify-center leading-none [&>span]:size-4 [&_img]:size-4 [&_svg]:size-4"
+                aria-hidden="true"
+              >
                 {selectedIcon}
               </span>
             ) : null}
-            <span className="truncate">
-              {selected?.label ?? `All ${label.toLowerCase()}`}
+            <span className="min-w-0 flex-1 truncate">
+              {selected?.selectedLabel ??
+                selected?.label ??
+                `All ${label.toLowerCase()}`}
             </span>
           </span>
         </Select.Value>
@@ -153,7 +167,7 @@ export function HistoryFilter({
               className="px-2 pt-2"
               variant="secondary"
             >
-              <SearchField.Group className="rounded">
+              <SearchField.Group className="rounded-md">
                 <SearchField.SearchIcon />
                 <SearchField.Input
                   className="text-base sm:text-sm"

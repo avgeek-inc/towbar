@@ -12,7 +12,6 @@ export const expectedBrowserOnlyRoutes = new Set([
   "DELETE /team/members/:memberId",
   "GET /deployments/:deploymentId/source-revision",
   "GET /gitlab/oauth/callback",
-  "GET /log-drains",
   "GET /monitoring/summary",
   "GET /notifications",
   "GET /notifications/deliveries",

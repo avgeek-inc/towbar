@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ComputerActivityIcon,
@@ -162,18 +163,7 @@ export function ServerPreparationChecklist(
   );
   return (
     <div className="grid gap-6">
-      {props.redirectingToOverview ? (
-        <Alert status="success">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>Server setup complete</Alert.Title>
-            <Alert.Description>
-              The first server check is scheduled. Opening Overview in 5
-              seconds.
-            </Alert.Description>
-          </Alert.Content>
-        </Alert>
-      ) : null}
+      {props.redirectingToOverview ? <PreparationCompleteAlert /> : null}
       {model.historyUnavailable ? (
         <p className="text-sm text-muted">
           Detailed step history is unavailable for this server.
@@ -242,6 +232,32 @@ export function ServerPreparationChecklist(
         );
       })}
     </div>
+  );
+}
+
+function PreparationCompleteAlert() {
+  const [seconds, setSeconds] = useState(5);
+
+  useEffect(() => {
+    const timer = window.setInterval(
+      () => setSeconds((current) => Math.max(1, current - 1)),
+      1_000,
+    );
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return (
+    <Alert status="success">
+      <Alert.Indicator />
+      <Alert.Content>
+        <Alert.Title>Server setup complete</Alert.Title>
+        <Alert.Description>
+          The first server check is scheduled. Opening Overview in{" "}
+          <span className="tabular-nums">{seconds}</span>{" "}
+          {seconds === 1 ? "second" : "seconds"}.
+        </Alert.Description>
+      </Alert.Content>
+    </Alert>
   );
 }
 

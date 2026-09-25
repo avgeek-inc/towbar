@@ -1,4 +1,8 @@
 import { getRuntimeNotificationRoute } from "../../infrastructure/runtime-notifications.js";
+import {
+  manifestNotificationAppId,
+  manifestNotificationRoute,
+} from "./manifest-destinations.js";
 import { discordNotificationRoute } from "./discord-destinations.js";
 import { webhookNotificationRoute } from "./webhook-destinations.js";
 import { emailNotificationRoute } from "./email-destinations.js";
@@ -17,6 +21,8 @@ export async function resolveNotificationDeliveryRoute(
   destinationId: string,
   provider: string,
 ) {
+  if (manifestNotificationAppId(destinationId))
+    return manifestNotificationRoute(workspaceId, destinationId);
   if (provider === "discord")
     return discordNotificationRoute(workspaceId, destinationId);
   if (provider === "webhook")

@@ -1,25 +1,16 @@
 import { z } from "zod";
 
-function containsAsciiControlCharacter(value: string): boolean {
-  return Array.from(value).some((character) => {
-    const codePoint = character.codePointAt(0);
-    return codePoint !== undefined && (codePoint <= 0x1f || codePoint === 0x7f);
-  });
-}
-
 export const integrationProviders = [
   "aws",
   "s3",
   "r2",
   "gcs",
-  "azureBlob",
   "github",
   "gitlab",
   "registry",
   "infisical",
   "doppler",
   "cloudflare",
-  "otlp",
 ] as const;
 export const integrationProviderSchema = z.enum(integrationProviders);
 export type IntegrationProvider = z.infer<typeof integrationProviderSchema>;
@@ -29,7 +20,6 @@ export const integrationPurposes = [
   "source",
   "image",
   "secret",
-  "telemetry",
   "ingress",
 ] as const;
 export const integrationPurposeSchema = z.enum(integrationPurposes);
@@ -178,25 +168,6 @@ export const gcsConnectionCredentialsSchema = z
   })
   .strict();
 
-export const azureBlobConnectionConfigurationSchema = z
-  .object({
-    storageAccount: z.string().regex(/^[a-z0-9]{3,24}$/u),
-    container: z
-      .string()
-      .trim()
-      .regex(/^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])?$/u)
-      .optional(),
-    prefix: z.string().trim().max(512).optional(),
-  })
-  .strict();
-export const azureBlobConnectionCredentialsSchema = z
-  .object({
-    tenantId: z.uuid(),
-    clientId: z.uuid(),
-    clientSecret: credentialText,
-  })
-  .strict();
-
 export const githubConnectionConfigurationSchema = z
   .object({
     apiUrl: httpsUrlSchema.default("https://api.github.com"),
@@ -318,59 +289,6 @@ export const cloudflareConnectionConfigurationSchema = z
 export const cloudflareConnectionCredentialsSchema = z
   .object({ apiToken: credentialText })
   .strict();
-export const otlpConnectionConfigurationSchema = z
-  .object({
-    endpoint: httpsUrlSchema,
-    dashboardUrl: httpsUrlSchema.optional(),
-    protocol: z.enum(["http/protobuf", "grpc"]),
-    allowPrivateNetwork: z.boolean().default(false),
-  })
-  .strict()
-  .superRefine((configuration, context) => {
-    const endpoint = new URL(configuration.endpoint);
-    if (endpoint.search || endpoint.hash)
-      context.addIssue({
-        code: "custom",
-        path: ["endpoint"],
-        message: "OTLP endpoints cannot contain a query string or fragment",
-      });
-    if (configuration.protocol === "grpc" && endpoint.pathname !== "/")
-      context.addIssue({
-        code: "custom",
-        path: ["endpoint"],
-        message: "OTLP gRPC endpoints must not contain a URL path",
-      });
-    if (
-      configuration.protocol === "http/protobuf" &&
-      /\/v1\/(?:logs|metrics|traces)\/?$/u.test(endpoint.pathname)
-    )
-      context.addIssue({
-        code: "custom",
-        path: ["endpoint"],
-        message:
-          "Enter the OTLP HTTP base endpoint; Towbar appends each signal path",
-      });
-  });
-export const otlpConnectionCredentialsSchema = z
-  .object({
-    headers: z
-      .record(
-        z
-          .string()
-          .min(1)
-          .max(128)
-          .regex(
-            /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/u,
-            "OTLP header names must use HTTP token characters",
-          ),
-        credentialText.refine(
-          (value) => !containsAsciiControlCharacter(value),
-          "OTLP header values cannot contain control characters",
-        ),
-      )
-      .default({}),
-  })
-  .strict();
 const providerConnectionSchemas = [
   z
     .object({
@@ -404,13 +322,6 @@ const providerConnectionSchemas = [
       provider: z.literal("gcs"),
       configuration: gcsConnectionConfigurationSchema,
       credentials: gcsConnectionCredentialsSchema,
-    })
-    .strict(),
-  z
-    .object({
-      provider: z.literal("azureBlob"),
-      configuration: azureBlobConnectionConfigurationSchema,
-      credentials: azureBlobConnectionCredentialsSchema,
     })
     .strict(),
   z
@@ -455,20 +366,13 @@ const providerConnectionSchemas = [
       credentials: cloudflareConnectionCredentialsSchema,
     })
     .strict(),
-  z
-    .object({
-      provider: z.literal("otlp"),
-      configuration: otlpConnectionConfigurationSchema,
-      credentials: otlpConnectionCredentialsSchema,
-    })
-    .strict(),
 ] as const;
 
 export const providerConnectionSchema = z.union(providerConnectionSchemas);
 export type ProviderConnection = z.infer<typeof providerConnectionSchema>;
 export type NamedBackupStorageConnection = Extract<
   ProviderConnection,
-  { provider: "s3" | "r2" | "gcs" | "azureBlob" }
+  { provider: "s3" | "r2" | "gcs" }
 >;
 
 export function parseProviderConnection(input: {
@@ -519,14 +423,10 @@ export function credentialHint(
   const candidate =
     provider === "aws" || provider === "s3" || provider === "r2"
       ? credentials.accessKeyId
-      : provider === "azureBlob"
-        ? credentials.clientId
-        : provider === "github"
-          ? credentials.appId
-          : provider === "registry"
-            ? credentials.username
-            : (credentials.token ??
-              credentials.apiToken ??
-              credentials.clientId);
+      : provider === "github"
+        ? credentials.appId
+        : provider === "registry"
+          ? credentials.username
+          : (credentials.token ?? credentials.apiToken ?? credentials.clientId);
   return typeof candidate === "string" ? candidate.slice(-8) : null;
 }

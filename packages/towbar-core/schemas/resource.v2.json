@@ -25,21 +25,6 @@
           "maxLength": 64,
           "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
         },
-        "azureBlob": {
-          "type": "object",
-          "properties": {
-            "container": {
-              "type": "string",
-              "pattern": "^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$"
-            },
-            "prefix": { "type": "string", "maxLength": 512 },
-            "storageAccount": {
-              "type": "string",
-              "pattern": "^[a-z0-9]{3,24}$"
-            }
-          },
-          "additionalProperties": false
-        },
         "gcs": {
           "type": "object",
           "properties": {
@@ -52,7 +37,7 @@
           },
           "additionalProperties": false
         },
-        "restoreFrom": { "type": "string", "enum": ["s3", "gcs", "azureBlob"] },
+        "restoreFrom": { "type": "string", "enum": ["s3", "gcs"] },
         "retention": {
           "type": "object",
           "properties": {
@@ -85,13 +70,104 @@
       },
       "additionalProperties": false
     },
-    "logDrains": {
-      "maxItems": 6,
-      "type": "array",
-      "items": {
-        "type": "string",
-        "enum": ["newrelic", "axiom", "betterstack", "datadog", "otlp", "loki"]
-      }
+    "notifications": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "maxItems": 100,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "deployments": { "type": "boolean" },
+              "backupsAndRestores": { "type": "boolean" },
+              "alertsAndIncidents": { "type": "boolean" },
+              "address": {
+                "type": "string",
+                "maxLength": 320,
+                "format": "email",
+                "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+              }
+            },
+            "required": [
+              "deployments",
+              "backupsAndRestores",
+              "alertsAndIncidents",
+              "address"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "slack": {
+          "maxItems": 100,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "deployments": { "type": "boolean" },
+              "backupsAndRestores": { "type": "boolean" },
+              "alertsAndIncidents": { "type": "boolean" },
+              "channelId": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9]{1,79}$"
+              }
+            },
+            "required": [
+              "deployments",
+              "backupsAndRestores",
+              "alertsAndIncidents",
+              "channelId"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "discord": {
+          "maxItems": 100,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "deployments": { "type": "boolean" },
+              "backupsAndRestores": { "type": "boolean" },
+              "alertsAndIncidents": { "type": "boolean" },
+              "webhookId": { "type": "string", "pattern": "^\\d{1,20}$" }
+            },
+            "required": [
+              "deployments",
+              "backupsAndRestores",
+              "alertsAndIncidents",
+              "webhookId"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "telegram": {
+          "maxItems": 100,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "deployments": { "type": "boolean" },
+              "backupsAndRestores": { "type": "boolean" },
+              "alertsAndIncidents": { "type": "boolean" },
+              "chatId": { "type": "string", "pattern": "^-?\\d{1,20}$" },
+              "messageThreadId": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 2147483647
+              }
+            },
+            "required": [
+              "deployments",
+              "backupsAndRestores",
+              "alertsAndIncidents",
+              "chatId"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
     },
     "externalSecrets": {
       "type": "object",
@@ -113,46 +189,6 @@
         "required": ["integration", "secret", "use"],
         "additionalProperties": false
       }
-    },
-    "telemetry": {
-      "type": "object",
-      "properties": {
-        "integration": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 64,
-          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
-        },
-        "signals": {
-          "minItems": 1,
-          "maxItems": 3,
-          "type": "array",
-          "items": { "type": "string", "enum": ["logs", "metrics", "traces"] }
-        },
-        "protocol": {
-          "default": "otlp-grpc",
-          "type": "string",
-          "enum": ["otlp-http", "otlp-grpc"]
-        },
-        "sampling": {
-          "default": 1,
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "redactAttributes": {
-          "maxItems": 100,
-          "type": "array",
-          "items": { "type": "string", "minLength": 1, "maxLength": 256 }
-        },
-        "cardinalityLimit": {
-          "default": 10000,
-          "type": "integer",
-          "minimum": 100,
-          "maximum": 1000000
-        }
-      },
-      "additionalProperties": false
     },
     "ingress": {
       "oneOf": [
@@ -371,21 +407,6 @@
                 "maxLength": 64,
                 "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
               },
-              "azureBlob": {
-                "type": "object",
-                "properties": {
-                  "container": {
-                    "type": "string",
-                    "pattern": "^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$"
-                  },
-                  "prefix": { "type": "string", "maxLength": 512 },
-                  "storageAccount": {
-                    "type": "string",
-                    "pattern": "^[a-z0-9]{3,24}$"
-                  }
-                },
-                "additionalProperties": false
-              },
               "gcs": {
                 "type": "object",
                 "properties": {
@@ -402,10 +423,7 @@
                 },
                 "additionalProperties": false
               },
-              "restoreFrom": {
-                "type": "string",
-                "enum": ["s3", "gcs", "azureBlob"]
-              },
+              "restoreFrom": { "type": "string", "enum": ["s3", "gcs"] },
               "retention": {
                 "type": "object",
                 "properties": {
@@ -457,20 +475,104 @@
             },
             "additionalProperties": false
           },
-          "logDrains": {
-            "maxItems": 6,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": [
-                "newrelic",
-                "axiom",
-                "betterstack",
-                "datadog",
-                "otlp",
-                "loki"
-              ]
-            }
+          "notifications": {
+            "type": "object",
+            "properties": {
+              "email": {
+                "maxItems": 100,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "deployments": { "type": "boolean" },
+                    "backupsAndRestores": { "type": "boolean" },
+                    "alertsAndIncidents": { "type": "boolean" },
+                    "address": {
+                      "type": "string",
+                      "maxLength": 320,
+                      "format": "email",
+                      "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                    }
+                  },
+                  "required": [
+                    "deployments",
+                    "backupsAndRestores",
+                    "alertsAndIncidents",
+                    "address"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "slack": {
+                "maxItems": 100,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "deployments": { "type": "boolean" },
+                    "backupsAndRestores": { "type": "boolean" },
+                    "alertsAndIncidents": { "type": "boolean" },
+                    "channelId": {
+                      "type": "string",
+                      "pattern": "^[A-Z][A-Z0-9]{1,79}$"
+                    }
+                  },
+                  "required": [
+                    "deployments",
+                    "backupsAndRestores",
+                    "alertsAndIncidents",
+                    "channelId"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "discord": {
+                "maxItems": 100,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "deployments": { "type": "boolean" },
+                    "backupsAndRestores": { "type": "boolean" },
+                    "alertsAndIncidents": { "type": "boolean" },
+                    "webhookId": { "type": "string", "pattern": "^\\d{1,20}$" }
+                  },
+                  "required": [
+                    "deployments",
+                    "backupsAndRestores",
+                    "alertsAndIncidents",
+                    "webhookId"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "telegram": {
+                "maxItems": 100,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "deployments": { "type": "boolean" },
+                    "backupsAndRestores": { "type": "boolean" },
+                    "alertsAndIncidents": { "type": "boolean" },
+                    "chatId": { "type": "string", "pattern": "^-?\\d{1,20}$" },
+                    "messageThreadId": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 2147483647
+                    }
+                  },
+                  "required": [
+                    "deployments",
+                    "backupsAndRestores",
+                    "alertsAndIncidents",
+                    "chatId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
           },
           "externalSecrets": {
             "type": "object",
@@ -504,49 +606,6 @@
               "required": ["integration", "secret", "use"],
               "additionalProperties": false
             }
-          },
-          "telemetry": {
-            "type": "object",
-            "properties": {
-              "integration": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 64,
-                "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
-              },
-              "signals": {
-                "minItems": 1,
-                "maxItems": 3,
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "enum": ["logs", "metrics", "traces"]
-                }
-              },
-              "protocol": {
-                "default": "otlp-grpc",
-                "type": "string",
-                "enum": ["otlp-http", "otlp-grpc"]
-              },
-              "sampling": {
-                "default": 1,
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1
-              },
-              "redactAttributes": {
-                "maxItems": 100,
-                "type": "array",
-                "items": { "type": "string", "minLength": 1, "maxLength": 256 }
-              },
-              "cardinalityLimit": {
-                "default": 10000,
-                "type": "integer",
-                "minimum": 100,
-                "maximum": 1000000
-              }
-            },
-            "additionalProperties": false
           },
           "ingress": {
             "oneOf": [

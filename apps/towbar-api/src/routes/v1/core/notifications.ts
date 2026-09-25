@@ -429,8 +429,6 @@ notificationRoutes.get(
       await listNotificationDeliveries({
         ...deliveriesQuery.parse(context.req.query()),
         workspaceId: context.get("user").workspaceId,
-        sourceId: context.req.param("sourceId"),
-        serverId: context.req.param("serverId"),
       }),
     );
   },

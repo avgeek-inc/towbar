@@ -1,5 +1,9 @@
-import { type LogDrainProvider, logDrainsSchema } from "./log-drains.js";
 import { type AppJob, appJobSchema } from "./app-jobs.js";
+import {
+  type ManifestNotifications,
+  manifestNotificationsSchema,
+  normalizeManifestNotifications,
+} from "./notifications.js";
 /* eslint-disable max-lines -- The versioned manifest schema, normalized DTO, and parser stay together so their public contract cannot drift across modules. */
 
 import { isIP } from "node:net";
@@ -25,7 +29,6 @@ import {
   ingressSchema,
   integrationReferenceSchema,
   rolloutStrategySchema,
-  telemetrySchema,
 } from "./platform-expansion.js";
 
 export {
@@ -47,8 +50,6 @@ const s3BucketPattern =
   /^(?!\d+\.\d+\.\d+\.\d+$)[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/;
 const gcsBucketPattern =
   /^(?!\d+\.\d+\.\d+\.\d+$)[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$/;
-const azureStorageAccountPattern = /^[a-z0-9]{3,24}$/;
-const azureContainerPattern = /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/;
 export const managedResourceTypes = [
   "postgres",
   "mysql",
@@ -380,9 +381,9 @@ const backupPrefixSchema = z
   )
   .optional();
 
-export const backupProviders = ["s3", "r2", "gcs", "azureBlob"] as const;
+export const backupProviders = ["s3", "r2", "gcs"] as const;
 export type BackupProvider = (typeof backupProviders)[number];
-const legacyBackupProviders = ["s3", "gcs", "azureBlob"] as const;
+const legacyBackupProviders = ["s3", "gcs"] as const;
 
 const resourceBackupS3Schema = z
   .object({
@@ -418,18 +419,9 @@ const resourceBackupGcsSchema = z
   })
   .strict();
 
-const resourceBackupAzureBlobSchema = z
-  .object({
-    container: z.string().trim().regex(azureContainerPattern),
-    prefix: backupPrefixSchema,
-    storageAccount: z.string().trim().regex(azureStorageAccountPattern),
-  })
-  .strict();
-
 const resourceBackupSchema = z
   .object({
     integration: integrationReferenceSchema.optional(),
-    azureBlob: resourceBackupAzureBlobSchema.optional(),
     gcs: resourceBackupGcsSchema.optional(),
     restoreFrom: z.enum(legacyBackupProviders).optional(),
     retention: z
@@ -462,11 +454,7 @@ const resourceBackupSchema = z
   .strict()
   .superRefine((backup, context) => {
     const destinations = (
-      [
-        backup.s3 && "s3",
-        backup.gcs && "gcs",
-        backup.azureBlob && "azureBlob",
-      ] as const
+      [backup.s3 && "s3", backup.gcs && "gcs"] as const
     ).filter((value): value is (typeof legacyBackupProviders)[number] =>
       Boolean(value),
     );
@@ -516,7 +504,7 @@ const resourceBackupSchema = z
 export const appSchema = z
   .object({
     jobs: z.array(appJobSchema).max(20).optional(),
-    logDrains: logDrainsSchema.optional(),
+    notifications: manifestNotificationsSchema.optional(),
     autoDeploy: appAutoDeploySchema.optional(),
     vulnerabilityScanning: z.boolean().optional(),
     id: z.string().trim().regex(appIdPattern),
@@ -531,7 +519,6 @@ export const appSchema = z
     externalSecrets: z
       .record(z.string().trim().min(1).max(256), externalSecretReferenceSchema)
       .optional(),
-    telemetry: telemetrySchema.optional(),
     ingress: ingressSchema.optional(),
     container: z
       .object({
@@ -735,22 +722,6 @@ export const appSchema = z
         path: ["container", "networkAlias"],
       });
     }
-    if (app.telemetry && !app.container.network) {
-      context.addIssue({
-        code: "custom",
-        message:
-          "OTLP telemetry requires a declared Docker network so the application can reach the isolated collector",
-        path: ["telemetry"],
-      });
-    }
-    if (app.telemetry?.signals.includes("logs") && app.logDrains?.length) {
-      context.addIssue({
-        code: "custom",
-        message:
-          "Choose either OTLP log export or log drains for this application to prevent duplicate forwarding",
-        path: ["telemetry", "signals"],
-      });
-    }
     if (app.container.networkAlias && app.preview) {
       context.addIssue({
         code: "custom",
@@ -913,11 +884,10 @@ export const resourceSchema = z
     access: resourceAccessSchema.optional(),
     autoDeploy: z.boolean().optional(),
     backup: resourceBackupSchema.optional(),
-    logDrains: logDrainsSchema.optional(),
+    notifications: manifestNotificationsSchema.optional(),
     externalSecrets: z
       .record(z.string().trim().min(1).max(256), externalSecretReferenceSchema)
       .optional(),
-    telemetry: telemetrySchema.optional(),
     ingress: ingressSchema.optional(),
     id: z.string().trim().regex(appIdPattern),
     name: z.string().trim().min(1).max(120),
@@ -950,7 +920,6 @@ export const resourceSchema = z
       .optional(),
   })
   .strict()
-  // eslint-disable-next-line complexity -- The refinement is a declarative list of independent resource invariants.
   .superRefine((resource, context) => {
     validateResourceImageAndCommand(resource, context);
     validateManagedResourceImage(resource, context);
@@ -967,25 +936,6 @@ export const resourceSchema = z
           path: ["externalSecrets", name, "use"],
         });
       }
-    }
-    if (resource.telemetry && !resource.container?.network) {
-      context.addIssue({
-        code: "custom",
-        message:
-          "OTLP telemetry requires a declared Docker network so the workload can reach the isolated collector",
-        path: ["telemetry"],
-      });
-    }
-    if (
-      resource.telemetry?.signals.includes("logs") &&
-      resource.logDrains?.length
-    ) {
-      context.addIssue({
-        code: "custom",
-        message:
-          "Choose either OTLP log export or log drains for this resource to prevent duplicate forwarding",
-        path: ["telemetry", "signals"],
-      });
     }
     const volumes = resource.container?.volumes ?? [];
     findDuplicates(volumes.map((volume) => volume.name)).forEach((name) =>
@@ -1244,7 +1194,7 @@ export type NormalizedDeploymentHook = {
 };
 
 export type NormalizedApp = {
-  logDrains?: LogDrainProvider[];
+  notifications?: ManifestNotifications;
   jobs?: AppJob[];
   kind?: "app";
   autoDeploy: boolean;
@@ -1286,17 +1236,15 @@ export type NormalizedApp = {
   rollout?: z.infer<typeof rolloutStrategySchema>;
   server: string;
   sourceBranch: string;
-  telemetry?: z.infer<typeof telemetrySchema>;
   tls?: { mode: "direct" | "cloudflare-dns" };
 };
 
 export type NormalizedResource = {
-  logDrains?: LogDrainProvider[];
+  notifications?: ManifestNotifications;
   externalSecrets?: Record<
     string,
     z.infer<typeof externalSecretReferenceSchema>
   >;
-  telemetry?: z.infer<typeof telemetrySchema>;
   ingress?: z.infer<typeof ingressSchema>;
   access?: {
     sshTunnel: { hostPort: number };
@@ -1304,17 +1252,12 @@ export type NormalizedResource = {
   autoDeploy: boolean;
   backup?: {
     integration?: string;
-    azureBlob?: {
-      container: string;
-      prefix: string;
-      storageAccount: string;
-    };
     gcs?: {
       bucket: string;
       prefix: string;
       region?: string;
     };
-    restoreFrom?: "s3" | "gcs" | "azureBlob";
+    restoreFrom?: "s3" | "gcs";
     retention: { keepLast: number };
     s3?: {
       bucket: string;
@@ -1365,7 +1308,6 @@ export type NormalizedComposeWorkload = ComposeWorkload & {
   ingress?: never;
   kind: "compose";
   jobs?: NormalizedApp["jobs"];
-  logDrains?: NormalizedApp["logDrains"];
   preview?: NormalizedApp["preview"];
   sourceBranch: string;
   tls?: NormalizedApp["tls"];
@@ -1422,8 +1364,12 @@ export function normalizeDeploymentManifest(
         );
         return {
           kind: "app" as const,
-          ...(app.logDrains?.length
-            ? { logDrains: [...app.logDrains].sort() }
+          ...(app.notifications
+            ? {
+                notifications: normalizeManifestNotifications(
+                  app.notifications,
+                ),
+              }
             : {}),
           ...(app.jobs?.length
             ? {
@@ -1459,7 +1405,6 @@ export function normalizeDeploymentManifest(
           ...(app.externalSecrets
             ? { externalSecrets: app.externalSecrets }
             : {}),
-          ...(app.telemetry ? { telemetry: app.telemetry } : {}),
           ...(app.ingress ? { ingress: app.ingress } : {}),
           deploymentInputs: automaticDeployment.inputs,
           container: {
@@ -1521,6 +1466,13 @@ export function normalizeDeploymentManifest(
           compose: [...parsed.compose]
             .map((workload) => ({
               ...workload,
+              ...(workload.notifications
+                ? {
+                    notifications: normalizeManifestNotifications(
+                      workload.notifications,
+                    ),
+                  }
+                : {}),
               container: { port: 0 as const, volumes: [] as [] },
               context: ".",
               deploymentInputs: [workload.file, ...workload.overrides],
@@ -1642,13 +1594,14 @@ function normalizeResource(
   const backup = normalizeResourceBackup(resource.backup);
   return {
     ...normalizeResourceAccess(resource.access),
-    ...(resource.logDrains?.length
-      ? { logDrains: [...resource.logDrains].sort() }
+    ...(resource.notifications
+      ? {
+          notifications: normalizeManifestNotifications(resource.notifications),
+        }
       : {}),
     ...(resource.externalSecrets
       ? { externalSecrets: resource.externalSecrets }
       : {}),
-    ...(resource.telemetry ? { telemetry: resource.telemetry } : {}),
     ...(resource.ingress ? { ingress: resource.ingress } : {}),
     autoDeploy: resource.autoDeploy ?? false,
     ...(backup ? { backup } : {}),
@@ -1739,26 +1692,15 @@ function normalizeResourceBackup(
   backup: z.output<typeof resourceBackupSchema> | undefined,
 ): NormalizedResource["backup"] {
   if (!backup) return undefined;
-  const destinations = [
-    backup.s3 && "s3",
-    backup.gcs && "gcs",
-    backup.azureBlob && "azureBlob",
-  ].filter(Boolean) as Array<"s3" | "gcs" | "azureBlob">;
+  const destinations = [backup.s3 && "s3", backup.gcs && "gcs"].filter(
+    Boolean,
+  ) as Array<"s3" | "gcs">;
   const restoreFrom = backup.integration
     ? undefined
     : (backup.restoreFrom ??
       (destinations.length === 1 ? destinations[0]! : "s3"));
   return {
     ...(backup.integration ? { integration: backup.integration } : {}),
-    ...(backup.azureBlob
-      ? {
-          azureBlob: {
-            container: backup.azureBlob.container,
-            prefix: backup.azureBlob.prefix || "towbar",
-            storageAccount: backup.azureBlob.storageAccount,
-          },
-        }
-      : {}),
     ...(backup.gcs
       ? {
           gcs: {

@@ -22,12 +22,13 @@ test("migration journal keeps the baseline and notification destinations", async
     "0005_high_reptil.sql",
     "0006_broken_hammerhead.sql",
     "0007_military_darkhawk.sql",
+    "0008_remove_observability_integrations.sql",
     "001_team_access_v2.sql",
   ]);
   const journal = JSON.parse(
     await readFile(`${migrationsFolder}/meta/_journal.json`, "utf8"),
   );
-  assert.equal(journal.entries.length, 7);
+  assert.equal(journal.entries.length, 8);
   assert.equal(journal.entries[0].tag, "001_team_access_v2");
   assert.equal(journal.entries[1].tag, "0002_curvy_wasp");
   assert.equal(journal.entries[2].tag, "0003_sad_gabe_jones");
@@ -35,6 +36,18 @@ test("migration journal keeps the baseline and notification destinations", async
   assert.equal(journal.entries[4].tag, "0005_high_reptil");
   assert.equal(journal.entries[5].tag, "0006_broken_hammerhead");
   assert.equal(journal.entries[6].tag, "0007_military_darkhawk");
+  assert.equal(
+    journal.entries[7].tag,
+    "0008_remove_observability_integrations",
+  );
+  const retirement = await readFile(
+    `${migrationsFolder}/0008_remove_observability_integrations.sql`,
+    "utf8",
+  );
+  assert.match(
+    retirement,
+    /DROP TABLE IF EXISTS "towbar_server_integration_states"/u,
+  );
   const migration = await readFile(
     `${migrationsFolder}/001_team_access_v2.sql`,
     "utf8",
@@ -68,7 +81,6 @@ test("migration journal keeps the baseline and notification destinations", async
     migration,
     /towbar_workspace_notification_provider_configurations/u,
   );
-  assert.doesNotMatch(migration, /towbar_log_drain_configurations/u);
   assert.doesNotMatch(migration, /towbar_installation_setup/u);
   assert.doesNotMatch(
     migration,
@@ -152,7 +164,7 @@ test(
       });
       const [{ count }] =
         await client`select count(*)::int as count from drizzle.__drizzle_migrations`;
-      assert.equal(count, 7);
+      assert.equal(count, 8);
       const roles =
         await client`select enumlabel from pg_enum join pg_type on pg_type.oid = enumtypid where typname = 'towbar_workspace_role' order by enumsortorder`;
       assert.deepEqual(
@@ -178,6 +190,11 @@ test(
           ),
           `${table}.${column}`,
         );
+      assert(
+        !columns.some(
+          (row) => row.table_name === "towbar_server_integration_states",
+        ),
+      );
       const [{ merged }] =
         await client`select towbar_merge_monitoring_metrics('{"cpu":{"sum":3,"min":1,"max":2,"count":2}}', '{"cpu":{"sum":4,"min":4,"max":4,"count":1}}') as merged`;
       assert.deepEqual(merged, { cpu: { sum: 7, min: 1, max: 4, count: 3 } });

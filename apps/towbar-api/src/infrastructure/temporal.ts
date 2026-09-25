@@ -1,4 +1,3 @@
-import { towbarLogDrainTaskQueue } from "@workspace/towbar-core/temporal";
 import { createHash, randomUUID } from "node:crypto";
 
 import { Client, Connection } from "@temporalio/client";
@@ -430,18 +429,6 @@ export async function wakeAppJobsWorkflow() {
     signalArgs: [],
     taskQueue: towbarTaskQueue,
     workflowId: "towbar-app-jobs",
-    workflowIdReusePolicy: "ALLOW_DUPLICATE",
-  });
-}
-
-export async function wakeLogDrainsWorkflow() {
-  const client = await getTemporalClient();
-  await client.workflow.signalWithStart("runLogDrainsWorkflow", {
-    args: [],
-    signal: "wakeLogDrains",
-    signalArgs: [],
-    taskQueue: towbarLogDrainTaskQueue,
-    workflowId: "towbar-log-drains",
     workflowIdReusePolicy: "ALLOW_DUPLICATE",
   });
 }

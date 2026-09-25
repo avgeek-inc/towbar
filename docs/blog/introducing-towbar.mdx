@@ -54,7 +54,7 @@ The second motivation was ownership. Towbar is self-hosted only. There is no Tow
 
 Towbar separates the secrets that operate the platform from the secrets used by workloads.
 
-Static integration credentials are supplied through the environment of the Towbar installation. This includes registry access, backup providers, external-secret providers, notification channels, log forwarding destinations, Cloudflare, and other runtime integrations. The dashboard does not provide forms for entering the credentials that run Towbar. It lists an integration only when the instance started with a complete and valid configuration for it.
+Static integration credentials are supplied through the Towbar runtime configuration. This includes registry access, backup providers, external-secret providers, notification channels, Cloudflare, and other runtime integrations. The dashboard does not provide forms for entering the credentials that run Towbar. Notifications lists supported providers and shows when configuration is missing.
 
 GitHub installation and GitLab OAuth authorization are interactive because their providers require an account authorization flow. The application identity and webhook secrets still belong to the Towbar runtime environment. Dynamic grants and the minimum account metadata needed to use them stay in the self-hosted control plane.
 
@@ -154,7 +154,7 @@ An app is a deployable service. A resource is a persistent service that another 
 
 Towbar includes managed presets for PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Dragonfly, KeyDB, and ClickHouse. Each preset has a reviewed, digest-pinned default image, authenticated health checks, a stable data volume, a native backup format, and a fresh-target restore workflow. Image-based resources are also available for services outside those presets.
 
-Database backups can be written to S3, an S3-compatible service, Cloudflare R2, Google Cloud Storage, or Azure Blob Storage. Policies define retention and scheduling in the repository while provider credentials stay in the Towbar environment. Backup assurance records whether a recent, retained backup actually exists.
+Database backups can be written to S3, an S3-compatible service, Cloudflare R2, Google Cloud Storage. Policies define retention and scheduling in the repository while provider credentials stay in the Towbar environment. Backup assurance records whether a recent, retained backup actually exists.
 
 Restores are designed to preserve a way back. Towbar verifies the backup, restores into a fresh target, checks the result, and switches only after validation. The previous data volume is retained until cleanup is requested. A restore is never treated as an ordinary application rollback because database state deserves a separate recovery path.
 
@@ -203,13 +203,11 @@ Towbar also scans deployed images for known vulnerabilities. Findings include th
 
 ## Logs, notifications, and integrations
 
-Application logs can be forwarded to New Relic, Axiom, Better Stack, Datadog, OpenTelemetry OTLP, or Grafana Loki. The forwarder runs independently of application deployment workflows and uses bounded batching, memory and disk queues, retry windows, and resource limits. A slow destination should not block the application it is observing.
-
-Authentication failures stop retrying. Rate-limit responses use exponential backoff, and a destination that reaches the configured threshold is paused for 24 hours rather than hammered continuously. Towbar records provider-neutral state and bounded diagnostics without storing the destination credentials in PostgreSQL.
+Applications can continue to write container logs, which Towbar captures for troubleshooting. For external log ingestion, configure a collector or logging integration provided by the destination.
 
 Operational notifications can go to Slack, email through SMTP, Discord, Telegram, or a webhook. Routes select categories and destinations, while delivery history records attempts and provider-safe errors. Authentication and repeated rate-limit failures can notify the team through another configured channel.
 
-Runtime integrations also cover private OCI registries, backup storage, external secrets through Infisical or Doppler, Cloudflare, and OpenTelemetry. Provider configuration is singular per Towbar installation and visible only when its complete environment configuration passes startup validation. This keeps the UI focused on what the current instance can actually use.
+Runtime integrations also cover private OCI registries, backup storage, external secrets through Infisical or Doppler, Cloudflare. Provider configuration is singular per Towbar installation and visible only when its complete environment configuration passes startup validation. This keeps the UI focused on what the current instance can actually use.
 
 ## Teams, access, and an audit trail
 

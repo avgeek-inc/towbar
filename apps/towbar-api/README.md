@@ -34,7 +34,7 @@ the pull request, and keeps production runtime health unchanged. Pull request
 merge or closure, retargeting, TTL expiry, manifest disablement, and Admin
 deletion converge on the same cleanup admission path.
 
-AWS, Google Cloud, and Azure backup credentials are workspace-scoped. Servers are
+AWS and Google Cloud backup credentials are workspace-scoped. Servers are
 workspace-owned; server identity is `(workspace_id, canonical_ip)`, so independent Sources that
 target the same IP share configuration, credentials, trust, and preparation.
 Deleting a Source permanently

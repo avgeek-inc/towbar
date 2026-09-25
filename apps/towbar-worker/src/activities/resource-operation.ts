@@ -9,11 +9,7 @@ import { createPolicyHttpsAgent } from "@workspace/towbar-core/network-policy";
 
 import { signedApiRequest } from "../infrastructure/towbar-api.js";
 import { getEnv } from "../env.js";
-import {
-  azureBlobStorage,
-  gcsStorage,
-  s3Storage,
-} from "./resource-operation-storage.js";
+import { gcsStorage, s3Storage } from "./resource-operation-storage.js";
 
 import type {
   BackupStorage,
@@ -74,13 +70,12 @@ export async function executeResourceOperationActivity(operationId: string) {
   }
 }
 
-// eslint-disable-next-line complexity -- This boundary maps each supported provider to the matching integrity-aware storage adapter.
 export function initializeBackupStorages(
   context: Pick<
     ResourceOperationExecutionContext,
     "deployable" | "restoreBackup" | "request"
   >,
-  secrets: Pick<ResourceOperationSecrets, "aws" | "gcp" | "azure"> & {
+  secrets: Pick<ResourceOperationSecrets, "aws" | "gcp"> & {
     namedStorage?: ResourceOperationSecrets["namedStorage"];
   },
 ) {
@@ -94,8 +89,7 @@ export function initializeBackupStorages(
       : undefined;
   const provider =
     context.request.type === "restore"
-      ? (retained?.restoreFrom ??
-        (retained?.storageAccount ? "azureBlob" : "s3"))
+      ? (retained?.restoreFrom ?? "s3")
       : (backup?.restoreFrom ?? "s3");
   let client: S3Client | undefined;
   const storages: Partial<Record<BackupProvider, BackupStorage>> = {};
@@ -133,19 +127,7 @@ export function initializeBackupStorages(
         storages,
       };
     }
-    const azure = named as Extract<typeof named, { provider: "azureBlob" }>;
-    return {
-      client,
-      storage: azureBlobStorage(
-        azure.credentials as {
-          clientId: string;
-          clientSecret: string;
-          tenantId: string;
-        },
-        (azure.configuration as { storageAccount: string }).storageAccount,
-      ),
-      storages,
-    };
+    throw new Error("Named backup provider is unsupported");
   }
   if (secrets.aws) {
     client = new S3Client({
@@ -165,12 +147,6 @@ export function initializeBackupStorages(
       typeof gcsStorage
     >[0];
     storages.gcs = gcsStorage(key);
-  }
-  if (secrets.azure) {
-    storages.azureBlob = azureBlobStorage(
-      secrets.azure,
-      retained?.storageAccount ?? backup?.azureBlob?.storageAccount,
-    );
   }
   return {
     client,

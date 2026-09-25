@@ -65,7 +65,7 @@ For every application, record:
 - domains, internal ports, health checks, replicas, CPU and memory limits, and restart behavior;
 - runtime variables, build variables, preview variables, and shared-variable references;
 - persistent volumes, directories, files, owners, permissions, and mount paths;
-- scheduled tasks, webhooks, preview settings, log drains, and external dependencies; and
+- scheduled tasks, webhooks, preview settings, and external dependencies; and
 - the current commit or immutable image digest.
 
 For every database, record its engine, major version, database names, users, extensions, volume size, connection consumers, backup format, backup destination, retention, and the result of the latest restore test. Coolify documents application variables separately from [database variables](https://coolify.io/docs/databases/configuration/environment-variables), so inspect both.
@@ -98,7 +98,7 @@ Create `towbar.yml` and one entity file per app or resource. Run schema validati
 
 ## 3. Recreate credentials and integrations
 
-Configure GitHub or GitLab, registries, backup storage, notifications, log forwarding, Cloudflare, and external-secret providers in Towbar's host environment. Only correctly configured providers appear under **Manage → Integrations**.
+Configure GitHub or GitLab, registries, backup storage, notifications, Cloudflare, and external-secret providers in Towbar's runtime configuration. Check platform providers under **Manage → Integrations**, and notification providers under Manage → Notifications.
 
 Copy application values into [Shared secrets](/docs/secrets) or workload environment secrets. Do not copy Coolify's encrypted database rows or encryption key into Towbar. Rotate long-lived credentials where practical, and update OAuth callback URLs, provider webhooks, CI secrets, and allowlists for the new Towbar origin.
 

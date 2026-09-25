@@ -28,13 +28,15 @@ import {
   ServerStack01Icon,
   Settings01Icon,
   Key01Icon,
+  Notification01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useParams, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import type {
   App,
   Deployment,
+  PreviewEnvironment,
   Release,
   RuntimeState,
   Source,
@@ -67,6 +69,7 @@ import { DeployableReadiness } from "./deployable-readiness";
 import { AppLogo } from "./deployable-identity";
 import { FirstDeployment } from "./first-deployment";
 import { EnvironmentChip } from "./environment-chip";
+import { DeployableNotifications } from "./deployable-notifications";
 
 type AppRecord = App & {
   serverId: string;
@@ -89,9 +92,7 @@ function tunnelStatusTooltip(runtime: RuntimeState) {
 
 export function AppDetail() {
   const detailNavigation = useDetailNavigation();
-  const { appId } = useParams<{
-    appId: string;
-  }>();
+  const appId = usePathname().split("/")[2]!;
   const router = useRouter();
   const { can } = useAccess();
   const app = useApiQuery<{ app: App & { serverId: string } }>(
@@ -102,6 +103,12 @@ export function AppDetail() {
   );
   const deployments = useApiQuery<{ deployments: Deployment[] }>(
     `/v1/core/apps/${appId}/deployments`,
+    5_000,
+  );
+  const previews = useApiQuery<{ previews: PreviewEnvironment[] }>(
+    app.data?.app.config.preview?.enabled
+      ? `/v1/core/apps/${appId}/previews`
+      : null,
     5_000,
   );
   const releases = useApiQuery<{ releases: Release[] }>(
@@ -247,13 +254,27 @@ export function AppDetail() {
       ) : null}
       <PageTabs
         defaultValue="overview"
+        ungroupedTitle=""
         tabs={[
           {
             value: "overview",
             label: "Overview",
             icon: <HugeiconsIcon icon={DashboardCircleIcon} />,
             content: (
-              <div className="content-grid lg:grid-cols-2">
+              <div
+                className={
+                  latestDeployment
+                    ? "content-grid lg:grid-cols-2"
+                    : "content-grid"
+                }
+              >
+                {!latestDeployment && item.serverReady ? (
+                  <FirstDeployment
+                    canDeploy={can("deployment.create")}
+                    deployableId={appId}
+                    type="app"
+                  />
+                ) : null}
                 <Attributes
                   icon={<HugeiconsIcon icon={DashboardCircleIcon} />}
                   columns={2}
@@ -270,7 +291,7 @@ export function AppDetail() {
                     {item.serverReady ? (
                       <StatusBadge status={item.runtimeState.healthStatus} />
                     ) : (
-                      "Not checked"
+                      <StatusBadge status="not_checked" />
                     )}
                   </Attributes.Item>
                   <Attributes.Item label="Runtime">
@@ -359,14 +380,29 @@ export function AppDetail() {
                       {item.config.autoDeploy ? "Enabled" : "Disabled"}
                     </Attributes.Item>
                   </Attributes>
-                ) : item.serverReady ? (
-                  <FirstDeployment
-                    canDeploy={can("deployment.create")}
-                    deployableId={appId}
-                    type="app"
-                  />
                 ) : null}
               </div>
+            ),
+          },
+          {
+            value: "logs",
+            label: "Logs",
+            group: "Monitor",
+            icon: <HugeiconsIcon icon={FileViewIcon} />,
+            content: (
+              <RuntimeLogs
+                active={!item.archivedAt && item.serverReady}
+                deployableId={appId}
+                hasIngress={usesCloudflareTunnel}
+                services={
+                  item.config.kind === "compose"
+                    ? (releases.data.releases.find(
+                        (release) => release.status === "current",
+                      )?.composeServices ?? Object.keys(item.config.services))
+                    : undefined
+                }
+                type="app"
+              />
             ),
           },
           {
@@ -404,14 +440,6 @@ export function AppDetail() {
             ),
           },
           {
-            value: "compare-deployments",
-            label: "Compare deployments",
-            sidebarLabel: "Compare",
-            group: "Monitor",
-            icon: <HugeiconsIcon icon={GitCompareIcon} />,
-            content: <ScoutCompareDeployments deployableId={appId} />,
-          },
-          {
             value: "vulnerabilities",
             label: "Vulnerabilities",
             group: "Monitor",
@@ -421,6 +449,7 @@ export function AppDetail() {
           {
             value: "deployments",
             label: "Deployments",
+            group: "Ship",
             icon: <HugeiconsIcon icon={Rocket01Icon} />,
             indicator: {
               label: String(orderedDeployments.length),
@@ -439,45 +468,42 @@ export function AppDetail() {
                 {
                   value: "previews",
                   label: "Previews",
+                  group: "Ship",
                   icon: <HugeiconsIcon icon={GitBranchIcon} />,
+                  indicator: previews.data
+                    ? {
+                        label: String(previews.data.previews.length),
+                        variant: "secondary" as const,
+                      }
+                    : undefined,
                   content: (
                     <PreviewEnvironments
-                      appId={appId}
-                      sourceId={item.sourceId}
+                      previews={previews.data?.previews}
+                      error={previews.error}
                     />
                   ),
                 },
               ]
             : []),
           {
-            value: "logs",
-            label: "Logs",
-            icon: <HugeiconsIcon icon={FileViewIcon} />,
-            content: (
-              <RuntimeLogs
-                active={!item.archivedAt && item.serverReady}
-                deployableId={appId}
-                hasIngress={usesCloudflareTunnel}
-                services={
-                  item.config.kind === "compose"
-                    ? (releases.data.releases.find(
-                        (release) => release.status === "current",
-                      )?.composeServices ?? Object.keys(item.config.services))
-                    : undefined
-                }
-                type="app"
-              />
-            ),
+            value: "compare-deployments",
+            label: "Compare deployments",
+            sidebarLabel: "Compare",
+            group: "Ship",
+            icon: <HugeiconsIcon icon={GitCompareIcon} />,
+            content: <ScoutCompareDeployments deployableId={appId} />,
           },
           {
             value: "jobs",
             label: "Scheduled jobs",
+            group: "Operate",
             icon: <HugeiconsIcon icon={Clock01Icon} />,
             content: <AppJobs appId={appId} />,
           },
           {
             value: "storage",
             label: "Storage",
+            group: "Operate",
             icon: <HugeiconsIcon icon={PackageIcon} />,
             content: <AppStorage appId={appId} />,
           },
@@ -507,32 +533,6 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
       icon: <HugeiconsIcon icon={Settings01Icon} />,
       content: <AppConfiguration item={item} />,
     },
-    ...(item.config.preview?.enabled
-      ? [
-          {
-            value: "preview",
-            label: "Preview",
-            icon: <HugeiconsIcon icon={Rocket01Icon} />,
-            content: (
-              <Attributes
-                icon={<HugeiconsIcon icon={Settings01Icon} />}
-                columns={2}
-                title="Preview configuration"
-                variant="card"
-              >
-                <Attributes.Item label="Base domain">
-                  <DomainLink domain={item.config.preview.domain}>
-                    {item.config.preview.domain}
-                  </DomainLink>
-                </Attributes.Item>
-                <Attributes.Item label="Time to live">
-                  {item.config.preview.ttlHours} hours
-                </Attributes.Item>
-              </Attributes>
-            ),
-          },
-        ]
-      : []),
     {
       value: "auto-deploy",
       label: "Auto-deploy",
@@ -543,7 +543,20 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
       value: "secrets",
       label: "Secrets",
       icon: <HugeiconsIcon icon={Key01Icon} />,
-      content: <AppSecrets appId={appId} />,
+      content: (
+        <AppSecrets
+          appId={appId}
+          previewsEnabled={item.config.preview?.enabled === true}
+        />
+      ),
+    },
+    {
+      value: "notifications",
+      label: "Notifications",
+      icon: <HugeiconsIcon icon={Notification01Icon} />,
+      content: (
+        <DeployableNotifications notifications={item.config.notifications} />
+      ),
     },
   ];
 
@@ -560,114 +573,135 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
 
 function AppConfiguration({ item }: { item: AppRecord }) {
   return (
-    <div className="content-grid lg:grid-cols-2 lg:items-start">
-      <Attributes
-        icon={<HugeiconsIcon icon={PackageIcon} />}
-        columns={2}
-        title="Build configuration"
-        variant="card"
-      >
-        {item.config.kind === "compose" ? (
-          <>
-            <Attributes.Item label="Compose file">
-              <TypographyCode className="break-all">
-                {item.config.file}
-              </TypographyCode>
+    <div className="content-grid min-w-0 lg:grid-cols-2 lg:items-start">
+      <div className="grid min-w-0 content-start gap-4">
+        <Attributes
+          icon={<HugeiconsIcon icon={PackageIcon} />}
+          columns={2}
+          title="Build configuration"
+          variant="card"
+        >
+          {item.config.kind === "compose" ? (
+            <>
+              <Attributes.Item label="Compose file">
+                <TypographyCode className="break-all">
+                  {item.config.file}
+                </TypographyCode>
+              </Attributes.Item>
+              <Attributes.Item label="Strategy">
+                {item.config.strategy}
+              </Attributes.Item>
+              <Attributes.Item label="Profiles">
+                {item.config.profiles.join(", ") || "Default"}
+              </Attributes.Item>
+            </>
+          ) : (
+            <Attributes.Item label="Build mode">
+              {item.config.deployment?.type ?? "dockerfile"}
             </Attributes.Item>
-            <Attributes.Item label="Strategy">
-              {item.config.strategy}
-            </Attributes.Item>
-            <Attributes.Item label="Profiles">
-              {item.config.profiles.join(", ") || "Default"}
-            </Attributes.Item>
-          </>
-        ) : (
-          <Attributes.Item label="Build mode">
-            {item.config.deployment?.type ?? "dockerfile"}
+          )}
+          <Attributes.Item label="Repository branch">
+            {item.config.sourceBranch ?? "main"}
           </Attributes.Item>
-        )}
-        <Attributes.Item label="Repository branch">
-          {item.config.sourceBranch ?? "main"}
-        </Attributes.Item>
-        <Attributes.Item label="Repository revision">
-          <TypographyCode title={item.sourceRevision}>
-            {item.sourceRevision.slice(0, 12)}
-          </TypographyCode>
-        </Attributes.Item>
-      </Attributes>
-      <Attributes
-        icon={<HugeiconsIcon icon={PackageIcon} />}
-        columns={2}
-        title="Container configuration"
-        variant="card"
-      >
-        <Attributes.Item label="Container port">
-          {item.config.container.port}
-        </Attributes.Item>
-        <Attributes.Item label="Network">
-          {item.config.container.network ? (
-            <TypographyCode>{item.config.container.network}</TypographyCode>
-          ) : (
-            "Default bridge"
-          )}
-        </Attributes.Item>
-        <Attributes.Item label="CPU limit">
-          {item.config.container.resources?.cpus ?? "Docker default"}
-        </Attributes.Item>
-        <Attributes.Item label="Memory limit">
-          {item.config.container.resources?.memory ?? "Docker default"}
-        </Attributes.Item>
-        <Attributes.Item label="Health endpoint">
-          <TypographyCode>{item.config.health.path}</TypographyCode>
-        </Attributes.Item>
-        <Attributes.Item label="Health timeout">
-          {item.config.health.timeoutSeconds} seconds
-        </Attributes.Item>
-      </Attributes>
-      <Attributes
-        icon={<HugeiconsIcon icon={Rocket01Icon} />}
-        columns={2}
-        title="Deployment configuration"
-        variant="card"
-      >
-        <Attributes.Item label="Auto-deploy">
-          {item.config.autoDeploy ? "Enabled" : "Disabled"}
-        </Attributes.Item>
-        <Attributes.Item label="Deployment inputs">
-          {item.config.autoDeploy
-            ? item.config.deploymentInputs?.length
-              ? renderCodeList(item.config.deploymentInputs)
-              : "Every Repository commit"
-            : "Not used"}
-        </Attributes.Item>
-        <Attributes.Item label="Primary domain">
-          {item.config.domains?.primary ? (
-            <DomainLink domain={item.config.domains.primary}>
-              {item.config.domains.primary}
-            </DomainLink>
-          ) : (
-            "Not configured"
-          )}
-        </Attributes.Item>
-        <Attributes.Item label="Redirects">
-          {item.config.domains?.redirects.length
-            ? item.config.domains.redirects.map((redirect) => (
-                <span className="flex items-center gap-1" key={redirect.host}>
-                  <DomainLink domain={redirect.host}>
-                    {redirect.host}
-                  </DomainLink>
-                  <span>· {redirect.status}</span>
-                </span>
-              ))
-            : "None"}
-        </Attributes.Item>
-        <Attributes.Item label="Pre-deploy hook">
-          {renderHook(item.config.hooks?.preDeploy)}
-        </Attributes.Item>
-        <Attributes.Item label="Post-deploy hook">
-          {renderHook(item.config.hooks?.postDeploy)}
-        </Attributes.Item>
-      </Attributes>
+          <Attributes.Item label="Repository revision">
+            <TypographyCode title={item.sourceRevision}>
+              {item.sourceRevision.slice(0, 12)}
+            </TypographyCode>
+          </Attributes.Item>
+        </Attributes>
+        <Attributes
+          icon={<HugeiconsIcon icon={PackageIcon} />}
+          columns={2}
+          title="Container configuration"
+          variant="card"
+        >
+          <Attributes.Item label="Container port">
+            {item.config.container.port}
+          </Attributes.Item>
+          <Attributes.Item label="Network">
+            {item.config.container.network ? (
+              <TypographyCode>{item.config.container.network}</TypographyCode>
+            ) : (
+              "Default bridge"
+            )}
+          </Attributes.Item>
+          <Attributes.Item label="CPU limit">
+            {item.config.container.resources?.cpus ?? "Docker default"}
+          </Attributes.Item>
+          <Attributes.Item label="Memory limit">
+            {item.config.container.resources?.memory ?? "Docker default"}
+          </Attributes.Item>
+          <Attributes.Item label="Health endpoint">
+            <TypographyCode>{item.config.health.path}</TypographyCode>
+          </Attributes.Item>
+          <Attributes.Item label="Health timeout">
+            {item.config.health.timeoutSeconds} seconds
+          </Attributes.Item>
+        </Attributes>
+      </div>
+      <div className="grid min-w-0 content-start gap-4">
+        <Attributes
+          icon={<HugeiconsIcon icon={Rocket01Icon} />}
+          columns={2}
+          title="Deployment configuration"
+          variant="card"
+        >
+          <Attributes.Item label="Auto-deploy">
+            {item.config.autoDeploy ? "Enabled" : "Disabled"}
+          </Attributes.Item>
+          <Attributes.Item label="Deployment inputs">
+            {item.config.autoDeploy
+              ? item.config.deploymentInputs?.length
+                ? renderCodeList(item.config.deploymentInputs)
+                : "Every Repository commit"
+              : "Not used"}
+          </Attributes.Item>
+          <Attributes.Item label="Primary domain">
+            {item.config.domains?.primary ? (
+              <DomainLink domain={item.config.domains.primary}>
+                {item.config.domains.primary}
+              </DomainLink>
+            ) : (
+              "Not configured"
+            )}
+          </Attributes.Item>
+          <Attributes.Item label="Redirects">
+            {item.config.domains?.redirects.length
+              ? item.config.domains.redirects.map((redirect) => (
+                  <span className="flex items-center gap-1" key={redirect.host}>
+                    <DomainLink domain={redirect.host}>
+                      {redirect.host}
+                    </DomainLink>
+                    <span>· {redirect.status}</span>
+                  </span>
+                ))
+              : "None"}
+          </Attributes.Item>
+          <Attributes.Item label="Pre-deploy hook">
+            {renderHook(item.config.hooks?.preDeploy)}
+          </Attributes.Item>
+          <Attributes.Item label="Post-deploy hook">
+            {renderHook(item.config.hooks?.postDeploy)}
+          </Attributes.Item>
+        </Attributes>
+        {item.config.preview?.enabled ? (
+          <Attributes
+            icon={<HugeiconsIcon icon={GitBranchIcon} />}
+            columns={2}
+            title="Preview configuration"
+            variant="card"
+          >
+            <Attributes.Item label="Base domain">
+              <DomainLink domain={item.config.preview.domain}>
+                {item.config.preview.domain}
+              </DomainLink>
+            </Attributes.Item>
+            <Attributes.Item label="Time to live">
+              {item.config.preview.ttlHours} hours
+            </Attributes.Item>
+          </Attributes>
+        ) : null}
+      </div>
     </div>
   );
 }

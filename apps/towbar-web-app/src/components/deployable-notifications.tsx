@@ -1,0 +1,134 @@
+"use client";
+
+import { CheckmarkCircle01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import type { ManifestNotifications } from "@workspace/towbar-core";
+import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
+import {
+  ResourceTable,
+  type ResourceTableColumn,
+} from "@workspace/towbar-web-ui/resource-table";
+
+import { NotificationProviderIcon } from "./notification-provider-icon";
+
+type Subscription = {
+  deployments: boolean;
+  backupsAndRestores: boolean;
+  alertsAndIncidents: boolean;
+};
+type Provider = "smtp" | "slack" | "discord" | "telegram";
+type Destination = Subscription & {
+  label: string;
+  key: string;
+  provider: Provider;
+};
+
+const providerLabels: Record<Provider, string> = {
+  smtp: "Email",
+  slack: "Slack",
+  discord: "Discord",
+  telegram: "Telegram",
+};
+
+const subscriptionColumns = [
+  { key: "deployments", label: "Deployments" },
+  { key: "backupsAndRestores", label: "Backup & Restore" },
+  { key: "alertsAndIncidents", label: "Alerts & Incidents" },
+] as const;
+
+const columns: ResourceTableColumn<Destination>[] = [
+  {
+    key: "provider",
+    header: "Provider",
+    className: "min-w-28",
+    cell: (row) => (
+      <span className="inline-flex items-center gap-2 whitespace-nowrap">
+        <NotificationProviderIcon provider={row.provider} />
+        {providerLabels[row.provider]}
+      </span>
+    ),
+  },
+  {
+    key: "destination",
+    header: "Destination",
+    className: "min-w-44",
+    cell: (row) => row.label,
+  },
+  ...subscriptionColumns.map(({ key, label }) => ({
+    key,
+    header: label,
+    headerClassName: "text-left",
+    className: "min-w-32 text-left",
+    cell: (row: Destination) =>
+      row[key] ? (
+        <span className="inline-flex items-center gap-1.5 text-success">
+          <HugeiconsIcon icon={CheckmarkCircle01Icon} className="size-4" />
+          <span className="sr-only">Enabled</span>
+        </span>
+      ) : (
+        <span className="text-muted" aria-label="Not enabled">
+          —
+        </span>
+      ),
+  })),
+];
+
+export function DeployableNotifications({
+  notifications,
+}: {
+  notifications?: ManifestNotifications;
+}) {
+  const destinations: Destination[] = [
+    ...(notifications?.email ?? []).map((row) => ({
+      ...row,
+      key: `smtp:${row.address}`,
+      label: row.address,
+      provider: "smtp" as const,
+    })),
+    ...(notifications?.slack ?? []).map((row) => ({
+      ...row,
+      key: `slack:${row.channelId}`,
+      label: row.channelId,
+      provider: "slack" as const,
+    })),
+    ...(notifications?.discord ?? []).map((row) => ({
+      ...row,
+      key: `discord:${row.webhookId}`,
+      label: row.webhookId,
+      provider: "discord" as const,
+    })),
+    ...(notifications?.telegram ?? []).map((row) => ({
+      ...row,
+      key: `telegram:${row.chatId}:${row.messageThreadId ?? 0}`,
+      label: row.messageThreadId
+        ? `${row.chatId} · Topic ${row.messageThreadId}`
+        : row.chatId,
+      provider: "telegram" as const,
+    })),
+  ];
+
+  if (!destinations.length)
+    return (
+      <EmptyState>
+        <EmptyState.Header>
+          <EmptyState.Title>No notification destinations</EmptyState.Title>
+          <EmptyState.Description>
+            Add destinations to this app or resource manifest, then sync the
+            repository to receive its notifications here.
+          </EmptyState.Description>
+        </EmptyState.Header>
+      </EmptyState>
+    );
+
+  return (
+    <ResourceTable
+      ariaLabel="Notification destinations"
+      columns={columns}
+      items={destinations}
+      getRowKey={(row) => row.key}
+      emptyTitle="No destinations"
+      emptyDescription="No notification destinations are configured."
+      tableClassName="[&_.table__column]:py-2"
+    />
+  );
+}

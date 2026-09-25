@@ -6,15 +6,12 @@ import { usePathname } from "next/navigation";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 
-import { logDrainNames, type LogDrainState } from "./log-drain-integration";
-import { logDrainStatus } from "@/lib/log-drain-providers";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { PageSelectionTitle } from "./page-selection-title";
 import { SecondaryItems } from "./secondary-sidebar";
 import {
   getProviderIcon,
   integrationGroups,
-  logForwardingProviders,
   type ProviderGroup,
 } from "./integration-catalog";
 
@@ -105,10 +102,8 @@ export function Integrations({ integration }: { integration: string }) {
     "/v1/core/integrations",
     30_000,
   );
-  const drains = useApiQuery<LogDrainState>("/v1/core/log-drains", 30_000);
-  const error = integrations.error ?? drains.error;
-  if (error) return <QueryError message={error} />;
-  if (!integrations.data || !drains.data) return <QueryLoading />;
+  if (integrations.error) return <QueryError message={integrations.error} />;
+  if (!integrations.data) return <QueryLoading />;
 
   const enabled = new Set(
     integrations.data.integrations.map((item) => item.provider),
@@ -121,28 +116,11 @@ export function Integrations({ integration }: { integration: string }) {
       ),
     }))
     .filter((group) => group.providers.length > 0);
-  const enabledLogDrains = new Set(
-    drains.data.configurations.map((configuration) => configuration.provider),
-  );
-  const logProviders = logForwardingProviders.filter((item) =>
-    enabledLogDrains.has(item.provider as keyof typeof logDrainNames),
-  );
-  if (logProviders.length)
-    groups.push({
-      value: "log-forwarding",
-      label: "Log forwarding",
-      providers: logProviders,
-    });
-
-  const statuses: Record<string, string> = Object.fromEntries([
-    ...groups
+  const statuses: Record<string, string> = Object.fromEntries(
+    groups
       .flatMap((group) => group.providers)
-      .filter((item) => item.value !== "deliveries")
       .map((item) => [item.value, "Configured"] as const),
-    ...drains.data.configurations.map(
-      (item) => [item.provider, logDrainStatus(item).label] as const,
-    ),
-  ]);
+  );
   return (
     <ProviderPage
       groups={groups}
@@ -156,6 +134,5 @@ export function Integrations({ integration }: { integration: string }) {
 export {
   getProviderIcon,
   integrationGroups,
-  logForwardingProviders,
   notificationProviders,
 } from "./integration-catalog";

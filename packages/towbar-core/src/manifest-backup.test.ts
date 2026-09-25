@@ -36,7 +36,7 @@ void test("normalizes managed backups and rejects unsafe declarations", () => {
   );
 });
 
-void test("normalizes GCS, Azure Blob, and multi-destination backups", () => {
+void test("normalizes GCS and multi-destination backups", () => {
   const gcsManifest = parseResolvedManifest(
     `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    backup:\n      gcs:\n        bucket: my-gcs-backups\n        prefix: db\n        region: us-central1\n`,
   ).manifest;
@@ -46,16 +46,6 @@ void test("normalizes GCS, Azure Blob, and multi-destination backups", () => {
   assert.equal(gcsResource.backup?.gcs?.bucket, "my-gcs-backups");
   assert.equal(gcsResource.backup?.gcs?.prefix, "db");
   assert.equal(gcsResource.backup?.gcs?.region, "us-central1");
-
-  const azureManifest = parseResolvedManifest(
-    `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    backup:\n      azureBlob:\n        storageAccount: myaccount\n        container: backups\n`,
-  ).manifest;
-  const azureResource = azureManifest.resources?.[0];
-  assert.ok(azureResource);
-  assert.equal(azureResource.backup?.restoreFrom, "azureBlob");
-  assert.equal(azureResource.backup?.azureBlob?.storageAccount, "myaccount");
-  assert.equal(azureResource.backup?.azureBlob?.container, "backups");
-  assert.equal(azureResource.backup?.azureBlob?.prefix, "towbar");
 
   const multiManifest = parseResolvedManifest(
     `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    backup:\n      restoreFrom: gcs\n      s3:\n        bucket: s3-backups\n      gcs:\n        bucket: gcs-backups\n`,
@@ -79,7 +69,7 @@ void test("normalizes GCS, Azure Blob, and multi-destination backups", () => {
   assert.throws(
     () =>
       parseResolvedManifest(
-        `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    backup:\n      restoreFrom: azureBlob\n      s3:\n        bucket: s3-backups\n`,
+        `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    backup:\n      restoreFrom: gcs\n      s3:\n        bucket: s3-backups\n`,
       ),
     ManifestValidationError,
   );

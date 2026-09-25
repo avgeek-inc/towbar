@@ -864,7 +864,7 @@ export function createTeamAccessFixture(
       }
       if (
         selected.role !== "admin" &&
-        /\/v1\/core\/(?:team(?:\/|$)|settings\/private-keys|aws|azure|gcp|log-drains|system-health|notifications\/|github(?:$|\/configuration|\/install)|.*\/(?:credentials|host-keys|orphans|cloudflare-tls|auto-deploy-control)(?:\/|$))/.test(
+        /\/v1\/core\/(?:team(?:\/|$)|settings\/private-keys|aws|gcp|system-health|notifications\/|github(?:$|\/configuration|\/install)|.*\/(?:credentials|host-keys|orphans|cloudflare-tls|auto-deploy-control)(?:\/|$))/.test(
           path,
         )
       )

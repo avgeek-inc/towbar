@@ -40,13 +40,13 @@ export function FirstDeployment({
     <Widget className="min-w-0">
       <Widget.Header>
         <Widget.Title icon={<HugeiconsIcon icon={Rocket01Icon} />}>
-          First deployment
+          Deployment Status
         </Widget.Title>
       </Widget.Header>
       <Widget.Content className="flex min-h-36 items-center">
         {!readiness.data ? (
           <div className="grid gap-1">
-            <p className="font-medium">
+            <p>
               {readiness.error
                 ? "Secret status unavailable"
                 : "Checking required secrets…"}
@@ -72,7 +72,7 @@ export function FirstDeployment({
               <HugeiconsIcon icon={CheckmarkCircle01Icon} className="size-5" />
             </span>
             <div className="min-w-48 flex-1">
-              <p className="font-medium">All secrets are configured</p>
+              <p>All secrets are configured</p>
               <p className="text-sm text-muted">
                 This {type} is ready for its first deployment.
               </p>
@@ -111,7 +111,7 @@ export function FirstDeployment({
               <HugeiconsIcon icon={AlertCircleIcon} className="size-5" />
             </span>
             <div className="min-w-48 flex-1">
-              <p className="font-medium">Deployment paused</p>
+              <p>Deployment paused</p>
               <p className="text-sm text-muted">
                 Configure the pending secrets before the first deployment.
               </p>

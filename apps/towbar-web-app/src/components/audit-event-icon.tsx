@@ -4,7 +4,6 @@ import {
   Archive01Icon,
   CommandLineIcon,
   Delete02Icon,
-  FileViewIcon,
   GitBranchIcon,
   Key01Icon,
   Mail01Icon,
@@ -36,7 +35,6 @@ const icons = {
   terminal: CommandLineIcon,
   scout: null,
   alert: Alert02Icon,
-  "log-forwarding": FileViewIcon,
   restore: Archive01Icon,
   cleanup: Delete02Icon,
 } satisfies Record<AuditEventIconName, typeof Activity01Icon | null>;

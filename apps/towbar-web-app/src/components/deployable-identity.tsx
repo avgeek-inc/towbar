@@ -125,7 +125,7 @@ export function AppLogo({
   size = "default",
 }: {
   domain: string | undefined;
-  size?: "default" | "small";
+  size?: "default" | "small" | "compact";
 }) {
   const [result, setResult] = useState<{
     domain: string;
@@ -141,22 +141,28 @@ export function AppLogo({
     (failedAppLogoDomains.has(domain) ||
       (result?.domain === domain && result.status === "failed")),
   );
-  const pixels = size === "small" ? 24 : 32;
+  const pixels = size === "compact" ? 16 : size === "small" ? 24 : 32;
   return (
     <span
-      className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-sm ${size === "small" ? "size-6" : "size-8"}`}
+      className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-sm ${size === "compact" ? "size-4" : size === "small" ? "size-6" : "size-8"}`}
     >
       {!loaded ? (
         <HugeiconsIcon
           aria-hidden="true"
-          className={size === "small" ? "size-5" : "size-6"}
+          className={
+            size === "compact"
+              ? "size-4"
+              : size === "small"
+                ? "size-5"
+                : "size-6"
+          }
           icon={DashboardCircleIcon}
         />
       ) : null}
       {domain && !failed ? (
         <Image
           alt=""
-          className={`object-contain ${size === "small" ? "size-6" : "size-8"} ${loaded ? "" : "absolute opacity-0"}`}
+          className={`object-contain ${size === "compact" ? "size-4" : size === "small" ? "size-6" : "size-8"} ${loaded ? "" : "absolute opacity-0"}`}
           height={pixels}
           loader={externalImageLoader}
           loading="eager"
@@ -277,20 +283,20 @@ export function ResourceLogo({
   size = "default",
 }: {
   brand: ResourceBrand;
-  size?: "default" | "small";
+  size?: "default" | "small" | "compact";
 }) {
   const [failed, setFailed] = useState(false);
   const fallback = "/resource-types/image.png";
   const logo = failed ? fallback : brand.logo;
   const dark = failed ? undefined : brand.logoDark;
-  const pixels = size === "small" ? 24 : 32;
+  const pixels = size === "compact" ? 16 : size === "small" ? 24 : 32;
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center ${size === "small" ? "size-6" : "size-8"} ${brand.darkBackground && !failed ? "rounded-sm bg-zinc-800 p-0.5" : ""} ${brand.darkPlate && !failed ? "rounded-sm dark:bg-white dark:p-0.5" : ""}`}
+      className={`inline-flex shrink-0 items-center justify-center ${size === "compact" ? "size-4" : size === "small" ? "size-6" : "size-8"} ${brand.darkBackground && !failed ? "rounded-sm bg-zinc-800 p-0.5" : ""} ${brand.darkPlate && !failed ? "rounded-sm dark:bg-white dark:p-0.5" : ""}`}
     >
       <Image
         alt=""
-        className={`max-h-full max-w-full object-contain ${size === "small" ? "size-6" : "size-8"} ${dark ? "dark:hidden" : ""}`}
+        className={`max-h-full max-w-full object-contain ${size === "compact" ? "size-4" : size === "small" ? "size-6" : "size-8"} ${dark ? "dark:hidden" : ""}`}
         height={pixels}
         width={pixels}
         src={logo}
@@ -302,7 +308,7 @@ export function ResourceLogo({
       {dark ? (
         <Image
           alt=""
-          className={`hidden object-contain dark:block ${size === "small" ? "size-6" : "size-8"}`}
+          className={`hidden object-contain dark:block ${size === "compact" ? "size-4" : size === "small" ? "size-6" : "size-8"}`}
           height={pixels}
           width={pixels}
           src={dark}

@@ -12,7 +12,6 @@ test("verification removes inherited provider and database configuration", () =>
     TOWBAR_CREDENTIALS_KEY: "must-not-inherit",
     TEMPORAL_ADDRESS: "must-not-inherit",
     AWS_PROFILE: "must-not-inherit",
-    AZURE_CLIENT_SECRET: "must-not-inherit",
     GOOGLE_APPLICATION_CREDENTIALS: "must-not-inherit",
     GCLOUD_PROJECT: "must-not-inherit",
     GCP_PROJECT: "must-not-inherit",

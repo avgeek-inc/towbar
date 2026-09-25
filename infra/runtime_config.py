@@ -74,13 +74,10 @@ PROVIDER_FIELDS = {
     "s3": "ENABLED ENDPOINT REGION BUCKET PREFIX ADDRESSING_STYLE ALLOW_PRIVATE_NETWORK CUSTOM_CA_BASE64 ACCESS_KEY_ID SECRET_ACCESS_KEY",
     "r2": "ENABLED ENDPOINT REGION BUCKET PREFIX ADDRESSING_STYLE ALLOW_PRIVATE_NETWORK CUSTOM_CA_BASE64 ACCESS_KEY_ID SECRET_ACCESS_KEY",
     "gcs": "ENABLED PROJECT_ID BUCKET PREFIX SERVICE_ACCOUNT_JSON_BASE64",
-    "azure": "ENABLED STORAGE_ACCOUNT CONTAINER PREFIX TENANT_ID CLIENT_ID CLIENT_SECRET",
     "infisical": "ENABLED BASE_URL ALLOW_PRIVATE_NETWORK CLIENT_ID CLIENT_SECRET",
     "doppler": "ENABLED TOKEN",
     "cloudflare": "ENABLED ACCOUNT_ID ZONE_ID API_TOKEN CLOUDFLARED_IMAGE",
-    "otlp": "ENABLED ENDPOINT DASHBOARD_URL PROTOCOL ALLOW_PRIVATE_NETWORK HEADERS_JSON",
 }
-LOG_FORWARDERS = ("newrelic", "axiom", "betterstack", "datadog", "otlp", "loki")
 
 
 def camel(value):
@@ -97,15 +94,6 @@ for provider, names in PROVIDER_FIELDS.items():
         FIELDS[f"TOWBAR_{provider.upper()}_{name}"] = field(
             f"integrations.{provider}.{path_name}", kind
         )
-
-for provider in LOG_FORWARDERS:
-    prefix = f"TOWBAR_LOG_DRAIN_{provider.upper()}"
-    FIELDS[f"{prefix}_ENABLED"] = field(
-        f"logForwarding.{provider}.enabled", "boolean"
-    )
-    FIELDS[f"{prefix}_CONFIG_JSON"] = field(
-        f"logForwarding.{provider}.config", "json-object"
-    )
 
 
 def parse_env(path):
@@ -263,9 +251,6 @@ def validate_known_fields(config):
         "providers": None,
         "routes": None,
     }
-    for provider in LOG_FORWARDERS:
-        allowed["logForwarding"][provider]["config"] = None
-    allowed["integrations"]["otlp"]["headers"] = None
 
     def walk(value, schema, prefix=""):
         if schema is None:

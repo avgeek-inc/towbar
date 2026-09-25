@@ -157,17 +157,17 @@ const sidebar = {
       items: [
         {
           kind: "link",
-          id: "integrations",
-          label: "Integrations",
-          href: "/manage/integrations",
-          icon: PlugSocketIcon,
-        },
-        {
-          kind: "link",
           id: "ssh-keys",
           label: "SSH keys",
           href: "/manage/ssh-keys",
           icon: ComputerTerminal01Icon,
+        },
+        {
+          kind: "link",
+          id: "shared-secrets",
+          label: "Shared Secrets",
+          href: "/manage/shared-secrets",
+          icon: Key01Icon,
         },
         {
           kind: "link",
@@ -178,10 +178,10 @@ const sidebar = {
         },
         {
           kind: "link",
-          id: "shared-secrets",
-          label: "Shared Secrets",
-          href: "/manage/shared-secrets",
-          icon: Key01Icon,
+          id: "integrations",
+          label: "Integrations",
+          href: "/manage/integrations",
+          icon: PlugSocketIcon,
         },
         {
           kind: "link",

@@ -126,7 +126,6 @@
               "docs/scout",
               "docs/scout-alerts",
               "docs/deployment-comparisons",
-              "docs/observability-routing",
               "docs/vulnerability-scanning",
               "docs/troubleshooting"
             ]
@@ -160,7 +159,6 @@
               "docs/integrations/backup-providers",
               "docs/integrations/aws",
               "docs/integrations/gcp",
-              "docs/integrations/azure",
               "docs/integrations/s3-compatible"
             ]
           },
@@ -175,10 +173,6 @@
           {
             "group": "Notifications",
             "pages": ["docs/integrations/notifications"]
-          },
-          {
-            "group": "Log forwarding",
-            "pages": ["docs/integrations/log-drains"]
           }
         ]
       },

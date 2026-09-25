@@ -1,4 +1,3 @@
-import { internalLogDrainRoutes } from "./log-drains.js";
 import { internalTransactionalEmailRoutes } from "./transactional-emails.js";
 import { internalMonitoringRoutes } from "./monitoring.js";
 import { Hono } from "hono";
@@ -31,5 +30,3 @@ internalRoutes.route("/previews", internalPreviewRoutes);
 internalRoutes.route("/monitoring", internalMonitoringRoutes);
 
 internalRoutes.route("/transactional-emails", internalTransactionalEmailRoutes);
-
-internalRoutes.route("/log-drains", internalLogDrainRoutes);

@@ -7,7 +7,7 @@ Use this reference when configuring the Towbar installation. Application secrets
 
 The installer creates `/etc/towbar/towbar.yml` with root ownership and mode `600`. `towbar config path` prints that location without reading the file. Edit it with an editor such as `sudo nano "$(towbar config path)"`, validate it with `sudo towbar config validate`, and apply changes with `sudo towbar restart`. Editing YAML alone does not update running services.
 
-Towbar does not provide a configuration editor. Before replacing a running container, `restart` validates the YAML and Compose model, then runs API, worker, integration, notification, log-forwarding, and Caddy preflights against the installed release images. A failed preflight leaves the running services untouched and directs you to `sudo towbar doctor`.
+Towbar does not provide a configuration editor. Before replacing a running container, `restart` validates the YAML and Compose model, then runs API, worker, integration, notification, and Caddy preflights against the installed release images. A failed preflight leaves the running services untouched and directs you to `sudo towbar doctor`.
 
 ```yaml title="/etc/towbar/towbar.yml"
 version: 1
@@ -30,7 +30,7 @@ integrations:
     webhookSecret: "..."
 ```
 
-Optional provider objects can be added under `integrations`, `notifications`, and `logForwarding`. Keep identifiers and secrets quoted when they contain only digits or YAML-special characters. Unknown settings and duplicate YAML keys are rejected.
+Optional provider objects can be added under `integrations` and `notifications`. Keep identifiers and secrets quoted when they contain only digits or YAML-special characters. Unknown settings and duplicate YAML keys are rejected.
 
 ## Required installation secrets
 
@@ -84,22 +84,20 @@ Set secret values directly. Towbar does not support external file references. En
 
 GitHub stores only the selected App installation and account metadata in PostgreSQL. GitLab stores only an encrypted, revocable OAuth grant and short-lived PKCE authorization attempts. App identity, OAuth client secrets, webhook secrets, and provider endpoints remain in the protected YAML file.
 
-### Registries, storage, secrets, platform, and telemetry
+### Registries, storage, secrets, and platform services
 
-| Provider             | Enable setting                    | Required values                                            |
-| -------------------- | --------------------------------- | ---------------------------------------------------------- |
-| OCI registry         | `integrations.registry.enabled`   | `host`, `password`; `username` is optional                 |
-| AWS                  | `integrations.aws.enabled`        | `region`, `accessKeyId`, `secretAccessKey`                 |
-| S3 compatible        | `integrations.s3.enabled`         | `region`, `accessKeyId`, `secretAccessKey`                 |
-| Cloudflare R2        | `integrations.r2.enabled`         | `endpoint`, `region`, `accessKeyId`, `secretAccessKey`     |
-| Google Cloud Storage | `integrations.gcs.enabled`        | `projectId`, `serviceAccountJsonBase64`                    |
-| Azure Blob Storage   | `integrations.azure.enabled`      | `storageAccount`, `tenantId`, `clientId`, `clientSecret`   |
-| Infisical            | `integrations.infisical.enabled`  | `clientId`, `clientSecret`                                 |
-| Doppler              | `integrations.doppler.enabled`    | `token`                                                    |
-| Cloudflare           | `integrations.cloudflare.enabled` | `accountId`, `apiToken`                                    |
-| OpenTelemetry        | `integrations.otlp.enabled`       | `endpoint`; request headers go in the native `headers` map |
+| Provider             | Enable setting                    | Required values                                        |
+| -------------------- | --------------------------------- | ------------------------------------------------------ |
+| OCI registry         | `integrations.registry.enabled`   | `host`, `password`; `username` is optional             |
+| AWS                  | `integrations.aws.enabled`        | `region`, `accessKeyId`, `secretAccessKey`             |
+| S3 compatible        | `integrations.s3.enabled`         | `region`, `accessKeyId`, `secretAccessKey`             |
+| Cloudflare R2        | `integrations.r2.enabled`         | `endpoint`, `region`, `accessKeyId`, `secretAccessKey` |
+| Google Cloud Storage | `integrations.gcs.enabled`        | `projectId`, `serviceAccountJsonBase64`                |
+| Infisical            | `integrations.infisical.enabled`  | `clientId`, `clientSecret`                             |
+| Doppler              | `integrations.doppler.enabled`    | `token`                                                |
+| Cloudflare           | `integrations.cloudflare.enabled` | `accountId`, `apiToken`                                |
 
-Other supported fields include bucket, prefix, endpoint, addressing style, private-network access, CA certificate, zone, image, dashboard URL, and protocol under the corresponding provider. Temporary AWS sessions are intentionally unsupported because they cannot be maintained safely as static installation configuration.
+Other supported fields include bucket, prefix, endpoint, addressing style, private-network access, CA certificate, zone, and image under the corresponding provider. Temporary AWS sessions are intentionally unsupported because they cannot be maintained safely as static installation configuration.
 
 ### Notifications
 
@@ -132,10 +130,6 @@ notifications:
 ```
 
 The dashboard shows the active providers and routes without returning credentials. Notification events, delivery attempts, provider outcomes, and thread identifiers remain persisted for reliable retries and audit history.
-
-### Log forwarding
-
-Each supported drain has `logForwarding.<provider>.enabled` and a native YAML `config` map. Providers are `newrelic`, `axiom`, `betterstack`, `datadog`, `otlp`, and `loki`. The config shape is provider-specific and includes the ingest credential. Towbar hashes the rendered JSON to derive a revision; it does not persist the configuration document. Per-server applied state, delivery health, backoff, and diagnostics remain in PostgreSQL.
 
 ## Image vulnerability scanning
 

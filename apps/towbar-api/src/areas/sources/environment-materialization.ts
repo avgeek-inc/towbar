@@ -236,14 +236,12 @@ type IntegrationDescriptor = Pick<
 
 const purposeByProvider: Record<IntegrationProvider, IntegrationPurpose> = {
   aws: "backup",
-  azureBlob: "backup",
   cloudflare: "ingress",
   doppler: "secret",
   gcs: "backup",
   github: "source",
   gitlab: "source",
   infisical: "secret",
-  otlp: "telemetry",
   r2: "backup",
   registry: "image",
   s3: "backup",
@@ -322,12 +320,6 @@ function collectIntegrationReferences(
   if (entity.kind === "compose") {
     for (const [service, policy] of Object.entries(entity.services)) {
       add(
-        policy.telemetry?.integration,
-        "telemetry",
-        ["otlp"],
-        `${entity.id}.services.${service}.telemetry.integration`,
-      );
-      add(
         policy.ingress?.type === "cloudflare-tunnel"
           ? policy.ingress.integration
           : undefined,
@@ -337,12 +329,6 @@ function collectIntegrationReferences(
       );
     }
   } else {
-    add(
-      entity.telemetry?.integration,
-      "telemetry",
-      ["otlp"],
-      `${entity.id}.telemetry.integration`,
-    );
     add(
       entity.ingress?.type === "cloudflare-tunnel"
         ? entity.ingress.integration
@@ -355,7 +341,7 @@ function collectIntegrationReferences(
       add(
         entity.backup?.integration,
         "backup",
-        ["s3", "r2", "gcs", "azureBlob"],
+        ["s3", "r2", "gcs"],
         `${entity.id}.backup.integration`,
       );
   }
