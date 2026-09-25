@@ -1046,7 +1046,7 @@ let systemHealth: SystemHealth = {
     },
   ],
   status: "healthy",
-  version: "2.0.12-fixture",
+  version: "2.0.13-fixture",
 };
 
 function fixtureSystemHealth(): SystemHealth {
@@ -2549,6 +2549,34 @@ export function createFixtureApiServer({
         .catch(() =>
           writeJson(response, 400, {
             error: { message: "Invalid server configuration" },
+          }),
+        );
+      return;
+    }
+    const serverNameMatch = path.match(/^\/v1\/core\/servers\/([^/]+)\/name$/);
+    if (serverNameMatch && request.method === "PATCH") {
+      const server = servers.find((item) => item.id === serverNameMatch[1]);
+      if (!server) return writeNotFound(response);
+      void readRequestJson(request)
+        .then((input) => {
+          const name = (input as { name?: unknown }).name;
+          if (
+            name !== null &&
+            (typeof name !== "string" ||
+              !name.trim() ||
+              name.trim().length > 120)
+          ) {
+            return writeJson(response, 400, {
+              error: { message: "Invalid server name" },
+            });
+          }
+          server.name = typeof name === "string" ? name.trim() : null;
+          server.updatedAt = new Date().toISOString();
+          return writeJson(response, 200, { server });
+        })
+        .catch(() =>
+          writeJson(response, 400, {
+            error: { message: "Invalid server name" },
           }),
         );
       return;
@@ -4123,6 +4151,7 @@ function createServerFixture(
   return {
     archivedAt: null,
     canonicalIp,
+    name: null,
     hardware:
       id === fixtureIds.server
         ? {

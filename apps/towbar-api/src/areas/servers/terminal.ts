@@ -58,7 +58,7 @@ async function target(serverId: string, workspaceId: string) {
   if (!server) throw forbidden("This server is unavailable");
   if (!server.privateKeyId)
     throw conflict(
-      "Connect a private key in server Credentials before opening the terminal",
+      "Connect a private key in server Configuration before opening the terminal",
       "SERVER_CREDENTIALS_MISSING",
     );
   const hostKeys = await database
@@ -72,7 +72,7 @@ async function target(serverId: string, workspaceId: string) {
     );
   if (!hostKeys.length)
     throw conflict(
-      "Verify and trust the server in Credentials before opening the terminal",
+      "Verify and trust the server in Configuration before opening the terminal",
       "HOST_KEY_NOT_TRUSTED",
     );
   const credential = await readSecretMetadata({
@@ -84,7 +84,7 @@ async function target(serverId: string, workspaceId: string) {
   });
   if (!credential.keys.includes("privateKey"))
     throw conflict(
-      "Connect a private key in server Credentials before opening the terminal",
+      "Connect a private key in server Configuration before opening the terminal",
       "SERVER_CREDENTIALS_MISSING",
     );
   const configuration = digest(
@@ -161,7 +161,7 @@ export async function authorizeTerminal(ticket: Ticket, headers: Headers) {
   const current = await target(ticket.serverId, ticket.workspaceId);
   if (current.configuration !== ticket.configuration)
     throw conflict(
-      "Server credentials or trusted keys changed. Reconnect after checking Credentials.",
+      "Server credentials or trusted keys changed. Reconnect after checking Configuration.",
     );
   return current;
 }

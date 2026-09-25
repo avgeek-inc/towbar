@@ -117,6 +117,7 @@ export function filterWorkloads<
 export function filterServers<
   T extends {
     canonicalIp: string;
+    name?: string | null;
     setupStatus: string;
     healthStatus?: string;
     scout?: { enabled: boolean; status: string };
@@ -138,7 +139,7 @@ export function filterServers<
       item.healthStatus === "unhealthy" ||
       ["offline", "failed"].includes(scoutState(item)),
     (item) =>
-      includes(item.canonicalIp, query.q) &&
+      includes(`${item.name ?? ""} ${item.canonicalIp}`, query.q) &&
       (!query.setup || item.setupStatus === query.setup) &&
       (!query.health || (item.healthStatus ?? "unknown") === query.health) &&
       (!query.scout || scoutState(item) === query.scout),

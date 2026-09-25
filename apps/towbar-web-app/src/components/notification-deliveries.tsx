@@ -151,7 +151,7 @@ export function NotificationDeliveries() {
       })),
       ...(servers.data?.servers ?? []).map((server) => ({
         id: server.id,
-        name: server.canonicalIp,
+        name: server.name ?? server.canonicalIp,
         kind: "Server",
         environment: null,
         icon: server.hardware?.instance ? (

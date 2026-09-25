@@ -153,6 +153,26 @@ export async function updateServer(input: {
   });
 }
 
+export async function updateServerName(input: {
+  name: string | null;
+  serverId: string;
+  workspaceId: string;
+}) {
+  const [server] = await getTowbarDatabase()
+    .update(servers)
+    .set({ name: input.name, updatedAt: new Date() })
+    .where(
+      and(
+        eq(servers.id, input.serverId),
+        eq(servers.workspaceId, input.workspaceId),
+        isNull(servers.archivedAt),
+      ),
+    )
+    .returning(serverSelection);
+  if (!server) throw notFound("Server");
+  return toPublicServer(server);
+}
+
 export async function removeServer(input: {
   serverId: string;
   workspaceId: string;

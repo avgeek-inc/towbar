@@ -270,7 +270,7 @@ export function ServerTerminal({
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
             <p className="max-w-md text-center text-sm text-[#a1a1aa]">
               {credentialsPending
-                ? "Connect a private key and trust this server in Credentials to use the terminal."
+                ? "Connect a private key and trust this server in Configuration to use the terminal."
                 : "Connect to open an interactive shell with this server’s stored SSH key."}
             </p>
           </div>
@@ -279,8 +279,8 @@ export function ServerTerminal({
       <Widget.Footer className="flex-wrap gap-2">
         <Widget.FooterDescription>
           {credentialsPending ? (
-            <InlineLink href={`/servers/${serverId}/settings/credentials`}>
-              Open Credentials
+            <InlineLink href={`/servers/${serverId}/settings/configuration`}>
+              Open Configuration
             </InlineLink>
           ) : null}
           {message && message !== "Disconnected" ? (

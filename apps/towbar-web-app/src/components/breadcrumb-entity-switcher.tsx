@@ -94,7 +94,7 @@ export function BreadcrumbEntitySwitcher({
               }
             : undefined,
           instanceIds: [server.id],
-          label: server.canonicalIp,
+          label: server.name ?? server.canonicalIp,
         }))
       : kind === "apps"
         ? deployableOptions(query.data?.apps ?? [], (app) => ({

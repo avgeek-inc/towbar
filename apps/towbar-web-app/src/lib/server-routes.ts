@@ -14,6 +14,7 @@ const serverSections = new Set([
 const serverSectionChildren: Record<string, Set<string>> = {
   settings: new Set([
     "credentials",
+    "configuration",
     "cloudflare-tls",
     "monitoring",
     "cleanup",

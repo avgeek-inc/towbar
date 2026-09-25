@@ -13,7 +13,7 @@ export function ConfigurationLinks({
   return (
     <span className="mt-2 flex flex-wrap gap-3">
       {can("server.credentials") ? (
-        <InlineLink href={`/servers/${serverId}/settings/credentials`}>
+        <InlineLink href={`/servers/${serverId}/settings/configuration`}>
           Server credentials
         </InlineLink>
       ) : null}

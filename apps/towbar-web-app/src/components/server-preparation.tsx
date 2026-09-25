@@ -127,7 +127,7 @@ export function ServerPreparationOverview(props: ServerPreparationProps) {
             status={props.credentialsPending ? "waiting" : "succeeded"}
             href={
               can("server.credentials")
-                ? `/servers/${props.serverId}/settings/credentials`
+                ? `/servers/${props.serverId}/settings/configuration`
                 : undefined
             }
           >

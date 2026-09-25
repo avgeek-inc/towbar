@@ -54,6 +54,7 @@ export const sshLoginSecretSchema = z
 export const serverSelection = {
   archivedAt: servers.archivedAt,
   canonicalIp: servers.canonicalIp,
+  name: servers.name,
   config: servers.config,
   configDigest: servers.configDigest,
   createdAt: servers.createdAt,

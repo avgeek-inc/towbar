@@ -96,6 +96,7 @@ export function DashboardOverview() {
         <ServerIpLink
           hardware={server.hardware}
           ip={server.canonicalIp}
+          name={server.name}
           serverId={server.id}
         />
       ),

@@ -31,7 +31,31 @@ export function ServerEditor({
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [savingName, setSavingName] = useState(false);
   const editing = Boolean(server);
+
+  async function saveName(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!server) return;
+    const name = String(
+      new FormData(event.currentTarget).get("name") ?? "",
+    ).trim();
+    setSavingName(true);
+    try {
+      await api.patch(`/v1/core/servers/${server.id}/name`, {
+        name: name || null,
+      });
+      toast.success("Server name saved");
+      refreshApiQueries();
+    } catch (error) {
+      toast.danger("Couldn't save server name", {
+        description:
+          error instanceof Error ? error.message : "The request failed",
+      });
+    } finally {
+      setSavingName(false);
+    }
+  }
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -79,6 +103,40 @@ export function ServerEditor({
 
   return (
     <div className="content-grid">
+      {server ? (
+        <FormCard title="Server info">
+          <form className="content-grid" onSubmit={saveName}>
+            <Field className="max-w-md">
+              <FieldLabel htmlFor="server-name">Name</FieldLabel>
+              <Input
+                id="server-name"
+                defaultValue={server.name ?? ""}
+                disabled={!canManage}
+                maxLength={120}
+                name="name"
+                placeholder="Production database"
+                variant="secondary"
+              />
+              <FieldDescription>
+                Optional. A name makes this server easier to find; its IP
+                address stays the same.
+              </FieldDescription>
+            </Field>
+            <Button
+              className="w-fit"
+              isDisabled={savingName || !canManage}
+              type="submit"
+            >
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={FloppyDiskIcon}
+                className="size-4 shrink-0"
+              />
+              {savingName ? "Saving…" : "Save"}
+            </Button>
+          </form>
+        </FormCard>
+      ) : null}
       <FormCard
         title={
           editing ? "Connection and capacity" : "Server identity and capacity"
