@@ -16,7 +16,19 @@ type Subscription = {
   backupsAndRestores: boolean;
   alertsAndIncidents: boolean;
 };
-type Destination = Subscription & { label: string; key: string };
+type Provider = "smtp" | "slack" | "discord" | "telegram";
+type Destination = Subscription & {
+  label: string;
+  key: string;
+  provider: Provider;
+};
+
+const providerLabels: Record<Provider, string> = {
+  smtp: "Email",
+  slack: "Slack",
+  discord: "Discord",
+  telegram: "Telegram",
+};
 
 const subscriptionColumns = [
   { key: "deployments", label: "Deployments" },
@@ -25,6 +37,17 @@ const subscriptionColumns = [
 ] as const;
 
 const columns: ResourceTableColumn<Destination>[] = [
+  {
+    key: "provider",
+    header: "Provider",
+    className: "min-w-28",
+    cell: (row) => (
+      <span className="inline-flex items-center gap-2 whitespace-nowrap">
+        <NotificationProviderIcon provider={row.provider} />
+        {providerLabels[row.provider]}
+      </span>
+    ),
+  },
   {
     key: "destination",
     header: "Destination",
@@ -55,52 +78,36 @@ export function DeployableNotifications({
 }: {
   notifications?: ManifestNotifications;
 }) {
-  const providers = [
-    {
-      key: "email",
-      label: "Email",
-      icon: "smtp" as const,
-      destinations: (notifications?.email ?? []).map((row) => ({
-        ...row,
-        key: row.address,
-        label: row.address,
-      })),
-    },
-    {
-      key: "slack",
-      label: "Slack",
-      icon: "slack" as const,
-      destinations: (notifications?.slack ?? []).map((row) => ({
-        ...row,
-        key: row.channelId,
-        label: row.channelId,
-      })),
-    },
-    {
-      key: "discord",
-      label: "Discord",
-      icon: "discord" as const,
-      destinations: (notifications?.discord ?? []).map((row) => ({
-        ...row,
-        key: row.webhookId,
-        label: row.webhookId,
-      })),
-    },
-    {
-      key: "telegram",
-      label: "Telegram",
-      icon: "telegram" as const,
-      destinations: (notifications?.telegram ?? []).map((row) => ({
-        ...row,
-        key: `${row.chatId}:${row.messageThreadId ?? 0}`,
-        label: row.messageThreadId
-          ? `${row.chatId} · Topic ${row.messageThreadId}`
-          : row.chatId,
-      })),
-    },
-  ].filter((provider) => provider.destinations.length > 0);
+  const destinations: Destination[] = [
+    ...(notifications?.email ?? []).map((row) => ({
+      ...row,
+      key: `smtp:${row.address}`,
+      label: row.address,
+      provider: "smtp" as const,
+    })),
+    ...(notifications?.slack ?? []).map((row) => ({
+      ...row,
+      key: `slack:${row.channelId}`,
+      label: row.channelId,
+      provider: "slack" as const,
+    })),
+    ...(notifications?.discord ?? []).map((row) => ({
+      ...row,
+      key: `discord:${row.webhookId}`,
+      label: row.webhookId,
+      provider: "discord" as const,
+    })),
+    ...(notifications?.telegram ?? []).map((row) => ({
+      ...row,
+      key: `telegram:${row.chatId}:${row.messageThreadId ?? 0}`,
+      label: row.messageThreadId
+        ? `${row.chatId} · Topic ${row.messageThreadId}`
+        : row.chatId,
+      provider: "telegram" as const,
+    })),
+  ];
 
-  if (!providers.length)
+  if (!destinations.length)
     return (
       <EmptyState>
         <EmptyState.Header>
@@ -114,24 +121,14 @@ export function DeployableNotifications({
     );
 
   return (
-    <div className="content-grid">
-      {providers.map((provider) => (
-        <section className="min-w-0" key={provider.key}>
-          <h3 className="mb-3 flex items-center gap-2 text-sm font-medium">
-            <NotificationProviderIcon provider={provider.icon} />
-            {provider.label}
-          </h3>
-          <ResourceTable
-            ariaLabel={`${provider.label} notification destinations`}
-            columns={columns}
-            items={provider.destinations}
-            getRowKey={(row) => row.key}
-            emptyTitle="No destinations"
-            emptyDescription="No destinations are configured for this provider."
-            tableClassName="[&_.table__column]:py-2"
-          />
-        </section>
-      ))}
-    </div>
+    <ResourceTable
+      ariaLabel="Notification destinations"
+      columns={columns}
+      items={destinations}
+      getRowKey={(row) => row.key}
+      emptyTitle="No destinations"
+      emptyDescription="No notification destinations are configured."
+      tableClassName="[&_.table__column]:py-2"
+    />
   );
 }

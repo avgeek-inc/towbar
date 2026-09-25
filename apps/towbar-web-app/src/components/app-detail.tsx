@@ -256,6 +256,7 @@ export function AppDetail() {
       ) : null}
       <PageTabs
         defaultValue="overview"
+        ungroupedTitle=""
         tabs={[
           {
             value: "overview",
@@ -386,6 +387,27 @@ export function AppDetail() {
             ),
           },
           {
+            value: "logs",
+            label: "Logs",
+            group: "Monitor",
+            icon: <HugeiconsIcon icon={FileViewIcon} />,
+            content: (
+              <RuntimeLogs
+                active={!item.archivedAt && item.serverReady}
+                deployableId={appId}
+                hasIngress={usesCloudflareTunnel}
+                services={
+                  item.config.kind === "compose"
+                    ? (releases.data.releases.find(
+                        (release) => release.status === "current",
+                      )?.composeServices ?? Object.keys(item.config.services))
+                    : undefined
+                }
+                type="app"
+              />
+            ),
+          },
+          {
             value: "performance",
             label: "Performance",
             contentOwnsTitle: true,
@@ -418,14 +440,6 @@ export function AppDetail() {
             content: (
               <ScoutIncidents serverId={item.serverId} deployableId={appId} />
             ),
-          },
-          {
-            value: "compare-deployments",
-            label: "Compare deployments",
-            sidebarLabel: "Compare",
-            group: "Monitor",
-            icon: <HugeiconsIcon icon={GitCompareIcon} />,
-            content: <ScoutCompareDeployments deployableId={appId} />,
           },
           {
             value: "vulnerabilities",
@@ -474,34 +488,24 @@ export function AppDetail() {
               ]
             : []),
           {
-            value: "logs",
-            label: "Logs",
-            icon: <HugeiconsIcon icon={FileViewIcon} />,
-            content: (
-              <RuntimeLogs
-                active={!item.archivedAt && item.serverReady}
-                deployableId={appId}
-                hasIngress={usesCloudflareTunnel}
-                services={
-                  item.config.kind === "compose"
-                    ? (releases.data.releases.find(
-                        (release) => release.status === "current",
-                      )?.composeServices ?? Object.keys(item.config.services))
-                    : undefined
-                }
-                type="app"
-              />
-            ),
+            value: "compare-deployments",
+            label: "Compare deployments",
+            sidebarLabel: "Compare",
+            group: "Ship",
+            icon: <HugeiconsIcon icon={GitCompareIcon} />,
+            content: <ScoutCompareDeployments deployableId={appId} />,
           },
           {
             value: "jobs",
             label: "Scheduled jobs",
+            group: "Operate",
             icon: <HugeiconsIcon icon={Clock01Icon} />,
             content: <AppJobs appId={appId} />,
           },
           {
             value: "storage",
             label: "Storage",
+            group: "Operate",
             icon: <HugeiconsIcon icon={PackageIcon} />,
             content: <AppStorage appId={appId} />,
           },

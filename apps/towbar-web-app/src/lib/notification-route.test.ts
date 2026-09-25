@@ -69,7 +69,7 @@ void test("links operational notifications to the relevant page", () => {
   );
   assert.equal(
     notificationHref(notification("backup", { type: "backup.failed" })),
-    "/resources/entity-id/settings/backup",
+    "/resources/entity-id/backup",
   );
   assert.equal(
     notificationHref(

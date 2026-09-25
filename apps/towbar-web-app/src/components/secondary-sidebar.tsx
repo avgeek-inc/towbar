@@ -61,7 +61,7 @@ export function SecondarySection({
   children,
   className,
 }: {
-  title: string;
+  title?: string;
   children: ReactNode;
   className?: string;
 }) {
@@ -71,7 +71,9 @@ export function SecondarySection({
       data-secondary-menu
       className={cn("grid min-w-0 gap-1", className)}
     >
-      <h2 className="px-2 py-1.5 text-xs font-medium text-muted">{title}</h2>
+      {title ? (
+        <h2 className="px-2 py-1.5 text-xs font-medium text-muted">{title}</h2>
+      ) : null}
       {children}
     </section>
   );
@@ -153,7 +155,7 @@ export function SecondaryItems({
   selected,
   onSelect,
 }: {
-  title: string;
+  title?: string;
   items: SecondaryItem[];
   selected: string;
   onSelect: (id: string) => void;

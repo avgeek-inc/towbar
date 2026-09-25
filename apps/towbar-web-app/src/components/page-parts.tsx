@@ -167,10 +167,12 @@ export function PageTabs({
   canonicalizeDefault = true,
   defaultValue,
   tabs,
+  ungroupedTitle = "Manage",
 }: {
   aliases?: Record<string, string>;
   canonicalizeDefault?: boolean;
   defaultValue: string;
+  ungroupedTitle?: string;
   tabs: Array<{
     badge?: ReactNode;
     content: ReactNode;
@@ -251,11 +253,17 @@ export function PageTabs({
   }
 
   const active = tabs.find((tab) => tab.value === selectedKey);
+  const groupOrder = ["Ship", "Operate", "Monitor"];
   const groupedTabs = [
     ...new Set(tabs.filter((tab) => tab.group).map((tab) => tab.group!)),
-  ].sort((left, right) =>
-    left === right ? 0 : left === "Ship" ? -1 : right === "Ship" ? 1 : 0,
-  );
+  ].sort((left, right) => {
+    const leftOrder = groupOrder.indexOf(left);
+    const rightOrder = groupOrder.indexOf(right);
+    return (
+      (leftOrder === -1 ? groupOrder.length : leftOrder) -
+      (rightOrder === -1 ? groupOrder.length : rightOrder)
+    );
+  });
   return (
     <>
       {selectedKey !== "settings" && active && !active.contentOwnsTitle ? (
@@ -266,7 +274,7 @@ export function PageTabs({
         />
       ) : null}
       <SecondaryItems
-        title="Manage"
+        title={ungroupedTitle}
         selected={selectedKey}
         onSelect={selectSection}
         items={tabs

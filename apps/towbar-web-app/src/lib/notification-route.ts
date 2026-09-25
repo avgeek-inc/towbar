@@ -30,10 +30,8 @@ export function notificationHref(
   }
   if (entity.kind === "app") return `/apps/${entity.id}/overview`;
   if (entity.kind === "resource") return `/resources/${entity.id}/overview`;
-  if (entity.kind === "backup")
-    return `/resources/${entity.id}/settings/backup`;
-  if (entity.kind === "restore")
-    return `/resources/${entity.id}/settings/restore`;
+  if (entity.kind === "backup") return `/resources/${entity.id}/backup`;
+  if (entity.kind === "restore") return `/resources/${entity.id}/restore`;
   if (entity.kind === "source")
     return `/repositories/${entity.id}/environments`;
   return "/manage/notifications";

@@ -22,10 +22,12 @@ import {
   GitCompareIcon,
   Link01Icon,
   PackageIcon,
+  ReloadIcon,
   Rocket01Icon,
   ServerStack01Icon,
   Settings01Icon,
   Key01Icon,
+  Undo02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
@@ -304,6 +306,20 @@ export function ResourceDetail() {
       ),
     },
     {
+      value: "logs",
+      label: "Logs",
+      group: "Monitor",
+      icon: <HugeiconsIcon icon={FileViewIcon} />,
+      content: (
+        <RuntimeLogs
+          active={!item.archivedAt && item.serverReady}
+          deployableId={resourceId}
+          hasIngress={usesCloudflareTunnel}
+          type="resource"
+        />
+      ),
+    },
+    {
       value: "performance",
       label: "Performance",
       contentOwnsTitle: true,
@@ -338,14 +354,6 @@ export function ResourceDetail() {
       ),
     },
     {
-      value: "compare-deployments",
-      label: "Compare deployments",
-      sidebarLabel: "Compare",
-      group: "Monitor",
-      icon: <HugeiconsIcon icon={GitCompareIcon} />,
-      content: <ScoutCompareDeployments deployableId={resourceId} />,
-    },
-    {
       value: "vulnerabilities",
       label: "Vulnerabilities",
       group: "Monitor",
@@ -370,34 +378,56 @@ export function ResourceDetail() {
       ),
     },
     {
-      value: "logs",
-      label: "Logs",
-      icon: <HugeiconsIcon icon={FileViewIcon} />,
-      content: (
-        <RuntimeLogs
-          active={!item.archivedAt && item.serverReady}
-          deployableId={resourceId}
-          hasIngress={usesCloudflareTunnel}
-          type="resource"
-        />
-      ),
+      value: "compare-deployments",
+      label: "Compare deployments",
+      sidebarLabel: "Compare",
+      group: "Ship",
+      icon: <HugeiconsIcon icon={GitCompareIcon} />,
+      content: <ScoutCompareDeployments deployableId={resourceId} />,
     },
+    ...(item.kind === "image"
+      ? []
+      : [
+          {
+            value: "backup",
+            label: "Backup",
+            group: "Operate",
+            icon: <HugeiconsIcon icon={ReloadIcon} />,
+            indicator: missingBackupCredentials
+              ? { dot: true, ariaLabel: "Needs credentials" }
+              : undefined,
+            content: (
+              <ResourceBackupConfiguration
+                active={!item.archivedAt && item.serverReady}
+                resource={item}
+              />
+            ),
+          },
+          ...(can("resource.restore")
+            ? [
+                {
+                  value: "restore",
+                  label: "Restore",
+                  group: "Operate",
+                  icon: <HugeiconsIcon icon={Undo02Icon} />,
+                  indicator: missingRestoreCredentials
+                    ? { dot: true, ariaLabel: "Needs credentials" }
+                    : undefined,
+                  content: (
+                    <ResourceRestoreConfiguration
+                      active={!item.archivedAt && item.serverReady}
+                      resource={item}
+                    />
+                  ),
+                },
+              ]
+            : []),
+        ]),
     {
       value: "settings",
       label: "Settings",
       icon: <HugeiconsIcon icon={Settings01Icon} />,
-      indicator:
-        missingBackupCredentials || missingRestoreCredentials
-          ? { dot: true, ariaLabel: "Needs credentials" }
-          : undefined,
-      content: (
-        <ResourceSettings
-          item={item}
-          missingBackupCredentials={missingBackupCredentials}
-          missingRestoreCredentials={missingRestoreCredentials}
-          resourceId={resourceId}
-        />
-      ),
+      content: <ResourceSettings item={item} resourceId={resourceId} />,
     },
   ];
 
@@ -496,27 +526,20 @@ export function ResourceDetail() {
           serverIp={item.serverIp}
         />
       ) : null}
-      <PageTabs defaultValue="overview" tabs={tabs} />
+      <PageTabs defaultValue="overview" tabs={tabs} ungroupedTitle="" />
     </DashboardPage>
   );
 }
 
 function ResourceSettings({
   item,
-  missingBackupCredentials,
-  missingRestoreCredentials,
   resourceId,
 }: {
   item: ResourceRecord;
-  missingBackupCredentials?: boolean;
-  missingRestoreCredentials?: boolean;
   resourceId: string;
 }) {
   const requestedSettings = useDetailNavigation().settings;
-  const normalizedSettings =
-    requestedSettings === "backups" ? "backup" : requestedSettings;
   const tabs: Array<{
-    badge?: ReactNode;
     content: ReactNode;
     label: string;
     value: string;
@@ -537,6 +560,11 @@ function ResourceSettings({
         ]
       : []),
     {
+      value: "auto-deploy",
+      label: "Auto-deploy",
+      content: <AutoDeployControlEditor id={resourceId} type="resource" />,
+    },
+    {
       value: "secrets",
       label: "Secrets",
       content: <ResourceSecrets resourceId={resourceId} />,
@@ -548,63 +576,18 @@ function ResourceSettings({
         <DeployableNotifications notifications={item.config.notifications} />
       ),
     },
-    ...(item.kind === "image"
-      ? []
-      : [
-          {
-            value: "backup",
-            label: "Backup",
-            badge: missingBackupCredentials ? (
-              <span
-                role="img"
-                aria-label="Needs credentials"
-                title="Needs credentials"
-                className="block size-1.5 rounded-full bg-warning-soft-foreground"
-              />
-            ) : undefined,
-            content: (
-              <ResourceBackupConfiguration
-                active={!item.archivedAt && item.serverReady}
-                resource={item}
-              />
-            ),
-          },
-          {
-            value: "restore",
-            label: "Restore",
-            badge: missingRestoreCredentials ? (
-              <span
-                role="img"
-                aria-label="Needs credentials"
-                title="Needs credentials"
-                className="block size-1.5 rounded-full bg-warning-soft-foreground"
-              />
-            ) : undefined,
-            content: (
-              <ResourceRestoreConfiguration
-                active={!item.archivedAt && item.serverReady}
-                resource={item}
-              />
-            ),
-          },
-        ]),
-    {
-      value: "auto-deploy",
-      label: "Auto-deploy",
-      content: <AutoDeployControlEditor id={resourceId} type="resource" />,
-    },
   ];
 
   return (
     <ResponsiveSubtabs
       ariaLabel="Resource settings"
       defaultSelectedKey={
-        normalizedSettings === "secrets" ? "secrets" : "configuration"
+        requestedSettings === "secrets" ? "secrets" : "configuration"
       }
       layout="sidebar"
       selectedKey={
-        tabs.some((tab) => tab.value === normalizedSettings)
-          ? normalizedSettings!
+        tabs.some((tab) => tab.value === requestedSettings)
+          ? requestedSettings!
           : undefined
       }
       tabs={tabs}

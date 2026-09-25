@@ -10,13 +10,18 @@ export default async function Page({
   const [section, child] = sectionPath;
   if (section === "notifications" && !child)
     redirect(`/resources/${resourceId}/settings/notifications`);
+  if (
+    section === "settings" &&
+    child &&
+    ["backup", "backups", "restore"].includes(child)
+  )
+    redirect(
+      `/resources/${resourceId}/${child === "backups" ? "backup" : child}`,
+    );
   const children: Record<string, string[]> = {
     settings: [
       "configuration",
       "connection",
-      "backup",
-      "backups",
-      "restore",
       "auto-deploy",
       "secrets",
       "notifications",
@@ -31,6 +36,8 @@ export default async function Page({
       "incidents",
       "compare-deployments",
       "deployments",
+      "backup",
+      "restore",
       "logs",
       "settings",
       "vulnerabilities",
