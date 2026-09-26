@@ -1,0 +1,26 @@
+---
+title: "Scheduled jobs"
+description: "Run recurring commands from an app's deployed image with bounded output and no overlap."
+---
+
+Declare a job in the app manifest. Each run uses a short-lived container from the deployed app image with its runtime secrets, network, resource limits, and volumes. It does not publish the app's ports or claim its network alias.
+
+```yaml title=".towbar/apps/web.app.yml"
+jobs:
+  - name: daily-report
+    description: Generate the daily report
+    command: ["node", "scripts/report.js"]
+    schedule:
+      cron: "0 2 * * *"
+      timezone: UTC
+    timeoutSeconds: 300
+    enabled: true
+```
+
+Schedules use five-field UTC cron expressions with one-minute resolution. `command` is an argument array that retains the image entrypoint and user. If shell syntax is required, explicitly run a shell, for example `["sh", "-c", "node report.js && node notify.js"]`.
+
+The app's **Scheduled jobs** page shows configured jobs and the latest 100 runs. Authorized operators can use **Run now**. Output is bounded to 256 KiB and known runtime secret values are redacted; never pass credentials as command arguments or print them deliberately.
+
+Deploy after changing the job declaration. A queued run is rejected if its release or declaration changes before execution. Jobs share the app work queue with deployments and do not overlap another run of the same job. Timeouts stop the command; failed or interrupted jobs are not retried automatically. Make a job idempotent if an operator may rerun it.
+
+Repository and environment automation pauses also pause schedules. Preview environments do not run them, and missed runs are skipped rather than replayed. Override `jobs: []` in an environment to disable scheduled work there.

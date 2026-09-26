@@ -1,0 +1,41 @@
+---
+title: "Environment branches"
+description: "Map each repository environment to a Git branch and understand what a branch change does."
+---
+
+`towbar.yml` names environments; **Repository → Environments** chooses the branch that supplies each environment's configuration. Branch names do not belong in `towbar.yml`. One repository can map `production` to `main` and `staging` to `develop`:
+
+```yaml title="towbar.yml"
+version: 2
+environments:
+  production: {}
+  staging:
+    previews:
+      enabled: true
+```
+
+## Change a mapping
+
+Choose **Edit branch** on the environment row, search the available branches, and save. Towbar reads `towbar.yml` and the entity files at the selected branch's current commit. A valid sync updates that environment's imported configuration. It does not start a deployment or copy secret values from another environment.
+
+If the branch is unreadable, missing the selected environment, or contains invalid configuration, the sync fails and Towbar retains the last valid inventory and saved secret values. Review the sync issue, correct the branch, and retry.
+
+An app or resource can override its server and other allowed fields per environment:
+
+```yaml title=".towbar/apps/web.app.yml"
+id: web
+name: Web
+deployment:
+  type: dockerfile
+  dockerfile: Dockerfile
+  context: .
+container:
+  port: 3000
+environments:
+  production:
+    server: 192.0.2.10
+  staging:
+    server: 192.0.2.11
+```
+
+Objects merge recursively; arrays replace the common array. Identity and secret declarations stay at entity level. Preview PRs target the branch mapped to an environment with previews enabled. Continue with [repository syncs](/docs/repositories/sync) and [preview environments](/docs/previews).

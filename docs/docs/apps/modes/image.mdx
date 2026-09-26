@@ -1,0 +1,35 @@
+---
+title: "Prebuilt OCI image"
+description: "Run an image built elsewhere without a source build on a Towbar server."
+---
+
+Choose `image` when CI or another system already produces the container. Use an explicit version tag or immutable digest; `latest` is rejected. Towbar resolves tags to digests before execution and rejects a digest change during deployment.
+
+## Example manifest
+
+This is the validated example from the Towbar `examples/platform-modes` project. Replace the documentation IP, domain, and image choices with values for your environment.
+
+```yaml title=".towbar/apps/image.app.yml"
+id: image-example
+name: Prebuilt image example
+buildServer: null
+deployment:
+  type: image
+  image: nginxinc/nginx-unprivileged@sha256:27985295bdb22a1ef8f712863210bd5877c0f3006494a593e86b3fe0fa55467e
+  platform: linux/amd64
+container:
+  port: 8080
+health:
+  path: /
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure it
+
+The example uses an immutable nginx digest and sets `buildServer: null` because no source build is needed. Match `container.port` and `health.path` to the image. A private image can reference an enabled OCI registry integration with `deployment.registry`.
+
+A new image digest is a new deployment input. Pin the architecture with `deployment.platform` when the image or target requires it. Image rollback selects an earlier image; it does not reverse database migrations or persistent data changes.
+
+Map the named environment to a branch, register and prepare its server, then sync the repository. Start with a manual deployment and verify the running service before opting into automation. See [Application manifest](/docs/apps/manifest) for shared fields and [Deployment modes](/docs/platform-deployments) to compare modes.

@@ -1,0 +1,40 @@
+---
+title: "Cloud Native Buildpacks"
+description: "Build source with pinned pack and builder images."
+---
+
+Choose `buildpack` when the project follows the Cloud Native Buildpacks model. Pin both `packImage` and `builder` to digests, select a source context, and use `project.toml` only when project-specific buildpack settings are needed.
+
+## Example manifest
+
+This is the validated example from the Towbar `examples/platform-modes` project. Replace the documentation IP, domain, and image choices with values for your environment.
+
+```yaml title=".towbar/apps/buildpack.app.yml"
+id: buildpack-example
+name: Cloud Native Buildpacks example
+deployment:
+  type: buildpack
+  context: examples/platform-modes/node-app
+  packImage: buildpacksio/pack@sha256:a53c4d6c297e10e680404cffda32e557b79a26d1ee4b7e6b18c0d175cb274621
+  builder: heroku/builder@sha256:84d80b3c0d242961414a3c4d0a00c3518e6de01ef936423cfbaf1b0aa0f9155c
+  configFile: project.toml
+  architecture: amd64
+  cache:
+    enabled: true
+    scope: platform-buildpack-example
+container:
+  port: 3000
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure it
+
+The example uses an amd64 builder, a bounded context, and a workload cache. Validate the resulting image's process and health behavior before adding public routing.
+
+Buildpacks reject build secrets. If the build needs credentials, use a Dockerfile and a protected BuildKit secret mount instead.
+
+Map the named environment to a branch, register and prepare its server, then sync the repository. Start with a manual deployment and verify the running service before opting into automation. See [Application manifest](/docs/apps/manifest) for shared fields and [Deployment modes](/docs/platform-deployments) to compare modes.

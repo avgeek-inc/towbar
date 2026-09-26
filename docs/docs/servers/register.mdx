@@ -1,0 +1,21 @@
+---
+title: "Register a server"
+description: "Add an Ubuntu host, connect an SSH key, and verify its host identity."
+---
+
+A server is a workspace-owned Ubuntu 22.04 or 24.04 LTS host that Towbar reaches over SSH. Multiple repositories can use the same registered host. Registration establishes connection and trust; [setup](/docs/servers/setup) prepares the runtime afterward.
+
+## Add the connection
+
+1. Open **Servers → Add server** and enter the canonical IP, SSH username and port, and build-concurrency limits.
+2. Under **Settings → Configuration**, select a stored [SSH key](/docs/ssh-keys). Install its public key in the SSH user's `~/.ssh/authorized_keys`.
+3. Save the connection. Towbar authenticates, reads the host key, and shows its fingerprint.
+4. Compare that fingerprint against the server console or another independent channel before accepting it.
+
+The SSH user needs passwordless `sudo` for preparation and workload operations. Keep SSH restricted at the network layer. Docker access is root-equivalent, so use a dedicated deployment account.
+
+The **Host verified** badge records successful trust. If the host key changes later, Towbar stops connecting until you verify the new fingerprint. A rebuild can change the key, but never approve a change solely because the IP is familiar.
+
+## Give the host a name
+
+In **Settings → Configuration → Server info**, save an optional name such as `Build server Mumbai`. Towbar uses it in navigation and the server table, while the IP remains visible in its own column. Renaming does not alter SSH connectivity or require setup again.

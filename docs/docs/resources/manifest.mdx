@@ -1,0 +1,43 @@
+---
+title: "Resource manifest"
+description: "Configure managed databases and image resources with reviewed, environment-specific declarations."
+---
+
+A resource lives under `.towbar/resources/*.resource.yml`. Use a managed `type` for a supported database or cache, or `type: image` for another service that runs from an existing OCI image. The file is Git-reviewed; saved secret values remain in Towbar.
+
+```yaml title=".towbar/resources/cache.resource.yml"
+id: cache
+name: Cache
+type: redis
+container:
+  network: application
+  networkAlias: cache
+  resources:
+    cpus: 1
+    memory: 1g
+secrets:
+  runtime:
+    - REDIS_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+Register the server, save each declared secret value under **Resource → Settings → Secrets**, and sync the mapped branch before deploying. Review the [Redis guide](/docs/databases/redis) for its required credentials and engine behavior.
+
+## Field map
+
+| Field                           | Purpose                                                                     | Guide                                                                                             |
+| ------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `id`, `name`, `description`     | Stable identity and display text. Keep `id` when renaming or moving a file. | [Resources](/docs/resources)                                                                      |
+| `type`, `image`                 | Managed preset or a custom OCI image.                                       | [Database catalog](/docs/databases), [Image resources](/docs/resources/image)                     |
+| `server`, `environments`        | Target host and allowed environment overrides.                              | [Environment branches](/docs/repositories/environments)                                           |
+| `container`, `health`, `access` | Limits, network, storage, readiness, and optional private access.           | [Resources](/docs/resources#connect-privately)                                                    |
+| `secrets`, `externalSecrets`    | Runtime key names and external-secret references.                           | [Secrets](/docs/secrets)                                                                          |
+| `backup`                        | Schedule, destinations, and retention for managed databases.                | [Backups](/docs/backups)                                                                          |
+| `autoDeploy`, `notifications`   | Deployment automation and extra event destinations.                         | [Sync and automation](/docs/repositories/sync), [Notifications](/docs/integrations/notifications) |
+| `domains`, `ingress`, `tls`     | Routing for resources that expose a public endpoint.                        | [Domains and TLS](/docs/domains-tls)                                                              |
+
+The [resource JSON Schema](/schemas/resource.v2.json) describes exact shapes and constraints. Repository sync validates the merged environment and cross-workload conflicts, while deployment checks runtime readiness and required secret values.
+
+Objects merge recursively across common and environment settings; arrays replace. Identity, `type`, and secret declarations stay at entity level. A successful sync can change a resource's desired configuration without replacing its running container until a deployment occurs.

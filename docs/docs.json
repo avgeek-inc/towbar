@@ -67,51 +67,87 @@
         ]
       },
       {
-        "dropdown": "Deploy",
-        "icon": "rocket",
+        "dropdown": "Build & run",
+        "icon": "boxes",
         "groups": [
           {
-            "group": "Infrastructure",
-            "pages": ["docs/repositories", "docs/servers"]
+            "group": "Repositories",
+            "pages": [
+              "docs/repositories",
+              "docs/repositories/connect",
+              "docs/repositories/environments",
+              "docs/repositories/sync",
+              "docs/repositories/delete",
+              "docs/deployment-manifest"
+            ]
+          },
+          {
+            "group": "Servers",
+            "pages": [
+              "docs/servers",
+              "docs/servers/register",
+              "docs/servers/setup",
+              "docs/servers/operations",
+              "docs/scout",
+              "docs/servers/remove"
+            ]
           },
           {
             "group": "Applications",
-            "pages": ["docs/apps", "docs/platform-deployments"]
+            "pages": [
+              "docs/apps",
+              "docs/apps/manifest",
+              "docs/apps/configuration",
+              "docs/apps/routing",
+              "docs/apps/automation",
+              "docs/apps/jobs",
+              "docs/platform-deployments",
+              {
+                "group": "Deployment modes",
+                "pages": [
+                  "docs/apps/modes/dockerfile",
+                  "docs/apps/modes/static",
+                  "docs/apps/modes/image",
+                  "docs/apps/modes/railpack",
+                  "docs/apps/modes/nixpacks",
+                  "docs/apps/modes/buildpack",
+                  "docs/apps/modes/compose"
+                ]
+              }
+            ]
           },
-          { "group": "Resources", "pages": ["docs/resources"] },
           {
-            "group": "Delivery",
+            "group": "Resources",
+            "pages": [
+              "docs/resources",
+              "docs/resources/manifest",
+              "docs/resources/image",
+              "docs/databases/index",
+              {
+                "group": "Managed databases",
+                "pages": [
+                  "docs/databases/postgresql",
+                  "docs/databases/mysql",
+                  "docs/databases/mariadb",
+                  "docs/databases/mongodb",
+                  "docs/databases/redis",
+                  "docs/databases/dragonfly",
+                  "docs/databases/keydb",
+                  "docs/databases/clickhouse"
+                ]
+              },
+              "docs/backups",
+              "docs/restores"
+            ]
+          },
+          {
+            "group": "Deployments and access",
             "pages": [
               "docs/deployments",
               "docs/previews",
               "docs/domains-tls",
               "docs/secrets"
             ]
-          },
-          { "group": "Manifest", "pages": ["docs/deployment-manifest"] }
-        ]
-      },
-      {
-        "dropdown": "Databases",
-        "icon": "database",
-        "groups": [
-          { "group": "Overview", "pages": ["docs/databases/index"] },
-          {
-            "group": "Database guides",
-            "pages": [
-              "docs/databases/postgresql",
-              "docs/databases/mysql",
-              "docs/databases/mariadb",
-              "docs/databases/mongodb",
-              "docs/databases/redis",
-              "docs/databases/dragonfly",
-              "docs/databases/keydb",
-              "docs/databases/clickhouse"
-            ]
-          },
-          {
-            "group": "Data protection",
-            "pages": ["docs/backups", "docs/restores"]
           }
         ]
       },
@@ -123,7 +159,6 @@
             "group": "Observe and troubleshoot",
             "pages": [
               "docs/monitoring",
-              "docs/scout",
               "docs/scout-alerts",
               "docs/deployment-comparisons",
               "docs/vulnerability-scanning",

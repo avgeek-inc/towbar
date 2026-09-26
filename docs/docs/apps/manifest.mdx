@@ -1,0 +1,44 @@
+---
+title: "Application manifest"
+description: "Read every top-level app field and follow focused configuration guides."
+---
+
+An app is one service declared under `.towbar/apps/*.app.yml`. Its file defines common settings and an `environments` map; `towbar.yml` declares which environment names exist. Towbar reads the committed file at the mapped branch and validates the effective configuration before deploying.
+
+```yaml title=".towbar/apps/web.app.yml"
+id: web
+name: Web
+deployment:
+  type: dockerfile
+  context: .
+  dockerfile: Dockerfile
+container:
+  port: 3000
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+Register the example IP under [Servers](/docs/servers) and map `production` to a branch before syncing.
+
+## Field map
+
+| Field                                                             | Purpose                                                                            | Guide                                                                                     |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `id`, `name`, `description`                                       | Durable identity and display text. Keep `id` stable across file moves and renames. | [App overview](/docs/apps)                                                                |
+| `deployment`                                                      | Dockerfile, static, OCI image, Railpack, Nixpacks, or Buildpacks.                  | [Deployment modes](/docs/platform-deployments)                                            |
+| `server`, `environments`                                          | Target server and per-environment overrides.                                       | [Environment branches](/docs/repositories/environments)                                   |
+| `container`, `health`                                             | Process port, resources, networking, storage, and readiness.                       | [Container and health](/docs/apps/configuration)                                          |
+| `domains`, `ingress`, `tls`                                       | Public routing and certificate policy.                                             | [Routing and TLS](/docs/apps/routing)                                                     |
+| `secrets`, `externalSecrets`                                      | Declared keys and external-secret references; values stay outside Git.             | [Secrets](/docs/secrets)                                                                  |
+| `autoDeploy`, `preview`, `notifications`, `vulnerabilityScanning` | Automation, previews, subscriptions, and scanning.                                 | [Automation and previews](/docs/apps/automation)                                          |
+| `jobs`, `hooks`                                                   | Scheduled commands and deployment-stage commands.                                  | [Scheduled jobs](/docs/apps/jobs), [deployment hooks](/docs/deployments#deployment-hooks) |
+| `rollout`, `buildServer`                                          | Replacement strategy and optional separate builder host.                           | [Deployment modes](/docs/platform-deployments)                                            |
+
+`context` and `dockerfile` can also appear as compatibility fields on older app files; put new build settings under `deployment`. The exact accepted shapes and constraints are in the [app JSON Schema](/schemas/app.v2.json). Repository sync also checks cross-workload conditions such as server registration and conflicting network aliases.
+
+## Common and environment values
+
+Put shared settings at the top level and override allowed fields under an environment. Objects merge recursively, while an environment array replaces the common array. Identity, secret declarations, and preview configuration stay at entity level. A failed sync does not partially replace the last valid app configuration or its stored secret values.

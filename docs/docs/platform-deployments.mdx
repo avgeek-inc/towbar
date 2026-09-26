@@ -1,100 +1,27 @@
 ---
 title: "Deployment modes"
-description: "Deploy Dockerfiles, static sites, OCI images, Railpack, Nixpacks, Buildpacks, and Compose projects."
+description: "Choose how Towbar builds or obtains an app image, then set build-server and rollout behavior."
 ---
 
-Towbar reads deployment configuration from the Git revision being deployed. The
-dashboard validates and operates that declaration; it does not keep a second
-workload configuration.
+Towbar reads deployment configuration from the Git revision being deployed. The dashboard validates and operates that declaration without maintaining a second workload configuration.
 
 ## Choose a mode
 
-| Mode         | Use it for                                    |
-| ------------ | --------------------------------------------- |
-| `dockerfile` | An existing Dockerfile                        |
-| `static`     | Prebuilt or generated browser assets          |
-| `image`      | An image built elsewhere                      |
-| `railpack`   | Recommended source detection                  |
-| `nixpacks`   | Compatibility with existing Nixpacks projects |
-| `buildpack`  | Cloud Native Buildpacks                       |
-| Compose      | A multi-service project                       |
+| Mode         | Use it for                                                           | Guide                                        |
+| ------------ | -------------------------------------------------------------------- | -------------------------------------------- |
+| `dockerfile` | An existing Dockerfile, including builds that need protected secrets | [Dockerfile](/docs/apps/modes/dockerfile)    |
+| `static`     | Generated browser assets served from a runtime image                 | [Static site](/docs/apps/modes/static)       |
+| `image`      | An image built elsewhere                                             | [Prebuilt OCI image](/docs/apps/modes/image) |
+| `railpack`   | Source detection for a new project                                   | [Railpack](/docs/apps/modes/railpack)        |
+| `nixpacks`   | An existing Nixpacks project                                         | [Nixpacks](/docs/apps/modes/nixpacks)        |
+| `buildpack`  | Cloud Native Buildpacks                                              | [Buildpacks](/docs/apps/modes/buildpack)     |
+| Compose      | A multi-service project                                              | [Compose](/docs/apps/modes/compose)          |
 
-Every app selects its mode under `deployment`. This Dockerfile app builds only
-the `apps/api` directory:
-
-```yaml title=".towbar/apps/api.app.yml" highlight={3-6}
-id: api
-name: API
-deployment:
-  type: dockerfile
-  context: apps/api
-  dockerfile: apps/api/Dockerfile
-container:
-  port: 3000
-environments:
-  production:
-    server: 192.0.2.10
-```
-
-Paths stay inside the declared context. Build tools and builder images that the
-manifest accepts must be pinned to an immutable digest. See
-`examples/platform-modes` in the Towbar repository for one validated entity
-file per mode.
-
-## Configure a source build
-
-Source builders share fields for context, commands, architecture, timeouts,
-build arguments, resource limits, and cache policy. Add only the fields your
-builder needs:
-
-```yaml title=".towbar/apps/web.app.yml" highlight={3-9}
-id: web
-name: Web
-deployment:
-  type: dockerfile
-  context: apps/web
-  dockerfile: apps/web/Dockerfile
-  architecture: amd64
-  cache:
-    enabled: true
-container:
-  port: 8080
-environments:
-  production:
-    server: 192.0.2.10
-```
-
-Dockerfile and static builds can receive protected build values through their
-secret-safe paths. Railpack, Nixpacks, and Buildpacks reject build secrets so a
-credential cannot be retained in an image layer or shared cache. Use a
-Dockerfile when the build itself needs credentials.
-
-Cancellation stops the active command and removes staged source and unpromoted
-images. A cache belongs to the workload unless you set an authorized shared
-`cache.scope`. Inactive cache scopes are reclaimed after 30 days.
+Each guide includes a complete, validated entity example from `examples/platform-modes`. Builder images accepted by the manifest must be pinned to immutable digests. Choose the mode first, then configure shared [container and health](/docs/apps/configuration) fields.
 
 ## Prebuilt images
 
-Set `type: image` and use an explicit tag or digest. Add `registry` only for a
-private image:
-
-```yaml title=".towbar/apps/worker.app.yml" highlight={3-6}
-id: worker
-name: Worker
-deployment:
-  type: image
-  image: registry.example.com/acme/worker:2.4.0
-  registry: registry
-container:
-  port: 3000
-environments:
-  production:
-    server: 192.0.2.10
-```
-
-Towbar resolves a tag to an immutable digest before execution. `latest` is
-rejected, and a changed digest fails the deployment. Private registries require
-HTTPS; private-network access must be enabled on the integration when needed.
+Use `deployment.type: image` with an explicit non-`latest` tag or digest. Towbar resolves a tag to an immutable digest before execution and fails if the digest changes. For private images, reference an enabled [OCI registry integration](/docs/integrations/oci-registry). See the [prebuilt image guide](/docs/apps/modes/image) for a complete manifest.
 
 ## Build servers
 
@@ -181,37 +108,8 @@ reverse a database migration or restore persistent data.
 
 ## Compose projects
 
-Put each Compose workload under `.towbar/compose`. The entity points to the
-repository-owned Compose files and declares only Towbar's public service policy:
-
-```yaml title=".towbar/compose/storefront.compose.yml" highlight={3-13}
-id: storefront
-name: Storefront
-file: deploy/compose.yml
-overrides:
-  - deploy/compose.production.yml
-profiles: [production]
-strategy: maintenance
-services:
-  web:
-    port: 3000
-    domains: [store.example.com]
-    ingress:
-      type: proxy
-  cache: {}
-environments:
-  production:
-    server: 192.0.2.10
-```
-
-Towbar validates the resolved Compose project before Docker opens it. Local
-includes and `extends` files must stay inside the immutable checkout. Remote
-includes, privileged containers, Docker socket mounts, host bind mounts,
-devices, public host ports, and external or explicitly named Docker resources
-are rejected. Compose replacement uses `recreate` or `maintenance`; rolling
-Compose replacement is not supported.
+Compose entities live under `.towbar/compose` and point to repository-owned Compose files. Towbar validates the resolved project and builds on its runtime server. Replacement uses `recreate` or `maintenance`, not rolling promotion. The [Compose guide](/docs/apps/modes/compose) includes a full service example and the admission restrictions.
 
 ## Reference an integration
 
-Manifest fields use the stable runtime names shown on the Integrations pages.
-For example, `registry: registry` selects the configured OCI registry. Repository sync and queued execution both verify that the provider is still enabled and supports the requested capability.
+Manifest fields use the stable runtime names shown on the Integrations pages. For example, `registry: registry` selects the configured OCI registry. Repository sync and queued execution verify that the provider is enabled and supports the requested capability.

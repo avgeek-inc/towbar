@@ -1,0 +1,20 @@
+---
+title: "Server operations"
+description: "Use checks, capacity, terminal access, and cleanup without confusing observations with live state."
+---
+
+The server **Overview** shows the latest observed capacity and health. Use **Check server** for a fresh reading; a recorded CPU or memory value is not a guarantee that the host is reachable now. Cloud instance detection uses local metadata and is best effort.
+
+## Capacity and build concurrency
+
+Set `buildConcurrency` under **Settings → Configuration** to limit simultaneous build work. `previewBuildConcurrency` reserves a bounded share for previews, defaults to 1, cannot exceed the total, and is capped at 4. Production and maintenance work take priority. Increasing concurrency uses real CPU, memory, and disk bandwidth; compare the configured limit with recent [Scout Agent](/docs/scout) measurements.
+
+## Terminal
+
+Admins can choose **Terminal → Connect** after configuring a verified SSH key. The shell runs as the configured SSH user and can change the host outside Towbar's deployment scheduler. A recent sign-in is required; API keys and MCP cannot open a terminal. Towbar audits connection open and close events, but does not store terminal input or output. Use it for inspection and deliberate maintenance, and prefer tracked deployment or resource operations for workload changes.
+
+## Clean up leftover workloads
+
+After removing a repository, run **Check server**, then open **Settings → Cleanup**. Review Towbar-owned containers, images, and volumes before selecting anything. Towbar rechecks ownership and release references before removal; objects now in use are skipped. Volumes are never deleted automatically, and removing a container does not mean its data is backed up.
+
+For removal of the server itself, read [Remove a server](/docs/servers/remove).

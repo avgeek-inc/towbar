@@ -1,0 +1,40 @@
+---
+title: "Railpack"
+description: "Build a detected source project with a pinned Railpack frontend."
+---
+
+Choose `railpack` for source detection when a Dockerfile is unnecessary. The manifest pins the Railpack version and frontend image, selects a repository context, and may provide `railpack.json` for project-specific configuration.
+
+## Example manifest
+
+This is the validated example from the Towbar `examples/platform-modes` project. Replace the documentation IP, domain, and image choices with values for your environment.
+
+```yaml title=".towbar/apps/railpack.app.yml"
+id: railpack-example
+name: Railpack example
+deployment:
+  type: railpack
+  context: examples/platform-modes/node-app
+  version: 0.36.1
+  image: ghcr.io/railwayapp/railpack-frontend@sha256:b9166320856c8bbb88789e89077d5a66a7d4cef8afa2e1e232307fb9a92c094e
+  configFile: railpack.json
+  architecture: amd64
+  cache:
+    enabled: true
+    scope: platform-railpack-example
+container:
+  port: 3000
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure it
+
+The example pins an amd64 builder and sends only `examples/platform-modes/node-app` as its context. `container.port` and `health.path` still describe the finished runtime container. Review the generated build result before enabling automatic deployment.
+
+Railpack builds reject build secrets so credentials cannot enter a layer or shared cache. Use the Dockerfile mode if the build itself must authenticate to a private dependency.
+
+Map the named environment to a branch, register and prepare its server, then sync the repository. Start with a manual deployment and verify the running service before opting into automation. See [Application manifest](/docs/apps/manifest) for shared fields and [Deployment modes](/docs/platform-deployments) to compare modes.

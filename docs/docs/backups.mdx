@@ -32,9 +32,9 @@ backup:
 
 Database backup execution revalidates that the runtime provider is still enabled before it reads credentials. Disabling or changing the runtime integration therefore stops queued work that can no longer resolve its provider.
 
-## Legacy multi-provider configuration
+## Multiple storage destinations
 
-The original three-provider object remains accepted within the clean-break v2 manifest while teams move to provider configurations. A resource must declare at least one destination:
+Use explicit destination blocks when the same recovery point should be stored in more than one location. A resource must declare at least one destination:
 
 - **AWS S3 (`s3`)**: Declare `bucket`, optional `prefix` (defaults to `towbar`), optional `region` (defaults to the runtime AWS integration region), and optional `encryption` (`AES256` or `aws:kms`). When using `encryption: aws:kms`, supply `kmsKeyId`.
 - **Google Cloud Storage (`gcs`)**: Declare `bucket`, optional `prefix` (defaults to `towbar`), and optional `region`. Encryption uses Google-managed keys or Cloud KMS keys (CMEK) configured on the bucket.

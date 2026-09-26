@@ -433,7 +433,7 @@ export const widgetDocumentation: Record<string, HeadingDocumentation> = {
   "environment automation": documentationTopics.automation,
   "preview configuration": documentationTopics.previews,
   "build configuration": guide(
-    "apps#supply-configuration",
+    "apps/manifest",
     "The Dockerfile, build context, source revision, and build settings read from the app manifest.",
   ),
   "image configuration": guide(

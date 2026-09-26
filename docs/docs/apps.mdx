@@ -1,11 +1,13 @@
 ---
-title: "Apps"
-description: "Deploy source builds, static sites, OCI images, or multi-service Compose projects."
+title: "Applications"
+description: "Understand what an app is, how Git configures it, and where to go for each deployment task."
 ---
 
-An app is a service declared in a GitHub or GitLab repository. Towbar can build a Dockerfile, static site, Railpack, Nixpacks, or Cloud Native Buildpacks project, or deploy a prebuilt OCI image. A Compose workload manages multiple services from repository-owned Compose files.
+An Application is a service declared in a connected GitHub or GitLab repository. Towbar builds a committed source revision or runs a prebuilt OCI image, then manages its release on a registered server. A Compose workload groups multiple repository-owned services into one deployment.
 
-Towbar uses repository manifests for deployment configuration. The dashboard validates, previews, and operates the committed declaration without creating UI-only configuration. See [Deployment modes](/docs/platform-deployments) for mode, build-server, rollout, and Compose behavior.
+Towbar keeps the desired configuration in Git. The dashboard shows the effective manifest, secret status, deployment history, logs, and current state; it does not create a second workload definition.
+
+One manifest `id` identifies the app across renames and file moves. A Repository sync imports that declaration for each mapped environment, but leaves the currently running release alone. A deployment then builds or resolves an image and promotes it on the environment's server after its checks pass. The app can reach a Resource on the same private Docker network; its connection credentials live in Towbar secrets rather than Git. A Preview is a separate, temporary instance for an eligible pull request.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
@@ -34,130 +36,38 @@ Towbar uses repository manifests for deployment configuration. The dashboard val
 
 ## Define an app
 
-These files define a service that listens on port 3000 and responds at `/health`:
+Create one file under `.towbar/apps` and give it a stable `id`. This minimal Dockerfile app listens on port 3000 in production:
 
-```yaml title="towbar.yml" highlight={2-5}
-version: 2
-environments:
-  production:
-    previews:
-      enabled: true
-```
-
-```yaml title=".towbar/apps/web.app.yml" highlight={4-19}
+```yaml title=".towbar/apps/web.app.yml"
 id: web
 name: Web
-server: 192.0.2.10
 deployment:
   type: dockerfile
-  dockerfile: Dockerfile
   context: .
+  dockerfile: Dockerfile
 container:
   port: 3000
-  resources:
-    cpus: 1
-    memory: 1g
 health:
   path: /health
-  timeoutSeconds: 60
-domains:
-  primary: app.example.com
-tls:
-  mode: direct
 environments:
-  production: {}
+  production:
+    server: 192.0.2.10
 ```
 
-Replace the server IP and domain, register the server, and point DNS at it before deploying. The Dockerfile must be inside the declared context. Configure the process to listen on the container's network interface, not only on its loopback address.
+Declare `production` in `towbar.yml`, map it to a branch, and register the example server IP before syncing. See the [Application manifest](/docs/apps/manifest) for every top-level field and the rules for environment overrides.
 
-## Choose a health endpoint
+## Configure runtime
 
-Use an HTTP path that can respond without interactive authentication. Allow
-enough time for the service to start:
+[Container and health](/docs/apps/configuration) covers process ports, capacity, private networks, persistent volumes, and readiness. [Routing and TLS](/docs/apps/routing) covers domains and certificates. Declare secret names in the manifest and save their values in [Secrets](/docs/secrets).
 
-```yaml title=".towbar/apps/web.app.yml"
-health:
-  path: /health
-  timeoutSeconds: 60
-```
+## Pick a deployment mode
 
-A passing build alone does not make the candidate ready for traffic.
-
-Omit `domains` and `tls` for an app that does not need public routing. The dashboard describes it as **Not publicly exposed**. Private connectivity still needs the appropriate Docker network and host network rules.
-
-## Supply configuration
-
-Declare the names an app needs, then set their values in its
-[Secrets settings](/docs/secrets):
-
-```yaml title=".towbar/apps/web.app.yml"
-secrets:
-  build:
-    - PACKAGE_TOKEN
-  runtime:
-    - DATABASE_URL
-```
-
-Reference workspace values in Towbar with `{{globals.KEY}}`. App values stay
-separate for production and previews. Use BuildKit secret mounts when a build
-needs credentials.
-
-Set the app's capacity beside its port:
-
-```yaml title=".towbar/apps/web.app.yml" highlight={3-5}
-container:
-  port: 3000
-  resources:
-    cpus: 1
-    memory: 1g
-```
-
-Inventory compares observed usage with these limits. An unavailable measurement
-is not zero usage.
+Use an existing [Dockerfile](/docs/apps/modes/dockerfile), build a [static site](/docs/apps/modes/static), run a [prebuilt image](/docs/apps/modes/image), or choose [Railpack](/docs/apps/modes/railpack), [Nixpacks](/docs/apps/modes/nixpacks), or [Cloud Native Buildpacks](/docs/apps/modes/buildpack). A multi-service project uses [Compose](/docs/apps/modes/compose). [Deployment modes](/docs/platform-deployments) compares them and explains build servers and rollout strategies.
 
 ## Deploy and verify
 
-Open the app and choose **Deploy**. Follow its stages until it reaches a terminal result, then verify the actual service response. Enable [automatic deployment](/docs/deployments#automatic-deployments) after the manual path works.
-
-Use [deployment hooks](/docs/deployments#deployment-hooks) for required commands around promotion and [previews](/docs/previews) for pull request environments.
+Open the app and choose **Deploy**. Follow the stages until the attempt reaches a final result, then verify the service response. Start with a manual deployment; enable [automatic deployment and previews](/docs/apps/automation) after the basic path works. [Deployments and releases](/docs/deployments) explains image promotion and rollback.
 
 ## Scheduled jobs
 
-Declare recurring commands in the app manifest. Each run uses a short-lived
-container from the deployed app image, with its runtime secrets, network,
-resource limits and persistent volumes. It does not publish the app's ports or
-claim its network alias.
-
-```yaml title=".towbar/apps/web.app.yml"
-jobs:
-  - name: daily-report
-    description: Generate the daily report
-    command: ["node", "scripts/report.js"]
-    schedule:
-      cron: "0 2 * * *"
-      timezone: UTC
-    timeoutSeconds: 300
-    enabled: true
-```
-
-Use a five-part cron expression; schedules have one-minute resolution and always
-use UTC. Commands are argument arrays and retain the image's entrypoint and
-user. To use shell operators, explicitly run a shell such as
-`["sh", "-c", "node report.js && node notify.js"]`.
-
-The **Scheduled jobs** page shows configured jobs and the latest 100 runs.
-Members with workload-operation access can use **Run now**; viewers can read
-status and output. Output is bounded to 256 KiB and known runtime secret values
-are redacted. Keep credentials out of command arguments and output.
-
-Deploy after changing the app manifest. Jobs wait until that configuration is
-deployed. A queued run is rejected if its release or declaration changes before
-execution. Jobs share the app's work queue with deployments and do not overlap
-with another run of the same job. Commands that exceed their time limit are
-stopped; failed or interrupted commands are not retried automatically. Make
-commands idempotent if you intend to rerun them manually.
-
-Repository and environment automation pauses also pause scheduled jobs. Preview
-environments never schedule jobs. Missed schedules during pauses, outages or
-longer runs are skipped; Towbar does not replay a backlog. Set `enabled: false`
-or override `jobs: []` in an environment to disable its scheduled work.
+Declare recurring commands in the app manifest and deploy that configuration before a job can run. [Scheduled jobs](/docs/apps/jobs) covers cron, runtime access, output, overlap, manual runs, and pause behavior.
