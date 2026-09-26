@@ -19,7 +19,7 @@ Towbar reads deployment configuration from the Git revision being deployed. The 
 
 Each guide includes a complete, validated entity example from `examples/platform-modes`. Builder images accepted by the manifest must be pinned to immutable digests. Choose the mode first, then configure shared [container and health](/docs/apps/configuration) fields.
 
-## Configure a source build
+## Source builds
 
 Set the context and builder-specific options in `deployment`. [Dockerfile](/docs/apps/modes/dockerfile), [static site](/docs/apps/modes/static), [Railpack](/docs/apps/modes/railpack), [Nixpacks](/docs/apps/modes/nixpacks), and [Buildpacks](/docs/apps/modes/buildpack) each have a complete example. Dockerfile and static builds can receive protected build values; Railpack, Nixpacks, and Buildpacks reject build secrets. Cancellation removes staged source and unpromoted images.
 

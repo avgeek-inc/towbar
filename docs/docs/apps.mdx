@@ -60,14 +60,6 @@ Declare `production` in `towbar.yml`, map it to a branch, and register the examp
 
 [Container and health](/docs/apps/configuration) covers process ports, capacity, private networks, persistent volumes, and readiness. [Routing and TLS](/docs/apps/routing) covers domains and certificates. Declare secret names in the manifest and save their values in [Secrets](/docs/secrets).
 
-### Choose a health endpoint
-
-Use an unauthenticated HTTP path that can respond when the app is ready. Set its startup allowance and review how readiness gates promotion in [Container and health](/docs/apps/configuration).
-
-### Supply configuration
-
-Declare build and runtime secret names in the manifest, then save their values in Towbar. [Secrets](/docs/secrets) explains the separate stages, value references, and preview isolation.
-
 ## Pick a deployment mode
 
 Use an existing [Dockerfile](/docs/apps/modes/dockerfile), build a [static site](/docs/apps/modes/static), run a [prebuilt image](/docs/apps/modes/image), or choose [Railpack](/docs/apps/modes/railpack), [Nixpacks](/docs/apps/modes/nixpacks), or [Cloud Native Buildpacks](/docs/apps/modes/buildpack). A multi-service project uses [Compose](/docs/apps/modes/compose). [Deployment modes](/docs/platform-deployments) compares them and explains build servers and rollout strategies.
