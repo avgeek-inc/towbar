@@ -16,10 +16,22 @@ ensure_yaml_tooling() {
   python3 -c 'import yaml' >/dev/null || fail "python3-yaml is unavailable"
 }
 
+migrate_runtime_config_path() {
+  [[ -e "$TOWBAR_LEGACY_YAML_FILE" || -L "$TOWBAR_LEGACY_YAML_FILE" ]] || return 0
+  [[ "$TOWBAR_LEGACY_YAML_FILE" != "$TOWBAR_YAML_FILE" ]] || return 0
+  [[ -f "$TOWBAR_LEGACY_YAML_FILE" && ! -L "$TOWBAR_LEGACY_YAML_FILE" ]] ||
+    fail "$TOWBAR_LEGACY_YAML_FILE must be a regular file"
+  [[ ! -e "$TOWBAR_YAML_FILE" && ! -L "$TOWBAR_YAML_FILE" ]] ||
+    fail "both $TOWBAR_LEGACY_YAML_FILE and $TOWBAR_YAML_FILE exist; resolve the conflict before upgrading"
+  mv -- "$TOWBAR_LEGACY_YAML_FILE" "$TOWBAR_YAML_FILE"
+  ui_step "Renamed runtime configuration to $TOWBAR_YAML_FILE"
+}
+
 prepare_runtime_config() {
   local release_dir="$1" helper
   helper="$(config_helper_for "$release_dir")"
   ensure_yaml_tooling
+  migrate_runtime_config_path
   if [[ ! -f "$TOWBAR_YAML_FILE" ]]; then
     [[ -f "$TOWBAR_COMMITTED_ENV_FILE" ]] || fail "runtime configuration is missing"
     if [[ -f "$VERSION_FILE" ]]; then

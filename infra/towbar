@@ -6,7 +6,8 @@ CLI_RELEASE="v$CLI_VERSION"
 TOWBAR_ROOT="${TOWBAR_ROOT:-/opt/towbar}"
 TOWBAR_CONFIG_DIR="${TOWBAR_CONFIG_DIR:-/etc/towbar}"
 TOWBAR_ENV_FILE="${TOWBAR_ENV_FILE:-$TOWBAR_CONFIG_DIR/towbar.env}"
-TOWBAR_YAML_FILE="${TOWBAR_YAML_FILE:-$TOWBAR_CONFIG_DIR/towbar.yml}"
+TOWBAR_YAML_FILE="${TOWBAR_YAML_FILE:-$TOWBAR_CONFIG_DIR/config.yml}"
+TOWBAR_LEGACY_YAML_FILE="$TOWBAR_CONFIG_DIR/towbar.yml"
 TOWBAR_COMMITTED_ENV_FILE="$TOWBAR_ENV_FILE"
 TOWBAR_PENDING_ENV_FILE=""
 TOWBAR_REPOSITORY="${TOWBAR_REPOSITORY:-avgeek-inc/towbar}"
@@ -285,10 +286,22 @@ ensure_yaml_tooling() {
   python3 -c 'import yaml' >/dev/null || fail "python3-yaml is unavailable"
 }
 
+migrate_runtime_config_path() {
+  [[ -e "$TOWBAR_LEGACY_YAML_FILE" || -L "$TOWBAR_LEGACY_YAML_FILE" ]] || return 0
+  [[ "$TOWBAR_LEGACY_YAML_FILE" != "$TOWBAR_YAML_FILE" ]] || return 0
+  [[ -f "$TOWBAR_LEGACY_YAML_FILE" && ! -L "$TOWBAR_LEGACY_YAML_FILE" ]] ||
+    fail "$TOWBAR_LEGACY_YAML_FILE must be a regular file"
+  [[ ! -e "$TOWBAR_YAML_FILE" && ! -L "$TOWBAR_YAML_FILE" ]] ||
+    fail "both $TOWBAR_LEGACY_YAML_FILE and $TOWBAR_YAML_FILE exist; resolve the conflict before upgrading"
+  mv -- "$TOWBAR_LEGACY_YAML_FILE" "$TOWBAR_YAML_FILE"
+  ui_step "Renamed runtime configuration to $TOWBAR_YAML_FILE"
+}
+
 prepare_runtime_config() {
   local release_dir="$1" helper
   helper="$(config_helper_for "$release_dir")"
   ensure_yaml_tooling
+  migrate_runtime_config_path
   if [[ ! -f "$TOWBAR_YAML_FILE" ]]; then
     [[ -f "$TOWBAR_COMMITTED_ENV_FILE" ]] || fail "runtime configuration is missing"
     if [[ -f "$VERSION_FILE" ]]; then
@@ -567,7 +580,7 @@ EOF
 generate_config() {
   local release_dir="$1" pending_config
   CONFIG_CREATED=false
-  [[ ! -e "$TOWBAR_ENV_FILE" && ! -e "$TOWBAR_YAML_FILE" ]] || return 0
+  [[ ! -e "$TOWBAR_ENV_FILE" && ! -e "$TOWBAR_YAML_FILE" && ! -e "$TOWBAR_LEGACY_YAML_FILE" ]] || return 0
 
   install -d -m 0700 "$TOWBAR_CONFIG_DIR"
   pending_config="$(mktemp "$TOWBAR_CONFIG_DIR/towbar.env.XXXXXX")"
@@ -862,6 +875,15 @@ cleanup_installation_artifacts() {
 upgrade_release() {
   local requested_version="${1:-latest}" version commit release_dir
   local previous_release="" previous_commit="" containers_changed=false
+  local config_path_migrated=false had_legacy_config=false
+
+  restore_upgrade_config_path() {
+    if [[ "$config_path_migrated" == true && -f "$TOWBAR_YAML_FILE" && ! -e "$TOWBAR_LEGACY_YAML_FILE" ]]; then
+      mv -- "$TOWBAR_YAML_FILE" "$TOWBAR_LEGACY_YAML_FILE"
+    fi
+  }
+
+  trap 'restore_upgrade_config_path' EXIT
 
   require_root upgrade
   require_linux
@@ -880,6 +902,13 @@ upgrade_release() {
   commit="$(resolve_release_commit "$version")"
   ui_step "Verified $version at immutable commit ${commit:0:12}"
   release_dir="$(download_release "$version" "$commit")"
+  if [[ -f "$TOWBAR_LEGACY_YAML_FILE" && ! -e "$TOWBAR_YAML_FILE" ]]; then
+    had_legacy_config=true
+  fi
+  migrate_runtime_config_path
+  if [[ "$had_legacy_config" == true ]]; then
+    config_path_migrated=true
+  fi
   generate_config "$release_dir"
   if [[ -n "${INSTALL_MODE:-}" ]]; then
     if [[ -f "$TOWBAR_YAML_FILE" ]]; then
@@ -975,7 +1004,7 @@ upgrade_release() {
   install_cli_from_release "$release_dir"
   commit_runtime_config
   printf '%s\n' "$version" >"$VERSION_FILE"
-  trap - ERR INT TERM
+  trap - ERR INT TERM EXIT
   cleanup_installation_artifacts \
     "$release_dir" "$commit" "$previous_release" "$previous_commit"
   log "$version is healthy at $commit"
@@ -1070,10 +1099,14 @@ config_command() {
   local release_dir commit
   case "${1:-}" in
     path)
-      if [[ -f "$TOWBAR_YAML_FILE" || ! -f "$TOWBAR_ENV_FILE" ]]; then
+      if [[ -f "$TOWBAR_YAML_FILE" ]]; then
         printf '%s\n' "$TOWBAR_YAML_FILE"
-      else
+      elif [[ -f "$TOWBAR_LEGACY_YAML_FILE" ]]; then
+        printf '%s\n' "$TOWBAR_LEGACY_YAML_FILE"
+      elif [[ -f "$TOWBAR_ENV_FILE" ]]; then
         printf '%s\n' "$TOWBAR_ENV_FILE"
+      else
+        printf '%s\n' "$TOWBAR_YAML_FILE"
       fi
       ;;
     validate)
@@ -1231,9 +1264,16 @@ doctor_check_disk_usage() {
 
 doctor_check_config() {
   local release_dir="$1" ownership mode app_url config_path helper
+  if [[ ( -e "$TOWBAR_LEGACY_YAML_FILE" || -L "$TOWBAR_LEGACY_YAML_FILE" ) && ( -e "$TOWBAR_YAML_FILE" || -L "$TOWBAR_YAML_FILE" ) ]]; then
+    doctor_record fail "Runtime configuration paths conflict" "Both $TOWBAR_LEGACY_YAML_FILE and $TOWBAR_YAML_FILE exist. Resolve the conflict before upgrading."
+    return
+  fi
   config_path="$TOWBAR_YAML_FILE"
   if [[ ! -f "$config_path" ]]; then
-    if [[ -f "$TOWBAR_ENV_FILE" ]]; then
+    if [[ -f "$TOWBAR_LEGACY_YAML_FILE" ]]; then
+      doctor_record warn "Runtime configuration uses the previous path" "The next upgrade or restart will rename it to $TOWBAR_YAML_FILE."
+      config_path="$TOWBAR_LEGACY_YAML_FILE"
+    elif [[ -f "$TOWBAR_ENV_FILE" ]]; then
       doctor_record warn "Runtime configuration uses the legacy environment file" "The next upgrade or restart will convert it to $TOWBAR_YAML_FILE."
       config_path="$TOWBAR_ENV_FILE"
     else
@@ -1261,9 +1301,9 @@ doctor_check_config() {
     fi
   fi
 
-  if [[ "$config_path" == "$TOWBAR_YAML_FILE" ]]; then
+  if [[ "$config_path" != "$TOWBAR_ENV_FILE" ]]; then
     helper="$(config_helper_for "$release_dir")"
-    if ! python3 "$helper" compare --yaml "$TOWBAR_YAML_FILE" --env "$TOWBAR_ENV_FILE" >/dev/null 2>&1; then
+    if ! python3 "$helper" compare --yaml "$config_path" --env "$TOWBAR_ENV_FILE" >/dev/null 2>&1; then
       doctor_record fail "Runtime configuration is not applied" "Run sudo towbar config validate, then sudo towbar restart."
       return
     fi

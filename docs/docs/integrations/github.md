@@ -6,7 +6,7 @@ icon: "/assets/integration-logos/github.svg"
 
 <img className="towbar-doc-brand-logo" src="/assets/integration-logos/github.svg" alt="GitHub logo" aria-hidden="true" />
 
-Towbar uses one GitHub App per installation. The App identity and secrets live in `/etc/towbar/towbar.yml`. PostgreSQL stores the selected installation and account metadata, never the App private key or webhook secret.
+Towbar uses one GitHub App per installation. The App identity and secrets live in `/etc/towbar/config.yml`. PostgreSQL stores the selected installation and account metadata, never the App private key or webhook secret.
 
 ## Create and configure the App
 
@@ -26,11 +26,11 @@ Towbar uses one GitHub App per installation. The App identity and secrets live i
 
    ![Selecting the Push and Pull request webhook events in GitHub App settings.](/assets/guides/github-app/events.webp)
 
-5. On **General**, generate a private key. GitHub downloads a PEM file. Keep it outside the repository, encode it as a single-line Base64 value, and add the App details to `/etc/towbar/towbar.yml`:
+5. On **General**, generate a private key. GitHub downloads a PEM file. Keep it outside the repository, encode it as a single-line Base64 value, and add the App details to `/etc/towbar/config.yml`:
 
    ![Generate a private key action in GitHub App General settings.](/assets/guides/github-app/private-key.webp)
 
-```yaml title="/etc/towbar/towbar.yml"
+```yaml title="/etc/towbar/config.yml"
 integrations:
   github:
     enabled: true
@@ -80,4 +80,4 @@ The connection card shows the installed account, account type, installation ID, 
 
 ## Maintain the connection
 
-Use **Review permissions** after adding App permissions or repositories. Use **Reconnect GitHub** when GitHub suspends or removes the installation. If webhooks stop arriving, inspect the App’s recent deliveries in GitHub and confirm that the callback URL uses `installation.appUrl`. Rotate the private key or webhook secret in `towbar.yml`, then validate and restart Towbar.
+Use **Review permissions** after adding App permissions or repositories. Use **Reconnect GitHub** when GitHub suspends or removes the installation. If webhooks stop arriving, inspect the App’s recent deliveries in GitHub and confirm that the callback URL uses `installation.appUrl`. Rotate the private key or webhook secret in `config.yml`, then validate and restart Towbar.

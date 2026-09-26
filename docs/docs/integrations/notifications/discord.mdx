@@ -13,7 +13,7 @@ icon: "/assets/integration-logos/discord.svg"
 
 Create an incoming webhook for each Discord channel or use case that needs separate subscriptions. Discord gives each webhook an ID and token in a URL shaped like `https://discord.com/api/webhooks/<id>/<token>`. Store those two parts separately in Towbar's protected YAML file; the token is not shown in the dashboard.
 
-```yaml title="/etc/towbar/towbar.yml"
+```yaml title="/etc/towbar/config.yml"
 notifications:
   enabled: true
   providers:

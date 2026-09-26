@@ -9,7 +9,7 @@ Towbar uses one SMTP connection for operational notifications and account messag
 
 Get a public SMTP hostname, port, sender address, and credentials from your mail provider. Authorize the sender identity with that provider and confirm that the account can send to the intended recipients. Towbar rejects SMTP hosts that resolve to private or reserved addresses. Choose the provider's TLS mode: for a provider that offers STARTTLS on port 587, use `secure: false`; for implicit TLS on port 465, use `secure: true`.
 
-```yaml title="/etc/towbar/towbar.yml"
+```yaml title="/etc/towbar/config.yml"
 notifications:
   enabled: true
   providers:

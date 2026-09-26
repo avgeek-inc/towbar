@@ -2,7 +2,7 @@
 
 ## Scope
 
-Make `/etc/towbar/towbar.yml` the single operator-edited source for self-hosted
+Make `/etc/towbar/config.yml` the single operator-edited source for self-hosted
 installation and runtime configuration. This replaces the current
 `/etc/towbar/towbar.env` and the JSON strings embedded in it. It does not move
 control-plane records such as notification destinations, subscriptions, or
@@ -90,7 +90,7 @@ references.
 
 The CLI validates YAML, then renders a private, generated environment file for
 Docker Compose. Compose and the API/worker can continue receiving environment
-variables internally. Operators edit only `towbar.yml`; `towbar config path`
+variables internally. Operators edit only `config.yml`; `towbar config path`
 points to it, and `config validate`, `restart`, `upgrade`, and `doctor` all use
 the same validated rendering path. The generated file must be root-owned,
 mode `0600`, written atomically, and refreshed whenever the YAML changes.
@@ -112,7 +112,7 @@ not become a second source of truth.
    compatibility release). Refuse duplicate keys, malformed values, and
    unknown active keys, reporting key names only. Parse JSON-valued settings
    into native YAML maps and lists.
-3. Write `towbar.yml` to a temporary file in `/etc/towbar`, set `root:root`
+3. Write `config.yml` to a temporary file in `/etc/towbar`, set `root:root`
    and `0600`, validate it, render the environment file, and compare effective
    settings with the original. Rename the YAML file into place only after all
    checks pass. Re-running the migration must be safe.

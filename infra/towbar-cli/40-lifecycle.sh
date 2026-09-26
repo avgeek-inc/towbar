@@ -271,6 +271,15 @@ cleanup_installation_artifacts() {
 upgrade_release() {
   local requested_version="${1:-latest}" version commit release_dir
   local previous_release="" previous_commit="" containers_changed=false
+  local config_path_migrated=false had_legacy_config=false
+
+  restore_upgrade_config_path() {
+    if [[ "$config_path_migrated" == true && -f "$TOWBAR_YAML_FILE" && ! -e "$TOWBAR_LEGACY_YAML_FILE" ]]; then
+      mv -- "$TOWBAR_YAML_FILE" "$TOWBAR_LEGACY_YAML_FILE"
+    fi
+  }
+
+  trap 'restore_upgrade_config_path' EXIT
 
   require_root upgrade
   require_linux
@@ -289,6 +298,13 @@ upgrade_release() {
   commit="$(resolve_release_commit "$version")"
   ui_step "Verified $version at immutable commit ${commit:0:12}"
   release_dir="$(download_release "$version" "$commit")"
+  if [[ -f "$TOWBAR_LEGACY_YAML_FILE" && ! -e "$TOWBAR_YAML_FILE" ]]; then
+    had_legacy_config=true
+  fi
+  migrate_runtime_config_path
+  if [[ "$had_legacy_config" == true ]]; then
+    config_path_migrated=true
+  fi
   generate_config "$release_dir"
   if [[ -n "${INSTALL_MODE:-}" ]]; then
     if [[ -f "$TOWBAR_YAML_FILE" ]]; then
@@ -384,7 +400,7 @@ upgrade_release() {
   install_cli_from_release "$release_dir"
   commit_runtime_config
   printf '%s\n' "$version" >"$VERSION_FILE"
-  trap - ERR INT TERM
+  trap - ERR INT TERM EXIT
   cleanup_installation_artifacts \
     "$release_dir" "$commit" "$previous_release" "$previous_commit"
   log "$version is healthy at $commit"
@@ -479,10 +495,14 @@ config_command() {
   local release_dir commit
   case "${1:-}" in
     path)
-      if [[ -f "$TOWBAR_YAML_FILE" || ! -f "$TOWBAR_ENV_FILE" ]]; then
+      if [[ -f "$TOWBAR_YAML_FILE" ]]; then
         printf '%s\n' "$TOWBAR_YAML_FILE"
-      else
+      elif [[ -f "$TOWBAR_LEGACY_YAML_FILE" ]]; then
+        printf '%s\n' "$TOWBAR_LEGACY_YAML_FILE"
+      elif [[ -f "$TOWBAR_ENV_FILE" ]]; then
         printf '%s\n' "$TOWBAR_ENV_FILE"
+      else
+        printf '%s\n' "$TOWBAR_YAML_FILE"
       fi
       ;;
     validate)

@@ -3,7 +3,7 @@ title: "Configuration and restart"
 description: "Edit Towbar's YAML configuration, validate changes, and restart only after every preflight succeeds."
 ---
 
-Towbar keeps installation and integration configuration in `/etc/towbar/towbar.yml`, owned by `root:root` with mode `600`. The CLI does not provide an editor or print its contents.
+Towbar keeps installation and integration configuration in `/etc/towbar/config.yml`, owned by `root:root` with mode `600`. The CLI does not provide an editor or print its contents.
 
 ## `towbar config path`
 
@@ -14,7 +14,7 @@ towbar config path
 ```
 
 ```text title="Default output"
-/etc/towbar/towbar.yml
+/etc/towbar/config.yml
 ```
 
 Use the result with an editor that can write a root-owned file:
@@ -59,7 +59,7 @@ If a preflight fails, the CLI prints that running services were not restarted an
 
 <Steps>
   <Step title="Back up the current file">
-    Preserve `/etc/towbar/towbar.yml` in restricted storage before changing
+    Preserve `/etc/towbar/config.yml` in restricted storage before changing
     production configuration. The file contains credentials and encryption keys.
   </Step>
   <Step title="Edit the YAML configuration">

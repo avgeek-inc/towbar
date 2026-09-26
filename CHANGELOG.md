@@ -5,6 +5,12 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+### Changed
+
+- The self-hosted runtime configuration path is `/etc/towbar/config.yml`.
+  The updated CLI renames an existing `/etc/towbar/towbar.yml` during upgrade
+  or restart while preserving its contents and permissions.
+
 ## [2.0.14] - 2026-09-26
 
 ### Changed

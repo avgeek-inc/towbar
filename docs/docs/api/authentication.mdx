@@ -34,9 +34,9 @@ Create a replacement key, update the consumer, verify a permitted request, then 
 
 ## Configure rate limits
 
-Set these in `/etc/towbar/towbar.yml`, then run `sudo towbar config validate` and `sudo towbar restart`:
+Set these in `/etc/towbar/config.yml`, then run `sudo towbar config validate` and `sudo towbar restart`:
 
-```yaml title="/etc/towbar/towbar.yml"
+```yaml title="/etc/towbar/config.yml"
 security:
   apiRateLimit:
     max: 60

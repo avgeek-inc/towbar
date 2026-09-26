@@ -5,7 +5,7 @@ description: "Configure signed HTTPS notification endpoints with optional header
 
 Use webhook push when another service should consume Towbar's operational events. Configure one endpoint per use case. Keep its URL, optional authorization headers, and signing secret in the protected runtime YAML file; the dashboard manages only subscriptions. Webhook push is workspace-wide.
 
-```yaml title="/etc/towbar/towbar.yml"
+```yaml title="/etc/towbar/config.yml"
 notifications:
   enabled: true
   providers:

@@ -13,7 +13,7 @@ icon: "/assets/integration-logos/aws.svg"
 
 Use the `s3` integration for an S3-compatible object store other than AWS S3 or Cloudflare R2. Create a bucket and credentials scoped to the intended objects, versions, and prefix. The endpoint must be reachable from the Towbar installation; keep credentials in the root-owned control-plane YAML file.
 
-```yaml title="/etc/towbar/towbar.yml"
+```yaml title="/etc/towbar/config.yml"
 integrations:
   s3:
     enabled: true

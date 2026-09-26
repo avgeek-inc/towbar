@@ -56,7 +56,7 @@ Forgot password sends a short-lived, single-use link when SMTP is configured. Re
 
 ## Transactional email
 
-Configure SMTP under `notifications.providers.smtp` in `/etc/towbar/towbar.yml` and run `sudo towbar restart`. Port 465 usually uses implicit TLS; a submission port such as 587 uses STARTTLS. Towbar requires encrypted delivery and validates the server certificate. The SMTP hostname must resolve to public addresses; private network relays are not supported by this transport.
+Configure SMTP under `notifications.providers.smtp` in `/etc/towbar/config.yml` and run `sudo towbar restart`. Port 465 usually uses implicit TLS; a submission port such as 587 uses STARTTLS. Towbar requires encrypted delivery and validates the server certificate. The SMTP hostname must resolve to public addresses; private network relays are not supported by this transport.
 
 Use a verified sender domain and apply the SMTP provider's SPF, DKIM and DMARC instructions. Test the SMTP configuration and an invitation with a mailbox you control before relying on password recovery. Notification category recipients control deployment/incident mail; account and team messages always use their server-selected recipients and are independent of those categories. The subject prefix is fixed to `[Towbar]`.
 

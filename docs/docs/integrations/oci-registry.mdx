@@ -17,9 +17,9 @@ server to a runtime server without changing the image digest.
 
 Create a registry account or access token with pull access to the image repositories Towbar runs. Add push access only when a dedicated build server will transfer images through the registry. Record the registry host without `https://` or a path; an optional port is allowed.
 
-Add this to `/etc/towbar/towbar.yml`:
+Add this to `/etc/towbar/config.yml`:
 
-```yaml title="/etc/towbar/towbar.yml"
+```yaml title="/etc/towbar/config.yml"
 integrations:
   registry:
     enabled: true

@@ -5,11 +5,11 @@ description: "Reference for Towbar's YAML configuration, including secrets, inte
 
 Use this reference when configuring the Towbar installation. Workload secrets are described in [Secrets](/docs/secrets), and app behavior belongs in the [deployment manifest](/docs/deployment-manifest).
 
-The installer creates `/etc/towbar/towbar.yml` with root ownership and mode `600`. `towbar config path` prints that location without reading the file. Edit it with an editor such as `sudo nano "$(towbar config path)"`, validate it with `sudo towbar config validate`, and apply changes with `sudo towbar restart`. Editing YAML alone does not update running services.
+The installer creates `/etc/towbar/config.yml` with root ownership and mode `600`. `towbar config path` prints that location without reading the file. Edit it with an editor such as `sudo nano "$(towbar config path)"`, validate it with `sudo towbar config validate`, and apply changes with `sudo towbar restart`. Editing YAML alone does not update running services.
 
 Towbar does not provide a configuration editor. Before replacing a running container, `restart` validates the YAML and Compose model, then runs API, worker, integration, notification, and Caddy preflights against the installed release images. A failed preflight leaves the running services untouched and directs you to `sudo towbar doctor`.
 
-```yaml title="/etc/towbar/towbar.yml"
+```yaml title="/etc/towbar/config.yml"
 version: 1
 installation:
   mode: public
@@ -103,7 +103,7 @@ Other supported fields include bucket, prefix, endpoint, addressing style, priva
 
 Set `notifications.enabled: true` and add provider credentials under `notifications.providers`. Manage Email, Slack, and Telegram destinations in the dashboard. Discord webhook credentials and webhook push endpoint URLs, headers, and signing secrets stay in YAML; their subscriptions are managed in the dashboard. Route IDs, Discord webhook IDs, and webhook endpoint IDs must be unique.
 
-```yaml title="/etc/towbar/towbar.yml"
+```yaml title="/etc/towbar/config.yml"
 notifications:
   enabled: true
   providers:

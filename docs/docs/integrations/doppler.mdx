@@ -13,7 +13,7 @@ icon: "/assets/integration-logos/doppler.ico"
 
 Use a Doppler service token for the project and configuration that Towbar workloads need. The token belongs in the protected control-plane YAML file, not in a repository or workload manifest. Towbar resolves references during deployment and does not return secret values to the dashboard.
 
-```yaml title="/etc/towbar/towbar.yml"
+```yaml title="/etc/towbar/config.yml"
 integrations:
   doppler:
     enabled: true

@@ -3,7 +3,7 @@ title: "Notifications"
 description: "Choose a provider, connect it, and inspect operational delivery."
 ---
 
-Towbar records provider-neutral events and sends each matching event to its subscribed destinations. Credentials live in `/etc/towbar/towbar.yml`. Email recipients, Slack channels, and Telegram chats are managed in **Manage → Notifications**. Discord webhook pairs and webhook push endpoints live in YAML; their event subscriptions are selected in the dashboard. The provider list remains visible even when a runtime connection is missing.
+Towbar records provider-neutral events and sends each matching event to its subscribed destinations. Credentials live in `/etc/towbar/config.yml`. Email recipients, Slack channels, and Telegram chats are managed in **Manage → Notifications**. Discord webhook pairs and webhook push endpoints live in YAML; their event subscriptions are selected in the dashboard. The provider list remains visible even when a runtime connection is missing.
 
 | Provider     | What you configure                                | Setup guide                                              |
 | ------------ | ------------------------------------------------- | -------------------------------------------------------- |
@@ -35,7 +35,7 @@ notifications:
       alertsAndIncidents: true
 ```
 
-Each destination must enable at least one category. These subscriptions take effect after a successful environment sync; no deployment is needed. Keep provider credentials in `/etc/towbar/towbar.yml`. The workload's **Monitor → Notifications** page shows synced destinations and subscriptions without edit controls.
+Each destination must enable at least one category. These subscriptions take effect after a successful environment sync; no deployment is needed. Keep provider credentials in `/etc/towbar/config.yml`. The workload's **Monitor → Notifications** page shows synced destinations and subscriptions without edit controls.
 
 Each destination can subscribe to **Deployments**, **Backup & Restore**, and **Alerts & Incidents**. Preview events follow Deployments; service health and Scout incidents follow Alerts & Incidents. New runtime-managed Discord and webhook destinations start with no subscriptions, so select at least one category before expecting routine events.
 

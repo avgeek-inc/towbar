@@ -8,7 +8,7 @@ Upgrade the API, worker, and dashboard together from a reviewed release. Before 
 ## Prepare an upgrade
 
 1. Pause automatic deployments and allow active operations to finish.
-2. Preserve `/etc/towbar/towbar.yml` and its credential-encryption key with restricted access.
+2. Preserve the file reported by `towbar config path` and its credential-encryption key with restricted access.
 3. Run `sudo towbar version` and record the installed release.
 4. Review the target release and its migration notes.
 5. Run the CLI upgrade, inspect migration output, and verify System health before resuming deployments.
@@ -27,9 +27,11 @@ To install a reviewed version explicitly, pass its release tag:
 sudo towbar upgrade v2.1.0
 ```
 
-The CLI accepts only published, non-prerelease v2-or-later semantic versions. It resolves the tag to an immutable Git commit, downloads that commit archive into `/opt/towbar/releases`, validates the release image manifest, pulls the API, worker, and dashboard images by immutable digest, validates `/etc/towbar/towbar.yml`, applies migrations, waits for service health, and verifies the commit reported by the API. A failed service replacement restores the previous release symlink and images. A previous image alone is not a recovery plan for a database migration; review migration compatibility before reverting a release.
+The CLI accepts only published, non-prerelease v2-or-later semantic versions. It resolves the tag to an immutable Git commit, downloads that commit archive into `/opt/towbar/releases`, validates the release image manifest, pulls the API, worker, and dashboard images by immutable digest, validates `/etc/towbar/config.yml`, applies migrations, waits for service health, and verifies the commit reported by the API. A failed service replacement restores the previous release symlink and images. A previous image alone is not a recovery plan for a database migration; review migration compatibility before reverting a release.
 
 The target release must have a successful **Publish release images** workflow. If its image manifest is not attached yet, the CLI stops before replacing the current release.
+
+The updated CLI renames an existing `/etc/towbar/towbar.yml` to `/etc/towbar/config.yml` during upgrade, preserving its contents and permissions. If both paths exist, the upgrade stops so an operator can resolve the conflict without losing either file. An upgrade started with an older CLI installs the updated CLI first; run `sudo towbar restart` afterward to complete the rename. The repository-root `towbar.yml` manifest is unrelated and stays unchanged.
 
 After a successful upgrade, Towbar retains the current and immediately previous source release and application images. Older Towbar release directories and unreferenced Towbar application images are removed. Database, Temporal, Caddy, and application volumes are never pruned, and images belonging to other Docker workloads are not touched.
 
@@ -49,4 +51,4 @@ Use **Forgot password** when SMTP and the account's mailbox are available. Host 
 
 ## Command-line operations
 
-Towbar does not deploy itself from GitHub Actions. Installation and upgrades run on the control-plane host through the `towbar` CLI, so release access and `/etc/towbar/towbar.yml` remain host-owned. See the [Towbar CLI guide](/docs/self-hosting/cli) for every command, parameter, safety check, and troubleshooting workflow.
+Towbar does not deploy itself from GitHub Actions. Installation and upgrades run on the control-plane host through the `towbar` CLI, so release access and `/etc/towbar/config.yml` remain host-owned. See the [Towbar CLI guide](/docs/self-hosting/cli) for every command, parameter, safety check, and troubleshooting workflow.

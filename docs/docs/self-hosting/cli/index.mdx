@@ -4,7 +4,7 @@ description: "Install, inspect, configure, upgrade, and troubleshoot a self-host
 sidebarTitle: "CLI overview"
 ---
 
-The `towbar` command manages the control plane installed on a Towbar host. It selects the active release, reads `/etc/towbar/towbar.yml`, and supplies the correct Compose project, images, and release metadata for each operation.
+The `towbar` command manages the control plane installed on a Towbar host. It selects the active release, reads `/etc/towbar/config.yml`, and supplies the correct Compose project, images, and release metadata for each operation.
 
 The installer places the executable at `/usr/local/bin/towbar`. Run host-changing and Docker commands with `sudo`. Read-only commands that do not access Docker or protected files work without it.
 
@@ -70,7 +70,7 @@ The CLI uses these installation-owned paths:
 | Path                             | Purpose                                                      |
 | -------------------------------- | ------------------------------------------------------------ |
 | `/usr/local/bin/towbar`          | Installed CLI                                                |
-| `/etc/towbar/towbar.yml`         | Root-owned runtime configuration; expected mode is `600`     |
+| `/etc/towbar/config.yml`         | Root-owned runtime configuration; expected mode is `600`     |
 | `/opt/towbar/current`            | Symlink to the active release                                |
 | `/opt/towbar/releases/<version>` | Downloaded source and Compose definition for one release     |
 | `/opt/towbar/VERSION`            | Installed release label                                      |
