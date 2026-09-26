@@ -1,16 +1,13 @@
 ---
 title: "Secrets"
-description: "Choose where deployment values live and how workloads receive them."
+description: "Configure secrets in Towbar or import them from Infisical and Doppler."
 ---
 
-Towbar keeps secret values outside Git. An app or resource manifest declares the names it needs; values can be saved in Towbar or imported from an external provider when a deployment runs. Save a change, then deploy the affected workload to use it.
+There are two ways to give a workload secrets:
 
-| Where values live        | Use it for                                                                         | Read next                                  |
-| ------------------------ | ---------------------------------------------------------------------------------- | ------------------------------------------ |
-| App or resource settings | Values belonging to one workload and environment                                   | [Workload secrets](/docs/secrets/workload) |
-| Manage → Shared secrets  | Reusable values explicitly referenced by workloads                                 | [Shared secrets](/docs/secrets/shared)     |
-| Infisical or Doppler     | A provider project or config whose secrets should be imported as runtime variables | [External secrets](/docs/secrets/external) |
+1. [Save them in Towbar](/docs/secrets/towbar). Declare the variable names in the app or resource manifest, sync the repository, and enter the values in Towbar. Towbar stores the values separately from Git and supplies them during deployment.
+2. [Import them from an external service](/docs/secrets/external). Configure an Infisical or Doppler integration, then point the workload manifest at a project and optional scope. Towbar reads that scope at deployment and supplies its secrets as runtime variables.
 
-These scopes do not silently override one another. Shared values are used only where a workload references them. If a Towbar value and an external source provide the same environment variable name, deployment stops so that you can choose one owner.
+Choose one owner for each variable. If the same name is present in Towbar and an external source, Towbar stops the deployment rather than choosing a value silently. You can use Towbar for some variables and an external service for others in the same workload.
 
-Provider credentials and server SSH keys are configured separately from workload secrets. Set up an [Infisical](/docs/integrations/infisical) or [Doppler](/docs/integrations/doppler) integration before using it in a manifest.
+**Shared secrets** are part of the Towbar option. They let several workloads reference one workspace value with `{{globals.KEY}}`; they are not another source that is injected automatically. The [Towbar secrets guide](/docs/secrets/towbar#reuse-a-shared-value) shows how to set one up.

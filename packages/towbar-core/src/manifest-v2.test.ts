@@ -160,7 +160,7 @@ void test("External secret source supports optional scope and provider project n
   const source = {
     integration: "infisical",
     project: "6354f023-12c7-4ce1-b860-750b38e1a3ef",
-    environment: "Production",
+    environmentSlug: "prod",
   };
   const result = resolve({ ...app, externalSecrets: source });
   assert.deepEqual(result.manifest.apps[0]?.externalSecrets, {
@@ -190,9 +190,24 @@ void test("External secret source supports optional scope and provider project n
     doppler,
   );
   assert.deepEqual(
-    resolve({ ...app, externalSecrets: { ...doppler, environment: "prd" } })
-      .manifest.apps[0]?.externalSecrets,
-    { ...doppler, environment: "prd" },
+    resolve({ ...app, externalSecrets: { ...doppler, config: "prd" } }).manifest
+      .apps[0]?.externalSecrets,
+    { ...doppler, config: "prd" },
+  );
+  assert.throws(() =>
+    resolve({
+      ...app,
+      externalSecrets: { ...source, environment: "Production" },
+    }),
+  );
+  assert.throws(() =>
+    resolve({ ...app, externalSecrets: { ...source, secretPath: "." } }),
+  );
+  assert.throws(() =>
+    resolve({ ...app, externalSecrets: { ...source, config: "prd" } }),
+  );
+  assert.throws(() =>
+    resolve({ ...app, externalSecrets: { ...doppler, secretPath: "folder" } }),
   );
   assert.throws(() =>
     resolve({

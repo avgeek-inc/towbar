@@ -144,8 +144,7 @@
             "group": "Secrets",
             "pages": [
               "docs/secrets",
-              "docs/secrets/workload",
-              "docs/secrets/shared",
+              "docs/secrets/towbar",
               "docs/secrets/external"
             ]
           },

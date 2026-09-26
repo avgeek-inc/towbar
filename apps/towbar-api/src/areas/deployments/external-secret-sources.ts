@@ -6,7 +6,6 @@ import type {
 } from "@workspace/towbar-core";
 import {
   externalSecretsSchema,
-  isExternalSecretSource,
   parseCredentialsMasterKey,
 } from "@workspace/towbar-core";
 import { getEnv } from "../../env.js";
@@ -48,8 +47,7 @@ async function resolveExternalSecretSource(input: {
   workspaceId: string;
 }) {
   const source = input.deployable.externalSecrets;
-  if (!isExternalSecretSource(source))
-    throw conflict("External secret source is missing");
+  if (!source) throw conflict("External secret source is missing");
   const resolved = await resolveIntegration({
     workspaceId: input.workspaceId,
     slug: source.integration,
@@ -62,15 +60,15 @@ async function resolveExternalSecretSource(input: {
     value: string;
     version?: number | string;
   }>;
-  if (connection.provider === "infisical") {
-    if (!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/iu.test(source.project))
-      throw unprocessable("Infisical project must be a project ID");
+  if (
+    source.integration === "infisical" &&
+    connection.provider === "infisical"
+  ) {
     secrets = await readInfisicalSecretFolder(connection, source);
-  } else if (connection.provider === "doppler") {
-    if (source.secretPath && source.secretPath !== ".")
-      throw unprocessable(
-        "Doppler does not support secretPath; its config is the secret scope",
-      );
+  } else if (
+    source.integration === "doppler" &&
+    connection.provider === "doppler"
+  ) {
     secrets = await readDopplerConfig(connection, source);
   } else {
     throw conflict("External secret source uses an incompatible integration");
@@ -127,24 +125,17 @@ async function readInfisicalSecretFolder(
     Awaited<ReturnType<typeof resolveIntegration>>["connectionInput"],
     { provider: "infisical" }
   >,
-  source: { project: string; environment?: string; secretPath?: string },
+  source: { project: string; environmentSlug?: string; secretPath?: string },
 ) {
   const token = await infisicalAccessToken(connection);
   const url = new URL("/api/v3/secrets/raw", connection.configuration.baseUrl);
   url.searchParams.set("workspaceId", source.project);
-  url.searchParams.set(
-    "environment",
-    source.environment === "Production"
-      ? "prod"
-      : source.environment === "Development"
-        ? "dev"
-        : (source.environment ?? "prod"),
-  );
+  url.searchParams.set("environment", source.environmentSlug ?? "prod");
   url.searchParams.set(
     "secretPath",
-    !source.secretPath || source.secretPath === "."
-      ? "/"
-      : `/${source.secretPath.replace(/^\/+|\/+$/gu, "")}`,
+    source.secretPath
+      ? `/${source.secretPath.replace(/^\/+|\/+$/gu, "")}`
+      : "/",
   );
   url.searchParams.set("recursive", "false");
   url.searchParams.set("include_imports", "false");
@@ -182,14 +173,14 @@ async function readDopplerConfig(
     Awaited<ReturnType<typeof resolveIntegration>>["connectionInput"],
     { provider: "doppler" }
   >,
-  source: { project: string; environment?: string },
+  source: { project: string; config?: string },
 ) {
   const url = new URL(
     "https://api.doppler.com/v3/configs/config/secrets/download",
   );
   url.searchParams.set("format", "json");
   url.searchParams.set("project", source.project);
-  if (source.environment) url.searchParams.set("config", source.environment);
+  if (source.config) url.searchParams.set("config", source.config);
   url.searchParams.set("include_dynamic_secrets", "false");
   const response = await integrationFetch(url.toString(), {
     headers: { Authorization: `Bearer ${connection.credentials.token}` },

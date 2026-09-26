@@ -293,11 +293,11 @@ export const appDeploymentSchema = z.discriminatedUnion("type", [
 ]);
 export type AppDeployment = z.infer<typeof appDeploymentSchema>;
 
-export const externalSecretSourceSchema = z
+const infisicalSecretSourceSchema = z
   .object({
-    integration: integrationReferenceSchema,
-    project: z.string().trim().min(1).max(128),
-    environment: z.string().trim().min(1).max(128).optional(),
+    integration: z.literal("infisical"),
+    project: z.uuid(),
+    environmentSlug: z.string().trim().min(1).max(128).optional(),
     secretPath: z
       .string()
       .trim()
@@ -305,23 +305,32 @@ export const externalSecretSourceSchema = z
       .max(1_024)
       .refine(
         (value) =>
-          value === "." ||
-          (!value.includes("\\") &&
-            !value.includes("\0") &&
-            !value.split("/").some((part) => part === ".." || part === ".")),
-        "Use a folder path or '.' for the root",
+          !value.includes("\\") &&
+          !value.includes("\0") &&
+          !value.split("/").some((part) => part === ".." || part === "."),
+        "Use a folder path without dot segments",
       )
       .optional(),
   })
   .strict();
 
-export const externalSecretsSchema = externalSecretSourceSchema;
+const dopplerSecretSourceSchema = z
+  .object({
+    integration: z.literal("doppler"),
+    project: z
+      .string()
+      .trim()
+      .min(1)
+      .max(128)
+      .regex(/^[a-z0-9][a-z0-9-]*$/u),
+    config: z.string().trim().min(1).max(128).optional(),
+  })
+  .strict();
 
-export function isExternalSecretSource(
-  value: z.infer<typeof externalSecretSourceSchema> | undefined,
-): value is z.infer<typeof externalSecretSourceSchema> {
-  return typeof value?.project === "string";
-}
+export const externalSecretsSchema = z.discriminatedUnion("integration", [
+  infisicalSecretSourceSchema,
+  dopplerSecretSourceSchema,
+]);
 
 export const ingressSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("proxy") }).strict(),

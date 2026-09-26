@@ -170,19 +170,46 @@
       "additionalProperties": false
     },
     "externalSecrets": {
-      "type": "object",
-      "properties": {
-        "integration": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 64,
-          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "integration": { "type": "string", "const": "infisical" },
+            "project": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "environmentSlug": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "secretPath": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            }
+          },
+          "required": ["integration", "project"],
+          "additionalProperties": false
         },
-        "project": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "environment": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "secretPath": { "type": "string", "minLength": 1, "maxLength": 1024 }
-      },
-      "additionalProperties": false
+        {
+          "type": "object",
+          "properties": {
+            "integration": { "type": "string", "const": "doppler" },
+            "project": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[a-z0-9][a-z0-9-]*$"
+            },
+            "config": { "type": "string", "minLength": 1, "maxLength": 128 }
+          },
+          "required": ["integration", "project"],
+          "additionalProperties": false
+        }
+      ]
     },
     "ingress": {
       "oneOf": [
@@ -569,27 +596,50 @@
             "additionalProperties": false
           },
           "externalSecrets": {
-            "type": "object",
-            "properties": {
-              "integration": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 64,
-                "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "integration": { "type": "string", "const": "infisical" },
+                  "project": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "environmentSlug": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "secretPath": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  }
+                },
+                "required": ["integration", "project"],
+                "additionalProperties": false
               },
-              "project": { "type": "string", "minLength": 1, "maxLength": 128 },
-              "environment": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 128
-              },
-              "secretPath": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 1024
+              {
+                "type": "object",
+                "properties": {
+                  "integration": { "type": "string", "const": "doppler" },
+                  "project": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[a-z0-9][a-z0-9-]*$"
+                  },
+                  "config": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                },
+                "required": ["integration", "project"],
+                "additionalProperties": false
               }
-            },
-            "additionalProperties": false
+            ]
           },
           "ingress": {
             "oneOf": [
