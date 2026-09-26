@@ -76,9 +76,6 @@ export function ServerEditor({
         port: Number(values.get("sshPort")),
         username: String(values.get("sshUsername") ?? "").trim(),
       },
-      ...(server?.config.proxy?.cloudflare.enabled
-        ? { proxy: { cloudflare: { enabled: true as const } } }
-        : {}),
     };
     try {
       const response = editing

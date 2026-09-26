@@ -90,7 +90,6 @@ void test(
     const serverConfig = normalizeServerConfiguration({
         ip: "192.0.2.10",
         ssh: { username: "deploy" },
-        proxy: { cloudflare: { enabled: true } },
       }),
       appConfig = manifest.apps[0]!;
     const workspaceOwner = { type: "workspace" as const, workspaceId };

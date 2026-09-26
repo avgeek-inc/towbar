@@ -162,6 +162,26 @@ void test("uses signed upstream package repositories and pinned Caddy inputs", (
   );
 });
 
+void test("Cloudflare DNS preparation is serialized and uses the Caddy module", () => {
+  const syntax = spawnSync("bash", ["-n"], {
+    encoding: "utf8",
+    input: serverPreparationScripts.ensureCloudflareCaddy,
+  });
+  assert.equal(syntax.status, 0, syntax.stderr);
+  assert.match(
+    serverPreparationScripts.ensureCloudflareCaddy,
+    /flock -w 900 \/var\/lock\/towbar-caddy-cloudflare\.lock/u,
+  );
+  assert.match(
+    serverPreparationScripts.ensureCloudflareCaddy,
+    /bash -s -- true/u,
+  );
+  assert.match(
+    serverPreparationScripts.ensureCloudflareCaddy,
+    /github\.com\/caddy-dns\/cloudflare@v0\.2\.4/u,
+  );
+});
+
 void test("refuses conflicting installations instead of removing them", () => {
   assert.match(
     serverPreparationScripts.installDocker,

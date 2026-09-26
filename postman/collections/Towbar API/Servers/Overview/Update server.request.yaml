@@ -23,11 +23,6 @@ body:
         "host": "string",
         "username": "example",
         "port": 1
-      },
-      "proxy": {
-        "cloudflare": {
-          "enabled": true
-        }
       }
     }
 order: 4000

@@ -959,7 +959,6 @@ test("the local fixture supports workspace server creation, editing, and safe re
         body: JSON.stringify({
           ...config,
           buildConcurrency: 4,
-          proxy: { cloudflare: { enabled: true } },
         }),
         headers: { "content-type": "application/json" },
         method: "PATCH",
@@ -968,7 +967,6 @@ test("the local fixture supports workspace server creation, editing, and safe re
     assert.equal(updatedResponse.status, 200);
     const updated = (await updatedResponse.json()).server;
     assert.equal(updated.config.buildConcurrency, 4);
-    assert.equal(updated.config.proxy.cloudflare.enabled, true);
 
     assert.equal(
       (

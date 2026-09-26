@@ -179,7 +179,6 @@ export type Server = {
     buildConcurrency?: number;
     previewBuildConcurrency?: number;
     ip: string;
-    proxy?: { cloudflare: { enabled: true } };
     ssh: { host?: string; port: number; username: string };
   };
   createdAt: string;

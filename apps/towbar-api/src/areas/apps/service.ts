@@ -37,6 +37,7 @@ import { assertRequiredInstanceSecrets } from "./secrets.js";
 import { getApp, getResource } from "./queries.js";
 import { resolveBuildServerAdmission } from "./build-server-admission.js";
 import { admitApplicationImage } from "../deployments/image-admission.js";
+import { cloudflareDnsCredential } from "../deployments/cloudflare-readiness.js";
 
 export { getApp, getResource, listApps, listResources } from "./queries.js";
 
@@ -124,6 +125,7 @@ export async function requestAppDeployment(input: {
     throw unprocessable("The Source must have a successful sync before deploy");
   }
   requireServerReady(target);
+  cloudflareDnsCredential(target.config);
   await assertRequiredInstanceSecrets({
     appId: target.id,
     sourceId: target.sourceId,
@@ -363,6 +365,9 @@ export async function requestAppRollback(input: {
   if (original.serverId !== app.serverId)
     throw conflict("The rollback release belongs to a different server");
   const rollbackUsesSource = isNormalizedCompose(original.appSnapshot);
+  cloudflareDnsCredential(
+    rollbackUsesSource ? original.appSnapshot : app.config,
+  );
   const deploymentId = randomUUID();
   let deployment;
   try {

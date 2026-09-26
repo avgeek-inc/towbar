@@ -40,6 +40,7 @@ import {
   staticBuildRemoteScript,
 } from "./remote-scripts.js";
 import { renderCaddyFragment } from "./routing.js";
+import { ensureCloudflareCaddyModule } from "./caddy-preparation.js";
 import { pullResourceImage } from "./pull-resource-image.js";
 import {
   MAX_SOURCE_ARCHIVE_ENTRIES,
@@ -85,16 +86,22 @@ const maxBuildArtifactBytes = 20 * 1_024 * 1_024 * 1_024;
 const buildArtifactCapacityMargin = 256 * 1_024 * 1_024;
 
 export async function prepareDeploymentImage(input: DeploymentPhaseInput) {
+  const requiresCloudflareDns =
+    input.context.app.tls?.mode === "cloudflare-dns";
   await transition(
     input.hooks,
     "checking_server",
     "SSH trust and target access verified",
   );
-  await preflight(
-    input.session,
-    input.context.app.tls?.mode === "cloudflare-dns",
-    input.signal,
-  );
+  if (requiresCloudflareDns) {
+    await transition(
+      input.hooks,
+      "checking_server",
+      "Preparing Cloudflare DNS support",
+    );
+    await ensureCloudflareCaddyModule(input.session, input.signal);
+  }
+  await preflight(input.session, requiresCloudflareDns, input.signal);
   if (input.buildSession)
     await preflight(input.buildSession, false, input.signal, "build");
   input.targetArchitecture = await verifyDeploymentArchitectures(input);
