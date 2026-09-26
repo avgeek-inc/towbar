@@ -84,7 +84,6 @@ export function SourceIndex() {
     router.prefetch(href);
     return prefetchApiQueries([
       `/v1/core/sources/${source.id}`,
-      `/v1/core/sources/${source.id}/manifest`,
       `/v1/core/sources/${source.id}/syncs`,
       `/v1/core/sources/${source.id}/apps`,
       `/v1/core/sources/${source.id}/resources`,
