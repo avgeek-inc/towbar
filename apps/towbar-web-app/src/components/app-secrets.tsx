@@ -24,6 +24,7 @@ import {
 import dynamic from "next/dynamic";
 import { ResponsiveChoice } from "./responsive-choice";
 import { SecretReferenceTooltip } from "./secret-reference-tooltip";
+import { IntegrationProviderLogo } from "./integration-provider-logo";
 import { Tabs } from "@workspace/web-design-system/navigation/tabs";
 import {
   managedSecretKeyError,
@@ -40,10 +41,12 @@ import {
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
+  App,
   AppSecretBinding,
   AppSecretStage,
   AppSecretsResponse,
 } from "@workspace/towbar-web-client";
+import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
@@ -54,6 +57,7 @@ import {
   FieldError,
 } from "@workspace/web-design-system/forms/field";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
+import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -78,11 +82,15 @@ const stageLabels: Record<AppSecretStage, string> = {
   post_deploy: "Post-deploy",
 };
 
+type ExternalSecretSource = NonNullable<App["config"]["externalSecrets"]>;
+
 export function AppSecrets({
   appId,
+  externalSource,
   previewsEnabled,
 }: {
   appId: string;
+  externalSource?: ExternalSecretSource;
   previewsEnabled: boolean;
 }) {
   const active = useDetailNavigation().section === "settings";
@@ -90,19 +98,30 @@ export function AppSecrets({
     <EnvironmentSecretSettings
       active={active}
       endpoint={`/v1/core/apps/${appId}/secrets`}
+      externalSource={externalSource}
       previewsEnabled={previewsEnabled}
     />
   );
 }
 
-export function ResourceSecrets({ resourceId }: { resourceId: string }) {
+export function ResourceSecrets({
+  resourceId,
+  externalSource,
+}: {
+  resourceId: string;
+  externalSource?: ExternalSecretSource;
+}) {
   const active = useDetailNavigation().section === "settings";
   const endpoint = `/v1/core/resources/${resourceId}/secrets`;
   const query = useApiQuery<AppSecretsResponse>(active ? endpoint : null);
   if (!active) return null;
   return (
     <div className="w-full">
-      <EnvironmentEditors endpoint={endpoint} query={query} />
+      <EnvironmentEditors
+        endpoint={endpoint}
+        externalSource={externalSource}
+        query={query}
+      />
     </div>
   );
 }
@@ -155,10 +174,12 @@ export function GlobalSecrets() {
 function EnvironmentSecretSettings({
   active,
   endpoint,
+  externalSource,
   previewsEnabled,
 }: {
   active: boolean;
   endpoint: string;
+  externalSource?: ExternalSecretSource;
   previewsEnabled: boolean;
 }) {
   const { search, update } = usePageQuery();
@@ -181,6 +202,7 @@ function EnvironmentSecretSettings({
       <EnvironmentEditors
         key={environment}
         endpoint={endpoint}
+        externalSource={externalSource}
         query={query}
         environment={environment}
         environments={environments}
@@ -207,12 +229,14 @@ function EnvironmentEditors({
   query,
   endpoint,
   environment,
+  externalSource,
   onEnvironmentChange,
   environments = [],
 }: {
   query: Query;
   endpoint: string;
   environment?: string;
+  externalSource?: ExternalSecretSource;
   environments?: string[];
   onEnvironmentChange?: (value: string) => void;
 }) {
@@ -269,11 +293,19 @@ function EnvironmentEditors({
           </div>
         ) : null}
       </div>
+      {binding?.stage === "deployment" && externalSource ? (
+        <ExternalSecretSourceCard source={externalSource} />
+      ) : null}
       {query.error ? (
         <QueryError message={query.error} />
       ) : !data ? (
         <QueryLoading />
-      ) : binding ? (
+      ) : binding &&
+        !(
+          externalSource &&
+          binding.stage === "deployment" &&
+          !binding.keys.length
+        ) ? (
         <SecretVariablesEditor
           key={`${endpoint}:${binding.environment}:${binding.stage}:${binding.revision}:${binding.inheritedRevisions.global}`}
           endpoint={endpoint}
@@ -283,6 +315,52 @@ function EnvironmentEditors({
         />
       ) : null}
     </div>
+  );
+}
+
+function ExternalSecretSourceCard({
+  source,
+}: {
+  source: ExternalSecretSource;
+}) {
+  const provider = source.integration;
+  return (
+    <Attributes
+      icon={<IntegrationProviderLogo provider={provider} />}
+      columns={2}
+      title="External secret source"
+      variant="card"
+    >
+      <Attributes.Item label="Provider">
+        {provider === "infisical" ? "Infisical" : "Doppler"}
+      </Attributes.Item>
+      <Attributes.Item label="Project">
+        <TypographyCode className="break-all">{source.project}</TypographyCode>
+      </Attributes.Item>
+      {source.integration === "infisical" ? (
+        <>
+          <Attributes.Item label="Environment slug">
+            <TypographyCode>{source.environmentSlug ?? "prod"}</TypographyCode>
+          </Attributes.Item>
+          <Attributes.Item label="Secret path">
+            <TypographyCode className="break-all">
+              {source.secretPath ?? "/"}
+            </TypographyCode>
+          </Attributes.Item>
+        </>
+      ) : (
+        <Attributes.Item label="Config">
+          {source.config ? (
+            <TypographyCode>{source.config}</TypographyCode>
+          ) : (
+            "Service token scope"
+          )}
+        </Attributes.Item>
+      )}
+      <Attributes.Item className="col-span-full" label="Runtime values">
+        Fetched at deployment; never displayed here
+      </Attributes.Item>
+    </Attributes>
   );
 }
 
