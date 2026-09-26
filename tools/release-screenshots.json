@@ -1,7 +1,7 @@
 {
   "capturedAt": "2026-09-23T19:36:29.259Z",
   "environment": "Local Towbar fixture on localhost:4021; examples are not production results",
-  "viewport": "1280 × 720 CSS pixels rendered at 2× density (2560 × 1440); every image is limited to the visible viewport",
+  "viewport": "1280 \u00d7 720 CSS pixels rendered at 2\u00d7 density (2560 \u00d7 1440); every image is limited to the visible viewport",
   "screenshots": [
     {
       "name": "app-overview",
@@ -39,7 +39,8 @@
           "width": 2560,
           "height": 1440
         }
-      ]
+      ],
+      "capturedAt": "2026-09-26T14:49:06Z"
     },
     {
       "name": "backups",
@@ -59,6 +60,26 @@
           "height": 1440
         }
       ]
+    },
+    {
+      "name": "cloudflare-setup",
+      "route": "/manage/integrations/cloudflare",
+      "guides": ["docs/docs/integrations/cloudflare.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/cloudflare-setup-light.jpg",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/cloudflare-setup-dark.jpg",
+          "width": 2560,
+          "height": 1440
+        }
+      ],
+      "capturedAt": "2026-09-26T14:49:06Z"
     },
     {
       "name": "deployment-comparison",
@@ -118,6 +139,66 @@
       ]
     },
     {
+      "name": "discord-notifications",
+      "route": "/manage/notifications/discord",
+      "guides": ["docs/docs/integrations/notifications/discord.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/discord-notifications-light.jpg",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/discord-notifications-dark.jpg",
+          "width": 2560,
+          "height": 1440
+        }
+      ],
+      "capturedAt": "2026-09-26T14:49:06Z"
+    },
+    {
+      "name": "doppler-setup",
+      "route": "/manage/integrations/doppler",
+      "guides": ["docs/docs/integrations/doppler.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/doppler-setup-light.jpg",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/doppler-setup-dark.jpg",
+          "width": 2560,
+          "height": 1440
+        }
+      ],
+      "capturedAt": "2026-09-26T14:49:06Z"
+    },
+    {
+      "name": "email-notifications",
+      "route": "/manage/notifications/email",
+      "guides": ["docs/docs/integrations/notifications/email.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/email-notifications-light.jpg",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/email-notifications-dark.jpg",
+          "width": 2560,
+          "height": 1440
+        }
+      ],
+      "capturedAt": "2026-09-26T14:49:06Z"
+    },
+    {
       "name": "email-password",
       "route": "/settings/email-password",
       "guides": ["docs/docs/personal-settings.mdx"],
@@ -137,6 +218,26 @@
       ]
     },
     {
+      "name": "gcp-setup",
+      "route": "/manage/integrations/gcp",
+      "guides": ["docs/docs/integrations/gcp.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/gcp-setup-light.jpg",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/gcp-setup-dark.jpg",
+          "width": 2560,
+          "height": 1440
+        }
+      ],
+      "capturedAt": "2026-09-26T14:49:06Z"
+    },
+    {
       "name": "github-setup",
       "route": "/manage/integrations/github",
       "guides": ["docs/docs/integrations/github.md"],
@@ -153,7 +254,28 @@
           "width": 2560,
           "height": 1440
         }
-      ]
+      ],
+      "capturedAt": "2026-09-26T14:49:06Z"
+    },
+    {
+      "name": "gitlab-setup",
+      "route": "/manage/integrations/gitlab",
+      "guides": ["docs/docs/integrations/gitlab.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/gitlab-setup-light.jpg",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/gitlab-setup-dark.jpg",
+          "width": 2560,
+          "height": 1440
+        }
+      ],
+      "capturedAt": "2026-09-26T14:49:06Z"
     },
     {
       "name": "incident-detail",
@@ -173,6 +295,26 @@
           "height": 1440
         }
       ]
+    },
+    {
+      "name": "infisical-setup",
+      "route": "/manage/integrations/infisical",
+      "guides": ["docs/docs/integrations/infisical.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/infisical-setup-light.jpg",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/infisical-setup-dark.jpg",
+          "width": 2560,
+          "height": 1440
+        }
+      ],
+      "capturedAt": "2026-09-26T14:49:06Z"
     },
     {
       "name": "overview",
@@ -239,6 +381,46 @@
           "height": 1440
         }
       ]
+    },
+    {
+      "name": "r2-setup",
+      "route": "/manage/integrations/r2",
+      "guides": ["docs/docs/integrations/r2.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/r2-setup-light.jpg",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/r2-setup-dark.jpg",
+          "width": 2560,
+          "height": 1440
+        }
+      ],
+      "capturedAt": "2026-09-26T14:49:06Z"
+    },
+    {
+      "name": "registry-setup",
+      "route": "/manage/integrations/registry",
+      "guides": ["docs/docs/integrations/oci-registry.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/registry-setup-light.jpg",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/registry-setup-dark.jpg",
+          "width": 2560,
+          "height": 1440
+        }
+      ],
+      "capturedAt": "2026-09-26T14:49:06Z"
     },
     {
       "name": "repositories",
@@ -320,6 +502,26 @@
           "height": 1440
         }
       ]
+    },
+    {
+      "name": "s3-setup",
+      "route": "/manage/integrations/s3",
+      "guides": ["docs/docs/integrations/s3-compatible.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/s3-setup-light.jpg",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/s3-setup-dark.jpg",
+          "width": 2560,
+          "height": 1440
+        }
+      ],
+      "capturedAt": "2026-09-26T14:49:06Z"
     },
     {
       "name": "scout-alerts",
@@ -455,6 +657,26 @@
       ]
     },
     {
+      "name": "slack-notifications",
+      "route": "/manage/notifications/slack",
+      "guides": ["docs/docs/integrations/notifications/slack.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/slack-notifications-light.jpg",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/slack-notifications-dark.jpg",
+          "width": 2560,
+          "height": 1440
+        }
+      ],
+      "capturedAt": "2026-09-26T14:49:06Z"
+    },
+    {
       "name": "ssh-keys",
       "route": "/team-settings/ssh-keys",
       "guides": ["docs/docs/ssh-keys.mdx"],
@@ -515,6 +737,26 @@
       ]
     },
     {
+      "name": "telegram-notifications",
+      "route": "/manage/notifications/telegram",
+      "guides": ["docs/docs/integrations/notifications/telegram.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/telegram-notifications-light.jpg",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/telegram-notifications-dark.jpg",
+          "width": 2560,
+          "height": 1440
+        }
+      ],
+      "capturedAt": "2026-09-26T14:49:06Z"
+    },
+    {
       "name": "vulnerabilities",
       "route": "/monitoring/vulnerabilities",
       "guides": ["docs/docs/vulnerability-scanning.mdx", "docs/index.mdx"],
@@ -532,6 +774,26 @@
           "height": 1440
         }
       ]
+    },
+    {
+      "name": "webhook-notifications",
+      "route": "/manage/notifications/webhook",
+      "guides": ["docs/docs/integrations/notifications/webhook.mdx"],
+      "themes": [
+        {
+          "theme": "light",
+          "file": "docs/assets/release-v2/webhook-notifications-light.jpg",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "theme": "dark",
+          "file": "docs/assets/release-v2/webhook-notifications-dark.jpg",
+          "width": 2560,
+          "height": 1440
+        }
+      ],
+      "capturedAt": "2026-09-26T14:49:06Z"
     }
   ]
 }

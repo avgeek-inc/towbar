@@ -22,3 +22,28 @@ integrations:
 Set `addressingStyle` to `auto`, `path`, or `virtual` as required by the service. Enable private-network access only for an intentionally internal endpoint. A private CA can be supplied as Base64 through `customCaBase64` when using a custom endpoint. Run `sudo towbar config validate`, then `sudo towbar restart`. The provider appears under **Manage → Integrations → Backup providers** when the local shape is valid.
 
 Configure a managed resource's [backup policy](/docs/backups), create a real backup, and complete a [fresh-target restore](/docs/restores). Check remote object permissions, versioning, retention, and the final restore state before relying on it for recovery. A configured chip alone does not prove the endpoint accepts writes or reads. Rotate keys by applying new YAML, verifying an operation, and then revoking the old keys. [Cloudflare R2](/docs/integrations/r2) has its own integration slug and setup guide.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/s3-setup-light.jpg"
+      alt="S3-compatible storage integration settings in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/s3-setup-dark.jpg"
+      alt="S3-compatible storage integration settings in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    The S3-compatible provider appears here after its runtime configuration
+    validates.
+  </p>
+</div>

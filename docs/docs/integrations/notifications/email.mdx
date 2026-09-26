@@ -30,3 +30,28 @@ Run `sudo towbar config validate`, then `sudo towbar restart`. Open **Manage →
 Choose **Add email**, enter an operational recipient, and select its **Deployments**, **Backup & Restore**, and **Alerts & Incidents** subscriptions. Preview events follow Deployments. Checkbox changes save immediately. Use the test action on that row and confirm that the provider accepted the sample message; then check the recipient mailbox. Account messages go to the affected account independently of this operational destination list.
 
 If testing fails, check the sender identity, SMTP authentication, TLS mode, host resolution, and the [delivery result](/docs/integrations/notifications#delivery-history). A provider acceptance does not guarantee inbox placement. Rotate a credential in YAML, validate and restart, send a test message, and only then revoke the previous credential.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/email-notifications-light.jpg"
+      alt="Email notification destinations and category subscriptions in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/email-notifications-dark.jpg"
+      alt="Email notification destinations and category subscriptions in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Email destinations and their category subscriptions appear here once SMTP is
+    configured.
+  </p>
+</div>

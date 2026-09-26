@@ -21,3 +21,25 @@ Run `sudo towbar config validate` and `sudo towbar restart`. Open **Manage → N
 Use **Test** and confirm that the sample appears in the right chat or topic. If it fails, check the bot token, the numeric IDs, bot membership, and posting permissions. A topic ID used for a different chat cannot route the message. Inspect the [delivery result](/docs/integrations/notifications#delivery-history) for provider errors and retry status.
 
 App and resource manifests can declare extra Telegram chat/topic destinations without storing the bot token. See [manifest notification routing](/docs/deployment-manifest#route-notifications-for-one-app-or-resource). Rotate the bot token in YAML, restart, and test before discarding the old token.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/telegram-notifications-light.jpg"
+      alt="Telegram chat destinations and category subscriptions in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/telegram-notifications-dark.jpg"
+      alt="Telegram chat destinations and category subscriptions in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>Each Telegram chat or topic can subscribe to different categories.</p>
+</div>

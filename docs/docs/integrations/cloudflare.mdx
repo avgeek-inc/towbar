@@ -23,3 +23,28 @@ For a public workload, configure its domain and choose the relevant DNS or tunne
 ## Verify and troubleshoot
 
 Deploy a non-production route in an authorized zone. Confirm the DNS record, certificate status, and actual HTTPS response. If an operation fails, compare the domain's zone with the token scope, check zone discovery or `zoneId`, and inspect the route operation error. Rotate the token in YAML, restart, and verify an owned route before revoking the old token. Towbar manages only records it owns; review existing DNS before assigning a hostname.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/cloudflare-setup-light.jpg"
+      alt="Cloudflare integration settings in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/cloudflare-setup-dark.jpg"
+      alt="Cloudflare integration settings in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    The Cloudflare page shows the runtime provider used for managed DNS, TLS,
+    and tunnel ingress.
+  </p>
+</div>

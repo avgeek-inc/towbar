@@ -24,3 +24,25 @@ Run `sudo towbar config validate` and `sudo towbar restart`. Open **Manage → N
 Use **Test** to send a sample notification after confirmation. Check the intended Discord channel and the [delivery result](/docs/integrations/notifications#delivery-history). If delivery fails, check that the webhook still exists, its ID and token remain paired, and the target channel permits webhook posts. Adding or removing a pair requires editing YAML, validating, and restarting Towbar. Rotate an exposed webhook in Discord and update its token in Towbar; preserve the ID only when Discord preserves it.
 
 Additional Discord destinations for one app or resource can be declared in its [manifest](/docs/deployment-manifest#route-notifications-for-one-app-or-resource). Do not put webhook tokens in that manifest.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/discord-notifications-light.jpg"
+      alt="Discord webhook IDs and category subscriptions in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/discord-notifications-dark.jpg"
+      alt="Discord webhook IDs and category subscriptions in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>Each configured Discord webhook ID has its own category subscriptions.</p>
+</div>

@@ -20,3 +20,28 @@ For example, `base64 < service-account.json | tr -d '\n'` produces a single-line
 ## Verify recovery
 
 Set a managed resource's [backup policy](/docs/backups) to use `gcs`, create a recovery point, and check the stored object's verification result. Perform a [fresh-target restore](/docs/restores) to confirm read and compatibility permissions. If a run fails, check project ID, bucket and prefix, service-account scope, object availability, and the bucket's encryption policy. Rotate by updating `towbar.yml`, restarting Towbar, verifying a backup and restore path, and then revoking the old key.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/gcp-setup-light.jpg"
+      alt="Google Cloud Storage integration settings in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/gcp-setup-dark.jpg"
+      alt="Google Cloud Storage integration settings in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    The Google Cloud Storage page confirms that the runtime configuration has
+    passed local validation.
+  </p>
+</div>
