@@ -34,7 +34,7 @@ export function FirstDeployment({
   const readiness = useApiQuery<InstanceSecretReadiness>(
     `/v1/core/${plural}/${deployableId}/secrets/readiness`,
   );
-  const settingsHref = `/${plural}/${deployableId}/settings/secrets`;
+  const settingsHref = `/${type === "app" ? "services" : "datastores"}/${deployableId}/settings/secrets`;
 
   return (
     <Widget className="min-w-0">

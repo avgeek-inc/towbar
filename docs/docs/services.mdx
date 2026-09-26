@@ -1,0 +1,73 @@
+---
+title: "Services"
+description: "Build from source, run an OCI image, or deploy a Compose workload on your servers."
+---
+
+A Service is a workload declared in a connected GitHub or GitLab repository. Towbar can build a committed source revision, run a prebuilt OCI image, or deploy a Compose workload. Supporting software such as an analytics server or metrics collector is also a Service. Use a [Datastore](/docs/datastores) when Towbar provides engine-specific storage, connections, and recovery.
+
+Towbar keeps the desired configuration in Git. The dashboard shows the effective manifest, secret status, deployment history, logs, and current state; it does not create a second workload definition.
+
+One manifest `id` identifies the service across renames and file moves. A Repository sync imports that declaration for each mapped environment, but leaves the currently running release alone. A deployment then builds or resolves an image and promotes it on the environment's server after its checks pass. The service can reach a Datastore on the same private Docker network; its connection credentials live in Towbar secrets rather than Git. A Preview is a separate, temporary instance for an eligible pull request.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/app-overview-light.jpg"
+      alt="A public Service uses its domain favicon beside its name and shows current state and latest deployment separately."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/app-overview-dark.jpg"
+      alt="A public Service uses its domain favicon beside its name and shows current state and latest deployment separately."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Public Services use the configured domain favicon when one is available. The
+    current state and latest deployment attempt appear in separate widgets.
+  </p>
+</div>
+
+## Define a Service
+
+Create one file under `.towbar/services` and give it a stable `id`. This minimal Dockerfile Service listens on port 3000 in production:
+
+```yaml title=".towbar/services/web.service.yml"
+id: web
+name: Web
+deployment:
+  type: dockerfile
+  context: .
+  dockerfile: Dockerfile
+container:
+  port: 3000
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+Declare `production` in `towbar.yml`, map it to a branch, and register the example server IP before syncing. See the [Service manifest](/docs/services/manifest) for every top-level field and the rules for environment overrides.
+
+## Configure runtime
+
+[Container and health](/docs/services/configuration) covers process ports, capacity, private networks, persistent volumes, and readiness. [Routing and TLS](/docs/services/routing) covers domains and certificates. Declare secret names in the manifest and save their values in [Secrets](/docs/secrets).
+
+## Pick a deployment mode
+
+Use an existing [Dockerfile](/docs/services/modes/dockerfile), build a [static site](/docs/services/modes/static), run a [prebuilt image](/docs/services/modes/image), or choose [Railpack](/docs/services/modes/railpack), [Nixpacks](/docs/services/modes/nixpacks), or [Cloud Native Buildpacks](/docs/services/modes/buildpack). A multi-service project uses [Compose](/docs/services/modes/compose). [Deployment modes](/docs/platform-deployments) compares them and explains build servers and rollout strategies.
+
+## Deploy and verify
+
+Open the Service and choose **Deploy**. Follow the stages until the attempt reaches a final result, then verify the service response. Start with a manual deployment; enable [automatic deployment and previews](/docs/services/automation) after the basic path works. [Deployments and releases](/docs/deployments) explains image promotion and rollback.
+
+## Scheduled jobs
+
+Declare recurring commands in the Service manifest and deploy that configuration before a job can run. [Scheduled jobs](/docs/services/jobs) covers cron, runtime access, output, overlap, manual runs, and pause behavior.

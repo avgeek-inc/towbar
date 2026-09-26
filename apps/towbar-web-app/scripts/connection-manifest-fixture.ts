@@ -8,7 +8,7 @@ export function connectionManifestFiles(serverIp: string) {
         "version: 2\nenvironments:\n  production: {}\n  staging:\n    previews:\n      enabled: true\n",
     },
     {
-      path: ".towbar/apps/service.app.yml",
+      path: ".towbar/services/service.service.yml",
       content: `id: service
 name: Example Service
 dockerfile: Dockerfile
@@ -35,7 +35,7 @@ environments:
 `,
     },
     {
-      path: ".towbar/resources/database.resource.yml",
+      path: ".towbar/datastores/database.datastore.yml",
       content: `id: database
 name: Service Database
 type: postgres

@@ -17,15 +17,21 @@ import {
 
 import { useApiQuery } from "@/hooks/use-api-query";
 import { groupDeployableInstances } from "@/lib/deployable-groups";
-import { AppLogo, ResourceLogo } from "./deployable-identity";
+import { ResourceLogo, ServiceLogo } from "./deployable-identity";
 import { CloudProviderLogo, type CloudProviderId } from "./cloud-provider-logo";
 import { resourceImageBrand, type ResourceBrand } from "./resource-image-brand";
 
 export type BreadcrumbEntityKind = "apps" | "resources" | "servers";
 
 const entityLabels = {
-  apps: "apps",
-  resources: "resources",
+  apps: "services",
+  resources: "datastores",
+  servers: "servers",
+} as const;
+
+const entityRoutes = {
+  apps: "services",
+  resources: "datastores",
   servers: "servers",
 } as const;
 
@@ -40,7 +46,7 @@ type SwitchOption = {
   detail?: string;
   id: string;
   identity?:
-    | { kind: "app"; domain: string | undefined }
+    | { kind: "app"; app: App }
     | { kind: "resource"; brand: ResourceBrand }
     | { kind: "server"; provider: CloudProviderId };
   instanceIds: string[];
@@ -101,9 +107,7 @@ export function BreadcrumbEntitySwitcher({
       : kind === "apps"
         ? deployableOptions(query.data?.apps ?? [], (app) => ({
             kind: "app",
-            domain:
-              app.config.domains?.primary ??
-              app.config.domains?.redirects[0]?.host,
+            app,
           }))
         : deployableOptions(query.data?.resources ?? [], (resource) => ({
             kind: "resource",
@@ -128,7 +132,7 @@ export function BreadcrumbEntitySwitcher({
       onSelectionChange={(key) => {
         const id = String(key ?? "");
         if (id !== currentId && options.some((option) => option.id === id)) {
-          router.push(`/${kind}/${id}/overview`);
+          router.push(`/${entityRoutes[kind]}/${id}/overview`);
         }
       }}
     >
@@ -189,7 +193,7 @@ export function BreadcrumbEntitySwitcher({
                   .join(" ")}
               >
                 {option.identity?.kind === "app" ? (
-                  <AppLogo domain={option.identity.domain} size="compact" />
+                  <ServiceLogo app={option.identity.app} size="compact" />
                 ) : option.identity?.kind === "resource" ? (
                   <ResourceLogo brand={option.identity.brand} size="compact" />
                 ) : option.identity?.kind === "server" ? (

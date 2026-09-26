@@ -18,7 +18,7 @@ Set the primary hostname without a scheme or path. A TLS declaration requires a 
 
 Add the following fields to an app, replacing the example domain:
 
-```yaml title=".towbar/apps/web.app.yml"
+```yaml title=".towbar/services/web.service.yml"
 domains:
   primary: app.example.com
   redirects:
@@ -38,7 +38,7 @@ Create the token under **Manage Account → Account API Tokens** in Cloudflare. 
 
 Use a scoped account token rather than a personal or global API key. `integrations.cloudflare.zoneId` is optional when the token can discover the required zones. Towbar installs the Cloudflare DNS module on the target server when needed.
 
-```yaml title=".towbar/apps/web.app.yml"
+```yaml title=".towbar/services/web.service.yml"
 domains:
   primary: app.example.com
 tls:

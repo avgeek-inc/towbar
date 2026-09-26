@@ -36,7 +36,7 @@ void test("links deployment notifications to their canonical detail page", () =>
         type: "deployment.succeeded",
       }),
     ),
-    "/apps/app-id/deployments/entity-id",
+    "/services/app-id/deployments/entity-id",
   );
   assert.equal(
     notificationHref(
@@ -46,7 +46,7 @@ void test("links deployment notifications to their canonical detail page", () =>
         type: "deployment.failed",
       }),
     ),
-    "/resources/resource-id/deployments/entity-id",
+    "/datastores/resource-id/deployments/entity-id",
   );
 });
 
@@ -69,6 +69,6 @@ void test("links operational notifications to the relevant page", () => {
   );
   assert.equal(
     notificationHref(notification("backup", { type: "backup.failed" })),
-    "/resources/entity-id/backup",
+    "/datastores/entity-id/backup",
   );
 });

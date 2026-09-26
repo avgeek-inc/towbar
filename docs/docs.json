@@ -2,7 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Towbar",
-  "description": "Open-source, Git-native PaaS for apps, databases, and previews. Deploy to servers you own.",
+  "description": "Open-source, Git-native PaaS for Services, Datastores, and previews. Deploy to servers you own.",
   "logo": {
     "light": "/assets/towbar-logo.png",
     "dark": "/assets/towbar-logo.png",
@@ -93,38 +93,37 @@
             ]
           },
           {
-            "group": "Applications",
+            "group": "Services",
             "pages": [
-              "docs/apps",
-              "docs/apps/manifest",
-              "docs/apps/configuration",
-              "docs/apps/routing",
-              "docs/apps/automation",
-              "docs/apps/jobs",
+              "docs/services",
+              "docs/services/manifest",
+              "docs/services/configuration",
+              "docs/services/routing",
+              "docs/services/automation",
+              "docs/services/jobs",
               "docs/platform-deployments",
               {
                 "group": "Deployment modes",
                 "pages": [
-                  "docs/apps/modes/dockerfile",
-                  "docs/apps/modes/static",
-                  "docs/apps/modes/image",
-                  "docs/apps/modes/railpack",
-                  "docs/apps/modes/nixpacks",
-                  "docs/apps/modes/buildpack",
-                  "docs/apps/modes/compose"
+                  "docs/services/modes/dockerfile",
+                  "docs/services/modes/static",
+                  "docs/services/modes/image",
+                  "docs/services/modes/railpack",
+                  "docs/services/modes/nixpacks",
+                  "docs/services/modes/buildpack",
+                  "docs/services/modes/compose"
                 ]
               }
             ]
           },
           {
-            "group": "Resources",
+            "group": "Datastores",
             "pages": [
-              "docs/resources",
-              "docs/resources/manifest",
-              "docs/resources/image",
+              "docs/datastores",
+              "docs/datastores/manifest",
               "docs/databases/index",
               {
-                "group": "Managed databases",
+                "group": "Engines",
                 "pages": [
                   "docs/databases/postgresql",
                   "docs/databases/mysql",
@@ -308,7 +307,7 @@
             ]
           },
           {
-            "group": "Apps",
+            "group": "Services",
             "pages": [
               {
                 "group": "Overview",
@@ -370,7 +369,7 @@
             ]
           },
           {
-            "group": "Resources",
+            "group": "Datastores",
             "pages": [
               {
                 "group": "Overview",

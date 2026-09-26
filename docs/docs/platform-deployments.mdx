@@ -7,27 +7,27 @@ Towbar reads deployment configuration from the Git revision being deployed. The 
 
 ## Choose a mode
 
-| Mode         | Use it for                                                           | Guide                                        |
-| ------------ | -------------------------------------------------------------------- | -------------------------------------------- |
-| `dockerfile` | An existing Dockerfile, including builds that need protected secrets | [Dockerfile](/docs/apps/modes/dockerfile)    |
-| `static`     | Generated browser assets served from a runtime image                 | [Static site](/docs/apps/modes/static)       |
-| `image`      | An image built elsewhere                                             | [Prebuilt OCI image](/docs/apps/modes/image) |
-| `railpack`   | Source detection for a new project                                   | [Railpack](/docs/apps/modes/railpack)        |
-| `nixpacks`   | An existing Nixpacks project                                         | [Nixpacks](/docs/apps/modes/nixpacks)        |
-| `buildpack`  | Cloud Native Buildpacks                                              | [Buildpacks](/docs/apps/modes/buildpack)     |
-| Compose      | A multi-service project                                              | [Compose](/docs/apps/modes/compose)          |
+| Mode         | Use it for                                                           | Guide                                            |
+| ------------ | -------------------------------------------------------------------- | ------------------------------------------------ |
+| `dockerfile` | An existing Dockerfile, including builds that need protected secrets | [Dockerfile](/docs/services/modes/dockerfile)    |
+| `static`     | Generated browser assets served from a runtime image                 | [Static site](/docs/services/modes/static)       |
+| `image`      | An image built elsewhere                                             | [Prebuilt OCI image](/docs/services/modes/image) |
+| `railpack`   | Source detection for a new project                                   | [Railpack](/docs/services/modes/railpack)        |
+| `nixpacks`   | An existing Nixpacks project                                         | [Nixpacks](/docs/services/modes/nixpacks)        |
+| `buildpack`  | Cloud Native Buildpacks                                              | [Buildpacks](/docs/services/modes/buildpack)     |
+| Compose      | A multi-service project                                              | [Compose](/docs/services/modes/compose)          |
 
-Each guide includes a complete, validated entity example from `examples/platform-modes`. Builder images accepted by the manifest must be pinned to immutable digests. Choose the mode first, then configure shared [container and health](/docs/apps/configuration) fields.
+Each guide includes a complete, validated entity example from `examples/platform-modes`. Builder images accepted by the manifest must be pinned to immutable digests. Choose the mode first, then configure shared [container and health](/docs/services/configuration) fields.
 
 ## Source builds
 
-Set the context and builder-specific options in `deployment`. [Dockerfile](/docs/apps/modes/dockerfile), [static site](/docs/apps/modes/static), [Railpack](/docs/apps/modes/railpack), [Nixpacks](/docs/apps/modes/nixpacks), and [Buildpacks](/docs/apps/modes/buildpack) each have a complete example. Dockerfile and static builds can receive protected build values; Railpack, Nixpacks, and Buildpacks reject build secrets. Cancellation removes staged source and unpromoted images.
+Set the context and builder-specific options in `deployment`. [Dockerfile](/docs/services/modes/dockerfile), [static site](/docs/services/modes/static), [Railpack](/docs/services/modes/railpack), [Nixpacks](/docs/services/modes/nixpacks), and [Buildpacks](/docs/services/modes/buildpack) each have a complete example. Dockerfile and static builds can receive protected build values; Railpack, Nixpacks, and Buildpacks reject build secrets. Cancellation removes staged source and unpromoted images.
 
 Build caches belong to a workload unless you configure an authorized shared `cache.scope`. Inactive cache scopes are reclaimed after 30 days, so keep the build reproducible after a cold cache.
 
 ## Prebuilt images
 
-Use `deployment.type: image` with an explicit non-`latest` tag or digest. Towbar resolves a tag to an immutable digest before execution and fails if the digest changes. For private images, reference an enabled [OCI registry integration](/docs/integrations/oci-registry). See the [prebuilt image guide](/docs/apps/modes/image) for a complete manifest.
+Use `deployment.type: image` with an explicit non-`latest` tag or digest. Towbar resolves a tag to an immutable digest before execution and fails if the digest changes. For private images, reference an enabled [OCI registry integration](/docs/integrations/oci-registry). See the [prebuilt image guide](/docs/services/modes/image) for a complete manifest.
 
 ## Build servers
 
@@ -47,7 +47,7 @@ environments:
 An environment or app can override the default. Use `null` when one app should
 build on its runtime server:
 
-```yaml title=".towbar/apps/worker.app.yml" highlight={3}
+```yaml title=".towbar/services/worker.service.yml" highlight={3}
 id: worker
 name: Worker
 buildServer: null
@@ -75,7 +75,7 @@ the service graph as one project.
 Stateless apps default to health-gated rolling replacement. Configure only the
 limits that differ from the defaults:
 
-```yaml title=".towbar/apps/api.app.yml" highlight={3-8}
+```yaml title=".towbar/services/api.service.yml" highlight={3-8}
 id: api
 name: API
 rollout:
@@ -94,7 +94,7 @@ environments:
 Use `recreate` for a single-writer volume, fixed host port, or another workload
 that cannot run two releases together:
 
-```yaml title=".towbar/apps/files.app.yml" highlight={3-6}
+```yaml title=".towbar/services/files.service.yml" highlight={3-6}
 id: files
 name: Files
 rollout:
@@ -114,7 +114,7 @@ reverse a database migration or restore persistent data.
 
 ## Compose projects
 
-Compose entities live under `.towbar/compose` and point to repository-owned Compose files. Towbar validates the resolved project and builds on its runtime server. Replacement uses `recreate` or `maintenance`, not rolling promotion. The [Compose guide](/docs/apps/modes/compose) includes a full service example and the admission restrictions.
+Compose entities live under `.towbar/services` and point to repository-owned Compose files. Towbar validates the resolved project and builds on its runtime server. Replacement uses `recreate` or `maintenance`, not rolling promotion. The [Compose guide](/docs/services/modes/compose) includes a full service example and the admission restrictions.
 
 ## Reference an integration
 

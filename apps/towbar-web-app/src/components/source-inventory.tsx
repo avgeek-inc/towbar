@@ -44,7 +44,7 @@ function appColumns(
       cell: (app) => <AppIdentity app={app} />,
       wrapRowLink: false,
       className: "min-w-64",
-      header: "App Name",
+      header: "Service",
       key: "name",
     },
     {
@@ -125,7 +125,7 @@ function resourceColumns(
       cell: (resource) => <ResourceIdentity resource={resource} />,
       className: "resource-identity-cell min-w-[22rem]",
       wrapRowLink: false,
-      header: "Resource Name",
+      header: "Datastore",
       key: "name",
     },
     {
@@ -219,11 +219,11 @@ export function SourceApps({
   const serversByIp = getServersByIp(servers);
   return (
     <DeployableInventoryTable
-      ariaLabel="Repository apps"
+      ariaLabel="Repository services"
       columns={appColumns(activeDeploymentStates, runtimeById, serversByIp)}
-      emptyDescription="A successful manifest sync imports this Repository's apps."
-      emptyTitle="No apps in this Repository"
-      getRowHref={(app) => `/apps/${app.id}`}
+      emptyDescription="A successful manifest sync imports this Repository's services."
+      emptyTitle="No services in this Repository"
+      getRowHref={(app) => `/services/${app.id}`}
       getRowKey={(app) => app.id}
       items={apps}
       tableClassName="min-w-[640px] 2xl:min-w-[1040px]"
@@ -252,15 +252,15 @@ export function SourceResources({
   const serversByIp = getServersByIp(servers);
   return (
     <DeployableInventoryTable
-      ariaLabel="Repository resources"
+      ariaLabel="Repository datastores"
       columns={resourceColumns(
         activeDeploymentStates,
         runtimeById,
         serversByIp,
       )}
-      emptyDescription="Declare an image, PostgreSQL, or Redis resource in this Repository's manifest."
-      emptyTitle="No resources in this Repository"
-      getRowHref={(resource) => `/resources/${resource.id}`}
+      emptyDescription="Declare a supported database or cache in this Repository's manifest."
+      emptyTitle="No datastores in this Repository"
+      getRowHref={(resource) => `/datastores/${resource.id}`}
       getRowKey={(resource) => resource.id}
       items={resources}
       tableClassName="min-w-[640px] 2xl:min-w-[1160px]"

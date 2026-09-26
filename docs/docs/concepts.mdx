@@ -13,12 +13,12 @@ Towbar connects the configuration in Git to the services running on your servers
 | Repository       | A connected GitHub repository                                       | Towbar                                               |
 | Environment      | A named deployment target, such as production or staging            | Declare in `towbar.yml`; map its branch in Towbar    |
 | Server           | One Ubuntu host identified by its IP address                        | Towbar                                               |
-| App              | A logical service built from a Dockerfile                           | `.towbar/apps/**/*.app.yml`                          |
-| Resource         | A managed database or logical service run from an image             | `.towbar/resources/**/*.resource.yml`                |
-| Instance         | An app or resource in one connected environment                     | Shared entity settings plus environment overrides    |
+| Service          | A source build, prebuilt OCI image, or Compose workload             | `.towbar/services/**/*.service.yml`                  |
+| Datastore        | A managed database or cache engine                                  | `.towbar/datastores/**/*.datastore.yml`              |
+| Instance         | A Service or Datastore in one connected environment                 | Shared entity settings plus environment overrides    |
 | Deployment       | One attempt to build or pull, start, check, and promote an instance | Queued manually or by policy                         |
 | Release          | A retained result identifying the deployed image and configuration  | Recorded by Towbar                                   |
-| Preview          | An app instance associated with a pull request                      | Enable for the target environment and opt in per app |
+| Preview          | A Service instance associated with a pull request                   | Enable for the target environment and opt in per app |
 
 A server can run instances from several Repositories and environments. Register the physical host once, then reference its IP address in entity files. Production and staging can use different servers or share a host while keeping separate containers, volumes, and secret values.
 
@@ -27,10 +27,10 @@ flowchart LR
   GitHub[GitHub repository] --> Repository[Towbar repository]
   Repository --> Production[Production: mapped branch]
   Repository --> Staging[Staging: mapped branch]
-  Production --> ProductionApp[App instance]
-  Production --> ProductionDB[Resource instance]
-  Staging --> StagingApp[App instance]
-  Staging --> StagingDB[Resource instance]
+  Production --> ProductionApp[Service instance]
+  Production --> ProductionDB[Datastore instance]
+  Staging --> StagingApp[Service instance]
+  Staging --> StagingDB[Datastore instance]
   ProductionApp --> Server[Workspace server]
   ProductionDB --> Server
   StagingApp --> OtherServer[Workspace server]
@@ -39,7 +39,7 @@ flowchart LR
 
 ## Configuration has three homes
 
-**Git describes the workload.** The root file declares environments. Entity files define images or Dockerfiles, health checks, domains, resource limits, required secret keys, and deployment policy. Keep stable IDs when renaming an app or resource so its history stays attached.
+**Git describes the workload.** The root file declares environments. Entity files define images or Dockerfiles, health checks, domains, resource limits, required secret keys, and deployment policy. Keep stable IDs when renaming a Service or Datastore so its history stays attached.
 
 **Towbar stores workspace state and workload secrets.** Environment-to-branch mappings, SSH credentials and trust, concurrency, and encrypted workload secret values belong in Towbar. Saving a secret does not deploy it.
 
@@ -55,6 +55,6 @@ A deployment records an immutable configuration snapshot. Secret values are reso
 
 Map production to `main` and staging to `develop`, for example, in Repository environment settings. Each environment reads its configuration from its own branch. Changing a mapping syncs configuration without automatically deploying or replacing the environment’s identity and data.
 
-Previews run eligible same-repository pull requests targeting the branch mapped to a preview-enabled environment, with app opt-in also required. Preview secrets are isolated from the target environment’s persistent secrets. PR configuration does not change persistent instances or their required-secret slots, and previews do not clone database resources.
+Previews run eligible same-repository pull requests targeting the branch mapped to a preview-enabled environment, with Service opt-in also required. Preview secrets are isolated from the target environment’s persistent secrets. PR configuration does not change persistent instances or their required-secret slots, and previews do not clone Datastores.
 
 Continue with the [architecture](/docs/architecture) to trace these concepts through the open-source code, or follow [Your first deployment](/docs/getting-started) to use them.

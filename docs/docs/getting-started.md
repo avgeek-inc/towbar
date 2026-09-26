@@ -24,7 +24,7 @@ node server.mjs
 
 Open `http://localhost:3000` and check `http://localhost:3000/health`.
 
-Create `towbar.yml` and `.towbar/apps/hello-towbar.app.yml`, replacing the server IP and domain.
+Create `towbar.yml` and `.towbar/services/hello-towbar.service.yml`, replacing the server IP and domain.
 For a first deployment to production, use:
 
 ```yaml title="towbar.yml" highlight={2-3}
@@ -33,7 +33,7 @@ environments:
   production: {}
 ```
 
-```yaml title=".towbar/apps/hello-towbar.app.yml" highlight={4-18}
+```yaml title=".towbar/services/hello-towbar.service.yml" highlight={4-18}
 id: hello-towbar
 name: Hello Towbar
 server: 192.0.2.10
@@ -122,4 +122,4 @@ For your second deployment, edit the response in `server.mjs`, commit to the
 branch mapped to production, and deploy again. Reload the public page to verify that your new code is
 running.
 
-Enable [automatic deployment](/docs/deployments#automatic-deployments), add [pull request previews](/docs/previews), or connect a [database resource](/docs/resources). Configure [notifications](/docs/integrations/notifications) so failed operations reach the people who need to act.
+Enable [automatic deployment](/docs/deployments#automatic-deployments), add [pull request previews](/docs/previews), or connect a [database resource](/docs/datastores). Configure [notifications](/docs/integrations/notifications) so failed operations reach the people who need to act.

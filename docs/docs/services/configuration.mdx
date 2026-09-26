@@ -1,0 +1,50 @@
+---
+title: "Container and health"
+description: "Set the Service port, capacity, private network, persistent volumes, and readiness check."
+---
+
+The `container` block describes how the deployed image runs. `port` is the port **inside** the container; the process must listen on the container's network interface. Set resource limits near the port so a reviewer can assess expected capacity:
+
+```yaml title=".towbar/services/web.service.yml"
+container:
+  port: 3000
+  resources:
+    cpus: 1
+    memory: 1g
+health:
+  path: /health
+  timeoutSeconds: 60
+```
+
+The HTTP health path should respond without interactive authentication. A successful build is not sufficient for traffic promotion: Towbar waits for the candidate to pass readiness. Allow enough time for startup, but investigate a consistently slow start rather than raising the timeout indefinitely.
+
+## Private connectivity
+
+Set the same `container.network` on a Service and resource on the same server. A resource's ID is its network alias unless the resource sets `networkAlias`:
+
+```yaml title=".towbar/services/web.service.yml"
+container:
+  port: 3000
+  network: application
+```
+
+For a PostgreSQL resource with alias `postgres`, the Service can connect to `postgres:5432`. Put the credential-bearing URL in an [app runtime secret](/docs/secrets), not in the manifest. A Docker network on one host does not connect containers across different servers.
+
+## Persistent storage
+
+Use a Docker-managed named volume when a process must retain files across replacement:
+
+```yaml title=".towbar/services/files.service.yml"
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: The app uses a single-writer volume
+container:
+  port: 3000
+  volumes:
+    - name: uploads
+      mountPath: /app/uploads
+      initialData: image
+```
+
+Create the mount directory in the image with ownership for its runtime user. Volumes survive redeployments and image rollback, remain on their server, and are not backed up by Towbar. `initialData` applies only when adding a new volume: `previous-container` imports from the stopped container, while `image` initializes from the new image. See the [manifest storage guide](/docs/deployment-manifest#persistent-app-storage) for missing-volume and environment behavior.

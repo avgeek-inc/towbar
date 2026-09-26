@@ -10,7 +10,7 @@ function resolve(overrides: Record<string, unknown> = {}) {
     branch: "develop",
     files: [
       {
-        path: ".towbar/apps/site.app.yml",
+        path: ".towbar/services/site.service.yml",
         content: JSON.stringify({
           id: "site",
           name: "Site",

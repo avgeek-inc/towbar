@@ -29,7 +29,7 @@ export function AppStorage({ appId }: { appId: string }) {
   const { volumes, serverIp, serverId, checkedAt } = storage.data;
   return (
     <ResourceTable
-      ariaLabel="App persistent storage"
+      ariaLabel="Service persistent storage"
       items={volumes}
       getRowKey={(volume) => volume.name}
       emptyTitle="No persistent storage"

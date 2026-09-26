@@ -23,7 +23,7 @@
   </picture>
 </p>
 
-Towbar lets you deploy apps, databases, and other services to servers you own.
+Towbar lets you deploy Services and managed Datastores to servers you own.
 Connect a Git repository, describe what should run, and manage it from one
 dashboard.
 
@@ -47,8 +47,8 @@ monitoring data stay on your Towbar instance.
 
 | Area          | What you get                                                                                                     |
 | ------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Apps          | Deploy from a Dockerfile, static site, buildpack, container image, or Docker Compose file                        |
-| Databases     | PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Dragonfly, KeyDB, and ClickHouse                                     |
+| Services      | Deploy from a Dockerfile, static site, buildpack, container image, or Docker Compose file                        |
+| Datastores    | PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Dragonfly, KeyDB, and ClickHouse                                     |
 | Git workflows | GitHub and GitLab connections, branch-based environments, automatic deployments, and pull-request previews       |
 | Domains       | Custom domains and automatic HTTPS                                                                               |
 | Operations    | Logs, server and container monitoring, alerts, incidents, scheduled jobs, and vulnerability scans                |
@@ -84,8 +84,8 @@ command.
 
 ## Declare a repository
 
-Towbar reads a root `towbar.yml` and entity files under `.towbar/apps/`,
-`.towbar/resources/`, and `.towbar/compose/`.
+Towbar reads a root `towbar.yml` and entity files under `.towbar/services/`,
+`.towbar/datastores/`, and `.towbar/services/`.
 
 ```yaml
 # towbar.yml
@@ -129,9 +129,9 @@ model, and direct links into the implementation.
 
 - **[Introduction](https://www.towbar.dev/docs)** — concepts, architecture,
   installation, CLI, first deployment, and migration guides.
-- **[Deploy](https://www.towbar.dev/docs/apps)** — repositories, servers, apps,
-  resources, releases, previews, domains, secrets, and manifest fields.
-- **[Databases](https://www.towbar.dev/docs/databases)** — supported engines,
+- **[Build & run](https://www.towbar.dev/docs/services)** — repositories,
+  servers, Services, Datastores, releases, previews, domains, secrets, and manifests.
+- **[Datastores](https://www.towbar.dev/docs/datastores)** — supported engines,
   configuration, health checks, backups, and restores.
 - **[Operate](https://www.towbar.dev/docs/monitoring)** — Scout Agent,
   performance, alerts, incidents, vulnerability scanning, troubleshooting, and

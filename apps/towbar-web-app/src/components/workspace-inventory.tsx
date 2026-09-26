@@ -71,7 +71,7 @@ function isApp(item: App | Resource): item is App {
   return item.kind === "app" || item.kind === "compose";
 }
 
-function InventoryViewToggle({ kind }: { kind: "Apps" | "Resources" }) {
+function InventoryViewToggle({ kind }: { kind: "Services" | "Datastores" }) {
   const [layout, setLayout] = useQueryChoice(
     "layout",
     inventoryLayouts,
@@ -130,8 +130,8 @@ export function AppsIndex() {
   return (
     <DashboardPage
       icon={DashboardCircleIcon}
-      title="Apps"
-      actions={<InventoryViewToggle kind="Apps" />}
+      title="Services"
+      actions={<InventoryViewToggle kind="Services" />}
     >
       <InventorySidebar
         kind="apps"
@@ -174,8 +174,8 @@ export function ResourcesIndex() {
   return (
     <DashboardPage
       icon={CubeIcon}
-      title="Resources"
-      actions={<InventoryViewToggle kind="Resources" />}
+      title="Datastores"
+      actions={<InventoryViewToggle kind="Datastores" />}
     >
       <InventorySidebar
         kind="resources"
@@ -300,7 +300,7 @@ function DeployableInventoryTable({
           ? "resource-identity-cell w-full min-w-[22rem]"
           : "w-full min-w-64",
       wrapRowLink: false,
-      header: kind === "app" ? "App" : "Resource",
+      header: kind === "app" ? "Service" : "Datastore",
       key: "name",
     },
     {
@@ -376,24 +376,24 @@ function DeployableInventoryTable({
     layout === "unified" ? ResourceTable : GroupedDeployableTable;
   return (
     <InventoryTable
-      ariaLabel={kind === "app" ? "Apps" : "Resources"}
+      ariaLabel={kind === "app" ? "Services" : "Datastores"}
       columns={columns}
       emptyDescription={
         filtered
           ? "Try changing or clearing the filters."
           : kind === "app"
-            ? "A successful Repository sync imports apps into this workspace."
-            : "A successful Repository sync imports resources into this workspace."
+            ? "A successful Repository sync imports services into this workspace."
+            : "A successful Repository sync imports datastores into this workspace."
       }
       emptyTitle={
         filtered
           ? "No matching workloads"
           : kind === "app"
-            ? "No apps yet"
-            : "No resources yet"
+            ? "No services yet"
+            : "No datastores yet"
       }
       getRowHref={(item) =>
-        `/${kind === "app" ? "apps" : "resources"}/${item.id}`
+        `/${kind === "app" ? "services" : "datastores"}/${item.id}`
       }
       getRowKey={(item) => item.id}
       items={items}

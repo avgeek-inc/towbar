@@ -13,7 +13,7 @@ const fallback: ResourceBrand = {
   label: "Image",
   logo: "/resource-types/image.png",
 };
-const managed: Record<Exclude<ResourceType, "image">, ResourceBrand> = {
+const managed: Record<ResourceType, ResourceBrand> = {
   clickhouse: { label: "ClickHouse", logo: "/resource-types/image.png" },
   dragonfly: { label: "Dragonfly", logo: "/resource-types/redis.png" },
   keydb: { label: "KeyDB", logo: "/resource-types/redis.png" },
@@ -72,7 +72,7 @@ const byRepository = new Map(
 );
 
 export function resourceImageBrand(
-  kind: ResourceType,
+  kind: ResourceType | "image",
   image: string,
 ): ResourceBrand {
   if (kind !== "image") return managed[kind];

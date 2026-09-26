@@ -66,7 +66,7 @@ import { DeployableActionsMenu, RuntimeLogs } from "./runtime-operations";
 import { AutoDeployControlEditor } from "./auto-deploy-control";
 import { DomainLink } from "./domain-link";
 import { DeployableReadiness } from "./deployable-readiness";
-import { AppLogo } from "./deployable-identity";
+import { ServiceLogo } from "./deployable-identity";
 import { FirstDeployment } from "./first-deployment";
 import { EnvironmentChip } from "./environment-chip";
 import { DeployableNotifications } from "./deployable-notifications";
@@ -121,7 +121,7 @@ export function AppDetail() {
       <DashboardPage
         icon={DashboardCircleIcon}
         breadcrumbAncestors={appsBreadcrumb}
-        title="App"
+        title="Service"
       >
         <QueryError message={error} />
       </DashboardPage>
@@ -145,15 +145,7 @@ export function AppDetail() {
   );
   const latestDeployment = orderedDeployments[0];
   const lifecycleStatus = getAppLifecycleStatus(item);
-  const faviconDomain =
-    item.config.domains?.primary ?? item.config.domains?.redirects[0]?.host;
-  const appLogo = (
-    <AppLogo
-      key={faviconDomain ?? "no-domain"}
-      domain={faviconDomain}
-      size="small"
-    />
-  );
+  const appLogo = <ServiceLogo app={item} size="small" />;
   return (
     <DashboardPage
       icon={DashboardCircleIcon}
@@ -563,7 +555,7 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
 
   return (
     <ResponsiveSubtabs
-      ariaLabel="App settings"
+      ariaLabel="Service settings"
       defaultSelectedKey={
         requestedSettings === "secrets" ? "secrets" : "configuration"
       }

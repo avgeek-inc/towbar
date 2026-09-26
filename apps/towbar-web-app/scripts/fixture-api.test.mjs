@@ -1544,7 +1544,7 @@ test("fixture Sources have distinct inventories and working scoped routes", asyn
     ).json();
     assert.equal(sources.length, 4);
     const expected = new Map([
-      [fixtureIds.source, [5, 11, 2]],
+      [fixtureIds.source, [5, 10, 2]],
       [fixtureIds.docsSource, [3, 0, 1]],
       [fixtureIds.analyticsSource, [0, 1, 1]],
       [fixtureIds.sandboxSource, [0, 0, 0]],
@@ -1664,8 +1664,8 @@ test("v2 fixtures expose environment mappings and isolated sibling instances", a
         .domains?.primary,
       "www.wikipedia.org",
     );
-    assert.equal(resourceInventory.resources.length, 12);
-    assert.equal(resourceInventory.counts.all, 11);
+    assert.equal(resourceInventory.resources.length, 11);
+    assert.equal(resourceInventory.counts.all, 10);
     const history = await get(
       "/v1/core/deployments/history?targetEnvironment=staging&limit=1",
     );

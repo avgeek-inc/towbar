@@ -35,7 +35,7 @@ hostname and username, but never returns the password or token.
 
 Reference the integration slug `registry` from an image deployment:
 
-```yaml title=".towbar/apps/api.app.yml"
+```yaml title=".towbar/services/api.service.yml"
 deployment:
   type: image
   image: registry.example.com/acme/api:2.4.0
@@ -51,7 +51,7 @@ different image. Private registry endpoints must use HTTPS.
 
 A dedicated build server can push the verified image through the same registry:
 
-```yaml title=".towbar/apps/api.app.yml"
+```yaml title=".towbar/services/api.service.yml"
 buildServer:
   ip: 192.0.2.20
   transfer: registry

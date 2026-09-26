@@ -45,11 +45,14 @@ function resolve(
     environment,
     branch: environment === "staging" ? "develop" : "main",
     files: [
-      { path: ".towbar/apps/website.app.yml", content: stringify(entity) },
+      {
+        path: ".towbar/services/website.service.yml",
+        content: stringify(entity),
+      },
       ...(resource
         ? [
             {
-              path: ".towbar/resources/database.resource.yml",
+              path: ".towbar/datastores/database.datastore.yml",
               content: stringify(resource),
             },
           ]
@@ -326,10 +329,24 @@ void test("rejects duplicate keys, aliases, invalid secrets and non-IP server re
 });
 
 void test("discovers reserved paths recursively and rejects escaping paths", () => {
-  assert.equal(entityFileKind(".towbar/apps/team/website.app.yml"), "app");
-  assert.equal(entityFileKind(".towbar/resources/db.resource.yml"), "resource");
-  assert.equal(entityFileKind(".towbar/apps/db.resource.yml"), undefined);
-  assert.throws(() => entityFileKind(".towbar/apps/../website.app.yml"));
+  assert.equal(
+    entityFileKind(".towbar/services/team/website.service.yml"),
+    "app",
+  );
+  assert.equal(
+    entityFileKind(".towbar/datastores/db.datastore.yml"),
+    "resource",
+  );
+  assert.equal(
+    entityFileKind(".towbar/services/storefront.compose.yml"),
+    "compose",
+  );
+  assert.equal(entityFileKind(".towbar/services/db.datastore.yml"), undefined);
+  assert.throws(() => entityFileKind(".towbar/apps/web.app.yml"));
+  assert.throws(() => entityFileKind(".towbar/resources/db.resource.yml"));
+  assert.throws(() =>
+    entityFileKind(".towbar/services/../website.service.yml"),
+  );
 });
 
 void test("same-kind duplicate ids fail even in different files", () => {
@@ -339,8 +356,8 @@ void test("same-kind duplicate ids fail even in different files", () => {
       environment: "staging",
       branch: "develop",
       files: [
-        { path: ".towbar/apps/a.app.yml", content: stringify(app) },
-        { path: ".towbar/apps/b.app.yml", content: stringify(app) },
+        { path: ".towbar/services/a.service.yml", content: stringify(app) },
+        { path: ".towbar/services/b.service.yml", content: stringify(app) },
       ],
     }),
   );
@@ -351,7 +368,9 @@ void test("renaming an entity file preserves resolved identity and digest", () =
     root,
     environment: "staging",
     branch: "develop",
-    files: [{ path: ".towbar/apps/renamed.app.yml", content: stringify(app) }],
+    files: [
+      { path: ".towbar/services/renamed.service.yml", content: stringify(app) },
+    ],
   });
   assert.equal(renamed.digest, resolve().digest);
 });

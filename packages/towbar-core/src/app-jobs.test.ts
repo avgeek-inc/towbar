@@ -19,7 +19,7 @@ function resolve(jobs: unknown[], override?: unknown[]) {
     environment: override ? "staging" : "production",
     files: [
       {
-        path: ".towbar/apps/jobs.app.yml",
+        path: ".towbar/services/jobs.service.yml",
         content: stringify({
           id: "jobs",
           name: "Jobs",

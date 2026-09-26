@@ -256,7 +256,7 @@ function ResourceBackupContent({
                       ))
                   }
                   pendingLabel="Queueing backup…"
-                  success="Resource backup queued"
+                  success="Datastore backup queued"
                   variant="secondary"
                 >
                   <HugeiconsIcon

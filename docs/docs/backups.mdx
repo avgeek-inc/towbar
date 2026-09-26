@@ -20,7 +20,7 @@ Deploy a healthy database resource, choose storage buckets, and keep permissions
 
 The compact policy below references the enabled AWS runtime integration by its provider name. Use `s3`, `r2`, or `gcs` for the other providers. `restoreFrom` is derived and must not be supplied with this form:
 
-```yaml title=".towbar/resources/postgres.resource.yml"
+```yaml title=".towbar/datastores/postgres.datastore.yml"
 backup:
   integration: aws
   schedule:
@@ -59,7 +59,7 @@ environments:
       enabled: true
 ```
 
-```yaml title=".towbar/resources/database.resource.yml" highlight={5-20}
+```yaml title=".towbar/datastores/database.datastore.yml" highlight={5-20}
 id: database
 name: Primary database
 type: postgres

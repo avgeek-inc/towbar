@@ -124,8 +124,8 @@ export function DashboardOverview() {
   const metrics = [
     {
       icon: DashboardCircleIcon,
-      href: "/apps",
-      label: "Apps",
+      href: "/services",
+      label: "Services",
       image: "/scout/overview-apps-charcoal.png",
       status: "running",
       detailCount: activeApps.filter(
@@ -136,8 +136,8 @@ export function DashboardOverview() {
     },
     {
       icon: CubeIcon,
-      href: "/resources",
-      label: "Resources",
+      href: "/datastores",
+      label: "Datastores",
       image: "/scout/overview-resources-charcoal.png",
       status: "running",
       detailCount: activeResources.filter(

@@ -64,6 +64,13 @@
       "when": 1790362617700,
       "tag": "0009_server_names",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790446001653,
+      "tag": "0010_services_datastores",
+      "breakpoints": true
     }
   ]
 }

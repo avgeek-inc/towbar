@@ -61,7 +61,7 @@ export const managedResourceTypes = [
   "clickhouse",
 ] as const;
 export type ManagedResourceType = (typeof managedResourceTypes)[number];
-export type ResourceType = "image" | ManagedResourceType;
+export type ResourceType = ManagedResourceType;
 export type DeployableKind = "app" | "compose" | ResourceType;
 
 export const managedResourceCompatibility = {
@@ -738,14 +738,6 @@ function validateResourceBackupSupport(
   context: z.RefinementCtx,
 ) {
   if (!resource.backup) return;
-  if (resource.type === "image") {
-    context.addIssue({
-      code: "custom",
-      message: "Managed backups are unavailable for generic image resources",
-      path: ["backup"],
-    });
-    return;
-  }
   const image = resource.image ?? defaultResourceImage(resource.type)!;
   const defaultVolume = defaultResourceVolume(resource.type, image)!;
   const declared = resource.container?.volumes ?? [];
@@ -763,9 +755,8 @@ function validateResourceBackupSupport(
     });
 }
 
-function validateResourceImageAndCommand(
+function validateResourceImage(
   resource: {
-    container?: { command?: string[] };
     image?: string;
     type: ResourceType;
   },
@@ -775,21 +766,14 @@ function validateResourceImageAndCommand(
   if (!image) {
     context.addIssue({
       code: "custom",
-      message: "Image resources require an image",
+      message: "Datastore requires an image",
       path: ["image"],
     });
   } else if (!hasImmutableImageSelector(image)) {
     context.addIssue({
       code: "custom",
-      message: "Resource images require an explicit non-latest tag or digest",
+      message: "Datastore images require an explicit non-latest tag or digest",
       path: ["image"],
-    });
-  }
-  if (resource.type !== "image" && resource.container?.command) {
-    context.addIssue({
-      code: "custom",
-      message: `${resource.type} resources use Towbar's managed command`,
-      path: ["container", "command"],
     });
   }
 }
@@ -798,7 +782,7 @@ function validateManagedResourceImage(
   resource: { image?: string; type: ResourceType },
   context: z.RefinementCtx,
 ) {
-  if (resource.type === "image" || !resource.image) return;
+  if (!resource.image) return;
   if (!/@sha256:[a-f0-9]{64}$/u.test(resource.image)) {
     context.addIssue({
       code: "custom",
@@ -857,12 +841,11 @@ export const resourceSchema = z
     id: z.string().trim().regex(appIdPattern),
     name: z.string().trim().min(1).max(120),
     description: z.string().trim().max(500).optional(),
-    type: z.enum(["image", ...managedResourceTypes]),
+    type: z.enum(managedResourceTypes),
     image: z.string().trim().regex(dockerImagePattern).optional(),
     server: serverReferenceSchema,
     container: z
       .object({
-        command: z.array(hookArgumentSchema).min(1).max(64).optional(),
         network: z.string().trim().regex(dockerNetworkPattern).optional(),
         networkAlias: z.string().trim().regex(appIdPattern).optional(),
         port: z.number().int().min(1).max(65_535).optional(),
@@ -886,7 +869,7 @@ export const resourceSchema = z
   })
   .strict()
   .superRefine((resource, context) => {
-    validateResourceImageAndCommand(resource, context);
+    validateResourceImage(resource, context);
     validateManagedResourceImage(resource, context);
     validateResourceConnectivity(resource, context);
     validateResourceBackupSupport(resource, context);
@@ -914,9 +897,7 @@ export const resourceSchema = z
         path: ["container", "port"],
       });
     }
-    const effectiveHealthType =
-      resource.health?.type ??
-      (resource.type === "image" && port ? "http" : "command");
+    const effectiveHealthType = resource.health?.type ?? "command";
     if (resource.domains && effectiveHealthType !== "http") {
       context.addIssue({
         code: "custom",
@@ -1603,7 +1584,7 @@ function normalizeResourceContainer(
                 "-c",
                 'exec keydb-server --appendonly yes --requirepass "$REDIS_PASSWORD"',
               ]
-            : [...(resource.container?.command ?? [])],
+            : [],
     ...(resource.container?.network
       ? {
           network: resource.container.network.trim(),
@@ -1805,9 +1786,7 @@ function normalizeResourceHealth(
 }
 
 function defaultResourceImage(type: ResourceType) {
-  return type === "image"
-    ? undefined
-    : managedResourceCompatibility[type].image;
+  return managedResourceCompatibility[type].image;
 }
 
 function defaultResourcePort(type: ResourceType) {
@@ -1820,7 +1799,6 @@ function defaultResourcePort(type: ResourceType) {
     dragonfly: 6_379,
     keydb: 6_379,
     clickhouse: 8_123,
-    image: undefined,
   }[type];
 }
 
@@ -1842,7 +1820,6 @@ function defaultResourceVolume(type: ResourceType, image: string) {
     dragonfly: "/data",
     keydb: "/data",
     clickhouse: "/var/lib/clickhouse",
-    image: undefined,
   }[type];
   return mountPath ? { mountPath, name: "data" } : undefined;
 }
