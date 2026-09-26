@@ -324,7 +324,7 @@ const selectedNames = new Set(process.argv.slice(2));
 const screenshots = selectedNames.size
   ? manifest.screenshots.filter((item) => selectedNames.has(item.name))
   : manifest.screenshots;
-if (selectedNames.size !== screenshots.length) {
+if (selectedNames.size && selectedNames.size !== screenshots.length) {
   const missing = [...selectedNames].filter(
     (name) => !screenshots.some((item) => item.name === name),
   );
@@ -344,7 +344,12 @@ if (selectedNames.size)
   screenshots.forEach((screenshot) => {
     screenshot.capturedAt = capturedAt;
   });
-else manifest.capturedAt = capturedAt;
+else {
+  manifest.capturedAt = capturedAt;
+  manifest.screenshots.forEach((screenshot) => {
+    delete screenshot.capturedAt;
+  });
+}
 manifest.environment =
   "Local Towbar fixture on localhost:4021; examples are not production results";
 manifest.viewport =
