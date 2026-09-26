@@ -156,11 +156,22 @@
         "icon": "activity",
         "groups": [
           {
-            "group": "Observe and troubleshoot",
+            "group": "Start here",
+            "pages": ["docs/operate/index", "docs/monitoring"]
+          },
+          {
+            "group": "Measure",
             "pages": [
-              "docs/monitoring",
+              "docs/operate/health",
+              "docs/operate/performance",
+              "docs/deployment-comparisons"
+            ]
+          },
+          {
+            "group": "Respond",
+            "pages": [
               "docs/scout-alerts",
-              "docs/deployment-comparisons",
+              "docs/operate/incidents",
               "docs/vulnerability-scanning",
               "docs/troubleshooting"
             ]
@@ -194,20 +205,35 @@
               "docs/integrations/backup-providers",
               "docs/integrations/aws",
               "docs/integrations/gcp",
-              "docs/integrations/s3-compatible"
+              "docs/integrations/s3-compatible",
+              "docs/integrations/r2"
             ]
           },
           {
             "group": "External secrets",
-            "pages": ["docs/integrations/external-secrets"]
+            "pages": [
+              "docs/integrations/external-secrets",
+              "docs/integrations/infisical",
+              "docs/integrations/doppler"
+            ]
           },
           {
             "group": "Platform services",
-            "pages": ["docs/integrations/platform-services"]
+            "pages": [
+              "docs/integrations/platform-services",
+              "docs/integrations/cloudflare"
+            ]
           },
           {
             "group": "Notifications",
-            "pages": ["docs/integrations/notifications"]
+            "pages": [
+              "docs/integrations/notifications",
+              "docs/integrations/notifications/email",
+              "docs/integrations/notifications/slack",
+              "docs/integrations/notifications/discord",
+              "docs/integrations/notifications/telegram",
+              "docs/integrations/notifications/webhook"
+            ]
           }
         ]
       },

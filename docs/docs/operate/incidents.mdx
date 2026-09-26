@@ -1,0 +1,20 @@
+---
+title: "Investigate incidents"
+description: "Follow an alert from its trigger through recovery and notification delivery."
+---
+
+Open **Monitor → Incidents** for active and resolved conditions across the workspace. Filter by severity, select an incident, and use its **Overview**, **Monitoring**, and **Notifications** tabs. An incident is a recorded condition; a notification is a separate delivery attempt to a configured destination.
+
+## Read the trigger
+
+The Overview shows the affected entity, rule and threshold, severity, current state, start and end times, and latest or final reading. Check whether the incident recovered from a fresh measurement or closed because the rule was paused, changed, deleted, or its workload was removed. A configuration closure is not evidence of recovery.
+
+The Monitoring chart covers the condition from its start onward, with threshold and closure markers. Dotted spans are gaps between samples, not measured values. Longer periods are downsampled while preserving the worst reading for the threshold direction. If history has expired, the drawer explains what is unavailable.
+
+## Check who was notified
+
+The Notifications tab lists each delivery's destination, queued and sent times, status, and safe failure code. **Queued** or **retrying** is not **sent**; a successful provider response does not prove a person read the message. Follow the delivery into [notification history](/docs/integrations/notifications) when authentication, routing, or rate limits are involved.
+
+Towbar sends one firing notification per incident, not repeated alerts while it stays active. Recovery is sent only to destinations that received the firing notification. If no destination is configured, the incident still exists in Towbar.
+
+For rule types, sustained-duration behavior, missing-data handling, and public HTTP checks, see [Scout Alerts](/docs/scout-alerts). For the server or workload's current state, return to [health](/docs/operate/health).

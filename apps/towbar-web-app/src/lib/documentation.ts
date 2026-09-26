@@ -61,11 +61,11 @@ export const documentationTopics = {
     "Register an Ubuntu server, configure trusted SSH access, and prepare it to run apps and resources.",
   ),
   preparation: guide(
-    "servers#prepare-the-runtime",
+    "servers/setup",
     "Follow connection checks and prerequisite installation. Expand a step for its details and duration.",
   ),
   credentials: guide(
-    "servers#register-and-trust-the-host",
+    "servers/register",
     "Choose a stored SSH key, verify the connection, and trust the server's host fingerprint before preparation.",
   ),
   capacity: guide(
@@ -73,15 +73,15 @@ export const documentationTopics = {
     "Compare current CPU, memory, and disk use with the server's capacity. Missing measurements do not mean zero usage.",
   ),
   cleanup: guide(
-    "servers#clean-up-leftover-workloads",
+    "servers/operations#clean-up-leftover-workloads",
     "Review containers, images, and volumes left behind on this server before choosing what to remove.",
   ),
   removal: guide(
-    "servers#remove-a-server",
+    "servers/remove",
     "Remove this server from Towbar after reviewing affected workloads and any data you need to keep.",
   ),
   performance: guide(
-    "monitoring#performance-history",
+    "operate/performance",
     "Review Scout measurements over a selected time range. Gaps mean no sample was recorded.",
   ),
   scout: guide(
@@ -93,7 +93,7 @@ export const documentationTopics = {
     "Choose a metric, threshold, and severity. Towbar opens an incident when a fresh reading meets the rule.",
   ),
   incidents: guide(
-    "scout-alerts#inspect-an-incident",
+    "operate/incidents",
     "Investigate a triggered alert, its measurements, resolution, and notification delivery history.",
   ),
   comparison: guide(
@@ -138,10 +138,18 @@ export const documentationTopics = {
   ),
   externalSecrets: guide(
     "integrations/external-secrets",
-    "Reference secrets from an environment-configured Infisical or Doppler provider without storing their values in manifests.",
+    "Reference secrets from a configured Infisical or Doppler provider without storing their values in manifests.",
+  ),
+  infisical: guide(
+    "integrations/infisical",
+    "Configure a scoped Infisical machine identity in Towbar's runtime YAML and verify a secret reference.",
+  ),
+  doppler: guide(
+    "integrations/doppler",
+    "Configure a Doppler service token in Towbar's runtime YAML and verify a secret reference.",
   ),
   cloudflare: guide(
-    "integrations/platform-services#cloudflare",
+    "integrations/cloudflare",
     "Configure Cloudflare in the Towbar environment for DNS operations, tunnel ingress, and Cloudflare TLS.",
   ),
   aws: guide(
@@ -154,34 +162,38 @@ export const documentationTopics = {
   ),
   s3Compatible: guide(
     "integrations/s3-compatible",
-    "Configure S3-compatible storage or Cloudflare R2 in the Towbar environment for backups and restores.",
+    "Configure S3-compatible storage in the Towbar environment for backups and restores.",
+  ),
+  r2: guide(
+    "integrations/r2",
+    "Configure Cloudflare R2 object storage and verify a managed-resource backup and restore.",
   ),
   notifications: guide(
     "integrations/notifications",
     "Review the providers and category routes enabled by the Towbar runtime environment.",
   ),
   slack: guide(
-    "integrations/notifications#configure-slack",
-    "Configure a Slack bot token and category channel routes in the Towbar runtime environment.",
+    "integrations/notifications/slack",
+    "Configure a Slack bot token in the Towbar runtime and add category channel destinations in the dashboard.",
   ),
   email: guide(
-    "integrations/notifications#configure-email",
-    "Configure SMTP delivery and recipient routes in the Towbar runtime environment.",
+    "integrations/notifications/email",
+    "Configure SMTP delivery in the Towbar runtime and recipient destinations in the dashboard.",
   ),
   discord: guide(
-    "integrations/notifications#configure-discord",
-    "Configure a Discord incoming webhook route for each required notification category.",
+    "integrations/notifications/discord",
+    "Configure Discord webhook ID and token pairs in the Towbar runtime, then choose categories in the dashboard.",
   ),
   telegram: guide(
-    "integrations/notifications#configure-telegram",
-    "Configure the Telegram bot, chat, and optional topic routes in the Towbar runtime environment.",
+    "integrations/notifications/telegram",
+    "Configure a Telegram bot in the Towbar runtime, then add chat and optional topic destinations in the dashboard.",
   ),
   webhook: guide(
-    "integrations/notifications#configure-webhook-push",
+    "integrations/notifications/webhook",
     "Send event JSON to the public HTTPS webhook route configured for each category.",
   ),
   system: guide(
-    "monitoring#system-health",
+    "operate/health",
     "Check Towbar's API, database, workflow engine, and worker. These checks are separate from workload health.",
   ),
   keys: guide(
@@ -236,13 +248,13 @@ const integrationDocumentationTopics: Record<string, Topic> = {
   aws: "aws",
   cloudflare: "cloudflare",
   discord: "discord",
-  doppler: "externalSecrets",
+  doppler: "doppler",
   email: "email",
   gcp: "gcp",
   github: "github",
   gitlab: "gitlab",
-  infisical: "externalSecrets",
-  r2: "s3Compatible",
+  infisical: "infisical",
+  r2: "r2",
   registry: "registry",
   s3: "s3Compatible",
   slack: "slack",
@@ -422,7 +434,7 @@ export const widgetDocumentation: Record<string, HeadingDocumentation> = {
     "Requests that are queued or running. Open a deployment to follow its progress.",
   ),
   notifications: guide(
-    "integrations/notifications#diagnose-delivery",
+    "integrations/notifications#delivery-history",
     "Review operational notifications. Opening an event takes you to the affected workload or incident.",
   ),
   "last deployment attempt": guide(

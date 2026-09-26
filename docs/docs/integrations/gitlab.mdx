@@ -28,3 +28,9 @@ Private-network access must be enabled deliberately for an internal self-managed
 Open **Manage → Integrations → GitLab** and choose **Connect GitLab**. Towbar uses Authorization Code with PKCE, verifies the callback state for the signed-in Admin, and stores only encrypted access and refresh tokens. Reauthorizing replaces the single grant. Disconnecting deletes the encrypted grant and stops new GitLab repository work.
 
 When adding a Repository, select GitLab, then the project and branch. Towbar reads immutable commit archives, processes push and merge-request webhooks idempotently, and reports deployment results without making provider feedback part of deployment success.
+
+## Verify a project connection
+
+Open **Repositories → Add repository**, select GitLab, and confirm that the intended project appears. Map an environment to a branch containing `towbar.yml` and at least one app or resource manifest, then inspect the first sync. The project connection proves repository access; a successful sync proves that Towbar can read and validate that commit. Deployment remains a separate action.
+
+Push a harmless manifest change to a mapped branch and check the resulting sync. If nothing arrives, inspect the GitLab project's webhook deliveries and the public Towbar origin. If authorization expires or project access changes, reconnect the account from **Manage → Integrations → GitLab** and verify the project again. Keep `allowPrivateNetwork` disabled unless the configured self-managed GitLab host intentionally needs private-network access.
