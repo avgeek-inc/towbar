@@ -997,6 +997,7 @@ function SecretValueInput({
   );
   return referenceKey ? (
     <SecretReferenceTooltip
+      key={referenceKey}
       reference={references[0]?.[0] ?? ""}
       reveal={revealReference ? () => revealReference(referenceKey) : undefined}
     >
