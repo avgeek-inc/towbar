@@ -39,18 +39,20 @@ export function toPublicServer(
     status: "queued" | "running" | "succeeded" | "failed";
   },
 ) {
-  const {
-    configDigest,
-    privateKeyId: _privateKeyId,
-    preparedConfigDigest,
-    workspaceId: _workspaceId,
-    ...publicServer
-  } = server;
   const ready =
-    Boolean(server.preparedAt) && preparedConfigDigest === configDigest;
-  const currentPreparation = latestPreparation?.configDigest === configDigest;
+    Boolean(server.preparedAt) &&
+    server.preparedConfigDigest === server.configDigest;
+  const currentPreparation =
+    latestPreparation?.configDigest === server.configDigest;
   return {
-    ...publicServer,
+    archivedAt: server.archivedAt,
+    canonicalIp: server.canonicalIp,
+    config: server.config,
+    createdAt: server.createdAt,
+    id: server.id,
+    name: server.name,
+    preparedAt: server.preparedAt,
+    updatedAt: server.updatedAt,
     setupStatus: ready
       ? ("ready" as const)
       : currentPreparation &&

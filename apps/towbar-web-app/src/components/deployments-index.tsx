@@ -249,6 +249,7 @@ export function DeploymentsIndex() {
               ...(servers.data?.servers ?? []).map((server) => ({
                 id: server.id,
                 label: server.name ?? server.canonicalIp,
+                detail: server.name ? server.canonicalIp : undefined,
               })),
             ]}
           />

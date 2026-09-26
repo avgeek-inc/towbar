@@ -81,7 +81,7 @@ export function InventorySidebar({
   const controls: Array<{
     key: string;
     label: string;
-    options: Array<{ id: string; label: string }>;
+    options: Array<{ id: string; label: string; detail?: string }>;
   }> = [];
   const options = (values: string[]) =>
     values.map((id) => ({ id, label: id[0]!.toUpperCase() + id.slice(1) }));
@@ -106,6 +106,7 @@ export function InventorySidebar({
         options: servers.map((s) => ({
           id: s.canonicalIp,
           label: s.name ?? s.canonicalIp,
+          detail: s.name ? s.canonicalIp : undefined,
         })),
       },
       ...(kind === "resources"
