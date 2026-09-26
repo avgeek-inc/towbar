@@ -292,6 +292,7 @@ async function scheduleEligibleAutomaticDeployments(input: {
       try {
         await assertRequiredInstanceSecrets({
           appId: candidate.appId,
+          config: candidate.config,
           sourceId: input.sourceId,
           workspaceId: input.workspaceId,
         });

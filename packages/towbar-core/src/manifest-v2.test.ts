@@ -156,6 +156,58 @@ void test("resources declare runtime secrets only", () => {
   }
 });
 
+void test("External secret source supports optional scope and provider project names", () => {
+  const source = {
+    integration: "infisical",
+    project: "6354f023-12c7-4ce1-b860-750b38e1a3ef",
+    environment: "Production",
+  };
+  const result = resolve({ ...app, externalSecrets: source });
+  assert.deepEqual(result.manifest.apps[0]?.externalSecrets, {
+    ...source,
+  });
+  const resource = {
+    id: "database",
+    name: "Database",
+    type: "postgres",
+    externalSecrets: { ...source, secretPath: "infisical-postgres" },
+    environments: { staging: { server: "192.0.2.11" } },
+  };
+  assert.deepEqual(
+    resolve(app, "staging", resource).manifest.resources?.[0]?.externalSecrets,
+    { ...source, secretPath: "infisical-postgres" },
+  );
+  assert.throws(() =>
+    resolve({
+      ...app,
+      externalSecrets: { ...source, secretPath: "../private" },
+    }),
+  );
+  const doppler = { integration: "doppler", project: "example-api" };
+  assert.deepEqual(
+    resolve({ ...app, externalSecrets: doppler }).manifest.apps[0]
+      ?.externalSecrets,
+    doppler,
+  );
+  assert.deepEqual(
+    resolve({ ...app, externalSecrets: { ...doppler, environment: "prd" } })
+      .manifest.apps[0]?.externalSecrets,
+    { ...doppler, environment: "prd" },
+  );
+  assert.throws(() =>
+    resolve({
+      ...app,
+      externalSecrets: {
+        API_TOKEN: {
+          integration: "doppler",
+          secret: "example-api/prd/API_TOKEN",
+          use: "runtime",
+        },
+      },
+    }),
+  );
+});
+
 void test("sync resolves per-entity notification destinations without credentials", () => {
   const notifications = {
     email: [

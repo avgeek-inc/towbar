@@ -4,7 +4,10 @@ import type {
   IntegrationTarget,
   NormalizedDeployable,
 } from "@workspace/towbar-core";
-import { parseCredentialsMasterKey } from "@workspace/towbar-core";
+import {
+  isExternalSecretSource,
+  parseCredentialsMasterKey,
+} from "@workspace/towbar-core";
 import { getEnv } from "../../env.js";
 import {
   conflict,
@@ -26,159 +29,210 @@ export async function resolveExternalSecretSnapshot(input: {
 }) {
   const values: Record<string, string> = {};
   const revisions: Record<string, string> = {};
-  const references = Object.entries(input.deployable.externalSecrets ?? {})
-    .filter(([, reference]) => reference.use === input.stage)
-    .sort(([left], [right]) => left.localeCompare(right));
-
-  for (const [environmentKey, reference] of references) {
-    const resolved = await resolveIntegration({
-      workspaceId: input.workspaceId,
-      slug: reference.integration,
-      providers: ["infisical", "doppler"],
-      target: input.target,
-    });
-    const expected = parseExpectedRevision(
-      input.expectedRevisions?.[`external:${environmentKey}`],
-    );
-    if (
-      expected &&
-      (expected.integration !== resolved.connection.slug ||
-        expected.integrationRevision !== String(resolved.connection.revision))
-    )
-      throw conflict(
-        `External secret connection changed during deployment: ${environmentKey}`,
-      );
-    const secret = await readExternalSecret(
-      resolved.connectionInput,
-      reference,
-      expected?.secretVersion,
-    );
-    if (expected && expected.secretVersion !== secret.version)
-      throw conflict(
-        `External secret version changed during deployment: ${environmentKey}`,
-      );
-    if (Object.hasOwn(values, environmentKey))
-      throw conflict(
-        `External secret '${environmentKey}' is declared more than once`,
-      );
-    values[environmentKey] = selectField(secret.value, reference.field);
-    revisions[`external:${environmentKey}`] = [
-      resolved.connection.slug,
-      resolved.connection.revision,
-      secret.version,
-    ].join(":");
+  if (isExternalSecretSource(input.deployable.externalSecrets)) {
+    if (input.stage === "build") return { revisions, values };
+    return resolveExternalSecretSource(input);
   }
   return { revisions, values };
 }
 
-// eslint-disable-next-line complexity -- Provider dispatch validates and reads each external secret protocol at one fail-closed boundary.
-async function readExternalSecret(
-  connection: Awaited<ReturnType<typeof resolveIntegration>>["connectionInput"],
-  reference: { secret: string; field?: string; version?: string },
-  expectedVersion?: string,
-) {
-  switch (connection.provider) {
-    case "doppler": {
-      if (reference.version)
-        throw unprocessable(
-          "Doppler does not expose version-addressed secret reads. Omit version or use a versioned provider.",
-        );
-      const [project, config, ...nameParts] = reference.secret.split("/");
-      const name = nameParts.join("/");
-      if (!project || !config || !name)
-        throw unprocessable(
-          "Doppler secret references use project/config/name",
-        );
-      const url = new URL("https://api.doppler.com/v3/configs/config/secret");
-      url.searchParams.set("project", project);
-      url.searchParams.set("config", config);
-      url.searchParams.set("name", name);
-      const response = await integrationFetch(url.toString(), {
-        headers: { Authorization: `Bearer ${connection.credentials.token}` },
-      });
-      if (!response.ok)
-        throw serviceUnavailable("Doppler could not resolve a required secret");
-      const result = await readBoundedJson<{
-        value?: { raw?: string; computed?: string };
-      }>(response, "Doppler");
-      const value = result.value?.computed ?? result.value?.raw;
-      if (value === undefined)
-        throw serviceUnavailable("Doppler returned no secret value");
-      assertSecretValueSize(value);
-      const version =
-        response.headers.get("etag") ?? secretSnapshotFingerprint(value);
-      if (expectedVersion && expectedVersion !== version)
-        throw conflict("Doppler secret changed during deployment");
-      return {
-        value,
-        version,
-      };
-    }
-    case "infisical": {
-      const segments = reference.secret.split("/").filter(Boolean);
-      const [projectId, environment, ...pathAndName] = segments;
-      const name = pathAndName.pop();
-      if (!projectId || !environment || !name)
-        throw unprocessable(
-          "Infisical secret references use project/environment/path/name",
-        );
-      const login = await integrationFetch(
-        new URL(
-          "/api/v1/auth/universal-auth/login",
-          connection.configuration.baseUrl,
-        ).toString(),
-        {
-          allowPrivateNetwork: connection.configuration.allowPrivateNetwork,
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(connection.credentials),
-        },
+async function resolveExternalSecretSource(input: {
+  deployable: NormalizedDeployable;
+  expectedRevisions?: Record<string, string | null> | null;
+  stage: "build" | "runtime";
+  target: Extract<IntegrationTarget, { kind: "repository" }>;
+  workspaceId: string;
+}) {
+  const source = input.deployable.externalSecrets;
+  if (!isExternalSecretSource(source))
+    throw conflict("External secret source is missing");
+  const resolved = await resolveIntegration({
+    workspaceId: input.workspaceId,
+    slug: source.integration,
+    providers: ["infisical", "doppler"],
+    target: input.target,
+  });
+  const connection = resolved.connectionInput;
+  let secrets: Array<{
+    name: string;
+    value: string;
+    version?: number | string;
+  }>;
+  if (connection.provider === "infisical") {
+    if (!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/iu.test(source.project))
+      throw unprocessable("Infisical project must be a project ID");
+    secrets = await readInfisicalSecretFolder(connection, source);
+  } else if (connection.provider === "doppler") {
+    if (source.secretPath && source.secretPath !== ".")
+      throw unprocessable(
+        "Doppler does not support secretPath; its config is the secret scope",
       );
-      if (!login.ok)
-        throw serviceUnavailable("Infisical authentication failed");
-      const loginResult = await readBoundedJson<{ accessToken?: string }>(
-        login,
-        "Infisical authentication",
-        64 * 1_024,
+    secrets = await readDopplerConfig(connection, source);
+  } else {
+    throw conflict("External secret source uses an incompatible integration");
+  }
+  if (secrets.length === 0)
+    throw serviceUnavailable("External secret source is empty or unavailable");
+  if (secrets.length > 200)
+    throw serviceUnavailable("External secret source exceeds 200 secrets");
+  const values: Record<string, string> = {};
+  const revisions: Record<string, string> = {};
+  for (const secret of secrets) {
+    const { name, value } = secret;
+    if (
+      !/^[A-Za-z_][A-Za-z0-9_]*$/u.test(name) ||
+      ["__proto__", "prototype", "constructor"].includes(name)
+    )
+      throw serviceUnavailable(
+        "External secret source returned an invalid environment variable name",
       );
-      if (!loginResult.accessToken)
-        throw serviceUnavailable("Infisical returned no access token");
-      const url = new URL(
-        `/api/v3/secrets/raw/${encodeURIComponent(name)}`,
-        connection.configuration.baseUrl,
+    if (Object.hasOwn(values, name))
+      throw serviceUnavailable(
+        "External secret source returned duplicate secret names",
       );
-      url.searchParams.set("workspaceId", projectId);
-      url.searchParams.set("environment", environment);
-      url.searchParams.set("secretPath", `/${pathAndName.join("/")}`);
-      if (reference.version ?? expectedVersion)
-        url.searchParams.set("version", reference.version ?? expectedVersion!);
-      const response = await integrationFetch(url.toString(), {
-        allowPrivateNetwork: connection.configuration.allowPrivateNetwork,
-        headers: { Authorization: `Bearer ${loginResult.accessToken}` },
-      });
-      if (!response.ok)
-        throw serviceUnavailable(
-          "Infisical could not resolve a required secret",
-        );
-      const result = await readBoundedJson<{
-        secretValue?: string;
-        version?: number | string;
-      }>(response, "Infisical");
-      if (result.secretValue === undefined)
-        throw serviceUnavailable("Infisical returned no secret value");
-      assertSecretValueSize(result.secretValue);
-      return {
-        value: result.secretValue,
-        version: String(
-          result.version ?? reference.version ?? expectedVersion ?? "current",
-        ),
-      };
-    }
-    default:
+    assertSecretValueSize(value);
+    const expected = parseExpectedRevision(
+      input.expectedRevisions?.[`external:${name}`],
+    );
+    const version = String(secret.version ?? secretSnapshotFingerprint(value));
+    if (
+      expected &&
+      (expected.integration !== resolved.connection.slug ||
+        expected.integrationRevision !== String(resolved.connection.revision) ||
+        expected.secretVersion !== version)
+    )
+      throw conflict(`External secret changed during deployment: ${name}`);
+    values[name] = value;
+    revisions[`external:${name}`] = [
+      resolved.connection.slug,
+      resolved.connection.revision,
+      version,
+    ].join(":");
+  }
+  for (const key of Object.keys(input.expectedRevisions ?? {})) {
+    if (key.startsWith("external:") && !Object.hasOwn(revisions, key))
       throw conflict(
-        "External secret reference uses an incompatible integration",
+        `External secret disappeared during deployment: ${key.slice(9)}`,
       );
   }
+  return { revisions, values };
+}
+
+async function readInfisicalSecretFolder(
+  connection: Extract<
+    Awaited<ReturnType<typeof resolveIntegration>>["connectionInput"],
+    { provider: "infisical" }
+  >,
+  source: { project: string; environment?: string; secretPath?: string },
+) {
+  const token = await infisicalAccessToken(connection);
+  const url = new URL("/api/v3/secrets/raw", connection.configuration.baseUrl);
+  url.searchParams.set("workspaceId", source.project);
+  url.searchParams.set(
+    "environment",
+    source.environment === "Production"
+      ? "prod"
+      : source.environment === "Development"
+        ? "dev"
+        : (source.environment ?? "prod"),
+  );
+  url.searchParams.set(
+    "secretPath",
+    !source.secretPath || source.secretPath === "."
+      ? "/"
+      : `/${source.secretPath.replace(/^\/+|\/+$/gu, "")}`,
+  );
+  url.searchParams.set("recursive", "false");
+  url.searchParams.set("include_imports", "false");
+  const response = await integrationFetch(url.toString(), {
+    allowPrivateNetwork: connection.configuration.allowPrivateNetwork,
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok)
+    throw serviceUnavailable("Infisical could not resolve the secret folder");
+  const result = await readBoundedJson<{
+    secrets?: Array<{
+      secretKey?: string;
+      secretValue?: string;
+      version?: number | string;
+    }>;
+  }>(response, "Infisical", 1024 * 1024);
+  if (!Array.isArray(result.secrets))
+    throw serviceUnavailable("Infisical returned an invalid secret list");
+  return result.secrets.map((secret) => {
+    if (
+      typeof secret.secretKey !== "string" ||
+      typeof secret.secretValue !== "string"
+    )
+      throw serviceUnavailable("Infisical returned an invalid secret");
+    return {
+      name: secret.secretKey,
+      value: secret.secretValue,
+      version: secret.version,
+    };
+  });
+}
+
+async function readDopplerConfig(
+  connection: Extract<
+    Awaited<ReturnType<typeof resolveIntegration>>["connectionInput"],
+    { provider: "doppler" }
+  >,
+  source: { project: string; environment?: string },
+) {
+  const url = new URL(
+    "https://api.doppler.com/v3/configs/config/secrets/download",
+  );
+  url.searchParams.set("format", "json");
+  url.searchParams.set("project", source.project);
+  if (source.environment) url.searchParams.set("config", source.environment);
+  url.searchParams.set("include_dynamic_secrets", "false");
+  const response = await integrationFetch(url.toString(), {
+    headers: { Authorization: `Bearer ${connection.credentials.token}` },
+  });
+  if (!response.ok)
+    throw serviceUnavailable("Doppler could not resolve the secret config");
+  const result = await readBoundedJson<unknown>(
+    response,
+    "Doppler",
+    1024 * 1024,
+  );
+  if (!result || typeof result !== "object" || Array.isArray(result))
+    throw serviceUnavailable("Doppler returned an invalid secret list");
+  return Object.entries(result).map(([name, value]) => {
+    if (typeof value !== "string")
+      throw serviceUnavailable("Doppler returned an invalid secret value");
+    return { name, value };
+  });
+}
+
+async function infisicalAccessToken(
+  connection: Extract<
+    Awaited<ReturnType<typeof resolveIntegration>>["connectionInput"],
+    { provider: "infisical" }
+  >,
+) {
+  const response = await integrationFetch(
+    new URL(
+      "/api/v1/auth/universal-auth/login",
+      connection.configuration.baseUrl,
+    ).toString(),
+    {
+      allowPrivateNetwork: connection.configuration.allowPrivateNetwork,
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(connection.credentials),
+    },
+  );
+  if (!response.ok) throw serviceUnavailable("Infisical authentication failed");
+  const result = await readBoundedJson<{ accessToken?: string }>(
+    response,
+    "Infisical authentication",
+    64 * 1_024,
+  );
+  if (!result.accessToken)
+    throw serviceUnavailable("Infisical returned no access token");
+  return result.accessToken;
 }
 
 async function readBoundedJson<T>(
@@ -238,35 +292,4 @@ function parseExpectedRevision(value: string | null | undefined) {
   )
     throw conflict("Stored external secret revision is invalid");
   return { integration, integrationRevision, secretVersion };
-}
-
-function selectField(value: string, field?: string) {
-  if (!field) return value;
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(value);
-  } catch {
-    throw unprocessable(
-      "External secret field selection requires a JSON object",
-    );
-  }
-  let selected = parsed;
-  for (const part of field.split(".")) {
-    if (
-      !selected ||
-      typeof selected !== "object" ||
-      !Object.hasOwn(selected, part)
-    )
-      throw unprocessable(
-        `External secret JSON field '${field}' was not found`,
-      );
-    selected = (selected as Record<string, unknown>)[part];
-  }
-  if (
-    typeof selected !== "string" &&
-    typeof selected !== "number" &&
-    typeof selected !== "boolean"
-  )
-    throw unprocessable(`External secret JSON field '${field}' is not scalar`);
-  return String(selected);
 }

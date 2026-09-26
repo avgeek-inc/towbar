@@ -128,6 +128,7 @@ export async function requestAppDeployment(input: {
   cloudflareDnsCredential(target.config);
   await assertRequiredInstanceSecrets({
     appId: target.id,
+    config: target.config,
     sourceId: target.sourceId,
     workspaceId: request.workspaceId,
   });

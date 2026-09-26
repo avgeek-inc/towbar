@@ -12,19 +12,9 @@ integrations:
     token: "<service-token>"
 ```
 
-Run `sudo towbar config validate` and `sudo towbar restart`. Confirm that Doppler appears under **Manage → Integrations → External secrets**. A configured status does not test token access to a particular secret; deploy a non-production workload that references one.
+Run `sudo towbar config validate` and `sudo towbar restart`. Confirm that Doppler appears under **Manage → Integrations → External secrets**. A configured status does not test token access to a project or config. Follow the [external-secret source guide](/docs/secrets/external) and deploy a non-production workload to verify access.
 
-```yaml title=".towbar/apps/api.app.yml"
-externalSecrets:
-  API_TOKEN:
-    integration: doppler
-    secret: API_TOKEN
-    use: runtime
-```
-
-The map key is the variable exposed to the workload. The `secret` field names the value in the token's scoped Doppler configuration. Apps, resources, and Compose projects can use runtime references. Build references are limited to Dockerfile and static apps; other builders reject them. See [Secrets](/docs/secrets#external-secret-providers) for optional fields and failure behavior.
-
-If a deployment cannot resolve a reference, check its secret stage, the name and project/configuration covered by the token, and whether the token was revoked. Apply a replacement service token in YAML, restart, verify a test deployment, and then revoke the previous token.
+If a deployment cannot load its secrets, check the project/configuration covered by the token and whether the token was revoked. Apply a replacement service token in YAML, restart, verify a test deployment, and then revoke the previous token.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">

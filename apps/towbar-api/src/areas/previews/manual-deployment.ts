@@ -169,6 +169,7 @@ async function deployCurrentPreview(input: {
   });
   await assertRequiredInstanceSecrets({
     appId: app.id,
+    config,
     sourceId: source.id,
     workspaceId: input.workspaceId,
     preview: true,

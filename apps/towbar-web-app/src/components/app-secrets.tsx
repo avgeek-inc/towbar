@@ -23,7 +23,7 @@ import {
 
 import dynamic from "next/dynamic";
 import { ResponsiveChoice } from "./responsive-choice";
-import { SecretVariableTooltip } from "./secret-variable-tooltip";
+import { SecretReferenceTooltip } from "./secret-reference-tooltip";
 import { Tabs } from "@workspace/web-design-system/navigation/tabs";
 import {
   managedSecretKeyError,
@@ -647,12 +647,9 @@ function SecretVariablesEditor({
                       >
                         <div className="flex min-h-10 min-w-0 items-center gap-2">
                           <span className="flex min-w-0 flex-wrap items-center gap-2">
-                            <SecretVariableTooltip
-                              name={key}
-                              value={replacements[key] ?? ""}
-                              configured={configured}
-                              reveal={reveal}
-                            />
+                            <span className="break-all font-mono text-sm">
+                              {key}
+                            </span>
                             {binding.inheritedOrigins[key] ? (
                               <Chip
                                 size="small"
@@ -694,6 +691,19 @@ function SecretVariablesEditor({
                               configured={configured}
                               disabled={!canManage || busy}
                               reveal={reveal}
+                              revealReference={
+                                can("sharedSecret.reveal")
+                                  ? async (referenceKey) => {
+                                      const result = await api.post<{
+                                        value: string;
+                                      }>(
+                                        `/v1/core/settings/secrets/production/${binding.stage}/reveal`,
+                                        { key: referenceKey },
+                                      );
+                                      return result.value;
+                                    }
+                                  : undefined
+                              }
                               onChange={(value) =>
                                 setReplacements((current) => ({
                                   ...current,
@@ -861,6 +871,7 @@ function SecretValueInput({
   configured = false,
   disabled,
   reveal,
+  revealReference,
   onChange,
 }: {
   label: string;
@@ -868,6 +879,7 @@ function SecretValueInput({
   configured?: boolean;
   disabled: boolean;
   reveal?: () => Promise<string>;
+  revealReference?: (key: string) => Promise<string>;
   onChange: (value: string) => void;
 }) {
   const [visible, setVisible] = useState(!configured);
@@ -921,7 +933,14 @@ function SecretValueInput({
   const hasReference =
     visible &&
     /\{\{\s*globals\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}/u.test(displayedValue);
-  return (
+  const references = [
+    ...displayedValue.matchAll(
+      /\{\{\s*globals\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/gu,
+    ),
+  ];
+  const referenceKey =
+    visible && references.length === 1 ? references[0]?.[1] : undefined;
+  const input = (
     <InputGroup fullWidth variant="secondary">
       <InputGroup.Prefix>
         <HugeiconsIcon aria-hidden="true" icon={LockIcon} size={16} />
@@ -975,5 +994,15 @@ function SecretValueInput({
         ) : null}
       </InputGroup.Suffix>
     </InputGroup>
+  );
+  return referenceKey ? (
+    <SecretReferenceTooltip
+      reference={references[0]?.[0] ?? ""}
+      reveal={revealReference ? () => revealReference(referenceKey) : undefined}
+    >
+      {input}
+    </SecretReferenceTooltip>
+  ) : (
+    input
   );
 }

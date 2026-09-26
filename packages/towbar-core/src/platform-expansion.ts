@@ -293,15 +293,35 @@ export const appDeploymentSchema = z.discriminatedUnion("type", [
 ]);
 export type AppDeployment = z.infer<typeof appDeploymentSchema>;
 
-export const externalSecretReferenceSchema = z
+export const externalSecretSourceSchema = z
   .object({
     integration: integrationReferenceSchema,
-    secret: z.string().trim().min(1).max(1_024),
-    field: z.string().trim().min(1).max(256).optional(),
-    version: z.string().trim().min(1).max(256).optional(),
-    use: z.enum(["runtime", "build"]),
+    project: z.string().trim().min(1).max(128),
+    environment: z.string().trim().min(1).max(128).optional(),
+    secretPath: z
+      .string()
+      .trim()
+      .min(1)
+      .max(1_024)
+      .refine(
+        (value) =>
+          value === "." ||
+          (!value.includes("\\") &&
+            !value.includes("\0") &&
+            !value.split("/").some((part) => part === ".." || part === ".")),
+        "Use a folder path or '.' for the root",
+      )
+      .optional(),
   })
   .strict();
+
+export const externalSecretsSchema = externalSecretSourceSchema;
+
+export function isExternalSecretSource(
+  value: z.infer<typeof externalSecretSourceSchema> | undefined,
+): value is z.infer<typeof externalSecretSourceSchema> {
+  return typeof value?.project === "string";
+}
 
 export const ingressSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("proxy") }).strict(),
@@ -337,25 +357,11 @@ export const composeWorkloadSchema = z
     services: z
       .record(z.string().trim().min(1).max(128), composeServicePolicySchema)
       .default({}),
-    externalSecrets: z
-      .record(z.string().trim().min(1).max(256), externalSecretReferenceSchema)
-      .optional(),
+    externalSecrets: externalSecretsSchema.optional(),
     strategy: z.enum(["recreate", "maintenance"]).default("recreate"),
   })
   .strict()
   .superRefine((workload, context) => {
-    for (const [name, reference] of Object.entries(
-      workload.externalSecrets ?? {},
-    )) {
-      if (reference.use === "build") {
-        context.addIssue({
-          code: "custom",
-          path: ["externalSecrets", name, "use"],
-          message:
-            "Compose external secrets are injected into the runtime environment; build-time secret mounts are not supported",
-        });
-      }
-    }
     const paths = [workload.file, ...workload.overrides];
     if (new Set(paths).size !== paths.length) {
       context.addIssue({

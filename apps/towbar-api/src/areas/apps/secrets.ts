@@ -26,6 +26,7 @@ import {
 } from "../secrets/store.js";
 import type { SecretDatabase, SecretOwner } from "../secrets/store.js";
 import type {
+  NormalizedDeployable,
   RequiredSecrets,
   SecretMutation,
   SecretStage,
@@ -258,9 +259,24 @@ export async function assertRequiredInstanceSecrets(
     workspaceId: string;
     preview?: boolean;
     declarations?: RequiredSecrets;
+    config?: NormalizedDeployable;
   },
   database: SecretDatabase = getTowbarDatabase(),
 ) {
+  const config =
+    input.config ??
+    (
+      await database
+        .select({ config: apps.config })
+        .from(apps)
+        .where(
+          and(
+            eq(apps.id, input.appId),
+            eq(apps.workspaceId, input.workspaceId),
+          ),
+        )
+        .limit(1)
+    )[0]?.config;
   const environment = await instanceSecretEnvironment(input, database);
   for (const stage of secretStages) {
     if (input.declarations) {
@@ -270,9 +286,9 @@ export async function assertRequiredInstanceSecrets(
         { ...input, environment, stage },
         database,
       );
-      const missing = required.filter(
-        (key) => !Object.hasOwn(resolved.values, key),
-      );
+      const missing = required
+        .filter((key) => !Object.hasOwn(resolved.values, key))
+        .filter(() => !externallyResolved(config, stage));
       if (missing.length)
         throw unprocessable(
           `Required secrets missing in ${environment} (${stage}): ${missing.join(", ")}`,
@@ -290,9 +306,12 @@ export async function assertRequiredInstanceSecrets(
       },
       database,
     );
-    if (metadata.missingKeys.length)
+    const missing = metadata.missingKeys.filter(
+      () => !externallyResolved(config, stage),
+    );
+    if (missing.length)
       throw unprocessable(
-        `Required secrets missing in ${environment} (${stage}): ${metadata.missingKeys.join(", ")}`,
+        `Required secrets missing in ${environment} (${stage}): ${missing.join(", ")}`,
         "REQUIRED_SECRETS_MISSING",
       );
     if (metadata.declared && metadata.keys.length)
@@ -308,6 +327,7 @@ export async function getInstanceSecretReadiness(input: {
   const [app] = await database
     .select({
       requiredSecrets: apps.requiredSecrets,
+      config: apps.config,
       sourceId: apps.sourceId,
     })
     .from(apps)
@@ -341,7 +361,13 @@ export async function getInstanceSecretReadiness(input: {
         },
         database,
       );
-      if (required.some((key) => !Object.hasOwn(resolved.values, key)))
+      if (
+        required.some(
+          (key) =>
+            !Object.hasOwn(resolved.values, key) &&
+            !externallyResolved(app.config, stage),
+        )
+      )
         return { ready: false };
     } catch (error) {
       if (
@@ -353,6 +379,15 @@ export async function getInstanceSecretReadiness(input: {
     }
   }
   return { ready: true };
+}
+
+function externallyResolved(
+  config: NormalizedDeployable | undefined,
+  stage: SecretStage,
+) {
+  const source = config?.externalSecrets;
+  if (!source) return false;
+  return stage === "deployment";
 }
 
 export async function listSecretEnvironments(owner: SecretOwner) {
