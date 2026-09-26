@@ -5,6 +5,8 @@ description: "Register an Ubuntu host, verify its identity, and prepare it for d
 
 A server is a workspace-owned Ubuntu host. Towbar uses SSH to build and run workloads on it. Multiple Repositories can share the same server without duplicating credentials or competing server configurations.
 
+Follow [Register a server](/docs/servers/register) for SSH and host trust, [Prepare a server](/docs/servers/setup) for runtime prerequisites, and [Server operations](/docs/servers/operations) for checks, capacity, terminal access, and cleanup. [Scout Agent](/docs/scout) covers opt-in monitoring, and [Remove a server](/docs/servers/remove) explains the control-plane and host effects of removal.
+
 ## Requirements
 
 Use a dedicated Ubuntu 22.04 or 24.04 LTS host with root access or a user that has passwordless `sudo`. The worker must be able to reach its SSH port. Restrict access at the network layer and keep the operating system maintained.

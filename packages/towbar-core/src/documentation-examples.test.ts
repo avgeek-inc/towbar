@@ -54,7 +54,7 @@ void test("published YAML examples match the v2 repository parser", () => {
             server: "192.0.2.10",
             environments: { production: {} },
             ...value,
-            ...(kind === "resource" ? { type: "postgres" } : {}),
+            ...(kind === "resource" && !value.type ? { type: "postgres" } : {}),
             ...(kind === "compose"
               ? { file: "compose.yml", services: {} }
               : {}),

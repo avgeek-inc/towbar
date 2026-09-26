@@ -7,9 +7,25 @@ Towbar uses one GitHub App per installation. The App identity and secrets live i
 
 ## Create and configure the App
 
-Create a GitHub App with repository Contents and Metadata read access. Grant Pull requests and Deployments read and write access when using Preview deployments. Subscribe to `push`, `pull_request`, and `installation` events.
+1. Open [GitHub's new App form](https://github.com/settings/apps/new). Give the App a unique name and a homepage URL. After registration, GitHub shows its App ID on **General**. Copy that ID and the App's slug for the Towbar configuration.
 
-Set the webhook URL to `https://towbar.example.com/v1/public/webhooks/github` and the setup URL to `https://towbar.example.com/manage/integrations/github`, using your `installation.appUrl` origin, with redirect enabled. Generate a private key, then add this to `/etc/towbar/towbar.yml`:
+   ![GitHub App General settings after registering a temporary example App, including the App ID.](/assets/guides/github-app/register.webp)
+
+2. Set **Setup URL** to `https://towbar.example.com/manage/integrations/github` and enable **Redirect on update**. Keep the webhook active, set **Webhook URL** to `https://towbar.example.com/v1/public/webhooks/github`, and leave SSL verification enabled. Replace `towbar.example.com` in both URLs with your `installation.appUrl` origin. Generate a webhook secret and enter the same value in GitHub and Towbar. The example screenshot leaves the secret field empty so no secret appears in the guide.
+
+   ![GitHub App post-installation and webhook URL settings using example Towbar URLs.](/assets/guides/github-app/webhook.webp)
+
+3. Under **Repository permissions**, grant **Contents** read-only access. **Metadata** read-only access is mandatory. For Preview deployments, grant **Pull requests** and **Deployments** read and write access. Choose **Only on this account** unless you intend other accounts to install your App.
+
+   ![Selecting read and write access for the Pull requests repository permission.](/assets/guides/github-app/permissions.webp)
+
+4. Under **Subscribe to events**, select **Push** and **Pull request**. GitHub sends `installation` and `installation_repositories` events to GitHub Apps automatically; they do not appear as selectable events. [GitHub documents this behavior](https://docs.github.com/en/webhooks/webhook-events-and-payloads#installation).
+
+   ![Selecting the Push and Pull request webhook events in GitHub App settings.](/assets/guides/github-app/events.webp)
+
+5. On **General**, generate a private key. GitHub downloads a PEM file. Keep it outside the repository, encode it as a single-line Base64 value, and add the App details to `/etc/towbar/towbar.yml`:
+
+   ![Generate a private key action in GitHub App General settings.](/assets/guides/github-app/private-key.webp)
 
 ```yaml title="/etc/towbar/towbar.yml"
 integrations:

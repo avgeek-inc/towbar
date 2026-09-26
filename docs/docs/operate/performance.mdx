@@ -1,0 +1,22 @@
+---
+title: "Performance history"
+description: "Read Scout charts, compare usage with limits, and investigate missing measurements."
+---
+
+Open a server, app, or resource and choose **Monitor → Performance**. Scout Agent reports host and container measurements every 30 seconds when enabled. Select a time range and, for workloads, an environment and container. The URL keeps chart filters so another operator can inspect the same view.
+
+## Read a chart
+
+CPU and memory percentages compare observed use with the workload's declared resource limits. On the server list, CPU and memory columns instead show host capacity; a separate **% used** line appears when a Scout measurement is available. A missing sample is shown as a gap or **Not measured**, never as zero.
+
+Use deployment and restart markers to line up a change with its effect. Drag across a chart to zoom into a shorter period. Check the timestamp and timezone of a point before comparing it with deployment or incident history. A marker is a correlation aid, not proof that a deployment caused a change.
+
+## Compare releases
+
+For two deployment attempts, open [Deployment comparisons](/docs/deployment-comparisons). Towbar uses equal observation windows and reports data coverage alongside usage, peaks, and restarts. Low coverage makes a comparison inconclusive. Rollback changes the running image but does not undo database migrations or restore persistent files.
+
+## Diagnose gaps and retention
+
+The [Scout Agent](/docs/scout) page covers installation, reporting status, and server-specific retention. If data stops, inspect agent status, host connectivity, and the latest report before changing alert thresholds. Historical measurements follow the configured retention period; values outside it cannot be reconstructed from current state.
+
+For an outage, combine the graph with [server and workload health](/docs/operate/health), [incident details](/docs/operate/incidents), and the relevant operation logs.

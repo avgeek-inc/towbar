@@ -1,12 +1,9 @@
 ---
-title: "S3 compatible and Cloudflare R2"
-description: "Configure generic S3-compatible storage or Cloudflare R2 for backups and restores."
+title: "S3-compatible storage"
+description: "Configure an S3-compatible endpoint for managed database backups and restores."
 ---
 
-Towbar provides separate `s3` and `r2` integration slugs with the same field
-model. Use `s3` for another S3-compatible service and `r2` for Cloudflare R2.
-
-## S3-compatible storage
+Use the `s3` integration for an S3-compatible object store other than AWS S3 or Cloudflare R2. Create a bucket and credentials scoped to the intended objects, versions, and prefix. The endpoint must be reachable from the Towbar installation; keep credentials in the root-owned control-plane YAML file.
 
 ```yaml title="/etc/towbar/towbar.yml"
 integrations:
@@ -18,36 +15,35 @@ integrations:
     prefix: production
     addressingStyle: auto
     allowPrivateNetwork: false
-    accessKeyId: <access-key-id>
-    secretAccessKey: <secret-access-key>
+    accessKeyId: "<access-key-id>"
+    secretAccessKey: "<secret-access-key>"
 ```
 
-Set `integrations.s3.addressingStyle` to the mode required by the service. Keep
-private-network access disabled unless the endpoint intentionally resolves to a
-private address. A private CA can be supplied as Base64 through
-`integrations.s3.customCaBase64`.
+Set `addressingStyle` to `auto`, `path`, or `virtual` as required by the service. Enable private-network access only for an intentionally internal endpoint. A private CA can be supplied as Base64 through `customCaBase64` when using a custom endpoint. Run `sudo towbar config validate`, then `sudo towbar restart`. The provider appears under **Manage → Integrations → Backup providers** when the local shape is valid.
 
-## Cloudflare R2
+Configure a managed resource's [backup policy](/docs/backups), create a real backup, and complete a [fresh-target restore](/docs/restores). Check remote object permissions, versioning, retention, and the final restore state before relying on it for recovery. A configured chip alone does not prove the endpoint accepts writes or reads. Rotate keys by applying new YAML, verifying an operation, and then revoking the old keys. [Cloudflare R2](/docs/integrations/r2) has its own integration slug and setup guide.
 
-```yaml title="/etc/towbar/towbar.yml"
-integrations:
-  r2:
-    enabled: true
-    endpoint: https://<account-id>.r2.cloudflarestorage.com
-    region: auto
-    bucket: towbar-backups
-    prefix: production
-    addressingStyle: path
-    allowPrivateNetwork: false
-    accessKeyId: <access-key-id>
-    secretAccessKey: <secret-access-key>
-```
-
-Run `sudo towbar config validate`, then `sudo towbar restart`. The corresponding
-provider appears only when its enabled configuration is complete. Test a backup
-and restore with the intended prefix, retention, versioning, and encryption
-policy. Rotate keys by applying the new YAML values, verifying a real
-operation, and then revoking the old key.
-
-See [Database backups](/docs/backups) and the [runtime configuration
-guide](/docs/self-hosting/environment-variables#registries-storage-secrets-and-platform-services).
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/s3-setup-light.jpg"
+      alt="S3-compatible storage integration settings in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/s3-setup-dark.jpg"
+      alt="S3-compatible storage integration settings in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    The S3-compatible provider appears here after its runtime configuration
+    validates.
+  </p>
+</div>

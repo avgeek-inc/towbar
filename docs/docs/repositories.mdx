@@ -3,11 +3,13 @@ title: "Repositories"
 description: "Connect a repository and keep its deployable inventory in sync with Git."
 ---
 
-A Repository connects a GitHub repository to Towbar. Its `towbar.yml` declares environments, and files under `.towbar/apps` and `.towbar/resources` define workloads. Each connected environment follows a branch selected in Towbar.
+A Repository connects a GitHub repository or GitLab project to Towbar. Its `towbar.yml` declares environments, and files under `.towbar/apps` and `.towbar/resources` define workloads. Each connected environment follows a branch selected in Towbar.
+
+Start with [connecting a repository](/docs/repositories/connect), then learn how to [map environment branches](/docs/repositories/environments), [review syncs and automation](/docs/repositories/sync), and [delete a repository](/docs/repositories/delete). The [manifest guide](/docs/deployment-manifest) explains the Git files shared by apps and resources.
 
 ## Add a Repository
 
-1. [Connect the GitHub App](/docs/integrations/github) and grant access to the repository.
+1. Configure the [GitHub](/docs/integrations/github) or [GitLab](/docs/integrations/gitlab) integration and grant it access to the repository or project.
 2. Register each target IP address under [Servers](/docs/servers).
 3. Commit a valid [manifest](/docs/deployment-manifest) to the repository.
 4. Open **Repositories → Add repository**, select the repository, then choose or add environments and map their deployment branches.
@@ -15,7 +17,7 @@ A Repository connects a GitHub repository to Towbar. Its `towbar.yml` declares e
 
 Manifest validation is atomic. Invalid configuration or a reference to an unregistered server fails the sync without partially changing inventory.
 
-Search the branch picker by name when mapping an environment. It includes all branches available to the connected GitHub App, including branches beyond the first page of results.
+Search the branch picker by name when mapping an environment. It includes available branches beyond the first page of results.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
@@ -91,7 +93,7 @@ Manual deployment is still a separate action. See [Deployments and releases](/do
 
 Use **Settings → Notifications** to choose destinations and event categories. Reusable secret values belong under **Manage → Shared secrets**, while workload values belong to each App or Resource. SSH and Cloudflare credentials belong to the workspace server rather than the Repository.
 
-If a repository is missing or a webhook stops arriving, start with [GitHub troubleshooting](/docs/integrations/github#maintain-the-connection).
+If a repository is missing or a webhook stops arriving, review the relevant [GitHub](/docs/integrations/github#maintain-the-connection) or [GitLab](/docs/integrations/gitlab) integration and its repository access.
 
 ## Delete a repository
 

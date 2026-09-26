@@ -4,6 +4,7 @@ import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import prettier from "prettier";
 
 const repository = fileURLToPath(new URL("../", import.meta.url));
 const manifestPath = path.join(repository, "tools/release-screenshots.json");
@@ -319,19 +320,42 @@ async function updateDocumentDimensions(manifest) {
 
 await validateFixture();
 const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+const selectedNames = new Set(process.argv.slice(2));
+const screenshots = selectedNames.size
+  ? manifest.screenshots.filter((item) => selectedNames.has(item.name))
+  : manifest.screenshots;
+if (selectedNames.size && selectedNames.size !== screenshots.length) {
+  const missing = [...selectedNames].filter(
+    (name) => !screenshots.some((item) => item.name === name),
+  );
+  throw new Error(`Unknown screenshot names: ${missing.join(", ")}`);
+}
 for (const theme of ["light", "dark"]) {
   const browser = await startBrowser(theme);
   try {
-    for (const screenshot of manifest.screenshots)
+    for (const screenshot of screenshots)
       await capture(browser, screenshot, theme);
   } finally {
     await browser.close();
   }
 }
-manifest.capturedAt = new Date().toISOString();
+const capturedAt = new Date().toISOString();
+if (selectedNames.size)
+  screenshots.forEach((screenshot) => {
+    screenshot.capturedAt = capturedAt;
+  });
+else {
+  manifest.capturedAt = capturedAt;
+  manifest.screenshots.forEach((screenshot) => {
+    delete screenshot.capturedAt;
+  });
+}
 manifest.environment =
   "Local Towbar fixture on localhost:4021; examples are not production results";
 manifest.viewport =
   "1280 × 720 CSS pixels rendered at 2× density (2560 × 1440); every image is limited to the visible viewport";
-await updateDocumentDimensions(manifest);
-await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+await updateDocumentDimensions({ screenshots });
+await writeFile(
+  manifestPath,
+  await prettier.format(JSON.stringify(manifest), { filepath: manifestPath }),
+);

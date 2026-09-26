@@ -1,0 +1,45 @@
+---
+title: "Connect a repository"
+description: "Grant source-control access, map branches, and import your first workloads."
+---
+
+A Repository is a connection to one GitHub or GitLab project. Towbar reads its configuration from Git; connecting it does not deploy anything.
+
+## Before you connect
+
+1. Configure the [GitHub](/docs/integrations/github) or [GitLab](/docs/integrations/gitlab) integration and grant it access to the project.
+2. Register every target IP named by the manifest under [Servers](/docs/servers). A server can be prepared later, but it must exist before the first sync.
+3. Commit `towbar.yml` and at least one entity file on the branch you plan to map. Start with the [manifest guide](/docs/deployment-manifest).
+
+For example, the root file declares environment names, while the app file declares a workload:
+
+```yaml title="towbar.yml"
+version: 2
+environments:
+  production: {}
+  staging: {}
+```
+
+```yaml title=".towbar/apps/web.app.yml"
+id: web
+name: Web
+deployment:
+  type: dockerfile
+  dockerfile: Dockerfile
+  context: .
+container:
+  port: 3000
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+Replace the example IP with a registered server. The entity's `id` is its durable identity; `name` is a display label.
+
+## Connect in Towbar
+
+Open **Repositories → Add repository**. Select the provider and project, choose the environments to import, and map each one to a branch. Towbar suggests environments from the default branch when it can read its configuration. You can add another environment name and map it to a branch that contains that environment in `towbar.yml`.
+
+Review the first sync before deploying. A failed sync leaves existing inventory unchanged. Fix the files in Git and [sync again](/docs/repositories/sync); Towbar does not keep a second, editable copy of the workload definition.
+
+Next: [manage environment branches](/docs/repositories/environments) or [prepare a server](/docs/servers/setup).

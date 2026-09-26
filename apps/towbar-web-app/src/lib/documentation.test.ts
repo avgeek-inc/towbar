@@ -19,7 +19,9 @@ void test("detail routes keep help scoped to the feature being viewed", () => {
     ["/manage/integrations/telegram", "telegram"],
     ["/manage/integrations/gitlab", "gitlab"],
     ["/manage/integrations/registry", "registry"],
-    ["/manage/integrations/infisical", "externalSecrets"],
+    ["/manage/integrations/infisical", "infisical"],
+    ["/manage/integrations/doppler", "doppler"],
+    ["/manage/integrations/r2", "r2"],
     ["/manage/integrations/cloudflare", "cloudflare"],
     ["/settings/email-password", "emailPassword"],
     ["/settings/2fa", "security"],
@@ -58,12 +60,12 @@ void test("reused widget titles resolve to the correct feature documentation", (
     [
       "/manage/integrations/email",
       "Configuration",
-      "/integrations/notifications#configure-email",
+      "/integrations/notifications/email",
     ],
     [
       "/manage/integrations/slack",
       "Credentials",
-      "/integrations/notifications#configure-slack",
+      "/integrations/notifications/slack",
     ],
     [
       "/repositories/repo/settings/danger",

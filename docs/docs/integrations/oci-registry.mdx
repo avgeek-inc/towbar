@@ -7,6 +7,8 @@ Towbar uses one installation-wide OCI Registry V2 identity. It can authenticate
 private prebuilt-image deployments and transfer an image from a dedicated build
 server to a runtime server without changing the image digest.
 
+Create a registry account or access token with pull access to the image repositories Towbar runs. Add push access only when a dedicated build server will transfer images through the registry. Record the registry host without `https://` or a path; an optional port is allowed.
+
 Add this to `/etc/towbar/towbar.yml`:
 
 ```yaml title="/etc/towbar/towbar.yml"
@@ -60,5 +62,32 @@ Grant only the pull and push permissions needed for the intended repositories.
 After rotating the token, validate and restart Towbar, deploy one private image,
 and revoke the previous credential only after both resolution and pull succeed.
 
+If validation succeeds but a deployment fails, check the image path and tag, repository permissions, registry challenge response, HTTPS certificate, and whether Towbar is allowed to reach a private-network host. A configured integration proves only local credential shape. A deployment resolves and pulls the actual image, or pushes and pulls it when registry transfer is selected.
+
 See [Prebuilt images and build servers](/docs/platform-deployments#prebuilt-images)
 and the [runtime configuration guide](/docs/self-hosting/environment-variables#registries-storage-secrets-and-platform-services).
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/registry-setup-light.jpg"
+      alt="OCI registry integration settings in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/registry-setup-dark.jpg"
+      alt="OCI registry integration settings in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    The registry page shows the configured runtime provider before an image or
+    build transfer uses it.
+  </p>
+</div>

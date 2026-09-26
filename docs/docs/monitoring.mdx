@@ -5,6 +5,8 @@ description: "Read control-plane checks, runtime health, resource usage, and ope
 
 Towbar exposes several kinds of health. Read the relevant check and its timestamp before deciding whether an installation or workload is ready.
 
+Start with [Operate Towbar](/docs/operate/index) for an investigation path. Use [System and workload health](/docs/operate/health) for fresh checks, [Performance history](/docs/operate/performance) for Scout measurements, and [Investigate incidents](/docs/operate/incidents) for alert context and delivery outcomes.
+
 ## Navigate monitoring
 
 The workspace **Monitor** section contains **Incidents** and **Vulnerabilities**. On Incidents, choose **Active** or **Resolved**, then optionally filter by severity. On mobile, open **Page menu** for these controls.
@@ -101,6 +103,6 @@ sudo towbar logs api worker temporal
 
 Configure [notifications](/docs/integrations/notifications) for events that need attention. Use [Troubleshooting](/docs/troubleshooting) to narrow down common symptoms.
 
-## Scout Agent monitoring agent
+## Scout Agent
 
 [Scout Agent](/docs/scout) adds continuous performance history for servers, apps, and resources. Install it from **Server → Settings → Scout Agent** to receive updates every 30 seconds and keep up to 60 days of history. Read the [Scout Agent guide](/docs/scout) for installation, charts, retention, and troubleshooting.

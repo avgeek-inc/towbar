@@ -1,0 +1,52 @@
+---
+title: "Cloudflare R2"
+description: "Configure R2 object storage for managed database backups and restores."
+---
+
+Create an R2 bucket and access-key pair with permissions for the objects and prefix Towbar will manage. Use the account's R2 S3 API endpoint, not a public bucket URL. The credentials stay in `/etc/towbar/towbar.yml`; resource manifests choose the backup destination and policy.
+
+```yaml title="/etc/towbar/towbar.yml"
+integrations:
+  r2:
+    enabled: true
+    endpoint: https://<account-id>.r2.cloudflarestorage.com
+    region: auto
+    bucket: towbar-backups
+    prefix: production
+    addressingStyle: path
+    allowPrivateNetwork: false
+    accessKeyId: "<access-key-id>"
+    secretAccessKey: "<secret-access-key>"
+```
+
+Run `sudo towbar config validate` and `sudo towbar restart`. R2 appears under **Manage → Integrations → Backup providers** after the local shape validates. Keep `allowPrivateNetwork` disabled for the public R2 endpoint.
+
+## Prove recovery, not just upload
+
+Configure a managed resource's [backup policy](/docs/backups) to use R2. Create a backup, inspect its recorded object and verification state, then perform a [fresh-target restore](/docs/restores). Confirm the bucket's lifecycle and retention settings do not delete objects before Towbar's recovery window ends. A configured chip does not prove remote permissions or restore readiness.
+
+For failures, check the account endpoint, key scope, bucket, prefix, addressing style, and object availability. Rotate access keys in YAML, restart and verify a new backup and restore path, then revoke the old key. [S3-compatible storage](/docs/integrations/s3-compatible) uses a separate integration slug and endpoint.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/r2-setup-light.jpg"
+      alt="Cloudflare R2 integration settings in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/r2-setup-dark.jpg"
+      alt="Cloudflare R2 integration settings in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    The R2 page shows the configured backup provider before a workload uses it.
+  </p>
+</div>

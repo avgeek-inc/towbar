@@ -1,0 +1,63 @@
+---
+title: "Infisical"
+description: "Use a scoped Infisical machine identity to resolve deployment secrets."
+---
+
+Towbar can resolve app, resource, and Compose secret references from Infisical when a deployment runs. The machine identity credentials stay in `/etc/towbar/towbar.yml`; the manifest contains only the path or name of the secret to fetch.
+
+## Prepare access
+
+Create a machine identity in Infisical, grant it access only to the projects, environments, paths, and secret versions your workloads need, and create a client ID and secret for that identity. For a self-hosted Infisical installation, use its HTTPS base URL. Enable `allowPrivateNetwork` only if that installation intentionally resolves to an internal address reachable from Towbar.
+
+```yaml title="/etc/towbar/towbar.yml"
+integrations:
+  infisical:
+    enabled: true
+    baseUrl: https://app.infisical.com
+    allowPrivateNetwork: false
+    clientId: "<machine-identity-client-id>"
+    clientSecret: "<machine-identity-client-secret>"
+```
+
+Run `sudo towbar config validate` and `sudo towbar restart`. Confirm that Infisical appears under **Manage → Integrations → External secrets**. This proves the local configuration is valid; a deployment that references a test secret verifies the remote permissions.
+
+## Reference a secret
+
+Declare the environment variable name as a key and the provider-specific secret location as a reference:
+
+```yaml title=".towbar/apps/api.app.yml"
+externalSecrets:
+  API_TOKEN:
+    integration: infisical
+    secret: /production/api-token
+    use: runtime
+```
+
+The effective project and environment access comes from the configured machine identity. Runtime references are available to apps, resources, and Compose projects. Dockerfile and static apps can also use build-stage references through their protected build path; other builders reject build secrets. See [Secrets](/docs/secrets#external-secret-providers) for reference fields and value precedence.
+
+If resolution fails, check the deployment's secret stage, path, identity permissions, network reachability, and secret version. Rotate the client secret in YAML, restart Towbar, and deploy a test reference before revoking the old credential.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/infisical-setup-light.jpg"
+      alt="Infisical integration settings in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/infisical-setup-dark.jpg"
+      alt="Infisical integration settings in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    The Infisical page confirms that Towbar loaded the runtime configuration;
+    test a reference to verify remote access.
+  </p>
+</div>

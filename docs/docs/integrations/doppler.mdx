@@ -1,0 +1,52 @@
+---
+title: "Doppler"
+description: "Resolve workload secrets with a scoped Doppler service token."
+---
+
+Use a Doppler service token for the project and configuration that Towbar workloads need. The token belongs in the protected control-plane YAML file, not in a repository or workload manifest. Towbar resolves references during deployment and does not return secret values to the dashboard.
+
+```yaml title="/etc/towbar/towbar.yml"
+integrations:
+  doppler:
+    enabled: true
+    token: "<service-token>"
+```
+
+Run `sudo towbar config validate` and `sudo towbar restart`. Confirm that Doppler appears under **Manage → Integrations → External secrets**. A configured status does not test token access to a particular secret; deploy a non-production workload that references one.
+
+```yaml title=".towbar/apps/api.app.yml"
+externalSecrets:
+  API_TOKEN:
+    integration: doppler
+    secret: API_TOKEN
+    use: runtime
+```
+
+The map key is the variable exposed to the workload. The `secret` field names the value in the token's scoped Doppler configuration. Apps, resources, and Compose projects can use runtime references. Build references are limited to Dockerfile and static apps; other builders reject them. See [Secrets](/docs/secrets#external-secret-providers) for optional fields and failure behavior.
+
+If a deployment cannot resolve a reference, check its secret stage, the name and project/configuration covered by the token, and whether the token was revoked. Apply a replacement service token in YAML, restart, verify a test deployment, and then revoke the previous token.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/doppler-setup-light.jpg"
+      alt="Doppler integration settings in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/doppler-setup-dark.jpg"
+      alt="Doppler integration settings in Towbar."
+      width="2560"
+      height="1440"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    The Doppler page confirms that Towbar loaded the runtime configuration; test
+    a reference to verify remote access.
+  </p>
+</div>
